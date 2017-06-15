@@ -1,0 +1,1 @@
+stores visualization files produced by `run_model.lua` when `-output_vis 1` is used (default).

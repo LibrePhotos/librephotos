@@ -1,0 +1,5 @@
+outputs/*.json
+inputs/*.jpg
+.env/
+ssl/
+server.pem
