@@ -1,8 +1,7 @@
 from datetime import datetime
 import PIL
-import face_recognition
 from django.db import models
-import face_recognition
+# import face_recognition
 import hashlib
 import ownphotos.settings
 import albums.util as util
@@ -10,6 +9,7 @@ import exifread
 import base64
 import numpy as np
 import ipdb
+import os
 
 from io import BytesIO
 from django.core.files.base import ContentFile
@@ -36,7 +36,7 @@ class Photo(models.Model):
 #         self.thumbnail = image
         image_io = BytesIO()
         image.save(image_io,format="JPEG")
-        self.thumbnail.save(self.image_hash, ContentFile(image_io.getvalue()))
+        self.thumbnail.save(os.path.join(ownphotos.settings.THUMBNAIL_PATH,self.image_hash), ContentFile(image_io.getvalue()))
         image_io.close()
 
 
