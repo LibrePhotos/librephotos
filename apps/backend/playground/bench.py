@@ -19,14 +19,14 @@ from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 
 
-images_path = '../samplephotos'
+images_path = '../data/samplephotos'
 image_paths = [os.path.abspath(os.path.join(images_path,p)) for p in os.listdir(images_path)]
 
-thumbnails_path = '../thumbnails'
+thumbnails_path = '../data/thumbnails'
 if not os.path.isdir(thumbnails_path):
     os.mkdir(thumbnails_path)
 
-THUMBNAIL_SIZE = (256,256)
+THUMBNAIL_SIZE = (1024,1024)
 
 def generate_thumbnail(fname_in,fname_out,thumbnails_path):
     image = PIL.Image.open(fname_in)
@@ -65,11 +65,11 @@ def extract_faces(fname):
     image = face_recognition.load_image_file(fname)
     face_encodings = face_recognition.face_encodings(image)
     face_locations = face_recognition.face_locations(image)
-#     if len(face_locations) > 0:
-#         for face_location in face_locations:
-#             top,right,bottom,left = face_location
-#             face_image = image[top:bottom, left:right]
-#             pil_image = PIL.Image.fromarray(face_image)
+    if len(face_locations) > 0:
+        for face_location in face_locations:
+            top,right,bottom,left = face_location
+            face_image = image[top:bottom, left:right]
+            pil_image = PIL.Image.fromarray(face_image)
     return {'encodings':face_encodings, 'locations':face_locations}
 
 
@@ -83,7 +83,7 @@ for image_path in tqdm(image_paths):
     metadata['img_path'] = image_path
     metadata['thumbnail_path'] = thumbnail_path
     metadata['exif'] = extract_exif(image_path)
-#     metadata['faces'] = extract_faces(thumbnail_path)
+    metadata['faces'] = extract_faces(thumbnail_path)
 
     hash2metadata[image_hash] = metadata
 
@@ -98,7 +98,6 @@ for key,value in hash2metadata.items():
 
 
 
-'''
 faces_all = []
 for key,value in hash2metadata.items():
     if len(value['faces']['encodings']) > 0:
@@ -123,4 +122,3 @@ plt.show()
 clusters = fcluster(Z,2,criterion='maxclust')
 plt.scatter(vis.T[0],vis.T[1],marker='o',s=10,c=clusters)
 plt.show()
-'''
