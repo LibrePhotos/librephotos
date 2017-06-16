@@ -1,1 +1,4 @@
 densecap/data/models/densecap/densecap-pretrained-vgg16.t7
+*/*.pkl
+thumbnails
+samplephotos
