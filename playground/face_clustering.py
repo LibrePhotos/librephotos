@@ -22,29 +22,7 @@ face_encodings_unknown = []
 face_encodings_known = []
 
 for face in faces:
-    face_encoding = np.frombuffer(base64.b64decode(face.encoding),dtype=np.float64)
-    face_image = face.image.read()
-    face_image_path = face.image_path
-    face_id = face.id
-    person_id = face.person.id
-    if face.person.name == 'unknown':
-        face_encodings_unknown.append(face_encoding)
-        id2face_unknown[face_id] = {}
-        id2face_unknown[face_id]['encoding'] = face_encoding
-        id2face_unknown[face_id]['image'] = face_image
-        id2face_unknown[face_id]['image_path'] = face_image_path
-        id2face_unknown[face_id]['person_id'] = person_id
-    else:
-        face_encodings_known.append(face_encoding)
-        id2face_known[face_id] = {}
-        id2face_known[face_id]['encoding'] = face_encoding
-        id2face_known[face_id]['image'] = face_image
-        id2face_known[face_id]['image_path'] = face_image_path
-        id2face_known[face_id]['person_id'] = person_id
-
-
-for face in faces:
-    if face.person.name == 'unknown':
+    if not face.person: 
         persons = Person.objects.all()
         print("Who is this person? %s\nType 'new' if this person is not on the following list. \nHit enter to skip."%face.image_path)
         person_ids = [str(person.id) for person in persons]
@@ -56,6 +34,7 @@ for face in faces:
             new_person = Person(name=new_person_name)
             new_person.save()
             face.person = new_person
+            face.person_label_is_inferred = False
             face.save()
 
         if str(choice) in person_ids:
@@ -63,6 +42,26 @@ for face in faces:
             face.person = this_person
             face.save()
 
+
+for face in faces:
+    face_encoding = np.frombuffer(base64.b64decode(face.encoding),dtype=np.float64)
+    face_image = face.image.read()
+    face_image_path = face.image_path
+    face_id = face.id
+    if not face.person:
+        face_encodings_unknown.append(face_encoding)
+        id2face_unknown[face_id] = {}
+        id2face_unknown[face_id]['encoding'] = face_encoding
+        id2face_unknown[face_id]['image'] = face_image
+        id2face_unknown[face_id]['image_path'] = face_image_path
+    else:
+        person_id = face.person.id
+        face_encodings_known.append(face_encoding)
+        id2face_known[face_id] = {}
+        id2face_known[face_id]['encoding'] = face_encoding
+        id2face_known[face_id]['image'] = face_image
+        id2face_known[face_id]['image_path'] = face_image_path
+        id2face_known[face_id]['person_id'] = person_id
 
 
 

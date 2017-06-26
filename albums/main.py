@@ -6,8 +6,6 @@ image_dir = '/mnt/ext/code/ownphotos/data/samplephotos'
 
 image_paths = os.listdir(image_dir)
 
-unknown_person = Person(name='unknown')
-unknown_person.save()
 
 for image_path in image_paths:
     img_abs_path = os.path.abspath(os.path.join(image_dir,image_path))
@@ -18,10 +16,10 @@ for image_path in image_paths:
     photo.save()
     photo._extract_faces()
 
-photos = Photo.objects.all()
-for photo in photos:
-    print(photo.image_hash)
-    faces = photo.face_set.all()
-    print(photo.face_set.all())
+# photos = Photo.objects.all()
+# for photo in photos:
+#     print(photo.image_hash)
+#     faces = photo.face_set.all()
+#     print(photo.face_set.all())
 
 
