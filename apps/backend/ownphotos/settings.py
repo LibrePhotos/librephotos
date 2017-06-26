@@ -121,4 +121,3 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 THUMBNAIL_SIZE = (512,512)
-THUMBNAIL_PATH = 'data/thumbnails/'

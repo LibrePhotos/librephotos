@@ -63,12 +63,12 @@ class Photo(models.Model):
 
     def _extract_faces(self):
 
-        qs_unknown_person = Person.objects.filter(name='unknown')
-        if len(qs_unknown_person) == 0:
-            unknown_person = Person(name='unknown')
-            unknown_person.save()
-        else:
-            unknown_person = qs_unknown_person[0]
+#         qs_unknown_person = Person.objects.filter(name='unknown')
+#         if len(qs_unknown_person) == 0:
+#             unknown_person = Person(name='unknown')
+#             unknown_person.save()
+#         else:
+#             unknown_person = qs_unknown_person[0]
 
         thumbnail = PIL.Image.open(self.thumbnail)
         thumbnail = np.array(thumbnail.convert('RGB'))
@@ -87,7 +87,7 @@ class Photo(models.Model):
 
                 face = Face()
                 face.image_path = self.image_hash+"_"+str(idx_face)
-                face.person = unknown_person
+#                 face.person = unknown_person
                 face.photo = self
                 face.location_top = face_location[0]
                 face.location_right = face_location[1]
@@ -119,7 +119,7 @@ class Face(models.Model):
     image = models.ImageField(upload_to='data/faces')
     image_path = models.FilePathField()
 
-    person = models.ForeignKey(Person)
+    person = models.ForeignKey(Person, null=True)
     person_label_is_inferred = models.NullBooleanField()
 
     location_top = models.IntegerField()
@@ -130,7 +130,10 @@ class Face(models.Model):
     encoding = models.TextField()
 
     def __str__(self):
-        return "%s %s"%(self.person.name,self.image_path)
+        if self.person:
+            return "%s %s"%(self.person.name,self.image_path)
+        else:
+            return "Unknown Person %s"%(self.image_path)
 
 
 
