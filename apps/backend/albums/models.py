@@ -1,7 +1,7 @@
 from datetime import datetime
 import PIL
 from django.db import models
-# import face_recognition
+import face_recognition
 import hashlib
 import ownphotos.settings
 import albums.util as util
@@ -16,7 +16,7 @@ from django.core.files.base import ContentFile
 
 class Photo(models.Model):
     image_path = models.FilePathField()
-    thumbnail = models.ImageField(upload_to='thumbnails')
+    thumbnail = models.ImageField(upload_to='data/thumbnails')
     image_hash = models.CharField(primary_key=True,max_length=32,null=False)
 
     exif_gps_lat = models.FloatField(blank=True, null=True)
@@ -36,7 +36,7 @@ class Photo(models.Model):
 #         self.thumbnail = image
         image_io = BytesIO()
         image.save(image_io,format="JPEG")
-        self.thumbnail.save(os.path.join(ownphotos.settings.THUMBNAIL_PATH,self.image_hash), ContentFile(image_io.getvalue()))
+        self.thumbnail.save(self.image_hash, ContentFile(image_io.getvalue()))
         image_io.close()
 
 
@@ -62,6 +62,14 @@ class Photo(models.Model):
                 self.exif_gps_lat = None
 
     def _extract_faces(self):
+
+        qs_unknown_person = Person.objects.filter(name='unknown')
+        if len(qs_unknown_person) == 0:
+            unknown_person = Person(name='unknown')
+            unknown_person.save()
+        else:
+            unknown_person = qs_unknown_person[0]
+
         thumbnail = PIL.Image.open(self.thumbnail)
         thumbnail = np.array(thumbnail.convert('RGB'))
 
@@ -78,6 +86,8 @@ class Photo(models.Model):
                 face_image = PIL.Image.fromarray(face_image)
 
                 face = Face()
+                face.image_path = self.image_hash+"_"+str(idx_face)
+                face.person = unknown_person
                 face.photo = self
                 face.location_top = face_location[0]
                 face.location_right = face_location[1]
@@ -87,10 +97,9 @@ class Photo(models.Model):
 
                 face_io = BytesIO()
                 face_image.save(face_io,format="JPEG")
-                face.image.save(self.image_hash+str(idx_face), ContentFile(face_io.getvalue()))
+                face.image.save(face.image_path, ContentFile(face_io.getvalue()))
                 face_io.close()
-
-
+                face.save()
 
 #                 face = {}
 #                 face['location'] = face_location
@@ -98,13 +107,20 @@ class Photo(models.Model):
 #                 face['face_img'] = face_image
 # 
 #                 faces.append(face)
+
 class Person(models.Model):
-    name = models.CharField(blank=True,max_length=128)
+    name = models.CharField(blank=False,max_length=128)
+
+    def __str__(self):
+        return self.name
 
 class Face(models.Model):
     photo = models.ForeignKey(Photo, blank=False, null=False)
-    image = models.ImageField(blank=True, null=True)
+    image = models.ImageField(upload_to='data/faces')
+    image_path = models.FilePathField()
 
+    person = models.ForeignKey(Person)
+    person_label_is_inferred = models.NullBooleanField()
 
     location_top = models.IntegerField()
     location_bottom = models.IntegerField()
@@ -112,6 +128,9 @@ class Face(models.Model):
     location_right = models.IntegerField()
 
     encoding = models.TextField()
+
+    def __str__(self):
+        return "%s %s"%(self.person.name,self.image_path)
 
 
 
