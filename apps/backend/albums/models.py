@@ -14,10 +14,29 @@ import os
 from io import BytesIO
 from django.core.files.base import ContentFile
 
+class AlbumAuto(models.Model):
+    title = models.CharField(blank=True,null=True,max_length=512)
+    timestamp = models.DateTimeField(unique=True)
+    created_on = models.DateTimeField(auto_now=True)
+    gps_lat = models.FloatField(blank=True,null=True)
+    gps_lon = models.FloatField(blank=True,null=True)
+
+
+class AlbumUser(models.Model):
+    title = models.CharField(blank=True,null=True,max_length=512)
+    timestamp = models.DateTimeField(unique=True)
+    created_on = models.DateTimeField(auto_now=True)
+    gps_lat = models.FloatField(blank=True,null=True)
+    gps_lon = models.FloatField(blank=True,null=True)
+
+
 class Photo(models.Model):
     image_path = models.FilePathField()
     thumbnail = models.ImageField(upload_to='data/thumbnails')
     image_hash = models.CharField(primary_key=True,max_length=32,null=False)
+
+    album_auto = models.ManyToManyField(AlbumAuto)
+    album_user = models.ManyToManyField(AlbumUser)
 
     exif_gps_lat = models.FloatField(blank=True, null=True)
     exif_gps_lon = models.FloatField(blank=True, null=True)
@@ -52,12 +71,12 @@ class Photo(models.Model):
                 self.exif_timestamp = None
 
             if 'GPS GPSLongitude' in exif.keys():
-                self.exif_gps_lat = util.convert_to_degrees(exif['GPS GPSLongitude'].values)
+                self.exif_gps_lon = util.convert_to_degrees(exif['GPS GPSLongitude'].values)
             else:
-                self.exif_gps_lat = None
+                self.exif_gps_lon = None
 
             if 'GPS GPSLatitude' in exif.keys():
-                self.exif_gps_lat = util.convert_to_degrees(exif['GPS GPSLongitude'].values)
+                self.exif_gps_lat = util.convert_to_degrees(exif['GPS GPSLatitude'].values)
             else:
                 self.exif_gps_lat = None
 
