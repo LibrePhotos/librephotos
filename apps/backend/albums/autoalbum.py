@@ -9,16 +9,19 @@ import os
 import shutil
 import numpy as np
 
+import ipdb
+
 # go through all photos
 photos = Photo.objects.all()
 
 photos_with_timestamp = [(photo.exif_timestamp,photo) for photo in photos if photo.exif_timestamp]
 timestamps = [photo.exif_timestamp for photo in photos if photo.exif_timestamp]
 
+ipdb.set_trace()
 
 
 def group(photos_with_timestamp,dt=timedelta(days=1)):
-    photos_with_timestamp = sorted(photos_with_timestamp)
+    photos_with_timestamp = sorted(photos_with_timestamp, key=lambda x: x[0])
     groups = []
     for photo in photos_with_timestamp:
         if len(groups) == 0:
