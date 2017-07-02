@@ -65,7 +65,10 @@ class Photo(models.Model):
 
             if 'EXIF DateTimeOriginal' in exif.keys():
                 tst_str = exif['EXIF DateTimeOriginal'].values
-                tst_dt = datetime.strptime(tst_str,"%Y:%m:%d %H:%M:%S") 
+                try:
+                    tst_dt = datetime.strptime(tst_str,"%Y:%m:%d %H:%M:%S") 
+                except:
+                    tst_dt = datetime.strptime(tst_str,"%Y-%m-%d %H:%M:%S")                     
                 self.exif_timestamp = tst_dt
             else:
                 self.exif_timestamp = None
