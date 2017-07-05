@@ -37,7 +37,7 @@ class Photo(models.Model):
         image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE, PIL.Image.ANTIALIAS)
         image_io = BytesIO()
         image.save(image_io,format="JPEG")
-        self.thumbnail.save(self.image_hash, ContentFile(image_io.getvalue()))
+        self.thumbnail.save(self.image_hash+'.jpg', ContentFile(image_io.getvalue()))
         image_io.close()
 
 
@@ -89,7 +89,7 @@ class Photo(models.Model):
                 face_image = PIL.Image.fromarray(face_image)
 
                 face = Face()
-                face.image_path = self.image_hash+"_"+str(idx_face)
+                face.image_path = self.image_hash+"_"+str(idx_face)+'.jpg'
                 face.person = unknown_person
                 face.photo = self
                 face.location_top = face_location[0]
@@ -114,12 +114,15 @@ class Person(models.Model):
     def __str__(self):
         return "%d"%self.id
 
+def get_unknown_person():
+    return Person.objects.get_or_create(name='unknown')
+
 class Face(models.Model):
     photo = models.ForeignKey(Photo, related_name='faces', blank=False, null=False)
     image = models.ImageField(upload_to='faces')
     image_path = models.FilePathField()
     
-    person = models.ForeignKey(Person, related_name='faces')
+    person = models.ForeignKey(Person, on_delete=models.SET(get_unknown_person), related_name='faces')
     person_label_is_inferred = models.NullBooleanField()
 
     location_top = models.IntegerField()

@@ -1,5 +1,6 @@
 from api.models import Photo, AlbumAuto, AlbumUser, Face, Person
 from rest_framework import serializers
+import ipdb
 
 class PhotoSerializer(serializers.ModelSerializer):
     thumbnail_url = serializers.SerializerMethodField()
@@ -15,31 +16,76 @@ class PhotoSerializer(serializers.ModelSerializer):
     def get_thumbnail_url(self, obj):
         return obj.thumbnail.url
 
+class PersonSerializer(serializers.ModelSerializer):
+#     faces = FaceSerializer(many=True, read_only=False)
+#     faces = serializers.StringRelatedField(many=True)
+#     photos = serializers.SerializerMethodField()
+    class Meta:
+        model = Person
+        fields = ('name',
+#                   'photos',
+                  'id',)
+#                   'faces')
+#     def get_photos(self,obj):
+#         faces = obj.faces.all()
+#         res = []
+#         for face in faces:
+#             res.append(PhotoSerializer(face.photo).data)
+#         return res
+
 class FaceSerializer(serializers.ModelSerializer):
     face_url = serializers.SerializerMethodField()
-    photo = PhotoSerializer(many=False, read_only=True)
+#     photo = PhotoSerializer(many=False, read_only=True)
     # faces = serializers.StringRelatedField(many=True)
-    person = serializers.StringRelatedField(many=False)
+    person = PersonSerializer(many=False)
+#     person = serializers.HyperlinkedRelatedField(view_name='person-detail',read_only=True)
     class Meta:
         model = Face
         fields = ('id',
                   'face_url',
-                  'photo',
+                  'photo_id',
                   'person',
+                  'person_id',
                   'person_label_is_inferred')
     def get_face_url(self, obj):
         return obj.image.url
 
-class PersonSerializer(serializers.ModelSerializer):
-    faces = FaceSerializer(many=True, read_only=False)
-    # faces = serializers.StringRelatedField(many=True)
-    photos = PhotoSerializer(many=True, read_only=True)
+    def update(self, instance, validated_data):
+        name = validated_data.pop('person')['name']
+        p = Person.objects.filter(name=name)
+        if p.count() > 0:
+            instance.person = p[0]
+        else:
+            p = Person()
+            p.name = name
+            p.save()
+            instance.person = p
+        instance.person_label_is_inferred = False
+        instance.save()
+        return instance
+#         pass
+#         ipdb.set_trace()
+#         person_data = validated_data.pop('id')
+
+        
+
+class AlbumPersonSerializer(serializers.ModelSerializer):
+#     faces = FaceSerializer(many=True, read_only=False)
+#     faces = serializers.StringRelatedField(many=True)
+    photos = serializers.SerializerMethodField()
     class Meta:
         model = Person
         fields = ('name',
-                  'id',
-                  'faces',
-                  'photos')
+                  'photos',
+                  'id',)
+#                   'faces')
+    def get_photos(self,obj):
+        faces = obj.faces.all()
+        res = []
+        for face in faces:
+            res.append(PhotoSerializer(face.photo).data)
+        return res
+
 
 
 class AlbumAutoSerializer(serializers.ModelSerializer):
