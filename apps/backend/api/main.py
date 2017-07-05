@@ -3,7 +3,7 @@ from api.models import Person
 import os
 
 image_dir = '/home/hooram/Nextcloud/Photos/tuebingen/'
-
+image_dir = "/Users/hooram/ownCloud/Camera Uploads"
 image_paths = os.listdir(image_dir)
 
 
@@ -12,7 +12,7 @@ for image_path in image_paths:
         try:
             img_abs_path = os.path.abspath(os.path.join(image_dir,image_path))
             qs = Photo.objects.filter(image_path=img_abs_path)
-            if len(qs) < 1:
+            if qs.count() < 1:
                 photo = Photo(image_path=img_abs_path)
                 photo._generate_md5()
                 photo._generate_thumbnail()
