@@ -115,7 +115,7 @@ print("number of clusters: %d"%num_clusters)
 
 fig = plt.figure()
 plt.scatter(vis_all.T[0],vis_all.T[1])
-if vis_labelled:
+if vis_labelled is not None:
     for i,vis in enumerate(vis_labelled):
         plt.text(vis[0],vis[1], person_labels[i])
 fig.savefig('media/figs/scatter.png')
@@ -136,9 +136,20 @@ plt.grid()
 fig.savefig('media/figs/linkage.png')
 plt.close(fig)
 
-fig = plt.figure()
+fig = plt.figure(figsize=(5,5))
 clusters = fcluster(Z,num_clusters,criterion='maxclust')
 plt.scatter(vis_all.T[0],vis_all.T[1],marker='.',s=10,c=clusters)
+if vis_labelled is not None:
+    for i,vis in enumerate(vis_labelled):
+        plt.text(vis[0],vis[1], person_labels[i])
+# plt.xlim([-0.5,0.5])
+# plt.ylim([-0.2,0.5])
+plt.title('Face Clusters')
+plt.xlabel('PC1')
+plt.ylabel('PC2')
+plt.yticks([])
+plt.xticks([])
+plt.tight_layout()
 fig.savefig('media/figs/linkage_scatter.png')
 plt.close(fig)
 
