@@ -21,10 +21,13 @@ from rest_framework import routers
 from api import views
 
 router = routers.DefaultRouter()
+
+router.register(r'api/albums/auto', views.AlbumAutoViewSet)
+router.register(r'api/albums/person', views.AlbumPersonViewSet)
+router.register(r'api/persons', views.PersonViewSet)
 router.register(r'api/photos', views.PhotoViewSet)
 router.register(r'api/faces', views.FaceViewSet)
-router.register(r'api/albums', views.AlbumAutoViewSet)
-router.register(r'api/persons', views.PersonViewSet)
+
 
 urlpatterns = [
     url(r'^', include(router.urls)),
