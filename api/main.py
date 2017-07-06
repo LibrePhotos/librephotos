@@ -4,6 +4,7 @@ import os
 
 image_dir = '/home/hooram/Nextcloud/Photos/tuebingen/'
 image_dir = "/Users/hooram/ownCloud/Camera Uploads"
+image_dir = "/mnt/ext/code/ownphotos/data/samplephotos"
 image_paths = os.listdir(image_dir)
 
 
