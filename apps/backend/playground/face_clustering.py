@@ -1,5 +1,5 @@
-from albums.models import Face
-from albums.models import Person
+from api.models import Face
+from api.models import Person
 import numpy as np
 import base64
 
