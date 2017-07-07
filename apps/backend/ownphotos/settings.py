@@ -25,7 +25,7 @@ SECRET_KEY = '%-*stik4$&jw+%5d#_vv+bcoq#igg%lb4-3*8m(=1o^uku-js-'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['192.168.43.220','localhost']
 
 
 # Application definition
@@ -47,7 +47,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAdminUser',
     ],
-    'PAGE_SIZE': 10
+    'PAGE_SIZE': 20
 }
 
 

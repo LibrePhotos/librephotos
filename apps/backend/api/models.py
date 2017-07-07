@@ -1,5 +1,6 @@
 from datetime import datetime
 import PIL
+from PIL import ImageOps
 from django.db import models
 import face_recognition
 import hashlib
@@ -18,9 +19,12 @@ from django.core.files.base import ContentFile
 
 class Photo(models.Model):
     image_path = models.FilePathField()
-    thumbnail = models.ImageField(upload_to='thumbnails')
     image_hash = models.CharField(primary_key=True,max_length=32,null=False)
 
+    thumbnail = models.ImageField(upload_to='thumbnails')
+    square_thumbnail = models.ImageField(upload_to='square_thumbnails')
+    image = models.ImageField(upload_to='photos')
+    
     exif_gps_lat = models.FloatField(blank=True, null=True)
     exif_gps_lon = models.FloatField(blank=True, null=True)
     exif_timestamp = models.DateTimeField(blank=True,null=True)
@@ -38,6 +42,23 @@ class Photo(models.Model):
         image_io = BytesIO()
         image.save(image_io,format="JPEG")
         self.thumbnail.save(self.image_hash+'.jpg', ContentFile(image_io.getvalue()))
+        image_io.close()
+
+    def _generate_square_thumbnail(self):
+        image = PIL.Image.open(self.image_path)
+        image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE, PIL.Image.ANTIALIAS)
+        square_thumb = ImageOps.fit(image, ownphotos.settings.THUMBNAIL_SIZE, PIL.Image.ANTIALIAS)
+        image_io = BytesIO()
+        square_thumb.save(image_io,format="JPEG")
+        self.square_thumbnail.save(self.image_hash+'.jpg', ContentFile(image_io.getvalue()))
+        image_io.close()
+
+    def _save_image_to_db(self):
+        image = PIL.Image.open(self.image_path)
+        # image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE, PIL.Image.ANTIALIAS)
+        image_io = BytesIO()
+        image.save(image_io,format="JPEG")
+        self.image.save(self.image_hash+'.jpg', ContentFile(image_io.getvalue()))
         image_io.close()
 
 

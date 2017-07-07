@@ -1,10 +1,11 @@
 from api.models import Photo
 from api.models import Person
 import os
+import datetime
 
 image_dir = '/home/hooram/Nextcloud/Photos/tuebingen/'
-image_dir = "/Users/hooram/ownCloud/Camera Uploads"
-image_dir = "/mnt/ext/code/ownphotos/data/samplephotos"
+image_dir = "/Users/hooram/ownCloud/Photos/tuebingen"
+# image_dir = "/mnt/ext/code/ownphotos/data/samplephotos"
 image_paths = os.listdir(image_dir)
 
 
@@ -16,7 +17,22 @@ for image_path in image_paths:
             if qs.count() < 1:
                 photo = Photo(image_path=img_abs_path)
                 photo._generate_md5()
+                
+                start = datetime.datetime.now()
                 photo._generate_thumbnail()
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                print('thumbnail get', elapsed)
+
+                start = datetime.datetime.now()
+                photo._generate_square_thumbnail()
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                print('square thumbnail gen', elapsed)
+                
+                start = datetime.datetime.now()
+                photo._save_image_to_db()
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                print('image save', elapsed)
+
                 photo._extract_exif()
                 photo.save()
                 photo._extract_faces()
