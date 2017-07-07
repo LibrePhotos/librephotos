@@ -4,6 +4,10 @@ import ipdb
 
 class PhotoSerializer(serializers.ModelSerializer):
     thumbnail_url = serializers.SerializerMethodField()
+    thumbnail_height = serializers.SerializerMethodField()
+    thumbnail_width = serializers.SerializerMethodField()
+    square_thumbnail_url = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
     # persons = PersonSerializer(many=True, read_only=True)
     class Meta:
         model = Photo
@@ -11,10 +15,22 @@ class PhotoSerializer(serializers.ModelSerializer):
                   'exif_gps_lon',
                   'exif_timestamp',
                   'thumbnail_url',
+                  'thumbnail_height',
+                  'thumbnail_width',
+                  'square_thumbnail_url',
+                  'image_url',
                   'image_hash',
                   'image_path')
     def get_thumbnail_url(self, obj):
         return obj.thumbnail.url
+    def get_thumbnail_height(self, obj):
+        return obj.thumbnail.height
+    def get_thumbnail_width(self, obj):
+        return obj.thumbnail.width
+    def get_square_thumbnail_url(self, obj):
+        return obj.square_thumbnail.url
+    def get_image_url(self, obj):
+        return obj.image.url
 
 class PersonSerializer(serializers.ModelSerializer):
 #     faces = FaceSerializer(many=True, read_only=False)
