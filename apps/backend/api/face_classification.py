@@ -154,3 +154,26 @@ fig.savefig('media/figs/linkage_scatter.png')
 plt.close(fig)
 
 
+for face,cluster in zip(faces_all, clusters):
+    person_cluster = Person.objects.get_or_create(name='cluster_%d'%cluster,kind="CLUSTER",cluster_id=cluster)
+    face.person = person_cluster[0]
+    face.save()
+
+
+
+#calculat average face embedding for each person model object
+persons = Person.objects.all()
+for person in persons:
+    encodings = []
+    faces = person.faces.all()
+    for face in faces:
+        r = base64.b64decode(face.encoding)
+        encoding = np.frombuffer(r,dtype=np.float64)
+        encodings.append(encoding)
+    
+
+
+
+
+
+

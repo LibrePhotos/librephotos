@@ -11,11 +11,16 @@ import base64
 import numpy as np
 import ipdb
 import os
+import pytz
+import json
 
 from io import BytesIO
 from django.core.files.base import ContentFile
 
+from geopy.geocoders import Nominatim
 
+geolocator = Nominatim()
+default_tz = pytz.timezone('Asia/Seoul')
 
 class Photo(models.Model):
     image_path = models.FilePathField()
@@ -29,6 +34,8 @@ class Photo(models.Model):
     exif_gps_lon = models.FloatField(blank=True, null=True)
     exif_timestamp = models.DateTimeField(blank=True,null=True)
 
+    geolocation_json = models.TextField(blank=True,null=True)
+
     def _generate_md5(self):
         hash_md5 = hashlib.md5()
         with open(self.image_path, "rb") as f:
@@ -38,29 +45,26 @@ class Photo(models.Model):
 
     def _generate_thumbnail(self):
         image = PIL.Image.open(self.image_path)
+        # make aspect ration preserved thumbnail
         image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE, PIL.Image.ANTIALIAS)
-        image_io = BytesIO()
-        image.save(image_io,format="JPEG")
-        self.thumbnail.save(self.image_hash+'.jpg', ContentFile(image_io.getvalue()))
-        image_io.close()
-
-    def _generate_square_thumbnail(self):
-        image = PIL.Image.open(self.image_path)
-        image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE, PIL.Image.ANTIALIAS)
+        image_io_thumb = BytesIO()
+        image.save(image_io_thumb,format="JPEG")
+        self.thumbnail.save(self.image_hash+'.jpg', ContentFile(image_io_thumb.getvalue()))
+        image_io_thumb.close()
+        # make square thumbnail
         square_thumb = ImageOps.fit(image, ownphotos.settings.THUMBNAIL_SIZE, PIL.Image.ANTIALIAS)
-        image_io = BytesIO()
-        square_thumb.save(image_io,format="JPEG")
-        self.square_thumbnail.save(self.image_hash+'.jpg', ContentFile(image_io.getvalue()))
-        image_io.close()
+        image_io_square_thumb = BytesIO()
+        square_thumb.save(image_io_square_thumb,format="JPEG")
+        self.square_thumbnail.save(self.image_hash+'.jpg', ContentFile(image_io_square_thumb.getvalue()))
+        image_io_square_thumb.close()
 
     def _save_image_to_db(self):
         image = PIL.Image.open(self.image_path)
-        # image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE, PIL.Image.ANTIALIAS)
+        image.thumbnail(ownphotos.settings.FULLPHOTO_SIZE, PIL.Image.ANTIALIAS)
         image_io = BytesIO()
         image.save(image_io,format="JPEG")
         self.image.save(self.image_hash+'.jpg', ContentFile(image_io.getvalue()))
         image_io.close()
-
 
     def _extract_exif(self):
         with open(self.image_path,'rb') as fimg:
@@ -72,7 +76,9 @@ class Photo(models.Model):
                     tst_dt = datetime.strptime(tst_str,"%Y:%m:%d %H:%M:%S") 
                 except:
                     tst_dt = datetime.strptime(tst_str,"%Y-%m-%d %H:%M:%S")                     
-                self.exif_timestamp = tst_dt
+                # ipdb.set_trace()
+                self.exif_timestamp = tst_dt.astimezone(default_tz)
+
             else:
                 self.exif_timestamp = None
 
@@ -85,6 +91,17 @@ class Photo(models.Model):
                 self.exif_gps_lat = util.convert_to_degrees(exif['GPS GPSLatitude'].values)
             else:
                 self.exif_gps_lat = None
+
+    def _geolocate(self):
+        if not (self.exif_gps_lat and self.exif_gps_lon):
+            self._extract_exif()
+        if (self.exif_gps_lat and self.exif_gps_lon):
+            try:
+                location = geolocator.reverse("%f,%f"%(self.exif_gps_lat,self.exif_gps_lon))
+                location = location.raw
+                self.geolocation_json = json.dumps(location)
+            except:
+                self.geolocation_json = None
 
     def _extract_faces(self):
         qs_unknown_person = Person.objects.filter(name='unknown')
@@ -130,13 +147,32 @@ class Photo(models.Model):
 
 
 class Person(models.Model):
+    KIND_CHOICES = (
+        ('USER', 'User Labelled'),
+        ('CLUSTER', 'Cluster ID'),
+        ('UNKNOWN', 'Unknown Person'))
     name = models.CharField(blank=False,max_length=128)
+    kind = models.CharField(choices=KIND_CHOICES,max_length=10)
+    mean_face_encoding = models.TextField()
+    cluster_id = models.IntegerField(null=True)
 
     def __str__(self):
         return "%d"%self.id
 
+    def _update_average_face_encoding(self):
+        encodings = []
+        faces = self.faces.all()
+        for face in faces:
+            r = base64.b64decode(face.encoding)
+            encoding = np.frombuffer(r,dtype=np.float64)
+            encodings.append(encoding)
+        mean_encoding = np.array(encodings).mean(axis=0)
+        self.mean_face_encoding = base64.encodebytes(mean_encoding.tostring())
+        # ipdb.set_trace()
+        
+
 def get_unknown_person():
-    return Person.objects.get_or_create(name='unknown')
+    return Person.objects.get_or_create(name='unknown',kind="UNKNOWN")
 
 class Face(models.Model):
     photo = models.ForeignKey(Photo, related_name='faces', blank=False, null=False)
@@ -167,7 +203,7 @@ class AlbumAuto(models.Model):
     def _autotitle(self):
         weekday = ""
         time = ""
-        location = ""
+        loc = ""
         if self.timestamp:
             weekday = util.weekdays[self.timestamp.isoweekday()]
             hour = self.timestamp.hour
@@ -179,9 +215,25 @@ class AlbumAuto(models.Model):
                 time = "Afternoon"
             elif hour >= 18 and hour <=24:
                 time = "Evening"
+
         if self.gps_lat and self.gps_lon:
-            location = "in SomeCity"
-        title = ' '.join([weekday,time,location]).strip()
+            loc = "in SomeCity"
+            try:
+                location = geolocator.reverse("%f,%f"%(self.gps_lat,self.gps_lon))
+                location = location.raw
+                address = location['address']
+                if 'city' in address.keys():
+                    loc = 'in ' + address['city']
+                if 'town' in address.keys():
+                    loc = 'in ' + address['town']
+                if 'village' in address.keys():
+                    loc = 'in ' + address['village']
+            except:
+                loc = ''
+
+
+
+        title = ' '.join([weekday,time,loc]).strip()
         self.title = title
 
     def __str__(self):
