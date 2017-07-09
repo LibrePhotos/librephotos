@@ -1,6 +1,7 @@
 from api.models import Photo, AlbumAuto, AlbumUser, Face, Person
 from rest_framework import serializers
 import ipdb
+import json
 
 class PhotoSerializer(serializers.ModelSerializer):
     thumbnail_url = serializers.SerializerMethodField()
@@ -8,6 +9,7 @@ class PhotoSerializer(serializers.ModelSerializer):
     thumbnail_width = serializers.SerializerMethodField()
     square_thumbnail_url = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
+    geolocation = serializers.SerializerMethodField()
     # persons = PersonSerializer(many=True, read_only=True)
     class Meta:
         model = Photo
@@ -18,6 +20,7 @@ class PhotoSerializer(serializers.ModelSerializer):
                   'thumbnail_height',
                   'thumbnail_width',
                   'square_thumbnail_url',
+                  'geolocation',
                   'image_url',
                   'image_hash',
                   'image_path')
@@ -31,6 +34,11 @@ class PhotoSerializer(serializers.ModelSerializer):
         return obj.square_thumbnail.url
     def get_image_url(self, obj):
         return obj.image.url
+    def get_geolocation(self, obj):
+        if obj.geolocation_json:
+          return json.loads(obj.geolocation_json)
+        else:
+          return None
 
 class PersonSerializer(serializers.ModelSerializer):
 #     faces = FaceSerializer(many=True, read_only=False)
@@ -60,6 +68,7 @@ class FaceSerializer(serializers.ModelSerializer):
         fields = ('id',
                   'face_url',
                   'photo_id',
+                  'cluster_label',
                   'person',
                   'person_id',
                   'person_label_is_inferred')

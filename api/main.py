@@ -2,14 +2,16 @@ from api.models import Photo
 from api.models import Person
 import os
 import datetime
+from tqdm import tqdm
 
 image_dir = '/home/hooram/Nextcloud/Photos/tuebingen/'
 image_dir = "/Users/hooram/ownCloud/Photos/tuebingen"
+# image_dir = "/Users/hooram/ownCloud/Camera Uploads"
 # image_dir = "/mnt/ext/code/ownphotos/data/samplephotos"
 image_paths = os.listdir(image_dir)
 
 
-for image_path in image_paths:
+for image_path in tqdm(image_paths):
     if image_path.lower().endswith('.jpg'):
         try:
             img_abs_path = os.path.abspath(os.path.join(image_dir,image_path))
@@ -21,21 +23,30 @@ for image_path in image_paths:
                 start = datetime.datetime.now()
                 photo._generate_thumbnail()
                 elapsed = (datetime.datetime.now() - start).total_seconds()
-                print('thumbnail get', elapsed)
+                # print('thumbnail get', elapsed)
 
-                start = datetime.datetime.now()
-                photo._generate_square_thumbnail()
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                print('square thumbnail gen', elapsed)
-                
                 start = datetime.datetime.now()
                 photo._save_image_to_db()
                 elapsed = (datetime.datetime.now() - start).total_seconds()
-                print('image save', elapsed)
+                # print('image save', elapsed)
 
+                start = datetime.datetime.now()
                 photo._extract_exif()
                 photo.save()
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                # print('exif extraction', elapsed)
+
+                # start = datetime.datetime.now()
+                # photo._geolocate()
+                # photo.save()
+                # elapsed = (datetime.datetime.now() - start).total_seconds()
+                # print('geolocation', elapsed)
+
+                start = datetime.datetime.now()
                 photo._extract_faces()
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                # print('face extraction', elapsed)
+
             else:
                 print("photo already exists in db")
         except Exception as e:

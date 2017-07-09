@@ -20,7 +20,7 @@ timestamps = [photo.exif_timestamp for photo in photos if photo.exif_timestamp]
 ipdb.set_trace()
 
 
-def group(photos_with_timestamp,dt=timedelta(days=6)):
+def group(photos_with_timestamp,dt=timedelta(hours=6)):
     photos_with_timestamp = sorted(photos_with_timestamp, key=lambda x: x[0])
     groups = []
     for photo in photos_with_timestamp:
