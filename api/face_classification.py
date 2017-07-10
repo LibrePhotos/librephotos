@@ -106,6 +106,7 @@ fig.savefig('media/figs/bic.png')
 plt.close(fig)
 
 num_clusters = np.argmax(bics.mean(0))+1
+num_clusters = 15
 print("number of clusters: %d"%num_clusters)
 
 
