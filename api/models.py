@@ -22,6 +22,9 @@ from geopy.geocoders import Nominatim
 geolocator = Nominatim()
 default_tz = pytz.timezone('Asia/Seoul')
 
+def get_album_date(date):
+    return AlbumDate.objects.get_or_create(date=date)
+
 class Photo(models.Model):
     image_path = models.FilePathField()
     image_hash = models.CharField(primary_key=True,max_length=32,null=False)
@@ -77,7 +80,7 @@ class Photo(models.Model):
                 except:
                     tst_dt = datetime.strptime(tst_str,"%Y-%m-%d %H:%M:%S")                     
                 # ipdb.set_trace()
-                self.exif_timestamp = tst_dt.astimezone(default_tz)
+                self.exif_timestamp = tst_dt
 
             else:
                 self.exif_timestamp = None
@@ -142,6 +145,12 @@ class Photo(models.Model):
                 face_io.close()
                 face.save()
 
+    def _add_to_album_date(self):
+        if self.exif_timestamp:
+            album_date = get_album_date(date=self.exif_timestamp.date())[0]
+            album_date.photos.add(self)
+            album_date.save()
+
     def __str__(self):
         return "%s"%self.image_hash
 
@@ -192,6 +201,16 @@ class Face(models.Model):
     def __str__(self):
         return "%d"%self.id
 
+
+
+class AlbumDate(models.Model):
+    title = models.CharField(blank=True,null=True,max_length=512)
+    date = models.DateField(unique=True)
+    photos = models.ManyToManyField(Photo)
+
+    def __str__(self):
+        return "%d: %s"%(self.id, self.title)
+
 class AlbumAuto(models.Model):
     title = models.CharField(blank=True,null=True,max_length=512)
     timestamp = models.DateTimeField(unique=True)
@@ -230,8 +249,6 @@ class AlbumAuto(models.Model):
                     loc = 'in ' + address['village']
             except:
                 loc = ''
-
-
 
         title = ' '.join([weekday,time,loc]).strip()
         self.title = title

@@ -1,12 +1,13 @@
 from django.shortcuts import render
 
-from api.models import Photo, AlbumAuto, AlbumUser, Face, Person
+from api.models import Photo, AlbumAuto, AlbumUser, Face, Person, AlbumDate
 from rest_framework import viewsets
 from api.serializers import PhotoSerializer
 from api.serializers import FaceSerializer
 from api.serializers import PersonSerializer
 from api.serializers import AlbumAutoSerializer
 from api.serializers import AlbumPersonSerializer
+from api.serializers import AlbumDateSerializer
 
 
 # Create your views here.
@@ -30,5 +31,9 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
 class AlbumPersonViewSet(viewsets.ModelViewSet):
     queryset = Person.objects.all().order_by('name')
     serializer_class = AlbumPersonSerializer
+
+class AlbumDateViewSet(viewsets.ModelViewSet):
+    queryset = AlbumDate.objects.all().order_by('-date')
+    serializer_class = AlbumDateSerializer
 
 

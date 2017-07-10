@@ -7,7 +7,7 @@ from tqdm import tqdm
 image_dir = '/home/hooram/Nextcloud/Photos/tuebingen/'
 image_dir = "/Users/hooram/ownCloud/Photos/tuebingen"
 # image_dir = "/Users/hooram/ownCloud/Camera Uploads"
-# image_dir = "/mnt/ext/code/ownphotos/data/samplephotos"
+image_dir = "/mnt/ext/code/ownphotos/data/samplephotos"
 image_paths = os.listdir(image_dir)
 
 
@@ -46,6 +46,10 @@ for image_path in tqdm(image_paths):
                 photo._extract_faces()
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 # print('face extraction', elapsed)
+
+                start = datetime.datetime.now()
+                photo._add_to_album_date()
+                elapsed = (datetime.datetime.now() - start).total_seconds()
 
             else:
                 print("photo already exists in db")
