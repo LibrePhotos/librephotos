@@ -155,7 +155,7 @@ plt.close(fig)
 
 
 for face,cluster in zip(faces_all, clusters):
-    person_cluster = Person.objects.get_or_create(name='cluster_%d'%cluster,kind="CLUSTER",cluster_id=cluster)
+    person_cluster = Person.objects.get_or_create(name="cluster_%d"%cluster,kind="CLUSTER",cluster_id=cluster)
     face.person = person_cluster[0]
     face.save()
 
