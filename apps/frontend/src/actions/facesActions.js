@@ -8,31 +8,27 @@ var Server = axios.create({
          password: 'skagnfka'}
 });
 
-export function fetchPeople() {
+export function fetchFaces() {
   return function(dispatch) {
-    dispatch({type: "FETCH_PEOPLE"});
+    dispatch({type: "FETCH_FACES"});
     /* 
       http://rest.learncode.academy is a public test server, so another user's experimentation can break your tests
       If you get console errors due to bad data:
       - change "reacttest" below to any other username
       - post some tweets to http://rest.learncode.academy/api/yourusername/tweets
     */
-    Server.get("persons/")
+    Server.get("faces/")
       .then((response) => {
-        dispatch({type: "FETCH_PEOPLE_FULFILLED", payload: response.data.results})
+        dispatch({type: "FETCH_FACES_FULFILLED", payload: response.data.results})
       })
       .catch((err) => {
-        dispatch({type: "FETCH_PEOPLE_REJECTED", payload: err})
+        dispatch({type: "FETCH_FACES_REJECTED", payload: err})
       })
   }
 }
 
-export function addPerson(person_name) {
-  return function(dispatch){
-    Server.post("persons/",{"name":person_name})
-      .then((response) => {
-        console.log('successfully added person ',person_name,' in server')
-        dispatch({type: "ADD_PERSON", payload:response.data})
-      })
+export function deleteFace(face_id) {
+  return function(dispatch) {
+    dispatch({type: "DELETE_FACE", payload:face_id});
   }
 }

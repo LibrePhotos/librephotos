@@ -23,8 +23,15 @@ export default function reducer(state={
           people: action.payload,
         }
       }
+      case "ADD_PRSON": {
+        console.log("person reducer: adding person", action.payload)
+        return {
+          ...state,
+          people: [action.payload, ...state.people.concat(action.payload)]
+        }
+      }
       default: {
-        console.log('default reducer')
+        console.log('default people reducer')
         return {...state}
       }
     }
