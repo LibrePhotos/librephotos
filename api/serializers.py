@@ -2,6 +2,7 @@ from api.models import Photo, AlbumAuto, AlbumUser, Face, Person, AlbumDate
 from rest_framework import serializers
 import ipdb
 import json
+import time
 
 class PhotoSerializer(serializers.ModelSerializer):
     thumbnail_url = serializers.SerializerMethodField()
@@ -67,8 +68,9 @@ class PersonSerializer(serializers.ModelSerializer):
             new_person = Person()
             new_person.name = name
             new_person.save()
+            print('created person with name %s'%name)
             return new_person
-        # ipdb.set_trace()
+
 
 #     def get_photos(self,obj):
 #         faces = obj.faces.all()
@@ -104,7 +106,9 @@ class FaceSerializer(serializers.ModelSerializer):
             p.name = name
             p.save()
             instance.person = p
+            print('created person with name %s'%name)
         instance.person_label_is_inferred = False
+        print('updated label for face %d to %s'%(instance.id, instance.person.name))
         instance.save()
         return instance
 #         pass
@@ -128,8 +132,6 @@ class AlbumDateSerializer(serializers.ModelSerializer):
             "title",
             "date",
             "photos")
-
-
 
 class AlbumPersonSerializer(serializers.ModelSerializer):
 #     faces = FaceSerializer(many=True, read_only=False)
@@ -158,9 +160,6 @@ class AlbumPersonSerializer(serializers.ModelSerializer):
             if serialized_person not in res:
                 res.append(serialized_person)
         return res
-
-
-
 
 class AlbumAutoSerializer(serializers.ModelSerializer):
     photos = PhotoSerializer(many=True, read_only=True)
