@@ -37,8 +37,8 @@ export function addPerson(person_name) {
     dispatch({type:"ADD_PERSON"})
     Server.post("persons/",{"name":person_name})
       .then((response) => {
-        var personDropdownOption = {
-          name:response.data.name, 
+        const personDropdownOption = {
+          text:response.data.name, 
           value:response.data.name, 
           key:response.data.id}
         dispatch({type: "ADD_PERSON_FULFILLED", payload:personDropdownOption})

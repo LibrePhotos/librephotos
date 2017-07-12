@@ -1,13 +1,13 @@
 import React, { Component } from 'react';
 import logo from './logo.svg';
 import './App.css';
-import {FaceCards} from './components/FaceCards';
-
+import {FaceCards, FaceToLabel} from './components/FaceCards';
+import {FaceLabeler} from './components/FaceLabeler'
 class App extends Component {
   render() {
     return (
       <div>
-        <FaceCards/>
+        <FaceLabeler/>
       </div>
     );
   }

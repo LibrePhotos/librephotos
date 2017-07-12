@@ -12,15 +12,17 @@ import { Image,
          Loader, 
          Dimmer} from 'semantic-ui-react';
 import { connect } from "react-redux";
-import { fetchPeople, addPerson } from '../actions/peopleActions';
-import { fetchFaces, deleteFace } from '../actions/facesActions';
-
-
+import { fetchPeople, 
+         addPerson } from '../actions/peopleActions';
+import { fetchFaces, 
+         deleteFace, 
+         labelFacePerson ,
+         fetchFaceToLabel} from '../actions/facesActions';
 
 export class FaceCards extends Component {
   componentWillMount() {
-    this.props.dispatch(fetchPeople())
     this.props.dispatch(fetchFaces())
+    this.props.dispatch(fetchPeople())
   }
 
   render() {
@@ -35,9 +37,33 @@ export class FaceCards extends Component {
     })
     return (
       <div>
-        <div>
+        <Button>Train</Button>
+        <Card.Group>
             {mappedFaceCards}
-        </div>
+        </Card.Group>
+      </div>
+    )
+  }
+}
+
+export class FaceToLabel extends Component {
+  componentWillMount() {
+    this.props.dispatch(fetchFaceToLabel())
+    this.props.dispatch(fetchPeople())
+  }
+
+  render() {
+    console.log(this.props)
+    return (
+      <div>
+        <Button>Train</Button>
+        <Card.Group>
+          <FaceCard
+            key={this.props.faceToLabel.id}
+            face_id={this.props.faceToLabel.id}
+            name={"hello"}
+            face_url={"http://localhost:8000"+this.props.faceToLabel.face_url}/>
+        </Card.Group>
       </div>
     )
   }
@@ -48,14 +74,18 @@ export class FaceCard extends Component {
   handleDeleteFace = e => {
     this.props.dispatch(deleteFace(this.props.face_id))
   }
+  handleNextFace = e => {
+    this.props.dispatch(fetchFaceToLabel())    
+  }
 
   render() {
     return (
       <Card>
         <Card.Content>
           <Image 
-            size="mini"
-            shape='circular'
+            height={260}
+            width={260}
+            shape='rounded'
             src={this.props.face_url} />
           <Card.Header>
             <Divider/>
@@ -73,7 +103,18 @@ export class FaceCard extends Component {
                 color='red' 
                 icon='remove'/>}
               position="top center"
-              content="This is not a face"
+              content="Forget this face"
+              size="tiny"
+              inverted
+              basic/>
+            <Popup
+              trigger={<Button 
+                basic
+                onClick={this.handleNextFace}
+                color='green' 
+                icon='checkmark'/>}
+              position="top center"
+              content="Submit label"
               size="tiny"
               inverted
               basic/>
@@ -85,49 +126,19 @@ export class FaceCard extends Component {
 }
 
 export class PeopleDropDown extends Component {
-  constructor(props) {
-    super(props);
-    this.handleChange = this.handleChange.bind(this)
-    this.handleAddPerson = this.handleAddPerson.bind(this)
-    this.refetchPeopleAfterAddPerson = this.refetchPeopleAfterAddPerson.bind(this)
-    this.state = {
-      options: props.people
-    }
-  }
-
-  refetchPeopleAfterAddPerson() {
-    this.props.dispatch(fetchPeople())    
-    this.props.dispatch(fetchPeople())    
-  }
-
   handleAddPerson = (e, {value}) => {
-    this.props.dispatch(addPerson(value))
-    this.refetchPeopleAfterAddPerson()
+    console.log('handing add')
+    this.props.dispatch(labelFacePerson(this.props.face_id,value))
     this.currentValue = value
-    console.log("right after person add, is it adding?",this.props.personAdding)
   }
 
   handleChange = (e, {value}) => {
+    console.log('handing change')
     this.currentValue = value
-  }
-
-  componentDidUpdate(nextProps) {
-    console.log('inside componentDidUpdate')
-    if (nextProps.people !== this.props.people) {
-      console.log(nextProps)
-      console.log('setting state to nextprops')
-      this.setState({
-        options: nextProps.people
-      })
-    }
+    this.props.dispatch(labelFacePerson(this.props.face_id,value))
   }
 
   render() {
-    this.state = {
-      options: this.props.people
-    }
-    console.log(this.props)
-    console.log('dropdown rendering')
     return (
       <Dropdown  
         placeholder='Choose Person' 
@@ -138,27 +149,36 @@ export class PeopleDropDown extends Component {
         loading={this.props.personAdding || this.props.peopleFetching}
         onAddItem={this.handleAddPerson}
         onChange={this.handleChange}
-        options={this.state.options} />
+        options={this.props.people} />
     )
   } 
 }
 
+FaceToLabel = connect((store)=>{
+  return {
+    faceToLabel: store.faces.faceToLabel,
+    facesFetched:store.faces.fetched
+  }
+})(FaceToLabel)
+
 FaceCards = connect((store)=>{
   return {
     faces: store.faces.faces,
+    faceToLabel: store.faces.faceToLabel,
     facesFetched:store.faces.fetched
   }
 })(FaceCards)
 
 FaceCard = connect((store)=>{
   return {
-    people: store.people.people
+    faces: store.faces.faces,
+    faceToLabel: store.faces.faceToLabel,
   }
 })(FaceCard)
 
-
 PeopleDropDown = connect((store)=>{
   return {
+    faceToLabel: store.faces.faceToLabel,
     people: store.people.people,
     peopleFetching: store.people.fetching,
     personAdding: store.people.adding,

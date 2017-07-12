@@ -15,12 +15,15 @@ export default function reducer(state={
         return {...state, fetching: false, error: action.payload}
       }
       case "FETCH_PEOPLE_FULFILLED": {
-        return {
-          ...state,
-          fetching: false,
-          fetched: true,
-          people: action.payload,
-        }
+        const newState = Object.assign({},state, {fetching:false}, {fetched:true})
+        newState.people = [].concat(action.payload)
+        return newState
+        // return {
+        //   ...state,
+        //   fetching: false,
+        //   fetched: true,
+        //   people: action.payload,
+        // }
       }
       case "ADD_PERSON": {
         return {...state, adding: true}
@@ -30,17 +33,13 @@ export default function reducer(state={
         return {...state, adding: false, error: action.payload}
       }
       case "ADD_PERSON_FULFILLED": {
-        return {
-          ...state,
-          adding: false,
-          added: true,
-          people: [action.payload, ...state.people]
-        }
+        const newState = Object.assign({}, state, {adding:false}, {added:true})
+        newState.people = state.people.concat(action.payload)
+        return newState
       }
+
       default: {
         return {...state}
       }
     }
-
-    return state
 }
