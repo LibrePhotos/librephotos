@@ -33,5 +33,5 @@ router.register(r'api/faces', views.FaceViewSet)
 urlpatterns = [
     url(r'^', include(router.urls)),
     url(r'^admin/', admin.site.urls),
-
+    url(r'^api/facetolabel', views.FaceToLabelView.as_view()),
 ]+static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
