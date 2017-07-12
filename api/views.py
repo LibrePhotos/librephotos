@@ -9,6 +9,13 @@ from api.serializers import AlbumAutoSerializer
 from api.serializers import AlbumPersonSerializer
 from api.serializers import AlbumDateSerializer
 
+from rest_framework.pagination import PageNumberPagination
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 100
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
+
 
 # Create your views here.
 
@@ -19,11 +26,13 @@ class PhotoViewSet(viewsets.ModelViewSet):
 class FaceViewSet(viewsets.ModelViewSet):
     queryset = Face.objects.all().order_by('id')
     serializer_class = FaceSerializer
+    pagination_class = StandardResultsSetPagination
 
 class PersonViewSet(viewsets.ModelViewSet):
     queryset = Person.objects.all().order_by('name')
     serializer_class = PersonSerializer
-
+    pagination_class = StandardResultsSetPagination
+    
 class AlbumAutoViewSet(viewsets.ModelViewSet):
     queryset = AlbumAuto.objects.all().order_by('-timestamp')
     serializer_class = AlbumAutoSerializer
