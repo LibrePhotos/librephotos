@@ -58,6 +58,18 @@ class PersonSerializer(serializers.ModelSerializer):
         except:
             return None
 
+    def create(self,validated_data):
+        name = validated_data.pop('name')
+        qs = Person.objects.filter(name=name)
+        if qs.count() > 0:
+            return qs[0]
+        else:
+            new_person = Person()
+            new_person.name = name
+            new_person.save()
+            return new_person
+        # ipdb.set_trace()
+
 #     def get_photos(self,obj):
 #         faces = obj.faces.all()
 #         res = []
