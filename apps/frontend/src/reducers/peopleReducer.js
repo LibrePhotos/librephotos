@@ -2,20 +2,19 @@ export default function reducer(state={
     people: [],
     fetching: false,
     fetched: false,
+    adding: false,
+    added: false,
     error: null,
   }, action) {
 
     switch (action.type) {
       case "FETCH_PEOPLE": {
-        console.log('fetch people from reducer')
         return {...state, fetching: true}
       }
       case "FETCH_PEOPLE_REJECTED": {
-        console.log('fetch people rejected')
         return {...state, fetching: false, error: action.payload}
       }
       case "FETCH_PEOPLE_FULFILLED": {
-        console.log('fetch people fulfilled')
         return {
           ...state,
           fetching: false,
@@ -23,15 +22,22 @@ export default function reducer(state={
           people: action.payload,
         }
       }
-      case "ADD_PRSON": {
-        console.log("person reducer: adding person", action.payload)
+      case "ADD_PERSON": {
+        return {...state, adding: true}
+
+      }
+      case "ADD_PERSON_REJECTED": {
+        return {...state, adding: false, error: action.payload}
+      }
+      case "ADD_PERSON_FULFILLED": {
         return {
           ...state,
-          people: [action.payload, ...state.people.concat(action.payload)]
+          adding: false,
+          added: true,
+          people: [action.payload, ...state.people]
         }
       }
       default: {
-        console.log('default people reducer')
         return {...state}
       }
     }

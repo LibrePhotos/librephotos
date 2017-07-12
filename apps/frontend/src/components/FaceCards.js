@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { Image, 
+         Header,
          Message,
          Dropdown, 
          Divider, 
@@ -23,8 +24,6 @@ export class FaceCards extends Component {
   }
 
   render() {
-    console.log('from facecards component')
-    console.log(this.props.faces)
     var mappedFaceCards = this.props.faces.map(function(face){
       return (
         <FaceCard
@@ -34,13 +33,12 @@ export class FaceCards extends Component {
           face_url={"http://localhost:8000"+face.face_url}/>
       )
     })
-    console.log(mappedFaceCards)
     return (
-      <Container>
-        <Card.Group>
-          {mappedFaceCards}
-        </Card.Group>
-      </Container>
+      <div>
+        <div>
+            {mappedFaceCards}
+        </div>
+      </div>
     )
   }
 }
@@ -48,7 +46,6 @@ export class FaceCards extends Component {
 
 export class FaceCard extends Component {
   handleDeleteFace = e => {
-    console.log(this.props.face_id)
     this.props.dispatch(deleteFace(this.props.face_id))
   }
 
@@ -57,8 +54,8 @@ export class FaceCard extends Component {
       <Card>
         <Card.Content>
           <Image 
-            size="medium"
-            shape='rounded'
+            size="mini"
+            shape='circular'
             src={this.props.face_url} />
           <Card.Header>
             <Divider/>
@@ -66,17 +63,21 @@ export class FaceCard extends Component {
           </Card.Header>
         </Card.Content>
         <Card.Content extra>
-          <Popup
-            trigger={<Button 
-              onClick={this.handleDeleteFace}
-              color='red' 
-              icon='remove'/>}
-            position="right center"
-            content="This is not a face"
-            size="tiny"
-            inverted
-            basic/>
-          <PeopleDropDown/>
+          <PeopleDropDown face_id={this.props.face_id}/>
+          <Divider/>
+          <div className='ui two buttons'>
+            <Popup
+              trigger={<Button 
+                basic
+                onClick={this.handleDeleteFace}
+                color='red' 
+                icon='remove'/>}
+              position="top center"
+              content="This is not a face"
+              size="tiny"
+              inverted
+              basic/>
+          </div>
         </Card.Content>
       </Card>
     );
@@ -84,36 +85,67 @@ export class FaceCard extends Component {
 }
 
 export class PeopleDropDown extends Component {
+  constructor(props) {
+    super(props);
+    this.handleChange = this.handleChange.bind(this)
+    this.handleAddPerson = this.handleAddPerson.bind(this)
+    this.refetchPeopleAfterAddPerson = this.refetchPeopleAfterAddPerson.bind(this)
+    this.state = {
+      options: props.people
+    }
+  }
+
+  refetchPeopleAfterAddPerson() {
+    this.props.dispatch(fetchPeople())    
+    this.props.dispatch(fetchPeople())    
+  }
+
   handleAddPerson = (e, {value}) => {
-    console.log('trying to add',value)
     this.props.dispatch(addPerson(value))
-    this.props.dispatch(fetchPeople())
+    this.refetchPeopleAfterAddPerson()
+    this.currentValue = value
+    console.log("right after person add, is it adding?",this.props.personAdding)
+  }
+
+  handleChange = (e, {value}) => {
+    this.currentValue = value
+  }
+
+  componentDidUpdate(nextProps) {
+    console.log('inside componentDidUpdate')
+    if (nextProps.people !== this.props.people) {
+      console.log(nextProps)
+      console.log('setting state to nextprops')
+      this.setState({
+        options: nextProps.people
+      })
+    }
   }
 
   render() {
-    var peopleDropdownChoices = this.props.people.map(function(person){
-      return (
-        {key:person.id,value:person.id,text:person.name}
-      )
-    })
-
+    this.state = {
+      options: this.props.people
+    }
+    console.log(this.props)
+    console.log('dropdown rendering')
     return (
       <Dropdown  
-        placeholder='Choose a Person' 
+        placeholder='Choose Person' 
         search 
+        fluid
         selection 
         allowAdditions
+        loading={this.props.personAdding || this.props.peopleFetching}
         onAddItem={this.handleAddPerson}
-        options={peopleDropdownChoices} />
+        onChange={this.handleChange}
+        options={this.state.options} />
     )
   } 
 }
 
 FaceCards = connect((store)=>{
   return {
-    people: store.people.people,
     faces: store.faces.faces,
-    userFetched:store.people.fetched,
     facesFetched:store.faces.fetched
   }
 })(FaceCards)
@@ -124,8 +156,11 @@ FaceCard = connect((store)=>{
   }
 })(FaceCard)
 
+
 PeopleDropDown = connect((store)=>{
   return {
-    people: store.people.people
+    people: store.people.people,
+    peopleFetching: store.people.fetching,
+    personAdding: store.people.adding,
   }
 })(PeopleDropDown)

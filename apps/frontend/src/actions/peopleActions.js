@@ -17,9 +17,14 @@ export function fetchPeople() {
       - change "reacttest" below to any other username
       - post some tweets to http://rest.learncode.academy/api/yourusername/tweets
     */
-    Server.get("persons/")
+    Server.get("persons/?page_size=1000")
       .then((response) => {
-        dispatch({type: "FETCH_PEOPLE_FULFILLED", payload: response.data.results})
+        var mappedPeopleDropdownOptions = response.data.results.map(function(person){
+          return (
+            {key:person.id,value:person.name,text:person.name}
+          )
+        })
+        dispatch({type: "FETCH_PEOPLE_FULFILLED", payload: mappedPeopleDropdownOptions})
       })
       .catch((err) => {
         dispatch({type: "FETCH_PEOPLE_REJECTED", payload: err})
@@ -29,10 +34,18 @@ export function fetchPeople() {
 
 export function addPerson(person_name) {
   return function(dispatch){
+    dispatch({type:"ADD_PERSON"})
     Server.post("persons/",{"name":person_name})
       .then((response) => {
-        console.log('successfully added person ',person_name,' in server')
-        dispatch({type: "ADD_PERSON", payload:response.data})
+        var personDropdownOption = {
+          name:response.data.name, 
+          value:response.data.name, 
+          key:response.data.id}
+        dispatch({type: "ADD_PERSON_FULFILLED", payload:personDropdownOption})
+      })
+      .catch((err) => {
+        dispatch({type:"ADD_PERSON_REJECTED", payload:err})
       })
   }
 }
+
