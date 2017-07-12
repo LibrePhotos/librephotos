@@ -7,7 +7,7 @@ from tqdm import tqdm
 image_dir = '/home/hooram/Nextcloud/Camera Uploads/'
 # image_dir = "/Users/hooram/ownCloud/Photos/tuebingen"
 # image_dir = "/Users/hoora/ownCloud/Camera Uploads"
-# image_dir = "/mnt/ext/code/ownphotos/data/samplephotos"
+image_dir = "/mnt/ext/code/ownphotos/data/samplephotos"
 image_paths = os.listdir(image_dir)
 
 

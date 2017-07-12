@@ -52,8 +52,11 @@ class PersonSerializer(serializers.ModelSerializer):
                   'id',)
 
     def get_face_url(self,obj):
-        face = obj.faces.first()
-        return face.image.url
+        try:
+            face = obj.faces.first()
+            return face.image.url
+        except:
+            return None
 
 #     def get_photos(self,obj):
 #         faces = obj.faces.all()
