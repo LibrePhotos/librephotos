@@ -6,6 +6,7 @@
     "axios": "^0.16.2",
     "react": "^15.6.1",
     "react-dom": "^15.6.1",
+    "react-grid-layout": "^0.14.6",
     "react-redux": "^5.0.5",
     "react-scripts": "1.0.10",
     "redux": "^3.7.1",

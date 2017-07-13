@@ -66,3 +66,28 @@ export function labelFacePerson(face_id, person_name) {
       })
   }
 }
+
+
+export function labelFacePersonAndFetchNext(face_id, person_name) {
+  return function(dispatch) {
+    dispatch({type: "LABEL_FACE_PERSON"});
+    var endpoint = `faces/${face_id}/`
+    Server.patch(endpoint,{"person":{"name":person_name}})
+      .then((response1) => {
+        dispatch({type: "LABEL_FACE_PERSON_FULFILLED", payload: response1.data})
+        Server.get("facetolabel/")
+          .then((response2) => {
+            dispatch({type: "FETCH_FACE_TO_LABEL_FULFILLED", payload: response2.data})
+          })
+          .catch((err2) => {
+            dispatch({type: "FETCH_FACE_TO_LABEL_REJECTED", payload: err2})
+          })
+      })
+      .catch((err1) => {
+        dispatch({type: "LABEL_FACE_PERSON_REJECTED", payload: err1})
+      })
+  }
+}
+
+
+

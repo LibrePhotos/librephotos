@@ -6,6 +6,7 @@ import { Image,
          Divider, 
          Card, 
          Container, 
+         Segment,
          Button, 
          Icon, 
          Popup, 
@@ -13,11 +14,13 @@ import { Image,
          Dimmer} from 'semantic-ui-react';
 import { connect } from "react-redux";
 import { fetchPeople, 
-         addPerson } from '../actions/peopleActions';
+         addPerson ,
+         addPersonAndSetLabelToFace} from '../actions/peopleActions';
 import { fetchFaces, 
          deleteFace, 
          labelFacePerson ,
-         fetchFaceToLabel} from '../actions/facesActions';
+         fetchFaceToLabel,
+         labelFacePersonAndFetchNext} from '../actions/facesActions';
 
 export class FaceCards extends Component {
   componentWillMount() {
@@ -56,9 +59,9 @@ export class FaceToLabel extends Component {
     console.log(this.props)
     return (
       <div>
-        <Button>Train</Button>
         <Card.Group>
           <FaceCard
+            card_loading={this.props.faceToLabelFetching}
             key={this.props.faceToLabel.id}
             face_id={this.props.faceToLabel.id}
             name={"hello"}
@@ -71,29 +74,81 @@ export class FaceToLabel extends Component {
 
 
 export class FaceCard extends Component {
-  handleDeleteFace = e => {
-    this.props.dispatch(deleteFace(this.props.face_id))
-  }
-  handleNextFace = e => {
-    this.props.dispatch(fetchFaceToLabel())    
-  }
 
   render() {
+    let image = null;
+    if (this.props.card_loading){
+      image = (
+        <div>
+          <Dimmer active inverted>
+            <Loader inverted />
+          </Dimmer>
+          <Image 
+            hidden
+            height={20}
+            width={20}
+            shape='rounded'/>
+        </div>
+      )
+    }
+    else {
+      image = <Image 
+        height={20}
+        width={20}
+        shape='rounded'
+        src={this.props.face_url} />
+    }
+
     return (
       <Card>
         <Card.Content>
-          <Image 
-            height={260}
-            width={260}
-            shape='rounded'
-            src={this.props.face_url} />
+          {image}
           <Card.Header>
             <Divider/>
             {"Who is this person?"}
           </Card.Header>
         </Card.Content>
         <Card.Content extra>
-          <PeopleDropDown face_id={this.props.face_id}/>
+          <PersonSelector face_id={this.props.face_id}/>
+        </Card.Content>
+      </Card>
+    );
+  }
+}
+
+export class PersonSelector extends Component {
+  handleAddPerson = (e, {value}) => {
+    console.log('handing add', value, this.props.face_id)
+    this.props.dispatch(addPerson(value))
+    this.currentValue = value
+  }
+
+  handleChange = (e, {value}) => {
+    console.log('handing change')
+    this.currentValue = value
+  }
+
+  handleDeleteFace = e => {
+    this.props.dispatch(deleteFace(this.props.face_id))
+  }
+
+  handleSubmit = e => {
+    this.props.dispatch(labelFacePersonAndFetchNext(this.props.face_id,this.currentValue))
+  }
+
+  render() {
+    return (
+      <div>
+        <Dropdown  
+          placeholder='Choose Person' 
+          search 
+          fluid
+          selection 
+          allowAdditions
+          loading={this.props.personAdding || this.props.peopleFetching}
+          onAddItem={this.handleAddPerson}
+          onChange={this.handleChange}
+          options={this.props.people} />
           <Divider/>
           <div className='ui two buttons'>
             <Popup
@@ -110,46 +165,16 @@ export class FaceCard extends Component {
             <Popup
               trigger={<Button 
                 basic
-                onClick={this.handleNextFace}
+                onClick={this.handleSubmit}
                 color='green' 
                 icon='checkmark'/>}
               position="top center"
-              content="Submit label"
+              content="Submit label and show next face"
               size="tiny"
               inverted
               basic/>
           </div>
-        </Card.Content>
-      </Card>
-    );
-  }
-}
-
-export class PeopleDropDown extends Component {
-  handleAddPerson = (e, {value}) => {
-    console.log('handing add')
-    this.props.dispatch(labelFacePerson(this.props.face_id,value))
-    this.currentValue = value
-  }
-
-  handleChange = (e, {value}) => {
-    console.log('handing change')
-    this.currentValue = value
-    this.props.dispatch(labelFacePerson(this.props.face_id,value))
-  }
-
-  render() {
-    return (
-      <Dropdown  
-        placeholder='Choose Person' 
-        search 
-        fluid
-        selection 
-        allowAdditions
-        loading={this.props.personAdding || this.props.peopleFetching}
-        onAddItem={this.handleAddPerson}
-        onChange={this.handleChange}
-        options={this.props.people} />
+        </div>
     )
   } 
 }
@@ -157,7 +182,9 @@ export class PeopleDropDown extends Component {
 FaceToLabel = connect((store)=>{
   return {
     faceToLabel: store.faces.faceToLabel,
-    facesFetched:store.faces.fetched
+    facesFetched:store.faces.fetched,
+    faceToLabelFetching: store.faces.fetchingFaceToLabel,
+    faceToLabelFetched: store.faces.fetchedFaceToLabel,
   }
 })(FaceToLabel)
 
@@ -171,16 +198,16 @@ FaceCards = connect((store)=>{
 
 FaceCard = connect((store)=>{
   return {
-    faces: store.faces.faces,
-    faceToLabel: store.faces.faceToLabel,
+    people: store.people.people,
+    peopleFetching: store.people.fetching,
   }
 })(FaceCard)
 
-PeopleDropDown = connect((store)=>{
+PersonSelector = connect((store)=>{
   return {
     faceToLabel: store.faces.faceToLabel,
     people: store.people.people,
     peopleFetching: store.people.fetching,
     personAdding: store.people.adding,
   }
-})(PeopleDropDown)
+})(PersonSelector)

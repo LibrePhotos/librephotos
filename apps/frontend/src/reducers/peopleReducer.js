@@ -27,7 +27,6 @@ export default function reducer(state={
       }
       case "ADD_PERSON": {
         return {...state, adding: true}
-
       }
       case "ADD_PERSON_REJECTED": {
         return {...state, adding: false, error: action.payload}
@@ -38,8 +37,23 @@ export default function reducer(state={
         return newState
       }
 
+
+      case "ADD_PERSON_AND_SET_FACE_LABEL": {
+        return {...state, adding: true}
+      }
+      case "ADD_PERSON_AND_SET_FACE_LABEL_REJECTED": {
+        return {...state, adding: false, error: action.payload}
+      }
+      case "ADD_PERSON_AND_SET_FACE_LABEL_FULFILLED": {
+        const newState = Object.assign({}, state, {adding:false}, {added:true})
+        newState.people = state.people.concat(action.payload)
+        return newState
+      }
+
+
       default: {
         return {...state}
       }
     }
 }
+
