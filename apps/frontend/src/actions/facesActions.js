@@ -8,15 +8,35 @@ var Server = axios.create({
          password: 'skagnfka'}
 });
 
+export function fetchInferredFaces() {
+  return function(dispatch) {
+    dispatch({type: "FETCH_INFERRED_FACES"});
+    Server.get("faces/inferred/")
+      .then((response) => {
+        dispatch({type: "FETCH_INFERRED_FACES_FULFILLED", payload: response.data.results})
+      })
+      .catch((err) => {
+        dispatch({type: "FETCH_INFERRED_FACES_REJECTED", payload: err})
+      })
+  }
+}
+
+export function fetchLabeledFaces() {
+  return function(dispatch) {
+    dispatch({type: "FETCH_LABELED_FACES"});
+    Server.get("faces/labeled/")
+      .then((response) => {
+        dispatch({type: "FETCH_LABELED_FACES_FULFILLED", payload: response.data.results})
+      })
+      .catch((err) => {
+        dispatch({type: "FETCH_LABELED_FACES_REJECTED", payload: err})
+      })
+  }
+}
+
 export function fetchFaces() {
   return function(dispatch) {
     dispatch({type: "FETCH_FACES"});
-    /* 
-      http://rest.learncode.academy is a public test server, so another user's experimentation can break your tests
-      If you get console errors due to bad data:
-      - change "reacttest" below to any other username
-      - post some tweets to http://rest.learncode.academy/api/yourusername/tweets
-    */
     Server.get("faces/?page_size=20")
       .then((response) => {
         dispatch({type: "FETCH_FACES_FULFILLED", payload: response.data.results})
@@ -26,17 +46,9 @@ export function fetchFaces() {
       })
   }
 }
-
-
 export function fetchFaceToLabel() {
   return function(dispatch) {
     dispatch({type: "FETCH_FACE_TO_LABEL"});
-    /* 
-      http://rest.learncode.academy is a public test server, so another user's experimentation can break your tests
-      If you get console errors due to bad data:
-      - change "reacttest" below to any other username
-      - post some tweets to http://rest.learncode.academy/api/yourusername/tweets
-    */
     Server.get("facetolabel/")
       .then((response) => {
         dispatch({type: "FETCH_FACE_TO_LABEL_FULFILLED", payload: response.data})
@@ -67,7 +79,6 @@ export function labelFacePerson(face_id, person_name) {
   }
 }
 
-
 export function labelFacePersonAndFetchNext(face_id, person_name) {
   return function(dispatch) {
     dispatch({type: "LABEL_FACE_PERSON"});
@@ -78,6 +89,8 @@ export function labelFacePersonAndFetchNext(face_id, person_name) {
         Server.get("facetolabel/")
           .then((response2) => {
             dispatch({type: "FETCH_FACE_TO_LABEL_FULFILLED", payload: response2.data})
+            dispatch(fetchInferredFaces())
+            dispatch(fetchLabeledFaces())
           })
           .catch((err2) => {
             dispatch({type: "FETCH_FACE_TO_LABEL_REJECTED", payload: err2})

@@ -1,26 +1,96 @@
 import React, { Component } from 'react';
-import { Image, 
-         Header,
-         Message,
-         Dropdown, 
-         Divider, 
-         Card, 
-         Container, 
-         Segment,
-         Button, 
-         Icon, 
-         Popup, 
-         Loader, 
-         Dimmer} from 'semantic-ui-react';
 import { connect } from "react-redux";
+import { Image, Header, Message, Dropdown, Divider, Card, 
+         Container, Segment, Button, Icon, Popup, Loader, 
+         Dimmer, Grid} from 'semantic-ui-react';
 import { fetchPeople, 
          addPerson ,
          addPersonAndSetLabelToFace} from '../actions/peopleActions';
 import { fetchFaces, 
+         fetchLabeledFaces,
+         fetchInferredFaces,
          deleteFace, 
          labelFacePerson ,
          fetchFaceToLabel,
          labelFacePersonAndFetchNext} from '../actions/facesActions';
+
+import {Server} from '../api_client/apiClient'
+
+
+export class EditableFaceIcon extends Component {
+  state = {}
+
+  handleShow = () => this.setState({ active: true })
+  handleHide = () => this.setState({ active: false })
+
+  render() {
+    const { active } = this.state
+    const content = (
+      <Icon link color='black' name='write'/>
+    )
+
+    return (
+      <Popup
+          key={this.props.face_id}
+          inverted
+          trigger={
+            <Dimmer.Dimmable 
+              as={Image}
+              height={60}
+              width={60}
+              dimmed={active}
+              dimmer={{ active, content, inverted:true}}
+              onMouseEnter={this.handleShow}
+              onMouseLeave={this.handleHide}
+              src={this.props.face_url}/>}
+          content={this.props.person_name}/>
+    )
+  }
+}
+
+export class FacesLabeled extends Component {
+  componentWillMount() {
+    this.props.dispatch(fetchLabeledFaces())
+  }
+  render() {
+    var mappedFaceCards = this.props.labeledFaces.map(function(face){
+      return (
+          <EditableFaceIcon
+            person_name={face.person.name}
+            face_url={"http://localhost:8000"+face.face_url}
+            face_id={face.id}/>
+      )
+    })
+    return (
+      <Container>
+          {mappedFaceCards}
+      </Container>
+    )
+  }
+}
+
+export class FacesInferred extends Component {
+  componentWillMount() {
+    this.props.dispatch(fetchInferredFaces())
+  }
+  render() {
+    var mappedFaceCards = this.props.inferredFaces.map(function(face){
+      return (
+      <Popup
+        inverted
+        trigger={<Image dimmer height={50} width={50} src={"http://localhost:8000"+face.face_url}/>}
+        content={face.person.name}/>
+      )
+    })
+    return (
+      <Image.Group>
+          {mappedFaceCards}
+      </Image.Group>
+
+    )
+  }
+}
+
 
 export class FaceCards extends Component {
   componentWillMount() {
@@ -85,22 +155,22 @@ export class FaceCard extends Component {
           </Dimmer>
           <Image 
             hidden
-            height={20}
-            width={20}
+            height={260}
+            width={260}
             shape='rounded'/>
         </div>
       )
     }
     else {
       image = <Image 
-        height={20}
-        width={20}
+        height={260}
+        width={260}
         shape='rounded'
         src={this.props.face_url} />
     }
 
     return (
-      <Card>
+      <Card raised>
         <Card.Content>
           {image}
           <Card.Header>
@@ -167,7 +237,7 @@ export class PersonSelector extends Component {
                 basic
                 onClick={this.handleSubmit}
                 color='green' 
-                icon='checkmark'/>}
+                icon='plus'/>}
               position="top center"
               content="Submit label and show next face"
               size="tiny"
@@ -178,6 +248,22 @@ export class PersonSelector extends Component {
     )
   } 
 }
+
+FacesLabeled = connect((store)=>{
+  return {
+    labeledFaces: store.faces.labeledFaces,
+    fetchingLabeledFaces: store.faces.fetchingLabeledFaces,
+    fetchedLabeledFaces: store.faces.fetchedLabeledFaces
+  }
+})(FacesLabeled)
+
+FacesInferred = connect((store)=>{
+  return {
+    inferredFaces: store.faces.inferredFaces,
+    fetchingInferredFaces: store.faces.fetchingInferredFaces,
+    fetchedInferredFaces: store.faces.fetchedInferredFaces
+  }
+})(FacesInferred)
 
 FaceToLabel = connect((store)=>{
   return {
