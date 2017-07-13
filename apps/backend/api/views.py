@@ -35,6 +35,16 @@ class FaceViewSet(viewsets.ModelViewSet):
     serializer_class = FaceSerializer
     pagination_class = StandardResultsSetPagination
 
+class FaceInferredViewSet(viewsets.ModelViewSet):
+    queryset = Face.objects.filter(person_label_is_inferred=True)
+    serializer_class = FaceSerializer
+    pagination_class = StandardResultsSetPagination
+
+class FaceLabeledViewSet(viewsets.ModelViewSet):
+    queryset = Face.objects.filter(person_label_is_inferred=False)
+    serializer_class = FaceSerializer
+    pagination_class = StandardResultsSetPagination
+
 class PersonViewSet(viewsets.ModelViewSet):
     queryset = Person.objects.all().order_by('name')
     serializer_class = PersonSerializer
@@ -56,29 +66,29 @@ class FaceToLabelView(APIView):
     def get(self, request, format=None):
         # return a single face for labeling
         faces_all = Face.objects.all()
-        unlabelled_faces = []
-        labelled_faces = []
+        unlabeled_faces = []
+        labeled_faces = []
         for face in faces_all:
             if face.person_label_is_inferred is not False:
-                unlabelled_faces.append(face)
+                unlabeled_faces.append(face)
             if face.person_label_is_inferred is False:
-                labelled_faces.append(face)
+                labeled_faces.append(face)
 
-        labelled_face_encodings = []
-        for face in labelled_faces:
+        labeled_face_encodings = []
+        for face in labeled_faces:
             face_encoding = np.frombuffer(base64.b64decode(face.encoding),dtype=np.float64)
-            labelled_face_encodings.append(face_encoding)
-        labelled_face_encodings = np.array(labelled_face_encodings)
-        labelled_faces_mean = labelled_face_encodings.mean(0)
+            labeled_face_encodings.append(face_encoding)
+        labeled_face_encodings = np.array(labeled_face_encodings)
+        labeled_faces_mean = labeled_face_encodings.mean(0)
 
-        distances_to_labelled_faces_mean = []
-        for face in unlabelled_faces:
+        distances_to_labeled_faces_mean = []
+        for face in unlabeled_faces:
             face_encoding = np.frombuffer(base64.b64decode(face.encoding),dtype=np.float64)
-            distance = np.linalg.norm(labelled_faces_mean-face_encoding)
-            distances_to_labelled_faces_mean.append(distance)
+            distance = np.linalg.norm(labeled_faces_mean-face_encoding)
+            distances_to_labeled_faces_mean.append(distance)
 
-        most_unsure_face_idx = np.argmax(distances_to_labelled_faces_mean)
-
-        face_to_label = unlabelled_faces[most_unsure_face_idx]
-        return Response(FaceSerializer(face_to_label).data)
+        most_unsure_face_idx = np.argmax(distances_to_labeled_faces_mean)
+        face_to_label = unlabeled_faces[most_unsure_face_idx]
+        data = FaceSerializer(face_to_label).data
+        return Response(data)
 

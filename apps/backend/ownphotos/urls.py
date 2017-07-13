@@ -27,8 +27,9 @@ router.register(r'api/albums/person', views.AlbumPersonViewSet)
 router.register(r'api/albums/date', views.AlbumDateViewSet)
 router.register(r'api/persons', views.PersonViewSet)
 router.register(r'api/photos', views.PhotoViewSet)
+router.register(r'api/faces/inferred',views.FaceInferredViewSet)
+router.register(r'api/faces/labeled',views.FaceLabeledViewSet)
 router.register(r'api/faces', views.FaceViewSet)
-
 
 urlpatterns = [
     url(r'^', include(router.urls)),
