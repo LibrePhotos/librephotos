@@ -8,6 +8,23 @@ var Server = axios.create({
          password: 'skagnfka'}
 });
 
+
+
+export function trainFaces() {
+  return function(dispatch) {
+    dispatch({type: "TRAIN_FACES"});
+    Server.get("trainfaces/")
+      .then((response) => {
+        dispatch({type: "TRAIN_FACES_FULFILLED", payload: response.data})
+        dispatch(fetchInferredFaces())
+        dispatch(fetchLabeledFaces())
+      })
+      .catch((err) => {
+        dispatch({type: "TRAIN_FACES_REJECTED", payload: err})
+      })
+  }
+}
+
 export function fetchInferredFaces() {
   return function(dispatch) {
     dispatch({type: "FETCH_INFERRED_FACES"});
@@ -86,6 +103,7 @@ export function labelFacePersonAndFetchNext(face_id, person_name) {
     Server.patch(endpoint,{"person":{"name":person_name}})
       .then((response1) => {
         dispatch({type: "LABEL_FACE_PERSON_FULFILLED", payload: response1.data})
+        dispatch({type: "FETCH_FACE_TO_LABEL"});
         Server.get("facetolabel/")
           .then((response2) => {
             dispatch({type: "FETCH_FACE_TO_LABEL_FULFILLED", payload: response2.data})

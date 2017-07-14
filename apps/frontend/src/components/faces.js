@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from "react-redux";
 import { Image, Header, Message, Dropdown, Divider, Card, 
          Container, Segment, Button, Icon, Popup, Loader, 
-         Dimmer, Grid} from 'semantic-ui-react';
+         Dimmer, Grid, Reveal, Statistic, Label, Table} from 'semantic-ui-react';
 import { fetchPeople, 
          addPerson ,
          addPersonAndSetLabelToFace} from '../actions/peopleActions';
@@ -17,6 +17,24 @@ import { fetchFaces,
 import {Server} from '../api_client/apiClient'
 
 
+export class FaceStatistics extends Component {
+  render() {
+    return (
+      <Statistic.Group size='mini'>
+        <Statistic>
+          <Statistic.Value>{this.props.labeledFaces.length}</Statistic.Value>
+          <Statistic.Label>Labelled</Statistic.Label>
+        </Statistic>
+        <Statistic>
+          <Statistic.Value>{this.props.inferredFaces.length}</Statistic.Value>
+          <Statistic.Label>Inferred</Statistic.Label>
+        </Statistic>
+      </Statistic.Group>
+    )
+  }
+}
+
+
 export class EditableFaceIcon extends Component {
   state = {}
 
@@ -28,25 +46,113 @@ export class EditableFaceIcon extends Component {
     const content = (
       <Icon link color='black' name='write'/>
     )
-
     return (
       <Popup
-          key={this.props.face_id}
-          inverted
-          trigger={
-            <Dimmer.Dimmable 
-              as={Image}
-              height={60}
-              width={60}
-              dimmed={active}
-              dimmer={{ active, content, inverted:true}}
-              onMouseEnter={this.handleShow}
-              onMouseLeave={this.handleHide}
-              src={this.props.face_url}/>}
+        inverted
+        trigger={
+          <Dimmer.Dimmable 
+            as={Image}
+            height={60}
+            width={60}
+            avatar
+            dimmed={active}
+            shape='rounded'
+            dimmer={{ active, content, inverted:true}}
+            onMouseEnter={this.handleShow}
+            onMouseLeave={this.handleHide}
+            src={this.props.face_url}/>}
           content={this.props.person_name}/>
     )
   }
 }
+
+export class FaceTableLabeled extends Component{
+  componentWillMount() {
+    this.props.dispatch(fetchLabeledFaces())
+  }
+  render() {
+    var person_names = [... new Set(this.props.labeledFaces.map(function(face){return face.person.name}))]
+    var faces = this.props.labeledFaces
+    var mappedRows = person_names.map(function(person_name){
+      var thisPersonsFaces = faces.filter(function(face){
+        return person_name===face.person.name
+      })
+      var mappedFaceIcons = thisPersonsFaces.map(function(face){
+        return (
+          <EditableFaceIcon
+            key={face.id}
+            person_name={face.person.name}
+            face_url={"http://localhost:8000"+face.face_url}
+            face_id={face.id}/>        
+        )
+      })
+      return (
+        <Table.Row>
+          <Table.Cell width={3}>{person_name}</Table.Cell>
+          <Table.Cell>{mappedFaceIcons}</Table.Cell>
+        </Table.Row>
+      )
+    })
+    return (
+      <Table celled selectable sortable={true}>
+        <Table.Header>
+          <Table.Row>
+            <Table.HeaderCell>Person</Table.HeaderCell>
+            <Table.HeaderCell>Faces</Table.HeaderCell>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {mappedRows}
+        </Table.Body>
+      </Table>
+    )
+  }
+}
+
+export class FaceTableInferred extends Component{
+  componentWillMount() {
+    this.props.dispatch(fetchInferredFaces())
+  }
+  render() {
+    var person_names = [... new Set(this.props.inferredFaces.map(function(face){return face.person.name}))]
+    var faces = this.props.inferredFaces
+    var mappedRows = person_names.map(function(person_name){
+      var thisPersonsFaces = faces.filter(function(face){
+        return person_name===face.person.name
+      })
+      var mappedFaceIcons = thisPersonsFaces.map(function(face){
+        return (
+          <EditableFaceIcon
+            key={face.id}
+            person_name={face.person.name}
+            face_url={"http://localhost:8000"+face.face_url}
+            face_id={face.id}/>        
+        )
+      })
+      return (
+        <Table.Row>
+          <Table.Cell width={3}>{person_name}</Table.Cell>
+          <Table.Cell>{mappedFaceIcons}</Table.Cell>
+        </Table.Row>
+      )
+    })
+    return (
+      <Table celled selectable sortable={true}>
+        <Table.Header>
+          <Table.Row>
+            <Table.HeaderCell>Person</Table.HeaderCell>
+            <Table.HeaderCell>Faces</Table.HeaderCell>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {mappedRows}
+        </Table.Body>
+      </Table>
+    )
+  }
+}
+
+
 
 export class FacesLabeled extends Component {
   componentWillMount() {
@@ -56,6 +162,7 @@ export class FacesLabeled extends Component {
     var mappedFaceCards = this.props.labeledFaces.map(function(face){
       return (
           <EditableFaceIcon
+            key={face.id}
             person_name={face.person.name}
             face_url={"http://localhost:8000"+face.face_url}
             face_id={face.id}/>
@@ -63,7 +170,13 @@ export class FacesLabeled extends Component {
     })
     return (
       <Container>
-          {mappedFaceCards}
+        <Header dividing as='h2'>
+          Labeled Faces
+          <Label>
+            <Icon name='user circle outline' />{this.props.labeledFaces.length}
+          </Label>
+        </Header>
+        {mappedFaceCards}
       </Container>
     )
   }
@@ -76,17 +189,23 @@ export class FacesInferred extends Component {
   render() {
     var mappedFaceCards = this.props.inferredFaces.map(function(face){
       return (
-      <Popup
-        inverted
-        trigger={<Image dimmer height={50} width={50} src={"http://localhost:8000"+face.face_url}/>}
-        content={face.person.name}/>
+          <EditableFaceIcon
+            key={face.id}
+            person_name={face.person.name}
+            face_url={"http://localhost:8000"+face.face_url}
+            face_id={face.id}/>
       )
     })
     return (
-      <Image.Group>
-          {mappedFaceCards}
-      </Image.Group>
-
+      <Container>
+        <Header dividing as='h2'>
+          Inferred Faces
+          <Label>
+            <Icon name='user circle outline' />{this.props.inferredFaces.length}
+          </Label>
+        </Header>
+        {mappedFaceCards}
+      </Container>
     )
   }
 }
@@ -153,28 +272,29 @@ export class FaceCard extends Component {
           <Dimmer active inverted>
             <Loader inverted />
           </Dimmer>
-          <Image 
+          <Image
+            floated='right'
             hidden
-            height={260}
-            width={260}
+            height={50}
+            width={50}
             shape='rounded'/>
         </div>
       )
     }
     else {
       image = <Image 
-        height={260}
-        width={260}
+        floated='right'
+        height={50}
+        width={50}
         shape='rounded'
         src={this.props.face_url} />
     }
 
     return (
-      <Card raised>
+      <Card fluid>
         <Card.Content>
-          {image}
           <Card.Header>
-            <Divider/>
+            {image}
             {"Who is this person?"}
           </Card.Header>
         </Card.Content>
@@ -248,6 +368,25 @@ export class PersonSelector extends Component {
     )
   } 
 }
+
+FaceTableInferred = connect((store)=>{
+  return {
+    inferredFaces: store.faces.inferredFaces
+  }
+})(FaceTableInferred)
+
+FaceTableLabeled = connect((store)=>{
+  return {
+    labeledFaces: store.faces.labeledFaces,
+  }
+})(FaceTableLabeled)
+
+FaceStatistics = connect((store)=>{
+  return {
+    labeledFaces: store.faces.labeledFaces,
+    inferredFaces: store.faces.inferredFaces
+  }
+})(FaceStatistics)
 
 FacesLabeled = connect((store)=>{
   return {

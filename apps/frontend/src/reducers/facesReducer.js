@@ -15,6 +15,10 @@ export default function reducer(state={
     fetchingFaceToLabel: false,
     fetchedFaceToLabel: false,
 
+    facesVis: [],
+    training: false,
+    trained: false,
+
     error: null,
   }, action) {
 
@@ -84,6 +88,25 @@ export default function reducer(state={
         }
       }
 
+
+      //train faces
+      case "TRAIN_FACES": {
+        return {...state, training: true}
+      }
+      case "TRAIN_FACES_REJECTED": {
+        return {...state, training: false, error: action.payload}
+      }
+      case "TRAIN_FACES_FULFILLED": {
+        return {
+          ...state,
+          training: false,
+          trained: true,
+          facesVis: action.payload
+        }
+      }
+
+
+      //delete face
       case "DELETE_FACE": {
         return {
           ...state,
