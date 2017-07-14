@@ -107,7 +107,10 @@ class FaceSerializer(serializers.ModelSerializer):
             p.save()
             instance.person = p
             print('created person with name %s'%name)
-        instance.person_label_is_inferred = False
+        if instance.person.name == 'unknown':
+            instance.person_label_is_inferred = None
+        else:
+            instance.person_label_is_inferred = False
         print('updated label for face %d to %s'%(instance.id, instance.person.name))
         instance.save()
         return instance

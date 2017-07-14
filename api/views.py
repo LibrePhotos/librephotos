@@ -12,6 +12,7 @@ from api.serializers import AlbumAutoSerializer
 from api.serializers import AlbumPersonSerializer
 from api.serializers import AlbumDateSerializer
 
+from api.face_classify import train_faces
 from rest_framework.pagination import PageNumberPagination
 
 import random
@@ -92,3 +93,7 @@ class FaceToLabelView(APIView):
         data = FaceSerializer(face_to_label).data
         return Response(data)
 
+class TrainFaceView(APIView):
+    def get(self,request, format=None):
+        res = train_faces()
+        return Response(res)
