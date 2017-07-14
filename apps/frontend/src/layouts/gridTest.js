@@ -25,7 +25,7 @@ export class FacesDashboard extends Component {
         	<Grid.Column width={6}>
         	<FaceToLabel/>
         	<Divider/>
-        	<Button color='green' fluid onClick={this.trainHandler}>Train</Button>
+        	<Button color='blue' fluid onClick={this.trainHandler}>Train</Button>
         	</Grid.Column>
 
         	<Grid.Column width={10}>

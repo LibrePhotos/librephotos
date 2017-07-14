@@ -340,10 +340,9 @@ export class PersonSelector extends Component {
           onChange={this.handleChange}
           options={this.props.people} />
           <Divider/>
-          <div className='ui two buttons'>
+          <div className='ui three buttons'>
             <Popup
               trigger={<Button 
-                basic
                 onClick={this.handleDeleteFace}
                 color='red' 
                 icon='remove'/>}
@@ -354,7 +353,15 @@ export class PersonSelector extends Component {
               basic/>
             <Popup
               trigger={<Button 
-                basic
+                color='orange' 
+                icon='photo'/>}
+              position="top center"
+              content="See the photo"
+              size="tiny"
+              inverted
+              basic/>
+            <Popup
+              trigger={<Button 
                 onClick={this.handleSubmit}
                 color='green' 
                 icon='plus'/>}

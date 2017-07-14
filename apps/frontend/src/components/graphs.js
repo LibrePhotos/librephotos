@@ -14,6 +14,8 @@ export class FaceClusterScatter extends Component {
   }
 
 	render() {
+    var person_names = [... new Set(this.props.facesVis.map(function(el){return el.person_name}))]
+    
 		var data = this.props.facesVis.map(function(el,idx){
 			return (
 				{
@@ -21,7 +23,8 @@ export class FaceClusterScatter extends Component {
 					y: el.value.y,
 					color: el.person_id,
 					size: el.value.size,
-					name: el.person_name
+					name: el.person_name,
+					opacity: 1.0/el.person_id
 				}
 			)
 		})
