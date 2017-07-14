@@ -4,6 +4,7 @@ from api.models import Person
 import base64
 import pickle
 import itertools
+import ipdb
 
 from scipy import linalg
 from sklearn.decomposition import PCA
@@ -14,6 +15,8 @@ from sklearn import mixture
 from scipy.spatial import distance
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import SGDClassifier
+from sklearn import svm
+
 
 mpl.use('Agg')
 import matplotlib.pyplot as plt
@@ -55,18 +58,14 @@ def train_faces():
 
     n_clusters = len(set(person_names_known.tolist()))
 
-    # clf = svm.SVC(kernel='linear')
-    clf = SGDClassifier(loss='log',penalty='l2')
+    # clf = SGDClassifier(loss='log',penalty='l2')
+    clf = svm.SVC(kernel='linear')
     clf.fit(face_encodings_known, person_names_known)
-
-    # brc = Birch(branching_factor=50,n_clusters=n_clusters,threshold=0.5,compute_labels=True)
-    # brc_enc = brc.fit_transform(face_encodings_known,y=person_names_known)
 
     face_encodings_unknown = np.array([f['encoding'] for f in id2face_unknown.values()])
     face_paths_unknown = [f['image_path'] for f in id2face_unknown.values()]
     face_ids_unknown = [f['id'] for f in id2face_unknown.values()]
     pred = clf.predict(face_encodings_unknown)
-    probs = clf.predict_proba(face_encodings_unknown)
 
     for face_id, person_name in zip(face_ids_unknown, pred):
         person = Person.objects.get(name=person_name)
@@ -75,6 +74,37 @@ def train_faces():
         face.person_label_is_inferred = True
         face.save()
 
+    print(list(zip(face_ids_unknown,pred)))
+
+
+    # for front end cluster visualization
+    faces = Face.objects.all()
+    face_encodings_all = []
+    for face in faces:
+        face_encoding = np.frombuffer(base64.b64decode(face.encoding),dtype=np.float64)
+        face_encodings_all.append(face_encoding)
+
+
+    pca = PCA(n_components=3)
+    vis_all = pca.fit_transform(np.array(face_encodings_all))
+
+    res = []
+    for face, vis in zip(faces, vis_all):
+        person_id = face.person.id #color
+        person_name = face.person.name
+        person_label_is_inferred = face.person_label_is_inferred
+        face_url = face.image.url
+        value = {'x':vis[0],'y':vis[1],'size':vis[2]}
+        out = {
+            "person_id":person_id,
+            "person_name":person_name,
+            "person_label_is_inferred":person_label_is_inferred,
+            "face_url":face_url,
+            "value":value}
+        res.append(out)
+    return res
+
+
 
 if __name__ == "__main__":
-    train_faces()
+    res=train_faces()

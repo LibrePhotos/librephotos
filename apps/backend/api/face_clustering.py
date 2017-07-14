@@ -106,13 +106,7 @@ fig.savefig('media/figs/bic.png')
 plt.close(fig)
 
 num_clusters = np.argmax(bics.mean(0))+1
-num_clusters = 15
 print("number of clusters: %d"%num_clusters)
-
-
-
-
-
 
 fig = plt.figure()
 plt.scatter(vis_all.T[0],vis_all.T[1])
@@ -155,10 +149,10 @@ fig.savefig('media/figs/linkage_scatter.png')
 plt.close(fig)
 
 
-for face,cluster in zip(faces_all, clusters):
-    person_cluster = Person.objects.get_or_create(name="cluster_%d"%cluster,kind="CLUSTER",cluster_id=cluster)
-    face.person = person_cluster[0]
-    face.save()
+# for face,cluster in zip(faces_all, clusters):
+#     person_cluster = Person.objects.get_or_create(name="cluster_%d"%cluster,kind="CLUSTER",cluster_id=cluster)
+#     face.person = person_cluster[0]
+#     face.save()
 
 
 
