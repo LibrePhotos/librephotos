@@ -58,8 +58,8 @@ def train_faces():
 
     n_clusters = len(set(person_names_known.tolist()))
 
-    # clf = SGDClassifier(loss='log',penalty='l2')
-    clf = svm.SVC(kernel='linear')
+    clf = SGDClassifier(loss='log',penalty='l2')
+    # clf = svm.SVC(kernel='linear')
     clf.fit(face_encodings_known, person_names_known)
 
     face_encodings_unknown = np.array([f['encoding'] for f in id2face_unknown.values()])
