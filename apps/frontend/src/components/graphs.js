@@ -15,20 +15,24 @@ export class FaceClusterScatter extends Component {
 
 	render() {
     var person_names = [... new Set(this.props.facesVis.map(function(el){return el.person_name}))]
-    
-		var data = this.props.facesVis.map(function(el,idx){
-			return (
-				{
-					x: el.value.x,
-					y: el.value.y,
-					color: el.person_id,
-					size: el.value.size,
-					name: el.person_name,
-					opacity: 1.0/el.person_id
-				}
-			)
-		})
-		console.log(this.state.crosshairValues)
+    var facesVis = this.props.facesVis
+
+    var mappedScatter = person_names.map(function(person_name){
+    	var thisPersonVis = facesVis.filter(function(el){
+    		return (person_name===el.person_name)
+    	})
+    	var thisPersonData = thisPersonVis.map(function(el){
+				return (
+					{
+						x: el.value.x,
+						y: el.value.y,
+						size: el.value.size,
+						name: el.person_name,
+					}
+				)
+    	})
+    	return (<MarkSeries animation data={thisPersonData}/>)
+    })
 		return (
 			<Segment>
 	    	<XYPlot
@@ -38,16 +42,8 @@ export class FaceClusterScatter extends Component {
 					<VerticalGridLines/>
 					<XAxis/>
 					<YAxis/>
-				  <MarkSeries
-				  	onMouseLeave={() => this.setState({crosshairValues: []})}
-          	onNearestXY={(value, {index}) =>
-              this.setState({crosshairValues: [data[index]]})}
-				  	stroke='white'
-				    data={data}/>
-				  <Crosshair values={this.state.crosshairValues}>
-				  	<div>
-				  	</div>
-				  </Crosshair>
+				  {mappedScatter}
+
 				</XYPlot>
 			</Segment>
 		)

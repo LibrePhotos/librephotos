@@ -17,7 +17,7 @@ export class FacesDashboard extends Component {
         <Header as='h2' icon textAlign='center'>
           <Icon name='id badge' circular />
           <Header.Content>
-          	Faces
+          	Label and analyze the trained face classifier!
           </Header.Content>
         </Header>
 

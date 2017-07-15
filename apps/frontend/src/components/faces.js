@@ -2,19 +2,19 @@ import React, { Component } from 'react';
 import { connect } from "react-redux";
 import { Image, Header, Message, Dropdown, Divider, Card, 
          Container, Segment, Button, Icon, Popup, Loader, 
-         Dimmer, Grid, Reveal, Statistic, Label, Table} from 'semantic-ui-react';
+         Dimmer, Grid, Reveal, Statistic, Label, Table,
+         Modal } from 'semantic-ui-react';
 import { fetchPeople, 
          addPerson ,
          addPersonAndSetLabelToFace} from '../actions/peopleActions';
 import { fetchFaces, 
          fetchLabeledFaces,
          fetchInferredFaces,
-         deleteFace, 
+         deleteFaceAndFetchNext, 
          labelFacePerson ,
          fetchFaceToLabel,
+         loadFaceToLabel,
          labelFacePersonAndFetchNext} from '../actions/facesActions';
-
-import {Server} from '../api_client/apiClient'
 
 
 export class FaceStatistics extends Component {
@@ -40,11 +40,12 @@ export class EditableFaceIcon extends Component {
 
   handleShow = () => this.setState({ active: true })
   handleHide = () => this.setState({ active: false })
+  handleClick = () => this.props.dispatch(loadFaceToLabel(this.props.face))
 
   render() {
     const { active } = this.state
     const content = (
-      <Icon link color='black' name='write'/>
+      <Icon link color='black' name='write' onClick={this.handleClick}/>
     )
     return (
       <Popup
@@ -81,6 +82,7 @@ export class FaceTableLabeled extends Component{
         return (
           <EditableFaceIcon
             key={face.id}
+            face={face}
             person_name={face.person.name}
             face_url={"http://localhost:8000"+face.face_url}
             face_id={face.id}/>        
@@ -94,7 +96,7 @@ export class FaceTableLabeled extends Component{
       )
     })
     return (
-      <Table celled selectable sortable={true}>
+      <Table compact celled selectable>
         <Table.Header>
           <Table.Row>
             <Table.HeaderCell>Person</Table.HeaderCell>
@@ -124,6 +126,7 @@ export class FaceTableInferred extends Component{
         return (
           <EditableFaceIcon
             key={face.id}
+            face={face}
             person_name={face.person.name}
             face_url={"http://localhost:8000"+face.face_url}
             face_id={face.id}/>        
@@ -137,7 +140,7 @@ export class FaceTableInferred extends Component{
       )
     })
     return (
-      <Table celled selectable sortable={true}>
+      <Table compact celled selectable >
         <Table.Header>
           <Table.Row>
             <Table.HeaderCell>Person</Table.HeaderCell>
@@ -299,14 +302,14 @@ export class FaceCard extends Component {
           </Card.Header>
         </Card.Content>
         <Card.Content extra>
-          <PersonSelector face_id={this.props.face_id}/>
+          <FaceCardMenu face_id={this.props.face_id}/>
         </Card.Content>
       </Card>
     );
   }
 }
 
-export class PersonSelector extends Component {
+export class FaceCardMenu extends Component {
   handleAddPerson = (e, {value}) => {
     console.log('handing add', value, this.props.face_id)
     this.props.dispatch(addPerson(value))
@@ -319,7 +322,7 @@ export class PersonSelector extends Component {
   }
 
   handleDeleteFace = e => {
-    this.props.dispatch(deleteFace(this.props.face_id))
+    this.props.dispatch(deleteFaceAndFetchNext(this.props.face_id))
   }
 
   handleSubmit = e => {
@@ -351,15 +354,19 @@ export class PersonSelector extends Component {
               size="tiny"
               inverted
               basic/>
-            <Popup
-              trigger={<Button 
+
+            <Modal 
+              basic
+              trigger={
+                <Button 
                 color='orange' 
-                icon='photo'/>}
-              position="top center"
-              content="See the photo"
-              size="tiny"
-              inverted
-              basic/>
+                icon='photo'/>
+              }>
+              <Modal.Header>
+                <Image fluid src={`http://localhost:8000/media/photos/${this.props.faceToLabel.photo_id}.jpg`}/>
+              </Modal.Header>
+            </Modal>
+
             <Popup
               trigger={<Button 
                 onClick={this.handleSubmit}
@@ -375,6 +382,12 @@ export class PersonSelector extends Component {
     )
   } 
 }
+
+EditableFaceIcon = connect((store)=>{
+  return {
+    faceToLabel: store.faces.faceToLabel
+  }
+})(EditableFaceIcon)
 
 FaceTableInferred = connect((store)=>{
   return {
@@ -435,11 +448,11 @@ FaceCard = connect((store)=>{
   }
 })(FaceCard)
 
-PersonSelector = connect((store)=>{
+FaceCardMenu = connect((store)=>{
   return {
     faceToLabel: store.faces.faceToLabel,
     people: store.people.people,
     peopleFetching: store.people.fetching,
     personAdding: store.people.adding,
   }
-})(PersonSelector)
+})(FaceCardMenu)

@@ -7,4 +7,4 @@ export var Server = axios.create({
          password: 'skagnfka'}
 });
 
-export default {Server}
+export default Server

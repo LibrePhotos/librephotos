@@ -1,12 +1,5 @@
 import axios from "axios";
-
-
-var Server = axios.create({
-  baseURL: 'http://localhost:8000/api/',
-  timeout: 10000,
-  auth: {username: 'admin',
-         password: 'skagnfka'}
-});
+import Server from '../api_client/apiClient'
 
 
 
@@ -63,6 +56,8 @@ export function fetchFaces() {
       })
   }
 }
+
+//fetches a face to label from the server
 export function fetchFaceToLabel() {
   return function(dispatch) {
     dispatch({type: "FETCH_FACE_TO_LABEL"});
@@ -76,9 +71,28 @@ export function fetchFaceToLabel() {
   }
 }
 
-export function deleteFace(face_id) {
+//loads face to label onclick of the face icons
+export function loadFaceToLabel(face) {
+  return function(dispatch) {
+    dispatch({type: "LOAD_FACE_TO_LABEL",payload:face});
+  }
+}
+
+
+
+export function deleteFaceAndFetchNext(face_id) {
   return function(dispatch) {
     dispatch({type: "DELETE_FACE", payload:face_id});
+    Server.delete(`faces/${face_id}/`)
+      .then((response)=>{
+        dispatch({type:"DELETE_FACE_FULFILLED"})
+        dispatch(fetchInferredFaces())
+        dispatch(fetchLabeledFaces())
+        dispatch(fetchFaceToLabel())
+      })
+      .catch((err)=>{
+        dispatch({type:"DELETE_FACE_REJECTED"})
+      })
   }
 }
 

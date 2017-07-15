@@ -88,6 +88,10 @@ export default function reducer(state={
         }
       }
 
+      case "LOAD_FACE_TO_LABEL": {
+        return {...state, faceToLabel:action.payload}
+      }
+
 
       //train faces
       case "TRAIN_FACES": {

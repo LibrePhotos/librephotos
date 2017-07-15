@@ -1,9 +1,8 @@
 import React, { Component } from 'react';
 import logo from './logo.svg';
 import './App.css';
-import {FaceCards, FaceToLabel} from './components/faces';
-import {FacesDashboard} from './layouts/gridTest'
-
+import {FacesDashboard} from './layouts/facesDashboard'
+import {AlbumDates} from './components/album'
 class App extends Component {
   render() {
     return (
