@@ -16,6 +16,7 @@ import { fetchFaces,
          loadFaceToLabel,
          labelFacePersonAndFetchNext} from '../actions/facesActions';
 
+import SocialGraph from './socialGraph'
 
 export class PeopleCardGroup extends Component {
   componentWillMount() {
@@ -32,9 +33,14 @@ export class PeopleCardGroup extends Component {
       )
     })
     return (
-      <Card.Group stackable itemsPerRow={4}>
-        {cards}
-      </Card.Group>
+      <Container>
+        <Segment>
+          <SocialGraph/>
+        </Segment>
+        <Card.Group stackable itemsPerRow={3}>
+          {cards}
+        </Card.Group>
+      </Container>
     )
   }
 }

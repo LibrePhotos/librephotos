@@ -1,10 +1,13 @@
 export default function reducer(state={
     people: [],
+    socialGraph: {},
     fetching: false,
     fetched: false,
     adding: false,
     added: false,
     error: null,
+    fetchingSocialGraph: false,
+    fetchedSocialGraph: false,
   }, action) {
 
     switch (action.type) {
@@ -15,16 +18,15 @@ export default function reducer(state={
         return {...state, fetching: false, error: action.payload}
       }
       case "FETCH_PEOPLE_FULFILLED": {
-        const newState = Object.assign({},state, {fetching:false}, {fetched:true})
-        newState.people = [].concat(action.payload)
-        return newState
-        // return {
-        //   ...state,
-        //   fetching: false,
-        //   fetched: true,
-        //   people: action.payload,
-        // }
+        return {
+          ...state,
+          fetching: false,
+          fetched: true,
+          people: action.payload,
+        }
       }
+
+
       case "ADD_PERSON": {
         return {...state, adding: true}
       }
@@ -49,6 +51,26 @@ export default function reducer(state={
         newState.people = state.people.concat(action.payload)
         return newState
       }
+
+
+
+
+      case "FETCH_SOCIAL_GRAPH": {
+        return {...state, fetchingSocialGraph: true}
+      }
+      case "FETCH_SOCIAL_GRAPH_REJECTED": {
+        return {...state, fetchingSocialGraph: false, error: action.payload}
+      }
+      case "FETCH_SOCIAL_GRAPH_FULFILLED": {
+        return {
+          ...state,
+          fetchingSocialGraph: false,
+          fetchedSocialGraph: true,
+          socialGraph: action.payload,
+        }
+      }
+
+
 
 
       default: {

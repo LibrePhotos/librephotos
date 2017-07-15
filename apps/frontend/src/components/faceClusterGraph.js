@@ -4,6 +4,8 @@ import {XYPlot, XAxis, YAxis, HorizontalGridLines,
 				MarkSeries, VerticalGridLines, Crosshair} from 'react-vis';
 import Dimensions from 'react-dimensions'
 import { connect } from "react-redux";
+import { Graph } from 'react-d3-graph';
+import { fetchSocialGraph } from '../actions/peopleActions'
 
 export class FaceClusterScatter extends Component {
   constructor(props) {
@@ -51,6 +53,55 @@ export class FaceClusterScatter extends Component {
 }
 
 
+
+export class SocialGraph extends Component {
+	componentWillMount() {
+		this.props.dispatch(fetchSocialGraph())
+	}
+
+
+
+
+	render(){
+		var width = this.props.containerWidth
+		console.log('social graph width',width)
+		var data = this.props.socialGraph
+		var myConfig = {
+		    highlightBehavior: true,
+		    node: {
+		        color: 'lightgreen',
+		        size: 120,
+		        highlightStrokeColor: 'blue'
+		    },
+		    link: {
+		        highlightColor: 'lightblue'
+		    },
+		    height: 200,
+		    width: width
+		}
+
+		if (this.props.fetched) {
+			var graph = <Graph id='social-graph'
+					config={myConfig}
+					data={this.props.socialGraph}/>
+		}
+		else {
+			var graph = "No data!"
+		}
+
+		console.log(this.props)
+		return (
+			<div>
+				{graph}
+			</div>
+		)
+	}
+}
+
+
+
+
+
 FaceClusterScatter = connect((store)=>{
   return {
     facesVis: store.faces.facesVis,
@@ -58,5 +109,13 @@ FaceClusterScatter = connect((store)=>{
     trained: store.faces.trained,
   }
 })(FaceClusterScatter)
+
+SocialGraph = connect((store)=>{
+  return {
+    socialGraph: store.people.socialGraph,
+    fetching: store.people.fetchingSocialGraph,
+    fetched: store.people.fetchedSocialGraph,
+  }
+})(SocialGraph)
 
 export default Dimensions()(FaceClusterScatter)

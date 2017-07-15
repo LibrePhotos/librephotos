@@ -1,7 +1,7 @@
 import React, {Component} from 'react'
 import { Grid, Image, Icon, Header, Container, Divider, Button} from 'semantic-ui-react'
 import {FaceToLabel, FacesLabeled, FacesInferred, FaceStatistics, FaceTableLabeled, FaceTableInferred} from '../components/faces'
-import FaceClusterScatter from '../components/graphs'
+import  FaceClusterScatter  from '../components/faceClusterGraph'
 import { connect } from "react-redux";
 import {trainFaces} from '../actions/facesActions';
 

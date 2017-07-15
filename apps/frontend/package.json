@@ -6,6 +6,7 @@
     "axios": "^0.16.2",
     "bootstrap": "^3.3.7",
     "react": "^15.6.1",
+    "react-d3-graph": "0.0.2",
     "react-dimensions": "^1.3.0",
     "react-dom": "^15.6.1",
     "react-grid-gallery": "^0.4.0",
