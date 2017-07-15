@@ -3,11 +3,12 @@ import logo from './logo.svg';
 import './App.css';
 import {FacesDashboard} from './layouts/facesDashboard'
 import {AlbumDates} from './components/album'
+import {PeopleCardGroup} from './components/people'
 class App extends Component {
   render() {
     return (
       <div>
-        <FacesDashboard/>
+        <PeopleCardGroup/>
       </div>
     );
   }

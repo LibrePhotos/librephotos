@@ -16,3 +16,9 @@ import { fetchFaces,
          loadFaceToLabel,
          labelFacePersonAndFetchNext} from '../actions/facesActions';
 
+export class PeopleDashboard extends Component {
+   render(){
+      <Grid stackable columns={4}>
+      </Grid>
+   }
+}
