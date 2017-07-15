@@ -15,6 +15,7 @@ from sklearn import mixture
 from scipy.spatial import distance
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import SGDClassifier
+from sklearn.neural_network import MLPClassifier
 from sklearn import svm
 
 
@@ -28,12 +29,14 @@ def train_faces():
     id2face_known = {}
     face_encodings_unknown = []
     face_encodings_known = []
+    face_encodings_all = []
 
     for face in faces:
         face_encoding = np.frombuffer(base64.b64decode(face.encoding),dtype=np.float64)
         face_image = face.image.read()
         face_image_path = face.image_path
         face_id = face.id
+        face_encodings_all.append(face_encoding)
         if face.person_label_is_inferred is not False:
             face_encodings_unknown.append(face_encoding)
             id2face_unknown[face_id] = {}
@@ -59,8 +62,14 @@ def train_faces():
     n_clusters = len(set(person_names_known.tolist()))
 
     clf = SGDClassifier(loss='log',penalty='l2')
-    # clf = svm.SVC(kernel='linear')
-    clf.fit(face_encodings_known, person_names_known)
+    # clf = MLPClassifier(solver='lbfgs',alpha=1e-5,random_state=1)
+    clf = svm.SVC(kernel='linear')
+    # scaler = StandardScaler()
+    # scaler.fit(face_encodings_all)
+    # X = scaler.transform(face_encodings_known)
+    X = face_encodings_known
+    Y = person_names_known
+    clf.fit(X, person_names_known)
 
     face_encodings_unknown = np.array([f['encoding'] for f in id2face_unknown.values()])
     face_paths_unknown = [f['image_path'] for f in id2face_unknown.values()]

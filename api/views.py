@@ -20,9 +20,9 @@ import numpy as np
 import base64
 
 class StandardResultsSetPagination(PageNumberPagination):
-    page_size = 100
+    page_size = 1000
     page_size_query_param = 'page_size'
-    max_page_size = 1000
+    max_page_size = 10000
 
 
 # Create your views here.
