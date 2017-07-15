@@ -13,6 +13,8 @@ from api.serializers import AlbumPersonSerializer
 from api.serializers import AlbumDateSerializer
 
 from api.face_classify import train_faces
+from api.social_graph import build_social_graph
+
 from rest_framework.pagination import PageNumberPagination
 
 import random
@@ -94,6 +96,11 @@ class FaceToLabelView(APIView):
         return Response(data)
 
 class TrainFaceView(APIView):
-    def get(self,request, format=None):
+    def get(self, request, format=None):
         res = train_faces()
+        return Response(res)
+
+class SocialGraphView(APIView):
+    def get(self, request, format=None):
+        res = build_social_graph()
         return Response(res)
