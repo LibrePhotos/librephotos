@@ -34,9 +34,13 @@ export class PeopleCardGroup extends Component {
     })
     return (
       <Container>
-        <Segment>
-          <SocialGraph/>
-        </Segment>
+        <Grid stackable columns={2}> 
+          <Grid.Column width={5}>
+          </Grid.Column>
+          <Grid.Column width={11}>
+            <Segment><SocialGraph/></Segment>
+          </Grid.Column>
+        </Grid>
         <Card.Group stackable itemsPerRow={3}>
           {cards}
         </Card.Group>
