@@ -13,6 +13,7 @@ import {
 import {fetchPeopleAlbums, fetchAutoAlbums} from '../actions/albumsActions'
 import { Map, TileLayer, Marker } from 'react-leaflet'
 
+/*
 export class AlbumPeopleCard extends Component {
   render() {
     return (
@@ -32,6 +33,40 @@ export class AlbumPeopleCard extends Component {
     )
   }
 }
+*/
+
+
+
+export class AlbumPeopleCard extends Component {
+  render() {
+    var album_id = this.props.album_id
+    console.log(this.props)
+    return (
+        <Card>
+          <VisibilitySensor>
+            <Image 
+              as={Link}
+              to={`peopleview/${this.props.album_id}`}
+              size="big"
+              src={this.props.albumCoverURL}/>
+          </VisibilitySensor>
+          <Card.Content>
+          <Header as='h4'>{this.props.albumTitle}</Header>
+          <Card.Meta>
+          {this.props.photoCount} Photos
+          <br/>{this.props.timestamp}
+          </Card.Meta>        
+          </Card.Content>
+        </Card>
+    )
+  }
+}
+
+
+
+
+
+
 
 export class AlbumPeopleCardGroup extends Component {
   componentWillMount() {
@@ -39,7 +74,9 @@ export class AlbumPeopleCardGroup extends Component {
   }
   render() {
     if (this.props.fetchedAlbumsPeople) {
+      var match = this.props.match
       var mappedAlbumCards = this.props.albumsPeople.map(function(album){
+        console.log(album)
         var albumTitle = album.name
         try {
           var albumCoverURL = album.photos[0].square_thumbnail_url
@@ -48,9 +85,11 @@ export class AlbumPeopleCardGroup extends Component {
           var albumCoverURL = null
         }
         return (
-          <AlbumPeopleCard 
+          <AlbumPeopleCard
+            match={match}
             key={'album-person-'+album.id}
             albumTitle={albumTitle}
+            album_id={album.id}
             albumCoverURL={'http://localhost:8000'+albumCoverURL}
             photoCount={album.photos.length}/>
         )
@@ -69,6 +108,79 @@ export class AlbumPeopleCardGroup extends Component {
     )
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+export class AlbumPeopleGallery extends Component {
+  render() {
+
+    var albumID = this.props.match.params.albumID
+    console.log(this.props)
+    if (this.props.fetchedAlbumsPeople) {
+      console.log(albumID)
+      var album = this.props.albumsPeople.filter(function(a){
+        return a.id == albumID
+      })
+
+      var mappedRenderablePhotoArray = album[0].photos.map(function(photo){
+        return ({
+          src: "http://localhost:8000"+photo.image_url,
+          thumbnail: "http://localhost:8000"+photo.thumbnail_url,
+          thumbnailWidth:photo.thumbnail_width,
+          thumbnailHeight:photo.thumbnail_height,
+        });
+      });
+
+      console.log(album)
+    }
+    else {
+      var mappedRenderablePhotoArray = []
+    }
+    return (
+      <div style={{
+          display: "block",
+          minHeight: "1px",
+          width: "100%",
+          border: "0px solid #ddd",
+          overflow: "hidden"}}>
+        <Header as='h1'>
+          {album[0].name}
+        </Header>
+        <Divider/>
+        <AlbumLocationMap photos={album[0].photos}/>
+        <Gallery 
+          images={mappedRenderablePhotoArray}
+          enableImageSelection={false}
+          rowHeight={250}/>
+      </div>
+    )
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 export class AlbumLocationMap extends Component {
@@ -102,7 +214,7 @@ export class AlbumLocationMap extends Component {
     if (photosWithGPS.length>0){
       return (
         <div>
-          <Map center={[avg_lat,avg_lon]} zoom={13}>
+          <Map center={[avg_lat,avg_lon]} zoom={2}>
             <TileLayer
               attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
               url='http://{s}.tile.osm.org/{z}/{x}/{y}.png'/>
@@ -277,6 +389,16 @@ AlbumPeopleCardGroup = connect((store)=>{
     fetchedAlbumsPeople: store.albums.fetchedAlbumsPeople,
   }
 })(AlbumPeopleCardGroup)
+
+AlbumPeopleGallery = connect((store)=>{
+  return {
+    albumsPeople: store.albums.albumsPeople,
+    fetchingAlbumsPeople: store.albums.fetchingAlbumsPeople,
+    fetchedAlbumsPeople: store.albums.fetchedAlbumsPeople,
+  }
+})(AlbumPeopleGallery)
+
+
 
 
 

@@ -11,7 +11,8 @@ import {Container, Menu, Grid, Sidebar, Button, Icon} from 'semantic-ui-react'
 import {FacesDashboard} from './layouts/facesDashboard'
 import {PeopleDashboard} from './layouts/peopleDashboard'
 
-import {AlbumPeopleCardGroup, AlbumAutoCardGroup, AlbumAutoGallery} from './components/album'
+import {AlbumPeopleCardGroup, AlbumAutoCardGroup, 
+        AlbumAutoGallery, AlbumPeopleGallery} from './components/album'
 
 class App extends Component {
   state = { activeItem: 'home' }
@@ -87,6 +88,7 @@ class App extends Component {
               <Route path="/people" component={PeopleDashboard}/>
               <Route path="/albums/people" component={AlbumPeopleCardGroup}/>
               <Route path="/albums/auto" component={AlbumAutoCardGroup}/>
+              <Route path='/albums/peopleview/:albumID' component={AlbumPeopleGallery}/>
               <Route path='/albums/autoview/:albumID' component={AlbumAutoGallery}/>
 
             </div>

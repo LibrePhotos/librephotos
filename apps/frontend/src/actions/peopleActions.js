@@ -14,7 +14,8 @@ export function fetchPeople() {
               value:person.name,
               text:person.name,
               face_url:person.face_url,
-              face_count:person.face_count
+              face_count:person.face_count,
+              face_photo_url:person.face_photo_url
             }
           )
         })
