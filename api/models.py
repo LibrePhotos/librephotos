@@ -63,7 +63,7 @@ class Photo(models.Model):
 
     def _save_image_to_db(self):
         image = PIL.Image.open(self.image_path)
-        image.thumbnail(ownphotos.settings.FULLPHOTO_SIZE, PIL.Image.ANTIALIAS)
+        # image.thumbnail(ownphotos.settings.FULLPHOTO_SIZE, PIL.Image.ANTIALIAS)
         image_io = BytesIO()
         image.save(image_io,format="JPEG")
         self.image.save(self.image_hash+'.jpg', ContentFile(image_io.getvalue()))
