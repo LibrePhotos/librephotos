@@ -151,7 +151,8 @@ export class AlbumPeopleGallery extends Component {
           minHeight: "1px",
           width: "100%",
           border: "0px solid #ddd",
-          overflow: "hidden"}}>
+          overflowX: "hidden",
+          overflowY: 'auto'}}>
         <Header as='h1'>
           {album[0].name}
         </Header>

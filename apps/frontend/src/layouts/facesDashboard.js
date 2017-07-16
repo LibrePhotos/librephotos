@@ -4,24 +4,26 @@ import {FaceToLabel, FacesLabeled, FacesInferred, FaceStatistics, FaceTableLabel
 import  FaceClusterScatter  from '../components/faceClusterGraph'
 import { connect } from "react-redux";
 import {trainFaces} from '../actions/facesActions';
+          
+// <Icon name='id badge' circular />
 
 export class FacesDashboard extends Component {
 
-	trainHandler = e => {
-		this.props.dispatch(trainFaces())
-	}
+  trainHandler = e => {
+    this.props.dispatch(trainFaces())
+  }
 
   render() {
     return (
       <Container fluid>
-        <Header as='h2' icon textAlign='center'>
-          <Icon name='id badge' circular />
+        <Header dividing as='h2' icon textAlign='center'>
           <Header.Content>
-          	Label and analyze the trained face classifier!
+            Face Dashboard
+            <Header.Subheader>Label faces and train a face classifier!</Header.Subheader>
           </Header.Content>
         </Header>
 
-        <Grid stackable divided columns={2}>
+        <Grid stackable columns={2}>
         	<Grid.Column width={6}>
         	<FaceToLabel/>
         	<Divider/>
@@ -31,8 +33,9 @@ export class FacesDashboard extends Component {
         	<Grid.Column width={10}>
 	        	<FaceClusterScatter/>
         	</Grid.Column>
-
         </Grid>
+
+        <Divider/>
 
         <Header as='h3'>Inferred</Header>
 				<FaceTableInferred/>      
