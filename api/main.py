@@ -5,11 +5,11 @@ import datetime
 from tqdm import tqdm
 
 image_dirs = []
-image_dirs.append('/Users/hooram/ownCloud/Photos/korea/')
-image_dirs.append('/Users/hooram/ownCloud/Photos/tuebingen/')
-image_dirs.append('/Users/hooram/ownCloud/Camera Uploads/')
-image_dirs.append('/Users/hooram/ownCloud/Camera Uploads/Pictures')
-# image_dir = '/home/hooram/Nextcloud/Camera Uploads'
+# image_dirs.append('/Users/hooram/ownCloud/Photos/korea/')
+# image_dirs.append('/Users/hooram/ownCloud/Photos/tuebingen/')
+# image_dirs.append('/Users/hooram/ownCloud/Camera Uploads/')
+# image_dirs.append('/Users/hooram/ownCloud/Camera Uploads/Pictures')
+image_dirs.append('/home/hooram/Nextcloud/Camera Uploads')
 # image_dir = "/Users/hooram/ownCloud/Photos/tuebingen"
 # image_dir = "/Users/hoora/ownCloud/Camera Uploads"
 # image_dir = "/mnt/ext/code/ownphotos/data/samplephotos"
