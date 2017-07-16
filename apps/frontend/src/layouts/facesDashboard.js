@@ -13,7 +13,7 @@ export class FacesDashboard extends Component {
 
   render() {
     return (
-      <Container>
+      <Container fluid>
         <Header as='h2' icon textAlign='center'>
           <Icon name='id badge' circular />
           <Header.Content>

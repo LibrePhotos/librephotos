@@ -1,5 +1,5 @@
 import React, {Component} from 'react'
-import {Segment} from 'semantic-ui-react'
+import {Segment, Header} from 'semantic-ui-react'
 import {XYPlot, XAxis, YAxis, HorizontalGridLines, 
 				MarkSeries, VerticalGridLines, Crosshair} from 'react-vis';
 import Dimensions from 'react-dimensions'
@@ -37,9 +37,10 @@ export class FaceClusterScatter extends Component {
     })
 		return (
 			<Segment>
+				<Header as='h3'>Face Embeddings</Header>
 	    	<XYPlot
 				  width={this.props.containerWidth-50}
-				  height={237}>
+				  height={203}>
 				  <HorizontalGridLines/>
 					<VerticalGridLines/>
 					<XAxis/>
@@ -54,54 +55,6 @@ export class FaceClusterScatter extends Component {
 
 
 
-export class SocialGraph extends Component {
-	componentWillMount() {
-		this.props.dispatch(fetchSocialGraph())
-	}
-
-
-
-
-	render(){
-		var width = this.props.containerWidth
-		console.log('social graph width',width)
-		var data = this.props.socialGraph
-		var myConfig = {
-		    highlightBehavior: true,
-		    node: {
-		        color: 'lightgreen',
-		        size: 120,
-		        highlightStrokeColor: 'blue'
-		    },
-		    link: {
-		        highlightColor: 'lightblue'
-		    },
-		    height: 200,
-		    width: width
-		}
-
-		if (this.props.fetched) {
-			var graph = <Graph id='social-graph'
-					config={myConfig}
-					data={this.props.socialGraph}/>
-		}
-		else {
-			var graph = "No data!"
-		}
-
-		console.log(this.props)
-		return (
-			<div>
-				{graph}
-			</div>
-		)
-	}
-}
-
-
-
-
-
 FaceClusterScatter = connect((store)=>{
   return {
     facesVis: store.faces.facesVis,
@@ -110,12 +63,5 @@ FaceClusterScatter = connect((store)=>{
   }
 })(FaceClusterScatter)
 
-SocialGraph = connect((store)=>{
-  return {
-    socialGraph: store.people.socialGraph,
-    fetching: store.people.fetchingSocialGraph,
-    fetched: store.people.fetchedSocialGraph,
-  }
-})(SocialGraph)
 
 export default Dimensions()(FaceClusterScatter)

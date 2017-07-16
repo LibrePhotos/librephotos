@@ -30,15 +30,8 @@ export class PeopleDashboard extends Component {
           </Header.Content>
         </Header>
 
+        <SocialGraph/>
 
-        <Grid stackable divided columns={2}> 
-          <Grid.Column width={8}>
-          </Grid.Column>
-          
-          <Grid.Column width={8}>
-          <SocialGraph/>
-          </Grid.Column>
-        </Grid>
         <Header as='h3'>People</Header>
         <PeopleCardGroup/>
       </Container>

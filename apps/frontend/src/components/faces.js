@@ -15,6 +15,7 @@ import { fetchFaces,
          fetchFaceToLabel,
          loadFaceToLabel,
          labelFacePersonAndFetchNext} from '../actions/facesActions';
+import VisibilitySensor from 'react-visibility-sensor'
 
 
 export class FaceStatistics extends Component {
@@ -48,21 +49,23 @@ export class EditableFaceIcon extends Component {
       <Icon link color='black' name='write' onClick={this.handleClick}/>
     )
     return (
-      <Popup
-        inverted
-        trigger={
-          <Dimmer.Dimmable 
-            as={Image}
-            height={60}
-            width={60}
-            avatar
-            dimmed={active}
-            shape='rounded'
-            dimmer={{ active, content, inverted:true}}
-            onMouseEnter={this.handleShow}
-            onMouseLeave={this.handleHide}
-            src={this.props.face_url}/>}
-          content={this.props.person_name}/>
+      <VisibilitySensor>
+        <Popup
+          inverted
+          trigger={
+            <Dimmer.Dimmable 
+              as={Image}
+              height={60}
+              width={60}
+              avatar
+              dimmed={active}
+              shape='rounded'
+              dimmer={{ active, content, inverted:true}}
+              onMouseEnter={this.handleShow}
+              onMouseLeave={this.handleHide}
+              src={this.props.face_url}/>}
+            content={this.props.person_name}/>
+      </VisibilitySensor>
     )
   }
 }

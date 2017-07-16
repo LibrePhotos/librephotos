@@ -19,21 +19,23 @@ export class SocialGraph extends Component {
 		console.log('social graph width',width)
 		var data = this.props.socialGraph
 		var myConfig = {
-			automaticRearrangeAfterDropNode: true,
+			automaticRearrangeAfterDropNode: false,
 			staticGraph:false,
 		    highlightBehavior: true,
 		    maxZoom: 4,
-		    minZoom: 1,
+		    minZoom: 0.1,
 		    node: {
+		    	fontSize: 10,
+		    	size: 500,
 		        color: 'lightblue',
-		        size: 120,
+		        highlightFontSize: 10,
 		        highlightStrokeColor: 'orange'
 		    },
 		    link: {
 		        highlightColor: 'orange',
 		        color: '#12939A',
 		    },
-		    height: 250,
+		    height: 199,
 		    width: width
 		}
 
