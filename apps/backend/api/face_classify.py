@@ -22,6 +22,37 @@ from sklearn import svm
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 
+
+def cluster_faces():
+    # for front end cluster visualization
+    faces = Face.objects.all()
+    face_encodings_all = []
+    for face in faces:
+        face_encoding = np.frombuffer(base64.b64decode(face.encoding),dtype=np.float64)
+        face_encodings_all.append(face_encoding)
+
+
+    pca = PCA(n_components=3)
+    vis_all = pca.fit_transform(np.array(face_encodings_all))
+
+    res = []
+    for face, vis in zip(faces, vis_all):
+        person_id = face.person.id #color
+        person_name = face.person.name
+        person_label_is_inferred = face.person_label_is_inferred
+        face_url = face.image.url
+        value = {'x':vis[0],'y':vis[1],'size':vis[2]}
+        out = {
+            "person_id":person_id,
+            "person_name":person_name,
+            "person_label_is_inferred":person_label_is_inferred,
+            "face_url":face_url,
+            "value":value}
+        res.append(out)
+    return res
+
+
+
 def train_faces():
     faces = Face.objects.all()
 

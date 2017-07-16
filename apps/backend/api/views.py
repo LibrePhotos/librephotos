@@ -12,7 +12,7 @@ from api.serializers import AlbumAutoSerializer
 from api.serializers import AlbumPersonSerializer
 from api.serializers import AlbumDateSerializer
 
-from api.face_classify import train_faces
+from api.face_classify import train_faces, cluster_faces
 from api.social_graph import build_social_graph
 
 from rest_framework.pagination import PageNumberPagination
@@ -56,14 +56,17 @@ class PersonViewSet(viewsets.ModelViewSet):
 class AlbumAutoViewSet(viewsets.ModelViewSet):
     queryset = AlbumAuto.objects.all().order_by('-timestamp')
     serializer_class = AlbumAutoSerializer
+    pagination_class = StandardResultsSetPagination
 
 class AlbumPersonViewSet(viewsets.ModelViewSet):
     queryset = Person.objects.all().order_by('name')
     serializer_class = AlbumPersonSerializer
+    pagination_class = StandardResultsSetPagination
 
 class AlbumDateViewSet(viewsets.ModelViewSet):
     queryset = AlbumDate.objects.all().order_by('-date')
     serializer_class = AlbumDateSerializer
+    pagination_class = StandardResultsSetPagination
 
 class FaceToLabelView(APIView):
     def get(self, request, format=None):
@@ -94,6 +97,11 @@ class FaceToLabelView(APIView):
         face_to_label = unlabeled_faces[most_unsure_face_idx]
         data = FaceSerializer(face_to_label).data
         return Response(data)
+
+class ClusterFaceView(APIView):
+    def get(self, request, format=None):
+        res = cluster_faces()
+        return Response(res)
 
 class TrainFaceView(APIView):
     def get(self, request, format=None):
