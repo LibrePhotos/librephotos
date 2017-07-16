@@ -45,12 +45,17 @@ class PersonSerializer(serializers.ModelSerializer):
 #     faces = FaceSerializer(many=True, read_only=False)
 #     faces = serializers.StringRelatedField(many=True)
 #     photos = serializers.SerializerMethodField()
-    face_url = serializers.SerializerMethodField()
+    face_url = serializers.SerializerMethodField()  
+    face_count = serializers.SerializerMethodField()  
     class Meta:
         model = Person
         fields = ('name',
                   'face_url',
+                  'face_count',
                   'id',)
+
+    def get_face_count(self,obj):
+        return obj.faces.all().count()
 
     def get_face_url(self,obj):
         try:
