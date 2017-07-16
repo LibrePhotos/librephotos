@@ -47,11 +47,13 @@ class PersonSerializer(serializers.ModelSerializer):
 #     photos = serializers.SerializerMethodField()
     face_url = serializers.SerializerMethodField()  
     face_count = serializers.SerializerMethodField()  
+    face_photo_url = serializers.SerializerMethodField()  
     class Meta:
         model = Person
         fields = ('name',
                   'face_url',
                   'face_count',
+                  'face_photo_url',
                   'id',)
 
     def get_face_count(self,obj):
@@ -63,6 +65,14 @@ class PersonSerializer(serializers.ModelSerializer):
             return face.image.url
         except:
             return None
+
+    def get_face_photo_url(self,obj):
+        try:
+            face = obj.faces.first()
+            return face.photo.square_thumbnail.url
+        except:
+            return None
+
 
     def create(self,validated_data):
         name = validated_data.pop('name')
