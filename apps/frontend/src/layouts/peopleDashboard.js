@@ -16,9 +16,32 @@ import { fetchFaces,
          loadFaceToLabel,
          labelFacePersonAndFetchNext} from '../actions/facesActions';
 
+import SocialGraph from '../components/socialGraph'
+import PeopleCardGroup from '../components/people'
+
 export class PeopleDashboard extends Component {
-   render(){
-      <Grid stackable columns={4}>
-      </Grid>
-   }
+  render() {
+    return (
+      <Container>
+        <Header as='h2' icon textAlign='center'>
+          <Icon name='users' circular />
+          <Header.Content>
+            People
+          </Header.Content>
+        </Header>
+
+
+        <Grid stackable divided columns={2}> 
+          <Grid.Column width={8}>
+          </Grid.Column>
+          
+          <Grid.Column width={8}>
+          <SocialGraph/>
+          </Grid.Column>
+        </Grid>
+        <Header as='h3'>People</Header>
+        <PeopleCardGroup/>
+      </Container>
+    )
+  }  
 }

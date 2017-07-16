@@ -28,23 +28,14 @@ export class PeopleCardGroup extends Component {
       return (
         <PersonCard 
           name={person.text} 
-          photo_count={10}
+          photo_count={person.face_count}
           face_url={"http://localhost:8000"+person.face_url}/>
       )
     })
     return (
-      <Container>
-        <Grid stackable columns={2}> 
-          <Grid.Column width={5}>
-          </Grid.Column>
-          <Grid.Column width={11}>
-            <Segment><SocialGraph/></Segment>
-          </Grid.Column>
-        </Grid>
-        <Card.Group stackable itemsPerRow={3}>
-          {cards}
-        </Card.Group>
-      </Container>
+      <Card.Group stackable itemsPerRow={3}>
+        {cards}
+      </Card.Group>
     )
   }
 }
@@ -64,11 +55,17 @@ export class PersonCard extends Component {
             {this.props.name}
           </Card.Header>
           <Card.Meta>
-            {this.props.photo_count} Photos
+            {this.props.photo_count} Faces
           </Card.Meta>
         </Card.Content>
+        <Card.Content extra>
+          <div className='ui two buttons'>
+          <Button icon='remove'/>
+          <Button icon='photo'/>
+          </div>
+        </Card.Content>
       </Card>
-    );
+    )
   }
 }
 
@@ -79,3 +76,5 @@ PeopleCardGroup = connect((store)=>{
     peopleFetched: store.people.fetched,
   }
 })(PeopleCardGroup)
+
+export default PeopleCardGroup

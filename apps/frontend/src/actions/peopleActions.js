@@ -9,7 +9,13 @@ export function fetchPeople() {
       .then((response) => {
         var mappedPeopleDropdownOptions = response.data.results.map(function(person){
           return (
-            {key:person.id,value:person.name,text:person.name,face_url:person.face_url}
+            {
+              key:person.id,
+              value:person.name,
+              text:person.name,
+              face_url:person.face_url,
+              face_count:person.face_count
+            }
           )
         })
         dispatch({type: "FETCH_PEOPLE_FULFILLED", payload: mappedPeopleDropdownOptions})

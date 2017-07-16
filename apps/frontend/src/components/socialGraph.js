@@ -1,5 +1,5 @@
 import React, {Component} from 'react'
-import {Segment, Header} from 'semantic-ui-react'
+import {Segment, Header, Loader} from 'semantic-ui-react'
 import {XYPlot, XAxis, YAxis, HorizontalGridLines, 
 				MarkSeries, VerticalGridLines, Crosshair} from 'react-vis';
 import Dimensions from 'react-dimensions'
@@ -13,16 +13,13 @@ export class SocialGraph extends Component {
 		this.props.dispatch(fetchSocialGraph())
 	}
 
-
-
-
 	render(){
-		var width = this.props.containerWidth-10
+		var width = this.props.containerWidth-30
 
 		console.log('social graph width',width)
 		var data = this.props.socialGraph
 		var myConfig = {
-			automaticRearrangeAfterDropNode: false,
+			automaticRearrangeAfterDropNode: true,
 			staticGraph:false,
 		    highlightBehavior: true,
 		    maxZoom: 4,
@@ -36,7 +33,7 @@ export class SocialGraph extends Component {
 		        highlightColor: 'orange',
 		        color: '#12939A',
 		    },
-		    height: 300,
+		    height: 250,
 		    width: width
 		}
 
@@ -46,15 +43,15 @@ export class SocialGraph extends Component {
 					data={this.props.socialGraph}/>
 		}
 		else {
-			var graph = "No data!"
+			var graph = <Loader/>
 		}
 
 		console.log(this.props)
 		return (
-			<div>
-				<Header as='h4'>Social Graph Based on Face Co-occurrence</Header>
-				{graph}
-			</div>
+			<Segment>
+        <Header as='h3'>Face Co-occurrence Based Social Graph</Header>
+  			{graph}
+			</Segment>
 		)
 	}
 }
