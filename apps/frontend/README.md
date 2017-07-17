@@ -17,18 +17,18 @@
 
 #### - Upcoming
 
-  - short term:
+  - Ahort term:
     - View all photos by date
     - Infinite scrolling/dynamic loading
-    - favorite albums
-    - create custom albums
-    - authentication
+    - Favorite albums
+    - Create custom albums
+    - Authentication
 
-  - longer term, i.e. haven't thought much about them
-    - share photos/albums
-    - basic photo editing, like rotation
-    - tag undetected face
-    - add cool graphs
+  - Longer term, i.e. haven't thought much about them
+    - Share photos/albums
+    - Basic photo editing, like rotation
+    - Tag undetected face
+    - Add cool graphs
 
   - Finally:
     - dockerize
