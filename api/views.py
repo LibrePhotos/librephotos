@@ -93,9 +93,12 @@ class FaceToLabelView(APIView):
             distance = np.linalg.norm(labeled_faces_mean-face_encoding)
             distances_to_labeled_faces_mean.append(distance)
 
-        most_unsure_face_idx = np.argmax(distances_to_labeled_faces_mean)
-        face_to_label = unlabeled_faces[most_unsure_face_idx]
-        data = FaceSerializer(face_to_label).data
+        try:
+            most_unsure_face_idx = np.argmax(distances_to_labeled_faces_mean)
+            face_to_label = unlabeled_faces[most_unsure_face_idx]
+            data = FaceSerializer(face_to_label).data
+        except:
+            data = {'results':[]}
         return Response(data)
 
 class ClusterFaceView(APIView):
