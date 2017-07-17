@@ -35,9 +35,9 @@
 
 ## How do I run it?
 
-Install node v6 and npm v5.
+Install node and npm. For development I am using node v6.11.0 and npm v5.1.0.
 
-Clone the repo and
+Clone the repo, `cd` into it and
 
 ```bash
 npm install
