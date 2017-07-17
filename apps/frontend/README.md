@@ -29,8 +29,8 @@
     - basic photo editing, like rotation
     - tag undetected face
 
-- Finally:
-  - dockerize
+  - Finally:
+    - dockerize
 
 ## How do i run it?
 
