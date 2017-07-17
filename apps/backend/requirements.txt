@@ -6,7 +6,6 @@ decorator==4.0.11
 Django==1.11.2
 django-cors-headers==2.1.0
 djangorestframework==3.6.3
-dlib==19.4.0
 docopt==0.6.2
 ExifRead==2.1.2
 face-recognition==0.1.14
