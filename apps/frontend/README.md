@@ -1,6 +1,10 @@
 # Ownphotos
 
-Self hosted wannabe Google Photos clone. In development. Not even alpha yet.
+Features 
+- React frontend. 
+- Self hosted wannabe Google Photos clone. 
+- In development. 
+- Not even alpha yet.
 
 # Screenshots
 
