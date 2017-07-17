@@ -11,7 +11,7 @@
 #### - Currently implemented:
   - Label some faces manualy, and train a face classifier to label the rest.
   - View photos by people in them.
-  - Automatically generate "event" albums generate nice titles, like "Thursday in Berlin"
+  - Automatically generate "event" albums with nice titles, like "Thursday in Berlin"
   - See photos on the map
   - Long loading times with very large photo library (in the order of thousands of photos).
 
