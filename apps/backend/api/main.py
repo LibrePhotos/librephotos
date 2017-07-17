@@ -4,20 +4,9 @@ import os
 import datetime
 from tqdm import tqdm
 
-image_dirs = []
-# image_dirs.append('/Users/hooram/ownCloud/Photos/korea/')
-# image_dirs.append('/Users/hooram/ownCloud/Photos/tuebingen/')
-# image_dirs.append('/Users/hooram/ownCloud/Camera Uploads/')
-# image_dirs.append('/Users/hooram/ownCloud/Camera Uploads/Pictures')
+from config import image_dirs
 
-# image_dirs.append('/home/hooram/Nextcloud/Camera Uploads')
-# image_dirs.append('/home/hooram/Nextcloud/Photos/korea/')
-# image_dirs.append('/home/hooram/Nextcloud/Photos/tuebingen/')
-# image_dirs.append('/home/hooram/Nextcloud/Camera Uploads/Pictures')
-image_dirs.append('/media/hooram/9832141a-0970-48e6-8af7-ea42fa520c17/pictures/From Android')
-# image_dir = "/Users/hooram/ownCloud/Photos/tuebingen"
-# image_dir = "/Users/hoora/ownCloud/Camera Uploads"
-# image_dir = "/mnt/ext/code/ownphotos/data/samplephotos"
+
 for image_dir in image_dirs:
     image_paths = os.listdir(image_dir)
     for image_path in tqdm(image_paths):
