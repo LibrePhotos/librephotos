@@ -13,7 +13,6 @@
 
 #### - Currently implemented:
   
-  - Not ready for daily usage (yet)
   - Label some faces manualy, and train a face classifier to label the rest.
   - View photos by people in them.
   - Automatically generate "event" albums with nice titles, like "Thursday in Berlin"
@@ -46,16 +45,21 @@ Tested on Ubuntu 16.04 and macOS Sierra.
 ### Backend
 
 
-Make sure you have Python version > 3.5. 
+Make sure you have Python version >= 3.5. 
 
-Install Boost.
+**Install Boost.**
 
-
+*For Ubuntu*
 ```python
 sudo apt-get install libboost-all-dev
 ```
 
-Create and activate a python virtual environment
+*For macOS*
+```python
+brew install boost-python --with-python3 --without-python
+```
+
+**Create and activate a python virtual environment**
 
 
 ```python
@@ -66,7 +70,7 @@ virtualenv -p=/usr/bin/python3 ~/venvs/ownphotos
 source ~/venvs/ownphotos/bin/activate
 ```
 
-Install dlib and its Python binding (make sure you're within the above virtual environment)
+**Install dlib and its Python binding (make sure you're within the above virtual environment)**
 
 
 ```python
@@ -78,7 +82,7 @@ cd ..
 python3 setup.py install --yes USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA
 ```
 
-Clone the repo and install requirements
+**Clone the repo and install requirements**
 
 ```python
 cd
@@ -87,7 +91,7 @@ cd ownphotos-backend
 pip install -r requirements.txt
 ```
 
-Create db and add admin user with username `admin` and password `password`
+**Create db and add admin user with username `admin` and password `password`**
 
 ```python
 python manage.py migrate
@@ -95,15 +99,15 @@ python manage.py migrate --run-syncdb
 python manage.py createsuperuser # will prompt for username and password. use admin/password
 ```
 
-Start the server process (make sure it's running on port 8000, or go through the entire front end code to replace occurances of `localhost:8000` with the appropriate `hostname:port`)
+**Start the server process** (make sure it's running on port 8000, or go through the entire front end code to replace occurances of `localhost:8000` with the appropriate `hostname:port`)
 
 ```python
 python manage.py runserver
 ```
 
-Edit `config.py` file to add directories where your photos live (subfolder structure insensitive).
+**Edit `config.py` file to add directories where your photos live** (subfolder structure insensitive).
 
-Manual run the script to load the photos into the db
+**Manual run the script to load the photos into the db**
 
 ```python
 python manage.py shell # will drop you into ipython shell
