@@ -19,11 +19,13 @@ export default function reducer(state={
       return {...state, fetchingAlbumsPeople: false, error: action.payload}
     }
     case "FETCH_PEOPLE_ALBUMS_FULFILLED": {
+      var new_album = {...state.albumsPeople}
+      new_album[action.payload.id] = action.payload
       return {
         ...state,
         fetchingAlbumsPeople: false,
         fetchedAlbumsPeople: true,
-        albumsPeople: action.payload,
+        albumsPeople: new_album
       }
     }
 

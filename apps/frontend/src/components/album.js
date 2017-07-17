@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import { Card, Image, Header, Divider, Item, 
+import { Card, Image, Header, Divider, Item, Loader, Dimmer,
          Container, Label, Popup, Segment} from 'semantic-ui-react';
 import Server from '../api_client/apiClient';
 import Gallery from 'react-grid-gallery'
@@ -12,7 +12,7 @@ import {
 } from 'react-router-dom'
 import {fetchPeopleAlbums, fetchAutoAlbums} from '../actions/albumsActions'
 import { Map, TileLayer, Marker } from 'react-leaflet'
-
+import { fetchPeople } from '../actions/peopleActions';
 /*
 export class AlbumPeopleCard extends Component {
   render() {
@@ -37,24 +37,59 @@ export class AlbumPeopleCard extends Component {
 
 
 
+
+
+
+
+
+/*
+export class PersonCard extends Component {
+  render() {
+    return (
+      <Card>
+        <Card.Content>
+          <Image 
+            floated='right' 
+            src={this.props.face_url} 
+            height={60}
+            width={60}
+            shape='rounded'/>
+          <Card.Header>
+            {this.props.name}
+          </Card.Header>
+          <Card.Meta>
+            {this.props.photo_count} Faces
+          </Card.Meta>
+        </Card.Content>
+        <Card.Content extra>
+          <div className='ui two buttons'>
+          <Button icon='remove'/>
+          <Button icon='photo'/>
+          </div>
+        </Card.Content>
+      </Card>
+    )
+  }
+}
+*/
+
 export class AlbumPeopleCard extends Component {
   render() {
-    var album_id = this.props.album_id
+    var album_id = this.props.person.key
     console.log(this.props)
     return (
         <Card>
           <VisibilitySensor>
             <Image 
               as={Link}
-              to={`peopleview/${this.props.album_id}`}
+              to={`peopleview/${this.props.person.key}`}
               size="big"
-              src={this.props.albumCoverURL}/>
+              src={'http://localhost:8000'+this.props.person.face_photo_url}/>
           </VisibilitySensor>
           <Card.Content>
-          <Header as='h4'>{this.props.albumTitle}</Header>
+          <Header as='h4'>{this.props.person.text}</Header>
           <Card.Meta>
-          {this.props.photoCount} Photos
-          <br/>{this.props.timestamp}
+          {this.props.person.face_count} Photos
           </Card.Meta>        
           </Card.Content>
         </Card>
@@ -63,35 +98,46 @@ export class AlbumPeopleCard extends Component {
 }
 
 
+/*
+export class PeopleCardGroup extends Component {
+  componentWillMount() {
+    this.props.dispatch(fetchPeople())
+  }
 
-
-
-
+  render() {
+    var cards = this.props.people.map(function(person){
+      return (
+        <PersonCard 
+          name={person.text} 
+          photo_count={person.face_count}
+          face_url={"http://localhost:8000"+person.face_photo_url}/>
+      )
+    })
+    return (
+      <Card.Group stackable itemsPerRow={3}>
+        {cards}
+      </Card.Group>
+    )
+  }
+}
+*/
 
 export class AlbumPeopleCardGroup extends Component {
   componentWillMount() {
-    this.props.dispatch(fetchPeopleAlbums())
+    if (this.props.people.length == 0){
+      this.props.dispatch(fetchPeople())
+    }
   }
   render() {
-    if (this.props.fetchedAlbumsPeople) {
+    if (this.props.fetchedPeople) {
       var match = this.props.match
-      var mappedAlbumCards = this.props.albumsPeople.map(function(album){
-        console.log(album)
-        var albumTitle = album.name
-        try {
-          var albumCoverURL = album.photos[0].square_thumbnail_url
-        }
-        catch(err) {
-          var albumCoverURL = null
-        }
+      var people = this.props.people
+      var mappedAlbumCards = people.map(function(person){
         return (
           <AlbumPeopleCard
             match={match}
-            key={'album-person-'+album.id}
-            albumTitle={albumTitle}
-            album_id={album.id}
-            albumCoverURL={'http://localhost:8000'+albumCoverURL}
-            photoCount={album.photos.length}/>
+            key={'album-person-'+person.key}
+            person={person}/>
         )
       })
     }
@@ -121,17 +167,30 @@ export class AlbumPeopleCardGroup extends Component {
 
 
 export class AlbumPeopleGallery extends Component {
+  componentDidMount() {
+    console.log('fetching person album',this.props.match.params.albumID)
+    this.props.dispatch(fetchPeopleAlbums(this.props.match.params.albumID))
+  }
+
+  componentWillReceiveProps() {
+    console.log('component did update', this.props.fetchingAlbumsPeople, this.props.match.params.albumID in this.props.albumsPeople)
+
+  }
+
   render() {
+
+    if (!this.props.fetchingAlbumsPeople) {
+      if (!this.props.match.params.albumID in this.props.albumsPeople){
+        this.props.dispatch(fetchPeopleAlbums(this.props.match.params.albumID))      
+      }
+    }
 
     var albumID = this.props.match.params.albumID
     console.log(this.props)
-    if (this.props.fetchedAlbumsPeople) {
+    if (this.props.fetchedAlbumsPeople && !this.props.fetchingAlbumsPeople) {
       console.log(albumID)
-      var album = this.props.albumsPeople.filter(function(a){
-        return a.id == albumID
-      })
-
-      var mappedRenderablePhotoArray = album[0].photos.map(function(photo){
+      var album = this.props.albumsPeople[albumID]
+      var mappedRenderablePhotoArray = album.photos.map(function(photo){
         return ({
           src: "http://localhost:8000"+photo.image_url,
           thumbnail: "http://localhost:8000"+photo.thumbnail_url,
@@ -139,31 +198,43 @@ export class AlbumPeopleGallery extends Component {
           thumbnailHeight:photo.thumbnail_height,
         });
       });
-
       console.log(album)
+      var album_name = album.name
+
+      return (
+        <div>
+          <Header as='h1'>
+            {album_name}
+          </Header>
+          <Divider/>
+          <AlbumLocationMap photos={album.photos}/>
+          <div style={{
+              display: "block",
+              minHeight: "1px",
+              width: "100%",
+              overflowX: "hidden",
+              overflowY: 'auto'}}>
+            <Gallery 
+              images={mappedRenderablePhotoArray}
+              enableImageSelection={false}
+              rowHeight={250}/>
+          </div>
+        </div>
+      )
+
     }
     else {
-      var mappedRenderablePhotoArray = []
+      return (
+        <div style={{
+          display:"block",
+          width:'100%',
+          height:'100%'}}>
+          <Dimmer active>
+            <Loader/>
+          </Dimmer>
+        </div>
+      )
     }
-    return (
-      <div style={{
-          display: "block",
-          minHeight: "1px",
-          width: "100%",
-          border: "0px solid #ddd",
-          overflowX: "hidden",
-          overflowY: 'auto'}}>
-        <Header as='h1'>
-          {album[0].name}
-        </Header>
-        <Divider/>
-        <AlbumLocationMap photos={album[0].photos}/>
-        <Gallery 
-          images={mappedRenderablePhotoArray}
-          enableImageSelection={false}
-          rowHeight={250}/>
-      </div>
-    )
   }
 }
 
@@ -388,6 +459,9 @@ AlbumPeopleCardGroup = connect((store)=>{
     albumsPeople: store.albums.albumsPeople,
     fetchingAlbumsPeople: store.albums.fetchingAlbumsPeople,
     fetchedAlbumsPeople: store.albums.fetchedAlbumsPeople,
+    people: store.people.people,
+    fetchedPeople: store.people.fetched,
+    fetchingPeople: store.people.fetching,
   }
 })(AlbumPeopleCardGroup)
 

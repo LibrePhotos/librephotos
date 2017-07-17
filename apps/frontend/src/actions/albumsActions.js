@@ -1,12 +1,12 @@
 import axios from "axios";
 import Server from '../api_client/apiClient'
 
-export function fetchPeopleAlbums() {
+export function fetchPeopleAlbums(person_id) {
   return function(dispatch) {
     dispatch({type: "FETCH_PEOPLE_ALBUMS"});
-    Server.get("albums/person/")
+    Server.get(`albums/person/${person_id}/`)
       .then((response) => {
-        dispatch({type: "FETCH_PEOPLE_ALBUMS_FULFILLED", payload: response.data.results})
+        dispatch({type: "FETCH_PEOPLE_ALBUMS_FULFILLED", payload: response.data})
       })
       .catch((err) => {
         dispatch({type: "FETCH_PEOPLE_ALBUMS_REJECTED", payload: err})
