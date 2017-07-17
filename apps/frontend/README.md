@@ -86,7 +86,7 @@ python3 setup.py install --yes USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA
 
 ```bash
 cd
-git clone
+git clone git clone https://github.com/hooram/ownphotos-backend.git
 cd ownphotos-backend
 pip install -r requirements.txt
 ```
@@ -99,12 +99,6 @@ python manage.py migrate --run-syncdb
 python manage.py createsuperuser # will prompt for username and password. use admin/password
 ```
 
-**Start the server process** (make sure it's running on port 8000, or go through the entire front end code to replace occurances of `localhost:8000` with the appropriate `hostname:port`)
-
-```bash
-python manage.py runserver
-```
-
 **Edit `config.py` file to add directories where your photos live** (ignores subfolders).
 
 **Manual run the script to load the photos into the db**
@@ -114,14 +108,21 @@ python manage.py shell # will drop you into ipython shell
 run api/main.py # this might take a while depending on the number of photos
 ```
 
+**Start the server process** (make sure it's running on port 8000, or go through the entire front end code to replace occurances of `localhost:8000` with the appropriate `hostname:port`)
+
+```bash
+python manage.py runserver
+```
 
 ### Frontend
 
 Install node and npm. For development I am using node v6.11.0 and npm v5.1.0.
 
-Clone the repo, `cd` into it and
+Clone the repo, `cd` into it and start server
 
 ```bash
+cd && git clone https://github.com/hooram/ownphotos-frontend.git
+cd ownphotos-frontend
 npm install
 npm start
 ```
