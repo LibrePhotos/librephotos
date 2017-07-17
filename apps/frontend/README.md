@@ -2,11 +2,13 @@
 
 ## What is it?
 
-Some bullet points:
+
 - Self hosted wannabe Google Photos clone. 
 - React frontend. 
 - In development. 
 - Long loading times with very large photo library (in the order of thousands of photos).
+
+### Features
 
 - Features currently implemented:
   - Label some faces manualy, and train a face classifier to label the rest.
