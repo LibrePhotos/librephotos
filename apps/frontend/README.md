@@ -50,19 +50,19 @@ Make sure you have Python version >= 3.5.
 **Install Boost.**
 
 *For Ubuntu*
-```python
+```bash
 sudo apt-get install libboost-all-dev
 ```
 
 *For macOS*
-```python
+```bash
 brew install boost-python --with-python3 --without-python
 ```
 
 **Create and activate a python virtual environment**
 
 
-```python
+```bash
 sudo apt install python-pip
 pip install virtualenv
 cd && mkdir venvs
@@ -70,10 +70,10 @@ virtualenv -p=/usr/bin/python3 ~/venvs/ownphotos
 source ~/venvs/ownphotos/bin/activate
 ```
 
-**Install dlib and its Python binding (make sure you're within the above virtual environment)**
+**Install dlib and its Python binding** (make sure you're within the above virtual environment)
 
 
-```python
+```bash
 git clone https://github.com/davisking/dlib.git
 cd dlib
 mkdir build; cd build; cmake .. -DDLIB_USE_CUDA=0 -DUSE_AVX_INSTRUCTIONS=1;
@@ -84,7 +84,7 @@ python3 setup.py install --yes USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA
 
 **Clone the repo and install requirements**
 
-```python
+```bash
 cd
 git clone
 cd ownphotos-backend
@@ -93,7 +93,7 @@ pip install -r requirements.txt
 
 **Create db and add admin user with username `admin` and password `password`**
 
-```python
+```bash
 python manage.py migrate
 python manage.py migrate --run-syncdb
 python manage.py createsuperuser # will prompt for username and password. use admin/password
@@ -101,15 +101,15 @@ python manage.py createsuperuser # will prompt for username and password. use ad
 
 **Start the server process** (make sure it's running on port 8000, or go through the entire front end code to replace occurances of `localhost:8000` with the appropriate `hostname:port`)
 
-```python
+```bash
 python manage.py runserver
 ```
 
-**Edit `config.py` file to add directories where your photos live** (subfolder structure insensitive).
+**Edit `config.py` file to add directories where your photos live** (ignores subfolders).
 
 **Manual run the script to load the photos into the db**
 
-```python
+```bash
 python manage.py shell # will drop you into ipython shell
 run api/main.py # this might take a while depending on the number of photos
 ```
