@@ -9,14 +9,14 @@
 
 ### Features
 
-- Features currently implemented:
+#### currently implemented:
   - Label some faces manualy, and train a face classifier to label the rest.
   - View photos by people in them.
   - Automatically generate "event" albums and title generation, like "Thursday in Berlin"
   - See photos on the map
 
-- Upcoming features
- 
+#### upcoming
+
   - short term:
     - View all photos by date
     - Infinite scrolling/dynamic loading
