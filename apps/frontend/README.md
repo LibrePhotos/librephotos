@@ -5,17 +5,17 @@
 - Self hosted wannabe Google Photos clone. 
 - Django backend & React frontend. 
 - In development. 
-- Long loading times with very large photo library (in the order of thousands of photos).
 
 ### Features
 
-#### currently implemented:
+#### - Currently implemented:
   - Label some faces manualy, and train a face classifier to label the rest.
   - View photos by people in them.
   - Automatically generate "event" albums generate nice titles, like "Thursday in Berlin"
   - See photos on the map
+  - Long loading times with very large photo library (in the order of thousands of photos).
 
-#### upcoming
+#### - Upcoming
 
   - short term:
     - View all photos by date
@@ -28,18 +28,18 @@
     - share photos/albums
     - basic photo editing, like rotation
     - tag undetected face
+    - add cool graphs
 
   - Finally:
     - dockerize
 
-## How do i run it?
+## How do I run it?
 
 Install node v6 and npm v5.
 
-Clone repo and run it.
+Clone the repo and
 
 ```bash
-git clone
 npm install
 npm start
 ```
