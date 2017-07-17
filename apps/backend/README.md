@@ -99,12 +99,6 @@ python manage.py migrate --run-syncdb
 python manage.py createsuperuser # will prompt for username and password. use admin/password
 ```
 
-**Start the server process** (make sure it's running on port 8000, or go through the entire front end code to replace occurances of `localhost:8000` with the appropriate `hostname:port`)
-
-```bash
-python manage.py runserver
-```
-
 **Edit `config.py` file to add directories where your photos live** (ignores subfolders).
 
 **Manual run the script to load the photos into the db**
@@ -112,6 +106,12 @@ python manage.py runserver
 ```bash
 python manage.py shell # will drop you into ipython shell
 run api/main.py # this might take a while depending on the number of photos
+```
+
+**Start the server process** (make sure it's running on port 8000, or go through the entire front end code to replace occurances of `localhost:8000` with the appropriate `hostname:port`)
+
+```bash
+python manage.py runserver
 ```
 
 
@@ -125,6 +125,7 @@ Clone the repo, `cd` into it and start server
 cd && git clone https://github.com/hooram/ownphotos-frontend.git
 cd ownphotos-frontend
 npm install
+npm start
 ```
 
 A browser window should open, where you can mess around!
