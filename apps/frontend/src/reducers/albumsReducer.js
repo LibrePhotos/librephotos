@@ -7,6 +7,9 @@ export default function reducer(state={
     fetchingAlbumsAuto: false,
     fetchedAlbumsAuto: false,
 
+    generatingAlbumsAuto: false,
+    generatedAlbumsAuto: false,
+
 
     error: null,
   }, action) {
@@ -46,7 +49,19 @@ export default function reducer(state={
     }
   
 
-
+    case "GENERATE_AUTO_ALBUMS": {
+      return {...state, generatingAlbumsAuto: true}
+    }
+    case "GENERATE_AUTO_ALBUMS_REJECTED": {
+      return {...state, generatingAlbumsAuto: false, error: action.payload}
+    }
+    case "GENERATE_AUTO_ALBUMS_FULFILLED": {
+      return {
+        ...state,
+        generatingAlbumsAuto: false,
+        generatedAlbumsAuto: true,
+      }
+    }
 
     default: {
       return {...state}

@@ -10,7 +10,7 @@ import {
   Route,
   Link
 } from 'react-router-dom'
-import {fetchPeopleAlbums, fetchAutoAlbums} from '../actions/albumsActions'
+import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
 import { Map, TileLayer, Marker } from 'react-leaflet'
 import { fetchPeople } from '../actions/peopleActions';
 
@@ -324,6 +324,9 @@ export class AlbumAutoCardGroup extends Component {
   componentWillMount() {
     this.props.dispatch(fetchAutoAlbums())
   }
+
+  handleAutoAlbumGen = e => this.props.dispatch(generateAutoAlbums())
+
   render() {
     if (this.props.fetchedAlbumsAuto) {
       var match = this.props.match
@@ -370,7 +373,13 @@ export class AlbumAutoCardGroup extends Component {
         </Header>
 
         <div style={{paddingBottom:'20px'}}>
-          <Button fluid color='blue'><Icon name='wizard'/>Generate More</Button>
+          <Button 
+            onClick={this.handleAutoAlbumGen}
+            loading={this.props.generatingAutoAlbums}
+            fluid 
+            color='blue'>
+            <Icon name='wizard'/>Generate More
+          </Button>
         </div>
 
         <Card.Group stackable itemsPerRow={4}>
@@ -409,6 +418,8 @@ AlbumAutoCardGroup = connect((store)=>{
     albumsAuto: store.albums.albumsAuto,
     fetchingAlbumsAuto: store.albums.fetchingAlbumsAuto,
     fetchedAlbumsAuto: store.albums.fetchedAlbumsAuto,
+    generatingAlbumsAuto: store.albums.generatingAlbumsAuto,
+    generatedAlbumsAuto: store.albums.generatedAlbumsAuto,
   }
 })(AlbumAutoCardGroup)
 

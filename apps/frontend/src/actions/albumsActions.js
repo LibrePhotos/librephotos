@@ -15,6 +15,21 @@ export function fetchPeopleAlbums(person_id) {
 }
 
 
+export function generateAutoAlbums() {
+	return function(dispatch) {
+		dispatch({type: "GENERATE_AUTO_ALBUMS"})
+    Server.get("autoalbumgen/")
+      .then((response) => {
+        dispatch({type: "GENERATE_AUTO_ALBUMS_FULFILLED", payload: response.data})
+        dispatch(fetchAutoAlbums())
+      })
+      .catch((err) => {
+        dispatch({type: "GENERATE_AUTO_ALBUMS_REJECTED", payload: err})
+      })
+
+	}
+}
+
 export function fetchAutoAlbums() {
   return function(dispatch) {
     dispatch({type: "FETCH_AUTO_ALBUMS"});
