@@ -3,7 +3,7 @@
 ## What is it?
 
 - Self hosted wannabe Google Photos clone. 
-- React frontend. 
+- Django backend & React frontend. 
 - In development. 
 - Long loading times with very large photo library (in the order of thousands of photos).
 
