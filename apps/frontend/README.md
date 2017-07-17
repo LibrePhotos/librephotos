@@ -2,7 +2,6 @@
 
 ## What is it?
 
-
 - Self hosted wannabe Google Photos clone. 
 - React frontend. 
 - In development. 
@@ -16,7 +15,8 @@
   - Automatically generate "event" albums and title generation, like "Thursday in Berlin"
   - See photos on the map
 
-- Upcoming features 
+- Upcoming features
+ 
   - short term:
     - View all photos by date
     - Infinite scrolling/dynamic loading
@@ -29,12 +29,14 @@
     - basic photo editing, like rotation
     - tag undetected face
 
-  - finally:
-    - dockerize
+- Finally:
+  - dockerize
 
 ## How do i run it?
 
-Install node v6 and npm v5
+Install node v6 and npm v5.
+
+Clone repo and run it.
 
 ```bash
 git clone
