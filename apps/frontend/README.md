@@ -17,7 +17,7 @@
 
 #### - Upcoming
 
-  - Ahort term:
+  - Short term:
     - View all photos by date
     - Infinite scrolling/dynamic loading
     - Favorite albums
