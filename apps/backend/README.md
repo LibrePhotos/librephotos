@@ -91,7 +91,7 @@ cd ownphotos-backend
 pip install -r requirements.txt
 ```
 
-**Create db and add admin user with username `admin` and password `password`**
+**Create db and add admin user with username `admin` and password `q1W@e3R$`**
 
 ```bash
 python manage.py migrate
