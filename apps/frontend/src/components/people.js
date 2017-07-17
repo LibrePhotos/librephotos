@@ -29,7 +29,7 @@ export class PeopleCardGroup extends Component {
         <PersonCard 
           name={person.text} 
           photo_count={person.face_count}
-          face_url={"http://localhost:8000"+person.face_photo_url}/>
+          face_url={"http://localhost:8000"+person.face_url}/>
       )
     })
     return (

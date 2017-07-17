@@ -110,6 +110,23 @@ export default function reducer(state={
       }
 
 
+      //train faces
+      case "CLUSTER_FACES": {
+        return {...state, clustering: true}
+      }
+      case "CLUSTER_FACES_REJECTED": {
+        return {...state, clustering: false, error: action.payload}
+      }
+      case "CLUSTER_FACES_FULFILLED": {
+        return {
+          ...state,
+          clustering: false,
+          clustered: true,
+          facesVis: action.payload
+        }
+      }
+
+
       //delete face
       case "DELETE_FACE": {
         return {

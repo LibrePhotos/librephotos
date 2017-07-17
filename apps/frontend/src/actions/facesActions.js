@@ -18,6 +18,21 @@ export function trainFaces() {
   }
 }
 
+export function clusterFaces() {
+  return function(dispatch) {
+    dispatch({type: "CLUSTER_FACES"});
+    Server.get("clusterfaces/")
+      .then((response) => {
+        dispatch({type: "CLUSTER_FACES_FULFILLED", payload: response.data})
+        dispatch(fetchInferredFaces())
+        dispatch(fetchLabeledFaces())
+      })
+      .catch((err) => {
+        dispatch({type: "CLUSTER_FACES_REJECTED", payload: err})
+      })
+  }
+}
+
 export function fetchInferredFaces() {
   return function(dispatch) {
     dispatch({type: "FETCH_INFERRED_FACES"});

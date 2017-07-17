@@ -6,7 +6,7 @@ import {
   Route,
   Link
 } from 'react-router-dom'
-import {Container, Menu, Grid, Sidebar, Button, Icon} from 'semantic-ui-react'
+import {Container, Menu, Grid, Sidebar, Button, Icon, Header} from 'semantic-ui-react'
 
 import {FacesDashboard} from './layouts/facesDashboard'
 import {PeopleDashboard} from './layouts/peopleDashboard'
@@ -31,10 +31,18 @@ class App extends Component {
             vertical
             inverted
             fixed='left'>
+
+
+            <Menu.Item name='logo'>
+              <img src='https://gitlab.hooram.xyz/uploads/system/appearance/header_logo/1/hooram-logo-final-05.png'/>
+            </Menu.Item>
+
+
             <Menu.Item
               onClick={this.handleItemClick}
               active={activeItem==='home'}
               name='home'
+              content="Ownphotos"
               as={Link}
               to='/'/>
 

@@ -296,6 +296,22 @@ export class FaceCard extends Component {
         src={this.props.face_url} />
     }
 
+    if (this.props.face_id == null){
+      return (
+          <Card fluid>
+            <Card.Content>
+              <Card.Header>
+                {"No more face to label!"}
+                <div style={{height:"28px", width:"50px"}}></div>
+              </Card.Header>
+            </Card.Content>
+            <Card.Content extra>
+              <FaceCardMenu face_id={this.props.face_id}/>
+            </Card.Content>
+          </Card>      
+      )
+    }
+
     return (
       <Card fluid>
         <Card.Content>
@@ -333,6 +349,60 @@ export class FaceCardMenu extends Component {
   }
 
   render() {
+    if (this.props.face_id == null){
+      var buttonGroup = (
+          <Popup
+            trigger={<Button 
+              color='green'
+              fluid 
+              icon='star'/>}
+            position="top center"
+            content="Woohoo!"
+            size="tiny"
+            inverted
+            basic/>
+      )
+    }
+    else {
+      var buttonGroup = (
+        <div className='ui three buttons'>
+          <Popup
+            trigger={<Button 
+              onClick={this.handleDeleteFace}
+              color='red' 
+              icon='trash'/>}
+            position="top center"
+            content="Forget this face"
+            size="tiny"
+            inverted
+            basic/>
+
+          <Modal 
+            basic
+            trigger={
+              <Button 
+              color='orange' 
+              icon='photo'/>
+            }>
+            <Modal.Header>
+              <Image fluid src={`http://localhost:8000/media/photos/${this.props.faceToLabel.photo_id}.jpg`}/>
+            </Modal.Header>
+          </Modal>
+
+          <Popup
+            trigger={<Button 
+              onClick={this.handleSubmit}
+              color='green' 
+              icon='plus'/>}
+            position="top center"
+            content="Submit label and show next face"
+            size="tiny"
+            inverted
+            basic/>
+        </div>
+      )
+    }
+
     return (
       <div>
         <Dropdown  
@@ -346,41 +416,7 @@ export class FaceCardMenu extends Component {
           onChange={this.handleChange}
           options={this.props.people} />
           <Divider/>
-          <div className='ui three buttons'>
-            <Popup
-              trigger={<Button 
-                onClick={this.handleDeleteFace}
-                color='red' 
-                icon='remove'/>}
-              position="top center"
-              content="Forget this face"
-              size="tiny"
-              inverted
-              basic/>
-
-            <Modal 
-              basic
-              trigger={
-                <Button 
-                color='orange' 
-                icon='photo'/>
-              }>
-              <Modal.Header>
-                <Image fluid src={`http://localhost:8000/media/photos/${this.props.faceToLabel.photo_id}.jpg`}/>
-              </Modal.Header>
-            </Modal>
-
-            <Popup
-              trigger={<Button 
-                onClick={this.handleSubmit}
-                color='green' 
-                icon='plus'/>}
-              position="top center"
-              content="Submit label and show next face"
-              size="tiny"
-              inverted
-              basic/>
-          </div>
+          {buttonGroup}
         </div>
     )
   } 

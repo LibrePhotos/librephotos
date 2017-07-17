@@ -18,7 +18,7 @@ export function fetchPeopleAlbums(person_id) {
 export function fetchAutoAlbums() {
   return function(dispatch) {
     dispatch({type: "FETCH_AUTO_ALBUMS"});
-    Server.get("albums/auto/?page_size=12")
+    Server.get("albums/auto/")
       .then((response) => {
         dispatch({type: "FETCH_AUTO_ALBUMS_FULFILLED", payload: response.data.results})
       })

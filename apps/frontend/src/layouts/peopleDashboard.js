@@ -23,12 +23,14 @@ export class PeopleDashboard extends Component {
   render() {
     return (
       <Container>
-        <Header as='h2' icon textAlign='center'>
-          <Icon name='users' circular />
+        <Header dividing as='h2' icon textAlign='center'>
           <Header.Content>
-            People
+            <Icon size='small' name='users'/>People Dashboard
+            <Header.Subheader>Manage people in your photos</Header.Subheader>
           </Header.Content>
         </Header>
+
+
 
         <SocialGraph/>
 
