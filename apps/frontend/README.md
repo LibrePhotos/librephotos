@@ -2,7 +2,7 @@
 
 ## What is it?
 
-- Self hosted wannabe Google Photos clone. 
+- Self hosted wannabe Google Photos clone, with a slight focus on cool graphs
 - Django backend & React frontend. 
 - In development. 
 
