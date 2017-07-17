@@ -38,4 +38,5 @@ urlpatterns = [
     url(r'^api/trainfaces', views.TrainFaceView.as_view()),
     url(r'^api/clusterfaces', views.ClusterFaceView.as_view()),
     url(r'^api/socialgraph', views.SocialGraphView.as_view()),
+    url(r'^api/autoalbumgen', views.AutoAlbumGenerateView.as_view()),
 ]+static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

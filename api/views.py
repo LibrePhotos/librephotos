@@ -14,6 +14,7 @@ from api.serializers import AlbumDateSerializer
 
 from api.face_classify import train_faces, cluster_faces
 from api.social_graph import build_social_graph
+from api.autoalbum import generate_event_albums
 
 from rest_framework.pagination import PageNumberPagination
 
@@ -114,4 +115,9 @@ class TrainFaceView(APIView):
 class SocialGraphView(APIView):
     def get(self, request, format=None):
         res = build_social_graph()
+        return Response(res)
+
+class AutoAlbumGenerateView(APIView):
+    def get(self, request, format=None):
+        res = generate_event_albums()
         return Response(res)
