@@ -33,6 +33,7 @@ class StandardResultsSetPagination(PageNumberPagination):
 class PhotoViewSet(viewsets.ModelViewSet):
     queryset = Photo.objects.all().order_by('-exif_timestamp')
     serializer_class = PhotoSerializer
+    pagination_class = StandardResultsSetPagination
 
 class FaceViewSet(viewsets.ModelViewSet):
     queryset = Face.objects.all().order_by('id')
