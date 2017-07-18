@@ -15,6 +15,9 @@ from api.serializers import AlbumDateSerializer
 from api.face_classify import train_faces, cluster_faces
 from api.social_graph import build_social_graph
 from api.autoalbum import generate_event_albums
+from api.api_util import get_count_stats
+from api.directory_watcher import is_photos_being_added, scan_photos
+from api.autoalbum import is_auto_albums_being_processed
 
 from rest_framework.pagination import PageNumberPagination
 
@@ -26,6 +29,8 @@ class StandardResultsSetPagination(PageNumberPagination):
     page_size = 1000
     page_size_query_param = 'page_size'
     max_page_size = 10000
+
+
 
 
 # Create your views here.
@@ -69,6 +74,8 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
     queryset = AlbumDate.objects.all().order_by('-date')
     serializer_class = AlbumDateSerializer
     pagination_class = StandardResultsSetPagination
+
+# API Views
 
 class FaceToLabelView(APIView):
     def get(self, request, format=None):
@@ -121,4 +128,26 @@ class SocialGraphView(APIView):
 class AutoAlbumGenerateView(APIView):
     def get(self, request, format=None):
         res = generate_event_albums()
+        return Response(res)
+
+class StatsView(APIView):
+    def get(self, requests, format=None):
+        res = get_count_stats()
+        return Response(res)
+
+class ScanPhotosView(APIView):
+    def get(self, requests, format=None):
+        res = scan_photos()
+        return Response(res)
+
+
+# watchers
+class IsPhotosBeingAddedView(APIView):
+    def get(self, requests, format=None):
+        res = is_photos_being_added()
+        return Response(res)
+
+class IsAutoAlbumsBeingProcessed(APIView):
+    def get(self, requests, format=None):
+        res = is_auto_albums_being_processed()
         return Response(res)
