@@ -11,6 +11,21 @@ import numpy as np
 
 import ipdb
 
+def is_auto_albums_being_processed():
+    # check if there are auto albums being generated right now
+    if AlbumAuto.objects.count() > 0:
+        last_album_auto_created_on = AlbumAuto.objects.order_by('-created_on')[0].created_on
+        now = datetime.now().astimezone(last_album_auto_created_on.tzinfo)
+        td = (now-last_album_auto_created_on).total_seconds()
+        print(td)
+        if abs(td) < 30:
+            status = True
+        else:
+            status = False
+    else:
+        status = False
+    return {"status":status}
+    
 # go through all photos
 def generate_event_albums():
     photo_count = Photo.objects.count()
