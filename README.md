@@ -108,11 +108,12 @@ python manage.py createsuperuser # will prompt for username and password. use ad
 
 **Edit `config.py` file to add directories where your photos live** (ignores subfolders).
 
-**Manual run the script to load the photos into the db**
+**Manually run the script to load the photos into the db**
 
 ```bash
 python manage.py shell # will drop you into ipython shell
-run api/main.py # this might take a while depending on the number of photos
+from api.directory_watcher import scan_photos
+scan_photos() # this might take a while depending on the number of photos
 ```
 
 **Start the server process** (make sure it's running on port 8000, or go through the entire front end code to replace occurances of `localhost:8000` with the appropriate `hostname:port`)
