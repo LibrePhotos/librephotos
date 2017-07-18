@@ -34,7 +34,7 @@ class App extends Component {
 
 
             <Menu.Item name='logo'>
-              <img src='https://gitlab.hooram.xyz/uploads/system/appearance/header_logo/1/hooram-logo-final-05.png'/>
+              <img src='/logo-inverted.png'/>
             </Menu.Item>
 
 

@@ -375,7 +375,7 @@ export class AlbumAutoCardGroup extends Component {
         <div style={{paddingBottom:'20px'}}>
           <Button 
             onClick={this.handleAutoAlbumGen}
-            loading={this.props.generatingAutoAlbums}
+            loading={this.props.generatingAlbumsAuto}
             fluid 
             color='blue'>
             <Icon name='wizard'/>Generate More
