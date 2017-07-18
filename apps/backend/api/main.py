@@ -18,6 +18,8 @@ for image_path in tqdm(image_paths):
             qs = Photo.objects.filter(image_path=img_abs_path)
             if qs.count() < 1:
                 photo = Photo(image_path=img_abs_path)
+                photo.added_on = datetime.datetime.now()
+                photo.save()
                 photo._generate_md5()
                 
                 start = datetime.datetime.now()

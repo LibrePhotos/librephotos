@@ -38,6 +38,13 @@
   - Finally:
     - dockerize
 
+## What does it use?
+
+- **Face detection:** [face_recognition](https://github.com/ageitgey/face_recognition) 
+- **Face classification/clusterization:** scikit-learn
+- **Object detection:** [densecap](https://github.com/jcjohnson/densecap)
+
+
 ## How do I run it?
 
 Tested on Ubuntu 16.04 and macOS Sierra.
@@ -66,7 +73,7 @@ brew install boost-python --with-python3 --without-python
 sudo apt install python-pip
 pip install virtualenv
 cd && mkdir venvs
-virtualenv -p=/usr/bin/python3 ~/venvs/ownphotos 
+virtualenv -p /usr/bin/python3 ~/venvs/ownphotos 
 source ~/venvs/ownphotos/bin/activate
 ```
 
