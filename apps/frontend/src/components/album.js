@@ -12,7 +12,6 @@ import {
 } from 'react-router-dom'
 import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
 import { Map, TileLayer, Marker } from 'react-leaflet'
-import { fetchPeople } from '../actions/peopleActions';
 
 
 /*******************************************************************************
@@ -93,53 +92,6 @@ export class AlbumPeopleCard extends Component {
           </Card.Meta>        
           </Card.Content>
         </Card>
-    )
-  }
-}
-
-export class AlbumPeopleCardGroup extends Component {
-  componentWillMount() {
-    if (this.props.people.length == 0){
-      this.props.dispatch(fetchPeople())
-    }
-  }
-  render() {
-    if (this.props.fetchedPeople) {
-      var match = this.props.match
-      var people = this.props.people
-      var mappedAlbumCards = people.map(function(person){
-        return (
-          <AlbumPeopleCard
-            match={match}
-            key={'album-person-'+person.key}
-            person={person}/>
-        )
-      })
-    }
-    else {
-      var mappedAlbumCards = null
-    }
-    console.log(this.props)
-    return (
-      <Container fluid>
-        <div style={{width:'100%', textAlign:'center', paddingTop:'20px'}}>
-          <Icon.Group size='huge'>
-            <Icon circular inverted name='image'/>
-            <Icon circular inverted corner name='users'/>
-          </Icon.Group>
-        </div>
-        <Header dividing as='h2' textAlign='center'>
-          <Header.Content>
-            People
-            <Header.Subheader>See photos grouped by people</Header.Subheader>
-          </Header.Content>
-        </Header>
-
-
-        <Card.Group stackable itemsPerRow={4}>
-          {mappedAlbumCards}
-        </Card.Group>
-      </Container>
     )
   }
 }
@@ -320,88 +272,7 @@ export class AlbumAutoCard extends Component {
   }
 }
 
-export class AlbumAutoCardGroup extends Component {
-  componentWillMount() {
-    this.props.dispatch(fetchAutoAlbums())
-  }
 
-  handleAutoAlbumGen = e => this.props.dispatch(generateAutoAlbums())
-
-  render() {
-    if (this.props.fetchedAlbumsAuto) {
-      var match = this.props.match
-      var mappedAlbumCards = this.props.albumsAuto.map(function(album){
-        var albumTitle = album.title
-        var albumDate = album.timestamp.split('T')[0]
-        try {
-          var albumCoverURL = album.photos[0].square_thumbnail_url
-        }
-        catch(err) {
-          console.log(err)
-          var albumCoverURL = null
-        }
-        return (
-
-          <AlbumAutoCard 
-            match={match}
-            key={'album-auto-'+album.id}
-            albumTitle={albumTitle}
-            timestamp={albumDate}
-            people={album.people}
-            album_id={album.id}
-            albumCoverURL={'http://localhost:8000'+albumCoverURL}
-            photoCount={album.photos.length}/>
-        )
-      })
-    }
-    else {
-      var mappedAlbumCards = null
-    }
-    return (
-      <Container fluid>
-        <div style={{width:'100%', textAlign:'center', paddingTop:'20px'}}>
-          <Icon.Group size='huge'>
-            <Icon inverted circular name='image'/>
-            <Icon inverted circular corner name='wizard'/>
-          </Icon.Group>
-        </div>
-        <Header dividing as='h2' icon textAlign='center'>
-          <Header.Content>
-            Events
-            <Header.Subheader>View automatically generated event albums</Header.Subheader>
-          </Header.Content>
-        </Header>
-
-        <div style={{paddingBottom:'20px'}}>
-          <Button 
-            onClick={this.handleAutoAlbumGen}
-            loading={this.props.generatingAlbumsAuto}
-            fluid 
-            color='blue'>
-            <Icon name='wizard'/>Generate More
-          </Button>
-        </div>
-
-        <Card.Group stackable itemsPerRow={4}>
-        {mappedAlbumCards}
-        </Card.Group>
-      </Container>
-    )
-  }
-}
-
-
-
-AlbumPeopleCardGroup = connect((store)=>{
-  return {
-    albumsPeople: store.albums.albumsPeople,
-    fetchingAlbumsPeople: store.albums.fetchingAlbumsPeople,
-    fetchedAlbumsPeople: store.albums.fetchedAlbumsPeople,
-    people: store.people.people,
-    fetchedPeople: store.people.fetched,
-    fetchingPeople: store.people.fetching,
-  }
-})(AlbumPeopleCardGroup)
 
 AlbumPeopleGallery = connect((store)=>{
   return {
@@ -411,17 +282,6 @@ AlbumPeopleGallery = connect((store)=>{
   }
 })(AlbumPeopleGallery)
 
-
-
-AlbumAutoCardGroup = connect((store)=>{
-  return {
-    albumsAuto: store.albums.albumsAuto,
-    fetchingAlbumsAuto: store.albums.fetchingAlbumsAuto,
-    fetchedAlbumsAuto: store.albums.fetchedAlbumsAuto,
-    generatingAlbumsAuto: store.albums.generatingAlbumsAuto,
-    generatedAlbumsAuto: store.albums.generatedAlbumsAuto,
-  }
-})(AlbumAutoCardGroup)
 
 AlbumAutoGallery = connect((store)=>{
   return {

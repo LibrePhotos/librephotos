@@ -8,11 +8,13 @@ import {
 } from 'react-router-dom'
 import {Container, Menu, Grid, Sidebar, Button, Icon, Header} from 'semantic-ui-react'
 
+import {AlbumPeopleGallery, AlbumAutoGallery} from './components/album'
+
+import {MainPage} from './layouts/mainPage'
 import {FacesDashboard} from './layouts/facesDashboard'
 import {PeopleDashboard} from './layouts/peopleDashboard'
-
-import {AlbumPeopleCardGroup, AlbumAutoCardGroup, 
-        AlbumAutoGallery, AlbumPeopleGallery} from './components/album'
+import {AlbumAuto} from './layouts/albumAuto'
+import {AlbumPeople} from './layouts/albumPeople'
 
 class App extends Component {
   state = { activeItem: 'home' }
@@ -34,7 +36,7 @@ class App extends Component {
 
 
             <Menu.Item name='logo'>
-              <img src='/logo-inverted.png'/>
+              <img src='/logo-white.png'/>
             </Menu.Item>
 
 
@@ -91,11 +93,11 @@ class App extends Component {
               padding:'10px',
               paddingLeft:'200px'
             }}>
-              <Route exact path="/" component={FacesDashboard}/>
+              <Route exact path="/" component={MainPage}/>
               <Route path="/faces" component={FacesDashboard}/>
               <Route path="/people" component={PeopleDashboard}/>
-              <Route path="/albums/people" component={AlbumPeopleCardGroup}/>
-              <Route path="/albums/auto" component={AlbumAutoCardGroup}/>
+              <Route path="/albums/people" component={AlbumPeople}/>
+              <Route path="/albums/auto" component={AlbumAuto}/>
               <Route path='/albums/peopleview/:albumID' component={AlbumPeopleGallery}/>
               <Route path='/albums/autoview/:albumID' component={AlbumAutoGallery}/>
 
