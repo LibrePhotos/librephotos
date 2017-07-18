@@ -33,6 +33,8 @@ class Photo(models.Model):
     square_thumbnail = models.ImageField(upload_to='square_thumbnails')
     image = models.ImageField(upload_to='photos')
     
+    added_on = models.DateTimeField(null=False,blank=False)
+
     exif_gps_lat = models.FloatField(blank=True, null=True)
     exif_gps_lon = models.FloatField(blank=True, null=True)
     exif_timestamp = models.DateTimeField(blank=True,null=True)

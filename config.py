@@ -2,5 +2,8 @@
 # it will not look for photos recursively, so you might want to add subdirectories as well.
 
 image_dirs = [
-	'/home/hooram/Nextcloud/Camera Uploads',
+	'/Users/hooram/ownCloud/Photos/tuebingen',
+	'/Users/hooram/ownCloud/Photos/korea',
+	'/Users/hooram/Downloads',
+	'/Users/hooram/ownCloud/Camera Uploads',
 ]
