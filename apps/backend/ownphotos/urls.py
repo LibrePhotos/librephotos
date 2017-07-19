@@ -38,6 +38,7 @@ urlpatterns = [
     url(r'^api/trainfaces', views.TrainFaceView.as_view()),
     url(r'^api/clusterfaces', views.ClusterFaceView.as_view()),
     url(r'^api/socialgraph', views.SocialGraphView.as_view()),
+    url(r'^api/scanphotos', views.ScanPhotosView.as_view()),
     url(r'^api/autoalbumgen', views.AutoAlbumGenerateView.as_view()),
     url(r'^api/stats', views.StatsView.as_view()),
     url(r'^api/watcher/photo', views.IsPhotosBeingAddedView.as_view()),
