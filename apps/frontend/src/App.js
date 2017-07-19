@@ -28,6 +28,7 @@ class App extends Component {
         <div>
           <Menu 
             pointing
+            inverted
             stackable 
             size="small"
             vertical
@@ -35,7 +36,7 @@ class App extends Component {
 
 
             <Menu.Item name='logo'>
-              <img src='/logo.png'/>
+              <img src='/logo-white.png'/>
             </Menu.Item>
 
 

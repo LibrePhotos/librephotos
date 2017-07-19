@@ -46,7 +46,8 @@ export class MainPage extends Component {
 					this.props.statusAutoAlbumProcessing.status || 
 					this.props.statusPhotoScan.status ||
 					this.props.scanningPhotos ||
-					this.props.generatingAlbumsAuto}
+					this.props.generatingAlbumsAuto||
+					!this.props.fetchedCountStats}
 					onClick={this.onPhotoScanButtonClick}>
 					{photoScanLoadingIcon}Scan for more photos
 				</Button>
@@ -63,6 +64,7 @@ MainPage = connect((store)=>{
     statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
     generatingAlbumsAuto: store.albums.generatingAlbumsAuto,
     scanningPhotos: store.photos.scanningPhotos,
+    fetchedCountStats: store.util.fetchedCountStats,
   }
 })(MainPage)
 
