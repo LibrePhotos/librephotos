@@ -99,7 +99,7 @@ python3 setup.py install --yes USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA
 
 ```bash
 cd
-git clone git clone https://github.com/hooram/ownphotos-backend.git
+git clone https://github.com/hooram/ownphotos-backend.git
 cd ownphotos-backend
 pip install -r requirements.txt
 ```
