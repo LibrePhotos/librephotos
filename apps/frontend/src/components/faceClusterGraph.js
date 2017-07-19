@@ -19,7 +19,7 @@ export class FaceClusterScatter extends Component {
     var person_names = [... new Set(this.props.facesVis.map(function(el){return el.person_name}))]
     var facesVis = this.props.facesVis
 
-    var mappedScatter = person_names.map(function(person_name){
+    var mappedScatter = person_names.map(function(person_name,idx){
     	var thisPersonVis = facesVis.filter(function(el){
     		return (person_name===el.person_name)
     	})
@@ -33,7 +33,7 @@ export class FaceClusterScatter extends Component {
 					}
 				)
     	})
-    	return (<MarkSeries animation data={thisPersonData}/>)
+    	return (<MarkSeries key={"cluster-marker-"+idx} animation data={thisPersonData}/>)
     })
 		return (
 			<Segment>

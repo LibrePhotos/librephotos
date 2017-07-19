@@ -92,7 +92,7 @@ export class FaceTableLabeled extends Component{
         )
       })
       return (
-        <Table.Row>
+        <Table.Row key={"table-row-labeled-"+person_name}>
           <Table.Cell width={3}>{person_name}</Table.Cell>
           <Table.Cell>{mappedFaceIcons}</Table.Cell>
         </Table.Row>
@@ -136,7 +136,7 @@ export class FaceTableInferred extends Component{
         )
       })
       return (
-        <Table.Row>
+        <Table.Row key={"table-row-inferred-"+person_name}>
           <Table.Cell width={3}>{person_name}</Table.Cell>
           <Table.Cell>{mappedFaceIcons}</Table.Cell>
         </Table.Row>

@@ -24,9 +24,9 @@ export class PeopleCardGroup extends Component {
   }
 
   render() {
-    var cards = this.props.people.map(function(person){
+    var cards = this.props.people.map(function(person,idx){
       return (
-        <PersonCard 
+        <PersonCard key={'person-card-'+person.text}
           name={person.text} 
           photo_count={person.face_count}
           face_url={"http://localhost:8000"+person.face_url}/>
