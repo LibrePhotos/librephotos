@@ -1,4 +1,5 @@
-<div style="text-align:center"><img src ="/screenshots/logo.png"/></div>
+<div style="text-align:center"><img width="100" src ="/screenshots/logo.png"/></div>
+
 # Ownphotos
 
 ## What is it?
