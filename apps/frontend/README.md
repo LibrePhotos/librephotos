@@ -1,3 +1,4 @@
+<div style="text-align:center"><img src ="/screenshots/logo.png"/></div>
 # Ownphotos
 
 ## What is it?
