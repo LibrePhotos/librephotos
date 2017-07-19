@@ -12,6 +12,9 @@
 
 ### Features
 
+#### Use case I had in mind
+
+I am approaching the project with a single user per server instance in mind. The focus is more on media consumption than creating, so it is primarily an interactive way to look through the photos you took. I want to add some cool visualizations, even ones that don't provide much utility, as long as they are fun to play around with. As a user, I want to have minimal involvement in the 'curation' process, which is to say, I want to be able to set it up and forget about it, and visit the site when I want to check out some photos. The actual photo backup solution can be whatever you use. I'm hoping to make it reasonably responsive with number of photos in the order of 10,000. 
 
 #### - Currently implemented:
   
@@ -20,6 +23,7 @@
   - Automatically generate "event" albums with nice titles, like "Thursday in Berlin"
   - See photos on the map
   - Long loading times with very large photo library (in the order of thousands of photos).
+    - On the backend, I'm looking into setting up caching to speed things up.
 
 #### - Upcoming
 
@@ -141,19 +145,14 @@ python manage.py createsuperuser # will prompt for username and password. use ad
 
 **Edit `config.py` file to add directories where your photos live** (ignores subfolders).
 
-**Manually run the script to load the photos into the db**
-
-```bash
-python manage.py shell # will drop you into ipython shell
-from api.directory_watcher import scan_photos
-scan_photos() # this might take a while depending on the number of photos
-```
 
 **Start the server process** (make sure it's running on port 8000, or go through the entire front end code to replace occurances of `localhost:8000` with the appropriate `hostname:port`)
 
 ```bash
 python manage.py runserver
 ```
+
+
 
 
 ### Frontend
