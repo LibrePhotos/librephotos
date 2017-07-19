@@ -31,12 +31,11 @@ class App extends Component {
             stackable 
             size="small"
             vertical
-            inverted
             fixed='left'>
 
 
             <Menu.Item name='logo'>
-              <img src='/logo-white.png'/>
+              <img src='/logo.png'/>
             </Menu.Item>
 
 

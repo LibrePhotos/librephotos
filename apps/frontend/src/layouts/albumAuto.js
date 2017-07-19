@@ -2,14 +2,27 @@ import React, {Component} from 'react';
 import { connect } from "react-redux";
 import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
 import {AlbumAutoCard, AlbumAutoGallery} from '../components/album'
-import {Container, Icon, Header, Button, Card} from 'semantic-ui-react'
-
+import {Container, Icon, Header, Button, Card, Label, Popup} from 'semantic-ui-react'
+import {fetchCountStats,fetchPhotoScanStatus,
+        fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
 
 
 export class AlbumAuto extends Component {
   componentWillMount() {
     this.props.dispatch(fetchAutoAlbums())
+    var _dispatch = this.props.dispatch
+    var intervalId = setInterval(function(){
+        _dispatch(fetchPhotoScanStatus())
+        _dispatch(fetchAutoAlbumProcessingStatus())
+      },2000
+    )
+    this.setState({intervalId:intervalId})
   }
+
+  componentWillUnmount() {
+    clearInterval(this.state.intervalId)
+  }
+
 
   handleAutoAlbumGen = e => this.props.dispatch(generateAutoAlbums())
 
@@ -43,6 +56,8 @@ export class AlbumAuto extends Component {
     else {
       var mappedAlbumCards = null
     }
+
+
     return (
       <Container fluid>
         <div style={{width:'100%', textAlign:'center', paddingTop:'20px'}}>
@@ -59,13 +74,21 @@ export class AlbumAuto extends Component {
         </Header>
 
         <div style={{paddingBottom:'20px'}}>
+
           <Button 
             onClick={this.handleAutoAlbumGen}
-            loading={this.props.generatingAlbumsAuto}
+            loading={this.props.statusAutoAlbumProcessing.status}
+            disabled={
+              this.props.statusAutoAlbumProcessing.status||
+              this.props.statusPhotoScan.status||
+              this.props.generatingAlbumsAuto||
+              this.props.scanningPhotos
+            }
             fluid 
             color='blue'>
             <Icon name='wizard'/>Generate More
           </Button>
+
         </div>
 
         <Card.Group stackable itemsPerRow={4}>
@@ -87,5 +110,8 @@ AlbumAuto = connect((store)=>{
     fetchedAlbumsAuto: store.albums.fetchedAlbumsAuto,
     generatingAlbumsAuto: store.albums.generatingAlbumsAuto,
     generatedAlbumsAuto: store.albums.generatedAlbumsAuto,
+    statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
+    statusPhotoScan: store.util.statusPhotoScan,
+    scanningPhotos: store.photos.scanningPhotos,
   }
 })(AlbumAuto)

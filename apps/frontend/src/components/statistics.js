@@ -8,9 +8,18 @@ import {fetchCountStats} from '../actions/utilActions'
 
 
 export class CountStats extends Component {
-  componentDidMount() {
-    this.props.dispatch(fetchCountStats())
-  }
+	componentDidMount() {
+		var _dispatch = this.props.dispatch
+		var intervalId = setInterval(function(){
+    		_dispatch(fetchCountStats())
+			},2000
+		)
+		this.setState({intervalId:intervalId})
+	}
+
+	componentWillUnmount() {
+		clearInterval(this.state.intervalId)
+	}
 
 	render() {
 		if (this.props.fetchedCountStats) {
@@ -43,11 +52,31 @@ export class CountStats extends Component {
 		}
 		else {
 			var statsGroup = (
-				    <Dimmer active>
-				      <Loader />
-				    </Dimmer>
-			)
-		}
+			  <div style={{height:'60px'}}>
+			    <Statistic.Group size='tiny'  widths='five'>
+			      <Statistic>
+			        <Statistic.Value>-</Statistic.Value>
+			        <Statistic.Label><Icon name='image'/>Photos</Statistic.Label>
+			      </Statistic>
+			      <Statistic>
+			        <Statistic.Value>-</Statistic.Value>
+			        <Statistic.Label><Icon name='users'/>People</Statistic.Label>
+			      </Statistic>
+			      <Statistic>
+			        <Statistic.Value>-</Statistic.Value>
+			        <Statistic.Label><Icon name='user circle outline'/>Faces</Statistic.Label>
+			      </Statistic>
+			      <Statistic>
+			        <Statistic.Value>-</Statistic.Value>
+			        <Statistic.Label><Icon name='wizard'/>Events</Statistic.Label>
+			      </Statistic>
+			      <Statistic>
+			        <Statistic.Value>-</Statistic.Value>
+			        <Statistic.Label><Icon name='calendar'/>Days</Statistic.Label>
+			      </Statistic>
+			    </Statistic.Group>
+			  </div>
+			)		}
 		console.log('rendering')
 		return (
 			<div>
