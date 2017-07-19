@@ -3,6 +3,7 @@ from api.models import Person
 import os
 import datetime
 from tqdm import tqdm
+import hashlib 
 
 from config import image_dirs
 
@@ -35,7 +36,15 @@ def scan_photos():
         if image_path.lower().endswith('.jpg'):
             try:
                 img_abs_path = os.path.abspath(os.path.join(image_dir,image_path))
-                qs = Photo.objects.filter(image_path=img_abs_path)
+                try:
+                    hash_md5 = hashlib.md5()
+                    with open(img_abs_path, "rb") as f:
+                        for chunk in iter(lambda: f.read(4096), b""):
+                            hash_md5.update(chunk)
+                    image_hash = hash_md5.hexdigest()
+                    qs = Photo.objects.filter(image_hash=image_hash)
+                except:
+                    raise Exception
                 if qs.count() < 1:
                     photo = Photo(image_path=img_abs_path)
                     photo.added_on = datetime.datetime.now()
@@ -78,7 +87,6 @@ def scan_photos():
                     print("photo already exists in db")
             except Exception as e:
                 print("could not load image %s"%image_path)
-                print("ERROR: %s"%e.message)
 
     return {"new_photo_count":added_photo_count, "status":True}
     # photos = Photo.objects.all()

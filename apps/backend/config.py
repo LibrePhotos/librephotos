@@ -3,7 +3,9 @@
 
 image_dirs = [
 	# '/home/rammi/Downloads/tuebingen',
-	# '/Users/hooram/Nextcloud/Photos/korea',
+	'/home/hooram/Nextcloud/Photos/korea',
+	'/home/hooram/Nextcloud/Photos/tuebingen',
 	# '/Users/hooram/Downloads',
-	'/Users/hooram/Nextcloud/Camera Uploads',
+	# '/home/hooram/Nextcloud/Camera Uploads',
+	'/media/hooram/9832141a-0970-48e6-8af7-ea42fa520c17/pictures/DCIM/Camera/',
 ]

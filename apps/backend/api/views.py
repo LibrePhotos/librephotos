@@ -24,6 +24,45 @@ from rest_framework.pagination import PageNumberPagination
 import random
 import numpy as np
 import base64
+import datetime
+
+from django.core.cache import cache
+from django.utils.encoding import force_text
+from rest_framework_extensions.cache.decorators import cache_response
+from rest_framework_extensions.key_constructor.constructors import (
+    DefaultKeyConstructor
+)
+from rest_framework_extensions.key_constructor.bits import (
+    KeyBitBase,
+    RetrieveSqlQueryKeyBit,
+    ListSqlQueryKeyBit,
+    PaginationKeyBit
+)
+
+#caching stuff straight out of https://chibisov.github.io/drf-extensions/docs/#caching
+class UpdatedAtKeyBit(KeyBitBase):
+    def get_data(self, **kwargs):
+        key = 'api_updated_at_timestamp'
+        value = cache.get(key, None)
+        if not value:
+            value = datetime.datetime.utcnow()
+            cache.set(key, value=value)
+        return force_text(value)
+
+class CustomObjectKeyConstructor(DefaultKeyConstructor):
+    retrieve_sql = RetrieveSqlQueryKeyBit()
+    updated_at = UpdatedAtKeyBit()
+
+class CustomListKeyConstructor(DefaultKeyConstructor):
+    list_sql = ListSqlQueryKeyBit()
+    pagination = PaginationKeyBit()
+    updated_at = UpdatedAtKeyBit()
+
+
+
+
+
+
 
 class StandardResultsSetPagination(PageNumberPagination):
     page_size = 1000
@@ -40,40 +79,115 @@ class PhotoViewSet(viewsets.ModelViewSet):
     serializer_class = PhotoSerializer
     pagination_class = StandardResultsSetPagination
 
+    @cache_response(key_func=CustomObjectKeyConstructor())
+    def retrieve(self, *args, **kwargs):
+        return super(PhotoViewSet, self).retrieve(*args, **kwargs)
+
+    @cache_response(key_func=CustomListKeyConstructor())
+    def list(self, *args, **kwargs):
+        return super(PhotoViewSet, self).list(*args, **kwargs)
+
 class FaceViewSet(viewsets.ModelViewSet):
     queryset = Face.objects.all().order_by('id')
     serializer_class = FaceSerializer
     pagination_class = StandardResultsSetPagination
+
+    @cache_response(key_func=CustomObjectKeyConstructor())
+    def retrieve(self, *args, **kwargs):
+        return super(FaceViewSet, self).retrieve(*args, **kwargs)
+
+    @cache_response(key_func=CustomListKeyConstructor())
+    def list(self, *args, **kwargs):
+        return super(FaceViewSet, self).list(*args, **kwargs)
+
+
 
 class FaceInferredViewSet(viewsets.ModelViewSet):
     queryset = Face.objects.filter(person_label_is_inferred=True)
     serializer_class = FaceSerializer
     pagination_class = StandardResultsSetPagination
 
+    @cache_response(key_func=CustomObjectKeyConstructor())
+    def retrieve(self, *args, **kwargs):
+        return super(FaceInferredViewSet, self).retrieve(*args, **kwargs)
+
+    @cache_response(key_func=CustomListKeyConstructor())
+    def list(self, *args, **kwargs):
+        return super(FaceInferredViewSet, self).list(*args, **kwargs)
+
+
 class FaceLabeledViewSet(viewsets.ModelViewSet):
     queryset = Face.objects.filter(person_label_is_inferred=False)
     serializer_class = FaceSerializer
     pagination_class = StandardResultsSetPagination
+
+    @cache_response(key_func=CustomObjectKeyConstructor())
+    def retrieve(self, *args, **kwargs):
+        return super(FaceLabeledViewSet, self).retrieve(*args, **kwargs)
+
+    @cache_response(key_func=CustomListKeyConstructor())
+    def list(self, *args, **kwargs):
+        return super(FaceLabeledViewSet, self).list(*args, **kwargs)
+
+
 
 class PersonViewSet(viewsets.ModelViewSet):
     queryset = Person.objects.all().order_by('name')
     serializer_class = PersonSerializer
     pagination_class = StandardResultsSetPagination
     
+    # @cache_response(key_func=CustomObjectKeyConstructor())
+    # def retrieve(self, *args, **kwargs):
+    #     return super(PersonViewSet, self).retrieve(*args, **kwargs)
+
+    # @cache_response(key_func=CustomListKeyConstructor())
+    # def list(self, *args, **kwargs):
+    #     return super(PersonViewSet, self).list(*args, **kwargs)
+
+
 class AlbumAutoViewSet(viewsets.ModelViewSet):
     queryset = AlbumAuto.objects.all().order_by('-timestamp')
     serializer_class = AlbumAutoSerializer
     pagination_class = StandardResultsSetPagination
+
+    @cache_response(key_func=CustomObjectKeyConstructor())
+    def retrieve(self, *args, **kwargs):
+        return super(AlbumAutoViewSet, self).retrieve(*args, **kwargs)
+
+    @cache_response(key_func=CustomListKeyConstructor())
+    def list(self, *args, **kwargs):
+        return super(AlbumAutoViewSet, self).list(*args, **kwargs)
+
+
 
 class AlbumPersonViewSet(viewsets.ModelViewSet):
     queryset = Person.objects.all().order_by('name')
     serializer_class = AlbumPersonSerializer
     pagination_class = StandardResultsSetPagination
 
+    # @cache_response(key_func=CustomObjectKeyConstructor())
+    # def retrieve(self, *args, **kwargs):
+    #     return super(AlbumPersonViewSet, self).retrieve(*args, **kwargs)
+
+    # @cache_response(key_func=CustomListKeyConstructor())
+    # def list(self, *args, **kwargs):
+    #     return super(AlbumPersonViewSet, self).list(*args, **kwargs)
+
+
+
+
 class AlbumDateViewSet(viewsets.ModelViewSet):
     queryset = AlbumDate.objects.all().order_by('-date')
     serializer_class = AlbumDateSerializer
     pagination_class = StandardResultsSetPagination
+
+    @cache_response(key_func=CustomObjectKeyConstructor())
+    def retrieve(self, *args, **kwargs):
+        return super(AlbumDateViewSet, self).retrieve(*args, **kwargs)
+
+    @cache_response(key_func=CustomListKeyConstructor())
+    def list(self, *args, **kwargs):
+        return super(AlbumDateViewSet, self).list(*args, **kwargs)
 
 # API Views
 

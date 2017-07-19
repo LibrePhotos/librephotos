@@ -100,6 +100,37 @@ cd ownphotos-backend
 pip install -r requirements.txt
 ```
 
+**Setup PostgreSQL database:**
+
+Just use docker
+
+```
+docker run --name ownphotos-db -e POSTGRES_PASSWORD=q1W@e3R$ -e POSTGRES_DB=ownphotos -d postgres
+```
+Check the ip of the postgresql docker container by 
+
+```
+docker inspect ownphotos-db | grep IPAddress
+```
+
+Should be something like 172.17.0.#. Open `ownphotos/settings.py` and change the db host to that ip in the `DATABASE` dictionary. Should be around line 100 or so.
+
+**Setup memcached:**
+
+Also just use docker
+
+```
+sudo docker run --name ownphotos-memcached -d memcached
+```
+
+Check the ip of the memcached docker container by
+
+```
+docker inspect ownphotos-memcached | grep IPAddress
+```
+
+Again, should be something like 172.17.0.#. Open `ownphotos/settings.py` and change the hostname in the `CACHES` dictionary. Should be around line 120 or so. 
+
 **Create db and add admin user with username `admin` and password `q1W@e3R$`**
 
 ```bash

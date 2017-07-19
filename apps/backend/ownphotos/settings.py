@@ -86,13 +86,23 @@ WSGI_APPLICATION = 'ownphotos.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'ownphotos',                      
+        'USER': 'postgres',
+        'PASSWORD': 'q1W@e3R$',
+        'HOST': '172.17.0.2',
+        'PORT': '5432',
     }
 }
-
 
 
 # DATABASES = {
@@ -105,6 +115,13 @@ DATABASES = {
 #         'PORT': '3306',
 #     }
 # }
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': '172.17.0.3:11211',
+    }
+}
 
 
 
