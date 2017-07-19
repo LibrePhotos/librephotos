@@ -65,6 +65,7 @@ def train_faces():
     for face in faces:
         face_encoding = np.frombuffer(base64.b64decode(face.encoding),dtype=np.float64)
         face_image = face.image.read()
+        face.image.close()
         face_image_path = face.image_path
         face_id = face.id
         face_encodings_all.append(face_encoding)
