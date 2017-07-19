@@ -33,11 +33,11 @@ class Photo(models.Model):
     square_thumbnail = models.ImageField(upload_to='square_thumbnails')
     image = models.ImageField(upload_to='photos')
     
-    added_on = models.DateTimeField(null=False,blank=False)
+    added_on = models.DateTimeField(null=False,blank=False,db_index=True)
 
     exif_gps_lat = models.FloatField(blank=True, null=True)
     exif_gps_lon = models.FloatField(blank=True, null=True)
-    exif_timestamp = models.DateTimeField(blank=True,null=True)
+    exif_timestamp = models.DateTimeField(blank=True,null=True,db_index=True)
 
     geolocation_json = models.TextField(blank=True,null=True)
 
@@ -192,7 +192,7 @@ class Face(models.Model):
     image_path = models.FilePathField()
     
     person = models.ForeignKey(Person, on_delete=models.SET(get_unknown_person), related_name='faces')
-    person_label_is_inferred = models.NullBooleanField()
+    person_label_is_inferred = models.NullBooleanField(db_index=True)
 
     location_top = models.IntegerField()
     location_bottom = models.IntegerField()
@@ -208,7 +208,7 @@ class Face(models.Model):
 
 class AlbumDate(models.Model):
     title = models.CharField(blank=True,null=True,max_length=512)
-    date = models.DateField(unique=True)
+    date = models.DateField(unique=True,db_index=True)
     photos = models.ManyToManyField(Photo)
 
     def __str__(self):
@@ -216,8 +216,8 @@ class AlbumDate(models.Model):
 
 class AlbumAuto(models.Model):
     title = models.CharField(blank=True,null=True,max_length=512)
-    timestamp = models.DateTimeField(unique=True)
-    created_on = models.DateTimeField(auto_now=True)
+    timestamp = models.DateTimeField(unique=True,db_index=True)
+    created_on = models.DateTimeField(auto_now=True,db_index=True)
     gps_lat = models.FloatField(blank=True,null=True)
     gps_lon = models.FloatField(blank=True,null=True)
     photos = models.ManyToManyField(Photo)
@@ -261,8 +261,8 @@ class AlbumAuto(models.Model):
 
 class AlbumUser(models.Model):
     title = models.CharField(blank=True,null=True,max_length=512)
-    timestamp = models.DateTimeField(unique=True)
-    created_on = models.DateTimeField(auto_now=True)
+    timestamp = models.DateTimeField(unique=True,db_index=True)
+    created_on = models.DateTimeField(auto_now=True,db_index=True)
     gps_lat = models.FloatField(blank=True,null=True)
     gps_lon = models.FloatField(blank=True,null=True)
     photos = models.ManyToManyField(Photo)
