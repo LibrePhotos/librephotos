@@ -10,17 +10,15 @@ from config import image_dirs
 def is_photos_being_added():
     photo_count = Photo.objects.count()
     if photo_count == 0:
-        stats = False
+        status = False
     else:
         # check if there has been a new photo added to the library within the
         # past 10 seconds. if so, return status false, as autoalbum generation
         # may behave wierdly if performed while photos are being added.
         last_photo_addedon = Photo.objects.order_by('-added_on')[0].added_on
-        print(last_photo_addedon)
-        now = datetime.datetime.now().astimezone(last_photo_addedon.tzinfo)
+        now = datetime.datetime.utcnow().replace(tzinfo=last_photo_addedon.tzinfo)
         td = (now-last_photo_addedon).total_seconds()
-        print(td)
-        if abs(td) < 30:
+        if abs(td) < 10:
             status = True
         else:
             status = False
@@ -75,6 +73,7 @@ def scan_photos():
                     photo._add_to_album_date()
                     elapsed = (datetime.datetime.now() - start).total_seconds()
                     added_photo_count += 1
+                    print(img_abs_path)
                 else:
                     print("photo already exists in db")
             except Exception as e:
