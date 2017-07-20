@@ -23,6 +23,8 @@ from api import views
 router = routers.DefaultRouter()
 
 router.register(r'api/albums/auto/list', views.AlbumAutoListViewSet)
+router.register(r'api/albums/date/list', views.AlbumDateListViewSet)
+router.register(r'api/albums/person/list', views.AlbumPersonListViewSet)
 
 router.register(r'api/albums/auto', views.AlbumAutoViewSet)
 router.register(r'api/albums/person', views.AlbumPersonViewSet)
