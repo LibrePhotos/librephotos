@@ -15,7 +15,11 @@ import { Card, Image, Header, Divider, Item, Loader, Dimmer,
 import { connect } from "react-redux";
 import {fetchAutoAlbumsList} from '../actions/albumsActions'
 
-
+import {
+  BrowserRouter as Router,
+  Route,
+  Link
+} from 'react-router-dom'
 
 import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
 import {fetchCountStats,fetchPhotoScanStatus,
@@ -125,7 +129,9 @@ export class AlbumsAutoListCardView extends PureComponent {
             </Button>
 
           </div>
+          <div style={{paddingLeft:'10px'}}>
           {child}
+          </div>
         </Container>
       );
     }
@@ -179,6 +185,8 @@ export class AlbumsAutoListCardView extends PureComponent {
             }}/>
             <Card>
               <Image height={200} width={200}
+                as={Link}
+                to={`autoview/${this.props.albumsAutoList[index].id}`}
                 src={"http://localhost:8000"+this.props.albumsAutoList[index].cover_photo_url}/>
               <Card.Content>
               <Header as='h4'>{this.props.albumsAutoList[index].title}</Header>
