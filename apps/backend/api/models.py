@@ -19,8 +19,16 @@ from django.core.files.base import ContentFile
 
 from geopy.geocoders import Nominatim
 
+from django.db.models.signals import post_save, post_delete
+from django.core.cache import cache
+
+
 geolocator = Nominatim()
 default_tz = pytz.timezone('Asia/Seoul')
+
+
+def change_api_updated_at(sender=None, instance=None, *args, **kwargs):
+    cache.set('api_updated_at_timestamp', datetime.utcnow())
 
 def get_album_date(date):
     return AlbumDate.objects.get_or_create(date=date)
@@ -266,3 +274,8 @@ class AlbumUser(models.Model):
     gps_lat = models.FloatField(blank=True,null=True)
     gps_lon = models.FloatField(blank=True,null=True)
     photos = models.ManyToManyField(Photo)
+
+
+for model in [Photo, Person, Face, AlbumDate, AlbumAuto, AlbumUser]:
+    post_save.connect(receiver=change_api_updated_at, sender=model)
+    post_delete.connect(receiver=change_api_updated_at, sender=model)

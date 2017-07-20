@@ -62,15 +62,10 @@ class CustomListKeyConstructor(DefaultKeyConstructor):
 
 
 
-
-
 class StandardResultsSetPagination(PageNumberPagination):
     page_size = 1000
     page_size_query_param = 'page_size'
     max_page_size = 10000
-
-
-
 
 # Create your views here.
 
@@ -136,13 +131,13 @@ class PersonViewSet(viewsets.ModelViewSet):
     serializer_class = PersonSerializer
     pagination_class = StandardResultsSetPagination
     
-    # @cache_response(key_func=CustomObjectKeyConstructor())
-    # def retrieve(self, *args, **kwargs):
-    #     return super(PersonViewSet, self).retrieve(*args, **kwargs)
+    @cache_response(key_func=CustomObjectKeyConstructor())
+    def retrieve(self, *args, **kwargs):
+        return super(PersonViewSet, self).retrieve(*args, **kwargs)
 
-    # @cache_response(key_func=CustomListKeyConstructor())
-    # def list(self, *args, **kwargs):
-    #     return super(PersonViewSet, self).list(*args, **kwargs)
+    @cache_response(key_func=CustomListKeyConstructor())
+    def list(self, *args, **kwargs):
+        return super(PersonViewSet, self).list(*args, **kwargs)
 
 
 class AlbumAutoViewSet(viewsets.ModelViewSet):
@@ -165,13 +160,13 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumPersonSerializer
     pagination_class = StandardResultsSetPagination
 
-    # @cache_response(key_func=CustomObjectKeyConstructor())
-    # def retrieve(self, *args, **kwargs):
-    #     return super(AlbumPersonViewSet, self).retrieve(*args, **kwargs)
+    @cache_response(key_func=CustomObjectKeyConstructor())
+    def retrieve(self, *args, **kwargs):
+        return super(AlbumPersonViewSet, self).retrieve(*args, **kwargs)
 
-    # @cache_response(key_func=CustomListKeyConstructor())
-    # def list(self, *args, **kwargs):
-    #     return super(AlbumPersonViewSet, self).list(*args, **kwargs)
+    @cache_response(key_func=CustomListKeyConstructor())
+    def list(self, *args, **kwargs):
+        return super(AlbumPersonViewSet, self).list(*args, **kwargs)
 
 
 
