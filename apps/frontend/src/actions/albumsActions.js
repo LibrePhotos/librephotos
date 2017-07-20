@@ -33,7 +33,7 @@ export function generateAutoAlbums() {
 export function fetchAutoAlbums() {
   return function(dispatch) {
     dispatch({type: "FETCH_AUTO_ALBUMS"});
-    Server.get("albums/auto/")
+    Server.get("albums/auto/?page_size=50")
       .then((response) => {
         dispatch({type: "FETCH_AUTO_ALBUMS_FULFILLED", payload: response.data.results})
       })
