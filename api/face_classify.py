@@ -115,8 +115,6 @@ def train_faces():
         face.person_label_is_inferred = True
         face.save()
 
-    print(list(zip(face_ids_unknown,pred)))
-
 
     # for front end cluster visualization
     faces = Face.objects.all()
