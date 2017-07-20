@@ -12,6 +12,10 @@ from api.serializers import AlbumAutoSerializer
 from api.serializers import AlbumPersonSerializer
 from api.serializers import AlbumDateSerializer
 
+
+from api.serializers import AlbumAutoListSerializer
+
+
 from api.face_classify import train_faces, cluster_faces
 from api.social_graph import build_social_graph
 from api.autoalbum import generate_event_albums
@@ -152,6 +156,21 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
     @cache_response(key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(AlbumAutoViewSet, self).list(*args, **kwargs)
+
+
+
+class AlbumAutoListViewSet(viewsets.ModelViewSet):
+    queryset = AlbumAuto.objects.all().order_by('-timestamp')
+    serializer_class = AlbumAutoListSerializer
+    pagination_class = StandardResultsSetPagination
+
+    @cache_response(key_func=CustomObjectKeyConstructor())
+    def retrieve(self, *args, **kwargs):
+        return super(AlbumAutoListViewSet, self).retrieve(*args, **kwargs)
+
+    @cache_response(key_func=CustomListKeyConstructor())
+    def list(self, *args, **kwargs):
+        return super(AlbumAutoListViewSet, self).list(*args, **kwargs)
 
 
 

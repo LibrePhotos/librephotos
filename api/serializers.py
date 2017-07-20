@@ -26,15 +26,30 @@ class PhotoSerializer(serializers.ModelSerializer):
                   'image_hash',
                   'image_path')
     def get_thumbnail_url(self, obj):
-        return obj.thumbnail.url
+        try:
+            return obj.thumbnail.url
+        except:
+            return None
     def get_thumbnail_height(self, obj):
-        return obj.thumbnail.height
+        try:
+            return obj.thumbnail.height
+        except:
+            return None
     def get_thumbnail_width(self, obj):
-        return obj.thumbnail.width
+        try:
+            return obj.thumbnail.width
+        except:
+            return None
     def get_square_thumbnail_url(self, obj):
-        return obj.square_thumbnail.url
+        try:
+            return obj.square_thumbnail.url
+        except:
+            return None
     def get_image_url(self, obj):
-        return obj.image.url
+        try:
+            return obj.image.url
+        except:
+            return None
     def get_geolocation(self, obj):
         if obj.geolocation_json:
           return json.loads(obj.geolocation_json)
@@ -206,3 +221,36 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
                 if serialized_person not in res:
                     res.append(serialized_person)
         return res
+
+
+class AlbumAutoListSerializer(serializers.ModelSerializer):
+    # people = serializers.SerializerMethodField()
+    cover_photo_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AlbumAuto
+        fields = (
+            "id",   
+            "title",
+            "timestamp",
+            "created_on",
+            "cover_photo_url",
+            "gps_lat",
+            # 'people',
+            "gps_lon")
+
+    def get_cover_photo_url(self,obj):
+        first_photo = obj.photos.first()
+        return first_photo.image.url
+
+    # def get_people(self,obj):
+    #     # ipdb.set_trace()
+    #     photos = obj.photos.all()
+    #     res = []
+    #     for photo in photos:
+    #         faces = photo.faces.all()
+    #         for face in faces:
+    #             serialized_person = PersonSerializer(face.person).data
+    #             if serialized_person not in res:
+    #                 res.append(serialized_person)
+    #     return res
