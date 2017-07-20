@@ -191,7 +191,7 @@ class AlbumDateListSerializer(serializers.ModelSerializer):
 
     def get_cover_photo_url(self,obj):
         first_photo = obj.photos.first()
-        return first_photo.image.url
+        return first_photo.square_thumbnail.url
 
     def get_people(self,obj):
         # ipdb.set_trace()
@@ -260,7 +260,7 @@ class AlbumPersonListSerializer(serializers.ModelSerializer):
     def get_cover_photo_url(self,obj):
         first_face = obj.faces.first()
         if first_face:
-            return first_face.photo.image.url
+            return first_face.photo.square_thumbnail.url
         else:
             return None
 
@@ -329,7 +329,7 @@ class AlbumAutoListSerializer(serializers.ModelSerializer):
 
     def get_cover_photo_url(self,obj):
         first_photo = obj.photos.first()
-        return first_photo.image.url
+        return first_photo.square_thumbnail.url
 
     def get_people(self,obj):
         # ipdb.set_trace()
