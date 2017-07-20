@@ -42,3 +42,59 @@ export function fetchAutoAlbums() {
       })
   }
 }
+
+//actions using new list view in backend
+
+export function fetchAutoAlbumsList() {
+  return function(dispatch) {
+    dispatch({type: "FETCH_AUTO_ALBUMS_LIST"});
+    Server.get("albums/auto/list/")
+      .then((response) => {
+        dispatch({type: "FETCH_AUTO_ALBUMS_LIST_FULFILLED", payload: response.data.results})
+      })
+      .catch((err) => {
+        dispatch({type: "FETCH_AUTO_ALBUMS_LIST_REJECTED", payload: err})
+      })
+  }
+}
+
+export function fetchDateAlbumsList() {
+  return function(dispatch) {
+    dispatch({type: "FETCH_DATE_ALBUMS_LIST"});
+    Server.get("albums/date/list/")
+      .then((response) => {
+        dispatch({type: "FETCH_DATE_ALBUMS_LIST_FULFILLED", payload: response.data.results})
+      })
+      .catch((err) => {
+        dispatch({type: "FETCH_AUTO_ALBUMS_LIST_REJECTED", payload: err})
+      })
+  }
+}
+
+//actions using new retrieve view in backend
+
+export function fetchAutoAlbumsRetrieve(album_id) {
+  return function(dispatch) {
+    dispatch({type: "FETCH_AUTO_ALBUMS_RETRIEVE"});
+    Server.get("albums/auto/`${album_id}`/")
+      .then((response) => {
+        dispatch({type: "FETCH_AUTO_ALBUMS_RETRIEVE_FULFILLED", payload: response.data.results})
+      })
+      .catch((err) => {
+        dispatch({type: "FETCH_AUTO_ALBUMS_RETRIEVE_REJECTED", payload: err})
+      })
+  }
+}
+
+export function fetchDateAlbumsRetrieve(album_id) {
+  return function(dispatch) {
+    dispatch({type: "FETCH_DATE_ALBUMS_RETRIEVE"});
+    Server.get("albums/date/`${album_id}`/")
+      .then((response) => {
+        dispatch({type: "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED", payload: response.data.results})
+      })
+      .catch((err) => {
+        dispatch({type: "FETCH_AUTO_ALBUMS_RETRIEVE_REJECTED", payload: err})
+      })
+  }
+}
