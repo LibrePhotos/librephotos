@@ -10,6 +10,9 @@ export default function reducer(state={
     generatingAlbumsAuto: false,
     generatedAlbumsAuto: false,
 
+    albumsAutoList: [],
+    fetchingAlbumsAutoList: false,
+    fetchedAlbumsAutoList: false,
 
     error: null,
   }, action) {
@@ -63,9 +66,33 @@ export default function reducer(state={
       }
     }
 
+    case "FETCH_AUTO_ALBUMS_LIST": {
+      return {...state, fetchingAlbumsAutoList: true}
+    }
+    case "FETCH_AUTO_ALBUMS_LIST_REJECTED": {
+      return {...state, fetchingAlbumsAutoList: false, error: action.payload}
+    }
+    case "FETCH_AUTO_ALBUMS_LIST_FULFILLED": {
+      return {
+        ...state,
+        fetchingAlbumsAutoList: false,
+        fetchedAlbumsAutoList: true,
+        albumsAutoList: action.payload
+      }
+    }
+
+
+
+
     default: {
       return {...state}
     }
   }
 }
 
+
+
+
+// FETCH_AUTO_ALBUMS_LIST
+// FETCH_AUTO_ALBUMS_LIST_FULFILLED
+// FETCH_AUTO_ALBUMS_LIST_REJECTED

@@ -6,7 +6,7 @@ import Server from '../api_client/apiClient'
 export function trainFaces() {
   return function(dispatch) {
     dispatch({type: "TRAIN_FACES"});
-    Server.get("trainfaces/")
+    Server.get("trainfaces/",{timeout:30000})
       .then((response) => {
         dispatch({type: "TRAIN_FACES_FULFILLED", payload: response.data})
         dispatch(fetchInferredFaces())

@@ -7,9 +7,12 @@ import BasicExample from './routerExample'
 import registerServiceWorker from './registerServiceWorker';
 import store from "./store"
 import { Provider } from "react-redux"
+
+import {AlbumsAutoListCardView} from './layouts/albumsAutoListCardView'
+
 ReactDOM.render(
 <Provider store={store}>
-	<App />
+	<App/>
 </Provider>
 , document.getElementById('root'));
 registerServiceWorker();

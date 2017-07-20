@@ -16,6 +16,11 @@ import {PeopleDashboard} from './layouts/peopleDashboard'
 import {AlbumAuto} from './layouts/albumAuto'
 import {AlbumPeople} from './layouts/albumPeople'
 
+
+import {AlbumsAutoListCardView} from './layouts/albumsAutoListCardView'
+
+
+
 class App extends Component {
   state = { activeItem: 'home' }
 
@@ -97,7 +102,7 @@ class App extends Component {
               <Route path="/faces" component={FacesDashboard}/>
               <Route path="/people" component={PeopleDashboard}/>
               <Route path="/albums/people" component={AlbumPeople}/>
-              <Route path="/albums/auto" component={AlbumAuto}/>
+              <Route path="/albums/auto" component={AlbumsAutoListCardView}/>
               <Route path='/albums/peopleview/:albumID' component={AlbumPeopleGallery}/>
               <Route path='/albums/autoview/:albumID' component={AlbumAutoGallery}/>
 
