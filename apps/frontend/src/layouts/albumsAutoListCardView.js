@@ -51,7 +51,13 @@ export class AlbumAutoCard2 extends Component{
     }
     else {
       // empty placeholder so the extra portion (with face icons) of the cards line up
-      var mappedPeopleIcons = (<div style={{height:'30px', width:'30px', verticalAlign:'middle'}}></div>)
+      var mappedPeopleIcons = (
+        <div style={{
+          height:'30px', 
+          width:'30px'}}>
+          Nobody
+        </div>
+      )
     }
     return (
       <Card fluid>
@@ -101,17 +107,17 @@ export class AlbumsAutoListCardView extends Component {
   render() {
     if (this.props.fetchedAlbumsAutoList) {
       return (
-        <Container>
+        <div style={{padding:"10px"}}>
           <AlbumsAutoListHeader/>
           <AlbumsAutoListCards albums={this.props.albumsAutoList}/>
-        </Container>
+        </div>
       )
     }
     else {
       return (
-        <Container>
+        <div style={{padding:"10px"}}>
           <AlbumsAutoListHeader/>
-        </Container>
+        </div>
       )      
     }
   }

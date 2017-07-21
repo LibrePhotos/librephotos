@@ -12,7 +12,7 @@ import {ListExample} from './layouts/albumsAutoListCardViewMonthGroup'
 
 ReactDOM.render(
 <Provider store={store}>
-	<ListExample/>
+	<App/>
 </Provider>
 , document.getElementById('root'));
 registerServiceWorker();
