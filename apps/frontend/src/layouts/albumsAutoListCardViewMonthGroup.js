@@ -27,6 +27,7 @@ import {
 import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
 import {fetchCountStats,fetchPhotoScanStatus,
         fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
+import {Server, serverAddress} from '../api_client/apiClient'
 
 
 

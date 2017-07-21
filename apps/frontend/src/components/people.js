@@ -17,6 +17,7 @@ import { fetchFaces,
          labelFacePersonAndFetchNext} from '../actions/facesActions';
 
 import SocialGraph from './socialGraph'
+import {Server, serverAddress} from '../api_client/apiClient'
 
 export class PeopleCardGroup extends Component {
   componentWillMount() {
@@ -29,7 +30,7 @@ export class PeopleCardGroup extends Component {
         <PersonCard key={'person-card-'+person.text}
           name={person.text} 
           photo_count={person.face_count}
-          face_url={"http://localhost:8000"+person.face_url}/>
+          face_url={serverAddress+person.face_url}/>
       )
     })
     return (

@@ -27,6 +27,7 @@ import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums} from '../actions
 import {fetchCountStats,fetchPhotoScanStatus,
         fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
 
+import {Server, serverAddress} from '../api_client/apiClient'
 
 
 
@@ -41,7 +42,7 @@ export class AlbumAutoCard2 extends Component{
         return (
           <Popup
             key={'album-auto-card-'+albumId+'-'+person.name}
-            trigger={<Image height={30} width={30} shape='circular' src={'http://localhost:8000'+person.face_url}/>}
+            trigger={<Image height={30} width={30} shape='circular' src={serverAddress+person.face_url}/>}
             position="top center"
             content={person.name}
             size="tiny"
@@ -64,7 +65,7 @@ export class AlbumAutoCard2 extends Component{
         <Image fluid 
           as={Link}
           to={`autoview/${this.props.album.id}`}
-          src={"http://localhost:8000"+this.props.album.cover_photo_url}/>
+          src={serverAddress+this.props.album.cover_photo_url}/>
         <Card.Content>
         <Header as='h4'>{this.props.album.title}</Header>
         <Card.Meta>
@@ -117,12 +118,21 @@ export class AlbumsAutoListCardView extends Component {
       return (
         <div style={{padding:"10px"}}>
           <AlbumsAutoListHeader/>
+          <Dimmer active>
+            <Loader active>
+              Loading Event Albums List...
+              Might take a while if not cached in the server.
+            </Loader>
+          </Dimmer>
         </div>
       )      
     }
   }
 }
 
+        // <div style={{padding:'10px',textAlign:'left', borderTop:'1px solid #dddddd'}}>
+        //   {mappedPeopleIcons}
+        // </div>
 
 export class AlbumAutoCard extends Component {
   render() {
@@ -132,15 +142,12 @@ export class AlbumAutoCard extends Component {
     if (this.props.album.people.length > 0) {
       var mappedPeopleIcons = this.props.album.people.map(function(person){
         return (
-          <Popup
-            key={'album-auto-card-'+albumId+'-'+person.name}
-            trigger={<Image height={30} width={30} shape='circular' src={'http://localhost:8000'+person.face_url}/>}
-            position="top center"
-            content={person.name}
-            size="tiny"
-            inverted
-            basic/>)
+          <Image height={30} width={30} shape='circular' src={serverAddress+person.face_url}/>
+        )
       })
+      mappedPeopleIcons = (
+        <Image.Group>{mappedPeopleIcons}</Image.Group>
+      )
     }
     else {
       // empty placeholder so the extra portion (with face icons) of the cards line up
@@ -151,24 +158,42 @@ export class AlbumAutoCard extends Component {
       <div style={{
         border:'1px solid #dddddd',
         width:'200px',
+        height:'350px',
         borderRadius: "0.3rem"}}>
 
-        <Image height={200} width={200} src={"http://localhost:8000"+this.props.album.cover_photo_url}/>
+        <Image 
+          as={Link}
+          to={`autoview/${this.props.album.id}`}
+          height={200} width={200} 
+          src={serverAddress+this.props.album.cover_photo_url}/>
+
         <div style={{padding:'10px'}}>
           <span style={{fontSize:'15',fontWeight:'bold'}}>{this.props.album.title}</span><br/>
           <div style={{paddingTop:'5px'}}>
             <span style={{color:'grey'}}>{this.props.album.timestamp.split('T')[0]}</span>
           </div>
-          <div style={{paddingTop:'5px', textAlign:'right'}}>
+          <div style={{paddingTop:'5px', textAlign:'right',top:'290px',position:'absolute'}}>
             <span style={{color:'grey',fontWeight:'bold'}}>{this.props.album.photo_count} Photos</span>
           </div>
-          <div style={{paddingTop:'5px', textAlign:'right'}}>
+          <div style={{paddingTop:'5px', textAlign:'right',top:'310px',position:'absolute'}}>
+            <Popup
+              trigger={
+                <span style={{
+                  color:'grey',
+                  fontWeight:'bold'}}>
+                  {this.props.album.people.length} People
+                </span>}
+              content={mappedPeopleIcons}
+              basic/>
+
+            
+          
+          </div>
+          <div style={{paddingTop:'5px', textAlign:'right',top:'310px',left:'170px',position:'absolute'}}>
             <Rating icon='heart' defaultRating={0} maxRating={1} />
           </div>
         </div>
-        <div style={{padding:'10px',textAlign:'left', borderTop:'1px solid #dddddd'}}>
-          {mappedPeopleIcons}
-        </div>
+
       </div>
 
     )
@@ -291,7 +316,7 @@ export class AlbumsAutoListCards extends PureComponent {
     }
 
     return (
-      <div style={{padding:'10px'}}>{child}</div>
+      <div style={{paddingTop:'10px'}}>{child}</div>
     );
 
   }

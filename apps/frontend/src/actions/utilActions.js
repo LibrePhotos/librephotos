@@ -1,5 +1,5 @@
 import axios from "axios";
-import Server from '../api_client/apiClient'
+import {Server} from '../api_client/apiClient'
 
 export function fetchCountStats() {
   return function(dispatch) {

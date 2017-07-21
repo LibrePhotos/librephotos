@@ -1,5 +1,5 @@
 import axios from "axios";
-import Server from '../api_client/apiClient'
+import {Server} from '../api_client/apiClient'
 
 export function fetchPeopleAlbums(person_id) {
   return function(dispatch) {
@@ -73,12 +73,14 @@ export function fetchDateAlbumsList() {
 
 //actions using new retrieve view in backend
 
-export function fetchAutoAlbumsRetrieve(album_id) {
+export function fetchAlbumsAutoGalleries(album_id) {
   return function(dispatch) {
     dispatch({type: "FETCH_AUTO_ALBUMS_RETRIEVE"});
-    Server.get("albums/auto/`${album_id}`/")
+    console.log(`albums/auto/${album_id}/`)
+
+    Server.get(`albums/auto/${album_id}/`)
       .then((response) => {
-        dispatch({type: "FETCH_AUTO_ALBUMS_RETRIEVE_FULFILLED", payload: response.data.results})
+        dispatch({type: "FETCH_AUTO_ALBUMS_RETRIEVE_FULFILLED", payload: response.data})
       })
       .catch((err) => {
         dispatch({type: "FETCH_AUTO_ALBUMS_RETRIEVE_REJECTED", payload: err})
@@ -91,7 +93,7 @@ export function fetchDateAlbumsRetrieve(album_id) {
     dispatch({type: "FETCH_DATE_ALBUMS_RETRIEVE"});
     Server.get("albums/date/`${album_id}`/")
       .then((response) => {
-        dispatch({type: "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED", payload: response.data.results})
+        dispatch({type: "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED", payload: response.data})
       })
       .catch((err) => {
         dispatch({type: "FETCH_AUTO_ALBUMS_RETRIEVE_REJECTED", payload: err})

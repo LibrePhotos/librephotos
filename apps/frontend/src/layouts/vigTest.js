@@ -2,6 +2,7 @@ import React, { Component} from "react";
 
 import VirtualizedItemGrid from 'react-virtualized-item-grid';
 import { Image } from 'semantic-ui-react';
+import {Server, serverAddress} from '../api_client/apiClient'
 
 export class MyList extends Component {
   itemRenderer(item) {

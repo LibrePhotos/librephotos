@@ -8,7 +8,7 @@ import registerServiceWorker from './registerServiceWorker';
 import store from "./store"
 import { Provider } from "react-redux"
 
-import {ListExample} from './layouts/albumsAutoListCardViewMonthGroup'
+import {AlbumAutoGalleryView} from './layouts/albumAutoGalleryView'
 
 ReactDOM.render(
 <Provider store={store}>

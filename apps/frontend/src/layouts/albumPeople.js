@@ -5,6 +5,7 @@ import {AlbumPeopleCard, AlbumPeopleGallery} from '../components/album'
 import {Container, Icon, Header, Button, Card} from 'semantic-ui-react'
 import { fetchPeople } from '../actions/peopleActions';
 
+import {Server, serverAddress} from '../api_client/apiClient'
 
 
 

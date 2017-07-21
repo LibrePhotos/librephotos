@@ -18,6 +18,7 @@ import {AlbumPeople} from './layouts/albumPeople'
 
 
 import {AlbumsAutoListCardView} from './layouts/albumsAutoListCardView'
+import {AlbumAutoGalleryView} from './layouts/albumAutoGalleryView'
 
 
 class App extends Component {
@@ -101,9 +102,9 @@ class App extends Component {
               <Route path="/faces" component={FacesDashboard}/>
               <Route path="/people" component={PeopleDashboard}/>
               <Route path="/albums/people" component={AlbumPeople}/>
-              <Route path="/albums/auto" component={AlbumsAutoListCardView}/>
+              <Route path="/albums/auto" component={AlbumAuto}/>
               <Route path='/albums/peopleview/:albumID' component={AlbumPeopleGallery}/>
-              <Route path='/albums/autoview/:albumID' component={AlbumAutoGallery}/>
+              <Route path='/albums/autoview/:albumID' component={AlbumAutoGalleryView}/>
 
             </div>
         </div>

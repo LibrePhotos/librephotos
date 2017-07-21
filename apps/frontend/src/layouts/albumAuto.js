@@ -1,15 +1,16 @@
 import React, {Component} from 'react';
 import { connect } from "react-redux";
-import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
+import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums, fetchAutoAlbumsList} from '../actions/albumsActions'
 import {AlbumAutoCard, AlbumAutoGallery} from '../components/album'
 import {Container, Icon, Header, Button, Card, Label, Popup} from 'semantic-ui-react'
 import {fetchCountStats,fetchPhotoScanStatus,
         fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
 
+import {Server, serverAddress} from '../api_client/apiClient'
 
 export class AlbumAuto extends Component {
   componentWillMount() {
-    this.props.dispatch(fetchAutoAlbums())
+    this.props.dispatch(fetchAutoAlbumsList())
     var _dispatch = this.props.dispatch
     var intervalId = setInterval(function(){
         _dispatch(fetchPhotoScanStatus())
@@ -27,13 +28,13 @@ export class AlbumAuto extends Component {
   handleAutoAlbumGen = e => this.props.dispatch(generateAutoAlbums())
 
   render() {
-    if (this.props.fetchedAlbumsAuto) {
+    if (this.props.fetchedAlbumsAutoList) {
       var match = this.props.match
-      var mappedAlbumCards = this.props.albumsAuto.map(function(album){
+      var mappedAlbumCards = this.props.albumsAutoList.map(function(album){
         var albumTitle = album.title
         var albumDate = album.timestamp.split('T')[0]
         try {
-          var albumCoverURL = album.photos[0].square_thumbnail_url
+          var albumCoverURL = album.cover_photo_url
         }
         catch(err) {
           console.log(err)
@@ -48,8 +49,8 @@ export class AlbumAuto extends Component {
             timestamp={albumDate}
             people={album.people}
             album_id={album.id}
-            albumCoverURL={'http://localhost:8000'+albumCoverURL}
-            photoCount={album.photos.length}/>
+            albumCoverURL={serverAddress+albumCoverURL}
+            photoCount={album.photo_count}/>
         )
       })
     }
@@ -108,10 +109,16 @@ AlbumAuto = connect((store)=>{
     albumsAuto: store.albums.albumsAuto,
     fetchingAlbumsAuto: store.albums.fetchingAlbumsAuto,
     fetchedAlbumsAuto: store.albums.fetchedAlbumsAuto,
+    
+    albumsAutoList: store.albums.albumsAutoList,
+    fetchingAlbumsAutoList: store.albums.fetchingAlbumsAutoList,
+    fetchedAlbumsAutoList: store.albums.fetchedAlbumsAutoList,
+
     generatingAlbumsAuto: store.albums.generatingAlbumsAuto,
     generatedAlbumsAuto: store.albums.generatedAlbumsAuto,
     statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
     statusPhotoScan: store.util.statusPhotoScan,
     scanningPhotos: store.photos.scanningPhotos,
+
   }
 })(AlbumAuto)

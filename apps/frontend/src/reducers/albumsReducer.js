@@ -14,6 +14,12 @@ export default function reducer(state={
     fetchingAlbumsAutoList: false,
     fetchedAlbumsAutoList: false,
 
+
+    albumsAutoGalleries: {},
+    fetchingAlbumsAutoGalleries: false,
+    fetchedAlbumsAutoGalleries: false,
+
+
     error: null,
   }, action) {
 
@@ -80,6 +86,27 @@ export default function reducer(state={
         albumsAutoList: action.payload
       }
     }
+
+
+
+
+    case "FETCH_AUTO_ALBUMS_RETRIEVE": {
+      return {...state, fetchingAlbumsAutoGalleries: true}
+    }
+    case "FETCH_AUTO_ALBUMS_RETRIEVE_REJECTED": {
+      return {...state, fetchingAlbumsAutoGalleries: false, error: action.payload}
+    }
+    case "FETCH_AUTO_ALBUMS_RETRIEVE_FULFILLED": {
+      var new_album = {...state.albumsAutoGalleries}
+      new_album[action.payload.id] = action.payload
+      return {
+        ...state,
+        fetchingAlbumsAutoGalleries: false,
+        fetchedAlbumsAutoGalleries: true,
+        albumsAutoGalleries: new_album
+      }
+    }
+
 
 
 

@@ -16,6 +16,7 @@ import { fetchFaces,
          loadFaceToLabel,
          labelFacePersonAndFetchNext} from '../actions/facesActions';
 import VisibilitySensor from 'react-visibility-sensor'
+import {Server, serverAddress} from '../api_client/apiClient'
 
 
 export class FaceStatistics extends Component {
@@ -87,7 +88,7 @@ export class FaceTableLabeled extends Component{
             key={face.id}
             face={face}
             person_name={face.person.name}
-            face_url={"http://localhost:8000"+face.face_url}
+            face_url={serverAddress+face.face_url}
             face_id={face.id}/>        
         )
       })
@@ -131,7 +132,7 @@ export class FaceTableInferred extends Component{
             key={face.id}
             face={face}
             person_name={face.person.name}
-            face_url={"http://localhost:8000"+face.face_url}
+            face_url={serverAddress+face.face_url}
             face_id={face.id}/>        
         )
       })
@@ -170,7 +171,7 @@ export class FacesLabeled extends Component {
           <EditableFaceIcon
             key={face.id}
             person_name={face.person.name}
-            face_url={"http://localhost:8000"+face.face_url}
+            face_url={serverAddress+face.face_url}
             face_id={face.id}/>
       )
     })
@@ -198,7 +199,7 @@ export class FacesInferred extends Component {
           <EditableFaceIcon
             key={face.id}
             person_name={face.person.name}
-            face_url={"http://localhost:8000"+face.face_url}
+            face_url={serverAddress+face.face_url}
             face_id={face.id}/>
       )
     })
@@ -230,7 +231,7 @@ export class FaceCards extends Component {
           key={face.id}
           face_id={face.id}
           name={face.person.name}
-          face_url={"http://localhost:8000"+face.face_url}/>
+          face_url={serverAddress+face.face_url}/>
       )
     })
     return (
@@ -260,7 +261,7 @@ export class FaceToLabel extends Component {
             key={this.props.faceToLabel.id}
             face_id={this.props.faceToLabel.id}
             name={"hello"}
-            face_url={"http://localhost:8000"+this.props.faceToLabel.face_url}/>
+            face_url={serverAddress+this.props.faceToLabel.face_url}/>
         </Card.Group>
       </div>
     )

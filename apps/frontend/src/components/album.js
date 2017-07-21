@@ -1,7 +1,6 @@
 import React, {Component} from 'react';
-import { Card, Image, Header, Divider, Item, Loader, Dimmer,
+import { Card, Image, Header, Divider, Item, Loader, Dimmer,Rating,
          Container, Label, Popup, Segment, Button, Icon} from 'semantic-ui-react';
-import Server from '../api_client/apiClient';
 import Gallery from 'react-grid-gallery'
 import VisibilitySensor from 'react-visibility-sensor'
 import { connect } from "react-redux";
@@ -12,6 +11,8 @@ import {
 } from 'react-router-dom'
 import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
 import { Map, TileLayer, Marker } from 'react-leaflet'
+
+import {Server, serverAddress} from '../api_client/apiClient'
 
 
 /*******************************************************************************
@@ -83,7 +84,7 @@ export class AlbumPeopleCard extends Component {
               as={Link}
               to={`peopleview/${this.props.person.key}`}
               size="big"
-              src={'http://localhost:8000'+this.props.person.face_photo_url}/>
+              src={serverAddress+this.props.person.face_photo_url}/>
           </VisibilitySensor>
           <Card.Content>
           <Header as='h4'>{this.props.person.text}</Header>
@@ -193,7 +194,7 @@ export class AlbumAutoGallery extends Component {
       var mappedPeopleIcons = album[0].people.map(function(person){
         return (
           <Label image>
-            <img src={'http://localhost:8000'+person.face_url}/>
+            <img src={serverAddress+person.face_url}/>
             {person.name}
           </Label>
         )
@@ -235,7 +236,7 @@ export class AlbumAutoCard extends Component {
         return (
           <Popup
             key={'album-auto-card-'+album_id+'-'+person.name}
-            trigger={<Image height={30} width={30} shape='circular' src={'http://localhost:8000'+person.face_url}/>}
+            trigger={<Image height={30} width={30} shape='circular' src={serverAddress+person.face_url}/>}
             position="top center"
             content={person.name}
             size="tiny"
@@ -260,12 +261,14 @@ export class AlbumAutoCard extends Component {
           <Card.Content>
           <Header as='h4'>{this.props.albumTitle}</Header>
           <Card.Meta>
-          {this.props.photoCount} Photos
-          <br/>{this.props.timestamp}
+          {this.props.timestamp}
+
+          <br/>{this.props.photoCount} Photos
+          <br/>{this.props.people.length} People
+          <div style={{textAlign:'right'}}>
+            <Rating icon='heart' defaultRating={0} maxRating={1} />
+          </div>
           </Card.Meta>        
-          </Card.Content>
-          <Card.Content extra>
-          {mappedPeopleIcons}
           </Card.Content>
         </Card>
     )

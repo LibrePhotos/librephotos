@@ -6,6 +6,7 @@ import Dimensions from 'react-dimensions'
 import { connect } from "react-redux";
 import { Graph } from 'react-d3-graph';
 import { fetchSocialGraph } from '../actions/peopleActions'
+import {Server, serverAddress} from '../api_client/apiClient'
 
 
 export class SocialGraph extends Component {
