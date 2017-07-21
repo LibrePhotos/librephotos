@@ -265,7 +265,7 @@ export class AlbumAutoCard extends Component {
 
           <br/>{this.props.photoCount} Photos
           <br/>{this.props.people.length} People
-          <div style={{textAlign:'right'}}>
+          <div style={{textAlign:'right', position:'absolute',bottom:'10px',right:'10px'}}>
             <Rating icon='heart' defaultRating={0} maxRating={1} />
           </div>
           </Card.Meta>        

@@ -105,12 +105,19 @@ export class AlbumAutoGalleryView extends Component {
             width: "100%",
             border: "0px solid #ddd",
             overflow: "hidden"}}>
-          <Header as='h1'>
-            {this.props.albumsAutoGalleries[albumID].title}
-          </Header>
-          {mappedPeopleIcons}
-          <Divider/>
           <AlbumLocationMap photos={this.props.albumsAutoGalleries[albumID].photos}/>
+
+        <Header  as='h2' textAlign='center'>
+          <Header.Content>
+            {this.props.albumsAutoGalleries[albumID].title}
+            <Header.Subheader>{this.props.albumsAutoGalleries[albumID].photos.length} Events</Header.Subheader>
+            {mappedPeopleIcons}
+          </Header.Content>
+        </Header>
+
+
+
+          <Divider/>
           <Gallery 
             images={mappedRenderablePhotoArray}
             enableImageSelection={false}
