@@ -123,8 +123,8 @@ export class AlbumPeopleGallery extends Component {
       var album = this.props.albumsPeople[albumID]
       var mappedRenderablePhotoArray = album.photos.map(function(photo){
         return ({
-          src: "http://localhost:8000"+photo.image_url,
-          thumbnail: "http://localhost:8000"+photo.thumbnail_url,
+          src: serverAddress+photo.image_url,
+          thumbnail: serverAddress+photo.thumbnail_url,
           thumbnailWidth:photo.thumbnail_width,
           thumbnailHeight:photo.thumbnail_height,
         });
@@ -184,8 +184,8 @@ export class AlbumAutoGallery extends Component {
 
       var mappedRenderablePhotoArray = album[0].photos.map(function(photo){
         return ({
-          src: "http://localhost:8000"+photo.image_url,
-          thumbnail: "http://localhost:8000"+photo.thumbnail_url,
+          src: serverAddress+photo.image_url,
+          thumbnail: serverAddress+photo.thumbnail_url,
           thumbnailWidth:photo.thumbnail_width,
           thumbnailHeight:photo.thumbnail_height,
         });
