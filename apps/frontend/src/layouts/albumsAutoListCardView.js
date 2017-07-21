@@ -11,8 +11,10 @@ import React, { PureComponent, Component} from "react";import {
 } from 'react-virtualized';
 import styles from 'react-virtualized/styles.css'; // only needs to be imported once
 import { Card, Image, Header, Divider, Item, Loader, Dimmer,
-         Container, Label, Popup, Segment, Button, Icon} from 'semantic-ui-react';
+         Container, Label, Popup, Segment, Button, Icon, Rating} from 'semantic-ui-react';
 import { connect } from "react-redux";
+
+
 import {fetchAutoAlbumsList} from '../actions/albumsActions'
 
 import {
@@ -28,7 +30,212 @@ import {fetchCountStats,fetchPhotoScanStatus,
 
 
 
-export class AlbumsAutoListCardView extends PureComponent {
+
+
+export class AlbumAutoCard2 extends Component{
+  render() {
+    var numPeople = this.props.album.people.length
+    var albumId = this.props.album.people.id
+    if (this.props.album.people.length > 0) {
+      var mappedPeopleIcons = this.props.album.people.map(function(person){
+        return (
+          <Popup
+            key={'album-auto-card-'+albumId+'-'+person.name}
+            trigger={<Image height={30} width={30} shape='circular' src={'http://localhost:8000'+person.face_url}/>}
+            position="top center"
+            content={person.name}
+            size="tiny"
+            inverted
+            basic/>)
+      })
+    }
+    else {
+      // empty placeholder so the extra portion (with face icons) of the cards line up
+      var mappedPeopleIcons = (<div style={{height:'30px', width:'30px', verticalAlign:'middle'}}></div>)
+    }
+    return (
+      <Card fluid>
+        <Image fluid 
+          as={Link}
+          to={`autoview/${this.props.album.id}`}
+          src={"http://localhost:8000"+this.props.album.cover_photo_url}/>
+        <Card.Content>
+        <Header as='h4'>{this.props.album.title}</Header>
+        <Card.Meta>
+        {this.props.album.photo_count} Photos
+        <br/>{this.props.album.timestamp.split('T')[0]}
+        </Card.Meta>        
+        </Card.Content>
+        <Card.Content extra>
+        {mappedPeopleIcons}
+        </Card.Content>
+      </Card>
+    )
+  }      
+}
+
+
+
+
+
+
+
+
+export class AlbumAutoMonthCardGrid extends Component {
+  render() {
+    var mappedCards = this.props.albums.map(function(album){
+      return (<AlbumAutoCard2 album={album}/>)
+    })
+    return (
+      <Card.Group>
+        {mappedCards}
+      </Card.Group>
+    )
+  }
+}
+
+
+
+
+export class AlbumsAutoListCardView extends Component {
+  render() {
+    if (this.props.fetchedAlbumsAutoList) {
+      return (
+        <Container>
+          <AlbumsAutoListHeader/>
+          <AlbumsAutoListCards albums={this.props.albumsAutoList}/>
+        </Container>
+      )
+    }
+    else {
+      return (
+        <Container>
+          <AlbumsAutoListHeader/>
+        </Container>
+      )      
+    }
+  }
+}
+
+
+export class AlbumAutoCard extends Component {
+  render() {
+
+    var numPeople = this.props.album.people.length
+    var albumId = this.props.album.people.id
+    if (this.props.album.people.length > 0) {
+      var mappedPeopleIcons = this.props.album.people.map(function(person){
+        return (
+          <Popup
+            key={'album-auto-card-'+albumId+'-'+person.name}
+            trigger={<Image height={30} width={30} shape='circular' src={'http://localhost:8000'+person.face_url}/>}
+            position="top center"
+            content={person.name}
+            size="tiny"
+            inverted
+            basic/>)
+      })
+    }
+    else {
+      // empty placeholder so the extra portion (with face icons) of the cards line up
+      var mappedPeopleIcons = (<div style={{height:'30px', width:'30px', verticalAlign:'middle'}}></div>)
+    }
+
+    return (
+      <div style={{
+        border:'1px solid #dddddd',
+        width:'200px',
+        borderRadius: "0.3rem"}}>
+
+        <Image height={200} width={200} src={"http://localhost:8000"+this.props.album.cover_photo_url}/>
+        <div style={{padding:'10px'}}>
+          <span style={{fontSize:'15',fontWeight:'bold'}}>{this.props.album.title}</span><br/>
+          <div style={{paddingTop:'5px'}}>
+            <span style={{color:'grey'}}>{this.props.album.timestamp.split('T')[0]}</span>
+          </div>
+          <div style={{paddingTop:'5px', textAlign:'right'}}>
+            <span style={{color:'grey',fontWeight:'bold'}}>{this.props.album.photo_count} Photos</span>
+          </div>
+          <div style={{paddingTop:'5px', textAlign:'right'}}>
+            <Rating icon='heart' defaultRating={0} maxRating={1} />
+          </div>
+        </div>
+        <div style={{padding:'10px',textAlign:'left', borderTop:'1px solid #dddddd'}}>
+          {mappedPeopleIcons}
+        </div>
+      </div>
+
+    )
+  }
+}
+
+
+
+
+
+
+
+export class AlbumsAutoListHeader extends Component {
+
+  componentWillMount() {
+    this.props.dispatch(fetchAutoAlbumsList())
+    var _dispatch = this.props.dispatch
+    var intervalId = setInterval(function(){
+        _dispatch(fetchPhotoScanStatus())
+        _dispatch(fetchAutoAlbumProcessingStatus())
+      },2000
+    )
+    this.setState({intervalId:intervalId})
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.state.intervalId)
+  }
+
+  handleAutoAlbumGen = e => this.props.dispatch(generateAutoAlbums())
+
+
+  render() {
+    return (
+      <div>
+        <div style={{width:'100%', textAlign:'center', paddingTop:'20px'}}>
+          <Icon.Group size='huge'>
+            <Icon inverted circular name='image'/>
+            <Icon inverted circular corner name='wizard'/>
+          </Icon.Group>
+        </div>
+        <Header dividing as='h2' icon textAlign='center'>
+          <Header.Content>
+            Events
+            <Header.Subheader>View automatically generated event albums</Header.Subheader>
+          </Header.Content>
+        </Header>
+
+        <div>
+          <Button 
+            onClick={this.handleAutoAlbumGen}
+            loading={this.props.statusAutoAlbumProcessing.status}
+            disabled={
+              this.props.statusAutoAlbumProcessing.status||
+              this.props.statusPhotoScan.status||
+              this.props.generatingAlbumsAuto||
+              this.props.scanningPhotos
+            }
+            fluid 
+            color='blue'>
+            <Icon name='wizard'/>Generate More
+          </Button>
+        </div>
+      </div>
+    )
+  }
+}
+
+
+
+
+
+export class AlbumsAutoListCards extends PureComponent {
   constructor(props, context) {
     super(props, context);
 
@@ -56,25 +263,6 @@ export class AlbumsAutoListCardView extends PureComponent {
     this._renderMasonry = this._renderMasonry.bind(this);
     this._setMasonryRef = this._setMasonryRef.bind(this);
   }
-  
-  componentWillMount() {
-    this.props.dispatch(fetchAutoAlbumsList())
-    var _dispatch = this.props.dispatch
-    var intervalId = setInterval(function(){
-        _dispatch(fetchPhotoScanStatus())
-        _dispatch(fetchAutoAlbumProcessingStatus())
-      },2000
-    )
-    this.setState({intervalId:intervalId})
-  }
-
-  componentWillUnmount() {
-    clearInterval(this.state.intervalId)
-  }
-
-
-  handleAutoAlbumGen = e => this.props.dispatch(generateAutoAlbums())
-
 
   render() {
     const {
@@ -96,48 +284,10 @@ export class AlbumsAutoListCardView extends PureComponent {
       child = this._renderAutoSizer({ height });
     }
 
-    if (this.props.fetchedAlbumsAutoList) {
-      return (
-        <Container fluid>
-          <div style={{width:'100%', textAlign:'center', paddingTop:'20px'}}>
-            <Icon.Group size='huge'>
-              <Icon inverted circular name='image'/>
-              <Icon inverted circular corner name='wizard'/>
-            </Icon.Group>
-          </div>
-          <Header dividing as='h2' icon textAlign='center'>
-            <Header.Content>
-              Events
-              <Header.Subheader>View automatically generated event albums</Header.Subheader>
-            </Header.Content>
-          </Header>
+    return (
+      <div style={{padding:'10px'}}>{child}</div>
+    );
 
-          <div style={{paddingBottom:'20px'}}>
-
-            <Button 
-              onClick={this.handleAutoAlbumGen}
-              loading={this.props.statusAutoAlbumProcessing.status}
-              disabled={
-                this.props.statusAutoAlbumProcessing.status||
-                this.props.statusPhotoScan.status||
-                this.props.generatingAlbumsAuto||
-                this.props.scanningPhotos
-              }
-              fluid 
-              color='blue'>
-              <Icon name='wizard'/>Generate More
-            </Button>
-
-          </div>
-          <div style={{paddingLeft:'10px'}}>
-          {child}
-          </div>
-        </Container>
-      );
-    }
-    else {
-      return (<div><Loader/></div>)
-    }
   }
 
   _calculateColumnCount() {
@@ -148,27 +298,6 @@ export class AlbumsAutoListCardView extends PureComponent {
 
   _cellRenderer({ index, key, parent, style }) {
     const { columnWidth } = this.state;
-    console.log(this.props.albumsAutoList[index])
-
-    var numPeople = this.props.albumsAutoList[index].people.length
-    var albumId = this.props.albumsAutoList[index].people.id
-    if (this.props.albumsAutoList[index].people.length > 0) {
-      var mappedPeopleIcons = this.props.albumsAutoList[index].people.map(function(person){
-        return (
-          <Popup
-            key={'album-auto-card-'+albumId+'-'+person.name}
-            trigger={<Image height={30} width={30} shape='circular' src={'http://localhost:8000'+person.face_url}/>}
-            position="top center"
-            content={person.name}
-            size="tiny"
-            inverted
-            basic/>)
-      })
-    }
-    else {
-      // empty placeholder so the extra portion (with face icons) of the cards line up
-      var mappedPeopleIcons = (<div style={{height:'30px', width:'30px', verticalAlign:'middle'}}>Nobody</div>)
-    }
 
     return (
       <CellMeasurer cache={this._cache} index={index} key={key} parent={parent}>
@@ -181,24 +310,9 @@ export class AlbumsAutoListCardView extends PureComponent {
         >
           <div
             style={{
-              width: "200px",
             }}/>
-            <Card>
-              <Image height={200} width={200}
-                as={Link}
-                to={`autoview/${this.props.albumsAutoList[index].id}`}
-                src={"http://localhost:8000"+this.props.albumsAutoList[index].cover_photo_url}/>
-              <Card.Content>
-              <Header as='h4'>{this.props.albumsAutoList[index].title}</Header>
-              <Card.Meta>
-              {this.props.albumsAutoList[index].photo_count} Photos
-              <br/>{this.props.albumsAutoList[index].timestamp}
-              </Card.Meta>        
-              </Card.Content>
-              <Card.Content extra>
-              {mappedPeopleIcons}
-              </Card.Content>
-            </Card>        
+            <AlbumAutoCard album={this.props.albums[index]}/>
+
         </div>
       </CellMeasurer>
     );
@@ -279,9 +393,6 @@ export class AlbumsAutoListCardView extends PureComponent {
 }
 
 
-
-
-
 AlbumsAutoListCardView = connect((store)=>{
   return {
     albumsAutoList: store.albums.albumsAutoList,
@@ -294,3 +405,35 @@ AlbumsAutoListCardView = connect((store)=>{
     scanningPhotos: store.photos.scanningPhotos,
   }
 })(AlbumsAutoListCardView)
+
+
+
+AlbumsAutoListCards = connect((store)=>{
+  return {
+    albumsAutoList: store.albums.albumsAutoList,
+    fetchingAlbumsAutoList: store.albums.fetchingAlbumsAutoList,
+    fetchedAlbumsAutoList: store.albums.fetchedAlbumsAutoList,
+    generatingAlbumsAuto: store.albums.generatingAlbumsAuto,
+    generatedAlbumsAuto: store.albums.generatedAlbumsAuto,
+    statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
+    statusPhotoScan: store.util.statusPhotoScan,
+    scanningPhotos: store.photos.scanningPhotos,
+  }
+})(AlbumsAutoListCards)
+
+
+
+AlbumsAutoListHeader = connect((store)=>{
+  return {
+    albumsAutoList: store.albums.albumsAutoList,
+    fetchingAlbumsAutoList: store.albums.fetchingAlbumsAutoList,
+    fetchedAlbumsAutoList: store.albums.fetchedAlbumsAutoList,
+    generatingAlbumsAuto: store.albums.generatingAlbumsAuto,
+    generatedAlbumsAuto: store.albums.generatedAlbumsAuto,
+    statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
+    statusPhotoScan: store.util.statusPhotoScan,
+    scanningPhotos: store.photos.scanningPhotos,
+  }
+})(AlbumsAutoListHeader)
+
+

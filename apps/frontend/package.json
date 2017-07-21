@@ -19,6 +19,7 @@
     "react-router-dom": "^4.1.1",
     "react-scripts": "1.0.10",
     "react-virtualized": "^9.9.0",
+    "react-virtualized-item-grid": "^1.0.0",
     "react-vis": "^1.6.7",
     "react-visibility-sensor": "^3.10.0",
     "redux": "^3.7.1",

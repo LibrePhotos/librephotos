@@ -8,11 +8,11 @@ import registerServiceWorker from './registerServiceWorker';
 import store from "./store"
 import { Provider } from "react-redux"
 
-import {AlbumsAutoListCardView} from './layouts/albumsAutoListCardView'
+import {ListExample} from './layouts/albumsAutoListCardViewMonthGroup'
 
 ReactDOM.render(
 <Provider store={store}>
-	<App/>
+	<ListExample/>
 </Provider>
 , document.getElementById('root'));
 registerServiceWorker();

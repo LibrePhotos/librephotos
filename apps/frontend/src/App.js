@@ -20,7 +20,6 @@ import {AlbumPeople} from './layouts/albumPeople'
 import {AlbumsAutoListCardView} from './layouts/albumsAutoListCardView'
 
 
-
 class App extends Component {
   state = { activeItem: 'home' }
 
