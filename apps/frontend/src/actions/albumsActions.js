@@ -66,7 +66,7 @@ export function fetchDateAlbumsList() {
         dispatch({type: "FETCH_DATE_ALBUMS_LIST_FULFILLED", payload: response.data.results})
       })
       .catch((err) => {
-        dispatch({type: "FETCH_AUTO_ALBUMS_LIST_REJECTED", payload: err})
+        dispatch({type: "FETCH_DATE_ALBUMS_LIST_REJECTED", payload: err})
       })
   }
 }
@@ -91,12 +91,29 @@ export function fetchAlbumsAutoGalleries(album_id) {
 export function fetchDateAlbumsRetrieve(album_id) {
   return function(dispatch) {
     dispatch({type: "FETCH_DATE_ALBUMS_RETRIEVE"});
-    Server.get("albums/date/`${album_id}`/")
+    Server.get(`albums/date/${album_id}/`)
       .then((response) => {
         dispatch({type: "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED", payload: response.data})
       })
       .catch((err) => {
-        dispatch({type: "FETCH_AUTO_ALBUMS_RETRIEVE_REJECTED", payload: err})
+        dispatch({type: "FETCH_DATE_ALBUMS_RETRIEVE_REJECTED", payload: err})
       })
   }
 }
+
+export function toggleAlbumAutoFavorite(album_id,rating) {
+  return function(dispatch) {
+    dispatch({type: "TOGGLE_ALBUM_AUTO_FAVORITE"});
+    Server.patch(`albums/auto/list/${album_id}/`,{favorited:rating})
+      .then((response) => {
+        console.log('patch request made. response',response)
+        dispatch({type: "TOGGLE_ALBUM_AUTO_FAVORITE_FULFILLED", payload: response.data})
+      })
+      .catch((err) => {
+        dispatch({type: "TOGGLE_ALBUM_AUTO_FAVORITE_REJECTED", payload: err})
+      })
+  }
+}
+
+
+

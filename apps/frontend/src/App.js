@@ -21,6 +21,8 @@ import {AlbumsAutoListCardView} from './layouts/albumsAutoListCardView'
 import {AlbumAutoGalleryView} from './layouts/albumAutoGalleryView'
 import {AlbumAutoMonths} from './layouts/albumAutoMonths'
 
+import {FavoriteAutoAlbumsView} from './layouts/favoriteAutoAlbums'
+
 class App extends Component {
   state = { activeItem: 'home' }
 
@@ -53,6 +55,8 @@ class App extends Component {
               as={Link}
               to='/'/>
 
+
+
             <Menu.Item>
               <Menu.Header><Icon name='dashboard'/>Dashboards</Menu.Header>
               <Menu.Menu>            
@@ -72,6 +76,21 @@ class App extends Component {
                 to='/people'/>
               </Menu.Menu>
             </Menu.Item>
+
+
+            <Menu.Item>
+              <Menu.Header><Icon name='heart'/>Favorites</Menu.Header>
+              <Menu.Menu>     
+              <Menu.Item
+                onClick={this.handleItemClick}
+                active={activeItem==='favorites auto albums'}
+                name='favorites auto albums'
+                content="Events"
+                as={Link}
+                to='/favorite/auto'/>
+              </Menu.Menu>
+            </Menu.Item>
+
 
             <Menu.Item>
               <Menu.Header><Icon name='image'/>Albums</Menu.Header>
@@ -99,6 +118,9 @@ class App extends Component {
               paddingLeft:'200px'
             }}>
               <Route exact path="/" component={MainPage}/>
+
+              <Route path="/favorite/auto" component={FavoriteAutoAlbumsView}/>
+
               <Route path="/faces" component={FacesDashboard}/>
               <Route path="/people" component={PeopleDashboard}/>
               <Route path="/albums/people" component={AlbumPeople}/>

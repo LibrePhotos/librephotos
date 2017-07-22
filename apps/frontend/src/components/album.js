@@ -9,7 +9,7 @@ import {
   Route,
   Link
 } from 'react-router-dom'
-import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
+import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums,toggleAlbumAutoFavorite,fetchAutoAlbumsList} from '../actions/albumsActions'
 import { Map, TileLayer, Marker } from 'react-leaflet'
 
 import {Server, serverAddress} from '../api_client/apiClient'
@@ -229,52 +229,87 @@ export class AlbumAutoGallery extends Component {
 }
 
 export class AlbumAutoCard extends Component {
+  constructor(props){
+    super(props)
+    this.onRate = this.onRate.bind(this)
+  }
+
+  onRate(e,d) {
+    if (d.rating == 0) {
+      console.log('unfavorited',this.props.album_id)
+      var rating = false
+    }
+    else {
+      console.log('favorited',this.props.album_id)
+      var rating = true
+    }
+    this.props.dispatch(toggleAlbumAutoFavorite(this.props.album_id,rating))
+  }
+
   render() {
+    console.log(this.props.favorited)
     var album_id = this.props.album_id
     if (this.props.people.length > 0) {
       var mappedPeopleIcons = this.props.people.map(function(person){
         return (
-          <Popup
-            key={'album-auto-card-'+album_id+'-'+person.name}
-            trigger={<Image height={30} width={30} shape='circular' src={serverAddress+person.face_url}/>}
-            position="top center"
-            content={person.name}
-            size="tiny"
-            inverted
-            basic/>)
+
+          <Label key={'auto-album-card-'+album_id+'-person-label-'+person.id} as='a' image>
+            <img src={serverAddress+person.face_url} />
+            {person.name}
+          </Label>
+
+        )
       })
+      var peoplePopup = (
+        <Popup flowing 
+          trigger={<div>{this.props.people.length} People </div>}
+          content={<Label.Group>{mappedPeopleIcons}</Label.Group>}/>
+      )
     }
     else {
       // empty placeholder so the extra portion (with face icons) of the cards line up
-      var mappedPeopleIcons = (<div style={{height:'30px', width:'30px', verticalAlign:'middle'}}>Nobody</div>)
+      var peoplePopup = (<div>0 People </div>)
     }
 
-    return (
-        <Card>
-          <VisibilitySensor>
-            <Image 
-              as={Link}
-              to={`autoview/${this.props.album_id}`}
-              size="big"
-              src={this.props.albumCoverURL}/>
-          </VisibilitySensor>
-          <Card.Content>
-          <Header as='h4'>{this.props.albumTitle}</Header>
-          <Card.Meta>
-          {this.props.timestamp}
+    var rating = null
+    if (this.props.favorited) {
+      rating = 1
+    }
+    else {
+      rating = 0
+    }
 
-          <br/>{this.props.photoCount} Photos
-          <br/>{this.props.people.length} People
-          <div style={{textAlign:'right', position:'absolute',bottom:'10px',right:'10px'}}>
-            <Rating icon='heart' defaultRating={0} maxRating={1} />
-          </div>
-          </Card.Meta>        
-          </Card.Content>
-        </Card>
+
+    return (
+      <Card key={this.props.key}>
+        <VisibilitySensor>
+          <Image 
+            as={Link}
+            to={`autoview/${this.props.album_id}`}
+            size="big"
+            src={this.props.albumCoverURL}/>
+        </VisibilitySensor>
+        <Card.Content>
+        <Header as='h4'>{this.props.albumTitle}</Header>
+        <Card.Meta>
+        {this.props.timestamp}
+
+        <br/>{this.props.photoCount} Photos {peoplePopup}
+
+        <div style={{textAlign:'right', position:'absolute',bottom:'10px',right:'10px'}}>
+          <Rating icon='heart' defaultRating={rating} maxRating={1} onRate={this.onRate}/>
+        </div>
+        </Card.Meta>        
+        </Card.Content>
+      </Card>
     )
   }
 }
 
+
+AlbumAutoCard = connect((store)=>{
+  return {}
+})(AlbumAutoCard)
 
 
 AlbumPeopleGallery = connect((store)=>{

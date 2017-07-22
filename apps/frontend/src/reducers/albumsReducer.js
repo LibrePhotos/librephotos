@@ -111,6 +111,48 @@ export default function reducer(state={
 
 
 
+    case "TOGGLE_ALBUM_AUTO_FAVORITE": {
+      return {...state}
+    }
+    case "TOGGLE_ALBUM_AUTO_FAVORITE_REJECTED": {
+      return {...state}
+    }
+    case "TOGGLE_ALBUM_AUTO_FAVORITE_FULFILLED": {
+      var new_album = {...state.albumsAutoGalleries}
+      new_album[action.payload.id] = action.payload
+
+      var new_album_list = [...state.albumsAutoList]
+      console.log(new_album_list)
+
+      var index = -1
+
+      for (var i=0;i<new_album_list.length;i++){
+        if (new_album_list[i].id == action.payload.id) {
+          index = i
+        }
+      }
+
+      if (index !== -1) {
+          new_album_list[index] = action.payload;
+      }
+
+
+      return {
+        ...state,
+        fetchingAlbumsAutoGalleries: false,
+        fetchedAlbumsAutoGalleries: true,
+        albumsAutoGalleries: new_album,
+        albumsAutoList: new_album_list
+      }
+    }
+
+
+
+
+
+
+
+
     default: {
       return {...state}
     }
@@ -123,3 +165,8 @@ export default function reducer(state={
 // FETCH_AUTO_ALBUMS_LIST
 // FETCH_AUTO_ALBUMS_LIST_FULFILLED
 // FETCH_AUTO_ALBUMS_LIST_REJECTED
+
+
+// TOGGLE_ALBUM_AUTO_FAVORITE
+// TOGGLE_ALBUM_AUTO_FAVORITE_FULFILLED
+// TOGGLE_ALBUM_AUTO_FAVORITE_REJECTED

@@ -13,6 +13,7 @@ export class AlbumAutoMonthCards extends Component {
   render() {
 
       var match = this.props.match
+      var month = this.props.month
       var mappedAlbumCards = this.props.albums.map(function(album){
         var albumTitle = album.title
         var albumDate = album.timestamp.split('T')[0]
@@ -27,10 +28,11 @@ export class AlbumAutoMonthCards extends Component {
 
           <AlbumAutoCard 
             match={match}
-            key={'album-auto-'+album.id}
+            key={'album-auto-'+album.id+'-month-'+month+'-'+album.timestamp}
             albumTitle={albumTitle}
             timestamp={albumDate}
             people={album.people}
+            favorited={album.favorited}
             album_id={album.id}
             albumCoverURL={serverAddress+albumCoverURL}
             photoCount={album.photo_count}/>
@@ -50,7 +52,7 @@ export class AlbumAutoMonthCards extends Component {
 
 
         <div>
-          <Card.Group stackable itemsPerRow={6}>
+          <Card.Group stackable itemsPerRow={5}>
           {mappedAlbumCards}
           </Card.Group>
         </div>
@@ -82,6 +84,18 @@ export class AlbumAutoMonths extends Component {
     clearInterval(this.state.intervalId)
   }
 
+  shouldComponentUpdate(nextProps, nextState){
+    console.log('should component update?')
+    if (nextProps.albumsAutoList === this.props.albumsAutoList) {
+      console.log('no')
+      return false
+    }
+    else {
+      console.log('yes')
+      return true
+    }
+  }
+
 
   handleAutoAlbumGen = e => this.props.dispatch(generateAutoAlbums())
 
@@ -106,7 +120,6 @@ export class AlbumAutoMonths extends Component {
     console.log(eventsByMonth)
     return eventsByMonth
   }
-
 
   render() {
     var eventsByMonth = this.groupEventsByMonth()
