@@ -125,8 +125,11 @@ class App extends Component {
               <Route path="/people" component={PeopleDashboard}/>
               <Route path="/albums/people" component={AlbumPeople}/>
               <Route path="/albums/auto" component={AlbumAutoMonths}/>
+
               <Route path='/albums/peopleview/:albumID' component={AlbumPeopleGallery}/>
               <Route path='/albums/autoview/:albumID' component={AlbumAutoGalleryView}/>
+              
+              <Route path='/favorite/autoview/:albumID' component={AlbumAutoGalleryView}/>
 
             </div>
         </div>

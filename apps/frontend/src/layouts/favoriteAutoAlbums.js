@@ -48,7 +48,7 @@ export class FavoriteAutoAlbumsView extends Component {
       }
 			return (
         <AlbumAutoCard 
-          match={match}
+        	match={match}
           key={'album-auto-favorite-'+album.id+'-'+album.favorited}
           albumTitle={albumTitle}
           timestamp={albumDate}
@@ -74,7 +74,7 @@ export class FavoriteAutoAlbumsView extends Component {
             <Header.Subheader>{mappedFavoriteAutoAlbumCard.length} Favorites</Header.Subheader>
           </Header.Content>
         </Header>
-				<Card.Group itemsPerRow={5}>
+				<Card.Group itemsPerRow={5} stackable>
 					{mappedFavoriteAutoAlbumCard}
 				</Card.Group>
 			</Container>

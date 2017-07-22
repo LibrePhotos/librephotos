@@ -78,6 +78,7 @@ export class AlbumAutoGalleryView extends Component {
   }
 
   render() {
+    console.log(this.props)
     var albumID = this.props.match.params.albumID
     if (this.props.albumsAutoGalleries.hasOwnProperty(albumID)) {
       var mappedRenderablePhotoArray = this.props.albumsAutoGalleries[albumID].photos.map(function(photo){

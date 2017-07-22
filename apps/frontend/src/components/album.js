@@ -285,7 +285,7 @@ export class AlbumAutoCard extends Component {
         <VisibilitySensor>
           <Image 
             as={Link}
-            to={`autoview/${this.props.album_id}`}
+            to={`/albums/autoview/${this.props.album_id}`}
             size="big"
             src={this.props.albumCoverURL}/>
         </VisibilitySensor>
