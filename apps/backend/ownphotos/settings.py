@@ -25,7 +25,7 @@ SECRET_KEY = '%-*stik4$&jw+%5d#_vv+bcoq#igg%lb4-3*8m(=1o^uku-js-'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.43.220','localhost']
+ALLOWED_HOSTS = ['192.168.43.220','localhost','hooram.xyz']
 
 
 # Application definition
@@ -99,7 +99,7 @@ DATABASES = {
         'NAME': 'ownphotos',                      
         'USER': 'postgres',
         'PASSWORD': 'q1W@e3R$',
-        'HOST': '172.17.0.2',
+        'HOST': '172.17.0.3',
         'PORT': '5432',
     }
 }
@@ -119,7 +119,7 @@ DATABASES = {
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-        'LOCATION': '172.17.0.3:11211',
+        'LOCATION': '172.17.0.2:11211',
         'TIMEOUT': 60 * 60 * 24 , # 1 day
         'OPTIONS': {
             'server_max_value_length': 1024 * 1024* 10, #10mb
@@ -170,6 +170,6 @@ STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR,'media')
 
-THUMBNAIL_SIZE = (1024,1024)
+THUMBNAIL_SIZE = (300,300)
 FULLPHOTO_SIZE = (512,512)
 CORS_ORIGIN_ALLOW_ALL = True

@@ -24,7 +24,8 @@ class PhotoSerializer(serializers.ModelSerializer):
                   'geolocation',
                   'image_url',
                   'image_hash',
-                  'image_path')
+                  'image_path',
+                  'favorited')
     def get_thumbnail_url(self, obj):
         try:
             return obj.thumbnail.url
@@ -168,6 +169,7 @@ class AlbumDateSerializer(serializers.ModelSerializer):
             "id",   
             "title",
             "date",
+            "favorited",
             "photos")
 
 class AlbumDateListSerializer(serializers.ModelSerializer):
@@ -183,6 +185,7 @@ class AlbumDateListSerializer(serializers.ModelSerializer):
             "people",
             "cover_photo_url",
             "title",
+            "favorited",
             "photo_count",
             "date")
 
@@ -278,7 +281,7 @@ class AlbumPersonListSerializer(serializers.ModelSerializer):
 
 
 class AlbumAutoSerializer(serializers.ModelSerializer):
-    photos = PhotoSerializer(many=True, read_only=True)
+    photos = PhotoSerializer(many=True, read_only=False)
     people = serializers.SerializerMethodField()
 
     class Meta:
@@ -286,6 +289,7 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
         fields = (
             "id",   
             "title",
+            "favorited",
             "timestamp",
             "created_on",
             "gps_lat",
@@ -319,6 +323,7 @@ class AlbumAutoListSerializer(serializers.ModelSerializer):
             "timestamp",
             "created_on",
             "cover_photo_url",
+            "favorited",
             "photo_count",
             "gps_lat",
             'people',
