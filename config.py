@@ -3,5 +3,6 @@
 
 image_dirs = [
 	# '/home/rammi/Downloads/tuebingen',
-	'/mnt/ext/google_takeout'
+	# '/mnt/ext/google_takeout'
+	'/home/hooram/Nextcloud/Photos/tuebingen'
 ]

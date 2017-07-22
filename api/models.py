@@ -49,6 +49,8 @@ class Photo(models.Model):
 
     geolocation_json = models.TextField(blank=True,null=True)
 
+    favorited = models.BooleanField(default=False)
+
     def _generate_md5(self):
         hash_md5 = hashlib.md5()
         with open(self.image_path, "rb") as f:
@@ -218,6 +220,7 @@ class AlbumDate(models.Model):
     title = models.CharField(blank=True,null=True,max_length=512)
     date = models.DateField(unique=True,db_index=True)
     photos = models.ManyToManyField(Photo)
+    favorited = models.BooleanField(default=False)
 
     def __str__(self):
         return "%d: %s"%(self.id, self.title)
@@ -225,10 +228,11 @@ class AlbumDate(models.Model):
 class AlbumAuto(models.Model):
     title = models.CharField(blank=True,null=True,max_length=512)
     timestamp = models.DateTimeField(unique=True,db_index=True)
-    created_on = models.DateTimeField(auto_now=True,db_index=True)
+    created_on = models.DateTimeField(auto_now=False,db_index=True)
     gps_lat = models.FloatField(blank=True,null=True)
     gps_lon = models.FloatField(blank=True,null=True)
     photos = models.ManyToManyField(Photo)
+    favorited = models.BooleanField(default=False)
 
     def _autotitle(self):
         weekday = ""
@@ -274,6 +278,7 @@ class AlbumUser(models.Model):
     gps_lat = models.FloatField(blank=True,null=True)
     gps_lon = models.FloatField(blank=True,null=True)
     photos = models.ManyToManyField(Photo)
+    favorited = models.BooleanField(default=False)
 
 
 for model in [Photo, Person, Face, AlbumDate, AlbumAuto, AlbumUser]:

@@ -108,6 +108,7 @@ def generate_event_albums():
                     else:
                         album_locations.append([])
                     album._autotitle()
+                    album.created_on = datetime.utcnow()
                     album.save()
         status = True
         message = 'success'
