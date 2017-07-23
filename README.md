@@ -12,17 +12,13 @@
 
 ### Features
 
-
-
-
 #### - Currently implemented:
   
   - Label some faces manualy, and train a face classifier to label the rest.
   - View photos by people in them.
   - Automatically generate "event" albums with nice titles, like "Thursday in Berlin"
   - See photos on the map
-  - Long loading times with very large photo library (in the order of thousands of photos).
-    - On the backend, I'm looking into setting up caching to speed things up.
+  - Backend caching
   - Favorite event (auto generated) albums
   - View photos grouped by date
 
@@ -30,8 +26,7 @@
 #### - Upcoming
 
   - Short term:
-    - View all photos by date
-    - Infinite scrolling/dynamic loading
+    - Optimize frontend (Infinite scrolling/dynamic loading)
     - Create custom albums
     - Authentication
     - Detect objects in photos, and make them searchable by objects
@@ -47,7 +42,7 @@
 
 ### Notes
 
-I'm looking to make it usably fast on big photo libraries with tens of thousands of photos. The backend cand handle this with the help of caching (initial requests of long list of serialized objects may take a while). The front end code isn't really optimized to handle lots of photos on a single page yet. At the moment on a library with ~2,000 photos, it is very usable, but with ~10,000, some pages hang. I'm looking into making the frontend more responsive by only rendering what the user is looking at, with the help of react-virtualized.
+I'm looking to make it usably fast on big photo libraries with tens of thousands of photos. The backend can handle this with the help of caching (initial requests of long list of serialized objects may take a while). The front end code isn't really optimized to handle lots of photos on a single page yet. At the moment on a library with ~2,000 photos, it is very usable, but with ~10,000, some pages hang. I'm looking into making the frontend more responsive by only rendering what the user is looking at, with the help of react-virtualized.
 
 ## What does it use?
 
