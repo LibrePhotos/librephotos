@@ -12,9 +12,8 @@
 
 ### Features
 
-#### Use case I had in mind
 
-I am approaching the project with a single user per server instance in mind. The focus is more on media consumption than creating, so it is primarily an interactive way to look through the photos you took. I want to add some cool visualizations, even ones that don't provide much utility, as long as they are fun to play around with. As a user, I want to have minimal involvement in the 'curation' process, which is to say, I want to be able to set it up and forget about it, and visit the site when I want to check out some photos. The actual photo backup solution can be whatever you use. I'm hoping to make it reasonably responsive with number of photos in the order of 10,000. 
+
 
 #### - Currently implemented:
   
@@ -24,13 +23,15 @@ I am approaching the project with a single user per server instance in mind. The
   - See photos on the map
   - Long loading times with very large photo library (in the order of thousands of photos).
     - On the backend, I'm looking into setting up caching to speed things up.
+  - Favorite event (auto generated) albums
+  - View photos grouped by date
+
 
 #### - Upcoming
 
   - Short term:
     - View all photos by date
     - Infinite scrolling/dynamic loading
-    - Favorite albums
     - Create custom albums
     - Authentication
     - Detect objects in photos, and make them searchable by objects
@@ -43,6 +44,10 @@ I am approaching the project with a single user per server instance in mind. The
 
   - Finally:
     - dockerize
+
+### Notes
+
+I'm looking to make it usably fast on big photo libraries with tens of thousands of photos. The backend cand handle this with the help of caching (initial requests of long list of serialized objects may take a while). The front end code isn't really optimized to handle lots of photos on a single page yet. At the moment on a library with ~2,000 photos, it is very usable, but with ~10,000, some pages hang. I'm looking into making the frontend more responsive by only rendering what the user is looking at, with the help of react-virtualized.
 
 ## What does it use?
 
@@ -172,9 +177,10 @@ A browser window should open, where you can mess around!
 
 # Screenshots
 
-![](/screenshots/face-dashboard.png)
-![](/screenshots/people-dashboard.png)
-![](/screenshots/album-events.png)
-![](/screenshots/album-event-gallery.png)
-![](/screenshots/album-people.png)
-![](/screenshots/album-people-gallery.png)
+![](/screenshots/statistics.png)
+![](/screenshots/datelistview.png)
+![](/screenshots/dategalleryview.png)
+![](/screenshots/eventlistview.png)
+![](/screenshots/eventgalleryview.png)
+![](/screenshots/eventfavoriteview.png)
+![](/screenshots/facedashboard.png)
