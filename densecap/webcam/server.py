@@ -41,6 +41,18 @@ def get_file(filename):  # pragma: no cover
     except IOError as exc:
         return str(exc)
 
+def decode_base64(data):
+    """Decode base64, padding being optional.
+
+    :param data: Base64 data as an ASCII byte string
+    :returns: The decoded byte string.
+
+    """
+    missing_padding = len(data) % 4
+    if missing_padding != 0:
+        data += '='* (4 - missing_padding)
+    return data
+
 
 class ShortCaptions(Resource):
   def get(self):
@@ -58,7 +70,10 @@ class ShortCaptions(Resource):
   #     ipdb.set_trace()
 #       ipdb.set_trace()  
       data = str(request.data)
-      data = data.replace("'",'').split(',')[1]
+      # data = decode_base64(data)
+
+      # data = decode_base64(data)
+      # data = data.replace("'",'').split(',')[1]
       img_data = data
 
       im = Image.open(BytesIO(base64.b64decode(img_data)))

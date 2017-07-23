@@ -25,7 +25,7 @@ SECRET_KEY = '%-*stik4$&jw+%5d#_vv+bcoq#igg%lb4-3*8m(=1o^uku-js-'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.43.220','localhost','hooram.xyz']
+ALLOWED_HOSTS = ['192.168.43.220','localhost','hooram.xyz','192.168.1.100']
 
 
 # Application definition
@@ -99,7 +99,7 @@ DATABASES = {
         'NAME': 'ownphotos',                      
         'USER': 'postgres',
         'PASSWORD': 'q1W@e3R$',
-        'HOST': '172.17.0.3',
+        'HOST': '172.17.0.2',
         'PORT': '5432',
     }
 }
@@ -119,7 +119,7 @@ DATABASES = {
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-        'LOCATION': '172.17.0.2:11211',
+        'LOCATION': '172.17.0.3:11211',
         'TIMEOUT': 60 * 60 * 24 , # 1 day
         'OPTIONS': {
             'server_max_value_length': 1024 * 1024* 10, #10mb
