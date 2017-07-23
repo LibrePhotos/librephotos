@@ -77,6 +77,12 @@ export class AlbumPeopleCard extends Component {
   render() {
     var album_id = this.props.person.key
     console.log(this.props)
+    if (this.props.person.value=='unknown'){
+      var personImageSrc = '/unknown_user.jpg'
+    }
+    else {
+      var personImageSrc = serverAddress + this.props.person.face_photo_url
+    }
     return (
         <Card>
           <VisibilitySensor>
@@ -84,7 +90,7 @@ export class AlbumPeopleCard extends Component {
               as={Link}
               to={`peopleview/${this.props.person.key}`}
               size="big"
-              src={serverAddress+this.props.person.face_photo_url}/>
+              src={personImageSrc}/>
           </VisibilitySensor>
           <Card.Content>
           <Header as='h4'>{this.props.person.text}</Header>
@@ -247,7 +253,6 @@ export class AlbumAutoCard extends Component {
   }
 
   render() {
-    console.log(this.props.favorited)
     var album_id = this.props.album_id
     if (this.props.people.length > 0) {
       var mappedPeopleIcons = this.props.people.map(function(person){
@@ -307,10 +312,101 @@ export class AlbumAutoCard extends Component {
 }
 
 
+
+
+
+
+
+
+
+
+export class AlbumDateCard extends Component {
+  constructor(props){
+    super(props)
+    this.onRate = this.onRate.bind(this)
+  }
+
+  onRate(e,d) {
+    if (d.rating == 0) {
+      console.log('unfavorited',this.props.album_id)
+      var rating = false
+    }
+    else {
+      console.log('favorited',this.props.album_id)
+      var rating = true
+    }
+  }
+
+  render() {
+    var album_id = this.props.album_id
+    if (this.props.people.length > 0) {
+      var mappedPeopleIcons = this.props.people.map(function(person){
+        return (
+
+          <Label key={'date-album-card-'+album_id+'-person-label-'+person.id} as='a' image>
+            <img src={serverAddress+person.face_url} />
+            {person.name}
+          </Label>
+
+        )
+      })
+      var peoplePopup = (
+        <Popup flowing 
+          trigger={<div>{this.props.people.length} People </div>}
+          content={<Label.Group>{mappedPeopleIcons}</Label.Group>}/>
+      )
+    }
+    else {
+      // empty placeholder so the extra portion (with face icons) of the cards line up
+      var peoplePopup = (<div>0 People </div>)
+    }
+
+    var rating = null
+    if (this.props.favorited) {
+      rating = 1
+    }
+    else {
+      rating = 0
+    }
+
+
+    return (
+      <Card key={this.props.key}>
+        <VisibilitySensor>
+          <Image 
+            as={Link}
+            to={`/albums/dateview/${this.props.album_id}`}
+            size="big"
+            src={this.props.albumCoverURL}/>
+        </VisibilitySensor>
+        <Card.Content>
+        <Header as='h4'>{this.props.timestamp}</Header>
+        <Card.Meta>
+        <br/>{this.props.photoCount} Photos {peoplePopup}
+
+        <div style={{textAlign:'right', position:'absolute',bottom:'10px',right:'10px'}}>
+          <Rating icon='heart' defaultRating={rating} maxRating={1} onRate={this.onRate}/>
+        </div>
+        </Card.Meta>        
+        </Card.Content>
+      </Card>
+    )
+  }
+}
+
+
+
+
+
+
+
 AlbumAutoCard = connect((store)=>{
   return {}
 })(AlbumAutoCard)
 
+AlbumDateCard = connect((store)=>{
+  return {}
+})(AlbumDateCard)
 
 AlbumPeopleGallery = connect((store)=>{
   return {
@@ -319,7 +415,6 @@ AlbumPeopleGallery = connect((store)=>{
     fetchedAlbumsPeople: store.albums.fetchedAlbumsPeople,
   }
 })(AlbumPeopleGallery)
-
 
 AlbumAutoGallery = connect((store)=>{
   return {

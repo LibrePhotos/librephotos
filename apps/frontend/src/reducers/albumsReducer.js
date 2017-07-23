@@ -20,6 +20,16 @@ export default function reducer(state={
     fetchedAlbumsAutoGalleries: false,
 
 
+    albumsDateList: [],
+    fetchingAlbumsDateList: false,
+    fetchedAlbumsDateList: false,
+
+
+    albumsDateGalleries: {},
+    fetchingAlbumsDateGalleries: false,
+    fetchedAlbumsDateGalleries: false,
+
+
     error: null,
   }, action) {
 
@@ -72,6 +82,10 @@ export default function reducer(state={
       }
     }
 
+
+
+
+
     case "FETCH_AUTO_ALBUMS_LIST": {
       return {...state, fetchingAlbumsAutoList: true}
     }
@@ -86,9 +100,6 @@ export default function reducer(state={
         albumsAutoList: action.payload
       }
     }
-
-
-
 
     case "FETCH_AUTO_ALBUMS_RETRIEVE": {
       return {...state, fetchingAlbumsAutoGalleries: true}
@@ -106,6 +117,42 @@ export default function reducer(state={
         albumsAutoGalleries: new_album
       }
     }
+
+
+
+
+    case "FETCH_DATE_ALBUMS_LIST": {
+      return {...state, fetchingAlbumsDateList: true}
+    }
+    case "FETCH_DATE_ALBUMS_LIST_REJECTED": {
+      return {...state, fetchingAlbumsDateList: false, error: action.payload}
+    }
+    case "FETCH_DATE_ALBUMS_LIST_FULFILLED": {
+      return {
+        ...state,
+        fetchingAlbumsDateList: false,
+        fetchedAlbumsDateList: true,
+        albumsDateList: action.payload
+      }
+    }
+
+    case "FETCH_DATE_ALBUMS_RETRIEVE": {
+      return {...state, fetchingAlbumsDateGalleries: true}
+    }
+    case "FETCH_DATE_ALBUMS_RETRIEVE_REJECTED": {
+      return {...state, fetchingAlbumsDateGalleries: false, error: action.payload}
+    }
+    case "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED": {
+      var new_album = {...state.albumsDateGalleries}
+      new_album[action.payload.id] = action.payload
+      return {
+        ...state,
+        fetchingAlbumsDateGalleries: false,
+        fetchedAlbumsDateGalleries: true,
+        albumsDateGalleries: new_album
+      }
+    }
+
 
 
 

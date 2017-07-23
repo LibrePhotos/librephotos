@@ -1,7 +1,12 @@
 export default function reducer(state={
 	scanningPhotos: false,
 	scannedPhotos: false,
-    error: null,
+  error: null,
+
+  photos: [],
+  fetchedPhotos: false,
+  fetchingPhotos: false,
+
   }, action) {
 
   switch (action.type) {
@@ -16,6 +21,22 @@ export default function reducer(state={
         ...state,
         scanningPhotos: false,
         scannedPhotos: true,
+      }
+    }
+
+
+    case "FETCH_PHOTOS": {
+      return {...state, fetchingPhotos: true}
+    }
+    case "FETCH_PHOTOS_REJECTED": {
+      return {...state, fetchingPhotos: false, error: action.payload}
+    }
+    case "FETCH_PHOTOS_FULFILLED": {
+      return {
+        ...state,
+        fetchingPhotos: false,
+        fetchedPhotos: true,
+        photos: action.payload
       }
     }
 

@@ -5,8 +5,10 @@
   "dependencies": {
     "axios": "^0.16.2",
     "bootstrap": "^3.3.7",
+    "calendar-months": "^1.0.1",
     "immutable": "^3.8.1",
     "leaflet": "^1.1.0",
+    "moment": "^2.18.1",
     "prop-types": "^15.5.10",
     "react": "^15.6.1",
     "react-d3-graph": "0.0.2",

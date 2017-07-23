@@ -9,7 +9,7 @@ import {
   Route,
   Link
 } from 'react-router-dom'
-import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums, fetchAlbumsAutoGalleries} from '../actions/albumsActions'
+import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums, fetchAlbumsDateGalleries} from '../actions/albumsActions'
 import { Map, TileLayer, Marker } from 'react-leaflet'
 import {Server, serverAddress} from '../api_client/apiClient'
 
@@ -72,18 +72,20 @@ export class AlbumLocationMap extends Component {
 AUTO GENERATED EVENT ALBUM
 *******************************************************************************/
 
-export class AlbumAutoGalleryView extends Component {
+export class AlbumDateGalleryView extends Component {
   componentWillMount() {
-    this.props.dispatch(fetchAlbumsAutoGalleries(this.props.match.params.albumID))
+    this.props.dispatch(fetchAlbumsDateGalleries(this.props.match.params.albumID))
   }
 
   render() {
     console.log(this.props)
     var albumID = this.props.match.params.albumID
-    console.log('property exists',this.props.albumsAutoGalleries.hasOwnProperty(albumID))
-    console.log('the property',this.props.albumsAutoGalleries[albumID])
-    if (this.props.albumsAutoGalleries.hasOwnProperty(albumID) && !this.props.fetchingAlbumsAutoGalleries) {
-      var mappedRenderablePhotoArray = this.props.albumsAutoGalleries[albumID].photos.map(function(photo){
+    console.log('property exists',this.props.albumsDateGalleries.hasOwnProperty(albumID))
+    console.log('the property',this.props.albumsDateGalleries[albumID])
+    if (this.props.albumsDateGalleries.hasOwnProperty(albumID) && !this.props.fetchingAlbumsDateGalleries) {
+      console.log('here!')
+      console.log(this.props.albumsDateGalleries[albumID].photos)
+      var mappedRenderablePhotoArray = this.props.albumsDateGalleries[albumID].photos.map(function(photo){
         return ({
           src: serverAddress+photo.image_url,
           thumbnail: serverAddress+photo.thumbnail_url,
@@ -92,15 +94,6 @@ export class AlbumAutoGalleryView extends Component {
         });
       });
 
-      var mappedPeopleIcons = this.props.albumsAutoGalleries[albumID].people.map(function(person){
-        return (
-          <Label key={'gallery-person-icon-'+albumID+'-'+person.id} image>
-            <img src={serverAddress+person.face_url}/>
-            {person.name}
-          </Label>
-        )
-      })
-
       var renderable = (
         <div style={{
             display: "block",
@@ -108,13 +101,12 @@ export class AlbumAutoGalleryView extends Component {
             width: "100%",
             border: "0px solid #ddd",
             overflow: "hidden"}}>
-          <AlbumLocationMap photos={this.props.albumsAutoGalleries[albumID].photos}/>
+          <AlbumLocationMap photos={this.props.albumsDateGalleries[albumID].photos}/>
 
         <Header  as='h2' textAlign='center'>
           <Header.Content>
-            {this.props.albumsAutoGalleries[albumID].title}
-            <Header.Subheader>{this.props.albumsAutoGalleries[albumID].photos.length} Photos</Header.Subheader>
-            {mappedPeopleIcons}
+            {this.props.albumsDateGalleries[albumID].date}
+            <Header.Subheader>{this.props.albumsDateGalleries[albumID].photos.length} Photos</Header.Subheader>
           </Header.Content>
         </Header>
 
@@ -147,11 +139,11 @@ export class AlbumAutoGalleryView extends Component {
 
 
 
-AlbumAutoGalleryView = connect((store)=>{
+AlbumDateGalleryView = connect((store)=>{
   return {
-    fetchingAlbumsAutoGalleries: store.albums.fetchingAlbumsAutoGalleries,
-    fetchedAlbumsAutoGalleries: store.albums.fetchedAlbumsAutoGalleries,
-    albumsAutoGalleries: store.albums.albumsAutoGalleries,
+    fetchingAlbumsDateGalleries: store.albums.fetchingAlbumsDateGalleries,
+    fetchedAlbumsDateGalleries: store.albums.fetchedAlbumsDateGalleries,
+    albumsDateGalleries: store.albums.albumsDateGalleries,
   }
-})(AlbumAutoGalleryView)
+})(AlbumDateGalleryView)
 

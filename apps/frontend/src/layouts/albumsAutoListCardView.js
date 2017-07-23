@@ -32,85 +32,45 @@ import {Server, serverAddress} from '../api_client/apiClient'
 
 
 
-
-export class AlbumAutoCard2 extends Component{
-  render() {
-    var numPeople = this.props.album.people.length
-    var albumId = this.props.album.people.id
-    if (this.props.album.people.length > 0) {
-      var mappedPeopleIcons = this.props.album.people.map(function(person){
-        return (
-          <Popup
-            key={'album-auto-card-'+albumId+'-'+person.name}
-            trigger={<Image height={30} width={30} shape='circular' src={serverAddress+person.face_url}/>}
-            position="top center"
-            content={person.name}
-            size="tiny"
-            inverted
-            basic/>)
-      })
-    }
-    else {
-      // empty placeholder so the extra portion (with face icons) of the cards line up
-      var mappedPeopleIcons = (
-        <div style={{
-          height:'30px', 
-          width:'30px'}}>
-          Nobody
-        </div>
-      )
-    }
-    return (
-      <Card fluid>
-        <Image fluid 
-          as={Link}
-          to={`autoview/${this.props.album.id}`}
-          src={serverAddress+this.props.album.cover_photo_url}/>
-        <Card.Content>
-        <Header as='h4'>{this.props.album.title}</Header>
-        <Card.Meta>
-        {this.props.album.photo_count} Photos
-        <br/>{this.props.album.timestamp.split('T')[0]}
-        </Card.Meta>        
-        </Card.Content>
-        <Card.Content extra>
-        {mappedPeopleIcons}
-        </Card.Content>
-      </Card>
-    )
-  }      
-}
-
-
-
-
-
-
-
-
-export class AlbumAutoMonthCardGrid extends Component {
-  render() {
-    var mappedCards = this.props.albums.map(function(album){
-      return (<AlbumAutoCard2 album={album}/>)
-    })
-    return (
-      <Card.Group>
-        {mappedCards}
-      </Card.Group>
-    )
-  }
-}
-
-
-
-
 export class AlbumsAutoListCardView extends Component {
+  constructor(props){
+    super(props)
+    this.insertMonthCardsIntoAlbumsList = this.insertMonthCardsIntoAlbumsList.bind(this)
+  }
+
+  insertMonthCardsIntoAlbumsList(){
+    var newAlbumsList = []
+
+    this.props.albumsAutoList.map(function(album){
+      console.log(newAlbumsList.length)
+      if (newAlbumsList.length>0){
+        var lastMonth = newAlbumsList[newAlbumsList.length-1].timestamp.split('T')[0].split('-').slice(0,2).join('-')
+        var thisMonth = album.timestamp.split('T')[0].split('-').slice(0,2).join('-')
+        console.log(thisMonth)
+        if (lastMonth==thisMonth) {
+          newAlbumsList.push(album)
+        } 
+        else {
+          newAlbumsList.push(thisMonth)
+          newAlbumsList.push(album)          
+        }
+      }
+      else {
+        var newMonth = album.timestamp.split('T')[0].split('-').slice(0,2).join('-')
+        newAlbumsList.push(newMonth)
+        newAlbumsList.push(album)
+      }
+    })
+    return newAlbumsList
+  }
+
   render() {
     if (this.props.fetchedAlbumsAutoList) {
+      var albumListWithMonthCards = this.insertMonthCardsIntoAlbumsList()
       return (
         <div style={{padding:"10px"}}>
           <AlbumsAutoListHeader/>
-          <AlbumsAutoListCards albums={this.props.albumsAutoList}/>
+          <AlbumsAutoListCards albums={albumListWithMonthCards}/>
         </div>
       )
     }
@@ -130,13 +90,24 @@ export class AlbumsAutoListCardView extends Component {
   }
 }
 
-        // <div style={{padding:'10px',textAlign:'left', borderTop:'1px solid #dddddd'}}>
-        //   {mappedPeopleIcons}
-        // </div>
+
+export class MonthCard extends Component {
+  render() {
+    return (
+      <div style={{
+        width:'150px',
+        height:'300px'}}>
+        <div style={{position:'absolute',top:'140px',textAlign:'center'}}>
+          <Header as='h1'>{this.props.month}</Header>
+        </div>
+      </div>
+    )
+  }
+}
+
 
 export class AlbumAutoCard extends Component {
   render() {
-
     var numPeople = this.props.album.people.length
     var albumId = this.props.album.people.id
     if (this.props.album.people.length > 0) {
@@ -153,29 +124,26 @@ export class AlbumAutoCard extends Component {
       // empty placeholder so the extra portion (with face icons) of the cards line up
       var mappedPeopleIcons = (<div style={{height:'30px', width:'30px', verticalAlign:'middle'}}></div>)
     }
-
     return (
       <div style={{
         border:'1px solid #dddddd',
-        width:'200px',
-        height:'350px',
+        width:'150px',
+        height:'300px',
         borderRadius: "0.3rem"}}>
-
         <Image 
           as={Link}
-          to={`autoview/${this.props.album.id}`}
-          height={200} width={200} 
+          to={`/albums/autoview/${this.props.album.id}`}
+          height={200} width={150} 
           src={serverAddress+this.props.album.cover_photo_url}/>
-
         <div style={{padding:'10px'}}>
           <span style={{fontSize:'15',fontWeight:'bold'}}>{this.props.album.title}</span><br/>
           <div style={{paddingTop:'5px'}}>
             <span style={{color:'grey'}}>{this.props.album.timestamp.split('T')[0]}</span>
           </div>
-          <div style={{paddingTop:'5px', textAlign:'right',top:'290px',position:'absolute'}}>
+          <div style={{paddingTop:'5px', textAlign:'right',top:'240px',position:'absolute'}}>
             <span style={{color:'grey',fontWeight:'bold'}}>{this.props.album.photo_count} Photos</span>
           </div>
-          <div style={{paddingTop:'5px', textAlign:'right',top:'310px',position:'absolute'}}>
+          <div style={{paddingTop:'5px', textAlign:'right',top:'260px',position:'absolute'}}>
             <Popup
               trigger={
                 <span style={{
@@ -185,26 +153,15 @@ export class AlbumAutoCard extends Component {
                 </span>}
               content={mappedPeopleIcons}
               basic/>
-
-            
-          
           </div>
-          <div style={{paddingTop:'5px', textAlign:'right',top:'310px',left:'170px',position:'absolute'}}>
+          <div style={{paddingTop:'5px', textAlign:'right',top:'260px',left:'120px',position:'absolute'}}>
             <Rating icon='heart' defaultRating={0} maxRating={1} />
           </div>
         </div>
-
       </div>
-
     )
   }
 }
-
-
-
-
-
-
 
 export class AlbumsAutoListHeader extends Component {
 
@@ -235,13 +192,13 @@ export class AlbumsAutoListHeader extends Component {
             <Icon inverted circular corner name='wizard'/>
           </Icon.Group>
         </div>
-        <Header dividing as='h2' icon textAlign='center'>
+        <Header as='h2' icon textAlign='center'>
           <Header.Content>
             Events
             <Header.Subheader>View automatically generated event albums</Header.Subheader>
           </Header.Content>
         </Header>
-
+        <Divider hidden/>
         <div>
           <Button 
             onClick={this.handleAutoAlbumGen}
@@ -274,14 +231,14 @@ export class AlbumsAutoListCards extends PureComponent {
 
     this._cache = new CellMeasurerCache({
       defaultHeight: 10,
-      defaultWidth: 200,
+      defaultWidth: 150,
       fixedWidth: true
     });
 
     this._columnHeights = {};
 
     this.state = {
-      columnWidth: 200,
+      columnWidth: 150,
       height: 200,
       gutterSize: 10,
       windowScrollerEnabled: true
@@ -329,24 +286,43 @@ export class AlbumsAutoListCards extends PureComponent {
 
   _cellRenderer({ index, key, parent, style }) {
     const { columnWidth } = this.state;
-
-    return (
-      <CellMeasurer cache={this._cache} index={index} key={key} parent={parent}>
-        <div
-          className={styles.Cell}
-          style={{
-            ...style,
-            width: columnWidth
-          }}
-        >
+    if (typeof(this.props.albums[index])=='object'){
+      return (
+        <CellMeasurer cache={this._cache} index={index} key={key} parent={parent}>
           <div
+            className={styles.Cell}
             style={{
-            }}/>
-            <AlbumAutoCard album={this.props.albums[index]}/>
+              ...style,
+              width: columnWidth
+            }}
+          >
+            <div
+              style={{
+              }}/>
+              <AlbumAutoCard album={this.props.albums[index]}/>
 
-        </div>
-      </CellMeasurer>
-    );
+          </div>
+        </CellMeasurer>
+      );
+    }
+    else {
+      return (
+        <CellMeasurer cache={this._cache} index={index} key={key} parent={parent}>
+          <div
+            className={styles.Cell}
+            style={{
+              ...style,
+              width: columnWidth
+            }}
+          >
+            <div
+              style={{
+              }}/>
+              <MonthCard month={this.props.albums[index]}/>
+
+          </div>
+        </CellMeasurer>      )
+    }
   }
 
   _initCellPositioner() {
@@ -395,16 +371,18 @@ export class AlbumsAutoListCards extends PureComponent {
     const { height, windowScrollerEnabled } = this.state;
 
     return (
-      <Masonry
-        autoHeight={windowScrollerEnabled}
-        cellCount={this.props.albumsAutoList.length}
-        cellMeasurerCache={this._cache}
-        cellPositioner={this._cellPositioner}
-        cellRenderer={this._cellRenderer}
-        height={windowScrollerEnabled ? this._height : height}
-        ref={this._setMasonryRef}
-        scrollTop={this._scrollTop}
-        width={width}/>
+      <div style={{paddingLeft:'10px'}}>
+        <Masonry
+          autoHeight={windowScrollerEnabled}
+          cellCount={this.props.albumsAutoList.length}
+          cellMeasurerCache={this._cache}
+          cellPositioner={this._cellPositioner}
+          cellRenderer={this._cellRenderer}
+          height={windowScrollerEnabled ? this._height : height}
+          ref={this._setMasonryRef}
+          scrollTop={this._scrollTop}
+          width={width}/>
+      </div>
     );
   }
 

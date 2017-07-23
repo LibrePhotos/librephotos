@@ -10,30 +10,42 @@ import {Container, Menu, Grid, Sidebar, Button, Icon, Header} from 'semantic-ui-
 
 import {AlbumPeopleGallery, AlbumAutoGallery} from './components/album'
 
-import {MainPage} from './layouts/mainPage'
+import {Statistics} from './layouts/statistics'
 import {FacesDashboard} from './layouts/facesDashboard'
 import {PeopleDashboard} from './layouts/peopleDashboard'
 import {AlbumAuto} from './layouts/albumAuto'
 import {AlbumPeople} from './layouts/albumPeople'
 
-
 import {AlbumsAutoListCardView} from './layouts/albumsAutoListCardView'
+
 import {AlbumAutoGalleryView} from './layouts/albumAutoGalleryView'
+import {AlbumDateGalleryView} from './layouts/albumDateGalleryView'
 import {AlbumAutoMonths} from './layouts/albumAutoMonths'
+import {AlbumDateMonths} from './layouts/albumDateMonths'
+
+import {AllPhotosView} from './layouts/allPhotosView'
+import {AllPhotosGroupedByDate} from './layouts/allPhotosGroupedByDate'
+
 
 import {FavoriteAutoAlbumsView} from './layouts/favoriteAutoAlbums'
 
+
+import EventCountMonthGraph from './components/eventCountMonthGraph'
+
+
 class App extends Component {
-  state = { activeItem: 'home' }
+  state = { activeItem: 'photos' }
 
   handleItemClick = (e, { name }) => this.setState({ activeItem: name })
 
   render() {
     const { activeItem } = this.state
+
     return (
       <Router>
         <div>
           <Menu 
+            color='black'
             pointing
             inverted
             stackable 
@@ -46,35 +58,23 @@ class App extends Component {
               <img src='/logo-white.png'/>
             </Menu.Item>
 
-
-            <Menu.Item
+            <Menu.Item 
               onClick={this.handleItemClick}
-              active={activeItem==='home'}
-              name='home'
-              content="Ownphotos"
+              active={activeItem==='all photos'}
+              name='all photos'
               as={Link}
-              to='/'/>
+              to='/'>
+              <Icon name='image' corner />Browse
+            </Menu.Item>
 
 
-
-            <Menu.Item>
-              <Menu.Header><Icon name='dashboard'/>Dashboards</Menu.Header>
-              <Menu.Menu>            
-              <Menu.Item
-                onClick={this.handleItemClick}
-                active={activeItem==='faces dashboard'}
-                name='faces dashboard'
-                content='Faces'
-                as={Link}
-                to='/faces'/>
-              <Menu.Item
-                onClick={this.handleItemClick}
-                active={activeItem==='people dashboard'}
-                name='people dashboard'
-                content='People'
-                as={Link}
-                to='/people'/>
-              </Menu.Menu>
+            <Menu.Item 
+              onClick={this.handleItemClick}
+              active={activeItem==='search'}
+              name='search'
+              as={Link}
+              to='/'>
+              <Icon name='search' corner />Search
             </Menu.Item>
 
 
@@ -112,22 +112,58 @@ class App extends Component {
               </Menu.Menu>
             </Menu.Item>
 
+            <Menu.Item>
+              <Menu.Header><Icon name='dashboard'/>Dashboards</Menu.Header>
+              <Menu.Menu>            
+              <Menu.Item
+                onClick={this.handleItemClick}
+                active={activeItem==='faces dashboard'}
+                name='faces dashboard'
+                content='Faces'
+                as={Link}
+                to='/faces'/>
+              <Menu.Item
+                onClick={this.handleItemClick}
+                active={activeItem==='people dashboard'}
+                name='people dashboard'
+                content='People'
+                as={Link}
+                to='/people'/>
+
+              <Menu.Item
+                onClick={this.handleItemClick}
+                active={activeItem==='statistics'}
+                name='statistics'
+                content="Statistics"
+                as={Link}
+                to='/statistics'/>
+              </Menu.Menu>
+            </Menu.Item>
+
+
           </Menu>
             <div style={{
               padding:'10px',
               paddingLeft:'200px'
             }}>
-              <Route exact path="/" component={MainPage}/>
+              <Route exact path="/" component={AlbumDateMonths}/>
+
 
               <Route path="/favorite/auto" component={FavoriteAutoAlbumsView}/>
 
+
               <Route path="/faces" component={FacesDashboard}/>
               <Route path="/people" component={PeopleDashboard}/>
+              <Route path="/statistics" component={Statistics}/>
+
+
               <Route path="/albums/people" component={AlbumPeople}/>
               <Route path="/albums/auto" component={AlbumAutoMonths}/>
 
               <Route path='/albums/peopleview/:albumID' component={AlbumPeopleGallery}/>
               <Route path='/albums/autoview/:albumID' component={AlbumAutoGalleryView}/>
+              <Route path='/albums/dateview/:albumID' component={AlbumDateGalleryView}/>
+
               
               <Route path='/favorite/autoview/:albumID' component={AlbumAutoGalleryView}/>
 

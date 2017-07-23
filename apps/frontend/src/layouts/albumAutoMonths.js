@@ -41,7 +41,7 @@ export class AlbumAutoMonthCards extends Component {
 
 
     return (
-      <div style={{paddingTop:'50px'}}>
+      <div style={{paddingTop:'20px'}}>
 
         <Header dividing as='h2' textAlign='center'>
           <Header.Content>
@@ -145,20 +145,20 @@ export class AlbumAutoMonths extends Component {
 
     return (
       <Container fluid>
-        <div style={{width:'100%', textAlign:'center', paddingTop:'20px'}}>
+        <div style={{width:'100%', textAlign:'center'}}>
           <Icon.Group size='huge'>
             <Icon inverted circular name='image'/>
             <Icon inverted circular corner name='wizard'/>
           </Icon.Group>
         </div>
-        <Header dividing as='h2' icon textAlign='center'>
+        <Header as='h1' icon textAlign='center'>
           <Header.Content>
             Events
             <Header.Subheader>View automatically generated event albums</Header.Subheader>
           </Header.Content>
         </Header>
-
-        <div style={{paddingBottom:'20px'}}>
+        <Divider hidden/>
+        <div>
 
           <Button 
             onClick={this.handleAutoAlbumGen}

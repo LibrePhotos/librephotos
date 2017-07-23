@@ -61,7 +61,7 @@ export function fetchAutoAlbumsList() {
 export function fetchDateAlbumsList() {
   return function(dispatch) {
     dispatch({type: "FETCH_DATE_ALBUMS_LIST"});
-    Server.get("albums/date/list/")
+    Server.get("albums/date/list/",{timeout:100000})
       .then((response) => {
         dispatch({type: "FETCH_DATE_ALBUMS_LIST_FULFILLED", payload: response.data.results})
       })
@@ -88,7 +88,7 @@ export function fetchAlbumsAutoGalleries(album_id) {
   }
 }
 
-export function fetchDateAlbumsRetrieve(album_id) {
+export function fetchAlbumsDateGalleries(album_id) {
   return function(dispatch) {
     dispatch({type: "FETCH_DATE_ALBUMS_RETRIEVE"});
     Server.get(`albums/date/${album_id}/`)
