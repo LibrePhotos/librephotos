@@ -1,6 +1,7 @@
 import Immutable from "immutable";
 import PropTypes from "prop-types";
-import React, { PureComponent, Component} from "react";import {
+import React, { PureComponent, Component} from "react";
+import {
   Collection,
   CellMeasurer,
   CellMeasurerCache,
@@ -30,6 +31,20 @@ import {fetchCountStats,fetchPhotoScanStatus,
 import {Server, serverAddress} from '../api_client/apiClient'
 
 
+const month2month = {
+  "01":"January",
+  "02":"February",
+  "03":"March",
+  "04":"April",
+  "05":"May",
+  "06":"June",
+  "07":"July",
+  "08":"August",
+  "09":"September",
+  "10":"October",
+  "11":"November",
+  "12":"December"
+}
 
 
 export class AlbumsAutoListCardView extends Component {
@@ -42,11 +57,9 @@ export class AlbumsAutoListCardView extends Component {
     var newAlbumsList = []
 
     this.props.albumsAutoList.map(function(album){
-      console.log(newAlbumsList.length)
       if (newAlbumsList.length>0){
         var lastMonth = newAlbumsList[newAlbumsList.length-1].timestamp.split('T')[0].split('-').slice(0,2).join('-')
         var thisMonth = album.timestamp.split('T')[0].split('-').slice(0,2).join('-')
-        console.log(thisMonth)
         if (lastMonth==thisMonth) {
           newAlbumsList.push(album)
         } 
@@ -97,8 +110,15 @@ export class MonthCard extends Component {
       <div style={{
         width:'150px',
         height:'300px'}}>
-        <div style={{position:'absolute',top:'140px',textAlign:'center'}}>
-          <Header as='h1'>{this.props.month}</Header>
+        <div style={{position:'absolute',top:'100px',textAlign:'center'}}>
+          <Header as='h1'>
+            <Header.Content>
+              {month2month[this.props.month.split('-')[1]]}
+              <Header.Subheader as='h1' textAlign="center">
+                {this.props.month.split('-')[0]}
+              </Header.Subheader>
+            </Header.Content>
+          </Header>
         </div>
       </div>
     )
@@ -369,7 +389,7 @@ export class AlbumsAutoListCards extends PureComponent {
     this._initCellPositioner();
 
     const { height, windowScrollerEnabled } = this.state;
-
+    console.log(height)
     return (
       <div style={{paddingLeft:'10px'}}>
         <Masonry

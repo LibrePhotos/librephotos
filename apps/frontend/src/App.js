@@ -33,6 +33,10 @@ import {FavoriteAutoAlbumsView} from './layouts/favoriteAutoAlbums'
 import EventCountMonthGraph from './components/eventCountMonthGraph'
 
 
+import {ListExample} from './layouts/RVListExample'
+
+import {PhotosListCardView} from './layouts/allPhotosViewRV'
+
 class App extends Component {
   state = { activeItem: 'photos' }
 
@@ -143,10 +147,9 @@ class App extends Component {
 
           </Menu>
             <div style={{
-              padding:'10px',
               paddingLeft:'200px'
             }}>
-              <Route exact path="/" component={AlbumDateMonths}/>
+              <Route exact path="/" component={PhotosListCardView}/>
 
 
               <Route path="/favorite/auto" component={FavoriteAutoAlbumsView}/>
