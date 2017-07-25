@@ -25,12 +25,14 @@ import {
 } from 'react-router-dom'
 
 import {fetchPhotos} from '../actions/photosActions'
-import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
+import {fetchPeopleAlbums, generateAutoAlbums} from '../actions/albumsActions'
 import {fetchCountStats,fetchPhotoScanStatus,
         fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
 
 import {Server, serverAddress} from '../api_client/apiClient'
 
+import {ChartyPhotosScrollbar} from '../components/chartyPhotosScrollbar'
+import {fetchDateAlbumsList} from '../actions/albumsActions'
 
 const month2month = {
   "01":"January",
@@ -123,19 +125,28 @@ export class PhotosListCardView extends Component {
         <div>
           <div style={{
             position:'fixed',
-            paddingLeft:'5px',
             right:'0px',
             height:"100%",
-            width:'60px',
-            backgroundColor:'grey'}}>
-            <List>
-              {monthScroll}
-            </List>
-
-
+            width:'80px',
+            border:'1px solid #dddddd',
+            backgroundColor:'#f2f2f2'}}>
+            <ChartyPhotosScrollbar/>
           </div>
-          <div style={{paddingRight:'70px'}}>
-          <PhotoListCards photos={photosListWithMonthCards}/>
+          <div style={{paddingRight:'90px'}}>
+            <div style={{width:'100%', textAlign:'center', paddingTop:'20px'}}>
+              <Icon.Group size='huge'>
+                <Icon inverted circular name='image'/>
+              </Icon.Group>
+            </div>
+            <Header as='h2' icon textAlign='center'>
+              <Header.Content>
+                Photos
+                <Header.Subheader>All photos</Header.Subheader>
+              </Header.Content>
+            </Header>
+
+            <Divider hidden/>
+            <PhotoListCards photos={photosListWithMonthCards}/>
           </div>
         </div>
       )
@@ -164,10 +175,10 @@ export class MonthCard extends Component {
           height:'150px',
           padding:'10px',
           borderRadius: "0.3rem"}}>
-          <Header dividing as='h1'>
+          <Header dividing as='h2'>
               {month2month[this.props.month.split('-')[1]]}
           </Header>
-          <Header textAlign='right' as='h2'>
+          <Header textAlign='left' as='h3'>
               {this.props.month.split('-')[0]}
           </Header>
         </div>
@@ -182,10 +193,12 @@ export class PhotoCard extends Component {
       <div style={{
         width:'150px',
         height:'150px'}}>
+        <Card>
           <Image 
             height={150} 
             width={150} 
             src={serverAddress+this.props.photo.square_thumbnail_url}/>
+        </Card>
       </div>
     )
   }

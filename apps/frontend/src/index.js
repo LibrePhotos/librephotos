@@ -9,6 +9,7 @@ import store from "./store"
 import { Provider } from "react-redux"
 
 import {AlbumAutoGalleryView} from './layouts/albumAutoGalleryView'
+import {ChartyPhotosScrollbar} from './components/chartyPhotosScrollbar'
 
 ReactDOM.render(
 <Provider store={store}>

@@ -36,6 +36,7 @@ import EventCountMonthGraph from './components/eventCountMonthGraph'
 import {ListExample} from './layouts/RVListExample'
 
 import {PhotosListCardView} from './layouts/allPhotosViewRV'
+import {ChartyPhotosScrollbar} from './components/chartyPhotosScrollbar'
 
 class App extends Component {
   state = { activeItem: 'photos' }
@@ -113,6 +114,13 @@ class App extends Component {
                   name='auto albums'
                   as={Link}
                   to='/albums/auto'/>
+                <Menu.Item
+                  onClick={this.handleItemClick}
+                  active={activeItem==='date albums'}
+                  content="Days"
+                  name='date albums'
+                  as={Link}
+                  to='/albums/date'/>
               </Menu.Menu>
             </Menu.Item>
 
@@ -162,6 +170,7 @@ class App extends Component {
 
               <Route path="/albums/people" component={AlbumPeople}/>
               <Route path="/albums/auto" component={AlbumAutoMonths}/>
+              <Route path="/albums/date" component={AlbumDateMonths}/>
 
               <Route path='/albums/peopleview/:albumID' component={AlbumPeopleGallery}/>
               <Route path='/albums/autoview/:albumID' component={AlbumAutoGalleryView}/>
