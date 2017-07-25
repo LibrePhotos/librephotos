@@ -1,12 +1,13 @@
 import React, {Component} from 'react';
 import { connect } from "react-redux";
 import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums, fetchDateAlbumsList} from '../actions/albumsActions'
-import {AlbumDateCard, AlbumAutoGallery} from '../components/album'
+import {AlbumDateCard,AlbumDateCardPlaceholder, AlbumAutoGallery} from '../components/album'
 import {Container, Icon, Header, Button, Card, Label, Popup, Divider} from 'semantic-ui-react'
 import {fetchCountStats,fetchPhotoScanStatus,
         fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
 
 import {Server, serverAddress} from '../api_client/apiClient'
+import LazyLoad from 'react-lazyload';
 
 
 export class AlbumDateMonthCards extends Component {
@@ -25,17 +26,16 @@ export class AlbumDateMonthCards extends Component {
           var albumCoverURL = null
         }
         return (
-
-          <AlbumDateCard 
-            match={match}
-            key={'album-auto-'+album.id+'-month-'+month+'-'+album.date}
-            albumTitle={albumTitle}
-            timestamp={albumDate}
-            people={album.people}
-            favorited={album.favorited}
-            album_id={album.id}
-            albumCoverURL={serverAddress+albumCoverURL}
-            photoCount={album.photo_count}/>
+            <AlbumDateCard 
+              match={match}
+              key={'album-auto-'+album.id+'-month-'+month+'-'+album.date}
+              albumTitle={albumTitle}
+              timestamp={albumDate}
+              people={album.people}
+              favorited={album.favorited}
+              album_id={album.id}
+              albumCoverURL={serverAddress+albumCoverURL}
+              photoCount={album.photo_count}/>
         )
       })
 
@@ -52,9 +52,11 @@ export class AlbumDateMonthCards extends Component {
 
 
         <div>
+          <LazyLoad height={10} once>
           <Card.Group stackable itemsPerRow={5}>
           {mappedAlbumCards}
           </Card.Group>
+          </LazyLoad>
         </div>
       </div>
     )

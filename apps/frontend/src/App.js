@@ -32,11 +32,12 @@ import {FavoriteAutoAlbumsView} from './layouts/favoriteAutoAlbums'
 
 import EventCountMonthGraph from './components/eventCountMonthGraph'
 
-
 import {ListExample} from './layouts/RVListExample'
 
 import {PhotosListCardView} from './layouts/allPhotosViewRV'
 import {ChartyPhotosScrollbar} from './components/chartyPhotosScrollbar'
+
+import {AllPhotosViewLL} from './layouts/allPhotosViewLL'
 
 class App extends Component {
   state = { activeItem: 'photos' }
@@ -155,9 +156,11 @@ class App extends Component {
 
           </Menu>
             <div style={{
+              paddingTop:'20px',
+              paddingRight:'20px',
               paddingLeft:'200px'
             }}>
-              <Route exact path="/" component={PhotosListCardView}/>
+              <Route exact path="/" component={AllPhotosGroupedByDate}/>
 
 
               <Route path="/favorite/auto" component={FavoriteAutoAlbumsView}/>

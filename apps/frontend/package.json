@@ -16,6 +16,7 @@
     "react-dom": "^15.6.1",
     "react-grid-gallery": "^0.4.0",
     "react-grid-layout": "^0.14.6",
+    "react-lazyload": "^2.2.7",
     "react-leaflet": "^1.4.0",
     "react-redux": "^5.0.5",
     "react-router-dom": "^4.1.1",

@@ -193,12 +193,10 @@ export class PhotoCard extends Component {
       <div style={{
         width:'150px',
         height:'150px'}}>
-        <Card>
           <Image 
             height={150} 
             width={150} 
             src={serverAddress+this.props.photo.square_thumbnail_url}/>
-        </Card>
       </div>
     )
   }

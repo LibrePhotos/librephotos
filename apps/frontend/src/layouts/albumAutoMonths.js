@@ -7,6 +7,7 @@ import {fetchCountStats,fetchPhotoScanStatus,
         fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
 
 import {Server, serverAddress} from '../api_client/apiClient'
+import LazyLoad from 'react-lazyload';
 
 
 export class AlbumAutoMonthCards extends Component {
@@ -25,17 +26,16 @@ export class AlbumAutoMonthCards extends Component {
           var albumCoverURL = null
         }
         return (
-
-          <AlbumAutoCard 
-            match={match}
-            key={'album-auto-'+album.id+'-month-'+month+'-'+album.timestamp}
-            albumTitle={albumTitle}
-            timestamp={albumDate}
-            people={album.people}
-            favorited={album.favorited}
-            album_id={album.id}
-            albumCoverURL={serverAddress+albumCoverURL}
-            photoCount={album.photo_count}/>
+            <AlbumAutoCard 
+              match={match}
+              key={'album-auto-'+album.id+'-month-'+month+'-'+album.timestamp}
+              albumTitle={albumTitle}
+              timestamp={albumDate}
+              people={album.people}
+              favorited={album.favorited}
+              album_id={album.id}
+              albumCoverURL={serverAddress+albumCoverURL}
+              photoCount={album.photo_count}/>
         )
       })
 
@@ -52,9 +52,11 @@ export class AlbumAutoMonthCards extends Component {
 
 
         <div>
+          <LazyLoad height={10} once overscan={[1000,1000]}>
           <Card.Group stackable itemsPerRow={5}>
           {mappedAlbumCards}
           </Card.Group>
+          </LazyLoad>
         </div>
       </div>
     )

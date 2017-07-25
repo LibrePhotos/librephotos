@@ -14,6 +14,7 @@ import { Map, TileLayer, Marker } from 'react-leaflet'
 
 import {Server, serverAddress} from '../api_client/apiClient'
 
+import LazyLoad from 'react-lazyload';
 
 /*******************************************************************************
 COMMON
@@ -154,7 +155,7 @@ export class AlbumPeopleGallery extends Component {
             <Gallery 
               images={mappedRenderablePhotoArray}
               enableImageSelection={false}
-              rowHeight={250}/>
+              rowHeight={150}/>
           </div>
         </div>
       )
@@ -228,7 +229,7 @@ export class AlbumAutoGallery extends Component {
         <Gallery 
           images={mappedRenderablePhotoArray}
           enableImageSelection={false}
-          rowHeight={250}/>
+          rowHeight={150}/>
       </div>
     )
   }
@@ -287,13 +288,14 @@ export class AlbumAutoCard extends Component {
 
     return (
       <Card key={this.props.key}>
-        <VisibilitySensor>
+          <LazyLoad once height={150} placeholder={
+            <Image src={'http://placehold.jp/150x150.png'}/>}>
           <Image 
             as={Link}
             to={`/albums/autoview/${this.props.album_id}`}
             size="big"
             src={this.props.albumCoverURL}/>
-        </VisibilitySensor>
+          </LazyLoad>
         <Card.Content>
         <Header as='h4'>{this.props.albumTitle}</Header>
         <Card.Meta>
@@ -314,9 +316,31 @@ export class AlbumAutoCard extends Component {
 
 
 
+export class AlbumDateCardPlaceholder extends Component {
+  constructor(props){
+    super(props)
+  }
+  render() {
+    return (
+      <Card>
+        <VisibilitySensor>
+          <Image 
+            src={'http://placehold.jp/150x150.png'}/>
+        </VisibilitySensor>
+        <Card.Content>
+        <Header as='h4'>{this.props.timestamp}</Header>
+        <Card.Meta>
+        <br/>{this.props.photoCount} Photos <div>{this.props.people.length} People </div>
 
-
-
+        <div style={{textAlign:'right', position:'absolute',bottom:'10px',right:'10px'}}>
+          <Rating icon='heart'/>
+        </div>
+        </Card.Meta>        
+        </Card.Content>
+      </Card>
+    )
+  }
+}
 
 
 
@@ -372,13 +396,14 @@ export class AlbumDateCard extends Component {
 
     return (
       <Card key={this.props.key}>
-        <VisibilitySensor>
+          <LazyLoad once height={150} placeholder={
+            <Image src={'http://placehold.jp/150x150.png'}/>}>
           <Image 
             as={Link}
             to={`/albums/dateview/${this.props.album_id}`}
             size="big"
             src={this.props.albumCoverURL}/>
-        </VisibilitySensor>
+          </LazyLoad>
         <Card.Content>
         <Header as='h4'>{this.props.timestamp}</Header>
         <Card.Meta>

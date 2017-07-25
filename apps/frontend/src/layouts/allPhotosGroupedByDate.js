@@ -13,6 +13,7 @@ import {fetchPhotos} from '../actions/photosActions'
 import { Map, TileLayer, Marker } from 'react-leaflet'
 import {Server, serverAddress} from '../api_client/apiClient'
 import {fetchDateAlbumsList} from '../actions/albumsActions'
+import LazyLoad from 'react-lazyload';
 
         // <div style={{
         //     display: "block",
@@ -27,6 +28,13 @@ import {fetchDateAlbumsList} from '../actions/albumsActions'
         //     rowHeight={250}/>
         // </div>
 
+class ImagePlaceholder extends Component {
+  render () {
+    return (
+      <Image height={150} width={150} src={'http://placehold.jp/150x150.png'}/>
+    )
+  }
+}
 
 export class AllPhotosGroupedByDate extends Component {
   constructor(props){
@@ -39,10 +47,7 @@ export class AllPhotosGroupedByDate extends Component {
     if (this.props.fetchedPhotos && 
         !this.props.photos.length==0 && 
         !this.props.fetchingPhotos &&
-        this.props.fetchedPhotos &&
-        !this.props.albumsDateList.length==0 &&
-        !this.props.fetchingAlbumsDateList &&
-        this.props.fetchedAlbumsDateList) {
+        this.props.fetchedPhotos) {
 
       console.log("fetchedPhotos",this.props.fetchedPhotos)
       console.log("photos",this.props.photos.length)
@@ -62,7 +67,6 @@ export class AllPhotosGroupedByDate extends Component {
 
   componentWillMount() {
     this.props.dispatch(fetchPhotos())
-    this.props.dispatch(fetchDateAlbumsList())    
   }
 
   groupPhotosByDate() {
@@ -96,7 +100,10 @@ export class AllPhotosGroupedByDate extends Component {
         var imageGrid = groupedPhotos[date].map(function(photo){
           console.log(photo.thumbnail_url)
           return (
-            <Image size='small' src={serverAddress+photo.square_thumbnail_url}/>
+            <LazyLoad once offset={[150,150]} height={150} placeholder={<ImagePlaceholder/>}>
+              <Image height={150} width={150} src={serverAddress+photo.square_thumbnail_url}/>
+            </LazyLoad>
+
           )
         })
         var renderableImageGrid = (
@@ -125,7 +132,7 @@ export class AllPhotosGroupedByDate extends Component {
 
   render() {
     console.log('received all props?', this.receivedAllProps())
-    if (this.receivedAllProps()){
+    if (this.props.fetchedPhotos){
       var groupedPhotos = this.groupPhotosByDate()
       var renderable = this.groupedPhotosToImageGrids(groupedPhotos)
     }
