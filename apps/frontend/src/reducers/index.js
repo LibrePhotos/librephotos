@@ -5,6 +5,7 @@ import faces from "./facesReducer"
 import albums from './albumsReducer'
 import util from './utilReducer'
 import photos from './photosReducer'
+import auth from './authReducer'
 
 export default combineReducers({
   people,
@@ -12,4 +13,5 @@ export default combineReducers({
   albums,
   util,
   photos,
+  auth,
 })

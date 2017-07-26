@@ -45,6 +45,8 @@ import {AllPhotosViewLL} from './layouts/allPhotosViewLL'
 
 import {LoginPage} from './layouts/loginPage'
 
+import {NotImplementedPlaceholder} from './layouts/notImplementedPlaceholder'
+
 class App extends Component {
 
 
@@ -61,10 +63,11 @@ class App extends Component {
             }}>
               <Route exact path="/" component={AllPhotosView}/>
 
+              <Route path='/niy' component={NotImplementedPlaceholder}/>
+
               <Route path="/login" component={LoginPage}/>
 
               <Route path="/favorite/auto" component={FavoriteAutoAlbumsView}/>
-
 
               <Route path="/faces" component={FacesDashboard}/>
               <Route path="/people" component={PeopleDashboard}/>

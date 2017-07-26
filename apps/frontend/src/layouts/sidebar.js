@@ -1,13 +1,43 @@
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, Icon } from 'semantic-ui-react';
+import { connect } from "react-redux";
+import {login, logout} from '../actions/authActions'
 
 export class Sidebar extends Component {
   state = { activeItem: 'photos' }
 
   handleItemClick = (e, { name }) => this.setState({ activeItem: name })
+  handleLogout = (e, {name}) => this.props.dispatch(logout())
 
   render() {
+    console.log('from sidebar')
+    console.log(this.props.jwtToken)
+    if (this.props.jwtToken == null) {
+      console.log('signed out')
+      var authMenu = (
+        <Menu.Item 
+          name='loginout'
+          as={Link}
+          to='/login'>
+          <Icon name='sign out' corner /> Log In
+        </Menu.Item>
+      )
+    }
+    else {
+      console.log('signed in')
+      var authMenu = (
+        <Menu.Item 
+          onClick={this.handleLogout}
+          name='loginout'
+          as={Link}
+          to='/login'>
+          <Icon name='sign in' corner /> Log Out
+        </Menu.Item>
+      )
+    }
+
+
     const { activeItem } = this.state
     return (
       <Menu 
@@ -24,6 +54,8 @@ export class Sidebar extends Component {
           <img src='/logo-white.png'/>
         </Menu.Item>
 
+        {authMenu}
+
         <Menu.Item 
           onClick={this.handleItemClick}
           active={activeItem==='all photos'}
@@ -39,7 +71,7 @@ export class Sidebar extends Component {
           active={activeItem==='search'}
           name='search'
           as={Link}
-          to='/'>
+          to='/niy'>
           <Icon name='search' corner />Search
         </Menu.Item>
 
@@ -116,3 +148,12 @@ export class Sidebar extends Component {
     )
   }
 }
+
+
+
+
+Sidebar = connect((store)=>{
+  return {
+    jwtToken: store.auth.jwtToken
+  }
+})(Sidebar)

@@ -171,9 +171,21 @@ export class AllPhotosView extends Component {
     }
     else {
       return (
-        <Dimmer active>
-          <Loader active/>
-        </Dimmer>
+        <div>
+          <div style={{width:'100%', textAlign:'center'}}>
+            <Icon.Group size='huge'>
+              <Icon inverted circular name='image'/>
+            </Icon.Group>
+          </div>
+          <Header as='h1' icon textAlign='center'>
+            <Header.Content>
+              Events
+              <Header.Subheader>All Photos</Header.Subheader>
+              <Header.Subheader>- Days</Header.Subheader>
+            </Header.Content>
+          </Header>
+          <Divider hidden/>
+        </div>
       )
     }
   }

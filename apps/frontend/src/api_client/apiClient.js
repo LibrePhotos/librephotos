@@ -1,12 +1,26 @@
 import axios from "axios";
 
-export var serverAddress = 'http://192.168.1.100:8000'
+import store from '../store'
+store.subscribe(listener)
+
+function select(state) {
+  console.log(state.auth.jwtToken)
+  return state.auth.jwtToken
+}
+
+function listener() {
+  let token = select(store.getState())
+  axios.defaults.headers.common['Authorization'] = token;
+}
+
+export var serverAddress = 'http://localhost:8000'
 
 export var Server = axios.create({
-  baseURL: 'http://192.168.1.100:8000/api/',
+  baseURL: 'http://localhost:8000/api/',
+  headers: {
+    'Content-Type': 'application/json',
+  },
   timeout: 10000,
-  auth: {username: 'admin',
-         password: 'q1W@e3R$'}
 });
 
 export default {serverAddress, Server}
