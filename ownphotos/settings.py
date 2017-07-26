@@ -44,9 +44,15 @@ INSTALLED_APPS = [
 
 
 REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
+    'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAdminUser',
-    ],
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ),
     'PAGE_SIZE': 20
 }
 
@@ -99,7 +105,7 @@ DATABASES = {
         'NAME': 'ownphotos',                      
         'USER': 'postgres',
         'PASSWORD': 'q1W@e3R$',
-        'HOST': '172.17.0.2',
+        'HOST': 'localhost',
         'PORT': '5432',
     }
 }
@@ -119,7 +125,7 @@ DATABASES = {
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-        'LOCATION': '172.17.0.3:11211',
+        'LOCATION': 'localhost:11211',
         'TIMEOUT': 60 * 60 * 24 , # 1 day
         'OPTIONS': {
             'server_max_value_length': 1024 * 1024* 10, #10mb
