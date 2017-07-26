@@ -117,10 +117,12 @@ export class AllPhotosGroupedByDate extends Component {
               </Header.Subheader>
               </Header.Content>
             </Header>
-          
+            
+            <LazyLoad height={100} placeholder={<div style={{height:'157px', width:'157px', backgroundColor:'#dddddd'}}>loading</div>}>
             <Image.Group>
               {imageGrid}
             </Image.Group>
+            </LazyLoad>
           </div>
         )
         imageGrids.push(renderableImageGrid)

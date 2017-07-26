@@ -32,7 +32,9 @@ export class ChartyPhotosScrollbar extends Component {
   }
 
   componentWillMount() {
+/*
     this.props.dispatch(fetchDateAlbumsList())
+*/
   }
 
   preprocessData() {
@@ -148,10 +150,10 @@ export class ChartyPhotosScrollbar extends Component {
       return datum.x
     })
 
-    var series = [{data:data}]
+    var series = [{data:[0,1,2,3,4]}]
 
     return (
-      <Chart width={60} height={950} series={series}>
+      <Chart width={30} height={500} series={series}>
         <Transform method={['rotate']}>
           <Bars innerPadding='0%' colors={['#666666']}
             barStyle={{fillOpacity:0.8}}

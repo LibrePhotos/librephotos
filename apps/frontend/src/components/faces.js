@@ -386,7 +386,7 @@ export class FaceCardMenu extends Component {
               icon='photo'/>
             }>
             <Modal.Header>
-              <Image fluid src={`http://localhost:8000/media/photos/${this.props.faceToLabel.photo_id}.jpg`}/>
+              <Image fluid src={'/unknown_user.jpg'}/>
             </Modal.Header>
           </Modal>
 

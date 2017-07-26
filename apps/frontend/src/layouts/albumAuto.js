@@ -92,7 +92,7 @@ export class AlbumAuto extends Component {
 
         </div>
 
-        <Card.Group stackable itemsPerRow={4}>
+        <Card.Group stackable itemsPerRow={6}>
         {mappedAlbumCards}
         </Card.Group>
       </Container>

@@ -315,6 +315,106 @@ export class AlbumAutoCard extends Component {
 
 
 
+export class AlbumAutoCardPlainPlaceholder extends Component {
+  render() {
+    return (
+      <div style={{padding:'5px'}}>
+        <div style={{
+          backgroundColor:"#dddddd",
+          width:'200px',
+          height:'350px',
+          borderRadius: "0.3rem"}}>
+        </div>
+      </div>
+    )
+  }
+}
+
+export class AlbumAutoCardPlain extends Component {
+  constructor(props){
+    super(props)
+    this.onRate = this.onRate.bind(this)
+  }
+
+  onRate(e,d) {
+    if (d.rating == 0) {
+      console.log('unfavorited',this.props.album.id)
+      var rating = false
+    }
+    else {
+      console.log('favorited',this.props.album.id)
+      var rating = true
+    }
+    this.props.dispatch(toggleAlbumAutoFavorite(this.props.album.id,rating))
+  }
+
+  render() {
+    var rating = null
+    if (this.props.album.favorited) {
+      rating = 1
+    }
+    else {
+      rating = 0
+    }
+    var numPeople = this.props.album.people.length
+    var albumId = this.props.album.people.id
+    if (this.props.album.people.length > 0) {
+      var mappedPeopleIcons = this.props.album.people.map(function(person){
+        return (
+          <Image height={30} width={30} shape='circular' src={serverAddress+person.face_url}/>
+        )
+      })
+      mappedPeopleIcons = (
+        <Image.Group>{mappedPeopleIcons}</Image.Group>
+      )
+    }
+    else {
+      // empty placeholder so the extra portion (with face icons) of the cards line up
+      var mappedPeopleIcons = (<div style={{height:'30px', width:'30px', verticalAlign:'middle'}}></div>)
+    }
+    return (
+      <div style={{padding:'5px'}}>
+        <div style={{
+          border:'1px solid #dddddd',
+          width:'200px',
+          height:'350px',
+          position:'relative',
+          borderRadius: "0.3rem"}}>
+          <Image 
+            as={Link}
+            to={`/albums/autoview/${this.props.album.id}`}
+            height={200} width={200} 
+            src={serverAddress+this.props.album.cover_photo_url}/>
+          <div style={{padding:'10px'}}>
+            <span style={{fontSize:'15',fontWeight:'bold'}}>{this.props.album.title}</span><br/>
+            <div style={{paddingTop:'5px'}}>
+              <span style={{color:'grey'}}>{this.props.album.timestamp.split('T')[0]}</span>
+            </div>
+            <div >
+              <span style={{color:'grey',fontWeight:'bold'}}>{this.props.album.photo_count} Photos</span>
+            </div>
+            <div >
+              <Popup
+                trigger={
+                  <span style={{
+                    color:'grey',
+                    fontWeight:'bold'}}>
+                    {this.props.album.people.length} People
+                  </span>}
+                content={mappedPeopleIcons}
+                basic/>
+            </div>
+            <div style={{bottom:'10px', right:'10px', position:'absolute'}}>
+              <Rating icon='heart' defaultRating={rating} maxRating={1} onRate={this.onRate}/>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+}
+
+
 
 export class AlbumDateCardPlaceholder extends Component {
   constructor(props){
@@ -396,13 +496,14 @@ export class AlbumDateCard extends Component {
 
     return (
       <Card key={this.props.key}>
-          <LazyLoad once height={150} placeholder={
-            <Image src={'http://placehold.jp/150x150.png'}/>}>
-          <Image 
-            as={Link}
-            to={`/albums/dateview/${this.props.album_id}`}
-            size="big"
-            src={this.props.albumCoverURL}/>
+          <LazyLoad once height={300} placeholder={
+            <Image src={'http://placehold.jp/150x150.png'}/>}
+          >
+            <Image 
+              as={Link}
+              to={`/albums/dateview/${this.props.album_id}`}
+              size="big"
+              src={this.props.albumCoverURL}/>
           </LazyLoad>
         <Card.Content>
         <Header as='h4'>{this.props.timestamp}</Header>
@@ -425,13 +526,101 @@ export class AlbumDateCard extends Component {
 
 
 
+
+export class AlbumDateCardPlainPlaceholder extends Component {
+  render() {
+    return (
+      <div style={{padding:'5px'}}>
+        <div style={{
+          backgroundColor:"#dddddd",
+          width:'200px',
+          height:'280px',
+          borderRadius: "0.3rem"}}>
+        </div>
+      </div>
+    )
+  }
+}
+
+export class AlbumDateCardPlain extends Component {
+  constructor(props){
+    super(props)
+    this.onRate = this.onRate.bind(this)
+  }
+
+  onRate(e,d) {
+    if (d.rating == 0) {
+      console.log('unfavorited',this.props.album.id)
+      var rating = false
+    }
+    else {
+      console.log('favorited',this.props.album.id)
+      var rating = true
+    }
+  }
+
+  render() {
+    var rating = null
+    if (this.props.album.favorited) {
+      rating = 1
+    }
+    else {
+      rating = 0
+    }
+    var numPeople = this.props.album.people.length
+    return (
+      <div style={{padding:'5px'}}>
+        <div style={{
+          border:'1px solid #dddddd',
+          width:'200px',
+          height:'280px',
+          position:'relative',
+          borderRadius: "0.3rem"}}>
+          <Image 
+            as={Link}
+            to={`/albums/dateview/${this.props.album.id}`}
+            height={200} width={200} 
+            src={serverAddress+this.props.album.cover_photo_url}/>
+          <div style={{padding:'10px'}}>
+            <span style={{fontSize:'15',fontWeight:'bold'}}>{this.props.album.date}</span><br/>
+            <div >
+              <span style={{color:'grey',fontWeight:'bold'}}>{this.props.album.photo_count} Photos</span>
+            </div>
+            <div style={{bottom:'10px', right:'10px', position:'absolute'}}>
+              <Rating icon='heart' defaultRating={rating} maxRating={1} onRate={this.onRate}/>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+}
+
+
+
+
+
+
+
+
+
+
 AlbumAutoCard = connect((store)=>{
   return {}
 })(AlbumAutoCard)
 
+AlbumAutoCardPlain = connect((store)=>{
+  return {}
+})(AlbumAutoCardPlain)
+
+
 AlbumDateCard = connect((store)=>{
   return {}
 })(AlbumDateCard)
+
+AlbumDateCardPlain = connect((store)=>{
+  return {}
+})(AlbumDateCardPlain)
 
 AlbumPeopleGallery = connect((store)=>{
   return {

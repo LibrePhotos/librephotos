@@ -59,7 +59,7 @@ class App extends Component {
               paddingRight:'20px',
               paddingLeft:'200px'
             }}>
-              <Route exact path="/" component={AllPhotosGroupedByDate}/>
+              <Route exact path="/" component={AllPhotosView}/>
 
               <Route path="/login" component={LoginPage}/>
 

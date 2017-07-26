@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
 import { connect } from "react-redux";
 import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums, fetchDateAlbumsList} from '../actions/albumsActions'
-import {AlbumDateCard,AlbumDateCardPlaceholder, AlbumAutoGallery} from '../components/album'
+import {AlbumDateCard, AlbumDateCardPlaceholder, AlbumDateCardPlain, AlbumDateCardPlainPlaceholder, AlbumAutoGallery} from '../components/album'
 import {Container, Icon, Header, Button, Card, Label, Popup, Divider} from 'semantic-ui-react'
 import {fetchCountStats,fetchPhotoScanStatus,
         fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
@@ -26,16 +26,9 @@ export class AlbumDateMonthCards extends Component {
           var albumCoverURL = null
         }
         return (
-            <AlbumDateCard 
-              match={match}
-              key={'album-auto-'+album.id+'-month-'+month+'-'+album.date}
-              albumTitle={albumTitle}
-              timestamp={albumDate}
-              people={album.people}
-              favorited={album.favorited}
-              album_id={album.id}
-              albumCoverURL={serverAddress+albumCoverURL}
-              photoCount={album.photo_count}/>
+          <LazyLoad height={290} placeholder={<AlbumDateCardPlainPlaceholder/>}> 
+            <AlbumDateCardPlain album={album}/>
+          </LazyLoad>
         )
       })
 
@@ -52,11 +45,9 @@ export class AlbumDateMonthCards extends Component {
 
 
         <div>
-          <LazyLoad height={10} once>
           <Card.Group stackable itemsPerRow={5}>
           {mappedAlbumCards}
           </Card.Group>
-          </LazyLoad>
         </div>
       </div>
     )
