@@ -1,0 +1,118 @@
+import React, { Component } from 'react';
+import { Link } from 'react-router-dom';
+import { Menu, Icon } from 'semantic-ui-react';
+
+export class Sidebar extends Component {
+  state = { activeItem: 'photos' }
+
+  handleItemClick = (e, { name }) => this.setState({ activeItem: name })
+
+  render() {
+    const { activeItem } = this.state
+    return (
+      <Menu 
+        color='black'
+        pointing
+        inverted
+        stackable 
+        size="small"
+        vertical
+        fixed='left'>
+
+
+        <Menu.Item name='logo'>
+          <img src='/logo-white.png'/>
+        </Menu.Item>
+
+        <Menu.Item 
+          onClick={this.handleItemClick}
+          active={activeItem==='all photos'}
+          name='all photos'
+          as={Link}
+          to='/'>
+          <Icon name='image' corner />Browse
+        </Menu.Item>
+
+
+        <Menu.Item 
+          onClick={this.handleItemClick}
+          active={activeItem==='search'}
+          name='search'
+          as={Link}
+          to='/'>
+          <Icon name='search' corner />Search
+        </Menu.Item>
+
+
+        <Menu.Item>
+          <Menu.Header><Icon name='heart'/>Favorites</Menu.Header>
+          <Menu.Menu>     
+          <Menu.Item
+            onClick={this.handleItemClick}
+            active={activeItem==='favorites auto albums'}
+            name='favorites auto albums'
+            content="Events"
+            as={Link}
+            to='/favorite/auto'/>
+          </Menu.Menu>
+        </Menu.Item>
+
+
+        <Menu.Item>
+          <Menu.Header><Icon name='image'/>Albums</Menu.Header>
+          <Menu.Menu>
+            <Menu.Item
+              onClick={this.handleItemClick}
+              active={activeItem==='people albums'}
+              content='People'
+              name='people albums'
+              as={Link}
+              to='/albums/people'/>
+            <Menu.Item
+              onClick={this.handleItemClick}
+              active={activeItem==='auto albums'}
+              content="Events"
+              name='auto albums'
+              as={Link}
+              to='/albums/auto'/>
+            <Menu.Item
+              onClick={this.handleItemClick}
+              active={activeItem==='date albums'}
+              content="Days"
+              name='date albums'
+              as={Link}
+              to='/albums/date'/>
+          </Menu.Menu>
+        </Menu.Item>
+
+        <Menu.Item>
+          <Menu.Header><Icon name='dashboard'/>Dashboards</Menu.Header>
+          <Menu.Menu>            
+          <Menu.Item
+            onClick={this.handleItemClick}
+            active={activeItem==='faces dashboard'}
+            name='faces dashboard'
+            content='Faces'
+            as={Link}
+            to='/faces'/>
+          <Menu.Item
+            onClick={this.handleItemClick}
+            active={activeItem==='people dashboard'}
+            name='people dashboard'
+            content='People'
+            as={Link}
+            to='/people'/>
+
+          <Menu.Item
+            onClick={this.handleItemClick}
+            active={activeItem==='statistics'}
+            name='statistics'
+            content="Statistics"
+            as={Link}
+            to='/statistics'/>
+          </Menu.Menu>
+        </Menu.Item>
+      </Menu>
+    )
+  }
+}

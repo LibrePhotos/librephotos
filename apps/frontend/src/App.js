@@ -4,9 +4,13 @@ import './App.css';
 import {
   BrowserRouter as Router,
   Route,
-  Link
+  Redirect
 } from 'react-router-dom'
-import {Container, Menu, Grid, Sidebar, Button, Icon, Header} from 'semantic-ui-react'
+
+
+import {Container, Menu, Grid, Button, Icon, Header} from 'semantic-ui-react'
+
+import {Sidebar} from './layouts/sidebar'
 
 import {AlbumPeopleGallery, AlbumAutoGallery} from './components/album'
 
@@ -39,122 +43,17 @@ import {ChartyPhotosScrollbar} from './components/chartyPhotosScrollbar'
 
 import {AllPhotosViewLL} from './layouts/allPhotosViewLL'
 
-class App extends Component {
-  state = { activeItem: 'photos' }
+import {LoginPage} from './layouts/loginPage'
 
-  handleItemClick = (e, { name }) => this.setState({ activeItem: name })
+class App extends Component {
+
 
   render() {
-    const { activeItem } = this.state
 
     return (
       <Router>
         <div>
-          <Menu 
-            color='black'
-            pointing
-            inverted
-            stackable 
-            size="small"
-            vertical
-            fixed='left'>
-
-
-            <Menu.Item name='logo'>
-              <img src='/logo-white.png'/>
-            </Menu.Item>
-
-            <Menu.Item 
-              onClick={this.handleItemClick}
-              active={activeItem==='all photos'}
-              name='all photos'
-              as={Link}
-              to='/'>
-              <Icon name='image' corner />Browse
-            </Menu.Item>
-
-
-            <Menu.Item 
-              onClick={this.handleItemClick}
-              active={activeItem==='search'}
-              name='search'
-              as={Link}
-              to='/'>
-              <Icon name='search' corner />Search
-            </Menu.Item>
-
-
-            <Menu.Item>
-              <Menu.Header><Icon name='heart'/>Favorites</Menu.Header>
-              <Menu.Menu>     
-              <Menu.Item
-                onClick={this.handleItemClick}
-                active={activeItem==='favorites auto albums'}
-                name='favorites auto albums'
-                content="Events"
-                as={Link}
-                to='/favorite/auto'/>
-              </Menu.Menu>
-            </Menu.Item>
-
-
-            <Menu.Item>
-              <Menu.Header><Icon name='image'/>Albums</Menu.Header>
-              <Menu.Menu>
-                <Menu.Item
-                  onClick={this.handleItemClick}
-                  active={activeItem==='people albums'}
-                  content='People'
-                  name='people albums'
-                  as={Link}
-                  to='/albums/people'/>
-                <Menu.Item
-                  onClick={this.handleItemClick}
-                  active={activeItem==='auto albums'}
-                  content="Events"
-                  name='auto albums'
-                  as={Link}
-                  to='/albums/auto'/>
-                <Menu.Item
-                  onClick={this.handleItemClick}
-                  active={activeItem==='date albums'}
-                  content="Days"
-                  name='date albums'
-                  as={Link}
-                  to='/albums/date'/>
-              </Menu.Menu>
-            </Menu.Item>
-
-            <Menu.Item>
-              <Menu.Header><Icon name='dashboard'/>Dashboards</Menu.Header>
-              <Menu.Menu>            
-              <Menu.Item
-                onClick={this.handleItemClick}
-                active={activeItem==='faces dashboard'}
-                name='faces dashboard'
-                content='Faces'
-                as={Link}
-                to='/faces'/>
-              <Menu.Item
-                onClick={this.handleItemClick}
-                active={activeItem==='people dashboard'}
-                name='people dashboard'
-                content='People'
-                as={Link}
-                to='/people'/>
-
-              <Menu.Item
-                onClick={this.handleItemClick}
-                active={activeItem==='statistics'}
-                name='statistics'
-                content="Statistics"
-                as={Link}
-                to='/statistics'/>
-              </Menu.Menu>
-            </Menu.Item>
-
-
-          </Menu>
+            <Sidebar />
             <div style={{
               paddingTop:'20px',
               paddingRight:'20px',
@@ -162,6 +61,7 @@ class App extends Component {
             }}>
               <Route exact path="/" component={AllPhotosGroupedByDate}/>
 
+              <Route path="/login" component={LoginPage}/>
 
               <Route path="/favorite/auto" component={FavoriteAutoAlbumsView}/>
 
@@ -169,7 +69,6 @@ class App extends Component {
               <Route path="/faces" component={FacesDashboard}/>
               <Route path="/people" component={PeopleDashboard}/>
               <Route path="/statistics" component={Statistics}/>
-
 
               <Route path="/albums/people" component={AlbumPeople}/>
               <Route path="/albums/auto" component={AlbumAutoMonths}/>
@@ -187,6 +86,10 @@ class App extends Component {
       </Router>
     );
   }
+}
+
+function requireAuth(nextState, replace) {
+  console.log('hey!')
 }
 
 export default App;
