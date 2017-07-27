@@ -2,6 +2,5 @@
 # it will not look for photos recursively, so you might want to add subdirectories as well.
 
 image_dirs = [
-	# '/home/rammi/Downloads/tuebingen',
-	'/mnt/ext/google_takeout'
+	'/data',
 ]

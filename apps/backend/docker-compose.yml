@@ -1,0 +1,19 @@
+version: '2'
+
+services:
+  backend:
+    image: ownphotos-backend
+    build: .
+
+  frontend:
+    image: ownphotos-frontend
+
+  database:
+    image: postgres
+    environment:
+      POSTGRES_DB: ownphotos
+      POSTGRES_PASSWORD: ownphotos
+
+  memcached:
+    image: memcached
+
