@@ -6,6 +6,10 @@ export default function reducer(state={
     statusPhotoScan: {status:false},
     statusAutoAlbumProcessing: {status:false},
 
+    locationClusters: [],
+    fetchingLocationClusters:false,
+    fetchedLocationClusters:false,
+
     error: null,
   }, action) {
 
@@ -24,6 +28,26 @@ export default function reducer(state={
         countStats: action.payload
       }
     }
+
+
+    case "FETCH_LOCATION_CLUSTERS": {
+      return {...state, fetchingLocationClusters: true}
+    }
+    case "FETCH_LOCATION_CLUSTERS_REJECTED": {
+      return {...state, fetchingLocationClusters: false, error: action.payload}
+    }
+    case "FETCH_LOCATION_CLUSTERS_FULFILLED": {
+      return {
+        ...state,
+        fetchingLocationClusters: false,
+        fetchedLocationClusters: true,
+        locationClusters: action.payload
+      }
+    }
+
+
+
+
 
     case "FETCH_PHOTO_SCAN_STATUS": {
       return {...state, fetchingPhotoScanStatus: true}
@@ -60,3 +84,9 @@ export default function reducer(state={
     }
   }
 }
+
+
+
+// FETCH_LOCATION_CLUSTERS
+// FETCH_LOCATION_CLUSTERS_REJECTED
+// FETCH_LOCATION_CLUSTERS_FULFILLED

@@ -8,7 +8,7 @@ import {scanPhotos,fetchPhotos} from '../actions/photosActions'
 
 import CountryPiChart from '../components/charts/countryPiChart'
 import {CountStats} from '../components/statistics'
-import {AllPhotosMap} from '../components/maps'
+import {AllPhotosMap, EventMap, LocationClusterMap} from '../components/maps'
 import EventCountMonthGraph from '../components/eventCountMonthGraph'
 import FaceClusterScatter  from '../components/faceClusterGraph'
 import SocialGraph from '../components/socialGraph'
@@ -59,8 +59,7 @@ export class Statistics extends Component {
           {photoScanLoadingIcon}Scan for more photos
         </Button>
         <Divider hidden/>
-
-        <AllPhotosMap/>
+        <LocationClusterMap/>
         <Divider hidden/>
 
         <Grid stackable columns={2}>

@@ -17,6 +17,7 @@ import { fetchFaces,
          labelFacePersonAndFetchNext} from '../actions/facesActions';
 import VisibilitySensor from 'react-visibility-sensor'
 import {Server, serverAddress} from '../api_client/apiClient'
+import LazyLoad from 'react-lazyload';
 
 
 export class FaceStatistics extends Component {
@@ -50,7 +51,13 @@ export class EditableFaceIcon extends Component {
       <Icon link color='black' name='write' onClick={this.handleClick}/>
     )
     return (
-      <VisibilitySensor>
+      <LazyLoad threshold
+        height={60} 
+        width={60} 
+        placeholder={
+          <Image height={60} width={60} avatar
+            shape='rounded' src={'/unknown_user.jpg'}/>
+        }>
         <Popup
           inverted
           trigger={
@@ -66,7 +73,7 @@ export class EditableFaceIcon extends Component {
               onMouseLeave={this.handleHide}
               src={this.props.face_url}/>}
             content={this.props.person_name}/>
-      </VisibilitySensor>
+      </LazyLoad>
     )
   }
 }

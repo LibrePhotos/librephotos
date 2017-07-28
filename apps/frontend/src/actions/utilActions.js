@@ -40,3 +40,15 @@ export function fetchAutoAlbumProcessingStatus() {
   }
 }
 
+export function fetchLocationClusters() {
+  return function(dispatch) {
+    dispatch({type: "FETCH_LOCATION_CLUSTERS"});
+    Server.get(`locclust/`)
+      .then((response) => {
+        dispatch({type: "FETCH_LOCATION_CLUSTERS_FULFILLED", payload: response.data})
+      })
+      .catch((err) => {
+        dispatch({type: "FETCH_LOCATION_CLUSTERS_REJECTED", payload: err})
+      })
+  }
+}

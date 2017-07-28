@@ -75,7 +75,7 @@ export class CountryPiChart extends Component {
       return count
     })
 
-    return counts_wheres
+    return counts_countries
   }
 
 
@@ -187,71 +187,34 @@ export class CountryPiChart extends Component {
   render(){
     if (this.props.fetchedPhotos) {
       var counts = this.preprocess()
-      var children = this.preprocessReactVis()
-      console.log(children)
-
-
-
-      children = {
-       "title": "analytics",
-       "color": "#12939A",
-       "children": [
-        {
-         "title": "cluster",
-         "children": [
-          {"title": "AgglomerativeCluster", "color": "#12939A", "size": 1},
-          {"title": "CommunityStructure", "color": "#12939A", "size": 1},
-          {"title": "HierarchicalCluster", "color": "#12939A", "size": 1},
-          {"title": "MergeEdge", "color": "#12939A", "size": 1}
-         ]
-        },
-        {
-         "title": "graph",
-         "children": [
-          {"title": "BetweennessCentrality", "color": "#12939A", "size": 1},
-          {"title": "LinkDistance", "color": "#12939A", "size": 1},
-          {"title": "MaxFlowMinCut", "color": "#12939A", "size": 1},
-          {"title": "ShortestPaths", "color": "#12939A", "size": 1},
-          {"title": "SpanningTree", "color": "#12939A", "size": 1}
-         ]
-        },
-        {
-         "title": "optimization",
-         "children": [
-          {"title": "AspectRatioBanker", "color": "#12939A", "size": 1}
-         ]
-        }
-       ]
-      }
-      console.log(children)
-
-
-    //   var series = [{data:counts}]
-    //   var map = (
-    //     <Segment>
-    //       <Header as='h3'>Photos by Country</Header>
-    //         <Chart 
-    //           width={this.props.containerWidth-50}
-    //           height={250}
-    //           series={series}>
-    //           <Transform method={['transpose','stack']}>
-    //             <Pies combined={true}/>
-    //           </Transform>
-    //         </Chart>
-    //     </Segment>
-    //   )
-
+      if (counts.length == 0){counts = [1]}
+      console.log(counts)
+      var series = [{data:counts}]
       var map = (
         <Segment>
-          <Header as='h3'>Photos by Location</Header>
-          <Sunburst 
-            colorType="literal"
-            data={children}
-            height={250}
-            width={this.props.containerWidth-50}>
-          </Sunburst>
+          <Header as='h3'>Photos by Country</Header>
+            <Chart 
+              width={this.props.containerWidth-50}
+              height={250}
+              series={series}>
+              <Transform method={['transpose','stack']}>
+                <Pies combined={true}/>
+              </Transform>
+            </Chart>
         </Segment>
       )
+
+      // var map = (
+      //   <Segment>
+      //     <Header as='h3'>Photos by Location</Header>
+      //     <Sunburst 
+      //       colorType="literal"
+      //       data={children}
+      //       height={250}
+      //       width={this.props.containerWidth-50}>
+      //     </Sunburst>
+      //   </Segment>
+      // )
 
     }
     else {
