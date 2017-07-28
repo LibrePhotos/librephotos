@@ -43,7 +43,7 @@ export class FaceClusterScatter extends Component {
         <Header as='h3'>Face Embeddings</Header>
         <XYPlot
           width={this.props.containerWidth-50}
-          height={203}>
+          height={250}>
           <HorizontalGridLines/>
           <VerticalGridLines/>
           <XAxis/>

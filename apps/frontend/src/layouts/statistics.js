@@ -4,13 +4,15 @@ import { connect } from "react-redux";
 
 import {fetchCountStats,fetchPhotoScanStatus,
         fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
-import {scanPhotos} from '../actions/photosActions'
+import {scanPhotos,fetchPhotos} from '../actions/photosActions'
 
+import CountryPiChart from '../components/charts/countryPiChart'
 import {CountStats} from '../components/statistics'
-
+import {AllPhotosMap} from '../components/maps'
 import EventCountMonthGraph from '../components/eventCountMonthGraph'
-import  FaceClusterScatter  from '../components/faceClusterGraph'
+import FaceClusterScatter  from '../components/faceClusterGraph'
 import SocialGraph from '../components/socialGraph'
+import LazyLoad from 'react-lazyload';
 
 export class Statistics extends Component {
   componentDidMount() {
@@ -57,11 +59,31 @@ export class Statistics extends Component {
           {photoScanLoadingIcon}Scan for more photos
         </Button>
         <Divider hidden/>
-        <EventCountMonthGraph/>
+
+        <AllPhotosMap/>
         <Divider hidden/>
-        <SocialGraph/>
+
+        <Grid stackable columns={2}>
+          <Grid.Column>
+            <EventCountMonthGraph/>
+          </Grid.Column>
+          <Grid.Column>
+            <SocialGraph/>
+          </Grid.Column>
+        </Grid>
+        
         <Divider hidden/>
+
+        <Grid stackable columns={2}>
+          <Grid.Column>
+            <CountryPiChart/>
+          </Grid.Column>
+          <Grid.Column>
             <FaceClusterScatter/>
+          </Grid.Column>
+        </Grid>
+
+        <Divider hidden/>
       </div>
     )
   }

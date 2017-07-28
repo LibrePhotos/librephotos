@@ -7,6 +7,8 @@ import { connect } from "react-redux";
 import { Graph } from 'react-d3-graph';
 import { fetchSocialGraph } from '../actions/peopleActions'
 import {Server, serverAddress} from '../api_client/apiClient'
+import LazyLoad from 'react-lazyload';
+
 
 
 export class SocialGraph extends Component {
@@ -36,7 +38,7 @@ export class SocialGraph extends Component {
 		        highlightColor: 'orange',
 		        color: '#12939A',
 		    },
-		    height: 199,
+		    height: 250,
 		    width: width
 		}
 
@@ -52,8 +54,10 @@ export class SocialGraph extends Component {
 		console.log(this.props)
 		return (
 			<Segment>
-        <Header as='h3'>Face Co-occurrence Based Social Graph</Header>
+        <Header as='h3'>Social Graph</Header>
+        <div style={{height:'254px'}}>
   			{graph}
+  			</div>
 			</Segment>
 		)
 	}

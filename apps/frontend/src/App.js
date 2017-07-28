@@ -46,6 +46,8 @@ import {AllPhotosViewLL} from './layouts/allPhotosViewLL'
 import {LoginPage} from './layouts/loginPage'
 
 import {NotImplementedPlaceholder} from './layouts/notImplementedPlaceholder'
+import {CountryPiChart} from './components/charts/countryPiChart'
+
 
 class App extends Component {
 
@@ -62,6 +64,9 @@ class App extends Component {
               paddingLeft:'200px'
             }}>
               <Route exact path="/" component={AllPhotosView}/>
+
+
+              <Route path='/test' component={CountryPiChart}/>
 
               <Route path='/niy' component={NotImplementedPlaceholder}/>
 
