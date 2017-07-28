@@ -1,6 +1,6 @@
 .PHONY: default build run shell
 
-DOCKER_TAG ?= ownphotos-frontend
+DOCKER_TAG ?= ownphotos-backend
 
 default: build
 
