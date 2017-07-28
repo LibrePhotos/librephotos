@@ -4,7 +4,6 @@ import store from '../store'
 store.subscribe(listener)
 
 function select(state) {
-  console.log(state.auth.jwtToken)
   return state.auth.jwtToken
 }
 

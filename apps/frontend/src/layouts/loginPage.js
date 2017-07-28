@@ -21,7 +21,6 @@ export class LoginPage extends Component {
 
   render() {
     const { username, password } = this.state
-    console.log(this.props.jwtToken)
     return (
       <div style={{overflow:'hidden'}}>
         <div style={{

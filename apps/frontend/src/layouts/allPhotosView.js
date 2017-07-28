@@ -15,6 +15,29 @@ import {Server, serverAddress} from '../api_client/apiClient'
 import LazyLoad from 'react-lazyload';
 import {ChartyPhotosScrollbar} from '../components/chartyPhotosScrollbar'
 
+function calculateDayHeight(numPhotos) {
+  if (window.innerWidth < 500) {
+    var width = 450
+  } else {
+    var width = window.innerWidth-100
+  }
+
+  var photoSize = 157
+  var columnWidth = width - 120
+  
+  var spacePerRow = Math.floor(columnWidth / photoSize)
+  if (spacePerRow >= numPhotos) {
+    var numRows = 1
+    var numCols = numPhotos
+  }
+  else {
+    var numRows = Math.ceil( numPhotos / spacePerRow )
+    var numCols = spacePerRow
+  }
+
+  return numRows * photoSize
+}
+
 class DayPlaceholder extends Component {
   constructor() {
     super();
@@ -103,7 +126,16 @@ class PhotoDayGroup extends Component {
     if (this.props.albumsDateGalleries.hasOwnProperty(this.props.album.id)) {
       var images = this.props.albumsDateGalleries[this.props.album.id].photos.map(function(image){
         return (
-          <LazyLoad height={150} placeholder={<Image height={150} width={150} src={'http://via.placeholder.com/150x150'}/>}>
+          <LazyLoad 
+            debounce={300}
+            height={150} 
+            placeholder={
+              <Image 
+                height={150} 
+                width={150} 
+                src={'/thumbnail_placeholder.png'}/>
+              }
+            >
             <Image height={150} width={150} src={serverAddress+image.square_thumbnail_url}/>
           </LazyLoad>
         )
@@ -138,13 +170,13 @@ export class AllPhotosView extends Component {
       var photoDayGroups = this.props.albumsDateList.map(function(album){
         return (
           <div style={{paddingBottom:'20px'}}>
-            <Header>
+            <Header dividing as='h2'>
               <Header.Content>
-                <Header as='h1' dividing>{album.date}</Header>
+                {album.date}
                 <Header.Subheader>{album.photo_count} Photos</Header.Subheader>
               </Header.Content>
             </Header>
-            <LazyLoad height={1} placeholder={<DayPlaceholder numPhotos={album.photo_count}/>}>
+            <LazyLoad height={calculateDayHeight()} placeholder={<DayPlaceholder numPhotos={album.photo_count}/>}>
               <PhotoDayGroup album={album}/>
             </LazyLoad>
           </div>

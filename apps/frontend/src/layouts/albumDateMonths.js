@@ -35,15 +35,12 @@ export class AlbumDateMonthCards extends Component {
 
     return (
       <div style={{paddingTop:'20px'}}>
-
-        <Header dividing as='h2' textAlign='center'>
+        <Header dividing as='h2'>
           <Header.Content>
             {this.props.month}
             <Header.Subheader>{this.props.albums.length} Days</Header.Subheader>
           </Header.Content>
         </Header>
-
-
         <div>
           <Card.Group stackable itemsPerRow={5}>
           {mappedAlbumCards}

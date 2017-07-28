@@ -380,11 +380,19 @@ export class AlbumAutoCardPlain extends Component {
           height:'350px',
           position:'relative',
           borderRadius: "0.3rem"}}>
-          <Image 
-            as={Link}
-            to={`/albums/autoview/${this.props.album.id}`}
-            height={200} width={200} 
-            src={serverAddress+this.props.album.cover_photo_url}/>
+          <LazyLoad
+            height={200}
+            placeholder={
+              <Image 
+                height={200}
+                width={200}
+                src={'/thumbnail_placeholder.png'}/>}>
+            <Image 
+              as={Link}
+              to={`/albums/autoview/${this.props.album.id}`}
+              height={200} width={200} 
+              src={serverAddress+this.props.album.cover_photo_url}/>
+          </LazyLoad>
           <div style={{padding:'10px'}}>
             <span style={{fontSize:'15',fontWeight:'bold'}}>{this.props.album.title}</span><br/>
             <div style={{paddingTop:'5px'}}>
@@ -576,11 +584,19 @@ export class AlbumDateCardPlain extends Component {
           height:'280px',
           position:'relative',
           borderRadius: "0.3rem"}}>
-          <Image 
-            as={Link}
-            to={`/albums/dateview/${this.props.album.id}`}
-            height={200} width={200} 
-            src={serverAddress+this.props.album.cover_photo_url}/>
+          <LazyLoad
+            height={200}
+            placeholder={
+              <Image 
+                height={200}
+                width={200}
+                src={'/thumbnail_placeholder.png'}/>}>
+            <Image 
+              as={Link}
+              to={`/albums/dateview/${this.props.album.id}`}
+              height={200} width={200} 
+              src={serverAddress+this.props.album.cover_photo_url}/>
+          </LazyLoad>
           <div style={{padding:'10px'}}>
             <span style={{fontSize:'15',fontWeight:'bold'}}>{this.props.album.date}</span><br/>
             <div >

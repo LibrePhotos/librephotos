@@ -62,11 +62,6 @@ export class Statistics extends Component {
         <SocialGraph/>
         <Divider hidden/>
             <FaceClusterScatter/>
-
-
-
-
-        
       </div>
     )
   }

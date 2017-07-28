@@ -11,8 +11,6 @@ export class Sidebar extends Component {
   handleLogout = (e, {name}) => this.props.dispatch(logout())
 
   render() {
-    console.log('from sidebar')
-    console.log(this.props.jwtToken)
     if (this.props.jwtToken == null) {
       console.log('signed out')
       var authMenu = (
@@ -25,7 +23,6 @@ export class Sidebar extends Component {
       )
     }
     else {
-      console.log('signed in')
       var authMenu = (
         <Menu.Item 
           onClick={this.handleLogout}
