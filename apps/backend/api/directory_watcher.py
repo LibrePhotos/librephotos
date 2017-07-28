@@ -65,11 +65,11 @@ def scan_photos():
                     elapsed = (datetime.datetime.now() - start).total_seconds()
                     print('exif extraction', elapsed)
 
-                    # start = datetime.datetime.now()
-                    # photo._geolocate()
-                    # photo.save()
-                    # elapsed = (datetime.datetime.now() - start).total_seconds()
-                    # print('geolocation', elapsed)
+                    start = datetime.datetime.now()
+                    photo._geolocate()
+                    photo.save()
+                    elapsed = (datetime.datetime.now() - start).total_seconds()
+                    print('geolocation', elapsed)
 
                     start = datetime.datetime.now()
                     photo._extract_faces()

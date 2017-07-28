@@ -49,6 +49,7 @@ urlpatterns = [
     url(r'^api/scanphotos', views.ScanPhotosView.as_view()),
     url(r'^api/autoalbumgen', views.AutoAlbumGenerateView.as_view()),
     url(r'^api/stats', views.StatsView.as_view()),
+    url(r'^api/locclust', views.LocationClustersView.as_view()),
     url(r'^api/watcher/photo', views.IsPhotosBeingAddedView.as_view()),
     url(r'^api/watcher/autoalbum', views.IsAutoAlbumsBeingProcessed.as_view()),
     url(r'^api/token-auth/', obtain_jwt_token),
