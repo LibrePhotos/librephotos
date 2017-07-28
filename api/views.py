@@ -21,7 +21,7 @@ from api.serializers import AlbumDateListSerializer
 from api.face_classify import train_faces, cluster_faces
 from api.social_graph import build_social_graph
 from api.autoalbum import generate_event_albums
-from api.api_util import get_count_stats
+from api.api_util import get_count_stats, get_location_clusters
 from api.directory_watcher import is_photos_being_added, scan_photos
 from api.autoalbum import is_auto_albums_being_processed
 
@@ -305,6 +305,12 @@ class StatsView(APIView):
     def get(self, requests, format=None):
         res = get_count_stats()
         return Response(res)
+
+class LocationClustersView(APIView):
+    def get(self, requests, format=None):
+        res = get_location_clusters()
+        return Response(res)
+
 
 class ScanPhotosView(APIView):
     def get(self, requests, format=None):
