@@ -25,7 +25,7 @@ SECRET_KEY = os.environ['SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = (os.environ.get('DEBUG', '').lower() == 'true')
 
-ALLOWED_HOSTS = ['192.168.43.220','localhost']
+# ALLOWED_HOSTS = ['192.168.43.220','localhost','ownphotos-frontend']
 
 
 # Application definition

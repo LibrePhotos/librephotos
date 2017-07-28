@@ -71,6 +71,8 @@ ENV CACHE_HOST_PORT memcached:11211
 # Timezone
 ENV TIME_ZONE UTC
 
+EXPOSE 8000
+
 COPY . /code
 
-ENTRYPOINT entrypoint.sh
+ENTRYPOINT ./entrypoint.sh

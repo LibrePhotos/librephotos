@@ -11,6 +11,4 @@ User.objects.filter(email='$ADMIN_EMAIL').delete()
 User.objects.create_superuser('$ADMIN_EMAIL', '$ADMIN_USERNAME', '$ADMIN_PASSWORD')
 EOF
 
-python manage.py createsuperuser
-
 python manage.py runserver
