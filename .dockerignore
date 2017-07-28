@@ -1,3 +1,4 @@
+.gitignore
 Dockerfile
 Makefile
 README.md
