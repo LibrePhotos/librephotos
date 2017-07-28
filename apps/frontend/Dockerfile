@@ -11,8 +11,10 @@ RUN apt-get update && \
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
+ENV CLI_WIDTH 80
 COPY package.json /usr/src/app
 RUN npm install && npm cache clean --force
+
 COPY . /usr/src/app
 
 CMD [ "npm", "start" ]
