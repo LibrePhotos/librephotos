@@ -47,9 +47,6 @@ COPY requirements.txt /code/
 
 RUN /venv/bin/pip install -r requirements.txt
 
-COPY . /code
-
-# Also /code/config.py
 VOLUME /data
 
 # Application admin creds
@@ -73,5 +70,7 @@ ENV CACHE_HOST_PORT memcached:11211
 
 # Timezone
 ENV TIME_ZONE UTC
+
+COPY . /code
 
 ENTRYPOINT entrypoint.sh
