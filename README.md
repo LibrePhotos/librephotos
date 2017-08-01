@@ -146,6 +146,21 @@ python manage.py createsuperuser # will prompt for username and password. use ad
 **Edit `config.py` file to add directories where your photos live** (ignores subfolders).
 
 
+**(Optional) Install & run densecap**
+
+Follow the instructions ![here](/densecap/README.md). You can use CUDA if you want, which will speed up caption generation considerably. On CPU (i7-4765T), generating captions for one photo takes ~10 seconds. On a GPU (gtx970), it takes ~4 seconds per each photo. 
+
+Densecap itself is written in torch, and the script `densecap/webcam/daemon.th` will start the daemon. The script watches a directory for image files in `densecap/webcam/input`, and it will drop a json file containing the captions for image files in the said photos into `densecap/webcam/output`. There's a flask server that deals with communicating with the django backend for receiving base64 encoded image files, and drops it into the `densecap/webcam/input` folder, and returns the captions back to the django backend. It's kind of a convoluted way to do it, but works for now. To run it, 
+
+```
+cd densecap/
+th webcam/daemon.lua & python webcam/server.py
+
+```
+
+The flask server will listen on port 5000. The only request you can make is POST to `/` with the request body consisting of base64 encoded image file.
+
+
 **Start the server process** (make sure it's running on port 8000, or go through the entire front end code to replace occurances of `localhost:8000` with the appropriate `hostname:port`)
 
 ```bash
