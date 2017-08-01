@@ -172,7 +172,7 @@ A browser window should open, where you can mess around!
 
 # Screenshots
 
-![](/screenshots/statistics.png)
+![](/screenshots/statistics-fullpage.png)
 ![](/screenshots/datelistview.png)
 ![](/screenshots/dategalleryview.png)
 ![](/screenshots/eventlistview.png)
