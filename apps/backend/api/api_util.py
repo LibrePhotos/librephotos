@@ -61,9 +61,9 @@ def get_location_clusters():
     photos_with_gps = Photo.objects.exclude(exif_gps_lat=None)
 
     vecs_all = np.array([[p.exif_gps_lat,p.exif_gps_lon] for p in photos_with_gps])
-    bandwidth = estimate_bandwidth(vecs_all, quantile=0.005)
+    # bandwidth = estimate_bandwidth(vecs_all, quantile=0.005)
 
-    # bandwidth = 0.1
+    bandwidth = 0.1
     ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
     ms.fit(vecs_all)
 
@@ -77,8 +77,8 @@ def get_location_clusters():
 
 def get_photo_country_counts():
     photos_with_gps = Photo.objects.exclude(geolocation_json=None)
-    geolocations = [json.loads(p.geolocation_json) for p in photos_with_gps]
-    country_codes = [gl['address']['country_code'] for gl in geolocations]
+    geolocations = [p.geolocation_json for p in photos_with_gps]
+    country_codes = [gl['address']['country_code'] for gl in geolocations if 'address' in gl.keys()]
     counts = Counter(country_codes)
     return counts
 

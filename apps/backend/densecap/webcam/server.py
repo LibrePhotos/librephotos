@@ -69,9 +69,7 @@ class ShortCaptions(Resource):
       # We just grab the part after the comma and decode it.
   #     ipdb.set_trace()
 #       ipdb.set_trace()  
-      data = str(request.data)
-      # data = decode_base64(data)
-
+      data = request.data
       # data = decode_base64(data)
       # data = data.replace("'",'').split(',')[1]
       img_data = data
