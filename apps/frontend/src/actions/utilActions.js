@@ -52,3 +52,33 @@ export function fetchLocationClusters() {
       })
   }
 }
+
+
+export function fetchPhotoCountryCounts() {
+  return function(dispatch) {
+    dispatch({type: "FETCH_PHOTO_COUNTRY_COUNTS"});
+    Server.get(`photocountrycounts/`)
+      .then((response) => {
+        dispatch({type: "FETCH_PHOTO_COUNTRY_COUNTS_FULFILLED", payload: response.data})
+      })
+      .catch((err) => {
+        dispatch({type: "FETCH_PHOTO_COUNTRY_COUNTS_REJECTED", payload: err})
+      })
+  }
+}
+
+
+export function fetchPhotoMonthCounts() {
+  return function(dispatch) {
+    dispatch({type: "FETCH_PHOTO_MONTH_COUNTS"});
+    Server.get(`photomonthcounts/`)
+      .then((response) => {
+        dispatch({type: "FETCH_PHOTO_MONTH_COUNTS_FULFILLED", payload: response.data})
+      })
+      .catch((err) => {
+        dispatch({type: "FETCH_PHOTO_MONTH_COUNTS_REJECTED", payload: err})
+      })
+  }
+}
+
+

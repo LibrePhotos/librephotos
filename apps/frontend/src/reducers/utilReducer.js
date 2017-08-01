@@ -3,6 +3,14 @@ export default function reducer(state={
     fetchingCountStats: false,
     fetchedCountStats: false,
 
+    photoCountryCounts: {},
+    fetchingPhotoCountryCounts: false,
+    fetchedPhotoCountryCounts: false,
+
+    photoMonthCounts: [],
+    fetchingPhotoMonthCounts: false,
+    fetchedPhotoMonthCounts: false,
+
     statusPhotoScan: {status:false},
     statusAutoAlbumProcessing: {status:false},
 
@@ -44,6 +52,42 @@ export default function reducer(state={
         locationClusters: action.payload
       }
     }
+
+
+    case "FETCH_PHOTO_COUNTRY_COUNTS": {
+      return {...state, fetchingPhotoCountryCounts: true}
+    }
+    case "FETCH_PHOTO_COUNTRY_COUNTS_REJECTED": {
+      return {...state, fetchingPhotoCountryCounts: false, error: action.payload}
+    }
+    case "FETCH_PHOTO_COUNTRY_COUNTS_FULFILLED": {
+      return {
+        ...state,
+        fetchingPhotoCountryCounts: false,
+        fetchedPhotoCountryCounts: true,
+        photoCountryCounts: action.payload
+      }
+    }
+
+
+
+    case "FETCH_PHOTO_MONTH_COUNTS": {
+      return {...state, fetchingPhotoMonthCounts: true}
+    }
+    case "FETCH_PHOTO_MONTH_COUNTS_REJECTED": {
+      return {...state, fetchingPhotoMonthCounts: false, error: action.payload}
+    }
+    case "FETCH_PHOTO_MONTH_COUNTS_FULFILLED": {
+      return {
+        ...state,
+        fetchingPhotoMonthCounts: false,
+        fetchedPhotoMonthCounts: true,
+        photoMonthCounts: action.payload
+      }
+    }
+
+
+
 
 
 

@@ -8,10 +8,8 @@ import registerServiceWorker from './registerServiceWorker';
 import store from "./store"
 import { Provider } from "react-redux"
 
-import {AlbumAutoGalleryView} from './layouts/albumAutoGalleryView'
-import {ChartyPhotosScrollbar} from './components/chartyPhotosScrollbar'
 import {LoginPage} from './layouts/loginPage'
-
+import {CountryPiChart} from './components/charts/countryPiChart'
 
 
 

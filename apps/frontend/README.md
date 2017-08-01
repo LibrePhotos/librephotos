@@ -12,7 +12,7 @@
 
 # Screenshots
 
-![](/screenshots/statistics.png)
+![](/screenshots/statistics-fullpage.png)
 ![](/screenshots/datelistview.png)
 ![](/screenshots/dategalleryview.png)
 ![](/screenshots/eventlistview.png)
