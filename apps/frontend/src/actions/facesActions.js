@@ -24,8 +24,8 @@ export function clusterFaces() {
     Server.get("clusterfaces/")
       .then((response) => {
         dispatch({type: "CLUSTER_FACES_FULFILLED", payload: response.data})
-        dispatch(fetchInferredFaces())
-        dispatch(fetchLabeledFaces())
+        // dispatch(fetchInferredFaces())
+        // dispatch(fetchLabeledFaces())
       })
       .catch((err) => {
         dispatch({type: "CLUSTER_FACES_REJECTED", payload: err})
