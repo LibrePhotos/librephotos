@@ -27,6 +27,8 @@ from api.autoalbum import is_auto_albums_being_processed
 
 from rest_framework.pagination import PageNumberPagination
 
+from rest_framework import filters
+
 import random
 import numpy as np
 import base64
@@ -82,6 +84,9 @@ class PhotoViewSet(viewsets.ModelViewSet):
     queryset = Photo.objects.all().order_by('-exif_timestamp')
     serializer_class = PhotoSerializer
     pagination_class = StandardResultsSetPagination
+    filter_backends = (filters.SearchFilter,)
+    search_fields = (['captions','faces__person__name'])
+
 
     @cache_response(CACHE_TTL,key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):

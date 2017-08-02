@@ -10,18 +10,19 @@ class PhotoSerializer(serializers.ModelSerializer):
     thumbnail_width = serializers.SerializerMethodField()
     square_thumbnail_url = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
-    geolocation = serializers.SerializerMethodField()
+    # geolocation = serializers.SerializerMethodField()
     # persons = PersonSerializer(many=True, read_only=True)
     class Meta:
         model = Photo
         fields = ('exif_gps_lat',
                   'exif_gps_lon',
                   'exif_timestamp',
+                  'captions',
                   'thumbnail_url',
                   'thumbnail_height',
                   'thumbnail_width',
                   'square_thumbnail_url',
-                  'geolocation',
+                  # 'geolocation',
                   'image_url',
                   'image_hash',
                   'image_path',
@@ -56,6 +57,8 @@ class PhotoSerializer(serializers.ModelSerializer):
           return json.loads(obj.geolocation_json)
         else:
           return None
+
+    
 
 class PersonSerializer(serializers.ModelSerializer):
 #     faces = FaceSerializer(many=True, read_only=False)

@@ -128,7 +128,6 @@ class Photo(models.Model):
                 self.exif_gps_lat = None
 
     def _geolocate(self):
-        ipdb.set_trace()
         if not (self.exif_gps_lat and self.exif_gps_lon):
             self._extract_exif()
         if (self.exif_gps_lat and self.exif_gps_lon):
@@ -140,6 +139,27 @@ class Photo(models.Model):
             except:
                 pass
                 # self.geolocation_json = {}
+
+
+
+    def _geolocate_mapzen(self):
+        if not (self.exif_gps_lat and self.exif_gps_lon):
+            self._extract_exif()
+        if (self.exif_gps_lat and self.exif_gps_lon):
+            try:
+                res = util.mapzen_reverse_geocode(self.exif_gps_lat,self.exif_gps_lon)
+                self.geolocation_json = res
+                if 'search_text' in res.keys():
+                    if self.captions:
+                        self.captions = self.captions + ' ' + res['search_text']
+                    else:
+                        self.captions = res['search_text']
+                self.save()
+            except:
+                pass
+                # self.geolocation_json = {}
+
+
 
 
     def _extract_faces(self):
