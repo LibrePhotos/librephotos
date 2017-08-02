@@ -188,6 +188,7 @@ A browser window should open, where you can mess around!
 # Screenshots
 
 ![](/screenshots/statistics-fullpage.png)
+![](/screenshots/search.png)
 ![](/screenshots/datelistview.png)
 ![](/screenshots/dategalleryview.png)
 ![](/screenshots/eventlistview.png)
