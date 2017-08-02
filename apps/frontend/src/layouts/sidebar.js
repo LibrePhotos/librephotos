@@ -68,7 +68,7 @@ export class Sidebar extends Component {
           active={activeItem==='search'}
           name='search'
           as={Link}
-          to='/niy'>
+          to='/search'>
           <Icon name='search' corner />Search
         </Menu.Item>
 

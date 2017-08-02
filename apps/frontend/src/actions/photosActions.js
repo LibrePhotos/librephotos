@@ -26,3 +26,7 @@ export function fetchPhotos() {
       })
   }
 }
+
+
+
+

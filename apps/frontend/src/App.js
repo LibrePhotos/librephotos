@@ -48,6 +48,7 @@ import {LoginPage} from './layouts/loginPage'
 import {NotImplementedPlaceholder} from './layouts/notImplementedPlaceholder'
 import {CountryPiChart} from './components/charts/countryPiChart'
 
+import {SearchView} from './layouts/search'
 
 class App extends Component {
 
@@ -69,6 +70,8 @@ class App extends Component {
               <Route path='/test' component={CountryPiChart}/>
 
               <Route path='/niy' component={NotImplementedPlaceholder}/>
+
+              <Route path='/search' component={SearchView}/>
 
               <Route path="/login" component={LoginPage}/>
 

@@ -6,6 +6,7 @@ import albums from './albumsReducer'
 import util from './utilReducer'
 import photos from './photosReducer'
 import auth from './authReducer'
+import search from './searchReducer'
 
 export default combineReducers({
   people,
@@ -14,4 +15,5 @@ export default combineReducers({
   util,
   photos,
   auth,
+  search,
 })
