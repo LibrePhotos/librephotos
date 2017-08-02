@@ -12,6 +12,9 @@ from scipy.spatial import distance
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 
+import requests
+
+from config import mapzen_api_key
 
 def convert_to_degrees(values):
     """
@@ -66,3 +69,36 @@ def compute_bic(kmeans,X):
         ((n[i] - 1) * d/ 2) for i in range(m)]) - const_term
 
     return(BIC)
+
+
+def mapzen_reverse_geocode(lat,lon):
+    url = "https://search.mapzen.com/v1/reverse?point.lat=%f&point.lon=%f&size=1&lang=en&api_key=%s"%(lat,lon,mapzen_api_key)
+    resp = requests.get(url)
+    if resp.status_code == 200:
+        resp_json = resp.json()
+        search_text = []
+        if len(resp_json['features']) > 0:
+            if 'country' in resp_json['features'][0]['properties'].keys():
+                search_text.append(resp_json['features'][0]['properties']['country'])
+            if 'county' in resp_json['features'][0]['properties'].keys():
+                search_text.append(resp_json['features'][0]['properties']['county'])
+            if 'macrocounty' in resp_json['features'][0]['properties'].keys():
+                search_text.append(resp_json['features'][0]['properties']['macrocounty'])
+            if 'locality' in resp_json['features'][0]['properties'].keys():
+                search_text.append(resp_json['features'][0]['properties']['locality'])
+            if 'region' in resp_json['features'][0]['properties'].keys():
+                search_text.append(resp_json['features'][0]['properties']['region'])
+            if 'neighbourhood' in resp_json['features'][0]['properties'].keys():
+                search_text.append(resp_json['features'][0]['properties']['neighbourhood'])
+            if 'name' in resp_json['features'][0]['properties'].keys():
+                search_text.append(resp_json['features'][0]['properties']['name'])
+            if 'label' in resp_json['features'][0]['properties'].keys():
+                search_text.append(resp_json['features'][0]['properties']['label'])
+        search_text = ' '.join(search_text)
+        search_text = search_text.replace(',',' ')
+        search_text_tokens = list(set(search_text.split()))
+        search_text = ' '.join(search_text_tokens)
+        resp_json['search_text'] = search_text
+        return resp_json
+    else:
+        return {}

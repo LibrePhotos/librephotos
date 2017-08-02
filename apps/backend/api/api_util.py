@@ -78,8 +78,8 @@ def get_location_clusters():
 def get_photo_country_counts():
     photos_with_gps = Photo.objects.exclude(geolocation_json=None)
     geolocations = [p.geolocation_json for p in photos_with_gps]
-    country_codes = [gl['address']['country_code'] for gl in geolocations if 'address' in gl.keys()]
-    counts = Counter(country_codes)
+    countries = [gl['features'][0]['properties']['country'] for gl in geolocations if 'features' in gl.keys() and len(gl['features']) > 0]
+    counts = Counter(countries)
     return counts
 
 
