@@ -47,3 +47,5 @@ Flask==0.12.2
 Flask-Cors==3.0.3
 Flask-RESTful==0.3.6
 tornado==4.5.1
+django-filter==1.0.4
+djangorestframework-jwt==1.11.0
