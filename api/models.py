@@ -56,8 +56,10 @@ class Photo(models.Model):
     exif_timestamp = models.DateTimeField(blank=True,null=True,db_index=True)
 
     geolocation_json = JSONField(blank=True,null=True,db_index=True)
-    captions = models.TextField(blank=True,null=True,db_index=True)
 
+    search_captions = models.TextField(blank=True,null=True,db_index=True)
+    search_location = models.TextField(blank=True,null=True,db_index=True)
+    
     favorited = models.BooleanField(default=False,db_index=True)
 
     def _generate_md5(self):
@@ -74,7 +76,7 @@ class Photo(models.Model):
                 encoded_string = base64.b64encode(image_file.read())
             encoded_string = str(encoded_string)[2:-1]
             resp_captions = requests.post('http://localhost:5000/',data=encoded_string)
-            self.captions = ' , '.join(resp_captions.json()['data'][:5])
+            self.search_captions = ' , '.join(resp_captions.json()['data'][:10])
         except:
             pass
 
@@ -150,10 +152,10 @@ class Photo(models.Model):
                 res = util.mapzen_reverse_geocode(self.exif_gps_lat,self.exif_gps_lon)
                 self.geolocation_json = res
                 if 'search_text' in res.keys():
-                    if self.captions:
-                        self.captions = self.captions + ' ' + res['search_text']
+                    if self.search_location:
+                        self.search_location = self.search_location + ' ' + res['search_text']
                     else:
-                        self.captions = res['search_text']
+                        self.search_location = res['search_text']
                 self.save()
             except:
                 pass

@@ -85,7 +85,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
     serializer_class = PhotoSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
-    search_fields = (['captions','faces__person__name'])
+    search_fields = (['search_captions','search_location','faces__person__name'])
 
 
     @cache_response(CACHE_TTL,key_func=CustomObjectKeyConstructor())
