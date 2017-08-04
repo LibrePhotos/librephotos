@@ -126,7 +126,7 @@ captions_sw = ['a','of','the','on','in','at','has','holding','wearing',
     ,'ground','lot','red','wall','green','two','one','top','bottom',
     'behind','front','building','shirt','hair','are','scene','tree',
     'trees','sky','window','windows','standing','glasses','building','buildings']
-
+captions_sw = ['a','of','the','on','in','at','has','with','this','there','along','no','is','it','was','are','background']
 
 def get_searchterms_wordcloud():
     photos = Photo.objects.all()
@@ -148,8 +148,8 @@ def get_searchterms_wordcloud():
     caption_token_counts = Counter(caption_tokens)
     location_token_counts = Counter(location_tokens)
 
-    caption_token_counts = [{'label':key,'y':value} for key,value in caption_token_counts.items()]
-    location_token_counts = [{'label':key,'y':value} for key,value in location_token_counts.items()]
+    caption_token_counts = [{'label':key,'y':np.log(value)} for key,value in caption_token_counts.items()]
+    location_token_counts = [{'label':key,'y':np.log(value)} for key,value in location_token_counts.items()]
 
     out = {
         'captions':caption_token_counts,
