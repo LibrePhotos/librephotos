@@ -16,6 +16,7 @@ import requests
 
 from config import mapzen_api_key
 
+
 def convert_to_degrees(values):
     """
     Helper function to convert the GPS coordinates stored in the EXIF to degress in float format
@@ -102,3 +103,5 @@ def mapzen_reverse_geocode(lat,lon):
         return resp_json
     else:
         return {}
+
+
