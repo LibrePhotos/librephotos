@@ -53,6 +53,7 @@ urlpatterns = [
     url(r'^api/locclust', views.LocationClustersView.as_view()),
     url(r'^api/photocountrycounts', views.PhotoCountryCountsView.as_view()),    
     url(r'^api/photomonthcounts', views.PhotoMonthCountsView.as_view()),    
+    url(r'^api/wordcloud', views.SearchTermWordCloudView.as_view()),    
 
     url(r'^api/watcher/photo', views.IsPhotosBeingAddedView.as_view()),
     url(r'^api/watcher/autoalbum', views.IsAutoAlbumsBeingProcessed.as_view()),

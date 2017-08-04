@@ -1,6 +1,9 @@
 from datetime import datetime
+
 import PIL
 from PIL import ImageOps
+from PIL.ExifTags import TAGS as EXIFTAGS
+
 from django.db import models
 import face_recognition
 import hashlib
@@ -55,6 +58,8 @@ class Photo(models.Model):
     exif_gps_lon = models.FloatField(blank=True, null=True)
     exif_timestamp = models.DateTimeField(blank=True,null=True,db_index=True)
 
+    exif_json = JSONField(blank=True,null=True)
+
     geolocation_json = JSONField(blank=True,null=True,db_index=True)
 
     search_captions = models.TextField(blank=True,null=True,db_index=True)
@@ -104,9 +109,21 @@ class Photo(models.Model):
         image_io.close()
 
     def _extract_exif(self):
+        ret = {}
+        # ipdb.set_trace()
+        i = PIL.Image.open(self.image_path)
+        info = i._getexif()
+        for tag, value in info.items():
+            decoded = EXIFTAGS.get(tag,tag)
+            ret[decoded] = value
+
+
         with open(self.image_path,'rb') as fimg:
             exif = exifread.process_file(fimg,details=False)
 
+            serializable = dict([key,value.printable] for key,value in exif.items())
+            self.exif_json = serializable
+            # ipdb.set_trace()
             if 'EXIF DateTimeOriginal' in exif.keys():
                 tst_str = exif['EXIF DateTimeOriginal'].values
                 try:

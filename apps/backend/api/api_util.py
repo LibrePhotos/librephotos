@@ -21,6 +21,7 @@ from sklearn.cluster import MeanShift, estimate_bandwidth
 from django.db.models.functions import TruncMonth
 from django.db.models import Sum, Count
 
+from nltk.corpus import stopwords
 
 
 from datetime import date, timedelta
@@ -115,3 +116,47 @@ def get_photo_month_counts():
             out.append({'month':m,'count':0})
 
     return out
+
+
+
+captions_sw = ['a','of','the','on','in','at','has','holding','wearing',
+    'with','this','there','man','woman','<unk>','along','no','is',
+    'big','small','large','and','backtround','looking','for','it',
+    'area','distance','was','white','black','brown','blue','background'
+    ,'ground','lot','red','wall','green','two','one','top','bottom',
+    'behind','front','building','shirt','hair','are','scene','tree',
+    'trees','sky','window','windows','standing','glasses','building','buildings']
+
+
+def get_searchterms_wordcloud():
+    photos = Photo.objects.all()
+    captions = []
+    locations = []
+    for photo in photos:
+        if photo.search_captions:
+            captions.append(photo.search_captions)
+        if photo.search_location:
+            locations.append(photo.search_location)
+
+    caption_tokens = ' '.join(captions).replace(',','').split()
+    location_tokens = ' '.join(locations).replace(',','').split()
+
+    caption_tokens = [t for t in caption_tokens if not t.isdigit() and  t.lower() not in captions_sw]
+    location_tokens = [t for t in location_tokens if not t.isdigit()]
+
+
+    caption_token_counts = Counter(caption_tokens)
+    location_token_counts = Counter(location_tokens)
+
+    caption_token_counts = [{'label':key,'y':value} for key,value in caption_token_counts.items()]
+    location_token_counts = [{'label':key,'y':value} for key,value in location_token_counts.items()]
+
+    out = {
+        'captions':caption_token_counts,
+        'locations':location_token_counts
+    }
+    return out
+
+
+
+
