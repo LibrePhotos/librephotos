@@ -1,16 +1,11 @@
 import React, {Component} from 'react'
-import {Grid, Segment, Header} from 'semantic-ui-react'
+import {Segment, Header} from 'semantic-ui-react'
 import Dimensions from 'react-dimensions'
 import { connect } from "react-redux";
-import { Graph } from 'react-d3-graph';
-import {fetchPhotos} from '../../actions/photosActions'
 import {fetchPhotoCountryCounts} from '../../actions/utilActions'
 
 import Month from 'calendar-months';
 import {Chart, Bars, Lines, Ticks, Layer, Pies, Transform} from 'rumble-charts'
-import {Sunburst} from 'react-vis';
-
-
 
 
 export class CountryPiChart extends Component {

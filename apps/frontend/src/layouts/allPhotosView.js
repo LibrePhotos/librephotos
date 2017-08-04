@@ -14,6 +14,7 @@ import { Map, TileLayer, Marker } from 'react-leaflet'
 import {Server, serverAddress} from '../api_client/apiClient'
 import LazyLoad from 'react-lazyload';
 import {ChartyPhotosScrollbar} from '../components/chartyPhotosScrollbar'
+import ReactCSSTransitionGroup from 'react-transition-group/CSSTransitionGroup';
 
 function calculateDayHeight(numPhotos) {
   if (window.innerWidth < 500) {
@@ -127,7 +128,7 @@ class PhotoDayGroup extends Component {
       var images = this.props.albumsDateGalleries[this.props.album.id].photos.map(function(image){
         return (
           <LazyLoad 
-            debounce={300}
+            throttle={300}
             height={150} 
             placeholder={
               <Image 
@@ -136,7 +137,14 @@ class PhotoDayGroup extends Component {
                 src={'/thumbnail_placeholder.png'}/>
               }
             >
-            <Image height={150} width={150} src={serverAddress+image.square_thumbnail_url}/>
+            <ReactCSSTransitionGroup key='1'
+                transitionName="fade"
+                transitionAppear={true}
+                transitionAppearTimeout={500}
+                transitionEnter={true}
+                transitionLeave={true}>
+              <Image height={150} width={150} src={serverAddress+image.square_thumbnail_url}/>
+            </ReactCSSTransitionGroup>
           </LazyLoad>
         )
       })
@@ -177,7 +185,14 @@ export class AllPhotosView extends Component {
               </Header.Content>
             </Header>
             <LazyLoad height={calculateDayHeight()} placeholder={<DayPlaceholder numPhotos={album.photo_count}/>}>
+              <ReactCSSTransitionGroup key={album.id} 
+                transitionName="fade"
+                transitionAppear={true}
+                transitionAppearTimeout={500}
+                transitionEnter={true}
+                transitionLeave={true}>
               <PhotoDayGroup album={album}/>
+              </ReactCSSTransitionGroup>
             </LazyLoad>
           </div>
         )

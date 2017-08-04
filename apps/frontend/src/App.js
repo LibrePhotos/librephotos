@@ -50,6 +50,9 @@ import {CountryPiChart} from './components/charts/countryPiChart'
 
 import {SearchView} from './layouts/search'
 
+import {ImageInfoTable} from './components/imageInfoTable'
+
+
 class App extends Component {
 
 
@@ -69,7 +72,7 @@ class App extends Component {
 
               <Route path='/test' component={CountryPiChart}/>
 
-              <Route path='/niy' component={NotImplementedPlaceholder}/>
+              <Route path='/niy' component={ImageInfoTable}/>
 
               <Route path='/search' component={SearchView}/>
 

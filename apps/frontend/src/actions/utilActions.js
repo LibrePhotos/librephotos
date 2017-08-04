@@ -82,3 +82,15 @@ export function fetchPhotoMonthCounts() {
 }
 
 
+export function fetchWordCloud() {
+  return function(dispatch) {
+    dispatch({type: "FETCH_WORDCLOUD"});
+    Server.get(`wordcloud/`)
+      .then((response) => {
+        dispatch({type: "FETCH_WORDCLOUD_FULFILLED", payload: response.data})
+      })
+      .catch((err) => {
+        dispatch({type: "FETCH_WORDCLOUD_REJECTED", payload: err})
+      })
+  }
+}

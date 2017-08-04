@@ -18,6 +18,10 @@ export default function reducer(state={
     fetchingLocationClusters:false,
     fetchedLocationClusters:false,
 
+    wordCloud: {},
+    fetchingWordCloud: false,
+    fetchedWordCloud: false,
+
     error: null,
   }, action) {
 
@@ -87,6 +91,20 @@ export default function reducer(state={
     }
 
 
+    case "FETCH_WORDCLOUD": {
+      return {...state, fetchingWordCloud: true}
+    }
+    case "FETCH_WORDCLOUD_REJECTED": {
+      return {...state, fetchingWordCloud: false, error: action.payload}
+    }
+    case "FETCH_WORDCLOUD_FULFILLED": {
+      return {
+        ...state,
+        fetchingWordCloud: false,
+        fetchedWordCloud: true,
+        wordCloud: action.payload
+      }
+    }
 
 
 

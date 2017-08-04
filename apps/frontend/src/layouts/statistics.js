@@ -8,6 +8,8 @@ import {scanPhotos,fetchPhotos} from '../actions/photosActions'
 
 import CountryPiChart from '../components/charts/countryPiChart'
 import {CountStats} from '../components/statistics'
+import WordCloud from '../components/charts/wordCloud'
+
 import {AllPhotosMap, EventMap, LocationClusterMap} from '../components/maps'
 import EventCountMonthGraph from '../components/eventCountMonthGraph'
 import FaceClusterScatter  from '../components/faceClusterGraph'
@@ -64,6 +66,17 @@ export class Statistics extends Component {
 
         <Grid stackable columns={2}>
           <Grid.Column>
+            <WordCloud type='location'/>
+          </Grid.Column>
+          <Grid.Column>
+            <WordCloud type='captions'/>
+          </Grid.Column>
+        </Grid>
+
+        <Divider hidden/>
+
+        <Grid stackable columns={2}>
+          <Grid.Column>
             <EventCountMonthGraph/>
           </Grid.Column>
           <Grid.Column>
@@ -81,7 +94,6 @@ export class Statistics extends Component {
             <FaceClusterScatter/>
           </Grid.Column>
         </Grid>
-
         <Divider hidden/>
       </div>
     )

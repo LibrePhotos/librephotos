@@ -22,6 +22,7 @@
     "react-router-dom": "^4.1.1",
     "react-router-redux": "^4.0.8",
     "react-scripts": "1.0.10",
+    "react-transition-group": "^1.2.0",
     "react-virtualized": "^9.9.0",
     "react-virtualized-item-grid": "^1.0.0",
     "react-vis": "^1.6.7",
