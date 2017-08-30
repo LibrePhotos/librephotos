@@ -41,9 +41,6 @@
   - Finally:
     - dockerize
 
-### Notes
-
-I'm looking to make it usably fast on big photo libraries with tens of thousands of photos. The backend can handle this with the help of caching (initial requests of long list of serialized objects may take a while). The front end code isn't really optimized to handle lots of photos on a single page yet. At the moment on a library with ~2,000 photos, it is very usable, but with ~10,000, some pages hang. I'm looking into making the frontend more responsive by only rendering what the user is looking at, with the help of react-virtualized.
 
 ## What does it use?
 
