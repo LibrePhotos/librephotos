@@ -8,7 +8,8 @@ import photos from './photosReducer'
 import auth from './authReducer'
 import search from './searchReducer'
 
-export default combineReducers({
+
+const appReducer = combineReducers({
   people,
   faces,
   albums,
@@ -17,3 +18,11 @@ export default combineReducers({
   auth,
   search,
 })
+
+export default (state,action) => {
+	if (action.type === 'LOGOUT') {
+		state = {}
+	}
+
+	return appReducer(state,action)
+}
