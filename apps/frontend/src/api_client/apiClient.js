@@ -19,10 +19,10 @@ export var Server = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  // auth: {
-  //   username: 'admin',
-  //   password: 'q1W@e3R$'
-  // },
+  auth: {
+    username: 'admin',
+    password: 'q1W@e3R$'
+  },
   timeout: 10000,
 });
 
