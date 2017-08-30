@@ -21,15 +21,16 @@
   - Backend caching
   - Favorite event (auto generated) albums
   - View photos grouped by date
+  - Optimized frontend (Infinite scrolling/dynamic loading)
+  - Detect objects in photos, and make them searchable by objects
+  - Search photos by the location
+  - Authentication
 
 
 #### - Upcoming
 
   - Short term:
-    - Optimize frontend (Infinite scrolling/dynamic loading)
     - Create custom albums
-    - Authentication
-    - Detect objects in photos, and make them searchable by objects
 
   - Longer term, i.e. haven't thought much about them
     - Share photos/albums
