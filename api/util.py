@@ -5,7 +5,6 @@ import itertools
 from scipy import linalg
 from sklearn.decomposition import PCA
 import numpy as np
-import matplotlib as mpl
 from sklearn import cluster
 from sklearn import mixture
 from scipy.spatial import distance
