@@ -95,7 +95,7 @@ def train_faces():
 
     clf = SGDClassifier(loss='log',penalty='l2')
     # clf = MLPClassifier(solver='lbfgs',alpha=1e-5,random_state=1)
-    clf = svm.SVC(kernel='linear')
+    # clf = svm.SVC(kernel='linear')
     # scaler = StandardScaler()
     # scaler.fit(face_encodings_all)
     # X = scaler.transform(face_encodings_known)
@@ -114,8 +114,6 @@ def train_faces():
         face.person = person
         face.person_label_is_inferred = True
         face.save()
-
-    print(list(zip(face_ids_unknown,pred)))
 
 
     # for front end cluster visualization

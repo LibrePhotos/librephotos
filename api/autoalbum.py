@@ -89,7 +89,7 @@ def generate_event_albums():
             if len(group) >= 2:
                 qs = AlbumAuto.objects.filter(timestamp=key)
                 if qs.count() == 0:
-                    album = AlbumAuto()
+                    album = AlbumAuto(created_on=datetime.utcnow())
                     album.timestamp = key
                     album.save()
 

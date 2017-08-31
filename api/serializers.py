@@ -10,36 +10,57 @@ class PhotoSerializer(serializers.ModelSerializer):
     thumbnail_width = serializers.SerializerMethodField()
     square_thumbnail_url = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
-    geolocation = serializers.SerializerMethodField()
+    # geolocation = serializers.SerializerMethodField()
     # persons = PersonSerializer(many=True, read_only=True)
     class Meta:
         model = Photo
         fields = ('exif_gps_lat',
                   'exif_gps_lon',
                   'exif_timestamp',
+                  'search_captions',
+                  'search_location',
                   'thumbnail_url',
                   'thumbnail_height',
                   'thumbnail_width',
                   'square_thumbnail_url',
-                  'geolocation',
+                  'geolocation_json',
+                  'exif_json',
                   'image_url',
                   'image_hash',
-                  'image_path')
+                  'image_path',
+                  'favorited')
     def get_thumbnail_url(self, obj):
-        return obj.thumbnail.url
+        try:
+            return obj.thumbnail.url
+        except:
+            return None
     def get_thumbnail_height(self, obj):
-        return obj.thumbnail.height
+        try:
+            return obj.thumbnail.height
+        except:
+            return None
     def get_thumbnail_width(self, obj):
-        return obj.thumbnail.width
+        try:
+            return obj.thumbnail.width
+        except:
+            return None
     def get_square_thumbnail_url(self, obj):
-        return obj.square_thumbnail.url
+        try:
+            return obj.square_thumbnail.url
+        except:
+            return None
     def get_image_url(self, obj):
-        return obj.image.url
+        try:
+            return obj.image.url
+        except:
+            return None
     def get_geolocation(self, obj):
         if obj.geolocation_json:
           return json.loads(obj.geolocation_json)
         else:
           return None
+
+    
 
 class PersonSerializer(serializers.ModelSerializer):
 #     faces = FaceSerializer(many=True, read_only=False)
@@ -140,6 +161,10 @@ def extract_date(entity):
 
 from itertools import groupby
 
+
+
+
+
 class AlbumDateSerializer(serializers.ModelSerializer):
     photos = PhotoSerializer(many=True, read_only=True)
 
@@ -149,7 +174,48 @@ class AlbumDateSerializer(serializers.ModelSerializer):
             "id",   
             "title",
             "date",
+            "favorited",
             "photos")
+
+class AlbumDateListSerializer(serializers.ModelSerializer):
+#     photos = PhotoSerializer(many=True, read_only=True)
+    people = serializers.SerializerMethodField()
+    cover_photo_url = serializers.SerializerMethodField()
+    photo_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AlbumDate
+        fields = (
+            "id",   
+            "people",
+            "cover_photo_url",
+            "title",
+            "favorited",
+            "photo_count",
+            "date")
+
+    def get_photo_count(self,obj):
+        return obj.photos.count()
+
+    def get_cover_photo_url(self,obj):
+        first_photo = obj.photos.first()
+        return first_photo.square_thumbnail.url
+
+    def get_people(self,obj):
+        # ipdb.set_trace()
+        photos = obj.photos.all()
+        res = []
+        for photo in photos:
+            faces = photo.faces.all()
+            for face in faces:
+                serialized_person = PersonSerializer(face.person).data
+                if serialized_person not in res:
+                    res.append(serialized_person)
+        return res
+
+
+
+
 
 class AlbumPersonSerializer(serializers.ModelSerializer):
 #     faces = FaceSerializer(many=True, read_only=False)
@@ -170,6 +236,7 @@ class AlbumPersonSerializer(serializers.ModelSerializer):
             res.append(PhotoSerializer(face.photo).data)
         return res
 
+    # todo: remove this unecessary thing
     def get_people(self,obj):
         faces = obj.faces.all()
         res = []
@@ -179,9 +246,79 @@ class AlbumPersonSerializer(serializers.ModelSerializer):
                 res.append(serialized_person)
         return res
 
+
+class AlbumPersonListSerializer(serializers.ModelSerializer):
+#     faces = FaceSerializer(many=True, read_only=False)
+#     faces = serializers.StringRelatedField(many=True)
+#     people = serializers.SerializerMethodField()
+    photo_count = serializers.SerializerMethodField()
+    cover_photo_url = serializers.SerializerMethodField()
+    class Meta:
+        model = Person
+        fields = ('name',
+                  "photo_count",
+                  "cover_photo_url",
+#                   'people',
+                  'id',)
+#                   'faces')
+
+    def get_photo_count(self,obj):
+        return obj.faces.count()
+
+    def get_cover_photo_url(self,obj):
+        first_face = obj.faces.first()
+        if first_face:
+            return first_face.photo.square_thumbnail.url
+        else:
+            return None
+
+    def get_face_photo_url(self,obj):
+        first_face = obj.faces.first()
+        if first_face:
+            return first_face.image.url
+        else:
+            return None
+
+
+
+
+
+
+
 class AlbumAutoSerializer(serializers.ModelSerializer):
-    photos = PhotoSerializer(many=True, read_only=True)
+    photos = PhotoSerializer(many=True, read_only=False)
     people = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AlbumAuto
+        fields = (
+            "id",   
+            "title",
+            "favorited",
+            "timestamp",
+            "created_on",
+            "gps_lat",
+            'people',
+            "gps_lon",
+            "photos")
+
+    def get_people(self,obj):
+        # ipdb.set_trace()
+        photos = obj.photos.all()
+        res = []
+        for photo in photos:
+            faces = photo.faces.all()
+            for face in faces:
+                serialized_person = PersonSerializer(face.person).data
+                if serialized_person not in res:
+                    res.append(serialized_person)
+        return res
+
+
+class AlbumAutoListSerializer(serializers.ModelSerializer):
+    people = serializers.SerializerMethodField()
+    cover_photo_url = serializers.SerializerMethodField()
+    photo_count = serializers.SerializerMethodField()
 
     class Meta:
         model = AlbumAuto
@@ -190,10 +327,19 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
             "title",
             "timestamp",
             "created_on",
+            "cover_photo_url",
+            "favorited",
+            "photo_count",
             "gps_lat",
             'people',
-            "gps_lon",
-            "photos")
+            "gps_lon")
+
+    def get_photo_count(self,obj):
+        return obj.photos.count()
+
+    def get_cover_photo_url(self,obj):
+        first_photo = obj.photos.first()
+        return first_photo.square_thumbnail.url
 
     def get_people(self,obj):
         # ipdb.set_trace()
