@@ -1,0 +1,26 @@
+version: '2'
+
+services:
+  frontend:
+    image: ownphotos-frontend
+    ports:
+      - 3000
+    build: .
+
+  backend:
+    image: ownphotos-backend
+    volumes:
+      - $HOME/Pictures/:/data
+    ports:
+      - 8000
+
+  database:
+    image: postgres
+    environment:
+      POSTGRES_DB: ownphotos
+      POSTGRES_USER: ownphotos
+      POSTGRES_PASSWORD: ownphotos
+
+  memcached:
+    image: memcached
+
