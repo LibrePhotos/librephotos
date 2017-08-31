@@ -25,7 +25,7 @@ RUN apt-get update && \
     cmake .. -DDLIB_USE_CUDA=0 -DUSE_AVX_INSTRUCTIONS=1 && \
     cmake --build . && \
     cd /dlib && \
-    /venv/bin/python setup.py install --yes USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDE && \
+    /venv/bin/python setup.py install --yes USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA && \
     apt-get remove --purge -y cmake git && \
     rm -rf /var/lib/apt/lists/*
 
@@ -39,7 +39,7 @@ RUN apt-get update && \
 #
 # WORKDIR /dlib
 #
-# RUN /venv/bin/python setup.py install --yes USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDE
+# RUN /venv/bin/python setup.py install --yes USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA
 
 RUN mkdir /code
 WORKDIR /code
@@ -56,6 +56,8 @@ ENV ADMIN_PASSWORD changeme
 
 # Django key. CHANGEME
 ENV SECRET_KEY supersecretkey
+# Until we serve media files properly (django dev server doesn't serve media files with with debug=false)
+ENV DEBUG true 
 
 # Database connection info
 ENV DB_BACKEND postgresql
