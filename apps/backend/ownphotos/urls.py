@@ -20,7 +20,15 @@ from django.conf.urls.static import static
 from rest_framework import routers
 from api import views
 
+from rest_framework_jwt.views import obtain_jwt_token
+from rest_framework_jwt.views import refresh_jwt_token
+from rest_framework_jwt.views import verify_jwt_token
+
 router = routers.DefaultRouter()
+
+router.register(r'api/albums/auto/list', views.AlbumAutoListViewSet)
+router.register(r'api/albums/date/list', views.AlbumDateListViewSet)
+router.register(r'api/albums/person/list', views.AlbumPersonListViewSet)
 
 router.register(r'api/albums/auto', views.AlbumAutoViewSet)
 router.register(r'api/albums/person', views.AlbumPersonViewSet)
@@ -40,7 +48,17 @@ urlpatterns = [
     url(r'^api/socialgraph', views.SocialGraphView.as_view()),
     url(r'^api/scanphotos', views.ScanPhotosView.as_view()),
     url(r'^api/autoalbumgen', views.AutoAlbumGenerateView.as_view()),
+
     url(r'^api/stats', views.StatsView.as_view()),
+    url(r'^api/locclust', views.LocationClustersView.as_view()),
+    url(r'^api/photocountrycounts', views.PhotoCountryCountsView.as_view()),    
+    url(r'^api/photomonthcounts', views.PhotoMonthCountsView.as_view()),    
+    url(r'^api/wordcloud', views.SearchTermWordCloudView.as_view()),    
+
     url(r'^api/watcher/photo', views.IsPhotosBeingAddedView.as_view()),
     url(r'^api/watcher/autoalbum', views.IsAutoAlbumsBeingProcessed.as_view()),
+    url(r'^api/token-auth/', obtain_jwt_token),
+    url(r'^api/token-refresh/', refresh_jwt_token),
+    url(r'^api/token-verify/', verify_jwt_token),
 ]+static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+

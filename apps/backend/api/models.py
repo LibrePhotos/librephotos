@@ -1,6 +1,9 @@
 from datetime import datetime
+
 import PIL
 from PIL import ImageOps
+from PIL.ExifTags import TAGS as EXIFTAGS
+
 from django.db import models
 import face_recognition
 import hashlib
@@ -21,6 +24,14 @@ from geopy.geocoders import Nominatim
 
 from django.db.models.signals import post_save, post_delete
 from django.core.cache import cache
+from django.contrib.postgres.fields import JSONField
+
+
+import requests
+import base64
+from io import StringIO
+
+
 
 
 geolocator = Nominatim()
@@ -47,7 +58,14 @@ class Photo(models.Model):
     exif_gps_lon = models.FloatField(blank=True, null=True)
     exif_timestamp = models.DateTimeField(blank=True,null=True,db_index=True)
 
-    geolocation_json = models.TextField(blank=True,null=True)
+    exif_json = JSONField(blank=True,null=True)
+
+    geolocation_json = JSONField(blank=True,null=True,db_index=True)
+
+    search_captions = models.TextField(blank=True,null=True,db_index=True)
+    search_location = models.TextField(blank=True,null=True,db_index=True)
+    
+    favorited = models.BooleanField(default=False,db_index=True)
 
     def _generate_md5(self):
         hash_md5 = hashlib.md5()
@@ -55,6 +73,17 @@ class Photo(models.Model):
             for chunk in iter(lambda: f.read(4096), b""):
                 hash_md5.update(chunk)
         self.image_hash = hash_md5.hexdigest()
+
+    def _generate_captions(self):
+        try:
+            thumbnail_path = self.thumbnail.url
+            with open("."+thumbnail_path, "rb") as image_file:
+                encoded_string = base64.b64encode(image_file.read())
+            encoded_string = str(encoded_string)[2:-1]
+            resp_captions = requests.post('http://localhost:5000/',data=encoded_string)
+            self.search_captions = ' , '.join(resp_captions.json()['data'][:10])
+        except:
+            pass
 
     def _generate_thumbnail(self):
         image = PIL.Image.open(self.image_path)
@@ -80,9 +109,21 @@ class Photo(models.Model):
         image_io.close()
 
     def _extract_exif(self):
+        ret = {}
+        # ipdb.set_trace()
+        i = PIL.Image.open(self.image_path)
+        info = i._getexif()
+        for tag, value in info.items():
+            decoded = EXIFTAGS.get(tag,tag)
+            ret[decoded] = value
+
+
         with open(self.image_path,'rb') as fimg:
             exif = exifread.process_file(fimg,details=False)
 
+            serializable = dict([key,value.printable] for key,value in exif.items())
+            self.exif_json = serializable
+            # ipdb.set_trace()
             if 'EXIF DateTimeOriginal' in exif.keys():
                 tst_str = exif['EXIF DateTimeOriginal'].values
                 try:
@@ -112,9 +153,33 @@ class Photo(models.Model):
             try:
                 location = geolocator.reverse("%f,%f"%(self.exif_gps_lat,self.exif_gps_lon))
                 location = location.raw
-                self.geolocation_json = json.dumps(location)
+                self.geolocation_json = location
+                self.save()
             except:
-                self.geolocation_json = None
+                pass
+                # self.geolocation_json = {}
+
+
+
+    def _geolocate_mapzen(self):
+        if not (self.exif_gps_lat and self.exif_gps_lon):
+            self._extract_exif()
+        if (self.exif_gps_lat and self.exif_gps_lon):
+            try:
+                res = util.mapzen_reverse_geocode(self.exif_gps_lat,self.exif_gps_lon)
+                self.geolocation_json = res
+                if 'search_text' in res.keys():
+                    if self.search_location:
+                        self.search_location = self.search_location + ' ' + res['search_text']
+                    else:
+                        self.search_location = res['search_text']
+                self.save()
+            except:
+                pass
+                # self.geolocation_json = {}
+
+
+
 
     def _extract_faces(self):
         qs_unknown_person = Person.objects.filter(name='unknown')
@@ -215,9 +280,10 @@ class Face(models.Model):
 
 
 class AlbumDate(models.Model):
-    title = models.CharField(blank=True,null=True,max_length=512)
+    title = models.CharField(blank=True,null=True,max_length=512,db_index=True)
     date = models.DateField(unique=True,db_index=True)
     photos = models.ManyToManyField(Photo)
+    favorited = models.BooleanField(default=False,db_index=True)
 
     def __str__(self):
         return "%d: %s"%(self.id, self.title)
@@ -225,10 +291,11 @@ class AlbumDate(models.Model):
 class AlbumAuto(models.Model):
     title = models.CharField(blank=True,null=True,max_length=512)
     timestamp = models.DateTimeField(unique=True,db_index=True)
-    created_on = models.DateTimeField(auto_now=True,db_index=True)
+    created_on = models.DateTimeField(auto_now=False,db_index=True)
     gps_lat = models.FloatField(blank=True,null=True)
     gps_lon = models.FloatField(blank=True,null=True)
     photos = models.ManyToManyField(Photo)
+    favorited = models.BooleanField(default=False,db_index=True)
 
     def _autotitle(self):
         weekday = ""
@@ -274,6 +341,7 @@ class AlbumUser(models.Model):
     gps_lat = models.FloatField(blank=True,null=True)
     gps_lon = models.FloatField(blank=True,null=True)
     photos = models.ManyToManyField(Photo)
+    favorited = models.BooleanField(default=False,db_index=True)
 
 
 for model in [Photo, Person, Face, AlbumDate, AlbumAuto, AlbumUser]:

@@ -12,28 +12,25 @@
 
 ### Features
 
-#### Use case I had in mind
-
-I am approaching the project with a single user per server instance in mind. The focus is more on media consumption than creating, so it is primarily an interactive way to look through the photos you took. I want to add some cool visualizations, even ones that don't provide much utility, as long as they are fun to play around with. As a user, I want to have minimal involvement in the 'curation' process, which is to say, I want to be able to set it up and forget about it, and visit the site when I want to check out some photos. The actual photo backup solution can be whatever you use. I'm hoping to make it reasonably responsive with number of photos in the order of 10,000. 
-
 #### - Currently implemented:
   
   - Label some faces manualy, and train a face classifier to label the rest.
   - View photos by people in them.
   - Automatically generate "event" albums with nice titles, like "Thursday in Berlin"
   - See photos on the map
-  - Long loading times with very large photo library (in the order of thousands of photos).
-    - On the backend, I'm looking into setting up caching to speed things up.
+  - Backend caching
+  - Favorite event (auto generated) albums
+  - View photos grouped by date
+  - Optimized frontend (Infinite scrolling/dynamic loading)
+  - Detect objects in photos, and make them searchable by objects
+  - Search photos by the location
+  - Authentication
+
 
 #### - Upcoming
 
   - Short term:
-    - View all photos by date
-    - Infinite scrolling/dynamic loading
-    - Favorite albums
     - Create custom albums
-    - Authentication
-    - Detect objects in photos, and make them searchable by objects
 
   - Longer term, i.e. haven't thought much about them
     - Share photos/albums
@@ -43,6 +40,7 @@ I am approaching the project with a single user per server instance in mind. The
 
   - Finally:
     - dockerize
+
 
 ## What does it use?
 
@@ -146,6 +144,21 @@ python manage.py createsuperuser # will prompt for username and password. use ad
 **Edit `config.py` file to add directories where your photos live** (ignores subfolders).
 
 
+**(Optional) Install & run densecap**
+
+Follow the instructions [here](/densecap/README.md). You can use CUDA if you want, which will speed up caption generation considerably. On CPU (i7-4765T), generating captions for one photo takes ~10 seconds. On a GPU (gtx970), it takes ~4 seconds per each photo. 
+
+Densecap itself is written in torch, and the script `densecap/webcam/daemon.th` will start the daemon. The script watches a directory for image files in `densecap/webcam/input`, and it will drop a json file containing the captions for image files in the said photos into `densecap/webcam/output`. There's a flask server that deals with communicating with the django backend for receiving base64 encoded image files, and drops it into the `densecap/webcam/input` folder, and returns the captions back to the django backend. It's kind of a convoluted way to do it, but works for now. To run it, 
+
+```
+cd densecap/
+th webcam/daemon.lua & python webcam/server.py
+
+```
+
+The flask server will listen on port 5000. The only request you can make is POST to `/` with the request body consisting of base64 encoded image file.
+
+
 **Start the server process** (make sure it's running on port 8000, or go through the entire front end code to replace occurances of `localhost:8000` with the appropriate `hostname:port`)
 
 ```bash
@@ -172,9 +185,11 @@ A browser window should open, where you can mess around!
 
 # Screenshots
 
-![](/screenshots/face-dashboard.png)
-![](/screenshots/people-dashboard.png)
-![](/screenshots/album-events.png)
-![](/screenshots/album-event-gallery.png)
-![](/screenshots/album-people.png)
-![](/screenshots/album-people-gallery.png)
+![](/screenshots/statistics-fullpage.png)
+![](/screenshots/search.png)
+![](/screenshots/datelistview.png)
+![](/screenshots/dategalleryview.png)
+![](/screenshots/eventlistview.png)
+![](/screenshots/eventgalleryview.png)
+![](/screenshots/eventfavoriteview.png)
+![](/screenshots/facedashboard.png)
