@@ -10,7 +10,6 @@ from sklearn import cluster
 from sklearn import mixture
 from scipy.spatial import distance
 from sklearn.preprocessing import StandardScaler
-import matplotlib.pyplot as plt
 
 import requests
 
