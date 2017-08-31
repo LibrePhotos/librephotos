@@ -21,10 +21,11 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '%-*stik4$&jw+%5d#_vv+bcoq#igg%lb4-3*8m(=1o^uku-js-'
+SECRET_KEY = os.environ['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = (os.environ.get('DEBUG', '').lower() == 'true')
+
 
 ALLOWED_HOSTS = ['192.168.43.220','localhost','hooram.xyz','192.168.1.100']
 
@@ -97,51 +98,30 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'ownphotos.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-#     }
-# }
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'ownphotos',                      
-        'USER': 'postgres',
-        'PASSWORD': 'q1W@e3R$',
-        'HOST': '172.17.0.3',
-        'PORT': '5432',
+        'ENGINE': 'django.db.backends.'+os.environ['DB_BACKEND'],
+        'NAME': os.environ['DB_NAME'],
+        'USER': os.environ['DB_USER'],
+        'PASSWORD': os.environ['DB_PASS'],
+        'HOST': os.environ['DB_HOST'],
+        'PORT': os.environ['DB_PORT'],
     }
 }
-
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql', 
-#         'NAME': 'ownphotos',
-#         'USER': 'root',
-#         'PASSWORD': 'password',
-#         'HOST': '172.17.0.2',   # Or an IP Address that your DB is hosted on
-#         'PORT': '3306',
-#     }
-# }
 
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-        'LOCATION': '172.17.0.4:11211',
+        'LOCATION': os.environ['CACHE_HOST_PORT'],
         'TIMEOUT': 60 * 60 * 24 , # 1 day
         'OPTIONS': {
             'server_max_value_length': 1024 * 1024* 10, #10mb
         }
     }
 }
-
 
 
 
@@ -169,7 +149,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = os.environ['TIME_ZONE']
 
 USE_I18N = True
 
