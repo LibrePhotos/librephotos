@@ -9,12 +9,10 @@ from collections import Counter
 from scipy import linalg
 from sklearn.decomposition import PCA
 import numpy as np
-import matplotlib as mpl
 from sklearn import cluster
 from sklearn import mixture
 from scipy.spatial import distance
 from sklearn.preprocessing import StandardScaler
-import matplotlib.pyplot as plt
 from api.util import compute_bic
 from sklearn.cluster import MeanShift, estimate_bandwidth
 

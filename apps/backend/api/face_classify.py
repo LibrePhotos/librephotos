@@ -9,7 +9,6 @@ import ipdb
 from scipy import linalg
 from sklearn.decomposition import PCA
 import numpy as np
-import matplotlib as mpl
 from sklearn import cluster
 from sklearn import mixture
 from scipy.spatial import distance
@@ -18,9 +17,6 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn import svm
 
-
-mpl.use('Agg')
-import matplotlib.pyplot as plt
 
 
 def cluster_faces():
