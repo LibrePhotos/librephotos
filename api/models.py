@@ -138,11 +138,17 @@ class Photo(models.Model):
 
             if 'GPS GPSLongitude' in exif.keys():
                 self.exif_gps_lon = util.convert_to_degrees(exif['GPS GPSLongitude'].values)
+                # Check for correct positive/negative degrees
+                if exif['GPS GPSLongitudeRef'].values != 'E':
+                    self.exif_gps_lon = -self.exif_gps_lon
             else:
                 self.exif_gps_lon = None
 
             if 'GPS GPSLatitude' in exif.keys():
                 self.exif_gps_lat = util.convert_to_degrees(exif['GPS GPSLatitude'].values)
+                # Check for correct positive/negative degrees
+                if exif['GPS GPSLatitudeRef'].values != 'N':
+                    self.exif_gps_lat = -self.exif_gps_lat
             else:
                 self.exif_gps_lat = None
 
