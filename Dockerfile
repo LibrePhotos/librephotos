@@ -1,6 +1,8 @@
 FROM ubuntu:16.04
 MAINTAINER ViViDboarder <vividboarder@gmail.com>
 
+ENV MAPZEN_API_KEY mapzen-XXXX
+
 RUN apt-get update && \
     apt-get install -y \
     libboost-all-dev \
