@@ -27,7 +27,8 @@ SECRET_KEY = os.environ['SECRET_KEY']
 DEBUG = (os.environ.get('DEBUG', '').lower() == 'true')
 
 
-ALLOWED_HOSTS = ['192.168.43.220','localhost','hooram.xyz','192.168.1.100']
+ALLOWED_HOSTS = [os.environ['ALLOWED_HOSTS']]
+
 
 
 # Application definition
