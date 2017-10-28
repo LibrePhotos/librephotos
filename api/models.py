@@ -64,7 +64,7 @@ class Photo(models.Model):
 
     search_captions = models.TextField(blank=True,null=True,db_index=True)
     search_location = models.TextField(blank=True,null=True,db_index=True)
-    
+
     favorited = models.BooleanField(default=False,db_index=True)
 
     def _generate_md5(self):
@@ -87,12 +87,38 @@ class Photo(models.Model):
 
     def _generate_thumbnail(self):
         image = PIL.Image.open(self.image_path)
+
+        # If no ExifTags, no rotating needed.
+        try:
+           # Grab orientation value.
+           image_exif = image._getexif()
+           image_orientation = image_exif[274]
+
+           # Rotate depending on orientation.
+           if image_orientation == 2:
+              image = image.transpose(PIL.Image.FLIP_LEFT_RIGHT)
+           if image_orientation == 3:
+              image = image.transpose(PIL.Image.ROTATE_180)
+           if image_orientation == 4:
+              image = image.transpose(PIL.Image.FLIP_TOP_BOTTOM)
+           if image_orientation == 5:
+              image = image.transpose(PIL.Image.FLIP_LEFT_RIGHT).transpose(PIL.Image.ROTATE_90)
+           if image_orientation == 6:
+              image = image.transpose(PIL.Image.ROTATE_270)
+           if image_orientation == 7:
+              image = image.transpose(PIL.Image.FLIP_TOP_BOTTOM).transpose(PIL.Image.ROTATE_90)
+           if image_orientation == 8:
+              image = image.transpose(PIL.Image.ROTATE_90)
+        except:
+           pass
+
         # make aspect ration preserved thumbnail
         image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE, PIL.Image.ANTIALIAS)
         image_io_thumb = BytesIO()
         image.save(image_io_thumb,format="JPEG")
         self.thumbnail.save(self.image_hash+'.jpg', ContentFile(image_io_thumb.getvalue()))
         image_io_thumb.close()
+
         # make square thumbnail
         square_thumb = ImageOps.fit(image, ownphotos.settings.THUMBNAIL_SIZE, PIL.Image.ANTIALIAS)
         image_io_square_thumb = BytesIO()
@@ -132,7 +158,6 @@ class Photo(models.Model):
                     tst_dt = datetime.strptime(tst_str,"%Y-%m-%d %H:%M:%S")                     
                 # ipdb.set_trace()
                 self.exif_timestamp = tst_dt
-
             else:
                 self.exif_timestamp = None
 
