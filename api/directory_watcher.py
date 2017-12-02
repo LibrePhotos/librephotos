@@ -6,7 +6,6 @@ from tqdm import tqdm
 import hashlib 
 import pytz
 from config import image_dirs
-
 import ipdb
 
 def is_photos_being_added():
@@ -26,13 +25,14 @@ def is_photos_being_added():
             status = False
     return {'status':status}
 
+
 def scan_photos():
     image_paths = []
     for image_dir in image_dirs:
-        image_paths.extend([os.path.join(dp, f) for dp, dn, fn in os.walk(image_dir) for f in fn]
-    )
+        image_paths.extend([os.path.join(dp, f) for dp, dn, fn in os.walk(image_dir) for f in fn])
 
     added_photo_count = 0
+    already_existing_photo = 0
     for image_path in tqdm(image_paths):
         if image_path.lower().endswith('.jpg'):
             try:
@@ -89,17 +89,19 @@ def scan_photos():
                     photo._add_to_album_date()
                     elapsed = (datetime.datetime.now() - start).total_seconds()
                     added_photo_count += 1
-                    print(img_abs_path)
+                    print("Image processed: {}".format(img_abs_path))
                 else:
+                    already_existing_photo += 1
                     print("photo already exists in db")
             except Exception as e:
-                print("could not load image %s"%image_path)
+                print("Could not load image {}".format(image_path))
                 try:
                     print(e.message)
                 except:
                     pass
-
-    return {"new_photo_count":added_photo_count, "status":True}
+        print()
+    print("Added {}/{} photos".format(added_photo_count, len(image_paths) - already_existing_photo))
+    return {"new_photo_count": added_photo_count, "status": True}
     # photos = Photo.objects.all()
     # for photo in photos:
     #     print(photo.image_hash)
