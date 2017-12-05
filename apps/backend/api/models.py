@@ -1,9 +1,8 @@
 from datetime import datetime
-
+import dateutil.parser as dateparser
 import PIL
 from PIL import ImageOps
 from PIL.ExifTags import TAGS as EXIFTAGS
-
 from django.db import models
 import face_recognition
 import hashlib
@@ -139,43 +138,51 @@ class Photo(models.Model):
         # ipdb.set_trace()
         i = PIL.Image.open(self.image_path)
         info = i._getexif()
-        for tag, value in info.items():
-            decoded = EXIFTAGS.get(tag,tag)
-            ret[decoded] = value
+        date_format = "%Y:%m:%d %H:%M:%S"
+        if info:
+            for tag, value in info.items():
+                decoded = EXIFTAGS.get(tag, tag)
+                ret[decoded] = value
 
+            with open(self.image_path, 'rb') as fimg:
+                exif = exifread.process_file(fimg, details=False)
 
-        with open(self.image_path,'rb') as fimg:
-            exif = exifread.process_file(fimg,details=False)
-
-            serializable = dict([key,value.printable] for key,value in exif.items())
-            self.exif_json = serializable
-            # ipdb.set_trace()
-            if 'EXIF DateTimeOriginal' in exif.keys():
-                tst_str = exif['EXIF DateTimeOriginal'].values
-                try:
-                    tst_dt = datetime.strptime(tst_str,"%Y:%m:%d %H:%M:%S") 
-                except:
-                    tst_dt = datetime.strptime(tst_str,"%Y-%m-%d %H:%M:%S")                     
+                serializable = dict([key, value.printable] for key, value in exif.items())
+                self.exif_json = serializable
                 # ipdb.set_trace()
-                self.exif_timestamp = tst_dt
-            else:
-                self.exif_timestamp = None
+                if 'EXIF DateTimeOriginal' in exif.keys():
+                    tst_str = exif['EXIF DateTimeOriginal'].values
+                    try:
+                        tst_dt = datetime.strptime(tst_str, date_format)
+                    except:
+                        tst_dt = None
+                    # ipdb.set_trace()
+                    self.exif_timestamp = tst_dt
+                else:
+                    self.exif_timestamp = None
 
-            if 'GPS GPSLongitude' in exif.keys():
-                self.exif_gps_lon = util.convert_to_degrees(exif['GPS GPSLongitude'].values)
-                # Check for correct positive/negative degrees
-                if exif['GPS GPSLongitudeRef'].values != 'E':
-                    self.exif_gps_lon = -self.exif_gps_lon
-            else:
-                self.exif_gps_lon = None
+                if 'GPS GPSLongitude' in exif.keys():
+                    self.exif_gps_lon = util.convert_to_degrees(exif['GPS GPSLongitude'].values)
+                    # Check for correct positive/negative degrees
+                    if exif['GPS GPSLongitudeRef'].values != 'E':
+                        self.exif_gps_lon = -self.exif_gps_lon
+                else:
+                    self.exif_gps_lon = None
 
-            if 'GPS GPSLatitude' in exif.keys():
-                self.exif_gps_lat = util.convert_to_degrees(exif['GPS GPSLatitude'].values)
-                # Check for correct positive/negative degrees
-                if exif['GPS GPSLatitudeRef'].values != 'N':
-                    self.exif_gps_lat = -self.exif_gps_lat
-            else:
-                self.exif_gps_lat = None
+                if 'GPS GPSLatitude' in exif.keys():
+                    self.exif_gps_lat = util.convert_to_degrees(exif['GPS GPSLatitude'].values)
+                    # Check for correct positive/negative degrees
+                    if exif['GPS GPSLatitudeRef'].values != 'N':
+                        self.exif_gps_lat = -self.exif_gps_lat
+                else:
+                    self.exif_gps_lat = None
+
+        if not self.exif_timestamp:
+            try:
+                basename_without_extension = os.path.basename(self.image_path)
+                self.exif_timestamp = dateparser.parse(basename_without_extension, ignoretz=True, fuzzy=True)
+            except BaseException:
+                print("Failed to determine date from filename.")
 
     def _geolocate(self):
         if not (self.exif_gps_lat and self.exif_gps_lon):
