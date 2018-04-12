@@ -6,19 +6,19 @@ import {fetchPhotoCountryCounts} from '../../actions/utilActions'
 
 import Month from 'calendar-months';
 import {Chart, Bars, Lines, Ticks, Layer, Pies, Transform} from 'rumble-charts'
+import {Sunburst, LabelSeries} from 'react-vis';
+
+
+
 
 
 export class CountryPiChart extends Component {
   constructor(props) {
     super(props)
   }
-
   componentDidMount() {
     this.props.dispatch(fetchPhotoCountryCounts())
   }
-
-
-
   render(){
     if (this.props.fetchedPhotoCountryCounts) {
       var countDict = this.props.photoCountryCounts
@@ -59,6 +59,10 @@ export class CountryPiChart extends Component {
     )
   }
 }
+
+
+
+
 
 CountryPiChart = connect((store)=>{
   return {

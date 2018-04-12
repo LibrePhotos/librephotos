@@ -2,7 +2,6 @@ import React, {Component} from 'react'
 import {Grid, Segment, Header} from 'semantic-ui-react'
 import Dimensions from 'react-dimensions'
 import { connect } from "react-redux";
-import { Graph } from 'react-d3-graph';
 import {fetchDateAlbumsList, fetchAutoAlbumsList} from '../actions/albumsActions'
 import {fetchPhotoMonthCounts} from '../actions/utilActions'
 
@@ -33,8 +32,12 @@ export class EventCountMonthGraph extends Component {
     if (this.props.fetchedPhotoMonthCounts) {
       var countDict = this.props.photoMonthCounts
       var series = countDict.map(function(el){
-        return el.count
+        return {y:el.count,month:el.month}
       })
+      var xticks = countDict.map(function(el){
+        return el.month
+      })
+      console.log(xticks)
     }
     else {
       var series = []
@@ -49,22 +52,29 @@ export class EventCountMonthGraph extends Component {
     return (
       <Segment>
         <div>
-          <Header as='h3'># Photos by Month</Header>
+          <Header as='h3'>Photo Counts by Month</Header>
 
           <div>
 
 
-          <Chart width={this.props.containerWidth-50} height={250} series={[data[0]]}>
+          <Chart width={this.props.containerWidth-50} height={240} series={[data[0]]}>
             <Layer width='90%' height='95%' position='top right'>
               <Ticks
                 axis='y'
                 lineLength='100%'
                 lineVisible={true}
                 lineStyle={{stroke:'lightgray'}}
-                labelStyle={{textAnchor:'end',dominantBaseline:'middle',fill:'lightgray'}}
-                labelAttributes={{x: -5}}
+                labelStyle={{textAnchor:'end',dominantBaseline:'middle',fill:'grey'}}
+                labelAttributes={{x: -15}}
                 labelFormat={label => label}/>
-              <Lines />
+              <Ticks
+                lineVisible={true}
+                lineLength='100%'
+                axis='x'
+                labelFormat={label => xticks[label]}
+                labelStyle={{textAnchor:'middle',dominantBaseline:'text-before-edge',fill:'black'}}
+                labelAttributes={{y: -2}}/>
+              <Bars />
             </Layer>
           </Chart>
           </div>
