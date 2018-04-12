@@ -21,8 +21,12 @@ from django.db.models import Sum, Count
 
 from nltk.corpus import stopwords
 
+import random
 
 from datetime import date, timedelta
+
+
+import seaborn as sns
 
 def jump_by_month(start_date, end_date, month_step=1):
     current_date = start_date
@@ -77,8 +81,88 @@ def get_location_clusters():
 def get_photo_country_counts():
     photos_with_gps = Photo.objects.exclude(geolocation_json=None)
     geolocations = [p.geolocation_json for p in photos_with_gps]
-    countries = [gl['features'][0]['properties']['country'] for gl in geolocations if 'features' in gl.keys() and len(gl['features']) > 0]
+    # countries = [gl['features'][0]['properties']['country'] for gl in geolocations if 'features' in gl.keys() and len(gl['features']) > 0]
+    countries = []
+    for gl in geolocations:
+        if 'features' in gl.keys():
+            for feature in gl['features']:
+                if feature['place_type'][0] == 'country':
+                    countries.append(feature['place_name'])
+
     counts = Counter(countries)
+    print(counts)
+    return counts
+
+
+
+def get_location_sunburst():
+    photos_with_gps = Photo.objects.exclude(geolocation_json=None)
+    geolocations = [p.geolocation_json for p in photos_with_gps]
+
+
+
+    four_levels = []
+    for gl in geolocations:
+        out_dict = {}
+        if 'features' in gl.keys():
+            if len(gl['features']) >= 1:
+                out_dict[1] = gl['features'][-1]['text']
+            if len(gl['features']) >= 2:
+                out_dict[2] = gl['features'][-2]['text']
+            if len(gl['features']) >= 3:
+                out_dict[3] = gl['features'][-3]['text']
+            # if len(gl['features']) >= 4:
+            #     out_dict[4] = gl['features'][-4]['text']
+            # if len(gl['features']) >= 5:
+            #     out_dict[5] = gl['features'][-5]['text']
+            four_levels.append(out_dict)
+
+    df = pd.DataFrame(four_levels)
+    df = df.groupby(df.columns.tolist()).size().reset_index().rename(columns={4:'count'})
+
+
+    dataStructure = {'name':'', 'children': []}
+    palette = sns.color_palette('hls',10).as_hex()
+
+    for data in df.iterrows():
+
+        current = dataStructure
+        depthCursor = current['children']
+        for i, item in enumerate(data[1][:-2]):
+            idx = None
+            j = None
+            for j, c in enumerate(depthCursor):
+                if item in c.values():
+                    idx = j
+            if idx == None:
+                depthCursor.append({'name':item, 'children':[], 'hex':random.choice(palette)})
+                idx = len(depthCursor) - 1 
+
+            depthCursor = depthCursor[idx]['children']
+            if i == len(data[1])-3:
+                depthCursor.append({'name':'{}'.format(list(data[1])[-2]),
+                                    'value': list(data[1])[-1],
+                                    'hex':random.choice(palette) })
+
+            current = depthCursor
+
+
+
+    top_levels = list(set([e[0] for e in four_levels]))
+
+
+
+
+    # countries = [gl['features'][0]['properties']['country'] for gl in geolocations if 'features' in gl.keys() and len(gl['features']) > 0]
+    countries = []
+    for gl in geolocations:
+        if 'features' in gl.keys():
+            for feature in gl['features']:
+                if feature['place_type'][0] == 'country':
+                    countries.append(feature['place_name'])
+
+    counts = Counter(countries)
+    print(counts)
     return counts
 
 
@@ -136,8 +220,8 @@ def get_searchterms_wordcloud():
         if photo.search_location:
             locations.append(photo.search_location)
 
-    caption_tokens = ' '.join(captions).replace(',','').split()
-    location_tokens = ' '.join(locations).replace(',','').split()
+    caption_tokens = ' '.join(captions).replace(',',' ').split()
+    location_tokens = ' '.join(locations).replace(',',' ').replace('(',' ').replace(')',' ').split()
 
     caption_tokens = [t for t in caption_tokens if not t.isdigit() and  t.lower() not in captions_sw]
     location_tokens = [t for t in location_tokens if not t.isdigit()]

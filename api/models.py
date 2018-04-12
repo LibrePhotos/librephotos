@@ -16,6 +16,7 @@ import os
 import pytz
 import json
 
+from collections import Counter
 from io import BytesIO
 from django.core.files.base import ContentFile
 
@@ -199,12 +200,12 @@ class Photo(models.Model):
 
 
 
-    def _geolocate_mapzen(self):
+    def _geolocate_mapbox(self):
         if not (self.exif_gps_lat and self.exif_gps_lon):
             self._extract_exif()
         if (self.exif_gps_lat and self.exif_gps_lon):
             try:
-                res = util.mapzen_reverse_geocode(self.exif_gps_lat,self.exif_gps_lon)
+                res = util.mapbox_reverse_geocode(self.exif_gps_lat,self.exif_gps_lon)
                 self.geolocation_json = res
                 if 'search_text' in res.keys():
                     if self.search_location:
@@ -351,22 +352,55 @@ class AlbumAuto(models.Model):
             elif hour >= 18 and hour <=24:
                 time = "Evening"
 
-        if self.gps_lat and self.gps_lon:
-            loc = "in SomeCity"
-            try:
-                location = geolocator.reverse("%f,%f"%(self.gps_lat,self.gps_lon))
-                location = location.raw
-                address = location['address']
-                if 'city' in address.keys():
-                    loc = 'in ' + address['city']
-                if 'town' in address.keys():
-                    loc = 'in ' + address['town']
-                if 'village' in address.keys():
-                    loc = 'in ' + address['village']
-            except:
-                loc = ''
 
-        title = ' '.join([weekday,time,loc]).strip()
+        photos = self.photos.all()
+
+
+        loc = ''
+        pep = ''
+
+        places = []
+        people = []
+        for photo in photos:
+            if photo.geolocation_json and 'features' in photo.geolocation_json.keys():
+                for feature in photo.geolocation_json['features']:
+                    if feature['place_type'][0] == 'place':
+                        places.append(feature['text'])
+
+            faces = photo.faces.all()
+            for face in faces:
+                people.append(face.person.name)
+
+
+
+        if len(places) > 0:
+            cnts_places = Counter(places)
+            loc = 'in ' + ' and '.join(dict(cnts_places.most_common(2)).keys())
+        if len(people) > 0:
+            cnts_people = Counter(people)
+            pep = 'with ' + ' and '.join(dict(cnts_people.most_common(2)).keys())
+
+
+
+
+        
+
+        # if self.gps_lat and self.gps_lon:
+        #     loc = "in SomeCity"
+        #     try:
+        #         location = geolocator.reverse("%f,%f"%(self.gps_lat,self.gps_lon))
+        #         location = location.raw
+        #         address = location['address']
+        #         if 'city' in address.keys():
+        #             loc = 'in ' + address['city']
+        #         if 'town' in address.keys():
+        #             loc = 'in ' + address['town']
+        #         if 'village' in address.keys():
+        #             loc = 'in ' + address['village']
+        #     except:
+        #         loc = ''
+
+        title = ' '.join([weekday,time,pep,loc]).strip()
         self.title = title
 
     def __str__(self):
