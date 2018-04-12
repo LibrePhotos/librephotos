@@ -10,9 +10,11 @@ from sklearn import mixture
 from scipy.spatial import distance
 from sklearn.preprocessing import StandardScaler
 
+import ipdb
+
 import requests
 
-from config import mapzen_api_key
+from config import mapzen_api_key, mapbox_api_key
 
 
 def convert_to_degrees(values):
@@ -103,3 +105,16 @@ def mapzen_reverse_geocode(lat,lon):
         return {}
 
 
+def mapbox_reverse_geocode(lat,lon):
+    url = "https://api.mapbox.com/geocoding/v5/mapbox.places/%f,%f.json?access_token=%s"%(lon,lat,mapbox_api_key)
+    resp = requests.get(url)
+    print(resp)
+    if resp.status_code == 200:
+        resp_json = resp.json()
+        search_text = ' '
+        if len(resp_json['features']) > 0 and 'place_name' in resp_json['features'][0].keys():
+            search_text = resp_json['features'][0]['place_name']
+        resp_json['search_text'] = search_text
+        return resp_json
+    else:
+        return {}

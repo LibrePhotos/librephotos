@@ -75,7 +75,7 @@ def scan_photos():
                     print('exif extraction', elapsed)
 
                     start = datetime.datetime.now()
-                    photo._geolocate_mapzen()
+                    photo._geolocate_mapbox()
                     photo.save()
                     elapsed = (datetime.datetime.now() - start).total_seconds()
                     print('geolocation', elapsed)
