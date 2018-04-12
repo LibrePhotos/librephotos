@@ -214,11 +214,27 @@ def get_searchterms_wordcloud():
     photos = Photo.objects.all()
     captions = []
     locations = []
+
+    location_entities = []
     for photo in photos:
         if photo.search_captions:
             captions.append(photo.search_captions)
         if photo.search_location:
             locations.append(photo.search_location)
+        if photo.geolocation_json and 'features' in photo.geolocation_json.keys():
+
+            for feature in photo.geolocation_json['features']:
+                if not feature['text'].isdigit() and 'poi' not in feature['place_type']:
+                    location_entities.append(feature['text'].replace('(','').replace(')',''))
+
+
+
+
+
+
+
+
+
 
     caption_tokens = ' '.join(captions).replace(',',' ').split()
     location_tokens = ' '.join(locations).replace(',',' ').replace('(',' ').replace(')',' ').split()
@@ -229,6 +245,9 @@ def get_searchterms_wordcloud():
 
     caption_token_counts = Counter(caption_tokens)
     location_token_counts = Counter(location_tokens)
+
+    location_token_counts = Counter(location_entities)
+
 
     caption_token_counts = [{'label':key,'y':np.log(value)} for key,value in caption_token_counts.items()]
     location_token_counts = [{'label':key,'y':np.log(value)} for key,value in location_token_counts.items()]
