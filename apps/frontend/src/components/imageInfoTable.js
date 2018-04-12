@@ -14,11 +14,12 @@ export class ImageInfoTable extends Component {
             var exif = {}
         }
         if (photo.geolocation_json != null && Object.keys(photo.geolocation_json).length > 0){
-			var geolocation = photo.geolocation_json.features[0].properties
+			var geolocation = photo.geolocation_json.features[1].place_name
 		}
 		else {
-			var geolocation = {}
+			var geolocation = ''
 		}
+        console.log(geolocation)
 
 		return (
             <div>
@@ -59,7 +60,7 @@ export class ImageInfoTable extends Component {
                         </Table.Row>
                         <Table.Row>
                             <Table.Cell>Location</Table.Cell>
-                            <Table.Cell>{geolocation['label']}</Table.Cell>
+                            <Table.Cell>{geolocation}</Table.Cell>
                         </Table.Row>
                     </Table.Body>
                 </Table>

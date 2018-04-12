@@ -53,30 +53,27 @@ export class EventCountMonthGraph extends Component {
       <Segment>
         <div>
           <Header as='h3'>Photo Counts by Month</Header>
-
           <div>
-
-
-          <Chart width={this.props.containerWidth-50} height={240} series={[data[0]]}>
-            <Layer width='90%' height='95%' position='top right'>
-              <Ticks
-                axis='y'
-                lineLength='100%'
-                lineVisible={true}
-                lineStyle={{stroke:'lightgray'}}
-                labelStyle={{textAnchor:'end',dominantBaseline:'middle',fill:'grey'}}
-                labelAttributes={{x: -15}}
-                labelFormat={label => label}/>
-              <Ticks
-                lineVisible={true}
-                lineLength='100%'
-                axis='x'
-                labelFormat={label => xticks[label]}
-                labelStyle={{textAnchor:'middle',dominantBaseline:'text-before-edge',fill:'black'}}
-                labelAttributes={{y: -2}}/>
-              <Bars />
-            </Layer>
-          </Chart>
+            <Chart width={this.props.containerWidth-50} height={250} series={[data[0]]}>
+              <Layer width='90%' height='85%' position='middle center'>
+                <Ticks
+                  axis='y'
+                  lineLength='100%'
+                  lineVisible={true}
+                  lineStyle={{stroke:'lightgray'}}
+                  labelStyle={{textAnchor:'end',dominantBaseline:'middle',fill:'grey'}}
+                  labelAttributes={{x: -15}}
+                  labelFormat={label => label}/>
+                <Ticks
+                  lineVisible={true}
+                  lineLength='100%'
+                  axis='x'
+                  labelFormat={label => xticks[label]}
+                  labelStyle={{textAnchor:'middle',dominantBaseline:'text-before-edge',fill:'black'}}
+                  labelAttributes={{y: 5}}/>
+                <Bars />
+              </Layer>
+            </Chart>
           </div>
         </div>
       </Segment>
