@@ -76,14 +76,15 @@ class Photo(models.Model):
 
     def _generate_captions(self):
         try:
-            thumbnail_path = self.thumbnail.url
-            with open("."+thumbnail_path, "rb") as image_file:
+            image_path = self.image_path
+            with open(image_path, "rb") as image_file:
                 encoded_string = base64.b64encode(image_file.read())
             encoded_string = str(encoded_string)[2:-1]
             resp_captions = requests.post('http://localhost:5000/',data=encoded_string)
             self.search_captions = ' , '.join(resp_captions.json()['data'][:10])
+            self.save()
         except:
-            pass
+            util.logger.warning('could not generate thumbnail for image %s'%image_path)
 
     def _generate_thumbnail(self):
         image = PIL.Image.open(self.image_path)
@@ -209,7 +210,7 @@ class Photo(models.Model):
                 basename_without_extension = os.path.basename(self.image_path)
                 self.exif_timestamp = dateparser.parse(basename_without_extension, ignoretz=True, fuzzy=True)
             except BaseException:
-                print("Failed to determine date from filename.")
+                util.logger.warning("Failed to determine date from filename for image %s"%self.image_path)
 
     def _geolocate(self):
         if not (self.exif_gps_lat and self.exif_gps_lon):
@@ -240,6 +241,7 @@ class Photo(models.Model):
                         self.search_location = res['search_text']
                 self.save()
             except:
+                util.logger.warning('something went wrong with geolocating')
                 pass
                 # self.geolocation_json = {}
 
