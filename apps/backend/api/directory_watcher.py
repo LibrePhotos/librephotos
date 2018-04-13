@@ -8,6 +8,8 @@ import pytz
 from config import image_dirs
 import ipdb
 
+import api.util as util
+
 def is_photos_being_added():
     photo_count = Photo.objects.count()
     if photo_count == 0:
@@ -54,53 +56,49 @@ def scan_photos():
                     start = datetime.datetime.now()
                     photo._generate_thumbnail()
                     elapsed = (datetime.datetime.now() - start).total_seconds()
-                    print('thumbnail get', elapsed)
+                    util.logger.info('thumbnail get', elapsed)
 
 
                     start = datetime.datetime.now()
                     photo._generate_captions()
                     elapsed = (datetime.datetime.now() - start).total_seconds()
-                    print('caption generation', elapsed)
+                    util.logger.info('caption generation', elapsed)
 
 
                     start = datetime.datetime.now()
                     photo._save_image_to_db()
                     elapsed = (datetime.datetime.now() - start).total_seconds()
-                    print('image save', elapsed)
+                    util.logger.info('image save', elapsed)
 
                     start = datetime.datetime.now()
                     photo._extract_exif()
                     photo.save()
                     elapsed = (datetime.datetime.now() - start).total_seconds()
-                    print('exif extraction', elapsed)
+                    util.logger.info('exif extraction', elapsed)
 
                     start = datetime.datetime.now()
                     photo._geolocate_mapbox()
                     photo.save()
                     elapsed = (datetime.datetime.now() - start).total_seconds()
-                    print('geolocation', elapsed)
+                    util.logger.info('geolocation', elapsed)
 
                     start = datetime.datetime.now()
                     photo._extract_faces()
                     elapsed = (datetime.datetime.now() - start).total_seconds()
-                    print('face extraction', elapsed)
+                    util.logger.info('face extraction', elapsed)
 
                     start = datetime.datetime.now()
                     photo._add_to_album_date()
                     elapsed = (datetime.datetime.now() - start).total_seconds()
                     added_photo_count += 1
-                    print("Image processed: {}".format(img_abs_path))
+                    util.logger.info("Image processed: {}".format(img_abs_path))
                 else:
                     already_existing_photo += 1
-                    print("photo already exists in db")
+                    util.logger.info("photo already exists in db")
             except Exception as e:
-                print("Could not load image {}".format(image_path))
-                try:
-                    print(e.message)
-                except:
-                    pass
-        print()
-    print("Added {}/{} photos".format(added_photo_count, len(image_paths) - already_existing_photo))
+                util.logger.error("Could not load image {}".format(image_path))
+
+    util.logger.info("Added {}/{} photos".format(added_photo_count, len(image_paths) - already_existing_photo))
     return {"new_photo_count": added_photo_count, "status": True}
     # photos = Photo.objects.all()
     # for photo in photos:

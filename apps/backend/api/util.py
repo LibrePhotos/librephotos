@@ -16,6 +16,20 @@ import requests
 
 from config import mapzen_api_key, mapbox_api_key
 
+import logging
+import logging.handlers
+
+logger = logging.getLogger('ownphotos')
+fomatter = logging.Formatter(
+    '%(asctime)s : %(filename)s : %(funcName)s : %(lineno)s : %(levelname)s : %(message)s')
+fileMaxByte = 256 * 1024 * 200  # 100MB
+fileHandler = logging.handlers.RotatingFileHandler(
+    './logs/ownphotos.log', maxBytes=fileMaxByte, backupCount=10)
+fileHandler.setFormatter(fomatter)
+logger.addHandler(fileHandler)
+logger.setLevel(logging.INFO)
+
+
 
 def convert_to_degrees(values):
     """
@@ -111,10 +125,14 @@ def mapbox_reverse_geocode(lat,lon):
     print(resp)
     if resp.status_code == 200:
         resp_json = resp.json()
-        search_text = ' '
-        if len(resp_json['features']) > 0 and 'place_name' in resp_json['features'][0].keys():
-            search_text = resp_json['features'][0]['place_name']
-        resp_json['search_text'] = search_text
+        search_terms = []
+
+        if 'features' in resp_json.keys():
+            for feature in resp_json['features']:
+                search_terms.append(feature['text'])
+
+        logger.info('location search terms: %s'%(' '.join(search_terms)))
+        resp_json['search_text'] = ' '.join(search_terms)
         return resp_json
     else:
         return {}
