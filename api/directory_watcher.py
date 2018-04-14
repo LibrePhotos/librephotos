@@ -56,36 +56,36 @@ def scan_photos():
                     start = datetime.datetime.now()
                     photo._generate_thumbnail()
                     elapsed = (datetime.datetime.now() - start).total_seconds()
-                    util.logger.info('thumbnail get', elapsed)
+                    util.logger.info('thumbnail get took %.2f'%elapsed)
 
 
                     start = datetime.datetime.now()
                     photo._generate_captions()
                     elapsed = (datetime.datetime.now() - start).total_seconds()
-                    util.logger.info('caption generation', elapsed)
+                    util.logger.info('caption generation took %.2f'%elapsed)
 
 
                     start = datetime.datetime.now()
                     photo._save_image_to_db()
                     elapsed = (datetime.datetime.now() - start).total_seconds()
-                    util.logger.info('image save', elapsed)
+                    util.logger.info('image save took %.2f'%elapsed)
 
                     start = datetime.datetime.now()
                     photo._extract_exif()
                     photo.save()
                     elapsed = (datetime.datetime.now() - start).total_seconds()
-                    util.logger.info('exif extraction', elapsed)
+                    util.logger.info('exif extraction took %.2f'%elapsed)
 
                     start = datetime.datetime.now()
                     photo._geolocate_mapbox()
                     photo.save()
                     elapsed = (datetime.datetime.now() - start).total_seconds()
-                    util.logger.info('geolocation', elapsed)
+                    util.logger.info('geolocation took %.2f'%elapsed)
 
                     start = datetime.datetime.now()
                     photo._extract_faces()
                     elapsed = (datetime.datetime.now() - start).total_seconds()
-                    util.logger.info('face extraction', elapsed)
+                    util.logger.info('face extraction took %.2f'%elapsed)
 
                     start = datetime.datetime.now()
                     photo._add_to_album_date()
