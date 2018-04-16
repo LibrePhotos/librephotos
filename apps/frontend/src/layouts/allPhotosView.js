@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
 import { Card, Image, Header, Divider, Item, Loader, Dimmer, Modal, Grid, 
-         Container, Label, Popup, Segment, Button, Icon} from 'semantic-ui-react';
+         Container, Label, Popup, Segment, Button, Icon, Table} from 'semantic-ui-react';
 import Gallery from 'react-grid-gallery'
 import VisibilitySensor from 'react-visibility-sensor'
 import { connect } from "react-redux";
@@ -117,14 +117,13 @@ class DayPlaceholder extends Component {
 
 class ModalPhotoView extends Component {
   render() {
-    console.log(this.props.open)
     return(
       <div>
         <Modal open={this.props.open} basic size="fullscreen">
-          <div style={{height:'100%'}}>
-            <Grid columns={2}>
+          <div>
+            <Grid columns={2} stretched={false}>
               <Grid.Column width={12}>
-                <Image src={serverAddress+this.props.images[this.props.idx].image_url}/>
+                <Image size="small" src={serverAddress+this.props.images[this.props.idx].image_url}/>
               </Grid.Column>
               <Grid.Column width={4}>
                 <div>
@@ -139,6 +138,61 @@ class ModalPhotoView extends Component {
   }
 }
 
+
+class ModalPhotoViewVertical extends Component {
+  constructor() {
+    super();
+    this.state = {
+      width:  100,
+      height: 100
+    }
+  }
+  /**
+   * Calculate & Update state of new dimensions
+   */
+  updateDimensions() {
+    var update_height  = window.innerHeight-100;
+    var update_width = update_height*this.props.photo.thumbnail_width/this.props.photo.thumbnail_height
+
+    if (update_width > window.innerWidth-100) {
+      var update_width = window.innerWidth-100
+      var update_height = update_width*this.props.photo.thumbnail_height/this.props.photo.thumbnail_width
+    }
+    this.setState({ width: update_width, height: update_height });
+  }
+
+  /**
+   * Add event listener
+   */
+  componentDidMount() {
+    this.updateDimensions();
+    window.addEventListener("resize", this.updateDimensions.bind(this));
+  }
+
+  render() {
+    return (
+      <div style={{padding:'10px'}}>
+
+        <div style={{textAlign:'center'}}>
+          <Image 
+            inline
+            height={this.state.height} 
+            width={this.state.width}
+            src={serverAddress+this.props.photo.image_url}/>
+        </div>
+        
+        <Divider/>
+
+        <div style={{padding:'10px'}}>
+          <ImageInfoTable photo={this.props.photo}/>
+        </div>
+
+      </div>
+    )
+  }
+}
+
+
 class PhotoDayGroup extends Component {
   constructor() {
     super()
@@ -148,14 +202,12 @@ class PhotoDayGroup extends Component {
   }
 
   keydownHandler(e){
-    console.log(e)
     if (e.key=="ArrowRight"){
       this.state.currentModalPhotoIdx += 1
     }
     if (e.key=="ArrowLeft"){
       this.state.currentModalPhotoIdx -= 1
     }
-    console.log(this.state.currentModalPhotoIdx)
   }
 
   componentDidMount() {
@@ -164,7 +216,6 @@ class PhotoDayGroup extends Component {
 
   onPhotoClick(idx) {
     this.state.currentModalPhotoIdx = idx
-    console.log(idx)
   }
 
   componentWillMount() {
@@ -173,12 +224,12 @@ class PhotoDayGroup extends Component {
     }
   }
   render() {
-    var _this = this
     if (this.props.albumsDateGalleries.hasOwnProperty(this.props.album.id)) {
       var photos = this.props.albumsDateGalleries[this.props.album.id].photos
       var images = this.props.albumsDateGalleries[this.props.album.id].photos.map(function(image,idx){
         return (
           <LazyLoad 
+            key={'thumbnail_'+image.image_hash}
             throttle={300}
             height={150} 
             placeholder={
@@ -190,33 +241,23 @@ class PhotoDayGroup extends Component {
             >
             <Modal trigger={
               <Image 
-                onClick={()=>{_this.onPhotoClick(idx)}}
+                onClick={()=>{this.onPhotoClick(idx)}}
                 height={150} 
                 width={150} 
                 src={serverAddress+image.square_thumbnail_url}/>        }
-              open={_this.state.open} basic size="fullscreen">
-              <div style={{height:'100%'}}>
-                <Grid columns={2}>
-                  <Grid.Column width={12}>
-                    <Image src={serverAddress+photos[idx].image_url}/>
-                  </Grid.Column>
-                  <Grid.Column width={4}>
-                    <div>
-                      <ImageInfoTable photo={photos[idx]}/>
-                    </div>
-                  </Grid.Column>
-                </Grid>
-              </div>
+              open={this.state.open} basic size="fullscreen">
+
+              <ModalPhotoViewVertical photo={photos[idx]}/>
+
             </Modal>
           </LazyLoad>
         )
-      })
+      },this)
 
 
 
       // var images = []
       // for (var idx=0; idx<photos.length; idx++) {
-      //   console.log(images)
       //   images.concat([
       //     <LazyLoad 
       //       throttle={300}
@@ -236,9 +277,7 @@ class PhotoDayGroup extends Component {
       //     </LazyLoad>
       //   ])
       // }
-      // console.log(images)
 
-      console.log(this.state)
       return(
         <div>
           <Image.Group>
@@ -309,7 +348,7 @@ export class AllPhotosView extends Component {
     if (this.props.fetchedAlbumsDateList) {
       var photoDayGroups = this.props.albumsDateList.map(function(album){
         return (
-          <div style={{paddingBottom:'20px'}}>
+          <div style={{paddingBottom:'20px'}} key={'album_'+album.date}>
             <Header dividing as='h2'>
               <Header.Content>
                 {album.date}

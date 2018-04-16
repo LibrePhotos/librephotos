@@ -6,6 +6,7 @@ import {searchPhotos} from '../actions/searchActions'
 import LazyLoad from 'react-lazyload';
 import {Server, serverAddress} from '../api_client/apiClient'
 
+import ModalPhotoViewVertical from '../components/modalPhotoView';
 
 function calculatePhotoResHeight(numPhotos) {
   if (window.innerWidth < 500) {
@@ -136,6 +137,16 @@ export class SearchBar extends Component {
 }
 
 export class PhotoSearchResult extends Component {
+
+  constructor() {
+    super();
+    this.state = {
+      modalShow:false,
+      idx:0
+    }
+  }
+
+
 	render() {
 		var images = this.props.searchPhotosRes.map(function(image){
 			return (
@@ -151,6 +162,7 @@ export class PhotoSearchResult extends Component {
 	        >
 	        <Image height={150} width={150} src={serverAddress+image.square_thumbnail_url}/>
 	      </LazyLoad>
+        <ModalPhotoViewVertical photos={images} idx={this.state.idx}/>
 			)
 		})
 

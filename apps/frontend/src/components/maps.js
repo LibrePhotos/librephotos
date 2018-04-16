@@ -30,7 +30,7 @@ export class LocationMap extends Component {
 
     var markers = photosWithGPS.map(function(photo){
       return (
-        <Marker position={[photo.exif_gps_lat, photo.exif_gps_lon]}>
+        <Marker key={photo.image_hash} position={[photo.exif_gps_lat, photo.exif_gps_lon]}>
         </Marker>
       )
     })
@@ -50,7 +50,7 @@ export class LocationMap extends Component {
     }
     else {
       return (
-        <div></div>
+        <div>No location information</div>
       )
     }
   }
