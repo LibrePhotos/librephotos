@@ -27,7 +27,7 @@ SECRET_KEY = os.environ['SECRET_KEY']
 DEBUG = (os.environ.get('DEBUG', '').lower() == 'true')
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.31.210','localhost']
+ALLOWED_HOSTS = ['192.168.31.210','localhost','*']
 
 
 
@@ -166,6 +166,11 @@ STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR,'media')
 
-THUMBNAIL_SIZE = (300,300)
-FULLPHOTO_SIZE = (512,512)
+THUMBNAIL_SIZE_SMALL = (100,100)
+THUMBNAIL_SIZE_MEDIUM = (250,250)
+THUMBNAIL_SIZE = (250,250)
+THUMBNAIL_SIZE_BIG = (500,500)
+
+FULLPHOTO_SIZE = (1000,1000)
+
 CORS_ORIGIN_ALLOW_ALL = True

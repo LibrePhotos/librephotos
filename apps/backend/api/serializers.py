@@ -9,6 +9,8 @@ class PhotoSerializer(serializers.ModelSerializer):
     thumbnail_height = serializers.SerializerMethodField()
     thumbnail_width = serializers.SerializerMethodField()
     square_thumbnail_url = serializers.SerializerMethodField()
+    small_thumbnail_url = serializers.SerializerMethodField()
+    big_thumbnail_url = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
     # geolocation = serializers.SerializerMethodField()
     # persons = PersonSerializer(many=True, read_only=True)
@@ -22,6 +24,8 @@ class PhotoSerializer(serializers.ModelSerializer):
                   'thumbnail_url',
                   'thumbnail_height',
                   'thumbnail_width',
+                  'small_thumbnail_url',
+                  'big_thumbnail_url',
                   'square_thumbnail_url',
                   'geolocation_json',
                   'exif_json',
@@ -47,6 +51,16 @@ class PhotoSerializer(serializers.ModelSerializer):
     def get_square_thumbnail_url(self, obj):
         try:
             return obj.square_thumbnail.url
+        except:
+            return None
+    def get_small_thumbnail_url(self, obj):
+        try:
+            return obj.thumbnail_small.url
+        except:
+            return None
+    def get_big_thumbnail_url(self, obj):
+        try:
+            return obj.thumbnail_big.url
         except:
             return None
     def get_image_url(self, obj):

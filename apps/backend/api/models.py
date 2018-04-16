@@ -49,6 +49,8 @@ class Photo(models.Model):
     image_hash = models.CharField(primary_key=True,max_length=32,null=False)
 
     thumbnail = models.ImageField(upload_to='thumbnails')
+    thumbnail_small = models.ImageField(upload_to='thumbnails_big')
+    thumbnail_big = models.ImageField(upload_to='thumbnails_small')
     square_thumbnail = models.ImageField(upload_to='square_thumbnails')
     image = models.ImageField(upload_to='photos')
     
@@ -113,12 +115,31 @@ class Photo(models.Model):
         except:
            pass
 
-        # make aspect ration preserved thumbnail
-        image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE, PIL.Image.ANTIALIAS)
+        # make aspect ratio preserved big thumbnail
+        image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_BIG, PIL.Image.ANTIALIAS)
+        image_io_thumb = BytesIO()
+        image.save(image_io_thumb,format="JPEG")
+        self.thumbnail_big.save(self.image_hash+'.jpg', ContentFile(image_io_thumb.getvalue()))
+        image_io_thumb.close()
+
+
+
+        image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_MEDIUM, PIL.Image.ANTIALIAS)
         image_io_thumb = BytesIO()
         image.save(image_io_thumb,format="JPEG")
         self.thumbnail.save(self.image_hash+'.jpg', ContentFile(image_io_thumb.getvalue()))
         image_io_thumb.close()
+
+
+
+        image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_SMALL, PIL.Image.ANTIALIAS)
+        image_io_thumb = BytesIO()
+        image.save(image_io_thumb,format="JPEG")
+        self.thumbnail_small.save(self.image_hash+'.jpg', ContentFile(image_io_thumb.getvalue()))
+        image_io_thumb.close()
+
+
+
 
         # make square thumbnail
         square_thumb = ImageOps.fit(image, ownphotos.settings.THUMBNAIL_SIZE, PIL.Image.ANTIALIAS)
