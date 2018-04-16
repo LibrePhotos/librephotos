@@ -83,7 +83,7 @@ class Photo(models.Model):
                 encoded_string = base64.b64encode(image_file.read())
             encoded_string = str(encoded_string)[2:-1]
             resp_captions = requests.post('http://localhost:5000/',data=encoded_string)
-            self.search_captions = ' , '.join(resp_captions.json()['data'][:10])
+            self.search_captions = ' , '.join(resp_captions.json()['data'])
             self.save()
         except:
             util.logger.warning('could not generate thumbnail for image %s'%image_path)
