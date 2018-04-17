@@ -185,27 +185,28 @@ export class PhotoSearchResult extends Component {
   }
 
   onPhotoClick(idx) {
-    console.log('clicked')
     this.setState({showModal:true,modalPhotoIndex:idx})
   }
 
   _handleKeyDown (event) {
       switch( event.keyCode ) {
           case ESCAPE_KEY:
-              this.setState({showModal:false});
+              if (this.refs.photoSearchResultRef) {
+                this.setState({showModal:false});              
+              } 
               break;
           case RIGHT_ARROW_KEY:
               if (this.state.modalPhotoIndex < this.props.searchPhotosRes.length-1) {
-                console.log('prev index:',this.state.modalPhotoIndex)
-                this.setState({modalPhotoIndex:this.state.modalPhotoIndex+1})
-                console.log('next index:',this.state.modalPhotoIndex)
+                if (this.refs.photoSearchResultRef) {
+                  this.setState({modalPhotoIndex:this.state.modalPhotoIndex+1})                  
+                }
               }
               break;
           case LEFT_ARROW_KEY:
               if (this.state.modalPhotoIndex > 0) {
-                console.log('prev index:',this.state.modalPhotoIndex)
-                this.setState({modalPhotoIndex:this.state.modalPhotoIndex-1})
-                console.log('prev index:',this.state.modalPhotoIndex)
+                if (this.refs.photoSearchResultRef) {
+                  this.setState({modalPhotoIndex:this.state.modalPhotoIndex-1})
+                }
               }
               break;
           default: 
@@ -252,7 +253,7 @@ export class PhotoSearchResult extends Component {
 
 
 		return (
-			<div>
+			<div ref="photoSearchResultRef">
 				<Header>
 					<Header.Content>
 						Photos

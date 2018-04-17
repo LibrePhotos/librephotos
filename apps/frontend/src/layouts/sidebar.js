@@ -46,7 +46,6 @@ export class SideMenu extends Component {
           width='thin'
           color='black'
           animation="overlay"
-          size='medium'
           floated
           pointing          
           borderless

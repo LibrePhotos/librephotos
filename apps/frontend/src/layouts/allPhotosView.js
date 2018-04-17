@@ -68,11 +68,15 @@ class DayPlaceholder extends Component {
    */
   updateDimensions() {
     if(window.innerWidth < 500) {
-      this.setState({ width: 450, height: 102 });
+      if (this.refs.placeholderRef){
+        this.setState({ width: 450, height: 102 });
+      }
     } else {
       let update_width  = window.innerWidth-100;
       let update_height = Math.round(update_width/4.4);
-      this.setState({ width: update_width, height: update_height });
+      if (this.refs.placeholderRef) {
+        this.setState({ width: update_width, height: update_height });
+      }
     }
   }
 
@@ -119,7 +123,12 @@ class DayPlaceholder extends Component {
     var w = `${size.width}px`
 
     return (
-      <div style={{textAlign:'center', verticalAlign:'center', height:h, width:w, backgroundColor:'#dddddd'}}>
+      <div ref="placeholderRef" style={{
+        textAlign:'center', 
+        verticalAlign:'center', 
+        height:h, 
+        width:w, 
+        backgroundColor:'#dddddd'}}>
       </div>
     )
   }
@@ -136,20 +145,22 @@ class PhotoDayGroup extends Component {
   _handleKeyDown (event) {
       switch( event.keyCode ) {
           case ESCAPE_KEY:
-              this.setState({showModal:false});
+              if (this.refs.photoGroupRef){
+                this.setState({showModal:false});                
+              }
               break;
           case RIGHT_ARROW_KEY:
               if (this.state.modalPhotoIndex < this.props.albumsDateGalleries[this.props.album.id].photos.length-1) {
-                console.log('prev index:',this.state.modalPhotoIndex)
-                this.setState({modalPhotoIndex:this.state.modalPhotoIndex+1})
-                console.log('next index:',this.state.modalPhotoIndex)
+                if (this.refs.photoGroupRef) {
+                  this.setState({modalPhotoIndex:this.state.modalPhotoIndex+1})
+                }
               }
               break;
           case LEFT_ARROW_KEY:
               if (this.state.modalPhotoIndex > 0) {
-                console.log('prev index:',this.state.modalPhotoIndex)
-                this.setState({modalPhotoIndex:this.state.modalPhotoIndex-1})
-                console.log('prev index:',this.state.modalPhotoIndex)
+                if (this.refs.photoGroupRef){
+                  this.setState({modalPhotoIndex:this.state.modalPhotoIndex-1})
+                }
               }
               break;
           default: 
@@ -159,19 +170,16 @@ class PhotoDayGroup extends Component {
 
 
   componentWillUnmount() {
-    console.log('unmounting photo day group ',this.props.album.date)
     document.removeEventListener("keydown", this._handleKeyDown.bind(this));
   }
 
 
   onPhotoClick(idx) {
-    console.log('clicked')
     this.setState({modalPhotoIndex:idx,showModal:true})
 
   }
 
   componentWillMount() {
-    console.log('mounting photo day group ',this.props.album.date)
 
     if (!this.props.albumsDateGalleries.hasOwnProperty(this.props.album.id)) {
       this.props.dispatch(fetchAlbumsDateGalleries(this.props.album.id))
@@ -186,7 +194,7 @@ class PhotoDayGroup extends Component {
         return (
           <LazyLoad 
             key={'thumbnail_'+image.image_hash}
-            throttle={300}
+            debounce={100}
             height={100} 
             placeholder={
               <Image 
@@ -216,7 +224,7 @@ class PhotoDayGroup extends Component {
         )
       },this)
       return(
-        <div>
+        <div ref="photoGroupRef">
           <Image.Group>
             {images}
           </Image.Group>
@@ -305,7 +313,8 @@ export class AllPhotosView extends Component {
               </Header.Content>
             </Header>
             <LazyLoad 
-              unmountIfInvisible={true}
+              debounce={100}
+              unmountIfInvisible={false}
               height={calculateDayHeight()} 
               placeholder={(
                 <DayPlaceholder numPhotos={album.photo_count}/>

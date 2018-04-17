@@ -14,7 +14,7 @@ export class ImageInfoTable extends Component {
             var exif = {}
         }
 
-        if (photo.geolocation_json != null && photo.geolocation_json.features.length > 0){
+        if (photo.geolocation_json.features != undefined && photo.geolocation_json.features.length > 0){
             var geolocation = photo.search_location
 		}
 		else {

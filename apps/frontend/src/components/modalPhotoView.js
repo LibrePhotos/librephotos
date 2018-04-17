@@ -26,7 +26,9 @@ export class ModalPhotoViewVertical extends Component {
         var update_width = window.innerWidth-100
         var update_height = update_width*this.props.photos[this.props.idx].thumbnail_height/this.props.photos[this.props.idx].thumbnail_width
       }
-      this.setState({ width: update_width, height: update_height });
+      if (this.refs.modalPhotoViewRef){
+        this.setState({ width: update_width, height: update_height });
+      }
     }
   }
 
@@ -55,7 +57,7 @@ export class ModalPhotoViewVertical extends Component {
       }
       return (
 
-          <div>
+          <div ref="modalPhotoViewRef">
             <div style={{textAlign:'center'}}>
               <Image 
                 inline
