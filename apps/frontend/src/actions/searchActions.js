@@ -6,7 +6,7 @@ export function searchPhotos(query) {
     var url = `photos/?search=${query}`
     console.log(url)
 
-    dispatch({type:"SEARCH_PHOTOS"});
+    dispatch({type:"SEARCH_PHOTOS",payload: query});
     Server.get(`photos/?search=${query}`,{timeout:100000})
       .then((response) => {
         dispatch({type:"SEARCH_PHOTOS_FULFILLED",payload: response.data.results})

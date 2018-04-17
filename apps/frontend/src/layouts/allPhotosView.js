@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import { Card, Image, Header, Divider, Item, Loader, Dimmer, Modal, Grid, 
+import { Card, Image, Header, Divider, Item, Loader, Dimmer, Modal, Grid, Sticky,
          Container, Label, Popup, Segment, Button, Icon, Table, Transition} from 'semantic-ui-react';
 import Gallery from 'react-grid-gallery'
 import VisibilitySensor from 'react-visibility-sensor'
@@ -16,9 +16,12 @@ import LazyLoad from 'react-lazyload';
 import {ChartyPhotosScrollbar} from '../components/chartyPhotosScrollbar'
 import ReactCSSTransitionGroup from 'react-transition-group/CSSTransitionGroup';
 
+
+
 import {ImageInfoTable} from '../components/imageInfoTable'
 import {ModalPhotoViewVertical} from '../components/modalPhotoView';
 
+import ContentLoader from "react-content-loader"
 
 var ESCAPE_KEY = 27;
 var ENTER_KEY = 13;
@@ -156,6 +159,7 @@ class PhotoDayGroup extends Component {
 
 
   componentWillUnmount() {
+    console.log('unmounting photo day group ',this.props.album.date)
     document.removeEventListener("keydown", this._handleKeyDown.bind(this));
   }
 
@@ -167,6 +171,8 @@ class PhotoDayGroup extends Component {
   }
 
   componentWillMount() {
+    console.log('mounting photo day group ',this.props.album.date)
+
     if (!this.props.albumsDateGalleries.hasOwnProperty(this.props.album.id)) {
       this.props.dispatch(fetchAlbumsDateGalleries(this.props.album.id))
     }
@@ -189,11 +195,23 @@ class PhotoDayGroup extends Component {
                 src={'/thumbnail_placeholder.png'}/>
               }
             >
+
+            <ReactCSSTransitionGroup
+              transitionName="example"
+              transitionAppear={true}
+              transitionAppearTimeout={500}
+              transitionEnterTimeout={500}
+              transitionLeaveTimeout={300}>
+
               <Image 
+                key={image.image_hash}
                 onClick={()=>{this.onPhotoClick(idx)}}
                 height={100} 
                 width={100} 
                 src={serverAddress+image.square_thumbnail_url}/>
+
+            </ReactCSSTransitionGroup>
+
           </LazyLoad>  
         )
       },this)
@@ -209,7 +227,7 @@ class PhotoDayGroup extends Component {
             open={this.state.showModal}
             onClose={(e)=>{this.setState({showModal:false})}}>
             <Modal.Header style={{textAlign:'center'}}>
-            Showing photos from <b>{this.props.album.date}</b>
+            Showing photos from <b>{this.props.album.date}</b> ({this.state.modalPhotoIndex+1}/{images.length})
             </Modal.Header>
             <ModalPhotoViewVertical 
               open={this.state.showModal} 
@@ -269,13 +287,11 @@ class PhotoDayGroupReactGridGallery extends Component {
 
 
 export class AllPhotosView extends Component {
-  constructor(props){
-    super(props)
-  }
 
   componentWillMount() {
     this.props.dispatch(fetchDateAlbumsList())
   }
+
 
   render() {
     if (this.props.fetchedAlbumsDateList) {
@@ -288,13 +304,19 @@ export class AllPhotosView extends Component {
                 <Header.Subheader>{album.photo_count} Photos</Header.Subheader>
               </Header.Content>
             </Header>
-            <LazyLoad height={calculateDayHeight()} placeholder={<DayPlaceholder numPhotos={album.photo_count}/>}>
+            <LazyLoad 
+              unmountIfInvisible={true}
+              height={calculateDayHeight()} 
+              placeholder={(
+                <DayPlaceholder numPhotos={album.photo_count}/>
+              )}>
 
-              <PhotoDayGroup album={album}/>
+              <PhotoDayGroup key={'photoDayGroup_'+album.id} album={album}/>
+
             </LazyLoad>
           </div>
         )
-      })
+      },this)
       return (
         <div>
           <div style={{width:'100%', textAlign:'center'}}>
@@ -304,8 +326,7 @@ export class AllPhotosView extends Component {
           </div>
           <Header as='h1' icon textAlign='center'>
             <Header.Content>
-              Events
-              <Header.Subheader>All Photos</Header.Subheader>
+              All Photos
               <Header.Subheader>{this.props.albumsDateList.length} Days</Header.Subheader>
             </Header.Content>
           </Header>

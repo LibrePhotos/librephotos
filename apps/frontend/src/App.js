@@ -8,9 +8,9 @@ import {
 } from 'react-router-dom'
 
 
-import {Container, Menu, Grid, Button, Icon, Header} from 'semantic-ui-react'
+import {Container, Divider, Menu, Grid, Segment, Button, Icon, Rail, Header, Sidebar, Sticky} from 'semantic-ui-react'
 
-import {Sidebar} from './layouts/sidebar'
+import {SideMenu} from './layouts/sidebar'
 
 import {AlbumPeopleGallery, AlbumAutoGallery} from './components/album'
 
@@ -52,50 +52,81 @@ import {SearchView} from './layouts/search'
 
 import {ImageInfoTable} from './components/imageInfoTable'
 
+var topMenuHeight = 40 // don't change this
+var leftMenuWidth = 150 // don't change this
 
 class App extends Component {
 
+  state = { sidebarVisible: false }
+
+  toggleVisibility = () => this.setState({ sidebarVisible: !this.state.sidebarVisible })
 
   render() {
-
+    const { sidebarVisible } = this.state
+    if (this.state.sidebarVisible) {
+      var menuSpacing = leftMenuWidth
+    }
+    else {
+      var menuSpacing = 0
+    }
     return (
       <Router>
         <div>
-            <Sidebar />
-            <div style={{
-              paddingTop:'20px',
-              paddingRight:'20px',
-              paddingLeft:'200px'
-            }}>
-              <Route exact path="/" component={AllPhotosView}/>
+          <div style={{
+            left:0,right:0,
+            position:'sticky',top:0,
+            marginLeft:menuSpacing+20,
+            marginTop:20,
+            width: 34, height:31,
+            backgroundColor:'white',
+            borderRadius:3,
+            borderColor:'#d4d4d4',
+            borderWidth:1,
+            borderStyle:'solid',
+            zIndex:1
+          }}>
+              <Icon size='big' name='content'onClick={this.toggleVisibility} />
+          </div>
+
+          <SideMenu visible={sidebarVisible}/>
 
 
-              <Route path='/test' component={CountryPiChart}/>
+          <div style={{marginLeft:menuSpacing}}>
 
-              <Route path='/niy' component={ImageInfoTable}/>
+            <div style={{marginLeft:20,marginRight:20}}>
+            
+            
+            <Divider hidden/>
+            <Divider hidden/>
 
-              <Route path='/search' component={SearchView}/>
+            <Route exact path="/" component={AllPhotosView}/>
 
-              <Route path="/login" component={LoginPage}/>
+            <Route path='/test' component={CountryPiChart}/>
 
-              <Route path="/favorite/auto" component={FavoriteAutoAlbumsView}/>
+            <Route path='/niy' component={ImageInfoTable}/>
 
-              <Route path="/faces" component={FacesDashboard}/>
-              <Route path="/people" component={PeopleDashboard}/>
-              <Route path="/statistics" component={Statistics}/>
+            <Route path='/search' component={SearchView}/>
 
-              <Route path="/albums/people" component={AlbumPeople}/>
-              <Route path="/albums/auto" component={AlbumAutoMonths}/>
-              <Route path="/albums/date" component={AlbumDateMonths}/>
+            <Route path="/login" component={LoginPage}/>
 
-              <Route path='/albums/peopleview/:albumID' component={AlbumPeopleGallery}/>
-              <Route path='/albums/autoview/:albumID' component={AlbumAutoGalleryView}/>
-              <Route path='/albums/dateview/:albumID' component={AlbumDateGalleryView}/>
+            <Route path="/favorite/auto" component={FavoriteAutoAlbumsView}/>
 
-              
-              <Route path='/favorite/autoview/:albumID' component={AlbumAutoGalleryView}/>
+            <Route path="/faces" component={FacesDashboard}/>
+            <Route path="/people" component={PeopleDashboard}/>
+            <Route path="/statistics" component={Statistics}/>
 
+            <Route path="/albums/people" component={AlbumPeople}/>
+            <Route path="/albums/auto" component={AlbumAutoMonths}/>
+            <Route path="/albums/date" component={AlbumDateMonths}/>
+
+            <Route path='/albums/peopleview/:albumID' component={AlbumPeopleGallery}/>
+            <Route path='/albums/autoview/:albumID' component={AlbumAutoGalleryView}/>
+            <Route path='/albums/dateview/:albumID' component={AlbumDateGalleryView}/>
+
+            <Route path='/favorite/autoview/:albumID' component={AlbumAutoGalleryView}/>
             </div>
+          </div>
+
         </div>
       </Router>
     );

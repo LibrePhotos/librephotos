@@ -54,8 +54,8 @@ export class EventCountMonthGraph extends Component {
         <div>
           <Header as='h3'>Photo Counts by Month</Header>
           <div>
-            <Chart width={this.props.containerWidth-50} height={250} series={[data[0]]}>
-              <Layer width='90%' height='85%' position='middle center'>
+            <Chart width={this.props.containerWidth-20} height={250} series={[data[0]]}>
+              <Layer width='80%' height='85%' position='middle center'>
                 <Ticks
                   axis='y'
                   lineLength='100%'

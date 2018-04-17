@@ -7,6 +7,7 @@ import LazyLoad from 'react-lazyload';
 import {Server, serverAddress} from '../api_client/apiClient'
 
 import {ModalPhotoViewVertical} from '../components/modalPhotoView';
+import ReactCSSTransitionGroup from 'react-transition-group/CSSTransitionGroup';
 
 var ESCAPE_KEY = 27;
 var ENTER_KEY = 13;
@@ -227,11 +228,24 @@ export class PhotoSearchResult extends Component {
 	            src={'/thumbnail_placeholder.png'}/>
 	          }
 	        >
-	        <Image 
-            onClick={(e)=>{this.onPhotoClick(index)}}
-            height={100} 
-            width={100} 
-            src={serverAddress+image.square_thumbnail_url}/>
+
+          <ReactCSSTransitionGroup
+            transitionName="example"
+            transitionAppear={true}
+            transitionAppearTimeout={500}
+            transitionEnterTimeout={500}
+            transitionLeaveTimeout={300}>
+
+
+  	        <Image 
+              onClick={(e)=>{this.onPhotoClick(index)}}
+              height={100} 
+              width={100} 
+              src={serverAddress+image.square_thumbnail_url}/>
+
+          </ReactCSSTransitionGroup>
+
+
 	      </LazyLoad>
 			)
 		},this)
@@ -255,6 +269,10 @@ export class PhotoSearchResult extends Component {
           size='fullscreen'
           open={this.state.showModal}
           onClose={(e)=>{this.setState({showModal:false})}}>
+          <Modal.Header as={'h5'} style={{textAlign:'center'}}>
+          Search: <b>{this.props.query}</b> - ({this.state.modalPhotoIndex+1}/{this.props.searchPhotosRes.length})
+          </Modal.Header>
+
           <ModalPhotoViewVertical 
             open={this.state.showModal} 
             photos={this.props.searchPhotosRes} 
@@ -311,6 +329,7 @@ PhotoSearchResult = connect((store)=>{
   return {
   	searchingPhotos: store.search.searchingPhotos,
   	searchedPhotos: store.search.searchedPhotos,
-  	searchPhotosRes: store.search.searchPhotosRes
+  	searchPhotosRes: store.search.searchPhotosRes,
+    query: store.search.query
   }
 })(PhotoSearchResult)

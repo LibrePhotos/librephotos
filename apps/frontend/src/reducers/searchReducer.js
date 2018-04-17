@@ -3,11 +3,12 @@ export default function reducer(state={
     searchingPhotos: false,
     searchedPhotos: false,
     error: null,
+    query: null,
   }, action) {
 
   switch (action.type) {
   	case "SEARCH_PHOTOS": {
-  		return {...state, searchingPhotos: true}
+  		return {...state, searchingPhotos: true, query:action.payload}
   	}
 
     case "SEARCH_PHOTOS_REJECTED": {

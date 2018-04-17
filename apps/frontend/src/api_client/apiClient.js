@@ -12,10 +12,10 @@ function listener() {
   axios.defaults.headers.common['Authorization'] = token;
 }
 
-export var serverAddress = 'http://localhost:8000'
+export var serverAddress = 'http://192.168.31.210:8000'
 
 export var Server = axios.create({
-  baseURL: 'http://localhost:8000/api/',
+  baseURL: 'http://192.168.31.210:8000/api/',
   headers: {
     'Content-Type': 'application/json',
   },
