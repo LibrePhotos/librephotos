@@ -320,9 +320,15 @@ export class AlbumAutoCardPlainPlaceholder extends Component {
     return (
       <div style={{padding:'5px'}}>
         <div style={{
-          backgroundColor:"#dddddd",
+          backgroundColor:"#9f9f9f",
           width:'200px',
-          height:'350px',
+          height:'200px',
+          borderRadius: "0.3rem"}}>
+        </div>
+        <div style={{
+          backgroundColor:"#d4d4d4",
+          width:'200px',
+          height:'150px',
           borderRadius: "0.3rem"}}>
         </div>
       </div>
@@ -540,9 +546,15 @@ export class AlbumDateCardPlainPlaceholder extends Component {
     return (
       <div style={{padding:'5px'}}>
         <div style={{
-          backgroundColor:"#dddddd",
+          backgroundColor:"#9f9f9f",
           width:'200px',
-          height:'280px',
+          height:'200px',
+          borderRadius: "0.3rem"}}>
+        </div>
+        <div style={{
+          backgroundColor:" #d4d4d4",
+          width:'200px',
+          height:'80px',
           borderRadius: "0.3rem"}}>
         </div>
       </div>

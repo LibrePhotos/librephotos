@@ -28,6 +28,12 @@ export class ImageInfoTable extends Component {
             var people = ["Could not find faces."]
         }
 
+        if (photo.search_captions != null) {
+            var captions = photo.search_captions.split(",").map((caption)=><List.Item>{caption}</List.Item>)
+        } 
+        else {
+            var captions = null
+        }
 
 		return (
             <div>
@@ -86,7 +92,7 @@ export class ImageInfoTable extends Component {
                         <Grid.Column>
                             <Header inverted as='h3'>Captions</Header>
                             <List>
-                            {photo.search_captions.split(",").map((caption)=><List.Item>{caption}</List.Item>)}
+                            {captions}
                             </List>
                         </Grid.Column>
                         <Grid.Column>

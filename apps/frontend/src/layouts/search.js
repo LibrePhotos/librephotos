@@ -1,12 +1,19 @@
 import React, { Component } from 'react';
 import { connect } from "react-redux";
-import { Input, Button, Icon, Menu, Header, Divider, Image} from 'semantic-ui-react'
+import { Input, Button, Icon, Menu, Header, Divider, Image, Modal, Container} from 'semantic-ui-react'
 
 import {searchPhotos} from '../actions/searchActions'
 import LazyLoad from 'react-lazyload';
 import {Server, serverAddress} from '../api_client/apiClient'
 
-import ModalPhotoViewVertical from '../components/modalPhotoView';
+import {ModalPhotoViewVertical} from '../components/modalPhotoView';
+
+var ESCAPE_KEY = 27;
+var ENTER_KEY = 13;
+var RIGHT_ARROW_KEY = 39;
+var UP_ARROW_KEY = 38;
+var LEFT_ARROW_KEY = 37;
+var DOWN_ARROW_KEY = 40;
 
 function calculatePhotoResHeight(numPhotos) {
   if (window.innerWidth < 500) {
@@ -15,7 +22,7 @@ function calculatePhotoResHeight(numPhotos) {
     var width = window.innerWidth-100
   }
 
-  var photoSize = 157
+  var photoSize = 107
   var columnWidth = width - 120
   
   var spacePerRow = Math.floor(columnWidth / photoSize)
@@ -71,7 +78,7 @@ class PhotoResPlaceholder extends Component {
 
   calculatePlaceholderSize() {
     var numPhotos = this.props.numPhotos
-    var photoSize = 157
+    var photoSize = 107
     var columnWidth = this.state.width - 120
     
     var spacePerRow = Math.floor(columnWidth / photoSize)
@@ -109,11 +116,28 @@ export class SearchBar extends Component {
 		super(props)
 		this.handleSearch = this.handleSearch.bind(this)
 		this.handleChange = this.handleChange.bind(this)
+    this._handleKeyDown = this._handleKeyDown.bind(this)
 	}
 
 	componentWillMount() {
 		this.setState({text:''})
+    document.addEventListener("keydown", this._handleKeyDown.bind(this));
 	}
+
+  componentWillUnmount() {
+    document.removeEventListener("keydown", this._handleKeyDown.bind(this));
+  }
+
+  _handleKeyDown (event) {
+      switch( event.keyCode ) {
+          case ENTER_KEY:
+              this.props.dispatch(searchPhotos(this.state.text))
+              break;
+          default: 
+              break;
+      }
+  }
+
 
 	handleSearch(e,d) {
 		console.log(this.state.text)
@@ -126,45 +150,91 @@ export class SearchBar extends Component {
 
 	render() {
 		return (
-		  <Input
-		  	onChange={this.handleChange}
-		  	loading={this.props.searchingPhotos}
-		  	fluid
-		    icon={{ name: 'search', circular: true, link: true, onClick: this.handleSearch}}
-		    placeholder='Search...'/>
+      <div style={{textAlign:'center'}}>
+  		  <Input
+  		  	onChange={this.handleChange}
+  		  	loading={this.props.searchingPhotos}
+  		    icon={{ name: 'search', circular: true, link: true, onClick: this.handleSearch}}
+  		    placeholder='Search...'/>
+      </div>
 		)
 	}
 }
 
 export class PhotoSearchResult extends Component {
 
-  constructor() {
-    super();
-    this.state = {
-      modalShow:false,
-      idx:0
-    }
+  constructor(props) {
+    super(props)
+    this.onPhotoClick = this.onPhotoClick.bind(this)
+    this._handleKeyDown = this._handleKeyDown.bind(this)
+
+  }
+
+  componentWillMount() {
+    this.setState({
+      showModal:false,
+      modalPhotoIndex:0
+    })
+    console.log(this.state)
+    document.addEventListener("keydown", this._handleKeyDown.bind(this));
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener("keydown", this._handleKeyDown.bind(this));
+  }
+
+  onPhotoClick(idx) {
+    console.log('clicked')
+    this.setState({showModal:true,modalPhotoIndex:idx})
+  }
+
+  _handleKeyDown (event) {
+      switch( event.keyCode ) {
+          case ESCAPE_KEY:
+              this.setState({showModal:false});
+              break;
+          case RIGHT_ARROW_KEY:
+              if (this.state.modalPhotoIndex < this.props.searchPhotosRes.length-1) {
+                console.log('prev index:',this.state.modalPhotoIndex)
+                this.setState({modalPhotoIndex:this.state.modalPhotoIndex+1})
+                console.log('next index:',this.state.modalPhotoIndex)
+              }
+              break;
+          case LEFT_ARROW_KEY:
+              if (this.state.modalPhotoIndex > 0) {
+                console.log('prev index:',this.state.modalPhotoIndex)
+                this.setState({modalPhotoIndex:this.state.modalPhotoIndex-1})
+                console.log('prev index:',this.state.modalPhotoIndex)
+              }
+              break;
+          default: 
+              break;
+      }
   }
 
 
+
 	render() {
-		var images = this.props.searchPhotosRes.map(function(image){
+		var images = this.props.searchPhotosRes.map(function(image,index){
 			return (
 	      <LazyLoad 
 	        debounce={300}
-	        height={150} 
+	        height={100} 
 	        placeholder={
 	          <Image 
-	            height={150} 
-	            width={150} 
+	            height={100} 
+	            width={100} 
 	            src={'/thumbnail_placeholder.png'}/>
 	          }
 	        >
-	        <Image height={150} width={150} src={serverAddress+image.square_thumbnail_url}/>
+	        <Image 
+            onClick={(e)=>{this.onPhotoClick(index)}}
+            height={100} 
+            width={100} 
+            src={serverAddress+image.square_thumbnail_url}/>
 	      </LazyLoad>
-        <ModalPhotoViewVertical photos={images} idx={this.state.idx}/>
 			)
-		})
+		},this)
 
 
 		return (
@@ -180,6 +250,16 @@ export class PhotoSearchResult extends Component {
 				<Image.Group>
 				{images}
 				</Image.Group>
+        <Modal 
+          basic
+          size='fullscreen'
+          open={this.state.showModal}
+          onClose={(e)=>{this.setState({showModal:false})}}>
+          <ModalPhotoViewVertical 
+            open={this.state.showModal} 
+            photos={this.props.searchPhotosRes} 
+            idx={this.state.modalPhotoIndex} />
+        </Modal>
 			</div>
 		)
 	}
@@ -188,11 +268,22 @@ export class PhotoSearchResult extends Component {
 export class SearchView extends Component {
 	render() {
 		return (
-			<div>
-				<SearchBar/>
+			<Container fluid>
+        
+        <Header as='h2' icon textAlign='center'>
+          <Header.Content>
+            <Icon size='small' name='search'/>Search
+            <Header.Subheader>Search your photos by people, location, and things</Header.Subheader>
+          </Header.Content>
+        </Header>
+
+        <Divider hidden/>
+				
+        <SearchBar/>
 				<Divider hidden/>
 				<PhotoSearchResult/>
-			</div>
+
+			</Container>
 		)
 	}
 }

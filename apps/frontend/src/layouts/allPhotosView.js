@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
 import { Card, Image, Header, Divider, Item, Loader, Dimmer, Modal, Grid, 
-         Container, Label, Popup, Segment, Button, Icon, Table} from 'semantic-ui-react';
+         Container, Label, Popup, Segment, Button, Icon, Table, Transition} from 'semantic-ui-react';
 import Gallery from 'react-grid-gallery'
 import VisibilitySensor from 'react-visibility-sensor'
 import { connect } from "react-redux";
@@ -17,8 +17,15 @@ import {ChartyPhotosScrollbar} from '../components/chartyPhotosScrollbar'
 import ReactCSSTransitionGroup from 'react-transition-group/CSSTransitionGroup';
 
 import {ImageInfoTable} from '../components/imageInfoTable'
+import {ModalPhotoViewVertical} from '../components/modalPhotoView';
 
 
+var ESCAPE_KEY = 27;
+var ENTER_KEY = 13;
+var RIGHT_ARROW_KEY = 39;
+var UP_ARROW_KEY = 38;
+var LEFT_ARROW_KEY = 37;
+var DOWN_ARROW_KEY = 40;
 
 function calculateDayHeight(numPhotos) {
   if (window.innerWidth < 500) {
@@ -27,7 +34,7 @@ function calculateDayHeight(numPhotos) {
     var width = window.innerWidth-100
   }
 
-  var photoSize = 157
+  var photoSize = 107
   var columnWidth = width - 120
   
   var spacePerRow = Math.floor(columnWidth / photoSize)
@@ -83,7 +90,7 @@ class DayPlaceholder extends Component {
 
   calculatePlaceholderSize() {
     var numPhotos = this.props.numPhotos
-    var photoSize = 157
+    var photoSize = 107
     var columnWidth = this.state.width - 120
     
     var spacePerRow = Math.floor(columnWidth / photoSize)
@@ -115,114 +122,57 @@ class DayPlaceholder extends Component {
   }
 }
 
-class ModalPhotoView extends Component {
-  render() {
-    return(
-      <div>
-        <Modal open={this.props.open} basic size="fullscreen">
-          <div>
-            <Grid columns={2} stretched={false}>
-              <Grid.Column width={12}>
-                <Image size="small" src={serverAddress+this.props.images[this.props.idx].image_url}/>
-              </Grid.Column>
-              <Grid.Column width={4}>
-                <div>
-                  <ImageInfoTable photo={this.props.images[this.props.idx]}/>
-                </div>
-              </Grid.Column>
-            </Grid>
-          </div>
-        </Modal>
-      </div>
-    )
-  }
-}
-
-
-class ModalPhotoViewVertical extends Component {
-  constructor() {
-    super();
-    this.state = {
-      width:  100,
-      height: 100
-    }
-  }
-  /**
-   * Calculate & Update state of new dimensions
-   */
-  updateDimensions() {
-    var update_height  = window.innerHeight-100;
-    var update_width = update_height*this.props.photo.thumbnail_width/this.props.photo.thumbnail_height
-
-    if (update_width > window.innerWidth-100) {
-      var update_width = window.innerWidth-100
-      var update_height = update_width*this.props.photo.thumbnail_height/this.props.photo.thumbnail_width
-    }
-    this.setState({ width: update_width, height: update_height });
-  }
-
-  /**
-   * Add event listener
-   */
-  componentDidMount() {
-    this.updateDimensions();
-    window.addEventListener("resize", this.updateDimensions.bind(this));
-  }
-
-  render() {
-    return (
-      <div style={{padding:'10px'}}>
-
-        <div style={{textAlign:'center'}}>
-          <Image 
-            inline
-            height={this.state.height} 
-            width={this.state.width}
-            src={serverAddress+this.props.photo.image_url}/>
-        </div>
-        
-        <Divider/>
-
-        <div style={{padding:'10px'}}>
-          <ImageInfoTable photo={this.props.photo}/>
-        </div>
-
-      </div>
-    )
-  }
-}
-
-
 class PhotoDayGroup extends Component {
   constructor() {
     super()
-    this.state = {currentModalPhotoIdx:0, modalOpen:false}
+    this.state = {modalPhotoIndex:0, showModal:false}
     this.onPhotoClick = this.onPhotoClick.bind(this)
-    this.keydownHandler = this.keydownHandler.bind(this)
+    this._handleKeyDown = this._handleKeyDown.bind(this)
   }
 
-  keydownHandler(e){
-    if (e.key=="ArrowRight"){
-      this.state.currentModalPhotoIdx += 1
-    }
-    if (e.key=="ArrowLeft"){
-      this.state.currentModalPhotoIdx -= 1
-    }
+  _handleKeyDown (event) {
+      switch( event.keyCode ) {
+          case ESCAPE_KEY:
+              this.setState({showModal:false});
+              break;
+          case RIGHT_ARROW_KEY:
+              if (this.state.modalPhotoIndex < this.props.albumsDateGalleries[this.props.album.id].photos.length-1) {
+                console.log('prev index:',this.state.modalPhotoIndex)
+                this.setState({modalPhotoIndex:this.state.modalPhotoIndex+1})
+                console.log('next index:',this.state.modalPhotoIndex)
+              }
+              break;
+          case LEFT_ARROW_KEY:
+              if (this.state.modalPhotoIndex > 0) {
+                console.log('prev index:',this.state.modalPhotoIndex)
+                this.setState({modalPhotoIndex:this.state.modalPhotoIndex-1})
+                console.log('prev index:',this.state.modalPhotoIndex)
+              }
+              break;
+          default: 
+              break;
+      }
   }
 
-  componentDidMount() {
-    document.addEventListener('keydown',this.keydownHandler)
+
+  componentWillUnmount() {
+    document.removeEventListener("keydown", this._handleKeyDown.bind(this));
   }
+
 
   onPhotoClick(idx) {
-    this.state.currentModalPhotoIdx = idx
+    console.log('clicked')
+    this.setState({modalPhotoIndex:idx,showModal:true})
+
   }
 
   componentWillMount() {
     if (!this.props.albumsDateGalleries.hasOwnProperty(this.props.album.id)) {
       this.props.dispatch(fetchAlbumsDateGalleries(this.props.album.id))
     }
+    document.addEventListener('keydown',this._handleKeyDown)
   }
+
   render() {
     if (this.props.albumsDateGalleries.hasOwnProperty(this.props.album.id)) {
       var photos = this.props.albumsDateGalleries[this.props.album.id].photos
@@ -231,59 +181,42 @@ class PhotoDayGroup extends Component {
           <LazyLoad 
             key={'thumbnail_'+image.image_hash}
             throttle={300}
-            height={150} 
+            height={100} 
             placeholder={
               <Image 
-                height={150} 
-                width={150} 
+                height={100} 
+                width={100} 
                 src={'/thumbnail_placeholder.png'}/>
               }
             >
-            <Modal trigger={
               <Image 
                 onClick={()=>{this.onPhotoClick(idx)}}
-                height={150} 
-                width={150} 
-                src={serverAddress+image.square_thumbnail_url}/>        }
-              open={this.state.open} basic size="fullscreen">
-
-              <ModalPhotoViewVertical photo={photos[idx]}/>
-
-            </Modal>
-          </LazyLoad>
+                height={100} 
+                width={100} 
+                src={serverAddress+image.square_thumbnail_url}/>
+          </LazyLoad>  
         )
       },this)
-
-
-
-      // var images = []
-      // for (var idx=0; idx<photos.length; idx++) {
-      //   images.concat([
-      //     <LazyLoad 
-      //       throttle={300}
-      //       height={150} 
-      //       placeholder={
-      //         <Image 
-      //           onClick={this.onPhotoClick}
-      //           height={150} 
-      //           width={150} 
-      //           src={'/thumbnail_placeholder.png'}/>
-      //         }
-      //       >
-      //       <Image 
-      //         height={150} 
-      //         width={150} 
-      //         src={serverAddress+photos[idx].square_thumbnail_url}/>
-      //     </LazyLoad>
-      //   ])
-      // }
-
       return(
         <div>
           <Image.Group>
             {images}
           </Image.Group>
-          <ModalPhotoView idx={this.state.currentModalPhotoIdx} images={photos} open={this.state.modalOpen}/>
+
+          <Modal 
+            basic
+            size='fullscreen'
+            open={this.state.showModal}
+            onClose={(e)=>{this.setState({showModal:false})}}>
+            <Modal.Header style={{textAlign:'center'}}>
+            Showing photos from <b>{this.props.album.date}</b>
+            </Modal.Header>
+            <ModalPhotoViewVertical 
+              open={this.state.showModal} 
+              photos={photos} 
+              idx={this.state.modalPhotoIndex} />
+          </Modal>
+
         </div>
       )
     }
@@ -324,7 +257,7 @@ class PhotoDayGroupReactGridGallery extends Component {
             width: "100%",
             overflowX: "hidden",
             overflowY: 'auto'}}>
-          <Gallery images={images} rowHeight={150} showLightboxThumbnails={true}/>
+          <Gallery images={images} rowHeight={100} showLightboxThumbnails={true}/>
         </div>
       )
     }

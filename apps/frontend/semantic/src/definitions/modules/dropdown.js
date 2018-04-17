@@ -10,7 +10,7 @@
 
 ;(function ($, window, document, undefined) {
 
-"use strict";
+'use strict';
 
 window = (typeof window != 'undefined' && window.Math == Math)
   ? window
@@ -97,7 +97,13 @@ $.fn.dropdown = function(parameters) {
             module.setup.reference();
           }
           else {
+
             module.setup.layout();
+
+            if(settings.values) {
+              module.change.values(settings.values);
+            }
+
             module.refreshData();
 
             module.save.defaults();
@@ -162,7 +168,7 @@ $.fn.dropdown = function(parameters) {
         observe: {
           select: function() {
             if(module.has.input()) {
-              selectObserver.observe($input[0], {
+              selectObserver.observe($module[0], {
                 childList : true,
                 subtree   : true
               });
@@ -383,19 +389,16 @@ $.fn.dropdown = function(parameters) {
           reference: function() {
             module.debug('Dropdown behavior was called on select, replacing with closest dropdown');
             // replace module reference
-            $module = $module.parent(selector.dropdown);
+            $module  = $module.parent(selector.dropdown);
+            instance = $module.data(moduleNamespace);
+            element  = $module.get(0);
             module.refresh();
             module.setup.returnedObject();
-            // invoke method in context of current instance
-            if(methodInvoked) {
-              instance = module;
-              module.invoke(query);
-            }
           },
           returnedObject: function() {
             var
               $firstModules = $allModules.slice(0, elementIndex),
-              $lastModules = $allModules.slice(elementIndex + 1)
+              $lastModules  = $allModules.slice(elementIndex + 1)
             ;
             // adjust all modules to use correct reference
             $allModules = $firstModules.add($module).add($lastModules);
@@ -493,7 +496,7 @@ $.fn.dropdown = function(parameters) {
             ? callback
             : function(){}
           ;
-          if( module.is.active() ) {
+          if( module.is.active() && !module.is.animatingOutward() ) {
             module.debug('Hiding dropdown');
             if(settings.onHide.call(element) !== false) {
               module.animate.hide(function() {
@@ -913,6 +916,23 @@ $.fn.dropdown = function(parameters) {
           }
         },
 
+        change: {
+          values: function(values) {
+            if(!settings.allowAdditions) {
+              module.clear();
+            }
+            module.debug('Creating dropdown with specified values', values);
+            module.setup.menu({values: values});
+            $.each(values, function(index, item) {
+              if(item.selected == true) {
+                module.debug('Setting initial selection to', item.value);
+                module.set.selected(item.value);
+                return true;
+              }
+            });
+          }
+        },
+
         event: {
           change: function() {
             if(!internalChange) {
@@ -1081,7 +1101,22 @@ $.fn.dropdown = function(parameters) {
           select: {
             mutation: function(mutations) {
               module.debug('<select> modified, recreating menu');
-              module.setup.select();
+              var
+                isSelectMutation = false
+              ;
+              $.each(mutations, function(index, mutation) {
+                if($(mutation.target).is('select') || $(mutation.addedNodes).is('select')) {
+                  isSelectMutation = true;
+                  return true;
+                }
+              });
+              if(isSelectMutation) {
+                module.disconnect.selectObserver();
+                module.refresh();
+                module.setup.select();
+                module.set.selected();
+                module.observe.select();
+              }
             }
           },
           menu: {
@@ -1582,7 +1617,7 @@ $.fn.dropdown = function(parameters) {
               : text
             ;
             if( module.can.activate( $(element) ) ) {
-              module.set.value(value, $(element));
+              module.set.value(value, text, $(element));
               if(module.is.multiple() && !module.is.allFiltered()) {
                 return;
               }
@@ -1619,6 +1654,9 @@ $.fn.dropdown = function(parameters) {
             return $module.data(metadata.defaultValue);
           },
           placeholderText: function() {
+            if(settings.placeholder != 'auto' && typeof settings.placeholder == 'string') {
+              return settings.placeholder;
+            }
             return $module.data(metadata.placeholderText) || '';
           },
           text: function() {
@@ -2245,7 +2283,7 @@ $.fn.dropdown = function(parameters) {
             var
               length = module.get.query().length
             ;
-            $search.val( text.substr(0 , length));
+            $search.val( text.substr(0, length));
           },
           scrollPosition: function($item, forceScroll) {
             var
@@ -2397,7 +2435,6 @@ $.fn.dropdown = function(parameters) {
             var
               escapedValue = module.escape.value(value),
               hasInput     = ($input.length > 0),
-              isAddition   = !module.has.value(value),
               currentValue = module.get.values(),
               stringValue  = (value !== undefined)
                 ? String(value)
@@ -2500,8 +2537,8 @@ $.fn.dropdown = function(parameters) {
                       module.save.remoteData(selectedText, selectedValue);
                     }
                     if(settings.useLabels) {
-                      module.add.value(selectedValue, selectedText, $selected);
                       module.add.label(selectedValue, selectedText, shouldAnimate);
+                      module.add.value(selectedValue, selectedText, $selected);
                       module.set.activeItem($selected);
                       module.filterActive();
                       module.select.nextAvailable($selectedItem);
@@ -2542,6 +2579,9 @@ $.fn.dropdown = function(parameters) {
               escapedValue = module.escape.value(value),
               $label
             ;
+            if(settings.ignoreCase) {
+              escapedValue = escapedValue.toLowerCase();
+            }
             $label =  $('<a />')
               .addClass(className.label)
               .attr('data-' + metadata.value, escapedValue)
@@ -2550,7 +2590,7 @@ $.fn.dropdown = function(parameters) {
             $label = settings.onLabelCreate.call($label, escapedValue, text);
 
             if(module.has.label(value)) {
-              module.debug('Label already exists, skipping', escapedValue);
+              module.debug('User selection already exists, skipping', escapedValue);
               return;
             }
             if(settings.label.variation) {
@@ -2689,6 +2729,10 @@ $.fn.dropdown = function(parameters) {
               currentValue = module.get.values(),
               newValue
             ;
+            if(module.has.value(addedValue)) {
+              module.debug('Value already selected');
+              return;
+            }
             if(addedValue === '') {
               module.debug('Cannot select blank values from multiselect');
               return;
@@ -3002,6 +3046,9 @@ $.fn.dropdown = function(parameters) {
               escapedValue = module.escape.value(value),
               $labels      = $module.find(selector.label)
             ;
+            if(settings.ignoreCase) {
+              escapedValue = escapedValue.toLowerCase();
+            }
             return ($labels.filter('[data-' + metadata.value + '="' + module.escape.string(escapedValue) +'"]').length > 0);
           },
           maxSelections: function() {
@@ -3020,6 +3067,12 @@ $.fn.dropdown = function(parameters) {
             return (module.get.query() !== '');
           },
           value: function(value) {
+            return (settings.ignoreCase)
+              ? module.has.valueIgnoringCase(value)
+              : module.has.valueMatchingCase(value)
+            ;
+          },
+          valueMatchingCase: function(value) {
             var
               values   = module.get.values(),
               hasValue = $.isArray(values)
@@ -3030,12 +3083,34 @@ $.fn.dropdown = function(parameters) {
               ? true
               : false
             ;
+          },
+          valueIgnoringCase: function(value) {
+            var
+              values   = module.get.values(),
+              hasValue = false
+            ;
+            if(!$.isArray(values)) {
+              values = [values];
+            }
+            $.each(values, function(index, existingValue) {
+              if(String(value).toLowerCase() == String(existingValue).toLowerCase()) {
+                hasValue = true;
+                return false;
+              }
+            });
+            return hasValue;
           }
         },
 
         is: {
           active: function() {
             return $module.hasClass(className.active);
+          },
+          animatingInward: function() {
+            return $menu.transition('is inward');
+          },
+          animatingOutward: function() {
+            return $menu.transition('is outward');
           },
           bubbledLabelClick: function(event) {
             return $(event.target).is('select, input') && $module.closest('label').length > 0;
@@ -3044,7 +3119,7 @@ $.fn.dropdown = function(parameters) {
             return $(event.target).closest($icon).length > 0;
           },
           alreadySetup: function() {
-            return ($module.is('select') && $module.parent(selector.dropdown).length > 0  && $module.prev().length === 0);
+            return ($module.is('select') && $module.parent(selector.dropdown).data(moduleNamespace) !== undefined && $module.prev().length === 0);
           },
           animating: function($subMenu) {
             return ($subMenu)
@@ -3172,6 +3247,9 @@ $.fn.dropdown = function(parameters) {
             ;
             calculations = {
               context: {
+                offset    : ($context.get(0) === window)
+                  ? { top: 0, left: 0}
+                  : $context.offset(),
                 scrollTop : $context.scrollTop(),
                 height    : $context.outerHeight()
               },
@@ -3184,8 +3262,8 @@ $.fn.dropdown = function(parameters) {
               calculations.menu.offset.top += calculations.context.scrollTop;
             }
             onScreen = {
-              above : (calculations.context.scrollTop) <= calculations.menu.offset.top - calculations.menu.height,
-              below : (calculations.context.scrollTop + calculations.context.height) >= calculations.menu.offset.top + calculations.menu.height
+              above : (calculations.context.scrollTop) <= calculations.menu.offset.top - calculations.context.offset.top - calculations.menu.height,
+              below : (calculations.context.scrollTop + calculations.context.height) >= calculations.menu.offset.top - calculations.context.offset.top + calculations.menu.height
             };
             if(onScreen.below) {
               module.verbose('Dropdown can fit in context downward', onScreen);
@@ -3214,6 +3292,9 @@ $.fn.dropdown = function(parameters) {
             ;
             calculations = {
               context: {
+                offset     : ($context.get(0) === window)
+                  ? { top: 0, left: 0}
+                  : $context.offset(),
                 scrollLeft : $context.scrollLeft(),
                 width      : $context.outerWidth()
               },
@@ -3225,7 +3306,7 @@ $.fn.dropdown = function(parameters) {
             if(module.is.horizontallyScrollableContext()) {
               calculations.menu.offset.left += calculations.context.scrollLeft;
             }
-            isOffscreenRight = (calculations.menu.offset.left + calculations.menu.width >= calculations.context.scrollLeft + calculations.context.width);
+            isOffscreenRight = (calculations.menu.offset.left - calculations.context.offset.left + calculations.menu.width >= calculations.context.scrollLeft + calculations.context.width);
             if(isOffscreenRight) {
               module.verbose('Dropdown cannot fit in context rightward', isOffscreenRight);
               canOpenRightward = false;
@@ -3331,7 +3412,7 @@ $.fn.dropdown = function(parameters) {
                     duration   : settings.duration,
                     debug      : settings.debug,
                     verbose    : settings.verbose,
-                    queue      : true,
+                    queue      : false,
                     onStart    : start,
                     onComplete : function() {
                       callback.call(element);
@@ -3594,6 +3675,7 @@ $.fn.dropdown.settings = {
   on                     : 'click',    // what event should show menu action on item selection
   action                 : 'activate', // action on item selection (nothing, activate, select, combo, hide, function(){})
 
+  values                 : false,      // specify values to use for dropdown
 
   apiSettings            : false,
   selectOnKeydown        : true,       // Whether selection should occur automatically when keyboard shortcuts used
@@ -3618,7 +3700,8 @@ $.fn.dropdown.settings = {
   forceSelection         : true,       // force a choice on blur with search selection
 
   allowAdditions         : false,      // whether multiple select should allow user added values
-  hideAdditions          : true,      // whether or not to hide special message prompting a user they can enter a value
+  ignoreCase             : false,       // whether to consider values not matching in case to be the same
+  hideAdditions          : true,       // whether or not to hide special message prompting a user they can enter a value
 
   maxSelections          : false,      // When set to a number limits the number of selections to this count
   useLabels              : true,       // whether multiple select should filter currently active selections from choices
@@ -3812,7 +3895,7 @@ $.fn.dropdown.settings.templates = {
           ? 'disabled '
           : ''
       ;
-      html += '<div class="'+ maybeDisabled +'item" data-value="' + option[fields.value] + '"' + maybeText + '>'
+      html += '<div class="'+ maybeDisabled +'item" data-value="' + option[fields.value] + '"' + maybeText + '>';
       html +=   option[fields.name];
       html += '</div>';
     });

@@ -35,7 +35,7 @@
 
 /* Icon */
 @iconDistance: @relative4px;
-@iconOffset: ((@itemLineHeight - 1rem) / 2);
+@iconOffset: 0em;
 @iconTransition: color @defaultDuration @defaultEasing;
 @iconVerticalAlign: top;
 @iconContentVerticalAlign: top;
@@ -52,7 +52,7 @@
 
 /* Header */
 @itemHeaderFontFamily: @headerFont;
-@itemHeaderFontWeight: bold;
+@itemHeaderFontWeight: @bold;
 @itemHeaderColor: @textColor;
 
 /* Description */
