@@ -545,17 +545,17 @@ export class AlbumDateCard extends Component {
 export class AlbumDateCardPlainPlaceholder extends Component {
   render() {
     return (
-      <div style={{padding:'5px'}}>
+      <div style={{paddingLeft:'15px'}}>
         <div style={{
           backgroundColor:"white",
-          width:'200px',
-          height:'200px'}}>
+          width:'130px',
+          height:'130px'}}>
         </div>
         <div style={{
-          width:'200px',
-          height:'80px'}}>
+          width:'130px',
+          height:'50px'}}>
 
-          <div style={{padding:'10px'}}>
+          <div style={{padding:'5px'}}>
             <div style={{display:'inline-block',backgroundColor:'#b4b4b4',width:80.96,height:18}}></div><br/>
             
             <div>
@@ -597,18 +597,18 @@ export class AlbumDateCardPlain extends Component {
     }
     var numPeople = this.props.album.people.length
     return (
-      <div style={{padding:'5px'}}>
+      <div style={{paddingLeft:'15px'}}>
 
         <div style={{
-          width:'200px',
-          height:'200px'}}>
+          width:'130px',
+          height:'130px'}}>
 
           <LazyLoad
-            height={200}
+            height={130}
             placeholder={
               <Image 
-                height={200}
-                width={200}
+                height={130}
+                width={130}
                 src={'/thumbnail_placeholder.png'}/>}>
             <ReactCSSTransitionGroup
               transitionName="example"
@@ -619,7 +619,7 @@ export class AlbumDateCardPlain extends Component {
             <Image 
               as={Link}
               to={`/albums/dateview/${this.props.album.id}`}
-              height={200} width={200} 
+              height={130} width={130} 
               src={serverAddress+this.props.album.cover_photo_url}/>
             </ReactCSSTransitionGroup>
           </LazyLoad>
@@ -627,10 +627,10 @@ export class AlbumDateCardPlain extends Component {
 
 
         <div style={{
-          width:'200px',
-          height:'80px'}}>
+          width:'130px',
+          height:'50px'}}>
 
-          <div style={{padding:'10px'}}>
+          <div style={{padding:'5px'}}>
             <span style={{fontSize:'15',fontWeight:'bold'}}>{this.props.album.date}</span><br/>
             <div>
               <span style={{color:'grey',fontWeight:'bold'}}>{this.props.album.photo_count} Photos</span>

@@ -85,7 +85,6 @@ class App extends Component {
 
             <Route path='/test' component={CountryPiChart}/>
 
-            <Route path='/albums' component={Albums}/>            
 
             <Route path='/niy' component={ImageInfoTable}/>
 

@@ -319,25 +319,13 @@ export class AllPhotosView extends Component {
       },this)
       return (
         <div>
-          <div style={{width:'100%', textAlign:'center'}}>
-            <Icon.Group size='huge'>
-              <Icon inverted circular name='image'/>
-            </Icon.Group>
-          </div>
-          <Header as='h1' icon textAlign='center'>
-            <Header.Content>
-              All Photos
-              <Header.Subheader>{this.props.albumsDateList.length} Days</Header.Subheader>
-            </Header.Content>
-          </Header>
-          <Divider hidden/>
           {photoDayGroups}
         </div>
       )      
     }
     else {
       return (
-        <div style={{paddingTop:'30%'}}>
+        <div style={{paddingTop:'20%'}}>
           <Loader active inline='centered' />
         </div>
       )

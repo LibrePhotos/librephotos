@@ -119,7 +119,7 @@ export class AlbumDateMonths extends Component {
 
 
     return (
-      <div style={{paddingLeft:15}}>
+      <div>
         {datesByMonthCardGroups}
       </div>
     )
