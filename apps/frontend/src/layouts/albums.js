@@ -8,6 +8,8 @@ import {fetchCountStats,fetchPhotoScanStatus,
 
 import {Server, serverAddress} from '../api_client/apiClient'
 import LazyLoad from 'react-lazyload';
+import {AlbumAutoMonths} from './albumAutoMonths'
+import {AlbumDateMonths} from './albumDateMonths'
 
 
 var ESCAPE_KEY = 27;
@@ -39,9 +41,15 @@ export class Albums extends Component {
   	if (window.innerWidth < 600) {
   		var numEntrySquaresPerRow = 2
   	} 
+    else if (window.innerWidth < 800) {
+      var numEntrySquaresPerRow = 3
+    }
   	else if (window.innerWidth < 1000) {
   		var numEntrySquaresPerRow = 4
   	}
+    else if (window.innerWidth < 1200) {
+      var numEntrySquaresPerRow = 5
+    }
   	else {
   		var numEntrySquaresPerRow = 6
   	}
@@ -50,25 +58,31 @@ export class Albums extends Component {
 
     console.log(columnWidth)
     var entrySquareSize = columnWidth / numEntrySquaresPerRow
-
+    var numEntrySquaresPerRow = numEntrySquaresPerRow
   	this.setState({
       width:  window.innerWidth,
       height: window.innerHeight,
-      entrySquareSize:entrySquareSize
+      entrySquareSize:entrySquareSize,
+      numEntrySquaresPerRow:numEntrySquaresPerRow
   	})
   }
 
 
 	render () {
 		var entrySquareSize = this.state.entrySquareSize
+    var numEntrySquaresPerRow = this.state.numEntrySquaresPerRow
 		return (
 				<div>
+        <div>
 				<EntrySquare size={entrySquareSize} title='People'/>
-				<EntrySquare size={entrySquareSize} title='People'/>
-				<EntrySquare size={entrySquareSize} title='People'/>
-				<EntrySquare size={entrySquareSize} title='People'/>
-				<EntrySquare size={entrySquareSize} title='People'/>
-				<EntrySquare size={entrySquareSize} title='People'/>
+				<EntrySquare size={entrySquareSize} title='Things'/>
+				<EntrySquare size={entrySquareSize} title='Places'/>
+				<EntrySquare size={entrySquareSize} title='Days'/>
+				<EntrySquare size={entrySquareSize} title='TBI'/>
+				<EntrySquare size={entrySquareSize} title='TBI'/>
+        </div>
+        <Divider/>
+
 				</div>
 		)
 	}
@@ -77,7 +91,11 @@ export class Albums extends Component {
 export class EntrySquare extends Component {
 	render () {
 		return (
-			<div style={{width:this.props.size,float:'left',paddingLeft:10,paddingRight:10}}>
+			<div style={{
+        width:this.props.size,
+        display:'inline-block',
+        paddingLeft:10,
+        paddingRight:10}}>
 				<Image 
 					width={this.props.size-20} 
 					height={this.props.size-20}

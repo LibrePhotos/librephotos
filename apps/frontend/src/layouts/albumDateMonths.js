@@ -119,24 +119,9 @@ export class AlbumDateMonths extends Component {
 
 
     return (
-      <Container fluid>
-        <div style={{width:'100%', textAlign:'center'}}>
-          <Icon.Group size='huge'>
-            <Icon inverted circular name='image'/>
-            <Icon inverted circular corner name='calendar'/>
-          </Icon.Group>
-        </div>
-        <Header as='h1' icon textAlign='center'>
-          <Header.Content>
-            Days
-            <Header.Subheader>View photos grouped by days</Header.Subheader>
-          </Header.Content>
-        </Header>
-        <Divider hidden/>
-        <div>
-        </div>
+      <div style={{paddingLeft:15}}>
         {datesByMonthCardGroups}
-      </Container>
+      </div>
     )
   }
 }

@@ -135,36 +135,6 @@ export class AlbumAutoMonths extends Component {
 
     return (
       <Container fluid>
-        <div style={{width:'100%', textAlign:'center'}}>
-          <Icon.Group size='huge'>
-            <Icon inverted circular name='image'/>
-            <Icon inverted circular corner name='wizard'/>
-          </Icon.Group>
-        </div>
-        <Header as='h1' icon textAlign='center'>
-          <Header.Content>
-            Events
-            <Header.Subheader>View automatically generated event albums</Header.Subheader>
-          </Header.Content>
-        </Header>
-        <Divider hidden/>
-        <div>
-
-          <Button 
-            onClick={this.handleAutoAlbumGen}
-            loading={this.props.statusAutoAlbumProcessing.status}
-            disabled={
-              this.props.statusAutoAlbumProcessing.status||
-              this.props.statusPhotoScan.status||
-              this.props.generatingAlbumsAuto||
-              this.props.scanningPhotos
-            }
-            fluid 
-            color='blue'>
-            <Icon name='wizard'/>Generate More
-          </Button>
-
-        </div>
 
         {eventsByMonthCardGroups}
       </Container>

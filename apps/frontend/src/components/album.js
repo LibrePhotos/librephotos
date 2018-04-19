@@ -11,6 +11,7 @@ import {
 } from 'react-router-dom'
 import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums,toggleAlbumAutoFavorite,fetchAutoAlbumsList} from '../actions/albumsActions'
 import { Map, TileLayer, Marker } from 'react-leaflet'
+import ReactCSSTransitionGroup from 'react-transition-group/CSSTransitionGroup';
 
 import {Server, serverAddress} from '../api_client/apiClient'
 
@@ -546,16 +547,23 @@ export class AlbumDateCardPlainPlaceholder extends Component {
     return (
       <div style={{padding:'5px'}}>
         <div style={{
-          backgroundColor:"#9f9f9f",
+          backgroundColor:"white",
           width:'200px',
-          height:'200px',
-          borderRadius: "0.3rem"}}>
+          height:'200px'}}>
         </div>
         <div style={{
-          backgroundColor:" #d4d4d4",
           width:'200px',
-          height:'80px',
-          borderRadius: "0.3rem"}}>
+          height:'80px'}}>
+
+          <div style={{padding:'10px'}}>
+            <div style={{display:'inline-block',backgroundColor:'#b4b4b4',width:80.96,height:18}}></div><br/>
+            
+            <div>
+            <div style={{display:'inline-block',backgroundColor:'#dbdbdb',width:54.97,height:17}}></div><br/>
+            </div>
+            
+          </div>
+
         </div>
       </div>
     )
@@ -590,12 +598,11 @@ export class AlbumDateCardPlain extends Component {
     var numPeople = this.props.album.people.length
     return (
       <div style={{padding:'5px'}}>
+
         <div style={{
-          border:'1px solid #dddddd',
           width:'200px',
-          height:'280px',
-          position:'relative',
-          borderRadius: "0.3rem"}}>
+          height:'200px'}}>
+
           <LazyLoad
             height={200}
             placeholder={
@@ -603,22 +610,35 @@ export class AlbumDateCardPlain extends Component {
                 height={200}
                 width={200}
                 src={'/thumbnail_placeholder.png'}/>}>
+            <ReactCSSTransitionGroup
+              transitionName="example"
+              transitionAppear={true}
+              transitionAppearTimeout={500}
+              transitionEnterTimeout={500}
+              transitionLeaveTimeout={300}>
             <Image 
               as={Link}
               to={`/albums/dateview/${this.props.album.id}`}
               height={200} width={200} 
               src={serverAddress+this.props.album.cover_photo_url}/>
+            </ReactCSSTransitionGroup>
           </LazyLoad>
+        </div>
+
+
+        <div style={{
+          width:'200px',
+          height:'80px'}}>
+
           <div style={{padding:'10px'}}>
             <span style={{fontSize:'15',fontWeight:'bold'}}>{this.props.album.date}</span><br/>
-            <div >
+            <div>
               <span style={{color:'grey',fontWeight:'bold'}}>{this.props.album.photo_count} Photos</span>
-            </div>
-            <div style={{bottom:'10px', right:'10px', position:'absolute'}}>
-              <Rating icon='heart' defaultRating={rating} maxRating={1} onRate={this.onRate}/>
             </div>
           </div>
         </div>
+
+
       </div>
     )
   }

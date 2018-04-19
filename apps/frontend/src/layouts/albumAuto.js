@@ -60,42 +60,11 @@ export class AlbumAuto extends Component {
 
 
     return (
-      <Container fluid>
-        <div style={{width:'100%', textAlign:'center', paddingTop:'20px'}}>
-          <Icon.Group size='huge'>
-            <Icon inverted circular name='image'/>
-            <Icon inverted circular corner name='wizard'/>
-          </Icon.Group>
-        </div>
-        <Header dividing as='h2' icon textAlign='center'>
-          <Header.Content>
-            Events
-            <Header.Subheader>View automatically generated event albums</Header.Subheader>
-          </Header.Content>
-        </Header>
-
-        <div style={{paddingBottom:'20px'}}>
-
-          <Button 
-            onClick={this.handleAutoAlbumGen}
-            loading={this.props.statusAutoAlbumProcessing.status}
-            disabled={
-              this.props.statusAutoAlbumProcessing.status||
-              this.props.statusPhotoScan.status||
-              this.props.generatingAlbumsAuto||
-              this.props.scanningPhotos
-            }
-            fluid 
-            color='blue'>
-            <Icon name='wizard'/>Generate More
-          </Button>
-
-        </div>
-
-        <Card.Group stackable itemsPerRow={6}>
+      <div>
+        <Card.Group stackable itemsPerRow={this.props.itemsPerRow}>
         {mappedAlbumCards}
         </Card.Group>
-      </Container>
+      </div>
     )
   }
 }
