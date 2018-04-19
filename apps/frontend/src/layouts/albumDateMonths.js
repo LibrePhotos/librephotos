@@ -128,8 +128,8 @@ export class AlbumDateMonths extends Component {
         </div>
         <Header as='h1' icon textAlign='center'>
           <Header.Content>
-            Dates
-            <Header.Subheader>View photos grouped by dates</Header.Subheader>
+            Days
+            <Header.Subheader>View photos grouped by days</Header.Subheader>
           </Header.Content>
         </Header>
         <Divider hidden/>

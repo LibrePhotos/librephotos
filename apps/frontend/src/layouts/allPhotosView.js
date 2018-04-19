@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import { Card, Image, Header, Divider, Item, Loader, Dimmer, Modal, Grid, Sticky,
+import { Card, Image, Header, Divider, Item, Loader, Dimmer, Modal, Grid, Sticky, 
          Container, Label, Popup, Segment, Button, Icon, Table, Transition} from 'semantic-ui-react';
 import Gallery from 'react-grid-gallery'
 import VisibilitySensor from 'react-visibility-sensor'
@@ -30,15 +30,15 @@ var UP_ARROW_KEY = 38;
 var LEFT_ARROW_KEY = 37;
 var DOWN_ARROW_KEY = 40;
 
-function calculateDayHeight(numPhotos) {
-  if (window.innerWidth < 500) {
-    var width = 450
-  } else {
-    var width = window.innerWidth-100
-  }
+var SIDEBAR_WIDTH = 85;
 
-  var photoSize = 107
-  var columnWidth = width - 120
+
+function calculateDayHeight(numPhotos,sidebarVisible) {
+
+  var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15 
+  console.log(columnWidth)
+
+  var photoSize = 100
   
   var spacePerRow = Math.floor(columnWidth / photoSize)
   if (spacePerRow >= numPhotos) {
@@ -50,7 +50,7 @@ function calculateDayHeight(numPhotos) {
     var numCols = spacePerRow
   }
 
-  return numRows * photoSize
+  return numRows * photoSize + 2
 }
 
 class DayPlaceholder extends Component {
@@ -63,29 +63,14 @@ class DayPlaceholder extends Component {
     this.calculatePlaceholderSize = this.calculatePlaceholderSize.bind(this)
   }
 
-  /**
-   * Calculate & Update state of new dimensions
-   */
-  updateDimensions() {
-    if(window.innerWidth < 500) {
-      if (this.refs.placeholderRef){
-        this.setState({ width: 450, height: 102 });
-      }
-    } else {
-      let update_width  = window.innerWidth-100;
-      let update_height = Math.round(update_width/4.4);
-      if (this.refs.placeholderRef) {
-        this.setState({ width: update_width, height: update_height });
-      }
-    }
-  }
+
 
   /**
    * Add event listener
    */
   componentDidMount() {
-    this.updateDimensions();
-    window.addEventListener("resize", this.updateDimensions.bind(this));
+    this.calculatePlaceholderSize();
+    window.addEventListener("resize", this.calculatePlaceholderSize.bind(this));
   }
 
   /**
@@ -97,9 +82,14 @@ class DayPlaceholder extends Component {
 
   calculatePlaceholderSize() {
     var numPhotos = this.props.numPhotos
-    var photoSize = 107
-    var columnWidth = this.state.width - 120
-    
+    var photoSize = 100
+    // var columnWidth = this.state.width - 120
+
+
+    var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15
+
+
+
     var spacePerRow = Math.floor(columnWidth / photoSize)
     if (spacePerRow >= numPhotos) {
       var numRows = 1
@@ -111,7 +101,7 @@ class DayPlaceholder extends Component {
     }
 
 
-    var boxHeight = numRows * photoSize
+    var boxHeight = numRows * photoSize + 2
     var boxWidth = numCols * photoSize
 
     return {height:boxHeight,width:boxWidth}
@@ -128,7 +118,7 @@ class DayPlaceholder extends Component {
         verticalAlign:'center', 
         height:h, 
         width:w, 
-        backgroundColor:'#dddddd'}}>
+        backgroundColor:'white'}}>
       </div>
     )
   }
@@ -194,10 +184,11 @@ class PhotoDayGroup extends Component {
         return (
           <LazyLoad 
             key={'thumbnail_'+image.image_hash}
-            debounce={100}
+            debounce={300}
             height={100} 
             placeholder={
-              <Image 
+              <Image style={{marginLeft:0,marginRight:0,marginTop:0,marginBottom:0,paddingLeft:1,paddingRight:1,paddingTop:1,paddingBottom:1}}
+                key={'thumbnailPlaceholder_'+image.image_hash}
                 height={100} 
                 width={100} 
                 src={'/thumbnail_placeholder.png'}/>
@@ -211,12 +202,12 @@ class PhotoDayGroup extends Component {
               transitionEnterTimeout={500}
               transitionLeaveTimeout={300}>
 
-              <Image 
+              <Image style={{marginLeft:0,marginRight:0,marginTop:0,marginBottom:0,paddingLeft:1,paddingRight:1,paddingTop:1,paddingBottom:1}}
                 key={image.image_hash}
                 onClick={()=>{this.onPhotoClick(idx)}}
                 height={100} 
                 width={100} 
-                src={serverAddress+image.square_thumbnail_url}/>
+                src={serverAddress+image.small_square_thumbnail_url}/>
 
             </ReactCSSTransitionGroup>
 
@@ -225,7 +216,7 @@ class PhotoDayGroup extends Component {
       },this)
       return(
         <div ref="photoGroupRef">
-          <Image.Group>
+          <Image.Group style={{marginLeft:0,marginRight:0,marginTop:0,marginBottom:0,paddingLeft:1,paddingRight:1,paddingTop:1,paddingBottom:1}}>
             {images}
           </Image.Group>
 
@@ -247,7 +238,7 @@ class PhotoDayGroup extends Component {
       )
     }
     else {
-      return(<DayPlaceholder numPhotos={this.props.album.photo_count}/>)
+      return(<DayPlaceholder sidebarVisible={this.props.sidebarVisible} numPhotos={this.props.album.photo_count}/>)
     }
   }
 }
@@ -288,7 +279,7 @@ class PhotoDayGroupReactGridGallery extends Component {
       )
     }
     else {
-      return(<DayPlaceholder numPhotos={this.props.album.photo_count}/>)
+      return(<DayPlaceholder sidebarVisible={this.props.sidebarVisible} numPhotos={this.props.album.photo_count}/>)
     }
   }}
 
@@ -313,14 +304,14 @@ export class AllPhotosView extends Component {
               </Header.Content>
             </Header>
             <LazyLoad 
-              debounce={100}
+              debounce={500}
               unmountIfInvisible={false}
-              height={calculateDayHeight()} 
+              height={calculateDayHeight(album.photo_count,this.props.sidebarVisible)} 
               placeholder={(
-                <DayPlaceholder numPhotos={album.photo_count}/>
+                <div style={{height:calculateDayHeight(album.photo_count,this.props.sidebarVisible)}}></div>
               )}>
 
-              <PhotoDayGroup key={'photoDayGroup_'+album.id} album={album}/>
+              <PhotoDayGroup sidebarVisible={true} key={'photoDayGroup_'+album.id} album={album}/>
 
             </LazyLoad>
           </div>
@@ -346,20 +337,8 @@ export class AllPhotosView extends Component {
     }
     else {
       return (
-        <div>
-          <div style={{width:'100%', textAlign:'center'}}>
-            <Icon.Group size='huge'>
-              <Icon inverted circular name='image'/>
-            </Icon.Group>
-          </div>
-          <Header as='h1' icon textAlign='center'>
-            <Header.Content>
-              Events
-              <Header.Subheader>All Photos</Header.Subheader>
-              <Header.Subheader>- Days</Header.Subheader>
-            </Header.Content>
-          </Header>
-          <Divider hidden/>
+        <div style={{paddingTop:'30%'}}>
+          <Loader active inline='centered' />
         </div>
       )
     }

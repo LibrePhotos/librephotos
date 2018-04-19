@@ -10,7 +10,9 @@ import {
 
 import {Container, Divider, Menu, Grid, Segment, Button, Icon, Rail, Header, Sidebar, Sticky} from 'semantic-ui-react'
 
-import {SideMenu} from './layouts/sidebar'
+import {SideMenuNarrow, TopMenu} from './layouts/menubars'
+
+import {Albums} from './layouts/albums'
 
 import {AlbumPeopleGallery, AlbumAutoGallery} from './components/album'
 
@@ -52,14 +54,14 @@ import {SearchView} from './layouts/search'
 
 import {ImageInfoTable} from './components/imageInfoTable'
 
-var topMenuHeight = 40 // don't change this
-var leftMenuWidth = 150 // don't change this
+var topMenuHeight = 55 // don't change this
+var leftMenuWidth = 85 // don't change this
 
 class App extends Component {
 
-  state = { sidebarVisible: false }
+  state = { sidebarVisible: true }
 
-  toggleVisibility = () => this.setState({ sidebarVisible: !this.state.sidebarVisible })
+  toggleVisibility = () => this.setState({ sidebarVisible: true })
 
   render() {
     const { sidebarVisible } = this.state
@@ -72,36 +74,18 @@ class App extends Component {
     return (
       <Router>
         <div>
-          <div style={{
-            left:0,right:0,
-            position:'sticky',top:0,
-            marginLeft:menuSpacing+20,
-            marginTop:20,
-            width: 34, height:31,
-            backgroundColor:'white',
-            borderRadius:3,
-            borderColor:'#d4d4d4',
-            borderWidth:1,
-            borderStyle:'solid',
-            zIndex:1
-          }}>
-              <Icon size='big' name='content'onClick={this.toggleVisibility} />
-          </div>
+          <SideMenuNarrow visible={true}/>
+          <TopMenu style={{zIndex:-1}}/>
+          <div style={{paddingLeft:menuSpacing+5,paddingRight:5}}>
 
-          <SideMenu visible={sidebarVisible}/>
-
-
-          <div style={{marginLeft:menuSpacing}}>
-
-            <div style={{marginLeft:20,marginRight:20}}>
+            <div style={{paddingTop:topMenuHeight+15}}>
             
-            
-            <Divider hidden/>
-            <Divider hidden/>
 
             <Route exact path="/" component={AllPhotosView}/>
 
             <Route path='/test' component={CountryPiChart}/>
+
+            <Route path='/albums' component={Albums}/>            
 
             <Route path='/niy' component={ImageInfoTable}/>
 

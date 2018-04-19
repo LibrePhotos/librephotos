@@ -27,16 +27,18 @@ export class FaceClusterScatter extends Component {
         return (person_name===el.person_name)
       })
       var thisPersonData = thisPersonVis.map(function(el){
+        console.log(el)
         return (
           {
             x: el.value.x,
             y: el.value.y,
             size: el.value.size,
             name: el.person_name,
+            color: el.color,
           }
         )
       })
-      return (<MarkSeries key={"cluster-marker-"+idx} animation data={thisPersonData}/>)
+      return (<MarkSeries colorType="literal" key={"cluster-marker-"+idx} animation data={thisPersonData}/>)
     })
     return (
       <Segment>

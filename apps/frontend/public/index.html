@@ -9,10 +9,13 @@
       homescreen on Android. See https://developers.google.com/web/fundamentals/engage-and-retain/web-app-manifest/
     -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.1.0/leaflet.css" />
+
     <style type="text/css">
       .leaflet-container {
         height: 250px;
         width: 100%;
+        z-index: 2;
+        position: relative;
       }
     </style>
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json">

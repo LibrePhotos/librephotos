@@ -38,7 +38,7 @@ export class LocationMap extends Component {
 
     if (photosWithGPS.length>0){
       return (
-        <div>
+        <div style={{zIndex:2}}>
           <Map center={[avg_lat,avg_lon]} zoom={2}>
             <TileLayer
               attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
@@ -166,7 +166,7 @@ export class LocationClusterMap extends Component {
       var markers = this.preprocess()
 
       return (
-        <div>
+        <div style={{zIndex:2}}>
           <Map center={[40,0]} zoom={1}>
             <TileLayer
               attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
