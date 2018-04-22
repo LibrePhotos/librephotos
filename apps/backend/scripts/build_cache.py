@@ -45,6 +45,10 @@ for result in resp_album_person.json()['results']:
 	album_resp = requests.get('http://localhost:8000/api/albums/person/%d/'%album_id, auth=auth)
 	print('album_person %d: \t| %.2f ms'%(album_id, album_resp.elapsed.total_seconds()*1000))
 
+print('========== THING ALBUMS ===============')
+resp_album_thing = requests.get('http://localhost:8000/api/albums/thing/list/',auth=auth)
+print('album_thing_list: \t| %.2f ms'%(resp_album_thing.elapsed.total_seconds()*1000))
+
 
 end = datetime.datetime.now()
 
