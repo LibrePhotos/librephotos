@@ -29,12 +29,16 @@ router = routers.DefaultRouter()
 router.register(r'api/albums/auto/list', views.AlbumAutoListViewSet)
 router.register(r'api/albums/date/list', views.AlbumDateListViewSet)
 router.register(r'api/albums/person/list', views.AlbumPersonListViewSet)
+router.register(r'api/albums/thing/list', views.AlbumThingListViewSet)
 
 router.register(r'api/albums/auto', views.AlbumAutoViewSet)
 router.register(r'api/albums/person', views.AlbumPersonViewSet)
 router.register(r'api/albums/date', views.AlbumDateViewSet)
+router.register(r'api/albums/thing', views.AlbumThingViewSet)
+
 router.register(r'api/persons', views.PersonViewSet)
 router.register(r'api/photos', views.PhotoViewSet)
+
 router.register(r'api/faces/inferred',views.FaceInferredViewSet)
 router.register(r'api/faces/labeled',views.FaceLabeledViewSet)
 router.register(r'api/faces', views.FaceViewSet)

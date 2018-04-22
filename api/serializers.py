@@ -1,4 +1,4 @@
-from api.models import Photo, AlbumAuto, AlbumUser, Face, Person, AlbumDate
+from api.models import Photo, AlbumAuto, AlbumUser, Face, Person, AlbumDate, AlbumThing
 from rest_framework import serializers
 import ipdb
 import json
@@ -11,6 +11,11 @@ class PhotoSerializer(serializers.ModelSerializer):
     square_thumbnail_url = serializers.SerializerMethodField()
     small_thumbnail_url = serializers.SerializerMethodField()
     big_thumbnail_url = serializers.SerializerMethodField()
+    big_square_thumbnail_url = serializers.SerializerMethodField()
+    small_square_thumbnail_url = serializers.SerializerMethodField()
+    tiny_square_thumbnail_url = serializers.SerializerMethodField()
+
+
     image_url = serializers.SerializerMethodField()
     people = serializers.SerializerMethodField()
     # geolocation = serializers.SerializerMethodField()
@@ -27,7 +32,12 @@ class PhotoSerializer(serializers.ModelSerializer):
                   'thumbnail_width',
                   'small_thumbnail_url',
                   'big_thumbnail_url',
+
                   'square_thumbnail_url',
+                  'big_square_thumbnail_url',
+                  'small_square_thumbnail_url',
+                  'tiny_square_thumbnail_url',
+
                   'geolocation_json',
                   'exif_json',
                   'people',
@@ -35,6 +45,7 @@ class PhotoSerializer(serializers.ModelSerializer):
                   'image_hash',
                   'image_path',
                   'favorited')
+        
     def get_thumbnail_url(self, obj):
         try:
             return obj.thumbnail.url
@@ -60,6 +71,29 @@ class PhotoSerializer(serializers.ModelSerializer):
             return obj.thumbnail_small.url
         except:
             return None
+
+    def get_big_square_thumbnail_url(self, obj):
+        try:
+            return obj.square_thumbnail_big.url
+        except:
+            return None
+
+
+    def get_small_square_thumbnail_url(self, obj):
+        try:
+            return obj.square_thumbnail_small.url
+        except:
+            return None
+
+
+    def get_tiny_square_thumbnail_url(self, obj):
+        try:
+            return obj.square_thumbnail_tiny.url
+        except:
+            return None
+
+
+
     def get_big_thumbnail_url(self, obj):
         try:
             return obj.thumbnail_big.url
@@ -177,6 +211,63 @@ def extract_date(entity):
     return entity.exif_timestamp.date()
 
 from itertools import groupby
+
+
+
+
+
+
+
+
+
+class AlbumThingSerializer(serializers.ModelSerializer):
+    photos = PhotoSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = AlbumThing
+        fields = (
+            "id",   
+            "title",
+            "photos")
+
+class AlbumThingListSerializer(serializers.ModelSerializer):
+#     photos = PhotoSerializer(many=True, read_only=True)
+    people = serializers.SerializerMethodField()
+    cover_photo_urls = serializers.SerializerMethodField()
+    photo_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AlbumThing
+        fields = (
+            "id",   
+            "people",
+            "cover_photo_urls",
+            "title",
+            "photo_count")
+
+    def get_photo_count(self,obj):
+        return obj.photos.count()
+
+    def get_cover_photo_urls(self,obj):
+        first_photos = obj.photos.all()[:4]
+        return [first_photo.square_thumbnail.url for first_photo in first_photos]
+
+    def get_people(self,obj):
+        # ipdb.set_trace()
+        photos = obj.photos.all()
+        res = []
+        for photo in photos:
+            faces = photo.faces.all()
+            for face in faces:
+                serialized_person = PersonSerializer(face.person).data
+                if serialized_person not in res:
+                    res.append(serialized_person)
+        return res
+
+
+
+
+
 
 
 
