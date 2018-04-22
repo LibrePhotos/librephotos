@@ -19,6 +19,10 @@ from config import mapzen_api_key, mapbox_api_key
 import logging
 import logging.handlers
 
+import spacy
+
+nlp = spacy.load('en_core_web_sm')
+
 logger = logging.getLogger('ownphotos')
 fomatter = logging.Formatter(
     '%(asctime)s : %(filename)s : %(funcName)s : %(lineno)s : %(levelname)s : %(message)s')

@@ -44,7 +44,25 @@ INSTALLED_APPS = [
     'api',
     'rest_framework',
     'corsheaders',
+    # 'cacheops',
 ]
+
+# CACHEOPS_REDIS = {
+#     'host': '172.17.0.4', # redis-server is on same machine
+#     'port': 6379,        # default redis port
+#     'db': 1             # SELECT non-default redis database
+# }
+
+# CACHEOPS_DEFAULTS = {
+#     'timeout': 60*60
+# }
+
+# CACHEOPS = {
+#     'auth.user': {'ops': 'get', 'timeout': 60*15},
+#     'auth.*': {'ops': ('fetch', 'get')},
+#     'auth.permission': {'ops': 'all'},
+#     '*.*': {'ops':'all', 'timeout': 60*15}
+# }
 
 
 REST_FRAMEWORK = {
@@ -119,7 +137,7 @@ CACHES = {
         'LOCATION': os.environ['CACHE_HOST_PORT'],
         'TIMEOUT': 60 * 60 * 24 , # 1 day
         'OPTIONS': {
-            'server_max_value_length': 1024 * 1024* 10, #10mb
+            'server_max_value_length': 1024 * 1024 * 50, #50mb
         }
     }
 }
@@ -166,6 +184,8 @@ STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR,'media')
 
+
+THUMBNAIL_SIZE_TINY = (30,30)
 THUMBNAIL_SIZE_SMALL = (100,100)
 THUMBNAIL_SIZE_MEDIUM = (250,250)
 THUMBNAIL_SIZE = (250,250)

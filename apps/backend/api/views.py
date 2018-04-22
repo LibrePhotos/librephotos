@@ -3,7 +3,7 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from api.models import Photo, AlbumAuto, AlbumUser, Face, Person, AlbumDate
+from api.models import Photo, AlbumAuto, AlbumUser, Face, Person, AlbumDate, AlbumThing
 from rest_framework import viewsets
 from api.serializers import PhotoSerializer
 from api.serializers import FaceSerializer
@@ -11,11 +11,13 @@ from api.serializers import PersonSerializer
 from api.serializers import AlbumAutoSerializer
 from api.serializers import AlbumPersonSerializer
 from api.serializers import AlbumDateSerializer
+from api.serializers import AlbumThingSerializer
 
 
 from api.serializers import AlbumAutoListSerializer
 from api.serializers import AlbumPersonListSerializer
 from api.serializers import AlbumDateListSerializer
+from api.serializers import AlbumThingListSerializer
 
 
 from api.face_classify import train_faces, cluster_faces
@@ -56,7 +58,7 @@ from rest_framework_extensions.key_constructor.bits import (
 )
 
 # CACHE_TTL = 60 * 60 * 24 # 1 day
-CACHE_TTL = 60 * 60 * 24  # 1 min
+CACHE_TTL = 60*60*24  # 1 min
 
 #caching stuff straight out of https://chibisov.github.io/drf-extensions/docs/#caching
 class UpdatedAtKeyBit(KeyBitBase):
@@ -85,6 +87,11 @@ class StandardResultsSetPagination(PageNumberPagination):
     page_size = 1000
     page_size_query_param = 'page_size'
     max_page_size = 10000
+
+class SmallResultsSetPagination(PageNumberPagination):
+    page_size = 100
+    page_size_query_param = 'page_size'
+    max_page_size = 200
 
 # Create your views here.
 
@@ -256,6 +263,44 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
     @cache_response(CACHE_TTL,key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(AlbumDateListViewSet, self).list(*args, **kwargs)
+
+
+
+
+
+
+
+class AlbumThingViewSet(viewsets.ModelViewSet):
+    queryset = AlbumThing.objects.all().order_by('title')
+    serializer_class = AlbumThingSerializer
+    pagination_class = StandardResultsSetPagination
+
+    @cache_response(CACHE_TTL,key_func=CustomObjectKeyConstructor())
+    def retrieve(self, *args, **kwargs):
+        return super(AlbumThingViewSet, self).retrieve(*args, **kwargs)
+
+    @cache_response(CACHE_TTL,key_func=CustomListKeyConstructor())
+    def list(self, *args, **kwargs):
+        return super(AlbumThingViewSet, self).list(*args, **kwargs)
+
+
+class AlbumThingListViewSet(viewsets.ModelViewSet):
+    queryset = AlbumThing.objects.all().order_by('title')
+    serializer_class = AlbumThingListSerializer
+    pagination_class = StandardResultsSetPagination
+
+    @cache_response(CACHE_TTL,key_func=CustomObjectKeyConstructor())
+    def retrieve(self, *args, **kwargs):
+        return super(AlbumThingListViewSet, self).retrieve(*args, **kwargs)
+
+    @cache_response(CACHE_TTL,key_func=CustomListKeyConstructor())
+    def list(self, *args, **kwargs):
+        return super(AlbumThingListViewSet, self).list(*args, **kwargs)
+
+
+
+
+
 
 
 
