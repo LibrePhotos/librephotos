@@ -58,12 +58,10 @@ def scan_photos():
                     elapsed = (datetime.datetime.now() - start).total_seconds()
                     util.logger.info('thumbnail get took %.2f'%elapsed)
 
-
                     start = datetime.datetime.now()
                     photo._generate_captions()
                     elapsed = (datetime.datetime.now() - start).total_seconds()
                     util.logger.info('caption generation took %.2f'%elapsed)
-
 
                     start = datetime.datetime.now()
                     photo._save_image_to_db()
@@ -76,11 +74,11 @@ def scan_photos():
                     elapsed = (datetime.datetime.now() - start).total_seconds()
                     util.logger.info('exif extraction took %.2f'%elapsed)
 
-                    start = datetime.datetime.now()
-                    photo._geolocate_mapbox()
-                    photo.save()
-                    elapsed = (datetime.datetime.now() - start).total_seconds()
-                    util.logger.info('geolocation took %.2f'%elapsed)
+                    # start = datetime.datetime.now()
+                    # photo._geolocate_mapbox()
+                    # photo.save()
+                    # elapsed = (datetime.datetime.now() - start).total_seconds()
+                    # util.logger.info('geolocation took %.2f'%elapsed)
 
                     start = datetime.datetime.now()
                     photo._extract_faces()
@@ -90,6 +88,13 @@ def scan_photos():
                     start = datetime.datetime.now()
                     photo._add_to_album_date()
                     elapsed = (datetime.datetime.now() - start).total_seconds()
+                    util.logger.info('adding to AlbumDate took %.2f'%elapsed)
+
+                    start = datetime.datetime.now()
+                    photo._add_to_album_thing()
+                    elapsed = (datetime.datetime.now() - start).total_seconds()
+                    util.logger.info('adding to AlbumThing took %.2f'%elapsed)
+
                     added_photo_count += 1
                     util.logger.info("Image processed: {}".format(img_abs_path))
                 else:
