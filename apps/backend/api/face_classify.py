@@ -17,10 +17,17 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn import svm
 
+import seaborn as sns
 
 
 def cluster_faces():
     # for front end cluster visualization
+
+    people = [p.id for p in Person.objects.all()]
+    colors = sns.color_palette('Dark2',len(people)).as_hex()
+    p2c = dict(zip(people,colors))
+
+
     faces = Face.objects.all()
     face_encodings_all = []
     for face in faces:
@@ -42,6 +49,7 @@ def cluster_faces():
             "person_id":person_id,
             "person_name":person_name,
             "person_label_is_inferred":person_label_is_inferred,
+            "color":p2c[person_id],
             "face_url":face_url,
             "value":value}
         res.append(out)
@@ -111,6 +119,7 @@ def train_faces():
         face.person_label_is_inferred = True
         face.save()
 
+    return cluster_faces()
 
     # for front end cluster visualization
     faces = Face.objects.all()
