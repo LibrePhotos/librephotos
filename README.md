@@ -159,6 +159,20 @@ th webcam/daemon.lua & python webcam/server.py
 The flask server will listen on port 5000. The only request you can make is POST to `/` with the request body consisting of base64 encoded image file.
 
 
+
+**Download and install the model files for places365 pretrained model**
+
+https://drive.google.com/open?id=1Zbe4NcwocGtZ7l7naGKnn7HorMeLejJU
+Unzip the contents into `api/places365/model/`.
+
+
+**Install Spacy default english model**
+```
+python -m spacy download en_core_web_sm
+```
+
+
+
 **Start the server process** (make sure it's running on port 8000, or go through the entire front end code to replace occurances of `localhost:8000` with the appropriate `hostname:port`)
 
 ```bash
