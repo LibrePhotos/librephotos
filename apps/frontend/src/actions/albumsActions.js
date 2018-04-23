@@ -1,6 +1,21 @@
 import axios from "axios";
 import {Server} from '../api_client/apiClient'
 
+
+export function fetchThingAlbumsList() {
+  return function(dispatch) {
+    dispatch({type:"FETCH_THING_ALBUMS_LIST"});
+    Server.get("albums/thing/list/")
+      .then((response) => {
+        dispatch({type:"FETCH_THING_ALBUMS_LIST_FULFILLED", payload: response.data.results})
+      })
+      .catch((err) => {
+        dispatch({type:"FETCH_THING_ALBUMS_LIST_REJECTED", payload: err})        
+      })
+  }
+}
+
+
 export function fetchPeopleAlbums(person_id) {
   return function(dispatch) {
     dispatch({type: "FETCH_PEOPLE_ALBUMS"});
@@ -26,9 +41,9 @@ export function generateAutoAlbums() {
       .catch((err) => {
         dispatch({type: "GENERATE_AUTO_ALBUMS_REJECTED", payload: err})
       })
-
 	}
 }
+
 
 export function fetchAutoAlbums() {
   return function(dispatch) {

@@ -207,7 +207,7 @@ class PhotoDayGroup extends Component {
                 onClick={()=>{this.onPhotoClick(idx)}}
                 height={100} 
                 width={100} 
-                src={serverAddress+image.small_square_thumbnail_url}/>
+                src={serverAddress+image.square_thumbnail_url}/>
 
             </ReactCSSTransitionGroup>
 
@@ -304,7 +304,7 @@ export class AllPhotosView extends Component {
               </Header.Content>
             </Header>
             <LazyLoad 
-              debounce={500}
+              throttle={300}
               unmountIfInvisible={false}
               height={calculateDayHeight(album.photo_count,this.props.sidebarVisible)} 
               placeholder={(

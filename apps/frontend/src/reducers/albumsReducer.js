@@ -30,6 +30,10 @@ export default function reducer(state={
     fetchedAlbumsDateGalleries: false,
 
 
+    albumsThingList:[],
+    fetchingAlbumsThingList: false,
+    fetchedAlbumsThingList: false,
+
     error: null,
   }, action) {
 
@@ -68,6 +72,7 @@ export default function reducer(state={
     }
   
 
+
     case "GENERATE_AUTO_ALBUMS": {
       return {...state, generatingAlbumsAuto: true}
     }
@@ -81,7 +86,6 @@ export default function reducer(state={
         generatedAlbumsAuto: true,
       }
     }
-
 
 
 
@@ -152,6 +156,27 @@ export default function reducer(state={
         albumsDateGalleries: new_album
       }
     }
+
+
+
+
+
+
+    case "FETCH_THING_ALBUMS_LIST": {
+      return {...state, fetchingAlbumsThingList: true}
+    }
+    case "FETCH_THING_ALBUMS_LIST_REJECTED": {
+      return {...state, fetchingAlbumsThingList: false, error: action.payload}
+    }
+    case "FETCH_THING_ALBUMS_LIST_FULFILLED": {
+      return {
+        ...state,
+        fetchingAlbumsThingList: false,
+        fetchedAlbumsThingList: true,
+        albumsThingList: action.payload
+      }
+    }
+
 
 
 

@@ -29,6 +29,8 @@ import {AlbumDateGalleryView} from './layouts/albumDateGalleryView'
 import {AlbumAutoMonths} from './layouts/albumAutoMonths'
 import {AlbumDateMonths} from './layouts/albumDateMonths'
 
+import {AlbumThing} from './layouts/albumThing'
+
 import {AllPhotosView} from './layouts/allPhotosView'
 import {AllPhotosGroupedByDate} from './layouts/allPhotosGroupedByDate'
 
@@ -93,6 +95,8 @@ class App extends Component {
             <Route path="/login" component={LoginPage}/>
 
             <Route path="/favorite/auto" component={FavoriteAutoAlbumsView}/>
+
+            <Route path="/things" component={AlbumThing}/>
 
             <Route path="/faces" component={FacesDashboard}/>
             <Route path="/people" component={PeopleDashboard}/>

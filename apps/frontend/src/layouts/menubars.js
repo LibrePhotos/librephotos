@@ -137,6 +137,19 @@ export class SideMenuNarrow extends Component {
           <Icon name='users' corner />
         </Menu.Item>
 
+        <Menu.Item
+          onClick={this.handleItemClick}
+          active={activeItem==='things'}
+          content='People'
+          name='things'
+          as={Link}
+          to='/things'>
+          <Icon name='tags' corner />
+        </Menu.Item>
+
+
+
+
         <Divider hidden/>
 
         <Menu.Item
