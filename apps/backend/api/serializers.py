@@ -1,8 +1,30 @@
-from api.models import Photo, AlbumAuto, AlbumUser, Face, Person, AlbumDate, AlbumThing
+from api.models import Photo, AlbumAuto, AlbumUser, AlbumPlace, Face, Person, AlbumDate, AlbumThing
 from rest_framework import serializers
 import ipdb
 import json
 import time
+
+class PhotoHashListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Photo
+        fields = (
+            'image_hash',)
+
+class PhotoSimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Photo
+        fields = (
+           'thumbnail',
+           'square_thumbnail', 
+           'image',
+           'image_hash',
+           'exif_timestamp',
+           'exif_gps_lat',
+           'exif_gps_lon',
+           'favorited',
+           'geolocation_json',
+        )
+
 
 class PhotoSerializer(serializers.ModelSerializer):
     thumbnail_url = serializers.SerializerMethodField()
@@ -166,6 +188,25 @@ class PersonSerializer(serializers.ModelSerializer):
 #             res.append(PhotoSerializer(face.photo).data)
 #         return res
 
+
+
+class FaceListSerializer(serializers.ModelSerializer):
+    person_name = serializers.SerializerMethodField()
+    class Meta:
+        model = Face
+        fields = ('id',
+                  'image',
+                  'person',
+                  'person_name')
+
+    def get_person_name(self,obj):
+        return obj.person.name
+
+
+
+
+
+
 class FaceSerializer(serializers.ModelSerializer):
     face_url = serializers.SerializerMethodField()
 #     photo = PhotoSerializer(many=False, read_only=True)
@@ -206,11 +247,52 @@ class FaceSerializer(serializers.ModelSerializer):
 #         person_data = validated_data.pop('id')
 
 
-def extract_date(entity):
-    'extracts the starting date from an entity'
-    return entity.exif_timestamp.date()
 
-from itertools import groupby
+
+
+
+
+
+
+
+
+class AlbumPlaceSerializer(serializers.ModelSerializer):
+    photos = PhotoSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = AlbumPlace
+        fields = (
+            "id",   
+            "title",
+            "photos")
+
+class AlbumPlaceListSerializer(serializers.ModelSerializer):
+#     photos = PhotoSerializer(many=True, read_only=True)
+    # people = serializers.SerializerMethodField()
+    cover_photo_urls = serializers.SerializerMethodField()
+    photo_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AlbumPlace
+        fields = (
+            "id",   
+            # "people",
+            "cover_photo_urls",
+            "title",
+            "photo_count")
+
+    def get_photo_count(self,obj):
+        return obj.photos.count()
+
+    def get_cover_photo_urls(self,obj):
+        first_photos = obj.photos.all()[:4]
+        return [first_photo.square_thumbnail.url for first_photo in first_photos]
+
+
+
+
+
+
 
 
 
@@ -232,7 +314,7 @@ class AlbumThingSerializer(serializers.ModelSerializer):
 
 class AlbumThingListSerializer(serializers.ModelSerializer):
 #     photos = PhotoSerializer(many=True, read_only=True)
-    people = serializers.SerializerMethodField()
+    # people = serializers.SerializerMethodField()
     cover_photo_urls = serializers.SerializerMethodField()
     photo_count = serializers.SerializerMethodField()
 
@@ -240,7 +322,7 @@ class AlbumThingListSerializer(serializers.ModelSerializer):
         model = AlbumThing
         fields = (
             "id",   
-            "people",
+            # "people",
             "cover_photo_urls",
             "title",
             "photo_count")
@@ -252,17 +334,11 @@ class AlbumThingListSerializer(serializers.ModelSerializer):
         first_photos = obj.photos.all()[:4]
         return [first_photo.square_thumbnail.url for first_photo in first_photos]
 
-    def get_people(self,obj):
-        # ipdb.set_trace()
-        photos = obj.photos.all()
-        res = []
-        for photo in photos:
-            faces = photo.faces.all()
-            for face in faces:
-                serialized_person = PersonSerializer(face.person).data
-                if serialized_person not in res:
-                    res.append(serialized_person)
-        return res
+
+
+
+
+
 
 
 
@@ -290,6 +366,7 @@ class AlbumDateListSerializer(serializers.ModelSerializer):
     people = serializers.SerializerMethodField()
     cover_photo_url = serializers.SerializerMethodField()
     photo_count = serializers.SerializerMethodField()
+#     photos = PhotoHashListSerializer(many=True, read_only=True)
 
     class Meta:
         model = AlbumDate
@@ -300,6 +377,7 @@ class AlbumDateListSerializer(serializers.ModelSerializer):
             "title",
             "favorited",
             "photo_count",
+#             "photos",
             "date")
 
     def get_photo_count(self,obj):
@@ -321,6 +399,15 @@ class AlbumDateListSerializer(serializers.ModelSerializer):
                     res.append(serialized_person)
         return res
 
+class AlbumDateListWithPhotoHashSerializer(serializers.ModelSerializer):
+    photos = PhotoHashListSerializer(many=True, read_only=True)
+    class Meta:
+        model = AlbumDate
+        fields = (
+            "id",   
+            "photos",
+            "date")
+
 
 
 
@@ -329,30 +416,30 @@ class AlbumPersonSerializer(serializers.ModelSerializer):
 #     faces = FaceSerializer(many=True, read_only=False)
 #     faces = serializers.StringRelatedField(many=True)
     photos = serializers.SerializerMethodField()
-    people = serializers.SerializerMethodField()
+    # people = serializers.SerializerMethodField()
     class Meta:
         model = Person
         fields = ('name',
                   'photos',
-                  'people',
+                  # 'people',
                   'id',)
 #                   'faces')
     def get_photos(self,obj):
         faces = obj.faces.all()
         res = []
         for face in faces:
-            res.append(PhotoSerializer(face.photo).data)
+            res.append(PhotoSimpleSerializer(face.photo).data)
         return res
 
     # todo: remove this unecessary thing
-    def get_people(self,obj):
-        faces = obj.faces.all()
-        res = []
-        for face in faces:
-            serialized_person = PersonSerializer(face.person).data
-            if serialized_person not in res:
-                res.append(serialized_person)
-        return res
+    # def get_people(self,obj):
+    #     faces = obj.faces.all()
+    #     res = []
+    #     for face in faces:
+    #         serialized_person = PersonSerializer(face.person).data
+    #         if serialized_person not in res:
+    #             res.append(serialized_person)
+    #     return res
 
 
 class AlbumPersonListSerializer(serializers.ModelSerializer):
@@ -424,39 +511,14 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
 
 
 class AlbumAutoListSerializer(serializers.ModelSerializer):
-    people = serializers.SerializerMethodField()
-    cover_photo_url = serializers.SerializerMethodField()
-    photo_count = serializers.SerializerMethodField()
-
+    photos = PhotoHashListSerializer
+    
     class Meta:
         model = AlbumAuto
         fields = (
             "id",   
             "title",
             "timestamp",
-            "created_on",
-            "cover_photo_url",
-            "favorited",
-            "photo_count",
-            "gps_lat",
-            'people',
-            "gps_lon")
+            "photos",
+            "favorited")
 
-    def get_photo_count(self,obj):
-        return obj.photos.count()
-
-    def get_cover_photo_url(self,obj):
-        first_photo = obj.photos.first()
-        return first_photo.square_thumbnail.url
-
-    def get_people(self,obj):
-        # ipdb.set_trace()
-        photos = obj.photos.all()
-        res = []
-        for photo in photos:
-            faces = photo.faces.all()
-            for face in faces:
-                serialized_person = PersonSerializer(face.person).data
-                if serialized_person not in res:
-                    res.append(serialized_person)
-        return res

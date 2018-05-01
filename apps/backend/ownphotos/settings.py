@@ -78,8 +78,20 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': (
         'django_filters.rest_framework.DjangoFilterBackend',
     ),
-    'PAGE_SIZE': 20
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 20000,
 }
+
+
+REST_FRAMEWORK_EXTENSIONS = {
+    'DEFAULT_OBJECT_CACHE_KEY_FUNC':
+        'rest_framework_extensions.utils.default_object_cache_key_func',
+    'DEFAULT_LIST_CACHE_KEY_FUNC':
+        'rest_framework_extensions.utils.default_list_cache_key_func',
+}
+
+
+
 
 JWT_AUTH = {
     'JWT_EXPIRATION_DELTA': datetime.timedelta(hours=1),
@@ -131,17 +143,30 @@ DATABASES = {
     }
 }
 
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+#         'LOCATION': os.environ['CACHE_HOST_PORT'],
+#         'TIMEOUT': 60 * 60 * 24 , # 1 day
+#         'OPTIONS': {
+#             'server_max_value_length': 1024 * 1024 * 128, #50mb
+#         }
+#     }
+# }
+
+
+
+
 CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-        'LOCATION': os.environ['CACHE_HOST_PORT'],
-        'TIMEOUT': 60 * 60 * 24 , # 1 day
-        'OPTIONS': {
-            'server_max_value_length': 1024 * 1024 * 50, #50mb
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://"+os.environ['REDIS_HOST']+":"+os.environ["REDIS_PORT"]+"/1",
+        "TIMEOUT": 60*60*24,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
     }
 }
-
 
 
 # Password validation

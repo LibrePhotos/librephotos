@@ -74,11 +74,17 @@ def scan_photos():
                     elapsed = (datetime.datetime.now() - start).total_seconds()
                     util.logger.info('exif extraction took %.2f'%elapsed)
 
-                    # start = datetime.datetime.now()
-                    # photo._geolocate_mapbox()
-                    # photo.save()
-                    # elapsed = (datetime.datetime.now() - start).total_seconds()
-                    # util.logger.info('geolocation took %.2f'%elapsed)
+                    start = datetime.datetime.now()
+                    photo._geolocate_mapbox()
+                    photo.save()
+                    elapsed = (datetime.datetime.now() - start).total_seconds()
+                    util.logger.info('geolocation took %.2f'%elapsed)
+
+                    start = datetime.datetime.now()
+                    photo._add_to_album_place()
+                    photo.save()
+                    elapsed = (datetime.datetime.now() - start).total_seconds()
+                    util.logger.info('add to AlbumPlace took %.2f'%elapsed)
 
                     start = datetime.datetime.now()
                     photo._extract_faces()

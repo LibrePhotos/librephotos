@@ -48,6 +48,10 @@ def get_album_date(date):
 def get_album_thing(title):
     return AlbumThing.objects.get_or_create(title=title)
 
+def get_album_place(title):
+    return AlbumPlace.objects.get_or_create(title=title)
+
+
 class Photo(models.Model):
     image_path = models.FilePathField()
     image_hash = models.CharField(primary_key=True,max_length=32,null=False)
@@ -379,6 +383,16 @@ class Photo(models.Model):
             album_date.photos.add(self)
             album_date.save()
 
+    def _add_to_album_place(self):
+        if self.geolocation_json and len(self.geolocation_json) > 0:
+            if 'features' in self.geolocation_json.keys():
+                for feature in self.geolocation_json['features']:
+                    if 'text' in feature.keys():
+                        album_place = get_album_place(feature['text'])[0]
+                        album_place.photos.add(self)
+                        album_place.save()
+
+
     def __str__(self):
         return "%s"%self.image_hash
 
@@ -413,7 +427,7 @@ def get_unknown_person():
     return Person.objects.get_or_create(name='unknown',kind="UNKNOWN")
 
 class Face(models.Model):
-    photo = models.ForeignKey(Photo, related_name='faces', blank=False, null=False)
+    photo = models.ForeignKey(Photo, related_name='faces', on_delete=models.SET_NULL, blank=False, null=True)
     image = models.ImageField(upload_to='faces')
     image_path = models.FilePathField()
     
@@ -432,6 +446,14 @@ class Face(models.Model):
 
 
 class AlbumThing(models.Model):
+    title = models.CharField(unique=True,max_length=512,db_index=True)
+    photos = models.ManyToManyField(Photo)
+
+    def __str__(self):
+        return "%d: %s"%(self.id, self.title)
+
+
+class AlbumPlace(models.Model):
     title = models.CharField(unique=True,max_length=512,db_index=True)
     photos = models.ManyToManyField(Photo)
 
@@ -474,7 +496,7 @@ class AlbumAuto(models.Model):
             elif hour >= 18 and hour <=24:
                 time = "Evening"
 
-        when = ' '.join(weekday,time)
+        when = ' '.join([weekday,time])
 
         photos = self.photos.all()
 
