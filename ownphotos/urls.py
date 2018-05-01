@@ -28,16 +28,26 @@ router = routers.DefaultRouter()
 
 router.register(r'api/albums/auto/list', views.AlbumAutoListViewSet)
 router.register(r'api/albums/date/list', views.AlbumDateListViewSet)
+router.register(r'api/albums/date/photohash/list', views.AlbumDateListWithPhotoHashViewSet)
 router.register(r'api/albums/person/list', views.AlbumPersonListViewSet)
 router.register(r'api/albums/thing/list', views.AlbumThingListViewSet)
+router.register(r'api/albums/place/list', views.AlbumPlaceListViewSet)
 
 router.register(r'api/albums/auto', views.AlbumAutoViewSet)
 router.register(r'api/albums/person', views.AlbumPersonViewSet)
 router.register(r'api/albums/date', views.AlbumDateViewSet)
 router.register(r'api/albums/thing', views.AlbumThingViewSet)
+router.register(r'api/albums/place', views.AlbumPlaceViewSet)
 
 router.register(r'api/persons', views.PersonViewSet)
+router.register(r'api/photos/list', views.PhotoHashListViewSet)
 router.register(r'api/photos', views.PhotoViewSet)
+
+
+router.register(r'api/faces/inferred/list',views.FaceInferredListViewSet)
+router.register(r'api/faces/labeled/list',views.FaceLabeledListViewSet)
+router.register(r'api/faces/list', views.FaceListViewSet)
+
 
 router.register(r'api/faces/inferred',views.FaceInferredViewSet)
 router.register(r'api/faces/labeled',views.FaceLabeledViewSet)
@@ -50,6 +60,7 @@ urlpatterns = [
     url(r'^api/trainfaces', views.TrainFaceView.as_view()),
     url(r'^api/clusterfaces', views.ClusterFaceView.as_view()),
     url(r'^api/socialgraph', views.SocialGraphView.as_view()),
+    url(r'^api/egograph', views.EgoGraphView.as_view()),
     url(r'^api/scanphotos', views.ScanPhotosView.as_view()),
     url(r'^api/autoalbumgen', views.AutoAlbumGenerateView.as_view()),
 
@@ -66,3 +77,8 @@ urlpatterns = [
     url(r'^api/token-verify/', verify_jwt_token),
 ]+static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
+
+import debug_toolbar
+urlpatterns = [
+    url(r'^__debug__/', include(debug_toolbar.urls)),
+] + urlpatterns

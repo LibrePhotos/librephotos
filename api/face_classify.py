@@ -97,8 +97,8 @@ def train_faces():
 
     n_clusters = len(set(person_names_known.tolist()))
 
-    clf = SGDClassifier(loss='log',penalty='l2')
-    # clf = MLPClassifier(solver='lbfgs',alpha=1e-5,random_state=1)
+    # clf = SGDClassifier(loss='log',penalty='l2')
+    clf = MLPClassifier(solver='adam',alpha=1e-5,random_state=1,max_iter=400)
     # clf = svm.SVC(kernel='linear')
     # scaler = StandardScaler()
     # scaler.fit(face_encodings_all)

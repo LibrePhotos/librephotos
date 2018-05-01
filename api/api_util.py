@@ -25,6 +25,7 @@ import random
 
 from datetime import date, timedelta
 
+from tqdm import tqdm
 
 import seaborn as sns
 
@@ -228,14 +229,6 @@ def get_searchterms_wordcloud():
                     location_entities.append(feature['text'].replace('(','').replace(')',''))
 
 
-
-
-
-
-
-
-
-
     caption_tokens = ' '.join(captions).replace(',',' ').split()
     location_tokens = ' '.join(locations).replace(',',' ').replace('(',' ').replace(')',' ').split()
 
@@ -249,8 +242,8 @@ def get_searchterms_wordcloud():
     location_token_counts = Counter(location_entities)
 
 
-    caption_token_counts = [{'label':key,'y':np.log(value)} for key,value in caption_token_counts.items()]
-    location_token_counts = [{'label':key,'y':np.log(value)} for key,value in location_token_counts.items()]
+    caption_token_counts = [{'label':key,'y':np.log(value)} for key,value in caption_token_counts.most_common(50)]
+    location_token_counts = [{'label':key,'y':np.log(value)} for key,value in location_token_counts.most_common(50)]
 
     out = {
         'captions':caption_token_counts,
