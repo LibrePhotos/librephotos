@@ -16,6 +16,8 @@ var UP_ARROW_KEY = 38;
 var LEFT_ARROW_KEY = 37;
 var DOWN_ARROW_KEY = 40;
 
+
+
 function calculatePhotoResHeight(numPhotos) {
   if (window.innerWidth < 500) {
     var width = 450
@@ -110,7 +112,6 @@ class PhotoResPlaceholder extends Component {
     )
   }
 }
-
 
 export class SearchBar extends Component {
 	constructor(props) {
@@ -254,7 +255,12 @@ export class PhotoSearchResult extends Component {
 
 		return (
 			<div ref="photoSearchResultRef">
-				<Header>
+
+        <Header as='h3'>
+          Search results for "<i>{this.props.query}</i>"
+        </Header>
+
+				<Header as='h4'>
 					<Header.Content>
 						Photos
 						<Header.Subheader>
@@ -284,25 +290,15 @@ export class PhotoSearchResult extends Component {
 	}
 }
 
+
+
+
 export class SearchView extends Component {
 	render() {
 		return (
-			<Container fluid>
-        
-        <Header as='h2' icon textAlign='center'>
-          <Header.Content>
-            <Icon size='small' name='search'/>Search
-            <Header.Subheader>Search your photos by people, location, and things</Header.Subheader>
-          </Header.Content>
-        </Header>
-
-        <Divider hidden/>
-				
-        <SearchBar/>
-				<Divider hidden/>
+			<div style={{padding:20}}>
 				<PhotoSearchResult/>
-
-			</Container>
+			</div>
 		)
 	}
 }

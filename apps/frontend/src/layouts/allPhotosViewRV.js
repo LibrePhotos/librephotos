@@ -196,7 +196,7 @@ export class PhotoCard extends Component {
           <Image 
             height={150} 
             width={150} 
-            src={serverAddress+this.props.photo.square_thumbnail_url}/>
+            src={serverAddress+this.props.photo.tiny_square_thumbnail_url}/>
       </div>
     )
   }

@@ -3,6 +3,10 @@ export default function reducer(state={
 	scannedPhotos: false,
   error: null,
 
+  photoDetails:{},
+  fetchingPhotoDetail: false,
+  fetchedPhotoDetail: false,
+
   photos: [],
   fetchedPhotos: false,
   fetchingPhotos: false,
@@ -38,6 +42,26 @@ export default function reducer(state={
         fetchedPhotos: true,
         photos: action.payload
       }
+    }
+
+    case "FETCH_PHOTO_DETAIL": {
+        return {
+            ...state,
+            fetchingPhotoDetail:true
+        }
+    }
+    case "FETCH_PHOTO_DETAIL_FULFILLED": {
+      var newPhotoDetails = {...state.photoDetails}
+      newPhotoDetails[action.payload.image_hash] = action.payload
+      return {
+        ...state,
+        fetchingPhotoDetail: false,
+        fetchedPhotoDetail: true,
+        photoDetails: newPhotoDetails 
+      }
+    }
+    case "FETCH_PHOTO_DETAIL_REJECTED": {
+      return {...state, fetchingPhotoDetail: false, error: action.payload}
     }
 
 

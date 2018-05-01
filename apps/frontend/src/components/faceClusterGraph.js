@@ -27,7 +27,6 @@ export class FaceClusterScatter extends Component {
         return (person_name===el.person_name)
       })
       var thisPersonData = thisPersonVis.map(function(el){
-        console.log(el)
         return (
           {
             x: el.value.x,

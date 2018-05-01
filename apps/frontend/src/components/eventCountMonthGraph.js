@@ -24,7 +24,9 @@ export class EventCountMonthGraph extends Component {
   }
 
   componentWillMount() {
-    this.props.dispatch(fetchPhotoMonthCounts())
+    if (!this.props.fetchedPhotoMonthCounts){
+      this.props.dispatch(fetchPhotoMonthCounts())
+    }
   }
 
 

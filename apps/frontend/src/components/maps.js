@@ -1,5 +1,6 @@
 import React, {Component} from 'react'
 import { connect } from "react-redux";
+import {Loader ,Segment} from 'semantic-ui-react'
 import { Map, TileLayer, Marker } from 'react-leaflet'
 import { scanPhotos,fetchPhotos} from '../actions/photosActions'
 import { fetchAutoAlbumsList } from '../actions/albumsActions'
@@ -37,9 +38,15 @@ export class LocationMap extends Component {
     console.log(markers)
 
     if (photosWithGPS.length>0){
+      if (this.props.zoom) {
+        var zoom = this.props.zoom
+      }
+      else {
+        var zoom = 2
+      }
       return (
         <div style={{zIndex:2}}>
-          <Map center={[avg_lat,avg_lon]} zoom={2}>
+          <Map center={[avg_lat,avg_lon]} zoom={zoom}>
             <TileLayer
               attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
               url='http://{s}.tile.osm.org/{z}/{x}/{y}.png'/>
@@ -143,7 +150,9 @@ export class LocationClusterMap extends Component {
   }
 
   componentDidMount() {
-    this.props.dispatch(fetchLocationClusters())
+    if (!this.props.fetchedLocationClusters) {
+      this.props.dispatch(fetchLocationClusters())
+    }
   }
 
 
@@ -166,20 +175,20 @@ export class LocationClusterMap extends Component {
       var markers = this.preprocess()
 
       return (
-        <div style={{zIndex:2}}>
-          <Map center={[40,0]} zoom={1}>
+        <Segment style={{zIndex:2, height:this.props.height,padding:0}}>
+          <Map style={{height:this.props.height}} center={[40,0]} zoom={1}>
             <TileLayer
               attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
               url='http://{s}.tile.osm.org/{z}/{x}/{y}.png'/>
             {markers}
           </Map>
-        </div>
+        </Segment>
       )
     }
 
     else {
       return (
-        <div></div>
+        <Segment style={{height:this.props.height}}><Loader active>Map loading...</Loader></Segment>
       )
     }
   }

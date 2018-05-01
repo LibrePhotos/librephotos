@@ -9,11 +9,13 @@ import {
   Route,
   Link
 } from 'react-router-dom'
-import {fetchPhotos} from '../actions/photosActions'
+import {simpleFetchPhotos} from '../actions/photosActions'
 import { Map, TileLayer, Marker } from 'react-leaflet'
 import {Server, serverAddress} from '../api_client/apiClient'
 import {fetchDateAlbumsList} from '../actions/albumsActions'
 import LazyLoad from 'react-lazyload';
+
+import ReactCSSTransitionGroup from 'react-transition-group/CSSTransitionGroup';
 
         // <div style={{
         //     display: "block",
@@ -27,11 +29,13 @@ import LazyLoad from 'react-lazyload';
         //     enableImageSelection={false}
         //     rowHeight={250}/>
         // </div>
+var SIDEBAR_WIDTH = 85;
 
 class ImagePlaceholder extends Component {
   render () {
     return (
-      <Image height={150} width={150} src={'http://placehold.jp/150x150.png'}/>
+      <div style={{height:this.props.size,width:this.props.size}}>
+      </div>
     )
   }
 }
@@ -41,6 +45,43 @@ export class AllPhotosGroupedByDate extends Component {
     super(props)
     this.groupPhotosByDate = this.groupPhotosByDate.bind(this)
     this.receivedAllProps = this.receivedAllProps.bind(this)
+    this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this)
+    this.groupedPhotosToImageGrids = this.groupedPhotosToImageGrids.bind(this)
+  	this.setState({
+      width:  window.innerWidth,
+      height: window.innerHeight,
+      entrySquareSize:200
+  	})
+  }
+
+  calculateEntrySquareSize() {
+  	if (window.innerWidth < 600) {
+  		var numEntrySquaresPerRow = 4
+  	} 
+    else if (window.innerWidth < 800) {
+      var numEntrySquaresPerRow = 6
+    }
+  	else if (window.innerWidth < 1000) {
+  		var numEntrySquaresPerRow = 8
+  	}
+    else if (window.innerWidth < 1200) {
+      var numEntrySquaresPerRow = 10
+    }
+  	else {
+  		var numEntrySquaresPerRow = 12
+  	}
+
+    var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15
+
+    console.log(columnWidth)
+    var entrySquareSize = columnWidth / numEntrySquaresPerRow
+    var numEntrySquaresPerRow = numEntrySquaresPerRow
+  	this.setState({
+      width:  window.innerWidth,
+      height: window.innerHeight,
+      entrySquareSize:entrySquareSize,
+      numEntrySquaresPerRow:numEntrySquaresPerRow
+  	})
   }
 
   receivedAllProps() {
@@ -66,7 +107,9 @@ export class AllPhotosGroupedByDate extends Component {
   }
 
   componentWillMount() {
-    this.props.dispatch(fetchPhotos())
+    this.props.dispatch(simpleFetchPhotos())
+    this.calculateEntrySquareSize();
+    window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
   }
 
   groupPhotosByDate() {
@@ -88,7 +131,6 @@ export class AllPhotosGroupedByDate extends Component {
         photosGroupedByDate['Unknown Date'].push(photo)        
       }
     })
-    console.log(photosGroupedByDate)
     return photosGroupedByDate
   }
 
@@ -98,14 +140,37 @@ export class AllPhotosGroupedByDate extends Component {
     for (var date in groupedPhotos) {
       if (groupedPhotos.hasOwnProperty(date)) {
         var imageGrid = groupedPhotos[date].map(function(photo){
-          console.log(photo.thumbnail_url)
           return (
-            <LazyLoad once offset={[150,150]} height={150} placeholder={<ImagePlaceholder/>}>
-              <Image height={150} width={150} src={serverAddress+photo.square_thumbnail_url}/>
+			<div style={{
+                width:this.state.entrySquareSize,
+                display:'inline-block'}}>
+            <LazyLoad once offset={500} height={this.state.entrySquareSize} placeholder={<ImagePlaceholder size={this.props.entrySquareSize}/>}>
+            <ReactCSSTransitionGroup
+              transitionName="example"
+              transitionAppear={true}
+              transitionAppearTimeout={500}
+              transitionEnterTimeout={500}
+              transitionLeaveTimeout={300}>
+              <Image 
+                style={{
+                    marginLeft:0,
+                    marginRight:0,
+                    marginTop:0,
+                    marginBottom:0,
+                    paddingLeft:1,
+                    paddingRight:1,
+                    paddingTop:1,
+                    paddingBottom:1}}
+                height={this.state.entrySquareSize} 
+                width={this.state.entrySquareSize} 
+                src={serverAddress+'/media/square_thumbnails_tiny/'+photo.image_hash+'.jpg'}/>
+            </ReactCSSTransitionGroup>
             </LazyLoad>
+            </div>
 
           )
-        })
+        },this)
+        var groupHeight = this.state.entrySquareSize*Math.ceil(groupedPhotos[date].length/this.state.numEntrySquaresPerRow.toFixed(1))
         var renderableImageGrid = (
           <div key={date} style={{paddingBottom:'20px'}}>
 
@@ -118,7 +183,14 @@ export class AllPhotosGroupedByDate extends Component {
               </Header.Content>
             </Header>
             
-            <LazyLoad height={100} placeholder={<div style={{height:'157px', width:'157px', backgroundColor:'#dddddd'}}>loading</div>}>
+            <LazyLoad 
+                height={groupHeight} 
+                offset={500} 
+                placeholder={
+                    <div style={{
+                        height:groupHeight, 
+                        backgroundColor:'white'}}></div>
+                }>
             <Image.Group>
               {imageGrid}
             </Image.Group>
@@ -133,6 +205,8 @@ export class AllPhotosGroupedByDate extends Component {
 
 
   render() {
+    var entrySquareSize = this.state.entrySquareSize
+    var numEntrySquaresPerRow = this.state.numEntrySquaresPerRow
     console.log('received all props?', this.receivedAllProps())
     if (this.props.fetchedPhotos){
       var groupedPhotos = this.groupPhotosByDate()
@@ -154,21 +228,6 @@ export class AllPhotosGroupedByDate extends Component {
     }
     return (
       <div>
-        <div>
-        <div style={{width:'100%', textAlign:'center'}}>
-          <Icon.Group size='huge'>
-            <Icon inverted circular name='image'/>
-            <Icon inverted circular corner name='wizard'/>
-          </Icon.Group>
-        </div>
-        <Header as='h1' icon textAlign='center'>
-          <Header.Content>
-            Photos
-            <Header.Subheader>{"All ya'll's photos"}</Header.Subheader>
-            <Header.Subheader>{this.props.photos.length} Photos</Header.Subheader>
-          </Header.Content>
-        </Header>
-        </div>
         {renderable}
       </div>
     )

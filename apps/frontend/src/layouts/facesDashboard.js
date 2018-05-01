@@ -3,7 +3,7 @@ import { Grid, Image, Icon, Header, Container, Divider, Button, Loader} from 'se
 import {FaceToLabel, FacesLabeled, FacesInferred, FaceStatistics, FaceTableLabeled, FaceTableInferred} from '../components/faces'
 import  FaceClusterScatter  from '../components/faceClusterGraph'
 import { connect } from "react-redux";
-import {trainFaces, clusterFaces} from '../actions/facesActions';
+import {trainFaces, clusterFaces, fetchInferredFacesList, fetchLabeledFacesList, fetchFacesList} from '../actions/facesActions';
           
 // <Icon name='id badge' circular />
 

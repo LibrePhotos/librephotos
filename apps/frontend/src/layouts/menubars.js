@@ -3,17 +3,55 @@ import { Link } from 'react-router-dom';
 import { Popup,Menu, Input, Icon, Sidebar, Divider, Image, Header } from 'semantic-ui-react';
 import { connect } from "react-redux";
 import {login, logout} from '../actions/authActions'
+import {searchPhotos} from '../actions/searchActions'
+import { push } from 'react-router-redux'
+import store from '../store'
 
+var ENTER_KEY = 13;
 
 export class TopMenu extends Component {
+
+  constructor(props) {
+    super(props)
+    this.handleSearch = this.handleSearch.bind(this)
+    this.handleChange = this.handleChange.bind(this)
+    this._handleKeyDown = this._handleKeyDown.bind(this)
+  }
+
+  componentWillMount() {
+    this.setState({searchText:''})
+    // document.addEventListener("keydown", this._handleKeyDown.bind(this));
+  }
+
+  componentWillUnmount() {
+    // document.removeEventListener("keydown", this._handleKeyDown.bind(this));
+  }
+
+  _handleKeyDown (event) {
+      switch( event.keyCode ) {
+          case ENTER_KEY:
+              this.props.dispatch(searchPhotos(this.state.searchText))
+              this.props.dispatch(push('/search'))
+              break;
+          default: 
+              break;
+      }
+  }
+
+
+  handleSearch(e,d) {
+    console.log(this.state.searchText)
+    this.props.dispatch(searchPhotos(this.state.searchText))
+    this.props.dispatch(push('/search'))
+  }
+
+  handleChange(e,d) {
+    this.state.searchText = d.value
+  }
+
   render() {
     return (
       <Menu borderless fixed='top' size='small' >
-
-
-        <Menu.Item>
-          <Icon size='large' name='content' corner />
-        </Menu.Item>
 
         <Menu.Item>
           <div style={{display:'inline',paddingRight:10, paddingLeft:20}}>
@@ -23,7 +61,15 @@ export class TopMenu extends Component {
         </Menu.Item>
 
         <Menu.Item position='right'>
-          <Input className='icon' icon='search' placeholder='Search...' />
+          <Input 
+            onChange={this.handleChange}
+            action={{ 
+              icon: 'search', 
+              basic:true, 
+              loading:this.props.searchingPhotos, 
+              onClick:this.handleSearch,
+            }} 
+            placeholder='Search...' />
         </Menu.Item>
 
       </Menu>
@@ -50,7 +96,7 @@ export class SideMenuNarrow extends Component {
           <Popup 
             inverted
             size='mini'
-            position='bottom'
+            position='right center'
             trigger={<Icon name='sign out' corner />}
             content="Sign out"/>
         </Menu.Item>
@@ -66,9 +112,10 @@ export class SideMenuNarrow extends Component {
           <Popup 
             inverted
             size='mini'
-            position='bottom'
-            trigger={<Icon name='sign in' corner />}
-            content="Sign in"/>
+            position='right center'
+            content="Sign in"
+            trigger={
+              <Icon name='sign in' corner />}/>
         </Menu.Item>
       )
     }
@@ -101,40 +148,32 @@ export class SideMenuNarrow extends Component {
           name='all photos'
           as={Link}
           to='/'>
-          <Icon name='image' corner />
+          <Popup 
+            inverted
+            size='mini'
+            position='right center'
+            content="All Photos"
+            trigger={
+              <Icon name='image' corner />}/>
         </Menu.Item>
+
+        <Divider hidden/>
 
 
         <Menu.Item
           onClick={this.handleItemClick}
-          active={activeItem==='date albums'}
-          content="Days"
-          name='date albums'
-          as={Link}
-          to='/albums/date'>
-          <Icon name='calendar outline' corner />
-        </Menu.Item>
-
-
-
-        <Menu.Item
-          onClick={this.handleItemClick}
-          active={activeItem==='auto albums'}
-          content="Events"
-          name='auto albums'
-          as={Link}
-          to='/albums/auto'>
-          <Icon name='wizard' corner />
-        </Menu.Item>
-
-        <Menu.Item
-          onClick={this.handleItemClick}
-          active={activeItem==='people albums'}
+          active={activeItem==='people'}
           content='People'
-          name='people albums'
+          name='people'
           as={Link}
-          to='/albums/people'>
-          <Icon name='users' corner />
+          to='/people'>
+          <Popup 
+            inverted
+            size='mini'
+            position='right center'
+            content="People"
+            trigger={
+            <Icon name='users' corner />}/>
         </Menu.Item>
 
         <Menu.Item
@@ -144,7 +183,49 @@ export class SideMenuNarrow extends Component {
           name='things'
           as={Link}
           to='/things'>
-          <Icon name='tags' corner />
+          <Popup 
+            inverted
+            size='mini'
+            position='right center'
+            content="Things"
+            trigger={
+              <Icon name='tags' corner />}/>
+        </Menu.Item>
+
+
+        <Menu.Item
+          onClick={this.handleItemClick}
+          active={activeItem==='places'}
+          content='Places'
+          name='places'
+          as={Link}
+          to='/places'>
+          <Popup 
+            inverted
+            size='mini'
+            position='right center'
+            content="Places"
+            trigger={
+            <Icon name='map outline' corner />}/>
+        </Menu.Item>
+
+
+
+
+        <Menu.Item
+          onClick={this.handleItemClick}
+          active={activeItem==='auto albums'}
+          content="Events"
+          name='auto albums'
+          as={Link}
+          to='/events'>
+          <Popup 
+            inverted
+            size='mini'
+            position='right center'
+            content="Events"
+            trigger={
+              <Icon name='wizard' corner />}/>
         </Menu.Item>
 
 
@@ -159,10 +240,30 @@ export class SideMenuNarrow extends Component {
           content="Statistics"
           as={Link}
           to='/statistics'>
-          <Icon name='bar chart' corner />
+          <Popup 
+            inverted
+            size='mini'
+            position='right center'
+            content="Cool Graphs"
+            trigger={
+            <Icon name='bar chart' corner />}/>
         </Menu.Item>
 
-
+        <Menu.Item
+          onClick={this.handleItemClick}
+          active={activeItem==='faces'}
+          name='faces'
+          content="Faces"
+          as={Link}
+          to='/faces'>
+          <Popup 
+            inverted
+            size='mini'
+            position='right center'
+            content="Face Dashboard"
+            trigger={
+            <Icon name='user circle outline' corner />}/>
+        </Menu.Item>
       </Menu>
     )
   }
@@ -325,6 +426,13 @@ SideMenu = connect((store)=>{
   }
 })(SideMenu)
 
+TopMenu = connect((store)=>{
+  return {
+    jwtToken: store.auth.jwtToken,
+    searchingPhotos: store.search.searchingPhotos,
+    searchedPhotos: store.search.searchedPhotos
+  }
+})(TopMenu)
 
 SideMenuNarrow = connect((store)=>{
   return {

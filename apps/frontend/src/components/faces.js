@@ -14,6 +14,7 @@ import { fetchFaces,
          labelFacePerson ,
          fetchFaceToLabel,
          loadFaceToLabel,
+         trainFaces,
          labelFacePersonAndFetchNext} from '../actions/facesActions';
 import VisibilitySensor from 'react-visibility-sensor'
 import {Server, serverAddress} from '../api_client/apiClient'
@@ -261,22 +262,21 @@ export class FaceToLabel extends Component {
   render() {
     console.log(this.props)
     return (
-      <div>
-        <Card.Group>
           <FaceCard
             card_loading={this.props.faceToLabelFetching}
             key={this.props.faceToLabel.id}
             face_id={this.props.faceToLabel.id}
             name={"hello"}
-            face_url={serverAddress+this.props.faceToLabel.face_url}/>
-        </Card.Group>
-      </div>
+            face_url={this.props.faceToLabel.image}/>
     )
   }
 }
 
 
 export class FaceCard extends Component {
+  state = { modalOpen: false }
+  handleOpen = () => this.setState({ modalOpen: true })
+  handleClose = () => this.setState({ modalOpen: false })
 
   render() {
     let image = null;
@@ -287,6 +287,7 @@ export class FaceCard extends Component {
             <Loader inverted />
           </Dimmer>
           <Image
+            src={'/unknown_user.jpg'}
             floated='right'
             hidden
             height={50}
@@ -306,11 +307,11 @@ export class FaceCard extends Component {
 
     if (this.props.face_id == null){
       return (
-          <Card fluid>
+          <Card fluid style={{height:220}}>
             <Card.Content>
               <Card.Header>
+                {image}
                 {"No more face to label!"}
-                <div style={{height:"28px", width:"50px"}}></div>
               </Card.Header>
             </Card.Content>
             <Card.Content extra>
@@ -321,17 +322,21 @@ export class FaceCard extends Component {
     }
 
     return (
-      <Card fluid>
-        <Card.Content>
-          <Card.Header>
-            {image}
-            {"Who is this person?"}
-          </Card.Header>
-        </Card.Content>
-        <Card.Content extra>
-          <FaceCardMenu face_id={this.props.face_id}/>
-        </Card.Content>
-      </Card>
+      <div>
+        <Card fluid style={{height:220}}>
+          <Card.Content>
+            <Card.Header>
+              {image}
+              {"Who is this person?"}
+            </Card.Header>
+          </Card.Content>
+          <Card.Content extra>
+            <FaceCardMenu face_id={this.props.face_id}/>
+          </Card.Content>
+        </Card>
+
+
+      </div>
     );
   }
 }
@@ -373,7 +378,7 @@ export class FaceCardMenu extends Component {
     }
     else {
       var buttonGroup = (
-        <div className='ui three buttons'>
+        <div className='ui four buttons'>
           <Popup
             trigger={<Button 
               onClick={this.handleDeleteFace}
@@ -385,17 +390,28 @@ export class FaceCardMenu extends Component {
             inverted
             basic/>
 
-          <Modal 
-            basic
+          <Popup 
             trigger={
               <Button 
               color='orange' 
               icon='photo'/>
-            }>
-            <Modal.Header>
-              <Image fluid src={'/unknown_user.jpg'}/>
-            </Modal.Header>
-          </Modal>
+            }
+            position="bottom right"
+            content={<Image fluid src={'/unknown_user.jpg'}/>}/>
+        
+          <Popup 
+            trigger={
+              <Button fluid
+                loading={this.props.training} 
+                color='blue'  
+                onClick={()=>{this.props.dispatch(trainFaces())}}>
+                <Icon name='lightning'/>
+              </Button>
+            }
+            inverted
+            size="tiny"
+            position="top center"
+            content="Train the classifier"/>    
 
           <Popup
             trigger={<Button 
@@ -492,11 +508,13 @@ FaceCard = connect((store)=>{
   return {
     people: store.people.people,
     peopleFetching: store.people.fetching,
+    training: store.faces.training
   }
 })(FaceCard)
 
 FaceCardMenu = connect((store)=>{
   return {
+    training: store.faces.training,
     faceToLabel: store.faces.faceToLabel,
     people: store.people.people,
     peopleFetching: store.people.fetching,

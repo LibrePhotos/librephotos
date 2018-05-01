@@ -90,7 +90,7 @@ export class AlbumPeopleCard extends Component {
           <VisibilitySensor>
             <Image 
               as={Link}
-              to={`peopleview/${this.props.person.key}`}
+              to={`/person/${this.props.person.key}`}
               size="big"
               src={personImageSrc}/>
           </VisibilitySensor>
@@ -548,11 +548,11 @@ export class AlbumDateCardPlainPlaceholder extends Component {
       <div style={{paddingLeft:'15px'}}>
         <div style={{
           backgroundColor:"white",
-          width:'130px',
-          height:'130px'}}>
+          width:'200px',
+          height:'200px'}}>
         </div>
         <div style={{
-          width:'130px',
+          width:'200px',
           height:'50px'}}>
 
           <div style={{padding:'5px'}}>
@@ -600,18 +600,18 @@ export class AlbumDateCardPlain extends Component {
       <div style={{paddingLeft:'15px'}}>
 
         <div style={{
-          width:'130px',
-          height:'130px'}}>
+          width:'200px',
+          height:'200px'}}>
 
           <LazyLoad
-            height={130}
+            height={200}
             placeholder={
               <Image 
-                height={130}
-                width={130}
+                height={200}
+                width={200}
                 src={'/thumbnail_placeholder.png'}/>}>
             <ReactCSSTransitionGroup
-              transitionName="example"
+              transitionName="thumbnail"
               transitionAppear={true}
               transitionAppearTimeout={500}
               transitionEnterTimeout={500}
@@ -619,7 +619,7 @@ export class AlbumDateCardPlain extends Component {
             <Image 
               as={Link}
               to={`/albums/dateview/${this.props.album.id}`}
-              height={130} width={130} 
+              height={200} width={200} 
               src={serverAddress+this.props.album.cover_photo_url}/>
             </ReactCSSTransitionGroup>
           </LazyLoad>
@@ -627,7 +627,7 @@ export class AlbumDateCardPlain extends Component {
 
 
         <div style={{
-          width:'130px',
+          width:'200',
           height:'50px'}}>
 
           <div style={{padding:'5px'}}>

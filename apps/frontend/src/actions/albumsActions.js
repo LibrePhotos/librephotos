@@ -16,6 +16,27 @@ export function fetchThingAlbumsList() {
 }
 
 
+
+
+export function fetchPlaceAlbumsList() {
+  return function(dispatch) {
+    dispatch({type:"FETCH_PLACE_ALBUMS_LIST"});
+    Server.get("albums/place/list/")
+      .then((response) => {
+        dispatch({type:"FETCH_PLACE_ALBUMS_LIST_FULFILLED", payload: response.data.results})
+      })
+      .catch((err) => {
+        dispatch({type:"FETCH_PLACE_ALBUMS_LIST_REJECTED", payload: err})        
+      })
+  }
+}
+
+
+
+
+
+
+
 export function fetchPeopleAlbums(person_id) {
   return function(dispatch) {
     dispatch({type: "FETCH_PEOPLE_ALBUMS"});
@@ -82,6 +103,26 @@ export function fetchDateAlbumsList() {
       })
       .catch((err) => {
         dispatch({type: "FETCH_DATE_ALBUMS_LIST_REJECTED", payload: err})
+      })
+  }
+}
+
+export function fetchDateAlbumsPhotoHashList() {
+  return function(dispatch) {
+    dispatch({type: "FETCH_DATE_ALBUMS_PHOTO_HASH_LIST"});
+    Server.get("albums/date/photohash/list/",{timeout:100000})
+      .then((response) => {
+        var idx2hash = [] 
+        response.data.results.forEach((day)=>{
+            day.photos.forEach((photo)=>{
+                idx2hash.push(photo.image_hash)
+            })
+        })
+        dispatch({type: "FETCH_DATE_ALBUMS_PHOTO_HASH_LIST_FULFILLED", payload: response.data.results})
+        dispatch({type: "SET_IDX_TO_IMAGE_HASH", payload: idx2hash})
+      })
+      .catch((err) => {
+        dispatch({type: "FETCH_DATE_ALBUMS_PHOTO_HASH_LIST_REJECTED", payload: err})
       })
   }
 }

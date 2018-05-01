@@ -5,23 +5,21 @@ import {XYPlot, XAxis, YAxis, HorizontalGridLines,
 import Dimensions from 'react-dimensions'
 import { connect } from "react-redux";
 import { Graph } from 'react-d3-graph';
-import { fetchSocialGraph } from '../actions/peopleActions'
+import { fetchSocialGraph, fetchEgoGraph } from '../actions/peopleActions'
 import {Server, serverAddress} from '../api_client/apiClient'
 import LazyLoad from 'react-lazyload';
 
 
 
-export class SocialGraph extends Component {
+export class EgoGraph extends Component {
 	componentWillMount() {
-		if (!this.props.fetched){
-			this.props.dispatch(fetchSocialGraph())
+		if (!this.props.egoGraph.hasOwnProperty(this.props.person_id)){
+			this.props.dispatch(fetchEgoGraph(this.props.person_id))
 		}
 	}
 
 	render(){
-		var width = this.props.containerWidth-30
 
-		console.log('social graph width',width)
 		var data = this.props.socialGraph
 		var myConfig = {
 			automaticRearrangeAfterDropNode: false,
@@ -30,36 +28,32 @@ export class SocialGraph extends Component {
 		    maxZoom: 4,
 		    minZoom: 0.1,
 		    node: {
-		    	fontSize: 10,
-		    	size: 500,
+		    	fontSize: 17,
+		    	size: 600,
 		        color: 'lightblue',
-		        highlightFontSize: 10,
+		        highlightFontSize: 17,
 		        highlightStrokeColor: 'orange'
 		    },
 		    link: {
 		        highlightColor: 'orange',
 		        color: '#12939A',
 		    },
-		    height: 250,
-		    width: width
+		    height: this.props.height,
+		    width: this.props.width
 		}
 
-		if (this.props.fetched) {
+		if (this.props.egoGraph.hasOwnProperty(this.props.person_id)) {
 			var graph = <Graph id='social-graph'
 					config={myConfig}
-					data={this.props.socialGraph}/>
+					data={this.props.egoGraph[this.props.person_id]}/>
 		}
 		else {
 			var graph = <Loader/>
 		}
 
-		console.log(this.props)
 		return (
-			<Segment>
-        <Header as='h3'>Social Graph</Header>
-        <div style={{height:'254px'}}>
+	        <Segment style={{padding:0,height:this.props.height}}>
   			{graph}
-  			</div>
 			</Segment>
 		)
 	}
@@ -68,12 +62,12 @@ export class SocialGraph extends Component {
 
 
 
-SocialGraph = connect((store)=>{
+EgoGraph = connect((store)=>{
   return {
-    socialGraph: store.people.socialGraph,
-    fetching: store.people.fetchingSocialGraph,
-    fetched: store.people.fetchedSocialGraph,
+    egoGraph: store.people.egoGraph,
+    fetching: store.people.fetchingEgoGraph,
+    fetched: store.people.fetchedEgoGraph,
   }
-})(SocialGraph)
+})(EgoGraph)
 
-export default Dimensions()(SocialGraph)
+export default Dimensions()(EgoGraph)

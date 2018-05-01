@@ -36,9 +36,8 @@ var SIDEBAR_WIDTH = 85;
 function calculateDayHeight(numPhotos,sidebarVisible) {
 
   var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15 
-  console.log(columnWidth)
 
-  var photoSize = 100
+  var photoSize = 250
   
   var spacePerRow = Math.floor(columnWidth / photoSize)
   if (spacePerRow >= numPhotos) {
@@ -82,7 +81,7 @@ class DayPlaceholder extends Component {
 
   calculatePlaceholderSize() {
     var numPhotos = this.props.numPhotos
-    var photoSize = 100
+    var photoSize = 250
     // var columnWidth = this.state.width - 120
 
 
@@ -183,14 +182,15 @@ class PhotoDayGroup extends Component {
       var images = this.props.albumsDateGalleries[this.props.album.id].photos.map(function(image,idx){
         return (
           <LazyLoad 
+            offset={1000}
             key={'thumbnail_'+image.image_hash}
             debounce={300}
-            height={100} 
+            height={250} 
             placeholder={
               <Image style={{marginLeft:0,marginRight:0,marginTop:0,marginBottom:0,paddingLeft:1,paddingRight:1,paddingTop:1,paddingBottom:1}}
                 key={'thumbnailPlaceholder_'+image.image_hash}
-                height={100} 
-                width={100} 
+                height={250} 
+                width={250} 
                 src={'/thumbnail_placeholder.png'}/>
               }
             >
@@ -205,8 +205,8 @@ class PhotoDayGroup extends Component {
               <Image style={{marginLeft:0,marginRight:0,marginTop:0,marginBottom:0,paddingLeft:1,paddingRight:1,paddingTop:1,paddingBottom:1}}
                 key={image.image_hash}
                 onClick={()=>{this.onPhotoClick(idx)}}
-                height={100} 
-                width={100} 
+                height={250} 
+                width={250} 
                 src={serverAddress+image.square_thumbnail_url}/>
 
             </ReactCSSTransitionGroup>
@@ -274,7 +274,7 @@ class PhotoDayGroupReactGridGallery extends Component {
             width: "100%",
             overflowX: "hidden",
             overflowY: 'auto'}}>
-          <Gallery images={images} rowHeight={100} showLightboxThumbnails={true}/>
+          <Gallery images={images} rowHeight={250} showLightboxThumbnails={true}/>
         </div>
       )
     }
@@ -304,7 +304,7 @@ export class AllPhotosView extends Component {
               </Header.Content>
             </Header>
             <LazyLoad 
-              throttle={300}
+              offset={1000}
               unmountIfInvisible={false}
               height={calculateDayHeight(album.photo_count,this.props.sidebarVisible)} 
               placeholder={(

@@ -11,6 +11,21 @@ export default function reducer(state={
     fetchingInferredFaces: false,
     fetchedInferredFaces: false,
 
+
+    facesList: [],
+    fetchingFacesList: false,
+    fetchedFacesList: false,
+    
+    labeledFacesList: [],
+    fetchingLabeledFacesList: false,
+    fetchedLabeledFacesList: false,
+
+    inferredFacesList: [],
+    fetchingInferredFacesList: false,
+    fetchedInferredFacesList: false,
+
+
+
     faceToLabel: {},
     fetchingFaceToLabel: false,
     fetchedFaceToLabel: false,
@@ -70,6 +85,76 @@ export default function reducer(state={
           inferredFaces: action.payload,
         }
       }
+
+
+
+
+
+
+
+
+      // fast list
+      case "FETCH_FACES_LIST": {
+        return {...state, fetchingFacesList: true}
+      }
+      case "FETCH_FACES_LIST_REJECTED": {
+        return {...state, fetchingFacesList: false, error: action.payload}
+      }
+      case "FETCH_FACES_LIST_FULFILLED": {
+        return {
+          ...state,
+          fetchingFacesList: false,
+          fetchedFacesList: true,
+          facesList: action.payload,
+        }
+      }
+
+      // labeled faces
+      case "FETCH_LABELED_FACES_LIST": {
+        return {...state, fetchingLabeledFacesList: true}
+      }
+      case "FETCH_LABELED_FACES_LIST_REJECTED": {
+        return {...state, fetchingLabeledFacesList: false, error: action.payload}
+      }
+      case "FETCH_LABELED_FACES_LIST_FULFILLED": {
+        return {
+          ...state,
+          fetchingLabeledFacesList: false,
+          fetchedLabeledFacesList: true,
+          labeledFacesList: action.payload,
+        }
+      }
+
+      // inferred faces
+      case "FETCH_INFERRED_FACES_LIST": {
+        return {...state, fetchingInferredFacesList: true}
+      }
+      case "FETCH_INFERRED_FACES_LIST_REJECTED": {
+        return {...state, fetchingInferredFacesList: false, error: action.payload}
+      }
+      case "FETCH_INFERRED_FACES_LIST_FULFILLED": {
+        return {
+          ...state,
+          fetchingInferredFacesList: false,
+          fetchedInferredFacesList: true,
+          inferredFacesList: action.payload,
+        }
+      }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
       //face to label

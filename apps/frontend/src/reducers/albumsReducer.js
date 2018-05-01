@@ -24,6 +24,10 @@ export default function reducer(state={
     fetchingAlbumsDateList: false,
     fetchedAlbumsDateList: false,
 
+    albumsDatePhotoHashList: [],
+    fetchingAlbumsDatePhotoHashList: false,
+    fetchedAlbumsDatePhotoHashList: false,
+    idx2hash: [],
 
     albumsDateGalleries: {},
     fetchingAlbumsDateGalleries: false,
@@ -33,6 +37,13 @@ export default function reducer(state={
     albumsThingList:[],
     fetchingAlbumsThingList: false,
     fetchedAlbumsThingList: false,
+
+
+    albumsPlaceList:[],
+    fetchingAlbumsPlaceList: false,
+    fetchedAlbumsPlaceList: false,
+
+
 
     error: null,
   }, action) {
@@ -140,6 +151,44 @@ export default function reducer(state={
       }
     }
 
+
+
+
+
+    case "FETCH_DATE_ALBUMS_PHOTO_HASH_LIST": {
+      return {...state, fetchingAlbumsDatePhotoHashList: true}
+    }
+    case "FETCH_DATE_ALBUMS_PHOTO_HASH_LIST_REJECTED": {
+      return {...state, fetchingAlbumsDatePhotoHashList: false, error: action.payload}
+    }
+    case "FETCH_DATE_ALBUMS_PHOTO_HASH_LIST_FULFILLED": {
+        console.log(action.payload.length)
+      return {
+        ...state,
+        fetchingAlbumsDatePhotoHashList: false,
+        fetchedAlbumsDatePhotoHashList: true,
+        albumsDatePhotoHashList: action.payload
+      }
+    }
+
+
+
+    case "SET_IDX_TO_IMAGE_HASH": {
+      return {
+        ...state,
+        idx2hash: action.payload
+      }
+    }
+    
+
+
+
+
+
+
+
+
+
     case "FETCH_DATE_ALBUMS_RETRIEVE": {
       return {...state, fetchingAlbumsDateGalleries: true}
     }
@@ -176,6 +225,31 @@ export default function reducer(state={
         albumsThingList: action.payload
       }
     }
+
+
+
+
+
+    case "FETCH_PLACE_ALBUMS_LIST": {
+      return {...state, fetchingAlbumsPlaceList: true}
+    }
+    case "FETCH_PLACE_ALBUMS_LIST_REJECTED": {
+      return {...state, fetchingAlbumsPlaceList: false, error: action.payload}
+    }
+    case "FETCH_PLACE_ALBUMS_LIST_FULFILLED": {
+      return {
+        ...state,
+        fetchingAlbumsPlaceList: false,
+        fetchedAlbumsPlaceList: true,
+        albumsPlaceList: action.payload
+      }
+    }
+
+
+
+
+
+
 
 
 

@@ -1,5 +1,5 @@
 import React, {Component} from 'react'
-import {Segment, Header} from 'semantic-ui-react'
+import {Segment, Header,Loader} from 'semantic-ui-react'
 import Dimensions from 'react-dimensions'
 import { connect } from "react-redux";
 import {fetchWordCloud} from '../../actions/utilActions'
@@ -14,7 +14,9 @@ export class WordCloud extends Component {
   }
 
   componentDidMount() {
-    this.props.dispatch(fetchWordCloud())
+    if (!this.props.fetchedWordCloud) {
+      // this.props.dispatch(fetchWordCloud())
+    }
   }
 
 
@@ -31,33 +33,35 @@ export class WordCloud extends Component {
         var title = 'Locations'
       }
       var chart = (
-        <Segment>
+        <div>
           <Header as='h3'>{title}</Header>
             <Chart 
               width={this.props.containerWidth-50}
-              height={250}
+              height={this.props.height-70}
               series={series}>
               <Transform method={['transpose']}>
                 <Cloud font='sans-serif' minFontsSize={10} maxFontSize={50}/>
               </Transform>
             </Chart>
-        </Segment>
+        </div>
       )
     }
     else {
-      var h = `250px`
+      var h = this.props.height-70
       var w = `${this.props.containerWidth-50}px`
       var chart = (
-        <Segment>
-          <Header as='h3'>{title}</Header>
-            <div style={{height:h, width:w}}></div>
-        </Segment>
+        <div>
+          <Header as='h3'>{this.props.type=='captions' ? "Things in your photos" : "Locations"}</Header>
+            <div style={{height:h, width:w}}>
+            <Loader active/>
+            </div>
+        </div>
       )
     }
     return (
-      <div>
+      <Segment style={{height:this.props.height}}>
         {chart}
-      </div>
+      </Segment>
     )
   }
 }

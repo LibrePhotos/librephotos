@@ -1,6 +1,7 @@
 export default function reducer(state={
     people: [],
     socialGraph: {},
+    egoGraph: {},
     fetching: false,
     fetched: false,
     adding: false,
@@ -8,6 +9,8 @@ export default function reducer(state={
     error: null,
     fetchingSocialGraph: false,
     fetchedSocialGraph: false,
+    fetchingEgoGraph: false,
+    fetchedEgoGraph: false,
   }, action) {
 
     switch (action.type) {
@@ -69,6 +72,29 @@ export default function reducer(state={
           socialGraph: action.payload,
         }
       }
+
+
+
+
+
+      case "FETCH_EGO_GRAPH": {
+        return {...state, fetchingEgoGraph: true}
+      }
+      case "FETCH_EGO_GRAPH_REJECTED": {
+        return {...state, fetchingEgoGraph: false, error: action.payload}
+      }
+      case "FETCH_EGO_GRAPH_FULFILLED": {
+        return {
+          ...state,
+          fetchingEgoGraph: false,
+          fetchedEgoGraph: true,
+          egoGraph: {...state.egoGraph, [action.payload.person_id]:action.payload.data},
+        }
+      }
+
+
+
+
 
 
 

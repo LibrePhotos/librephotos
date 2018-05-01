@@ -8,17 +8,20 @@ import {fetchCountStats} from '../actions/utilActions'
 
 
 export class CountStats extends Component {
-	componentDidMount() {
-		var _dispatch = this.props.dispatch
-		var intervalId = setInterval(function(){
-    		_dispatch(fetchCountStats())
-			},2000
-		)
-		this.setState({intervalId:intervalId})
-	}
+	// componentDidMount() {
+	// 	var _dispatch = this.props.dispatch
+	// 	var intervalId = setInterval(function(){
+ //    		_dispatch(fetchCountStats())
+	// 		},2000
+	// 	)
+	// 	this.setState({intervalId:intervalId})
+	// }
 
-	componentWillUnmount() {
-		clearInterval(this.state.intervalId)
+	// componentWillUnmount() {
+	// 	clearInterval(this.state.intervalId)
+	// }
+	componentWillMount() {
+		this.props.dispatch(fetchCountStats())
 	}
 
 	render() {

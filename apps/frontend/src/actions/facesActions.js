@@ -9,8 +9,8 @@ export function trainFaces() {
     Server.get("trainfaces/",{timeout:30000})
       .then((response) => {
         dispatch({type: "TRAIN_FACES_FULFILLED", payload: response.data})
-        dispatch(fetchInferredFaces())
-        dispatch(fetchLabeledFaces())
+        dispatch(fetchInferredFacesList())
+        dispatch(fetchLabeledFacesList())
       })
       .catch((err) => {
         dispatch({type: "TRAIN_FACES_REJECTED", payload: err})
@@ -72,6 +72,66 @@ export function fetchFaces() {
   }
 }
 
+
+
+
+
+
+
+
+
+// fast face list views
+export function fetchInferredFacesList() {
+  return function(dispatch) {
+    dispatch({type: "FETCH_INFERRED_FACES_LIST"});
+    Server.get("faces/inferred/list/")
+      .then((response) => {
+        dispatch({type: "FETCH_INFERRED_FACES_LIST_FULFILLED", payload: response.data.results})
+      })
+      .catch((err) => {
+        dispatch({type: "FETCH_INFERRED_FACES_LIST_REJECTED", payload: err})
+      })
+  }
+}
+
+export function fetchLabeledFacesList() {
+  return function(dispatch) {
+    dispatch({type: "FETCH_LABELED_FACES_LIST"});
+    Server.get("faces/labeled/list/")
+      .then((response) => {
+        dispatch({type: "FETCH_LABELED_FACES_LIST_FULFILLED", payload: response.data.results})
+      })
+      .catch((err) => {
+        dispatch({type: "FETCH_LABELED_FACES_LIST_REJECTED", payload: err})
+      })
+  }
+}
+
+export function fetchFacesList() {
+  return function(dispatch) {
+    dispatch({type: "FETCH_FACES_LIST"});
+    Server.get("faces/list/")
+      .then((response) => {
+        dispatch({type: "FETCH_FACES_LIST_FULFILLED", payload: response.data.results})
+      })
+      .catch((err) => {
+        dispatch({type: "FETCH_FACES_LIST_REJECTED", payload: err})
+      })
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 //fetches a face to label from the server
 export function fetchFaceToLabel() {
   return function(dispatch) {
@@ -101,8 +161,8 @@ export function deleteFaceAndFetchNext(face_id) {
     Server.delete(`faces/${face_id}/`)
       .then((response)=>{
         dispatch({type:"DELETE_FACE_FULFILLED"})
-        dispatch(fetchInferredFaces())
-        dispatch(fetchLabeledFaces())
+        dispatch(fetchInferredFacesList())
+        dispatch(fetchLabeledFacesList())
         dispatch(fetchFaceToLabel())
       })
       .catch((err)=>{
@@ -136,8 +196,8 @@ export function labelFacePersonAndFetchNext(face_id, person_name) {
         Server.get("facetolabel/")
           .then((response2) => {
             dispatch({type: "FETCH_FACE_TO_LABEL_FULFILLED", payload: response2.data})
-            dispatch(fetchInferredFaces())
-            dispatch(fetchLabeledFaces())
+            dispatch(fetchInferredFacesList())
+            dispatch(fetchLabeledFacesList())
           })
           .catch((err2) => {
             dispatch({type: "FETCH_FACE_TO_LABEL_REJECTED", payload: err2})

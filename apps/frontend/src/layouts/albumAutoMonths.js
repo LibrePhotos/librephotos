@@ -62,16 +62,18 @@ export class AlbumAutoMonths extends Component {
   componentWillMount() {
     this.props.dispatch(fetchAutoAlbumsList())
     var _dispatch = this.props.dispatch
+    /*
     var intervalId = setInterval(function(){
         _dispatch(fetchPhotoScanStatus())
         _dispatch(fetchAutoAlbumProcessingStatus())
       },2000
     )
     this.setState({intervalId:intervalId})
+    */
   }
 
   componentWillUnmount() {
-    clearInterval(this.state.intervalId)
+    //clearInterval(this.state.intervalId)
   }
 
   shouldComponentUpdate(nextProps, nextState){

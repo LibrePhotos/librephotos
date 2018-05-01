@@ -18,12 +18,13 @@ export var Server = axios.create({
   baseURL: 'http://192.168.1.100:8000/api/',
   headers: {
     'Content-Type': 'application/json',
+    'Cache-Control': 'max-age=6000000'
   },
   auth: {
     username: 'admin',
     password: 'q1W@e3R$'
   },
-  timeout: 10000,
+  timeout: 30000,
 });
 
 export default {serverAddress, Server}

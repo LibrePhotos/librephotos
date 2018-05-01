@@ -1,5 +1,5 @@
 import React, {Component} from 'react'
-import {Segment, Header} from 'semantic-ui-react'
+import {Segment, Header, Loader} from 'semantic-ui-react'
 import Dimensions from 'react-dimensions'
 import { connect } from "react-redux";
 import {fetchPhotoCountryCounts} from '../../actions/utilActions'
@@ -17,7 +17,10 @@ export class CountryPiChart extends Component {
     super(props)
   }
   componentDidMount() {
-    this.props.dispatch(fetchPhotoCountryCounts())
+    if (!this.props.fetchedPhotoCountryCounts)
+    {
+      this.props.dispatch(fetchPhotoCountryCounts())
+    }
   }
   render(){
     if (this.props.fetchedPhotoCountryCounts) {
@@ -29,33 +32,35 @@ export class CountryPiChart extends Component {
       console.log(counts)
       var series = [{data:counts}]
       var map = (
-        <Segment>
-          <Header as='h3'>Photos by Country</Header>
+        <div>
+          <Header as='h3'>Photo Counts by Location</Header>
             <Chart 
               width={this.props.containerWidth-50}
-              height={250}
+              height={200}
               series={series}>
               <Transform method={['transpose','stack']}>
                 <Pies combined={true}/>
               </Transform>
             </Chart>
-        </Segment>
+        </div>
       )
     }
     else {
-      var h = `250px`
+      var h = 200
       var w = `${this.props.containerWidth-50}px`
       var map = (
-        <Segment>
-          <Header as='h3'># Photos by Country</Header>
-            <div style={{height:h, width:w}}></div>
-        </Segment>
+        <div>
+          <Header as='h3'>Photo Counts by Location</Header>
+            <div style={{height:h, width:w}}>
+            <Loader active/>
+            </div>
+        </div>
       )
     }
     return (
-      <div>
+      <Segment style={{zIndex:2, height:300}}>
         {map}
-      </div>
+      </Segment>
     )
   }
 }

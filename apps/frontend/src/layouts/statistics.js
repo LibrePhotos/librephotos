@@ -2,7 +2,7 @@ import React, {Component} from 'react'
 import { Grid, Image, Icon, Header, Container, Divider, Button, Loader} from 'semantic-ui-react'
 import { connect } from "react-redux";
 
-import {fetchCountStats,fetchPhotoScanStatus,
+import {fetchCountStats,fetchPhotoScanStatus,fetchWordCloud,
         fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
 import {scanPhotos,fetchPhotos} from '../actions/photosActions'
 
@@ -17,32 +17,33 @@ import SocialGraph from '../components/socialGraph'
 import LazyLoad from 'react-lazyload';
 
 export class Statistics extends Component {
-  componentDidMount() {
-    var _dispatch = this.props.dispatch
-    this.setState({dispatch:_dispatch})
-    var intervalId = setInterval(function(){
-        _dispatch(fetchPhotoScanStatus())
-        _dispatch(fetchAutoAlbumProcessingStatus())
-      },2000
-    )
-    this.setState({intervalId:intervalId})
+  // componentDidMount() {
+  //   var _dispatch = this.props.dispatch
+  //   this.setState({dispatch:_dispatch})
+  //   var intervalId = setInterval(function(){
+  //       _dispatch(fetchPhotoScanStatus())
+  //       _dispatch(fetchAutoAlbumProcessingStatus())
+  //     },2000
+  //   )
+  //   this.setState({intervalId:intervalId})
+  // }
+
+  // componentWillUnmount() {
+  //   clearInterval(this.state.intervalId)
+  // }
+  componentWillMount() {
+    this.props.dispatch(fetchWordCloud())
   }
 
-  componentWillUnmount() {
-    clearInterval(this.state.intervalId)
-  }
-
-  onPhotoScanButtonClick = e => {
-    this.props.dispatch(scanPhotos())
-  }
+  // onPhotoScanButtonClick = e => {
+  //   this.props.dispatch(scanPhotos())
+  // }
 
   render() {
-    console.log(this)
-    var photoScanLoadingIcon = (
-      <Icon name='refresh' loading={this.props.statusPhotoScan.status}/>
-    )
+
+
     return (
-      <div>
+      <div style={{padding:10}}>
         <Header as='h2' icon textAlign='center'>
           <Header.Content>
             Statistics
@@ -51,50 +52,32 @@ export class Statistics extends Component {
         </Header>
         <Divider hidden/>
         <CountStats/>
-        <Button fluid color='blue' disabled={
-          this.props.statusAutoAlbumProcessing.status || 
-          this.props.statusPhotoScan.status ||
-          this.props.scanningPhotos ||
-          this.props.generatingAlbumsAuto||
-          !this.props.fetchedCountStats}
-          onClick={this.onPhotoScanButtonClick}>
-          {photoScanLoadingIcon}Scan for more photos
-        </Button>
+
         <Divider hidden/>
-        <LocationClusterMap/>
-        <Divider hidden/>
+
 
         <Grid stackable columns={2}>
           <Grid.Column>
-            <WordCloud type='location'/>
+            <LocationClusterMap height={300}/>
           </Grid.Column>
-          <Grid.Column>
-            <WordCloud type='captions'/>
-          </Grid.Column>
-        </Grid>
-
-        <Divider hidden/>
-
-        <Grid stackable columns={2}>
-          <Grid.Column>
-            <EventCountMonthGraph/>
-          </Grid.Column>
-          <Grid.Column>
-            <SocialGraph/>
-          </Grid.Column>
-        </Grid>
-        
-        <Divider hidden/>
-
-        <Grid stackable columns={2}>
           <Grid.Column>
             <CountryPiChart/>
           </Grid.Column>
+        </Grid>
+
+        <Divider hidden/>
+
+        <Grid stackable columns={2}>
           <Grid.Column>
-            <FaceClusterScatter/>
+            <WordCloud height={320} type='location'/>
+          </Grid.Column>
+          <Grid.Column>
+            <WordCloud height={320} type='captions'/>
           </Grid.Column>
         </Grid>
+
         <Divider hidden/>
+        <SocialGraph/>
       </div>
     )
   }
