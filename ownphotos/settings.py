@@ -64,6 +64,18 @@ INSTALLED_APPS = [
 #     '*.*': {'ops':'all', 'timeout': 60*15}
 # }
 
+CORS_ALLOW_HEADERS = (
+    'cache-control',
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+)
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
