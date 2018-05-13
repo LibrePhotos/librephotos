@@ -10,7 +10,6 @@ from sklearn import mixture
 from scipy.spatial import distance
 from sklearn.preprocessing import StandardScaler
 
-import ipdb
 
 import requests
 
@@ -139,4 +138,5 @@ def mapbox_reverse_geocode(lat,lon):
         resp_json['search_text'] = ' '.join(search_terms)
         return resp_json
     else:
+        logger.info('mapbox returned non 200 response.')
         return {}

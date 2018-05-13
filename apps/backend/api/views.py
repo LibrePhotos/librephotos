@@ -5,6 +5,8 @@ from rest_framework.response import Response
 
 from api.models import Photo, AlbumAuto, AlbumUser, Face, Person, AlbumDate, AlbumPlace,AlbumThing
 from django.db.models import Count
+from django.db.models import Q
+
 
 from rest_framework import viewsets
 from api.serializers import PhotoSerializer
@@ -39,11 +41,18 @@ from api.api_util import \
     get_location_clusters, \
     get_photo_country_counts, \
     get_photo_month_counts, \
-    get_searchterms_wordcloud
+    get_searchterms_wordcloud, \
+    get_search_term_examples, \
+    get_location_sunburst, \
+    get_location_timeline
 
-from api.directory_watcher import is_photos_being_added, scan_photos
-from api.autoalbum import is_auto_albums_being_processed
-import ipdb
+from api.directory_watcher import  scan_photos
+from api.autoalbum import generate_event_albums
+
+from api.flags import is_photos_being_added
+from api.flags import is_auto_albums_being_processed
+
+
 
 from rest_framework.pagination import PageNumberPagination
 
@@ -120,7 +129,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
     serializer_class = PhotoSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
-    search_fields = (['search_captions','search_location','faces__person__name','exif_timestamp'])
+    search_fields = (['search_captions','search_location','faces__person__name','exif_timestamp','image_path'])
 
 
     @cache_response(CACHE_TTL,key_func=CustomObjectKeyConstructor())
@@ -143,7 +152,6 @@ class PhotoHashListViewSet(CacheResponseMixin, viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter,)
     search_fields = (['search_captions','search_location','faces__person__name'])
 
-
     @cache_response(CACHE_TTL,key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(PhotoHashListViewSet, self).retrieve(*args, **kwargs)
@@ -153,6 +161,23 @@ class PhotoHashListViewSet(CacheResponseMixin, viewsets.ModelViewSet):
         return super(PhotoHashListViewSet, self).list(*args, **kwargs)
 
 
+
+
+@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
+class NoTimestampPhotoHashListViewSet(viewsets.ModelViewSet):
+    queryset = Photo.objects.filter(exif_timestamp=None).order_by('image_path')
+    serializer_class = PhotoHashListSerializer
+    pagination_class = HugeResultsSetPagination
+    filter_backends = (filters.SearchFilter,)
+    search_fields = (['search_captions','search_location','faces__person__name'])
+
+    # @cache_response(CACHE_TTL,key_func=CustomObjectKeyConstructor())
+    def retrieve(self, *args, **kwargs):
+        return super(NoTimestampPhotoHashListViewSet, self).retrieve(*args, **kwargs)
+
+    # @cache_response(CACHE_TTL,key_func=CustomListKeyConstructor())
+    def list(self, *args, **kwargs):
+        return super(NoTimestampPhotoHashListViewSet, self).list(*args, **kwargs)
 
 
 
@@ -193,15 +218,15 @@ class FaceInferredListViewSet(viewsets.ModelViewSet):
 
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class FaceLabeledListViewSet(viewsets.ModelViewSet):
-    queryset = Face.objects.filter(person_label_is_inferred=False).select_related('person').order_by('id')
+    queryset = Face.objects.filter(Q(person_label_is_inferred=False) | Q(person__name='unknown')).select_related('person').order_by('id')
     serializer_class = FaceListSerializer
     pagination_class = StandardResultsSetPagination
 
-    @cache_response(CACHE_TTL,key_func=CustomObjectKeyConstructor())
+#     @cache_response(CACHE_TTL,key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(FaceLabeledListViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL,key_func=CustomListKeyConstructor())
+#     @cache_response(CACHE_TTL,key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(FaceLabeledListViewSet, self).list(*args, **kwargs)
 
@@ -381,7 +406,7 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
 
 # @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumDateListWithPhotoHashViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = AlbumDate.objects.all().prefetch_related('photos').order_by('-date')
+    queryset = AlbumDate.objects.exclude(date=None).prefetch_related('photos').order_by('-date')
     serializer_class = AlbumDateListWithPhotoHashSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
@@ -442,11 +467,11 @@ class AlbumPlaceViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumPlaceSerializer
     pagination_class = StandardResultsSetPagination
 
-    @cache_response(CACHE_TTL,key_func=CustomObjectKeyConstructor())
+    # @cache_response(CACHE_TTL,key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(AlbumPlaceViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL,key_func=CustomListKeyConstructor())
+    # @cache_response(CACHE_TTL,key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(AlbumPlaceViewSet, self).list(*args, **kwargs)
 
@@ -477,9 +502,30 @@ class AlbumPlaceListViewSet(viewsets.ModelViewSet):
 
 # API Views
 
+class SearchTermExamples(APIView):
+    def get(self, request, format=None):
+        search_term_examples = get_search_term_examples()
+        return Response({"results":search_term_examples})
+
 class FaceToLabelView(APIView):
     def get(self, request, format=None):
         # return a single face for labeling
+
+        qs = Face.objects.filter(person_label_probability__gt=0).filter(person_label_probability__lt=1).order_by('person_label_probability')
+        if qs.count() > 0:
+            face_to_label = qs[0]
+            data = FaceListSerializer(face_to_label).data
+            
+            # dirty hack to make the serializer image field to return full url
+            if request.is_secure(): 
+                protocol = 'https://'
+            else:
+                protocol = 'http://'
+
+            image = protocol + request.META['HTTP_HOST'] + data['image']
+            data['image'] = image
+            return Response(data)
+
         faces_all = Face.objects.all()
         unlabeled_faces = []
         labeled_faces = []
@@ -491,14 +537,14 @@ class FaceToLabelView(APIView):
 
         labeled_face_encodings = []
         for face in labeled_faces:
-            face_encoding = np.frombuffer(base64.b64decode(face.encoding),dtype=np.float64)
+            face_encoding = np.frombuffer(bytes.fromhex(face.encoding))
             labeled_face_encodings.append(face_encoding)
         labeled_face_encodings = np.array(labeled_face_encodings)
         labeled_faces_mean = labeled_face_encodings.mean(0)
 
         distances_to_labeled_faces_mean = []
         for face in unlabeled_faces:
-            face_encoding = np.frombuffer(base64.b64decode(face.encoding),dtype=np.float64)
+            face_encoding = np.frombuffer(bytes.fromhex(face.encoding))
             distance = np.linalg.norm(labeled_faces_mean-face_encoding)
             distances_to_labeled_faces_mean.append(distance)
 
@@ -557,6 +603,16 @@ class LocationClustersView(APIView):
         res = get_location_clusters()
         return Response(res)
 
+class LocationSunburst(APIView):
+    def get(self, requests, format=None):
+        res = get_location_sunburst()
+        return Response(res)
+
+class LocationTimeline(APIView):
+    def get(self, requests, format=None):
+        res = get_location_timeline()
+        return Response(res)
+
 class PhotoMonthCountsView(APIView):
     def get(self, requests, format=None):
         res = get_photo_month_counts()
@@ -566,7 +622,6 @@ class PhotoCountryCountsView(APIView):
     def get(self, requests, format=None):
         res = get_photo_country_counts()
         return Response(res)
-
 
 class SearchTermWordCloudView(APIView):
     def get(self, requests, format=None):

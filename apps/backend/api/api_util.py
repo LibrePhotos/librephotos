@@ -1,6 +1,5 @@
 from api.models import Photo, Face, Person, AlbumAuto, AlbumDate, AlbumUser
 
-import ipdb
 import numpy as np
 
 import json
@@ -23,11 +22,18 @@ from nltk.corpus import stopwords
 
 import random
 
-from datetime import date, timedelta
-
+from datetime import date, timedelta, datetime
+from itertools import groupby
 from tqdm import tqdm
 
 import seaborn as sns
+import pandas as pd
+from api.util import logger
+
+def shuffle(l):
+    random.shuffle(l)
+    return l
+
 
 def jump_by_month(start_date, end_date, month_step=1):
     current_date = start_date
@@ -38,6 +44,123 @@ def jump_by_month(start_date, end_date, month_step=1):
         current_date = current_date.replace(year=current_date.year + carry,
                                             month=new_month)
         yield current_date
+
+
+def get_location_timeline():
+    qs_photos = Photo.objects.exclude(geolocation_json={}).exclude(exif_timestamp=None).order_by('exif_timestamp')
+    photos = qs_photos.all()
+    timestamp_loc = [(p.exif_timestamp,p.geolocation_json['features'][-1]['text']) for p in photos]
+
+    groups = []
+    uniquekeys = []
+    for k, g in groupby(timestamp_loc, lambda x:x[1]):
+        groups.append(list(g))      # Store group iterator as a list
+        uniquekeys.append(k)
+
+    city_start_end_duration = []
+    for idx,group in enumerate(groups):
+        city = group[0][1]
+        start = group[0][0]
+        if idx < len(groups)-1:
+            end = groups[idx+1][0][0]
+        else:
+            end = group[-1][0]
+    #     end = group[-1][0]
+        time_in_city = (end-start).total_seconds()
+
+        if time_in_city > 0:
+            city_start_end_duration.append([city,start,end,time_in_city])
+
+    locs = list(set([e[0] for e in city_start_end_duration]))
+    colors = sns.color_palette('Paired',len(locs)).as_hex()
+
+    loc2color = dict(zip(locs,colors))
+            
+    intervals_in_seconds = []
+    for idx,sted in enumerate(city_start_end_duration):
+        intervals_in_seconds.append({
+            'loc':sted[0],
+            'start':sted[1].timestamp(),
+            'end':sted[2].timestamp(),
+            'dur':sted[2].timestamp() - sted[1].timestamp()})
+
+    data = [{"data":[d['dur']],"color":loc2color[d['loc']],"loc":d['loc'],'start':d['start'],'end':d['end']} for d in intervals_in_seconds]
+    return data
+
+def get_search_term_examples():
+    pp = Photo.objects.exclude(geolocation_json={}).exclude(exif_timestamp=None).exclude(captions_json={}).prefetch_related('faces__person')
+    samples = random.sample(list(pp.all()),100)
+
+    search_data = []
+    for p in samples:
+        faces = p.faces.all()
+
+        terms_loc = [f['text'] for f in p.geolocation_json['features'][-5:] if not f['text'].isdigit()]
+        terms_time = [str(p.exif_timestamp.year)]
+        terms_people = [f.person.name.split(' ')[0] for f in faces]
+        terms_things = p.captions_json['places365']['categories'] # + p.captions_json['places365']['attributes']
+
+        terms = {
+            "loc":terms_loc,
+            "time":terms_time,
+            "people":terms_people,
+            "things":terms_things
+        }
+
+        search_data.append(terms)
+
+        search_terms = []
+        for datum in search_data:
+            term_loc = random.choice(datum['loc'])
+            search_terms.append(term_loc)
+
+            term_time = random.choice(datum['time'])
+            search_terms.append(term_time)
+
+            term_thing = random.choice(datum['things'])
+
+            if len(datum['people']) > 0:
+                term_people = random.choice(datum['people'])
+                search_terms.append(term_people)
+
+                search_term_loc_people = ' '.join(shuffle([term_loc,term_people]))
+                if random.random() > 0.3:
+                    search_terms.append(search_term_loc_people)
+
+                search_term_time_people = ' '.join(shuffle([term_time,term_people]))
+                if random.random() > 0.3:
+                    search_terms.append(search_term_time_people)
+
+                search_term_people_thing = ' '.join(shuffle([term_people,term_thing]))
+                if random.random() > 0.9:
+                    search_terms.append(search_term_people_thing)    
+
+                search_term_all = ' '.join(shuffle([term_loc,term_people,term_time,term_thing]))
+                if random.random() > 0.95:
+                    search_terms.append(search_term_all)
+
+            else:
+                term_people = ''
+
+
+
+
+
+            search_term_loc_time = ' '.join(shuffle([term_loc,term_time]))
+            if random.random() > 0.3:
+                search_terms.append(search_term_loc_time)
+
+            search_term_loc_thing = ' '.join(shuffle([term_loc,term_thing]))
+            if random.random() > 0.9:
+                search_terms.append(search_term_loc_thing)    
+
+            search_term_time_thing = ' '.join(shuffle([term_time,term_thing]))
+            if random.random() > 0.9:
+                search_terms.append(search_term_time_thing)    
+
+    return list(set(search_terms))
+
+                                                                                                                                                                                                                                                                                                                                                    
 
 
 
@@ -62,21 +185,49 @@ def get_count_stats():
 
 
 def get_location_clusters():
-    photos_with_gps = Photo.objects.exclude(exif_gps_lat=None)
+    start = datetime.now()
+    photos = Photo.objects.exclude(geolocation_json={})
 
-    vecs_all = np.array([[p.exif_gps_lat,p.exif_gps_lon] for p in photos_with_gps])
-    # bandwidth = estimate_bandwidth(vecs_all, quantile=0.005)
+    level = -3
+    coord_names = []
+    names = []
+    for p in photos:
+        try:
+            names.append(p.geolocation_json['features'][level]['text'])
+            coord_names.append([
+                p.geolocation_json['features'][level]['text'],
+                p.geolocation_json['features'][level]['center']
+            ])
+        except:
+            pass
 
-    bandwidth = 0.1
-    ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
-    ms.fit(vecs_all)
+    groups = []
+    uniquekeys = []
+    coord_names.sort(key=lambda x:x[0])
+    for k, g in groupby(coord_names, lambda x:x[0]):
+        groups.append(list(g))      # Store group iterator as a list
+        uniquekeys.append(k)
 
-    labels = ms.labels_
-    cluster_centers = ms.cluster_centers_
+    res = [[g[0][1][1],g[0][1][0]] for g in groups]
+    elapsed = (datetime.now() - start).total_seconds()
+    logger.info('location clustering took %.2f seconds'%elapsed)
+    return res
 
-    labels_unique = np.unique(labels)
-    n_clusters_ = len(labels_unique)
-    return cluster_centers.tolist()
+    # photos_with_gps = Photo.objects.exclude(exif_gps_lat=None)
+
+    # vecs_all = np.array([[p.exif_gps_lat,p.exif_gps_lon] for p in photos_with_gps])
+    # # bandwidth = estimate_bandwidth(vecs_all, quantile=0.005)
+
+    # bandwidth = 0.1
+    # ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
+    # ms.fit(vecs_all)
+
+    # labels = ms.labels_
+    # cluster_centers = ms.cluster_centers_
+
+    # labels_unique = np.unique(labels)
+    # n_clusters_ = len(labels_unique)
+    # return cluster_centers.tolist()
 
 
 def get_photo_country_counts():
@@ -97,7 +248,7 @@ def get_photo_country_counts():
 
 
 def get_location_sunburst():
-    photos_with_gps = Photo.objects.exclude(geolocation_json=None)
+    photos_with_gps = Photo.objects.exclude(geolocation_json={}).exclude(geolocation_json=None)
     geolocations = [p.geolocation_json for p in photos_with_gps]
 
 
@@ -122,7 +273,7 @@ def get_location_sunburst():
     df = df.groupby(df.columns.tolist()).size().reset_index().rename(columns={4:'count'})
 
 
-    dataStructure = {'name':'', 'children': []}
+    dataStructure = {'name':'Places I\'ve visited', 'children': []}
     palette = sns.color_palette('hls',10).as_hex()
 
     for data in df.iterrows():
@@ -148,23 +299,7 @@ def get_location_sunburst():
             current = depthCursor
 
 
-
-    top_levels = list(set([e[0] for e in four_levels]))
-
-
-
-
-    # countries = [gl['features'][0]['properties']['country'] for gl in geolocations if 'features' in gl.keys() and len(gl['features']) > 0]
-    countries = []
-    for gl in geolocations:
-        if 'features' in gl.keys():
-            for feature in gl['features']:
-                if feature['place_type'][0] == 'country':
-                    countries.append(feature['place_name'])
-
-    counts = Counter(countries)
-    print(counts)
-    return counts
+    return dataStructure
 
 
 
@@ -176,7 +311,7 @@ def get_photo_month_counts():
         .annotate(c=Count('image_hash')) \
         .values('month', 'c')
 
-    all_months = [c['month'] for c in counts if c['month'].year >= 1990]
+    all_months = [c['month'] for c in counts if c['month'].year >= 2000 and c['month'].year <= datetime.now().year]
     first_month = min(all_months)
     last_month = max(all_months)
 
@@ -212,12 +347,16 @@ captions_sw = ['a','of','the','on','in','at','has','holding','wearing',
 captions_sw = ['a','of','the','on','in','at','has','with','this','there','along','no','is','it','was','are','background']
 
 def get_searchterms_wordcloud():
-    photos = Photo.objects.all()
+    photos = Photo.objects.all().prefetch_related('faces__person')
     captions = []
     locations = []
+    people = []
 
     location_entities = []
     for photo in photos:
+        faces = photo.faces.all()
+        for face in faces:
+            people.append(face.person.name)
         if photo.search_captions:
             captions.append(photo.search_captions)
         if photo.search_location:
@@ -241,13 +380,17 @@ def get_searchterms_wordcloud():
 
     location_token_counts = Counter(location_entities)
 
+    people_counts = Counter(people)
+
 
     caption_token_counts = [{'label':key,'y':np.log(value)} for key,value in caption_token_counts.most_common(50)]
     location_token_counts = [{'label':key,'y':np.log(value)} for key,value in location_token_counts.most_common(50)]
+    people_counts = [{'label':key,'y':np.log(value)} for key,value in people_counts.most_common(50)]
 
     out = {
         'captions':caption_token_counts,
-        'locations':location_token_counts
+        'locations':location_token_counts,
+        'people':people_counts
     }
     return out
 

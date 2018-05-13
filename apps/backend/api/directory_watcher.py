@@ -6,47 +6,84 @@ from tqdm import tqdm
 import hashlib 
 import pytz
 from config import image_dirs
-import ipdb
 
 import api.util as util
 
-def is_photos_being_added():
-    photo_count = Photo.objects.count()
-    if photo_count == 0:
-        status = False
-    else:
-        # check if there has been a new photo added to the library within the
-        # past 10 seconds. if so, return status false, as autoalbum generation
-        # may behave wierdly if performed while photos are being added.
-        last_photo_addedon = Photo.objects.order_by('-added_on')[0].added_on
-        now = datetime.datetime.utcnow().replace(tzinfo=last_photo_addedon.tzinfo)
-        td = (now-last_photo_addedon).total_seconds()
-        if abs(td) < 10:
-            status = True
-        else:
-            status = False
-    return {'status':status}
+from api.flags import \
+    is_auto_albums_being_processed, \
+    is_photos_being_added, \
+    set_photo_scan_flag_on, \
+    set_photo_scan_flag_off, \
+    set_num_photos_added
+
+# def is_photos_being_added():
+#     global FLAG_IS_PHOTOS_BEING_ADDED
+#     return {'status':FLAG_IS_PHOTOS_BEING_ADDED}
+
+#     # Over complicating things as usual
+
+#     # photo_count = Photo.objects.count()
+#     # if photo_count == 0:
+#     #     status = False
+#     # else:
+#     #     # check if there has been a new photo added to the library within the
+#     #     # past 10 seconds. if so, return status false, as autoalbum generation
+#     #     # may behave wierdly if performed while photos are being added.
+#     #     last_photo_addedon = Photo.objects.order_by('-added_on')[0].added_on
+#     #     now = datetime.datetime.utcnow().replace(tzinfo=last_photo_addedon.tzinfo)
+#     #     td = (now-last_photo_addedon).total_seconds()
+#     #     if abs(td) < 10:
+#     #         status = True
+#     #     else:
+#     #         status = False
+#     # return {'status':status}
 
 
 def scan_photos():
+    if is_photos_being_added()['status']:
+        return {"new_photo_count": 0, "status": False, 'message':'photos are being added'}
+
     image_paths = []
     for image_dir in image_dirs:
         image_paths.extend([os.path.join(dp, f) for dp, dn, fn in os.walk(image_dir) for f in fn])
 
+    image_paths = [p for p in image_paths if p.lower().endswith('.jpg')]
+    image_paths.sort()
+
+    set_photo_scan_flag_on(1)
+
+    image_paths_to_add = []
+    for image_path in tqdm(image_paths):
+        if not Photo.objects.filter(image_path=image_path).exists():
+            image_paths_to_add.append(image_path)
+
+    set_photo_scan_flag_on(len(image_paths_to_add))
+
+
     added_photo_count = 0
     already_existing_photo = 0
-    for image_path in tqdm(image_paths):
+    counter = 0
+    for image_path in tqdm(image_paths_to_add):
+        set_num_photos_added(counter)
+        counter += 1
         if image_path.lower().endswith('.jpg'):
             try:
                 img_abs_path = image_path
-                hash_md5 = hashlib.md5()
-                with open(img_abs_path, "rb") as f:
-                    for chunk in iter(lambda: f.read(4096), b""):
-                        hash_md5.update(chunk)
-                image_hash = hash_md5.hexdigest()
-                qs = Photo.objects.filter(image_hash=image_hash)
 
-                if qs.count() < 1:
+                # start = datetime.datetime.now()
+                # hash_md5 = hashlib.md5()
+                # with open(img_abs_path, "rb") as f:
+                #     for chunk in iter(lambda: f.read(4096), b""):
+                #         hash_md5.update(chunk)
+                # image_hash = hash_md5.hexdigest()
+                # elapsed = (datetime.datetime.now() - start).total_seconds()
+                # util.logger.info('generating md5 took %.2f'%elapsed)
+
+                # qs = Photo.objects.filter(image_hash=image_hash)
+
+                photo_exists = Photo.objects.filter(image_path=img_abs_path).exists()
+
+                if not photo_exists:
                     photo = Photo(image_path=img_abs_path)
                     photo.added_on = datetime.datetime.now().replace(tzinfo=pytz.utc)
                     photo.geolocation_json = {}
@@ -110,6 +147,7 @@ def scan_photos():
                 util.logger.error("Could not load image {}".format(image_path))
 
     util.logger.info("Added {}/{} photos".format(added_photo_count, len(image_paths) - already_existing_photo))
+    set_photo_scan_flag_off()
     return {"new_photo_count": added_photo_count, "status": True}
     # photos = Photo.objects.all()
     # for photo in photos:

@@ -196,7 +196,9 @@ class FaceListSerializer(serializers.ModelSerializer):
         model = Face
         fields = ('id',
                   'image',
+                  'photo',
                   'person',
+                  'person_label_probability',
                   'person_name')
 
     def get_person_name(self,obj):
@@ -237,8 +239,10 @@ class FaceSerializer(serializers.ModelSerializer):
             print('created person with name %s'%name)
         if instance.person.name == 'unknown':
             instance.person_label_is_inferred = None
+            instance.person_label_probability = 0.
         else:
             instance.person_label_is_inferred = False
+            instance.person_label_probability = 1.
         print('updated label for face %d to %s'%(instance.id, instance.person.name))
         instance.save()
         return instance
@@ -257,7 +261,7 @@ class FaceSerializer(serializers.ModelSerializer):
 
 
 class AlbumPlaceSerializer(serializers.ModelSerializer):
-    photos = PhotoSerializer(many=True, read_only=True)
+    photos = PhotoSimpleSerializer(many=True, read_only=True)
 
     class Meta:
         model = AlbumPlace
@@ -499,7 +503,7 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
 
     def get_people(self,obj):
         # ipdb.set_trace()
-        photos = obj.photos.all()
+        photos = obj.photos.all().prefetch_related('faces__person')
         res = []
         for photo in photos:
             faces = photo.faces.all()

@@ -11,7 +11,6 @@ import api.util as util
 import exifread
 import base64
 import numpy as np
-import ipdb
 import os
 import pytz
 import json
@@ -51,9 +50,11 @@ def get_album_thing(title):
 def get_album_place(title):
     return AlbumPlace.objects.get_or_create(title=title)
 
+def get_album_nodate():
+    return AlbumDate.objects.get_or_create(date=None)
 
 class Photo(models.Model):
-    image_path = models.FilePathField()
+    image_path = models.FilePathField(max_length=512, db_index=True)
     image_hash = models.CharField(primary_key=True,max_length=32,null=False)
 
     thumbnail = models.ImageField(upload_to='thumbnails')
@@ -337,11 +338,11 @@ class Photo(models.Model):
         else:
             unknown_person = qs_unknown_person[0]
 
-        thumbnail = PIL.Image.open(self.thumbnail)
-        thumbnail = np.array(thumbnail.convert('RGB'))
+        image = PIL.Image.open(self.thumbnail)
+        image = np.array(image.convert('RGB'))
 
-        face_encodings = face_recognition.face_encodings(thumbnail)
-        face_locations = face_recognition.face_locations(thumbnail)
+        face_encodings = face_recognition.face_encodings(image)
+        face_locations = face_recognition.face_locations(image)
     
         faces = []
         if len(face_locations) > 0:
@@ -349,7 +350,7 @@ class Photo(models.Model):
                 face_encoding = face[0]
                 face_location = face[1]
                 top,right,bottom,left = face_location
-                face_image = thumbnail[top:bottom, left:right]
+                face_image = image[top:bottom, left:right]
                 face_image = PIL.Image.fromarray(face_image)
 
                 face = Face()
@@ -360,7 +361,8 @@ class Photo(models.Model):
                 face.location_right = face_location[1]
                 face.location_bottom = face_location[2]
                 face.location_left = face_location[3]
-                face.encoding = base64.encodebytes(face_encoding.tostring())
+                face.encoding = face_encoding.tobytes().hex()
+#                 face.encoding = face_encoding.dumps()
 
                 face_io = BytesIO()
                 face_image.save(face_io,format="JPEG")
@@ -382,6 +384,11 @@ class Photo(models.Model):
             album_date = get_album_date(date=self.exif_timestamp.date())[0]
             album_date.photos.add(self)
             album_date.save()
+        else:
+            album_date = get_album_date(date=None)[0]
+            album_date.photos.add(self)
+            album_date.save()
+
 
     def _add_to_album_place(self):
         if self.geolocation_json and len(self.geolocation_json) > 0:
@@ -424,15 +431,16 @@ class Person(models.Model):
 
 
 def get_unknown_person():
-    return Person.objects.get_or_create(name='unknown',kind="UNKNOWN")
+    return Person.objects.get_or_create(name='unknown')[0]
 
 class Face(models.Model):
-    photo = models.ForeignKey(Photo, related_name='faces', on_delete=models.SET_NULL, blank=False, null=True)
+    photo = models.ForeignKey(Photo, related_name='faces', on_delete=models.SET(get_unknown_person), blank=False, null=True)
     image = models.ImageField(upload_to='faces')
     image_path = models.FilePathField()
     
     person = models.ForeignKey(Person, on_delete=models.SET(get_unknown_person), related_name='faces')
     person_label_is_inferred = models.NullBooleanField(db_index=True)
+    person_label_probability = models.FloatField(default=0.,db_index=True)
 
     location_top = models.IntegerField()
     location_bottom = models.IntegerField()
@@ -463,7 +471,7 @@ class AlbumPlace(models.Model):
 
 class AlbumDate(models.Model):
     title = models.CharField(blank=True,null=True,max_length=512,db_index=True)
-    date = models.DateField(unique=True,db_index=True)
+    date = models.DateField(unique=True,db_index=True,null=True)
     photos = models.ManyToManyField(Photo)
     favorited = models.BooleanField(default=False,db_index=True)
 
