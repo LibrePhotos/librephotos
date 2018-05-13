@@ -8,23 +8,22 @@
 - Django backend & React frontend. 
 - In development. 
 
-**Currently the project is in very early stages (e.g. default username/password, server hostname/ip for backend is baked into the frontend code), so run it only for the sake of checking it out.**
+**Currently the project is in very early stages, so run it only for the sake of checking it out.**
 
 ### Features
 
 #### - Currently implemented:
   
-  - Label some faces manualy, and train a face classifier to label the rest.
+  - Label some faces manually, and train a face classifier to label the rest.
   - View photos by people in them.
   - Automatically generate "event" albums with nice titles, like "Thursday in Berlin"
   - See photos on the map
   - Backend caching
-  - Favorite event (auto generated) albums
   - View photos grouped by date
-  - Optimized frontend (Infinite scrolling/dynamic loading)
-  - Detect objects in photos, and make them searchable by objects
-  - Search photos by the location
-  - Authentication
+  - "Optimized" frontend (react virtualized... I tried my best.)
+  - Detect objects in photos, and make them searchable by objects 
+  - Search photos by the location 
+  - Authentication (using JWT)
 
 
 #### - Upcoming
@@ -46,7 +45,8 @@
 
 - **Face detection:** [face_recognition](https://github.com/ageitgey/face_recognition) 
 - **Face classification/clusterization:** scikit-learn
-- **Object detection:** [densecap](https://github.com/jcjohnson/densecap)
+- **Object detection:** [densecap](https://github.com/jcjohnson/densecap), [places365](http://places.csail.mit.edu/)
+- **Reverse geocoding:** [Mapbox](https://www.mapbox.com/): You need to have an API key. First 50,000 geocode lookups are free every month.
 
 
 ## How do I run it?
@@ -54,6 +54,11 @@
 Tested on Ubuntu 16.04 and macOS Sierra.
 
 ### Backend
+
+
+
+**See `Dockerfile`. This should have most of the information you need. You might need to pip install some python packages that are not included in the requirements.txt (sorry about that).**
+
 
 
 Make sure you have Python version >= 3.5. 
@@ -117,12 +122,12 @@ docker inspect ownphotos-db | grep IPAddress
 
 Should be something like 172.17.0.#. Open `ownphotos/settings.py` and change the db host to that ip in the `DATABASE` dictionary. Should be around line 100 or so.
 
-**Setup memcached:**
+**Setup redis:**
 
 Also just use docker
 
 ```
-sudo docker run --name ownphotos-memcached -d memcached
+sudo docker run --name ownphotos-redis -d redis
 ```
 
 Check the ip of the memcached docker container by
@@ -133,15 +138,14 @@ docker inspect ownphotos-memcached | grep IPAddress
 
 Again, should be something like 172.17.0.#. Open `ownphotos/settings.py` and change the hostname in the `CACHES` dictionary. Should be around line 120 or so. 
 
-**Create db and add admin user with username `admin` and password `q1W@e3R$`**
+**Create db and add admin user**
 
 ```bash
-python manage.py migrate
 python manage.py migrate --run-syncdb
 python manage.py createsuperuser # will prompt for username and password. use admin/password
 ```
 
-**Edit `config.py` file to add directories where your photos live** (ignores subfolders).
+**Edit `config.py` file to add directories where your photos live**
 
 
 **(Optional) Install & run densecap**
@@ -199,11 +203,25 @@ A browser window should open, where you can mess around!
 
 # Screenshots
 
-![](/screenshots/statistics-fullpage.png)
-![](/screenshots/search.png)
-![](/screenshots/datelistview.png)
-![](/screenshots/dategalleryview.png)
-![](/screenshots/eventlistview.png)
-![](/screenshots/eventgalleryview.png)
-![](/screenshots/eventfavoriteview.png)
-![](/screenshots/facedashboard.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/01.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/02.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/03.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/04.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/05.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/06.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/07.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/08.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/09.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/10.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/11.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/12.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/13.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/14.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/15.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/16.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/17.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/18.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/19.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/20.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/21.png)
+![](https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/ownphotos_screenshots/22.png)
