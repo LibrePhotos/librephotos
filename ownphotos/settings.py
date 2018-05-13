@@ -29,7 +29,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['192.168.31.210','localhost','*']
 
-
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=7),
+}
 
 # Application definition
 
@@ -44,6 +47,7 @@ INSTALLED_APPS = [
     'api',
     'rest_framework',
     'corsheaders',
+    'django_extensions'
     # 'cacheops',
 ]
 
@@ -83,7 +87,8 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+#         'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
     ),
@@ -103,11 +108,6 @@ REST_FRAMEWORK_EXTENSIONS = {
 }
 
 
-
-
-JWT_AUTH = {
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(hours=1),
-}
 
 
 MIDDLEWARE = [
@@ -224,9 +224,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR,'media')
 
 THUMBNAIL_SIZE_TINY = (30,30)
 THUMBNAIL_SIZE_SMALL = (100,100)
-THUMBNAIL_SIZE_MEDIUM = (250,250)
-THUMBNAIL_SIZE = (250,250)
-THUMBNAIL_SIZE_BIG = (500,500)
+THUMBNAIL_SIZE_MEDIUM = (500,500)
+THUMBNAIL_SIZE = (500,500)
+THUMBNAIL_SIZE_BIG = (1000,1000)
 
 FULLPHOTO_SIZE = (1000,1000)
 

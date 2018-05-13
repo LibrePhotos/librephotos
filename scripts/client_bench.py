@@ -7,6 +7,16 @@ auth = HTTPBasicAuth('admin','q1W@e3R$')
 
 start = datetime.datetime.now()
 
+resp_location_sunburst = requests.get('http://localhost:8000/api/locationsunburst/',auth=auth)
+print('location_sunburst: \t| %.2f ms'%(resp_location_sunburst.elapsed.total_seconds()*1000))
+
+resp_location_timeline = requests.get('http://localhost:8000/api/locationtimeline/',auth=auth)
+print('location_timeline: \t| %.2f ms'%(resp_location_timeline.elapsed.total_seconds()*1000))
+
+
+resp_search_term_examples = requests.get('http://localhost:8000/api/searchtermexamples/',auth=auth)
+print('search_term_examples: \t| %.2f ms'%(resp_search_term_examples.elapsed.total_seconds()*1000))
+
 resp_album_auto = requests.get('http://localhost:8000/api/albums/auto/list/',auth=auth)
 print('album_auto_list: \t| %.2f ms'%(resp_album_auto.elapsed.total_seconds()*1000))
 
@@ -15,6 +25,9 @@ print('album_place_list: \t| %.2f ms'%(resp_album_place.elapsed.total_seconds()*
 
 resp_faces = requests.get('http://localhost:8000/api/faces/list/', auth=auth)
 print('faces: \t\t\t| %.2f ms'%(resp_faces.elapsed.total_seconds()*1000))
+
+resp_people = requests.get('http://localhost:8000/api/persons/', auth=auth)
+print('people: \t\t\t| %.2f ms'%(resp_faces.elapsed.total_seconds()*1000))
 
 resp_faces_labeled = requests.get('http://localhost:8000/api/faces/labeled/list/', auth=auth)
 print('faces_labeled: \t\t| %.2f ms'%(resp_faces_labeled.elapsed.total_seconds()*1000))
