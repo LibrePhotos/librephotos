@@ -1,19 +1,49 @@
 import React, {Component} from 'react';
 import { connect } from "react-redux";
-import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums, fetchAutoAlbumsList} from '../actions/albumsActions'
+import {fetchPeopleAlbums, fetchAutoAlbums, fetchAutoAlbumsList} from '../actions/albumsActions'
 import {AlbumAutoCard, AlbumAutoGallery} from '../components/album'
-import {Container, Icon, Header, Image, Button, Card, Label, Popup} from 'semantic-ui-react'
+import {Container, Icon, Header, Image, Button, Card, Label, Popup, Rating} from 'semantic-ui-react'
 import {fetchCountStats,fetchPhotoScanStatus,
         fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
 import { Grid, List, WindowScroller,AutoSizer } from 'react-virtualized';
 import {Server, serverAddress} from '../api_client/apiClient'
-
+import * as moment from 'moment'
+import debounce from 'lodash/debounce'
+import { push } from 'react-router-redux'
+import { Link } from 'react-router-dom';
 
 var topMenuHeight = 55 // don't change this
 var leftMenuWidth = 85 // don't change this
 var SIDEBAR_WIDTH = 85
 var timelineScrollWidth = 0
 var DAY_HEADER_HEIGHT = 35
+
+
+
+class ScrollSpeed {
+  clear = () => {
+    this.lastPosition = null;
+    this.delta = 0;
+  };
+  getScrollSpeed(scrollOffset) {
+    if (this.lastPosition != null) {
+      this.delta = scrollOffset - this.lastPosition;
+    }
+    this.lastPosition = scrollOffset;
+
+    window.clearTimeout(this._timeout);
+    this._timeout = window.setTimeout(this.clear, 50);
+
+    return this.delta;
+  }
+}
+
+
+const SPEED_THRESHOLD = 1000; // Tweak this to whatever feels right for your app
+const SCROLL_DEBOUNCE_DURATION = 100; // In milliseconds
+
+
+
 
 export class AlbumAutoRV extends Component {
     constructor(props){
@@ -25,9 +55,36 @@ export class AlbumAutoRV extends Component {
         width:  window.innerWidth,
         height: window.innerHeight,
         entrySquareSize:200,
-        currTopRenderedCellIdx:0
+        currTopRenderedCellIdx:0,
+        isScrollingFast: false
       }
     }
+    getScrollSpeed = new ScrollSpeed().getScrollSpeed;
+
+    handleScroll = ({scrollTop}) => {
+        // scrollSpeed represents the number of pixels scrolled since the last scroll event was fired
+        const scrollSpeed = Math.abs(this.getScrollSpeed(scrollTop));
+
+        if (scrollSpeed >= SPEED_THRESHOLD) {
+          this.setState({
+            isScrollingFast: true,
+            scrollTop:scrollTop
+          });
+        }
+
+        // Since this method is debounced, it will only fire once scrolling has stopped for the duration of SCROLL_DEBOUNCE_DURATION
+        this.handleScrollEnd();
+    }
+
+    handleScrollEnd = debounce(() => {
+    const {isScrollingFast} = this.state;
+
+    if (isScrollingFast) {
+      this.setState({
+        isScrollingFast: false,
+      });
+    }
+    }, SCROLL_DEBOUNCE_DURATION);
 
 
   componentWillMount() {
@@ -74,29 +131,52 @@ export class AlbumAutoRV extends Component {
   }
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
+      const {isScrollingFast} = this.state;
+
       var albumAutoIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex
       if (albumAutoIndex < this.props.albumsAutoList.length) {
+        if (!isScrollingFast) {
+          var image = (
+            <Image 
+              height={this.props.entrySquareSize}
+              width={this.props.entrySquareSize}
+              src={serverAddress + '/media/square_thumbnails/'+this.props.albumsAutoList[albumAutoIndex].photos[0]+'.jpg'}/>
+          )
+        } else {
+          var image = (
+            <Image 
+              height={this.props.entrySquareSize}
+              width={this.props.entrySquareSize}
+              src={'/thumbnail_placeholder.png'}/>
+          )
+        }
+
 	      return (
 	      	<div key={key} style={style}>
 	      		<div style={{padding:10}}>
-	      		<Image 
-	      			height={this.props.entrySquareSize}
-	      			width={this.props.entrySquareSize}
-		      		src={serverAddress + '/media/square_thumbnails/'+this.props.albumsAutoList[albumAutoIndex].photos[0]+'.jpg'}/>
-	      		</div>
-
-	      		<div style={{paddingLeft:15,paddingRight:30}}>
 
 
+            <Card 
+              as={Link}
+              to={`/event/${this.props.albumsAutoList[albumAutoIndex].id}`}
+              style={{height:this.state.entrySquareSize+110}}>
+              {image}
+            <Card.Content>
+              <Card.Header>
+                {moment(this.props.albumsAutoList[albumAutoIndex].timestamp).format('MMMM YYYY')}
+              </Card.Header>
+              <Card.Meta>
+                {this.props.albumsAutoList[albumAutoIndex].photos.length} Items
+              </Card.Meta>
+              <Card.Description>
+                {this.props.albumsAutoList[albumAutoIndex].title}
+              </Card.Description>
+            </Card.Content>
+            </Card>
 
 
 
-
-	      		<Header style={{marginBottom:5}} as='h3'>
-              {this.props.albumsAutoList[albumAutoIndex].timestamp.split('T')[0]}
-            </Header>
-	      		<b>{this.props.albumsAutoList[albumAutoIndex].title}</b>
-	      		</div>
+            </div>
 	      	</div>
 	      )
 	    }
@@ -117,7 +197,7 @@ export class AlbumAutoRV extends Component {
 
 
           <Header as='h2'>
-            <Icon name='users' />
+            <Icon name='wizard' />
             <Header.Content>
               Events
               <Header.Subheader>
@@ -135,12 +215,13 @@ export class AlbumAutoRV extends Component {
             <Grid
             	style={{outline:'none'}}
             	headerHeight={100}
+              onScroll={this.handleScroll}
             	disableHeader={false}
               cellRenderer={this.cellRenderer}
               columnWidth={this.state.entrySquareSize}
               columnCount={this.state.numEntrySquaresPerRow}
               height={this.state.height- topMenuHeight -60}
-              rowHeight={this.state.entrySquareSize+120}
+              rowHeight={this.state.entrySquareSize+130}
               rowCount={Math.ceil(this.props.albumsAutoList.length/this.state.numEntrySquaresPerRow.toFixed(1))}
               width={width}
             />

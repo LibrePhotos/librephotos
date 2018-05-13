@@ -1,10 +1,11 @@
 import React, {Component} from 'react'
 import { connect } from "react-redux";
-import {Loader ,Segment} from 'semantic-ui-react'
-import { Map, TileLayer, Marker } from 'react-leaflet'
+import {Loader ,Segment, Image} from 'semantic-ui-react'
+import { Map, TileLayer, Marker, Popup } from 'react-leaflet'
 import { scanPhotos,fetchPhotos} from '../actions/photosActions'
 import { fetchAutoAlbumsList } from '../actions/albumsActions'
 import { fetchLocationClusters } from '../actions/utilActions'
+import {Server, serverAddress} from '../api_client/apiClient'
 
 
 
@@ -32,6 +33,11 @@ export class LocationMap extends Component {
     var markers = photosWithGPS.map(function(photo){
       return (
         <Marker key={photo.image_hash} position={[photo.exif_gps_lat, photo.exif_gps_lon]}>
+          <Popup>
+            <div>
+            <Image src={photo.square_thumbnail}/>
+            </div>
+          </Popup>
         </Marker>
       )
     })
@@ -45,19 +51,19 @@ export class LocationMap extends Component {
         var zoom = 2
       }
       return (
-        <div style={{zIndex:2}}>
-          <Map center={[avg_lat,avg_lon]} zoom={zoom}>
+        <Segment style={{zIndex:2, height:this.props.height,padding:0}}>
+          <Map style={{height:this.props.height}} center={[avg_lat,avg_lon]} zoom={zoom}>
             <TileLayer
               attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
               url='http://{s}.tile.osm.org/{z}/{x}/{y}.png'/>
             {markers}
           </Map>
-        </div>
+        </Segment>
       )
     }
     else {
       return (
-        <div>No location information</div>
+        <Segment style={{height:this.props.height}}><Loader active>Map loading...</Loader></Segment>
       )
     }
   }
@@ -175,20 +181,20 @@ export class LocationClusterMap extends Component {
       var markers = this.preprocess()
 
       return (
-        <Segment style={{zIndex:2, height:this.props.height,padding:0}}>
-          <Map style={{height:this.props.height}} center={[40,0]} zoom={1}>
+        <div style={{zIndex:2, height:this.props.height,padding:0}}>
+          <Map style={{height:this.props.height}} center={[40,0]} zoom={3}>
             <TileLayer
               attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
               url='http://{s}.tile.osm.org/{z}/{x}/{y}.png'/>
             {markers}
           </Map>
-        </Segment>
+        </div>
       )
     }
 
     else {
       return (
-        <Segment style={{height:this.props.height}}><Loader active>Map loading...</Loader></Segment>
+        <div style={{height:this.props.height}}><Loader active>Map loading...</Loader></div>
       )
     }
   }

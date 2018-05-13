@@ -19,7 +19,7 @@ export class SocialGraph extends Component {
 	}
 
 	render(){
-		var width = this.props.containerWidth-30
+		var width = this.props.containerWidth
 
 		console.log('social graph width',width)
 		var data = this.props.socialGraph
@@ -40,7 +40,7 @@ export class SocialGraph extends Component {
 		        highlightColor: 'orange',
 		        color: '#12939A',
 		    },
-		    height: 250,
+		    height: this.props.height,
 		    width: width
 		}
 
@@ -55,12 +55,12 @@ export class SocialGraph extends Component {
 
 		console.log(this.props)
 		return (
-			<Segment>
-        <Header as='h3'>Social Graph</Header>
-        <div style={{height:'254px'}}>
-  			{graph}
-  			</div>
-			</Segment>
+            <div>
+                <Header as='h3'>Social Graph</Header>
+                <div style={{height:'254px'}}>
+                    {graph}
+                </div>
+            </div>
 		)
 	}
 }

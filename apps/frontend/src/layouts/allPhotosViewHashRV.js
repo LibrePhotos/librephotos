@@ -5,15 +5,19 @@ import 'react-virtualized/styles.css'; // only needs to be imported once
 import { connect } from "react-redux";
 import {  fetchDateAlbumsPhotoHashList,fetchAlbumsDateGalleries} from '../actions/albumsActions'
 import {  fetchPhotoDetail} from '../actions/photosActions'
-import { Card, Image, Header, Divider, Item, Loader, Dimmer, Modal, Sticky, Portal, Grid,
-         Container, Label, Popup, Segment, Button, Icon, Table, Transition} from 'semantic-ui-react';
-import ReactCSSTransitionGroup from 'react-transition-group/CSSTransitionGroup';
+import { Card, Image, Header, Divider, Item, Loader, Dimmer, Modal, Sticky, Portal, Grid, List as ListSUI,
+         Container, Label, Popup, Segment, Button, Icon, Table, Transition, Breadcrumb} from 'semantic-ui-react';
 import {Server, serverAddress} from '../api_client/apiClient'
+import {LightBox} from '../components/lightBox'
 import LazyLoad from 'react-lazyload';
-import Lightbox from 'react-image-lightbox';
+// import Lightbox from 'react-image-lightbox';
 import {LocationMap} from '../components/maps'
 import { push } from 'react-router-redux'
 import {searchPhotos} from '../actions/searchActions'
+import styles from '../App.css';
+import Draggable from 'react-draggable';
+import debounce from 'lodash/debounce'
+import * as moment from 'moment';
 
 var topMenuHeight = 55 // don't change this
 var leftMenuWidth = 85 // don't change this
@@ -29,6 +33,87 @@ if (window.innerWidth < 600) {
 
 
 
+class ScrollSpeed {
+  clear = () => {
+    this.lastPosition = null;
+    this.delta = 0;
+  };
+  getScrollSpeed(scrollOffset) {
+    if (this.lastPosition != null) {
+      this.delta = scrollOffset - this.lastPosition;
+    }
+    this.lastPosition = scrollOffset;
+
+    window.clearTimeout(this._timeout);
+    this._timeout = window.setTimeout(this.clear, 50);
+
+    return this.delta;
+  }
+}
+
+
+const SPEED_THRESHOLD = 1000; // Tweak this to whatever feels right for your app
+const SCROLL_DEBOUNCE_DURATION = 100; // In milliseconds
+
+class DraggableDay extends Component {
+    constructor(props){
+        super(props)
+        this.onStart = this.onStart.bind(this)
+        this.onStop = this.onStop.bind(this)
+        this.handleDrag = this.handleDrag.bind(this)
+        this.state = {
+            activeDrags:0,
+            deltaPosition:{x:0,y:0}
+        }
+    }
+
+    handleDrag(e, ui) {
+        const {x, y} = this.state.deltaPosition;
+        this.setState({
+          deltaPosition: {
+            x: x + ui.deltaX,
+            y: y + ui.deltaY,
+          }
+        });
+    }
+
+
+    onStart() {
+        this.setState({activeDrags: ++this.state.activeDrags});
+    }
+
+    onStop() {
+        this.setState({activeDrags: --this.state.activeDrags});
+    }
+
+    render () {
+        const dragHandlers = {onStart: this.onStart, onStop: this.onStop};
+        const {deltaPosition} = this.state;
+        return (
+            <Draggable 
+                onStart={this.onStart}
+                onDrag={this.handleDrag}
+                onStop={this.onStop}
+                axis='y'
+                handle=".handle"
+                defaultPosition={{x:15,y:-4}}
+                position={{x:15,y:-4}}>
+                <div style={{zIndex:1000}}>
+
+
+                <div style={{padding:5,textAlign:'left'}} className='handle'>
+                    <Icon name='calendar outline'/><b>{moment(this.props.date).format("MMM Do YY, dddd") }</b> <br/>
+                </div>
+                <div style={{textAlign:'right'}}>
+                    {moment(this.props.date).fromNow()}
+                </div>
+
+                </div>
+            </Draggable>
+        )
+    }
+}
+
 
 class DayGroupPlaceholder extends Component {
     render () {
@@ -36,16 +121,16 @@ class DayGroupPlaceholder extends Component {
         var gridHeight = this.props.itemSize * numRows
         var photos = this.props.day.photos.map(function(photo) {
             return (
-            <Image key={'daygroup_placholder_image_'+photo.image_hash} style={{display:'inline-block',padding:1,margin:0}}
-                height={this.props.itemSize} 
-                width={this.props.itemSize} 
-                src={'/thumbnail_placeholder.png'}/>
+                <Image key={'daygroup_image_placeholder_'+photo.image_hash} style={{display:'inline-block',padding:1,margin:0}}
+                    height={this.props.itemSize} 
+                    width={this.props.itemSize} 
+                    src={'/thumbnail_placeholder.png'}/>
             )
         },this)
         return (
             <div key={'daygroup_placeholder_'+this.props.day}>
-                <div style={{height:DAY_HEADER_HEIGHT,paddingTop:5,paddingBottom:5}}>
-                <b>{this.props.day.date}...</b>
+                    <div style={{fontSize:17,height:DAY_HEADER_HEIGHT,paddingTop:5,paddingBottom:5}}>
+                <b>{moment(this.props.day.date).format("MMM Do YY, dddd")}</b>
                 </div>
                 <div style={{height:gridHeight}}>
                 {photos}
@@ -60,52 +145,25 @@ class DayGroup extends Component {
     render () {
         var photos = this.props.day.photos.map(function(photo) {
             return (
-                <LazyLoad 
-                    key={'daygroup_photos_'+photo.image_hash}
-                    once
-                    offset={100}
-                    placeholder={
-                        <div style={{display:'inline-block',padding:1,margin:0}}></div>
-                    }
-                    >
-                    <ReactCSSTransitionGroup
-                        transitionName="thumbnail"
-                        transitionAppear={true}
-                        transitionAppearTimeout={300}
-                        transitionEnterTimeout={300}
-                        transitionLeaveTimeout={300}>
-                        <Image key={'daygroup_image_'+photo.image_hash} style={{display:'inline-block',padding:1,margin:0}}
-                            onClick={()=>{
-                                this.props.onPhotoClick(photo.image_hash)
-                                console.log(photo.image_hash,'clicked')
-                            }}
-                            height={this.props.itemSize} 
-                            width={this.props.itemSize} 
-                            src={serverAddress+'/media/square_thumbnails_big/'+photo.image_hash+'.jpg'}/>
-                    </ReactCSSTransitionGroup>
-                </LazyLoad>
+                <Image key={'daygroup_image_'+photo.image_hash} style={{display:'inline-block',padding:1,margin:0}}
+                    onClick={()=>{
+                        this.props.onPhotoClick(photo.image_hash)
+                    }}
+                    height={this.props.itemSize} 
+                    width={this.props.itemSize} 
+                    src={serverAddress+'/media/square_thumbnails/'+photo.image_hash+'.jpg'}/>
             )
         },this)
         var gridHeight = this.props.itemSize * Math.ceil(this.props.day.photos.length/this.props.numItemsPerRow.toFixed(1))
         return (
-            <LazyLoad 
-                key={'daygroup_grid_'+this.props.day}
-                once 
-                offset={500}
-                placeholder={
-                    <DayGroupPlaceholder 
-                        numItemsPerRow={this.props.numItemsPerRow} 
-                        itemSize={this.props.itemSize} 
-                        day={this.props.day}/>}>
-                <div style={{}}>
-                    <div style={{height:DAY_HEADER_HEIGHT,paddingTop:5,paddingBottom:5}}>
-                    <b>{this.props.day.date}</b>
-                    </div>
-                    <div style={{height:gridHeight}}>
-                    {photos}
-                    </div>
+            <div key={'daygroup_grid_'+this.props.day} style={{}}>
+                <div style={{fontSize:17,height:DAY_HEADER_HEIGHT,paddingTop:5,paddingBottom:5}}>
+                <b>{moment(this.props.day.date).format("MMM Do YY, dddd")}</b>
                 </div>
-            </LazyLoad>
+                <div style={{height:gridHeight}}>
+                {photos}
+                </div>
+            </div>
         )
     }
 }
@@ -128,9 +186,40 @@ export class AllPhotosHashListViewRV extends Component {
             width:  window.innerWidth,
             height: window.innerHeight,
             entrySquareSize:200,
-            currTopRenderedRowIdx:0
+            currTopRenderedRowIdx:0,
+            scrollTop:0
         }
     }
+
+    getScrollSpeed = new ScrollSpeed().getScrollSpeed;
+
+    handleScroll = ({scrollTop}) => {
+        // scrollSpeed represents the number of pixels scrolled since the last scroll event was fired
+        const scrollSpeed = Math.abs(this.getScrollSpeed(scrollTop));
+
+        if (scrollSpeed >= SPEED_THRESHOLD) {
+          this.setState({
+            isScrollingFast: true,
+            scrollTop:scrollTop
+          });
+        }
+
+        // Since this method is debounced, it will only fire once scrolling has stopped for the duration of SCROLL_DEBOUNCE_DURATION
+        this.handleScrollEnd();
+    }
+
+    handleScrollEnd = debounce(() => {
+    const {isScrollingFast} = this.state;
+
+    if (isScrollingFast) {
+      this.setState({
+        isScrollingFast: false,
+      });
+    }
+    }, SCROLL_DEBOUNCE_DURATION);
+
+
+
     componentWillMount() {
         if (this.props.albumsDatePhotoHashList.length < 1) {
             this.props.dispatch(fetchDateAlbumsPhotoHashList())
@@ -147,16 +236,16 @@ export class AllPhotosHashListViewRV extends Component {
             var numEntrySquaresPerRow = 4
         }
         else if (window.innerWidth < 1000) {
-            var numEntrySquaresPerRow = 5
+            var numEntrySquaresPerRow = 6
         }
         else if (window.innerWidth < 1200) {
             var numEntrySquaresPerRow = 6
         }
         else {
-            var numEntrySquaresPerRow = 8
+            var numEntrySquaresPerRow = 6 
         }
 
-        var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15 - 10 - 10 - timelineScrollWidth
+        var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10
 
 
         var entrySquareSize = columnWidth / numEntrySquaresPerRow
@@ -167,9 +256,6 @@ export class AllPhotosHashListViewRV extends Component {
             entrySquareSize:entrySquareSize,
             numEntrySquaresPerRow:numEntrySquaresPerRow
         })
-        console.log('column width:',columnWidth)
-        console.log('item size:',entrySquareSize)
-        console.log('num items per row',numEntrySquaresPerRow)
     }
 
     cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
@@ -183,20 +269,35 @@ export class AllPhotosHashListViewRV extends Component {
     }
 
     rowRenderer = ({index, isScrolling, key, style}) => {
+        const {isScrollingFast} = this.state;
         var rowHeight = this.state.entrySquareSize * Math.ceil(this.props.albumsDatePhotoHashList[index].photos.length/this.state.numEntrySquaresPerRow.toFixed(1)) + DAY_HEADER_HEIGHT
-
-        return (
-            <div key={key} style={{...style,height:rowHeight}}>
-                <div style={{backgroundColor:'white'}}>
+        if (isScrollingFast) {
+            return (
+                <div key={key} style={{...style,height:rowHeight}}>
+                    <div style={{backgroundColor:'white'}}>
+                    <DayGroupPlaceholder
+                        key={index}
+                        onPhotoClick={this.onPhotoClick}
+                        day={this.props.albumsDatePhotoHashList[index]} 
+                        itemSize={this.state.entrySquareSize} 
+                        numItemsPerRow={this.state.numEntrySquaresPerRow}/>
+                    </div>
+                </div>
+            )
+        }
+        else {
+            return (
+                <div key={key} style={{...style,height:rowHeight}}>
+                    <div style={{backgroundColor:'white'}}>
                     <DayGroup 
                         key={index}
                         onPhotoClick={this.onPhotoClick}
                         day={this.props.albumsDatePhotoHashList[index]} 
                         itemSize={this.state.entrySquareSize} 
                         numItemsPerRow={this.state.numEntrySquaresPerRow}/>
+                    </div>
                 </div>
-            </div>
-        )
+            )        }
     }
 
     getRowHeight = ({index}) => {
@@ -223,74 +324,66 @@ export class AllPhotosHashListViewRV extends Component {
     }
 
     render() {
-
+        const {lightboxImageIndex} = this.state
+        console.log(this.props)
         if ( this.props.idx2hash.length < 1 ||this.props.albumsDatePhotoHashList.length < 1) {
             return (<div><Loader active/></div>)
         }
-
+        var totalListHeight = this.props.albumsDatePhotoHashList.map((day,index)=>{
+            return (
+                this.getRowHeight({index})
+            )
+        }).reduce((a,b)=>(a+b),0)
         return (
-            <div style={{paddingRight:timelineScrollWidth}}>
-                <WindowScroller
-                    ref={this._setRef}
-                    scrollElement={window}>
-                    {({height, isScrolling, registerChild, onChildScroll, scrollTop}) => {
-                        console.log('before returning list, height',height)
-                        console.log('before returning list, scrollTop',scrollTop)
-                        var totalListHeight = this.props.albumsDatePhotoHashList.map((day,index)=>{
-                            return (
-                                this.getRowHeight({index})
-                            )
-                        }).reduce((a,b)=>(a+b),0)
-                        console.log(totalListHeight)
+            <div>
+                <div style={{height:60,paddingTop:10}}>
 
-                        return (
-                            <div className='whoororororo'>
-                                <div ref={registerChild} className="WHTHTH">
-                                    <List
-                                        style={{outline:'none',height:totalListHeight,maxHeight:totalListHeight}}
-                                        ref={el => {
-                                            window.listEl = el;
-                                        }}
-                                        onRowsRendered={({ overscanStartIndex, overscanStopIndex, startIndex, stopIndex })=>{
-                                            this.setState({currTopRenderedRowIdx:startIndex})
-                                            console.log(this.state.currTopRenderedRowIdx)
-                                        }}
-                                        autoHeight
-                                        height={height}
-                                        isScrolling={isScrolling}
-                                        onScroll={onChildScroll}
-                                        overscanRowCount={5}
-                                        rowCount={this.props.albumsDatePhotoHashList.length}
-                                        rowHeight={this.getRowHeight}
-                                        rowRenderer={this.rowRenderer}
-                                        scrollTop={scrollTop}
-                                        width={this.state.width-leftMenuWidth-15}
-                                    />
-                                </div>
-                                { (
-                                    <div style={{
-                                        right:0,
-                                        top:topMenuHeight + (scrollTop / totalListHeight) * (this.state.height - topMenuHeight - 50 - 10),
-                                        position:'fixed',
-                                        float:'left',
-                                        width:150,
-                                        padding:10,
-                                        height:50,
-                                        zIndex:100,
-                                    }}>
-                                    <Segment>
-                                        
-                                        <Icon name='calendar outline'/><b>{this.props.albumsDatePhotoHashList[this.state.currTopRenderedRowIdx].date}</b>
-                                        
-                                    </Segment>
-                                    </div>
-                                )}
-                            </div>
-                        )
-                    }}
-                    
-                    
-                </WindowScroller>
+                  <Header as='h2'>
+                    <Icon name='picture' />
+                    <Header.Content>
+                      All Photos
+                      <Header.Subheader>
+                        {this.props.albumsDatePhotoHashList.length} Days, {this.props.idx2hash.length} Photos
+                      </Header.Subheader>
+                    </Header.Content>
+                  </Header>
+
+                </div>
+
+                    <List
+                        style={{outline:'none',paddingRight:0,marginRight:0}}
+                        onRowsRendered={({ overscanStartIndex, overscanStopIndex, startIndex, stopIndex })=>{
+                            this.setState({currTopRenderedRowIdx:startIndex})
+                        }}
+                        height={this.state.height-topMenuHeight-60}
+                        overscanRowCount={5}
+                        rowCount={this.props.albumsDatePhotoHashList.length}
+                        rowHeight={this.getRowHeight}
+                        rowRenderer={this.rowRenderer}
+                        onScroll={this.handleScroll}
+                        estimatedRowSize={totalListHeight/this.props.albumsDatePhotoHashList.length.toFixed(10)}
+                        width={this.state.width-leftMenuWidth-5}/>
+
+            { (
+                <div style={{
+                    right:0,
+                    top:topMenuHeight + 10+ (0 / totalListHeight) * (this.state.height - topMenuHeight - 50 - 20),
+                    position:'fixed',
+                    float:'left',
+                    width:180,
+                    padding:0,
+                    height:50,
+                    zIndex:100,
+                }}>
+                    <div style={{textAlign:'right',paddingRight:30}} className='handle'>
+                        <b>{moment(this.props.albumsDatePhotoHashList[this.state.currTopRenderedRowIdx].date).format("MMMM YYYY") }</b> <br/>
+                    </div>
+                    <div style={{textAlign:'right',paddingRight:30}}>
+                        {moment(this.props.albumsDatePhotoHashList[this.state.currTopRenderedRowIdx].date).fromNow()}
+                    </div>
+                </div>
+            )}
+
                 <div style={{
                     backgroundColor:'white',
                     position:'fixed',
@@ -301,113 +394,11 @@ export class AllPhotosHashListViewRV extends Component {
                         
                 </div>
 
+                { this.state.lightboxShow &&
+                    <LightBox
+                        idx2hash={this.props.idx2hash}
+                        lightboxImageIndex={this.state.lightboxImageIndex}
 
-                {this.state.lightboxShow && (
-                    <Lightbox
-                        mainSrc={serverAddress+'/media/photos/'+this.props.idx2hash[this.state.lightboxImageIndex]+'.jpg'}
-                        nextSrc={serverAddress+'/media/photos/'+this.props.idx2hash[(this.state.lightboxImageIndex + 1) % this.props.idx2hash.length]+'.jpg'}
-                        prevSrc={serverAddress+'/media/photos/'+this.props.idx2hash[(this.state.lightboxImageIndex - 1) % this.props.idx2hash.length]+'.jpg'}
-                        mainSrcThumbnail={serverAddress+'/media/thumbnails_tiny/'+this.props.idx2hash[this.state.lightboxImageIndex]+'.jpg'}
-                        nextSrcThumbnail={serverAddress+'/media/thumbnails_tiny/'+this.props.idx2hash[(this.state.lightboxImageIndex + 1) % this.props.idx2hash.length]+'.jpg'}
-                        prevSrcThumbnail={serverAddress+'/media/thumbnails_tiny/'+this.props.idx2hash[(this.state.lightboxImageIndex - 1) % this.props.idx2hash.length]+'.jpg'}
-                        toolbarButtons={[
-                            <div>
-                                <Button 
-                                    icon 
-                                    active={this.state.lightboxSidebarShow}
-                                    circular
-                                    onClick={()=>{this.setState({lightboxSidebarShow:!this.state.lightboxSidebarShow})}}>
-                                    <Icon name='info'/>
-                                </Button>
-                                <Transition visible={this.state.lightboxSidebarShow} animation='fade left' duration={500}>
-                                    <div style={{ 
-                                        right: 0, 
-                                        top:0,
-                                        float:'right',
-                                        backgroundColor:'white',
-                                        width:LIGHTBOX_SIDEBAR_WIDTH, 
-                                        height:window.innerHeight,
-                                        whiteSpace:'normal',
-                                        position: 'fixed', 
-                                        zIndex: 1000 }}>
-                                        { this.props.photoDetails.hasOwnProperty(this.props.idx2hash[this.state.lightboxImageIndex]) && (
-                                            <div style={{width:LIGHTBOX_SIDEBAR_WIDTH}}>
-                                                <div style={{paddingLeft:30,paddingRight:30,fontSize:'14px',lineHeight:'normal',whiteSpace:'normal',wordWrap:'break-all'}}>
-                                                    <Divider hidden/>
-                                                    <Icon name='left arrow' size='big' color='black' onClick={()=>this.setState({lightboxSidebarShow:false})}/>
-                                                    <Header as='h3'>Info</Header>
-                                                    <Header as='h4'>Details</Header>
-                                                    <Table basic='very'  fixed>
-                                                        <Table.Body>
-                                                            <Table.Row>
-                                                                <Table.Cell width={2}>
-                                                                    <Icon name='calendar'/>
-                                                                </Table.Cell>
-                                                                <Table.Cell>
-                                                                    {this.props.photoDetails[this.props.idx2hash[this.state.lightboxImageIndex]].exif_timestamp.split('T')[0]}
-                                                                </Table.Cell>
-                                                            </Table.Row>
-                                                            <Table.Row>
-                                                                <Table.Cell width={2}>
-                                                                    <Icon name='clock'/>
-                                                                </Table.Cell>
-                                                                <Table.Cell>
-                                                                    {this.props.photoDetails[this.props.idx2hash[this.state.lightboxImageIndex]].exif_timestamp.split('T')[1].split('+')[0]}
-                                                                </Table.Cell>
-                                                            </Table.Row>
-                                                            <Table.Row>
-                                                                <Table.Cell width={2}>
-                                                                    <Icon name='image'/>
-                                                                </Table.Cell>
-                                                                <Table.Cell>
-                                                                    {this.props.photoDetails[this.props.idx2hash[this.state.lightboxImageIndex]].image_path}
-                                                                </Table.Cell>
-                                                            </Table.Row>
-                                                            <Table.Row>
-                                                                <Table.Cell width={2}>
-                                                                    <Icon name='map'/>
-                                                                </Table.Cell>
-                                                                <Table.Cell>
-                                                                    {this.props.photoDetails[this.props.idx2hash[this.state.lightboxImageIndex]].search_location}
-                                                                </Table.Cell>
-                                                            </Table.Row>
-                                                        </Table.Body>
-                                                    </Table>
-                                                </div>
-
-
-                                                <div style={{width:LIGHTBOX_SIDEBAR_WIDTH}}>
-                                                <LocationMap zoom={8} photos={[
-                                                    this.props.photoDetails[this.props.idx2hash[this.state.lightboxImageIndex]]
-                                                ]}/>
-                                                </div>
-
-                                                <div style={{
-                                                    padding:20,
-                                                    lineHeight:'normal',
-                                                    whiteSpace:'normal'}}>
-                                                        <Label.Group>
-                                                        {this.props.photoDetails[this.props.idx2hash[this.state.lightboxImageIndex]].search_captions.split(' , ').map((nc)=>(
-                                                            <Label 
-                                                                onClick={()=>{
-                                                                  this.props.dispatch(searchPhotos(nc))
-                                                                  this.props.dispatch(push('/search'))
-                                                                }}
-                                                                circular>
-                                                                {nc}
-                                                            </Label>
-                                                        ))}
-                                                        </Label.Group>
-
-                                                </div>
-
-
-                                            </div>
-                                        )}
-                                    </div>
-                                </Transition>
-                            </div>
-                        ]}
                         onCloseRequest={() => this.setState({ lightboxShow: false })}
                         onImageLoad={()=>{
                             this.getPhotoDetails(this.props.idx2hash[this.state.lightboxImageIndex])
@@ -417,7 +408,6 @@ export class AllPhotosHashListViewRV extends Component {
                             this.setState({
                                 lightboxImageIndex:nextIndex
                             })
-                            console.log(nextIndex,this.props.idx2hash[nextIndex])
                             this.getPhotoDetails(this.props.idx2hash[nextIndex])
                         }}
                         onMoveNextRequest={() => {
@@ -425,25 +415,10 @@ export class AllPhotosHashListViewRV extends Component {
                             this.setState({
                                 lightboxImageIndex:nextIndex
                             })
-                            console.log(nextIndex,this.props.idx2hash[nextIndex])
                             this.getPhotoDetails(this.props.idx2hash[nextIndex])
-                        }}
-                        sidebarWidth={  this.state.lightboxSidebarShow ? LIGHTBOX_SIDEBAR_WIDTH : 0}
-                        reactModalStyle={
-                            {
-                               content: {
-                                    right: this.state.lightboxSidebarShow ? LIGHTBOX_SIDEBAR_WIDTH : 0,
-                                    //right:LIGHTBOX_SIDEBAR_WIDTH,
-                                    //width: this.state.lightboxSidebarShow ? window.innerWidth - LIGHTBOX_SIDEBAR_WIDTH : window.innerWidth,
-                                    //transform: 'translate(-200px,0)',
-                                    //width: window.innerWidth - LIGHTBOX_SIDEBAR_WIDTH
-                                },
-                                //overlay: {width: window.innerWidth - LIGHTBOX_SIDEBAR_WIDTH}
-                            }
-                        }
+                        }}/>
+                }
 
-                    />
-                )}
 
 
             </div>

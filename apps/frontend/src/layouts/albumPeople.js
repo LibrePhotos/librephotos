@@ -2,11 +2,12 @@ import React, {Component} from 'react';
 import { connect } from "react-redux";
 import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
 import {AlbumPeopleCard, AlbumPeopleGallery} from '../components/album'
-import {Container, Icon, Divider, Header, Image, Button, Card} from 'semantic-ui-react'
-import { fetchPeople } from '../actions/peopleActions';
+import {Popup, Modal, Container, Icon, Divider, Header, Image, Button, Card} from 'semantic-ui-react'
+import { fetchPeople, deletePerson} from '../actions/peopleActions';
 
 import {Server, serverAddress} from '../api_client/apiClient'
 import { Grid, List, WindowScroller,AutoSizer } from 'react-virtualized';
+import { Link } from 'react-router-dom';
 
 import { push } from 'react-router-redux'
 
@@ -73,27 +74,64 @@ export class AlbumPeople extends Component {
   }
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-      var albumPlaceIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex
-      if (albumPlaceIndex < this.props.people.length) {
+      var albumPersonIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex
+      if (albumPersonIndex < this.props.people.length) {
         return (
           <div key={key} style={style}>
             <div 
               onClick={()=>{
                 console.log('clicked')
-                if (!this.props.albumsPeople.hasOwnProperty(this.props.people[albumPlaceIndex].key)){
-                  this.props.dispatch(fetchPeopleAlbums(this.props.people[albumPlaceIndex].key))
+                if (!this.props.albumsPeople.hasOwnProperty(this.props.people[albumPersonIndex].key)){
+                  this.props.dispatch(fetchPeopleAlbums(this.props.people[albumPersonIndex].key))
                 }
-                this.props.dispatch(push(`/person/${this.props.people[albumPlaceIndex].key}`))
+                // this.props.dispatch(push(`/person/${this.props.people[albumPersonIndex].key}`))
               }}
               style={{paddingLeft:10,paddingBottom:10}}>
 
-              <Image 
-                style={{padding:5}}
-                src={serverAddress+this.props.people[albumPlaceIndex].face_photo_url}/>
+              { this.props.people[albumPersonIndex].face_count > 0 ? 
+                  (
+                    <Image 
+                        style={{padding:5}}
+                        as={Link} to={`/person/${this.props.people[albumPersonIndex].key}`}
+                        src={serverAddress+this.props.people[albumPersonIndex].face_photo_url}/>
+                  ) :
+                  (
+                    <Image style={{padding:5}}
+                        src={'/unknown_user.jpg'}/>
+                  )
+              }
+
 
             </div>
-            <div style={{paddingLeft:15,paddingRight:10}}>
-            <b>{this.props.people[albumPlaceIndex].text}</b> {this.props.people[albumPlaceIndex].face_count}
+            <div className="personCardName" style={{paddingLeft:15,paddingRight:10}}>
+            <b>{this.props.people[albumPersonIndex].text}</b> {this.props.people[albumPersonIndex].face_count}
+
+            { this.props.people[albumPersonIndex].text.toLowerCase() != 'unknown' &&
+                (
+                    <div className="personRemoveButton" style={{right:0,position:'absolute'}}>
+                        <Popup 
+                            wide='very'
+                            hoverable
+                            flowing
+                            trigger={<Icon color='grey' name='remove'/>}
+                            content={
+                                <div style={{textAlign:"center"}}>
+                                    Are you sure you want to delete <b>{this.props.people[albumPersonIndex].text}</b>?<br/>
+                                    This action cannot be undone!<br/>
+                                    All the faces associated with this person will be tagged <i>unknown</i>.
+                                    <Divider/>
+                                    <div>
+                                        <Button onClick={()=>this.props.dispatch(deletePerson(this.props.people[albumPersonIndex].key))} negative>Yes</Button>
+                                    </div>
+                                </div>
+                            }
+                            on='click'
+                            position='bottom center'
+                            />
+                    </div> 
+                )
+            }
+
             </div>
           </div>
         )

@@ -4,6 +4,7 @@ import './App.css';
 import {
   BrowserRouter as Router,
   Route,
+  Switch,
   Redirect
 } from 'react-router-dom'
 import { ConnectedRouter, routerReducer, routerMiddleware, push } from 'react-router-redux'
@@ -40,6 +41,7 @@ import {AlbumDateMonths} from './layouts/albumDateMonths'
 import {AlbumThing} from './layouts/albumThing'
 
 import {AlbumPlace} from './layouts/albumPlace'
+import {AlbumPlaceGallery} from './layouts/albumPlaceGallery'
 
 import {AllPhotosView} from './layouts/allPhotosView'
 import {AllPhotosGroupedByDate} from './layouts/allPhotosGroupedByDate'
@@ -47,6 +49,7 @@ import {AllPhotosGroupedByDate} from './layouts/allPhotosGroupedByDate'
 
 import {FavoriteAutoAlbumsView} from './layouts/favoriteAutoAlbums'
 
+import {NoTimestampPhotosView} from './layouts/noTimestampPhotosView'
 
 import EventCountMonthGraph from './components/eventCountMonthGraph'
 
@@ -60,6 +63,9 @@ import {AllPhotosHashListView} from './layouts/allPhotosViewHash'
 import {AllPhotosHashListViewRV} from './layouts/allPhotosViewHashRV'
 
 import {LoginPage} from './layouts/loginPage'
+import Login from './containers/login'
+
+import {Settings} from './layouts/settings'
 
 import {NotImplementedPlaceholder} from './layouts/notImplementedPlaceholder'
 import {CountryPiChart} from './components/charts/countryPiChart'
@@ -70,67 +76,115 @@ import {SearchViewRV} from './layouts/searchRV'
 import {ImageInfoTable} from './components/imageInfoTable'
 import history from './history'
 
+import store from './store'
+import { connect } from "react-redux";
+import * as reducers from './reducers'
+
+import PrivateRoute from './layouts/privateRoute'
+
+/*
+store.subscribe(listener)
+
+var jwt = null
+
+function select(state) {
+  return state.auth.jwtToken
+}
+
+function listener() {
+  let token = select(store.getState())
+  jwt = token
+}
+*/
+
+
 var topMenuHeight = 55 // don't change this
 var leftMenuWidth = 85 // don't change this
 
+
+class Nav extends React.Component {
+  render() {
+    return (
+      <div>
+        <SideMenuNarrow visible={true}/>
+        <TopMenu style={{zIndex:-1}}/>
+      </div>
+    )
+  }
+}
+
 class App extends Component {
 
-  state = { sidebarVisible: true }
 
-  toggleVisibility = () => this.setState({ sidebarVisible: true })
+  /*
+  componentWillMount() {
+    if (this.props.jwtToken == null) {
+      store.dispatch(push('/login/'))
+    }
+  }
+  */
 
   render() {
-    const { sidebarVisible } = this.state
-    if (this.state.sidebarVisible) {
-      var menuSpacing = leftMenuWidth
-    }
-    else {
-      var menuSpacing = 0
-    }
+    const menuSpacing = 0
+    console.log('app.js',this.props)
     return (
+
       <ConnectedRouter history={history}>
-        <div>
-          <SideMenuNarrow visible={true}/>
-          <TopMenu style={{zIndex:-1}}/>
-          <div style={{paddingLeft:menuSpacing+5,paddingRight:0}}>
+      <div>
+        { this.props.location && this.props.location.pathname!='/login' && <Nav/> }
+        <Switch>
 
-            <div style={{paddingTop:topMenuHeight}}>
-            
+              <PrivateRoute exact path="/" component={AllPhotosHashListViewRV}/>
 
-            <Route exact path="/" component={AllPhotosHashListViewRV}/>
+              <Route path="/login" component={Login}/>
 
-            <Route path='/test' component={CountryPiChart}/>
+              <PrivateRoute path="/things" component={AlbumThing}/>
+              
+              <PrivateRoute path="/notimestamp" component={NoTimestampPhotosView}/>
+              
+              <PrivateRoute path="/places" component={AlbumPlace}/>
 
+              <PrivateRoute path="/people" component={AlbumPeople}/>
 
-            <Route path='/niy' component={ImageInfoTable}/>
+              <PrivateRoute path="/events" component={AlbumAutoRV}/>
 
-            <Route path='/search' component={SearchViewRV}/>
+              <PrivateRoute path="/statistics" component={Statistics}/>
 
-            <Route path="/login" component={LoginPage}/>
+              <PrivateRoute path="/settings" component={Settings}/>
 
-            <Route path="/favorite/auto" component={FavoriteAutoAlbumsView}/>
+              <PrivateRoute path="/faces" component={FacesDashboardV2}/>
 
-            <Route path="/things" component={AlbumThing}/>
-            <Route path="/places" component={AlbumPlace}/>
-            <Route path="/people" component={AlbumPeople}/>
-            <Route path="/events" component={AlbumAutoRV}/>
+              <PrivateRoute path="/search" component={SearchViewRV}/>
 
-            <Route path="/statistics" component={Statistics}/>
-            <Route path="/faces" component={FacesDashboardV2}/>
+              <PrivateRoute path='/person/:albumID' component={AlbumPersonGallery}/>
 
-            <Route path='/person/:albumID' component={AlbumPersonGallery}/>
-            <Route path='/events/:albumID' component={AlbumAutoGalleryView}/>
-            </div>
-          </div>
+              <PrivateRoute path='/place/:albumID' component={AlbumPlaceGallery}/>
 
-        </div>
+              <PrivateRoute path='/event/:albumID' component={AlbumAutoGalleryView}/>
+
+        </Switch>
+      </div>
       </ConnectedRouter>
     );
   }
 }
 
-function requireAuth(nextState, replace) {
-  console.log('hey!')
-}
+
+
+App = connect((store)=>{
+  return {
+    location: store.routerReducer.location,
+  }
+})(App)
 
 export default App;
+/*
+const mapStateToProps = (state) => ({
+  router: state.routerReducer
+})
+
+const mapDispatchToProps = (dispatch) => ({
+})
+
+export default connect(mapStateToProps, null)(App)
+*/

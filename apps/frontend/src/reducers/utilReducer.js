@@ -11,8 +11,10 @@ export default function reducer(state={
     fetchingPhotoMonthCounts: false,
     fetchedPhotoMonthCounts: false,
 
-    statusPhotoScan: {status:false},
-    statusAutoAlbumProcessing: {status:false},
+    statusPhotoScan: {status:true},
+    statusAutoAlbumProcessing: {status:true},
+
+    generatingAutoAlbums: false,
 
     locationClusters: [],
     fetchingLocationClusters:false,
@@ -22,10 +24,87 @@ export default function reducer(state={
     fetchingWordCloud: false,
     fetchedWordCloud: false,
 
+    exampleSearchTerms: [],
+    fetchingExampleSearchTerms: false,
+    fetchedExampleSearchTerms: false,
+
+    locationSunburst: {'name':"Loading..."},
+    fetchingLocationSunburst: false,
+    fetchedLocationSunburst: false,
+
+    locationTimeline: [],
+    fetchingLocationTimeline: false,
+    fetchedLocationTimeline: false,
+
     error: null,
   }, action) {
 
   switch (action.type) {
+
+
+    case "GENERATE_EVENT_ALBUMS": {
+      return {...state, generatingAutoAlbums: true}
+    }
+    case "GENERATE_EVENT_ALBUMS_REJECTED": {
+      return {...state, generatingAutoAlbums: false, error: action.payload}
+    }
+    case "GENERATE_EVENT_ALBUMS_FULFILLED": {
+      return {
+        ...state,
+        generatingAutoAlbums:false,
+      }
+    }
+
+
+
+
+    case "FETCH_LOCATION_TIMELINE": {
+      return {...state, fetchingLocationTimeline: true}
+    }
+    case "FETCH_LOCATION_TIMELINE_REJECTED": {
+      return {...state, fetchingLocationTimeline: false, error: action.payload}
+    }
+    case "FETCH_LOCATION_TIMELINE_FULFILLED": {
+      return {
+        ...state,
+        fetchingLocationTimeline: false,
+        fetchedLocationTimeline: true,
+        locationTimeline: action.payload
+      }
+    }
+
+
+
+    case "FETCH_LOCATION_SUNBURST": {
+      return {...state, fetchingLocationSunburst: true}
+    }
+    case "FETCH_LOCATION_SUNBURST_REJECTED": {
+      return {...state, fetchingLocationSunburst: false, error: action.payload}
+    }
+    case "FETCH_LOCATION_SUNBURST_FULFILLED": {
+      return {
+        ...state,
+        fetchingLocationSunburst: false,
+        fetchedLocationSunburst: true,
+        locationSunburst: action.payload
+      }
+    }
+
+    case "FETCH_EXAMPLE_SEARCH_TERMS": {
+      return {...state, fetchingExampleSearchTerms: true}
+    }
+    case "FETCH_EXAMPLE_SEARCH_TERMS_REJECTED": {
+      return {...state, fetchingExampleSearchTerms: false, error: action.payload}
+    }
+    case "FETCH_EXAMPLE_SEARCH_TERMS_FULFILLED": {
+      return {
+        ...state,
+        fetchingExampleSearchTerms: false,
+        fetchedExampleSearchTerms: true,
+        exampleSearchTerms: action.payload
+      }
+    }
+
     case "FETCH_COUNT_STATS": {
       return {...state, fetchingCountStats: true}
     }

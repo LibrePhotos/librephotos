@@ -12,10 +12,10 @@ import {AlbumAutoMonths} from './albumAutoMonths'
 import {AlbumDateMonths} from './albumDateMonths'
 
 import {fetchThingAlbumsList} from '../actions/albumsActions'
-import ReactCSSTransitionGroup from 'react-transition-group/CSSTransitionGroup';
 import {searchPhotos} from '../actions/searchActions'
 import { push } from 'react-router-redux'
 import store from '../store'
+import { Link } from 'react-router-dom';
 
 var topMenuHeight = 55 // don't change this
 var ESCAPE_KEY = 27;
@@ -38,6 +38,7 @@ export class AlbumThing extends Component {
     this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this)
     this.cellRenderer = this.cellRenderer.bind(this)
   }
+
 
   componentWillMount() {
     this.calculateEntrySquareSize();

@@ -193,9 +193,9 @@ export class FacesDashboardV2 extends Component {
             zIndex:1000,
             position:'fixed',
             float:'left',
-            top:topMenuHeight+15,
-            left:SIDEBAR_WIDTH+15,
-            width:window.innerWidth-SIDEBAR_WIDTH-45}}>
+            top:topMenuHeight+5,
+            left:SIDEBAR_WIDTH+5,
+            width:window.innerWidth-SIDEBAR_WIDTH-25}}>
             <FaceToLabel/>
           </div>
           

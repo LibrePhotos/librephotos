@@ -1,6 +1,63 @@
 import axios from "axios";
 import {Server} from '../api_client/apiClient'
 
+
+
+
+export function generateEventAlbums() {
+  return function(dispatch) {
+    dispatch({type: "GENERATE_EVENT_ALBUMS"});
+    Server.get(`autoalbumgen/`)
+      .then((response) => {
+        dispatch({type: "GENERATE_EVENT_ALBUMS_FULFILLED", payload: response.data})
+      })
+      .catch((err) => {
+        dispatch({type: "GENERATE_EVENT_ALBUMS_REJECTED", payload: err}) })
+  }
+}
+
+
+
+export function fetchExampleSearchTerms() {
+  return function(dispatch) {
+    dispatch({type: "FETCH_EXAMPLE_SEARCH_TERMS"});
+    Server.get(`searchtermexamples/`)
+      .then((response) => {
+        dispatch({type: "FETCH_EXAMPLE_SEARCH_TERMS_FULFILLED", payload: response.data.results})
+      })
+      .catch((err) => {
+        dispatch({type: "FETCH_EXAMPLE_SEARCH_TERMS_REJECTED", payload: err}) })
+  }
+}
+
+export function fetchLocationSunburst() {
+  return function(dispatch) {
+    dispatch({type: "FETCH_LOCATION_SUNBURST"});
+    Server.get(`locationsunburst/`)
+      .then((response) => {
+        dispatch({type: "FETCH_LOCATION_SUNBURST_FULFILLED", payload: response.data})
+      })
+      .catch((err) => {
+        dispatch({type: "FETCH_LOCATION_SUNBURST_REJECTED", payload: err}) })
+  }
+}
+
+
+export function fetchLocationTimeline() {
+  return function(dispatch) {
+    dispatch({type: "FETCH_LOCATION_TIMELINE"});
+    Server.get(`locationtimeline/`)
+      .then((response) => {
+        dispatch({type: "FETCH_LOCATION_TIMELINE_FULFILLED", payload: response.data})
+      })
+      .catch((err) => {
+        dispatch({type: "FETCH_LOCATION_TIMELINE_REJECTED", payload: err}) })
+  }
+}
+
+
+
+
 export function fetchCountStats() {
   return function(dispatch) {
     dispatch({type: "FETCH_COUNT_STATS"});

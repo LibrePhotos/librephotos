@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
 import { connect } from "react-redux";
 import {AlbumDateCard, AlbumDateCardPlaceholder, AlbumDateCardPlain, AlbumDateCardPlainPlaceholder, AlbumAutoGallery} from '../components/album'
-import {Container, Icon, Header, Button, Card, Loader, Label, Popup, Image, Divider, Grid as GridSUI} from 'semantic-ui-react'
+import {Container, Icon, Header, Button, Card, Loader, Label, Popup, Image, Flag, Divider, Grid as GridSUI} from 'semantic-ui-react'
 import {fetchCountStats,fetchPhotoScanStatus,
         fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
 
@@ -11,7 +11,6 @@ import {AlbumAutoMonths} from './albumAutoMonths'
 import {AlbumDateMonths} from './albumDateMonths'
 
 import {fetchPlaceAlbumsList} from '../actions/albumsActions'
-import ReactCSSTransitionGroup from 'react-transition-group/CSSTransitionGroup';
 import {searchPhotos} from '../actions/searchActions'
 import { push } from 'react-router-redux'
 import store from '../store'
@@ -19,6 +18,9 @@ import { Grid, List, WindowScroller,AutoSizer } from 'react-virtualized';
 import {AllPhotosMap, EventMap, LocationClusterMap} from '../components/maps'
 import CountryPiChart from '../components/charts/countryPiChart'
 import WordCloud from '../components/charts/wordCloud'
+import { Link } from 'react-router-dom';
+
+import {countryNames} from '../util/countryNames'
 
 var topMenuHeight = 55 // don't change this
 var ESCAPE_KEY = 27;
@@ -92,8 +94,9 @@ export class AlbumPlace extends Component {
           <div key={key} style={style}>
             <div 
               onClick={()=>{
-                store.dispatch(searchPhotos(this.props.albumsPlaceList[albumPlaceIndex].title))
-                store.dispatch(push('/search'))
+                // store.dispatch(push(`/place/${this.props.albumsPlaceList[albumPlaceIndex].id}/`))
+                // store.dispatch(searchPhotos(this.props.albumsPlaceList[albumPlaceIndex].title))
+                // store.dispatch(push('/search'))
               }}
               style={{padding:10}}>
 
@@ -103,13 +106,15 @@ export class AlbumPlace extends Component {
                 <Image style={{display:'inline-block'}} 
                   width={this.state.entrySquareSize/2-20} 
                   height={this.state.entrySquareSize/2-20}
+                  as={Link} to={`/place/${this.props.albumsPlaceList[albumPlaceIndex].id}/`}
                   src={serverAddress+url}/>
               )
             })}
             </Image.Group>
             </div>
             <div style={{paddingLeft:15,paddingRight:15}}>
-            <b>{this.props.albumsPlaceList[albumPlaceIndex].title}</b> {this.props.albumsPlaceList[albumPlaceIndex].photo_count}
+              { countryNames.includes(this.props.albumsPlaceList[albumPlaceIndex].title.toLowerCase()) && <Flag name={this.props.albumsPlaceList[albumPlaceIndex].title.toLowerCase()}/> }
+              <b>{this.props.albumsPlaceList[albumPlaceIndex].title}</b> {this.props.albumsPlaceList[albumPlaceIndex].photo_count}
             </div>
           </div>
         )

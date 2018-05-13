@@ -4,27 +4,46 @@ import { Popup,Menu, Input, Icon, Sidebar, Divider, Image, Header } from 'semant
 import { connect } from "react-redux";
 import {login, logout} from '../actions/authActions'
 import {searchPhotos} from '../actions/searchActions'
+import {fetchExampleSearchTerms} from '../actions/utilActions'
 import { push } from 'react-router-redux'
 import store from '../store'
 
 var ENTER_KEY = 13;
+var topMenuHeight = 55 // don't change this
 
 export class TopMenu extends Component {
+  state = {
+    searchText:'',
+    warningPopupOpen:false,
+    showEmptyQueryWarning:false,
+    width:window.innerWidth,
+    exampleSearchTerm:'Search...',
+
+  }
 
   constructor(props) {
     super(props)
     this.handleSearch = this.handleSearch.bind(this)
     this.handleChange = this.handleChange.bind(this)
+    this.handleResize = this.handleResize.bind(this)
     this._handleKeyDown = this._handleKeyDown.bind(this)
   }
 
+  handleResize() {
+    this.setState({width:window.innerWidth})
+  }
+
+
   componentWillMount() {
-    this.setState({searchText:''})
-    // document.addEventListener("keydown", this._handleKeyDown.bind(this));
+      this.props.dispatch(fetchExampleSearchTerms())
+      window.addEventListener('resize',this.handleResize.bind(this))
+      this.exampleSearchTermCylcer = setInterval(()=>{
+        this.setState({exampleSearchTerm:  'Search ' + this.props.exampleSearchTerms[Math.floor(Math.random()*this.props.exampleSearchTerms.length)]})
+      },5000)
   }
 
   componentWillUnmount() {
-    // document.removeEventListener("keydown", this._handleKeyDown.bind(this));
+      window.removeEventListener('resize',this.handleResize.bind(this))
   }
 
   _handleKeyDown (event) {
@@ -40,9 +59,15 @@ export class TopMenu extends Component {
 
 
   handleSearch(e,d) {
-    console.log(this.state.searchText)
-    this.props.dispatch(searchPhotos(this.state.searchText))
-    this.props.dispatch(push('/search'))
+    if (this.state.searchText.length > 0){
+      this.props.dispatch(searchPhotos(this.state.searchText))
+      this.props.dispatch(push('/search'))
+    } else {
+      this.setState({ warningPopupOpen: true,showEmptyQueryWarning:true })
+      this.timeout = setTimeout(() => {
+        this.setState({ warningPopupOpen: false,showEmptyQueryWarning:true })
+      }, 2500)
+    }
   }
 
   handleChange(e,d) {
@@ -50,27 +75,41 @@ export class TopMenu extends Component {
   }
 
   render() {
+    var searchBarWidth = this.state.width > 600 ? 500 : this.state.width
     return (
-      <Menu borderless fixed='top' size='small' >
+      <Menu style={{height:topMenuHeight,padding:10,contentAlign:'left',backgroundColor:'#eeeeee'}} borderless fixed='top' size='small' widths={1}>
 
-        <Menu.Item>
-          <div style={{display:'inline',paddingRight:10, paddingLeft:20}}>
-          <Image inline height={30} src='/logo.png'/>  
+          {
+            this.state.width > 600 &&
+            <div style={{paddingLeft:25,width:(window.innerWidth-searchBarWidth)/2,left:0,position:'absolute',textAlign:'left'}}>
+            <img src="/logo-inverted-square-padded.png" style={{height:35}}/>
+            </div>
+          }
+
+          <div style={{width:searchBarWidth,paddingRight:10,paddingLeft:10}}>
+          <Popup trigger={
+            <Input 
+              fluid
+              onChange={this.handleChange}
+              action={{ 
+                icon: 'search', 
+                color:'blue',
+                loading:this.props.searchingPhotos, 
+                onClick:this.handleSearch,
+              }} 
+              placeholder={this.state.exampleSearchTerm} />}
+            inverted
+            open={this.state.warningPopupOpen}
+            position='bottom left'
+            content={
+              this.state.showEmptyQueryWarning ? 
+              ("Search query cannot be empty!") :
+              ("You can search for people, location, and things.")
+            }/>
           </div>
-          <b> Ownphotos </b>
-        </Menu.Item>
 
-        <Menu.Item position='right'>
-          <Input 
-            onChange={this.handleChange}
-            action={{ 
-              icon: 'search', 
-              basic:true, 
-              loading:this.props.searchingPhotos, 
-              onClick:this.handleSearch,
-            }} 
-            placeholder='Search...' />
-        </Menu.Item>
+          <div style={{paddingRight:10,width:(window.innerWidth-searchBarWidth)/2,right:0,position:'absolute',textAlign:'right'}}>
+          </div>
 
       </Menu>
     )  
@@ -86,40 +125,21 @@ export class SideMenuNarrow extends Component {
   handleLogout = (e, {name}) => this.props.dispatch(logout())
 
   render() {
-    if (this.props.jwtToken == null) {
-      console.log('signed out')
-      var authMenu = (
-        <Menu.Item 
-          name='loginout'
-          as={Link}
-          to='/login'>
-          <Popup 
-            inverted
-            size='mini'
-            position='right center'
-            trigger={<Icon name='sign out' corner />}
-            content="Sign out"/>
-        </Menu.Item>
-      )
-    }
-    else {
+
       var authMenu = (
         <Menu.Item 
           onClick={this.handleLogout}
-          name='loginout'
-          as={Link}
-          to='/login'>
+          name='loginout'>
           <Popup 
             inverted
             size='mini'
             position='right center'
-            content="Sign in"
+            content="Sign out"
             trigger={
-              <Icon name='sign in' corner />}/>
+              <Icon name='sign out' corner />}/>
         </Menu.Item>
       )
-    }
-
+    
 
     const { activeItem } = this.state
     console.log('sidebar visible:',this.props.visible)
@@ -138,13 +158,10 @@ export class SideMenuNarrow extends Component {
           <img height={40} src='/logo.png'/>
         </Menu.Item>
 
-        {authMenu}
-
-        <Divider hidden/>
 
         <Menu.Item 
           onClick={this.handleItemClick}
-          active={activeItem==='all photos'}
+          active={'/'===this.props.location.pathname}
           name='all photos'
           as={Link}
           to='/'>
@@ -154,15 +171,32 @@ export class SideMenuNarrow extends Component {
             position='right center'
             content="All Photos"
             trigger={
+              <Icon name='camera' corner />}/>
+        </Menu.Item>
+
+
+        <Menu.Item 
+          onClick={this.handleItemClick}
+          active={this.props.location.pathname.startsWith('/notimestamp')}
+          name='no timestamp photos'
+          as={Link}
+          to='/notimestamp'>
+          <Popup 
+            inverted
+            size='mini'
+            position='right center'
+            content="Photos without timestamps"
+            trigger={
               <Icon name='image' corner />}/>
         </Menu.Item>
+
 
         <Divider hidden/>
 
 
         <Menu.Item
           onClick={this.handleItemClick}
-          active={activeItem==='people'}
+          active={this.props.location.pathname.startsWith('/people') || this.props.location.pathname.startsWith('/person')}
           content='People'
           name='people'
           as={Link}
@@ -178,7 +212,7 @@ export class SideMenuNarrow extends Component {
 
         <Menu.Item
           onClick={this.handleItemClick}
-          active={activeItem==='things'}
+          active={this.props.location.pathname.startsWith('/thing') }
           content='People'
           name='things'
           as={Link}
@@ -195,7 +229,7 @@ export class SideMenuNarrow extends Component {
 
         <Menu.Item
           onClick={this.handleItemClick}
-          active={activeItem==='places'}
+          active={this.props.location.pathname.startsWith('/place')}
           content='Places'
           name='places'
           as={Link}
@@ -214,7 +248,7 @@ export class SideMenuNarrow extends Component {
 
         <Menu.Item
           onClick={this.handleItemClick}
-          active={activeItem==='auto albums'}
+          active={this.props.location.pathname.startsWith('/event')}
           content="Events"
           name='auto albums'
           as={Link}
@@ -235,7 +269,7 @@ export class SideMenuNarrow extends Component {
 
         <Menu.Item
           onClick={this.handleItemClick}
-          active={activeItem==='statistics'}
+          active={this.props.location.pathname.startsWith('/statistics')}
           name='statistics'
           content="Statistics"
           as={Link}
@@ -251,7 +285,7 @@ export class SideMenuNarrow extends Component {
 
         <Menu.Item
           onClick={this.handleItemClick}
-          active={activeItem==='faces'}
+          active={this.props.location.pathname.startsWith('/faces')}
           name='faces'
           content="Faces"
           as={Link}
@@ -264,6 +298,28 @@ export class SideMenuNarrow extends Component {
             trigger={
             <Icon name='user circle outline' corner />}/>
         </Menu.Item>
+
+
+        <Menu.Item
+          onClick={this.handleItemClick}
+          active={this.props.location.pathname.startsWith('/setting')}
+          name='settings'
+          content="Settings"
+          as={Link}
+          to='/settings'>
+          <Popup 
+            inverted
+            size='mini'
+            position='right center'
+            content="Settings"
+            trigger={
+            <Icon name='options' corner />}/>
+        </Menu.Item>
+
+        <Divider hidden/>
+
+        {authMenu}
+
       </Menu>
     )
   }
@@ -429,6 +485,8 @@ SideMenu = connect((store)=>{
 TopMenu = connect((store)=>{
   return {
     jwtToken: store.auth.jwtToken,
+    exampleSearchTerms: store.util.exampleSearchTerms,
+    searchError: store.search.error,
     searchingPhotos: store.search.searchingPhotos,
     searchedPhotos: store.search.searchedPhotos
   }
@@ -436,6 +494,7 @@ TopMenu = connect((store)=>{
 
 SideMenuNarrow = connect((store)=>{
   return {
-    jwtToken: store.auth.jwtToken
+    jwtToken: store.auth.jwtToken,
+    location: store.routerReducer.location
   }
 })(SideMenuNarrow)

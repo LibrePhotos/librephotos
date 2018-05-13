@@ -267,6 +267,8 @@ export class FaceToLabel extends Component {
             key={this.props.faceToLabel.id}
             face_id={this.props.faceToLabel.id}
             name={"hello"}
+            image_hash={this.props.faceToLabel.photo}
+            person_label_probability={this.props.faceToLabel.person_label_probability}
             face_url={this.props.faceToLabel.image}/>
     )
   }
@@ -331,7 +333,7 @@ export class FaceCard extends Component {
             </Card.Header>
           </Card.Content>
           <Card.Content extra>
-            <FaceCardMenu face_id={this.props.face_id}/>
+            <FaceCardMenu face_id={this.props.face_id} image_hash={this.props.image_hash}/>
           </Card.Content>
         </Card>
 
@@ -396,8 +398,11 @@ export class FaceCardMenu extends Component {
               color='orange' 
               icon='photo'/>
             }
-            position="bottom right"
-            content={<Image fluid src={'/unknown_user.jpg'}/>}/>
+            on='hover'
+            flowing
+            hideOnScroll
+            position="bottom center"
+            content={<Image size='large' src={serverAddress+'/media/thumbnails_big/'+this.props.image_hash+'.jpg'}/>}/>
         
           <Popup 
             trigger={

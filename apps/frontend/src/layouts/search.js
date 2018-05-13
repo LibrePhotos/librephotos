@@ -7,7 +7,6 @@ import LazyLoad from 'react-lazyload';
 import {Server, serverAddress} from '../api_client/apiClient'
 
 import {ModalPhotoViewVertical} from '../components/modalPhotoView';
-import ReactCSSTransitionGroup from 'react-transition-group/CSSTransitionGroup';
 
 var ESCAPE_KEY = 27;
 var ENTER_KEY = 13;
@@ -231,13 +230,6 @@ export class PhotoSearchResult extends Component {
 	          }
 	        >
 
-          <ReactCSSTransitionGroup
-            transitionName="example"
-            transitionAppear={true}
-            transitionAppearTimeout={500}
-            transitionEnterTimeout={500}
-            transitionLeaveTimeout={300}>
-
 
   	        <Image 
               onClick={(e)=>{this.onPhotoClick(index)}}
@@ -245,7 +237,6 @@ export class PhotoSearchResult extends Component {
               width={100} 
               src={serverAddress+image.square_thumbnail_url}/>
 
-          </ReactCSSTransitionGroup>
 
 
 	      </LazyLoad>

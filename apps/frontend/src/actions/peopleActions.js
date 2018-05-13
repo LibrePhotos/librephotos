@@ -44,6 +44,20 @@ export function addPerson(person_name) {
   }
 }
 
+export function deletePerson(person_id) {
+  return function(dispatch){
+    dispatch({type:"DELETE_PERSON"})
+    Server.delete(`persons/${person_id}/`)
+      .then((response) => {
+        dispatch(fetchPeople())
+        dispatch({type: "DELETE_PERSON_FULFILLED"})
+      })
+      .catch((err) => {
+        dispatch({type:"DELETE_PERSON_REJECTED", payload:err})
+      })
+  }
+}
+
 
 export function addPersonAndSetLabelToFace(person_name,face_id) {
   return function(dispatch){

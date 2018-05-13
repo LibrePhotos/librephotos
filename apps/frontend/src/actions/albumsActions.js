@@ -15,6 +15,22 @@ export function fetchThingAlbumsList() {
   }
 }
 
+export function fetchThingAlbum(album_id) {
+  return function(dispatch) {
+    dispatch({type:"FETCH_THING_ALBUMS"});
+    Server.get(`albums/thing/${album_id}/`)
+      .then((response) => {
+        dispatch({type:"FETCH_THING_ALBUMS_FULFILLED", payload: response.data})
+      })
+      .catch((err) => {
+        dispatch({type:"FETCH_THING_ALBUMS_REJECTED", payload: err})        
+      })
+  }
+}
+
+
+
+
 
 
 
@@ -27,6 +43,19 @@ export function fetchPlaceAlbumsList() {
       })
       .catch((err) => {
         dispatch({type:"FETCH_PLACE_ALBUMS_LIST_REJECTED", payload: err})        
+      })
+  }
+}
+
+export function fetchPlaceAlbum(album_id) {
+  return function(dispatch) {
+    dispatch({type:"FETCH_PLACE_ALBUMS"});
+    Server.get(`albums/place/${album_id}/`)
+      .then((response) => {
+        dispatch({type:"FETCH_PLACE_ALBUMS_FULFILLED", payload: response.data})
+      })
+      .catch((err) => {
+        dispatch({type:"FETCH_PLACE_ALBUMS_REJECTED", payload: err})        
       })
   }
 }

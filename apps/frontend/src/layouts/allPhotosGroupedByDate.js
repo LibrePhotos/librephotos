@@ -15,7 +15,6 @@ import {Server, serverAddress} from '../api_client/apiClient'
 import {fetchDateAlbumsList} from '../actions/albumsActions'
 import LazyLoad from 'react-lazyload';
 
-import ReactCSSTransitionGroup from 'react-transition-group/CSSTransitionGroup';
 
         // <div style={{
         //     display: "block",
@@ -145,12 +144,6 @@ export class AllPhotosGroupedByDate extends Component {
                 width:this.state.entrySquareSize,
                 display:'inline-block'}}>
             <LazyLoad once offset={500} height={this.state.entrySquareSize} placeholder={<ImagePlaceholder size={this.props.entrySquareSize}/>}>
-            <ReactCSSTransitionGroup
-              transitionName="example"
-              transitionAppear={true}
-              transitionAppearTimeout={500}
-              transitionEnterTimeout={500}
-              transitionLeaveTimeout={300}>
               <Image 
                 style={{
                     marginLeft:0,
@@ -164,7 +157,6 @@ export class AllPhotosGroupedByDate extends Component {
                 height={this.state.entrySquareSize} 
                 width={this.state.entrySquareSize} 
                 src={serverAddress+'/media/square_thumbnails_tiny/'+photo.image_hash+'.jpg'}/>
-            </ReactCSSTransitionGroup>
             </LazyLoad>
             </div>
 

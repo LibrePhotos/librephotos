@@ -7,13 +7,16 @@ import {  fetchDateAlbumsPhotoHashList,fetchAlbumsDateGalleries} from '../action
 import {  fetchPhotoDetail} from '../actions/photosActions'
 import { Card, Image, Header, Divider, Item, Loader, Dimmer, Modal, Sticky, Portal, Input,
          Container, Label, Popup, Segment, Button, Icon, Table, Transition} from 'semantic-ui-react';
-import ReactCSSTransitionGroup from 'react-transition-group/CSSTransitionGroup';
 import {Server, serverAddress} from '../api_client/apiClient'
 import LazyLoad from 'react-lazyload';
-import Lightbox from 'react-image-lightbox';
+// import Lightbox from 'react-image-lightbox';
+import {LightBox} from '../components/lightBox'
+
 import {LocationMap} from '../components/maps'
 import { push } from 'react-router-redux'
 import {searchPhotos} from '../actions/searchActions'
+import * as moment from 'moment';
+import debounce from 'lodash/debounce'
 
 var topMenuHeight = 55 // don't change this
 var leftMenuWidth = 85 // don't change this
@@ -28,6 +31,27 @@ if (window.innerWidth < 600) {
 }
 
 
+class ScrollSpeed {
+  clear = () => {
+    this.lastPosition = null;
+    this.delta = 0;
+  };
+  getScrollSpeed(scrollOffset) {
+    if (this.lastPosition != null) {
+      this.delta = scrollOffset - this.lastPosition;
+    }
+    this.lastPosition = scrollOffset;
+
+    window.clearTimeout(this._timeout);
+    this._timeout = window.setTimeout(this.clear, 50);
+
+    return this.delta;
+  }
+}
+
+
+const SPEED_THRESHOLD = 1000; // Tweak this to whatever feels right for your app
+const SCROLL_DEBOUNCE_DURATION = 100; // In milliseconds
 
 
 
@@ -49,9 +73,40 @@ export class SearchViewRV extends Component {
             width:  window.innerWidth,
             height: window.innerHeight,
             entrySquareSize:200,
-            currTopRenderedRowIdx:0
+            currTopRenderedRowIdx:0,
+            isScrollingFast: false
         }
     }
+
+    getScrollSpeed = new ScrollSpeed().getScrollSpeed;
+
+    handleScroll = ({scrollTop}) => {
+        // scrollSpeed represents the number of pixels scrolled since the last scroll event was fired
+        const scrollSpeed = Math.abs(this.getScrollSpeed(scrollTop));
+
+        if (scrollSpeed >= SPEED_THRESHOLD) {
+          this.setState({
+            isScrollingFast: true,
+            scrollTop:scrollTop
+          });
+        }
+
+        // Since this method is debounced, it will only fire once scrolling has stopped for the duration of SCROLL_DEBOUNCE_DURATION
+        this.handleScrollEnd();
+    }
+
+    handleScrollEnd = debounce(() => {
+    const {isScrollingFast} = this.state;
+
+    if (isScrollingFast) {
+      this.setState({
+        isScrollingFast: false,
+      });
+    }
+    }, SCROLL_DEBOUNCE_DURATION);
+
+
+
     componentWillMount() {
         if (this.props.albumsDatePhotoHashList.length < 1) {
             this.props.dispatch(fetchDateAlbumsPhotoHashList())
@@ -94,14 +149,28 @@ export class SearchViewRV extends Component {
     }
 
     cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
+        const {isScrollingFast} = this.state;
         var photoResIdx = rowIndex * this.state.numEntrySquaresPerRow + columnIndex
+
+        if (isScrollingFast) {
+            return (
+                <div key={key} style={style}>
+                    <div style={{backgroundColor:'white',paddingRight:5}}>
+                    <Image 
+                        onClick={()=>this.onPhotoClick(photoResIdx)}
+                        src={'/thumbnail_placeholder.png'}/>
+                    </div>
+                </div>            )
+        }
+
+
         if (photoResIdx < this.props.searchPhotosRes.length) {
             return (
                 <div key={key} style={style}>
                     <div style={{backgroundColor:'white',paddingRight:5}}>
                     <Image 
                         onClick={()=>this.onPhotoClick(photoResIdx)}
-                        src={serverAddress+this.props.searchPhotosRes[photoResIdx].square_thumbnail_url}/>
+                        src={serverAddress+'/media/square_thumbnails/'+this.props.searchPhotosRes[photoResIdx].image_hash+'.jpg'}/>
                     </div>
                 </div>
             )
@@ -121,6 +190,11 @@ export class SearchViewRV extends Component {
 
     onPhotoClick(idx) {
         console.log('clicked',idx)
+
+        if (this.state.idx2hash.length != this.props.searchPhotosRes.length) {
+            this.setState({idx2hash:this.props.searchPhotosRes.map((el)=>el.image_hash)})
+        }
+
         this.setState({lightboxImageIndex:idx,lightboxShow:true})
 
     }
@@ -140,34 +214,47 @@ export class SearchViewRV extends Component {
         if ( this.props.searchingPhotos ) {
             if ( this.props.query ) {
                 return (
-                    <div>
+                    <Container>
                         <Loader active>
-                            Searching <b>"{this.props.query}"</b>...
+                        Searching <b>{this.props.query}</b>...
                         </Loader>
-                    </div>
+                    </Container>
                 )
             }
         }
-        // else {
-        //     return (
-        //         <div style={{padding:100}}> 
-        //             <Header textAlign='center'>
-        //             Search for something using the search bar on the top right
-        //             </Header>
-        //         </div>
-        //     )
-        // }
+
+
 
         return (
             <div style={{paddingRight:timelineScrollWidth}}>
 
+                <div style={{height:60,paddingTop:10,paddingRight:5}}>
+
+                  <Header as='h2'>
+                    <Icon name='search' />
+                    <Header.Content>
+                      Search
+                      <Header.Subheader>
+                        { 
+                            this.props.query ? 
+                            (`Showing ${this.props.searchPhotosRes.length} results for "${this.props.query}"`) :
+                            ("Search for people, places, things, and time.")
+                        }
+                      </Header.Subheader>
+                    </Header.Content>
+                  </Header>
+                  
+                </div>
+
                 <AutoSizer disableHeight style={{outline:'none',padding:0,margin:0}}>
                   {({width}) => (
                     <Grid
+                      style={{outline:'none'}}
                       cellRenderer={this.cellRenderer}
+                      onScroll={this.handleScroll}
                       columnWidth={this.state.entrySquareSize}
                       columnCount={this.state.numEntrySquaresPerRow}
-                      height={this.state.height- topMenuHeight }
+                      height={this.state.height- topMenuHeight - 60}
                       rowHeight={this.state.entrySquareSize}
                       rowCount={Math.ceil(this.props.searchPhotosRes.length/this.state.numEntrySquaresPerRow.toFixed(1))}
                       width={width}
@@ -176,140 +263,31 @@ export class SearchViewRV extends Component {
                 </AutoSizer>
 
 
-                {this.state.lightboxShow && (
-                    <Lightbox
-                        mainSrc={serverAddress+this.props.searchPhotosRes[this.state.lightboxImageIndex].image_url}
-                        nextSrc={serverAddress+this.props.searchPhotosRes[(this.state.lightboxImageIndex + 1) % this.props.searchPhotosRes.length].image_url}
-                        prevSrc={serverAddress+this.props.searchPhotosRes[(this.state.lightboxImageIndex - 1) % this.props.searchPhotosRes.length].image_url}
 
-                        mainSrcThumbnail={serverAddress+this.props.searchPhotosRes[this.state.lightboxImageIndex].thumbnail_url}
-                        nextSrcThumbnail={serverAddress+this.props.searchPhotosRes[(this.state.lightboxImageIndex + 1) % this.props.searchPhotosRes.length].thumbnail_url}
-                        prevSrcThumbnail={serverAddress+this.props.searchPhotosRes[(this.state.lightboxImageIndex - 1) % this.props.searchPhotosRes.length].thumbnail_url}
-                        toolbarButtons={[
-                            <div>
-                                <Button 
-                                    icon 
-                                    active={this.state.lightboxSidebarShow}
-                                    circular
-                                    onClick={()=>{this.setState({lightboxSidebarShow:!this.state.lightboxSidebarShow})}}>
-                                    <Icon name='info'/>
-                                </Button>
-                                <Transition visible={this.state.lightboxSidebarShow} animation='fade left' duration={500}>
-                                    <div style={{ 
-                                        right: 0, 
-                                        top:0,
-                                        float:'right',
-                                        backgroundColor:'white',
-                                        width:LIGHTBOX_SIDEBAR_WIDTH, 
-                                        height:window.innerHeight,
-                                        whiteSpace:'normal',
-                                        position: 'fixed', 
-                                        zIndex: 1000 }}>
-                                        { this.props.photoDetails.hasOwnProperty(this.props.searchPhotosRes[this.state.lightboxImageIndex].image_hash) && (
-                                            <div style={{width:LIGHTBOX_SIDEBAR_WIDTH}}>
-                                                <div style={{paddingLeft:30,paddingRight:30,fontSize:'14px',lineHeight:'normal',whiteSpace:'normal',wordWrap:'break-all'}}>
-                                                    <Divider hidden/>
-                                                    <Icon name='left arrow' size='big' color='black' onClick={()=>this.setState({lightboxSidebarShow:false})}/>
-                                                    <Header as='h3'>Info</Header>
-                                                    <Header as='h4'>Details</Header>
-                                                    <Table basic='very'  fixed>
-                                                        <Table.Body>
-                                                            <Table.Row>
-                                                                <Table.Cell width={2}>
-                                                                    <Icon name='calendar'/>
-                                                                </Table.Cell>
-                                                                <Table.Cell>
-                                                                    {this.props.photoDetails[this.props.searchPhotosRes[this.state.lightboxImageIndex].image_hash].exif_timestamp && this.props.photoDetails[this.props.searchPhotosRes[this.state.lightboxImageIndex].image_hash].exif_timestamp.split('T')[0]}
-                                                                </Table.Cell>
-                                                            </Table.Row>
-                                                            <Table.Row>
-                                                                <Table.Cell width={2}>
-                                                                    <Icon name='clock'/>
-                                                                </Table.Cell>
-                                                                <Table.Cell>
-                                                                    {this.props.photoDetails[this.props.searchPhotosRes[this.state.lightboxImageIndex].image_hash].exif_timestamp && this.props.photoDetails[this.props.searchPhotosRes[this.state.lightboxImageIndex].image_hash].exif_timestamp.split('T')[1].split('+')[0]}
-                                                                </Table.Cell>
-                                                            </Table.Row>
-                                                            <Table.Row>
-                                                                <Table.Cell width={2}>
-                                                                    <Icon name='image'/>
-                                                                </Table.Cell>
-                                                                <Table.Cell>
-                                                                    {this.props.photoDetails[this.props.searchPhotosRes[this.state.lightboxImageIndex].image_hash].image_path}
-                                                                </Table.Cell>
-                                                            </Table.Row>
-                                                            <Table.Row>
-                                                                <Table.Cell width={2}>
-                                                                    <Icon name='map'/>
-                                                                </Table.Cell>
-                                                                <Table.Cell>
-                                                                    {this.props.photoDetails[this.props.searchPhotosRes[this.state.lightboxImageIndex].image_hash].search_location}
-                                                                </Table.Cell>
-                                                            </Table.Row>
-                                                        </Table.Body>
-                                                    </Table>
-                                                </div>
+                { this.state.lightboxShow && this.props.searchPhotosRes.length > 0 &&
+                    <LightBox
+                        idx2hash={this.state.idx2hash}
+                        lightboxImageIndex={this.state.lightboxImageIndex}
 
-
-                                                <div style={{width:LIGHTBOX_SIDEBAR_WIDTH}}>
-                                                <LocationMap zoom={8} photos={[
-                                                    this.props.photoDetails[this.props.searchPhotosRes[this.state.lightboxImageIndex].image_hash]
-                                                ]}/>
-                                                </div>
-
-                                                <div style={{
-                                                    padding:20,
-                                                    lineHeight:'normal',
-                                                    whiteSpace:'normal'}}>
-                                                        <Label.Group>
-                                                        {this.props.photoDetails[this.props.searchPhotosRes[this.state.lightboxImageIndex].image_hash].search_captions.split(' , ').map((nc)=>(
-                                                            <Label 
-                                                                onClick={()=>{
-                                                                  this.props.dispatch(searchPhotos(nc))
-                                                                  this.props.dispatch(push('/search'))
-                                                                }}
-                                                                circular>
-                                                                {nc}
-                                                            </Label>
-                                                        ))}
-                                                        </Label.Group>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </Transition>
-                            </div>
-                        ]}
                         onCloseRequest={() => this.setState({ lightboxShow: false })}
                         onImageLoad={()=>{
-                            this.getPhotoDetails(this.props.searchPhotosRes[this.state.lightboxImageIndex].image_hash)
+                            this.getPhotoDetails(this.state.idx2hash[this.state.lightboxImageIndex])
                         }}
                         onMovePrevRequest={() => {
-                            var nextIndex = (this.state.lightboxImageIndex + this.props.searchPhotosRes.length - 1) % this.props.searchPhotosRes.length
+                            var nextIndex = (this.state.lightboxImageIndex + this.state.idx2hash.length - 1) % this.state.idx2hash.length
                             this.setState({
                                 lightboxImageIndex:nextIndex
                             })
-                            this.getPhotoDetails(this.props.searchPhotosRes[nextIndex])
+                            this.getPhotoDetails(this.state.idx2hash[nextIndex])
                         }}
                         onMoveNextRequest={() => {
-                            var nextIndex = (this.state.lightboxImageIndex + this.props.searchPhotosRes.length + 1) % this.props.searchPhotosRes.length
+                            var nextIndex = (this.state.lightboxImageIndex + this.state.idx2hash.length + 1) % this.state.idx2hash.length
                             this.setState({
                                 lightboxImageIndex:nextIndex
                             })
-                            this.getPhotoDetails(this.props.searchPhotosRes[nextIndex])
-                        }}
-                        sidebarWidth={  this.state.lightboxSidebarShow ? LIGHTBOX_SIDEBAR_WIDTH : 0}
-                        reactModalStyle={
-                            {
-                               content: {
-                                    right: this.state.lightboxSidebarShow ? LIGHTBOX_SIDEBAR_WIDTH : 0,
-                                },
-                            }
-                        }
-
-                    />
-                )}
-
+                            this.getPhotoDetails(this.state.idx2hash[nextIndex])
+                        }}/>
+                }
 
             </div>
             

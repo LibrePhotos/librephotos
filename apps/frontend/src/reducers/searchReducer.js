@@ -7,6 +7,9 @@ export default function reducer(state={
   }, action) {
 
   switch (action.type) {
+    case "SEARCH_PHOTOS_EMPTY_QUERY_ERROR": {
+      return {...state, error:"Search query cannot be empty!"}
+    }
   	case "SEARCH_PHOTOS": {
   		return {...state, searchPhotoRes: [], searchingPhotos: true, query:action.payload}
   	}

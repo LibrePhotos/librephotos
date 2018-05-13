@@ -1,5 +1,5 @@
 import React, {Component} from 'react'
-import {Grid, Segment, Header} from 'semantic-ui-react'
+import {Loader, Grid, Segment, Header} from 'semantic-ui-react'
 import Dimensions from 'react-dimensions'
 import { connect } from "react-redux";
 import {fetchDateAlbumsList, fetchAutoAlbumsList} from '../actions/albumsActions'
@@ -42,7 +42,14 @@ export class EventCountMonthGraph extends Component {
       console.log(xticks)
     }
     else {
-      var series = []
+      return (
+        <div style={{height:280}}>
+        <Header as='h3'>Monthly Photo Counts</Header>
+        <Segment style={{height:250}} basic>
+        <Loader active/>
+        </Segment>
+        </div>
+      )
     }
 
     var data = [{
@@ -52,12 +59,11 @@ export class EventCountMonthGraph extends Component {
     }]
 
     return (
-      <Segment>
-        <div>
-          <Header as='h3'>Photo Counts by Month</Header>
+        <div style={{height:280}}>
+          <Header as='h3'>Monthly Photo Counts</Header>
           <div>
-            <Chart width={this.props.containerWidth-20} height={250} series={[data[0]]}>
-              <Layer width='80%' height='85%' position='middle center'>
+            <Chart width={this.props.containerWidth} height={250} series={[data[0]]}>
+              <Layer width='85%' height='85%' position='middle center'>
                 <Ticks
                   axis='y'
                   lineLength='100%'
@@ -78,7 +84,6 @@ export class EventCountMonthGraph extends Component {
             </Chart>
           </div>
         </div>
-      </Segment>
     )
   }
 }

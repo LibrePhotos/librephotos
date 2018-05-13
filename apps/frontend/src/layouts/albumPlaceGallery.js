@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
 import { connect } from "react-redux";
-import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
-import {Container, Icon, Divider, Header, Image, Button, Card, Loader} from 'semantic-ui-react'
+import {fetchPlaceAlbum, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
+import {Container, Icon, Divider, Header, Image, Button, Flag, Card, Loader} from 'semantic-ui-react'
 import { fetchPeople, fetchEgoGraph } from '../actions/peopleActions';
 import { fetchPhotoDetail, fetchNoTimestampPhotoList} from '../actions/photosActions';
 
@@ -9,7 +9,12 @@ import {Server, serverAddress} from '../api_client/apiClient'
 import { Grid, List, WindowScroller,AutoSizer } from 'react-virtualized';
 import {EgoGraph} from '../components/egoGraph'
 import { push } from 'react-router-redux'
+import {countryNames} from '../util/countryNames'
+import {AllPhotosMap, EventMap, LocationClusterMap, LocationMap} from '../components/maps'
 import {LightBox} from '../components/lightBox'
+
+import _ from 'lodash'
+
 
 var topMenuHeight = 55 // don't change this
 var ESCAPE_KEY = 27;
@@ -24,7 +29,7 @@ var SIDEBAR_WIDTH = 85;
 
 
 
-export class AlbumPersonGallery extends Component {
+export class AlbumPlaceGallery extends Component {
 
   constructor() {
     super();
@@ -35,7 +40,7 @@ export class AlbumPersonGallery extends Component {
       width:  window.innerWidth,
       height: window.innerHeight,
       entrySquareSize:200,
-      showGraph:false,
+      showMap:false,
       gridHeight: window.innerHeight- topMenuHeight - 60,
       headerHeight: 60
     }
@@ -46,10 +51,7 @@ export class AlbumPersonGallery extends Component {
   componentWillMount() {
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
-    if (this.props.people.length == 0){
-      this.props.dispatch(fetchPeopleAlbums(this.props.match.params.albumID))
-    }
-    this.props.dispatch(fetchEgoGraph(this.props.match.params.albumID))
+    this.props.dispatch(fetchPlaceAlbum(this.props.match.params.albumID))
   }
 
 
@@ -85,8 +87,8 @@ export class AlbumPersonGallery extends Component {
   }
 
   onPhotoClick(idx) {
-      if (this.state.idx2hash.length != this.props.albumsPeople[this.props.match.params.albumID].photos.length) {
-          this.setState({idx2hash:this.props.albumsPeople[this.props.match.params.albumID].photos.map((el)=>el.image_hash)})
+      if (this.state.idx2hash.length != this.props.albumsPlace[this.props.match.params.albumID].photos.length) {
+          this.setState({idx2hash:this.props.albumsPlace[this.props.match.params.albumID].photos.map((el)=>el.image_hash)})
       }
       this.setState({lightboxImageIndex:idx,lightboxShow:true})
 
@@ -95,20 +97,20 @@ export class AlbumPersonGallery extends Component {
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
       var photoIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex
-      if (photoIndex < this.props.albumsPeople[this.props.match.params.albumID].photos.length) {
-      	var image_url = this.props.albumsPeople[this.props.match.params.albumID].photos[photoIndex].square_thumbnail
+      if (photoIndex < this.props.albumsPlace[this.props.match.params.albumID].photos.length) {
+      	var image_hash = this.props.albumsPlace[this.props.match.params.albumID].photos[photoIndex].image_hash
         return (
           <div key={key} style={style}>
             <div 
               onClick={()=>{
                 this.onPhotoClick(photoIndex)
                 console.log('clicked')
-                // this.props.dispatch(push(`/person/${this.props.albumsPeople[this.props.match.params.albumID][photoIndex].key}`))
+                // this.props.dispatch(push(`/person/${this.props.albumsPlace[this.props.match.params.albumID][photoIndex].key}`))
               }}>
               <Image 
               	height={this.state.entrySquareSize-5}
               	width={this.state.entrySquareSize-5}
-              	src={serverAddress+image_url}/>
+              	src={serverAddress+'/media/square_thumbnails/'+image_hash+'.jpg'}/>
 
             </div>
           </div>
@@ -121,7 +123,7 @@ export class AlbumPersonGallery extends Component {
         )
       }
   }
-  
+
   getPhotoDetails(image_hash) {
       if (!this.props.photoDetails.hasOwnProperty(image_hash)) {
           this.props.dispatch(fetchPhotoDetail(image_hash))
@@ -132,24 +134,24 @@ export class AlbumPersonGallery extends Component {
   	console.log(this.props.match)
     var entrySquareSize = this.state.entrySquareSize
     var numEntrySquaresPerRow = this.state.numEntrySquaresPerRow
-    if (this.props.albumsPeople.hasOwnProperty(this.props.match.params.albumID)) {
+    if (this.props.albumsPlace.hasOwnProperty(this.props.match.params.albumID)) {
 	    return (
 	      <div>
 
-          <div style={{position:'fixed',top:topMenuHeight+22,right:5,float:'right'}}>
+          <div style={{position:'fixed',top:topMenuHeight+10,right:10,float:'right'}}>
             <Button 
-              active={this.state.showGraph}
-              compact 
-              size='mini' 
+              active={this.state.showMap}
+              color='blue'
+              icon labelPosition='right'
               onClick={()=>{
                 this.setState({
-                  showGraph: !this.state.showGraph,
-                  gridHeight: !this.state.showGraph ? this.state.height - topMenuHeight - 260 : this.state.height - topMenuHeight - 60,
-                  headerHeight: !this.state.showGraph ? 260 : 60
+                  showMap: !this.state.showMap,
+                  gridHeight: !this.state.showMap ? this.state.height - topMenuHeight - 260 : this.state.height - topMenuHeight - 60,
+                  headerHeight: !this.state.showMap ? 260 : 60
                 })}
               }
               floated='right'>
-                {this.state.showGraph ? "Hide Graph" : "Show Graph"}
+                <Icon name='map' inverted/>{this.state.showMap ? "Hide Map" : "Show Map"}
               </Button>
           </div>
 
@@ -159,17 +161,18 @@ export class AlbumPersonGallery extends Component {
 
 
             <Header as='h2'>
-              <Icon name='user circle' />
+              <Icon name='map pin' />
               <Header.Content>
-              	{this.props.albumsPeople[this.props.match.params.albumID].name}
+                {this.props.albumsPlace[this.props.match.params.albumID].title} 
+                {countryNames.includes(this.props.albumsPlace[this.props.match.params.albumID].title.toLowerCase()) && <Flag style={{paddingLeft:10}} name={this.props.albumsPlace[this.props.match.params.albumID].title.toLowerCase()}/>}
                 <Header.Subheader>
-          	      {this.props.albumsPeople[this.props.match.params.albumID].photos.length} Photos
+          	      {this.props.albumsPlace[this.props.match.params.albumID].photos.length} Photos
                 </Header.Subheader>
               </Header.Content>
             </Header>
 
 
-            {this.state.showGraph && <EgoGraph height={200-20} width={this.state.width-SIDEBAR_WIDTH-12 } person_id={this.props.match.params.albumID}/>}
+          {this.state.showMap && <LocationMap zoom={4} photos={_.sampleSize(this.props.albumsPlace[this.props.match.params.albumID].photos,100)} height={200-20}/>}
 
 
 	      	</div>
@@ -182,7 +185,7 @@ export class AlbumPersonGallery extends Component {
 	              columnCount={this.state.numEntrySquaresPerRow}
 	              height={this.state.gridHeight}
 	              rowHeight={this.state.entrySquareSize}
-	              rowCount={Math.ceil(this.props.albumsPeople[this.props.match.params.albumID].photos.length/this.state.numEntrySquaresPerRow.toFixed(1))}
+	              rowCount={Math.ceil(this.props.albumsPlace[this.props.match.params.albumID].photos.length/this.state.numEntrySquaresPerRow.toFixed(1))}
 	              width={width}
 	            />
 	          )}
@@ -213,6 +216,8 @@ export class AlbumPersonGallery extends Component {
                   }}/>
           }
 
+
+
 				</div>
 	    )
     }
@@ -225,16 +230,13 @@ export class AlbumPersonGallery extends Component {
 }
 
 
-AlbumPersonGallery = connect((store)=>{
+AlbumPlaceGallery = connect((store)=>{
   return {
-    albumsPeople: store.albums.albumsPeople,
-    fetchingAlbumsPeople: store.albums.fetchingAlbumsPeople,
-    fetchedAlbumsPeople: store.albums.fetchedAlbumsPeople,
-    people: store.people.people,
-    fetchedPeople: store.people.fetched,
-    fetchingPeople: store.people.fetching,
+    albumsPlace: store.albums.albumsPlace,
+    fetchingAlbumsPlace: store.albums.fetchingAlbumsPlace,
+    fetchedAlbumsPlace: store.albums.fetchedAlbumsPlace,
     photoDetails: store.photos.photoDetails,
     fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
     fetchedPhotoDetail: store.photos.fetchedPhotoDetail,
   }
-})(AlbumPersonGallery)
+})(AlbumPlaceGallery)

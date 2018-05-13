@@ -11,7 +11,6 @@ import {
 } from 'react-router-dom'
 import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums,toggleAlbumAutoFavorite,fetchAutoAlbumsList} from '../actions/albumsActions'
 import { Map, TileLayer, Marker } from 'react-leaflet'
-import ReactCSSTransitionGroup from 'react-transition-group/CSSTransitionGroup';
 
 import {Server, serverAddress} from '../api_client/apiClient'
 
@@ -610,18 +609,11 @@ export class AlbumDateCardPlain extends Component {
                 height={200}
                 width={200}
                 src={'/thumbnail_placeholder.png'}/>}>
-            <ReactCSSTransitionGroup
-              transitionName="thumbnail"
-              transitionAppear={true}
-              transitionAppearTimeout={500}
-              transitionEnterTimeout={500}
-              transitionLeaveTimeout={300}>
             <Image 
               as={Link}
               to={`/albums/dateview/${this.props.album.id}`}
               height={200} width={200} 
               src={serverAddress+this.props.album.cover_photo_url}/>
-            </ReactCSSTransitionGroup>
           </LazyLoad>
         </div>
 

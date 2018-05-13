@@ -11,6 +11,10 @@ export default function reducer(state={
   fetchedPhotos: false,
   fetchingPhotos: false,
 
+  noTimestampPhotos: [],
+  fetchingNoTimestampPhotos: false,
+  fetchedNoTimestampPhotos: false,
+
   }, action) {
 
   switch (action.type) {
@@ -43,6 +47,26 @@ export default function reducer(state={
         photos: action.payload
       }
     }
+
+
+
+    case "FETCH_NO_TIMESTAMP_PHOTOS": {
+      return {...state, fetchingNoTimestampPhotos: true}
+    }
+    case "FETCH_NO_TIMESTAMP_PHOTOS_REJECTED": {
+      return {...state, fetchingNoTimestampPhotos: false, error: action.payload}
+    }
+    case "FETCH_NO_TIMESTAMP_PHOTOS_FULFILLED": {
+      return {
+        ...state,
+        fetchingNoTimestampPhotos: false,
+        fetchedNoTimestampPhotos: true,
+        noTimestampPhotos: action.payload
+      }
+    }
+
+
+
 
     case "FETCH_PHOTO_DETAIL": {
         return {

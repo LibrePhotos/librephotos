@@ -61,11 +61,11 @@
     animation: fadeout 0.5s;
 }
 .thumbnail-appear {
-    -webkit-animation: fadein 0.3s; /* Safari, Chrome and Opera > 12.1 */
-    -moz-animation: fadein 0.3s; /* Firefox < 16 */
-    -ms-animation: fadein 0.3s; /* Internet Explorer */
-    -o-animation: fadein 0.3s; /* Opera < 12.1 */
-    animation: fadein 0.3s;
+    -webkit-animation: fadein 0.8s; /* Safari, Chrome and Opera > 12.1 */
+    -moz-animation: fadein 0.8s; /* Firefox < 16 */
+    -ms-animation: fadein 0.8s; /* Internet Explorer */
+    -o-animation: fadein 0.8s; /* Opera < 12.1 */
+    animation: fadein 0.8s;
 }
 @keyframes fadeout {
     from { opacity: 0; }
@@ -123,4 +123,49 @@
 @-o-keyframes fadein {
     from { opacity: 0; }
     to   { opacity: 1; }
+}
+
+.AutoSizerWrapper {
+  flex: 1 1 auto;
+}
+
+.List {
+  border: 1px solid #e0e0e0;
+}
+
+.personRemoveButton{ 
+display: none;
+}
+.personCardName:hover .personRemoveButton{
+display : inline;
+}
+
+
+
+.login-background-image {
+    background-image: url('http://666a658c624a3c03a6b2-25cda059d975d2f318c03e90bcf17c40.r92.cf1.rackcdn.com/unsplash_527bf56961712_1.JPG');
+    background-size: cover;
+    display: block;
+    filter: blur(5px);
+    -webkit-filter: blur(5px);
+    height: 800px;
+    left: 0;
+    position: fixed;
+    right: 0;
+    z-index: 1;
+}
+
+
+.login-content {
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 3px;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.25);
+    top: 10px;
+    left: 0;
+    position: fixed;
+    margin-left: 20px;
+    margin-right: 20px;
+    right: 0;
+    z-index: 2;
+    padding: 0 10px;
 }

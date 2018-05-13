@@ -6,13 +6,16 @@ import 'react-vis/dist/style.css'
 
 import App from './App';
 import registerServiceWorker from './registerServiceWorker';
-import store from "./store"
+import configureStore from "./store"
 import { Provider } from "react-redux"
 
 import {LoginPage} from './layouts/loginPage'
 import {CountryPiChart} from './components/charts/countryPiChart'
 
 import history from './history'
+import store from './store'
+
+// export const store = configureStore(history)
 
 
 

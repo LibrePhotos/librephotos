@@ -34,6 +34,9 @@ export default function reducer(state={
     training: false,
     trained: false,
 
+    clustering: false,
+    clustered: false,
+
     error: null,
   }, action) {
 

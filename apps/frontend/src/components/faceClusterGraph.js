@@ -1,6 +1,6 @@
 import React, {Component} from 'react'
-import {Segment, Header} from 'semantic-ui-react'
-import {XYPlot, XAxis, YAxis, HorizontalGridLines, 
+import {Loader, Segment, Header,Label} from 'semantic-ui-react'
+import {XYPlot, XAxis, YAxis, HorizontalGridLines, Hint,
         MarkSeries, VerticalGridLines, Crosshair} from 'react-vis';
 import Dimensions from 'react-dimensions'
 import { connect } from "react-redux";
@@ -9,12 +9,11 @@ import { fetchSocialGraph } from '../actions/peopleActions'
 import {trainFaces, clusterFaces} from '../actions/facesActions';
 
 export class FaceClusterScatter extends Component {
-  constructor(props) {
-    super(props)
-    this.state = {
-      crosshairValues: []
+    state = {
+        crosshairValues: [],
+        hintValue:null
     };
-  }
+
   componentWillMount() {
     this.props.dispatch(clusterFaces())
   }
@@ -37,23 +36,48 @@ export class FaceClusterScatter extends Component {
           }
         )
       })
-      return (<MarkSeries colorType="literal" key={"cluster-marker-"+idx} animation data={thisPersonData}/>)
-    })
-    return (
-      <Segment>
-        <Header as='h3'>Face Embeddings</Header>
-        <XYPlot
-          width={this.props.containerWidth-50}
-          height={250}>
-          <HorizontalGridLines/>
-          <VerticalGridLines/>
-          <XAxis/>
-          <YAxis/>
-          {mappedScatter}
+      return (
+        <MarkSeries 
+            colorType="literal" 
+            key={"cluster-marker-"+idx} 
+            animation 
+            onValueClick={(d,info)=>{
+                this.setState({hintValue:d})
+            }}
+            data={thisPersonData}/>
+      )
+    },this)
+    if (this.props.clustered) {
+        return (
+        <div>
 
-        </XYPlot>
-      </Segment>
-    )
+            <Header as='h3'>
+                Face Embeddings
+                <Header.Subheader>
+                    People with similar looking faces should be grouped closer together in this plot (Click on a point to see the label).
+                </Header.Subheader>
+            </Header>
+
+            <XYPlot
+            width={this.props.containerWidth}
+            height={this.props.height}>
+            <HorizontalGridLines/>
+            <VerticalGridLines/>
+            {mappedScatter}
+            { this.state.hintValue && (
+                <Hint value={this.state.hintValue}>
+                        <Label color='black'>{this.state.hintValue.name}</Label>
+                </Hint>
+            )} 
+            </XYPlot>
+        </div>
+        )
+    } else {
+        return (
+            <div><Loader active/></div>
+        )
+    }
+
   }
 }
 
@@ -64,6 +88,8 @@ FaceClusterScatter = connect((store)=>{
     facesVis: store.faces.facesVis,
     training: store.faces.training,
     trained: store.faces.trained,
+    clustering: store.faces.clustering,
+    clustered: store.faces.clustered,
   }
 })(FaceClusterScatter)
 

@@ -14,7 +14,6 @@ import { Map, TileLayer, Marker } from 'react-leaflet'
 import {Server, serverAddress} from '../api_client/apiClient'
 import LazyLoad from 'react-lazyload';
 import {ChartyPhotosScrollbar} from '../components/chartyPhotosScrollbar'
-import ReactCSSTransitionGroup from 'react-transition-group/CSSTransitionGroup';
 
 
 
@@ -68,17 +67,10 @@ class DayGroup extends Component {
                         <div style={{display:'inline-block',padding:1,margin:0}}></div>
                     }
                     >
-                    <ReactCSSTransitionGroup
-                        transitionName="thumbnail"
-                        transitionAppear={true}
-                        transitionAppearTimeout={500}
-                        transitionEnterTimeout={500}
-                        transitionLeaveTimeout={300}>
                         <Image key={'daygroup_image_'+photo.image_hash} style={{display:'inline-block',padding:1,margin:0}}
                             height={this.props.itemSize} 
                             width={this.props.itemSize} 
                             src={serverAddress+'/media/square_thumbnails_small/'+photo.image_hash+'.jpg'}/>
-                    </ReactCSSTransitionGroup>
                 </LazyLoad>
             )
         },this)

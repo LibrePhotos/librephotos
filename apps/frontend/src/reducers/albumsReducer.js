@@ -43,6 +43,10 @@ export default function reducer(state={
     fetchingAlbumsPlaceList: false,
     fetchedAlbumsPlaceList: false,
 
+    albumsPlace:{},
+    fetchingAlbumsPlace: false,
+    fetchedAlbumsPlace: false,
+
 
 
     error: null,
@@ -245,6 +249,22 @@ export default function reducer(state={
       }
     }
 
+
+
+    case "FETCH_PLACE_ALBUMS": {
+      return {...state, fetchingAlbumsPlace: true}
+    }
+    case "FETCH_PLACE_ALBUMS_REJECTED": {
+      return {...state, fetchingAlbumsPlace: false, error: action.payload}
+    }
+    case "FETCH_PLACE_ALBUMS_FULFILLED": {
+      return {
+        ...state,
+        fetchingAlbumsPlace: false,
+        fetchedAlbumsPlace: true,
+        albumsPlace: {...state.albumsPlace, [action.payload.id]:action.payload}
+      }
+    }
 
 
 

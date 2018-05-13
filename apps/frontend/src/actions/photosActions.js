@@ -14,6 +14,7 @@ export function scanPhotos() {
   }
 }
 
+// don't use, super slow
 export function fetchPhotos() {
   return function(dispatch) {
     dispatch({type:"FETCH_PHOTOS"});
@@ -53,6 +54,22 @@ export function simpleFetchPhotos() {
       }) 
       .catch((err) => {
         dispatch({type:"FETCH_PHOTOS_REJECTED",payload: err})        
+      })
+  }
+}
+
+
+
+
+export function fetchNoTimestampPhotoList() {
+  return function(dispatch) {
+    dispatch({type:"FETCH_NO_TIMESTAMP_PHOTOS"});
+    Server.get('photos/notimestamp/list/',{timeout:100000})
+      .then((response) => {
+        dispatch({type:"FETCH_NO_TIMESTAMP_PHOTOS_FULFILLED",payload: response.data.results})
+      }) 
+      .catch((err) => {
+        dispatch({type:"FETCH_NO_TIMESTAMP_PHOTOS_REJECTED",payload: err})        
       })
   }
 }
