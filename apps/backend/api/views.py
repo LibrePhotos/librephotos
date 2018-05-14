@@ -8,6 +8,9 @@ from django.db.models import Count
 from django.db.models import Q
 
 
+from django.http import HttpResponse
+from django.http import HttpResponseForbidden
+
 from rest_framework import viewsets
 from api.serializers import PhotoSerializer
 from api.serializers import PhotoHashListSerializer
@@ -78,6 +81,8 @@ from rest_framework_extensions.key_constructor.bits import (
     PaginationKeyBit
 )
 
+import ipdb
+
 # CACHE_TTL = 60 * 60 * 24 # 1 day
 CACHE_TTL = 60*60*24*30  # 1 month
 
@@ -130,6 +135,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = (['search_captions','search_location','faces__person__name','exif_timestamp','image_path'])
+    # search_fields = (['faces__person__name','faces__person__name'])
 
 
     @cache_response(CACHE_TTL,key_func=CustomObjectKeyConstructor())
@@ -150,7 +156,8 @@ class PhotoHashListViewSet(CacheResponseMixin, viewsets.ModelViewSet):
     serializer_class = PhotoHashListSerializer
     pagination_class = HugeResultsSetPagination
     filter_backends = (filters.SearchFilter,)
-    search_fields = (['search_captions','search_location','faces__person__name'])
+    search_fields = (['search_captions','search_location','faces__person__name','exif_timestamp','image_path'])
+    # search_fields = (['faces__person__name','faces__person__name'])
 
     @cache_response(CACHE_TTL,key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -645,3 +652,46 @@ class IsAutoAlbumsBeingProcessed(APIView):
     def get(self, requests, format=None):
         res = is_auto_albums_being_processed()
         return Response(res)
+
+
+
+
+def media_access(request, path):
+    # ipdb.set_trace()
+    """
+    When trying to access :
+    myproject.com/media/uploads/passport.png
+
+    If access is authorized, the request will be redirected to
+    myproject.com/protected/media/uploads/passport.png
+
+    This special URL will be handle by nginx we the help of X-Accel
+    """
+
+    access_granted = False
+
+    user = request.user
+    print('AUTHORIZATION' in request.META.keys())
+    if user.is_authenticated:
+        if user.is_staff:
+            # If admin, everything is granted
+            access_granted = True
+        else:
+            # For simple user, only their documents can be accessed
+            user_documents = [
+                user.identity_document,
+                # add here more allowed documents
+            ]
+
+            for doc in user_documents:
+                if path == doc.name:
+                    access_granted = True
+
+    if access_granted:
+        response = HttpResponse()
+        # Content-type will be detected by nginx
+        del response['Content-Type']
+        response['X-Accel-Redirect'] = '/media/' + path
+        return response
+    else:
+        return HttpResponseForbidden('Not authorized to access this media.')

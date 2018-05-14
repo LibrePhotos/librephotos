@@ -4,6 +4,8 @@ import ipdb
 import json
 import time
 
+
+
 class PhotoHashListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Photo
@@ -290,7 +292,7 @@ class AlbumPlaceListSerializer(serializers.ModelSerializer):
 
     def get_cover_photo_urls(self,obj):
         first_photos = obj.photos.all()[:4]
-        return [first_photo.square_thumbnail.url for first_photo in first_photos]
+        return [first_photo.square_thumbnail_small.url for first_photo in first_photos]
 
 
 
@@ -336,7 +338,7 @@ class AlbumThingListSerializer(serializers.ModelSerializer):
 
     def get_cover_photo_urls(self,obj):
         first_photos = obj.photos.all()[:4]
-        return [first_photo.square_thumbnail.url for first_photo in first_photos]
+        return [first_photo.square_thumbnail_small.url for first_photo in first_photos]
 
 
 

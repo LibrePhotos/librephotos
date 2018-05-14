@@ -25,9 +25,32 @@ from api import views
 # from rest_framework_jwt.views import verify_jwt_token
 
 from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
+    # TokenObtainPairView,
     TokenRefreshView,
 )
+
+
+from api.views import media_access
+
+import ipdb
+
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+class TokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super(TokenObtainPairSerializer, cls).get_token(user)
+
+        # Add custom claims
+        # ipdb.set_trace()
+        token['name'] = user.get_username()
+        # ...
+
+        return token
+
+class TokenObtainPairView(TokenObtainPairView):
+    serializer_class = TokenObtainPairSerializer
 
 router = routers.DefaultRouter()
 
@@ -85,6 +108,7 @@ urlpatterns = [
 
     url(r'^api/auth/token/obtain/$', TokenObtainPairView.as_view()),
     url(r'^api/auth/token/refresh/$', TokenRefreshView.as_view()),
+    # url(r'^media/(?P<path>.*)', media_access, name='media'),
 
 
 
