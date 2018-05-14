@@ -7,6 +7,46 @@ auth = HTTPBasicAuth('admin','q1W@e3R$')
 
 start = datetime.datetime.now()
 
+resp_location_sunburst = requests.get('http://localhost:8000/api/locationsunburst/',auth=auth)
+print('location_sunburst: \t| %.2f ms'%(resp_location_sunburst.elapsed.total_seconds()*1000))
+
+resp_location_timeline = requests.get('http://localhost:8000/api/locationtimeline/',auth=auth)
+print('location_timeline: \t| %.2f ms'%(resp_location_timeline.elapsed.total_seconds()*1000))
+
+
+resp_search_term_examples = requests.get('http://localhost:8000/api/searchtermexamples/',auth=auth)
+print('search_term_examples: \t| %.2f ms'%(resp_search_term_examples.elapsed.total_seconds()*1000))
+
+resp_album_auto = requests.get('http://localhost:8000/api/albums/auto/list/',auth=auth)
+print('album_auto_list: \t| %.2f ms'%(resp_album_auto.elapsed.total_seconds()*1000))
+
+resp_album_place = requests.get('http://localhost:8000/api/albums/place/list/',auth=auth)
+print('album_place_list: \t| %.2f ms'%(resp_album_place.elapsed.total_seconds()*1000))
+
+resp_faces = requests.get('http://localhost:8000/api/faces/list/', auth=auth)
+print('faces: \t\t\t| %.2f ms'%(resp_faces.elapsed.total_seconds()*1000))
+
+resp_people = requests.get('http://localhost:8000/api/persons/', auth=auth)
+print('people: \t\t\t| %.2f ms'%(resp_faces.elapsed.total_seconds()*1000))
+
+resp_faces_labeled = requests.get('http://localhost:8000/api/faces/labeled/list/', auth=auth)
+print('faces_labeled: \t\t| %.2f ms'%(resp_faces_labeled.elapsed.total_seconds()*1000))
+# 
+resp_faces_inferred = requests.get('http://localhost:8000/api/faces/inferred/list/', auth=auth)
+print('faces_inferred: \t| %.2f ms'%(resp_faces_inferred.elapsed.total_seconds()*1000))
+# resp_album_person = requests.get('http://192.168.1.100:8000/api/albums/person/list/',auth=auth)
+# resp_photos = requests.get('http://192.168.1.100:8000/api/photos/list/',auth=auth)
+# print(resp_photos.elapsed.total_seconds()*1000)
+# resp_photos_json = resp_photos.json()
+
+
+resp_album_date = requests.get('http://localhost:8000/api/albums/date/photohash/list/',auth=auth)
+print('album_date_list: \t| %.2f ms'%(resp_album_date.elapsed.total_seconds()*1000))
+
+
+
+# resp_album_auto = requests.get('http://localhost:8000/api/albums/auto/list/',auth=auth).json()
+'''
 print('========== FACES =======================')
 
 resp_faces = requests.get('http://localhost:8000/api/faces/', auth=auth)
@@ -62,3 +102,4 @@ print('len(album_date): \t| %d albums'%len(album_date_ids))
 print('len(album_person): \t| %d albums'%len(album_person_ids))
 print('========================================')
 print('Total elapsed: \t\t| %.2f ms'%((end-start).total_seconds()*1000))
+'''

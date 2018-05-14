@@ -16,20 +16,29 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import SGDClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn import svm
+from sklearn.manifold import TSNE
 
+import seaborn as sns
 
 
 def cluster_faces():
     # for front end cluster visualization
+
+    people = [p.id for p in Person.objects.all()]
+    colors = sns.color_palette('Dark2',len(people)).as_hex()
+    p2c = dict(zip(people,colors))
+
+
     faces = Face.objects.all()
     face_encodings_all = []
     for face in faces:
-        face_encoding = np.frombuffer(base64.b64decode(face.encoding),dtype=np.float64)
+        face_encoding = np.frombuffer(bytes.fromhex(face.encoding))
         face_encodings_all.append(face_encoding)
 
 
     pca = PCA(n_components=3)
     vis_all = pca.fit_transform(np.array(face_encodings_all))
+#     vis_all = TSNE(n_components=2,n_iter=100000,verbose=1).fit_transform(face_encodings_all)
 
     res = []
     for face, vis in zip(faces, vis_all):
@@ -38,10 +47,12 @@ def cluster_faces():
         person_label_is_inferred = face.person_label_is_inferred
         face_url = face.image.url
         value = {'x':vis[0],'y':vis[1],'size':vis[2]}
+#         value = {'x':vis[0],'y':vis[1],'size':0.1}
         out = {
             "person_id":person_id,
             "person_name":person_name,
             "person_label_is_inferred":person_label_is_inferred,
+            "color":p2c[person_id],
             "face_url":face_url,
             "value":value}
         res.append(out)
@@ -50,7 +61,7 @@ def cluster_faces():
 
 
 def train_faces():
-    faces = Face.objects.all()
+    faces = Face.objects.all().prefetch_related('person')
 
     id2face_unknown = {}
     id2face_known = {}
@@ -59,13 +70,13 @@ def train_faces():
     face_encodings_all = []
 
     for face in faces:
-        face_encoding = np.frombuffer(base64.b64decode(face.encoding),dtype=np.float64)
+        face_encoding = np.frombuffer(bytes.fromhex(face.encoding))
         face_image = face.image.read()
         face.image.close()
         face_image_path = face.image_path
         face_id = face.id
         face_encodings_all.append(face_encoding)
-        if face.person_label_is_inferred is not False:
+        if face.person_label_is_inferred is not False or face.person.name == 'unknown':
             face_encodings_unknown.append(face_encoding)
             id2face_unknown[face_id] = {}
             id2face_unknown[face_id]['encoding'] = face_encoding
@@ -89,8 +100,8 @@ def train_faces():
 
     n_clusters = len(set(person_names_known.tolist()))
 
-    clf = SGDClassifier(loss='log',penalty='l2')
-    # clf = MLPClassifier(solver='lbfgs',alpha=1e-5,random_state=1)
+    # clf = SGDClassifier(loss='log',penalty='l2')
+    clf = MLPClassifier(solver='adam',alpha=1e-5,random_state=1,max_iter=1000)
     # clf = svm.SVC(kernel='linear')
     # scaler = StandardScaler()
     # scaler.fit(face_encodings_all)
@@ -103,20 +114,22 @@ def train_faces():
     face_paths_unknown = [f['image_path'] for f in id2face_unknown.values()]
     face_ids_unknown = [f['id'] for f in id2face_unknown.values()]
     pred = clf.predict(face_encodings_unknown)
-
-    for face_id, person_name in zip(face_ids_unknown, pred):
+    probs = np.max(clf.predict_proba(face_encodings_unknown),1)
+    for face_id, person_name, probability in zip(face_ids_unknown, pred, probs):
         person = Person.objects.get(name=person_name)
         face = Face.objects.get(id=face_id)
         face.person = person
         face.person_label_is_inferred = True
+        face.person_label_probability = probability
         face.save()
 
+    return cluster_faces()
 
     # for front end cluster visualization
     faces = Face.objects.all()
     face_encodings_all = []
     for face in faces:
-        face_encoding = np.frombuffer(base64.b64decode(face.encoding),dtype=np.float64)
+        face_encoding = np.frombuffer(bytes.fromhex(face.encoding))
         face_encodings_all.append(face_encoding)
 
 

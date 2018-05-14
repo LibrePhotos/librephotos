@@ -25,11 +25,14 @@ SECRET_KEY = os.environ['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = (os.environ.get('DEBUG', '').lower() == 'true')
+DEBUG = True
 
+ALLOWED_HOSTS = ['192.168.31.210','localhost','*']
 
-ALLOWED_HOSTS = [os.environ['ALLOWED_HOSTS']]
-
-
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=7),
+}
 
 # Application definition
 
@@ -44,8 +47,39 @@ INSTALLED_APPS = [
     'api',
     'rest_framework',
     'corsheaders',
+    'django_extensions'
+    # 'cacheops',
 ]
 
+# CACHEOPS_REDIS = {
+#     'host': '172.17.0.4', # redis-server is on same machine
+#     'port': 6379,        # default redis port
+#     'db': 1             # SELECT non-default redis database
+# }
+
+# CACHEOPS_DEFAULTS = {
+#     'timeout': 60*60
+# }
+
+# CACHEOPS = {
+#     'auth.user': {'ops': 'get', 'timeout': 60*15},
+#     'auth.*': {'ops': ('fetch', 'get')},
+#     'auth.permission': {'ops': 'all'},
+#     '*.*': {'ops':'all', 'timeout': 60*15}
+# }
+
+CORS_ALLOW_HEADERS = (
+    'cache-control',
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+)
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
@@ -53,19 +87,27 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+#         'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
     ),
     'DEFAULT_FILTER_BACKENDS': (
         'django_filters.rest_framework.DjangoFilterBackend',
     ),
-    'PAGE_SIZE': 20
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 20000,
 }
 
-JWT_AUTH = {
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(hours=1),
+
+REST_FRAMEWORK_EXTENSIONS = {
+    'DEFAULT_OBJECT_CACHE_KEY_FUNC':
+        'rest_framework_extensions.utils.default_object_cache_key_func',
+    'DEFAULT_LIST_CACHE_KEY_FUNC':
+        'rest_framework_extensions.utils.default_list_cache_key_func',
 }
+
+
 
 
 MIDDLEWARE = [
@@ -113,17 +155,30 @@ DATABASES = {
     }
 }
 
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+#         'LOCATION': os.environ['CACHE_HOST_PORT'],
+#         'TIMEOUT': 60 * 60 * 24 , # 1 day
+#         'OPTIONS': {
+#             'server_max_value_length': 1024 * 1024 * 128, #50mb
+#         }
+#     }
+# }
+
+
+
+
 CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-        'LOCATION': os.environ['CACHE_HOST_PORT'],
-        'TIMEOUT': 60 * 60 * 24 , # 1 day
-        'OPTIONS': {
-            'server_max_value_length': 1024 * 1024* 10, #10mb
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://"+os.environ['REDIS_HOST']+":"+os.environ["REDIS_PORT"]+"/1",
+        "TIMEOUT": 60*60*24,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
     }
 }
-
 
 
 # Password validation
@@ -166,6 +221,13 @@ STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR,'media')
 
-THUMBNAIL_SIZE = (300,300)
-FULLPHOTO_SIZE = (512,512)
+
+THUMBNAIL_SIZE_TINY = (30,30)
+THUMBNAIL_SIZE_SMALL = (100,100)
+THUMBNAIL_SIZE_MEDIUM = (500,500)
+THUMBNAIL_SIZE = (500,500)
+THUMBNAIL_SIZE_BIG = (1000,1000)
+
+FULLPHOTO_SIZE = (1000,1000)
+
 CORS_ORIGIN_ALLOW_ALL = True

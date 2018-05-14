@@ -1,9 +1,8 @@
 from datetime import datetime
-
+import dateutil.parser as dateparser
 import PIL
 from PIL import ImageOps
 from PIL.ExifTags import TAGS as EXIFTAGS
-
 from django.db import models
 import face_recognition
 import hashlib
@@ -12,11 +11,11 @@ import api.util as util
 import exifread
 import base64
 import numpy as np
-import ipdb
 import os
 import pytz
 import json
 
+from collections import Counter
 from io import BytesIO
 from django.core.files.base import ContentFile
 
@@ -26,6 +25,7 @@ from django.db.models.signals import post_save, post_delete
 from django.core.cache import cache
 from django.contrib.postgres.fields import JSONField
 
+from api.places365.places365 import inference_places365
 
 import requests
 import base64
@@ -44,12 +44,31 @@ def change_api_updated_at(sender=None, instance=None, *args, **kwargs):
 def get_album_date(date):
     return AlbumDate.objects.get_or_create(date=date)
 
+def get_album_thing(title):
+    return AlbumThing.objects.get_or_create(title=title)
+
+def get_album_place(title):
+    return AlbumPlace.objects.get_or_create(title=title)
+
+def get_album_nodate():
+    return AlbumDate.objects.get_or_create(date=None)
+
 class Photo(models.Model):
-    image_path = models.FilePathField()
+    image_path = models.FilePathField(max_length=512, db_index=True)
     image_hash = models.CharField(primary_key=True,max_length=32,null=False)
 
     thumbnail = models.ImageField(upload_to='thumbnails')
+    thumbnail_tiny = models.ImageField(upload_to='thumbnails_tiny')
+    thumbnail_small = models.ImageField(upload_to='thumbnails_small')
+    thumbnail_big = models.ImageField(upload_to='thumbnails_big')
+
     square_thumbnail = models.ImageField(upload_to='square_thumbnails')
+    square_thumbnail_tiny = models.ImageField(upload_to='square_thumbnails_tiny')
+    square_thumbnail_small = models.ImageField(upload_to='square_thumbnails_small')
+    square_thumbnail_big = models.ImageField(upload_to='square_thumbnails_big')
+
+
+
     image = models.ImageField(upload_to='photos')
     
     added_on = models.DateTimeField(null=False,blank=False,db_index=True)
@@ -61,6 +80,7 @@ class Photo(models.Model):
     exif_json = JSONField(blank=True,null=True)
 
     geolocation_json = JSONField(blank=True,null=True,db_index=True)
+    captions_json =  JSONField(blank=True,null=True,db_index=True)
 
     search_captions = models.TextField(blank=True,null=True,db_index=True)
     search_location = models.TextField(blank=True,null=True,db_index=True)
@@ -75,15 +95,32 @@ class Photo(models.Model):
         self.image_hash = hash_md5.hexdigest()
 
     def _generate_captions(self):
+        image_path = self.image_path
+        captions = {}
         try:
-            thumbnail_path = self.thumbnail.url
-            with open("."+thumbnail_path, "rb") as image_file:
+            with open(image_path, "rb") as image_file:
                 encoded_string = base64.b64encode(image_file.read())
             encoded_string = str(encoded_string)[2:-1]
             resp_captions = requests.post('http://localhost:5000/',data=encoded_string)
+            captions['densecap'] = resp_captions.json()['data'][:10]
             self.search_captions = ' , '.join(resp_captions.json()['data'][:10])
+            self.save()
         except:
-            pass
+            util.logger.warning('could not generate densecap captions for image %s'%image_path)
+
+        try:
+            res_places365 = inference_places365(image_path)
+            captions['places365'] = res_places365
+            self.captions_json = captions
+            if self.search_captions:
+                self.search_captions = self.search_captions + ' , ' + \
+                    ' , '.join(res_places365['attributes'] + res_places365['categories'] + [res_places365['environment']])
+            else:
+                self.search_captions = ' , '.join(res_places365['attributes'] + res_places365['categories'] + [res_places365['environment']])
+
+            self.save()
+        except:
+            util.logger.warning('could not generate places365 captions for image %s'%image_path)
 
     def _generate_thumbnail(self):
         image = PIL.Image.open(self.image_path)
@@ -112,22 +149,94 @@ class Photo(models.Model):
         except:
            pass
 
-        # make aspect ration preserved thumbnail
-        image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE, PIL.Image.ANTIALIAS)
+        # make thumbnails
+        image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_BIG, PIL.Image.ANTIALIAS)
+        image_io_thumb = BytesIO()
+        image.save(image_io_thumb,format="JPEG")
+        self.thumbnail_big.save(self.image_hash+'.jpg', ContentFile(image_io_thumb.getvalue()))
+        image_io_thumb.close()
+
+        square_thumb = ImageOps.fit(image, ownphotos.settings.THUMBNAIL_SIZE_BIG, PIL.Image.ANTIALIAS)
+        image_io_square_thumb = BytesIO()
+        square_thumb.save(image_io_square_thumb,format="JPEG")
+        self.square_thumbnail_big.save(self.image_hash+'.jpg', ContentFile(image_io_square_thumb.getvalue()))
+        image_io_square_thumb.close()
+
+
+
+        image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_MEDIUM, PIL.Image.ANTIALIAS)
         image_io_thumb = BytesIO()
         image.save(image_io_thumb,format="JPEG")
         self.thumbnail.save(self.image_hash+'.jpg', ContentFile(image_io_thumb.getvalue()))
         image_io_thumb.close()
 
-        # make square thumbnail
-        square_thumb = ImageOps.fit(image, ownphotos.settings.THUMBNAIL_SIZE, PIL.Image.ANTIALIAS)
+        square_thumb = ImageOps.fit(image, ownphotos.settings.THUMBNAIL_SIZE_MEDIUM, PIL.Image.ANTIALIAS)
         image_io_square_thumb = BytesIO()
         square_thumb.save(image_io_square_thumb,format="JPEG")
         self.square_thumbnail.save(self.image_hash+'.jpg', ContentFile(image_io_square_thumb.getvalue()))
         image_io_square_thumb.close()
 
+
+
+        image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_SMALL, PIL.Image.ANTIALIAS)
+        image_io_thumb = BytesIO()
+        image.save(image_io_thumb,format="JPEG")
+        self.thumbnail_small.save(self.image_hash+'.jpg', ContentFile(image_io_thumb.getvalue()))
+        image_io_thumb.close()
+
+        square_thumb = ImageOps.fit(image, ownphotos.settings.THUMBNAIL_SIZE_SMALL, PIL.Image.ANTIALIAS)
+        image_io_square_thumb = BytesIO()
+        square_thumb.save(image_io_square_thumb,format="JPEG")
+        self.square_thumbnail_small.save(self.image_hash+'.jpg', ContentFile(image_io_square_thumb.getvalue()))
+        image_io_square_thumb.close()
+
+
+
+        image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_TINY, PIL.Image.ANTIALIAS)
+        image_io_thumb = BytesIO()
+        image.save(image_io_thumb,format="JPEG")
+        self.thumbnail_tiny.save(self.image_hash+'.jpg', ContentFile(image_io_thumb.getvalue()))
+        image_io_thumb.close()
+
+        square_thumb = ImageOps.fit(image, ownphotos.settings.THUMBNAIL_SIZE_TINY, PIL.Image.ANTIALIAS)
+        image_io_square_thumb = BytesIO()
+        square_thumb.save(image_io_square_thumb,format="JPEG")
+        self.square_thumbnail_tiny.save(self.image_hash+'.jpg', ContentFile(image_io_square_thumb.getvalue()))
+        image_io_square_thumb.close()
+
+
+
+
+
+
     def _save_image_to_db(self):
         image = PIL.Image.open(self.image_path)
+
+
+        try:
+           # Grab orientation value.
+           image_exif = image._getexif()
+           image_orientation = image_exif[274]
+
+           # Rotate depending on orientation.
+           if image_orientation == 2:
+              image = image.transpose(PIL.Image.FLIP_LEFT_RIGHT)
+           if image_orientation == 3:
+              image = image.transpose(PIL.Image.ROTATE_180)
+           if image_orientation == 4:
+              image = image.transpose(PIL.Image.FLIP_TOP_BOTTOM)
+           if image_orientation == 5:
+              image = image.transpose(PIL.Image.FLIP_LEFT_RIGHT).transpose(PIL.Image.ROTATE_90)
+           if image_orientation == 6:
+              image = image.transpose(PIL.Image.ROTATE_270)
+           if image_orientation == 7:
+              image = image.transpose(PIL.Image.FLIP_TOP_BOTTOM).transpose(PIL.Image.ROTATE_90)
+           if image_orientation == 8:
+              image = image.transpose(PIL.Image.ROTATE_90)
+        except:
+           pass
+
+
         # image.thumbnail(ownphotos.settings.FULLPHOTO_SIZE, PIL.Image.ANTIALIAS)
         image_io = BytesIO()
         image.save(image_io,format="JPEG")
@@ -139,43 +248,51 @@ class Photo(models.Model):
         # ipdb.set_trace()
         i = PIL.Image.open(self.image_path)
         info = i._getexif()
-        for tag, value in info.items():
-            decoded = EXIFTAGS.get(tag,tag)
-            ret[decoded] = value
+        date_format = "%Y:%m:%d %H:%M:%S"
+        if info:
+            for tag, value in info.items():
+                decoded = EXIFTAGS.get(tag, tag)
+                ret[decoded] = value
 
+            with open(self.image_path, 'rb') as fimg:
+                exif = exifread.process_file(fimg, details=False)
 
-        with open(self.image_path,'rb') as fimg:
-            exif = exifread.process_file(fimg,details=False)
-
-            serializable = dict([key,value.printable] for key,value in exif.items())
-            self.exif_json = serializable
-            # ipdb.set_trace()
-            if 'EXIF DateTimeOriginal' in exif.keys():
-                tst_str = exif['EXIF DateTimeOriginal'].values
-                try:
-                    tst_dt = datetime.strptime(tst_str,"%Y:%m:%d %H:%M:%S") 
-                except:
-                    tst_dt = datetime.strptime(tst_str,"%Y-%m-%d %H:%M:%S")                     
+                serializable = dict([key, value.printable] for key, value in exif.items())
+                self.exif_json = serializable
                 # ipdb.set_trace()
-                self.exif_timestamp = tst_dt
-            else:
-                self.exif_timestamp = None
+                if 'EXIF DateTimeOriginal' in exif.keys():
+                    tst_str = exif['EXIF DateTimeOriginal'].values
+                    try:
+                        tst_dt = datetime.strptime(tst_str, date_format)
+                    except:
+                        tst_dt = None
+                    # ipdb.set_trace()
+                    self.exif_timestamp = tst_dt
+                else:
+                    self.exif_timestamp = None
 
-            if 'GPS GPSLongitude' in exif.keys():
-                self.exif_gps_lon = util.convert_to_degrees(exif['GPS GPSLongitude'].values)
-                # Check for correct positive/negative degrees
-                if exif['GPS GPSLongitudeRef'].values != 'E':
-                    self.exif_gps_lon = -self.exif_gps_lon
-            else:
-                self.exif_gps_lon = None
+                if 'GPS GPSLongitude' in exif.keys():
+                    self.exif_gps_lon = util.convert_to_degrees(exif['GPS GPSLongitude'].values)
+                    # Check for correct positive/negative degrees
+                    if exif['GPS GPSLongitudeRef'].values != 'E':
+                        self.exif_gps_lon = -self.exif_gps_lon
+                else:
+                    self.exif_gps_lon = None
 
-            if 'GPS GPSLatitude' in exif.keys():
-                self.exif_gps_lat = util.convert_to_degrees(exif['GPS GPSLatitude'].values)
-                # Check for correct positive/negative degrees
-                if exif['GPS GPSLatitudeRef'].values != 'N':
-                    self.exif_gps_lat = -self.exif_gps_lat
-            else:
-                self.exif_gps_lat = None
+                if 'GPS GPSLatitude' in exif.keys():
+                    self.exif_gps_lat = util.convert_to_degrees(exif['GPS GPSLatitude'].values)
+                    # Check for correct positive/negative degrees
+                    if exif['GPS GPSLatitudeRef'].values != 'N':
+                        self.exif_gps_lat = -self.exif_gps_lat
+                else:
+                    self.exif_gps_lat = None
+
+        if not self.exif_timestamp:
+            try:
+                basename_without_extension = os.path.basename(self.image_path)
+                self.exif_timestamp = dateparser.parse(basename_without_extension, ignoretz=True, fuzzy=True)
+            except BaseException:
+                util.logger.warning("Failed to determine date from filename for image %s"%self.image_path)
 
     def _geolocate(self):
         if not (self.exif_gps_lat and self.exif_gps_lon):
@@ -192,12 +309,12 @@ class Photo(models.Model):
 
 
 
-    def _geolocate_mapzen(self):
+    def _geolocate_mapbox(self):
         if not (self.exif_gps_lat and self.exif_gps_lon):
             self._extract_exif()
         if (self.exif_gps_lat and self.exif_gps_lon):
             try:
-                res = util.mapzen_reverse_geocode(self.exif_gps_lat,self.exif_gps_lon)
+                res = util.mapbox_reverse_geocode(self.exif_gps_lat,self.exif_gps_lon)
                 self.geolocation_json = res
                 if 'search_text' in res.keys():
                     if self.search_location:
@@ -206,6 +323,7 @@ class Photo(models.Model):
                         self.search_location = res['search_text']
                 self.save()
             except:
+                util.logger.warning('something went wrong with geolocating')
                 pass
                 # self.geolocation_json = {}
 
@@ -220,11 +338,11 @@ class Photo(models.Model):
         else:
             unknown_person = qs_unknown_person[0]
 
-        thumbnail = PIL.Image.open(self.thumbnail)
-        thumbnail = np.array(thumbnail.convert('RGB'))
+        image = PIL.Image.open(self.thumbnail)
+        image = np.array(image.convert('RGB'))
 
-        face_encodings = face_recognition.face_encodings(thumbnail)
-        face_locations = face_recognition.face_locations(thumbnail)
+        face_encodings = face_recognition.face_encodings(image)
+        face_locations = face_recognition.face_locations(image)
     
         faces = []
         if len(face_locations) > 0:
@@ -232,7 +350,7 @@ class Photo(models.Model):
                 face_encoding = face[0]
                 face_location = face[1]
                 top,right,bottom,left = face_location
-                face_image = thumbnail[top:bottom, left:right]
+                face_image = image[top:bottom, left:right]
                 face_image = PIL.Image.fromarray(face_image)
 
                 face = Face()
@@ -243,7 +361,8 @@ class Photo(models.Model):
                 face.location_right = face_location[1]
                 face.location_bottom = face_location[2]
                 face.location_left = face_location[3]
-                face.encoding = base64.encodebytes(face_encoding.tostring())
+                face.encoding = face_encoding.tobytes().hex()
+#                 face.encoding = face_encoding.dumps()
 
                 face_io = BytesIO()
                 face_image.save(face_io,format="JPEG")
@@ -251,11 +370,35 @@ class Photo(models.Model):
                 face_io.close()
                 face.save()
 
+    def _add_to_album_thing(self):
+        if self.search_captions:
+            doc = util.nlp('. '.join(self.search_captions.split(' , ')))
+            nouns = list(set([t.lemma_ for t in doc if t.tag_=="NN"]))
+            for noun in nouns:
+                album_thing = get_album_thing(title=noun)[0]
+                album_thing.photos.add(self)
+                album_thing.save()
+
     def _add_to_album_date(self):
         if self.exif_timestamp:
             album_date = get_album_date(date=self.exif_timestamp.date())[0]
             album_date.photos.add(self)
             album_date.save()
+        else:
+            album_date = get_album_date(date=None)[0]
+            album_date.photos.add(self)
+            album_date.save()
+
+
+    def _add_to_album_place(self):
+        if self.geolocation_json and len(self.geolocation_json) > 0:
+            if 'features' in self.geolocation_json.keys():
+                for feature in self.geolocation_json['features']:
+                    if 'text' in feature.keys():
+                        album_place = get_album_place(feature['text'])[0]
+                        album_place.photos.add(self)
+                        album_place.save()
+
 
     def __str__(self):
         return "%s"%self.image_hash
@@ -288,15 +431,16 @@ class Person(models.Model):
 
 
 def get_unknown_person():
-    return Person.objects.get_or_create(name='unknown',kind="UNKNOWN")
+    return Person.objects.get_or_create(name='unknown')[0]
 
 class Face(models.Model):
-    photo = models.ForeignKey(Photo, related_name='faces', blank=False, null=False)
+    photo = models.ForeignKey(Photo, related_name='faces', on_delete=models.SET(get_unknown_person), blank=False, null=True)
     image = models.ImageField(upload_to='faces')
     image_path = models.FilePathField()
     
     person = models.ForeignKey(Person, on_delete=models.SET(get_unknown_person), related_name='faces')
     person_label_is_inferred = models.NullBooleanField(db_index=True)
+    person_label_probability = models.FloatField(default=0.,db_index=True)
 
     location_top = models.IntegerField()
     location_bottom = models.IntegerField()
@@ -309,15 +453,31 @@ class Face(models.Model):
         return "%d"%self.id
 
 
+class AlbumThing(models.Model):
+    title = models.CharField(unique=True,max_length=512,db_index=True)
+    photos = models.ManyToManyField(Photo)
+
+    def __str__(self):
+        return "%d: %s"%(self.id, self.title)
+
+
+class AlbumPlace(models.Model):
+    title = models.CharField(unique=True,max_length=512,db_index=True)
+    photos = models.ManyToManyField(Photo)
+
+    def __str__(self):
+        return "%d: %s"%(self.id, self.title)
+
 
 class AlbumDate(models.Model):
     title = models.CharField(blank=True,null=True,max_length=512,db_index=True)
-    date = models.DateField(unique=True,db_index=True)
+    date = models.DateField(unique=True,db_index=True,null=True)
     photos = models.ManyToManyField(Photo)
     favorited = models.BooleanField(default=False,db_index=True)
 
     def __str__(self):
         return "%d: %s"%(self.id, self.title)
+
 
 class AlbumAuto(models.Model):
     title = models.CharField(blank=True,null=True,max_length=512)
@@ -344,22 +504,42 @@ class AlbumAuto(models.Model):
             elif hour >= 18 and hour <=24:
                 time = "Evening"
 
-        if self.gps_lat and self.gps_lon:
-            loc = "in SomeCity"
-            try:
-                location = geolocator.reverse("%f,%f"%(self.gps_lat,self.gps_lon))
-                location = location.raw
-                address = location['address']
-                if 'city' in address.keys():
-                    loc = 'in ' + address['city']
-                if 'town' in address.keys():
-                    loc = 'in ' + address['town']
-                if 'village' in address.keys():
-                    loc = 'in ' + address['village']
-            except:
-                loc = ''
+        when = ' '.join([weekday,time])
 
-        title = ' '.join([weekday,time,loc]).strip()
+        photos = self.photos.all()
+
+        loc = ''
+        pep = ''
+
+        places = []
+        people = []
+        timestamps = []
+
+        for photo in photos:
+            if photo.geolocation_json and 'features' in photo.geolocation_json.keys():
+                for feature in photo.geolocation_json['features']:
+                    if feature['place_type'][0] == 'place':
+                        places.append(feature['text'])
+
+            timestamps.append(photo.exif_timestamp)
+
+            faces = photo.faces.all()
+            for face in faces:
+                people.append(face.person.name)
+
+        if len(places) > 0:
+            cnts_places = Counter(places)
+            loc = 'in ' + ' and '.join(dict(cnts_places.most_common(2)).keys())
+        if len(people) > 0:
+            cnts_people = Counter(people)
+            names = dict([(k,v) for k,v in cnts_people.most_common(2) if k.lower() != 'unknown']).keys()
+            if len(names) > 0:
+                pep = 'with ' + ' and '.join(names)
+
+        if (max(timestamps) - min(timestamps)).days >= 3:
+            when = '%d days'%((max(timestamps) - min(timestamps)).days)
+
+        title = ' '.join([when,pep,loc]).strip()
         self.title = title
 
     def __str__(self):

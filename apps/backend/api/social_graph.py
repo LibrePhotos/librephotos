@@ -7,27 +7,22 @@ def build_social_graph():
 	G = nx.Graph()
 
 	people = Person.objects.all()
-	person_names = [person.name for person in people]
+	for person in people:
+		person = Person.objects.prefetch_related('faces__photo__faces__person').filter(id=person.id)[0]
+		for this_person_face in person.faces.all():
+			for other_person_face in this_person_face.photo.faces.all():
+				G.add_edge(person.name,other_person_face.person.name)
+	nodes = [{'id':node} for node in G.nodes()]
+	links = [{'source':pair[0], 'target':pair[1]} for pair in G.edges()]
+	res = {"nodes":nodes, "links":links}
+	return res
 
-	photos = Photo.objects.all()
-
-	G.add_nodes_from(person_names)
-
-	name_sets = []
-	for photo in photos:
-		names = []
-		for face in photo.faces.all(): 
-			names.append(face.person.name)
-		names = list(set(names))
-		if len(names) > 0:
-			name_sets.append(names)
-
-	for name_set in name_sets:
-		pairs = list(itertools.combinations(name_set, 2))
-		for pair in pairs:
-			G.add_edge(pair[0],pair[1])
-
-
+def build_ego_graph(person_id):
+	G = nx.Graph()
+	person = Person.objects.prefetch_related('faces__photo__faces__person').filter(id=person_id)[0]
+	for this_person_face in person.faces.all():
+		for other_person_face in this_person_face.photo.faces.all():
+			G.add_edge(person.name,other_person_face.person.name)
 	nodes = [{'id':node} for node in G.nodes()]
 	links = [{'source':pair[0], 'target':pair[1]} for pair in G.edges()]
 	res = {"nodes":nodes, "links":links}
