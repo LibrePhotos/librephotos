@@ -1,12 +1,13 @@
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
-import { Popup,Menu, Input, Icon, Sidebar, Divider, Image, Header } from 'semantic-ui-react';
+import { Popup,Menu, Input, Icon, Sidebar,Dropdown, Divider, Image, Header } from 'semantic-ui-react';
 import { connect } from "react-redux";
 import {login, logout} from '../actions/authActions'
 import {searchPhotos} from '../actions/searchActions'
 import {fetchExampleSearchTerms} from '../actions/utilActions'
 import { push } from 'react-router-redux'
 import store from '../store'
+import jwtDecode from 'jwt-decode'
 
 var ENTER_KEY = 13;
 var topMenuHeight = 55 // don't change this
@@ -75,16 +76,14 @@ export class TopMenu extends Component {
   }
 
   render() {
-    var searchBarWidth = this.state.width > 600 ? 500 : this.state.width
+    var searchBarWidth = this.state.width > 600 ? this.state.width - 400 : this.state.width - 130
+    // var searchBarWidth =  this.state.width - 130
     return (
       <Menu style={{height:topMenuHeight,padding:10,contentAlign:'left',backgroundColor:'#eeeeee'}} borderless fixed='top' size='small' widths={1}>
 
-          {
-            this.state.width > 600 &&
-            <div style={{paddingLeft:25,width:(window.innerWidth-searchBarWidth)/2,left:0,position:'absolute',textAlign:'left'}}>
-            <img src="/logo-inverted-square-padded.png" style={{height:35}}/>
-            </div>
-          }
+          <div style={{paddingLeft:28,width:(window.innerWidth-searchBarWidth)/2,left:0,position:'absolute',textAlign:'left'}}>
+          <img src="/logo.png" style={{height:35}}/>
+          </div>
 
           <div style={{width:searchBarWidth,paddingRight:10,paddingLeft:10}}>
           <Popup trigger={
@@ -108,7 +107,17 @@ export class TopMenu extends Component {
             }/>
           </div>
 
-          <div style={{paddingRight:10,width:(window.innerWidth-searchBarWidth)/2,right:0,position:'absolute',textAlign:'right'}}>
+          <div style={{paddingRight:20,paddingTop:8,width:(window.innerWidth-searchBarWidth)/2,right:0,position:'absolute',textAlign:'right'}}>
+          
+          <b>
+            <Dropdown text={this.state.width > 700 ? (<div><Icon name='user' inline circle/> {this.props.auth.access.name}</div>) : <Icon name='user' inline circle/> } inline pointing='top right'>
+              <Dropdown.Menu>
+                <Dropdown.Item onClick={()=>this.props.dispatch(logout())}>
+                  <Icon name='sign out' inline/><b>Logout</b>
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+          </b>
           </div>
 
       </Menu>
@@ -484,6 +493,7 @@ SideMenu = connect((store)=>{
 
 TopMenu = connect((store)=>{
   return {
+    auth: store.auth,
     jwtToken: store.auth.jwtToken,
     exampleSearchTerms: store.util.exampleSearchTerms,
     searchError: store.search.error,

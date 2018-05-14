@@ -1,9 +1,10 @@
 import React, {Component} from 'react';
-import { Card, Image, Header, Divider, Item, Loader, Dimmer, Breadcrumb,
+import { Card, Header, Divider, Item, Loader, Dimmer, Breadcrumb,Image,
          Container, Label, Popup, Segment, Button, Icon} from 'semantic-ui-react';
 import Gallery from 'react-grid-gallery'
 import VisibilitySensor from 'react-visibility-sensor'
 import { connect } from "react-redux";
+// import {Image} from '../components/authenticatedImage'
 import {
   BrowserRouter as Router,
   Route,
@@ -20,6 +21,7 @@ import { push } from 'react-router-redux'
 import LazyLoad from 'react-lazyload'
 
 import { Grid, List, WindowScroller,AutoSizer } from 'react-virtualized';
+import {LightBox} from '../components/lightBox'
 
 
 var topMenuHeight = 55 // don't change this
@@ -66,14 +68,14 @@ export class AlbumLocationMap extends Component {
     })
     if (photosWithGPS.length>0){
       return (
-        <Segment style={{padding:0}}>
+        <div style={{padding:0}}>
           <Map center={[avg_lat,avg_lon]} zoom={6}>
             <TileLayer
               attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
               url='http://{s}.tile.osm.org/{z}/{x}/{y}.png'/>
             {markers}
           </Map>
-        </Segment>
+        </div>
       )
     }
     else {
@@ -91,7 +93,7 @@ AUTO GENERATED EVENT ALBUM
 export class AlbumAutoGalleryView extends Component {
   state = {
     idx2hash: [],
-    lightboxImageIndex: 1,
+    lightboxImageIndex: 0,
     lightboxShow:false,
     headerHeight: 80,
     width:  window.innerWidth,
@@ -101,6 +103,10 @@ export class AlbumAutoGalleryView extends Component {
     gridHeight: window.innerHeight- topMenuHeight - 60,
   }
 
+  constructor(props){
+    super(props)
+    this.onPhotoClick = this.onPhotoClick.bind(this)
+  }
 
 
   componentWillMount() {
@@ -142,12 +148,29 @@ export class AlbumAutoGalleryView extends Component {
   }
 
 
+  // componentWillReceiveProps(nextProps){
+  //   console.log('componen receiving props')
+  //   var albumID = nextProps.match.params.albumID
+  //   if (nextProps.albumsAutoGalleries.hasOwnProperty(albumID) && !nextProps.fetchingAlbumsAutoGalleries && this.state.idx2hash.length==0) {
+  //       var album = nextProps.albumsAutoGalleries[nextProps.match.params.albumID]
+  //       var photos = _.sortBy(album.photos,'exif_timestamp')
+  //       var idx2hash = album.photos.map((el)=>el.image_hash)
+  //       console.log(idx2hash)
+  //       this.setState({idx2hash:idx2hash})
+  //   }
+  // }
 
-  onPhotoClick(idx) {
-      if (this.state.idx2hash.length != this.props.albumsAutoGalleries[this.props.match.params.albumID].photos.length) {
-          this.setState({idx2hash:this.props.albumsAutoGalleries[this.props.match.params.albumID].photos.map((el)=>el.image_hash)})
-      }
-      this.setState({lightboxImageIndex:idx,lightboxShow:true})
+
+  onPhotoClick(image_hash) {
+      // var album = this.props.albumsAutoGalleries[this.props.match.params.albumID]
+      // var photos = _.sortBy(album.photos,'exif_timestamp')
+        
+      // // if (this.state.idx2hash.length != this.props.albumsAutoGalleries[this.props.match.params.albumID].photos.length) {
+      // if (this.state.idx2hash.length == 0) {
+      //     this.setState({idx2hash:this.props.albumsAutoGalleries[this.props.match.params.albumID].photos.map((el)=>el.image_hash)})
+      // }
+      this.setState({lightboxImageIndex:this.state.idx2hash.indexOf(image_hash),lightboxShow:true})
+      console.log(this.state)
 
   }
 
@@ -195,12 +218,12 @@ export class AlbumAutoGalleryView extends Component {
     var albumID = this.props.match.params.albumID
     if (this.props.albumsAutoGalleries.hasOwnProperty(albumID) && !this.props.fetchingAlbumsAutoGalleries) {
       var album = this.props.albumsAutoGalleries[this.props.match.params.albumID]
+      var photos = _.sortBy(album.photos,'exif_timestamp').map((el,idx)=>{return({...el,idx:idx})})
+      var idx2hash = _.sortBy(album.photos,'exif_timestamp').map((el,idx)=>el.image_hash)
       var byDate = _.groupBy(
-        _.sortBy(album.photos,'exif_timestamp'),
+        _.sortBy(photos,'exif_timestamp'),
         (photo)=>photo.exif_timestamp.split('T')[0])
       console.log(byDate)
-
-
       return (
         <div>
           
@@ -293,7 +316,7 @@ export class AlbumAutoGalleryView extends Component {
                   </Header>
 
                   { locations.length > 0 && this.state.showMap &&
-                    <div style={{margin:'auto',padding:20}}>
+                    <div style={{margin:'auto',paddingLeft:3,paddingRight:2.5,paddingTop:10,paddingBottom:5}}>
                       <AlbumLocationMap photos={v[1]}/>
                     </div>
                   }                  
@@ -310,6 +333,12 @@ export class AlbumAutoGalleryView extends Component {
                             src={'/thumbnail_placeholder.png'}/>
                         }>
                         <Image 
+                          onClick={()=>
+                            this.setState({
+                              lightboxImageIndex:idx2hash.indexOf(photo.image_hash),
+                              lightboxShow: true,
+                            })
+                          }
                           style={{paddingLeft:2.5,paddingRight:2.5}} 
                           height={this.state.entrySquareSize} 
                           width={this.state.entrySquareSize} 
@@ -323,7 +352,33 @@ export class AlbumAutoGalleryView extends Component {
             </div>
           </div>
 
-          
+
+
+          { this.state.lightboxShow &&
+              <LightBox
+                  idx2hash={idx2hash}
+                  lightboxImageIndex={this.state.lightboxImageIndex}
+
+                  onCloseRequest={() => this.setState({ lightboxShow: false })}
+                  onImageLoad={()=>{
+                      this.getPhotoDetails(idx2hash[this.state.lightboxImageIndex])
+                  }}
+                  onMovePrevRequest={() => {
+                      var nextIndex = (this.state.lightboxImageIndex + idx2hash.length - 1) % idx2hash.length
+                      this.setState({
+                          lightboxImageIndex:nextIndex
+                      })
+                      this.getPhotoDetails(idx2hash[nextIndex])
+                  }}
+                  onMoveNextRequest={() => {
+                      var nextIndex = (this.state.lightboxImageIndex + idx2hash.length + 1) % idx2hash.length
+                      this.setState({
+                          lightboxImageIndex:nextIndex
+                      })
+                      this.getPhotoDetails(idx2hash[nextIndex])
+                  }}/>
+          }
+
 
         </div>
       )
@@ -348,6 +403,9 @@ AlbumAutoGalleryView = connect((store)=>{
     fetchingAlbumsAutoGalleries: store.albums.fetchingAlbumsAutoGalleries,
     fetchedAlbumsAutoGalleries: store.albums.fetchedAlbumsAutoGalleries,
     albumsAutoGalleries: store.albums.albumsAutoGalleries,
+    photoDetails: store.photos.photoDetails,
+    fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
+    fetchedPhotoDetail: store.photos.fetchedPhotoDetail,
   }
 })(AlbumAutoGalleryView)
 
