@@ -11,48 +11,53 @@ import numpy as np
 
 import ipdb
 
-def is_auto_albums_being_processed():
-    # check if there are auto albums being generated right now
-    if AlbumAuto.objects.count() > 0:
-        last_album_auto_created_on = AlbumAuto.objects.order_by('-created_on')[0].created_on
-        now = datetime.utcnow().replace(tzinfo=last_album_auto_created_on.tzinfo)
-        td = (now-last_album_auto_created_on).total_seconds()
-        if abs(td) < 10:
-            status = True
-        else:
-            status = False
-    else:
-        status = False
-    return {"status":status}
+from api.flags import \
+    is_auto_albums_being_processed, \
+    is_photos_being_added, \
+    set_auto_album_processing_flag_on, \
+    set_auto_album_processing_flag_off
+
+# def is_auto_albums_being_processed():
+#     global FLAG_IS_AUTO_ALBUMS_BEING_PROCESSED
+#     return {"status":FLAG_IS_AUTO_ALBUMS_BEING_PROCESSED}
+
+#     # check if there are auto albums being generated right now
+#     if AlbumAuto.objects.count() > 0:
+#         last_album_auto_created_on = AlbumAuto.objects.order_by('-created_on')[0].created_on
+#         now = datetime.utcnow().replace(tzinfo=last_album_auto_created_on.tzinfo)
+#         td = (now-last_album_auto_created_on).total_seconds()
+#         if abs(td) < 10:
+#             status = True
+#         else:
+#             status = False
+#     else:
+#         status = False
+#     return {"status":status}
     
 # go through all photos
 def generate_event_albums():
+    if is_auto_albums_being_processed()['status']:
+        status = False
+        message = "There are even albums being created at the moment. Please try again later."
+        return {'status':status, 'message':message}
+
+
+    set_auto_album_processing_flag_on()
     photo_count = Photo.objects.count()
     if photo_count == 0:
         status = False
         message = "Please add some more photos!"
+        set_auto_album_processing_flag_off()
         return {'status':status, 'message':message}
     else:
-        # check if there has been a new photo added to the library within the
-        # past 10 seconds. if so, return status false, as autoalbum generation
-        # may behave wierdly if performed while photos are being added.
-        last_photo_addedon = Photo.objects.order_by('-added_on')[0].added_on
-        now = datetime.utcnow().replace(tzinfo=last_photo_addedon.tzinfo)
-        td = (now-last_photo_addedon).total_seconds()
-        if abs(td) < 10:
+        if is_photos_being_added()['status']:
             status = False
             message = "There are photos being added to the library. Please try again later."
+            set_auto_album_processing_flag_off()
             return {'status':status, 'message':message}
 
-    # check if there are auto albums being generated right now
-    if AlbumAuto.objects.count() > 0:
-        last_album_auto_created_on = AlbumAuto.objects.order_by('-created_on')[0].created_on
-        now = datetime.utcnow().replace(tzinfo=last_album_auto_created_on.tzinfo)
-        td = (now-last_album_auto_created_on).total_seconds()
-        if abs(td) < 10:
-            status = False
-            message = "There are even albums being created at the moment. Please try again later."
-            return {'status':status, 'message':message}
+
+
 
 
 
@@ -115,4 +120,5 @@ def generate_event_albums():
         status = False
         message = e.message
 
+    set_auto_album_processing_flag_off()
     return {'status':status, 'message':message}

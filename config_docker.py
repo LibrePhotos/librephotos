@@ -3,7 +3,7 @@
 import os
 
 image_dirs = [
-	'/home/rammi/Downloads/tuebingen',
+        '/data'
 ]
 
 mapzen_api_key = os.environ['MAPZEN_API_KEY']

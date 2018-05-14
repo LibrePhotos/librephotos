@@ -10,9 +10,28 @@ from sklearn import mixture
 from scipy.spatial import distance
 from sklearn.preprocessing import StandardScaler
 
+
 import requests
 
-from config import mapzen_api_key
+from config import mapzen_api_key, mapbox_api_key
+
+import logging
+import logging.handlers
+
+import spacy
+
+nlp = spacy.load('en_core_web_sm')
+
+logger = logging.getLogger('ownphotos')
+fomatter = logging.Formatter(
+    '%(asctime)s : %(filename)s : %(funcName)s : %(lineno)s : %(levelname)s : %(message)s')
+fileMaxByte = 256 * 1024 * 200  # 100MB
+fileHandler = logging.handlers.RotatingFileHandler(
+    './logs/ownphotos.log', maxBytes=fileMaxByte, backupCount=10)
+fileHandler.setFormatter(fomatter)
+logger.addHandler(fileHandler)
+logger.setLevel(logging.INFO)
+
 
 
 def convert_to_degrees(values):
@@ -103,3 +122,21 @@ def mapzen_reverse_geocode(lat,lon):
         return {}
 
 
+def mapbox_reverse_geocode(lat,lon):
+    url = "https://api.mapbox.com/geocoding/v5/mapbox.places/%f,%f.json?access_token=%s"%(lon,lat,mapbox_api_key)
+    resp = requests.get(url)
+    print(resp)
+    if resp.status_code == 200:
+        resp_json = resp.json()
+        search_terms = []
+
+        if 'features' in resp_json.keys():
+            for feature in resp_json['features']:
+                search_terms.append(feature['text'])
+
+        logger.info('location search terms: %s'%(' '.join(search_terms)))
+        resp_json['search_text'] = ' '.join(search_terms)
+        return resp_json
+    else:
+        logger.info('mapbox returned non 200 response.')
+        return {}

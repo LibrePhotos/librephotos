@@ -2,13 +2,18 @@ FROM ubuntu:16.04
 MAINTAINER ViViDboarder <vividboarder@gmail.com>
 
 ENV MAPZEN_API_KEY mapzen-XXXX
+ENV MAPBOX_API_KEY mapbox-XXXX
 ENV ALLOWED_HOSTS=*
 
 RUN apt-get update && \
     apt-get install -y \
     libboost-all-dev \
+    libglib2.0-0 \
+    libxrender-dev \ 
+    python3-tk \
     python3 \
     python3-pip \
+    wget \
     && \
     rm -rf /var/lib/apt/lists/*
 
@@ -25,30 +30,29 @@ RUN apt-get update && \
     git clone https://github.com/davisking/dlib.git && \
     mkdir /dlib/build && \
     cd /dlib/build && \
-    cmake .. -DDLIB_USE_CUDA=0 -DUSE_AVX_INSTRUCTIONS=1 && \
+    cmake .. -DDLIB_USE_CUDA=0 -DUSE_AVX_INSTRUCTIONS=0 && \
     cmake --build . && \
     cd /dlib && \
-    /venv/bin/python setup.py install --yes USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA && \
-    apt-get remove --purge -y cmake git && \
-    rm -rf /var/lib/apt/lists/*
+    /venv/bin/python setup.py install --no USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA 
 
-# Install dlib
-# RUN git clone https://github.com/davisking/dlib.git
-# RUN mkdir /dlib/build
-# WORKDIR /dlib/build
-#
-# RUN cmake .. -DDLIB_USE_CUDA=0 -DUSE_AVX_INSTRUCTIONS=1
-# RUN cmake --build .
-#
-# WORKDIR /dlib
-#
-# RUN /venv/bin/python setup.py install --yes USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA
+
 
 RUN mkdir /code
 WORKDIR /code
 COPY requirements.txt /code/
 
+RUN /venv/bin/pip install http://download.pytorch.org/whl/cpu/torch-0.3.1-cp35-cp35m-linux_x86_64.whl  && /venv/bin/pip install torchvision
+
 RUN /venv/bin/pip install -r requirements.txt
+
+RUN /venv/bin/python -m spacy download en_core_web_sm
+
+WORKDIR /code/api/places365
+RUN wget https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/places365_model.tar.gz
+RUN tar xf places365_model.tar.gz
+
+RUN apt-get remove --purge -y cmake git && \
+    rm -rf /var/lib/apt/lists/*
 
 VOLUME /data
 
@@ -79,5 +83,7 @@ ENV TIME_ZONE UTC
 EXPOSE 8000
 
 COPY . /code
+
+RUN mv /code/config_docker.py /code/config.py
 
 ENTRYPOINT ./entrypoint.sh
