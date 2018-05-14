@@ -2,6 +2,11 @@
 
 # Ownphotos
 
+[DEMO](https://demo.ownphotos.io)
+
+- ID: demo
+- Password: demo1234
+
 ## What is it?
 
 - Self hosted wannabe Google Photos clone, with a slight focus on cool graphs
