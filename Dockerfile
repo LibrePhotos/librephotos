@@ -77,6 +77,10 @@ ENV DB_PORT 5432
 # Memcache location
 ENV CACHE_HOST_PORT memcached:11211
 
+# REDIS location
+ENV REDIS_HOST memcached
+ENV REDIS_PORT 11211
+
 # Timezone
 ENV TIME_ZONE UTC
 
