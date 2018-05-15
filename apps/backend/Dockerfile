@@ -90,4 +90,6 @@ COPY . /code
 
 RUN mv /code/config_docker.py /code/config.py
 
+WORKDIR /code
+
 ENTRYPOINT ./entrypoint.sh
