@@ -52,10 +52,21 @@ def scan_photos():
 
     set_photo_scan_flag_on(1)
 
+    existing_hashes = [p.image_hash for p in Photo.objects.all()]
+
     image_paths_to_add = []
     for image_path in tqdm(image_paths):
-        if not Photo.objects.filter(image_path=image_path).exists():
+        hash_md5 = hashlib.md5()
+        with open(image_path, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+        image_hash = hash_md5.hexdigest()
+        if image_hash not in existing_hashes:
             image_paths_to_add.append(image_path)
+
+
+#         if not Photo.objects.filter(image_path=image_path).exists():
+#             image_paths_to_add.append(image_path)
 
     set_photo_scan_flag_on(len(image_paths_to_add))
 

@@ -7,6 +7,7 @@ ENV ALLOWED_HOSTS=*
 
 RUN apt-get update && \
     apt-get install -y \
+    libsm6 \
     libboost-all-dev \
     libglib2.0-0 \
     libxrender-dev \ 
