@@ -282,6 +282,7 @@ class AlbumPlaceListSerializer(serializers.ModelSerializer):
         model = AlbumPlace
         fields = (
             "id",   
+            "geolocation_level",
             # "people",
             "cover_photo_urls",
             "title",

@@ -447,6 +447,8 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
 
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumThingListViewSet(viewsets.ModelViewSet):
+    # max_photo_count = AlbumThing.objects.annotate(photo_count=Count('photos')).order_by('-photo_count').first().photos.count()
+    # photo_count_thres = int(0.6 * max_photo_count)
     queryset = AlbumThing.objects.annotate(photo_count=Count('photos')).filter(photo_count__gte=3).order_by('-photo_count')[:400]
     serializer_class = AlbumThingListSerializer
     pagination_class = StandardResultsSetPagination
@@ -510,6 +512,7 @@ class AlbumPlaceListViewSet(viewsets.ModelViewSet):
 # API Views
 
 class SearchTermExamples(APIView):
+    @cache_response(CACHE_TTL)
     def get(self, request, format=None):
         search_term_examples = get_search_term_examples()
         return Response({"results":search_term_examples})
@@ -573,6 +576,7 @@ class FaceToLabelView(APIView):
         return Response(data)
 
 class ClusterFaceView(APIView):
+    @cache_response(CACHE_TTL)
     def get(self, request, format=None):
         res = cluster_faces()
         return Response(res)
@@ -583,12 +587,14 @@ class TrainFaceView(APIView):
         return Response(res)
 
 class SocialGraphView(APIView):
+    @cache_response(CACHE_TTL)
     def get(self, request, format=None):
         res = build_social_graph()
         return Response(res)
 
 
 class EgoGraphView(APIView):
+    @cache_response(CACHE_TTL)
     def get(self, request, format=None):
         res = build_ego_graph(request.GET['person_id'])
         return Response(res)
@@ -606,31 +612,37 @@ class StatsView(APIView):
         return Response(res)
 
 class LocationClustersView(APIView):
+    @cache_response(CACHE_TTL)
     def get(self, requests, format=None):
         res = get_location_clusters()
         return Response(res)
 
 class LocationSunburst(APIView):
+    @cache_response(CACHE_TTL)
     def get(self, requests, format=None):
         res = get_location_sunburst()
         return Response(res)
 
 class LocationTimeline(APIView):
+    @cache_response(CACHE_TTL)
     def get(self, requests, format=None):
         res = get_location_timeline()
         return Response(res)
 
 class PhotoMonthCountsView(APIView):
+    @cache_response(CACHE_TTL)
     def get(self, requests, format=None):
         res = get_photo_month_counts()
         return Response(res)
 
 class PhotoCountryCountsView(APIView):
+    @cache_response(CACHE_TTL)
     def get(self, requests, format=None):
         res = get_photo_country_counts()
         return Response(res)
 
 class SearchTermWordCloudView(APIView):
+    @cache_response(CACHE_TTL)
     def get(self, requests, format=None):
         res = get_searchterms_wordcloud()
         return Response(res)

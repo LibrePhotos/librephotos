@@ -138,5 +138,7 @@ def mapbox_reverse_geocode(lat,lon):
         resp_json['search_text'] = ' '.join(search_terms)
         return resp_json
     else:
-        logger.info('mapbox returned non 200 response.')
+        # logger.info('mapbox returned non 200 response.')
+        logger.warning('mapbox returned non 200 response.')
+        print('mapbox returned non 200 response.')
         return {}

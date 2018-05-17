@@ -8,6 +8,7 @@ import face_recognition
 import hashlib
 import ownphotos.settings
 import api.util as util
+from api.util import logger
 import exifread
 import base64
 import numpy as np
@@ -26,11 +27,11 @@ from django.core.cache import cache
 from django.contrib.postgres.fields import JSONField
 
 from api.places365.places365 import inference_places365
+from api.im2txt.sample import im2txt
 
 import requests
 import base64
 from io import StringIO
-
 
 
 
@@ -97,6 +98,20 @@ class Photo(models.Model):
     def _generate_captions(self):
         image_path = self.image_path
         captions = {}
+
+        try:
+            caption = im2txt(image_path)
+            caption = caption.replace("<start>",'').replace("<end>",'').strip()
+            captions['im2txt'] = caption
+            self.captions_json = captions
+            self.search_captions = captions
+            self.save()
+            util.logger.info('generated im2txt captions for image %s. caption: %s'%(image_path,caption))
+        except:
+            util.logger.warning('could not generate im2txt captions for image %s'%image_path)
+
+
+        # densecap
         try:
             with open(image_path, "rb") as image_file:
                 encoded_string = base64.b64encode(image_file.read())
@@ -108,6 +123,7 @@ class Photo(models.Model):
         except:
             util.logger.warning('could not generate densecap captions for image %s'%image_path)
 
+        # places365
         try:
             res_places365 = inference_places365(image_path)
             captions['places365'] = res_places365
@@ -371,13 +387,30 @@ class Photo(models.Model):
                 face.save()
 
     def _add_to_album_thing(self):
-        if self.search_captions:
-            doc = util.nlp('. '.join(self.search_captions.split(' , ')))
-            nouns = list(set([t.lemma_ for t in doc if t.tag_=="NN"]))
-            for noun in nouns:
-                album_thing = get_album_thing(title=noun)[0]
-                album_thing.photos.add(self)
-                album_thing.save()
+        if type(self.captions_json) is dict and 'places365' in self.captions_json.keys():
+            for attribute in self.captions_json['places365']['attributes']:
+                album_thing = get_album_thing(title=attribute)[0]
+                if self not in album_thing.photos.all():
+                    album_thing.photos.add(self)
+                    album_thing.thing_type='places365_attribute'
+                    album_thing.save()
+            for category in self.captions_json['places365']['categories']:
+                album_thing = get_album_thing(title=category)[0]
+                if self not in album_thing.photos.all():
+                    album_thing = get_album_thing(title=category)[0]
+                    album_thing.photos.add(self)
+                    album_thing.thing_type='places365_category'
+                    album_thing.save()
+
+
+
+        # if self.search_captions:
+        #     doc = util.nlp('. '.join(self.search_captions.split(' , ')))
+        #     nouns = list(set([t.lemma_ for t in doc if t.tag_=="NN"]))
+        #     for noun in nouns:
+        #         album_thing = get_album_thing(title=noun)[0]
+        #         album_thing.photos.add(self)
+        #         album_thing.save()
 
     def _add_to_album_date(self):
         if self.exif_timestamp:
@@ -393,11 +426,19 @@ class Photo(models.Model):
     def _add_to_album_place(self):
         if self.geolocation_json and len(self.geolocation_json) > 0:
             if 'features' in self.geolocation_json.keys():
-                for feature in self.geolocation_json['features']:
+                for geolocation_level,feature in enumerate(self.geolocation_json['features']):
                     if 'text' in feature.keys():
-                        album_place = get_album_place(feature['text'])[0]
-                        album_place.photos.add(self)
-                        album_place.save()
+                        if not feature['text'].isnumeric():
+                            album_place = get_album_place(feature['text'])[0]
+                            if self not in album_place.photos.all():
+                                album_place.geolocation_level = len(self.geolocation_json['features']) - geolocation_level
+                                album_place.photos.add(self)
+                                album_place.save()
+                                logger.info('album place title: %s, level: %d, added photo: %s'%(feature['text'],album_place.geolocation_level,self.image_hash))
+                                print('album place title: %s, level: %d, added photo: %s'%(feature['text'],album_place.geolocation_level,self.image_hash))
+        else:
+            logger.warning('photo not addded to album thing')
+            print('photo not added to album thing')
 
 
     def __str__(self):
@@ -456,6 +497,7 @@ class Face(models.Model):
 class AlbumThing(models.Model):
     title = models.CharField(unique=True,max_length=512,db_index=True)
     photos = models.ManyToManyField(Photo)
+    thing_type = models.CharField(max_length=512,db_index=True,null=True)
 
     def __str__(self):
         return "%d: %s"%(self.id, self.title)
@@ -464,6 +506,9 @@ class AlbumThing(models.Model):
 class AlbumPlace(models.Model):
     title = models.CharField(unique=True,max_length=512,db_index=True)
     photos = models.ManyToManyField(Photo)
+    geolocation_level = models.IntegerField(db_index=True,null=True)
+
+
 
     def __str__(self):
         return "%d: %s"%(self.id, self.title)
@@ -554,7 +599,7 @@ class AlbumUser(models.Model):
     photos = models.ManyToManyField(Photo)
     favorited = models.BooleanField(default=False,db_index=True)
 
-
+# for cache invalidation
 for model in [Photo, Person, Face, AlbumDate, AlbumAuto, AlbumUser]:
     post_save.connect(receiver=change_api_updated_at, sender=model)
     post_delete.connect(receiver=change_api_updated_at, sender=model)

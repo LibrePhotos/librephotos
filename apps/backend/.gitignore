@@ -1,10 +1,12 @@
 densecap/data/models/densecap/densecap-pretrained-vgg16.t7
 */*.pkl
+*/*/*.pkl
 thumbnails
 media
 samplephotos
 db.sqlite3
 */__pycache__
+*/*/__pycache__
 __pycache__
 .DS_Store
 tags
@@ -12,3 +14,14 @@ api/migrations/
 api/places365/model/
 Conv2d.patch
 Linear.patch
+Sequential.patch
+BatchNorm2d.patch
+AvgPool2d.patch
+ReLU.patch
+run_docker.sh
+logs/*
+playground
+api/im2txt/data/
+api/im2txt/models/
+api/im2txt/png/
+
