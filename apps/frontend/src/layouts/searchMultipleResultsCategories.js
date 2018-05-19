@@ -47,6 +47,9 @@ class ScrollSpeed {
 
     return this.delta;
   }
+  clearTimeout() {
+    window.clearTimeout(this._timeout)
+  }
 }
 
 
@@ -85,7 +88,7 @@ class DayGroupPlaceholder extends Component {
                 <Header as='h3'>
                 <Icon name='calendar outline'/>
                 <Header.Content>
-                {moment(this.props.day.date).format("MMM Do YYYY, dddd")}
+                { this.props.day.date=='No Timestamp' ? "No Timestamp" : moment(this.props.day.date).format("MMM Do YYYY, dddd")}
                 <Header.Subheader>
                     <Icon name='photo'/>{this.props.day.photos.length} Photos
                 </Header.Subheader>
@@ -103,7 +106,6 @@ class DayGroupPlaceholder extends Component {
 
 class DayGroup extends Component {
     render () {
-        console.log(this.props.day.location)
         var photos = this.props.day.photos.map(function(photo) {
             return (
                 <Image key={'daygroup_image_'+photo.image_hash} style={{display:'inline-block',padding:1,margin:0}}
@@ -122,7 +124,7 @@ class DayGroup extends Component {
                 <Header as='h3'>
                 <Icon name='calendar outline'/>
                 <Header.Content>
-                {moment(this.props.day.date).format("MMM Do YYYY, dddd")}
+                { this.props.day.date=='No Timestamp' ? "No Timestamp" : moment(this.props.day.date).format("MMM Do YYYY, dddd")}
                 <Header.Subheader>
                     <Icon name='photo'/>{this.props.day.photos.length} Photos
                 </Header.Subheader>
@@ -137,7 +139,41 @@ class DayGroup extends Component {
     }
 }
 
-export class SearchViewRV extends Component {
+
+const calculateGridCells = (groupedByDateList,itemsPerRow) => {
+  var gridContents = []
+  var rowCursor = []
+  var hash2row = {}
+
+  groupedByDateList.forEach((day)=>{
+    gridContents.push([day])
+    var currRowIdx = gridContents.length
+    day.photos.forEach((photo,idx)=>{
+      if (idx ==0 ) {
+        rowCursor = []
+      }
+      if (idx > 0 && idx % itemsPerRow == 0) {
+        gridContents.push(rowCursor)
+      }
+      if (idx % itemsPerRow == 0) {
+        rowCursor = []
+      }
+      rowCursor.push(photo)
+      hash2row[[photo.image_hash]] = currRowIdx
+      if (idx == day.photos.length-1) {
+        gridContents.push(rowCursor)        
+      }
+
+    })
+  })
+
+  return {cellContents:gridContents,hash2row:hash2row}
+
+}
+
+
+
+export class SearchMultipleCategories extends Component {
 
     constructor(props){
         super(props)
@@ -146,7 +182,10 @@ export class SearchViewRV extends Component {
         this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this)
         this.onPhotoClick = this.onPhotoClick.bind(this)
         this.getPhotoDetails = this.getPhotoDetails.bind(this)
+        this.listRef = React.createRef()
         this.state = {
+            cellContents: [[]],
+            hash2row: {},
             idx2hash: [],
             lightboxImageIndex: 1,
             lightboxShow:false,
@@ -155,16 +194,17 @@ export class SearchViewRV extends Component {
             width:  window.innerWidth,
             height: window.innerHeight,
             entrySquareSize:200,
+            numEntrySquaresPerRow:3,
             currTopRenderedRowIdx:0,
             scrollTop:0
         }
     }
 
-    getScrollSpeed = new ScrollSpeed().getScrollSpeed;
+    scrollSpeedHandler = new ScrollSpeed()
 
     handleScroll = ({scrollTop}) => {
         // scrollSpeed represents the number of pixels scrolled since the last scroll event was fired
-        const scrollSpeed = Math.abs(this.getScrollSpeed(scrollTop));
+        const scrollSpeed = Math.abs(this.scrollSpeedHandler.getScrollSpeed(scrollTop));
 
         if (scrollSpeed >= SPEED_THRESHOLD) {
           this.setState({
@@ -189,12 +229,16 @@ export class SearchViewRV extends Component {
 
 
 
-    componentWillMount() {
+    componentDidMount() {
         //if (this.props.albumsDatePhotoHashList.length < 1) {
         //    this.props.dispatch(fetchDateAlbumsPhotoHashList())
         //}
         this.calculateEntrySquareSize();
         window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
+    }
+    componentWillUnmount() {
+        window.removeEventListener("resize", this.calculateEntrySquareSize.bind(this))
+        this.scrollSpeedHandler.clearTimeout()
     }
 
     calculateEntrySquareSize() {
@@ -219,22 +263,78 @@ export class SearchViewRV extends Component {
 
         var entrySquareSize = columnWidth / numEntrySquaresPerRow
         var numEntrySquaresPerRow = numEntrySquaresPerRow
+        var {cellContents,hash2row} = calculateGridCells(this.props.searchPhotosResGroupedByDate,numEntrySquaresPerRow)
+
+
         this.setState({
             width:  window.innerWidth,
             height: window.innerHeight,
             entrySquareSize:entrySquareSize,
-            numEntrySquaresPerRow:numEntrySquaresPerRow
+            numEntrySquaresPerRow:numEntrySquaresPerRow,
+            cellContents: cellContents,
+            hash2row:hash2row
         })
+        if (this.listRef.current) {
+            this.listRef.current.recomputeGridSize()
+        }
     }
 
     cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-        return (
-            <div key={key} style={style}>
-                <div style={{backgroundColor:'white'}}>
-                hello from row {rowIndex}
+        if (this.state.cellContents[rowIndex][columnIndex]) { // non-empty cell
+            const cell = this.state.cellContents[rowIndex][columnIndex]
+            if (cell.date) { // header cell has 'date' attribute
+                return (
+                    <div key={key} style={{...style,width:this.state.width,height:DAY_HEADER_HEIGHT,paddingTop:20}}>
+                        <div style={{backgroundColor:'white'}}>
+
+                            <Header as='h3'>
+                            <Icon name='calendar outline'/>
+                            <Header.Content>
+                            { cell.date=='No Timestamp' ? "No Timestamp" : moment(cell.date).format("MMM Do YYYY, dddd")}
+                            <Header.Subheader>
+                                <Icon name='photo'/>{cell.photos.length} Photos
+                            </Header.Subheader>
+                            </Header.Content>
+                            </Header>
+
+                        </div>
+                    </div>                
+                )
+            } else {
+                if (!this.state.isScrollingFast) {
+                    return (
+                        <div key={key} style={style}>
+                            <Image key={'daygroup_image_'+cell.image_hash} style={{display:'inline-block',padding:1,margin:0}}
+                                onClick={()=>{
+                                    this.onPhotoClick(cell.image_hash)
+                                }}
+                                height={this.state.entrySquareSize} 
+                                width={this.state.entrySquareSize} 
+                                src={serverAddress+'/media/square_thumbnails/'+cell.image_hash+'.jpg'}/>
+                        </div>                                
+                    )
+                } else {
+                    return (
+                        <div key={key} style={style}>
+                            <Image key={'daygroup_image_'+cell.image_hash} style={{display:'inline-block',padding:1,margin:0}}
+                                onClick={()=>{
+                                    this.onPhotoClick(cell.image_hash)
+                                }}
+                                height={this.state.entrySquareSize} 
+                                width={this.state.entrySquareSize} 
+                                src={'/thumbnail_placeholder.png'}/>
+                        </div>                                
+                    )
+                }
+
+            }
+
+        } else { // empty cell
+            return (
+                <div key={key} style={style}>
                 </div>
-            </div>
-        )
+            )
+        }
     }
 
     rowRenderer = ({index, isScrolling, key, style}) => {
@@ -279,7 +379,6 @@ export class SearchViewRV extends Component {
 
     onPhotoClick(hash) {
         this.setState({lightboxImageIndex:this.props.idx2hash.indexOf(hash),lightboxShow:true})
-
     }
 
     _setRef = windowScroller => {
@@ -292,18 +391,37 @@ export class SearchViewRV extends Component {
         }
     }
 
+    static getDerivedStateFromProps(nextProps,prevState){
+        const {cellContents,hash2row} = calculateGridCells(nextProps.searchPhotosResGroupedByDate,prevState.numEntrySquaresPerRow)
+        return {...prevState,cellContents,hash2row}
+    }
+
+
     render() {
+
         const {lightboxImageIndex} = this.state
         if ( !this.props.query || this.props.query.length < 0) {
             return (<div>You must search for something</div>)}
-        if ( this.props.searchPhotosResGroupedByDate.length < 1 || this.props.searchingPhotos) {
+        if ( !this.props.searchingPhotos && !this.props.searchedPhotos) {
+            return (<div>Search failed!</div>)
+        }
+        if ( this.props.searchingPhotos && !this.props.searchedPhotos) {
             return (<div><Loader active/></div>)
         }
-        var totalListHeight = this.props.searchPhotosResGroupedByDate.map((day,index)=>{
-            return (
-                this.getRowHeight({index})
-            )
+        if (this.props.searchPhotosResGroupedByDate.length < 1){
+            return (<div>No results!</div>)
+        }
+
+        // var totalListHeight = this.state.entrySquareSize * this.state.cellContents.length
+        var totalListHeight = this.state.cellContents.map((row,index)=>{
+            if (row[0].date) { //header row
+                return DAY_HEADER_HEIGHT
+            } else { //photo row
+                return this.state.entrySquareSize
+            }
         }).reduce((a,b)=>(a+b),0)
+
+
         return (
             <div>
                 <div style={{height:60,paddingTop:10}}>
@@ -320,21 +438,54 @@ export class SearchViewRV extends Component {
 
                 </div>
 
-                    <List
-                        style={{outline:'none',paddingRight:0,marginRight:0}}
-                        onRowsRendered={({ overscanStartIndex, overscanStopIndex, startIndex, stopIndex })=>{
-                            this.setState({currTopRenderedRowIdx:startIndex})
-                        }}
-                        height={this.state.height-topMenuHeight-60}
-                        overscanRowCount={5}
-                        rowCount={this.props.searchPhotosResGroupedByDate.length}
-                        rowHeight={this.getRowHeight}
-                        rowRenderer={this.rowRenderer}
-                        onScroll={this.handleScroll}
-                        estimatedRowSize={totalListHeight/this.props.searchPhotosResGroupedByDate.length.toFixed(10)}
-                        width={this.state.width-leftMenuWidth-5}/>
 
-            { (
+
+                <AutoSizer disableHeight style={{outline:'none',padding:0,margin:0}}>
+                  {({width}) => (
+                    <Grid
+                      ref={this.listRef}
+                      onSectionRendered={({rowStartIndex})=>{
+                        var date = this.state.cellContents[rowStartIndex][0].date
+                        if (date) {
+                            if (date=='No Timestamp') {
+                                this.setState({
+                                    date:date,
+                                    fromNow:date
+                                })
+                            } else {
+                                this.setState({
+                                    date:moment(date).format("MMMM YYYY"),
+                                    fromNow:moment(date).fromNow()
+                                })
+                            }
+                        }
+                      }}
+                      style={{outline:'none'}}
+                      cellRenderer={this.cellRenderer}
+                      onScroll={this.handleScroll}
+                      columnWidth={this.state.entrySquareSize}
+                      columnCount={this.state.numEntrySquaresPerRow}
+                      height={this.state.height- topMenuHeight - 60}
+                      estimatedRowSize={totalListHeight/this.state.cellContents.length.toFixed(1)}
+                      rowHeight={({index})=> {
+                        if (this.state.cellContents[index][0].date) { //header row
+                            return DAY_HEADER_HEIGHT
+                        } else { //photo row
+                            return this.state.entrySquareSize
+                        }
+                      }}
+                      rowCount={this.state.cellContents.length}
+                      width={width}
+                    />
+                  )}
+                </AutoSizer>
+
+
+
+
+
+
+            { this.state.cellContents[this.state.currTopRenderedRowIdx][0] && (
                 <div style={{
                     right:0,
                     top:topMenuHeight + 10+ (0 / totalListHeight) * (this.state.height - topMenuHeight - 50 - 20),
@@ -346,10 +497,10 @@ export class SearchViewRV extends Component {
                     zIndex:100,
                 }}>
                     <div style={{textAlign:'right',paddingRight:30}} className='handle'>
-                        <b>{moment(this.props.searchPhotosResGroupedByDate[this.state.currTopRenderedRowIdx].date).format("MMMM YYYY") }</b> <br/>
+                        <b>{this.state.date}</b> <br/>
                     </div>
                     <div style={{textAlign:'right',paddingRight:30}}>
-                        {moment(this.props.searchPhotosResGroupedByDate[this.state.currTopRenderedRowIdx].date).fromNow()}
+                        {this.state.fromNow}
                     </div>
                 </div>
             )}
@@ -378,6 +529,8 @@ export class SearchViewRV extends Component {
                             this.setState({
                                 lightboxImageIndex:nextIndex
                             })
+                            var rowIdx = this.state.hash2row[this.props.idx2hash[nextIndex]]
+                            this.listRef.current.scrollToCell({columnIndex:0,rowIndex:rowIdx})
                             this.getPhotoDetails(this.props.idx2hash[nextIndex])
                         }}
                         onMoveNextRequest={() => {
@@ -385,6 +538,8 @@ export class SearchViewRV extends Component {
                             this.setState({
                                 lightboxImageIndex:nextIndex
                             })
+                            var rowIdx = this.state.hash2row[this.props.idx2hash[nextIndex]]
+                            this.listRef.current.scrollToCell({columnIndex:0,rowIndex:rowIdx})
                             this.getPhotoDetails(this.props.idx2hash[nextIndex])
                         }}/>
                 }
@@ -400,269 +555,25 @@ export class SearchViewRV extends Component {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-
-export class SearchViewRV extends Component {
-
-    constructor(props){
-        super(props)
-        this.cellRenderer = this.cellRenderer.bind(this)
-        this.getRowHeight = this.getRowHeight.bind(this)
-        this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this)
-        this.onPhotoClick = this.onPhotoClick.bind(this)
-        this.getPhotoDetails = this.getPhotoDetails.bind(this)
-        this.state = {
-            idx2hash: [],
-            lightboxImageIndex: 1,
-            lightboxShow:false,
-            lightboxSidebarShow:false,
-            scrollToIndex: undefined,
-            width:  window.innerWidth,
-            height: window.innerHeight,
-            entrySquareSize:200,
-            currTopRenderedRowIdx:0,
-            isScrollingFast: false
-        }
-    }
-
-    getScrollSpeed = new ScrollSpeed().getScrollSpeed;
-
-    handleScroll = ({scrollTop}) => {
-        // scrollSpeed represents the number of pixels scrolled since the last scroll event was fired
-        const scrollSpeed = Math.abs(this.getScrollSpeed(scrollTop));
-
-        if (scrollSpeed >= SPEED_THRESHOLD) {
-          this.setState({
-            isScrollingFast: true,
-            scrollTop:scrollTop
-          });
-        }
-
-        // Since this method is debounced, it will only fire once scrolling has stopped for the duration of SCROLL_DEBOUNCE_DURATION
-        this.handleScrollEnd();
-    }
-
-    handleScrollEnd = debounce(() => {
-    const {isScrollingFast} = this.state;
-
-    if (isScrollingFast) {
-      this.setState({
-        isScrollingFast: false,
-      });
-    }
-    }, SCROLL_DEBOUNCE_DURATION);
-
-
-
-    componentWillMount() {
-        if (this.props.albumsDatePhotoHashList.length < 1) {
-            this.props.dispatch(fetchDateAlbumsPhotoHashList())
-        }
-        this.calculateEntrySquareSize();
-        window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
-    }
-
-    calculateEntrySquareSize() {
-        if (window.innerWidth < 600) {
-            var numEntrySquaresPerRow = 3
-        } 
-        else if (window.innerWidth < 800) {
-            var numEntrySquaresPerRow = 4
-        }
-        else if (window.innerWidth < 1000) {
-            var numEntrySquaresPerRow = 5
-        }
-        else if (window.innerWidth < 1200) {
-            var numEntrySquaresPerRow = 6
-        }
-        else {
-            var numEntrySquaresPerRow = 8
-        }
-
-        var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 15
-
-
-        var entrySquareSize = columnWidth / numEntrySquaresPerRow
-        var numEntrySquaresPerRow = numEntrySquaresPerRow
-        this.setState({
-            width:  window.innerWidth,
-            height: window.innerHeight,
-            entrySquareSize:entrySquareSize,
-            numEntrySquaresPerRow:numEntrySquaresPerRow
-        })
-        console.log('column width:',columnWidth)
-        console.log('item size:',entrySquareSize)
-        console.log('num items per row',numEntrySquaresPerRow)
-    }
-
-    cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-        const {isScrollingFast} = this.state;
-        var photoResIdx = rowIndex * this.state.numEntrySquaresPerRow + columnIndex
-
-        if (isScrollingFast) {
-            return (
-                <div key={key} style={style}>
-                    <div style={{backgroundColor:'white',paddingRight:5}}>
-                    <Image 
-                        onClick={()=>this.onPhotoClick(photoResIdx)}
-                        src={'/thumbnail_placeholder.png'}/>
-                    </div>
-                </div>            )
-        }
-
-
-        if (photoResIdx < this.props.searchPhotosRes.length) {
-            return (
-                <div key={key} style={style}>
-                    <div style={{backgroundColor:'white',paddingRight:5}}>
-                    <Image 
-                        onClick={()=>this.onPhotoClick(photoResIdx)}
-                        src={serverAddress+'/media/square_thumbnails/'+this.props.searchPhotosRes[photoResIdx].image_hash+'.jpg'}/>
-                    </div>
-                </div>
-            )
-        } else {
-            return (<div></div>)
-        }
-    }
-
-
-    getRowHeight = ({index}) => {
-        var rowHeight = this.state.entrySquareSize 
-        return (
-            rowHeight
-        )
-    }
-
-
-    onPhotoClick(idx) {
-        console.log('clicked',idx)
-
-        if (this.state.idx2hash.length != this.props.searchPhotosRes.length) {
-            this.setState({idx2hash:this.props.searchPhotosRes.map((el)=>el.image_hash)})
-        }
-
-        this.setState({lightboxImageIndex:idx,lightboxShow:true})
-
-    }
-
-    _setRef = windowScroller => {
-        this._windowScroller = windowScroller;
-    };
-    
-    getPhotoDetails(image_hash) {
-        if (!this.props.photoDetails.hasOwnProperty(image_hash)) {
-            this.props.dispatch(fetchPhotoDetail(image_hash))
-        }
-    }
-
-    render() {
-
-        if ( this.props.searchingPhotos ) {
-            if ( this.props.query ) {
-                return (
-                    <Container>
-                        <Loader active>
-                        Searching <b>{this.props.query}</b>...
-                        </Loader>
-                    </Container>
-                )
-            }
-        }
-
-
-
-        return (
-            <div style={{paddingRight:timelineScrollWidth}}>
-
-                <div style={{height:60,paddingTop:10,paddingRight:5}}>
-
-                  <Header as='h2'>
-                    <Icon name='search' />
-                    <Header.Content>
-                      Search
-                      <Header.Subheader>
-                        { 
-                            this.props.query ? 
-                            (`Showing ${this.props.searchPhotosRes.length} results for "${this.props.query}"`) :
-                            ("Search for people, places, things, and time.")
-                        }
-                      </Header.Subheader>
-                    </Header.Content>
-                  </Header>
-                  
-                </div>
-
-                <AutoSizer disableHeight style={{outline:'none',padding:0,margin:0}}>
-                  {({width}) => (
-                    <Grid
-                      style={{outline:'none'}}
-                      cellRenderer={this.cellRenderer}
-                      onScroll={this.handleScroll}
-                      columnWidth={this.state.entrySquareSize}
-                      columnCount={this.state.numEntrySquaresPerRow}
-                      height={this.state.height- topMenuHeight - 60}
-                      rowHeight={this.state.entrySquareSize}
-                      rowCount={Math.ceil(this.props.searchPhotosRes.length/this.state.numEntrySquaresPerRow.toFixed(1))}
-                      width={width}
-                    />
-                  )}
-                </AutoSizer>
-
-
-
-                { this.state.lightboxShow && this.props.searchPhotosRes.length > 0 &&
-                    <LightBox
-                        idx2hash={this.state.idx2hash}
-                        lightboxImageIndex={this.state.lightboxImageIndex}
-
-                        onCloseRequest={() => this.setState({ lightboxShow: false })}
-                        onImageLoad={()=>{
-                            this.getPhotoDetails(this.state.idx2hash[this.state.lightboxImageIndex])
-                        }}
-                        onMovePrevRequest={() => {
-                            var nextIndex = (this.state.lightboxImageIndex + this.state.idx2hash.length - 1) % this.state.idx2hash.length
-                            this.setState({
-                                lightboxImageIndex:nextIndex
-                            })
-                            this.getPhotoDetails(this.state.idx2hash[nextIndex])
-                        }}
-                        onMoveNextRequest={() => {
-                            var nextIndex = (this.state.lightboxImageIndex + this.state.idx2hash.length + 1) % this.state.idx2hash.length
-                            this.setState({
-                                lightboxImageIndex:nextIndex
-                            })
-                            this.getPhotoDetails(this.state.idx2hash[nextIndex])
-                        }}/>
-                }
-
-            </div>
-            
-        )
-    }
-}
-*/
-
-SearchViewRV = connect((store)=>{
+SearchMultipleCategories = connect((store)=>{
   return {
     searchingPhotos: store.search.searchingPhotos,
     searchedPhotos: store.search.searchedPhotos,
     searchPhotosRes: store.search.searchPhotosRes,
     searchPhotosResGroupedByDate: store.search.searchPhotosResGroupedByDate,
+
+    searchingPeople: store.search.searchingPeople,
+    searchedPeople: store.search.searchedPeople,
+    searchPeopleRes: store.search.searchPeopleRes,
+
+    searchingThingAlbums: store.search.searchingThingAlbums,
+    searchedThingAlbums: store.search.searchedThingAlbums,
+    searchThingAlbumsRes: store.search.searchThingAlbumsRes,
+   
+    searchingPlaceAlbums: store.search.searchingPlaceAlbums,
+    searchedPlaceAlbums: store.search.searchedPlaceAlbums,
+    searchPlaceAlbumsRes: store.search.searchPlaceAlbumsRes,
+
     query: store.search.query,
 
     photoDetails: store.photos.photoDetails,
@@ -673,4 +584,4 @@ SearchViewRV = connect((store)=>{
     fetchingAlbumsDatePhotoHashList: store.albums.fetchingAlbumsDatePhotoHashList,
     fetchedAlbumsDatePhotoHashList: store.albums.fetchedAlbumsDatePhotoHashList,    
   }
-})(SearchViewRV)
+})(SearchMultipleCategories)

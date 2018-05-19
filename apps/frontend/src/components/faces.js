@@ -292,17 +292,18 @@ export class FaceCard extends Component {
             src={'/unknown_user.jpg'}
             floated='right'
             hidden
-            height={50}
-            width={50}
+            height={70}
+            width={70}
             shape='rounded'/>
         </div>
       )
     }
     else {
       image = <Image 
+        style={{borderRadius:'1em'}}
         floated='right'
-        height={50}
-        width={50}
+        height={70}
+        width={70}
         shape='rounded'
         src={this.props.face_url} />
     }

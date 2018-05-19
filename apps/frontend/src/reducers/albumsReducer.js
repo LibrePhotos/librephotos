@@ -40,6 +40,7 @@ export default function reducer(state={
 
 
     albumsPlaceList:[],
+    albumsPlaceListGroupedByGeolocationLevel:{},
     fetchingAlbumsPlaceList: false,
     fetchedAlbumsPlaceList: false,
 
@@ -232,7 +233,9 @@ export default function reducer(state={
 
 
 
-
+    case "GROUP_PLACE_ALBUMS_BY_GEOLOCATION_LEVEL": {
+        return {...state, albumsPlaceListGroupedByGeolocationLevel:action.payload}
+    }
 
     case "FETCH_PLACE_ALBUMS_LIST": {
       return {...state, fetchingAlbumsPlaceList: true}

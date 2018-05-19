@@ -14,6 +14,7 @@ import {AllPhotosMap, EventMap, LocationClusterMap, LocationMap} from '../compon
 import {LightBox} from '../components/lightBox'
 
 import _ from 'lodash'
+import moment from 'moment'
 
 
 var topMenuHeight = 55 // don't change this
@@ -26,14 +27,82 @@ var DOWN_ARROW_KEY = 40;
 
 var SIDEBAR_WIDTH = 85;
 
+var DAY_HEADER_HEIGHT = 70
+var leftMenuWidth = 85 // don't change this
 
 
+class DayGroupPlaceholder extends Component {
+    render () {
+        var numRows = Math.ceil(this.props.day.photos.length/this.props.numItemsPerRow.toFixed(1))
+        var gridHeight = this.props.itemSize * numRows
+        var photos = this.props.day.photos.map(function(photo) {
+            return (
+                <Image key={'daygroup_album_person_image_placeholder_'+photo.image_hash} style={{display:'inline-block',padding:1,margin:0}}
+                    height={this.props.itemSize} 
+                    width={this.props.itemSize} 
+                    src={'/thumbnail_placeholder.png'}/>
+            )
+        },this)
+        return (
+            <div key={'daygroup_placeholder_album_person_'+this.props.day}>
+                <div style={{fontSize:17,height:DAY_HEADER_HEIGHT,paddingTop:20,paddingBottom:5}}>
+                <Header as='h3'>
+                <Icon name='calendar outline'/>
+                <Header.Content>
+                { this.props.day.date=='No Timestamp' ? "No Timestamp" : moment(this.props.day.date).format("MMM Do YYYY, dddd")}
+                <Header.Subheader>
+                    <Icon name='photo'/>{this.props.day.photos.length} Photos
+                </Header.Subheader>
+                </Header.Content>
+                </Header>
+                </div>
+                <div style={{height:gridHeight}}>
+                {photos}
+                </div>
+            </div>
+        )
+    }
+}
+
+
+class DayGroup extends Component {
+    render () {
+        var photos = this.props.day.photos.map(function(photo,idx) {
+            return (
+                <Image key={'daygroup_album_person_image_'+photo.image_hash+idx} style={{display:'inline-block',padding:1,margin:0}}
+                    onClick={()=>{
+                        this.props.onPhotoClick(photo.image_hash)
+                    }}
+                    height={this.props.itemSize} 
+                    width={this.props.itemSize} 
+                    src={serverAddress+'/media/square_thumbnails/'+photo.image_hash+'.jpg'}/>
+            )
+        },this)
+        var gridHeight = this.props.itemSize * Math.ceil(this.props.day.photos.length/this.props.numItemsPerRow.toFixed(1))
+        return (
+            <div key={'daygroup_grid_album_person_'+this.props.day} style={{}}>
+                <div style={{fontSize:17,height:DAY_HEADER_HEIGHT,paddingTop:20,paddingBottom:5}}>
+                <Header as='h3'>
+                <Icon name='calendar outline'/>
+                <Header.Content>
+                { this.props.day.date=='No Timestamp' ? "No Timestamp" : moment(this.props.day.date).format("MMM Do YYYY, dddd")}
+                <Header.Subheader>
+                    <Icon name='photo'/>{this.props.day.photos.length} Photos
+                </Header.Subheader>
+                </Header.Content>
+                </Header>
+                </div>
+                <div style={{height:gridHeight}}>
+                {photos}
+                </div>
+            </div>
+        )
+    }
+}
 
 export class AlbumPlaceGallery extends Component {
-
-  constructor() {
-    super();
-    this.state = {
+    state = {
+      photosGroupedByDate: [],
       idx2hash: [],
       lightboxImageIndex: 1,
       lightboxShow:false,
@@ -42,19 +111,28 @@ export class AlbumPlaceGallery extends Component {
       entrySquareSize:200,
       showMap:false,
       gridHeight: window.innerHeight- topMenuHeight - 60,
-      headerHeight: 60
+      headerHeight: 60,
+      currTopRenderedRowIdx:0,
+      numEntrySquaresPerRow:2,
     }
+
+  constructor() {
+    super();
+    this.listRef = React.createRef()
     this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this)
     this.cellRenderer = this.cellRenderer.bind(this)
+    this.onPhotoClick = this.onPhotoClick.bind(this)
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
     this.props.dispatch(fetchPlaceAlbum(this.props.match.params.albumID))
   }
 
-
+  componentWillUnmount() {
+    window.removeEventListener("resize", this.calculateEntrySquareSize.bind(this))
+  }
 
 
   calculateEntrySquareSize() {
@@ -84,15 +162,91 @@ export class AlbumPlaceGallery extends Component {
       entrySquareSize:entrySquareSize,
       numEntrySquaresPerRow:numEntrySquaresPerRow
     })
+    if (this.listRef.current) {
+        this.listRef.current.recomputeRowHeights()
+    }
   }
 
-  onPhotoClick(idx) {
-      if (this.state.idx2hash.length != this.props.albumsPlace[this.props.match.params.albumID].photos.length) {
-          this.setState({idx2hash:this.props.albumsPlace[this.props.match.params.albumID].photos.map((el)=>el.image_hash)})
+    onPhotoClick(hash) {
+        this.setState({lightboxImageIndex:this.state.idx2hash.indexOf(hash),lightboxShow:true})
+    }
+
+    static getDerivedStateFromProps(nextProps,prevState){
+      if (nextProps.albumsPlace.hasOwnProperty(nextProps.match.params.albumID)){
+        const photos = nextProps.albumsPlace[nextProps.match.params.albumID].photos
+        if (prevState.idx2hash.length != photos.length) {
+            var groupedByDate = _.groupBy(photos,(el)=>{
+                if (el.exif_timestamp) {
+                    return moment(el.exif_timestamp).format('YYYY-MM-DD')
+                } else {
+                    return "No Timestamp"
+                }
+            })
+            console.log(groupedByDate)
+            var groupedByDateList = _.reverse(_.sortBy(_.toPairsIn(groupedByDate).map((el)=>{
+                return {date:el[0],photos:el[1]}
+            }),(el)=>el.date))
+
+            var idx2hash = []
+            groupedByDateList.forEach((g)=>{
+                g.photos.forEach((p)=>{
+                    idx2hash.push(p.image_hash)
+                })
+            })
+
+            console.log(groupedByDateList)
+            return {
+                ...prevState, 
+                photosGroupedByDate: groupedByDateList,
+                idx2hash:idx2hash
+            }
+        } else {
+          return null
+        }
+      } else {
+        return null
       }
-      this.setState({lightboxImageIndex:idx,lightboxShow:true})
+    }
 
-  }
+
+    rowRenderer = ({index, isScrolling, key, style}) => {
+        const {isScrollingFast} = this.state;
+        var rowHeight = this.state.entrySquareSize * Math.ceil(this.state.photosGroupedByDate[index].photos.length/this.state.numEntrySquaresPerRow.toFixed(1)) + DAY_HEADER_HEIGHT
+        if (isScrollingFast) {
+            return (
+                <div key={key} style={{...style,height:rowHeight}}>
+                    <div style={{backgroundColor:'white'}}>
+                    <DayGroupPlaceholder
+                        key={index}
+                        onPhotoClick={this.onPhotoClick}
+                        day={this.state.photosGroupedByDate[index]} 
+                        itemSize={this.state.entrySquareSize} 
+                        numItemsPerRow={this.state.numEntrySquaresPerRow}/>
+                    </div>
+                </div>
+            )
+        }
+        else {
+            return (
+                <div key={key} style={{...style,height:rowHeight}}>
+                    <div style={{backgroundColor:'white'}}>
+                    <DayGroup 
+                        key={index}
+                        onPhotoClick={this.onPhotoClick}
+                        day={this.state.photosGroupedByDate[index]} 
+                        itemSize={this.state.entrySquareSize} 
+                        numItemsPerRow={this.state.numEntrySquaresPerRow}/>
+                    </div>
+                </div>
+            )        }
+    }
+
+    getRowHeight = ({index}) => {
+        var rowHeight = this.state.entrySquareSize * Math.ceil(this.state.photosGroupedByDate[index].photos.length/this.state.numEntrySquaresPerRow.toFixed(1)) + DAY_HEADER_HEIGHT
+        return (
+            rowHeight
+        )
+    }
 
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
@@ -131,10 +285,14 @@ export class AlbumPlaceGallery extends Component {
   }
 
   render() {
-  	console.log(this.props.match)
     var entrySquareSize = this.state.entrySquareSize
     var numEntrySquaresPerRow = this.state.numEntrySquaresPerRow
     if (this.props.albumsPlace.hasOwnProperty(this.props.match.params.albumID)) {
+      var totalListHeight = this.state.photosGroupedByDate.map((day,index)=>{
+          return (
+              this.getRowHeight({index})
+          )
+      }).reduce((a,b)=>(a+b),0)
 	    return (
 	      <div>
 
@@ -176,20 +334,20 @@ export class AlbumPlaceGallery extends Component {
 
 
 	      	</div>
-	        <AutoSizer disableHeight style={{outline:'none',padding:0,margin:0}}>
-	          {({width}) => (
-	            <Grid
-	              style={{outline:'none'}}
-	              cellRenderer={this.cellRenderer}
-	              columnWidth={this.state.entrySquareSize}
-	              columnCount={this.state.numEntrySquaresPerRow}
-	              height={this.state.gridHeight}
-	              rowHeight={this.state.entrySquareSize}
-	              rowCount={Math.ceil(this.props.albumsPlace[this.props.match.params.albumID].photos.length/this.state.numEntrySquaresPerRow.toFixed(1))}
-	              width={width}
-	            />
-	          )}
-	        </AutoSizer>	      
+                    <List
+                        ref={this.listRef}
+                        style={{outline:'none',paddingRight:0,marginRight:0}}
+                        onRowsRendered={({ overscanStartIndex, overscanStopIndex, startIndex, stopIndex })=>{
+                            this.setState({currTopRenderedRowIdx:startIndex})
+                        }}
+                        height={this.state.gridHeight}
+                        overscanRowCount={5}
+                        rowCount={this.state.photosGroupedByDate.length}
+                        rowHeight={this.getRowHeight}
+                        rowRenderer={this.rowRenderer}
+                        onScroll={this.handleScroll}
+                        estimatedRowSize={totalListHeight/this.state.photosGroupedByDate.length.toFixed(10)}
+                        width={this.state.width-leftMenuWidth-5}/>  
 
           { this.state.lightboxShow &&
               <LightBox

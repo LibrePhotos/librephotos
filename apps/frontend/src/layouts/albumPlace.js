@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
 import { connect } from "react-redux";
 import {AlbumDateCard, AlbumDateCardPlaceholder, AlbumDateCardPlain, AlbumDateCardPlainPlaceholder, AlbumAutoGallery} from '../components/album'
-import {Container, Icon, Header, Button, Card, Loader, Label, Popup, Image, Flag, Divider, Grid as GridSUI} from 'semantic-ui-react'
+import {Container, Icon, Dropdown, Header, Button, Card, Loader, Label, Popup, Image, Flag, Divider, Grid as GridSUI} from 'semantic-ui-react'
 import {fetchCountStats,fetchPhotoScanStatus,
         fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
 
@@ -21,6 +21,7 @@ import WordCloud from '../components/charts/wordCloud'
 import { Link } from 'react-router-dom';
 
 import {countryNames} from '../util/countryNames'
+import _ from 'lodash'
 
 var topMenuHeight = 55 // don't change this
 var ESCAPE_KEY = 27;
@@ -36,6 +37,7 @@ export class AlbumPlace extends Component {
   constructor() {
     super();
     this.state = {
+      geolocationLevel:1,
       width:  window.innerWidth,
       height: window.innerHeight,
       entrySquareSize:200,
@@ -88,8 +90,9 @@ export class AlbumPlace extends Component {
 
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
+      var place = this.props.albumsPlaceListGroupedByGeolocationLevel[this.state.geolocationLevel]
       var albumPlaceIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex
-      if (albumPlaceIndex < this.props.albumsPlaceList.length) {
+      if (albumPlaceIndex < place.length) {
         return (
           <div key={key} style={style}>
             <div 
@@ -101,20 +104,20 @@ export class AlbumPlace extends Component {
               style={{padding:10}}>
 
             <Image.Group>
-            {this.props.albumsPlaceList[albumPlaceIndex].cover_photo_urls.map((url)=>{
+            {place[albumPlaceIndex].cover_photo_urls.map((url)=>{
               return (
-                <Image style={{display:'inline-block'}} 
+                <Image style={{display:'inline-block',zIndex:1}} 
                   width={this.state.entrySquareSize/2-20} 
                   height={this.state.entrySquareSize/2-20}
-                  as={Link} to={`/place/${this.props.albumsPlaceList[albumPlaceIndex].id}/`}
+                  as={Link} to={`/place/${place[albumPlaceIndex].id}/`}
                   src={serverAddress+url}/>
               )
             })}
             </Image.Group>
             </div>
             <div style={{paddingLeft:15,paddingRight:15}}>
-              { countryNames.includes(this.props.albumsPlaceList[albumPlaceIndex].title.toLowerCase()) && <Flag name={this.props.albumsPlaceList[albumPlaceIndex].title.toLowerCase()}/> }
-              <b>{this.props.albumsPlaceList[albumPlaceIndex].title}</b> {this.props.albumsPlaceList[albumPlaceIndex].photo_count}
+              { countryNames.includes(place[albumPlaceIndex].title.toLowerCase()) && <Flag name={place[albumPlaceIndex].title.toLowerCase()}/> }
+              <b>{place[albumPlaceIndex].title}</b> {place[albumPlaceIndex].photo_count}
             </div>
           </div>
         )
@@ -130,59 +133,77 @@ export class AlbumPlace extends Component {
 
 
 	render () {
+    var album = this.props.albumsPlaceListGroupedByGeolocationLevel[this.state.geolocationLevel]
+    console.log(album)
 		var entrySquareSize = this.state.entrySquareSize
     var numEntrySquaresPerRow = this.state.numEntrySquaresPerRow
+    var geolocationLevelOptions = _.keys(this.props.albumsPlaceListGroupedByGeolocationLevel).map((el)=>(
+        {key:el,value:el,text:'Location Level ' + `${el}`}))
     console.log(this.state.gridHeight)
 		return (
-      <div>
-        <div style={{position:'fixed',top:topMenuHeight+22,right:5,float:'right'}}>
-          <Button 
-            active={this.state.showMap}
-            compact 
-            size='mini' 
-            onClick={()=>{
-              this.setState({
-                showMap: !this.state.showMap,
-                gridHeight: !this.state.showMap ? this.state.height - topMenuHeight - 260 : this.state.height - topMenuHeight - 60,
-                headerHeight: !this.state.showMap ? 260 : 60
-              })}
-            }
-            floated='right'>
-              {this.state.showMap ? "Hide Map" : "Show Map"}
-            </Button>
-        </div>
+            <div>
+                <div style={{position:'fixed',top:topMenuHeight+10,right:10,float:'right',zIndex:10}}>
+                <Dropdown 
+                    className='icon' 
+                    button labeled icon='filter'
+                    placeholder='Location Level' 
+                    onChange={(e,{value})=>this.setState({geolocationLevel:value})}
+                    defaultValue={'1'}
+                    options={geolocationLevelOptions}/>
 
-        <div style={{height:this.state.headerHeight,paddingTop:10,paddingRight:5}}>
+                <Button 
+                  active={this.state.showMap}
+                  color='blue'
+                  icon labelPosition='right'
+                  onClick={()=>{
+                    this.setState({
+                      showMap: !this.state.showMap,
+                      gridHeight: !this.state.showMap ? this.state.height - topMenuHeight - 260 : this.state.height - topMenuHeight - 60,
+                      headerHeight: !this.state.showMap ? 260 : 60
+                    })}
+                  }
+                  floated='right'>
+                  <Icon name='map' inverted/>{this.state.showMap ? "Hide Map" : "Show Map"}
+                </Button>
 
-          <Header as='h2'>
-            <Icon name='map outline' />
-            <Header.Content>
-              Places
-              <Header.Subheader>
-                Showing top {this.props.albumsPlaceList.length} places 
-              </Header.Subheader>
-            </Header.Content>
-          </Header>
-          
-          {this.state.showMap && <LocationClusterMap height={200-20}/>}
+                </div>
 
-        </div>
-        <AutoSizer disableHeight style={{outline:'none',padding:0,margin:0}}>
-          {({width}) => (
-            <Grid
-              style={{outline:'none'}}
-              disableHeader={false}
-              cellRenderer={this.cellRenderer}
-              columnWidth={this.state.entrySquareSize}
-              columnCount={this.state.numEntrySquaresPerRow}
-              height={this.state.gridHeight}
-              rowHeight={this.state.entrySquareSize+50}
-              rowCount={Math.ceil(this.props.albumsPlaceList.length/this.state.numEntrySquaresPerRow.toFixed(1))}
-              width={width}
-            />
-          )}
-        </AutoSizer>
-      </div>
+                <div style={{height:this.state.headerHeight,paddingTop:10,paddingRight:5}}>
+
+                <Header as='h2'>
+                    <Icon name='map outline' />
+                    <Header.Content>
+                    Places <Loader size='tiny' inline active={this.props.fetchingAlbumsPlaceList}/>
+                    <Header.Subheader>
+                        Showing top {this.props.albumsPlaceList.length} places 
+                    </Header.Subheader>
+                    </Header.Content>
+                </Header>
+                
+                {this.state.showMap && <LocationClusterMap height={200-20}/>}
+
+                </div>
+                { album ? (
+                  <AutoSizer disableHeight style={{outline:'none',padding:0,margin:0}}>
+                  {({width}) => (
+                      <Grid
+                      style={{outline:'none'}}
+                      disableHeader={false}
+                      cellRenderer={this.cellRenderer}
+                      columnWidth={this.state.entrySquareSize}
+                      columnCount={this.state.numEntrySquaresPerRow}
+                      height={this.state.gridHeight}
+                      rowHeight={this.state.entrySquareSize+50}
+                      rowCount={Math.ceil(this.props.albumsPlaceListGroupedByGeolocationLevel[this.state.geolocationLevel].length/this.state.numEntrySquaresPerRow.toFixed(1))}
+                      width={width}
+                      />
+                  )}
+                  </AutoSizer>
+                ) : (<div></div>)
+
+                }
+
+            </div>
 		)
 	}
 }
@@ -230,6 +251,7 @@ export class EntrySquare extends Component {
 AlbumPlace = connect((store)=>{
   return {
     albumsPlaceList: store.albums.albumsPlaceList,
+    albumsPlaceListGroupedByGeolocationLevel: store.albums.albumsPlaceListGroupedByGeolocationLevel,
     fetchingAlbumsPlaceList: store.albums.fetchingAlbumsPlaceList,
     fetchedAlbumsPlaceList: store.albums.fetchedAlbumsPlaceList,
   }

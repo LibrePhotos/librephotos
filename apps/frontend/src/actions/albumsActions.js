@@ -1,5 +1,6 @@
 import axios from "axios";
 import {Server} from '../api_client/apiClient'
+import _ from 'lodash'
 
 
 export function fetchThingAlbumsList() {
@@ -39,6 +40,8 @@ export function fetchPlaceAlbumsList() {
     dispatch({type:"FETCH_PLACE_ALBUMS_LIST"});
     Server.get("albums/place/list/")
       .then((response) => {
+        var byGeolocationLevel = _.groupBy(response.data.results,(el)=>el.geolocation_level)
+        dispatch({type:"GROUP_PLACE_ALBUMS_BY_GEOLOCATION_LEVEL",payload:byGeolocationLevel})
         dispatch({type:"FETCH_PLACE_ALBUMS_LIST_FULFILLED", payload: response.data.results})
       })
       .catch((err) => {

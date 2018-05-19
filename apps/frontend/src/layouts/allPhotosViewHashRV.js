@@ -23,7 +23,7 @@ var topMenuHeight = 55 // don't change this
 var leftMenuWidth = 85 // don't change this
 var SIDEBAR_WIDTH = 85
 var timelineScrollWidth = 0
-var DAY_HEADER_HEIGHT = 35
+var DAY_HEADER_HEIGHT = 70
 
 if (window.innerWidth < 600) {
     var LIGHTBOX_SIDEBAR_WIDTH = window.innerWidth
@@ -48,6 +48,9 @@ class ScrollSpeed {
     this._timeout = window.setTimeout(this.clear, 50);
 
     return this.delta;
+  }
+  clearTimeout() {
+    window.clearTimeout(this._timeout)
   }
 }
 
@@ -129,8 +132,20 @@ class DayGroupPlaceholder extends Component {
         },this)
         return (
             <div key={'daygroup_placeholder_'+this.props.day}>
-                    <div style={{fontSize:17,height:DAY_HEADER_HEIGHT,paddingTop:5,paddingBottom:5}}>
-                <b>{moment(this.props.day.date).format("MMM Do YY, dddd")}</b>
+                <div style={{fontSize:17,height:DAY_HEADER_HEIGHT,paddingTop:20,paddingBottom:5}}>
+                <Header as='h3'>
+                <Icon name='calendar outline'/>
+                <Header.Content>
+                {moment(this.props.day.date).format("MMM Do YYYY, dddd")}
+                <Header.Subheader>
+                {this.props.day.location ? (
+                    <p>{this.props.day.location.places.join(', ')}</p>
+                ) : (
+                    <p>{'Unknown location'}</p>
+                )}
+                </Header.Subheader>
+                </Header.Content>
+                </Header>
                 </div>
                 <div style={{height:gridHeight}}>
                 {photos}
@@ -157,8 +172,21 @@ class DayGroup extends Component {
         var gridHeight = this.props.itemSize * Math.ceil(this.props.day.photos.length/this.props.numItemsPerRow.toFixed(1))
         return (
             <div key={'daygroup_grid_'+this.props.day} style={{}}>
-                <div style={{fontSize:17,height:DAY_HEADER_HEIGHT,paddingTop:5,paddingBottom:5}}>
-                <b>{moment(this.props.day.date).format("MMM Do YY, dddd")}</b>
+                <div style={{fontSize:17,height:DAY_HEADER_HEIGHT,paddingTop:20,paddingBottom:5}}>
+                <Header as='h3'>
+                <Icon name='calendar outline'/>
+                <Header.Content>
+                {moment(this.props.day.date).format("MMM Do YYYY, dddd")}
+                <Header.Subheader>
+                
+                {this.props.day.location ? (
+                    <p><Icon name='map outline'/>{this.props.day.location.places.join(', ')}</p>
+                ) : (
+                    <p>{'Unknown location'}</p>
+                )}
+                </Header.Subheader>
+                </Header.Content>
+                </Header>
                 </div>
                 <div style={{height:gridHeight}}>
                 {photos}
@@ -177,6 +205,7 @@ export class AllPhotosHashListViewRV extends Component {
         this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this)
         this.onPhotoClick = this.onPhotoClick.bind(this)
         this.getPhotoDetails = this.getPhotoDetails.bind(this)
+        this.listRef = React.createRef()
         this.state = {
             idx2hash: [],
             lightboxImageIndex: 1,
@@ -191,11 +220,11 @@ export class AllPhotosHashListViewRV extends Component {
         }
     }
 
-    getScrollSpeed = new ScrollSpeed().getScrollSpeed;
+    scrollSpeedHandler = new ScrollSpeed();
 
     handleScroll = ({scrollTop}) => {
         // scrollSpeed represents the number of pixels scrolled since the last scroll event was fired
-        const scrollSpeed = Math.abs(this.getScrollSpeed(scrollTop));
+        const scrollSpeed = Math.abs(this.scrollSpeedHandler.getScrollSpeed(scrollTop));
 
         if (scrollSpeed >= SPEED_THRESHOLD) {
           this.setState({
@@ -227,10 +256,14 @@ export class AllPhotosHashListViewRV extends Component {
         this.calculateEntrySquareSize();
         window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
     }
+  componentWillUnmount() {
+    window.removeEventListener("resize", this.calculateEntrySquareSize.bind(this))
+    this.scrollSpeedHandler.clearTimeout()
+  }
 
     calculateEntrySquareSize() {
         if (window.innerWidth < 600) {
-            var numEntrySquaresPerRow = 3
+            var numEntrySquaresPerRow = 2
         } 
         else if (window.innerWidth < 800) {
             var numEntrySquaresPerRow = 4
@@ -256,6 +289,9 @@ export class AllPhotosHashListViewRV extends Component {
             entrySquareSize:entrySquareSize,
             numEntrySquaresPerRow:numEntrySquaresPerRow
         })
+        if (this.listRef.current) {
+            this.listRef.current.recomputeRowHeights()
+        }
     }
 
     cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
@@ -325,7 +361,6 @@ export class AllPhotosHashListViewRV extends Component {
 
     render() {
         const {lightboxImageIndex} = this.state
-        console.log(this.props)
         if ( this.props.idx2hash.length < 1 ||this.props.albumsDatePhotoHashList.length < 1) {
             return (<div><Loader active/></div>)
         }
@@ -351,6 +386,7 @@ export class AllPhotosHashListViewRV extends Component {
                 </div>
 
                     <List
+                        ref={this.listRef}
                         style={{outline:'none',paddingRight:0,marginRight:0}}
                         onRowsRendered={({ overscanStartIndex, overscanStopIndex, startIndex, stopIndex })=>{
                             this.setState({currTopRenderedRowIdx:startIndex})
@@ -404,11 +440,11 @@ export class AllPhotosHashListViewRV extends Component {
                             this.getPhotoDetails(this.props.idx2hash[this.state.lightboxImageIndex])
                         }}
                         onMovePrevRequest={() => {
-                            var nextIndex = (this.state.lightboxImageIndex + this.props.idx2hash.length - 1) % this.props.idx2hash.length
+                            var prevIndex = (this.state.lightboxImageIndex + this.props.idx2hash.length - 1) % this.props.idx2hash.length
                             this.setState({
-                                lightboxImageIndex:nextIndex
+                                lightboxImageIndex:prevIndex
                             })
-                            this.getPhotoDetails(this.props.idx2hash[nextIndex])
+                            this.getPhotoDetails(this.props.idx2hash[prevIndex])
                         }}
                         onMoveNextRequest={() => {
                             var nextIndex = (this.state.lightboxImageIndex + this.props.idx2hash.length + 1) % this.props.idx2hash.length

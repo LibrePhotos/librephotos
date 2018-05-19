@@ -13,6 +13,7 @@ import {SideMenuNarrow, TopMenu} from './menubars'
 
 var topMenuHeight = 55 // don't change this
 var leftMenuWidth = 85 // don't change this
+var leftMenuWidth = 85 // don't change this
 
       // <div>
       //   <Nav />
@@ -50,7 +51,7 @@ class Nav extends React.Component {
   render() {
     return (
       <div>
-        <SideMenuNarrow visible={true}/>
+        <SideMenuNarrow/>
         <TopMenu style={{zIndex:-1}}/>
       </div>
     )

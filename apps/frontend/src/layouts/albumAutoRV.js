@@ -2,7 +2,7 @@ import React, {Component} from 'react';
 import { connect } from "react-redux";
 import {fetchPeopleAlbums, fetchAutoAlbums, fetchAutoAlbumsList} from '../actions/albumsActions'
 import {AlbumAutoCard, AlbumAutoGallery} from '../components/album'
-import {Container, Icon, Header, Image, Button, Card, Label, Popup, Rating} from 'semantic-ui-react'
+import {Container, Icon, Header, Image, Button, Card, Label, Popup, Rating, Loader} from 'semantic-ui-react'
 import {fetchCountStats,fetchPhotoScanStatus,
         fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
 import { Grid, List, WindowScroller,AutoSizer } from 'react-virtualized';
@@ -199,7 +199,7 @@ export class AlbumAutoRV extends Component {
           <Header as='h2'>
             <Icon name='wizard' />
             <Header.Content>
-              Events
+              Events <Loader size='tiny' inline active={this.props.fetchingAlbumsAutoList}/>
               <Header.Subheader>
                 {this.props.albumsAutoList.length} Events
               </Header.Subheader>

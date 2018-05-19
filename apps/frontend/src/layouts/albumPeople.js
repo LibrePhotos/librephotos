@@ -2,7 +2,7 @@ import React, {Component} from 'react';
 import { connect } from "react-redux";
 import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
 import {AlbumPeopleCard, AlbumPeopleGallery} from '../components/album'
-import {Popup, Modal, Container, Icon, Divider, Header, Image, Button, Card} from 'semantic-ui-react'
+import {Popup, Modal, Container, Icon, Divider, Header, Image, Loader, Button, Card} from 'semantic-ui-react'
 import { fetchPeople, deletePerson} from '../actions/peopleActions';
 
 import {Server, serverAddress} from '../api_client/apiClient'
@@ -43,6 +43,9 @@ export class AlbumPeople extends Component {
     }
   }
 
+  componentWillUnmount() {
+    window.removeEventListener("resize", this.calculateEntrySquareSize.bind(this))
+  }
 
   calculateEntrySquareSize() {
     if (window.innerWidth < 600) {
@@ -157,7 +160,7 @@ export class AlbumPeople extends Component {
           <Header as='h2'>
             <Icon name='users' />
             <Header.Content>
-              People
+              People <Loader size='tiny' inline active={this.props.fetchingPeople}/>
               <Header.Subheader>
                 {this.props.people.length} People
               </Header.Subheader>

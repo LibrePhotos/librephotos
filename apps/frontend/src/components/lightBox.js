@@ -50,17 +50,15 @@ export class LightBox extends Component {
         }
     }
     render() {
-        console.log(this.state)
-        console.log(this.props)
         return (
             <div>
                 <Lightbox
-                    mainSrc={serverAddress+'/media/photos/'+this.props.idx2hash[this.props.lightboxImageIndex]+'.jpg'}
-                    nextSrc={serverAddress+'/media/photos/'+this.props.idx2hash[(this.props.lightboxImageIndex + 1) % this.props.idx2hash.length]+'.jpg'}
-                    prevSrc={serverAddress+'/media/photos/'+this.props.idx2hash[(this.props.lightboxImageIndex - 1) % this.props.idx2hash.length]+'.jpg'}
-                    mainSrcThumbnail={serverAddress+'/media/thumbnails_tiny/'+this.props.idx2hash[this.props.lightboxImageIndex]+'.jpg'}
-                    nextSrcThumbnail={serverAddress+'/media/thumbnails_tiny/'+this.props.idx2hash[(this.props.lightboxImageIndex + 1) % this.props.idx2hash.length]+'.jpg'}
-                    prevSrcThumbnail={serverAddress+'/media/thumbnails_tiny/'+this.props.idx2hash[(this.props.lightboxImageIndex - 1) % this.props.idx2hash.length]+'.jpg'}
+                    mainSrc={serverAddress+'/media/photos/'+this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]+'.jpg'}
+                    nextSrc={serverAddress+'/media/photos/'+this.props.idx2hash.slice((this.props.lightboxImageIndex + 1) % this.props.idx2hash.length)[0]+'.jpg'}
+                    prevSrc={serverAddress+'/media/photos/'+this.props.idx2hash.slice((this.props.lightboxImageIndex - 1) % this.props.idx2hash.length)[0]+'.jpg'}
+                    mainSrcThumbnail={serverAddress+'/media/thumbnails_tiny/'+this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]+'.jpg'}
+                    nextSrcThumbnail={serverAddress+'/media/thumbnails_tiny/'+this.props.idx2hash.slice((this.props.lightboxImageIndex + 1) % this.props.idx2hash.length)[0]+'.jpg'}
+                    prevSrcThumbnail={serverAddress+'/media/thumbnails_tiny/'+this.props.idx2hash.slice((this.props.lightboxImageIndex - 1) % this.props.idx2hash.length)[0]+'.jpg'}
                     toolbarButtons={[
                         <div>
                             <Button 
@@ -70,135 +68,6 @@ export class LightBox extends Component {
                                 onClick={()=>{this.setState({lightboxSidebarShow:!this.state.lightboxSidebarShow})}}>
                                 <Icon name='info'/>
                             </Button>
-                            <Transition visible={this.state.lightboxSidebarShow} animation='fade left' duration={500}>
-                                <div style={{ 
-                                    right: 0, 
-                                    top:0,
-                                    float:'right',
-                                    backgroundColor:'white',
-                                    width:LIGHTBOX_SIDEBAR_WIDTH, 
-                                    height:window.innerHeight,
-                                    whiteSpace:'normal',
-                                    position: 'fixed', 
-                                    overflowY:'scroll',
-                                    overflowX:'hidden',
-                                    zIndex: 1000 }}>
-                                    { this.props.photoDetails.hasOwnProperty(this.props.idx2hash[this.props.lightboxImageIndex]) && (
-                                        <div style={{width:LIGHTBOX_SIDEBAR_WIDTH}}>
-                                            <div style={{paddingLeft:30,paddingRight:30,fontSize:'14px',lineHeight:'normal',whiteSpace:'normal',wordWrap:'break-all'}}>
-                                                <Divider hidden/>
-                                                <Header as='h3'>Details</Header>
-
-                                                  <Item.Group relaxed>
-                                                    <Item>
-                                                      <Item.Content verticalAlign='middle'>
-                                                        <Item.Header>
-                                                          <Icon name='calendar' /> Time Taken
-                                                        </Item.Header>
-                                                        <Item.Description>
-                                                         {moment(this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].exif_timestamp).format("dddd, MMMM Do YYYY, h:mm a")}
-                                                        </Item.Description>
-                                                      </Item.Content>
-                                                    </Item>
-
-                                                    <Item>
-                                                      <Item.Content verticalAlign='middle'>
-                                                        <Item.Header>
-                                                          <Icon name='file' /> File Path
-                                                        </Item.Header>
-                                                        <Item.Description>
-                                                        <Breadcrumb 
-                                                            divider={<Icon name='right chevron'/>}
-                                                            sections={
-                                                            this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].image_path.split('/').map((el)=>
-                                                            {return({key:el,content:el})} )}/>
-
-                                                        </Item.Description>
-                                                      </Item.Content>
-                                                    </Item>
-
-                                                    <Item>
-                                                      <Item.Content verticalAlign='middle'>
-                                                        <Item.Header>
-                                                          <Icon name='point' /> Location
-                                                        </Item.Header>
-                                                        <Item.Description>
-                                                          {this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].search_location}
-                                                        </Item.Description>
-                                                      </Item.Content>
-                                                    </Item>
-
-
-                                                    <Item>
-                                                      <Item.Content verticalAlign='middle'>
-                                                        <Item.Header>
-                                                          <Icon name='tags'/> Things
-                                                        </Item.Header>
-                                                        <Item.Description>
-                                                            <Label.Group>
-                                                            {this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].search_captions.split(' , ').map((nc,idx)=>(
-                                                                <Label 
-                                                                    color={colors[idx%this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].search_captions.split(' , ').length]}
-                                                                    onClick={()=>{
-                                                                      this.props.dispatch(searchPhotos(nc))
-                                                                      this.props.dispatch(push('/search'))
-                                                                    }}
-                                                                    circular>
-                                                                    {nc}
-                                                                </Label>
-                                                            ))}
-                                                            </Label.Group>
-                                                        </Item.Description>
-                                                      </Item.Content>
-                                                    </Item>
-
-                                                    <Item>
-                                                      <Item.Content verticalAlign='middle'>
-                                                        <Item.Header>
-                                                          <Icon name='users'/> People
-                                                        </Item.Header>
-                                                        <Item.Description>
-                                                            <Label.Group>
-                                                            {this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].people.map((nc,idx)=>(
-                                                                <Label 
-                                                                    color={colors[idx%this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].people.length]}
-                                                                    onClick={()=>{
-                                                                      this.props.dispatch(searchPhotos(nc))
-                                                                      this.props.dispatch(push('/search'))
-                                                                    }}
-                                                                    >
-                                                                    {nc}
-                                                                </Label>
-                                                            ))}
-                                                            </Label.Group>
-                                                        </Item.Description>
-                                                      </Item.Content>
-                                                    </Item>
-
-                                                  </Item.Group>
-
-
-
-                                            </div>
-
-
-                                            <div style={{width:LIGHTBOX_SIDEBAR_WIDTH,whiteSpace:'normal',lineHeight:'normal'}}>
-                                            { this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].exif_gps_lat &&
-                                                (
-                                                    <LocationMap zoom={8} photos={[
-                                                        this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]]
-                                                    ]}/>
-                                                )
-                                            }
-                                            </div>
-
-
-
-
-                                        </div>
-                                    )}
-                                </div>
-                            </Transition>
                         </div>
                     ]}
                     onCloseRequest={this.props.onCloseRequest}
@@ -209,15 +78,173 @@ export class LightBox extends Component {
                     reactModalStyle={
                         {
                            content: {
-                                right: this.state.lightboxSidebarShow ? LIGHTBOX_SIDEBAR_WIDTH : 0,
-                                //right:LIGHTBOX_SIDEBAR_WIDTH,
-                                //width: this.state.lightboxSidebarShow ? window.innerWidth - LIGHTBOX_SIDEBAR_WIDTH : window.innerWidth,
-                                //transform: 'translate(-200px,0)',
-                                //width: window.innerWidth - LIGHTBOX_SIDEBAR_WIDTH
+                                // transform: this.state.lightboxSidebarShow ? `scale(0.5,1)` : ''
+                                // right: this.state.lightboxSidebarShow ? LIGHTBOX_SIDEBAR_WIDTH : 0,
+                                // width: this.state.lightboxSidebarShow ? window.innerWidth - LIGHTBOX_SIDEBAR_WIDTH : window.innerWidth,
                             },
-                            //overlay: {width: window.innerWidth - LIGHTBOX_SIDEBAR_WIDTH}
+                            overlay: {
+                                right: this.state.lightboxSidebarShow ? LIGHTBOX_SIDEBAR_WIDTH : 0,
+                                width: this.state.lightboxSidebarShow ? window.innerWidth - LIGHTBOX_SIDEBAR_WIDTH : window.innerWidth,
+                            }
                         }
                     }/>
+                    <Transition visible={this.state.lightboxSidebarShow} animation='fade left' duration={500}>
+                        <div style={{ 
+                            right: 0, 
+                            top:0,
+                            float:'right',
+                            backgroundColor:'white',
+                            width:LIGHTBOX_SIDEBAR_WIDTH, 
+                            height:window.innerHeight,
+                            whiteSpace:'normal',
+                            position: 'fixed', 
+                            overflowY:'scroll',
+                            overflowX:'hidden',
+                            zIndex: 1000 }}>
+                            { this.props.photoDetails.hasOwnProperty(this.props.idx2hash[this.props.lightboxImageIndex]) && (
+                                <div style={{width:LIGHTBOX_SIDEBAR_WIDTH}}>
+                                    <div style={{paddingLeft:30,paddingRight:30,fontSize:'14px',lineHeight:'normal',whiteSpace:'normal',wordWrap:'break-all'}}>
+                                        <Button 
+                                            floated='right' 
+                                            circular icon='close' 
+                                            onClick={()=>{
+                                                this.setState({lightboxSidebarShow:false})
+                                                this.forceUpdate()
+                                            }}/>
+                                        <Header as='h3'>Details</Header>
+
+                                          <Item.Group relaxed>
+                                            <Item>
+                                              <Item.Content verticalAlign='middle'>
+                                                <Item.Header>
+                                                  <Icon name='calendar' /> Time Taken
+                                                </Item.Header>
+                                                <Item.Description>
+                                                 {moment(this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].exif_timestamp).format("dddd, MMMM Do YYYY, h:mm a")}
+                                                </Item.Description>
+                                              </Item.Content>
+                                            </Item>
+
+                                            <Item>
+                                              <Item.Content verticalAlign='middle'>
+                                                <Item.Header>
+                                                  <Icon name='file' /> File Path
+                                                </Item.Header>
+                                                <Item.Description>
+                                                <Breadcrumb 
+                                                    divider='/'
+                                                    sections={
+                                                    this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].image_path.split('/').map((el)=>
+                                                    {return({key:el,content:el})} )}/>
+
+                                                </Item.Description>
+                                              </Item.Content>
+                                            </Item>
+
+                                            <Item>
+                                              <Item.Content verticalAlign='middle'>
+                                                <Item.Header>
+                                                  <Icon name='users'/> People
+                                                </Item.Header>
+                                                <Item.Description>
+                                                    <Label.Group>
+                                                    {this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].people.map((nc,idx)=>(
+                                                        <Label 
+                                                            color={colors[idx%this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].people.length]}
+                                                            onClick={()=>{
+                                                              this.props.dispatch(searchPhotos(nc))
+                                                              this.props.dispatch(push('/search'))
+                                                            }}
+                                                            >
+                                                            <Icon name='user'/>{nc}
+                                                        </Label>
+                                                    ))}
+                                                    </Label.Group>
+                                                </Item.Description>
+                                              </Item.Content>
+                                            </Item>
+
+                                            <Item>
+                                              <Item.Content verticalAlign='middle'>
+                                                <Item.Header>
+                                                  <Icon name='point' /> Location
+                                                </Item.Header>
+                                                <Item.Description>
+                                                  {this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].search_location}
+                                                </Item.Description>
+                                              </Item.Content>
+                                            </Item>
+
+
+                                        <div style={{width:LIGHTBOX_SIDEBAR_WIDTH-70,whiteSpace:'normal',lineHeight:'normal'}}>
+                                        { this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].exif_gps_lat &&
+                                            (
+                                                <LocationMap zoom={8} photos={[
+                                                    this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]]
+                                                ]}/>
+                                            )
+                                        }
+                                        </div>
+
+                                            <Item>
+                                              <Item.Content verticalAlign='middle'>
+                                                <Item.Header>
+                                                  <Icon name='write' /> Caption
+                                                </Item.Header>
+                                                <Item.Description>
+                                                  {this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].captions_json.im2txt}
+                                                </Item.Description>
+                                              </Item.Content>
+                                            </Item>
+
+
+                                            <Item>
+                                              <Item.Content verticalAlign='middle'>
+                                                <Item.Header>
+                                                  <Icon name='tags'/> Scene
+                                                </Item.Header>
+                                                <Item.Description>
+                                                    <p><b>Attributes</b></p>
+                                                    <Label.Group>
+                                                    {this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].captions_json.places365.attributes.map((nc,idx)=>(
+                                                        <Label 
+                                                            key={"lightbox_attribute_label_"+this.props.idx2hash[this.props.lightboxImageIndex]+"_"+nc}
+                                                            tag
+                                                            color={colors[idx%this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].search_captions.split(' , ').length]}
+                                                            color='blue'
+                                                            onClick={()=>{
+                                                              this.props.dispatch(searchPhotos(nc))
+                                                              this.props.dispatch(push('/search'))
+                                                            }}>
+                                                            {nc}
+                                                        </Label>
+                                                    ))}
+                                                    </Label.Group>
+                                                    <p><b>Categories</b></p>
+                                                    <Label.Group>
+                                                    {this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].captions_json.places365.categories.map((nc,idx)=>(
+                                                        <Label 
+                                                            key={"lightbox_category_label_"+this.props.idx2hash[this.props.lightboxImageIndex]+"_"+nc}
+                                                            tag
+                                                            color={colors[idx%this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].search_captions.split(' , ').length]}
+                                                            color='teal'
+                                                            onClick={()=>{
+                                                              this.props.dispatch(searchPhotos(nc))
+                                                              this.props.dispatch(push('/search'))
+                                                            }}>
+                                                            {nc}
+                                                        </Label>
+                                                    ))}
+                                                    </Label.Group>
+                                                </Item.Description>
+                                              </Item.Content>
+                                            </Item>
+                                          </Item.Group>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </Transition>
             </div>
 
 

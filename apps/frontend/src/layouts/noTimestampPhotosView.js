@@ -49,6 +49,9 @@ export class NoTimestampPhotosView extends Component {
         this.calculateEntrySquareSize();
         window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
     }
+    componentWillUnmount() {
+        window.removeEventListener("resize",this.calculateEntrySquareSize.bind(this))
+    }
 
     calculateEntrySquareSize() {
         if (window.innerWidth < 600) {

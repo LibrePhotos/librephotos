@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Popup,Menu, Input, Icon, Sidebar,Dropdown, Divider, Image, Header } from 'semantic-ui-react';
 import { connect } from "react-redux";
 import {login, logout} from '../actions/authActions'
-import {searchPhotos} from '../actions/searchActions'
+import {searchPhotos,searchPeople,searchPlaceAlbums,searchThingAlbums} from '../actions/searchActions'
 import {fetchExampleSearchTerms} from '../actions/utilActions'
 import { push } from 'react-router-redux'
 import store from '../store'
@@ -62,6 +62,9 @@ export class TopMenu extends Component {
   handleSearch(e,d) {
     if (this.state.searchText.length > 0){
       this.props.dispatch(searchPhotos(this.state.searchText))
+      this.props.dispatch(searchPeople(this.state.searchText))
+      this.props.dispatch(searchThingAlbums(this.state.searchText))
+      this.props.dispatch(searchPlaceAlbums(this.state.searchText))
       this.props.dispatch(push('/search'))
     } else {
       this.setState({ warningPopupOpen: true,showEmptyQueryWarning:true })
@@ -110,10 +113,10 @@ export class TopMenu extends Component {
           <div style={{paddingRight:20,paddingTop:8,width:(window.innerWidth-searchBarWidth)/2,right:0,position:'absolute',textAlign:'right'}}>
           
           <b>
-            <Dropdown text={this.state.width > 700 ? (<div><Icon name='user' inline circle/> {this.props.auth.access.name}</div>) : <Icon name='user' inline circle/> } inline pointing='top right'>
+            <Dropdown icon='user' inline pointing='top right'>
               <Dropdown.Menu>
                 <Dropdown.Item onClick={()=>this.props.dispatch(logout())}>
-                  <Icon name='sign out' inline/><b>Logout</b>
+                  <Icon name='sign out' /><b>Logout</b>
                 </Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
@@ -151,14 +154,12 @@ export class SideMenuNarrow extends Component {
     
 
     const { activeItem } = this.state
-    console.log('sidebar visible:',this.props.visible)
     return (
       <Menu 
         borderless 
         icon='labeled'
         vertical 
         fixed='left' 
-        visible={this.props.visible} 
         floated 
         pointing 
         width='thin'>
@@ -180,7 +181,7 @@ export class SideMenuNarrow extends Component {
             position='right center'
             content="All Photos"
             trigger={
-              <Icon name='camera' corner />}/>
+              <Icon name='camera' />}/>
         </Menu.Item>
 
 
@@ -196,7 +197,11 @@ export class SideMenuNarrow extends Component {
             position='right center'
             content="Photos without timestamps"
             trigger={
-              <Icon name='image' corner />}/>
+              <Icon.Group size='big'>
+                <Icon name='camera' />
+                <Icon corner name='info circle' color='red' />
+              </Icon.Group>
+            }/>
         </Menu.Item>
 
 
@@ -206,7 +211,6 @@ export class SideMenuNarrow extends Component {
         <Menu.Item
           onClick={this.handleItemClick}
           active={this.props.location.pathname.startsWith('/people') || this.props.location.pathname.startsWith('/person')}
-          content='People'
           name='people'
           as={Link}
           to='/people'>
@@ -216,13 +220,12 @@ export class SideMenuNarrow extends Component {
             position='right center'
             content="People"
             trigger={
-            <Icon name='users' corner />}/>
+            <Icon name='users' />}/>
         </Menu.Item>
 
         <Menu.Item
           onClick={this.handleItemClick}
           active={this.props.location.pathname.startsWith('/thing') }
-          content='People'
           name='things'
           as={Link}
           to='/things'>
@@ -232,14 +235,13 @@ export class SideMenuNarrow extends Component {
             position='right center'
             content="Things"
             trigger={
-              <Icon name='tags' corner />}/>
+              <Icon name='tags' />}/>
         </Menu.Item>
 
 
         <Menu.Item
           onClick={this.handleItemClick}
           active={this.props.location.pathname.startsWith('/place')}
-          content='Places'
           name='places'
           as={Link}
           to='/places'>
@@ -249,7 +251,7 @@ export class SideMenuNarrow extends Component {
             position='right center'
             content="Places"
             trigger={
-            <Icon name='map outline' corner />}/>
+            <Icon name='map outline' />}/>
         </Menu.Item>
 
 
@@ -258,7 +260,6 @@ export class SideMenuNarrow extends Component {
         <Menu.Item
           onClick={this.handleItemClick}
           active={this.props.location.pathname.startsWith('/event')}
-          content="Events"
           name='auto albums'
           as={Link}
           to='/events'>
@@ -268,7 +269,7 @@ export class SideMenuNarrow extends Component {
             position='right center'
             content="Events"
             trigger={
-              <Icon name='wizard' corner />}/>
+              <Icon name='wizard' />}/>
         </Menu.Item>
 
 
@@ -280,7 +281,6 @@ export class SideMenuNarrow extends Component {
           onClick={this.handleItemClick}
           active={this.props.location.pathname.startsWith('/statistics')}
           name='statistics'
-          content="Statistics"
           as={Link}
           to='/statistics'>
           <Popup 
@@ -289,14 +289,13 @@ export class SideMenuNarrow extends Component {
             position='right center'
             content="Cool Graphs"
             trigger={
-            <Icon name='bar chart' corner />}/>
+            <Icon name='bar chart' />}/>
         </Menu.Item>
 
         <Menu.Item
           onClick={this.handleItemClick}
           active={this.props.location.pathname.startsWith('/faces')}
           name='faces'
-          content="Faces"
           as={Link}
           to='/faces'>
           <Popup 
@@ -305,7 +304,7 @@ export class SideMenuNarrow extends Component {
             position='right center'
             content="Face Dashboard"
             trigger={
-            <Icon name='user circle outline' corner />}/>
+            <Icon name='user circle outline' />}/>
         </Menu.Item>
 
 
@@ -313,7 +312,6 @@ export class SideMenuNarrow extends Component {
           onClick={this.handleItemClick}
           active={this.props.location.pathname.startsWith('/setting')}
           name='settings'
-          content="Settings"
           as={Link}
           to='/settings'>
           <Popup 
@@ -322,7 +320,7 @@ export class SideMenuNarrow extends Component {
             position='right center'
             content="Settings"
             trigger={
-            <Icon name='options' corner />}/>
+            <Icon name='options' />}/>
         </Menu.Item>
 
         <Divider hidden/>
@@ -367,7 +365,6 @@ export class SideMenu extends Component {
 
 
     const { activeItem } = this.state
-    console.log('sidebar visible:',this.props.visible)
     return (
         <Sidebar
           as={Menu}
@@ -380,8 +377,7 @@ export class SideMenu extends Component {
           floated
           pointing          
           borderless
-          inverted
-          visible={this.props.visible}>
+          inverted>
 
           <Menu.Item name='logo'>
             <img src='/logo-white.png'/>

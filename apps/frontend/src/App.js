@@ -72,6 +72,7 @@ import {CountryPiChart} from './components/charts/countryPiChart'
 
 import {SearchView} from './layouts/search'
 import {SearchViewRV} from './layouts/searchRV'
+import {SearchMultipleCategories} from './layouts/searchMultipleResultsCategories'
 
 import {ImageInfoTable} from './components/imageInfoTable'
 import history from './history'
@@ -154,7 +155,7 @@ class App extends Component {
 
               <PrivateRoute path="/faces" component={FacesDashboardV2}/>
 
-              <PrivateRoute path="/search" component={SearchViewRV}/>
+              <PrivateRoute path="/search" component={SearchMultipleCategories}/>
 
               <PrivateRoute path='/person/:albumID' component={AlbumPersonGallery}/>
 

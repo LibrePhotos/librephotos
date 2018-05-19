@@ -129,7 +129,7 @@ export class AlbumThing extends Component {
           <Header as='h2'>
             <Icon name='tags' />
             <Header.Content>
-              Things
+              Things <Loader size='tiny' inline active={this.props.fetchingAlbumsThingList}/>
               <Header.Subheader>
                 Showing top {this.props.albumsThingList.length} things
               </Header.Subheader>
@@ -137,21 +137,23 @@ export class AlbumThing extends Component {
           </Header>
 
         </div>
-        <AutoSizer disableHeight style={{outline:'none',padding:0,margin:0}}>
-          {({width}) => (
-            <Grid
-              style={{outline:'none'}}
-              disableHeader={false}
-              cellRenderer={this.cellRenderer}
-              columnWidth={this.state.entrySquareSize}
-              columnCount={this.state.numEntrySquaresPerRow}
-              height={this.state.height - topMenuHeight - 60}
-              rowHeight={this.state.entrySquareSize+50}
-              rowCount={Math.ceil(this.props.albumsThingList.length/this.state.numEntrySquaresPerRow.toFixed(1))}
-              width={width}
-            />
-          )}
-        </AutoSizer>
+
+            <AutoSizer disableHeight style={{outline:'none',padding:0,margin:0}}>
+              {({width}) => (
+                <Grid
+                  style={{outline:'none'}}
+                  disableHeader={false}
+                  cellRenderer={this.cellRenderer}
+                  columnWidth={this.state.entrySquareSize}
+                  columnCount={this.state.numEntrySquaresPerRow}
+                  height={this.state.height - topMenuHeight - 60}
+                  rowHeight={this.state.entrySquareSize+50}
+                  rowCount={Math.ceil(this.props.albumsThingList.length/this.state.numEntrySquaresPerRow.toFixed(1))}
+                  width={width}
+                />
+              )}
+            </AutoSizer>  
+
       </div>
     )
   }
