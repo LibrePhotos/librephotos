@@ -30,7 +30,6 @@ if (window.innerWidth < 600) {
     var LIGHTBOX_SIDEBAR_WIDTH = 360
 }
 
-
 class ScrollSpeed {
   clear = () => {
     this.lastPosition = null;
@@ -52,93 +51,8 @@ class ScrollSpeed {
   }
 }
 
-
-const SPEED_THRESHOLD = 1000; // Tweak this to whatever feels right for your app
-const SCROLL_DEBOUNCE_DURATION = 100; // In milliseconds
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class DayGroupPlaceholder extends Component {
-    render () {
-        var numRows = Math.ceil(this.props.day.photos.length/this.props.numItemsPerRow.toFixed(1))
-        var gridHeight = this.props.itemSize * numRows
-        var photos = this.props.day.photos.map(function(photo) {
-            return (
-                <Image key={'daygroup_image_placeholder_'+photo.image_hash} style={{display:'inline-block',padding:1,margin:0}}
-                    height={this.props.itemSize} 
-                    width={this.props.itemSize} 
-                    src={'/thumbnail_placeholder.png'}/>
-            )
-        },this)
-        return (
-            <div key={'daygroup_placeholder_'+this.props.day}>
-                <div style={{fontSize:17,height:DAY_HEADER_HEIGHT,paddingTop:20,paddingBottom:5}}>
-                <Header as='h3'>
-                <Icon name='calendar outline'/>
-                <Header.Content>
-                { this.props.day.date=='No Timestamp' ? "No Timestamp" : moment(this.props.day.date).format("MMM Do YYYY, dddd")}
-                <Header.Subheader>
-                    <Icon name='photo'/>{this.props.day.photos.length} Photos
-                </Header.Subheader>
-                </Header.Content>
-                </Header>
-                </div>
-                <div style={{height:gridHeight}}>
-                {photos}
-                </div>
-            </div>
-        )
-    }
-}
-
-
-class DayGroup extends Component {
-    render () {
-        var photos = this.props.day.photos.map(function(photo) {
-            return (
-                <Image key={'daygroup_image_'+photo.image_hash} style={{display:'inline-block',padding:1,margin:0}}
-                    onClick={()=>{
-                        this.props.onPhotoClick(photo.image_hash)
-                    }}
-                    height={this.props.itemSize} 
-                    width={this.props.itemSize} 
-                    src={serverAddress+'/media/square_thumbnails/'+photo.image_hash+'.jpg'}/>
-            )
-        },this)
-        var gridHeight = this.props.itemSize * Math.ceil(this.props.day.photos.length/this.props.numItemsPerRow.toFixed(1))
-        return (
-            <div key={'daygroup_grid_'+this.props.day} style={{}}>
-                <div style={{fontSize:17,height:DAY_HEADER_HEIGHT,paddingTop:20,paddingBottom:5}}>
-                <Header as='h3'>
-                <Icon name='calendar outline'/>
-                <Header.Content>
-                { this.props.day.date=='No Timestamp' ? "No Timestamp" : moment(this.props.day.date).format("MMM Do YYYY, dddd")}
-                <Header.Subheader>
-                    <Icon name='photo'/>{this.props.day.photos.length} Photos
-                </Header.Subheader>
-                </Header.Content>
-                </Header>
-                </div>
-                <div style={{height:gridHeight}}>
-                {photos}
-                </div>
-            </div>
-        )
-    }
-}
-
+const SPEED_THRESHOLD = 500; // Tweak this to whatever feels right for your app
+const SCROLL_DEBOUNCE_DURATION = 250; // In milliseconds
 
 const calculateGridCells = (groupedByDateList,itemsPerRow) => {
   var gridContents = []
@@ -166,19 +80,14 @@ const calculateGridCells = (groupedByDateList,itemsPerRow) => {
 
     })
   })
-
   return {cellContents:gridContents,hash2row:hash2row}
-
 }
-
-
 
 export class SearchMultipleCategories extends Component {
 
     constructor(props){
         super(props)
         this.cellRenderer = this.cellRenderer.bind(this)
-        this.getRowHeight = this.getRowHeight.bind(this)
         this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this)
         this.onPhotoClick = this.onPhotoClick.bind(this)
         this.getPhotoDetails = this.getPhotoDetails.bind(this)
@@ -283,24 +192,37 @@ export class SearchMultipleCategories extends Component {
         if (this.state.cellContents[rowIndex][columnIndex]) { // non-empty cell
             const cell = this.state.cellContents[rowIndex][columnIndex]
             if (cell.date) { // header cell has 'date' attribute
-                return (
-                    <div key={key} style={{...style,width:this.state.width,height:DAY_HEADER_HEIGHT,paddingTop:20}}>
-                        <div style={{backgroundColor:'white'}}>
-
-                            <Header as='h3'>
-                            <Icon name='calendar outline'/>
-                            <Header.Content>
-                            { cell.date=='No Timestamp' ? "No Timestamp" : moment(cell.date).format("MMM Do YYYY, dddd")}
-                            <Header.Subheader>
-                                <Icon name='photo'/>{cell.photos.length} Photos
-                            </Header.Subheader>
-                            </Header.Content>
-                            </Header>
-
-                        </div>
-                    </div>                
-                )
-            } else {
+                if (!this.state.isScrollingFast){
+                    return ( 
+                        <div key={key} style={{...style,width:this.state.width,height:DAY_HEADER_HEIGHT,paddingTop:20}}>
+                            <div style={{backgroundColor:'white'}}>
+    
+                                <Header as='h3'>
+                                <Icon name='calendar outline'/>
+                                <Header.Content>
+                                { cell.date=='No Timestamp' ? "No Timestamp" : moment(cell.date).format("MMM Do YYYY, dddd")}
+                                <Header.Subheader>
+                                    <Icon name='photo'/>{cell.photos.length} Photos
+                                </Header.Subheader>
+                                </Header.Content>
+                                </Header>
+    
+                            </div>
+                        </div>                
+                    )    
+                } else {
+                    return (
+                        <div key={key} style={{
+                            ...style,
+                            backgroundColor:'#dddddd',
+                            width:250,
+                            marginTop:2,
+                            height:DAY_HEADER_HEIGHT-4,
+                            paddingTop:10}}>
+                        </div>                
+                    )        
+                }
+            } else { // photo cell doesn't have 'date' attribute
                 if (!this.state.isScrollingFast) {
                     return (
                         <div key={key} style={style}>
@@ -310,19 +232,15 @@ export class SearchMultipleCategories extends Component {
                                 }}
                                 height={this.state.entrySquareSize} 
                                 width={this.state.entrySquareSize} 
-                                src={serverAddress+'/media/square_thumbnails/'+cell.image_hash+'.jpg'}/>
+                                src={serverAddress+'/media/square_thumbnails_small/'+cell.image_hash+'.jpg'}/>
                         </div>                                
                     )
                 } else {
                     return (
-                        <div key={key} style={style}>
-                            <Image key={'daygroup_image_'+cell.image_hash} style={{display:'inline-block',padding:1,margin:0}}
-                                onClick={()=>{
-                                    this.onPhotoClick(cell.image_hash)
-                                }}
-                                height={this.state.entrySquareSize} 
-                                width={this.state.entrySquareSize} 
-                                src={'/thumbnail_placeholder.png'}/>
+                        <div key={key} style={{...style,
+                            width:this.state.entrySquareSize-2,
+                            height:this.state.entrySquareSize-2,
+                            backgroundColor:'#eeeeee'}}>
                         </div>                                
                     )
                 }
@@ -337,54 +255,11 @@ export class SearchMultipleCategories extends Component {
         }
     }
 
-    rowRenderer = ({index, isScrolling, key, style}) => {
-        const {isScrollingFast} = this.state;
-        var rowHeight = this.state.entrySquareSize * Math.ceil(this.props.searchPhotosResGroupedByDate[index].photos.length/this.state.numEntrySquaresPerRow.toFixed(1)) + DAY_HEADER_HEIGHT
-        if (isScrollingFast) {
-            return (
-                <div key={key} style={{...style,height:rowHeight}}>
-                    <div style={{backgroundColor:'white'}}>
-                    <DayGroupPlaceholder
-                        key={index}
-                        onPhotoClick={this.onPhotoClick}
-                        day={this.props.searchPhotosResGroupedByDate[index]} 
-                        itemSize={this.state.entrySquareSize} 
-                        numItemsPerRow={this.state.numEntrySquaresPerRow}/>
-                    </div>
-                </div>
-            )
-        }
-        else {
-            return (
-                <div key={key} style={{...style,height:rowHeight}}>
-                    <div style={{backgroundColor:'white'}}>
-                    <DayGroup 
-                        key={index}
-                        onPhotoClick={this.onPhotoClick}
-                        day={this.props.searchPhotosResGroupedByDate[index]} 
-                        itemSize={this.state.entrySquareSize} 
-                        numItemsPerRow={this.state.numEntrySquaresPerRow}/>
-                    </div>
-                </div>
-            )        }
-    }
-
-    getRowHeight = ({index}) => {
-        var rowHeight = this.state.entrySquareSize * Math.ceil(this.props.searchPhotosResGroupedByDate[index].photos.length/this.state.numEntrySquaresPerRow.toFixed(1)) + DAY_HEADER_HEIGHT
-        return (
-            rowHeight
-        )
-    }
-
 
     onPhotoClick(hash) {
         this.setState({lightboxImageIndex:this.props.idx2hash.indexOf(hash),lightboxShow:true})
     }
 
-    _setRef = windowScroller => {
-        this._windowScroller = windowScroller;
-    };
-    
     getPhotoDetails(image_hash) {
         if (!this.props.photoDetails.hasOwnProperty(image_hash)) {
             this.props.dispatch(fetchPhotoDetail(image_hash))
@@ -454,12 +329,13 @@ export class SearchMultipleCategories extends Component {
                                 })
                             } else {
                                 this.setState({
-                                    date:moment(date).format("MMMM YYYY"),
+                                    date:moment(date).format("MMMM Do YYYY"),
                                     fromNow:moment(date).fromNow()
                                 })
                             }
                         }
                       }}
+                      overscanRowCount={5}
                       style={{outline:'none'}}
                       cellRenderer={this.cellRenderer}
                       onScroll={this.handleScroll}
@@ -479,11 +355,6 @@ export class SearchMultipleCategories extends Component {
                     />
                   )}
                 </AutoSizer>
-
-
-
-
-
 
             { this.state.cellContents[this.state.currTopRenderedRowIdx][0] && (
                 <div style={{
@@ -543,8 +414,6 @@ export class SearchMultipleCategories extends Component {
                             this.getPhotoDetails(this.props.idx2hash[nextIndex])
                         }}/>
                 }
-
-
 
             </div>
             

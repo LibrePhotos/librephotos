@@ -1,11 +1,11 @@
 import React, {Component} from 'react';
 import ReactDOM from 'react-dom';
-import { List, WindowScroller,AutoSizer } from 'react-virtualized';
+import { Grid, List, WindowScroller,AutoSizer } from 'react-virtualized';
 import 'react-virtualized/styles.css'; // only needs to be imported once
 import { connect } from "react-redux";
 import {  fetchDateAlbumsPhotoHashList,fetchAlbumsDateGalleries} from '../actions/albumsActions'
 import {  fetchPhotoDetail} from '../actions/photosActions'
-import { Card, Image, Header, Divider, Item, Loader, Dimmer, Modal, Sticky, Portal, Grid, List as ListSUI,
+import { Card, Image, Header, Divider, Item, Loader, Dimmer, Modal, Sticky, Portal, List as ListSUI,
          Container, Label, Popup, Segment, Button, Icon, Table, Transition, Breadcrumb} from 'semantic-ui-react';
 import {Server, serverAddress} from '../api_client/apiClient'
 import {LightBox} from '../components/lightBox'
@@ -55,158 +55,51 @@ class ScrollSpeed {
 }
 
 
-const SPEED_THRESHOLD = 1000; // Tweak this to whatever feels right for your app
-const SCROLL_DEBOUNCE_DURATION = 100; // In milliseconds
+const SPEED_THRESHOLD = 500; // Tweak this to whatever feels right for your app
+const SCROLL_DEBOUNCE_DURATION = 250; // In milliseconds
 
-class DraggableDay extends Component {
-    constructor(props){
-        super(props)
-        this.onStart = this.onStart.bind(this)
-        this.onStop = this.onStop.bind(this)
-        this.handleDrag = this.handleDrag.bind(this)
-        this.state = {
-            activeDrags:0,
-            deltaPosition:{x:0,y:0}
+const calculateGridCells = (groupedByDateList,itemsPerRow) => {
+    var gridContents = []
+    var rowCursor = []
+    var hash2row = {}
+  
+    groupedByDateList.forEach((day)=>{
+      gridContents.push([day])
+      var currRowIdx = gridContents.length
+      day.photos.forEach((photo,idx)=>{
+        if (idx ==0 ) {
+          rowCursor = []
         }
-    }
+        if (idx > 0 && idx % itemsPerRow == 0) {
+          gridContents.push(rowCursor)
+        }
+        if (idx % itemsPerRow == 0) {
+          rowCursor = []
+        }
+        rowCursor.push(photo)
+        hash2row[[photo.image_hash]] = currRowIdx
+        if (idx == day.photos.length-1) {
+          gridContents.push(rowCursor)        
+        }
+  
+      })
+    })
+    return {cellContents:gridContents,hash2row:hash2row}
+  }
 
-    handleDrag(e, ui) {
-        const {x, y} = this.state.deltaPosition;
-        this.setState({
-          deltaPosition: {
-            x: x + ui.deltaX,
-            y: y + ui.deltaY,
-          }
-        });
-    }
-
-
-    onStart() {
-        this.setState({activeDrags: ++this.state.activeDrags});
-    }
-
-    onStop() {
-        this.setState({activeDrags: --this.state.activeDrags});
-    }
-
-    render () {
-        const dragHandlers = {onStart: this.onStart, onStop: this.onStop};
-        const {deltaPosition} = this.state;
-        return (
-            <Draggable 
-                onStart={this.onStart}
-                onDrag={this.handleDrag}
-                onStop={this.onStop}
-                axis='y'
-                handle=".handle"
-                defaultPosition={{x:15,y:-4}}
-                position={{x:15,y:-4}}>
-                <div style={{zIndex:1000}}>
-
-
-                <div style={{padding:5,textAlign:'left'}} className='handle'>
-                    <Icon name='calendar outline'/><b>{moment(this.props.date).format("MMM Do YY, dddd") }</b> <br/>
-                </div>
-                <div style={{textAlign:'right'}}>
-                    {moment(this.props.date).fromNow()}
-                </div>
-
-                </div>
-            </Draggable>
-        )
-    }
-}
-
-
-class DayGroupPlaceholder extends Component {
-    render () {
-        var numRows = Math.ceil(this.props.day.photos.length/this.props.numItemsPerRow.toFixed(1))
-        var gridHeight = this.props.itemSize * numRows
-        var photos = this.props.day.photos.map(function(photo) {
-            return (
-                <Image key={'daygroup_image_placeholder_'+photo.image_hash} style={{display:'inline-block',padding:1,margin:0}}
-                    height={this.props.itemSize} 
-                    width={this.props.itemSize} 
-                    src={'/thumbnail_placeholder.png'}/>
-            )
-        },this)
-        return (
-            <div key={'daygroup_placeholder_'+this.props.day}>
-                <div style={{fontSize:17,height:DAY_HEADER_HEIGHT,paddingTop:20,paddingBottom:5}}>
-                <Header as='h3'>
-                <Icon name='calendar outline'/>
-                <Header.Content>
-                {moment(this.props.day.date).format("MMM Do YYYY, dddd")}
-                <Header.Subheader>
-                {this.props.day.location ? (
-                    <p>{this.props.day.location.places.join(', ')}</p>
-                ) : (
-                    <p>{'Unknown location'}</p>
-                )}
-                </Header.Subheader>
-                </Header.Content>
-                </Header>
-                </div>
-                <div style={{height:gridHeight}}>
-                {photos}
-                </div>
-            </div>
-        )
-    }
-}
-
-
-class DayGroup extends Component {
-    render () {
-        var photos = this.props.day.photos.map(function(photo) {
-            return (
-                <Image key={'daygroup_image_'+photo.image_hash} style={{display:'inline-block',padding:1,margin:0}}
-                    onClick={()=>{
-                        this.props.onPhotoClick(photo.image_hash)
-                    }}
-                    height={this.props.itemSize} 
-                    width={this.props.itemSize} 
-                    src={serverAddress+'/media/square_thumbnails/'+photo.image_hash+'.jpg'}/>
-            )
-        },this)
-        var gridHeight = this.props.itemSize * Math.ceil(this.props.day.photos.length/this.props.numItemsPerRow.toFixed(1))
-        return (
-            <div key={'daygroup_grid_'+this.props.day} style={{}}>
-                <div style={{fontSize:17,height:DAY_HEADER_HEIGHT,paddingTop:20,paddingBottom:5}}>
-                <Header as='h3'>
-                <Icon name='calendar outline'/>
-                <Header.Content>
-                {moment(this.props.day.date).format("MMM Do YYYY, dddd")}
-                <Header.Subheader>
-                
-                {this.props.day.location ? (
-                    <p><Icon name='map outline'/>{this.props.day.location.places.join(', ')}</p>
-                ) : (
-                    <p>{'Unknown location'}</p>
-                )}
-                </Header.Subheader>
-                </Header.Content>
-                </Header>
-                </div>
-                <div style={{height:gridHeight}}>
-                {photos}
-                </div>
-            </div>
-        )
-    }
-}
 
 export class AllPhotosHashListViewRV extends Component {
 
     constructor(props){
         super(props)
         this.cellRenderer = this.cellRenderer.bind(this)
-        this.getRowHeight = this.getRowHeight.bind(this)
         this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this)
         this.onPhotoClick = this.onPhotoClick.bind(this)
         this.getPhotoDetails = this.getPhotoDetails.bind(this)
         this.listRef = React.createRef()
         this.state = {
+            cellContents: [[]],
+            hash2row: {},
             idx2hash: [],
             lightboxImageIndex: 1,
             lightboxShow:false,
@@ -215,6 +108,7 @@ export class AllPhotosHashListViewRV extends Component {
             width:  window.innerWidth,
             height: window.innerHeight,
             entrySquareSize:200,
+            numEntrySquaresPerRow:3,
             currTopRenderedRowIdx:0,
             scrollTop:0
         }
@@ -249,7 +143,7 @@ export class AllPhotosHashListViewRV extends Component {
 
 
 
-    componentWillMount() {
+    componentDidMount() {
         if (this.props.albumsDatePhotoHashList.length < 1) {
             this.props.dispatch(fetchDateAlbumsPhotoHashList())
         }
@@ -283,6 +177,8 @@ export class AllPhotosHashListViewRV extends Component {
 
         var entrySquareSize = columnWidth / numEntrySquaresPerRow
         var numEntrySquaresPerRow = numEntrySquaresPerRow
+        var {cellContents,hash2row} = calculateGridCells(this.props.albumsDatePhotoHashList,numEntrySquaresPerRow)
+
         this.setState({
             width:  window.innerWidth,
             height: window.innerHeight,
@@ -290,58 +186,82 @@ export class AllPhotosHashListViewRV extends Component {
             numEntrySquaresPerRow:numEntrySquaresPerRow
         })
         if (this.listRef.current) {
-            this.listRef.current.recomputeRowHeights()
+            this.listRef.current.recomputeGridSize()
         }
     }
 
     cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-        return (
-            <div key={key} style={style}>
-                <div style={{backgroundColor:'white'}}>
-                hello from row {rowIndex}
-                </div>
-            </div>
-        )
-    }
+        if (this.state.cellContents[rowIndex][columnIndex]) { // non-empty cell
+            const cell = this.state.cellContents[rowIndex][columnIndex]
+            if (cell.date) { // header cell has 'date' attribute
+                if (!this.state.isScrollingFast){
+                    return ( 
+                        <div key={key} style={{...style,width:this.state.width,height:DAY_HEADER_HEIGHT,paddingTop:20}}>
+                            <div style={{backgroundColor:'white'}}>
+    
+                                <Header as='h3'>
+                                <Icon name='calendar outline'/>
+                                <Header.Content>
+                                { cell.date=='No Timestamp' ? "No Timestamp" : moment(cell.date).format("MMM Do YYYY, dddd")}
+                                <Header.Subheader>
+                                    { cell.location ? (
+                                        <p><Icon name='map'/> {cell.location.places.join(', ')}</p>
+                                    ) : (
+                                        <p><Icon name='image'/>{cell.photos.length} Photo(s)</p>
+                                    )
+                                    }
+                                </Header.Subheader>
+                                </Header.Content>
+                                </Header>
+    
+                            </div>
+                        </div>                
+                    )    
+                } else {
+                    return (
+                        <div key={key} style={{
+                            ...style,
+                            backgroundColor:'#dddddd',
+                            width:250,
+                            marginTop:2,
+                            height:DAY_HEADER_HEIGHT-4,
+                            paddingTop:10}}>
+                        </div>                
+                    )        
+                }
+            } else { // photo cell doesn't have 'date' attribute
+                if (!this.state.isScrollingFast) {
+                    return (
+                        <div key={key} style={style}>
+                            <Image key={'daygroup_image_'+cell.image_hash} style={{display:'inline-block',padding:1,margin:0}}
+                                onClick={()=>{
+                                    this.onPhotoClick(cell.image_hash)
+                                }}
+                                height={this.state.entrySquareSize} 
+                                width={this.state.entrySquareSize} 
+                                src={serverAddress+'/media/square_thumbnails_small/'+cell.image_hash+'.jpg'}/>
+                        </div>                                
+                    )
+                } else {
+                    return (
+                        <div key={key} style={{...style,
+                            width:this.state.entrySquareSize-2,
+                            height:this.state.entrySquareSize-2,
+                            backgroundColor:'#eeeeee'}}>
+                        </div>                                
+                    )
+                }
 
-    rowRenderer = ({index, isScrolling, key, style}) => {
-        const {isScrollingFast} = this.state;
-        var rowHeight = this.state.entrySquareSize * Math.ceil(this.props.albumsDatePhotoHashList[index].photos.length/this.state.numEntrySquaresPerRow.toFixed(1)) + DAY_HEADER_HEIGHT
-        if (isScrollingFast) {
+            }
+
+        } else { // empty cell
             return (
-                <div key={key} style={{...style,height:rowHeight}}>
-                    <div style={{backgroundColor:'white'}}>
-                    <DayGroupPlaceholder
-                        key={index}
-                        onPhotoClick={this.onPhotoClick}
-                        day={this.props.albumsDatePhotoHashList[index]} 
-                        itemSize={this.state.entrySquareSize} 
-                        numItemsPerRow={this.state.numEntrySquaresPerRow}/>
-                    </div>
+                <div key={key} style={style}>
                 </div>
             )
         }
-        else {
-            return (
-                <div key={key} style={{...style,height:rowHeight}}>
-                    <div style={{backgroundColor:'white'}}>
-                    <DayGroup 
-                        key={index}
-                        onPhotoClick={this.onPhotoClick}
-                        day={this.props.albumsDatePhotoHashList[index]} 
-                        itemSize={this.state.entrySquareSize} 
-                        numItemsPerRow={this.state.numEntrySquaresPerRow}/>
-                    </div>
-                </div>
-            )        }
     }
 
-    getRowHeight = ({index}) => {
-        var rowHeight = this.state.entrySquareSize * Math.ceil(this.props.albumsDatePhotoHashList[index].photos.length/this.state.numEntrySquaresPerRow.toFixed(1)) + DAY_HEADER_HEIGHT
-        return (
-            rowHeight
-        )
-    }
 
 
     onPhotoClick(hash) {
@@ -359,15 +279,24 @@ export class AllPhotosHashListViewRV extends Component {
         }
     }
 
+
+    static getDerivedStateFromProps(nextProps,prevState){
+        const {cellContents,hash2row} = calculateGridCells(nextProps.albumsDatePhotoHashList,prevState.numEntrySquaresPerRow)
+        return {...prevState,cellContents,hash2row}
+    }
+
+
     render() {
         const {lightboxImageIndex} = this.state
         if ( this.props.idx2hash.length < 1 ||this.props.albumsDatePhotoHashList.length < 1) {
             return (<div><Loader active/></div>)
         }
-        var totalListHeight = this.props.albumsDatePhotoHashList.map((day,index)=>{
-            return (
-                this.getRowHeight({index})
-            )
+        var totalListHeight = this.state.cellContents.map((row,index)=>{
+            if (row[0].date) { //header row
+                return DAY_HEADER_HEIGHT
+            } else { //photo row
+                return this.state.entrySquareSize
+            }
         }).reduce((a,b)=>(a+b),0)
         return (
             <div>
@@ -385,22 +314,48 @@ export class AllPhotosHashListViewRV extends Component {
 
                 </div>
 
-                    <List
-                        ref={this.listRef}
-                        style={{outline:'none',paddingRight:0,marginRight:0}}
-                        onRowsRendered={({ overscanStartIndex, overscanStopIndex, startIndex, stopIndex })=>{
-                            this.setState({currTopRenderedRowIdx:startIndex})
-                        }}
-                        height={this.state.height-topMenuHeight-60}
-                        overscanRowCount={5}
-                        rowCount={this.props.albumsDatePhotoHashList.length}
-                        rowHeight={this.getRowHeight}
-                        rowRenderer={this.rowRenderer}
-                        onScroll={this.handleScroll}
-                        estimatedRowSize={totalListHeight/this.props.albumsDatePhotoHashList.length.toFixed(10)}
-                        width={this.state.width-leftMenuWidth-5}/>
+                <AutoSizer disableHeight style={{outline:'none',padding:0,margin:0}}>
+                  {({width}) => (
+                    <Grid
+                      ref={this.listRef}
+                      onSectionRendered={({rowStartIndex})=>{
+                        var date = this.state.cellContents[rowStartIndex][0].date
+                        if (date) {
+                            if (date=='No Timestamp') {
+                                this.setState({
+                                    date:date,
+                                    fromNow:date
+                                })
+                            } else {
+                                this.setState({
+                                    date:moment(date).format("MMMM Do YYYY"),
+                                    fromNow:moment(date).fromNow()
+                                })
+                            }
+                        }
+                      }}
+                      overscanRowCount={5}
+                      style={{outline:'none'}}
+                      cellRenderer={this.cellRenderer}
+                      onScroll={this.handleScroll}
+                      columnWidth={this.state.entrySquareSize}
+                      columnCount={this.state.numEntrySquaresPerRow}
+                      height={this.state.height- topMenuHeight - 60}
+                      estimatedRowSize={totalListHeight/this.state.cellContents.length.toFixed(1)}
+                      rowHeight={({index})=> {
+                        if (this.state.cellContents[index][0].date) { //header row
+                            return DAY_HEADER_HEIGHT
+                        } else { //photo row
+                            return this.state.entrySquareSize
+                        }
+                      }}
+                      rowCount={this.state.cellContents.length}
+                      width={width}
+                    />
+                  )}
+                </AutoSizer>
 
-            { (
+            { this.state.cellContents[this.state.currTopRenderedRowIdx][0] && (
                 <div style={{
                     right:0,
                     top:topMenuHeight + 10+ (0 / totalListHeight) * (this.state.height - topMenuHeight - 50 - 20),
@@ -412,10 +367,10 @@ export class AllPhotosHashListViewRV extends Component {
                     zIndex:100,
                 }}>
                     <div style={{textAlign:'right',paddingRight:30}} className='handle'>
-                        <b>{moment(this.props.albumsDatePhotoHashList[this.state.currTopRenderedRowIdx].date).format("MMMM YYYY") }</b> <br/>
+                        <b>{this.state.date}</b> <br/>
                     </div>
                     <div style={{textAlign:'right',paddingRight:30}}>
-                        {moment(this.props.albumsDatePhotoHashList[this.state.currTopRenderedRowIdx].date).fromNow()}
+                        {this.state.fromNow}
                     </div>
                 </div>
             )}
