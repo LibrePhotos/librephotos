@@ -18,6 +18,9 @@ import {searchPhotos} from '../actions/searchActions'
 import * as moment from 'moment';
 import debounce from 'lodash/debounce'
 
+import {calculateGridCells, calculateGridCellSize} from '../util/gridUtils'
+import {ScrollSpeed, SPEED_THRESHOLD, SCROLL_DEBOUNCE_DURATION} from '../util/scrollUtils'
+
 var topMenuHeight = 55 // don't change this
 var leftMenuWidth = 85 // don't change this
 var SIDEBAR_WIDTH = 85
@@ -30,65 +33,13 @@ if (window.innerWidth < 600) {
     var LIGHTBOX_SIDEBAR_WIDTH = 360
 }
 
-class ScrollSpeed {
-  clear = () => {
-    this.lastPosition = null;
-    this.delta = 0;
-  };
-  getScrollSpeed(scrollOffset) {
-    if (this.lastPosition != null) {
-      this.delta = scrollOffset - this.lastPosition;
-    }
-    this.lastPosition = scrollOffset;
-
-    window.clearTimeout(this._timeout);
-    this._timeout = window.setTimeout(this.clear, 50);
-
-    return this.delta;
-  }
-  clearTimeout() {
-    window.clearTimeout(this._timeout)
-  }
-}
-
-const SPEED_THRESHOLD = 500; // Tweak this to whatever feels right for your app
-const SCROLL_DEBOUNCE_DURATION = 250; // In milliseconds
-
-const calculateGridCells = (groupedByDateList,itemsPerRow) => {
-  var gridContents = []
-  var rowCursor = []
-  var hash2row = {}
-
-  groupedByDateList.forEach((day)=>{
-    gridContents.push([day])
-    var currRowIdx = gridContents.length
-    day.photos.forEach((photo,idx)=>{
-      if (idx ==0 ) {
-        rowCursor = []
-      }
-      if (idx > 0 && idx % itemsPerRow == 0) {
-        gridContents.push(rowCursor)
-      }
-      if (idx % itemsPerRow == 0) {
-        rowCursor = []
-      }
-      rowCursor.push(photo)
-      hash2row[[photo.image_hash]] = currRowIdx
-      if (idx == day.photos.length-1) {
-        gridContents.push(rowCursor)        
-      }
-
-    })
-  })
-  return {cellContents:gridContents,hash2row:hash2row}
-}
 
 export class SearchMultipleCategories extends Component {
 
     constructor(props){
         super(props)
         this.cellRenderer = this.cellRenderer.bind(this)
-        this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this)
+        this.handleResize = this.handleResize.bind(this)
         this.onPhotoClick = this.onPhotoClick.bind(this)
         this.getPhotoDetails = this.getPhotoDetails.bind(this)
         this.listRef = React.createRef()
@@ -105,7 +56,7 @@ export class SearchMultipleCategories extends Component {
             entrySquareSize:200,
             numEntrySquaresPerRow:3,
             currTopRenderedRowIdx:0,
-            scrollTop:0
+            scrollTop:0,
         }
     }
 
@@ -142,38 +93,18 @@ export class SearchMultipleCategories extends Component {
         //if (this.props.albumsDatePhotoHashList.length < 1) {
         //    this.props.dispatch(fetchDateAlbumsPhotoHashList())
         //}
-        this.calculateEntrySquareSize();
-        window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
+        this.handleResize();
+        window.addEventListener("resize", this.handleResize.bind(this));
     }
     componentWillUnmount() {
-        window.removeEventListener("resize", this.calculateEntrySquareSize.bind(this))
+        window.removeEventListener("resize", this.handleResize.bind(this))
         this.scrollSpeedHandler.clearTimeout()
     }
 
-    calculateEntrySquareSize() {
-        if (window.innerWidth < 600) {
-            var numEntrySquaresPerRow = 3
-        } 
-        else if (window.innerWidth < 800) {
-            var numEntrySquaresPerRow = 4
-        }
-        else if (window.innerWidth < 1000) {
-            var numEntrySquaresPerRow = 6
-        }
-        else if (window.innerWidth < 1200) {
-            var numEntrySquaresPerRow = 6
-        }
-        else {
-            var numEntrySquaresPerRow = 6 
-        }
-
+    handleResize() {
         var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10
-
-
-        var entrySquareSize = columnWidth / numEntrySquaresPerRow
-        var numEntrySquaresPerRow = numEntrySquaresPerRow
+        const {entrySquareSize,numEntrySquaresPerRow} = calculateGridCellSize(columnWidth)
         var {cellContents,hash2row} = calculateGridCells(this.props.searchPhotosResGroupedByDate,numEntrySquaresPerRow)
-
 
         this.setState({
             width:  window.innerWidth,
@@ -192,24 +123,23 @@ export class SearchMultipleCategories extends Component {
         if (this.state.cellContents[rowIndex][columnIndex]) { // non-empty cell
             const cell = this.state.cellContents[rowIndex][columnIndex]
             if (cell.date) { // header cell has 'date' attribute
-                if (!this.state.isScrollingFast){
-                    return ( 
-                        <div key={key} style={{...style,width:this.state.width,height:DAY_HEADER_HEIGHT,paddingTop:20}}>
-                            <div style={{backgroundColor:'white'}}>
-    
-                                <Header as='h3'>
+                return ( 
+                    <div key={key} style={{...style,width:this.state.width,height:DAY_HEADER_HEIGHT,paddingTop:20}}>
+                        <div style={{backgroundColor:'white'}}>
+                            <Header as='h3'>
                                 <Icon name='calendar outline'/>
                                 <Header.Content>
-                                { cell.date=='No Timestamp' ? "No Timestamp" : moment(cell.date).format("MMM Do YYYY, dddd")}
-                                <Header.Subheader>
-                                    <Icon name='photo'/>{cell.photos.length} Photos
-                                </Header.Subheader>
+                                    { cell.date=='No Timestamp' ? "No Timestamp" : moment(cell.date).format("MMM Do YYYY, dddd")}
+                                    <Header.Subheader>
+                                        <Icon name='photo'/>{cell.photos.length} Photos
+                                    </Header.Subheader>
                                 </Header.Content>
-                                </Header>
-    
-                            </div>
-                        </div>                
-                    )    
+                            </Header>
+                        </div>
+                    </div>                
+                )   
+                /*
+                if (!this.state.isScrollingFast){
                 } else {
                     return (
                         <div key={key} style={{
@@ -221,7 +151,8 @@ export class SearchMultipleCategories extends Component {
                             paddingTop:10}}>
                         </div>                
                     )        
-                }
+                } 
+                */
             } else { // photo cell doesn't have 'date' attribute
                 if (!this.state.isScrollingFast) {
                     return (
@@ -232,7 +163,7 @@ export class SearchMultipleCategories extends Component {
                                 }}
                                 height={this.state.entrySquareSize} 
                                 width={this.state.entrySquareSize} 
-                                src={serverAddress+'/media/square_thumbnails_small/'+cell.image_hash+'.jpg'}/>
+                                src={serverAddress+'/media/square_thumbnails/'+cell.image_hash+'.jpg'}/>
                         </div>                                
                     )
                 } else {
@@ -295,7 +226,7 @@ export class SearchMultipleCategories extends Component {
                 return this.state.entrySquareSize
             }
         }).reduce((a,b)=>(a+b),0)
-
+        console.log(this.state.cellContents)
 
         return (
             <div>
@@ -324,11 +255,13 @@ export class SearchMultipleCategories extends Component {
                         if (date) {
                             if (date=='No Timestamp') {
                                 this.setState({
+                                    currTopRenderedRowIdx:rowStartIndex,
                                     date:date,
                                     fromNow:date
                                 })
                             } else {
                                 this.setState({
+                                    currTopRenderedRowIdx:rowStartIndex,
                                     date:moment(date).format("MMMM Do YYYY"),
                                     fromNow:moment(date).fromNow()
                                 })

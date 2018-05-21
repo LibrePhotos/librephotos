@@ -181,7 +181,11 @@ export class SideMenuNarrow extends Component {
             position='right center'
             content="All Photos"
             trigger={
-              <Icon name='camera' />}/>
+            <Icon.Group size='big'>
+              <Icon name='camera' />
+              <Icon corner name='info circle' color='green' />
+            </Icon.Group>
+            }/>
         </Menu.Item>
 
 

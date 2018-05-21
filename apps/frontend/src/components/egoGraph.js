@@ -52,9 +52,9 @@ export class EgoGraph extends Component {
 		}
 
 		return (
-	        <Segment style={{padding:0,height:this.props.height}}>
+	        <div style={{padding:0,height:this.props.height}}>
   			{graph}
-			</Segment>
+			</div>
 		)
 	}
 }

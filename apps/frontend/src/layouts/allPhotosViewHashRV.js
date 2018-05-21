@@ -19,6 +19,9 @@ import Draggable from 'react-draggable';
 import debounce from 'lodash/debounce'
 import * as moment from 'moment';
 
+import {calculateGridCells, calculateGridCellSize} from '../util/gridUtils'
+import {ScrollSpeed, SPEED_THRESHOLD, SCROLL_DEBOUNCE_DURATION} from '../util/scrollUtils'
+
 var topMenuHeight = 55 // don't change this
 var leftMenuWidth = 85 // don't change this
 var SIDEBAR_WIDTH = 85
@@ -32,68 +35,12 @@ if (window.innerWidth < 600) {
 }
 
 
-
-class ScrollSpeed {
-  clear = () => {
-    this.lastPosition = null;
-    this.delta = 0;
-  };
-  getScrollSpeed(scrollOffset) {
-    if (this.lastPosition != null) {
-      this.delta = scrollOffset - this.lastPosition;
-    }
-    this.lastPosition = scrollOffset;
-
-    window.clearTimeout(this._timeout);
-    this._timeout = window.setTimeout(this.clear, 50);
-
-    return this.delta;
-  }
-  clearTimeout() {
-    window.clearTimeout(this._timeout)
-  }
-}
-
-
-const SPEED_THRESHOLD = 500; // Tweak this to whatever feels right for your app
-const SCROLL_DEBOUNCE_DURATION = 250; // In milliseconds
-
-const calculateGridCells = (groupedByDateList,itemsPerRow) => {
-    var gridContents = []
-    var rowCursor = []
-    var hash2row = {}
-  
-    groupedByDateList.forEach((day)=>{
-      gridContents.push([day])
-      var currRowIdx = gridContents.length
-      day.photos.forEach((photo,idx)=>{
-        if (idx ==0 ) {
-          rowCursor = []
-        }
-        if (idx > 0 && idx % itemsPerRow == 0) {
-          gridContents.push(rowCursor)
-        }
-        if (idx % itemsPerRow == 0) {
-          rowCursor = []
-        }
-        rowCursor.push(photo)
-        hash2row[[photo.image_hash]] = currRowIdx
-        if (idx == day.photos.length-1) {
-          gridContents.push(rowCursor)        
-        }
-  
-      })
-    })
-    return {cellContents:gridContents,hash2row:hash2row}
-  }
-
-
 export class AllPhotosHashListViewRV extends Component {
 
     constructor(props){
         super(props)
         this.cellRenderer = this.cellRenderer.bind(this)
-        this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this)
+        this.handleResize = this.handleResize.bind(this)
         this.onPhotoClick = this.onPhotoClick.bind(this)
         this.getPhotoDetails = this.getPhotoDetails.bind(this)
         this.listRef = React.createRef()
@@ -147,43 +94,26 @@ export class AllPhotosHashListViewRV extends Component {
         if (this.props.albumsDatePhotoHashList.length < 1) {
             this.props.dispatch(fetchDateAlbumsPhotoHashList())
         }
-        this.calculateEntrySquareSize();
-        window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
+        this.handleResize();
+        window.addEventListener("resize", this.handleResize.bind(this));
     }
   componentWillUnmount() {
-    window.removeEventListener("resize", this.calculateEntrySquareSize.bind(this))
+    window.removeEventListener("resize", this.handleResize.bind(this))
     this.scrollSpeedHandler.clearTimeout()
   }
 
-    calculateEntrySquareSize() {
-        if (window.innerWidth < 600) {
-            var numEntrySquaresPerRow = 2
-        } 
-        else if (window.innerWidth < 800) {
-            var numEntrySquaresPerRow = 4
-        }
-        else if (window.innerWidth < 1000) {
-            var numEntrySquaresPerRow = 6
-        }
-        else if (window.innerWidth < 1200) {
-            var numEntrySquaresPerRow = 6
-        }
-        else {
-            var numEntrySquaresPerRow = 6 
-        }
-
+    handleResize() {
         var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10
-
-
-        var entrySquareSize = columnWidth / numEntrySquaresPerRow
-        var numEntrySquaresPerRow = numEntrySquaresPerRow
+        const {entrySquareSize,numEntrySquaresPerRow} = calculateGridCellSize(columnWidth)
         var {cellContents,hash2row} = calculateGridCells(this.props.albumsDatePhotoHashList,numEntrySquaresPerRow)
 
         this.setState({
             width:  window.innerWidth,
             height: window.innerHeight,
             entrySquareSize:entrySquareSize,
-            numEntrySquaresPerRow:numEntrySquaresPerRow
+            numEntrySquaresPerRow:numEntrySquaresPerRow,
+            cellContents: cellContents,
+            hash2row:hash2row
         })
         if (this.listRef.current) {
             this.listRef.current.recomputeGridSize()
@@ -194,41 +124,21 @@ export class AllPhotosHashListViewRV extends Component {
         if (this.state.cellContents[rowIndex][columnIndex]) { // non-empty cell
             const cell = this.state.cellContents[rowIndex][columnIndex]
             if (cell.date) { // header cell has 'date' attribute
-                if (!this.state.isScrollingFast){
-                    return ( 
-                        <div key={key} style={{...style,width:this.state.width,height:DAY_HEADER_HEIGHT,paddingTop:20}}>
-                            <div style={{backgroundColor:'white'}}>
-    
-                                <Header as='h3'>
+                return ( 
+                    <div key={key} style={{...style,width:this.state.width,height:DAY_HEADER_HEIGHT,paddingTop:20}}>
+                        <div style={{backgroundColor:'white'}}>
+                            <Header as='h3'>
                                 <Icon name='calendar outline'/>
                                 <Header.Content>
-                                { cell.date=='No Timestamp' ? "No Timestamp" : moment(cell.date).format("MMM Do YYYY, dddd")}
-                                <Header.Subheader>
-                                    { cell.location ? (
-                                        <p><Icon name='map'/> {cell.location.places.join(', ')}</p>
-                                    ) : (
-                                        <p><Icon name='image'/>{cell.photos.length} Photo(s)</p>
-                                    )
-                                    }
-                                </Header.Subheader>
+                                    { cell.date=='No Timestamp' ? "No Timestamp" : moment(cell.date).format("MMM Do YYYY, dddd")}
+                                    <Header.Subheader>
+                                        <Icon name='photo'/>{cell.photos.length} Photos
+                                    </Header.Subheader>
                                 </Header.Content>
-                                </Header>
-    
-                            </div>
-                        </div>                
-                    )    
-                } else {
-                    return (
-                        <div key={key} style={{
-                            ...style,
-                            backgroundColor:'#dddddd',
-                            width:250,
-                            marginTop:2,
-                            height:DAY_HEADER_HEIGHT-4,
-                            paddingTop:10}}>
-                        </div>                
-                    )        
-                }
+                            </Header>
+                        </div>
+                    </div>                
+                )   
             } else { // photo cell doesn't have 'date' attribute
                 if (!this.state.isScrollingFast) {
                     return (
@@ -239,7 +149,7 @@ export class AllPhotosHashListViewRV extends Component {
                                 }}
                                 height={this.state.entrySquareSize} 
                                 width={this.state.entrySquareSize} 
-                                src={serverAddress+'/media/square_thumbnails_small/'+cell.image_hash+'.jpg'}/>
+                                src={serverAddress+'/media/square_thumbnails/'+cell.image_hash+'.jpg'}/>
                         </div>                                
                     )
                 } else {
@@ -269,9 +179,6 @@ export class AllPhotosHashListViewRV extends Component {
 
     }
 
-    _setRef = windowScroller => {
-        this._windowScroller = windowScroller;
-    };
     
     getPhotoDetails(image_hash) {
         if (!this.props.photoDetails.hasOwnProperty(image_hash)) {
@@ -399,6 +306,8 @@ export class AllPhotosHashListViewRV extends Component {
                             this.setState({
                                 lightboxImageIndex:prevIndex
                             })
+                            var rowIdx = this.state.hash2row[this.props.idx2hash[prevIndex]]
+                            this.listRef.current.scrollToCell({columnIndex:0,rowIndex:rowIdx})
                             this.getPhotoDetails(this.props.idx2hash[prevIndex])
                         }}
                         onMoveNextRequest={() => {
@@ -406,6 +315,8 @@ export class AllPhotosHashListViewRV extends Component {
                             this.setState({
                                 lightboxImageIndex:nextIndex
                             })
+                            var rowIdx = this.state.hash2row[this.props.idx2hash[nextIndex]]
+                            this.listRef.current.scrollToCell({columnIndex:0,rowIndex:rowIdx})
                             this.getPhotoDetails(this.props.idx2hash[nextIndex])
                         }}/>
                 }

@@ -56,9 +56,9 @@ export class LightBox extends Component {
                     mainSrc={serverAddress+'/media/photos/'+this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]+'.jpg'}
                     nextSrc={serverAddress+'/media/photos/'+this.props.idx2hash.slice((this.props.lightboxImageIndex + 1) % this.props.idx2hash.length)[0]+'.jpg'}
                     prevSrc={serverAddress+'/media/photos/'+this.props.idx2hash.slice((this.props.lightboxImageIndex - 1) % this.props.idx2hash.length)[0]+'.jpg'}
-                    mainSrcThumbnail={serverAddress+'/media/thumbnails_tiny/'+this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]+'.jpg'}
-                    nextSrcThumbnail={serverAddress+'/media/thumbnails_tiny/'+this.props.idx2hash.slice((this.props.lightboxImageIndex + 1) % this.props.idx2hash.length)[0]+'.jpg'}
-                    prevSrcThumbnail={serverAddress+'/media/thumbnails_tiny/'+this.props.idx2hash.slice((this.props.lightboxImageIndex - 1) % this.props.idx2hash.length)[0]+'.jpg'}
+                    mainSrcThumbnail={serverAddress+'/media/thumbnails/'+this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]+'.jpg'}
+                    nextSrcThumbnail={serverAddress+'/media/thumbnails/'+this.props.idx2hash.slice((this.props.lightboxImageIndex + 1) % this.props.idx2hash.length)[0]+'.jpg'}
+                    prevSrcThumbnail={serverAddress+'/media/thumbnails/'+this.props.idx2hash.slice((this.props.lightboxImageIndex - 1) % this.props.idx2hash.length)[0]+'.jpg'}
                     toolbarButtons={[
                         <div>
                             <Button 

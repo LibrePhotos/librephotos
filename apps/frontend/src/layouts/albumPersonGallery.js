@@ -12,6 +12,12 @@ import { push } from 'react-router-redux'
 import {LightBox} from '../components/lightBox'
 import moment from 'moment'
 import _ from 'lodash'
+import debounce from 'lodash/debounce'
+
+
+import {calculateGridCells, calculateGridCellSize} from '../util/gridUtils'
+import {ScrollSpeed, SPEED_THRESHOLD, SCROLL_DEBOUNCE_DURATION} from '../util/scrollUtils'
+
 
 var topMenuHeight = 55 // don't change this
 var ESCAPE_KEY = 27;
@@ -25,135 +31,69 @@ var leftMenuWidth = 85 // don't change this
 
 var SIDEBAR_WIDTH = 85;
 
-class DayGroupPlaceholder extends Component {
-    render () {
-        var numRows = Math.ceil(this.props.day.photos.length/this.props.numItemsPerRow.toFixed(1))
-        var gridHeight = this.props.itemSize * numRows
-        var photos = this.props.day.photos.map(function(photo) {
-            return (
-                <Image key={'daygroup_album_person_image_placeholder_'+photo.image_hash} style={{display:'inline-block',padding:1,margin:0}}
-                    height={this.props.itemSize} 
-                    width={this.props.itemSize} 
-                    src={'/thumbnail_placeholder.png'}/>
-            )
-        },this)
-        return (
-            <div key={'daygroup_placeholder_album_person_'+this.props.day}>
-                <div style={{fontSize:17,height:DAY_HEADER_HEIGHT,paddingTop:20,paddingBottom:5}}>
-                <Header as='h3'>
-                <Icon name='calendar outline'/>
-                <Header.Content>
-                {moment(this.props.day.date).format("MMM Do YYYY, dddd")}
-                <Header.Subheader>
-                    <Icon name='photo'/>{this.props.day.photos.length} Photos
-                </Header.Subheader>
-                </Header.Content>
-                </Header>
-                </div>
-                <div style={{height:gridHeight}}>
-                {photos}
-                </div>
-            </div>
-        )
-    }
-}
-
-
-class DayGroup extends Component {
-    render () {
-        var photos = this.props.day.photos.map(function(photo,idx) {
-            return (
-                <Image key={'daygroup_album_person_image_'+photo.image_hash+idx} style={{display:'inline-block',padding:1,margin:0}}
-                    onClick={()=>{
-                        this.props.onPhotoClick(photo.image_hash)
-                    }}
-                    height={this.props.itemSize} 
-                    width={this.props.itemSize} 
-                    src={serverAddress+'/media/square_thumbnails/'+photo.image_hash+'.jpg'}/>
-            )
-        },this)
-        var gridHeight = this.props.itemSize * Math.ceil(this.props.day.photos.length/this.props.numItemsPerRow.toFixed(1))
-        return (
-            <div key={'daygroup_grid_album_person_'+this.props.day} style={{}}>
-                <div style={{fontSize:17,height:DAY_HEADER_HEIGHT,paddingTop:20,paddingBottom:5}}>
-                <Header as='h3'>
-                <Icon name='calendar outline'/>
-                <Header.Content>
-                {moment(this.props.day.date).format("MMM Do YYYY, dddd")}
-                <Header.Subheader>
-                    <Icon name='photo'/>{this.props.day.photos.length} Photos
-                </Header.Subheader>
-                </Header.Content>
-                </Header>
-                </div>
-                <div style={{height:gridHeight}}>
-                {photos}
-                </div>
-            </div>
-        )
-    }
-}
-
-
-const calculateGridCells = (groupedByDateList,itemsPerRow) => {
-  var gridContents = []
-  var rowCursor = []
-
-  groupedByDateList.forEach((day)=>{
-    gridContents.push([day])
-    day.photos.forEach((photo,idx)=>{
-      if (idx ==0 ) {
-        rowCursor = []
-      }
-      if (idx > 0 && idx % itemsPerRow == 0) {
-        // console.log('pushing row cursor to grid contents', idx)
-        gridContents.push(rowCursor)
-      }
-      if (idx % itemsPerRow == 0) {
-        rowCursor = []
-      }
-      // console.log('pushing to row cursor', photo.image_hash)
-      rowCursor.push(photo)
-
-      if (idx == day.photos.length-1) {
-        gridContents.push(rowCursor)        
-      }
-
-    })
-  })
-  console.log(gridContents)
-
-}
-
-
 
 export class AlbumPersonGallery extends Component {
-    state = {
-      photosGroupedByDate: [],
-      idx2hash: [],
-      lightboxImageIndex: 1,
-      lightboxShow:false,
-      width:  window.innerWidth,
-      height: window.innerHeight,
-      entrySquareSize:200,
-      showGraph:false,
-      gridHeight: window.innerHeight- topMenuHeight - 60,
-      headerHeight: 60,
-      currTopRenderedRowIdx:0,
-      numEntrySquaresPerRow:2,
-    }
 
   constructor() {
     super();
     this.listRef = React.createRef()
-    this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this)
+    this.handleResize = this.handleResize.bind(this)
     this.cellRenderer = this.cellRenderer.bind(this)
     this.onPhotoClick = this.onPhotoClick.bind(this)
+    this.state = {
+        photosGroupedByDate: [],
+        cellContents: [[]],
+        hash2row: {},
+        idx2hash: [],
+        lightboxImageIndex: 1,
+        lightboxShow:false,
+        lightboxSidebarShow:false,
+        scrollToIndex: undefined,
+        width:  window.innerWidth,
+        height: window.innerHeight,
+        entrySquareSize:200,
+        numEntrySquaresPerRow:3,
+        currTopRenderedRowIdx:0,
+        scrollTop:0,
+        gridHeight: window.innerHeight- topMenuHeight - 60,
+        showGraph:false,
+    }
   }
 
+
+  scrollSpeedHandler = new ScrollSpeed()
+
+  handleScroll = ({scrollTop}) => {
+      // scrollSpeed represents the number of pixels scrolled since the last scroll event was fired
+      const scrollSpeed = Math.abs(this.scrollSpeedHandler.getScrollSpeed(scrollTop));
+
+      if (scrollSpeed >= SPEED_THRESHOLD) {
+        this.setState({
+          isScrollingFast: true,
+          scrollTop:scrollTop
+        });
+      }
+
+      // Since this method is debounced, it will only fire once scrolling has stopped for the duration of SCROLL_DEBOUNCE_DURATION
+      this.handleScrollEnd();
+  }
+
+  handleScrollEnd = debounce(() => {
+  const {isScrollingFast} = this.state;
+
+  if (isScrollingFast) {
+    this.setState({
+      isScrollingFast: false,
+    });
+  }
+  }, SCROLL_DEBOUNCE_DURATION);
+
+
+
+
   componentDidMount() {
-    this.calculateEntrySquareSize();
-    window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
+    this.handleResize();
+    window.addEventListener("resize", this.handleResize.bind(this));
     if (this.props.people.length == 0){
       this.props.dispatch(fetchPeopleAlbums(this.props.match.params.albumID))
     }
@@ -161,39 +101,25 @@ export class AlbumPersonGallery extends Component {
   }
 
   componentWillUnmount() {
-    window.removeEventListener("resize", this.calculateEntrySquareSize.bind(this))
+    window.removeEventListener("resize", this.handleResize.bind(this))
   }
 
 
-  calculateEntrySquareSize() {
-    if (window.innerWidth < 600) {
-      var numEntrySquaresPerRow = 2
-    } 
-    else if (window.innerWidth < 800) {
-      var numEntrySquaresPerRow = 4
-    }
-    else if (window.innerWidth < 1000) {
-      var numEntrySquaresPerRow = 6
-    }
-    else if (window.innerWidth < 1200) {
-      var numEntrySquaresPerRow = 6
-    }
-    else {
-      var numEntrySquaresPerRow = 6
-    }
+  handleResize() {
+    var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10
+    const {entrySquareSize,numEntrySquaresPerRow} = calculateGridCellSize(columnWidth)
+    var {cellContents,hash2row} = calculateGridCells(this.state.photosGroupedByDate,numEntrySquaresPerRow)
 
-    var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15
-
-    var entrySquareSize = columnWidth / numEntrySquaresPerRow
-    var numEntrySquaresPerRow = numEntrySquaresPerRow
     this.setState({
       width:  window.innerWidth,
       height: window.innerHeight,
       entrySquareSize:entrySquareSize,
-      numEntrySquaresPerRow:numEntrySquaresPerRow
+      numEntrySquaresPerRow:numEntrySquaresPerRow,
+      cellContents: cellContents,
+      hash2row: hash2row
     })
     if (this.listRef.current) {
-        this.listRef.current.recomputeRowHeights()
+        this.listRef.current.recomputeGridSize()
     }
   }
 
@@ -218,7 +144,6 @@ export class AlbumPersonGallery extends Component {
                     return "No Timestamp"
                 }
             })
-            console.log(groupedByDate)
             var groupedByDateList = _.reverse(_.sortBy(_.toPairsIn(groupedByDate).map((el)=>{
                 return {date:el[0],photos:el[1]}
             }),(el)=>el.date))
@@ -230,18 +155,17 @@ export class AlbumPersonGallery extends Component {
                 })
             })
 
-            console.log(groupedByDateList)
             
-            calculateGridCells(groupedByDateList,prevState.numEntrySquaresPerRow)
+            var {cellContents,hash2row} = calculateGridCells(groupedByDateList,prevState.numEntrySquaresPerRow)
+            console.log(cellContents)
             var t1 = performance.now();
             console.log(t1-t0)
-
-
-
             return {
                 ...prevState, 
                 photosGroupedByDate: groupedByDateList,
-                idx2hash:idx2hash
+                idx2hash:idx2hash,
+                cellContents: cellContents,
+                hash2row:hash2row
             }
         } else {
           return null
@@ -253,81 +177,74 @@ export class AlbumPersonGallery extends Component {
 
 
 
+    cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
+        if (this.state.cellContents[rowIndex][columnIndex]) { // non-empty cell
+            const cell = this.state.cellContents[rowIndex][columnIndex]
+            if (cell.date) { // header cell has 'date' attribute
+                return ( 
+                    <div key={key} style={{...style,width:this.state.width,height:DAY_HEADER_HEIGHT,paddingTop:20}}>
+                        <div style={{backgroundColor:'white'}}>
+                            <Header as='h3'>
+                                <Icon name='calendar outline'/>
+                                <Header.Content>
+                                    { cell.date=='No Timestamp' ? "No Timestamp" : moment(cell.date).format("MMM Do YYYY, dddd")}
+                                    <Header.Subheader>
+                                        <Icon name='photo'/>{cell.photos.length} Photos
+                                    </Header.Subheader>
+                                </Header.Content>
+                            </Header>
+                        </div>
+                    </div>                
+                )   
+                /*
+                if (!this.state.isScrollingFast){
+                } else {
+                    return (
+                        <div key={key} style={{
+                            ...style,
+                            backgroundColor:'#dddddd',
+                            width:250,
+                            marginTop:2,
+                            height:DAY_HEADER_HEIGHT-4,
+                            paddingTop:10}}>
+                        </div>                
+                    )        
+                } 
+                */
+            } else { // photo cell doesn't have 'date' attribute
+                if (!this.state.isScrollingFast) {
+                    return (
+                        <div key={key} style={style}>
+                            <Image key={'daygroup_image_'+cell.image_hash} style={{display:'inline-block',padding:1,margin:0}}
+                                onClick={()=>{
+                                    this.onPhotoClick(cell.image_hash)
+                                }}
+                                height={this.state.entrySquareSize} 
+                                width={this.state.entrySquareSize} 
+                                src={serverAddress+'/media/square_thumbnails/'+cell.image_hash+'.jpg'}/>
+                        </div>                                
+                    )
+                } else {
+                    return (
+                        <div key={key} style={{...style,
+                            width:this.state.entrySquareSize-2,
+                            height:this.state.entrySquareSize-2,
+                            backgroundColor:'#eeeeee'}}>
+                        </div>                                
+                    )
+                }
 
+            }
 
-
-    rowRenderer = ({index, isScrolling, key, style}) => {
-        const {isScrollingFast} = this.state;
-        var rowHeight = this.state.entrySquareSize * Math.ceil(this.state.photosGroupedByDate[index].photos.length/this.state.numEntrySquaresPerRow.toFixed(1)) + DAY_HEADER_HEIGHT
-        if (isScrollingFast) {
+        } else { // empty cell
             return (
-                <div key={key} style={{...style,height:rowHeight}}>
-                    <div style={{backgroundColor:'white'}}>
-                    <DayGroupPlaceholder
-                        key={index}
-                        onPhotoClick={this.onPhotoClick}
-                        day={this.state.photosGroupedByDate[index]} 
-                        itemSize={this.state.entrySquareSize} 
-                        numItemsPerRow={this.state.numEntrySquaresPerRow}/>
-                    </div>
+                <div key={key} style={style}>
                 </div>
             )
         }
-        else {
-            return (
-                <div key={key} style={{...style,height:rowHeight}}>
-                    <div style={{backgroundColor:'white'}}>
-                    <DayGroup 
-                        key={index}
-                        onPhotoClick={this.onPhotoClick}
-                        day={this.state.photosGroupedByDate[index]} 
-                        itemSize={this.state.entrySquareSize} 
-                        numItemsPerRow={this.state.numEntrySquaresPerRow}/>
-                    </div>
-                </div>
-            )        }
-    }
-
-    getRowHeight = ({index}) => {
-        var rowHeight = this.state.entrySquareSize * Math.ceil(this.state.photosGroupedByDate[index].photos.length/this.state.numEntrySquaresPerRow.toFixed(1)) + DAY_HEADER_HEIGHT
-        return (
-            rowHeight
-        )
     }
 
 
-
-
-
-
-  cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-      var photoIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex
-      if (photoIndex < this.props.albumsPeople[this.props.match.params.albumID].photos.length) {
-      	var image_url = this.props.albumsPeople[this.props.match.params.albumID].photos[photoIndex].square_thumbnail
-        return (
-          <div key={key} style={style}>
-            <div 
-              onClick={()=>{
-                this.onPhotoClick(photoIndex)
-                console.log('clicked')
-                // this.props.dispatch(push(`/person/${this.props.albumsPeople[this.props.match.params.albumID][photoIndex].key}`))
-              }}>
-              <Image 
-              	height={this.state.entrySquareSize-5}
-              	width={this.state.entrySquareSize-5}
-              	src={serverAddress+image_url}/>
-
-            </div>
-          </div>
-        )
-      }
-      else {
-        return (
-          <div key={key} style={style}>
-          </div>
-        )
-      }
-  }
   
   getPhotoDetails(image_hash) {
       if (!this.props.photoDetails.hasOwnProperty(image_hash)) {
@@ -336,34 +253,19 @@ export class AlbumPersonGallery extends Component {
   }
 
   render() {
-    var entrySquareSize = this.state.entrySquareSize
-    var numEntrySquaresPerRow = this.state.numEntrySquaresPerRow
     if (this.props.albumsPeople.hasOwnProperty(this.props.match.params.albumID)) {
-        var totalListHeight = this.state.photosGroupedByDate.map((day,index)=>{
-            return (
-                this.getRowHeight({index})
-            )
+        var totalListHeight = this.state.cellContents.map((row,index)=>{
+            if (row[0].date) { //header row
+                return DAY_HEADER_HEIGHT
+            } else { //photo row
+                return this.state.entrySquareSize
+            }
         }).reduce((a,b)=>(a+b),0)
-        console.log('totalListHeight: ',totalListHeight)
-        console.log('first row height: ',this.getRowHeight({index:0}))
 	    return (
 	      <div>
 
           <div style={{position:'fixed',top:topMenuHeight+22,right:5,float:'right'}}>
-            <Button 
-              active={this.state.showGraph}
-              compact 
-              size='mini' 
-              onClick={()=>{
-                this.setState({
-                  showGraph: !this.state.showGraph,
-                  gridHeight: !this.state.showGraph ? this.state.height - topMenuHeight - 260 : this.state.height - topMenuHeight - 60,
-                  headerHeight: !this.state.showGraph ? 260 : 60
-                })}
-              }
-              floated='right'>
-                {this.state.showGraph ? "Hide Graph" : "Show Graph"}
-              </Button>
+
           </div>
 
 
@@ -374,7 +276,20 @@ export class AlbumPersonGallery extends Component {
             <Header as='h2'>
               <Icon name='user circle' />
               <Header.Content>
-              	{this.props.albumsPeople[this.props.match.params.albumID].name}
+                  {this.props.albumsPeople[this.props.match.params.albumID].name + " "}
+                  <Button 
+                    size='tiny'
+                    compact
+                    icon='share alternate'
+                    active={this.state.showGraph}
+                    circular
+                    onClick={()=>{
+                        this.setState({
+                        showGraph: !this.state.showGraph,
+                        gridHeight: !this.state.showGraph ? this.state.height - topMenuHeight - 260 : this.state.height - topMenuHeight - 60,
+                        headerHeight: !this.state.showGraph ? 260 : 60
+                        })}
+                    }/>
                 <Header.Subheader>
           	      {this.props.albumsPeople[this.props.match.params.albumID].photos.length} Photos
                 </Header.Subheader>
@@ -387,20 +302,70 @@ export class AlbumPersonGallery extends Component {
 
 	      	</div>
 
-                    <List
-                        ref={this.listRef}
-                        style={{outline:'none',paddingRight:0,marginRight:0}}
-                        onRowsRendered={({ overscanStartIndex, overscanStopIndex, startIndex, stopIndex })=>{
-                            this.setState({currTopRenderedRowIdx:startIndex})
-                        }}
-                        height={this.state.gridHeight}
-                        overscanRowCount={5}
-                        rowCount={this.state.photosGroupedByDate.length}
-                        rowHeight={this.getRowHeight}
-                        rowRenderer={this.rowRenderer}
-                        onScroll={this.handleScroll}
-                        estimatedRowSize={totalListHeight/this.state.photosGroupedByDate.length.toFixed(10)}
-                        width={this.state.width-leftMenuWidth-5}/>
+
+                <AutoSizer disableHeight style={{outline:'none',padding:0,margin:0}}>
+                  {({width}) => (
+                    <Grid
+                      ref={this.listRef}
+                      onSectionRendered={({rowStartIndex})=>{
+                        var date = this.state.cellContents[rowStartIndex][0].date
+                        if (date) {
+                            if (date=='No Timestamp') {
+                                this.setState({
+                                    currTopRenderedRowIdx:rowStartIndex,
+                                    date:date,
+                                    fromNow:date
+                                })
+                            } else {
+                                this.setState({
+                                    currTopRenderedRowIdx:rowStartIndex,
+                                    date:moment(date).format("MMMM Do YYYY"),
+                                    fromNow:moment(date).fromNow()
+                                })
+                            }
+                        }
+                      }}
+                      overscanRowCount={5}
+                      style={{outline:'none'}}
+                      cellRenderer={this.cellRenderer}
+                      onScroll={this.handleScroll}
+                      columnWidth={this.state.entrySquareSize}
+                      columnCount={this.state.numEntrySquaresPerRow}
+                      height={this.state.height- topMenuHeight - 60}
+                      estimatedRowSize={totalListHeight/this.state.cellContents.length.toFixed(1)}
+                      rowHeight={({index})=> {
+                        if (this.state.cellContents[index][0].date) { //header row
+                            return DAY_HEADER_HEIGHT
+                        } else { //photo row
+                            return this.state.entrySquareSize
+                        }
+                      }}
+                      rowCount={this.state.cellContents.length}
+                      width={width}
+                    />
+                  )}
+                </AutoSizer>
+
+            { this.state.cellContents[this.state.currTopRenderedRowIdx][0] && (
+                <div style={{
+                    right:0,
+                    top:topMenuHeight + 10+ (0 / totalListHeight) * (this.state.height - topMenuHeight - 50 - 20),
+                    position:'fixed',
+                    float:'left',
+                    width:180,
+                    padding:0,
+                    height:50,
+                    zIndex:100,
+                }}>
+                    <div style={{textAlign:'right',paddingRight:30}} className='handle'>
+                        <b>{this.state.date}</b> <br/>
+                    </div>
+                    <div style={{textAlign:'right',paddingRight:30}}>
+                        {this.state.fromNow}
+                    </div>
+                </div>
+            )}
+
 
           { this.state.lightboxShow &&
               <LightBox
@@ -416,6 +381,8 @@ export class AlbumPersonGallery extends Component {
                       this.setState({
                           lightboxImageIndex:nextIndex
                       })
+                      var rowIdx = this.state.hash2row[this.state.idx2hash[nextIndex]]
+                      this.listRef.current.scrollToCell({columnIndex:0,rowIndex:rowIdx})
                       this.getPhotoDetails(this.state.idx2hash[nextIndex])
                   }}
                   onMoveNextRequest={() => {
@@ -423,6 +390,8 @@ export class AlbumPersonGallery extends Component {
                       this.setState({
                           lightboxImageIndex:nextIndex
                       })
+                      var rowIdx = this.state.hash2row[this.state.idx2hash[nextIndex]]
+                      this.listRef.current.scrollToCell({columnIndex:0,rowIndex:rowIdx})
                       this.getPhotoDetails(this.state.idx2hash[nextIndex])
                   }}/>
           }

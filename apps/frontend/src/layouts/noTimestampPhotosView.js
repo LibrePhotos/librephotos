@@ -8,6 +8,10 @@ import { Grid, List, WindowScroller,AutoSizer } from 'react-virtualized';
 import {LightBox} from '../components/lightBox'
 
 import { push } from 'react-router-redux'
+import {calculateGridCells, calculateGridCellSize} from '../util/gridUtils'
+
+import {ScrollSpeed, SPEED_THRESHOLD, SCROLL_DEBOUNCE_DURATION} from '../util/scrollUtils'
+import debounce from 'lodash/debounce'
 
 var topMenuHeight = 55 // don't change this
 var ESCAPE_KEY = 27;
@@ -29,7 +33,7 @@ export class NoTimestampPhotosView extends Component {
         super(props)
         this.cellRenderer = this.cellRenderer.bind(this)
         this.getRowHeight = this.getRowHeight.bind(this)
-        this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this)
+        this.handleResize = this.handleResize.bind(this)
         this.onPhotoClick = this.onPhotoClick.bind(this)
         this.getPhotoDetails = this.getPhotoDetails.bind(this)
         this.state = {
@@ -46,35 +50,45 @@ export class NoTimestampPhotosView extends Component {
     }
     componentWillMount() {
         this.props.dispatch(fetchNoTimestampPhotoList())
-        this.calculateEntrySquareSize();
-        window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
+        this.handleResize();
+        window.addEventListener("resize", this.handleResize.bind(this));
     }
     componentWillUnmount() {
-        window.removeEventListener("resize",this.calculateEntrySquareSize.bind(this))
+        window.removeEventListener("resize",this.handleResize.bind(this))
     }
 
-    calculateEntrySquareSize() {
-        if (window.innerWidth < 600) {
-            var numEntrySquaresPerRow = 3
-        } 
-        else if (window.innerWidth < 800) {
-            var numEntrySquaresPerRow = 4
-        }
-        else if (window.innerWidth < 1000) {
-            var numEntrySquaresPerRow = 5
-        }
-        else if (window.innerWidth < 1200) {
-            var numEntrySquaresPerRow = 6
-        }
-        else {
-            var numEntrySquaresPerRow = 8
+    scrollSpeedHandler = new ScrollSpeed();
+
+    handleScroll = ({scrollTop}) => {
+        // scrollSpeed represents the number of pixels scrolled since the last scroll event was fired
+        const scrollSpeed = Math.abs(this.scrollSpeedHandler.getScrollSpeed(scrollTop));
+
+        if (scrollSpeed >= SPEED_THRESHOLD) {
+          this.setState({
+            isScrollingFast: true,
+            scrollTop:scrollTop
+          });
         }
 
-        var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 15
+        // Since this method is debounced, it will only fire once scrolling has stopped for the duration of SCROLL_DEBOUNCE_DURATION
+        this.handleScrollEnd();
+    }
+
+    handleScrollEnd = debounce(() => {
+    const {isScrollingFast} = this.state;
+
+    if (isScrollingFast) {
+      this.setState({
+        isScrollingFast: false,
+      });
+    }
+    }, SCROLL_DEBOUNCE_DURATION);
 
 
-        var entrySquareSize = columnWidth / numEntrySquaresPerRow
-        var numEntrySquaresPerRow = numEntrySquaresPerRow
+
+    handleResize() {
+        var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10
+        const {entrySquareSize,numEntrySquaresPerRow} = calculateGridCellSize(columnWidth)
         this.setState({
             width:  window.innerWidth,
             height: window.innerHeight,
@@ -86,28 +100,36 @@ export class NoTimestampPhotosView extends Component {
     cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
         var photoResIdx = rowIndex * this.state.numEntrySquaresPerRow + columnIndex
         if (photoResIdx < this.props.noTimestampPhotos.length) {
+            if (this.state.isScrollingFast) {
+                return (
+                    <div key={key} style={{...style,
+                        width:this.state.entrySquareSize-2,
+                        height:this.state.entrySquareSize-2,
+                        backgroundColor:'#eeeeee'}}>
+                    </div>          
+                )
+            }
+
         	if (this.props.noTimestampPhotos[photoResIdx].image_hash.length > 0) {
 	            return (
-	                <div key={key} style={style}>
-	                    <div style={{backgroundColor:'white',paddingRight:5}}>
-	                    <Image 
-	                        onClick={()=>this.onPhotoClick(photoResIdx)}
-	                        src={serverAddress+'/media/square_thumbnails/'+this.props.noTimestampPhotos[photoResIdx].image_hash+'.jpg'}/>
-	                    </div>
-	                </div>
+                    <div key={key} style={style}>
+                        <Image key={'daygroup_image_'+this.props.noTimestampPhotos[photoResIdx].image_hash} style={{display:'inline-block',padding:1,margin:0}}
+                            onClick={()=>{
+                                this.onPhotoClick(photoResIdx)
+                            }}
+                            height={this.state.entrySquareSize} 
+                            width={this.state.entrySquareSize} 
+                            src={serverAddress+'/media/square_thumbnails/'+this.props.noTimestampPhotos[photoResIdx].image_hash+'.jpg'}/>
+                    </div>         
 	            )
         	} else {
 	            return (
-	                <div key={key} style={style}>
-	                    <div style={{backgroundColor:'white',paddingRight:5}}>
-                        <div style={{
-                            backgroundColor:'#eeeeee',
-                            height:this.state.entrySquareSize,
-                            width:this.state.entrySquareSize}}>
-                            Missing image
-                        </div>
-	                    </div>
-	                </div>
+                    <div key={key} style={{...style,
+                        padding:1,
+                        width:this.state.entrySquareSize-2,
+                        height:this.state.entrySquareSize-2,
+                        backgroundColor:'#eeeeee'}}>
+                    </div>         
 	            )
 
         	}
@@ -186,6 +208,8 @@ export class NoTimestampPhotosView extends Component {
                 <AutoSizer disableHeight style={{outline:'none',padding:0,margin:0}}>
                   {({width}) => (
                     <Grid
+                      style={{outline:'none'}}
+                      onScroll={this.handleScroll}
                       cellRenderer={this.cellRenderer}
                       columnWidth={this.state.entrySquareSize}
                       columnCount={this.state.numEntrySquaresPerRow}
