@@ -34,6 +34,67 @@ export function fetchThingAlbum(album_id) {
 
 
 
+export function fetchUserAlbumsList() {
+  return function(dispatch) {
+    dispatch({type:"FETCH_USER_ALBUMS_LIST"});
+    Server.get("albums/user/list/")
+      .then((response) => {
+        dispatch({type:"FETCH_USER_ALBUMS_LIST_FULFILLED", payload: response.data.results})
+      })
+      .catch((err) => {
+        dispatch({type:"FETCH_USER_ALBUMS_LIST_REJECTED", payload: err})        
+      })
+  }
+}
+
+export function fetchUserAlbum(album_id) {
+  return function(dispatch) {
+    dispatch({type:"FETCH_USER_ALBUMS"});
+    Server.get(`albums/user/${album_id}/`)
+      .then((response) => {
+        dispatch({type:"FETCH_USER_ALBUMS_FULFILLED", payload: response.data})
+      })
+      .catch((err) => {
+        dispatch({type:"FETCH_USER_ALBUMS_REJECTED", payload: err})        
+      })
+  }
+}
+
+export function createNewUserAlbum(title,image_hashes) {
+  return function(dispatch) {
+    dispatch({type:"CREATE_USER_ALBUMS_LIST"});
+    Server.post("albums/user/edit/",{title:title,photos:image_hashes})
+      .then((response) => {
+        dispatch({type:"CREATE_USER_ALBUMS_LIST_FULFILLED", payload: response.data})
+        dispatch(fetchUserAlbumsList())
+      })
+      .catch((err) => {
+        dispatch({type:"CREATE_USER_ALBUMS_LIST_REJECTED", payload: err})        
+      })
+  }
+}
+
+
+export function editUserAlbum(album_id,title,image_hashes) {
+  console.log(title)
+  return function(dispatch) {
+    dispatch({type:"EDIT_USER_ALBUMS_LIST"});
+    Server.patch(`albums/user/edit/${album_id}/`,{title:title,photos:image_hashes})
+      .then((response) => {
+        dispatch({type:"EDIT_USER_ALBUMS_LIST_FULFILLED", payload: response.data})
+        dispatch(fetchUserAlbumsList())
+      })
+      .catch((err) => {
+        dispatch({type:"EDIT_USER_ALBUMS_LIST_REJECTED", payload: err})        
+      })
+  }
+}
+
+
+
+
+
+
 
 export function fetchPlaceAlbumsList() {
   return function(dispatch) {

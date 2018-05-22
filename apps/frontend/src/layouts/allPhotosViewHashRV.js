@@ -3,9 +3,15 @@ import ReactDOM from 'react-dom';
 import { Grid, WindowScroller,AutoSizer } from 'react-virtualized';
 import 'react-virtualized/styles.css'; // only needs to be imported once
 import { connect } from "react-redux";
-import {  fetchDateAlbumsPhotoHashList,fetchAlbumsDateGalleries} from '../actions/albumsActions'
+import {  
+    fetchDateAlbumsPhotoHashList,
+    fetchAlbumsDateGalleries,
+    fetchUserAlbumsList,
+    editUserAlbum,
+    createNewUserAlbum
+} from '../actions/albumsActions'
 import {  fetchPhotoDetail} from '../actions/photosActions'
-import { Card, Image, Header, Divider, Item, Loader, Dimmer, Sticky, Portal, List,
+import { Card, Image, Header, Divider, Item, Loader, Dimmer, Sticky, Portal, List, Input, Rating, 
          Container, Label, Popup, Segment, Button, Icon, Table, Transition, Breadcrumb} from 'semantic-ui-react';
 import {Server, serverAddress} from '../api_client/apiClient'
 import {LightBox} from '../components/lightBox'
@@ -38,22 +44,18 @@ if (window.innerWidth < 600) {
 
 const customStyles = {
     content : {
-        top                   : '20%',
-        left                  : '30%',
-        right                 : '30%',
-        height:'30%',
+        top:150,
+        left:'30%',
+        right:'30%',
+        height:window.innerHeight-300,
         width:'40%',
         overflow:'hidden',
-        padding:5,
-        backgroundColor:'transparent',
-        //paddingTop:10,
-        //paddingLeft:10,
-        //paddingBottom:0,
-        //paddingRight:0,
-        zIndex:999,
-        borderRadius:0,
-        border:0
-        //transform             : 'translate(-50%, -50%)'
+        // paddingRight:0,
+        // paddingBottomt:0,
+        // paddingLeft:10,
+        // paddingTop:10,
+        padding:0,
+        backgroundColor:'white'
     }
 };
 
@@ -246,6 +248,9 @@ export class AllPhotosHashListViewRV extends Component {
                                     height={this.state.entrySquareSize} 
                                     width={this.state.entrySquareSize} 
                                     src={serverAddress+'/media/square_thumbnails/'+cell.image_hash+'.jpg'}/>
+                                <div style={{right:5,bottom:5,position:'absolute'}}>
+                                    <Rating icon='star' defaultRating={cell.favorited} maxRating={1} />
+                                </div>
                             </div>                                
                         )
                     }
@@ -350,7 +355,10 @@ export class AllPhotosHashListViewRV extends Component {
                         content="Add to an existing album or create a new album"/>        
                     <Popup inverted trigger={
                         <Button icon='hide'/>}
-                        content="hide"/>        
+                        content="Hide"/>        
+                    <Popup inverted trigger={
+                        <Button icon='star'/>}
+                        content="Mark as favorite"/>        
                     </Button.Group>
                 </div>
 
@@ -454,42 +462,124 @@ export class AllPhotosHashListViewRV extends Component {
                         }}/>
                 }
 
-                <Modal
-                    ariaHideApp={false}
+                <ModalAlbumEdit 
                     isOpen={this.state.modalAddToAlbumOpen}
-                    onRequestClose={()=>{this.setState({modalAddToAlbumOpen:false})}}
-                    style={customStyles}>
-                    <Header attached='top'>
-                        Add to Album
-                    </Header>
-                    <Segment style={{padding:1}} stacked attached>
-                    <div style={{overflowY:'scroll',height:480,width:'100%'}}>
-                        <List divided relaxed>
-                            {
-                                _.slice(this.props.idx2hash,1,100).map((item)=>{
-                                    return (
-                                        <List.Item>
-                                            <Image size='mini' src={serverAddress+'/media/square_thumbnails_small/'+item+'.jpg'}/>
-                                            <List.Content>
-                                                <List.Header>{item}</List.Header>
-                                                <List.Description>{item}</List.Description>
-                                            </List.Content>
-                                        </List.Item>
-                                    )
-                                })
-                            }
-                        </List>
-                    </div>
-                    </Segment>
-                </Modal>
-
-
+                    onRequestClose={()=>{
+                        this.setState({
+                            modalAddToAlbumOpen:false,
+                            selectMode:false,
+                            selectedImageHashes:[]})
+                    }}
+                    selectedImageHashes={this.state.selectedImageHashes}/>
 
             </div>
-            
         )
     }
 }
+
+class ModalAlbumEdit extends Component {
+    state = {newAlbumTitle:''}
+    render() {
+        return (
+            <Modal
+                ariaHideApp={false}
+                onAfterOpen={()=>{this.props.dispatch(fetchUserAlbumsList())}}
+                isOpen={this.props.isOpen}
+                onRequestClose={()=>{
+                    this.props.onRequestClose()
+                    this.setState({newAlbumTitle:''})
+                }}
+                style={customStyles}>
+
+                <div style={{height:50,width:'100%',padding:15}}>
+                <Header>Add to Album</Header>
+                </div>
+                <Divider fitted/>
+                <div style={{paddingLeft:10,paddingTop:10,overflowY:'scroll',height:window.innerHeight-300-50,width:'100%'}}>
+                    <Item.Group verticalAlign='middle'>
+                        <Item>
+                            <Item.Content style={{paddingRight:10}}>
+                                <Item.Header as='h4'>
+                                    New album
+                                </Item.Header>
+                                <Item.Description>
+                                    <Popup 
+                                        inverted
+                                        content={'Album "'+this.state.newAlbumTitle.trim()+'" already exists.'}
+                                        position='bottom center'
+                                        open={this.props.albumsUserList.map((el)=>el.title.toLowerCase().trim()).includes(this.state.newAlbumTitle.toLowerCase().trim())}
+                                        trigger={
+                                            <Input 
+                                                fluid
+                                                error={
+                                                    this.props.albumsUserList.map((el)=>el.title.toLowerCase().trim()).includes(this.state.newAlbumTitle.toLowerCase().trim())
+                                                }
+                                                onChange={(e,v)=>{
+                                                    this.setState({newAlbumTitle:v.value})
+                                                }}
+                                                placeholder='Album title' action>
+                                                <input/>
+                                                <Button 
+                                                    onClick={()=>{
+                                                        this.props.dispatch(createNewUserAlbum(this.state.newAlbumTitle,this.props.selectedImageHashes))
+                                                        this.props.onRequestClose()
+                                                        this.setState({newAlbumTitle:''})
+                                                    }}
+                                                    disabled={this.props.albumsUserList.map((el)=>el.title.toLowerCase().trim()).includes(this.state.newAlbumTitle.toLowerCase().trim())}
+                                                    type='submit'>
+                                                    Create
+                                                </Button>
+                                            </Input>
+                                        }/>
+                                </Item.Description>
+                            </Item.Content>
+                        </Item>
+                        <Divider />
+                        {
+                            this.props.albumsUserList.map((item)=>{
+                                return (
+                                    <Item>
+                                        <Item.Image size='tiny' src={
+                                            item.photos[0] ? 
+                                            (serverAddress+'/media/square_thumbnails_small/'+item.photos[0].image_hash+'.jpg') :
+                                            ('/thumbnail_placeholder.png')
+                                        }/>
+                                        <Item.Content>
+                                            <Item.Header 
+                                                onClick={()=>{
+                                                    this.props.dispatch(editUserAlbum(item.id,item.title,this.props.selectedImageHashes))
+                                                    this.props.onRequestClose()
+                                                    console.log('trying to add photos: ',this.props.selectedImageHashes)
+                                                    console.log('to user album id: ',item.id)
+                                                }}
+                                                as='a'>
+                                                {item.title}
+                                            </Item.Header>
+                                            <Item.Meta>{item.photos.length} Item(s) </Item.Meta>
+                                            <Item.Description>
+                                                {"Updated " + moment(item.created_on).fromNow()}
+                                            </Item.Description>
+                                        </Item.Content>
+                                    </Item>
+                                )
+                            })
+                        }
+                    </Item.Group>
+                </div>
+            </Modal>
+        )
+    }
+}
+
+
+ModalAlbumEdit = connect((store)=>{
+    return {
+        albumsUserList: store.albums.albumsUserList,
+        fetchingAlbumsUserList: store.albums.fetchingAlbumsUserList,
+        fetchedAlbumsUserList: store.albums.fetchedAlbumsUserList,
+    }
+  })(ModalAlbumEdit)
+  
 
 AllPhotosHashListViewRV = connect((store)=>{
   return {

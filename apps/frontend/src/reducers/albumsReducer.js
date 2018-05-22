@@ -1,4 +1,12 @@
 export default function reducer(state={
+    albumsUserList: [],
+    fetchingAlbumsUserList: false,
+    fetchedAlbumsUserList: false,
+
+    albumsUerGalleries: {},
+    fetchingAlbumsUserGalleries: false,
+    fetchedAlbumsUserGalleries: false,
+    
     albumsPeople: [],
     fetchingAlbumsPeople: false,
     fetchedAlbumsPeople: false,
@@ -13,7 +21,6 @@ export default function reducer(state={
     albumsAutoList: [],
     fetchingAlbumsAutoList: false,
     fetchedAlbumsAutoList: false,
-
 
     albumsAutoGalleries: {},
     fetchingAlbumsAutoGalleries: false,
@@ -269,6 +276,23 @@ export default function reducer(state={
       }
     }
 
+
+
+    case "FETCH_USER_ALBUMS_LIST": {
+      return {...state, fetchingAlbumsUserList: true}
+    }
+    case "FETCH_USER_ALBUMS_LIST_REJECTED": {
+      return {...state, fetchingAlbumsUserList: false, error: action.payload}
+    }
+    case "FETCH_USER_ALBUMS_LIST_FULFILLED": {
+      return {
+        ...state,
+        fetchingAlbumsUserList: false,
+        fetchedAlbumsUserList: true,
+        albumsUserList: action.payload
+      }
+    }
+    
 
 
 
