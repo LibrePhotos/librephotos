@@ -132,7 +132,7 @@ Should be something like 172.17.0.#. Open `ownphotos/settings.py` and change the
 Also just use docker
 
 ```
-sudo docker run --name ownphotos-redis -d redis
+docker run --name ownphotos-redis -d redis
 ```
 
 Check the ip of the memcached docker container by
