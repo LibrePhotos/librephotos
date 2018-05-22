@@ -1,11 +1,11 @@
 import React, {Component} from 'react';
 import ReactDOM from 'react-dom';
-import { Grid, List, WindowScroller,AutoSizer } from 'react-virtualized';
+import { Grid, WindowScroller,AutoSizer } from 'react-virtualized';
 import 'react-virtualized/styles.css'; // only needs to be imported once
 import { connect } from "react-redux";
 import {  fetchDateAlbumsPhotoHashList,fetchAlbumsDateGalleries} from '../actions/albumsActions'
 import {  fetchPhotoDetail} from '../actions/photosActions'
-import { Card, Image, Header, Divider, Item, Loader, Dimmer, Modal, Sticky, Portal, List as ListSUI,
+import { Card, Image, Header, Divider, Item, Loader, Dimmer, Sticky, Portal, List,
          Container, Label, Popup, Segment, Button, Icon, Table, Transition, Breadcrumb} from 'semantic-ui-react';
 import {Server, serverAddress} from '../api_client/apiClient'
 import {LightBox} from '../components/lightBox'
@@ -17,7 +17,9 @@ import {searchPhotos} from '../actions/searchActions'
 import styles from '../App.css';
 import Draggable from 'react-draggable';
 import debounce from 'lodash/debounce'
+import _ from 'lodash'
 import * as moment from 'moment';
+import Modal from 'react-modal';
 
 import {calculateGridCells, calculateGridCellSize} from '../util/gridUtils'
 import {ScrollSpeed, SPEED_THRESHOLD, SCROLL_DEBOUNCE_DURATION} from '../util/scrollUtils'
@@ -33,6 +35,27 @@ if (window.innerWidth < 600) {
 } else {
     var LIGHTBOX_SIDEBAR_WIDTH = 360
 }
+
+const customStyles = {
+    content : {
+        top                   : '20%',
+        left                  : '30%',
+        right                 : '30%',
+        height:'30%',
+        width:'40%',
+        overflow:'hidden',
+        padding:5,
+        backgroundColor:'transparent',
+        //paddingTop:10,
+        //paddingLeft:10,
+        //paddingBottom:0,
+        //paddingRight:0,
+        zIndex:999,
+        borderRadius:0,
+        border:0
+        //transform             : 'translate(-50%, -50%)'
+    }
+};
 
 
 export class AllPhotosHashListViewRV extends Component {
@@ -57,7 +80,11 @@ export class AllPhotosHashListViewRV extends Component {
             entrySquareSize:200,
             numEntrySquaresPerRow:3,
             currTopRenderedRowIdx:0,
-            scrollTop:0
+            scrollTop:0,
+            selectMode:false,
+            selectedImageHashes:[],
+            modalAddToAlbumOpen:false,
+
         }
     }
 
@@ -120,44 +147,114 @@ export class AllPhotosHashListViewRV extends Component {
         }
     }
 
+    onPhotoClick(hash) {
+        this.setState({lightboxImageIndex:this.props.idx2hash.indexOf(hash),lightboxShow:true})
+    }
+    
+    onPhotoSelect(hash) {
+        var selectedImageHashes = this.state.selectedImageHashes
+        if (selectedImageHashes.includes(hash)) {
+            selectedImageHashes = selectedImageHashes.filter((item)=> item!==hash )
+        } else {
+            selectedImageHashes.push(hash)
+        }
+        this.setState({selectedImageHashes:selectedImageHashes})
+    }
+
+    onGroupSelect(hashes) {
+        if (_.intersection(hashes,this.state.selectedImageHashes).length == hashes.length) { // for deselect
+            var selectedImageHashes = _.difference(this.state.selectedImageHashes, hashes)
+        } else {
+            var selectedImageHashes = _.union(this.state.selectedImageHashes,hashes)
+        }
+        this.setState({selectedImageHashes:selectedImageHashes})
+    }
+
     cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
         if (this.state.cellContents[rowIndex][columnIndex]) { // non-empty cell
             const cell = this.state.cellContents[rowIndex][columnIndex]
             if (cell.date) { // header cell has 'date' attribute
-                return ( 
-                    <div key={key} style={{...style,width:this.state.width,height:DAY_HEADER_HEIGHT,paddingTop:20}}>
-                        <div style={{backgroundColor:'white'}}>
-                            <Header as='h3'>
-                                <Icon name='calendar outline'/>
-                                <Header.Content>
-                                    { cell.date=='No Timestamp' ? "No Timestamp" : moment(cell.date).format("MMM Do YYYY, dddd")}
-                                    <Header.Subheader>
-                                        <Icon name='photo'/>{cell.photos.length} Photos
-                                    </Header.Subheader>
-                                </Header.Content>
-                            </Header>
-                        </div>
-                    </div>                
-                )   
+                if (this.state.selectMode) {
+                    return ( 
+                        <div key={key} style={{...style,width:this.state.width,height:DAY_HEADER_HEIGHT,paddingTop:20}}>
+                            <div style={{backgroundColor:'white',display:'inline-block'}}>
+                                <Header as='h3'>
+                                    <Icon name='calendar outline'/>
+                                    <Header.Content>
+                                        { cell.date=='No Timestamp' ? "No Timestamp" : moment(cell.date).format("MMM Do YYYY, dddd")} 
+                                        <Header.Subheader>
+                                            <Icon name='photo'/>{cell.photos.length} Photos 
+                                        </Header.Subheader>
+                                    </Header.Content>
+                                </Header>
+                            </div>
+                            <div style={{float:'left',top:3,left:0,position:'relative'}}>
+                                <Button 
+                                    onClick={()=>{
+                                        const hashes = cell.photos.map((p)=>p.image_hash)
+                                        this.onGroupSelect(hashes)
+                                    }}
+                                    size='mini'  icon='checkmark'/>
+                            </div>
+                        </div>                
+                    )   
+                } else {
+                    return ( 
+                        <div key={key} style={{...style,width:this.state.width,height:DAY_HEADER_HEIGHT,paddingTop:20}}>
+                            <div style={{backgroundColor:'white'}}>
+                                <Header as='h3'>
+                                    <Icon name='calendar outline'/>
+                                    <Header.Content>
+                                        { cell.date=='No Timestamp' ? "No Timestamp" : moment(cell.date).format("MMM Do YYYY, dddd")}
+                                        <Header.Subheader>
+                                            <Icon name='photo'/>{cell.photos.length} Photos
+                                        </Header.Subheader>
+                                    </Header.Content>
+                                </Header>
+                            </div>
+                        </div>                
+                    )   
+                }
             } else { // photo cell doesn't have 'date' attribute
                 if (!this.state.isScrollingFast) {
-                    return (
-                        <div key={key} style={style}>
-                            <Image key={'daygroup_image_'+cell.image_hash} style={{display:'inline-block',padding:1,margin:0}}
+                    if (this.state.selectMode) {
+                        return (
+                            <div 
                                 onClick={()=>{
-                                    this.onPhotoClick(cell.image_hash)
+                                    this.onPhotoSelect(cell.image_hash)
                                 }}
-                                height={this.state.entrySquareSize} 
-                                width={this.state.entrySquareSize} 
-                                src={serverAddress+'/media/square_thumbnails/'+cell.image_hash+'.jpg'}/>
-                        </div>                                
-                    )
+                                key={key} style={{
+                                ...style,
+                                padding:15,
+                                backgroundColor: this.state.selectedImageHashes.includes(cell.image_hash) ? '#AED6F1' : '#eeeeee' ,
+                                margin:1,
+                                width:style.width-2,
+                                height:style.height-2}}>
+                                <Image key={'daygroup_image_'+cell.image_hash} style={{display:'inline-block',padding:1,margin:0}}
+                                    height={this.state.entrySquareSize-30} 
+                                    width={this.state.entrySquareSize-30} 
+                                    src={serverAddress+'/media/square_thumbnails/'+cell.image_hash+'.jpg'}/>
+                            </div>
+                        )
+                    } else {
+                        return (
+                            <div key={key} style={style}>
+                                <Image key={'daygroup_image_'+cell.image_hash} style={{display:'inline-block',padding:1,margin:0}}
+                                    onClick={()=>{
+                                        this.onPhotoClick(cell.image_hash)
+                                    }}
+                                    height={this.state.entrySquareSize} 
+                                    width={this.state.entrySquareSize} 
+                                    src={serverAddress+'/media/square_thumbnails/'+cell.image_hash+'.jpg'}/>
+                            </div>                                
+                        )
+                    }
                 } else {
                     return (
                         <div key={key} style={{...style,
                             width:this.state.entrySquareSize-2,
                             height:this.state.entrySquareSize-2,
-                            backgroundColor:'#eeeeee'}}>
+                            backgroundColor: this.state.selectedImageHashes.includes(cell.image_hash) ? '#AED6F1' : '#eeeeee'}}>
                         </div>                                
                     )
                 }
@@ -174,10 +271,7 @@ export class AllPhotosHashListViewRV extends Component {
 
 
 
-    onPhotoClick(hash) {
-        this.setState({lightboxImageIndex:this.props.idx2hash.indexOf(hash),lightboxShow:true})
 
-    }
 
     
     getPhotoDetails(image_hash) {
@@ -218,7 +312,46 @@ export class AllPhotosHashListViewRV extends Component {
                       </Header.Subheader>
                     </Header.Content>
                   </Header>
+                </div>
 
+                <div style={{paddingRight:5,height:40,paddingTop:5}}>
+                    <Button 
+                        compact
+                        as='div'
+                        labelPosition='right'>
+                        <Button
+                            compact
+                            active={this.state.selectMode ? true : false}
+                            color={this.state.selectMode ? 'blue' : 'grey'}
+                            onClick={()=>{
+                                if (this.state.selectMode) { // reset selected photos when exiting select mode
+                                    this.setState({
+                                        selectedImageHashes:[],
+                                        selectMode:!this.state.selectMode
+                                    })
+                                } else {
+                                    this.setState({selectMode:!this.state.selectMode})
+                                }
+                            }}>
+                            <Icon name='checkmark'/>
+                        </Button>
+                        <Label basic pointing='left'>
+                        {this.state.selectedImageHashes.length} selected
+                        </Label>
+                    </Button>
+
+                    <Button.Group compact floated='right'>
+                    <Popup inverted trigger={
+                        <Button onClick={()=>{
+                            if (this.state.selectedImageHashes.length > 0) {
+                                this.setState({modalAddToAlbumOpen:true})
+                            }
+                        }} icon='plus'/>}
+                        content="Add to an existing album or create a new album"/>        
+                    <Popup inverted trigger={
+                        <Button icon='hide'/>}
+                        content="hide"/>        
+                    </Button.Group>
                 </div>
 
                 <AutoSizer disableHeight style={{outline:'none',padding:0,margin:0}}>
@@ -247,7 +380,7 @@ export class AllPhotosHashListViewRV extends Component {
                       onScroll={this.handleScroll}
                       columnWidth={this.state.entrySquareSize}
                       columnCount={this.state.numEntrySquaresPerRow}
-                      height={this.state.height- topMenuHeight - 60}
+                      height={this.state.height- topMenuHeight - 60 - 40}
                       estimatedRowSize={totalListHeight/this.state.cellContents.length.toFixed(1)}
                       rowHeight={({index})=> {
                         if (this.state.cellContents[index][0].date) { //header row
@@ -320,6 +453,35 @@ export class AllPhotosHashListViewRV extends Component {
                             this.getPhotoDetails(this.props.idx2hash[nextIndex])
                         }}/>
                 }
+
+                <Modal
+                    ariaHideApp={false}
+                    isOpen={this.state.modalAddToAlbumOpen}
+                    onRequestClose={()=>{this.setState({modalAddToAlbumOpen:false})}}
+                    style={customStyles}>
+                    <Header attached='top'>
+                        Add to Album
+                    </Header>
+                    <Segment style={{padding:1}} stacked attached>
+                    <div style={{overflowY:'scroll',height:480,width:'100%'}}>
+                        <List divided relaxed>
+                            {
+                                _.slice(this.props.idx2hash,1,100).map((item)=>{
+                                    return (
+                                        <List.Item>
+                                            <Image size='mini' src={serverAddress+'/media/square_thumbnails_small/'+item+'.jpg'}/>
+                                            <List.Content>
+                                                <List.Header>{item}</List.Header>
+                                                <List.Description>{item}</List.Description>
+                                            </List.Content>
+                                        </List.Item>
+                                    )
+                                })
+                            }
+                        </List>
+                    </div>
+                    </Segment>
+                </Modal>
 
 
 
