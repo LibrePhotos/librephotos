@@ -72,7 +72,7 @@ Make sure you have Python version >= 3.5.
 
 *For Ubuntu*
 ```bash
-sudo apt-get install libboost-all-dev
+sudo apt-get install libboost-all-dev cmake docker.io
 ```
 
 *For macOS*
