@@ -1,6 +1,6 @@
 
 import React, {Component} from 'react'
-import { Progress, List, Grid, Image, Icon, Item, Header, Segment, Accordion,Container, Message, Divider, Button, Loader} from 'semantic-ui-react'
+import { Step, Progress, List, Grid, Image, Icon, Item, Header, Segment, Accordion,Container, Message, Divider, Button, Loader} from 'semantic-ui-react'
 import { connect } from "react-redux";
 
 import {fetchCountStats,fetchPhotoScanStatus,fetchWordCloud,generateEventAlbums,
@@ -107,6 +107,23 @@ export class Settings extends Component {
                     "Scanning Photos " + `(${this.props.statusPhotoScan.added}/${this.props.statusPhotoScan.to_add})`: 
                     "Scan Photos" }
                 </Button>
+                <Step.Group fluid attached>
+                    <Step active={this.props.statusPhotoScan.status && !this.props.statusPhotoScan.added}>
+                    <Icon name='settings' />
+                    <Step.Content>
+                        <Step.Title>Step 1</Step.Title>
+                        <Step.Description>Calculating image hashes...</Step.Description>
+                    </Step.Content>
+                    </Step>
+
+                    <Step active={this.props.statusPhotoScan.status && this.props.statusPhotoScan.added}>
+                    <Icon name='upload' />
+                    <Step.Content>
+                        <Step.Title>Step 2</Step.Title>
+                        <Step.Description>Importing Photos...</Step.Description>
+                    </Step.Content>
+                    </Step>
+                </Step.Group>
                 <Progress 
                   attached='bottom'
                   disabled={!(this.props.statusPhotoScan.status && this.props.statusPhotoScan.added)}
@@ -114,6 +131,7 @@ export class Settings extends Component {
                   percent={this.props.statusPhotoScan.status && this.props.statusPhotoScan.added ? 100*this.props.statusPhotoScan.added.toFixed(1)/this.props.statusPhotoScan.to_add : 100}
                   color='blue'>
                 </Progress>       
+
 
 
 

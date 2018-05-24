@@ -7,7 +7,7 @@ export default function reducer(state={
   fetchingPhotoDetail: false,
   fetchedPhotoDetail: false,
 
-  photos: [],
+  photos: {},
   fetchedPhotos: false,
   fetchingPhotos: false,
 
@@ -87,6 +87,33 @@ export default function reducer(state={
     case "FETCH_PHOTO_DETAIL_REJECTED": {
       return {...state, fetchingPhotoDetail: false, error: action.payload}
     }
+
+	
+	case "SET_PHOTOS_FAVORITE_FULFILLED": {
+		console.log(action)
+		var valFavorite = action.payload.favorite
+		var imageHashes = action.payload.image_hashes
+		var newPhotos = {...state.photos}
+
+		imageHashes.forEach((image_hash)=>{
+			newPhotos[[image_hash]].favorited = valFavorite
+		})
+
+		return {...state, photos:newPhotos}
+	}
+
+  case "SET_PHOTOS_HIDDEN_FULFILLED": {
+    console.log(action)
+    var valHidden = action.payload.hidden
+    var imageHashes = action.payload.image_hashes
+    var newPhotos = {...state.photos}
+
+    imageHashes.forEach((image_hash)=>{
+      newPhotos[[image_hash]].hidden = valHidden
+    })
+
+    return {...state, photos:newPhotos}
+  }
 
 
     default: {

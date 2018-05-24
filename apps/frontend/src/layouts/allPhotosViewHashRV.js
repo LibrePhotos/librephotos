@@ -10,7 +10,12 @@ import {
     editUserAlbum,
     createNewUserAlbum
 } from '../actions/albumsActions'
-import {  fetchPhotoDetail} from '../actions/photosActions'
+import { 
+    fetchPhotos, 
+    fetchPhotoDetail, 
+    setPhotosFavorite,
+    setPhotosHidden
+} from '../actions/photosActions'
 import { Card, Image, Header, Divider, Item, Loader, Dimmer, Sticky, Portal, List, Input, Rating, 
          Container, Label, Popup, Segment, Button, Icon, Table, Transition, Breadcrumb} from 'semantic-ui-react';
 import {Server, serverAddress} from '../api_client/apiClient'
@@ -120,6 +125,7 @@ export class AllPhotosHashListViewRV extends Component {
 
 
     componentDidMount() {
+        this.props.dispatch(fetchPhotos())
         if (this.props.albumsDatePhotoHashList.length < 1) {
             this.props.dispatch(fetchDateAlbumsPhotoHashList())
         }
@@ -161,6 +167,9 @@ export class AllPhotosHashListViewRV extends Component {
             selectedImageHashes.push(hash)
         }
         this.setState({selectedImageHashes:selectedImageHashes})
+        if (selectedImageHashes.length == 0) {
+            this.setState({selectMode:false})
+        }
     }
 
     onGroupSelect(hashes) {
@@ -170,6 +179,9 @@ export class AllPhotosHashListViewRV extends Component {
             var selectedImageHashes = _.union(this.state.selectedImageHashes,hashes)
         }
         this.setState({selectedImageHashes:selectedImageHashes})
+        if (selectedImageHashes.length == 0) {
+            this.setState({selectMode:false})
+        }
     }
 
     cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
@@ -192,6 +204,8 @@ export class AllPhotosHashListViewRV extends Component {
                             </div>
                             <div style={{float:'left',top:3,left:0,position:'relative'}}>
                                 <Button 
+                                    circular
+                                    color={ _.intersection(cell.photos.map((el)=>el.image_hash),this.state.selectedImageHashes).length == cell.photos.length ? 'blue' : 'grey' }
                                     onClick={()=>{
                                         const hashes = cell.photos.map((p)=>p.image_hash)
                                         this.onGroupSelect(hashes)
@@ -218,13 +232,67 @@ export class AllPhotosHashListViewRV extends Component {
                     )   
                 }
             } else { // photo cell doesn't have 'date' attribute
-                if (!this.state.isScrollingFast) {
-                    if (this.state.selectMode) {
+                if (!this.state.isScrollingFast) { // photo cell not scrolling fast
+					if (this.props.photos[cell.image_hash] && this.props.photos[cell.image_hash].favorited) { 
+						var favIcon = (
+							<div style={{right:6,bottom:6,position:'absolute'}}>
+								<Icon 
+									circular 
+									onClick={()=>{
+										this.props.dispatch(setPhotosFavorite([cell.image_hash],false))
+									}} 
+									style={{backgroundColor:'white'}} 
+									color='yellow'
+									name='star'/>
+							</div>
+						)
+					} else {
+						var favIcon = (
+							<div className='gridCellActions' style={{right:6,bottom:6,position:'absolute'}}>
+								<Icon 
+									circular 
+									onClick={()=>{
+										this.props.dispatch(setPhotosFavorite([cell.image_hash],true))
+									}} 
+									style={{backgroundColor:'white'}} 
+									color='grey'
+									name='star'/>
+							</div>
+						)
+					}
+
+                    if (this.props.photos[cell.image_hash] && this.props.photos[cell.image_hash].hidden) { 
+                        var hiddenIcon = (
+                            <div style={{left:6,bottom:6,position:'absolute'}}>
+                                <Icon 
+                                    circular 
+                                    onClick={()=>{
+                                        this.props.dispatch(setPhotosHidden([cell.image_hash],false))
+                                    }} 
+                                    style={{backgroundColor:'white'}} 
+                                    color='red'
+                                    name='hide'/>
+                            </div>
+                        )
+                    } else {
+                        var hiddenIcon = (
+                            <div className='gridCellActions' style={{left:6,bottom:6,position:'absolute'}}>
+                                <Icon 
+                                    circular 
+                                    onClick={()=>{
+                                        this.props.dispatch(setPhotosHidden([cell.image_hash],true))
+                                    }} 
+                                    style={{backgroundColor:'white'}} 
+                                    color='grey'
+                                    name='hide'/>
+                            </div>
+                        )
+                    }
+
+                    if (this.state.selectMode) { // select mode
                         return (
                             <div 
-                                onClick={()=>{
-                                    this.onPhotoSelect(cell.image_hash)
-                                }}
+                                className="gridCell"
                                 key={key} style={{
                                 ...style,
                                 padding:15,
@@ -232,25 +300,83 @@ export class AllPhotosHashListViewRV extends Component {
                                 margin:1,
                                 width:style.width-2,
                                 height:style.height-2}}>
-                                <Image key={'daygroup_image_'+cell.image_hash} style={{display:'inline-block',padding:1,margin:0}}
-                                    height={this.state.entrySquareSize-30} 
-                                    width={this.state.entrySquareSize-30} 
-                                    src={serverAddress+'/media/square_thumbnails/'+cell.image_hash+'.jpg'}/>
+                                
+                                { this.props.photos[cell.image_hash] && this.props.photos[cell.image_hash].hidden ? 
+                                    (
+                                        <div style={{
+                                            height:this.state.entrySquareSize-32,
+                                            width:this.state.entrySquareSize-32,
+                                            padding:0,
+                                            margin:0,
+                                            backgroundColor:'#dddddd'}}>
+                                        </div>
+                                    ) :
+                                    (
+                                        <Image key={'daygroup_image_'+cell.image_hash} style={{display:'inline-block',padding:1,margin:0}}
+                                        height={this.state.entrySquareSize-30} 
+                                        width={this.state.entrySquareSize-30} 
+                                        src={serverAddress+'/media/square_thumbnails/'+cell.image_hash+'.jpg'}/>
+                                    )
+                                }
+
+
+
+
+
+                                <div style={{left:5,top:5,position:'absolute'}}>
+                                    <Icon 
+                                        style={{backgroundColor:'white'}}
+                                        circular
+                                        onClick={()=>{
+                                            this.onPhotoSelect(cell.image_hash)
+                                        }}
+                                        name={this.state.selectedImageHashes.includes(cell.image_hash) ? 'checkmark' : '' }
+                                        color={this.state.selectedImageHashes.includes(cell.image_hash) ? 'blue' : 'grey' }/>
+                                </div>
+                                { hiddenIcon }
+								{ favIcon }
                             </div>
                         )
-                    } else {
+                    } else { // normal mode
+
+
+	
                         return (
-                            <div key={key} style={style}>
-                                <Image key={'daygroup_image_'+cell.image_hash} style={{display:'inline-block',padding:1,margin:0}}
-                                    onClick={()=>{
-                                        this.onPhotoClick(cell.image_hash)
-                                    }}
-                                    height={this.state.entrySquareSize} 
-                                    width={this.state.entrySquareSize} 
-                                    src={serverAddress+'/media/square_thumbnails/'+cell.image_hash+'.jpg'}/>
-                                <div style={{right:5,bottom:5,position:'absolute'}}>
-                                    <Rating icon='star' defaultRating={cell.favorited} maxRating={1} />
+                            <div className="gridCell" key={key} style={style}>
+
+                               { this.props.photos[cell.image_hash] && this.props.photos[cell.image_hash].hidden ? 
+                                    (
+                                        <div style={{
+                                            height:this.state.entrySquareSize-2,
+                                            width:this.state.entrySquareSize-2,
+                                            padding:0,
+                                            backgroundColor:'#dddddd'}}>
+                                        </div>
+                                    ) :
+                                    (
+                                        <Image key={'daygroup_image_'+cell.image_hash} style={{display:'inline-block',padding:1,margin:0}}
+                                        onClick={()=>{
+                                            this.onPhotoClick(cell.image_hash)
+                                        }}
+                                        height={this.state.entrySquareSize} 
+                                        width={this.state.entrySquareSize} 
+                                        src={serverAddress+'/media/square_thumbnails/'+cell.image_hash+'.jpg'}/>
+                                    )
+                                }
+
+                                <div className='gridCellActions' style={{left:6,top:6,position:'absolute'}}>
+                                    <Icon 
+                                        style={{backgroundColor:'white'}}
+                                        circular
+                                        onClick={()=>{
+                                            this.onPhotoSelect(cell.image_hash)
+                                            this.setState({selectMode:true})
+                                        }}
+                                        name='checkmark'
+                                        color={this.state.selectedImageHashes.includes(cell.image_hash) ? 'blue' : 'grey' }/>
                                 </div>
+                                { hiddenIcon }
+								{ favIcon }
                             </div>                                
                         )
                     }
@@ -295,7 +421,14 @@ export class AllPhotosHashListViewRV extends Component {
     render() {
         const {lightboxImageIndex} = this.state
         if ( this.props.idx2hash.length < 1 ||this.props.albumsDatePhotoHashList.length < 1) {
-            return (<div><Loader active/></div>)
+            return (
+				<div>
+					<Loader active indeterminate>
+						<b>Loading photos...</b><br/>
+						If there are uncached changes in the database, this might take a while.
+					</Loader>
+				</div>
+			)
         }
         var totalListHeight = this.state.cellContents.map((row,index)=>{
             if (row[0].date) { //header row
@@ -319,15 +452,14 @@ export class AllPhotosHashListViewRV extends Component {
                   </Header>
                 </div>
 
-                <div style={{paddingRight:5,height:40,paddingTop:5}}>
-                    <Button 
-                        compact
-                        as='div'
-                        labelPosition='right'>
+
+                { this.state.selectMode && (
+                    <div style={{marginLeft:-5,paddingLeft:5,paddingRight:5,height:40,paddingTop:4,backgroundColor:'#AED6F1'}}>
+
                         <Button
                             compact
                             active={this.state.selectMode ? true : false}
-                            color={this.state.selectMode ? 'blue' : 'grey'}
+                            color={this.state.selectMode ? 'red' : 'grey'}
                             onClick={()=>{
                                 if (this.state.selectMode) { // reset selected photos when exiting select mode
                                     this.setState({
@@ -338,29 +470,40 @@ export class AllPhotosHashListViewRV extends Component {
                                     this.setState({selectMode:!this.state.selectMode})
                                 }
                             }}>
-                            <Icon name='checkmark'/>
+                            <Icon name='close'/> Deselect All
                         </Button>
-                        <Label basic pointing='left'>
+
+                        <Button.Group compact floated='right'>
+                        <Popup inverted trigger={
+                            <Button color='green' onClick={()=>{
+                                if (this.state.selectedImageHashes.length > 0) {
+                                    this.setState({modalAddToAlbumOpen:true})
+                                }
+                            }} icon='plus'/>}
+                            content="Add to an existing album or create a new album"/>        
+                        <Popup inverted trigger={
+                            <Button color='yellow' onClick={()=>{
+                                this.props.dispatch(setPhotosFavorite(this.state.selectedImageHashes,true))
+                            }}><Icon.Group><Icon name='star'/><Icon corner color='green' name='plus'/></Icon.Group></Button>}
+                            content="Mark as favorite"/>        
+                        <Popup inverted trigger={
+                            <Button color='orange' onClick={()=>{
+                                this.props.dispatch(setPhotosFavorite(this.state.selectedImageHashes,false))
+                            }}><Icon.Group><Icon name='star'/><Icon corner color='red' name='minus'/></Icon.Group></Button>}
+                            content="Remove from favorites"/>        
+                        <Popup inverted trigger={
+                            <Button color='grey' icon='hide' onClick={()=>{
+                                this.props.dispatch(setPhotosHidden(this.state.selectedImageHashes,true))
+                            }}/>}
+                            content="Hide"/>        
+
+                        </Button.Group>
+
+                        <Label basic>
                         {this.state.selectedImageHashes.length} selected
                         </Label>
-                    </Button>
-
-                    <Button.Group compact floated='right'>
-                    <Popup inverted trigger={
-                        <Button onClick={()=>{
-                            if (this.state.selectedImageHashes.length > 0) {
-                                this.setState({modalAddToAlbumOpen:true})
-                            }
-                        }} icon='plus'/>}
-                        content="Add to an existing album or create a new album"/>        
-                    <Popup inverted trigger={
-                        <Button icon='hide'/>}
-                        content="Hide"/>        
-                    <Popup inverted trigger={
-                        <Button icon='star'/>}
-                        content="Mark as favorite"/>        
-                    </Button.Group>
-                </div>
+                    </div>
+                )}
 
                 <AutoSizer disableHeight style={{outline:'none',padding:0,margin:0}}>
                   {({width}) => (
@@ -388,7 +531,7 @@ export class AllPhotosHashListViewRV extends Component {
                       onScroll={this.handleScroll}
                       columnWidth={this.state.entrySquareSize}
                       columnCount={this.state.numEntrySquaresPerRow}
-                      height={this.state.height- topMenuHeight - 60 - 40}
+                      height={this.state.selectMode ? this.state.height- topMenuHeight - 60 - 40 : this.state.height- topMenuHeight - 60}
                       estimatedRowSize={totalListHeight/this.state.cellContents.length.toFixed(1)}
                       rowHeight={({index})=> {
                         if (this.state.cellContents[index][0].date) { //header row
@@ -466,9 +609,7 @@ export class AllPhotosHashListViewRV extends Component {
                     isOpen={this.state.modalAddToAlbumOpen}
                     onRequestClose={()=>{
                         this.setState({
-                            modalAddToAlbumOpen:false,
-                            selectMode:false,
-                            selectedImageHashes:[]})
+                            modalAddToAlbumOpen:false})
                     }}
                     selectedImageHashes={this.state.selectedImageHashes}/>
 
@@ -491,8 +632,13 @@ class ModalAlbumEdit extends Component {
                 }}
                 style={customStyles}>
 
-                <div style={{height:50,width:'100%',padding:15}}>
-                <Header>Add to Album</Header>
+                <div style={{height:50,width:'100%',padding:7}}>
+                <Header>
+                    Add to Album
+                    <Header.Subheader>
+                        Add selected {this.props.selectedImageHashes.length} item(s) to...
+                    </Header.Subheader>
+                </Header>
                 </div>
                 <Divider fitted/>
                 <div style={{paddingLeft:10,paddingTop:10,overflowY:'scroll',height:window.innerHeight-300-50,width:'100%'}}>
@@ -549,8 +695,8 @@ class ModalAlbumEdit extends Component {
                                                 onClick={()=>{
                                                     this.props.dispatch(editUserAlbum(item.id,item.title,this.props.selectedImageHashes))
                                                     this.props.onRequestClose()
-                                                    console.log('trying to add photos: ',this.props.selectedImageHashes)
-                                                    console.log('to user album id: ',item.id)
+                                                    // console.log('trying to add photos: ',this.props.selectedImageHashes)
+                                                    // console.log('to user album id: ',item.id)
                                                 }}
                                                 as='a'>
                                                 {item.title}
@@ -583,10 +729,16 @@ ModalAlbumEdit = connect((store)=>{
 
 AllPhotosHashListViewRV = connect((store)=>{
   return {
+    photos: store.photos.photos,
+    fetchingPhotos: store.photos.fetchingPhotos,
+    fetchedPhotos: store.photos.fetchedPhotos,
+
     photoDetails: store.photos.photoDetails,
     fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
     fetchedPhotoDetail: store.photos.fetchedPhotoDetail,
+
     idx2hash: store.albums.idx2hash,
+
     albumsDatePhotoHashList: store.albums.albumsDatePhotoHashList,
     fetchingAlbumsDatePhotoHashList: store.albums.fetchingAlbumsDatePhotoHashList,
     fetchedAlbumsDatePhotoHashList: store.albums.fetchedAlbumsDatePhotoHashList,    

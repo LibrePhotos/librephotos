@@ -7,18 +7,18 @@ export const calculateGridCells = (groupedByDateList,itemsPerRow) => {
       gridContents.push([day])
       var currRowIdx = gridContents.length
       day.photos.forEach((photo,idx)=>{
-        if (idx ==0 ) {
+        if (idx === 0 ) {
           rowCursor = []
         }
-        if (idx > 0 && idx % itemsPerRow == 0) {
+        if (idx > 0 && idx % itemsPerRow === 0) {
           gridContents.push(rowCursor)
         }
-        if (idx % itemsPerRow == 0) {
+        if (idx % itemsPerRow === 0) {
           rowCursor = []
         }
         rowCursor.push(photo)
         hash2row[[photo.image_hash]] = currRowIdx
-        if (idx == day.photos.length-1) {
+        if (idx === day.photos.length-1) {
           gridContents.push(rowCursor)        
         }
   
@@ -29,21 +29,22 @@ export const calculateGridCells = (groupedByDateList,itemsPerRow) => {
   
 
 export const calculateGridCellSize = (gridWidth) => {
-
+    var numEntrySquaresPerRow
+    
     if (gridWidth < 600) {
-        var numEntrySquaresPerRow = 3
+        numEntrySquaresPerRow = 3
     } 
     else if (gridWidth < 800) {
-        var numEntrySquaresPerRow = 4
+        numEntrySquaresPerRow = 4
     }
     else if (gridWidth < 1000) {
-        var numEntrySquaresPerRow = 6
+        numEntrySquaresPerRow = 6
     }
     else if (gridWidth < 1200) {
-        var numEntrySquaresPerRow = 6
+        numEntrySquaresPerRow = 8
     }
     else {
-        var numEntrySquaresPerRow = 6 
+        numEntrySquaresPerRow = 10 
     }
 
     var entrySquareSize = gridWidth / numEntrySquaresPerRow

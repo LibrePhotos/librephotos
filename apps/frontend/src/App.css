@@ -140,6 +140,13 @@ display: none;
 display : inline;
 }
 
+.gridCellActions{
+  display: none;
+}
+
+.gridCell:hover .gridCellActions {
+  display: inline;
+}
 
 
 .login-background-image {
