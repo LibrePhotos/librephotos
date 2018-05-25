@@ -10,7 +10,7 @@ export function setPhotosFavorite(image_hashes,favorite) {
     dispatch({type: "SET_PHOTOS_FAVORITE"});
     Server.post(`photosedit/favorite/`,{image_hashes:image_hashes,favorite:favorite})
       .then((response) => {
-        dispatch({type: "SET_PHOTOS_FAVORITE_FULFILLED", payload: {image_hashes:image_hashes,favorite:favorite}})
+        dispatch({type: "SET_PHOTOS_FAVORITE_FULFILLED", payload: {image_hashes:image_hashes,favorite:favorite,updatedPhotos:response.data.results}})
       })
       .catch((err) => {
         dispatch({type: "SET_PHOTOS_FAVORITE_REJECTED", payload: err})
@@ -23,7 +23,7 @@ export function setPhotosHidden(image_hashes,hidden) {
     dispatch({type: "SET_PHOTOS_HIDDEN"});
     Server.post(`photosedit/hide/`,{image_hashes:image_hashes,hidden:hidden})
       .then((response) => {
-        dispatch({type: "SET_PHOTOS_HIDDEN_FULFILLED", payload: {image_hashes:image_hashes,hidden:hidden}})
+        dispatch({type: "SET_PHOTOS_HIDDEN_FULFILLED", payload: {image_hashes:image_hashes,hidden:hidden,updatedPhotos:response.data.results}})
       })
       .catch((err) => {
         dispatch({type: "SET_PHOTOS_HIDDEN_REJECTED", payload: err})

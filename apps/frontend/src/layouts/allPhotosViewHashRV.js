@@ -76,6 +76,7 @@ export class AllPhotosHashListViewRV extends Component {
         this.listRef = React.createRef()
         this.state = {
             cellContents: [[]],
+            imagesGroupedByDate: [],
             hash2row: {},
             idx2hash: [],
             lightboxImageIndex: 1,
@@ -126,9 +127,9 @@ export class AllPhotosHashListViewRV extends Component {
 
     componentDidMount() {
         this.props.dispatch(fetchPhotos())
-        if (this.props.albumsDatePhotoHashList.length < 1) {
-            this.props.dispatch(fetchDateAlbumsPhotoHashList())
-        }
+        // if (this.state.imagesGroupedByDate.length < 1) {
+        //     this.props.dispatch(fetchDateAlbumsPhotoHashList())
+        // }
         this.handleResize();
         window.addEventListener("resize", this.handleResize.bind(this));
     }
@@ -140,7 +141,7 @@ export class AllPhotosHashListViewRV extends Component {
     handleResize() {
         var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10
         const {entrySquareSize,numEntrySquaresPerRow} = calculateGridCellSize(columnWidth)
-        var {cellContents,hash2row} = calculateGridCells(this.props.albumsDatePhotoHashList,numEntrySquaresPerRow)
+        var {cellContents,hash2row} = calculateGridCells(this.state.imagesGroupedByDate,numEntrySquaresPerRow)
 
         this.setState({
             width:  window.innerWidth,
@@ -156,7 +157,7 @@ export class AllPhotosHashListViewRV extends Component {
     }
 
     onPhotoClick(hash) {
-        this.setState({lightboxImageIndex:this.props.idx2hash.indexOf(hash),lightboxShow:true})
+        this.setState({lightboxImageIndex:this.state.idx2hash.indexOf(hash),lightboxShow:true})
     }
     
     onPhotoSelect(hash) {
@@ -413,14 +414,41 @@ export class AllPhotosHashListViewRV extends Component {
 
 
     static getDerivedStateFromProps(nextProps,prevState){
-        const {cellContents,hash2row} = calculateGridCells(nextProps.albumsDatePhotoHashList,prevState.numEntrySquaresPerRow)
-        return {...prevState,cellContents,hash2row}
+        var t0 = performance.now();
+
+        const imagesGroupedByDate = _.toPairs(
+            _.groupBy(
+                _.orderBy(
+                    _.map(nextProps.photos,(el)=>el).filter((el)=> el.exif_timestamp ? true : false),
+                    ['exif_timestamp'],['desc']),
+                (el)=>moment(el.exif_timestamp).format('YYYY-MM-DD'))
+        ).map((el)=>{
+            return (
+                {date:el[0],photos:el[1],location:null}
+            )
+        })
+        var t1 = performance.now();
+        console.log("Call to grouping photos into dates took " + (t1 - t0) + " milliseconds.")
+        console.log(imagesGroupedByDate)
+
+        var idx2hash = [] 
+        imagesGroupedByDate.forEach((day)=>{
+            day.photos.forEach((photo)=>{
+                idx2hash.push(photo.image_hash)
+            })
+        })
+
+
+        const {cellContents,hash2row} = calculateGridCells(imagesGroupedByDate,prevState.numEntrySquaresPerRow)
+        const nextState = {...prevState,cellContents,hash2row,imagesGroupedByDate,idx2hash}
+        console.log(nextState)
+        return nextState
     }
 
 
     render() {
         const {lightboxImageIndex} = this.state
-        if ( this.props.idx2hash.length < 1 ||this.props.albumsDatePhotoHashList.length < 1) {
+        if ( this.state.idx2hash.length < 1 ||this.state.imagesGroupedByDate.length < 1) {
             return (
 				<div>
 					<Loader active indeterminate>
@@ -446,7 +474,7 @@ export class AllPhotosHashListViewRV extends Component {
                     <Header.Content>
                       All Photos
                       <Header.Subheader>
-                        {this.props.albumsDatePhotoHashList.length} Days, {this.props.idx2hash.length} Photos
+                        {this.state.imagesGroupedByDate.length} Days, {this.state.idx2hash.length} Photos
                       </Header.Subheader>
                     </Header.Content>
                   </Header>
@@ -578,30 +606,30 @@ export class AllPhotosHashListViewRV extends Component {
 
                 { this.state.lightboxShow &&
                     <LightBox
-                        idx2hash={this.props.idx2hash}
+                        idx2hash={this.state.idx2hash}
                         lightboxImageIndex={this.state.lightboxImageIndex}
 
                         onCloseRequest={() => this.setState({ lightboxShow: false })}
                         onImageLoad={()=>{
-                            this.getPhotoDetails(this.props.idx2hash[this.state.lightboxImageIndex])
+                            this.getPhotoDetails(this.state.idx2hash[this.state.lightboxImageIndex])
                         }}
                         onMovePrevRequest={() => {
-                            var prevIndex = (this.state.lightboxImageIndex + this.props.idx2hash.length - 1) % this.props.idx2hash.length
+                            var prevIndex = (this.state.lightboxImageIndex + this.state.idx2hash.length - 1) % this.state.idx2hash.length
                             this.setState({
                                 lightboxImageIndex:prevIndex
                             })
-                            var rowIdx = this.state.hash2row[this.props.idx2hash[prevIndex]]
+                            var rowIdx = this.state.hash2row[this.state.idx2hash[prevIndex]]
                             this.listRef.current.scrollToCell({columnIndex:0,rowIndex:rowIdx})
-                            this.getPhotoDetails(this.props.idx2hash[prevIndex])
+                            this.getPhotoDetails(this.state.idx2hash[prevIndex])
                         }}
                         onMoveNextRequest={() => {
-                            var nextIndex = (this.state.lightboxImageIndex + this.props.idx2hash.length + 1) % this.props.idx2hash.length
+                            var nextIndex = (this.state.lightboxImageIndex + this.state.idx2hash.length + 1) % this.state.idx2hash.length
                             this.setState({
                                 lightboxImageIndex:nextIndex
                             })
-                            var rowIdx = this.state.hash2row[this.props.idx2hash[nextIndex]]
+                            var rowIdx = this.state.hash2row[this.state.idx2hash[nextIndex]]
                             this.listRef.current.scrollToCell({columnIndex:0,rowIndex:rowIdx})
-                            this.getPhotoDetails(this.props.idx2hash[nextIndex])
+                            this.getPhotoDetails(this.state.idx2hash[nextIndex])
                         }}/>
                 }
 
