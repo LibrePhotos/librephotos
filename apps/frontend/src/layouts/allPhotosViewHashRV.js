@@ -79,6 +79,7 @@ export class AllPhotosHashListViewRV extends Component {
             imagesGroupedByDate: [],
             hash2row: {},
             idx2hash: [],
+            photos: {},
             lightboxImageIndex: 1,
             lightboxShow:false,
             lightboxSidebarShow:false,
@@ -127,9 +128,9 @@ export class AllPhotosHashListViewRV extends Component {
 
     componentDidMount() {
         this.props.dispatch(fetchPhotos())
-        // if (this.state.imagesGroupedByDate.length < 1) {
-        //     this.props.dispatch(fetchDateAlbumsPhotoHashList())
-        // }
+        if (this.state.imagesGroupedByDate.length < 1) {
+            this.props.dispatch(fetchDateAlbumsPhotoHashList())
+        }
         this.handleResize();
         window.addEventListener("resize", this.handleResize.bind(this));
     }
@@ -407,42 +408,44 @@ export class AllPhotosHashListViewRV extends Component {
 
     
     getPhotoDetails(image_hash) {
-        if (!this.props.photoDetails.hasOwnProperty(image_hash)) {
-            this.props.dispatch(fetchPhotoDetail(image_hash))
-        }
+        this.props.dispatch(fetchPhotoDetail(image_hash))
     }
 
 
     static getDerivedStateFromProps(nextProps,prevState){
-        var t0 = performance.now();
-
-        const imagesGroupedByDate = _.toPairs(
-            _.groupBy(
-                _.orderBy(
-                    _.map(nextProps.photos,(el)=>el).filter((el)=> el.exif_timestamp ? true : false),
-                    ['exif_timestamp'],['desc']),
-                (el)=>moment(el.exif_timestamp).format('YYYY-MM-DD'))
-        ).map((el)=>{
-            return (
-                {date:el[0],photos:el[1],location:null}
-            )
-        })
-        var t1 = performance.now();
-        console.log("Call to grouping photos into dates took " + (t1 - t0) + " milliseconds.")
-        console.log(imagesGroupedByDate)
-
-        var idx2hash = [] 
-        imagesGroupedByDate.forEach((day)=>{
-            day.photos.forEach((photo)=>{
-                idx2hash.push(photo.image_hash)
+        const shouldUpdateStates = !_.isEqualWith(nextProps.photos,prevState.photos)
+        console.log(shouldUpdateStates)
+        if (shouldUpdateStates) {
+            var t0 = performance.now();
+            const photos = nextProps.photos
+            const imagesGroupedByDate = _.toPairs(
+                _.groupBy(
+                    _.orderBy(
+                        _.map(nextProps.photos,(el)=>el).filter((el)=> el.exif_timestamp && !el.hidden ? true : false),
+                        ['exif_timestamp'],['desc']),
+                    (el)=>moment(el.exif_timestamp).format('YYYY-MM-DD'))
+            ).map((el)=>{
+                return (
+                    {date:el[0],photos:el[1],location:null}
+                )
             })
-        })
-
-
-        const {cellContents,hash2row} = calculateGridCells(imagesGroupedByDate,prevState.numEntrySquaresPerRow)
-        const nextState = {...prevState,cellContents,hash2row,imagesGroupedByDate,idx2hash}
-        console.log(nextState)
-        return nextState
+            var t1 = performance.now();
+                    console.log("grouping photos into dates took " + (t1 - t0) + " milliseconds.")
+    
+            var idx2hash = [] 
+            imagesGroupedByDate.forEach((day)=>{
+                day.photos.forEach((photo)=>{
+                    idx2hash.push(photo.image_hash)
+                })
+            })
+            const {cellContents,hash2row} = calculateGridCells(imagesGroupedByDate,prevState.numEntrySquaresPerRow)
+            const nextState = {...prevState,cellContents,hash2row,imagesGroupedByDate,idx2hash,photos}
+            console.log(nextState)
+            return nextState
+        } else {
+            return prevState
+        }
+        
     }
 
 

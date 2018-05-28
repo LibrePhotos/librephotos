@@ -11,6 +11,9 @@ export function setPhotosFavorite(image_hashes,favorite) {
     Server.post(`photosedit/favorite/`,{image_hashes:image_hashes,favorite:favorite})
       .then((response) => {
         dispatch({type: "SET_PHOTOS_FAVORITE_FULFILLED", payload: {image_hashes:image_hashes,favorite:favorite,updatedPhotos:response.data.results}})
+        if (image_hashes.length == 1) {
+          dispatch(fetchPhotoDetail(image_hashes[0]))
+        }
       })
       .catch((err) => {
         dispatch({type: "SET_PHOTOS_FAVORITE_REJECTED", payload: err})
@@ -24,6 +27,9 @@ export function setPhotosHidden(image_hashes,hidden) {
     Server.post(`photosedit/hide/`,{image_hashes:image_hashes,hidden:hidden})
       .then((response) => {
         dispatch({type: "SET_PHOTOS_HIDDEN_FULFILLED", payload: {image_hashes:image_hashes,hidden:hidden,updatedPhotos:response.data.results}})
+        if (image_hashes.length == 1) {
+          dispatch(fetchPhotoDetail(image_hashes[0]))
+        }
       })
       .catch((err) => {
         dispatch({type: "SET_PHOTOS_HIDDEN_REJECTED", payload: err})
@@ -67,7 +73,7 @@ export function fetchPhotos() {
 
 export function fetchPhotoDetail(image_hash) {
   return function(dispatch) {
-    dispatch({type:"FETCH_PHOTO_DETAIL"});
+    dispatch({type:"FETCH_PHOTO_DETAIL",payload:image_hash});
     Server.get(`photos/${image_hash}/`,{timeout:100000})
       .then((response) => {
         console.log(response)

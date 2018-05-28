@@ -4,7 +4,7 @@ import { List, WindowScroller,AutoSizer } from 'react-virtualized';
 import 'react-virtualized/styles.css'; // only needs to be imported once
 import { connect } from "react-redux";
 import {  fetchDateAlbumsPhotoHashList,fetchAlbumsDateGalleries} from '../actions/albumsActions'
-import {  fetchPhotoDetail} from '../actions/photosActions'
+import {  fetchPhotoDetail, setPhotosFavorite, setPhotosHidden} from '../actions/photosActions'
 import { Card, Image, Header, Divider, Item, Loader, Dimmer, Modal, Sticky, Portal, Grid, List as ListSUI,
          Container, Label, Popup, Segment, Button, Icon, Table, Transition, Breadcrumb} from 'semantic-ui-react';
 import {Server, serverAddress} from '../api_client/apiClient'
@@ -44,11 +44,7 @@ export class LightBox extends Component {
     state = {
         lightboxSidebarShow: false,
     }
-    getPhotoDetails(image_hash) {
-        if (!this.props.photoDetails.hasOwnProperty(image_hash)) {
-            this.props.dispatch(fetchPhotoDetail(image_hash))
-        }
-    }
+
     render() {
         return (
             <div>
@@ -61,6 +57,38 @@ export class LightBox extends Component {
                     prevSrcThumbnail={serverAddress+'/media/thumbnails/'+this.props.idx2hash.slice((this.props.lightboxImageIndex - 1) % this.props.idx2hash.length)[0]+'.jpg'}
                     toolbarButtons={[
                         <div>
+                            {   
+                                this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]] && 
+                                (   
+                                    <Button 
+                                        onClick={()=>{
+                                            const image_hash = this.props.idx2hash[this.props.lightboxImageIndex]
+                                            const val = !this.props.photoDetails[image_hash].hidden
+                                            this.props.dispatch(setPhotosHidden([image_hash],val))
+                                        }}
+                                        color='black' icon circular>
+                                        <Icon 
+                                            name='hide' 
+                                            color={this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].hidden ? 'red':'grey'}/>
+                                    </Button>
+                                )
+                            }
+                            {   
+                                this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]] && 
+                                (   
+                                    <Button 
+                                        onClick={()=>{
+                                            const image_hash = this.props.idx2hash[this.props.lightboxImageIndex]
+                                            const val = !this.props.photoDetails[image_hash].favorited
+                                            this.props.dispatch(setPhotosFavorite([image_hash],val))
+                                        }}
+                                        color='black' icon circular>
+                                        <Icon 
+                                            name='star' 
+                                            color={this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]].favorited ? 'yellow':'grey'}/>
+                                    </Button>
+                                )
+                            }
                             <Button 
                                 icon 
                                 active={this.state.lightboxSidebarShow}
@@ -71,7 +99,10 @@ export class LightBox extends Component {
                         </div>
                     ]}
                     onCloseRequest={this.props.onCloseRequest}
-                    onImageLoad={this.props.onImageLoad}
+                    onAfterOpen={() => {
+                        console.log('lightbox trying to fetch photo detail')
+                        this.props.onImageLoad()
+                    }}
                     onMovePrevRequest={this.props.onMovePrevRequest}
                     onMoveNextRequest={this.props.onMoveNextRequest}
                     sidebarWidth={  this.state.lightboxSidebarShow ? LIGHTBOX_SIDEBAR_WIDTH : 0}
@@ -260,6 +291,7 @@ LightBox = connect((store)=>{
     photoDetails: store.photos.photoDetails,
     fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
     fetchedPhotoDetail: store.photos.fetchedPhotoDetail,
+    photos:store.photos.photos,
     // idx2hash: store.albums.idx2hash,
     // albumsDatePhotoHashList: store.albums.albumsDatePhotoHashList,
     // fetchingAlbumsDatePhotoHashList: store.albums.fetchingAlbumsDatePhotoHashList,

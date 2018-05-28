@@ -69,10 +69,10 @@ export default function reducer(state={
 
 
     case "FETCH_PHOTO_DETAIL": {
-        return {
-            ...state,
-            fetchingPhotoDetail:true
-        }
+      return {
+          ...state,
+          fetchingPhotoDetail:true,
+      }
     }
     case "FETCH_PHOTO_DETAIL_FULFILLED": {
       var newPhotoDetails = {...state.photoDetails}

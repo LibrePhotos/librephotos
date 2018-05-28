@@ -12,7 +12,7 @@ export function searchPhotos(query) {
       var url = `photos/?search=${query}`
       console.log(url)
       dispatch({type:"SEARCH_PHOTOS",payload: query});
-      Server.get(`photos/list/?search=${query}`,{timeout:100000})
+      Server.get(`photos/searchlist/?search=${query}`,{timeout:100000})
         .then((response) => {
           var groupedByDate = _.groupBy(response.data.results,(el)=>{
             if (el.exif_timestamp) {
