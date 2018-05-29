@@ -70,8 +70,8 @@ import {Settings} from './layouts/settings'
 import {NotImplementedPlaceholder} from './layouts/notImplementedPlaceholder'
 import {CountryPiChart} from './components/charts/countryPiChart'
 
-import {SearchView} from './layouts/search'
-import {SearchViewRV} from './layouts/searchRV'
+// import {SearchView} from './layouts/search'
+import {SearchViewRV, SearchView} from './layouts/searchRV'
 import {SearchMultipleCategories} from './layouts/searchMultipleResultsCategories'
 
 import {ImageInfoTable} from './components/imageInfoTable'
@@ -155,7 +155,7 @@ class App extends Component {
 
               <PrivateRoute path="/faces" component={FacesDashboardV2}/>
 
-              <PrivateRoute path="/search" component={SearchMultipleCategories}/>
+              <PrivateRoute path="/search" component={SearchView}/>
 
               <PrivateRoute path='/person/:albumID' component={AlbumPersonGallery}/>
 

@@ -87,7 +87,7 @@ const customStyles = {
 };
 
 
-export class AllPhotosHashListViewRV extends Component {
+export class PhotoListView extends Component {
 
     constructor(props){
         super(props)
@@ -150,9 +150,9 @@ export class AllPhotosHashListViewRV extends Component {
 
     componentDidMount() {
         // this.props.dispatch(fetchPhotos())
-        if (this.props.albumsDatePhotoHashList.length < 1) {
-            this.props.dispatch(fetchDateAlbumsPhotoHashList())
-        }
+        // if (this.props.photosGroupedByDate.length < 1) {
+        //     this.props.dispatch(fetchDateAlbumsPhotoHashList())
+        // }
         this.handleResize();
         window.addEventListener("resize", this.handleResize.bind(this));
     }
@@ -164,7 +164,7 @@ export class AllPhotosHashListViewRV extends Component {
     handleResize() {
         var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10
         const {entrySquareSize,numEntrySquaresPerRow} = calculateGridCellSize(columnWidth)
-        var {cellContents,hash2row} = calculateGridCells(this.props.albumsDatePhotoHashList,numEntrySquaresPerRow)
+        var {cellContents,hash2row} = calculateGridCells(this.props.photosGroupedByDate,numEntrySquaresPerRow)
 
         this.setState({
             width:  window.innerWidth,
@@ -448,7 +448,7 @@ export class AllPhotosHashListViewRV extends Component {
     static getDerivedStateFromProps(nextProps,prevState){
         if (true) {
             var t0 = performance.now();
-            const imagesGroupedByDate = nextProps.albumsDatePhotoHashList
+            const imagesGroupedByDate = nextProps.photosGroupedByDate
             var t1 = performance.now();
                     console.log("grouping photos into dates took " + (t1 - t0) + " milliseconds.")
     
@@ -461,73 +461,103 @@ export class AllPhotosHashListViewRV extends Component {
         } else {
             return prevState
         }
+        
     }
 
 
     render() {
         const {lightboxImageIndex} = this.state
-        if ( this.props.idx2hash.length < 1 ||this.props.albumsDatePhotoHashList.length < 1) {
+        if ( this.props.loading || this.props.idx2hash.length < 1 ||this.props.photosGroupedByDate.length < 1) {
         //if (true) {
             return (
 				<div>
 
+                    <div style={{height:60,paddingTop:10}}>
+                      <Header as='h2'>
+                        <Icon name={this.props.titleIconName}/>
+                        <Header.Content>
+                          {this.props.title}<Loader inline active={this.props.loading} size="mini"/>
+                            {
+                                this.props.loading ? 
+                                    (
+                                        <Header.Subheader>
+                                            Loading...
+                                        </Header.Subheader>
 
-                <div style={{height:60,paddingTop:10}}>
-                  <Header as='h2'>
-                    <Icon name='picture' />
-                    <Header.Content>
-                      All Photos <Loader inline size='tiny' active></Loader>
-                      <Header.Subheader>
-                        Loading...
-                      </Header.Subheader>
-                    </Header.Content>
-                  </Header>
-                </div>
-
-                    <AutoSizer disableHeight style={{outline:'none',padding:0,margin:0}}>
-                    {({width}) => (
-                        <Grid
-                        overscanRowCount={0}
-                        style={{outline:'none'}}
-                        cellRenderer={({ columnIndex, key, rowIndex, style })=>{
-                            if (rowIndex % 3 === 0 && columnIndex === 0){
-                                return (
-                                    <div key={key} style={{...style,width:this.state.width,height:DAY_HEADER_HEIGHT,paddingTop:20}}>
-                                        <div style={{backgroundColor:'#dddddd',height:40,width:260}}>
-                                        </div>
-                                    </div>                
-                                )
-                                    
-                            } else if (rowIndex % 3 === 0 && columnIndex > 0) {
-                                return (<div key={key} style={style}></div>)
-                            } else {
-                                return ( <div style={{...style}} key={key}>
-                                        <Image 
-                                            style={{padding:1,margin:0}}
-                                            height={this.state.entrySquareSize} 
-                                            width={this.state.entrySquareSize} 
-                                            src='/thumbnail_placeholder.png'/>
-                                    </div>
-                                )
+                                    ) : 
+                                    (
+                                        <Header.Subheader>
+                                            {this.props.photosGroupedByDate.length} Days, {this.props.idx2hash.length} Photos    
+                                        </Header.Subheader>
+                                    )
+                                
                             }
+                            
+                        </Header.Content>
+                      </Header>
+                    </div>
 
-                        }}
-                        columnWidth={width/this.state.numEntrySquaresPerRow}
-                        columnCount={this.state.numEntrySquaresPerRow}
-                        height={this.state.height - TOP_MENU_HEIGHT - 60}
-                        rowHeight={({index})=>{
-                            if (index%3) {
-                                return (width.toFixed(1) / this.state.numEntrySquaresPerRow)
-                            } else {
-                                return DAY_HEADER_HEIGHT
-                            }
+                    {
+                        this.props.idx2hash.length < 1 ||this.props.photosGroupedByDate.length < 1 ? 
+                        (
+                            <div style={{
+                                display:'flex',
+                                justifyContent: 'center',
+                                alignItems:'center',
+                                height:this.state.height - TOP_MENU_HEIGHT - 60,
+                                // width:this.state.width
+                            }}>
+                                <Header>{this.props.noResultsMessage}</Header>
+                            </div>
+                        ) : 
+                        (
+                            <AutoSizer disableHeight style={{outline:'none',padding:0,margin:0}}>
+                            {({width}) => (
+                                <Grid
+                                overscanRowCount={0}
+                                style={{outline:'none'}}
+                                cellRenderer={({ columnIndex, key, rowIndex, style })=>{
+                                    if (rowIndex % 3 === 0 && columnIndex === 0){
+                                        return (
+                                            <div key={key} style={{...style,width:this.state.width,height:DAY_HEADER_HEIGHT,paddingTop:20}}>
+                                                <div style={{backgroundColor:'#dddddd',height:40,width:260}}>
+                                                </div>
+                                            </div>                
+                                        )
+                                            
+                                    } else if (rowIndex % 3 === 0 && columnIndex > 0) {
+                                        return (<div key={key} style={style}></div>)
+                                    } else {
+                                        return ( <div style={{...style}} key={key}>
+                                                <Image 
+                                                    style={{padding:1,margin:0}}
+                                                    height={this.state.entrySquareSize} 
+                                                    width={this.state.entrySquareSize} 
+                                                    src='/thumbnail_placeholder.png'/>
+                                            </div>
+                                        )
+                                    }
 
-                        }}
-                        rowCount={5000}
-                        width={width}
-                        />
-                    )}
-                    </AutoSizer>
+                                }}
+                                columnWidth={width/this.state.numEntrySquaresPerRow}
+                                columnCount={this.state.numEntrySquaresPerRow}
+                                height={this.state.height - TOP_MENU_HEIGHT - 60}
+                                rowHeight={({index})=>{
+                                    if (index%3) {
+                                        return (width.toFixed(1) / this.state.numEntrySquaresPerRow)
+                                    } else {
+                                        return DAY_HEADER_HEIGHT
+                                    }
+
+                                }}
+                                rowCount={5000}
+                                width={width}
+                                />
+                            )}
+                            </AutoSizer>
+                        )
+
+                    }
 
 
 
@@ -544,13 +574,12 @@ export class AllPhotosHashListViewRV extends Component {
         return (
             <div>
                 <div style={{height:60,paddingTop:10}}>
-
                   <Header as='h2'>
-                    <Icon name='picture' />
+                    <Icon name={this.props.titleIconName}/>
                     <Header.Content>
-                      All Photos
+                      {this.props.title}
                       <Header.Subheader>
-                        {this.props.albumsDatePhotoHashList.length} Days, {this.props.idx2hash.length} Photos
+                        {this.props.photosGroupedByDate.length} Days, {this.props.idx2hash.length} Photos
                       </Header.Subheader>
                     </Header.Content>
                   </Header>
@@ -835,7 +864,7 @@ ModalAlbumEdit = connect((store)=>{
   })(ModalAlbumEdit)
   
 
-AllPhotosHashListViewRV = connect((store)=>{
+PhotoListView = connect((store)=>{
   return {
     photos: store.photos.photos,
     fetchingPhotos: store.photos.fetchingPhotos,
@@ -843,12 +872,11 @@ AllPhotosHashListViewRV = connect((store)=>{
 
     photoDetails: store.photos.photoDetails,
     fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
-    fetchedPhotoDetail: store.photos.fetchedPhotoDetail,
-
-    idx2hash: store.albums.idx2hash,
-
-    albumsDatePhotoHashList: store.albums.albumsDatePhotoHashList,
-    fetchingAlbumsDatePhotoHashList: store.albums.fetchingAlbumsDatePhotoHashList,
-    fetchedAlbumsDatePhotoHashList: store.albums.fetchedAlbumsDatePhotoHashList,    
+    fetchedPhotoDetail: store.photos.fetchedPhotoDetail,  
   }
-})(AllPhotosHashListViewRV)
+})(PhotoListView)
+//photosGroupedByDate
+//idx2hash
+//title
+//subtitle
+//titleIconName

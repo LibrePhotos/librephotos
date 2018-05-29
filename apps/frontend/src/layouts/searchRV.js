@@ -18,10 +18,12 @@ import {searchPhotos} from '../actions/searchActions'
 import * as moment from 'moment';
 import debounce from 'lodash/debounce'
 
-var topMenuHeight = 55 // don't change this
-var leftMenuWidth = 85 // don't change this
+import {PhotoListView} from './ReusablePhotoListView'
+
+var TOP_MENU_HEIGHT = 55 // don't change this
+var LEFT_MENU_WIDTH = 85 // don't change this
 var SIDEBAR_WIDTH = 85
-var timelineScrollWidth = 0
+var TIMELINE_SCROLL_WIDTH = 0
 var DAY_HEADER_HEIGHT = 70
 
 if (window.innerWidth < 600) {
@@ -57,7 +59,21 @@ const SCROLL_DEBOUNCE_DURATION = 100; // In milliseconds
 
 
 
-
+export class SearchView extends Component {
+    render() {
+        const {searchingPhotos,searchedPhotos,searchQuery} = this.props
+        return (
+            <PhotoListView 
+                title={searchingPhotos ? `Searching "${searchQuery}"...` : searchQuery===null ? "Search for things, places, people, and time." : `Search results for "${searchQuery}"`}
+                loading={searchingPhotos}
+                titleIconName={'search'}
+                subtitle={"hehehe"}
+                photosGroupedByDate={this.props.searchPhotosResGroupedByDate}
+                idx2hash={this.props.idx2hash}
+            />
+        )
+    }
+}
 
 
 
@@ -325,19 +341,19 @@ export class SearchViewRV extends Component {
                         onRowsRendered={({ overscanStartIndex, overscanStopIndex, startIndex, stopIndex })=>{
                             this.setState({currTopRenderedRowIdx:startIndex})
                         }}
-                        height={this.state.height-topMenuHeight-60}
+                        height={this.state.height-TOP_MENU_HEIGHT-60}
                         overscanRowCount={5}
                         rowCount={this.props.searchPhotosResGroupedByDate.length}
                         rowHeight={this.getRowHeight}
                         rowRenderer={this.rowRenderer}
                         onScroll={this.handleScroll}
                         estimatedRowSize={totalListHeight/this.props.searchPhotosResGroupedByDate.length.toFixed(10)}
-                        width={this.state.width-leftMenuWidth-5}/>
+                        width={this.state.width-LEFT_MENU_WIDTH-5}/>
 
             { (
                 <div style={{
                     right:0,
-                    top:topMenuHeight + 10+ (0 / totalListHeight) * (this.state.height - topMenuHeight - 50 - 20),
+                    top:TOP_MENU_HEIGHT + 10+ (0 / totalListHeight) * (this.state.height - TOP_MENU_HEIGHT - 50 - 20),
                     position:'fixed',
                     float:'left',
                     width:180,
@@ -358,9 +374,9 @@ export class SearchViewRV extends Component {
                     backgroundColor:'white',
                     position:'fixed',
                     right:0,
-                    top:topMenuHeight,
-                    height:this.state.height-topMenuHeight,
-                    width:timelineScrollWidth}}>
+                    top:TOP_MENU_HEIGHT,
+                    height:this.state.height-TOP_MENU_HEIGHT,
+                    width:TIMELINE_SCROLL_WIDTH}}>
                         
                 </div>
 
@@ -587,7 +603,7 @@ export class SearchViewRV extends Component {
 
 
         return (
-            <div style={{paddingRight:timelineScrollWidth}}>
+            <div style={{paddingRight:TIMELINE_SCROLL_WIDTH}}>
 
                 <div style={{height:60,paddingTop:10,paddingRight:5}}>
 
@@ -615,7 +631,7 @@ export class SearchViewRV extends Component {
                       onScroll={this.handleScroll}
                       columnWidth={this.state.entrySquareSize}
                       columnCount={this.state.numEntrySquaresPerRow}
-                      height={this.state.height- topMenuHeight - 60}
+                      height={this.state.height- TOP_MENU_HEIGHT - 60}
                       rowHeight={this.state.entrySquareSize}
                       rowCount={Math.ceil(this.props.searchPhotosRes.length/this.state.numEntrySquaresPerRow.toFixed(1))}
                       width={width}
@@ -656,6 +672,25 @@ export class SearchViewRV extends Component {
     }
 }
 */
+
+SearchView = connect((store)=>{
+  return {
+    searchingPhotos: store.search.searchingPhotos,
+    searchedPhotos: store.search.searchedPhotos,
+    searchPhotosRes: store.search.searchPhotosRes,
+    searchPhotosResGroupedByDate: store.search.searchPhotosResGroupedByDate,
+    searchQuery: store.search.query,
+
+    photoDetails: store.photos.photoDetails,
+    fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
+    fetchedPhotoDetail: store.photos.fetchedPhotoDetail,
+    idx2hash: store.search.idx2hash,
+    albumsDatePhotoHashList: store.albums.albumsDatePhotoHashList,
+    fetchingAlbumsDatePhotoHashList: store.albums.fetchingAlbumsDatePhotoHashList,
+    fetchedAlbumsDatePhotoHashList: store.albums.fetchedAlbumsDatePhotoHashList,    
+  }
+})(SearchView)
+
 
 SearchViewRV = connect((store)=>{
   return {
