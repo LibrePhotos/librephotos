@@ -46,17 +46,57 @@ export class LightBox extends Component {
     }
 
     render() {
+        if (!this.props.photoDetails[this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]]) {
+            console.log('light box has not gotten main photo detail')
+            var mainSrc = '/transparentbackground.png'
+            var mainSrcThumbnail = '/transparentbackground.png'
+        } else {
+            console.log('light box has got main photo detail')
+            var mainSrc = serverAddress+'/media/photos/'+this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]+'.jpg'
+            var mainSrcThumbnail = serverAddress+'/media/thumbnails/'+this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]+'.jpg'
+            if (this.props.photoDetails[this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]].hidden) {
+                var mainSrc = '/hidden.png'
+                var mainSrcThumbnail = '/hidden.png'
+            }
+            
+        }
+    
+
         return (
             <div>
                 <Lightbox
-                    mainSrc={serverAddress+'/media/photos/'+this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]+'.jpg'}
+                    mainSrc={mainSrc}
                     nextSrc={serverAddress+'/media/photos/'+this.props.idx2hash.slice((this.props.lightboxImageIndex + 1) % this.props.idx2hash.length)[0]+'.jpg'}
                     prevSrc={serverAddress+'/media/photos/'+this.props.idx2hash.slice((this.props.lightboxImageIndex - 1) % this.props.idx2hash.length)[0]+'.jpg'}
-                    mainSrcThumbnail={serverAddress+'/media/thumbnails/'+this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]+'.jpg'}
+                    mainSrcThumbnail={mainSrcThumbnail}
                     nextSrcThumbnail={serverAddress+'/media/thumbnails/'+this.props.idx2hash.slice((this.props.lightboxImageIndex + 1) % this.props.idx2hash.length)[0]+'.jpg'}
                     prevSrcThumbnail={serverAddress+'/media/thumbnails/'+this.props.idx2hash.slice((this.props.lightboxImageIndex - 1) % this.props.idx2hash.length)[0]+'.jpg'}
                     toolbarButtons={[
                         <div>
+                            {   
+                                !this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]] && 
+                                (   
+                                    <Button 
+                                        loading
+                                        color='black' icon circular>
+                                        <Icon 
+                                            name='hide' 
+                                            color={'grey'}/>
+                                    </Button>
+                                )
+                            }
+                            {   
+                                !this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]] && 
+                                (   
+                                    <Button 
+                                        loading
+                                        color='black' icon circular>
+                                        <Icon 
+                                            name='star' 
+                                            color={'grey'}/>
+                                    </Button>
+                                )
+                            }
                             {   
                                 this.props.photoDetails[this.props.idx2hash[this.props.lightboxImageIndex]] && 
                                 (   

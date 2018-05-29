@@ -92,27 +92,29 @@ export default function reducer(state={
 	case "SET_PHOTOS_FAVORITE_FULFILLED": {
 		console.log(action)
 		var valFavorite = action.payload.favorite
-		var imageHashes = action.payload.image_hashes
-		var newPhotos = {...state.photos}
+    var imageHashes = action.payload.image_hashes
+    var updatedPhotos = action.payload.updatedPhotos
+		var newPhotos = {...state.photoDetails}
 
-		imageHashes.forEach((image_hash)=>{
-			newPhotos[[image_hash]].favorited = valFavorite
+		updatedPhotos.forEach((photo)=>{
+			newPhotos[[photo.image_hash]] = photo
 		})
 
-		return {...state, photos:newPhotos}
+		return {...state, photoDetails:newPhotos}
 	}
 
   case "SET_PHOTOS_HIDDEN_FULFILLED": {
     console.log(action)
     var valHidden = action.payload.hidden
     var imageHashes = action.payload.image_hashes
-    var newPhotos = {...state.photos}
+    var updatedPhotos = action.payload.updatedPhotos
+    var newPhotos = {...state.photoDetails}
 
-    imageHashes.forEach((image_hash)=>{
-      newPhotos[[image_hash]].hidden = valHidden
+    updatedPhotos.forEach((photo)=>{
+      newPhotos[[photo.image_hash]] = photo
     })
 
-    return {...state, photos:newPhotos}
+    return {...state, photoDetails:newPhotos}
   }
 
 

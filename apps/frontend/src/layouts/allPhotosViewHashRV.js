@@ -87,7 +87,7 @@ export class AllPhotosHashListViewRV extends Component {
             width:  window.innerWidth,
             height: window.innerHeight,
             entrySquareSize:200,
-            numEntrySquaresPerRow:3,
+            numEntrySquaresPerRow:10,
             currTopRenderedRowIdx:0,
             scrollTop:0,
             selectMode:false,
@@ -127,8 +127,8 @@ export class AllPhotosHashListViewRV extends Component {
 
 
     componentDidMount() {
-        this.props.dispatch(fetchPhotos())
-        if (this.state.imagesGroupedByDate.length < 1) {
+        // this.props.dispatch(fetchPhotos())
+        if (this.props.albumsDatePhotoHashList.length < 1) {
             this.props.dispatch(fetchDateAlbumsPhotoHashList())
         }
         this.handleResize();
@@ -142,7 +142,7 @@ export class AllPhotosHashListViewRV extends Component {
     handleResize() {
         var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10
         const {entrySquareSize,numEntrySquaresPerRow} = calculateGridCellSize(columnWidth)
-        var {cellContents,hash2row} = calculateGridCells(this.state.imagesGroupedByDate,numEntrySquaresPerRow)
+        var {cellContents,hash2row} = calculateGridCells(this.props.albumsDatePhotoHashList,numEntrySquaresPerRow)
 
         this.setState({
             width:  window.innerWidth,
@@ -158,7 +158,7 @@ export class AllPhotosHashListViewRV extends Component {
     }
 
     onPhotoClick(hash) {
-        this.setState({lightboxImageIndex:this.state.idx2hash.indexOf(hash),lightboxShow:true})
+        this.setState({lightboxImageIndex:this.props.idx2hash.indexOf(hash),lightboxShow:true})
     }
     
     onPhotoSelect(hash) {
@@ -224,9 +224,17 @@ export class AllPhotosHashListViewRV extends Component {
                                     <Icon name='calendar outline'/>
                                     <Header.Content>
                                         { cell.date=='No Timestamp' ? "No Timestamp" : moment(cell.date).format("MMM Do YYYY, dddd")}
-                                        <Header.Subheader>
-                                            <Icon name='photo'/>{cell.photos.length} Photos
-                                        </Header.Subheader>
+                                            {cell.location ? 
+                                                (
+                                                    <Header.Subheader>
+                                                    <Icon name='map'/>{cell.location.places.join(', ')}
+                                                    </Header.Subheader>
+                                                ) :
+                                                (
+                                                    <Header.Subheader>
+                                                    <Icon name='photo'/>{cell.photos.length} Photos
+                                                    </Header.Subheader>
+                                                )}
                                     </Header.Content>
                                 </Header>
                             </div>
@@ -234,8 +242,11 @@ export class AllPhotosHashListViewRV extends Component {
                     )   
                 }
             } else { // photo cell doesn't have 'date' attribute
+
+ 
+
                 if (!this.state.isScrollingFast) { // photo cell not scrolling fast
-					if (this.props.photos[cell.image_hash] && this.props.photos[cell.image_hash].favorited) { 
+                    if (this.props.photoDetails[cell.image_hash] ? this.props.photoDetails[cell.image_hash].favorited : cell.favorited) { 
 						var favIcon = (
 							<div style={{right:6,bottom:6,position:'absolute'}}>
 								<Icon 
@@ -263,7 +274,7 @@ export class AllPhotosHashListViewRV extends Component {
 						)
 					}
 
-                    if (this.props.photos[cell.image_hash] && this.props.photos[cell.image_hash].hidden) { 
+                    if (this.props.photoDetails[cell.image_hash] ? this.props.photoDetails[cell.image_hash].hidden : cell.hidden) { 
                         var hiddenIcon = (
                             <div style={{left:6,bottom:6,position:'absolute'}}>
                                 <Icon 
@@ -303,7 +314,7 @@ export class AllPhotosHashListViewRV extends Component {
                                 width:style.width-2,
                                 height:style.height-2}}>
                                 
-                                { this.props.photos[cell.image_hash] && this.props.photos[cell.image_hash].hidden ? 
+                                { (this.props.photoDetails[cell.image_hash] ? this.props.photoDetails[cell.image_hash].hidden : cell.hidden) ? 
                                     (
                                         <div style={{
                                             height:this.state.entrySquareSize-32,
@@ -346,7 +357,7 @@ export class AllPhotosHashListViewRV extends Component {
                         return (
                             <div className="gridCell" key={key} style={style}>
 
-                               { this.props.photos[cell.image_hash] && this.props.photos[cell.image_hash].hidden ? 
+                               { (this.props.photoDetails[cell.image_hash] ? this.props.photoDetails[cell.image_hash].hidden : cell.hidden) ? 
                                     (
                                         <div style={{
                                             height:this.state.entrySquareSize-2,
@@ -415,31 +426,17 @@ export class AllPhotosHashListViewRV extends Component {
     static getDerivedStateFromProps(nextProps,prevState){
         const shouldUpdateStates = !_.isEqualWith(nextProps.photos,prevState.photos)
         console.log(shouldUpdateStates)
-        if (shouldUpdateStates) {
+        if (true) {
             var t0 = performance.now();
             const photos = nextProps.photos
-            const imagesGroupedByDate = _.toPairs(
-                _.groupBy(
-                    _.orderBy(
-                        _.map(nextProps.photos,(el)=>el).filter((el)=> el.exif_timestamp && !el.hidden ? true : false),
-                        ['exif_timestamp'],['desc']),
-                    (el)=>moment(el.exif_timestamp).format('YYYY-MM-DD'))
-            ).map((el)=>{
-                return (
-                    {date:el[0],photos:el[1],location:null}
-                )
-            })
+            const imagesGroupedByDate = nextProps.albumsDatePhotoHashList
             var t1 = performance.now();
                     console.log("grouping photos into dates took " + (t1 - t0) + " milliseconds.")
     
             var idx2hash = [] 
-            imagesGroupedByDate.forEach((day)=>{
-                day.photos.forEach((photo)=>{
-                    idx2hash.push(photo.image_hash)
-                })
-            })
+
             const {cellContents,hash2row} = calculateGridCells(imagesGroupedByDate,prevState.numEntrySquaresPerRow)
-            const nextState = {...prevState,cellContents,hash2row,imagesGroupedByDate,idx2hash,photos}
+            const nextState = {...prevState,cellContents,hash2row,imagesGroupedByDate,photos}
             console.log(nextState)
             return nextState
         } else {
@@ -451,13 +448,71 @@ export class AllPhotosHashListViewRV extends Component {
 
     render() {
         const {lightboxImageIndex} = this.state
-        if ( this.state.idx2hash.length < 1 ||this.state.imagesGroupedByDate.length < 1) {
+        if ( this.props.idx2hash.length < 1 ||this.props.albumsDatePhotoHashList.length < 1) {
+        //if (true) {
             return (
 				<div>
-					<Loader active indeterminate>
-						<b>Loading photos...</b><br/>
-						If there are uncached changes in the database, this might take a while.
-					</Loader>
+
+
+                <div style={{height:60,paddingTop:10}}>
+                  <Header as='h2'>
+                    <Icon name='picture' />
+                    <Header.Content>
+                      All Photos <Loader inline size='tiny' active></Loader>
+                      <Header.Subheader>
+                        Loading...
+                      </Header.Subheader>
+                    </Header.Content>
+                  </Header>
+                </div>
+
+                    <AutoSizer disableHeight style={{outline:'none',padding:0,margin:0}}>
+                    {({width}) => (
+                        <Grid
+                        overscanRowCount={0}
+                        style={{outline:'none'}}
+                        cellRenderer={({ columnIndex, key, rowIndex, style })=>{
+                            if (rowIndex % 3 === 0 && columnIndex === 0){
+                                return (
+                                    <div key={key} style={{...style,width:this.state.width,height:DAY_HEADER_HEIGHT,paddingTop:20}}>
+                                        <div style={{backgroundColor:'#dddddd',height:40,width:260}}>
+                                        </div>
+                                    </div>                
+                                )
+                                    
+                            } else if (rowIndex % 3 === 0 && columnIndex > 0) {
+                                return (<div key={key} style={style}></div>)
+                            } else {
+                                return ( <div style={{...style}} key={key}>
+                                        <Image 
+                                            style={{padding:1,margin:0}}
+                                            height={this.state.entrySquareSize} 
+                                            width={this.state.entrySquareSize} 
+                                            src='/thumbnail_placeholder.png'/>
+                                    </div>
+                                )
+                            }
+
+                        }}
+                        columnWidth={width/this.state.numEntrySquaresPerRow}
+                        columnCount={this.state.numEntrySquaresPerRow}
+                        height={this.state.height - topMenuHeight - 60}
+                        rowHeight={({index})=>{
+                            if (index%3) {
+                                return (width.toFixed(1) / this.state.numEntrySquaresPerRow)
+                            } else {
+                                return DAY_HEADER_HEIGHT
+                            }
+
+                        }}
+                        rowCount={5000}
+                        width={width}
+                        />
+                    )}
+                    </AutoSizer>
+
+
+
 				</div>
 			)
         }
@@ -477,7 +532,7 @@ export class AllPhotosHashListViewRV extends Component {
                     <Header.Content>
                       All Photos
                       <Header.Subheader>
-                        {this.state.imagesGroupedByDate.length} Days, {this.state.idx2hash.length} Photos
+                        {this.props.albumsDatePhotoHashList.length} Days, {this.props.idx2hash.length} Photos
                       </Header.Subheader>
                     </Header.Content>
                   </Header>
@@ -504,29 +559,34 @@ export class AllPhotosHashListViewRV extends Component {
                             <Icon name='close'/> Deselect All
                         </Button>
 
-                        <Button.Group compact floated='right'>
+                        <Button.Group basic compact floated='right'>
                         <Popup inverted trigger={
-                            <Button color='green' onClick={()=>{
+                            <Button onClick={()=>{
                                 if (this.state.selectedImageHashes.length > 0) {
                                     this.setState({modalAddToAlbumOpen:true})
                                 }
                             }} icon='plus'/>}
                             content="Add to an existing album or create a new album"/>        
                         <Popup inverted trigger={
-                            <Button color='yellow' onClick={()=>{
+                            <Button onClick={()=>{
                                 this.props.dispatch(setPhotosFavorite(this.state.selectedImageHashes,true))
                             }}><Icon.Group><Icon name='star'/><Icon corner color='green' name='plus'/></Icon.Group></Button>}
                             content="Mark as favorite"/>        
                         <Popup inverted trigger={
-                            <Button color='orange' onClick={()=>{
+                            <Button onClick={()=>{
                                 this.props.dispatch(setPhotosFavorite(this.state.selectedImageHashes,false))
                             }}><Icon.Group><Icon name='star'/><Icon corner color='red' name='minus'/></Icon.Group></Button>}
                             content="Remove from favorites"/>        
                         <Popup inverted trigger={
-                            <Button color='grey' icon='hide' onClick={()=>{
+                            <Button icon='hide' onClick={()=>{
                                 this.props.dispatch(setPhotosHidden(this.state.selectedImageHashes,true))
                             }}/>}
                             content="Hide"/>        
+                        <Popup inverted trigger={
+                            <Button icon='unhide' onClick={()=>{
+                                this.props.dispatch(setPhotosHidden(this.state.selectedImageHashes,false))
+                            }}/>}
+                            content="Unhide"/>  
 
                         </Button.Group>
 
@@ -609,30 +669,29 @@ export class AllPhotosHashListViewRV extends Component {
 
                 { this.state.lightboxShow &&
                     <LightBox
-                        idx2hash={this.state.idx2hash}
+                        idx2hash={this.props.idx2hash}
                         lightboxImageIndex={this.state.lightboxImageIndex}
-
                         onCloseRequest={() => this.setState({ lightboxShow: false })}
                         onImageLoad={()=>{
-                            this.getPhotoDetails(this.state.idx2hash[this.state.lightboxImageIndex])
+                            this.getPhotoDetails(this.props.idx2hash[this.state.lightboxImageIndex])
                         }}
                         onMovePrevRequest={() => {
-                            var prevIndex = (this.state.lightboxImageIndex + this.state.idx2hash.length - 1) % this.state.idx2hash.length
+                            var prevIndex = (this.state.lightboxImageIndex + this.props.idx2hash.length - 1) % this.props.idx2hash.length
                             this.setState({
                                 lightboxImageIndex:prevIndex
                             })
-                            var rowIdx = this.state.hash2row[this.state.idx2hash[prevIndex]]
+                            var rowIdx = this.state.hash2row[this.props.idx2hash[prevIndex]]
                             this.listRef.current.scrollToCell({columnIndex:0,rowIndex:rowIdx})
-                            this.getPhotoDetails(this.state.idx2hash[prevIndex])
+                            this.getPhotoDetails(this.props.idx2hash[prevIndex])
                         }}
                         onMoveNextRequest={() => {
-                            var nextIndex = (this.state.lightboxImageIndex + this.state.idx2hash.length + 1) % this.state.idx2hash.length
+                            var nextIndex = (this.state.lightboxImageIndex + this.props.idx2hash.length + 1) % this.props.idx2hash.length
                             this.setState({
                                 lightboxImageIndex:nextIndex
                             })
-                            var rowIdx = this.state.hash2row[this.state.idx2hash[nextIndex]]
+                            var rowIdx = this.state.hash2row[this.props.idx2hash[nextIndex]]
                             this.listRef.current.scrollToCell({columnIndex:0,rowIndex:rowIdx})
-                            this.getPhotoDetails(this.state.idx2hash[nextIndex])
+                            this.getPhotoDetails(this.props.idx2hash[nextIndex])
                         }}/>
                 }
 
