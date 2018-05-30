@@ -4,6 +4,7 @@ import PIL
 from PIL import ImageOps
 from PIL.ExifTags import TAGS as EXIFTAGS
 from django.db import models
+from django.db.models import Prefetch
 import face_recognition
 import hashlib
 import ownphotos.settings
@@ -33,6 +34,7 @@ import requests
 import base64
 from io import StringIO
 
+import ipdb
 
 
 geolocator = Nominatim()
@@ -87,6 +89,7 @@ class Photo(models.Model):
     search_location = models.TextField(blank=True,null=True,db_index=True)
 
     favorited = models.BooleanField(default=False,db_index=True)
+    hidden = models.BooleanField(default=False,db_index=True)
 
     def _generate_md5(self):
         hash_md5 = hashlib.md5()
@@ -96,19 +99,21 @@ class Photo(models.Model):
         self.image_hash = hash_md5.hexdigest()
 
     def _generate_captions(self):
-        image_path = self.image_path
+        image_path = self.thumbnail.path
         captions = {}
 
+        '''
         try:
             caption = im2txt(image_path)
-            caption = caption.replace("<start>",'').replace("<end>",'').strip()
+            caption = caption.replace("<start>",'').replace("<end>",'').strip().lower()
             captions['im2txt'] = caption
             self.captions_json = captions
-            self.search_captions = captions
+            self.search_captions = caption
             self.save()
             util.logger.info('generated im2txt captions for image %s. caption: %s'%(image_path,caption))
         except:
             util.logger.warning('could not generate im2txt captions for image %s'%image_path)
+        '''
 
 
         # densecap
@@ -135,6 +140,7 @@ class Photo(models.Model):
                 self.search_captions = ' , '.join(res_places365['attributes'] + res_places365['categories'] + [res_places365['environment']])
 
             self.save()
+            util.logger.info('generated places365 captions for image %s.'%(image_path))
         except:
             util.logger.warning('could not generate places365 captions for image %s'%image_path)
 
@@ -390,13 +396,13 @@ class Photo(models.Model):
         if type(self.captions_json) is dict and 'places365' in self.captions_json.keys():
             for attribute in self.captions_json['places365']['attributes']:
                 album_thing = get_album_thing(title=attribute)[0]
-                if self not in album_thing.photos.all():
+                if album_thing.photos.filter(image_hash=self.image_hash).count() == 0:
                     album_thing.photos.add(self)
                     album_thing.thing_type='places365_attribute'
                     album_thing.save()
             for category in self.captions_json['places365']['categories']:
                 album_thing = get_album_thing(title=category)[0]
-                if self not in album_thing.photos.all():
+                if album_thing.photos.filter(image_hash=self.image_hash).count() == 0:
                     album_thing = get_album_thing(title=category)[0]
                     album_thing.photos.add(self)
                     album_thing.thing_type='places365_category'
@@ -416,11 +422,24 @@ class Photo(models.Model):
         if self.exif_timestamp:
             album_date = get_album_date(date=self.exif_timestamp.date())[0]
             album_date.photos.add(self)
-            album_date.save()
         else:
             album_date = get_album_date(date=None)[0]
             album_date.photos.add(self)
-            album_date.save()
+
+        if self.geolocation_json and len(self.geolocation_json) > 0:
+            city_name = [f['text'] for f in self.geolocation_json['features'][1:-1] if not f['text'].isdigit()][0]
+            print(city_name)
+            if album_date.location and len(album_date.location) > 0:
+                prev_value = album_date.location
+                new_value = prev_value
+                if city_name not in prev_value['places']:
+                    new_value['places'].append(city_name)
+                    new_value['places'] = list(set(new_value['places']))
+                    album_date.location = new_value
+            else:
+                album_date.location = {'places':[city_name]}
+
+        album_date.save()
 
 
     def _add_to_album_place(self):
@@ -430,15 +449,15 @@ class Photo(models.Model):
                     if 'text' in feature.keys():
                         if not feature['text'].isnumeric():
                             album_place = get_album_place(feature['text'])[0]
-                            if self not in album_place.photos.all():
+                            if album_place.photos.filter(image_hash=self.image_hash).count() == 0:
                                 album_place.geolocation_level = len(self.geolocation_json['features']) - geolocation_level
                                 album_place.photos.add(self)
                                 album_place.save()
                                 logger.info('album place title: %s, level: %d, added photo: %s'%(feature['text'],album_place.geolocation_level,self.image_hash))
                                 print('album place title: %s, level: %d, added photo: %s'%(feature['text'],album_place.geolocation_level,self.image_hash))
         else:
-            logger.warning('photo not addded to album thing')
-            print('photo not added to album thing')
+            logger.warning('photo not addded to album place')
+            print('photo not added to album place')
 
 
     def __str__(self):
@@ -468,6 +487,12 @@ class Person(models.Model):
         mean_encoding = np.array(encodings).mean(axis=0)
         self.mean_face_encoding = base64.encodebytes(mean_encoding.tostring())
         # ipdb.set_trace()
+
+    def get_photos(self):
+        # prefetch_related(Prefetch('faces__photo', queryset=Photo.objects.all().order_by('-exif_timestamp').only('image_hash','exif_timestamp','favorited','hidden'))).order_by('name')
+        faces = list(self.faces.prefetch_related(Prefetch('photo', queryset=Photo.objects.all().order_by('-exif_timestamp').only('image_hash','exif_timestamp','favorited','hidden'))))
+        photos = [face.photo for face in faces]
+        return photos
         
 
 
@@ -519,9 +544,13 @@ class AlbumDate(models.Model):
     date = models.DateField(unique=True,db_index=True,null=True)
     photos = models.ManyToManyField(Photo)
     favorited = models.BooleanField(default=False,db_index=True)
+    location = JSONField(blank=True,db_index=True,null=True)
 
     def __str__(self):
         return "%d: %s"%(self.id, self.title)
+
+    def ordered_photos(self):
+        return self.photos.all().order_by('-exif_timestamp')
 
 
 class AlbumAuto(models.Model):
@@ -591,15 +620,12 @@ class AlbumAuto(models.Model):
         return "%d: %s"%(self.id, self.title)
 
 class AlbumUser(models.Model):
-    title = models.CharField(blank=True,null=True,max_length=512)
-    timestamp = models.DateTimeField(unique=True,db_index=True)
+    title = models.CharField(unique=True,max_length=512)
     created_on = models.DateTimeField(auto_now=True,db_index=True)
-    gps_lat = models.FloatField(blank=True,null=True)
-    gps_lon = models.FloatField(blank=True,null=True)
     photos = models.ManyToManyField(Photo)
     favorited = models.BooleanField(default=False,db_index=True)
 
-# for cache invalidation
+# for cache invalidation. invalidates all cache on modelviewsets on delete and save on any model
 for model in [Photo, Person, Face, AlbumDate, AlbumAuto, AlbumUser]:
     post_save.connect(receiver=change_api_updated_at, sender=model)
     post_delete.connect(receiver=change_api_updated_at, sender=model)

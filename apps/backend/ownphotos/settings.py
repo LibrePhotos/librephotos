@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 
 import os
 import datetime
+from api.im2txt.build_vocab import Vocabulary
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -47,24 +48,28 @@ INSTALLED_APPS = [
     'api',
     'rest_framework',
     'corsheaders',
-    'django_extensions'
-    # 'cacheops',
+    'django_extensions',
+    'debug_toolbar',
+#     'cachalot',
+#     'cacheops',
 ]
 
+INTERNAL_IPS = ('127.0.0.1', 'localhost','192.168.1.100')
+
 # CACHEOPS_REDIS = {
-#     'host': '172.17.0.4', # redis-server is on same machine
-#     'port': 6379,        # default redis port
+#     'host': os.environ['REDIS_HOST'], # redis-server is on same machine
+#     'port': os.environ["REDIS_PORT"], # default redis port
 #     'db': 1             # SELECT non-default redis database
 # }
-
+# 
 # CACHEOPS_DEFAULTS = {
 #     'timeout': 60*60
 # }
-
+# 
 # CACHEOPS = {
-#     'auth.user': {'ops': 'get', 'timeout': 60*15},
-#     'auth.*': {'ops': ('fetch', 'get')},
-#     'auth.permission': {'ops': 'all'},
+#     # 'auth.user': {'ops': 'get', 'timeout': 60*15},
+#     # 'auth.*': {'ops': ('fetch', 'get')},
+#     # 'auth.permission': {'ops': 'all'},
 #     '*.*': {'ops':'all', 'timeout': 60*15}
 # }
 
@@ -111,6 +116,7 @@ REST_FRAMEWORK_EXTENSIONS = {
 
 
 MIDDLEWARE = [
+    
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -119,6 +125,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+
 ]
 
 ROOT_URLCONF = 'ownphotos.urls'
@@ -231,3 +239,4 @@ THUMBNAIL_SIZE_BIG = (1000,1000)
 FULLPHOTO_SIZE = (1000,1000)
 
 CORS_ORIGIN_ALLOW_ALL = True
+

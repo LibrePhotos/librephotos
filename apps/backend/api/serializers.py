@@ -3,7 +3,23 @@ from rest_framework import serializers
 import ipdb
 import json
 import time
+from api.util import logger
+from datetime import datetime
 
+
+
+
+class PhotoEditSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Photo
+        fields = (
+            'image_hash',
+            'hidden',
+            'favorited'
+        )
+
+    def update(self, instance, validated_data):
+        ipdb.set_trace()
 
 
 class PhotoHashListSerializer(serializers.ModelSerializer):
@@ -11,6 +27,17 @@ class PhotoHashListSerializer(serializers.ModelSerializer):
         model = Photo
         fields = (
             'image_hash',)
+
+
+class PhotoSuperSimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Photo
+        fields = (
+            'image_hash',
+            'favorited',
+            'hidden',
+            'exif_timestamp')
+
 
 class PhotoSimpleSerializer(serializers.ModelSerializer):
     class Meta:
@@ -51,6 +78,7 @@ class PhotoSerializer(serializers.ModelSerializer):
                   'exif_timestamp',
                   'search_captions',
                   'search_location',
+                  'captions_json',
                   'thumbnail_url',
                   'thumbnail_height',
                   'thumbnail_width',
@@ -68,7 +96,8 @@ class PhotoSerializer(serializers.ModelSerializer):
                   'image_url',
                   'image_hash',
                   'image_path',
-                  'favorited')
+                  'favorited',
+                  'hidden')
         
     def get_thumbnail_url(self, obj):
         try:
@@ -136,6 +165,7 @@ class PhotoSerializer(serializers.ModelSerializer):
 
     def get_people(self,obj):
         return [f.person.name for f in obj.faces.all()]
+
 
 class PersonSerializer(serializers.ModelSerializer):
 #     faces = FaceSerializer(many=True, read_only=False)
@@ -407,10 +437,12 @@ class AlbumDateListSerializer(serializers.ModelSerializer):
         return res
 
 class AlbumDateListWithPhotoHashSerializer(serializers.ModelSerializer):
-    photos = PhotoHashListSerializer(many=True, read_only=True)
+    photos = PhotoSuperSimpleSerializer(many=True, read_only=True)
+    # photos = PhotoHashListSerializer(many=True, read_only=True)
     class Meta:
         model = AlbumDate
         fields = (
+            "location",
             "id",   
             "photos",
             "date")
@@ -432,10 +464,12 @@ class AlbumPersonSerializer(serializers.ModelSerializer):
                   'id',)
 #                   'faces')
     def get_photos(self,obj):
-        faces = obj.faces.all()
-        res = []
-        for face in faces:
-            res.append(PhotoSimpleSerializer(face.photo).data)
+        start = datetime.now()
+
+        res = PhotoSuperSimpleSerializer(obj.get_photos(),many=True).data
+
+        elapsed = (datetime.now() - start).total_seconds()
+        print('serializing photos of faces took %.2f seconds'%elapsed)
         return res
 
     # todo: remove this unecessary thing
@@ -482,7 +516,74 @@ class AlbumPersonListSerializer(serializers.ModelSerializer):
             return None
 
 
+class AlbumUserEditSerializer(serializers.ModelSerializer):
+#     photos = PhotoHashListSerializer(many=True, read_only=False)
+    photos = serializers.PrimaryKeyRelatedField(many=True, read_only=False, queryset=Photo.objects.all())
 
+    class Meta:
+        model = AlbumUser
+        fields = (
+            "id",
+            "title",
+            "photos",
+            "created_on",
+            "favorited"
+        )
+
+    def validate_photos(self,value):
+        return [v.image_hash for v in value]
+
+    def create(self,validated_data):
+        title = validated_data['title']
+        image_hashes = validated_data['photos']
+
+        # check if an album exists with the given title and call the update method if it does
+        instance, created = AlbumUser.objects.get_or_create(title=title)
+        if not created:
+            return self.update(instance, validated_data)
+
+        photos = Photo.objects.in_bulk(image_hashes)
+        for pk,obj in photos.items():
+            instance.photos.add(obj)
+        instance.save()
+        return instance
+        
+    def update(self, instance, validated_data):
+#         title = validated_data['title']
+        image_hashes = validated_data['photos']
+        print(validated_data)
+
+        photos = Photo.objects.in_bulk(image_hashes)
+        photos_already_in_album = instance.photos.all()
+        for pk,obj in photos.items():
+            if obj not in photos_already_in_album:
+                instance.photos.add(obj)
+        instance.save()
+        return instance
+
+class AlbumUserSerializer(serializers.ModelSerializer):
+    photos = PhotoSerializer(many=True, read_only=True)
+    class Meta:
+        model = AlbumUser
+        fields = (
+            "id",
+            "title",
+            "photos",
+            "created_on",
+            "favorited"
+        )
+
+class AlbumUserListSerializer(serializers.ModelSerializer):
+    photos = PhotoSuperSimpleSerializer(many=True, read_only=True)
+    class Meta:
+        model = AlbumUser
+        fields = (
+            "id",
+            "title",
+            "photos",
+            "created_on",
+            "favorited"
+        )
 
 
 
@@ -518,7 +619,7 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
 
 
 class AlbumAutoListSerializer(serializers.ModelSerializer):
-    photos = PhotoHashListSerializer
+    photos = PhotoSuperSimpleSerializer
     
     class Meta:
         model = AlbumAuto
