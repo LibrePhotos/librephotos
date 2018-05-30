@@ -72,7 +72,7 @@ Make sure you have Python version >= 3.5.
 
 *For Ubuntu*
 ```bash
-sudo apt-get install libboost-all-dev
+sudo apt-get install libboost-all-dev cmake docker.io docker-compose
 ```
 
 *For macOS*
@@ -132,13 +132,13 @@ Should be something like 172.17.0.#. Open `ownphotos/settings.py` and change the
 Also just use docker
 
 ```
-sudo docker run --name ownphotos-redis -d redis
+docker run --name ownphotos-redis -d redis
 ```
 
-Check the ip of the memcached docker container by
+Check the ip of the redis Docker container by
 
 ```
-docker inspect ownphotos-memcached | grep IPAddress
+docker inspect ownphotos-redis | grep IPAddress
 ```
 
 Again, should be something like 172.17.0.#. Open `ownphotos/settings.py` and change the hostname in the `CACHES` dictionary. Should be around line 120 or so. 
