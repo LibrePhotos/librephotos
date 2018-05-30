@@ -92,12 +92,12 @@ export class AlbumThing extends Component {
               style={{padding:10}}>
 
             <Image.Group>
-            {this.props.albumsThingList[albumThingIndex].cover_photo_urls.map((url)=>{
+            {this.props.albumsThingList[albumThingIndex].cover_photos.slice(0,4).map((photo)=>{
               return (
                 <Image style={{display:'inline-block'}} 
                   width={this.state.entrySquareSize/2-20} 
                   height={this.state.entrySquareSize/2-20}
-                  src={serverAddress+url}/>
+                  src={serverAddress+'/media/square_thumbnails/'+photo.image_hash+'.jpg'}/>
               )
             })}
             </Image.Group>
@@ -161,12 +161,12 @@ export class AlbumThing extends Component {
 
 export class EntrySquare extends Component {
   render () {
-    var images = this.props.coverPhotoUrls.map(function(coverPhotoUrl){
+    var images = this.props.cover_photos.map(function(photo){
       return (
         <Image style={{display:'inline-block'}}
           width={this.props.size/2-20} 
           height={this.props.size/2-20}
-          src={serverAddress+coverPhotoUrl}/>
+          src={serverAddress+'/media/square_thumbnails/'+photo.image_hash+'.jpg'}/>
       )
     },this)
     return (

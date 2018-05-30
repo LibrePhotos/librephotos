@@ -15,6 +15,7 @@ import {LightBox} from '../components/lightBox'
 
 import _ from 'lodash'
 import moment from 'moment'
+import {PhotoListView} from './ReusablePhotoListView'
 
 
 var topMenuHeight = 55 // don't change this
@@ -31,75 +32,80 @@ var DAY_HEADER_HEIGHT = 70
 var leftMenuWidth = 85 // don't change this
 
 
-class DayGroupPlaceholder extends Component {
-    render () {
-        var numRows = Math.ceil(this.props.day.photos.length/this.props.numItemsPerRow.toFixed(1))
-        var gridHeight = this.props.itemSize * numRows
-        var photos = this.props.day.photos.map(function(photo) {
-            return (
-                <Image key={'daygroup_album_person_image_placeholder_'+photo.image_hash} style={{display:'inline-block',padding:1,margin:0}}
-                    height={this.props.itemSize} 
-                    width={this.props.itemSize} 
-                    src={'/thumbnail_placeholder.png'}/>
-            )
-        },this)
-        return (
-            <div key={'daygroup_placeholder_album_person_'+this.props.day}>
-                <div style={{fontSize:17,height:DAY_HEADER_HEIGHT,paddingTop:20,paddingBottom:5}}>
-                <Header as='h3'>
-                <Icon name='calendar outline'/>
-                <Header.Content>
-                { this.props.day.date=='No Timestamp' ? "No Timestamp" : moment(this.props.day.date).format("MMM Do YYYY, dddd")}
-                <Header.Subheader>
-                    <Icon name='photo'/>{this.props.day.photos.length} Photos
-                </Header.Subheader>
-                </Header.Content>
-                </Header>
-                </div>
-                <div style={{height:gridHeight}}>
-                {photos}
-                </div>
-            </div>
-        )
+
+
+export class AlbumPlaceGallery extends Component {
+    state = {
+      photosGroupedByDate: [],
+      idx2hash: [],
     }
-}
-
-
-class DayGroup extends Component {
-    render () {
-        var photos = this.props.day.photos.map(function(photo,idx) {
-            return (
-                <Image key={'daygroup_album_person_image_'+photo.image_hash+idx} style={{display:'inline-block',padding:1,margin:0}}
-                    onClick={()=>{
-                        this.props.onPhotoClick(photo.image_hash)
-                    }}
-                    height={this.props.itemSize} 
-                    width={this.props.itemSize} 
-                    src={serverAddress+'/media/square_thumbnails/'+photo.image_hash+'.jpg'}/>
-            )
-        },this)
-        var gridHeight = this.props.itemSize * Math.ceil(this.props.day.photos.length/this.props.numItemsPerRow.toFixed(1))
-        return (
-            <div key={'daygroup_grid_album_person_'+this.props.day} style={{}}>
-                <div style={{fontSize:17,height:DAY_HEADER_HEIGHT,paddingTop:20,paddingBottom:5}}>
-                <Header as='h3'>
-                <Icon name='calendar outline'/>
-                <Header.Content>
-                { this.props.day.date=='No Timestamp' ? "No Timestamp" : moment(this.props.day.date).format("MMM Do YYYY, dddd")}
-                <Header.Subheader>
-                    <Icon name='photo'/>{this.props.day.photos.length} Photos
-                </Header.Subheader>
-                </Header.Content>
-                </Header>
-                </div>
-                <div style={{height:gridHeight}}>
-                {photos}
-                </div>
-            </div>
-        )
+  
+    componentDidMount() {
+        this.props.dispatch(fetchPlaceAlbum(this.props.match.params.albumID))
     }
-}
+  
+  
+  
+    static getDerivedStateFromProps(nextProps,prevState){
+        if (nextProps.albumsPlace.hasOwnProperty(nextProps.match.params.albumID)){
+            const photos = nextProps.albumsPlace[nextProps.match.params.albumID].photos
+            if (prevState.idx2hash.length != photos.length) {
 
+                var t0 = performance.now();
+                var groupedByDate = _.groupBy(photos,(el)=>{
+                    if (el.exif_timestamp) {
+                        return moment(el.exif_timestamp).format('YYYY-MM-DD')
+                    } else {
+                        return "No Timestamp"
+                    }
+                })
+                var groupedByDateList = _.reverse(_.sortBy(_.toPairsIn(groupedByDate).map((el)=>{
+                    return {date:el[0],photos:el[1]}
+                }),(el)=>el.date))
+                var idx2hash = []
+                groupedByDateList.forEach((g)=>{
+                    g.photos.forEach((p)=>{
+                        idx2hash.push(p.image_hash)
+                    })
+                })
+                var t1 = performance.now();
+                console.log(t1-t0)
+                return {
+                    ...prevState, 
+                    photosGroupedByDate: groupedByDateList,
+                    idx2hash:idx2hash,
+                }
+            } else {
+                return null
+            }
+        } else {
+            return null
+        }
+    }
+  
+  
+  
+    render() {
+      const {fetchingAlbumsPlace} = this.props
+      return (
+        <PhotoListView 
+          title={this.props.albumsPlace[this.props.match.params.albumID] ? this.props.albumsPlace[this.props.match.params.albumID].title : "Loading... "}
+          loading={fetchingAlbumsPlace}
+          titleIconName={'map outline'}
+          photosGroupedByDate={this.state.photosGroupedByDate}
+          idx2hash={this.state.idx2hash}
+        />
+      )  
+    }
+  }
+
+
+
+
+
+
+
+/*
 export class AlbumPlaceGallery extends Component {
     state = {
       photosGroupedByDate: [],
@@ -386,7 +392,7 @@ export class AlbumPlaceGallery extends Component {
     }
   }
 }
-
+*/
 
 AlbumPlaceGallery = connect((store)=>{
   return {

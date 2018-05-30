@@ -32,16 +32,16 @@ export const calculateGridCellSize = (gridWidth) => {
     var numEntrySquaresPerRow
     
     if (gridWidth < 600) {
-        numEntrySquaresPerRow = 3
+        numEntrySquaresPerRow = 2
     } 
     else if (gridWidth < 800) {
-        numEntrySquaresPerRow = 4
+        numEntrySquaresPerRow = 3
     }
     else if (gridWidth < 1000) {
-        numEntrySquaresPerRow = 6
+        numEntrySquaresPerRow = 5
     }
     else if (gridWidth < 1200) {
-        numEntrySquaresPerRow = 8
+        numEntrySquaresPerRow = 7
     }
     else {
         numEntrySquaresPerRow = 8 

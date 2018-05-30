@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
-import { Popup,Menu, Input, Icon, Sidebar,Dropdown, Divider, Image, Header } from 'semantic-ui-react';
+import { Popup,Menu, Input, Icon, Sidebar,Dropdown, Divider, Image, Header, Segment } from 'semantic-ui-react';
 import { connect } from "react-redux";
 import {login, logout} from '../actions/authActions'
 import {searchPhotos,searchPeople,searchPlaceAlbums,searchThingAlbums} from '../actions/searchActions'
@@ -19,7 +19,7 @@ export class TopMenu extends Component {
     showEmptyQueryWarning:false,
     width:window.innerWidth,
     exampleSearchTerm:'Search...',
-
+    searchBarFocused: false
   }
 
   constructor(props) {
@@ -90,16 +90,32 @@ export class TopMenu extends Component {
 
           <div style={{width:searchBarWidth,paddingRight:10,paddingLeft:10}}>
           <Popup trigger={
-            <Input 
-              fluid
-              onChange={this.handleChange}
-              action={{ 
-                icon: 'search', 
-                color:'blue',
-                loading:this.props.searchingPhotos, 
-                onClick:this.handleSearch,
-              }} 
-              placeholder={this.state.exampleSearchTerm} />}
+            <div>
+              <Input 
+                list='exampleSearchTerms'
+                fluid
+                onFocus={()=>{
+                  this.setState({searchBarFocused:true})
+                  console.log('searchbar focused')
+                  console.log('searchbar focused', this.state.searchBarFocused)
+
+                }}
+                onBlur={()=>{
+                  this.setState({searchBarFocused:false})
+                  console.log('searchbar unfocused', this.state.searchBarFocused)
+                }}
+                onChange={this.handleChange}
+                action={{ 
+                  icon: 'search', 
+                  color:'blue',
+                  loading:this.props.searchingPhotos, 
+                  onClick:this.handleSearch,
+                }} 
+                placeholder={this.state.exampleSearchTerm}/>
+              <datalist id="exampleSearchTerms">
+                {this.props.exampleSearchTerms.map((el)=>(<option value={el}/>))}
+              </datalist>    
+            </div>}
             inverted
             open={this.state.warningPopupOpen}
             position='bottom left'
@@ -109,6 +125,21 @@ export class TopMenu extends Component {
               ("You can search for people, location, and things.")
             }/>
           </div>
+
+          { this.state.searchBarFocused && 
+            <div style={{
+              paddingTop:5,
+              paddingLeft:10,
+              paddingRight:10,
+              width:searchBarWidth,
+              top:topMenuHeight-10,
+              left:(this.state.width-searchBarWidth)/2,
+              position:'absolute'}}>
+              <Segment raised style={{height:window.innerHeight/2}}>
+                Search Suggestions
+              </Segment>
+            </div>
+          }
 
           <div style={{paddingRight:20,paddingTop:8,width:(window.innerWidth-searchBarWidth)/2,right:0,position:'absolute',textAlign:'right'}}>
           

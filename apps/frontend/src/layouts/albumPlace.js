@@ -104,13 +104,13 @@ export class AlbumPlace extends Component {
               style={{padding:10}}>
 
             <Image.Group>
-            {place[albumPlaceIndex].cover_photo_urls.map((url)=>{
+            {place[albumPlaceIndex].cover_photos.slice(0,4).map((photo)=>{
               return (
                 <Image style={{display:'inline-block',zIndex:1}} 
                   width={this.state.entrySquareSize/2-20} 
                   height={this.state.entrySquareSize/2-20}
                   as={Link} to={`/place/${place[albumPlaceIndex].id}/`}
-                  src={serverAddress+url}/>
+                  src={serverAddress+'/media/square_thumbnails/'+photo.image_hash+'.jpg'}/>
               )
             })}
             </Image.Group>
