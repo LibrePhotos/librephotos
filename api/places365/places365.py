@@ -14,6 +14,7 @@ import cv2
 from PIL import Image
 from tqdm import tqdm
 import warnings
+import wideresnet
 
 torch.nn.Module.dump_patches = True
 
@@ -79,22 +80,13 @@ def inference_places365(img_path):
 
     def load_model():
         # this model has a last conv feature map as 14x14
-        model_file = os.path.join(dir_places365_model,'whole_wideresnet18_places365_python36.pth.tar')
-        useGPU = 0
-        if useGPU == 1:
-            model = torch.load(model_file)
-        else:
-            model = torch.load(model_file, map_location=lambda storage, loc: storage) # allow cpu
+        # model_file = os.path.join(dir_places365_model,'whole_wideresnet18_places365_python36.pth.tar')
+        model_file = os.path.join(dir_places365_model,'wideresnet18_places365.pth.tar')
 
-        # the following is deprecated, everything is migrated to python36
-
-        ## if you encounter the UnicodeDecodeError when use python3 to load the model, add the following line will fix it. Thanks to @soravux
-        #from functools import partial
-        #import pickle
-        #pickle.load = partial(pickle.load, encoding="latin1")
-        #pickle.Unpickler = partial(pickle.Unpickler, encoding="latin1")
-        #model = torch.load(model_file, map_location=lambda storage, loc: storage, pickle_module=pickle)
-
+        model = wideresnet.resnet18(num_classes=365)
+        checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        model.load_state_dict(state_dict)
         model.eval()
         # hook the feature extractor
         features_names = ['layer4','avgpool'] # this is the last conv layer of the resnet
@@ -120,17 +112,19 @@ def inference_places365(img_path):
     # img_url = 'http://places2.csail.mit.edu/imgs/12.jpg'
     # os.system('wget %s -q -O test.jpg' % img_url)
     img = Image.open(img_path)
-    input_img = V(tf(img).unsqueeze(0), volatile=True)
+    input_img = V(tf(img).unsqueeze(0))
 
     # forward pass
     logit = model.forward(input_img)
     h_x = F.softmax(logit, 1).data.squeeze()
     probs, idx = h_x.sort(0, True)
+    probs = probs.numpy()
+    idx = idx.numpy()
 
     res = {}
 
     # output the IO prediction
-    io_image = np.mean(labels_IO[idx[:10].numpy()]) # vote for the indoor or outdoor
+    io_image = np.mean(labels_IO[idx[:10]]) # vote for the indoor or outdoor
     if io_image < 0.5:
         res['environment'] = 'indoor'
     else:

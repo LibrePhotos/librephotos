@@ -16,6 +16,8 @@ from api.flags import \
     set_photo_scan_flag_off, \
     set_num_photos_added
 
+import ipdb
+
 # def is_photos_being_added():
 #     global FLAG_IS_PHOTOS_BEING_ADDED
 #     return {'status':FLAG_IS_PHOTOS_BEING_ADDED}
@@ -47,7 +49,7 @@ def scan_photos():
     for image_dir in image_dirs:
         image_paths.extend([os.path.join(dp, f) for dp, dn, fn in os.walk(image_dir) for f in fn])
 
-    image_paths = [p for p in image_paths if p.lower().endswith('.jpg')]
+    image_paths = [p for p in image_paths if p.lower().endswith('.jpg') and 'thumb' not in p.lower()]
     image_paths.sort()
 
     set_photo_scan_flag_on(1)
@@ -56,17 +58,17 @@ def scan_photos():
 
     image_paths_to_add = []
     for image_path in tqdm(image_paths):
-        hash_md5 = hashlib.md5()
-        with open(image_path, "rb") as f:
-            for chunk in iter(lambda: f.read(4096), b""):
-                hash_md5.update(chunk)
-        image_hash = hash_md5.hexdigest()
-        if image_hash not in existing_hashes:
+        # hash_md5 = hashlib.md5()
+        # with open(image_path, "rb") as f:
+        #     for chunk in iter(lambda: f.read(4096), b""):
+        #         hash_md5.update(chunk)
+        # image_hash = hash_md5.hexdigest()
+        # if image_hash not in existing_hashes:
+        #     image_paths_to_add.append(image_path)
+
+
+        if not Photo.objects.filter(image_path=image_path).exists():
             image_paths_to_add.append(image_path)
-
-
-#         if not Photo.objects.filter(image_path=image_path).exists():
-#             image_paths_to_add.append(image_path)
 
     set_photo_scan_flag_on(len(image_paths_to_add))
 
@@ -155,7 +157,10 @@ def scan_photos():
                     already_existing_photo += 1
                     util.logger.info("photo already exists in db")
             except Exception as e:
-                util.logger.error("Could not load image {}".format(image_path))
+                try: 
+                    util.logger.error("Could not load image {}. reason: {}".format(image_path,e.__repr__()))
+                except:
+                    util.logger.error("Could not load image {}".format(image_path))
 
     util.logger.info("Added {}/{} photos".format(added_photo_count, len(image_paths) - already_existing_photo))
     set_photo_scan_flag_off()

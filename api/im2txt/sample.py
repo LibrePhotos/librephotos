@@ -23,8 +23,8 @@ import ipdb
 embed_size = 256
 hidden_size = 512
 num_layers = 1
-encoder_path = 'api/im2txt/models/encoder-1-2000.ckpt'
-decoder_path = 'api/im2txt/models/decoder-1-2000.ckpt'
+encoder_path = 'api/im2txt/models/encoder-10-1000.ckpt'
+decoder_path = 'api/im2txt/models/decoder-10-1000.ckpt'
 vocab_path = 'api/im2txt/data/vocab.pkl'
 
 # Device configuration

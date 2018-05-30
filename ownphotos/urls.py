@@ -60,16 +60,24 @@ router.register(r'api/albums/date/photohash/list', views.AlbumDateListWithPhotoH
 router.register(r'api/albums/person/list', views.AlbumPersonListViewSet)
 router.register(r'api/albums/thing/list', views.AlbumThingListViewSet)
 router.register(r'api/albums/place/list', views.AlbumPlaceListViewSet)
+router.register(r'api/albums/user/list', views.AlbumUserListViewSet)
+
+router.register(r'api/albums/user/edit', views.AlbumUserEditViewSet)
 
 router.register(r'api/albums/auto', views.AlbumAutoViewSet)
 router.register(r'api/albums/person', views.AlbumPersonViewSet)
 router.register(r'api/albums/date', views.AlbumDateViewSet)
 router.register(r'api/albums/thing', views.AlbumThingViewSet)
 router.register(r'api/albums/place', views.AlbumPlaceViewSet)
+router.register(r'api/albums/user', views.AlbumUserViewSet)
 
 router.register(r'api/persons', views.PersonViewSet)
 router.register(r'api/photos/notimestamp/list', views.NoTimestampPhotoHashListViewSet)
-router.register(r'api/photos/list', views.PhotoHashListViewSet)
+router.register(r'api/photos/edit', views.PhotoEditViewSet)
+router.register(r'api/photos/simplelist', views.PhotoSimpleListViewSet)
+router.register(r'api/photos/list', views.PhotoSuperSimpleListViewSet)
+router.register(r'api/photos/favorites', views.FavoritePhotoListViewset)
+router.register(r'api/photos/searchlist', views.PhotoSuperSimpleSearchListViewSet)
 router.register(r'api/photos', views.PhotoViewSet)
 
 
@@ -85,6 +93,10 @@ router.register(r'api/faces', views.FaceViewSet)
 urlpatterns = [
     url(r'^', include(router.urls)),
     url(r'^admin/', admin.site.urls),
+
+    url(r'^api/photosedit/favorite', views.SetPhotosFavorite.as_view()),
+    url(r'^api/photosedit/hide', views.SetPhotosHidden.as_view()),
+
     url(r'^api/facetolabel', views.FaceToLabelView.as_view()),
     url(r'^api/trainfaces', views.TrainFaceView.as_view()),
     url(r'^api/clusterfaces', views.ClusterFaceView.as_view()),
