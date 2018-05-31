@@ -1,16 +1,31 @@
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
-import { Popup,Menu, Input, Icon, Sidebar,Dropdown, Divider, Image, Header, Segment } from 'semantic-ui-react';
+import { Button, List, Popup, Menu, Input, Icon, Sidebar,Dropdown, Divider, Image, Header, Segment } from 'semantic-ui-react';
 import { connect } from "react-redux";
 import {login, logout} from '../actions/authActions'
 import {searchPhotos,searchPeople,searchPlaceAlbums,searchThingAlbums} from '../actions/searchActions'
+import {fetchPeopleAlbums} from '../actions/albumsActions'
+import {fetchPeople} from '../actions/peopleActions'
 import {fetchExampleSearchTerms} from '../actions/utilActions'
 import { push } from 'react-router-redux'
 import store from '../store'
 import jwtDecode from 'jwt-decode'
+import _ from 'lodash'
+import {serverAddress} from '../api_client/apiClient'
 
 var ENTER_KEY = 13;
 var topMenuHeight = 55 // don't change this
+
+
+
+function fuzzy_match(str,pattern){
+    if (pattern.split("").length > 0) {
+        pattern = pattern.split("").reduce(function(a,b){ return a+".*"+b; });
+        return (new RegExp(pattern)).test(str);
+    } else {
+        return false
+    }
+};
 
 export class TopMenu extends Component {
   state = {
@@ -19,7 +34,9 @@ export class TopMenu extends Component {
     showEmptyQueryWarning:false,
     width:window.innerWidth,
     exampleSearchTerm:'Search...',
-    searchBarFocused: false
+    searchBarFocused: false,
+    filteredExampleSearchTerms: [],
+    filteredSuggestedPeople: []
   }
 
   constructor(props) {
@@ -28,6 +45,7 @@ export class TopMenu extends Component {
     this.handleChange = this.handleChange.bind(this)
     this.handleResize = this.handleResize.bind(this)
     this._handleKeyDown = this._handleKeyDown.bind(this)
+    this.filterSearchSuggestions = this.filterSearchSuggestions.bind(this)
   }
 
   handleResize() {
@@ -35,12 +53,25 @@ export class TopMenu extends Component {
   }
 
 
-  componentWillMount() {
+  componentDidMount() {
+      this.props.dispatch(fetchPeople())
       this.props.dispatch(fetchExampleSearchTerms())
       window.addEventListener('resize',this.handleResize.bind(this))
       this.exampleSearchTermCylcer = setInterval(()=>{
         this.setState({exampleSearchTerm:  'Search ' + this.props.exampleSearchTerms[Math.floor(Math.random()*this.props.exampleSearchTerms.length)]})
       },5000)
+  }
+
+
+  static getDerivedStateFromProps(nextProps,prevState) {
+    if (prevState.searchText.trim().length===0){
+        var filteredExampleSearchTerms = nextProps.exampleSearchTerms
+        var filteredSuggestedPeople = nextProps.people
+    } else {
+        var filteredExampleSearchTerms = nextProps.exampleSearchTerms.filter((el)=>fuzzy_match(el.toLowerCase(),prevState.searchText.toLowerCase()))
+        var filteredSuggestedPeople = nextProps.people.filter((person)=>fuzzy_match(person.text.toLowerCase(),prevState.searchText.toLowerCase())) 
+    }
+    return {...prevState,filteredSuggestedPeople,filteredExampleSearchTerms}
   }
 
   componentWillUnmount() {
@@ -58,6 +89,17 @@ export class TopMenu extends Component {
       }
   }
 
+  filterSearchSuggestions() {
+    if (this.state.searchText.trim().length===0){
+        var filteredExampleSearchTerms = this.props.exampleSearchTerms
+        var filteredSuggestedPeople = this.props.people
+    } else {
+        var filteredExampleSearchTerms = this.props.exampleSearchTerms.filter((el)=>fuzzy_match(el.toLowerCase(),this.state.searchText.toLowerCase()))
+        var filteredSuggestedPeople = this.props.people.filter((person)=>fuzzy_match(person.text.toLowerCase(),this.state.searchText.toLowerCase())) 
+    }
+    this.setState({filteredSuggestedPeople,filteredExampleSearchTerms})
+    
+  }
 
   handleSearch(e,d) {
     if (this.state.searchText.length > 0){
@@ -76,10 +118,15 @@ export class TopMenu extends Component {
 
   handleChange(e,d) {
     this.state.searchText = d.value
+    this.filterSearchSuggestions()
   }
 
   render() {
     var searchBarWidth = this.state.width > 600 ? this.state.width - 400 : this.state.width - 130
+    
+    const {filteredExampleSearchTerms, filteredSuggestedPeople} = this.state
+
+
     // var searchBarWidth =  this.state.width - 130
     return (
       <Menu style={{height:topMenuHeight,padding:10,contentAlign:'left',backgroundColor:'#eeeeee'}} borderless fixed='top' size='small' widths={1}>
@@ -92,7 +139,6 @@ export class TopMenu extends Component {
           <Popup trigger={
             <div>
               <Input 
-                list='exampleSearchTerms'
                 fluid
                 onFocus={()=>{
                   this.setState({searchBarFocused:true})
@@ -101,8 +147,9 @@ export class TopMenu extends Component {
 
                 }}
                 onBlur={()=>{
-                  this.setState({searchBarFocused:false})
-                  console.log('searchbar unfocused', this.state.searchBarFocused)
+                  _.debounce(()=>{this.setState({searchBarFocused:false})},200)()
+                  //this.setState({searchBarFocused:false})
+                  //console.log('searchbar unfocused', this.state.searchBarFocused)
                 }}
                 onChange={this.handleChange}
                 action={{ 
@@ -112,9 +159,6 @@ export class TopMenu extends Component {
                   onClick:this.handleSearch,
                 }} 
                 placeholder={this.state.exampleSearchTerm}/>
-              <datalist id="exampleSearchTerms">
-                {this.props.exampleSearchTerms.map((el)=>(<option value={el}/>))}
-              </datalist>    
             </div>}
             inverted
             open={this.state.warningPopupOpen}
@@ -132,12 +176,66 @@ export class TopMenu extends Component {
               paddingLeft:10,
               paddingRight:10,
               width:searchBarWidth,
+              textAlign:'left',
               top:topMenuHeight-10,
               left:(this.state.width-searchBarWidth)/2,
               position:'absolute'}}>
-              <Segment raised style={{height:window.innerHeight/2}}>
+
+              <Header as='h3' attached='top'>
                 Search Suggestions
+              </Header>
+
+              { filteredExampleSearchTerms.length > 0 && (
+                <Segment attached raised textAlign='left' style={{paddingTop:0,paddingRight:0,paddingBottom:0}}> 
+                    <div style={{maxHeight:300,overflowY:'auto'}}>
+                        <div style={{height:10}}></div> 
+                        {filteredExampleSearchTerms.map((el)=>{
+                            return (
+                                <p key={'suggestion_'+el}
+                                onClick={()=>{
+                                    console.log('clicked')
+                                    this.props.dispatch(searchPhotos(el))
+                                    this.props.dispatch(searchPeople(el))
+                                    this.props.dispatch(searchThingAlbums(el))
+                                    this.props.dispatch(searchPlaceAlbums(el))
+                                    this.props.dispatch(push('/search'))
+                                }}>
+                                <Icon name='search'/>{el}
+                                </p>
+                            )
+                        })}
+                        <div style={{height:5}}></div> 
+                    </div>
+                </Segment>
+              )}
+              { filteredSuggestedPeople.length > 0 && (
+                <Segment attached raised style={{padding:0}}>
+                    <div style={{maxWidth:searchBarWidth,height:60,padding:5,overflow:'hidden'}}>
+                        <Image.Group>
+                        {filteredSuggestedPeople.map((person)=>{
+                            return (
+                                <Image 
+                                    onClick={()=>{
+                                        this.props.dispatch(push(`/person/${person.key}`))
+                                        this.props.dispatch(fetchPeopleAlbums(person.key))
+                                    }}
+                                    height={50} 
+                                    width={50} 
+                                    circular 
+                                    src={serverAddress+person.face_url}/>
+                            )
+                        })}
+                        </Image.Group>
+                    </div>
+
+                </Segment>
+              )}
+              <Segment attached='bottom' raised>
+                    <Header as={Link} to='/favorites'>
+                    <Icon name='favorite' size='big' color='yellow'/> Favorites
+                    </Header>
               </Segment>
+
             </div>
           }
 
@@ -529,7 +627,10 @@ TopMenu = connect((store)=>{
     exampleSearchTerms: store.util.exampleSearchTerms,
     searchError: store.search.error,
     searchingPhotos: store.search.searchingPhotos,
-    searchedPhotos: store.search.searchedPhotos
+    searchedPhotos: store.search.searchedPhotos,
+    people: store.people.people,
+    fetchingPeople: store.people.fetchingPeople,
+    fetchedPeople: store.people.fetchedPeople
   }
 })(TopMenu)
 

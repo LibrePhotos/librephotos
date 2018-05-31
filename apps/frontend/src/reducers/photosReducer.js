@@ -11,6 +11,10 @@ export default function reducer(state={
   fetchedPhotos: false,
   fetchingPhotos: false,
 
+  favoritePhotos:[],
+  fetchingFavoritePhotos:false,
+  fetchedFavoritePhotos:false,
+
   noTimestampPhotos: [],
   fetchingNoTimestampPhotos: false,
   fetchedNoTimestampPhotos: false,
@@ -47,6 +51,25 @@ export default function reducer(state={
         photos: action.payload
       }
     }
+
+
+
+    case "FETCH_FAVORITE_PHOTOS": {
+      return {...state, fetchingFavoritePhotos: true}
+    }
+    case "FETCH_FAVORITE_PHOTOS_REJECTED": {
+      return {...state, fetchingFavoritePhotos: false, error: action.payload}
+    }
+    case "FETCH_FAVORITE_PHOTOS_FULFILLED": {
+      return {
+        ...state,
+        fetchingFavoritePhotos: false,
+        fetchedFavoritePhotos: true,
+        favoritePhotos: action.payload
+      }
+    }
+
+
 
 
 
@@ -96,11 +119,32 @@ export default function reducer(state={
     var updatedPhotos = action.payload.updatedPhotos
 		var newPhotos = {...state.photoDetails}
 
+        var updatedPhotosImageHashes = updatedPhotos.map((photo)=>photo.image_hash)
+
 		updatedPhotos.forEach((photo)=>{
 			newPhotos[[photo.image_hash]] = photo
 		})
 
-		return {...state, photoDetails:newPhotos}
+
+        var newFavoritePhotos = [...state.favoritePhotos]
+
+        if (valFavorite) {
+            updatedPhotos.forEach((photo)=>{
+                newFavoritePhotos.push(photo)
+            })
+        } else {
+            console.log(newFavoritePhotos)
+            newFavoritePhotos = newFavoritePhotos.filter((photo)=>{
+               if (updatedPhotosImageHashes.includes(photo.image_hash)){
+                   return false
+               } else {
+                   return true
+               }
+            })
+        }
+
+
+		return {...state, photoDetails:newPhotos, favoritePhotos: newFavoritePhotos}
 	}
 
   case "SET_PHOTOS_HIDDEN_FULFILLED": {

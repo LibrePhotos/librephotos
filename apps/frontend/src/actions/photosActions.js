@@ -77,11 +77,11 @@ export function fetchFavoritePhotos() {
     dispatch({type:"FETCH_FAVORITE_PHOTOS"});
     Server.get('photos/favorites/',{timeout:100000})
       .then((response) => {
-        var t0 = performance.now();
-        const res = _.keyBy(response.data.results,'image_hash')
-        var t1 = performance.now();
-        console.log("Call to doSomething took " + (t1 - t0) + " milliseconds.")
-        dispatch({type:"FETCH_FAVORITE_PHOTOS_FULFILLED",payload: res})
+        //var t0 = performance.now();
+        //const res = _.keyBy(response.data.results,'image_hash')
+        //var t1 = performance.now();
+        //console.log("Call to doSomething took " + (t1 - t0) + " milliseconds.")
+        dispatch({type:"FETCH_FAVORITE_PHOTOS_FULFILLED",payload: response.data.results})
         // dispatch(fetchDateAlbumsPhotoHashList())
       }) 
       .catch((err) => {

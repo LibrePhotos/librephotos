@@ -73,6 +73,7 @@ import {CountryPiChart} from './components/charts/countryPiChart'
 // import {SearchView} from './layouts/search'
 import {SearchViewRV, SearchView} from './layouts/searchRV'
 import {SearchMultipleCategories} from './layouts/searchMultipleResultsCategories'
+import {FavoritePhotos} from './layouts/FavoritePhotos'
 
 import {ImageInfoTable} from './components/imageInfoTable'
 import history from './history'
@@ -141,6 +142,8 @@ class App extends Component {
 
               <PrivateRoute path="/things" component={AlbumThing}/>
               
+              <PrivateRoute path="/favorites" component={FavoritePhotos}/>
+
               <PrivateRoute path="/notimestamp" component={NoTimestampPhotosView}/>
               
               <PrivateRoute path="/places" component={AlbumPlace}/>

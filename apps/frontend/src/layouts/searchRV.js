@@ -64,7 +64,7 @@ export class SearchView extends Component {
         const {searchingPhotos,searchedPhotos,searchQuery} = this.props
         return (
             <PhotoListView 
-                title={searchingPhotos ? `Searching "${searchQuery}"...` : searchQuery===null ? "Search for things, places, people, and time." : `Search results for "${searchQuery}"`}
+                title={searchingPhotos ? `Searching "${searchQuery}"...` : searchQuery===null ? "Search for things, places, people, and time." : `"${searchQuery}"`}
                 loading={searchingPhotos}
                 titleIconName={'search'}
                 subtitle={"hehehe"}
