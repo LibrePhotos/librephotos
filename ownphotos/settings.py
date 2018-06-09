@@ -28,7 +28,7 @@ SECRET_KEY = os.environ['SECRET_KEY']
 DEBUG = (os.environ.get('DEBUG', '').lower() == 'true')
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.31.210','localhost','*']
+ALLOWED_HOSTS = ['192.168.1.100','localhost',os.environ.get('BACKEND_HOST')]
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': datetime.timedelta(minutes=60),
@@ -49,7 +49,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'django_extensions',
-    'debug_toolbar',
 #     'cachalot',
 #     'cacheops',
 ]
@@ -160,8 +159,13 @@ DATABASES = {
         'PASSWORD': os.environ['DB_PASS'],
         'HOST': os.environ['DB_HOST'],
         'PORT': os.environ['DB_PORT'],
-    }
+    },
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.sqlite3',
+    #     'NAME': 'dev.db',
+    # }
 }
+
 
 # CACHES = {
 #     'default': {

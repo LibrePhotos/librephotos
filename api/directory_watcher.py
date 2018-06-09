@@ -68,6 +68,7 @@ def scan_photos():
 
 
         if not Photo.objects.filter(image_path=image_path).exists():
+            # ipdb.set_trace()    
             image_paths_to_add.append(image_path)
 
     set_photo_scan_flag_on(len(image_paths_to_add))
@@ -83,18 +84,18 @@ def scan_photos():
             try:
                 img_abs_path = image_path
 
-                # start = datetime.datetime.now()
-                # hash_md5 = hashlib.md5()
-                # with open(img_abs_path, "rb") as f:
-                #     for chunk in iter(lambda: f.read(4096), b""):
-                #         hash_md5.update(chunk)
-                # image_hash = hash_md5.hexdigest()
-                # elapsed = (datetime.datetime.now() - start).total_seconds()
-                # util.logger.info('generating md5 took %.2f'%elapsed)
+                start = datetime.datetime.now()
+                hash_md5 = hashlib.md5()
+                with open(img_abs_path, "rb") as f:
+                    for chunk in iter(lambda: f.read(4096), b""):
+                        hash_md5.update(chunk)
+                image_hash = hash_md5.hexdigest()
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                util.logger.info('generating md5 took %.2f'%elapsed)
 
                 # qs = Photo.objects.filter(image_hash=image_hash)
 
-                photo_exists = Photo.objects.filter(image_path=img_abs_path).exists()
+                photo_exists = Photo.objects.filter(image_hash=image_hash).exists()
 
                 if not photo_exists:
                     photo = Photo(image_path=img_abs_path)
@@ -156,6 +157,7 @@ def scan_photos():
                 else:
                     already_existing_photo += 1
                     util.logger.info("photo already exists in db")
+                    print("photo already exists in db %s"%img_abs_path)
             except Exception as e:
                 try: 
                     util.logger.error("Could not load image {}. reason: {}".format(image_path,e.__repr__()))

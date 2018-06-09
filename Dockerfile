@@ -36,13 +36,13 @@ RUN apt-get update && \
     cd /dlib && \
     /venv/bin/python setup.py install --no USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA 
 
-
+RUN /venv/bin/pip install cython
 
 RUN mkdir /code
 WORKDIR /code
 COPY requirements.txt /code/
 
-RUN /venv/bin/pip install http://download.pytorch.org/whl/cpu/torch-0.3.1-cp35-cp35m-linux_x86_64.whl  && /venv/bin/pip install torchvision
+RUN /venv/bin/pip install http://download.pytorch.org/whl/cpu/torch-0.4.0-cp35-cp35m-linux_x86_64.whl && /venv/bin/pip install torchvision
 
 RUN /venv/bin/pip install -r requirements.txt
 
@@ -51,6 +51,12 @@ RUN /venv/bin/python -m spacy download en_core_web_sm
 WORKDIR /code/api/places365
 RUN wget https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/places365_model.tar.gz
 RUN tar xf places365_model.tar.gz
+
+WORKDIR /code/api/im2txt
+RUN wget https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/im2txt_model.tar.gz
+RUN tar xf im2txt_model.tar.gz
+RUN wget https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/im2txt_data.tar.gz
+RUN tar xf im2txt_data.tar.gz
 
 RUN apt-get remove --purge -y cmake git && \
     rm -rf /var/lib/apt/lists/*
@@ -75,11 +81,11 @@ ENV DB_PASS ownphotos
 ENV DB_HOST database
 ENV DB_PORT 5432
 
-# Memcache location
-ENV CACHE_HOST_PORT memcached:11211
+ENV BACKEND_HOST localhost
+
 
 # REDIS location
-ENV REDIS_HOST memcached
+ENV REDIS_HOST redis
 ENV REDIS_PORT 11211
 
 # Timezone

@@ -77,6 +77,7 @@ router.register(r'api/photos/edit', views.PhotoEditViewSet)
 router.register(r'api/photos/simplelist', views.PhotoSimpleListViewSet)
 router.register(r'api/photos/list', views.PhotoSuperSimpleListViewSet)
 router.register(r'api/photos/favorites', views.FavoritePhotoListViewset)
+router.register(r'api/photos/hidden', views.HiddenPhotoListViewset)
 router.register(r'api/photos/searchlist', views.PhotoSuperSimpleSearchListViewSet)
 router.register(r'api/photos', views.PhotoViewSet)
 
@@ -94,6 +95,9 @@ urlpatterns = [
     url(r'^', include(router.urls)),
     url(r'^admin/', admin.site.urls),
 
+    url(r'^api/labelfaces', views.SetFacePersonLabel.as_view()),    
+    url(r'^api/deletefaces', views.DeleteFaces.as_view()),    
+
     url(r'^api/photosedit/favorite', views.SetPhotosFavorite.as_view()),
     url(r'^api/photosedit/hide', views.SetPhotosHidden.as_view()),
 
@@ -103,7 +107,10 @@ urlpatterns = [
     url(r'^api/socialgraph', views.SocialGraphView.as_view()),
     url(r'^api/egograph', views.EgoGraphView.as_view()),
     url(r'^api/scanphotos', views.ScanPhotosView.as_view()),
+    
     url(r'^api/autoalbumgen', views.AutoAlbumGenerateView.as_view()),
+    url(r'^api/autoalbumtitlegen', views.RegenerateAutoAlbumTitles.as_view()),
+    
     url(r'^api/searchtermexamples', views.SearchTermExamples.as_view()),
     url(r'^api/locationsunburst', views.LocationSunburst.as_view()),
     url(r'^api/locationtimeline', views.LocationTimeline.as_view()),
