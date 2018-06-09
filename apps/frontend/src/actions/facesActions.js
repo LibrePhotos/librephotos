@@ -1,14 +1,70 @@
 import axios from "axios";
 import {Server} from '../api_client/apiClient'
+import {notify} from 'reapop'
 
+export function setFacesPersonLabel(faceIDs,personName) {
+  return function(dispatch) {
+    dispatch({type:"SET_FACES_PERSON_LABEL"})
+    Server.post("labelfaces/",{person_name:personName,face_ids:faceIDs})
+      .then((response)=>{
+        dispatch({type:"SET_FACES_PERSON_LABEL_FULFILLED",payload:response.data.results})
+        dispatch(notify({
+          message:`${faceIDs.length} face(s) were successfully labeled as person "${personName}"`,
+          title:'Face label',
+          status:'success',
+          dismissible: true,
+          dismissAfter:3000,
+          position:'br'}))
+
+      })
+      .catch((err)=>{
+        console.log("error")
+      })
+  }
+}
+
+export function deleteFaces(faceIDs) {
+  return function(dispatch) {
+    dispatch({type:"DELETE_FACES"})
+    Server.post("deletefaces/",{face_ids:faceIDs})
+      .then((response)=>{
+        dispatch({type:"DELETE_FACES_FULFILLED",payload:response.data.results})
+        dispatch(notify({
+          message:`${faceIDs.length} face(s) were successfully deleted`,
+          title:'Face delete',
+          status:'success',
+          dismissible: true,
+          dismissAfter:3000,
+          position:'br'}))
+
+      })
+      .catch((err)=>{
+        console.log("error")
+      })
+  }
+}
 
 
 export function trainFaces() {
   return function(dispatch) {
     dispatch({type: "TRAIN_FACES"});
+    dispatch(notify({
+      message:`Training started`,
+      title:'Face training',
+      status:'success',
+      dismissible: true,
+      dismissAfter:3000,
+      position:'br'}))
     Server.get("trainfaces/",{timeout:30000})
       .then((response) => {
         dispatch({type: "TRAIN_FACES_FULFILLED", payload: response.data})
+        dispatch(notify({
+          message:`Training finished`,
+          title:'Face training',
+          status:'success',
+          dismissible: true,
+          dismissAfter:3000,
+          position:'br'}))
         dispatch(fetchInferredFacesList())
         dispatch(fetchLabeledFacesList())
       })

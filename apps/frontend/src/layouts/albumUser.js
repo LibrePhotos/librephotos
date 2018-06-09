@@ -11,7 +11,7 @@ import LazyLoad from 'react-lazyload';
 import {AlbumAutoMonths} from './albumAutoMonths'
 import {AlbumDateMonths} from './albumDateMonths'
 
-import {fetchThingAlbumsList} from '../actions/albumsActions'
+import {fetchUserAlbumsList, fetchThingAlbumsList, deleteUserAlbum} from '../actions/albumsActions'
 import {searchPhotos} from '../actions/searchActions'
 import { push } from 'react-router-redux'
 import store from '../store'
@@ -27,7 +27,7 @@ var DOWN_ARROW_KEY = 40;
 
 var SIDEBAR_WIDTH = 85;
 
-export class AlbumThing extends Component {
+export class AlbumUser extends Component {
   constructor() {
     super();
     this.setState({
@@ -43,8 +43,8 @@ export class AlbumThing extends Component {
   componentWillMount() {
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
-    if (this.props.albumsThingList.length == 0){
-      this.props.dispatch(fetchThingAlbumsList())
+    if (this.props.albumsUserList.length == 0){
+      this.props.dispatch(fetchUserAlbumsList())
     }
   }
 
@@ -78,33 +78,52 @@ export class AlbumThing extends Component {
     })
   }
 
-
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-      var albumThingIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex
-      if (albumThingIndex < this.props.albumsThingList.length) {
+      var albumUserIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex
+      if (albumUserIndex < this.props.albumsUserList.length) {
         return (
           <div key={key} style={style}>
             <div 
               onClick={()=>{
-                store.dispatch(searchPhotos(this.props.albumsThingList[albumThingIndex].title))
-                store.dispatch(push('/search'))
+                  console.log('clicked')
               }}
               style={{padding:5}}>
-
-
-            {this.props.albumsThingList[albumThingIndex].cover_photos.slice(0,1).map((photo)=>{
-              return (
                 <Image style={{display:'inline-block'}} 
+                  as={Link} to={`/useralbum/${this.props.albumsUserList[albumUserIndex].id}`}
                   width={this.state.entrySquareSize-10} 
                   height={this.state.entrySquareSize-10}
-                  src={serverAddress+'/media/square_thumbnails/'+photo.image_hash+'.jpg'}/>
-              )
-            })}
+                  src={serverAddress+'/media/square_thumbnails/'+this.props.albumsUserList[albumUserIndex].cover_photos[0].image_hash+'.jpg'}/>
 
             </div>
-            <div style={{paddingLeft:15,paddingRight:15,height:50}}>
-            <Icon name='tag'/><b>{this.props.albumsThingList[albumThingIndex].title}</b><br/> 
-            {this.props.albumsThingList[albumThingIndex].photo_count} Photos
+            <div className="personCardName" style={{paddingLeft:15,paddingRight:15,height:50}}>
+            <Icon color='red' name='bookmark'/><b>{this.props.albumsUserList[albumUserIndex].title}</b> <br/>
+            {this.props.albumsUserList[albumUserIndex].photo_count} Photo(s)
+
+            { true &&
+                (
+                    <div className="personRemoveButton" style={{right:0,position:'absolute'}}>
+                        <Popup 
+                            wide='very'
+                            hoverable
+                            flowing
+                            trigger={<Icon color='grey' name='remove'/>}
+                            content={
+                                <div style={{textAlign:"center"}}>
+                                    Are you sure you want to delete <b>{this.props.albumsUserList[albumUserIndex].title}</b>?<br/>
+                                    This action cannot be undone!<br/>
+                                    <Divider/>
+                                    <div>
+                                        <Button onClick={()=>this.props.dispatch(deleteUserAlbum(this.props.albumsUserList[albumUserIndex].id,this.props.albumsUserList[albumUserIndex].title))} negative>Yes</Button>
+                                    </div>
+                                </div>
+                            }
+                            on='focus'
+                            position='bottom center'
+                            />
+                    </div> 
+                )
+            }
+
             </div>
           </div>
         )
@@ -128,11 +147,11 @@ export class AlbumThing extends Component {
         <div style={{height:60,paddingTop:10}}>
 
           <Header as='h2'>
-            <Icon name='tags' />
+            <Icon name='bookmark' />
             <Header.Content>
-              Things <Loader size='tiny' inline active={this.props.fetchingAlbumsThingList}/>
+              My Albums <Loader size='tiny' inline active={this.props.fetchingAlbumsUserList}/>
               <Header.Subheader>
-                Showing top {this.props.albumsThingList.length} things
+                Showing {this.props.albumsUserList.length} user created albums
               </Header.Subheader>
             </Header.Content>
           </Header>
@@ -149,7 +168,7 @@ export class AlbumThing extends Component {
                   columnCount={this.state.numEntrySquaresPerRow}
                   height={this.state.height - topMenuHeight - 60}
                   rowHeight={this.state.entrySquareSize+60}
-                  rowCount={Math.ceil(this.props.albumsThingList.length/this.state.numEntrySquaresPerRow.toFixed(1))}
+                  rowCount={Math.ceil(this.props.albumsUserList.length/this.state.numEntrySquaresPerRow.toFixed(1))}
                   width={width}
                 />
               )}
@@ -200,10 +219,10 @@ export class EntrySquare extends Component {
 }
 
 
-AlbumThing = connect((store)=>{
+AlbumUser = connect((store)=>{
   return {
-    albumsThingList: store.albums.albumsThingList,
-    fetchingAlbumsThingList: store.albums.fetchingAlbumsThingList,
-    fetchedAlbumsThingList: store.albums.fetchedAlbumsThingList,
+    albumsUserList: store.albums.albumsUserList,
+    fetchingAlbumsUserList: store.albums.fetchingAlbumsUserList,
+    fetchedAlbumsUserList: store.albums.fetchedAlbumsUserList,
   }
-})(AlbumThing)
+})(AlbumUser)

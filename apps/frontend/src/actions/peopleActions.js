@@ -27,6 +27,8 @@ export function fetchPeople() {
   }
 }
 
+
+
 export function addPerson(person_name) {
   return function(dispatch){
     dispatch({type:"ADD_PERSON"})

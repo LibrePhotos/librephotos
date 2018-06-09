@@ -147,12 +147,44 @@ export default function reducer(state={
 
 
 
+      // mass labeling faces
+      case "SET_FACES_PERSON_LABEL_FULFILLED": {
+        const justLabeledFaceIDs = action.payload.map((face)=>face.id)
+        
+        var newInferredFacesList = state.inferredFacesList.filter((face)=>!justLabeledFaceIDs.includes(face.id))
+        var newLabeledFacesList = state.labeledFacesList.filter((face)=>!justLabeledFaceIDs.includes(face.id))
+
+        action.payload.forEach((justLabeledFace)=>{
+          newLabeledFacesList.push(justLabeledFace)
+        })
+
+
+
+        
+
+        return {
+          ...state,
+          inferredFacesList: newInferredFacesList,
+          labeledFacesList: newLabeledFacesList
+        }
+      }
 
 
 
 
+      // mass labeling faces
+      case "DELETE_FACES_FULFILLED": {
+        const justDeletedFaces = action.payload
+        
+        var newInferredFacesList = state.inferredFacesList.filter((face)=>!justDeletedFaces.includes(face.id))
+        var newLabeledFacesList = state.labeledFacesList.filter((face)=>!justDeletedFaces.includes(face.id))
 
-
+        return {
+          ...state,
+          inferredFacesList: newInferredFacesList,
+          labeledFacesList: newLabeledFacesList
+        }
+      }
 
 
 

@@ -101,23 +101,25 @@ export class AlbumPlace extends Component {
                 // store.dispatch(searchPhotos(this.props.albumsPlaceList[albumPlaceIndex].title))
                 // store.dispatch(push('/search'))
               }}
-              style={{padding:10}}>
+              style={{padding:5}}>
 
-            <Image.Group>
-            {place[albumPlaceIndex].cover_photos.slice(0,4).map((photo)=>{
+            {place[albumPlaceIndex].cover_photos.slice(0,1).map((photo)=>{
               return (
                 <Image style={{display:'inline-block',zIndex:1}} 
-                  width={this.state.entrySquareSize/2-20} 
-                  height={this.state.entrySquareSize/2-20}
+                  width={this.state.entrySquareSize-10} 
+                  height={this.state.entrySquareSize-10}
                   as={Link} to={`/place/${place[albumPlaceIndex].id}/`}
                   src={serverAddress+'/media/square_thumbnails/'+photo.image_hash+'.jpg'}/>
               )
             })}
-            </Image.Group>
             </div>
-            <div style={{paddingLeft:15,paddingRight:15}}>
-              { countryNames.includes(place[albumPlaceIndex].title.toLowerCase()) && <Flag name={place[albumPlaceIndex].title.toLowerCase()}/> }
-              <b>{place[albumPlaceIndex].title}</b> {place[albumPlaceIndex].photo_count}
+            <div style={{paddingLeft:15,paddingRight:15,height:50}}>
+              { 
+                countryNames.includes(place[albumPlaceIndex].title.toLowerCase()) ? 
+                  <Flag name={place[albumPlaceIndex].title.toLowerCase()}/> : 
+                  <Icon name='map marker alternate'/> 
+              } 
+              <b>{place[albumPlaceIndex].title}</b><br/> {place[albumPlaceIndex].photo_count} Photos
             </div>
           </div>
         )
@@ -193,7 +195,7 @@ export class AlbumPlace extends Component {
                       columnWidth={this.state.entrySquareSize}
                       columnCount={this.state.numEntrySquaresPerRow}
                       height={this.state.gridHeight}
-                      rowHeight={this.state.entrySquareSize+50}
+                      rowHeight={this.state.entrySquareSize+60}
                       rowCount={Math.ceil(this.props.albumsPlaceListGroupedByGeolocationLevel[this.state.geolocationLevel].length/this.state.numEntrySquaresPerRow.toFixed(1))}
                       width={width}
                       />

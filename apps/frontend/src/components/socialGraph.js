@@ -25,15 +25,15 @@ export class SocialGraph extends Component {
 		var data = this.props.socialGraph
 		var myConfig = {
 			automaticRearrangeAfterDropNode: false,
-			staticGraph:false,
+			staticGraph:true,
 		    highlightBehavior: true,
 		    maxZoom: 4,
 		    minZoom: 0.1,
 		    node: {
 		    	fontSize: 10,
-		    	size: 500,
+		    	size: 200,
 		        color: 'lightblue',
-		        highlightFontSize: 10,
+		        highlightFontSize: 15,
 		        highlightStrokeColor: 'orange'
 		    },
 		    link: {
@@ -50,17 +50,14 @@ export class SocialGraph extends Component {
 					data={this.props.socialGraph}/>
 		}
 		else {
-			var graph = <Loader/>
+			var graph = <Loader active>Fetching Social Graph</Loader>
 		}
 
 		console.log(this.props)
 		return (
-            <div>
-                <Header as='h3'>Social Graph</Header>
-                <div style={{height:'254px'}}>
-                    {graph}
-                </div>
-            </div>
+			<div>
+				{graph}
+			</div>
 		)
 	}
 }

@@ -1,10 +1,11 @@
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, List, Popup, Menu, Input, Icon, Sidebar,Dropdown, Divider, Image, Header, Segment } from 'semantic-ui-react';
+import { Loader, Button, List, Popup, Menu, Input, Icon, Sidebar,Dropdown, Divider, Image, Header, Segment } from 'semantic-ui-react';
 import { connect } from "react-redux";
 import {login, logout} from '../actions/authActions'
+import {toggleSidebar} from '../actions/uiActions'
 import {searchPhotos,searchPeople,searchPlaceAlbums,searchThingAlbums} from '../actions/searchActions'
-import {fetchPeopleAlbums} from '../actions/albumsActions'
+import {fetchUserAlbum, fetchUserAlbumsList,fetchPlaceAlbum,fetchPeopleAlbums,fetchPlaceAlbumsList,fetchThingAlbumsList} from '../actions/albumsActions'
 import {fetchPeople} from '../actions/peopleActions'
 import {fetchExampleSearchTerms} from '../actions/utilActions'
 import { push } from 'react-router-redux'
@@ -55,6 +56,9 @@ export class TopMenu extends Component {
 
   componentDidMount() {
       this.props.dispatch(fetchPeople())
+      this.props.dispatch(fetchPlaceAlbumsList())
+      this.props.dispatch(fetchThingAlbumsList())
+      this.props.dispatch(fetchUserAlbumsList())
       this.props.dispatch(fetchExampleSearchTerms())
       window.addEventListener('resize',this.handleResize.bind(this))
       this.exampleSearchTermCylcer = setInterval(()=>{
@@ -65,13 +69,19 @@ export class TopMenu extends Component {
 
   static getDerivedStateFromProps(nextProps,prevState) {
     if (prevState.searchText.trim().length===0){
-        var filteredExampleSearchTerms = nextProps.exampleSearchTerms
-        var filteredSuggestedPeople = nextProps.people
+        var filteredExampleSearchTerms = []
+        var filteredSuggestedPeople = []
+        var filteredSuggestedPlaces = []
+        var filteredSuggestedThings = []
+        var filteredSuggestedUserAlbums = []
     } else {
         var filteredExampleSearchTerms = nextProps.exampleSearchTerms.filter((el)=>fuzzy_match(el.toLowerCase(),prevState.searchText.toLowerCase()))
         var filteredSuggestedPeople = nextProps.people.filter((person)=>fuzzy_match(person.text.toLowerCase(),prevState.searchText.toLowerCase())) 
+        var filteredSuggestedPlaces = nextProps.albumsPlaceList.filter((place)=>fuzzy_match(place.title.toLowerCase(),prevState.searchText.toLowerCase()))
+        var filteredSuggestedThings = nextProps.albumsThingList.filter((thing)=>fuzzy_match(thing.title.toLowerCase(),prevState.searchText.toLowerCase()))
+        var filteredSuggestedUserAlbums = nextProps.albumsUserList.filter((album)=>fuzzy_match(album.title.toLowerCase(),prevState.searchText.toLowerCase()))
     }
-    return {...prevState,filteredSuggestedPeople,filteredExampleSearchTerms}
+    return {...prevState,filteredSuggestedPeople,filteredExampleSearchTerms,filteredSuggestedPlaces,filteredSuggestedThings,filteredSuggestedUserAlbums}
   }
 
   componentWillUnmount() {
@@ -91,13 +101,19 @@ export class TopMenu extends Component {
 
   filterSearchSuggestions() {
     if (this.state.searchText.trim().length===0){
-        var filteredExampleSearchTerms = this.props.exampleSearchTerms
-        var filteredSuggestedPeople = this.props.people
+        var filteredExampleSearchTerms = []
+        var filteredSuggestedPeople = []
+        var filteredSuggestedPlaces = []
+        var filteredSuggestedThings = []
+        var filteredSuggestedUserAlbums = []
     } else {
         var filteredExampleSearchTerms = this.props.exampleSearchTerms.filter((el)=>fuzzy_match(el.toLowerCase(),this.state.searchText.toLowerCase()))
         var filteredSuggestedPeople = this.props.people.filter((person)=>fuzzy_match(person.text.toLowerCase(),this.state.searchText.toLowerCase())) 
+        var filteredSuggestedPlaces = this.props.albumsPlaceList.filter((place)=>fuzzy_match(place.title.toLowerCase(),this.state.searchText.toLowerCase()))
+        var filteredSuggestedThings = this.props.albumsThingList.filter((thing)=>fuzzy_match(thing.title.toLowerCase(),this.state.searchText.toLowerCase()))
+        var filteredSuggestedUserAlbums = this.props.albumsUserList.filter((album)=>fuzzy_match(album.title.toLowerCase(),this.state.searchText.toLowerCase()))
     }
-    this.setState({filteredSuggestedPeople,filteredExampleSearchTerms})
+    this.setState({filteredSuggestedPeople,filteredExampleSearchTerms,filteredSuggestedPlaces,filteredSuggestedThings,filteredSuggestedUserAlbums})
     
   }
 
@@ -122,18 +138,27 @@ export class TopMenu extends Component {
   }
 
   render() {
-    var searchBarWidth = this.state.width > 600 ? this.state.width - 400 : this.state.width - 130
+    var searchBarWidth = this.state.width > 600 ? this.state.width - 450 : this.state.width - 170
     
-    const {filteredExampleSearchTerms, filteredSuggestedPeople} = this.state
+    const {filteredSuggestedUserAlbums, filteredExampleSearchTerms, filteredSuggestedPeople, filteredSuggestedPlaces, filteredSuggestedThings} = this.state
 
 
     // var searchBarWidth =  this.state.width - 130
     return (
       <Menu style={{height:topMenuHeight,padding:10,contentAlign:'left',backgroundColor:'#eeeeee'}} borderless fixed='top' size='small' widths={1}>
 
-          <div style={{paddingLeft:28,width:(window.innerWidth-searchBarWidth)/2,left:0,position:'absolute',textAlign:'left'}}>
-          <img src="/logo.png" style={{height:35}}/>
+          <div style={{paddingLeft:15,width:(window.innerWidth-searchBarWidth)/2,left:0,position:'absolute',textAlign:'left'}}>
+          <Icon style={{padding:5,top:0}} size='big' onClick={()=>{this.props.dispatch(toggleSidebar())}}  name={'sidebar'}/>
           </div>
+
+          { this.state.width > 600 &&
+            <div style={{left:70, position:'absolute', justifyContent:'center',alignItems:'center'}}>
+            <img height={35} src='/logo.png'/> 
+            </div>
+          }
+
+
+
 
           <div style={{width:searchBarWidth,paddingRight:10,paddingLeft:10}}>
           <Popup trigger={
@@ -184,12 +209,11 @@ export class TopMenu extends Component {
               <Header as='h3' attached='top'>
                 Search Suggestions
               </Header>
-
               { filteredExampleSearchTerms.length > 0 && (
                 <Segment attached raised textAlign='left' style={{paddingTop:0,paddingRight:0,paddingBottom:0}}> 
-                    <div style={{maxHeight:300,overflowY:'auto'}}>
+                    <div style={{maxHeight:window.innerHeight/8,overflowY:'auto'}}>
                         <div style={{height:10}}></div> 
-                        {filteredExampleSearchTerms.map((el)=>{
+                        {filteredExampleSearchTerms.slice(0,10).map((el)=>{
                             return (
                                 <p key={'suggestion_'+el}
                                 onClick={()=>{
@@ -208,21 +232,110 @@ export class TopMenu extends Component {
                     </div>
                 </Segment>
               )}
+              { filteredSuggestedUserAlbums.length > 0 && (
+                <Header as='h4' attached>
+                    My Albums
+                </Header>
+              )}
+              { filteredSuggestedUserAlbums.length > 0 && (
+                <Segment attached raised textAlign='left' style={{paddingTop:0,paddingRight:0,paddingBottom:0}}> 
+                    <div style={{maxHeight:window.innerHeight/8,overflowY:'auto'}}>
+                        <div style={{height:10}}></div> 
+                        {filteredSuggestedUserAlbums.slice(0,10).map((album)=>{
+                            return (
+                                <p key={'suggestion_place_'+album.title}
+                                onClick={()=>{
+                                    this.props.dispatch(push(`/useralbum/${album.id}`))
+                                    this.props.dispatch(fetchUserAlbum(album.id))
+                                    console.log('clicked')
+                                }}>
+                                <Icon name='bookmark'/>{album.title}
+                                </p>
+                            )
+                        })}
+                        <div style={{height:5}}></div> 
+                    </div>
+                </Segment>
+              )}
+
+              { filteredSuggestedPlaces.length > 0 && (
+                <Header as='h4' attached>
+                    Places
+                </Header>
+              )}
+              { filteredSuggestedPlaces.length > 0 && (
+                <Segment attached raised textAlign='left' style={{paddingTop:0,paddingRight:0,paddingBottom:0}}> 
+                    <div style={{maxHeight:window.innerHeight/8,overflowY:'auto'}}>
+                        <div style={{height:10}}></div> 
+                        {filteredSuggestedPlaces.slice(0,10).map((place)=>{
+                            return (
+                                <p key={'suggestion_place_'+place.title}
+                                onClick={()=>{
+                                    this.props.dispatch(push(`/place/${place.id}`))
+                                    this.props.dispatch(fetchPlaceAlbum(place.id))
+                                    console.log('clicked')
+                                }}>
+                                <Icon name='map outline'/>{place.title}
+                                </p>
+                            )
+                        })}
+                        <div style={{height:5}}></div> 
+                    </div>
+                </Segment>
+              )}
+
+              { filteredSuggestedThings.length > 0 && (
+                <Header as='h4' attached>
+                    Things
+                </Header>
+              )}
+              { filteredSuggestedThings.length > 0 && (
+                <Segment attached raised textAlign='left' style={{paddingTop:0,paddingRight:0,paddingBottom:0}}> 
+                    <div style={{maxHeight:window.innerHeight/8,overflowY:'auto'}}>
+                        <div style={{height:10}}></div> 
+                        {filteredSuggestedThings.slice(0,10).map((thing)=>{
+                            return (
+                                <p key={'suggestion_thing_'+thing.title}
+                                onClick={()=>{
+                                  this.props.dispatch(push(`/search`))
+                                  this.props.dispatch(searchPhotos(thing.title))
+                                  console.log('clicked')
+                                }}>
+                                <Icon name='tag'/>{thing.title}
+                                </p>
+                            )
+                        })}
+                        <div style={{height:5}}></div> 
+                    </div>
+                </Segment>
+              )}
+
+              { filteredSuggestedPeople.length > 0 && (
+                <Header as='h4' attached>
+                    People
+                </Header>
+              )}
               { filteredSuggestedPeople.length > 0 && (
                 <Segment attached raised style={{padding:0}}>
-                    <div style={{maxWidth:searchBarWidth,height:60,padding:5,overflow:'hidden'}}>
+                    <div style={{maxWidth:searchBarWidth-5,height:60,padding:5,overflow:'hidden'}}>
                         <Image.Group>
                         {filteredSuggestedPeople.map((person)=>{
                             return (
-                                <Image 
-                                    onClick={()=>{
-                                        this.props.dispatch(push(`/person/${person.key}`))
-                                        this.props.dispatch(fetchPeopleAlbums(person.key))
-                                    }}
-                                    height={50} 
-                                    width={50} 
-                                    circular 
-                                    src={serverAddress+person.face_url}/>
+                              <Popup 
+                                inverted
+                                content={person.text}
+                                trigger={
+                                  <Image 
+                                      key={'suggestion_person_'+person.key}
+                                      onClick={()=>{
+                                          this.props.dispatch(push(`/person/${person.key}`))
+                                          this.props.dispatch(fetchPeopleAlbums(person.key))
+                                      }}
+                                      height={50} 
+                                      width={50} 
+                                      circular 
+                                      src={serverAddress+person.face_url}/>
+                                }/>
                             )
                         })}
                         </Image.Group>
@@ -230,11 +343,19 @@ export class TopMenu extends Component {
 
                 </Segment>
               )}
-              <Segment attached='bottom' raised>
-                    <Header as={Link} to='/favorites'>
-                    <Icon name='favorite' size='big' color='yellow'/> Favorites
-                    </Header>
-              </Segment>
+
+
+
+                <Header as='h4' attached>
+                    <Header.Content as={Link} to='/favorites'>
+                        <Icon name='star' color='yellow'/> Favorites
+                    </Header.Content>
+                </Header>
+                <Header as='h4' attached='bottom'>
+                    <Header.Content as={Link} to='/hidden'>
+                        <Icon name='hide' color='red'/> Hidden
+                    </Header.Content>
+                </Header>
 
             </div>
           }
@@ -293,172 +414,140 @@ export class SideMenuNarrow extends Component {
         pointing 
         width='thin'>
 
-        <Menu.Item name='logo'>
-          <img height={40} src='/logo.png'/>
-        </Menu.Item>
+        <Divider hidden/>
+        <Divider hidden/>
+        <Divider hidden/>
+        <Divider hidden/>
+
+        { false && 
+            <Menu.Item name='logo'>
+            <img  height={40} src='/logo.png'/>
+            <p><small>Ownphotos</small></p>
+            </Menu.Item>
+        }
 
 
-        <Menu.Item 
-          onClick={this.handleItemClick}
-          active={'/'===this.props.location.pathname}
-          name='all photos'
-          as={Link}
-          to='/'>
-          <Popup 
-            inverted
-            size='mini'
-            position='right center'
-            content="All Photos"
-            trigger={
-            <Icon.Group size='big'>
-              <Icon name='camera' />
-              <Icon corner name='info circle' color='green' />
-            </Icon.Group>
-            }/>
-        </Menu.Item>
-
-
-        <Menu.Item 
-          onClick={this.handleItemClick}
-          active={this.props.location.pathname.startsWith('/notimestamp')}
-          name='no timestamp photos'
-          as={Link}
-          to='/notimestamp'>
-          <Popup 
-            inverted
-            size='mini'
-            position='right center'
-            content="Photos without timestamps"
-            trigger={
-              <Icon.Group size='big'>
-                <Icon name='camera' />
-                <Icon corner name='info circle' color='red' />
-              </Icon.Group>
-            }/>
-        </Menu.Item>
+        <Dropdown pointing='left' item icon={<Icon.Group size='big'><Icon name='image outline'/></Icon.Group>}>
+            <Dropdown.Menu>
+                <Dropdown.Header>Photos</Dropdown.Header>
+                <Dropdown.Item as={Link} to='/'>
+                    <Icon color='green' name='calendar check outline'/>
+                    {"  With Timestamp"}
+                </Dropdown.Item>
+                <Dropdown.Item as={Link} to='/notimestamp'>
+                    <Icon color='red' name='calendar times outline'/>
+                    {"  Without Timestamp"}
+                </Dropdown.Item>
+                <Dropdown.Divider/>
+                <Dropdown.Item as={Link} to='/hidden'>
+                    <Icon name='hide'/>
+                    {"  Hidden"}
+                </Dropdown.Item>
+                <Dropdown.Item as={Link} to='/favorites'>
+                    <Icon name='star' color='yellow'/>
+                    {"  Favorites"}
+                </Dropdown.Item>
+            </Dropdown.Menu>
+        </Dropdown>
+        <div style={{marginTop:-17}}>
+        <small>Photos</small>
+        </div>
 
 
         <Divider hidden/>
 
-
-        <Menu.Item
-          onClick={this.handleItemClick}
-          active={this.props.location.pathname.startsWith('/people') || this.props.location.pathname.startsWith('/person')}
-          name='people'
-          as={Link}
-          to='/people'>
-          <Popup 
-            inverted
-            size='mini'
-            position='right center'
-            content="People"
-            trigger={
-            <Icon name='users' />}/>
-        </Menu.Item>
-
-        <Menu.Item
-          onClick={this.handleItemClick}
-          active={this.props.location.pathname.startsWith('/thing') }
-          name='things'
-          as={Link}
-          to='/things'>
-          <Popup 
-            inverted
-            size='mini'
-            position='right center'
-            content="Things"
-            trigger={
-              <Icon name='tags' />}/>
-        </Menu.Item>
-
-
-        <Menu.Item
-          onClick={this.handleItemClick}
-          active={this.props.location.pathname.startsWith('/place')}
-          name='places'
-          as={Link}
-          to='/places'>
-          <Popup 
-            inverted
-            size='mini'
-            position='right center'
-            content="Places"
-            trigger={
-            <Icon name='map outline' />}/>
-        </Menu.Item>
-
-
-
-
-        <Menu.Item
-          onClick={this.handleItemClick}
-          active={this.props.location.pathname.startsWith('/event')}
-          name='auto albums'
-          as={Link}
-          to='/events'>
-          <Popup 
-            inverted
-            size='mini'
-            position='right center'
-            content="Events"
-            trigger={
-              <Icon name='wizard' />}/>
-        </Menu.Item>
-
-
+        <Dropdown pointing='left' item icon={<Icon.Group size='big'><Icon name='images outline'/><Icon name='bookmark' corner/></Icon.Group>} >
+            <Dropdown.Menu>
+                <Dropdown.Header>Albums</Dropdown.Header>
+                <Dropdown.Item as={Link} to='/people'>
+                    <Icon name='users'/>
+                    {"  People"}
+                </Dropdown.Item>
+                <Dropdown.Item as={Link} to='/places'>
+                    <Icon name='map'/>
+                    {"  Places"}
+                </Dropdown.Item>
+                <Dropdown.Item as={Link} to='/things'>
+                    <Icon name='tags'/>
+                    {"  Things"}
+                </Dropdown.Item>
+                <Dropdown.Divider/>
+                <Dropdown.Item as={Link} to='/useralbums'>
+                    <Icon name='bookmark'/>
+                    {"  My Albums"}
+                </Dropdown.Item>
+                <Dropdown.Item as={Link} to='/events'>
+                    <Icon name='wizard'/>
+                    {"  Auto Created Albums"}
+                </Dropdown.Item>
+            </Dropdown.Menu>
+        </Dropdown>
+        <div style={{marginTop:-17}}>
+        <small>Albums</small>
+        </div>
 
 
         <Divider hidden/>
+        <Dropdown pointing='left' item icon={<Icon.Group size='big'><Icon name='bar chart'/></Icon.Group>} >
+            <Dropdown.Menu>
+                <Dropdown.Header>Data Visualization</Dropdown.Header>
 
-        <Menu.Item
-          onClick={this.handleItemClick}
-          active={this.props.location.pathname.startsWith('/statistics')}
-          name='statistics'
-          as={Link}
-          to='/statistics'>
-          <Popup 
-            inverted
-            size='mini'
-            position='right center'
-            content="Cool Graphs"
-            trigger={
-            <Icon name='bar chart' />}/>
-        </Menu.Item>
+                <Dropdown.Item as={Link} to='/map'>
+                    <Icon name='map outline'/>
+                    {"  Map"}
+                </Dropdown.Item>
 
-        <Menu.Item
-          onClick={this.handleItemClick}
-          active={this.props.location.pathname.startsWith('/faces')}
-          name='faces'
-          as={Link}
-          to='/faces'>
-          <Popup 
-            inverted
-            size='mini'
-            position='right center'
-            content="Face Dashboard"
-            trigger={
-            <Icon name='user circle outline' />}/>
-        </Menu.Item>
+                <Dropdown.Item as={Link} to='/placetree'>
+                    <Icon name='sitemap'/>
+                    {"  Place Tree"}
+                </Dropdown.Item>
 
+                <Dropdown.Item as={Link} to='/wordclouds'>
+                    <Icon name='cloud'/>
+                    {"  Word Clouds"}
+                </Dropdown.Item>
 
-        <Menu.Item
-          onClick={this.handleItemClick}
-          active={this.props.location.pathname.startsWith('/setting')}
-          name='settings'
-          as={Link}
-          to='/settings'>
-          <Popup 
-            inverted
-            size='mini'
-            position='right center'
-            content="Settings"
-            trigger={
-            <Icon name='options' />}/>
-        </Menu.Item>
+                <Dropdown.Item as={Link} to='/timeline'>
+                    <Icon name='bar chart'/>
+                    {"  Timeline"}
+                </Dropdown.Item>
+
+                <Dropdown.Item as={Link} to='/socialgraph'>
+                    <Icon name='share alternate'/>
+                    {"  Social Graph"}
+                </Dropdown.Item>
+
+                <Dropdown.Item as={Link} to='/facescatter'>
+                    <Icon name='users circle'/>
+                    {"  Face Clusters"}
+                </Dropdown.Item>
+
+            </Dropdown.Menu>
+        </Dropdown>
+        <div style={{marginTop:-17}}>
+        <small>Data Viz</small>
+        </div>
+
 
         <Divider hidden/>
+        <Dropdown pointing='left' item icon={<Icon.Group size='big'><Icon name='dashboard'/></Icon.Group>} >
+            <Dropdown.Menu>
+                <Dropdown.Header>Dashboards</Dropdown.Header>
+                <Dropdown.Item as={Link} to='/faces'>
+                    <Icon name='user circle outline'/>
+                    {"  Face Recognition"}
+                </Dropdown.Item>
+                <Dropdown.Item as={Link} to='/settings'>
+                    <Icon name='database'/>
+                    {"  Library"}
+                </Dropdown.Item>
+            </Dropdown.Menu>
+        </Dropdown>
+        <div style={{marginTop:-17}}>
+        <small>Dashboards</small>
+        </div>
 
-        {authMenu}
+
 
       </Menu>
     )
@@ -622,15 +711,31 @@ SideMenu = connect((store)=>{
 
 TopMenu = connect((store)=>{
   return {
+      showSidebar: store.ui.showSidebar,
+
     auth: store.auth,
     jwtToken: store.auth.jwtToken,
     exampleSearchTerms: store.util.exampleSearchTerms,
+    fetchingExampleSearchTerms: store.util.fetchingExampleSearchTerms,
+    fetchedExampleSearchTerms: store.util.fetchedExampleSearchTerms,
     searchError: store.search.error,
     searchingPhotos: store.search.searchingPhotos,
     searchedPhotos: store.search.searchedPhotos,
     people: store.people.people,
     fetchingPeople: store.people.fetchingPeople,
-    fetchedPeople: store.people.fetchedPeople
+    fetchedPeople: store.people.fetchedPeople,
+
+    albumsThingList: store.albums.albumsThingList,
+    fetchingAlbumsThingList: store.albums.fetchingAlbumsThingList,
+    fetchedAlbumsThingList: store.albums.fetchedAlbumsThingList,
+
+    albumsUserList: store.albums.albumsUserList,
+    fetchingAlbumsUserList: store.albums.fetchingAlbumsUserList,
+    fetchedAlbumsUserList: store.albums.fetchedAlbumsUserList,
+
+    albumsPlaceList: store.albums.albumsPlaceList,
+    fetchingAlbumsPlaceList: store.albums.fetchingAlbumsPlaceList,
+    fetchedAlbumsPlaceList: store.albums.fetchedAlbumsPlaceList,
   }
 })(TopMenu)
 

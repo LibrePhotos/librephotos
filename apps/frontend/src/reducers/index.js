@@ -1,5 +1,6 @@
 import { combineReducers } from "redux"
 import { routerReducer } from 'react-router-redux'
+import {reducer as notificationsReducer} from 'reapop'
 
 import people from "./peopleReducer"
 import faces from "./facesReducer"
@@ -9,6 +10,7 @@ import photos from './photosReducer'
 //import auth from './authReducer'
 import auth, * as fromAuth from './authReducer'
 import search from './searchReducer'
+import ui from './uiReducer'
 
 
 const appReducer = combineReducers({
@@ -20,6 +22,9 @@ const appReducer = combineReducers({
   auth,
   search,
   routerReducer,
+  ui,
+  notifications: notificationsReducer()
+  
 })
 
 export default (state,action) => {

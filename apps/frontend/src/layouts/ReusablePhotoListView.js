@@ -18,6 +18,7 @@ import {
     setPhotosHidden} from '../actions/photosActions'
 
 import { 
+    Checkbox,
     Card, 
     Image, 
     Header, 
@@ -42,6 +43,7 @@ import {
 
 import {Server, serverAddress} from '../api_client/apiClient'
 import {LightBox} from '../components/lightBox'
+import {LightBoxV2} from '../components/LightBoxV2'
 import LazyLoad from 'react-lazyload';
 // import Lightbox from 'react-image-lightbox';
 import {LocationMap} from '../components/maps'
@@ -69,13 +71,22 @@ if (window.innerWidth < 600) {
     var LIGHTBOX_SIDEBAR_WIDTH = 360
 }
 
+function fuzzy_match(str,pattern){
+    if (pattern.split("").length > 0) {
+        pattern = pattern.split("").reduce(function(a,b){ return a+".*"+b; });
+        return (new RegExp(pattern)).test(str);
+    } else {
+        return false
+    }
+};
+
 const customStyles = {
     content : {
         top:150,
-        left:'30%',
-        right:'30%',
+        left:40,
+        right:40,
         height:window.innerHeight-300,
-        width:'40%',
+        
         overflow:'hidden',
         // paddingRight:0,
         // paddingBottomt:0,
@@ -83,6 +94,17 @@ const customStyles = {
         // paddingTop:10,
         padding:0,
         backgroundColor:'white'
+    },
+    overlay: {
+        top:0,
+        left:0,
+        right:0,
+        bottom:0,
+        position:'fixed',
+        borderRadius:0,
+        border:0,
+        zIndex:102,
+        backgroundColor:'rgba(200,200,200,0.8)'
     }
 };
 
@@ -162,7 +184,12 @@ export class PhotoListView extends Component {
   }
 
     handleResize() {
-        var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10
+        if (this.props.showSidebar) {
+            var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10
+        } else {
+            var columnWidth = window.innerWidth - 5 - 5 - 10
+        }
+
         const {entrySquareSize,numEntrySquaresPerRow} = calculateGridCellSize(columnWidth)
         var {cellContents,hash2row} = calculateGridCells(this.props.photosGroupedByDate,numEntrySquaresPerRow)
 
@@ -336,7 +363,7 @@ export class PhotoListView extends Component {
                                 width:style.width-2,
                                 height:style.height-2}}>
                                 
-                                { (this.props.photoDetails[cell.image_hash] ? this.props.photoDetails[cell.image_hash].hidden : cell.hidden) ? 
+                                { (this.props.photoDetails[cell.image_hash] ? this.props.photoDetails[cell.image_hash].hidden : cell.hidden) && !this.props.showHidden ? 
                                     (
                                         <div style={{
                                             height:this.state.entrySquareSize-32,
@@ -379,7 +406,7 @@ export class PhotoListView extends Component {
                         return (
                             <div className="gridCell" key={key} style={style}>
 
-                               { (this.props.photoDetails[cell.image_hash] ? this.props.photoDetails[cell.image_hash].hidden : cell.hidden) ? 
+                               { (this.props.photoDetails[cell.image_hash] ? this.props.photoDetails[cell.image_hash].hidden : cell.hidden) && !this.props.showHidden ? 
                                     (
                                         <div style={{
                                             height:this.state.entrySquareSize-2,
@@ -444,24 +471,26 @@ export class PhotoListView extends Component {
         this.props.dispatch(fetchPhotoDetail(image_hash))
     }
 
+    componentDidUpdate(prevProps,prevState,snapshot){
+        console.log('component did update')
+        if (prevProps.showSidebar !== this.props.showSidebar) {
+            this.handleResize()
+        }
+    }
+
 
     static getDerivedStateFromProps(nextProps,prevState){
-        if (true) {
-            var t0 = performance.now();
-            const imagesGroupedByDate = nextProps.photosGroupedByDate
-            var t1 = performance.now();
-                    console.log("grouping photos into dates took " + (t1 - t0) + " milliseconds.")
-    
-            var idx2hash = [] 
+        var t0 = performance.now();
+        const imagesGroupedByDate = nextProps.photosGroupedByDate
+        var t1 = performance.now();
+        console.log("grouping photos into dates took " + (t1 - t0) + " milliseconds.")
 
-            const {cellContents,hash2row} = calculateGridCells(imagesGroupedByDate,prevState.numEntrySquaresPerRow)
-            const nextState = {...prevState,cellContents,hash2row,imagesGroupedByDate}
-            console.log(nextState)
-            return nextState
-        } else {
-            return prevState
-        }
-        
+        var idx2hash = [] 
+
+        const {cellContents,hash2row} = calculateGridCells(imagesGroupedByDate,prevState.numEntrySquaresPerRow)
+        const nextState = {...prevState,cellContents,hash2row,imagesGroupedByDate}
+        console.log(nextState)
+        return nextState
     }
 
 
@@ -571,6 +600,10 @@ export class PhotoListView extends Component {
                 return this.state.entrySquareSize
             }
         }).reduce((a,b)=>(a+b),0)
+
+        console.log(this.props.route)
+
+
         return (
             <div>
                 <div style={{height:60,paddingTop:10}}>
@@ -589,57 +622,69 @@ export class PhotoListView extends Component {
                 { this.state.selectMode && (
                     <div style={{marginLeft:-5,paddingLeft:5,paddingRight:5,height:40,paddingTop:4,backgroundColor:'#AED6F1'}}>
 
-                        <Button
-                            compact
-                            active={this.state.selectMode ? true : false}
-                            color={this.state.selectMode ? 'red' : 'grey'}
-                            onClick={()=>{
-                                if (this.state.selectMode) { // reset selected photos when exiting select mode
-                                    this.setState({
-                                        selectedImageHashes:[],
-                                        selectMode:!this.state.selectMode
-                                    })
-                                } else {
-                                    this.setState({selectMode:!this.state.selectMode})
-                                }
-                            }}>
-                            <Icon name='close'/> Deselect All
-                        </Button>
 
-                        <Button.Group basic compact floated='right'>
+
+                        <Checkbox 
+                            label={`${this.state.selectedImageHashes.length} selected`} 
+                            style={{padding:5}} 
+                            toggle 
+                            checked={this.state.selectMode} 
+                            onClick={()=>{
+                                this.setState({selectMode:!this.state.selectMode})
+                                if (this.state.selectMode) {
+                                    this.setState({selectedImageHashes:[]})
+                                }
+                            }}/>
+
+
+
+
+
+                        <Button.Group  compact floated='right'>
                         <Popup inverted trigger={
-                            <Button onClick={()=>{
+                            <Button color='green' icon onClick={()=>{
                                 if (this.state.selectedImageHashes.length > 0) {
                                     this.setState({modalAddToAlbumOpen:true})
                                 }
-                            }} icon='plus'/>}
+                            }}><Icon name='plus'/></Button>}
                             content="Add to an existing album or create a new album"/>        
                         <Popup inverted trigger={
-                            <Button onClick={()=>{
+                            <Button color='blue' icon onClick={()=>{
                                 this.props.dispatch(setPhotosFavorite(this.state.selectedImageHashes,true))
-                            }}><Icon.Group><Icon name='star'/><Icon corner color='green' name='plus'/></Icon.Group></Button>}
+                            }}><Icon name='star' color='yellow'/></Button>}
                             content="Mark as favorite"/>        
                         <Popup inverted trigger={
-                            <Button onClick={()=>{
+                            <Button color='blue' icon onClick={()=>{
                                 this.props.dispatch(setPhotosFavorite(this.state.selectedImageHashes,false))
-                            }}><Icon.Group><Icon name='star'/><Icon corner color='red' name='minus'/></Icon.Group></Button>}
+                            }}><Icon name='star outline' color='yellow'/></Button>}
                             content="Remove from favorites"/>        
                         <Popup inverted trigger={
-                            <Button icon='hide' onClick={()=>{
+                            <Button color='grey' icon onClick={()=>{
                                 this.props.dispatch(setPhotosHidden(this.state.selectedImageHashes,true))
-                            }}/>}
+                            }}><Icon name='hide' color='black'/></Button>}
                             content="Hide"/>        
                         <Popup inverted trigger={
-                            <Button icon='unhide' onClick={()=>{
+                            <Button color='grey' icon onClick={()=>{
                                 this.props.dispatch(setPhotosHidden(this.state.selectedImageHashes,false))
-                            }}/>}
+                            }}><Icon name='unhide' color='black'/></Button>}
                             content="Unhide"/>  
+
+                        { this.props.route.location.pathname.startsWith('/useralbum/') && false &&
+    
+                            <Popup inverted trigger={
+                                <Button onClick={()=>{
+                                    console.log('remove photos from useralbum: ',this.state.selectedImageHashes)
+                                }}>
+                                <Icon.Group><Icon name='bookmark outline'/><Icon corner color='red' name='minus'/></Icon.Group>
+                                </Button>
+                                }
+                                content="Remove from the album"/>
+                        
+                        }
 
                         </Button.Group>
 
-                        <Label basic>
-                        {this.state.selectedImageHashes.length} selected
-                        </Label>
+
                     </div>
                 )}
 
@@ -648,8 +693,9 @@ export class PhotoListView extends Component {
                     <Grid
                       ref={this.listRef}
                       onSectionRendered={({rowStartIndex})=>{
-                        var date = this.state.cellContents[rowStartIndex][0].date
-                        if (date) {
+                        const cell = this.state.cellContents[rowStartIndex][0]
+                        if (cell.date) {
+                            var date = cell.date
                             if (date=='No Timestamp') {
                                 this.setState({
                                     date:date,
@@ -711,11 +757,23 @@ export class PhotoListView extends Component {
                     top:TOP_MENU_HEIGHT,
                     height:this.state.height-TOP_MENU_HEIGHT,
                     width:TIMELINE_SCROLL_WIDTH}}>
-                        
                 </div>
+
+                { this.state.lightboxShow && false &&
+                    <LightBoxV2
+                       isOpen={this.state.lightboxShow}
+                       onCloseRequest={()=>{this.setState({lightboxShow:false})}}
+                       idx2hash={this.props.idx2hash}
+                       lightboxImageIndex={this.state.lightboxImageIndex}
+                       onImageLoad={()=>{
+                        this.getPhotoDetails(this.props.idx2hash[this.state.lightboxImageIndex])
+                       }}
+                    />
+                }
 
                 { this.state.lightboxShow &&
                     <LightBox
+                        showHidden={this.props.showHidden}
                         idx2hash={this.props.idx2hash}
                         lightboxImageIndex={this.state.lightboxImageIndex}
                         onCloseRequest={() => this.setState({ lightboxShow: false })}
@@ -758,6 +816,11 @@ export class PhotoListView extends Component {
 class ModalAlbumEdit extends Component {
     state = {newAlbumTitle:''}
     render() {
+        if (this.state.newAlbumTitle.length > 0) {
+            var filteredUserAlbumList = this.props.albumsUserList.filter((el)=>fuzzy_match(el.title.toLowerCase(),this.state.newAlbumTitle.toLowerCase()))
+        } else {
+            var filteredUserAlbumList = this.props.albumsUserList
+        }
         return (
             <Modal
                 ariaHideApp={false}
@@ -773,19 +836,29 @@ class ModalAlbumEdit extends Component {
                 <Header>
                     Add to Album
                     <Header.Subheader>
-                        Add selected {this.props.selectedImageHashes.length} item(s) to...
+                        Add selected {this.props.selectedImageHashes.length} photo(s) to...
                     </Header.Subheader>
                 </Header>
                 </div>
                 <Divider fitted/>
-                <div style={{paddingLeft:10,paddingTop:10,overflowY:'scroll',height:window.innerHeight-300-50,width:'100%'}}>
-                    <Item.Group verticalAlign='middle'>
-                        <Item>
-                            <Item.Content style={{paddingRight:10}}>
-                                <Item.Header as='h4'>
+                <div style={{height:100,padding:5,height:50,overflowY:'hidden'}}>
+                <Image.Group>
+                    {this.props.selectedImageHashes.map(image_hash=>
+                        <Image 
+                            height={40}
+                            width={40}
+                            src={serverAddress+'/media/square_thumbnails/'+image_hash+'.jpg'}/>
+                    )}
+                </Image.Group>
+                </div>
+                <Divider fitted/>
+                <div style={{paddingLeft:10,paddingTop:10,overflowY:'scroll',height:window.innerHeight-300-100,width:'100%'}}>
+
+                        <div style={{paddingRight:5}}>
+                            
+                                <Header as='h4'>
                                     New album
-                                </Item.Header>
-                                <Item.Description>
+                                </Header>
                                     <Popup 
                                         inverted
                                         content={'Album "'+this.state.newAlbumTitle.trim()+'" already exists.'}
@@ -803,6 +876,7 @@ class ModalAlbumEdit extends Component {
                                                 placeholder='Album title' action>
                                                 <input/>
                                                 <Button 
+                                                    positive
                                                     onClick={()=>{
                                                         this.props.dispatch(createNewUserAlbum(this.state.newAlbumTitle,this.props.selectedImageHashes))
                                                         this.props.onRequestClose()
@@ -814,21 +888,16 @@ class ModalAlbumEdit extends Component {
                                                 </Button>
                                             </Input>
                                         }/>
-                                </Item.Description>
-                            </Item.Content>
-                        </Item>
+                                
+                            
+                        </div>
                         <Divider />
-                        {
-                            this.props.albumsUserList.map((item)=>{
+                        { filteredUserAlbumList.length > 0 &&
+                            filteredUserAlbumList.map((item)=>{
                                 return (
-                                    <Item>
-                                        <Item.Image size='tiny' src={
-                                            item.photos[0] ? 
-                                            (serverAddress+'/media/square_thumbnails_small/'+item.photos[0].image_hash+'.jpg') :
-                                            ('/thumbnail_placeholder.png')
-                                        }/>
-                                        <Item.Content>
-                                            <Item.Header 
+                                    <div key={`useralbum_${item.id}`} style={{height:70,justifyContent:'center',alignItems:'center'}}>
+                                        
+                                            <Header as='h4'
                                                 onClick={()=>{
                                                     this.props.dispatch(editUserAlbum(item.id,item.title,this.props.selectedImageHashes))
                                                     this.props.onRequestClose()
@@ -836,18 +905,24 @@ class ModalAlbumEdit extends Component {
                                                     // console.log('to user album id: ',item.id)
                                                 }}
                                                 as='a'>
-                                                {item.title}
-                                            </Item.Header>
-                                            <Item.Meta>{item.photos.length} Item(s) </Item.Meta>
-                                            <Item.Description>
-                                                {"Updated " + moment(item.created_on).fromNow()}
-                                            </Item.Description>
-                                        </Item.Content>
-                                    </Item>
+                                                <Image height={50} width={50} src={
+                                                    item.cover_photos[0] ? 
+                                                    (serverAddress+'/media/square_thumbnails_small/'+item.cover_photos[0].image_hash+'.jpg') :
+                                                    ('/thumbnail_placeholder.png')
+                                                }/>
+                                                <Header.Content>
+                                                    {item.title}
+                                                    <Header.Subheader>
+                                                        {item.photo_count} Item(s) <br/>
+                                                        {"Updated " + moment(item.created_on).fromNow()}
+                                                    </Header.Subheader>
+                                                </Header.Content>
+                                            </Header>
+                                    </div>
                                 )
                             })
                         }
-                    </Item.Group>
+
                 </div>
             </Modal>
         )
@@ -866,6 +941,8 @@ ModalAlbumEdit = connect((store)=>{
 
 PhotoListView = connect((store)=>{
   return {
+    showSidebar: store.ui.showSidebar,
+
     photos: store.photos.photos,
     fetchingPhotos: store.photos.fetchingPhotos,
     fetchedPhotos: store.photos.fetchedPhotos,
@@ -873,6 +950,8 @@ PhotoListView = connect((store)=>{
     photoDetails: store.photos.photoDetails,
     fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
     fetchedPhotoDetail: store.photos.fetchedPhotoDetail,  
+
+    route: store.routerReducer
   }
 })(PhotoListView)
 //photosGroupedByDate
@@ -880,3 +959,4 @@ PhotoListView = connect((store)=>{
 //title
 //subtitle
 //titleIconName
+//titleIconColor

@@ -19,7 +19,7 @@ export class LocationLink extends React.Component {
   state = {
     layout: 'cartesian',
     orientation: 'horizontal',
-    linkType: 'step',
+    linkType: 'diagonal',
     stepPercent: 0.5
   };
 
@@ -76,7 +76,7 @@ export class LocationLink extends React.Component {
     return (
       <div>
         <div>
-         <Form widths='equal'>
+         <Form unstackable widths='equal'>
           <Form.Group>
             <Form.Dropdown 
                 label="Layout"

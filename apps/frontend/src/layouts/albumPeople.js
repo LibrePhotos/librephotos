@@ -89,25 +89,29 @@ export class AlbumPeople extends Component {
                 }
                 // this.props.dispatch(push(`/person/${this.props.people[albumPersonIndex].key}`))
               }}
-              style={{paddingLeft:10,paddingBottom:10}}>
+              style={{padding:5}}>
 
               { this.props.people[albumPersonIndex].face_count > 0 ? 
                   (
                     <Image 
-                        style={{padding:5}}
+                        height={this.state.entrySquareSize-10} 
+                        width={this.state.entrySquareSize-10} 
                         as={Link} to={`/person/${this.props.people[albumPersonIndex].key}`}
                         src={serverAddress+this.props.people[albumPersonIndex].face_photo_url}/>
                   ) :
                   (
-                    <Image style={{padding:5}}
+                    <Image 
+                        height={this.state.entrySquareSize-10} 
+                        width={this.state.entrySquareSize-10} 
                         src={'/unknown_user.jpg'}/>
                   )
               }
 
 
             </div>
-            <div className="personCardName" style={{paddingLeft:15,paddingRight:10}}>
-            <b>{this.props.people[albumPersonIndex].text}</b> {this.props.people[albumPersonIndex].face_count}
+            <div className="personCardName" style={{paddingLeft:15,paddingRight:15, height:50}}>
+            <Icon name='user circle'/><b>{this.props.people[albumPersonIndex].text}</b> <br/>
+            {this.props.people[albumPersonIndex].face_count} Photos
 
             { this.props.people[albumPersonIndex].text.toLowerCase() != 'unknown' &&
                 (
@@ -182,7 +186,7 @@ export class AlbumPeople extends Component {
               columnWidth={this.state.entrySquareSize}
               columnCount={this.state.numEntrySquaresPerRow}
               height={this.state.height- topMenuHeight -60}
-              rowHeight={this.state.entrySquareSize+30}
+              rowHeight={this.state.entrySquareSize+60}
               rowCount={Math.ceil(this.props.people.length/this.state.numEntrySquaresPerRow.toFixed(1))}
               width={width}
             />

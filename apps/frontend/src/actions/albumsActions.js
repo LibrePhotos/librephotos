@@ -1,6 +1,7 @@
 import axios from "axios";
 import {Server} from '../api_client/apiClient'
 import _ from 'lodash'
+import {notify} from 'reapop'
 
 
 export function fetchThingAlbumsList() {
@@ -67,9 +68,38 @@ export function createNewUserAlbum(title,image_hashes) {
       .then((response) => {
         dispatch({type:"CREATE_USER_ALBUMS_LIST_FULFILLED", payload: response.data})
         dispatch(fetchUserAlbumsList())
+        dispatch(notify({
+            message:`${image_hashes.length} photo(s) were successfully added to new album "${title}"`,
+            title:'Create album',
+            status:'success',
+            dismissible: true,
+            dismissAfter:3000,
+            position:'br'}))
+
       })
       .catch((err) => {
         dispatch({type:"CREATE_USER_ALBUMS_LIST_REJECTED", payload: err})        
+      })
+  }
+}
+
+export function deleteUserAlbum(albumID,albumTitle) {
+  return function(dispatch) {
+    dispatch({type:"DELTE_USER_ALBUM"})
+    Server.delete(`/albums/user/${albumID}`)
+      .then((response)=>{
+        dispatch({type:"DELETE_USER_ALBUM_FULFILLED", payload:albumID})
+        dispatch(fetchUserAlbumsList())
+        dispatch(notify({
+          message:`${albumTitle} was successfully deleted.`,
+          title:'Delete album',
+          status:'success',
+          dismissible: true,
+          dismissAfter:3000,
+          position:'br'}))
+      })
+      .catch((err) => {
+        dispatch({type:"DELETE_USER_ALBUM_REJECTED", payload: err})        
       })
   }
 }
@@ -82,6 +112,13 @@ export function editUserAlbum(album_id,title,image_hashes) {
     Server.patch(`albums/user/edit/${album_id}/`,{title:title,photos:image_hashes})
       .then((response) => {
         dispatch({type:"EDIT_USER_ALBUMS_LIST_FULFILLED", payload: response.data})
+        dispatch(notify({
+            message:`${image_hashes.length} photo(s) were successfully added to existing album "${title}"`,
+            title:'Add to album',
+            status:'success',
+            dismissible: true,
+            dismissAfter:3000,
+            position:'br'}))
         dispatch(fetchUserAlbumsList())
       })
       .catch((err) => {
@@ -157,7 +194,6 @@ export function generateAutoAlbums() {
       })
 	}
 }
-
 
 export function fetchAutoAlbums() {
   return function(dispatch) {

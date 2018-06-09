@@ -1,5 +1,5 @@
 import React, {Component} from 'react'
-import { Segment, Grid, Image, Icon, Header, Container, Divider, Button, Loader, Menu} from 'semantic-ui-react'
+import { Popup, Segment, Grid, Image, Icon, Header, Container, Divider, Button, Loader, Menu} from 'semantic-ui-react'
 import { connect } from "react-redux";
 
 import {fetchCountStats,fetchPhotoScanStatus,fetchWordCloud,
@@ -55,19 +55,72 @@ export class Statistics extends Component {
 
     return (
       <div style={{padding:10}}>
-        <Divider hidden/>
+
         <CountStats/>
 
-        <Divider hidden/>
         <div>
 
-        <Menu stackable pointing secondary widths={6}>
-          <Menu.Item name='map' active={activeItem==='map'} onClick={this.handleItemClick}/>
-          <Menu.Item name='location tree' active={activeItem==='location tree'} onClick={this.handleItemClick}/>
-          <Menu.Item name='wordcloud' active={activeItem==='wordcloud'} onClick={this.handleItemClick}/>
-          <Menu.Item name='timeline' active={activeItem==='timeline'} onClick={this.handleItemClick}/>
-          <Menu.Item name='social graph' active={activeItem==='social graph'} onClick={this.handleItemClick}/>
-          <Menu.Item name='face clusters' active={activeItem==='face clusters'} onClick={this.handleItemClick}/>
+        <Menu stackable={false} pointing secondary widths={6}>
+          <Popup 
+            inverted 
+            position='bottom center' 
+            content="Map" 
+            trigger={
+                <Menu.Item 
+                    icon='map' 
+                    active={activeItem==='map'} 
+                    onClick={()=>{this.setState({activeItem:'map'})}}/>
+            }/>
+          <Popup 
+            inverted 
+            position='bottom center' 
+            content="Location tree"
+            trigger={
+                <Menu.Item 
+                    icon='sitemap' 
+                    active={activeItem==='location tree'} 
+                    onClick={()=>{this.setState({activeItem:'location tree'})}}/>
+            }/>
+          <Popup 
+            inverted 
+            position='bottom center' 
+            content="Wordclouds" 
+            trigger={
+                <Menu.Item 
+                    icon='cloud' 
+                    active={activeItem==='wordcloud'} 
+                    onClick={()=>{this.setState({activeItem:'wordcloud'})}}/>
+            }/>
+          <Popup 
+            inverted 
+            position='bottom center' 
+            content="Timeline" 
+            trigger={
+                <Menu.Item 
+                    icon='area chart' 
+                    active={activeItem==='timeline'} 
+                    onClick={()=>{this.setState({activeItem:'timeline'})}}/>
+            }/>
+          <Popup 
+            inverted 
+            position='bottom center' 
+            content="Social graph"
+            trigger={
+                <Menu.Item 
+                    icon='share alternate' 
+                    active={activeItem==='social graph'} 
+                    onClick={()=>{this.setState({activeItem:'social graph'})}}/>
+            }/>
+          <Popup 
+            inverted 
+            position='bottom center' 
+            content="Face clusters"
+            trigger={
+                <Menu.Item 
+                    icon='user circle outline' 
+                    active={activeItem==='face clusters'} 
+                    onClick={()=>{this.setState({activeItem:'face clusters'})}}/>
+            }/>
         </Menu>
 
         </div>

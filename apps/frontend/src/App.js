@@ -22,6 +22,7 @@ import {Statistics} from './layouts/statistics'
 
 import {FacesDashboard} from './layouts/facesDashboard'
 import {FacesDashboardV2} from './layouts/facesDashboardV2'
+import {FaceDashboard} from './layouts/FaceDashboardV3'
 
 import {PeopleDashboard} from './layouts/peopleDashboard'
 
@@ -39,6 +40,9 @@ import {AlbumAutoMonths} from './layouts/albumAutoMonths'
 import {AlbumDateMonths} from './layouts/albumDateMonths'
 
 import {AlbumThing} from './layouts/albumThing'
+
+import {AlbumUser} from './layouts/albumUser'
+import {AlbumUserGallery} from './layouts/albumUserGallery'
 
 import {AlbumPlace} from './layouts/albumPlace'
 import {AlbumPlaceGallery} from './layouts/albumPlaceGallery'
@@ -74,6 +78,7 @@ import {CountryPiChart} from './components/charts/countryPiChart'
 import {SearchViewRV, SearchView} from './layouts/searchRV'
 import {SearchMultipleCategories} from './layouts/searchMultipleResultsCategories'
 import {FavoritePhotos} from './layouts/FavoritePhotos'
+import {HiddenPhotos} from './layouts/HiddenPhotos'
 
 import {ImageInfoTable} from './components/imageInfoTable'
 import history from './history'
@@ -83,6 +88,21 @@ import { connect } from "react-redux";
 import * as reducers from './reducers'
 
 import PrivateRoute from './layouts/privateRoute'
+
+import NotificationSystem from 'reapop'
+import theme from 'reapop-theme-wybo';
+
+import {AllPhotosMap, EventMap, LocationClusterMap} from './components/maps'
+
+
+import {
+  PhotoMap,
+  LocationTree,
+  WordClouds,
+  Timeline,
+  Graph,
+  FaceScatter} from './layouts/DataVisualization'
+
 
 /*
 store.subscribe(listener)
@@ -108,7 +128,7 @@ class Nav extends React.Component {
   render() {
     return (
       <div>
-        <SideMenuNarrow visible={true}/>
+        {this.props.showSidebar && (<SideMenuNarrow visible={true}/>)}
         <TopMenu style={{zIndex:-1}}/>
       </div>
     )
@@ -133,7 +153,8 @@ class App extends Component {
 
       <ConnectedRouter history={history}>
       <div>
-        { this.props.location && this.props.location.pathname!='/login' && <Nav/> }
+        <NotificationSystem theme={theme}/>
+        { this.props.location && this.props.location.pathname!='/login' && <Nav showSidebar={this.props.showSidebar}/> }
         <Switch>
 
               <PrivateRoute exact path="/" component={AllPhotosHashListViewRV}/>
@@ -144,8 +165,12 @@ class App extends Component {
               
               <PrivateRoute path="/favorites" component={FavoritePhotos}/>
 
+              <PrivateRoute path="/hidden" component={HiddenPhotos}/>
+
               <PrivateRoute path="/notimestamp" component={NoTimestampPhotosView}/>
               
+              <PrivateRoute path="/useralbums" component={AlbumUser}/>
+
               <PrivateRoute path="/places" component={AlbumPlace}/>
 
               <PrivateRoute path="/people" component={AlbumPeople}/>
@@ -156,7 +181,7 @@ class App extends Component {
 
               <PrivateRoute path="/settings" component={Settings}/>
 
-              <PrivateRoute path="/faces" component={FacesDashboardV2}/>
+              <PrivateRoute path="/faces" component={FaceDashboard}/>
 
               <PrivateRoute path="/search" component={SearchView}/>
 
@@ -165,6 +190,19 @@ class App extends Component {
               <PrivateRoute path='/place/:albumID' component={AlbumPlaceGallery}/>
 
               <PrivateRoute path='/event/:albumID' component={AlbumAutoGalleryView}/>
+
+              <PrivateRoute path='/useralbum/:albumID' component={AlbumUserGallery}/>
+
+              
+
+
+              <PrivateRoute path='/map' component={PhotoMap}/>
+              <PrivateRoute path='/placetree' component={LocationTree}/>
+              <PrivateRoute path='/wordclouds' component={WordClouds}/>
+              <PrivateRoute path='/timeline' component={Timeline}/>
+              <PrivateRoute path='/socialgraph' component={Graph}/>
+              <PrivateRoute path='/facescatter' component={FaceScatter}/>
+
 
         </Switch>
       </div>
@@ -177,6 +215,7 @@ class App extends Component {
 
 App = connect((store)=>{
   return {
+    showSidebar: store.ui.showSidebar,
     location: store.routerReducer.location,
   }
 })(App)

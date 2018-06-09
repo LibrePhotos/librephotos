@@ -1,10 +1,9 @@
-
 import React, {Component} from 'react';
 import { connect } from "react-redux";
 import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
 import {Container, Icon, Divider, Header, Image, Button, Card, Loader} from 'semantic-ui-react'
 import { fetchPeople, fetchEgoGraph } from '../actions/peopleActions';
-import { fetchFavoritePhotos, fetchPhotoDetail, fetchNoTimestampPhotoList} from '../actions/photosActions';
+import { fetchHiddenPhotos, fetchFavoritePhotos, fetchPhotoDetail, fetchNoTimestampPhotoList} from '../actions/photosActions';
 
 import {Server, serverAddress} from '../api_client/apiClient'
 import { Grid, List, WindowScroller,AutoSizer } from 'react-virtualized';
@@ -34,20 +33,20 @@ var leftMenuWidth = 85 // don't change this
 
 var SIDEBAR_WIDTH = 85;
 
-export class FavoritePhotos extends Component {
+export class HiddenPhotos extends Component {
   state = {
     photosGroupedByDate: [],
     idx2hash: [],
   }
 
   componentDidMount() {
-    this.props.dispatch(fetchFavoritePhotos())
+    this.props.dispatch(fetchHiddenPhotos())
   }
 
 
 
   static getDerivedStateFromProps(nextProps,prevState){
-      const photos = nextProps.favoritePhotos
+      const photos = nextProps.hiddenPhotos
       if (prevState.idx2hash.length != photos.length) {
 
           var t0 = performance.now();
@@ -85,13 +84,13 @@ export class FavoritePhotos extends Component {
 
 
   render() {
-    const {favoritePhotos,fetchingFavoritePhotos,fetchedFavoritePhotos} = this.props
+    const {hiddenPhotos,fetchingHiddenPhotos,fetchedHiddenPhotos} = this.props
     return (
       <PhotoListView 
-        showHidden={false}
-        title={"Favorite Photos"}
-        loading={fetchingFavoritePhotos}
-        titleIconName={'star'}
+        showHidden={true}
+        title={"Hidden Photos"}
+        loading={fetchingHiddenPhotos}
+        titleIconName={'hide'}
         photosGroupedByDate={this.state.photosGroupedByDate}
         idx2hash={this.state.idx2hash}
       />
@@ -476,11 +475,15 @@ export class AlbumPersonGallery extends Component {
 }
 */
 
-FavoritePhotos = connect((store)=>{
+HiddenPhotos = connect((store)=>{
   return {
     favoritePhotos: store.photos.favoritePhotos,
     fetchingFavoritePhotos: store.photos.fetchingFavoritePhotos,
     fetchedFavoritePhotos: store.photos.fetchedFavoritePhotos,
+
+    hiddenPhotos: store.photos.hiddenPhotos,
+    fetchingHiddenPhotos: store.photos.fetchingHiddenPhotos,
+    fetchedHiddenPhotos: store.photos.fetchedHiddenPhotos,
 
     albumsPeople: store.albums.albumsPeople,
     fetchingAlbumsPeople: store.albums.fetchingAlbumsPeople,
@@ -492,4 +495,4 @@ FavoritePhotos = connect((store)=>{
     fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
     fetchedPhotoDetail: store.photos.fetchedPhotoDetail,
   }
-})(FavoritePhotos)
+})(HiddenPhotos)

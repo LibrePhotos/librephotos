@@ -4,7 +4,7 @@ import { Step, Progress, List, Grid, Image, Icon, Item, Header, Segment, Accordi
 import { connect } from "react-redux";
 
 import {fetchCountStats,fetchPhotoScanStatus,fetchWordCloud,generateEventAlbums,
-        fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
+        fetchAutoAlbumProcessingStatus, generateEventAlbumTitles} from '../actions/utilActions'
 import {scanPhotos,fetchPhotos} from '../actions/photosActions'
 
 import CountryPiChart from '../components/charts/countryPiChart'
@@ -187,6 +187,7 @@ export class Settings extends Component {
                 <Button
                   fluid size='tiny'
                   attached={this.state.accordionThreeActive ? 'bottom' : false}
+                  onClick={()=>{this.props.dispatch(generateEventAlbumTitles())}}
                   indicating
                   disabled={buttonsDisabled} 
                   color='brown'><Icon name='wizard'/>Regenerate Event Titles</Button>

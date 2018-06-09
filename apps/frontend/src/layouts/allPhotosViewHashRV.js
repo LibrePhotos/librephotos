@@ -56,6 +56,8 @@ import Modal from 'react-modal';
 
 import {calculateGridCells, calculateGridCellSize} from '../util/gridUtils'
 import {ScrollSpeed, SPEED_THRESHOLD, SCROLL_DEBOUNCE_DURATION} from '../util/scrollUtils'
+import {fuzzy_match} from '../util/fuzzyMatch'
+import {PhotoListView} from './ReusablePhotoListView'
 
 var TOP_MENU_HEIGHT = 55 // don't change this
 var LEFT_MENU_WIDTH = 85 // don't change this
@@ -72,10 +74,10 @@ if (window.innerWidth < 600) {
 const customStyles = {
     content : {
         top:150,
-        left:'30%',
-        right:'30%',
+        left:window.innerWidth < 600 ? 15+SIDEBAR_WIDTH : '20%',
+        right:window.innerWidth < 600 ? 15 : '20%',
         height:window.innerHeight-300,
-        width:'40%',
+        width:window.innerWidth < 600 ? window.innerWidth-30-SIDEBAR_WIDTH : '60%' ,
         overflow:'hidden',
         // paddingRight:0,
         // paddingBottomt:0,
@@ -85,6 +87,39 @@ const customStyles = {
         backgroundColor:'white'
     }
 };
+
+
+
+
+
+
+
+export class AllPhotosHashListViewRV extends Component {
+    componentDidMount() {
+        // this.props.dispatch(fetchPhotos())
+        if (this.props.albumsDatePhotoHashList.length < 1) {
+            this.props.dispatch(fetchDateAlbumsPhotoHashList())
+        }
+    }
+
+    render() {
+        const {fetchingAlbumsDatePhotoHashList,fetchedAlbumsDatePhotoHashList} = this.props
+        return (
+            <PhotoListView 
+                title={"Photos"}
+                loading={fetchingAlbumsDatePhotoHashList}
+                titleIconName={'images'}
+                photosGroupedByDate={this.props.albumsDatePhotoHashList}
+                idx2hash={this.props.idx2hash}
+            />
+        )
+    }
+}
+
+
+
+
+/*
 
 
 export class AllPhotosHashListViewRV extends Component {
@@ -162,7 +197,11 @@ export class AllPhotosHashListViewRV extends Component {
   }
 
     handleResize() {
-        var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10
+        if (this.props.showSidebar) {
+            var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10
+        } else {
+            var columnWidth = window.innerWidth - 5 - 5 - 10
+        }
         const {entrySquareSize,numEntrySquaresPerRow} = calculateGridCellSize(columnWidth)
         var {cellContents,hash2row} = calculateGridCells(this.props.albumsDatePhotoHashList,numEntrySquaresPerRow)
 
@@ -348,6 +387,7 @@ export class AllPhotosHashListViewRV extends Component {
                                     ) :
                                     (
                                         <Image key={'daygroup_image_'+cell.image_hash} style={{display:'inline-block',padding:1,margin:0}}
+                                        onClick={()=>this.onPhotoSelect(cell.image_hash)}
                                         height={this.state.entrySquareSize-30} 
                                         width={this.state.entrySquareSize-30} 
                                         src={serverAddress+'/media/square_thumbnails/'+cell.image_hash+'.jpg'}/>
@@ -444,6 +484,12 @@ export class AllPhotosHashListViewRV extends Component {
         this.props.dispatch(fetchPhotoDetail(image_hash))
     }
 
+    componentDidUpdate(prevProps,prevState,snapshot){
+        console.log('component did update')
+        if (prevProps.showSidebar !== this.props.showSidebar) {
+            this.handleResize()
+        }
+    }
 
     static getDerivedStateFromProps(nextProps,prevState){
         if (true) {
@@ -729,6 +775,12 @@ export class AllPhotosHashListViewRV extends Component {
 class ModalAlbumEdit extends Component {
     state = {newAlbumTitle:''}
     render() {
+        if (this.state.newAlbumTitle.length > 0) {
+            var filteredUserAlbumList = this.props.albumsUserList.filter((el)=>fuzzy_match(el.title.toLowerCase(),this.state.newAlbumTitle.toLowerCase()))
+        } else {
+            var filteredUserAlbumList = this.props.albumsUserList
+        }
+
         return (
             <Modal
                 ariaHideApp={false}
@@ -789,13 +841,13 @@ class ModalAlbumEdit extends Component {
                             </Item.Content>
                         </Item>
                         <Divider />
-                        {
-                            this.props.albumsUserList.map((item)=>{
+                        { filteredUserAlbumList.length > 0 &&
+                            filteredUserAlbumList.map((item)=>{
                                 return (
                                     <Item>
                                         <Item.Image size='tiny' src={
-                                            item.photos[0] ? 
-                                            (serverAddress+'/media/square_thumbnails_small/'+item.photos[0].image_hash+'.jpg') :
+                                            item.cover_photos[0] ? 
+                                            (serverAddress+'/media/square_thumbnails_small/'+item.cover_photos[0].image_hash+'.jpg') :
                                             ('/thumbnail_placeholder.png')
                                         }/>
                                         <Item.Content>
@@ -809,7 +861,7 @@ class ModalAlbumEdit extends Component {
                                                 as='a'>
                                                 {item.title}
                                             </Item.Header>
-                                            <Item.Meta>{item.photos.length} Item(s) </Item.Meta>
+                                            <Item.Meta>{item.photo_count} Item(s) </Item.Meta>
                                             <Item.Description>
                                                 {"Updated " + moment(item.created_on).fromNow()}
                                             </Item.Description>
@@ -834,9 +886,12 @@ ModalAlbumEdit = connect((store)=>{
     }
   })(ModalAlbumEdit)
   
+*/
 
 AllPhotosHashListViewRV = connect((store)=>{
   return {
+    showSidebar: store.ui.showSidebar,
+
     photos: store.photos.photos,
     fetchingPhotos: store.photos.fetchingPhotos,
     fetchedPhotos: store.photos.fetchedPhotos,

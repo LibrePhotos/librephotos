@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
 import { connect } from "react-redux";
-import {fetchPlaceAlbum, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
+import {fetchUserAlbum, fetchPlaceAlbum, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
 import {Container, Icon, Divider, Header, Image, Button, Flag, Card, Loader} from 'semantic-ui-react'
 import { fetchPeople, fetchEgoGraph } from '../actions/peopleActions';
 import { fetchPhotoDetail, fetchNoTimestampPhotoList} from '../actions/photosActions';
@@ -34,7 +34,7 @@ var leftMenuWidth = 85 // don't change this
 
 
 
-export class AlbumPlaceGallery extends Component {
+export class AlbumUserGallery extends Component {
     state = {
       photosGroupedByDate: [],
       idx2hash: [],
@@ -42,7 +42,7 @@ export class AlbumPlaceGallery extends Component {
     }
   
     componentDidMount() {
-        this.props.dispatch(fetchPlaceAlbum(this.props.match.params.albumID))
+        this.props.dispatch(fetchUserAlbum(this.props.match.params.albumID))
     }
 
 
@@ -51,8 +51,8 @@ export class AlbumPlaceGallery extends Component {
   
   
     static getDerivedStateFromProps(nextProps,prevState){
-        if (nextProps.albumsPlace.hasOwnProperty(nextProps.match.params.albumID)){
-            const photos = nextProps.albumsPlace[nextProps.match.params.albumID].photos
+        if (nextProps.albumsUser.hasOwnProperty(nextProps.match.params.albumID)){
+            const photos = nextProps.albumsUser[nextProps.match.params.albumID].photos
             if (prevState.idx2hash.length != photos.length) {
 
                 var t0 = performance.now();
@@ -91,12 +91,12 @@ export class AlbumPlaceGallery extends Component {
   
   
     render() {
-      const {fetchingAlbumsPlace} = this.props
+      const {fetchingAlbumsUser} = this.props
       return (
         <PhotoListView 
-          title={this.props.albumsPlace[this.props.match.params.albumID] ? this.props.albumsPlace[this.props.match.params.albumID].title : "Loading... "}
-          loading={fetchingAlbumsPlace}
-          titleIconName={'map outline'}
+          title={this.props.albumsUser[this.props.match.params.albumID] ? this.props.albumsUser[this.props.match.params.albumID].title : "Loading... "}
+          loading={fetchingAlbumsUser}
+          titleIconName={'bookmark'}
           photosGroupedByDate={this.state.photosGroupedByDate}
           idx2hash={this.state.idx2hash}
         />
@@ -399,13 +399,13 @@ export class AlbumPlaceGallery extends Component {
 }
 */
 
-AlbumPlaceGallery = connect((store)=>{
+AlbumUserGallery = connect((store)=>{
   return {
-    albumsPlace: store.albums.albumsPlace,
-    fetchingAlbumsPlace: store.albums.fetchingAlbumsPlace,
-    fetchedAlbumsPlace: store.albums.fetchedAlbumsPlace,
+    albumsUser: store.albums.albumsUser,
+    fetchingAlbumsUser: store.albums.fetchingAlbumsUser,
+    fetchedAlbumsUser: store.albums.fetchedAlbumsUser,
     photoDetails: store.photos.photoDetails,
     fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
     fetchedPhotoDetail: store.photos.fetchedPhotoDetail,
   }
-})(AlbumPlaceGallery)
+})(AlbumUserGallery)

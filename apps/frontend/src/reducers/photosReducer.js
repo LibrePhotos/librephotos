@@ -15,6 +15,10 @@ export default function reducer(state={
   fetchingFavoritePhotos:false,
   fetchedFavoritePhotos:false,
 
+  hiddenPhotos:[],
+  fetchingHiddenPhotos:false,
+  fetchedHiddenPhotos:false,
+
   noTimestampPhotos: [],
   fetchingNoTimestampPhotos: false,
   fetchedNoTimestampPhotos: false,
@@ -70,6 +74,20 @@ export default function reducer(state={
     }
 
 
+    case "FETCH_HIDDEN_PHOTOS": {
+      return {...state, fetchingHiddenPhotos: true}
+    }
+    case "FETCH_HIDDEN_PHOTOS_REJECTED": {
+      return {...state, fetchingHiddenPhotos: false, error: action.payload}
+    }
+    case "FETCH_HIDDEN_PHOTOS_FULFILLED": {
+      return {
+        ...state,
+        fetchingHiddenPhotos: false,
+        fetchedHiddenPhotos: true,
+        hiddenPhotos: action.payload
+      }
+    }
 
 
 
@@ -115,8 +133,8 @@ export default function reducer(state={
 	case "SET_PHOTOS_FAVORITE_FULFILLED": {
 		console.log(action)
 		var valFavorite = action.payload.favorite
-    var imageHashes = action.payload.image_hashes
-    var updatedPhotos = action.payload.updatedPhotos
+        var imageHashes = action.payload.image_hashes
+        var updatedPhotos = action.payload.updatedPhotos
 		var newPhotos = {...state.photoDetails}
 
         var updatedPhotosImageHashes = updatedPhotos.map((photo)=>photo.image_hash)
@@ -143,23 +161,52 @@ export default function reducer(state={
             })
         }
 
-
 		return {...state, photoDetails:newPhotos, favoritePhotos: newFavoritePhotos}
 	}
 
+
+
+
+
+
   case "SET_PHOTOS_HIDDEN_FULFILLED": {
-    console.log(action)
-    var valHidden = action.payload.hidden
-    var imageHashes = action.payload.image_hashes
-    var updatedPhotos = action.payload.updatedPhotos
-    var newPhotos = {...state.photoDetails}
+		console.log(action)
+		var valHidden = action.payload.hidden
+        var imageHashes = action.payload.image_hashes
+        var updatedPhotos = action.payload.updatedPhotos
+		var newPhotos = {...state.photoDetails}
 
-    updatedPhotos.forEach((photo)=>{
-      newPhotos[[photo.image_hash]] = photo
-    })
+        var updatedPhotosImageHashes = updatedPhotos.map((photo)=>photo.image_hash)
 
-    return {...state, photoDetails:newPhotos}
-  }
+		updatedPhotos.forEach((photo)=>{
+			newPhotos[[photo.image_hash]] = photo
+		})
+
+
+        var newHiddenPhotos = [...state.hiddenPhotos]
+
+        if (valFavorite) {
+            updatedPhotos.forEach((photo)=>{
+                newHiddenPhotos.push(photo)
+            })
+        } else {
+            console.log(newFavoritePhotos)
+            newHiddenPhotos = newHiddenPhotos.filter((photo)=>{
+               if (updatedPhotosImageHashes.includes(photo.image_hash)){
+                   return false
+               } else {
+                   return true
+               }
+            })
+        }
+
+		return {...state, photoDetails:newPhotos, hiddenPhotos: newHiddenPhotos}
+	}
+
+
+
+
+
 
 
     default: {

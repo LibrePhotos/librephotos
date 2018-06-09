@@ -46,6 +46,12 @@ export class AlbumPlaceGallery extends Component {
     }
 
 
+    componentDidUpdate() {
+        console.log('component did update')
+        if (this.props.match.params.albumID != this.state.albumID && !this.props.fetchingAlbumsPlace) {
+            this.props.dispatch(fetchPlaceAlbum(this.props.match.params.albumID))
+        }
+    }
 
   
   

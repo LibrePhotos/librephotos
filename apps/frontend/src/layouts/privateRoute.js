@@ -21,13 +21,13 @@ var leftMenuWidth = 85 // don't change this
       // </div>
 
 
-const PrivateRoute = ({ component: Component, isAuthenticated, ...rest }) => {
+const PrivateRoute = ({ component: Component, isAuthenticated, showSidebar, ...rest }) => {
   console.log(isAuthenticated)
   return (
     <Route {...rest} render={props => (
       isAuthenticated ? (
         <div>
-          <div style={{paddingLeft:leftMenuWidth+5,paddingRight:0}}>
+          <div style={{paddingLeft:showSidebar ? leftMenuWidth+5 : 5,paddingRight:0}}>
             <div style={{paddingTop:topMenuHeight}}>
               <Component {...props}/>
             </div>
@@ -60,7 +60,8 @@ class Nav extends React.Component {
 
 
 const mapStateToProps = (state) => ({
-      isAuthenticated: !reducers.isRefreshTokenExpired(state)
+      isAuthenticated: !reducers.isRefreshTokenExpired(state),
+      showSidebar: state.ui.showSidebar
 })
 
 export default connect(mapStateToProps, null)(PrivateRoute);

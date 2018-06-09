@@ -54,7 +54,7 @@ export class LightBox extends Component {
             console.log('light box has got main photo detail')
             var mainSrc = serverAddress+'/media/photos/'+this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]+'.jpg'
             var mainSrcThumbnail = serverAddress+'/media/thumbnails/'+this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]+'.jpg'
-            if (this.props.photoDetails[this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]].hidden) {
+            if (this.props.photoDetails[this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]].hidden && !this.props.showHidden) {
                 var mainSrc = '/hidden.png'
                 var mainSrcThumbnail = '/hidden.png'
             }
@@ -65,6 +65,7 @@ export class LightBox extends Component {
         return (
             <div>
                 <Lightbox
+                    animationDisabled={true}
                     mainSrc={mainSrc}
                     nextSrc={serverAddress+'/media/photos/'+this.props.idx2hash.slice((this.props.lightboxImageIndex + 1) % this.props.idx2hash.length)[0]+'.jpg'}
                     prevSrc={serverAddress+'/media/photos/'+this.props.idx2hash.slice((this.props.lightboxImageIndex - 1) % this.props.idx2hash.length)[0]+'.jpg'}

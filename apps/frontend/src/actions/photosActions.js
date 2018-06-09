@@ -2,6 +2,7 @@ import axios from "axios";
 import {Server} from '../api_client/apiClient'
 import _ from 'lodash'
 import moment from 'moment'
+import {notify} from 'reapop'
 
 import { fetchDateAlbumsPhotoHashList } from './albumsActions'
 
@@ -11,6 +12,19 @@ export function setPhotosFavorite(image_hashes,favorite) {
     Server.post(`photosedit/favorite/`,{image_hashes:image_hashes,favorite:favorite})
       .then((response) => {
         dispatch({type: "SET_PHOTOS_FAVORITE_FULFILLED", payload: {image_hashes:image_hashes,favorite:favorite,updatedPhotos:response.data.results}})
+        if (favorite) {
+            var notificationMessage = 'were successfully added to favorites'
+        } else {
+            var notificationMessage = 'were successfully removed from favorites'
+        }
+        dispatch(notify({
+            message:`${image_hashes.length} photo(s) ` + notificationMessage,
+            title:'Favorite photos',
+            status:'success',
+            dismissible: true,
+            dismissAfter:3000,
+            position:'br'
+        }))
         if (image_hashes.length == 1) {
           dispatch(fetchPhotoDetail(image_hashes[0]))
         }
@@ -27,6 +41,19 @@ export function setPhotosHidden(image_hashes,hidden) {
     Server.post(`photosedit/hide/`,{image_hashes:image_hashes,hidden:hidden})
       .then((response) => {
         dispatch({type: "SET_PHOTOS_HIDDEN_FULFILLED", payload: {image_hashes:image_hashes,hidden:hidden,updatedPhotos:response.data.results}})
+        if (hidden) {
+            var notificationMessage = 'were successfully hidden'
+        } else {
+            var notificationMessage = 'were successfully unhidden'
+        }
+        dispatch(notify({
+            message:`${image_hashes.length} photo(s) ` + notificationMessage,
+            title:'Hide photos',
+            status:'success',
+            dismissible: true,
+            dismissAfter:3000,
+            position:'br'
+        }))
         if (image_hashes.length == 1) {
           dispatch(fetchPhotoDetail(image_hashes[0]))
         }
@@ -89,6 +116,26 @@ export function fetchFavoritePhotos() {
       })
   }
 }
+
+
+export function fetchHiddenPhotos() {
+  return function(dispatch) {
+    dispatch({type:"FETCH_HIDDEN_PHOTOS"});
+    Server.get('photos/hidden/',{timeout:100000})
+      .then((response) => {
+        //var t0 = performance.now();
+        //const res = _.keyBy(response.data.results,'image_hash')
+        //var t1 = performance.now();
+        //console.log("Call to doSomething took " + (t1 - t0) + " milliseconds.")
+        dispatch({type:"FETCH_HIDDEN_PHOTOS_FULFILLED",payload: response.data.results})
+        // dispatch(fetchDateAlbumsPhotoHashList())
+      }) 
+      .catch((err) => {
+        dispatch({type:"FETCH_HIDDEN_PHOTOS_REJECTED",payload: err})        
+      })
+  }
+}
+
 
 
 export function fetchPhotoDetail(image_hash) {

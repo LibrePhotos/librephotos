@@ -1,6 +1,6 @@
 import axios from "axios";
 import {Server} from '../api_client/apiClient'
-
+import {fetchAutoAlbums} from './albumsActions'
 
 
 
@@ -15,6 +15,23 @@ export function generateEventAlbums() {
         dispatch({type: "GENERATE_EVENT_ALBUMS_REJECTED", payload: err}) })
   }
 }
+
+
+
+export function generateEventAlbumTitles() {
+	return function(dispatch) {
+		dispatch({type: "GENERATE_EVENT_ALBUMS_TITLES"})
+    Server.get("autoalbumtitlegen/")
+      .then((response) => {
+        dispatch({type: "GENERATE_EVENT_ALBUMS_TITLES_FULFILLED", payload: response.data})
+        dispatch(fetchAutoAlbums())
+      })
+      .catch((err) => {
+        dispatch({type: "GENERATE_EVENT_ALBUMS_TITLES_REJECTED", payload: err})
+      })
+	}
+}
+
 
 
 
