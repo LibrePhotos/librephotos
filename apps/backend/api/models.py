@@ -56,6 +56,17 @@ def get_album_place(title):
 def get_album_nodate():
     return AlbumDate.objects.get_or_create(date=None)
 
+def get_or_create_person(name):
+    qs = Person.objects.filter(name=name)
+    if qs.count() > 0:
+        return qs[0]
+    else:
+        new_person = Person()
+        new_person.name = name
+        new_person.save()
+        return new_person
+
+
 class Photo(models.Model):
     image_path = models.FilePathField(max_length=512, db_index=True)
     image_hash = models.CharField(primary_key=True,max_length=32,null=False)
@@ -399,6 +410,8 @@ class Photo(models.Model):
                 if album_thing.photos.filter(image_hash=self.image_hash).count() == 0:
                     album_thing.photos.add(self)
                     album_thing.thing_type='places365_attribute'
+                    if album_thing.cover_photos.count() < 4:
+                        album_thing.cover_photos.add(self)
                     album_thing.save()
             for category in self.captions_json['places365']['categories']:
                 album_thing = get_album_thing(title=category)[0]
@@ -406,6 +419,8 @@ class Photo(models.Model):
                     album_thing = get_album_thing(title=category)[0]
                     album_thing.photos.add(self)
                     album_thing.thing_type='places365_category'
+                    if album_thing.cover_photos.count() < 4:
+                        album_thing.cover_photos.add(self)
                     album_thing.save()
 
 
@@ -452,6 +467,8 @@ class Photo(models.Model):
                             if album_place.photos.filter(image_hash=self.image_hash).count() == 0:
                                 album_place.geolocation_level = len(self.geolocation_json['features']) - geolocation_level
                                 album_place.photos.add(self)
+                                if album_place.cover_photos.count() < 4:
+                                    album_place.cover_photos.add(self)
                                 album_place.save()
                                 logger.info('album place title: %s, level: %d, added photo: %s'%(feature['text'],album_place.geolocation_level,self.image_hash))
                                 print('album place title: %s, level: %d, added photo: %s'%(feature['text'],album_place.geolocation_level,self.image_hash))
@@ -508,6 +525,8 @@ class Face(models.Model):
     person_label_is_inferred = models.NullBooleanField(db_index=True)
     person_label_probability = models.FloatField(default=0.,db_index=True)
 
+    # ignore = models.BooleanField(default=False,db_index=True)
+
     location_top = models.IntegerField()
     location_bottom = models.IntegerField()
     location_left = models.IntegerField()
@@ -522,7 +541,9 @@ class Face(models.Model):
 class AlbumThing(models.Model):
     title = models.CharField(unique=True,max_length=512,db_index=True)
     photos = models.ManyToManyField(Photo)
+    cover_photos = models.ManyToManyField(Photo,related_name='album_thing_cover_photos') # should only have 4 photos. isn't enforced.
     thing_type = models.CharField(max_length=512,db_index=True,null=True)
+    favorited = models.BooleanField(default=False,db_index=True)
 
     def __str__(self):
         return "%d: %s"%(self.id, self.title)
@@ -532,6 +553,8 @@ class AlbumPlace(models.Model):
     title = models.CharField(unique=True,max_length=512,db_index=True)
     photos = models.ManyToManyField(Photo)
     geolocation_level = models.IntegerField(db_index=True,null=True)
+    favorited = models.BooleanField(default=False,db_index=True)
+    cover_photos = models.ManyToManyField(Photo,related_name='album_place_cover_photos') # should only have 4 photos. isn't enforced.
 
 
 
@@ -623,9 +646,10 @@ class AlbumUser(models.Model):
     title = models.CharField(unique=True,max_length=512)
     created_on = models.DateTimeField(auto_now=True,db_index=True)
     photos = models.ManyToManyField(Photo)
+    cover_photos = models.ManyToManyField(Photo,related_name='album_user_cover_photos') # should only have 4 photos. isn't enforced.
     favorited = models.BooleanField(default=False,db_index=True)
 
 # for cache invalidation. invalidates all cache on modelviewsets on delete and save on any model
-for model in [Photo, Person, Face, AlbumDate, AlbumAuto, AlbumUser]:
+for model in [Photo, Person, Face, AlbumDate, AlbumAuto, AlbumUser, AlbumPlace, AlbumThing]:
     post_save.connect(receiver=change_api_updated_at, sender=model)
     post_delete.connect(receiver=change_api_updated_at, sender=model)
