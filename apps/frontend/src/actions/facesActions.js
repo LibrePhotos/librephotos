@@ -48,6 +48,9 @@ export function deleteFaces(faceIDs) {
 export function trainFaces() {
   return function(dispatch) {
     dispatch({type: "TRAIN_FACES"});
+    dispatch({type:"SET_WORKER_AVAILABILITY",payload:false})
+    dispatch({type:"SET_WORKER_RUNNING_JOB",payload:{job_type_str:'Train Faces'}})
+
     dispatch(notify({
       message:`Training started`,
       title:'Face training',
@@ -58,15 +61,15 @@ export function trainFaces() {
     Server.get("trainfaces/",{timeout:30000})
       .then((response) => {
         dispatch({type: "TRAIN_FACES_FULFILLED", payload: response.data})
-        dispatch(notify({
-          message:`Training finished`,
-          title:'Face training',
-          status:'success',
-          dismissible: true,
-          dismissAfter:3000,
-          position:'br'}))
-        dispatch(fetchInferredFacesList())
-        dispatch(fetchLabeledFacesList())
+        // dispatch(notify({
+        //   message:`Training finished`,
+        //   title:'Face training',
+        //   status:'success',
+        //   dismissible: true,
+        //   dismissAfter:3000,
+        //   position:'br'}))
+        // dispatch(fetchInferredFacesList())
+        // dispatch(fetchLabeledFacesList())
       })
       .catch((err) => {
         dispatch({type: "TRAIN_FACES_REJECTED", payload: err})

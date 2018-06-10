@@ -7,7 +7,7 @@ import {toggleSidebar} from '../actions/uiActions'
 import {searchPhotos,searchPeople,searchPlaceAlbums,searchThingAlbums} from '../actions/searchActions'
 import {fetchUserAlbum, fetchUserAlbumsList,fetchPlaceAlbum,fetchPeopleAlbums,fetchPlaceAlbumsList,fetchThingAlbumsList} from '../actions/albumsActions'
 import {fetchPeople} from '../actions/peopleActions'
-import {fetchExampleSearchTerms} from '../actions/utilActions'
+import {fetchExampleSearchTerms,fetchWorkerAvailability} from '../actions/utilActions'
 import { push } from 'react-router-redux'
 import store from '../store'
 import jwtDecode from 'jwt-decode'
@@ -54,6 +54,7 @@ export class TopMenu extends Component {
   }
 
 
+
   componentDidMount() {
       this.props.dispatch(fetchPeople())
       this.props.dispatch(fetchPlaceAlbumsList())
@@ -64,6 +65,15 @@ export class TopMenu extends Component {
       this.exampleSearchTermCylcer = setInterval(()=>{
         this.setState({exampleSearchTerm:  'Search ' + this.props.exampleSearchTerms[Math.floor(Math.random()*this.props.exampleSearchTerms.length)]})
       },5000)
+
+
+      var _dispatch = this.props.dispatch
+      this.setState({dispatch:_dispatch})
+      var intervalId = setInterval(()=>{
+          _dispatch(fetchWorkerAvailability(this.props.workerRunningJob))
+        },2000
+      )
+      this.setState({intervalId:intervalId})
   }
 
 
@@ -86,6 +96,7 @@ export class TopMenu extends Component {
 
   componentWillUnmount() {
       window.removeEventListener('resize',this.handleResize.bind(this))
+      clearInterval(this.state.intervalId)
   }
 
   _handleKeyDown (event) {
@@ -362,6 +373,18 @@ export class TopMenu extends Component {
 
           <div style={{paddingRight:20,paddingTop:8,width:(window.innerWidth-searchBarWidth)/2,right:0,position:'absolute',textAlign:'right'}}>
           
+          { !this.props.workerAvailability &&
+            <Popup 
+              trigger={
+                <Icon 
+                  name='circle' 
+                  color={!this.props.workerAvailability ? 'red' : 'green'}/>
+              }
+              inverted
+              position="center left"
+              content={!this.props.workerAvailability && this.props.workerRunningJob ? this.props.workerRunningJob.job_type_str : 'Ready'}/>
+          }
+
           <b>
             <Dropdown icon='user' inline pointing='top right'>
               <Dropdown.Menu>
@@ -711,7 +734,10 @@ SideMenu = connect((store)=>{
 
 TopMenu = connect((store)=>{
   return {
-      showSidebar: store.ui.showSidebar,
+    showSidebar: store.ui.showSidebar,
+
+    workerAvailability: store.util.workerAvailability,
+    workerRunningJob: store.util.workerRunningJob,
 
     auth: store.auth,
     jwtToken: store.auth.jwtToken,

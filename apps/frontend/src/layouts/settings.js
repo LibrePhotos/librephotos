@@ -3,8 +3,15 @@ import React, {Component} from 'react'
 import { Step, Progress, List, Grid, Image, Icon, Item, Header, Segment, Accordion,Container, Message, Divider, Button, Loader} from 'semantic-ui-react'
 import { connect } from "react-redux";
 
-import {fetchCountStats,fetchPhotoScanStatus,fetchWordCloud,generateEventAlbums,
-        fetchAutoAlbumProcessingStatus, generateEventAlbumTitles} from '../actions/utilActions'
+import {
+  fetchCountStats,
+  fetchPhotoScanStatus,
+  fetchWordCloud,
+  generateEventAlbums,
+  fetchAutoAlbumProcessingStatus, 
+  generateEventAlbumTitles,
+  fetchWorkerAvailability
+} from '../actions/utilActions'
 import {scanPhotos,fetchPhotos} from '../actions/photosActions'
 
 import CountryPiChart from '../components/charts/countryPiChart'
@@ -26,24 +33,8 @@ export class Settings extends Component {
     accordionFourActive: false,
   }
 
-  componentDidMount() {
-    var _dispatch = this.props.dispatch
-    this.setState({dispatch:_dispatch})
-    var intervalId = setInterval(function(){
-        _dispatch(fetchPhotoScanStatus())
-        _dispatch(fetchAutoAlbumProcessingStatus())
-      },2000
-    )
-    this.setState({intervalId:intervalId})
-  }
 
-  componentWillUnmount() {
-    clearInterval(this.state.intervalId)
-  }
 
-  componentWillMount() {
-    this.props.dispatch(fetchWordCloud())
-  }
 
   onPhotoScanButtonClick = e => {
     this.props.dispatch(scanPhotos())
@@ -54,7 +45,7 @@ export class Settings extends Component {
   }
 
   render() {
-    var buttonsDisabled = this.props.statusPhotoScan.status || this.props.statusAutoAlbumProcessing.status || this.props.scanningPhotos || this.props.generatingAutoAlbums
+    var buttonsDisabled = !this.props.workerAvailability
 
     return (
       <div style={{padding:10}}>
@@ -81,6 +72,7 @@ export class Settings extends Component {
                 <Message.List>
                   <List bulleted>
                     <List.Item>Make a list of all jpg files in subdirectories. For each jpg file:</List.Item>
+                    <List.Item>If the filepath exists in the database, we skip.</List.Item>
                     <List.Item>Calculate a unique ID of the image file (md5)</List.Item>
                     <List.Item>If this image file is already in the database, we skip.</List.Item>
                     <List.Item>Generate a number of thumbnails </List.Item>
@@ -98,7 +90,7 @@ export class Settings extends Component {
 
                 <Button
                   fluid size='tiny'
-                  attached={this.state.accordionOneActive ? true : 'top'}
+                  attached={this.state.accordionOneActive ? "bottom" : false}
                   onClick={this.onPhotoScanButtonClick}
                   disabled={buttonsDisabled} 
                   color='blue'>
@@ -107,30 +99,6 @@ export class Settings extends Component {
                     "Scanning Photos " + `(${this.props.statusPhotoScan.added}/${this.props.statusPhotoScan.to_add})`: 
                     "Scan Photos" }
                 </Button>
-                <Step.Group fluid attached>
-                    <Step active={this.props.statusPhotoScan.status && !this.props.statusPhotoScan.added}>
-                    <Icon name='settings' />
-                    <Step.Content>
-                        <Step.Title>Step 1</Step.Title>
-                        <Step.Description>Calculating image hashes...</Step.Description>
-                    </Step.Content>
-                    </Step>
-
-                    <Step active={this.props.statusPhotoScan.status && this.props.statusPhotoScan.added}>
-                    <Icon name='upload' />
-                    <Step.Content>
-                        <Step.Title>Step 2</Step.Title>
-                        <Step.Description>Importing Photos...</Step.Description>
-                    </Step.Content>
-                    </Step>
-                </Step.Group>
-                <Progress 
-                  attached='bottom'
-                  disabled={!(this.props.statusPhotoScan.status && this.props.statusPhotoScan.added)}
-                  active={this.props.statusPhotoScan.status && this.props.statusPhotoScan.added}
-                  percent={this.props.statusPhotoScan.status && this.props.statusPhotoScan.added ? 100*this.props.statusPhotoScan.added.toFixed(1)/this.props.statusPhotoScan.to_add : 100}
-                  color='blue'>
-                </Progress>       
 
 
 
@@ -208,6 +176,8 @@ Settings = connect((store)=>{
     generatingAutoAlbums: store.util.generatingAutoAlbums,
     scanningPhotos: store.photos.scanningPhotos,
     fetchedCountStats: store.util.fetchedCountStats,
+    workerAvailability: store.util.workerAvailability,
+
   }
 })(Settings)
 

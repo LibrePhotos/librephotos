@@ -69,8 +69,18 @@ export function setPhotosHidden(image_hashes,hidden) {
 export function scanPhotos() {
   return function(dispatch) {
     dispatch({type: "SCAN_PHOTOS"});
+    dispatch({type:"SET_WORKER_AVAILABILITY",payload:false})
+
     Server.get(`scanphotos/`)
       .then((response) => {
+        dispatch(notify({
+          message:'Scan Photos started',
+          title:'Scan Photos',
+          status:'success',
+          dismissible: true,
+          dismissAfter:3000,
+          position:'br'
+        }))
         dispatch({type: "SCAN_PHOTOS_FULFILLED", payload: response.data})
       })
       .catch((err) => {

@@ -495,8 +495,8 @@ export class FaceDashboard extends Component {
 						
 						<Popup inverted trigger={
 							<Button 
-								disabled={this.props.training} 
-								loading={this.props.training} 
+								disabled={!this.props.workerAvailability} 
+								loading={this.props.workerRunningJob && this.props.workerRunningJob.job_type_str=="Train Faces"} 
 								color='blue' onClick={()=>{
 									this.props.dispatch(trainFaces())
 								}} 
@@ -554,6 +554,9 @@ export class FaceDashboard extends Component {
 
 FaceDashboard = connect((store)=>{
   return {
+	workerAvailability: store.util.workerAvailability,
+	workerRunningJob: store.util.workerRunningJob,
+
   	showSidebar: store.ui.showSidebar,
 
     facesList: store.faces.facesList,

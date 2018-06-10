@@ -36,10 +36,20 @@ export default function reducer(state={
     fetchingLocationTimeline: false,
     fetchedLocationTimeline: false,
 
+    workerAvailability:false,
+    workerRunningJob:null,
+
     error: null,
   }, action) {
 
   switch (action.type) {
+
+    case "SET_WORKER_AVAILABILITY": {
+      return {...state, workerAvailability: action.payload}
+    }
+    case "SET_WORKER_RUNNING_JOB": {
+      return {...state, workerRunningJob: action.payload}
+    }
 
 
     case "GENERATE_EVENT_ALBUMS": {

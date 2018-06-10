@@ -20,10 +20,10 @@ function listener() {
 }
 
 
-export var serverAddress = 'http://192.168.1.100:8000'
+export var serverAddress = 'http://192.168.1.100'
 
 export var Server = axios.create({
-  baseURL: 'http://192.168.1.100:8000/api/',
+  baseURL: 'http://192.168.1.100/api/',
   headers: {
     'Content-Type': 'application/json'
   },
