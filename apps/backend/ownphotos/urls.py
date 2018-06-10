@@ -91,6 +91,10 @@ router.register(r'api/faces/inferred',views.FaceInferredViewSet)
 router.register(r'api/faces/labeled',views.FaceLabeledViewSet)
 router.register(r'api/faces', views.FaceViewSet)
 
+
+router.register(r'api/jobs', views.LongRunningJobViewSet)
+
+
 urlpatterns = [
     url(r'^', include(router.urls)),
     url(r'^admin/', admin.site.urls),
@@ -129,7 +133,8 @@ urlpatterns = [
     url(r'^api/auth/token/refresh/$', TokenRefreshView.as_view()),
     # url(r'^media/(?P<path>.*)', media_access, name='media'),
 
-
+    url(r'^api/rqavailable/$', views.QueueAvailabilityView.as_view()),
+    url(r'^api/rqjobstat/$', views.RQJobStatView.as_view()),
 
 #     url(r'^api/token-auth/', obtain_jwt_token),
 #     url(r'^api/token-refresh/', refresh_jwt_token),
@@ -137,3 +142,6 @@ urlpatterns = [
 ]+static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
+urlpatterns += [
+    url('django-rq/', include('django_rq.urls'))
+]

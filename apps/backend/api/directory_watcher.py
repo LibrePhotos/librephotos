@@ -1,11 +1,13 @@
 from api.models import Photo
 from api.models import Person
+from api.models import LongRunningJob
 import os
 import datetime
 from tqdm import tqdm
 import hashlib 
 import pytz
 from config import image_dirs
+import time
 
 import api.util as util
 
@@ -17,7 +19,10 @@ from api.flags import \
     set_num_photos_added
 
 import ipdb
-
+from django_rq import job
+import time
+import numpy as np
+import rq
 # def is_photos_being_added():
 #     global FLAG_IS_PHOTOS_BEING_ADDED
 #     return {'status':FLAG_IS_PHOTOS_BEING_ADDED}
@@ -41,7 +46,32 @@ import ipdb
 #     # return {'status':status}
 
 
+@job
+def long_running_job():
+    print('hello')
+    return 'hello'
+
+
+
+
+
+
+
+
+
+
+
+@job
 def scan_photos():
+    lrj = LongRunningJob(
+        job_id=rq.get_current_job().id,
+        started_at=datetime.datetime.now(),
+        job_type=LongRunningJob.JOB_SCAN_PHOTOS)
+    lrj.save()
+
+    for _ in tqdm(range(100000)):
+        yy = np.random.randn(1000).dot(np.random.randn(1000))
+
     if is_photos_being_added()['status']:
         return {"new_photo_count": 0, "status": False, 'message':'photos are being added'}
 
@@ -165,8 +195,16 @@ def scan_photos():
                     util.logger.error("Could not load image {}".format(image_path))
 
     util.logger.info("Added {}/{} photos".format(added_photo_count, len(image_paths) - already_existing_photo))
+    
     set_photo_scan_flag_off()
+
+    lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
+    lrj.finished = True
+    lrj.finished_at = datetime.datetime.now()
+    lrj.result = {"new_photo_count": added_photo_count}
+    lrj.save()
     return {"new_photo_count": added_photo_count, "status": True}
+
     # photos = Photo.objects.all()
     # for photo in photos:
     #     print(photo.image_hash)

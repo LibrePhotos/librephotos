@@ -1,6 +1,7 @@
 from api.models import Photo
 from api.models import Person
 from api.models import AlbumAuto
+from api.models import LongRunningJob
 
 from datetime import datetime, timedelta
 from itertools import groupby
@@ -16,6 +17,10 @@ from api.flags import \
     is_photos_being_added, \
     set_auto_album_processing_flag_on, \
     set_auto_album_processing_flag_off
+from django_rq import job
+
+from tqdm import tqdm
+import rq
 
 # def is_auto_albums_being_processed():
 #     global FLAG_IS_AUTO_ALBUMS_BEING_PROCESSED
@@ -35,7 +40,55 @@ from api.flags import \
 #     return {"status":status}
     
 # go through all photos
+
+
+@job
+def regenerate_event_titles():
+    lrj = LongRunningJob(
+        job_id=rq.get_current_job().id,
+        started_at=datetime.now(),
+        job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUM_TITLES)
+    lrj.save()
+
+    try:
+
+        aus = AlbumAuto.objects.all().prefetch_related('photos')
+        for au in tqdm(aus):
+            au._autotitle()
+            au.save()
+
+        status = True
+        message = 'success'
+        res = {'status':status, 'message':message}
+
+        lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
+        lrj.finished = True
+        lrj.finished_at = datetime.now()
+        lrj.result = res
+        lrj.save()
+
+
+    except:
+        status = False
+        res = {'status':status, 'message':'failed'}
+
+        lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
+        lrj.failed = True
+        lrj.finished = True
+        lrj.finished_at = datetime.now()
+        lrj.save()    
+
+    return True
+
+
+@job
 def generate_event_albums():
+    lrj = LongRunningJob(
+        job_id=rq.get_current_job().id,
+        started_at=datetime.now(),
+        job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUMS)
+    lrj.save()
+
     if is_auto_albums_being_processed()['status']:
         status = False
         message = "There are even albums being created at the moment. Please try again later."
@@ -116,9 +169,24 @@ def generate_event_albums():
                     album.save()
         status = True
         message = 'success'
-    except Exception as e:
+        res = {'status':status, 'message':message}
+
+        lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
+        lrj.finished = True
+        lrj.finished_at = datetime.now()
+        lrj.result = res
+        lrj.save()
+
+
+    except:
         status = False
-        message = e.message
+        res = {'status':status, 'message':'failed'}
+
+        lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
+        lrj.failed = True
+        lrj.finished = True
+        lrj.finished_at = datetime.now()
+        lrj.save()    
 
     set_auto_album_processing_flag_off()
-    return {'status':status, 'message':message}
+    return 1

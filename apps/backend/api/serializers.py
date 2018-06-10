@@ -1,4 +1,4 @@
-from api.models import Photo, AlbumAuto, AlbumUser, AlbumPlace, Face, Person, AlbumDate, AlbumThing
+from api.models import Photo, AlbumAuto, AlbumUser, AlbumPlace, Face, Person, AlbumDate, AlbumThing, LongRunningJob
 from rest_framework import serializers
 import ipdb
 import json
@@ -645,3 +645,22 @@ class AlbumAutoListSerializer(serializers.ModelSerializer):
             "photos",
             "favorited")
 
+
+
+class LongRunningJobSerializer(serializers.ModelSerializer):
+    job_type_str = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LongRunningJob
+        fields = (
+            'job_id',
+            'finished',
+            'finished_at',
+            'started_at',
+            'failed',
+            'job_type_str',
+            'job_type'
+        )
+
+    def get_job_type_str(self,obj):
+        return dict(LongRunningJob.JOB_TYPES)[obj.job_type]
