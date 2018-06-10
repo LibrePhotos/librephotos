@@ -1,5 +1,11 @@
 #! /bin/bash
 
+cp /code/nginx.conf /etc/nginx/sites-enabled/default
+
+sed -i -e 's/replaceme/'"$BACKEND_HOST"'/g' /etc/nginx/sites-enabled/default
+
+service nginx restart
+
 source /venv/bin/activate
 
 python manage.py migrate
@@ -13,4 +19,6 @@ EOF
 
 echo "Running server..."
 
-python manage.py runserver 0.0.0.0:8000
+python manage.py rqworker default &
+gunicorn --bind 0.0.0.0:8001 ownphotos.wsgi
+
