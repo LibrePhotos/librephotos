@@ -455,13 +455,17 @@ export class FaceDashboard extends Component {
 			  <div style={{marginLeft:-5,height:40}}>
 	        <Menu pointing secondary>
 	          <Menu.Item
-	            name='labeled'
+				name='labeled'
 	            active={activeItem === 'labeled'}
-	            onClick={this.handleItemClick}/>
+	            onClick={this.handleItemClick}>
+				{"Labeled "} <Loader size='mini' inline active={this.props.fetchingLabeledFacesList}/>
+			  </Menu.Item>
 	          <Menu.Item
 	            name='inferred'
 	            active={activeItem === 'inferred'}
-	            onClick={this.handleItemClick}/>
+	            onClick={this.handleItemClick}>
+			  	{"Inferred "} <Loader size='mini' inline active={this.props.fetchingInferredFacesList}/>
+			  </Menu.Item>
 	        </Menu>
         </div>
 				<div style={{right:0,top:topMenuHeight,position:'fixed',padding:5}}>

@@ -1,6 +1,8 @@
 import axios from "axios";
 import {Server} from '../api_client/apiClient'
 import {fetchAutoAlbums} from './albumsActions'
+import {fetchLabeledFacesList,fetchInferredFacesList} from './facesActions'
+import {fetchDateAlbumsPhotoHashList} from './albumsActions'
 import {notify} from 'reapop'
 
 
@@ -8,21 +10,29 @@ export function fetchWorkerAvailability(prevRunningJob) {
   return function(dispatch) {
     dispatch({type:"FETCH_WORKER_AVAILABILITY"})
     Server.get('rqavailable/')
-    .then((response)=>{
-      if (prevRunningJob!==null && response.data.job_detail===null){
-        dispatch(notify({
-          message:prevRunningJob.job_type_str+' finished.',
-          title:prevRunningJob.job_type_str,
-          status:'success',
-          dismissible: true,
-          dismissAfter:3000,
-          position:'br'}))
+      .then((response)=>{
+        if (prevRunningJob!==null && response.data.job_detail===null){
+          dispatch(
+            notify({
+              message:prevRunningJob.job_type_str+' finished.',
+              title:prevRunningJob.job_type_str,
+              status:'success',
+              dismissible: true,
+              dismissAfter:3000,
+              position:'br'}))
+          if (prevRunningJob.job_type_str.toLowerCase()==='train faces'){
+            dispatch(fetchLabeledFacesList())
+            dispatch(fetchInferredFacesList())
+          }
+          if (prevRunningJob.job_type_str.toLowerCase()==='scan photos'){
+            dispatch(fetchDateAlbumsPhotoHashList())
+          }
         }
         
-        if (response.data.queue_can_accept_job){
-          dispatch({type:"SET_WORKER_AVAILABILITY",payload:true})
-        } else {
+        if (response.data.job_detail){
           dispatch({type:"SET_WORKER_AVAILABILITY",payload:false})
+        } else {
+          dispatch({type:"SET_WORKER_AVAILABILITY",payload:true})
         }
         dispatch({type:"SET_WORKER_RUNNING_JOB",payload:response.data.job_detail})
         console.log(prevRunningJob)

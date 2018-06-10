@@ -375,14 +375,15 @@ export class TopMenu extends Component {
           
           { !this.props.workerAvailability &&
             <Popup 
+              size='mini'
               trigger={
                 <Icon 
                   name='circle' 
                   color={!this.props.workerAvailability ? 'red' : 'green'}/>
               }
               inverted
-              position="center left"
-              content={!this.props.workerAvailability && this.props.workerRunningJob ? this.props.workerRunningJob.job_type_str : 'Ready'}/>
+              position="bottom left"
+              content={!this.props.workerAvailability && this.props.workerRunningJob ? 'Running "'+ this.props.workerRunningJob.job_type_str+'"...' : 'Busy...'}/>
           }
 
           <b>
