@@ -56,10 +56,68 @@
 
 ## How do I run it?
 
-Tested on Ubuntu 16.04 and macOS Sierra.
 
 ### Backend
 
+
+#### Docker
+
+
+Clone the repo:
+
+
+```
+git clone https://github.com/hooram/ownphotos-backend.git
+cd ownphotos-backend
+```
+
+Run Redis and DB containers:
+
+```
+docker run --name ownphotos-db -e POSTGRES_PASSWORD=CHANGE_ME_DB_PASS -e POSTGRES_DB=ownphotos -d postgres
+docker run --name ownphotos-redis -d redis
+```
+
+
+Build the docker image:
+
+
+```
+docker build -t ownphotos-backend .
+```
+
+```
+docker run \
+    -v /where/you/dump/your/photos/on/host:/data \
+    -v /place/to/store/thumbnails/and/faces/and/fullsize/copy/on/host:/code/media \
+    --link ownphotos-db:ownphotos-db \
+    --link ownphotos-redis:ownphotos-redis \
+    -e SECRET_KEY=CHANGE_ME \
+    -e ADMIN_EMAIL=CHANGE_ME \
+    -e ADMIN_USERNAME=CHANGE_ME \
+    -e ADMIN_PASSWORD=CHANGE_ME \
+    -e DEBUG=false \
+    -e DB_BACKEND=postgresql \
+    -e DB_NAME=ownphotos \
+    -e DB_USER=postgres \
+    -e DB_PASS=CHANGE_ME_DB_PASS \
+    -e DB_HOST=ownphotos-db \
+    -e DB_PORT=5432 \
+    -e REDIS_HOST=ownphotos-redis \
+    -e REDIS_PORT=6379 \
+    -e MAPBOX_API_KEY=CHANGE_ME \
+    -e BACKEND_HOST=CHANGE_ME \
+    -p 8000:80 \
+    --name ownphotos-backend \
+    ownphotos-backend
+```
+
+
+
+#### Witout Docker
+
+
+Tested on Ubuntu 16.04 and macOS Sierra.
 
 
 **See `Dockerfile`. This should have most of the information you need. You might need to pip install some python packages that are not included in the requirements.txt (sorry about that).**
