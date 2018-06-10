@@ -3,7 +3,7 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from api.models import Photo, AlbumAuto, AlbumUser, Face, Person, AlbumDate, AlbumPlace, AlbumThing, get_or_create_person
+from api.models import Photo, AlbumAuto, AlbumUser, Face, Person, AlbumDate, AlbumPlace, AlbumThing, LongRunningJob, get_or_create_person
 from django.db.models import Count
 from django.db.models import Q
 from django.db.models import Prefetch
@@ -37,6 +37,8 @@ from api.serializers import AlbumThingListSerializer
 from api.serializers import AlbumPlaceListSerializer
 from api.serializers import AlbumUserListSerializer
 
+from api.serializers import LongRunningJobSerializer
+
 from api.serializers_serpy import AlbumDateListWithPhotoHashSerializer as AlbumDateListWithPhotoHashSerializerSerpy 
 from api.serializers_serpy import PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy
 
@@ -57,8 +59,10 @@ from api.api_util import \
     get_location_sunburst, \
     get_location_timeline
 
-from api.directory_watcher import  scan_photos
-from api.autoalbum import generate_event_albums
+from api.util import queue_can_accept_job
+
+from api.directory_watcher import  scan_photos, long_running_job
+from api.autoalbum import generate_event_albums, regenerate_event_titles
 
 from api.flags import is_photos_being_added
 from api.flags import is_auto_albums_being_processed
@@ -91,6 +95,10 @@ from rest_framework_extensions.key_constructor.bits import (
 
 import ipdb
 from tqdm import tqdm 
+import time
+
+from django_rq import job
+import django_rq
 
 # CACHE_TTL = 60 * 60 * 24 # 1 day
 CACHE_TTL = 60*60*24*30  # 1 month
@@ -721,6 +729,11 @@ class AlbumUserListViewSet(viewsets.ModelViewSet):
         return super(AlbumUserListViewSet, self).list(*args, **kwargs)
 
 
+class LongRunningJobViewSet(viewsets.ModelViewSet):
+    queryset = LongRunningJob.objects.all().order_by('-started_at')
+    serializer_class = LongRunningJobSerializer
+
+
 
 # API Views
 
@@ -799,11 +812,20 @@ class SearchTermExamples(APIView):
 
 class RegenerateAutoAlbumTitles(APIView):
     def get(self,request,format=None):
-        aus = AlbumAuto.objects.all().prefetch_related('photos')
-        for au in tqdm(aus):
-            au._autotitle()
-            au.save()
-        return Response({'status':True})
+        print(django_rq.get_queue().get_job_ids())
+        if queue_can_accept_job():
+            # res = scan_photos.delay()
+            res = regenerate_event_titles.delay()
+            print(django_rq.get_queue().get_job_ids())
+            return Response({'status':True,'job_id':res.id})
+        else:
+            print(django_rq.get_queue().get_job_ids())
+            return Response({
+                'status':False,
+                'message':'there are jobs being run',
+                'running_jobs':[job for job in django_rq.get_queue().get_job_ids()]})
+
+
 
 
 class FaceToLabelView(APIView):
@@ -872,8 +894,18 @@ class ClusterFaceView(APIView):
 
 class TrainFaceView(APIView):
     def get(self, request, format=None):
-        res = train_faces()
-        return Response(res)
+
+        print(django_rq.get_queue().get_job_ids())
+        if queue_can_accept_job():
+            res = train_faces.delay()
+            print(django_rq.get_queue().get_job_ids())
+            return Response({'status':True,'job_id':res.id})
+        else:
+            print(django_rq.get_queue().get_job_ids())
+            return Response({
+                'status':False,
+                'message':'there are jobs being run',
+                'running_jobs':[job for job in django_rq.get_queue().get_job_ids()]})
 
 class SocialGraphView(APIView):
     # @cache_response(CACHE_TTL_VIZ)
@@ -892,7 +924,21 @@ class EgoGraphView(APIView):
 
 class AutoAlbumGenerateView(APIView):
     def get(self, request, format=None):
-        res = generate_event_albums()
+        print(django_rq.get_queue().get_job_ids())
+        if queue_can_accept_job():
+            # res = scan_photos.delay()
+            res = generate_event_albums.delay()
+            print(django_rq.get_queue().get_job_ids())
+            return Response({'status':True,'job_id':res.id})
+        else:
+            print(django_rq.get_queue().get_job_ids())
+            return Response({
+                'status':False,
+                'message':'there are jobs being run',
+                'running_jobs':[job for job in django_rq.get_queue().get_job_ids()]})
+
+
+
         return Response(res)
 
 class StatsView(APIView):
@@ -939,8 +985,19 @@ class SearchTermWordCloudView(APIView):
 
 class ScanPhotosView(APIView):
     def get(self, requests, format=None):
-        res = scan_photos()
-        return Response(res)
+        # ipdb.set_trace()
+        print(django_rq.get_queue().get_job_ids())
+        # time.sleep(5)
+        if queue_can_accept_job():
+            res = scan_photos.delay()
+            print(django_rq.get_queue().get_job_ids())
+            return Response({'status':True,'job_id':res.id})
+        else:
+            print(django_rq.get_queue().get_job_ids())
+            return Response({
+                'status':False,
+                'message':'there are jobs being run',
+                'running_jobs':[job for job in django_rq.get_queue().get_job_ids()]})
 
 
 # watchers
@@ -954,6 +1011,27 @@ class IsAutoAlbumsBeingProcessed(APIView):
         res = is_auto_albums_being_processed()
         return Response(res)
 
+
+class QueueAvailabilityView(APIView):
+    def get(self,requests,format=None):
+        job_detail = None
+
+        running_job = LongRunningJob.objects.filter(finished=False).order_by('-started_at').first()
+        if running_job:
+            job_detail = LongRunningJobSerializer(running_job).data
+
+        return Response({
+            'status':True,
+            'queue_can_accept_job':queue_can_accept_job(),
+            'job_detail':job_detail})
+
+class RQJobStatView(APIView):
+    def get(self,requests,format=None):
+        # ipdb.set_trace()
+        job_id = requests.query_params['job_id']
+        # job_id = '1667f947-bf8c-4ca8-a1cc-f16c7f3615de'
+        is_job_finished = django_rq.get_queue().fetch_job(job_id).is_finished
+        return Response({'status':True,'finished':is_job_finished})
 
 
 

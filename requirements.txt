@@ -62,3 +62,4 @@ traitlets==4.3.2
 urllib3==1.21.1
 wcwidth==0.1.7
 yarg==0.1.9
+django-rq==1.1.0

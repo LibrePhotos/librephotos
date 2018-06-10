@@ -649,6 +649,31 @@ class AlbumUser(models.Model):
     cover_photos = models.ManyToManyField(Photo,related_name='album_user_cover_photos') # should only have 4 photos. isn't enforced.
     favorited = models.BooleanField(default=False,db_index=True)
 
+class LongRunningJob(models.Model):
+    JOB_SCAN_PHOTOS = 1
+    JOB_GENERATE_AUTO_ALBUMS = 2
+    JOB_GENERATE_AUTO_ALBUM_TITLES = 3
+    JOB_TRAIN_FACES = 4
+    JOB_TYPES = (
+        (JOB_SCAN_PHOTOS, "Scan Photos"),
+        (JOB_GENERATE_AUTO_ALBUMS, "Generate Event Albums"),
+        (JOB_GENERATE_AUTO_ALBUM_TITLES, "Regenerate Event Titles"),
+        (JOB_TRAIN_FACES, "Train Faces"),
+    )
+
+
+    job_type = models.PositiveIntegerField(
+        choices=JOB_TYPES,
+    )
+
+    finished = models.BooleanField(default=False,blank=False,null=False)
+    failed = models.BooleanField(default=False,blank=False,null=False)
+    job_id = models.CharField(max_length=36,unique=True,db_index=True)
+    started_at = models.DateTimeField(null=False)
+    finished_at = models.DateTimeField(null=True)
+    result = JSONField(default={},blank=False,null=False)
+
+
 # for cache invalidation. invalidates all cache on modelviewsets on delete and save on any model
 for model in [Photo, Person, Face, AlbumDate, AlbumAuto, AlbumUser, AlbumPlace, AlbumThing]:
     post_save.connect(receiver=change_api_updated_at, sender=model)
