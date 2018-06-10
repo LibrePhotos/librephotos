@@ -59,7 +59,6 @@ from api.api_util import \
     get_location_sunburst, \
     get_location_timeline
 
-from api.util import queue_can_accept_job
 
 from api.directory_watcher import  scan_photos, long_running_job
 from api.autoalbum import generate_event_albums, regenerate_event_titles
@@ -143,6 +142,41 @@ class SmallResultsSetPagination(PageNumberPagination):
     page_size = 100
     page_size_query_param = 'page_size'
     max_page_size = 200
+
+
+
+
+
+
+
+
+
+
+
+
+def get_current_job():
+    job_detail = None
+    running_job = LongRunningJob.objects.filter(finished=False).order_by('-started_at').first()
+    if running_job:
+        job_detail = LongRunningJobSerializer(running_job).data
+    return job_detail
+
+def queue_can_accept_job():
+    default_queue_stat = [q for q in django_rq.utils.get_statistics()['queues'] if q['name']=='default'][0]
+    started_jobs = default_queue_stat['started_jobs']
+    runninb_jobs = default_queue_stat['jobs']
+    if started_jobs + runninb_jobs > 0:
+        return False
+    else:
+        return True
+
+
+
+
+
+
+
+
 
 # Create your views here.
 
@@ -812,14 +846,11 @@ class SearchTermExamples(APIView):
 
 class RegenerateAutoAlbumTitles(APIView):
     def get(self,request,format=None):
-        print(django_rq.get_queue().get_job_ids())
-        if queue_can_accept_job():
+        if get_current_job() is None:
             # res = scan_photos.delay()
             res = regenerate_event_titles.delay()
-            print(django_rq.get_queue().get_job_ids())
             return Response({'status':True,'job_id':res.id})
         else:
-            print(django_rq.get_queue().get_job_ids())
             return Response({
                 'status':False,
                 'message':'there are jobs being run',
@@ -895,13 +926,10 @@ class ClusterFaceView(APIView):
 class TrainFaceView(APIView):
     def get(self, request, format=None):
 
-        print(django_rq.get_queue().get_job_ids())
-        if queue_can_accept_job():
+        if get_current_job() is None:
             res = train_faces.delay()
-            print(django_rq.get_queue().get_job_ids())
             return Response({'status':True,'job_id':res.id})
         else:
-            print(django_rq.get_queue().get_job_ids())
             return Response({
                 'status':False,
                 'message':'there are jobs being run',
@@ -924,14 +952,11 @@ class EgoGraphView(APIView):
 
 class AutoAlbumGenerateView(APIView):
     def get(self, request, format=None):
-        print(django_rq.get_queue().get_job_ids())
-        if queue_can_accept_job():
+        if get_current_job() is None:
             # res = scan_photos.delay()
             res = generate_event_albums.delay()
-            print(django_rq.get_queue().get_job_ids())
             return Response({'status':True,'job_id':res.id})
         else:
-            print(django_rq.get_queue().get_job_ids())
             return Response({
                 'status':False,
                 'message':'there are jobs being run',
@@ -985,15 +1010,10 @@ class SearchTermWordCloudView(APIView):
 
 class ScanPhotosView(APIView):
     def get(self, requests, format=None):
-        # ipdb.set_trace()
-        print(django_rq.get_queue().get_job_ids())
-        # time.sleep(5)
-        if queue_can_accept_job():
+        if get_current_job() is None:
             res = scan_photos.delay()
-            print(django_rq.get_queue().get_job_ids())
             return Response({'status':True,'job_id':res.id})
         else:
-            print(django_rq.get_queue().get_job_ids())
             return Response({
                 'status':False,
                 'message':'there are jobs being run',
@@ -1022,7 +1042,7 @@ class QueueAvailabilityView(APIView):
 
         return Response({
             'status':True,
-            'queue_can_accept_job':queue_can_accept_job(),
+            'queue_can_accept_job':job_detail is None,
             'job_detail':job_detail})
 
 class RQJobStatView(APIView):
