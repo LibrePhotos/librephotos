@@ -11,6 +11,7 @@ from scipy.spatial import distance
 from sklearn.preprocessing import StandardScaler
 
 
+
 import requests
 
 from config import mapzen_api_key, mapbox_api_key
@@ -35,14 +36,7 @@ logger.addHandler(fileHandler)
 logger.setLevel(logging.INFO)
 
 
-def queue_can_accept_job():
-    default_queue_stat = [q for q in django_rq.utils.get_statistics()['queues'] if q['name']=='default'][0]
-    started_jobs = default_queue_stat['started_jobs']
-    runninb_jobs = default_queue_stat['jobs']
-    if started_jobs + runninb_jobs > 0:
-        return False
-    else:
-        return True
+
 
 
 
