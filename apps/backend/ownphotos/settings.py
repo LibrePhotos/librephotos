@@ -26,7 +26,6 @@ SECRET_KEY = os.environ['SECRET_KEY']
 RQ_API_TOKEN = os.environ['SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = (os.environ.get('DEBUG', '').lower() == 'true')
-DEBUG = True
 
 ALLOWED_HOSTS = ['192.168.1.100','localhost',os.environ.get('BACKEND_HOST')]
 
