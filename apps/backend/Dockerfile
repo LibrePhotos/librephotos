@@ -15,6 +15,7 @@ RUN apt-get update && \
     python3 \
     python3-pip \
     wget \
+    nginx \
     && \
     rm -rf /var/lib/apt/lists/*
 
@@ -91,9 +92,10 @@ ENV REDIS_PORT 11211
 # Timezone
 ENV TIME_ZONE UTC
 
-EXPOSE 8000
+EXPOSE 80
 
 COPY . /code
+
 
 RUN mv /code/config_docker.py /code/config.py
 
