@@ -146,6 +146,8 @@ docker run \
     ownphotos-backend
 ```
 
+Wait a bit until everything warms up (migrations, and buildling frontend).
+
 Next, you need to configure the webserver on your host machine for proxy. If
 you're using nginx, 
 
@@ -159,7 +161,6 @@ though, make sure http requests get redirected to https. It's important!
 server {
     # the port your site will be served on
     listen      80;
-    # the domain name it will serve for
     server_name ownphotos-api.example.com 127.0.0.1;   # substitute by your FQDN and
 machine's IP address
     charset     utf-8;
@@ -167,10 +168,8 @@ machine's IP address
     #Max upload size
     client_max_body_size 75M;   # adjust to taste
 
-
-    # Finally, send all non-media requests to the Django server.
     location / {
-        proxy_pass http://127.0.0.1:8001;
+        proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -181,7 +180,6 @@ machine's IP address
 server {
     # the port your site will be served on
     listen      80;
-    # the domain name it will serve for
     server_name ownphotos.example.com 127.0.0.1;   # substitute by your FQDN and
 machine's IP address
     charset     utf-8;
@@ -190,7 +188,6 @@ machine's IP address
     client_max_body_size 75M;   # adjust to taste
 
 
-    # Finally, send all non-media requests to the Django server.
     location / {
         proxy_pass http://127.0.0.1:8001;
         proxy_set_header Host $host;
@@ -207,6 +204,7 @@ Restart nginx
 sudo service nginx restart
 ```
 
+Point your browser to the frontend domain name!
 
 
 ### Witout Docker (outdated.. See `Dockerfile` & `entrypoint.sh`)
