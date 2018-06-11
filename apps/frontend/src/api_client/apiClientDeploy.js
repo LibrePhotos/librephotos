@@ -1,3 +1,4 @@
+
 import axios from "axios";
 import { withAuth } from '../reducers'
 
@@ -19,11 +20,10 @@ function listener() {
  }
 }
 
-
-export var serverAddress = 'http://192.168.1.100'
+export var serverAddress = 'http://changeme'
 
 export var Server = axios.create({
-  baseURL: 'http://192.168.1.100/api/',
+  baseURL: 'http://changeme/api/',
   headers: {
     'Content-Type': 'application/json'
   },
