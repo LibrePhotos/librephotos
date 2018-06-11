@@ -22,7 +22,7 @@ gunicorn --bind 0.0.0.0:8001 ownphotos.wsgi &
 
 
 
-sed -i -e 's/replaceme/'"$BACKEND_HOST"'/g' /code/ownphotos-frontend/src/api_client/apiClient.js
+sed -i -e 's/changeme/'"$BACKEND_HOST"'/g' /code/ownphotos-frontend/src/api_client/apiClient.js
 cd /code/ownphotos-frontend
 npm run build
 serve -s build
