@@ -56,39 +56,72 @@
 
 ## How do I run it?
 
+### Docker
 
-### Backend
+Ownphotos comes with separate backend and frontend
+servers. The backend serves the restful API, and the frontend serves, well,
+the frontend. The easiest way to do it is using Docker.
+
+Let's say you want the backend server to be reachable by
+`ownphotos-api.example.com` and the frontend by `ownphotos.example.com` from
+outside. On your browser, you will want to connect to the frontend, so 
+`ownphotos.example.com` will be the one you will point your browser to. 
+
+First, run cache (redis) and database (postgresql) containers. Please be mindful
+of the `POSTGRES_PASSWORD` environment variable being passed into the db
+container and change it.
+
+```
+docker run \ 
+    --restart always \
+    --name ownphotos-db \
+    -e POSTGRES_PASSWORD=CHANGE_ME_DB_PASS \
+    -e POSTGRES_DB=ownphotos \
+    -d postgres
+
+docker run \
+    --restart always \
+    --name ownphotos-redis \
+    -d redis
+```
 
 
-#### Docker
-
-
-Clone the repo:
-
+Next, we are going to build the container image. Clone the repo.
 
 ```
 git clone https://github.com/hooram/ownphotos-backend.git
 cd ownphotos-backend
 ```
 
-Run Redis and DB containers:
-
-```
-docker run --name ownphotos-db -e POSTGRES_PASSWORD=CHANGE_ME_DB_PASS -e POSTGRES_DB=ownphotos -d postgres
-docker run --name ownphotos-redis -d redis
-```
-
-
-Build the docker image:
+And build the docker image:
 
 
 ```
 docker build -t ownphotos-backend .
 ```
 
+Now that we have a docker container image, we can run the container. There are
+several options you need to specify.
+
+- Where your photos live on the host machine.
+- Where you want the thumbnails and face images to live on the host machine.
+  Ownphotos will make fullsize copies, thumbnails of all your images, and cropped faces for serving, so you
+  will need quite a lot of storage space on your host machine if you have a big library.
+- `SECRET_KEY`: Secret key for django. Generate some random string and use that.
+- `ADMIN_EMAIL`,`ADMIN_USERNAME`,`ADMIN_PASSWORD`: Your admin credentials. This is what you will use to log in.
+- `DB_PASS`: The one that you specified when running the database container from above.
+- `MAPBOX_API_KEY`: Your Mapbox API key. You can sign up for free on mapbox.com and get one there.
+- `BACKEND_HOST`: The domain name the backend API server will be reachable from.
+  In our case, it's `ownphotos-api.example.com`. 
+- Port 80 on the container is for the backend. For this example, we will map it
+  to port 8000 on the host machine.
+- Port 3000 on the container is for the frontend. For this example, we will map
+  it to port 8001 on the host machine.
+
+
 ```
 docker run \
-    -v /where/you/dump/your/photos/on/host:/data \
+    -v /where/your/photos/live/on/host:/data \
     -v /place/to/store/thumbnails/and/faces/and/fullsize/copy/on/host:/code/media \
     --link ownphotos-db:ownphotos-db \
     --link ownphotos-redis:ownphotos-redis \
@@ -108,14 +141,77 @@ docker run \
     -e MAPBOX_API_KEY=CHANGE_ME \
     -e BACKEND_HOST=CHANGE_ME \
     -p 8000:80 \
+    -p 8001:3000 \
     --name ownphotos-backend \
     ownphotos-backend
 ```
 
+Next, you need to configure the webserver on your host machine for proxy. If
+you're using nginx, 
+
+Add the following to your nginx configurations. Make sure to change the
+`server_name` parameters for both the backend and frontend to suit your needs!
+If you want to use https, you probably know what you need to do. If you do
+though, make sure http requests get redirected to https. It's important!
 
 
-#### Witout Docker
+```
+server {
+    # the port your site will be served on
+    listen      80;
+    # the domain name it will serve for
+    server_name ownphotos-api.example.com 127.0.0.1;   # substitute by your FQDN and
+machine's IP address
+    charset     utf-8;
 
+    #Max upload size
+    client_max_body_size 75M;   # adjust to taste
+
+
+    # Finally, send all non-media requests to the Django server.
+    location / {
+        proxy_pass http://127.0.0.1:8001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+
+
+server {
+    # the port your site will be served on
+    listen      80;
+    # the domain name it will serve for
+    server_name ownphotos.example.com 127.0.0.1;   # substitute by your FQDN and
+machine's IP address
+    charset     utf-8;
+
+    #Max upload size
+    client_max_body_size 75M;   # adjust to taste
+
+
+    # Finally, send all non-media requests to the Django server.
+    location / {
+        proxy_pass http://127.0.0.1:8001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+
+Restart nginx
+
+```
+sudo service nginx restart
+```
+
+
+
+### Witout Docker (outdated.. See `Dockerfile` & `entrypoint.sh`)
+
+#### Backend
 
 Tested on Ubuntu 16.04 and macOS Sierra.
 
@@ -249,7 +345,7 @@ python manage.py runserver
 
 
 
-### Frontend
+#### Frontend
 
 Install node and npm. For development I am using node v6.11.0 and npm v5.1.0.
 

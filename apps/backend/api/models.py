@@ -443,7 +443,6 @@ class Photo(models.Model):
 
         if self.geolocation_json and len(self.geolocation_json) > 0:
             city_name = [f['text'] for f in self.geolocation_json['features'][1:-1] if not f['text'].isdigit()][0]
-            print(city_name)
             if album_date.location and len(album_date.location) > 0:
                 prev_value = album_date.location
                 new_value = prev_value
@@ -470,8 +469,6 @@ class Photo(models.Model):
                                 if album_place.cover_photos.count() < 4:
                                     album_place.cover_photos.add(self)
                                 album_place.save()
-                                logger.info('album place title: %s, level: %d, added photo: %s'%(feature['text'],album_place.geolocation_level,self.image_hash))
-                                print('album place title: %s, level: %d, added photo: %s'%(feature['text'],album_place.geolocation_level,self.image_hash))
         else:
             logger.warning('photo not addded to album place')
             print('photo not added to album place')

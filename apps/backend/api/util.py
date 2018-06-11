@@ -140,7 +140,6 @@ def mapbox_reverse_geocode(lat,lon):
             for feature in resp_json['features']:
                 search_terms.append(feature['text'])
 
-        logger.info('location search terms: %s'%(' '.join(search_terms)))
         resp_json['search_text'] = ' '.join(search_terms)
         return resp_json
     else:
