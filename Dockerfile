@@ -15,9 +15,8 @@ RUN apt-get update && \
     python3 \
     python3-pip \
     wget \
-    nginx \
-    && \
-    rm -rf /var/lib/apt/lists/*
+    curl \
+    nginx 
 
 # RUN apt-get install libopenblas-dev liblapack-dev
 
@@ -58,6 +57,21 @@ RUN wget https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/im2txt_model.tar
 RUN tar xf im2txt_model.tar.gz
 RUN wget https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/im2txt_data.tar.gz
 RUN tar xf im2txt_data.tar.gz
+
+
+WORKDIR /
+RUN curl -sL https://deb.nodesource.com/setup_8.x -o nodesource_setup.sh 
+RUN bash nodesource_setup.sh
+RUN apt-get install nodejs
+
+RUN rm -rf /var/lib/apt/lists/*
+
+WORKDIR /code
+RUN git clone https://github.com/hooram/ownphotos-frontend.git
+WORKDIR /code/ownphotos-frontend
+RUN mv /code/ownphotos-frontend/src/api_client/apiClientDeploy.js /code/ownphotos-frontend/src/api_client/apiClient.js
+RUN npm install
+RUN npm install -g serve
 
 RUN apt-get remove --purge -y cmake git && \
     rm -rf /var/lib/apt/lists/*
