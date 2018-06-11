@@ -29,21 +29,20 @@
   - Detect objects in photos, and make them searchable by objects 
   - Search photos by the location 
   - Authentication (using JWT)
-
-
+  - Create custom albums
+  - Docker ready
+  
 #### - Upcoming
 
   - Short term:
-    - Create custom albums
+    - Share photos/albums
 
   - Longer term, i.e. haven't thought much about them
-    - Share photos/albums
     - Basic photo editing, like rotation
     - Tag undetected face
     - Add cool graphs
 
-  - Finally:
-    - dockerize
+
 
 
 ## What does it use?
