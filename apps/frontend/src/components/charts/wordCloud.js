@@ -15,7 +15,7 @@ export class WordCloud extends Component {
 
   componentDidMount() {
     if (!this.props.fetchedWordCloud) {
-      // this.props.dispatch(fetchWordCloud())
+      this.props.dispatch(fetchWordCloud())
     }
   }
 

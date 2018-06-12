@@ -39,9 +39,6 @@ export class Statistics extends Component {
   // componentWillUnmount() {
   //   clearInterval(this.state.intervalId)
   // }
-  componentWillMount() {
-    this.props.dispatch(fetchWordCloud())
-  }
 
   // onPhotoScanButtonClick = e => {
   //   this.props.dispatch(scanPhotos())

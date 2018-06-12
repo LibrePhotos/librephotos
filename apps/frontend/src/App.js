@@ -93,6 +93,7 @@ import NotificationSystem from 'reapop'
 import theme from 'reapop-theme-wybo';
 
 import {AllPhotosMap, EventMap, LocationClusterMap} from './components/maps'
+import {CountStats} from './components/statistics'
 
 
 import {
@@ -202,6 +203,7 @@ class App extends Component {
               <PrivateRoute path='/timeline' component={Timeline}/>
               <PrivateRoute path='/socialgraph' component={Graph}/>
               <PrivateRoute path='/facescatter' component={FaceScatter}/>
+              <PrivateRoute path='/countstats' component={CountStats}/>
 
 
         </Switch>
