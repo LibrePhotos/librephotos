@@ -10,12 +10,3 @@
 
 [More detailed info on the backend repo readme](https://github.com/hooram/ownphotos-backend)
 
-# Screenshots
-
-![](/screenshots/statistics-fullpage.png)
-![](/screenshots/datelistview.png)
-![](/screenshots/dategalleryview.png)
-![](/screenshots/eventlistview.png)
-![](/screenshots/eventgalleryview.png)
-![](/screenshots/eventfavoriteview.png)
-![](/screenshots/facedashboard.png)
