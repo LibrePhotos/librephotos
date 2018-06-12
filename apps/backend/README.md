@@ -148,8 +148,7 @@ though, make sure http requests get redirected to https. It's important!
 server {
     # the port your site will be served on
     listen      80;
-    server_name ownphotos-api.example.com;   # substitute by your FQDN and
-machine's IP address
+    server_name ownphotos-api.example.com;
     charset     utf-8;
 
     #Max upload size
@@ -167,13 +166,11 @@ machine's IP address
 server {
     # the port your site will be served on
     listen      80;
-    server_name ownphotos.example.com;   # substitute by your FQDN and
-machine's IP address
+    server_name ownphotos.example.com;
     charset     utf-8;
 
     #Max upload size
     client_max_body_size 75M;   # adjust to taste
-
 
     location / {
         proxy_pass http://127.0.0.1:8001;

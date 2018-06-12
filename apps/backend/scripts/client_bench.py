@@ -6,7 +6,7 @@ import ipdb
 auth = HTTPBasicAuth('admin','q1W@e3R$')
 
 start = datetime.datetime.now()
-
+'''
 resp_location_sunburst = requests.get('http://localhost:8000/api/locationsunburst/',auth=auth)
 print('location_sunburst: \t| %.2f ms'%(resp_location_sunburst.elapsed.total_seconds()*1000))
 
@@ -38,11 +38,16 @@ print('faces_inferred: \t| %.2f ms'%(resp_faces_inferred.elapsed.total_seconds()
 # resp_photos = requests.get('http://192.168.1.100:8000/api/photos/list/',auth=auth)
 # print(resp_photos.elapsed.total_seconds()*1000)
 # resp_photos_json = resp_photos.json()
-
+'''
 
 resp_album_date = requests.get('http://localhost:8000/api/albums/date/photohash/list/',auth=auth)
 print('album_date_list: \t| %.2f ms'%(resp_album_date.elapsed.total_seconds()*1000))
 
+resp_photo_list = requests.get('http://localhost:8000/api/photos/list/',auth=auth)
+print('photo_list: \t| %.2f ms'%(resp_photo_list.elapsed.total_seconds()*1000))
+
+resp_fav_photo_list = requests.get('http://localhost:8000/api/photos/favorites/',auth=auth)
+print('fav_photo_list: \t| %.2f ms'%(resp_fav_photo_list.elapsed.total_seconds()*1000))
 
 
 # resp_album_auto = requests.get('http://localhost:8000/api/albums/auto/list/',auth=auth).json()
