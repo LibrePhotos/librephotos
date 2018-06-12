@@ -1,6 +1,7 @@
 export default function reducer(state={
     showSidebar: true,
     contentWidth: window.innerWidth-20,
+    gridType:'dense',
     error: null,
   }, action) {
 
@@ -10,6 +11,10 @@ export default function reducer(state={
         const contentWidth = showSidebar ? window.innerWidth - 85 : window.innerWidth 
 
         return {...state, showSidebar: !state.showSidebar, contentWidth:contentWidth}
+    }
+
+    case "SET_GRID_TYPE": {
+        return {...state,gridType:action.payload}
     }
 
     default: {

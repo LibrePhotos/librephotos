@@ -1,3 +1,24 @@
+import store from '../store'
+
+store.subscribe(listener)
+
+function select(state) {
+ return state.ui
+}
+
+var gridType = 'dense'
+
+function listener() {
+ var ui = select(store.getState())
+ gridType = ui.gridType
+ if (ui.gridType==='dense') {
+   console.log('dense grid')
+ } else {
+   console.log('loose grid')
+ }
+}
+
+
 export const calculateGridCells = (groupedByDateList,itemsPerRow) => {
     var gridContents = []
     var rowCursor = []
@@ -31,21 +52,41 @@ export const calculateGridCells = (groupedByDateList,itemsPerRow) => {
 export const calculateGridCellSize = (gridWidth) => {
     var numEntrySquaresPerRow
     
-    if (gridWidth < 600) {
-        numEntrySquaresPerRow = 2
-    } 
-    else if (gridWidth < 800) {
-        numEntrySquaresPerRow = 3
+    if (gridType==='dense') {
+        if (gridWidth < 600) {
+            numEntrySquaresPerRow = 2
+        } 
+        else if (gridWidth < 800) {
+            numEntrySquaresPerRow = 3
+        }
+        else if (gridWidth < 1000) {
+            numEntrySquaresPerRow = 5
+        }
+        else if (gridWidth < 1200) {
+            numEntrySquaresPerRow = 7
+        }
+        else {
+            numEntrySquaresPerRow = 8 
+        }
+    } else {
+        if (gridWidth < 600) {
+            numEntrySquaresPerRow = 1
+        } 
+        else if (gridWidth < 800) {
+            numEntrySquaresPerRow = 2
+        }
+        else if (gridWidth < 1000) {
+            numEntrySquaresPerRow = 3
+        }
+        else if (gridWidth < 1200) {
+            numEntrySquaresPerRow = 4
+        }
+        else {
+            numEntrySquaresPerRow = 4
+        }
     }
-    else if (gridWidth < 1000) {
-        numEntrySquaresPerRow = 5
-    }
-    else if (gridWidth < 1200) {
-        numEntrySquaresPerRow = 7
-    }
-    else {
-        numEntrySquaresPerRow = 8 
-    }
+
+
 
     var entrySquareSize = gridWidth / numEntrySquaresPerRow
     var numEntrySquaresPerRow = numEntrySquaresPerRow

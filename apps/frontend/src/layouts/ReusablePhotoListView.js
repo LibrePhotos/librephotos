@@ -476,6 +476,9 @@ export class PhotoListView extends Component {
         if (prevProps.showSidebar !== this.props.showSidebar) {
             this.handleResize()
         }
+        if (prevProps.gridType !== this.props.gridType) {
+            this.handleResize()
+        }
     }
 
 
@@ -942,6 +945,7 @@ ModalAlbumEdit = connect((store)=>{
 PhotoListView = connect((store)=>{
   return {
     showSidebar: store.ui.showSidebar,
+    gridType: store.ui.gridType,
 
     photos: store.photos.photos,
     fetchingPhotos: store.photos.fetchingPhotos,

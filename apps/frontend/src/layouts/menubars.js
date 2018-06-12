@@ -7,7 +7,7 @@ import {toggleSidebar} from '../actions/uiActions'
 import {searchPhotos,searchPeople,searchPlaceAlbums,searchThingAlbums} from '../actions/searchActions'
 import {fetchUserAlbum, fetchUserAlbumsList,fetchPlaceAlbum,fetchPeopleAlbums,fetchPlaceAlbumsList,fetchThingAlbumsList} from '../actions/albumsActions'
 import {fetchPeople} from '../actions/peopleActions'
-import {fetchExampleSearchTerms,fetchWorkerAvailability} from '../actions/utilActions'
+import {fetchExampleSearchTerms,fetchWorkerAvailability,fetchCountStats} from '../actions/utilActions'
 import { push } from 'react-router-redux'
 import store from '../store'
 import jwtDecode from 'jwt-decode'
@@ -61,6 +61,7 @@ export class TopMenu extends Component {
       this.props.dispatch(fetchThingAlbumsList())
       this.props.dispatch(fetchUserAlbumsList())
       this.props.dispatch(fetchExampleSearchTerms())
+      this.props.dispatch(fetchCountStats())
       window.addEventListener('resize',this.handleResize.bind(this))
       this.exampleSearchTermCylcer = setInterval(()=>{
         this.setState({exampleSearchTerm:  'Search ' + this.props.exampleSearchTerms[Math.floor(Math.random()*this.props.exampleSearchTerms.length)]})
@@ -149,7 +150,9 @@ export class TopMenu extends Component {
   }
 
   render() {
-    var searchBarWidth = this.state.width > 600 ? this.state.width - 450 : this.state.width - 170
+    var searchBarWidth = this.state.width > 600 ? this.state.width - 200 : this.state.width - 220
+    var searchBarWidth = this.state.width - 300
+
     
     const {filteredSuggestedUserAlbums, filteredExampleSearchTerms, filteredSuggestedPeople, filteredSuggestedPlaces, filteredSuggestedThings} = this.state
 
@@ -371,13 +374,13 @@ export class TopMenu extends Component {
             </div>
           }
 
-          <div style={{paddingRight:20,paddingTop:8,width:(window.innerWidth-searchBarWidth)/2,right:0,position:'absolute',textAlign:'right'}}>
+          <div style={{paddingRight:20,paddingTop:2,width:(window.innerWidth-searchBarWidth)/2,right:0,position:'absolute',textAlign:'right'}}>
           
           { !this.props.workerAvailability &&
             <Popup 
               size='mini'
               trigger={
-                <Icon 
+                <Icon style={{paddingRight:10}} 
                   name='circle' 
                   color={!this.props.workerAvailability ? 'red' : 'green'}/>
               }
@@ -386,8 +389,33 @@ export class TopMenu extends Component {
               content={!this.props.workerAvailability && this.props.workerRunningJob ? 'Running "'+ this.props.workerRunningJob.job_type_str+'"...' : 'Busy...'}/>
           }
 
+          <Button.Group style={{paddingRight:10}}>
+            <Popup trigger={
+                <Button 
+                    onClick={()=>{this.props.dispatch({type:"SET_GRID_TYPE",payload:'loose'})}}
+                    icon 
+                    compact 
+                    size='small' 
+                    active={this.props.gridType==='loose'}>
+                    <Icon name='block layout'/>
+                </Button>
+              } content={'Sparse grid'}/>
+
+            <Popup trigger={
+                <Button 
+                    onClick={()=>{this.props.dispatch({type:"SET_GRID_TYPE",payload:'dense'})}}
+                    icon 
+                    compact 
+                    size='small' 
+                    active={this.props.gridType==='dense'}>
+                    <Icon name='grid layout'/>
+                </Button>
+            } content={'Dense grid'}/>}
+            </Button.Group>
+
+
           <b>
-            <Dropdown icon='user' inline pointing='top right'>
+            <Dropdown icon={<Icon circular name='user'/>} inline pointing='top right'>
               <Dropdown.Menu>
                 <Dropdown.Item onClick={()=>this.props.dispatch(logout())}>
                   <Icon name='sign out' /><b>Logout</b>
@@ -544,6 +572,11 @@ export class SideMenuNarrow extends Component {
                 <Dropdown.Item as={Link} to='/facescatter'>
                     <Icon name='users circle'/>
                     {"  Face Clusters"}
+                </Dropdown.Item>
+
+                <Dropdown.Item as={Link} to='/countstats'>
+                    <Icon name='hashtag'/>
+                    {"  Count Stats"}
                 </Dropdown.Item>
 
             </Dropdown.Menu>
@@ -736,6 +769,7 @@ SideMenu = connect((store)=>{
 TopMenu = connect((store)=>{
   return {
     showSidebar: store.ui.showSidebar,
+    gridType: store.ui.gridType,
 
     workerAvailability: store.util.workerAvailability,
     workerRunningJob: store.util.workerRunningJob,
