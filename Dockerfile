@@ -112,7 +112,6 @@ EXPOSE 5000
 
 COPY . /code
 
-RUN mkdir /code/logs
 
 RUN mv /code/config_docker.py /code/config.py
 
