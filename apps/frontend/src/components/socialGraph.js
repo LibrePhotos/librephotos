@@ -26,12 +26,12 @@ export class SocialGraph extends Component {
 		var myConfig = {
 			automaticRearrangeAfterDropNode: false,
 			staticGraph:true,
-		    highlightBehavior: true,
+		    nodeHighlightBehavior: true,
 		    maxZoom: 4,
 		    minZoom: 0.1,
 		    node: {
 		    	fontSize: 10,
-		    	size: 200,
+		    	size: 500,
 		        color: 'lightblue',
 		        highlightFontSize: 15,
 		        highlightStrokeColor: 'orange'
@@ -44,7 +44,8 @@ export class SocialGraph extends Component {
 		    width: width
 		}
 
-		if (this.props.fetched) {
+		if (this.props.fetched && this.props.socialGraph.nodes.length > 0) {
+            console.log(this.props.socialGraph)
 			var graph = <Graph id='social-graph'
 					config={myConfig}
 					data={this.props.socialGraph}/>
