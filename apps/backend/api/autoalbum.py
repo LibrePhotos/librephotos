@@ -38,13 +38,14 @@ import rq
 #     else:
 #         status = False
 #     return {"status":status}
-    
+
 # go through all photos
 
 
 @job
-def regenerate_event_titles():
+def regenerate_event_titles(user):
     lrj = LongRunningJob(
+        started_by=user,
         job_id=rq.get_current_job().id,
         started_at=datetime.now(),
         job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUM_TITLES)
@@ -52,14 +53,14 @@ def regenerate_event_titles():
 
     try:
 
-        aus = AlbumAuto.objects.all().prefetch_related('photos')
+        aus = AlbumAuto.objects.filter(owner=user).prefetch_related('photos')
         for au in tqdm(aus):
             au._autotitle()
             au.save()
 
         status = True
         message = 'success'
-        res = {'status':status, 'message':message}
+        res = {'status': status, 'message': message}
 
         lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
         lrj.finished = True
@@ -67,23 +68,23 @@ def regenerate_event_titles():
         lrj.result = res
         lrj.save()
 
-
     except:
         status = False
-        res = {'status':status, 'message':'failed'}
+        res = {'status': status, 'message': 'failed'}
 
         lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
         lrj.failed = True
         lrj.finished = True
         lrj.finished_at = datetime.now()
-        lrj.save()    
+        lrj.save()
 
     return True
 
 
 @job
-def generate_event_albums():
+def generate_event_albums(user):
     lrj = LongRunningJob(
+        started_by=user,
         job_id=rq.get_current_job().id,
         started_at=datetime.now(),
         job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUMS)
@@ -92,51 +93,48 @@ def generate_event_albums():
     if is_auto_albums_being_processed()['status']:
         status = False
         message = "There are even albums being created at the moment. Please try again later."
-        return {'status':status, 'message':message}
-
+        return {'status': status, 'message': message}
 
     set_auto_album_processing_flag_on()
-    photo_count = Photo.objects.count()
+    photo_count = Photo.objects.filter(owner=user).count()
     if photo_count == 0:
         status = False
         message = "Please add some more photos!"
         set_auto_album_processing_flag_off()
-        return {'status':status, 'message':message}
+        return {'status': status, 'message': message}
     else:
         if is_photos_being_added()['status']:
             status = False
             message = "There are photos being added to the library. Please try again later."
             set_auto_album_processing_flag_off()
-            return {'status':status, 'message':message}
-
-
-
-
-
+            return {'status': status, 'message': message}
 
     try:
-        photos = Photo.objects.all()
+        photos = Photo.objects.filter(owner=user)
 
-        photos_with_timestamp = [(photo.exif_timestamp,photo) for photo in photos if photo.exif_timestamp]
-        timestamps = [photo.exif_timestamp for photo in photos if photo.exif_timestamp]
+        photos_with_timestamp = [(photo.exif_timestamp, photo)
+                                 for photo in photos if photo.exif_timestamp]
+        timestamps = [
+            photo.exif_timestamp for photo in photos if photo.exif_timestamp
+        ]
 
-        def group(photos_with_timestamp,dt=timedelta(hours=6)):
-            photos_with_timestamp = sorted(photos_with_timestamp, key=lambda x: x[0])
+        def group(photos_with_timestamp, dt=timedelta(hours=6)):
+            photos_with_timestamp = sorted(
+                photos_with_timestamp, key=lambda x: x[0])
             groups = []
             for photo in photos_with_timestamp:
                 if len(groups) == 0:
                     groups.append([])
                     groups[-1].append(photo[1])
                 else:
-                    if photo[0]-groups[-1][-1].exif_timestamp < dt:
+                    if photo[0] - groups[-1][-1].exif_timestamp < dt:
                         groups[-1].append(photo[1])
                     else:
                         groups.append([])
                         groups[-1].append(photo[1])
             return groups
 
-
-        groups = group(photos_with_timestamp,dt=timedelta(days=1,hours=12))
+        groups = group(photos_with_timestamp, dt=timedelta(days=1, hours=12))
 
         album_locations = []
 
@@ -145,9 +143,9 @@ def generate_event_albums():
             print(key)
             items = group
             if len(group) >= 2:
-                qs = AlbumAuto.objects.filter(timestamp=key)
+                qs = AlbumAuto.objects.filter(timestamp=key).filter(owner=user)
                 if qs.count() == 0:
-                    album = AlbumAuto(created_on=datetime.utcnow())
+                    album = AlbumAuto(created_on=datetime.utcnow(), owner=user)
                     album.timestamp = key
                     album.save()
 
@@ -156,10 +154,11 @@ def generate_event_albums():
                         album.photos.add(item)
                         item.save()
                         if item.exif_gps_lat and item.exif_gps_lon:
-                            locs.append([item.exif_gps_lat,item.exif_gps_lon])
-                        print('-', item.image_hash, item.exif_gps_lat, item.exif_gps_lon)
+                            locs.append([item.exif_gps_lat, item.exif_gps_lon])
+                        print('-', item.image_hash, item.exif_gps_lat,
+                              item.exif_gps_lon)
                     if len(locs) > 0:
-                        album_location = np.mean(np.array(locs),0)
+                        album_location = np.mean(np.array(locs), 0)
                         album_locations.append(album_location)
                         album.gps_lat = album_location[0]
                         album.gps_lon = album_location[1]
@@ -169,7 +168,7 @@ def generate_event_albums():
                     album.save()
         status = True
         message = 'success'
-        res = {'status':status, 'message':message}
+        res = {'status': status, 'message': message}
 
         lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
         lrj.finished = True
@@ -177,16 +176,15 @@ def generate_event_albums():
         lrj.result = res
         lrj.save()
 
-
     except:
         status = False
-        res = {'status':status, 'message':'failed'}
+        res = {'status': status, 'message': 'failed'}
 
         lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
         lrj.failed = True
         lrj.finished = True
         lrj.finished_at = datetime.now()
-        lrj.save()    
+        lrj.save()
 
     set_auto_album_processing_flag_off()
     return 1

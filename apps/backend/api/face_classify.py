@@ -25,47 +25,51 @@ import rq
 
 import datetime
 
-def cluster_faces():
+
+def cluster_faces(user):
     # for front end cluster visualization
 
-    people = [p.id for p in Person.objects.all()]
-    colors = sns.color_palette('Dark2',len(people)).as_hex()
-    p2c = dict(zip(people,colors))
+    people = [
+        p.id
+        for p in Person.objects.filter(faces__photo__owner=user).distinct()
+    ]
+    colors = sns.color_palette('Dark2', len(people)).as_hex()
+    p2c = dict(zip(people, colors))
 
-
-    faces = Face.objects.all()
+    faces = Face.objects.filter(photo__owner=user)
     face_encodings_all = []
     for face in faces:
         face_encoding = np.frombuffer(bytes.fromhex(face.encoding))
         face_encodings_all.append(face_encoding)
 
-
     pca = PCA(n_components=3)
     vis_all = pca.fit_transform(np.array(face_encodings_all))
-#     vis_all = TSNE(n_components=2,n_iter=100000,verbose=1).fit_transform(face_encodings_all)
+    #     vis_all = TSNE(n_components=2,n_iter=100000,verbose=1).fit_transform(face_encodings_all)
 
     res = []
     for face, vis in zip(faces, vis_all):
-        person_id = face.person.id #color
+        person_id = face.person.id  #color
         person_name = face.person.name
         person_label_is_inferred = face.person_label_is_inferred
         face_url = face.image.url
-        value = {'x':vis[0],'y':vis[1],'size':vis[2]}
-#         value = {'x':vis[0],'y':vis[1],'size':0.1}
+        value = {'x': vis[0], 'y': vis[1], 'size': vis[2]}
+        #         value = {'x':vis[0],'y':vis[1],'size':0.1}
         out = {
-            "person_id":person_id,
-            "person_name":person_name,
-            "person_label_is_inferred":person_label_is_inferred,
-            "color":p2c[person_id],
-            "face_url":face_url,
-            "value":value}
+            "person_id": person_id,
+            "person_name": person_name,
+            "person_label_is_inferred": person_label_is_inferred,
+            "color": p2c[person_id],
+            "face_url": face_url,
+            "value": value
+        }
         res.append(out)
     return res
 
 
 @job
-def train_faces():
+def train_faces(user):
     lrj = LongRunningJob(
+        started_by=user,
         job_id=rq.get_current_job().id,
         started_at=datetime.datetime.now(),
         job_type=LongRunningJob.JOB_TRAIN_FACES)
@@ -73,7 +77,8 @@ def train_faces():
 
     try:
 
-        faces = Face.objects.all().prefetch_related('person')
+        faces = Face.objects.filter(
+            photo__owner=user).prefetch_related('person')
 
         id2face_unknown = {}
         id2face_known = {}
@@ -106,14 +111,16 @@ def train_faces():
                 id2face_known[face_id]['person_name'] = person_name
                 id2face_known[face_id]['person_id'] = person_id
 
-
-        face_encodings_known = np.array([f['encoding'] for f in id2face_known.values()])
-        person_names_known = np.array([f['person_name'] for f in id2face_known.values()])
+        face_encodings_known = np.array(
+            [f['encoding'] for f in id2face_known.values()])
+        person_names_known = np.array(
+            [f['person_name'] for f in id2face_known.values()])
 
         n_clusters = len(set(person_names_known.tolist()))
 
         # clf = SGDClassifier(loss='log',penalty='l2')
-        clf = MLPClassifier(solver='adam',alpha=1e-5,random_state=1,max_iter=1000)
+        clf = MLPClassifier(
+            solver='adam', alpha=1e-5, random_state=1, max_iter=1000)
         # clf = svm.SVC(kernel='linear')
         # scaler = StandardScaler()
         # scaler.fit(face_encodings_all)
@@ -122,12 +129,16 @@ def train_faces():
         Y = person_names_known
         clf.fit(X, person_names_known)
 
-        face_encodings_unknown = np.array([f['encoding'] for f in id2face_unknown.values()])
-        face_paths_unknown = [f['image_path'] for f in id2face_unknown.values()]
+        face_encodings_unknown = np.array(
+            [f['encoding'] for f in id2face_unknown.values()])
+        face_paths_unknown = [
+            f['image_path'] for f in id2face_unknown.values()
+        ]
         face_ids_unknown = [f['id'] for f in id2face_unknown.values()]
         pred = clf.predict(face_encodings_unknown)
-        probs = np.max(clf.predict_proba(face_encodings_unknown),1)
-        for face_id, person_name, probability in zip(face_ids_unknown, pred, probs):
+        probs = np.max(clf.predict_proba(face_encodings_unknown), 1)
+        for face_id, person_name, probability in zip(face_ids_unknown, pred,
+                                                     probs):
             person = Person.objects.get(name=person_name)
             face = Face.objects.get(id=face_id)
             face.person = person
@@ -150,11 +161,10 @@ def train_faces():
         lrj.failed = True
         lrj.finished = True
         lrj.finished_at = datetime.datetime.now()
-        lrj.save()    
+        lrj.save()
 
     return res
 
 
-
 if __name__ == "__main__":
-    res=train_faces()
+    res = train_faces()
