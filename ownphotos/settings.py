@@ -17,7 +17,6 @@ from api.im2txt.build_vocab import Vocabulary
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
 
@@ -27,7 +26,9 @@ RQ_API_TOKEN = os.environ['SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = (os.environ.get('DEBUG', '').lower() == 'true')
 
-ALLOWED_HOSTS = ['192.168.1.100','localhost',os.environ.get('BACKEND_HOST')]
+ALLOWED_HOSTS = ['192.168.1.100', 'localhost', os.environ.get('BACKEND_HOST')]
+
+AUTH_USER_MODEL = 'api.User'
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': datetime.timedelta(minutes=60),
@@ -49,22 +50,22 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_extensions',
     "django_rq",
-#     'cachalot',
-#     'cacheops',
+    #     'cachalot',
+    #     'cacheops',
 ]
 
-INTERNAL_IPS = ('127.0.0.1', 'localhost','192.168.1.100')
+INTERNAL_IPS = ('127.0.0.1', 'localhost', '192.168.1.100')
 
 # CACHEOPS_REDIS = {
 #     'host': os.environ['REDIS_HOST'], # redis-server is on same machine
 #     'port': os.environ["REDIS_PORT"], # default redis port
 #     'db': 1             # SELECT non-default redis database
 # }
-# 
+#
 # CACHEOPS_DEFAULTS = {
 #     'timeout': 60*60
 # }
-# 
+#
 # CACHEOPS = {
 #     # 'auth.user': {'ops': 'get', 'timeout': 60*15},
 #     # 'auth.*': {'ops': ('fetch', 'get')},
@@ -87,35 +88,30 @@ CORS_ALLOW_HEADERS = (
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAdminUser',
-        'rest_framework.permissions.IsAuthenticated',
-    ),
+        # 'rest_framework.permissions.IsAdminUser',
+        'rest_framework.permissions.IsAuthenticated', ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
-#         'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        #         'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
     ),
-    'DEFAULT_FILTER_BACKENDS': (
-        'django_filters.rest_framework.DjangoFilterBackend',
-    ),
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 20000,
+    'DEFAULT_FILTER_BACKENDS':
+    ('django_filters.rest_framework.DjangoFilterBackend', ),
+    'DEFAULT_PAGINATION_CLASS':
+    'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE':
+    20000,
 }
-
 
 REST_FRAMEWORK_EXTENSIONS = {
     'DEFAULT_OBJECT_CACHE_KEY_FUNC':
-        'rest_framework_extensions.utils.default_object_cache_key_func',
+    'rest_framework_extensions.utils.default_object_cache_key_func',
     'DEFAULT_LIST_CACHE_KEY_FUNC':
-        'rest_framework_extensions.utils.default_list_cache_key_func',
+    'rest_framework_extensions.utils.default_list_cache_key_func',
 }
 
-
-
-
 MIDDLEWARE = [
-    
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -124,7 +120,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
 ]
 
 ROOT_URLCONF = 'ownphotos.urls'
@@ -152,7 +147,7 @@ WSGI_APPLICATION = 'ownphotos.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.'+os.environ['DB_BACKEND'],
+        'ENGINE': 'django.db.backends.' + os.environ['DB_BACKEND'],
         'NAME': os.environ['DB_NAME'],
         'USER': os.environ['DB_USER'],
         'PASSWORD': os.environ['DB_PASS'],
@@ -165,7 +160,6 @@ DATABASES = {
     # }
 }
 
-
 # CACHES = {
 #     'default': {
 #         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
@@ -177,13 +171,15 @@ DATABASES = {
 #     }
 # }
 
-
-
 CACHES = {
     "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://"+os.environ['REDIS_HOST']+":"+os.environ["REDIS_PORT"]+"/1",
-        "TIMEOUT": 60*60*24,
+        "BACKEND":
+        "django_redis.cache.RedisCache",
+        "LOCATION":
+        "redis://" + os.environ['REDIS_HOST'] + ":" + os.environ["REDIS_PORT"]
+        + "/1",
+        "TIMEOUT":
+        60 * 60 * 24,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
@@ -202,19 +198,22 @@ RQ_QUEUES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        'NAME':
+        'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'NAME':
+        'django.contrib.auth.password_validation.MinimumLengthValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        'NAME':
+        'django.contrib.auth.password_validation.CommonPasswordValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        'NAME':
+        'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.11/topics/i18n/
@@ -229,22 +228,19 @@ USE_L10N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR,'media')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+THUMBNAIL_SIZE_TINY = (30, 30)
+THUMBNAIL_SIZE_SMALL = (100, 100)
+THUMBNAIL_SIZE_MEDIUM = (500, 500)
+THUMBNAIL_SIZE = (500, 500)
+THUMBNAIL_SIZE_BIG = (1000, 1000)
 
-THUMBNAIL_SIZE_TINY = (30,30)
-THUMBNAIL_SIZE_SMALL = (100,100)
-THUMBNAIL_SIZE_MEDIUM = (500,500)
-THUMBNAIL_SIZE = (500,500)
-THUMBNAIL_SIZE_BIG = (1000,1000)
-
-FULLPHOTO_SIZE = (1000,1000)
+FULLPHOTO_SIZE = (1000, 1000)
 
 CORS_ORIGIN_ALLOW_ALL = True
-

@@ -26,9 +26,7 @@ from api import views
 
 from rest_framework_simplejwt.views import (
     # TokenObtainPairView,
-    TokenRefreshView,
-)
-
+    TokenRefreshView, )
 
 from api.views import media_access
 
@@ -36,6 +34,7 @@ import ipdb
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
+
 
 class TokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -45,103 +44,138 @@ class TokenObtainPairSerializer(TokenObtainPairSerializer):
         # Add custom claims
         # ipdb.set_trace()
         token['name'] = user.get_username()
+        token['is_admin'] = user.is_superuser
         # ...
 
         return token
 
+
 class TokenObtainPairView(TokenObtainPairView):
     serializer_class = TokenObtainPairSerializer
 
+
 router = routers.DefaultRouter()
 
-router.register(r'api/albums/auto/list', views.AlbumAutoListViewSet)
-router.register(r'api/albums/date/list', views.AlbumDateListViewSet)
-router.register(r'api/albums/date/photohash/list', views.AlbumDateListWithPhotoHashViewSet)
-router.register(r'api/albums/person/list', views.AlbumPersonListViewSet)
-router.register(r'api/albums/thing/list', views.AlbumThingListViewSet)
-router.register(r'api/albums/place/list', views.AlbumPlaceListViewSet)
-router.register(r'api/albums/user/list', views.AlbumUserListViewSet)
+router.register(r'api/manage/user', views.ManageUserViewSet)
 
-router.register(r'api/albums/user/edit', views.AlbumUserEditViewSet)
+router.register(
+    r'api/albums/auto/list',
+    views.AlbumAutoListViewSet,
+    base_name='album_auto')
+router.register(
+    r'api/albums/date/list',
+    views.AlbumDateListViewSet,
+    base_name='album_date')
+router.register(
+    r'api/albums/date/photohash/list',
+    views.AlbumDateListWithPhotoHashViewSet,
+    base_name='album_date')
+router.register(
+    r'api/albums/person/list',
+    views.AlbumPersonListViewSet,
+    base_name='person')
+router.register(
+    r'api/albums/thing/list',
+    views.AlbumThingListViewSet,
+    base_name='album_thing')
+router.register(
+    r'api/albums/place/list',
+    views.AlbumPlaceListViewSet,
+    base_name='album_place')
+router.register(
+    r'api/albums/user/list',
+    views.AlbumUserListViewSet,
+    base_name='album_user')
 
-router.register(r'api/albums/auto', views.AlbumAutoViewSet)
-router.register(r'api/albums/person', views.AlbumPersonViewSet)
+router.register(
+    r'api/albums/user/edit',
+    views.AlbumUserEditViewSet,
+    base_name='album_user')
+
+router.register(
+    r'api/albums/auto', views.AlbumAutoViewSet, base_name='album_auto')
+router.register(
+    r'api/albums/person', views.AlbumPersonViewSet, base_name='person')
 router.register(r'api/albums/date', views.AlbumDateViewSet)
-router.register(r'api/albums/thing', views.AlbumThingViewSet)
-router.register(r'api/albums/place', views.AlbumPlaceViewSet)
-router.register(r'api/albums/user', views.AlbumUserViewSet)
+router.register(
+    r'api/albums/thing', views.AlbumThingViewSet, base_name='album_thing')
+router.register(
+    r'api/albums/place', views.AlbumPlaceViewSet, base_name='album_place')
+router.register(
+    r'api/albums/user', views.AlbumUserViewSet, base_name='album_user')
 
-router.register(r'api/persons', views.PersonViewSet)
-router.register(r'api/photos/notimestamp/list', views.NoTimestampPhotoHashListViewSet)
-router.register(r'api/photos/edit', views.PhotoEditViewSet)
-router.register(r'api/photos/simplelist', views.PhotoSimpleListViewSet)
-router.register(r'api/photos/list', views.PhotoSuperSimpleListViewSet)
-router.register(r'api/photos/favorites', views.FavoritePhotoListViewset)
-router.register(r'api/photos/hidden', views.HiddenPhotoListViewset)
-router.register(r'api/photos/searchlist', views.PhotoSuperSimpleSearchListViewSet)
-router.register(r'api/photos', views.PhotoViewSet)
+router.register(r'api/persons', views.PersonViewSet, base_name='person')
+router.register(
+    r'api/photos/notimestamp/list',
+    views.NoTimestampPhotoHashListViewSet,
+    base_name='photo')
+router.register(r'api/photos/edit', views.PhotoEditViewSet, base_name='photo')
+router.register(
+    r'api/photos/simplelist', views.PhotoSimpleListViewSet, base_name='photo')
+router.register(
+    r'api/photos/list', views.PhotoSuperSimpleListViewSet, base_name='photo')
+router.register(
+    r'api/photos/favorites', views.FavoritePhotoListViewset, base_name='photo')
+router.register(
+    r'api/photos/hidden', views.HiddenPhotoListViewset, base_name='photo')
+router.register(
+    r'api/photos/searchlist',
+    views.PhotoSuperSimpleSearchListViewSet,
+    base_name='photo')
+router.register(r'api/photos', views.PhotoViewSet, base_name='photo')
 
-
-router.register(r'api/faces/inferred/list',views.FaceInferredListViewSet)
-router.register(r'api/faces/labeled/list',views.FaceLabeledListViewSet)
+router.register(
+    r'api/faces/inferred/list',
+    views.FaceInferredListViewSet,
+    base_name='face')
+router.register(
+    r'api/faces/labeled/list', views.FaceLabeledListViewSet, base_name='face')
 router.register(r'api/faces/list', views.FaceListViewSet)
 
-
-router.register(r'api/faces/inferred',views.FaceInferredViewSet)
-router.register(r'api/faces/labeled',views.FaceLabeledViewSet)
+router.register(
+    r'api/faces/inferred', views.FaceInferredViewSet, base_name='face')
+router.register(
+    r'api/faces/labeled', views.FaceLabeledViewSet, base_name='face')
 router.register(r'api/faces', views.FaceViewSet)
 
-
 router.register(r'api/jobs', views.LongRunningJobViewSet)
-
 
 urlpatterns = [
     url(r'^', include(router.urls)),
     url(r'^admin/', admin.site.urls),
-
-    url(r'^api/labelfaces', views.SetFacePersonLabel.as_view()),    
-    url(r'^api/deletefaces', views.DeleteFaces.as_view()),    
-
+    url(r'^api/dirtree', views.RootPathTreeView.as_view()),
+    url(r'^api/labelfaces', views.SetFacePersonLabel.as_view()),
+    url(r'^api/deletefaces', views.DeleteFaces.as_view()),
     url(r'^api/photosedit/favorite', views.SetPhotosFavorite.as_view()),
     url(r'^api/photosedit/hide', views.SetPhotosHidden.as_view()),
-
     url(r'^api/facetolabel', views.FaceToLabelView.as_view()),
     url(r'^api/trainfaces', views.TrainFaceView.as_view()),
     url(r'^api/clusterfaces', views.ClusterFaceView.as_view()),
     url(r'^api/socialgraph', views.SocialGraphView.as_view()),
     url(r'^api/egograph', views.EgoGraphView.as_view()),
     url(r'^api/scanphotos', views.ScanPhotosView.as_view()),
-    
     url(r'^api/autoalbumgen', views.AutoAlbumGenerateView.as_view()),
     url(r'^api/autoalbumtitlegen', views.RegenerateAutoAlbumTitles.as_view()),
-    
     url(r'^api/searchtermexamples', views.SearchTermExamples.as_view()),
     url(r'^api/locationsunburst', views.LocationSunburst.as_view()),
     url(r'^api/locationtimeline', views.LocationTimeline.as_view()),
-
     url(r'^api/stats', views.StatsView.as_view()),
     url(r'^api/locclust', views.LocationClustersView.as_view()),
-    url(r'^api/photocountrycounts', views.PhotoCountryCountsView.as_view()),    
-    url(r'^api/photomonthcounts', views.PhotoMonthCountsView.as_view()),    
-    url(r'^api/wordcloud', views.SearchTermWordCloudView.as_view()),    
-
+    url(r'^api/photocountrycounts', views.PhotoCountryCountsView.as_view()),
+    url(r'^api/photomonthcounts', views.PhotoMonthCountsView.as_view()),
+    url(r'^api/wordcloud', views.SearchTermWordCloudView.as_view()),
     url(r'^api/watcher/photo', views.IsPhotosBeingAddedView.as_view()),
     url(r'^api/watcher/autoalbum', views.IsAutoAlbumsBeingProcessed.as_view()),
-
-
     url(r'^api/auth/token/obtain/$', TokenObtainPairView.as_view()),
     url(r'^api/auth/token/refresh/$', TokenRefreshView.as_view()),
     # url(r'^media/(?P<path>.*)', media_access, name='media'),
-
     url(r'^api/rqavailable/$', views.QueueAvailabilityView.as_view()),
     url(r'^api/rqjobstat/$', views.RQJobStatView.as_view()),
 
-#     url(r'^api/token-auth/', obtain_jwt_token),
-#     url(r'^api/token-refresh/', refresh_jwt_token),
-#     url(r'^api/token-verify/', verify_jwt_token),
-]+static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    #     url(r'^api/token-auth/', obtain_jwt_token),
+    #     url(r'^api/token-refresh/', refresh_jwt_token),
+    #     url(r'^api/token-verify/', verify_jwt_token),
+] + static(
+    settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-
-urlpatterns += [
-    url('django-rq/', include('django_rq.urls'))
-]
+urlpatterns += [url('django-rq/', include('django_rq.urls'))]

@@ -24,4 +24,11 @@ playground
 api/im2txt/data/
 api/im2txt/models/
 api/im2txt/png/
-
+*.ipynb
+.ipynb_checkpoints/
+api/im2txt/*.tar.gz
+api/places365/*.tar.gz
+*.db
+media*
+*.log
+api/migrations_dev
