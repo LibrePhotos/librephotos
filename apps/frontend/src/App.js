@@ -94,7 +94,7 @@ import theme from 'reapop-theme-wybo';
 
 import {AllPhotosMap, EventMap, LocationClusterMap} from './components/maps'
 import {CountStats} from './components/statistics'
-
+import {UserManagement} from './layouts/UserManagement'
 
 import {
   PhotoMap,
@@ -195,7 +195,7 @@ class App extends Component {
               <PrivateRoute path='/useralbum/:albumID' component={AlbumUserGallery}/>
 
               
-
+              <PrivateRoute path='/users' component={UserManagement}/>
 
               <PrivateRoute path='/map' component={PhotoMap}/>
               <PrivateRoute path='/placetree' component={LocationTree}/>

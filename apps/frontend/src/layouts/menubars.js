@@ -259,28 +259,27 @@ export class TopMenu extends Component {
           fixed="top"
           size="mini"
         >
-          <Menu.Item>
-            <Icon
-              size="big"
-              onClick={() => {
-                this.props.dispatch(toggleSidebar());
-              }}
-              name={"sidebar"}
-            />
-            <Button
-              style={{
-                paddingTop: 4,
-                paddingBottom: 4,
-                paddingRight: 10,
-                paddingLeft: 10
-              }}
-            >
-              <Image height={30} src="/logo.png" />
-            </Button>
-          </Menu.Item>
-
-          <Menu.Menu position="right">
-            <Menu.Item position="right">
+          <Menu.Menu position="left">
+            <Menu.Item>
+              <Icon
+                size="big"
+                onClick={() => {
+                  this.props.dispatch(toggleSidebar());
+                }}
+                name={"sidebar"}
+              />
+              <Button
+                style={{
+                  paddingTop: 4,
+                  paddingBottom: 4,
+                  paddingRight: 10,
+                  paddingLeft: 10
+                }}
+              >
+                <Image height={30} src="/logo.png" />
+              </Button>
+            </Menu.Item>
+            <Menu.Item>
               <Input
                 size="large"
                 onFocus={() => {
@@ -305,7 +304,9 @@ export class TopMenu extends Component {
                 placeholder={this.state.exampleSearchTerm}
               />
             </Menu.Item>
+          </Menu.Menu>
 
+          <Menu.Menu position="right">
             <Menu.Item>
               <Popup
                 size="mini"
@@ -331,6 +332,7 @@ export class TopMenu extends Component {
               />
 
               <Dropdown
+                size='big'
                 button
                 icon="user"
                 labeled
@@ -352,6 +354,16 @@ export class TopMenu extends Component {
                     <Icon name="settings" />
                     <b>Settings</b>
                   </Dropdown.Item>
+                  {this.props.auth.access.is_admin && <Dropdown.Divider/>}
+
+                  {this.props.auth.access.is_admin && (
+                    <Dropdown.Item
+                      onClick={() => this.props.dispatch(push("/users"))}
+                    >
+                      <Icon name="users" />
+                      <b>Users</b>
+                    </Dropdown.Item>
+                  )}
                 </Dropdown.Menu>
               </Dropdown>
             </Menu.Item>

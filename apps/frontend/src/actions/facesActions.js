@@ -30,7 +30,7 @@ export function deleteFaces(faceIDs) {
       .then((response)=>{
         dispatch({type:"DELETE_FACES_FULFILLED",payload:response.data.results})
         dispatch(notify({
-          message:`${faceIDs.length} face(s) were successfully deleted`,
+          message:`${response.data.results.length} face(s) were successfully deleted`,
           title:'Face delete',
           status:'success',
           dismissible: true,

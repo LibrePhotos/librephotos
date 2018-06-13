@@ -12,10 +12,8 @@
     "calendar-months": "^1.0.1",
     "d3-hierarchy": "^1.1.6",
     "d3-shape": "^1.2.0",
-    "eslint": "^4.19.1",
     "eslint-plugin-import": "^2.12.0",
     "eslint-plugin-jsx-a11y": "^6.0.3",
-    "eslint-plugin-react": "^7.9.1",
     "file-loader": "^1.1.11",
     "font-awesome": "^4.7.0",
     "immutable": "^3.8.1",
@@ -44,6 +42,8 @@
     "react-router-dom": "^4.3.1",
     "react-router-redux": "^5.0.0-alpha.9",
     "react-scripts": "^1.1.4",
+    "react-sortable-tree": "^2.2.0",
+    "react-sortable-tree-theme-file-explorer": "^1.1.2",
     "react-transition-group": "^2.3.1",
     "react-virtualized": "^9.19.1",
     "react-virtualized-item-grid": "^1.0.0",
@@ -69,5 +69,9 @@
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject"
   },
-  "proxy": "http://192.168.1.100:8000/"
+  "proxy": "http://192.168.1.100:8000/",
+  "devDependencies": {
+    "eslint": "^4.19.1",
+    "eslint-plugin-react": "^7.9.1"
+  }
 }
