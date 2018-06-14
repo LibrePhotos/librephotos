@@ -69,6 +69,7 @@ RUN rm -rf /var/lib/apt/lists/*
 WORKDIR /code
 RUN git clone https://github.com/hooram/ownphotos-frontend.git
 WORKDIR /code/ownphotos-frontend
+RUN git pull origin dev && git checkout dev
 RUN mv /code/ownphotos-frontend/src/api_client/apiClientDeploy.js /code/ownphotos-frontend/src/api_client/apiClient.js
 RUN npm install
 RUN npm install -g serve
