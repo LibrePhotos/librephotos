@@ -1,4 +1,5 @@
 #! /bin/bash
+mkdir -p /code/logs
 
 cp /code/nginx.conf /etc/nginx/sites-enabled/default
 sed -i -e 's/replaceme/'"$BACKEND_HOST"'/g' /etc/nginx/sites-enabled/default
@@ -6,11 +7,11 @@ service nginx restart
 
 source /venv/bin/activate
 
+python manage.py makemigrations api
 python manage.py migrate
-python manage.py migrate --run-syncdb
 
 python manage.py shell <<EOF
-from django.contrib.auth.models import User
+from api.models import User
 User.objects.filter(email='$ADMIN_EMAIL').delete()
 User.objects.create_superuser('$ADMIN_USERNAME', '$ADMIN_EMAIL', '$ADMIN_PASSWORD')
 EOF
