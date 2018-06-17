@@ -64,3 +64,5 @@ wcwidth==0.1.7
 yarg==0.1.9
 django-rq==1.1.0
 gunicorn==19.8.1
+django-constance==2.2.0
+django-picklefield==1.0.0

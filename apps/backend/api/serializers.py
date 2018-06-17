@@ -5,6 +5,10 @@ import json
 import time
 from api.util import logger
 from datetime import datetime
+from django.contrib.auth import get_user_model
+from django.db.models import Count
+from django.db.models import Q
+from django.db.models import Prefetch
 
 
 class PhotoEditSerializer(serializers.ModelSerializer):
@@ -25,7 +29,13 @@ class PhotoHashListSerializer(serializers.ModelSerializer):
 class PhotoSuperSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Photo
-        fields = ('image_hash', 'favorited', 'hidden', 'exif_timestamp')
+        fields = (
+            'image_hash',
+            'favorited',
+            'hidden',
+            'exif_timestamp',
+            'public',
+        )
 
 
 class PhotoSimpleSerializer(serializers.ModelSerializer):
@@ -41,6 +51,7 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
             'exif_gps_lon',
             'favorited',
             'geolocation_json',
+            'public',
         )
 
 
@@ -69,7 +80,7 @@ class PhotoSerializer(serializers.ModelSerializer):
                   'square_thumbnail_url', 'big_square_thumbnail_url',
                   'small_square_thumbnail_url', 'tiny_square_thumbnail_url',
                   'geolocation_json', 'exif_json', 'people', 'image_url',
-                  'image_hash', 'image_path', 'favorited', 'hidden')
+                  'image_hash', 'image_path', 'favorited', 'hidden', 'public')
 
     def get_thumbnail_url(self, obj):
         try:
@@ -552,7 +563,12 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
 
     def get_people(self, obj):
         # ipdb.set_trace()
-        photos = obj.photos.all().prefetch_related('faces__person')
+        photos = obj.photos.all().prefetch_related(
+            Prefetch(
+                'faces__person',
+                queryset=Person.objects.all().annotate(
+                    viewable_face_count=Count('faces'))))
+
         res = []
         for photo in photos:
             faces = photo.faces.all()
@@ -583,18 +599,43 @@ class LongRunningJobSerializer(serializers.ModelSerializer):
         return dict(LongRunningJob.JOB_TYPES)[obj.job_type]
 
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'password', 'email')
+        write_only_fields = ('password', )
+        read_only_fields = ('id', 'scan_directory')
+
+    def create(self, validated_data):
+        user = User.objects.create(
+            username=validated_data['username'],
+            email=validated_data['email'],
+        )
+
+        user.set_password(validated_data['password'])
+        user.save()
+
+        return user
+
+
 class ManageUserSerializer(serializers.ModelSerializer):
     photo_count = serializers.SerializerMethodField()
 
     class Meta:
-        model = User
+        model = get_user_model()
         fields = ('username', 'scan_directory', 'last_login', 'date_joined',
                   'photo_count', 'id')
+        extra_kwargs = {
+            'password': {
+                'write_only': True
+            },
+        }
 
     def get_photo_count(self, obj):
         return Photo.objects.filter(owner=obj).count()
 
     def update(self, instance, validated_data):
-        instance.scan_directory = validated_data['scan_directory']
-        instance.save()
+        if 'scan_directory' in validated_data:
+            instance.scan_directory = validated_data.pop('scan_directory')
+            instance.save()
         return instance
