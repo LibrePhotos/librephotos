@@ -121,6 +121,10 @@ class Photo(models.Model):
     owner = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None)
 
+    shared_to = models.ManyToManyField(User, related_name='photo_shared_to')
+
+    public = models.BooleanField(default=False, db_index=True)
+
     def _generate_md5(self):
         hash_md5 = hashlib.md5()
         with open(self.image_path, "rb") as f:
@@ -622,6 +626,9 @@ class AlbumThing(models.Model):
     owner = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None)
 
+    shared_to = models.ManyToManyField(
+        User, related_name='album_thing_shared_to')
+
     class Meta:
         unique_together = ('title', 'owner')
 
@@ -640,6 +647,9 @@ class AlbumPlace(models.Model):
     owner = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None)
 
+    shared_to = models.ManyToManyField(
+        User, related_name='album_place_shared_to')
+
     class Meta:
         unique_together = ('title', 'owner')
 
@@ -656,6 +666,9 @@ class AlbumDate(models.Model):
     location = JSONField(blank=True, db_index=True, null=True)
     owner = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None)
+
+    shared_to = models.ManyToManyField(
+        User, related_name='album_date_shared_to')
 
     class Meta:
         unique_together = ('date', 'owner')
@@ -677,6 +690,9 @@ class AlbumAuto(models.Model):
     favorited = models.BooleanField(default=False, db_index=True)
     owner = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None)
+
+    shared_to = models.ManyToManyField(
+        User, related_name='album_auto_shared_to')
 
     class Meta:
         unique_together = ('timestamp', 'owner')
@@ -751,6 +767,11 @@ class AlbumUser(models.Model):
     favorited = models.BooleanField(default=False, db_index=True)
     owner = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None)
+
+    shared_to = models.ManyToManyField(
+        User, related_name='album_user_shared_to')
+
+    public = models.BooleanField(default=False, db_index=True)
 
 
 class LongRunningJob(models.Model):

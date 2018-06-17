@@ -56,6 +56,7 @@ class TokenObtainPairView(TokenObtainPairView):
 
 router = routers.DefaultRouter()
 
+router.register(r'api/user', views.UserViewSet)
 router.register(r'api/manage/user', views.ManageUserViewSet)
 
 router.register(
@@ -122,6 +123,10 @@ router.register(
     r'api/photos/searchlist',
     views.PhotoSuperSimpleSearchListViewSet,
     base_name='photo')
+
+router.register(
+    r'api/photos/public', views.PublicPhotoListViewset, base_name='photo')
+
 router.register(r'api/photos', views.PhotoViewSet, base_name='photo')
 
 router.register(
@@ -143,11 +148,14 @@ router.register(r'api/jobs', views.LongRunningJobViewSet)
 urlpatterns = [
     url(r'^', include(router.urls)),
     url(r'^admin/', admin.site.urls),
+    url(r'^api/sitesettings', views.SiteSettingsView.as_view()),
     url(r'^api/dirtree', views.RootPathTreeView.as_view()),
     url(r'^api/labelfaces', views.SetFacePersonLabel.as_view()),
     url(r'^api/deletefaces', views.DeleteFaces.as_view()),
     url(r'^api/photosedit/favorite', views.SetPhotosFavorite.as_view()),
     url(r'^api/photosedit/hide', views.SetPhotosHidden.as_view()),
+    url(r'^api/photosedit/makepublic', views.SetPhotosPublic.as_view()),
+    url(r'^api/photosedit/share', views.SetPhotosShared.as_view()),
     url(r'^api/facetolabel', views.FaceToLabelView.as_view()),
     url(r'^api/trainfaces', views.TrainFaceView.as_view()),
     url(r'^api/clusterfaces', views.ClusterFaceView.as_view()),
@@ -168,14 +176,18 @@ urlpatterns = [
     url(r'^api/watcher/autoalbum', views.IsAutoAlbumsBeingProcessed.as_view()),
     url(r'^api/auth/token/obtain/$', TokenObtainPairView.as_view()),
     url(r'^api/auth/token/refresh/$', TokenRefreshView.as_view()),
-    # url(r'^media/(?P<path>.*)', media_access, name='media'),
+    #     url(r'^media/(?P<path>.*)', media_access, name='media'),
+    url(r'^media/(?P<path>.*)/(?P<fname>.*)',
+        views.MediaAccessView.as_view(),
+        name='media'),
     url(r'^api/rqavailable/$', views.QueueAvailabilityView.as_view()),
     url(r'^api/rqjobstat/$', views.RQJobStatView.as_view()),
 
     #     url(r'^api/token-auth/', obtain_jwt_token),
     #     url(r'^api/token-refresh/', refresh_jwt_token),
     #     url(r'^api/token-verify/', verify_jwt_token),
-] + static(
-    settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
+# ] + static(
+#     settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 urlpatterns += [url('django-rq/', include('django_rq.urls'))]

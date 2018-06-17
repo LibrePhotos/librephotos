@@ -2,7 +2,9 @@ from django.shortcuts import render
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
+
+from constance import config as site_config
 
 from api.models import Photo, AlbumAuto, AlbumUser, Face, Person, AlbumDate, AlbumPlace, AlbumThing, LongRunningJob, User, get_or_create_person
 from django.db.models import Count
@@ -41,6 +43,7 @@ from api.serializers import AlbumUserListSerializer
 
 from api.serializers import LongRunningJobSerializer
 
+from api.serializers import UserSerializer
 from api.serializers import ManageUserSerializer
 
 from api.serializers_serpy import AlbumDateListWithPhotoHashSerializer as AlbumDateListWithPhotoHashSerializerSerpy
@@ -179,6 +182,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
     serializer_class = PhotoSerializer
     pagination_class = HugeResultsSetPagination
     filter_backends = (filters.SearchFilter, )
+    permission_classes = (AllowAny, )
     search_fields = ([
         'search_captions', 'search_location', 'faces__person__name',
         'exif_timestamp', 'image_path'
@@ -187,8 +191,12 @@ class PhotoViewSet(viewsets.ModelViewSet):
     # search_fields = (['faces__person__name','faces__person__name'])
 
     def get_queryset(self):
-        return Photo.objects.filter(
-            owner=self.request.user).order_by('-exif_timestamp')
+        if self.request.user.is_anonymous:
+            return Photo.objects.filter(
+                public=True).order_by('-exif_timestamp')
+        else:
+            return Photo.objects.filter(
+                owner=self.request.user).order_by('-exif_timestamp')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -318,7 +326,7 @@ class PhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
     def list(self, request):
         # queryset = Photo.objects.raw("SELECT image_hash, favorited, hidden, exif_timestamp from api_photo order by exif_timestamp desc")
         queryset = Photo.objects.all().only(
-            'image_hash', 'exif_timestamp', 'favorited',
+            'image_hash', 'exif_timestamp', 'favorited', 'public',
             'hidden').order_by('exif_timestamp')
         serializer = PhotoSuperSimpleSerializer(queryset, many=True)
         return Response({'results': serializer.data})
@@ -338,7 +346,7 @@ class FavoritePhotoListViewset(viewsets.ModelViewSet):
     def get_queryset(self):
         return Photo.objects.filter(
             Q(favorited=True) & Q(owner=self.request.user)).only(
-                'image_hash', 'exif_timestamp', 'favorited',
+                'image_hash', 'exif_timestamp', 'favorited', 'public',
                 'hidden').order_by('-exif_timestamp')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
@@ -350,9 +358,10 @@ class FavoritePhotoListViewset(viewsets.ModelViewSet):
     @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, request):
         # queryset = Photo.objects.raw("SELECT image_hash, favorited, hidden, exif_timestamp from api_photo order by exif_timestamp desc")
-        queryset = Photo.objects.filter(Q(favorited=True)&Q(owner=self.request.user)).only(
-            'image_hash', 'exif_timestamp', 'favorited',
-            'hidden').order_by('exif_timestamp')
+        queryset = Photo.objects.filter(
+            Q(favorited=True) & Q(owner=self.request.user)).only(
+                'image_hash', 'exif_timestamp', 'favorited', 'public',
+                'hidden').order_by('exif_timestamp')
         serializer = PhotoSuperSimpleSerializer(queryset, many=True)
         return Response({'results': serializer.data})
 
@@ -371,7 +380,7 @@ class HiddenPhotoListViewset(viewsets.ModelViewSet):
     def get_queryset(self):
         return Photo.objects.filter(
             Q(hidden=True) & Q(owner=self.request.user)).only(
-                'image_hash', 'exif_timestamp', 'favorited',
+                'image_hash', 'exif_timestamp', 'favorited', 'public',
                 'hidden').order_by('-exif_timestamp')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
@@ -383,14 +392,54 @@ class HiddenPhotoListViewset(viewsets.ModelViewSet):
     @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, request):
         # queryset = Photo.objects.raw("SELECT image_hash, favorited, hidden, exif_timestamp from api_photo order by exif_timestamp desc")
-        queryset = Photo.objects.filter(Q(hidden=True)&Q(owner=self.request.user)).only(
-            'image_hash', 'exif_timestamp', 'favorited',
-            'hidden').order_by('exif_timestamp')
+        queryset = Photo.objects.filter(
+            Q(hidden=True) & Q(owner=self.request.user)).only(
+                'image_hash', 'exif_timestamp', 'favorited', 'public',
+                'hidden').order_by('exif_timestamp')
         serializer = PhotoSuperSimpleSerializer(queryset, many=True)
         return Response({'results': serializer.data})
 
 
 #         return super(PhotoSuperSimpleListViewSet, self).list(*args, **kwargs)
+
+
+class PublicPhotoListViewset(viewsets.ModelViewSet):
+
+    # queryset = Photo.objects.filter(hidden=True).only(
+    #     'image_hash', 'exif_timestamp', 'favorited',
+    #     'hidden').order_by('-exif_timestamp')
+    serializer_class = PhotoSuperSimpleSerializer
+    pagination_class = HugeResultsSetPagination
+    permission_classes = (AllowAny, )
+
+    def get_queryset(self):
+        # ipdb.set_trace()
+        if 'username' in self.request.query_params.keys():
+            username = self.request.query_params['username']
+            return Photo.objects.filter(
+                Q(public=True) & Q(owner__username=username)).only(
+                    'image_hash', 'exif_timestamp', 'favorited',
+                    'hidden').order_by('-exif_timestamp')
+
+        return Photo.objects.filter(public=True).only(
+            'image_hash', 'exif_timestamp', 'favorited',
+            'hidden').order_by('-exif_timestamp')
+
+
+#     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
+#     def retrieve(self, *args, **kwargs):
+#         return super(HiddenPhotoListViewset, self).retrieve(*args, **kwargs)
+
+# #     def list(self, *args, **kwargs):
+
+#     @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
+#     def list(self, request):
+#         # queryset = Photo.objects.raw("SELECT image_hash, favorited, hidden, exif_timestamp from api_photo order by exif_timestamp desc")
+#         queryset = Photo.objects.filter(public=True).only(
+#             'public', 'image_hash', 'exif_timestamp', 'favorited',
+#             'hidden').order_by('exif_timestamp')
+#         serializer = PhotoSuperSimpleSerializer(queryset, many=True)
+#         return Response({'results': serializer.data})
 
 
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
@@ -627,7 +676,7 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
                 'faces__photo',
                 queryset=Photo.objects.filter(
                     owner=self.request.user).order_by('-exif_timestamp').only(
-                        'image_hash', 'exif_timestamp', 'favorited',
+                        'image_hash', 'exif_timestamp', 'favorited', 'public',
                         'hidden'))).order_by('name')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
@@ -720,7 +769,7 @@ class AlbumDateListWithPhotoHashViewSet(viewsets.ReadOnlyModelViewSet):
                 Prefetch(
                     'photos',
                     queryset=Photo.objects.all()
-                    .order_by('-exif_timestamp').only('image_hash',
+                    .order_by('-exif_timestamp').only('image_hash', 'public',
                                                       'exif_timestamp',
                                                       'favorited', 'hidden')))
         # ipdb.set_trace()
@@ -926,6 +975,27 @@ class LongRunningJobViewSet(viewsets.ModelViewSet):
     serializer_class = LongRunningJobSerializer
 
 
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all().order_by('-last_login')
+    serializer_class = UserSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            self.permission_classes = (AllowAny, )
+        else:
+            self.permission_classes = (IsAdminUser, )
+
+        return super(UserViewSet, self).get_permissions()
+
+    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
+    def retrieve(self, *args, **kwargs):
+        return super(UserViewSet, self).retrieve(*args, **kwargs)
+
+    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
+    def list(self, *args, **kwargs):
+        return super(UserViewSet, self).list(*args, **kwargs)
+
+
 class ManageUserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by('-last_login')
     serializer_class = ManageUserSerializer
@@ -943,6 +1013,88 @@ class ManageUserViewSet(viewsets.ModelViewSet):
 # API Views
 
 # Views that do things I don't know how to make serializers do
+
+
+# todo: set limit on number of photos to set public/shared/favorite/hidden at once?
+class SiteSettingsView(APIView):
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            self.permission_classes = (AllowAny, )
+        else:
+            self.permission_classes = (IsAdminUser, )
+
+        return super(SiteSettingsView, self).get_permissions()
+
+    def get(self, request, format=None):
+        out = {}
+        out['allow_registration'] = site_config.ALLOW_REGISTRATION
+        return Response(out)
+
+    def post(self, request, format=None):
+        if 'allow_registration' in request.data.keys():
+            site_config.ALLOW_REGISTRATION = request.data['allow_registration']
+
+        out = {}
+        out['allow_registration'] = site_config.ALLOW_REGISTRATION
+        return Response(out)
+
+
+class SetPhotosShared(APIView):
+    def post(self, request, format=None):
+        data = dict(request.data)
+        print(data)
+        shared = data['shared']  #bool
+        target_user_id = data['target_user_id']
+        image_hashes = data['image_hashes']
+
+        target_user = User.objects.get(id=target_user_id)
+
+        updated = []
+        not_updated = []
+        for image_hash in image_hashes:
+            photo = Photo.objects.get(image_hash=image_hash)
+            if photo.owner == request.user:
+                if shared:
+                    photo.target.add(target_user)
+                else:
+                    photo.target.remove(target_user)
+                photo.save()
+                updated.append(PhotoSerializer(photo).data)
+            else:
+                not_updated.append(PhotoSerializer(photo).data)
+
+        return Response({
+            'status': True,
+            'results': updated,
+            'updated': updated,
+            'not_updated': not_updated
+        })
+
+
+class SetPhotosPublic(APIView):
+    def post(self, request, format=None):
+        data = dict(request.data)
+        print(data)
+        val_public = data['val_public']
+        image_hashes = data['image_hashes']
+
+        updated = []
+        not_updated = []
+        for image_hash in image_hashes:
+            photo = Photo.objects.get(image_hash=image_hash)
+            if photo.owner == request.user:
+                photo.public = val_public
+                photo.save()
+                updated.append(PhotoSerializer(photo).data)
+            else:
+                not_updated.append(PhotoSerializer(photo).data)
+
+        return Response({
+            'status': True,
+            'results': updated,
+            'updated': updated,
+            'not_updated': not_updated
+        })
 
 
 class SetPhotosFavorite(APIView):
@@ -1304,6 +1456,52 @@ class RQJobStatView(APIView):
         return Response({'status': True, 'finished': is_job_finished})
 
 
+from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework_simplejwt.exceptions import TokenError
+import time
+
+
+class MediaAccessView(APIView):
+    permission_classes = (AllowAny, )
+
+    def get(self, request, path, fname, format=None):
+        image_hash = fname.split(".")[0].split('_')[0]
+        try:
+            photo = Photo.objects.get(image_hash=image_hash)
+        except Photo.DoesNotExist:
+            return HttpResponse(status=404)
+
+        # grant access if the requested photo is public
+        if photo.public:
+            response = HttpResponse()
+            response['Content-Type'] = 'image/jpeg'
+            response[
+                'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
+            return response
+
+        # forbid access if trouble with jwt
+        if 'jwt' in request.query_params.keys():
+            try:
+                token = AccessToken(request.query_params['jwt'])
+            except TokenError:
+                return HttpResponseForbidden()
+        else:
+            return HttpResponseForbidden()
+
+        # grant access if the user is owner of the requested photo
+        # or the photo is shared with the user
+        image_hash = fname.split(".")[0].split('_')[0]  # janky alert
+        user = User.objects.get(id=token['user_id'])
+        if photo.owner == user or user in photo.shared_to.all():
+            response = HttpResponse()
+            response['Content-Type'] = 'image/jpeg'
+            response[
+                'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
+            return response
+
+        return HttpResponse(status=404)
+
+
 def media_access(request, path):
     # ipdb.set_trace()
     """
@@ -1315,6 +1513,7 @@ def media_access(request, path):
 
     This special URL will be handle by nginx we the help of X-Accel
     """
+    ipdb.set_trace()
 
     access_granted = False
 

@@ -26,12 +26,16 @@ RQ_API_TOKEN = os.environ['SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = (os.environ.get('DEBUG', '').lower() == 'true')
 
-ALLOWED_HOSTS = ['192.168.1.100', 'localhost', os.environ.get('BACKEND_HOST')]
+ALLOWED_HOSTS = [
+    '192.168.1.100', 'localhost',
+    os.environ.get('BACKEND_HOST'), 'ownphotos.local'
+]
 
 AUTH_USER_MODEL = 'api.User'
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(minutes=60),
+    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(minutes=5),
+    # 'ACCESS_TOKEN_LIFETIME': datetime.timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=7),
 }
 
@@ -50,9 +54,18 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_extensions',
     "django_rq",
+    'constance',
+    'constance.backends.database',
     #     'cachalot',
     #     'cacheops',
 ]
+
+CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
+CONSTANCE_DATABASE_CACHE_BACKEND = 'default'
+
+CONSTANCE_CONFIG = {
+    'ALLOW_REGISTRATION': (False, 'Publicly allow user registration', bool)
+}
 
 INTERNAL_IPS = ('127.0.0.1', 'localhost', '192.168.1.100')
 
@@ -120,6 +133,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'api.middleware.FingerPrintMiddleware',
 ]
 
 ROOT_URLCONF = 'ownphotos.urls'
@@ -233,7 +247,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'protected_media')
 
 THUMBNAIL_SIZE_TINY = (30, 30)
 THUMBNAIL_SIZE_SMALL = (100, 100)
