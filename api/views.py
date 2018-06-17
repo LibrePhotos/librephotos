@@ -277,7 +277,7 @@ class PhotoSimpleListViewSet(viewsets.ModelViewSet):
 
 class PhotoSuperSimpleSearchListViewSet(viewsets.ModelViewSet):
 
-    queryset = Photo.objects.all().order_by('-exif_timestamp')
+    # queryset = Photo.objects.all().order_by('-exif_timestamp')
     serializer_class = PhotoSuperSimpleSerializer
     pagination_class = HugeResultsSetPagination
     filter_backends = (filters.SearchFilter, )
@@ -286,6 +286,10 @@ class PhotoSuperSimpleSearchListViewSet(viewsets.ModelViewSet):
         'exif_timestamp', 'image_path'
     ])
     # search_fields = (['faces__person__name','faces__person__name'])
+
+    def get_queryset(self):
+        return Photo.objects.filter(
+            owner=self.request.user).order_by('-exif_timestamp')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
