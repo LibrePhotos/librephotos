@@ -40,6 +40,7 @@ import { Settings } from "./layouts/settings";
 import { Statistics } from "./layouts/statistics";
 import { SecuredImage } from "./layouts/Bench";
 import { UserPublicPage } from "./layouts/UserPublicPage";
+import { LocationClusterMap } from "./components/maps";
 /*
 store.subscribe(listener)
 
@@ -122,7 +123,7 @@ class App extends Component {
 
             <PrivateRoute path="/useralbums" component={AlbumUser} />
 
-            <PrivateRoute path="/places" component={AlbumPlace} />
+            <PrivateRoute path="/places" component={LocationClusterMap} />
 
             <PrivateRoute path="/people" component={AlbumPeople} />
 

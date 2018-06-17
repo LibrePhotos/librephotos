@@ -84,6 +84,36 @@ export class TopMenuPublic extends Component {
               </Button>
             </Menu.Item>
           </Menu.Menu>
+
+          <Menu.Item>
+              <Button
+                attached='left'
+                onClick={() => {
+                  this.props.dispatch({
+                    type: "SET_GRID_TYPE",
+                    payload: "dense"
+                  });
+                }}
+                icon
+                active={this.props.gridType === "dense"}
+              >
+                <Icon name="grid layout" />
+              </Button>
+              <Button
+                attached='right'
+                onClick={() => {
+                  this.props.dispatch({
+                    type: "SET_GRID_TYPE",
+                    payload: "loose"
+                  });
+                }}
+                icon
+                active={this.props.gridType === "loose"}
+              >
+                <Icon name="block layout" />
+              </Button>
+          </Menu.Item>
+
           <Menu.Item position="right">
             <Button as={Link} to="/login">
               Login
@@ -811,12 +841,6 @@ export class SideMenuNarrow extends Component {
         >
           <Dropdown.Menu>
             <Dropdown.Header>Data Visualization</Dropdown.Header>
-
-            <Dropdown.Item as={Link} to="/map">
-              <Icon name="map outline" />
-              {"  Map"}
-            </Dropdown.Item>
-
             <Dropdown.Item as={Link} to="/placetree">
               <Icon name="sitemap" />
               {"  Place Tree"}

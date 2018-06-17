@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import { Loader, Flag, Segment, Image } from "semantic-ui-react";
+import { Loader, Flag, Segment, Image, Header, Icon } from "semantic-ui-react";
 import { Map, TileLayer, Marker, Popup } from "react-leaflet";
 import { scanPhotos, fetchPhotos } from "../actions/photosActions";
 import { fetchAutoAlbumsList } from "../actions/albumsActions";
@@ -12,7 +12,7 @@ import { Grid, List, WindowScroller, AutoSizer } from "react-virtualized";
 import { countryNames } from "../util/countryNames";
 import { Link } from "react-router-dom";
 import { SecuredImageJWT } from "../components/SecuredImage";
-
+import _ from "lodash";
 var topMenuHeight = 45; // don't change this
 var ESCAPE_KEY = 27;
 var ENTER_KEY = 13;
@@ -155,9 +155,9 @@ export class LocationClusterMap extends Component {
     width: window.innerWidth,
     height: window.innerHeight,
     entrySquareSize: 200,
-    gridHeight: window.innerHeight - topMenuHeight - 60,
+    gridHeight: window.innerHeight - topMenuHeight - 300,
     headerHeight: 60,
-    numEntrySquaresPerRow:3,
+    numEntrySquaresPerRow: 3
   };
 
   constructor(props) {
@@ -211,13 +211,16 @@ export class LocationClusterMap extends Component {
     console.log(visibleMarkers);
     this.setState({
       visibleMarkers: visibleMarkers,
-      visiblePlaceAlbums: visiblePlaceAlbums
+      visiblePlaceAlbums: _.sortBy(visiblePlaceAlbums, [
+        "geolocation_level",
+        "photo_count"
+      ])
     });
   };
 
   static getDerivedStateFromProps(nextProps, prevState) {
     if (prevState.locationClusters.length === 0) {
-      const visibleMarkers = nextProps.locationClusters
+      const visibleMarkers = nextProps.locationClusters;
       const visiblePlaceNames = visibleMarkers.map(el => el[2]);
       const visiblePlaceAlbums = nextProps.albumsPlaceList.filter(el => {
         if (visiblePlaceNames.includes(el.title)) {
@@ -230,7 +233,10 @@ export class LocationClusterMap extends Component {
       return {
         visibleMarkers: nextProps.locationClusters,
         locationClusters: nextProps.locationClusters,
-        visiblePlaceAlbums: visiblePlaceAlbums
+        visiblePlaceAlbums: _.sortBy(visiblePlaceAlbums, [
+          "geolocation_level",
+          "photo_count"
+        ])
       };
     } else {
       return { ...prevState };
@@ -338,58 +344,68 @@ export class LocationClusterMap extends Component {
       var markers = this.preprocess();
 
       return (
-        <div style={{ zIndex: 2, height: this.props.height, padding: 0 }}>
-          <Map
-            ref={this.mapRef}
-            className="markercluster-map"
-            style={{
-              height: this.props.height - window.innerHeight * 0.6 + 10
-            }}
-            onViewportChanged={this.onViewportChanged}
-            center={[40, 0]}
-            zoom={3}
-          >
-            <TileLayer
-              attribution="&copy; <a href=&quot;https://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <MarkerClusterGroup>{markers}</MarkerClusterGroup>
-          </Map>
+        <div>
           <div
             style={{
-              paddingLeft: 10,
-              backgroundColor: "white",
-              bottom: 0,
-              height: window.innerHeight * 0.6,
-              width: this.state.width,
-              marginTop: -10,
-              position: "fixed",
-              fixed: "bottom",
-              overflowY: "auto"
+              height: this.state.headerHeight,
+              paddingTop: 10,
+              paddingRight: 5
             }}
           >
-            <AutoSizer
-              disableHeight
-              style={{ outline: "none", padding: 0, margin: 0 }}
-            >
-              {({ width }) => (
-                <Grid
-                  style={{ outline: "none" }}
-                  disableHeader={false}
-                  cellRenderer={this.cellRenderer}
-                  columnWidth={this.state.entrySquareSize}
-                  columnCount={this.state.numEntrySquaresPerRow}
-                  height={window.innerHeight * 0.6}
-                  rowHeight={this.state.entrySquareSize + 60}
-                  rowCount={Math.ceil(
-                    this.state.visiblePlaceAlbums.length /
-                      this.state.numEntrySquaresPerRow.toFixed(1)
-                  )}
-                  width={width}
+            <Header as="h2">
+              <Icon name="map outline" />
+              <Header.Content>
+                Places{" "}
+                <Loader
+                  size="tiny"
+                  inline
+                  active={this.props.fetchingAlbumsPlaceList}
                 />
-              )}
-            </AutoSizer>
+                <Header.Subheader>
+                  Showing {this.state.visiblePlaceAlbums.length} places on the map
+                </Header.Subheader>
+              </Header.Content>
+            </Header>
           </div>
+          <div style={{ marginLeft: -5 }}>
+            <Map
+              ref={this.mapRef}
+              className="markercluster-map"
+              style={{
+                height: 240
+              }}
+              onViewportChanged={this.onViewportChanged}
+              center={[40, 0]}
+              zoom={2}
+            >
+              <TileLayer
+                attribution="&copy; <a href=&quot;https://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <MarkerClusterGroup>{markers}</MarkerClusterGroup>
+            </Map>
+          </div>
+          <AutoSizer
+            disableHeight
+            style={{ outline: "none", padding: 0, margin: 0 }}
+          >
+            {({ width }) => (
+              <Grid
+                style={{ outline: "none" }}
+                disableHeader={false}
+                cellRenderer={this.cellRenderer}
+                columnWidth={this.state.entrySquareSize}
+                columnCount={this.state.numEntrySquaresPerRow}
+                height={this.state.gridHeight}
+                rowHeight={this.state.entrySquareSize + 60}
+                rowCount={Math.ceil(
+                  this.state.visiblePlaceAlbums.length /
+                    this.state.numEntrySquaresPerRow.toFixed(1)
+                )}
+                width={width}
+              />
+            )}
+          </AutoSizer>
         </div>
       );
     } else {
