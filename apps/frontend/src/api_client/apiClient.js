@@ -20,10 +20,10 @@ function listener() {
 }
 
 
-export var serverAddress = 'http://192.168.1.100'
+export var serverAddress = 'http://ownphotos.local'
 
 export var Server = axios.create({
-  baseURL: 'http://192.168.1.100/api/',
+    baseURL: 'http://ownphotos.local/api/',
   headers: {
     'Content-Type': 'application/json'
   },
@@ -47,6 +47,7 @@ Server.interceptors.response.use(function (response) {
   // console.log('axios retrying')
   const originalRequest = error.config;
 
+  console.log(error)
   if (error.response.status === 401 && !originalRequest._retry && !isRefreshTokenExpired(store.getState())) {
 
     originalRequest._retry = true;

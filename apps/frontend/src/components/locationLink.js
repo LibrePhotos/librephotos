@@ -1,35 +1,42 @@
-import React from 'react';
-import { Group } from '@vx/group';
-import { Tree } from '@vx/hierarchy';
-import { LinearGradient } from '@vx/gradient';
-import { hierarchy } from 'd3-hierarchy';
-import { pointRadial } from 'd3-shape';
-import {fetchLocationSunburst} from '../actions/utilActions'
+import React from "react";
+import { Group } from "@vx/group";
+import { Tree } from "@vx/hierarchy";
+import { LinearGradient } from "@vx/gradient";
+import { hierarchy } from "d3-hierarchy";
+import { pointRadial } from "d3-shape";
+import { fetchLocationSunburst } from "../actions/utilActions";
 import { connect } from "react-redux";
-import {Dropdown,Form} from 'semantic-ui-react'
+import { Dropdown, Form } from "semantic-ui-react";
 
 import {
-  LinkHorizontal, LinkVertical, LinkRadial,
-  LinkHorizontalStep, LinkVerticalStep, LinkRadialStep,
-  LinkHorizontalCurve, LinkVerticalCurve, LinkRadialCurve,
-  LinkHorizontalLine, LinkVerticalLine, LinkRadialLine
-} from '@vx/shape';
+  LinkHorizontal,
+  LinkVertical,
+  LinkRadial,
+  LinkHorizontalStep,
+  LinkVerticalStep,
+  LinkRadialStep,
+  LinkHorizontalCurve,
+  LinkVerticalCurve,
+  LinkRadialCurve,
+  LinkHorizontalLine,
+  LinkVerticalLine,
+  LinkRadialLine
+} from "@vx/shape";
 
 export class LocationLink extends React.Component {
   state = {
-    layout: 'cartesian',
-    orientation: 'horizontal',
-    linkType: 'diagonal',
+    layout: "cartesian",
+    orientation: "horizontal",
+    linkType: "diagonal",
     stepPercent: 0.5
   };
 
   componentWillMount() {
-    if (!this.props.locationSunburst.children){
-        this.props.dispatch(fetchLocationSunburst())
+    if (!this.props.locationSunburst.children) {
+      this.props.dispatch(fetchLocationSunburst());
     }
-
   }
-  
+
   render() {
     const {
       // data,
@@ -55,16 +62,16 @@ export class LocationLink extends React.Component {
     let sizeWidth;
     let sizeHeight;
 
-    if (layout === 'polar') {
+    if (layout === "polar") {
       origin = {
         x: innerWidth / 2,
         y: innerHeight / 2
-      }
-      sizeWidth = 2 * Math.PI
-      sizeHeight = Math.min(innerWidth, innerHeight) / 2
+      };
+      sizeWidth = 2 * Math.PI;
+      sizeHeight = Math.min(innerWidth, innerHeight) / 2;
     } else {
       origin = { x: 0, y: 0 };
-      if (orientation === 'vertical') {
+      if (orientation === "vertical") {
         sizeWidth = innerWidth;
         sizeHeight = innerHeight;
       } else {
@@ -74,48 +81,51 @@ export class LocationLink extends React.Component {
     }
 
     return (
-      <div>
+      <div style={{padding:10}}>
         <div>
-         <Form unstackable widths='equal'>
-          <Form.Group>
-            <Form.Dropdown 
+          <Form unstackable widths="equal">
+            <Form.Group>
+              <Form.Dropdown
                 label="Layout"
                 fluid
                 labeled
                 selection
-                onChange={(e,d) => this.setState({ layout: d.value })}
-                options={
-                    [{text:'cartesian',value:'cartesian'},
-                    {text:'polar',value:'polar'}]
-                }
-                defaultValue={layout}/>
+                onChange={(e, d) => this.setState({ layout: d.value })}
+                options={[
+                  { text: "cartesian", value: "cartesian" },
+                  { text: "polar", value: "polar" }
+                ]}
+                defaultValue={layout}
+              />
 
-            <Form.Dropdown 
+              <Form.Dropdown
                 label="Orientation"
                 fluid
                 selection
-                onChange={(e,d) => this.setState({ orientation: d.value })} 
-                defaultValue={orientation} 
-                options={
-                    [{text:'vertical',value:'vertical'},
-                    {text:'horizontal',value:'horizontal'}]
-                }
-                disabled={layout === 'polar'}/>
+                onChange={(e, d) => this.setState({ orientation: d.value })}
+                defaultValue={orientation}
+                options={[
+                  { text: "vertical", value: "vertical" },
+                  { text: "horizontal", value: "horizontal" }
+                ]}
+                disabled={layout === "polar"}
+              />
 
-            <Form.Dropdown 
+              <Form.Dropdown
                 label="Link Type"
                 fluid
                 selection
-                onChange={(e,d) => this.setState({ linkType: d.value })} 
-                options={
-                    [{text:'diagonal',value:'diagonal'},
-                    {text:'step',value:'step'},
-                    {text:'curve',value:'curve'},
-                    {text:'line',value:'line'}]
-                }
-                defaultValue={linkType}/>
-          </Form.Group>
-         </Form>
+                onChange={(e, d) => this.setState({ linkType: d.value })}
+                options={[
+                  { text: "diagonal", value: "diagonal" },
+                  { text: "step", value: "step" },
+                  { text: "curve", value: "curve" },
+                  { text: "line", value: "line" }
+                ]}
+                defaultValue={linkType}
+              />
+            </Form.Group>
+          </Form>
         </div>
 
         <svg width={width} height={height}>
@@ -124,50 +134,46 @@ export class LocationLink extends React.Component {
           <Tree
             top={margin.top}
             left={margin.left}
-            root={hierarchy(this.props.locationSunburst, d => (d.isExpanded ? d.children : null))}
-            size={[
-              sizeWidth,
-              sizeHeight
-            ]}
-            separation={(a, b) => (a.parent == b.parent ? 1 : .5) / a.depth}
+            root={hierarchy(
+              this.props.locationSunburst,
+              d => (d.isExpanded ? d.children : null)
+            )}
+            size={[sizeWidth, sizeHeight]}
+            separation={(a, b) => (a.parent == b.parent ? 1 : 0.5) / a.depth}
           >
             {({ data }) => (
-              <Group
-                top={origin.y}
-                left={origin.x}
-              >
+              <Group top={origin.y} left={origin.x}>
                 {data.links().map((link, i) => {
-
                   let LinkComponent;
 
-                  if (layout === 'polar') {
-                    if (linkType === 'step') {
+                  if (layout === "polar") {
+                    if (linkType === "step") {
                       LinkComponent = LinkRadialStep;
-                    } else if (linkType === 'curve') {
-                      LinkComponent = LinkRadialCurve
-                    } else if (linkType === 'line') {
-                      LinkComponent = LinkRadialLine
+                    } else if (linkType === "curve") {
+                      LinkComponent = LinkRadialCurve;
+                    } else if (linkType === "line") {
+                      LinkComponent = LinkRadialLine;
                     } else {
-                      LinkComponent = LinkRadial
+                      LinkComponent = LinkRadial;
                     }
                   } else {
-                    if (orientation === 'vertical') {
-                      if (linkType === 'step') {
+                    if (orientation === "vertical") {
+                      if (linkType === "step") {
                         LinkComponent = LinkVerticalStep;
-                      } else if (linkType === 'curve') {
-                        LinkComponent = LinkVerticalCurve
-                      } else if (linkType === 'line') {
-                        LinkComponent = LinkVerticalLine
+                      } else if (linkType === "curve") {
+                        LinkComponent = LinkVerticalCurve;
+                      } else if (linkType === "line") {
+                        LinkComponent = LinkVerticalLine;
                       } else {
                         LinkComponent = LinkVertical;
                       }
                     } else {
-                      if (linkType === 'step') {
+                      if (linkType === "step") {
                         LinkComponent = LinkHorizontalStep;
-                      } else if (linkType === 'curve') {
-                        LinkComponent = LinkHorizontalCurve
-                      } else if (linkType === 'line') {
-                        LinkComponent = LinkHorizontalLine
+                      } else if (linkType === "curve") {
+                        LinkComponent = LinkHorizontalCurve;
+                      } else if (linkType === "line") {
+                        LinkComponent = LinkHorizontalLine;
                       } else {
                         LinkComponent = LinkHorizontal;
                       }
@@ -183,7 +189,7 @@ export class LocationLink extends React.Component {
                       fill="none"
                       key={i}
                     />
-                  )
+                  );
                 })}
 
                 {data.descendants().map((node, key) => {
@@ -192,12 +198,12 @@ export class LocationLink extends React.Component {
 
                   let top;
                   let left;
-                  if (layout === 'polar') {
+                  if (layout === "polar") {
                     const [radialX, radialY] = pointRadial(node.x, node.y);
                     top = radialY;
                     left = radialX;
                   } else {
-                    if (orientation === 'vertical') {
+                    if (orientation === "vertical") {
                       top = node.y;
                       left = node.x;
                     } else {
@@ -216,7 +222,7 @@ export class LocationLink extends React.Component {
                           x={-width / 2}
                           fill="#1b5a94"
                           rx={5}
-                          stroke='#dddddd'
+                          stroke="#dddddd"
                           onClick={() => {
                             node.data.isExpanded = !node.data.isExpanded;
                             this.forceUpdate();
@@ -229,10 +235,10 @@ export class LocationLink extends React.Component {
                           width={width}
                           y={-height / 2}
                           x={-width / 2}
-                          fill={node.data.children? '#1b6c94' : '#1b8594'}
-                          stroke={node.data.children ? '#dddddd' : '#dddddd'}
+                          fill={node.data.children ? "#1b6c94" : "#1b8594"}
+                          stroke={node.data.children ? "#dddddd" : "#dddddd"}
                           strokeWidth={2}
-                          strokeDasharray={!node.data.children ? '0' : '0'}
+                          strokeDasharray={!node.data.children ? "0" : "0"}
                           strokeOpacity={!node.data.children ? 1 : 1}
                           rx={!node.data.children ? 5 : 5}
                           onClick={() => {
@@ -242,19 +248,17 @@ export class LocationLink extends React.Component {
                         />
                       )}
                       <text
-                        dy={'.33em'}
+                        dy={".33em"}
                         fontSize={11}
                         fontFamily="Arial"
-                        textAnchor={'middle'}
-                        style={{ pointerEvents: 'none' }}
+                        textAnchor={"middle"}
+                        style={{ pointerEvents: "none" }}
                         fill={
-                          node.depth === 0 ? (
-                            'white'
-                          ) : node.children ? (
-                            'white'
-                          ) : (
-                            'white'
-                          )
+                          node.depth === 0
+                            ? "white"
+                            : node.children
+                              ? "white"
+                              : "white"
                         }
                       >
                         {node.data.name}
@@ -271,10 +275,10 @@ export class LocationLink extends React.Component {
   }
 }
 
-LocationLink = connect((store)=>{
+LocationLink = connect(store => {
   return {
     locationSunburst: store.util.locationSunburst,
     fetchingLocationSunburst: store.util.fetchingLocationSunburst,
     fetchedLocationSunburst: store.util.fetechedLocationSunburst
-  }
-})(LocationLink)
+  };
+})(LocationLink);

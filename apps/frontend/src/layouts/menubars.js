@@ -1,51 +1,47 @@
+import _ from "lodash";
 import React, { Component } from "react";
-import { Link } from "react-router-dom";
-import {
-  Loader,
-  Button,
-  List,
-  Popup,
-  Menu,
-  Input,
-  Icon,
-  Sidebar,
-  Dropdown,
-  Divider,
-  Image,
-  Header,
-  Segment
-} from "semantic-ui-react";
 import { connect } from "react-redux";
-import { login, logout } from "../actions/authActions";
-import { toggleSidebar } from "../actions/uiActions";
+import { Link } from "react-router-dom";
+import { push } from "react-router-redux";
 import {
-  searchPhotos,
+  Button,
+  Divider,
+  Dropdown,
+  Header,
+  Icon,
+  Image,
+  Input,
+  Menu,
+  Popup,
+  Segment,
+  Sidebar
+} from "semantic-ui-react";
+import {
+  fetchPeopleAlbums,
+  fetchPlaceAlbum,
+  fetchPlaceAlbumsList,
+  fetchThingAlbumsList,
+  fetchUserAlbum,
+  fetchUserAlbumsList
+} from "../actions/albumsActions";
+import { logout } from "../actions/authActions";
+import { fetchPeople } from "../actions/peopleActions";
+import {
   searchPeople,
+  searchPhotos,
   searchPlaceAlbums,
   searchThingAlbums
 } from "../actions/searchActions";
+import { toggleSidebar } from "../actions/uiActions";
 import {
-  fetchUserAlbum,
-  fetchUserAlbumsList,
-  fetchPlaceAlbum,
-  fetchPeopleAlbums,
-  fetchPlaceAlbumsList,
-  fetchThingAlbumsList
-} from "../actions/albumsActions";
-import { fetchPeople } from "../actions/peopleActions";
-import {
+  fetchCountStats,
   fetchExampleSearchTerms,
-  fetchWorkerAvailability,
-  fetchCountStats
+  fetchWorkerAvailability
 } from "../actions/utilActions";
-import { push } from "react-router-redux";
-import store from "../store";
-import jwtDecode from "jwt-decode";
-import _ from "lodash";
 import { serverAddress } from "../api_client/apiClient";
 
 var ENTER_KEY = 13;
-var topMenuHeight = 55; // don't change this
+var topMenuHeight = 45; // don't change this
 
 function fuzzy_match(str, pattern) {
   if (pattern.split("").length > 0) {
@@ -55,6 +51,41 @@ function fuzzy_match(str, pattern) {
     return new RegExp(pattern).test(str);
   } else {
     return false;
+  }
+}
+
+export class TopMenuPublic extends Component {
+  render() {
+    return (
+      <div>
+        <Menu
+          style={{ contentAlign: "left", backgroundColor: "#eeeeee" }}
+          borderless
+          fixed="top"
+          size="mini"
+        >
+          <Menu.Menu position="left">
+            <Menu.Item>
+              <Icon
+                size="big"
+                onClick={() => {
+                  this.props.dispatch(toggleSidebar());
+                }}
+                name={"sidebar"}
+              />
+              <Button
+                color="black"
+                style={{
+                  padding: 2
+                }}
+              >
+                <Image height={30} src="/logo-white.png" />
+              </Button>
+            </Menu.Item>
+          </Menu.Menu>
+        </Menu>
+      </div>
+    );
   }
 }
 
@@ -117,28 +148,28 @@ export class TopMenu extends Component {
       var filteredSuggestedThings = [];
       var filteredSuggestedUserAlbums = [];
     } else {
-      var filteredExampleSearchTerms = nextProps.exampleSearchTerms.filter(el =>
+      filteredExampleSearchTerms = nextProps.exampleSearchTerms.filter(el =>
         fuzzy_match(el.toLowerCase(), prevState.searchText.toLowerCase())
       );
-      var filteredSuggestedPeople = nextProps.people.filter(person =>
+      filteredSuggestedPeople = nextProps.people.filter(person =>
         fuzzy_match(
           person.text.toLowerCase(),
           prevState.searchText.toLowerCase()
         )
       );
-      var filteredSuggestedPlaces = nextProps.albumsPlaceList.filter(place =>
+      filteredSuggestedPlaces = nextProps.albumsPlaceList.filter(place =>
         fuzzy_match(
           place.title.toLowerCase(),
           prevState.searchText.toLowerCase()
         )
       );
-      var filteredSuggestedThings = nextProps.albumsThingList.filter(thing =>
+      filteredSuggestedThings = nextProps.albumsThingList.filter(thing =>
         fuzzy_match(
           thing.title.toLowerCase(),
           prevState.searchText.toLowerCase()
         )
       );
-      var filteredSuggestedUserAlbums = nextProps.albumsUserList.filter(album =>
+      filteredSuggestedUserAlbums = nextProps.albumsUserList.filter(album =>
         fuzzy_match(
           album.title.toLowerCase(),
           prevState.searchText.toLowerCase()
@@ -179,33 +210,32 @@ export class TopMenu extends Component {
       var filteredSuggestedThings = [];
       var filteredSuggestedUserAlbums = [];
     } else {
-      var filteredExampleSearchTerms = this.props.exampleSearchTerms.filter(
-        el => fuzzy_match(el.toLowerCase(), this.state.searchText.toLowerCase())
+      filteredExampleSearchTerms = this.props.exampleSearchTerms.filter(el =>
+        fuzzy_match(el.toLowerCase(), this.state.searchText.toLowerCase())
       );
-      var filteredSuggestedPeople = this.props.people.filter(person =>
+      filteredSuggestedPeople = this.props.people.filter(person =>
         fuzzy_match(
           person.text.toLowerCase(),
           this.state.searchText.toLowerCase()
         )
       );
-      var filteredSuggestedPlaces = this.props.albumsPlaceList.filter(place =>
+      filteredSuggestedPlaces = this.props.albumsPlaceList.filter(place =>
         fuzzy_match(
           place.title.toLowerCase(),
           this.state.searchText.toLowerCase()
         )
       );
-      var filteredSuggestedThings = this.props.albumsThingList.filter(thing =>
+      filteredSuggestedThings = this.props.albumsThingList.filter(thing =>
         fuzzy_match(
           thing.title.toLowerCase(),
           this.state.searchText.toLowerCase()
         )
       );
-      var filteredSuggestedUserAlbums = this.props.albumsUserList.filter(
-        album =>
-          fuzzy_match(
-            album.title.toLowerCase(),
-            this.state.searchText.toLowerCase()
-          )
+      filteredSuggestedUserAlbums = this.props.albumsUserList.filter(album =>
+        fuzzy_match(
+          album.title.toLowerCase(),
+          this.state.searchText.toLowerCase()
+        )
       );
     }
     this.setState({
@@ -269,16 +299,17 @@ export class TopMenu extends Component {
                 name={"sidebar"}
               />
               <Button
+                color="black"
                 style={{
-                  paddingTop: 4,
-                  paddingBottom: 4,
-                  paddingRight: 10,
-                  paddingLeft: 10
+                  padding: 2
                 }}
               >
-                <Image height={30} src="/logo.png" />
+                <Image height={30} src="/logo-white.png" />
               </Button>
             </Menu.Item>
+          </Menu.Menu>
+
+          <Menu.Menu position="right">
             <Menu.Item>
               <Input
                 size="large"
@@ -304,9 +335,6 @@ export class TopMenu extends Component {
                 placeholder={this.state.exampleSearchTerm}
               />
             </Menu.Item>
-          </Menu.Menu>
-
-          <Menu.Menu position="right">
             <Menu.Item>
               <Popup
                 size="mini"
@@ -332,7 +360,7 @@ export class TopMenu extends Component {
               />
 
               <Dropdown
-                size='big'
+                size="big"
                 button
                 icon="user"
                 labeled
@@ -354,7 +382,7 @@ export class TopMenu extends Component {
                     <Icon name="settings" />
                     <b>Settings</b>
                   </Dropdown.Item>
-                  {this.props.auth.access.is_admin && <Dropdown.Divider/>}
+                  {this.props.auth.access.is_admin && <Dropdown.Divider />}
 
                   {this.props.auth.access.is_admin && (
                     <Dropdown.Item
@@ -602,6 +630,57 @@ export class TopMenu extends Component {
   }
 }
 
+
+
+
+export class SideMenuNarrowPublic extends Component {
+  render() {
+    return (
+      <Menu
+        borderless
+        icon="labeled"
+        vertical
+        fixed="left"
+        floated
+        pointing
+        width="thin"
+      >
+        <Divider hidden />
+        <Divider hidden />
+        <Divider hidden />
+        <Divider hidden />
+
+        <Dropdown
+          pointing="left"
+          item
+          icon={
+            <Icon.Group size="big">
+              <Icon name="globe" />
+            </Icon.Group>
+          }
+        >
+          <Dropdown.Menu>
+            <Dropdown.Header>Public</Dropdown.Header>
+            <Dropdown.Item as={Link} to="/faces">
+              <Icon name="users" />
+              <Icon name="arrow right" />
+              <Icon name="globe" />
+              {"  Other's Public photos"}
+            </Dropdown.Item>
+          </Dropdown.Menu>
+        </Dropdown>
+        <div style={{ marginTop: -17 }}>
+          <small>Public</small>
+        </div>
+      </Menu>
+    )
+  }
+}
+
+
+
+
+
 export class SideMenuNarrow extends Component {
   state = { activeItem: "all photos" };
 
@@ -799,6 +878,53 @@ export class SideMenuNarrow extends Component {
         <div style={{ marginTop: -17 }}>
           <small>Dashboards</small>
         </div>
+
+        {this.props.auth && (
+          <div>
+            <Divider hidden />
+            <Dropdown
+              pointing="left"
+              item
+              icon={
+                <Icon.Group size="big">
+                  <Icon name="share alternate" />
+                </Icon.Group>
+              }
+            >
+              <Dropdown.Menu>
+                <Dropdown.Header>Sharing</Dropdown.Header>
+
+                <Dropdown.Divider />
+                <Dropdown.Header>Public</Dropdown.Header>
+                <Dropdown.Item
+                  as={Link}
+                  to={`/user/${this.props.auth.access.name}`}
+                >
+                  <Icon name="globe" />
+                  {"  Your Public photos"}
+                </Dropdown.Item>
+
+
+
+                <Dropdown.Header>Internal</Dropdown.Header>
+                
+                <Dropdown.Item as={Link} to="/faces" disabled>
+                  <Icon name="users" />
+                  {"  Shared with others"}
+                </Dropdown.Item>
+                
+                <Dropdown.Item as={Link} to="/faces" disabled>
+                  <Icon name="user circle" />
+                  {"  Shared with you"}
+                </Dropdown.Item>
+
+              </Dropdown.Menu>
+            </Dropdown>
+            <div style={{ marginTop: -17 }}>
+              <small>Sharing</small>
+            </div>
+          </div>
+        )}
       </Menu>
     );
   }
@@ -996,8 +1122,16 @@ TopMenu = connect(store => {
   };
 })(TopMenu);
 
+TopMenuPublic = connect(store => {
+  return {
+    showSidebar: store.ui.showSidebar,
+    gridType: store.ui.gridType
+  };
+})(TopMenuPublic);
+
 SideMenuNarrow = connect(store => {
   return {
+    auth: store.auth,
     jwtToken: store.auth.jwtToken,
     location: store.routerReducer.location
   };

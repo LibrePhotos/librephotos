@@ -1,39 +1,14 @@
+import moment from "moment";
 import React, { Component } from "react";
-import { Link } from "react-router-dom";
-import {
-  Loader,
-  Button,
-  List,
-  Popup,
-  Menu,
-  Input,
-  Icon,
-  Sidebar,
-  Dropdown,
-  Divider,
-  Image,
-  Header,
-  Segment,
-  Table,
-  Grid
-} from "semantic-ui-react";
+import Modal from "react-modal";
 import { connect } from "react-redux";
-
-import {
-  fetchUserList,
-  fetchDirectoryTree,
-  setUserScanDirectory
-} from "../actions/utilActions";
-
 import SortableTree from "react-sortable-tree";
 import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
+import { Button, Grid, Header, Icon, Input, Loader, Table } from "semantic-ui-react";
+import { fetchDirectoryTree, fetchUserList, setUserScanDirectory } from "../actions/utilActions";
 
-import { push } from "react-router-redux";
-import store from "../store";
-import _ from "lodash";
-import { serverAddress } from "../api_client/apiClient";
-import moment from "moment";
-import Modal from "react-modal";
+
+
 
 const modalStyles = {
   content: {

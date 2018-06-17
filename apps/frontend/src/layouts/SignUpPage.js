@@ -1,21 +1,32 @@
 import React, { Component } from "react";
-import { Link } from "react-router-dom";
 import {
-  Button,
-  Divider,
-  Form,
-  Header,
+  Card,
   Image,
+  Input,
+  Header,
+  Divider,
   Message,
-  Segment
+  Item,
+  Loader,
+  Dimmer,
+  Rating,
+  Dropdown,
+  Container,
+  Label,
+  Popup,
+  Segment,
+  Button,
+  Icon,
+  Form
 } from "semantic-ui-react";
+import { connect } from "react-redux";
 
-const options = [
-  { key: "https://", text: "https://", value: "https://" },
-  { key: "http://", text: "http://", value: "http://" }
-];
+import { login, signup } from "../actions/authActions";
+import * as reducers from "../reducers";
 
-export class LoginPage extends Component {
+import { push } from "react-router-redux";
+
+export class SignupPage extends Component {
   constructor(props) {
     super(props);
     this.onSubmit = this.onSubmit.bind(this);
@@ -27,12 +38,11 @@ export class LoginPage extends Component {
   state = {
     username: "",
     password: "",
+    passwordConfirm: "",
     serverAddress: "",
+    email: "",
     serverProtocol: "https://"
   };
-  componentDidMount() {
-    this.props.fetchSiteSettings()
-  }
 
   handleChange = (e, { name, value }) => this.setState({ [name]: value });
 
@@ -41,15 +51,29 @@ export class LoginPage extends Component {
 
   onSubmit(event) {
     event.preventDefault();
-    console.log(this.props);
-    this.props.onSubmit(this.state.username.toLowerCase(), this.state.password);
+    this.props.dispatch(
+      signup(
+        this.state.username.toLowerCase(),
+        this.state.password,
+        this.state.email
+      )
+    );
+    // console.log(this.props);
+    // console.log(this.state.password)
+    // this.props.onSubmit(this.state.username.toLowerCase(), this.state.password);
   }
 
   render() {
     console.log(this.state);
     console.log(this.props);
 
-    const { username, password, serverAddress } = this.state;
+    const {
+      username,
+      password,
+      email,
+      passwordConfirm,
+      serverAddress
+    } = this.state;
 
     return (
       <div
@@ -72,9 +96,8 @@ export class LoginPage extends Component {
             <Header.Content>Ownphotos</Header.Content>
           </Header>
           <Segment attached>
-            <Header>Login</Header>
-
-            <Form onSubmit={this.onSubmit}>
+            <Header>Signup</Header>
+            <Form>
               <Form.Field>
                 <label>User Name</label>
                 <Form.Input
@@ -86,8 +109,22 @@ export class LoginPage extends Component {
                 />
               </Form.Field>
               <Form.Field>
+                <label>Email</label>
+                <Form.Input
+                  icon="mail"
+                  placeholder="Email"
+                  name="email"
+                  value={email}
+                  onChange={this.handleChange}
+                />
+              </Form.Field>
+              <Form.Field>
                 <label>Password</label>
                 <Form.Input
+                  error={
+                    this.state.passwordConfirm.length > 0 &&
+                    this.state.password !== this.state.passwordConfirm
+                  }
                   icon="lock"
                   type="password"
                   placeholder="Password"
@@ -95,38 +132,46 @@ export class LoginPage extends Component {
                   value={password}
                   onChange={this.handleChange}
                 />
+                <label>Confirm Password</label>
+                <Form.Input
+                  error={
+                    this.state.passwordConfirm.length > 0 &&
+                    this.state.password !== this.state.passwordConfirm
+                  }
+                  icon="lock"
+                  type="password"
+                  placeholder="Confirm password"
+                  name="passwordConfirm"
+                  value={passwordConfirm}
+                  onChange={this.handleChange}
+                />
                 <Divider />
-                <Form.Button fluid color="blue" content="Log in" />
-
-                {
-                  this.props.siteSettings.allow_registration &&
-                    <div>
-                      <Divider />
-                      <Button
-                        disabled={!this.props.siteSettings.allow_registration}
-                        as={Link}
-                        to="/signup"
-                        fluid
-                        color="green"
-                        content="Sign up"
-                      />
-                    </div>
-                }
-
-
               </Form.Field>
+              <Button
+                onClick={() => {
+                  this.props.dispatch(
+                    signup(
+                      this.state.username.toLowerCase(),
+                      this.state.password,
+                      this.state.email
+                    )
+                  );
+                }}
+                disabled={
+                  this.state.password.length === 0 ||
+                  this.state.password !== this.state.passwordConfirm
+                }
+                fluid
+                color="blue"
+              >
+                Sign Up
+              </Button>
             </Form>
           </Segment>
           {this.props.errors &&
-            this.props.errors.data && (
-              <Message color="red" secondary attached>
-                {this.props.errors.data.non_field_errors[0]}
-              </Message>
-            )}
-          {this.props.errors &&
             this.props.errors.non_field_errors && (
               <Message color="red" secondary attached>
-                No connection to backend server
+                {this.props.errors.non_field_errors}
               </Message>
             )}
           {this.props.errors &&
@@ -149,26 +194,14 @@ export class LoginPage extends Component {
             paddingTop: "10%",
             margin: "0 auto"
           }}
-        >
-          A comfy place for your photos.
-        </div>
+        />
       </div>
     );
   }
 }
 
-// <Form.Field>
-//   <label>Server Address</label>
-//   <Input
-//     icon='server'
-//     label={
-//     <Dropdown
-//       onChange={this.handleServerProtocolChange}
-//       defaultValue='https://'
-//       options={options} />
-//     }
-//     placeholder='ownphotos.example.com'
-//     name='serverAddress'
-//     value={serverAddress}
-//     onChange={this.handleChange} />
-// </Form.Field>
+SignupPage = connect(store => {
+  return {
+    auth: store.auth
+  };
+})(SignupPage);

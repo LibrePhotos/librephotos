@@ -16,6 +16,9 @@ import {
   Sticky,
   Accordion
 } from "semantic-ui-react";
+
+import {SecuredImageJWT} from '../components/SecuredImage'
+
 import {
   FaceToLabel,
   FacesLabeled,
@@ -50,7 +53,7 @@ import { serverAddress } from "../api_client/apiClient";
 import Modal from "react-modal";
 import moment from "moment";
 // <Icon name='id badge' circular />
-var topMenuHeight = 55; // don't change this
+var topMenuHeight = 45; // don't change this
 var leftMenuWidth = 85; // don't change this
 var SIDEBAR_WIDTH = 85;
 
@@ -117,8 +120,6 @@ class ModalPersonEdit extends Component {
     var selectedImageSrcs = this.props.selectedFaces.map(faceID => {
       return allFaces.filter(face => face.id === faceID)[0].image;
     });
-    console.log(process.env);
-
     return (
       <Modal
         ariaHideApp={false}
@@ -146,7 +147,7 @@ class ModalPersonEdit extends Component {
         >
           <Image.Group>
             {selectedImageSrcs.map(image => (
-              <Image height={40} width={40} src={image} />
+              <SecuredImageJWT key={'selected_image'+image} height={40} width={40} src={image} />
             ))}
           </Image.Group>
         </div>
@@ -214,6 +215,7 @@ class ModalPersonEdit extends Component {
             filteredPeopleList.map(item => {
               return (
                 <div
+                  key={'modal_person_face_label_'+item.text}
                   style={{
                     height: 70,
                     justifyContent: "center",
@@ -231,7 +233,7 @@ class ModalPersonEdit extends Component {
                       // console.log('to user album id: ',item.id)
                     }}
                   >
-                    <Image
+                    <SecuredImageJWT
                       circular
                       height={60}
                       width={60}
@@ -474,7 +476,7 @@ export class FaceDashboard extends Component {
               inverted
               position="bottom center"
               content={
-                <Image
+                <SecuredImageJWT
                   size="large"
                   src={
                     serverAddress +
@@ -491,7 +493,7 @@ export class FaceDashboard extends Component {
         if (this.state.isScrollingFast) {
           return (
             <div key={key} style={{ ...style, padding: 5 }}>
-              <Image
+              <SecuredImageJWT
                 rounded
                 src={"/thumbnail_placeholder.png"}
                 height={this.state.entrySquareSize - 10}
@@ -500,6 +502,8 @@ export class FaceDashboard extends Component {
             </div>
           );
         } else {
+          // TODO: janky shit going on in the next line!
+          var faceImageSrc = serverAddress+'/media/faces/'+_.reverse(cell.image.split('/'))[0]
           if (this.state.selectMode) {
             const isSelected = this.state.selectedFaces.includes(cell.id);
             return (
@@ -510,12 +514,12 @@ export class FaceDashboard extends Component {
                     backgroundColor: isSelected ? "#AED6F1" : "#eeeeee"
                   }}
                 >
-                  <Image
+                  <SecuredImageJWT
                     rounded
                     onClick={() => {
                       this.onFaceSelect(cell.id);
                     }}
-                    src={cell.image}
+                    src={faceImageSrc}
                     height={this.state.entrySquareSize - 30}
                     width={this.state.entrySquareSize - 30}
                   />
@@ -527,13 +531,13 @@ export class FaceDashboard extends Component {
           } else {
             return (
               <div key={key} style={{ ...style, padding: 5 }}>
-                <Image
+                <SecuredImageJWT
                   rounded
                   onClick={() => {
                     this.setState({ selectMode: true });
                     this.onFaceSelect(cell.id);
                   }}
-                  src={cell.image}
+                  src={faceImageSrc}
                   height={this.state.entrySquareSize - 10}
                   width={this.state.entrySquareSize - 10}
                 />

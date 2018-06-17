@@ -1,9 +1,42 @@
-import axios from "axios";
-import { Server } from "../api_client/apiClient";
-import { fetchAutoAlbums } from "./albumsActions";
-import { fetchLabeledFacesList, fetchInferredFacesList } from "./facesActions";
-import { fetchDateAlbumsPhotoHashList } from "./albumsActions";
 import { notify } from "reapop";
+import { Server } from "../api_client/apiClient";
+import { fetchDateAlbumsPhotoHashList } from "./albumsActions";
+import { fetchInferredFacesList, fetchLabeledFacesList } from "./facesActions";
+import { fetchPeople } from "./peopleActions";
+
+export function setSiteSettings(siteSettings) {
+  return function(dispatch) {
+    dispatch({ type: "SET_SITE_SETTINGS" });
+    Server.post("sitesettings/",siteSettings)
+      .then(response => {
+        dispatch({
+          type: "SET_SITE_SETTINGS_FULFILLED",
+          payload: response.data
+        });
+      })
+      .catch(error => {
+        dispatch({ type: "SET_SITE_SETTINGS_REJECTED", payload: error });
+      });
+  };
+}
+
+
+export function fetchSiteSettings() {
+  return function(dispatch) {
+    dispatch({ type: "FETCH_SITE_SETTINGS" });
+    Server.get("sitesettings/")
+      .then(response => {
+        dispatch({
+          type: "FETCH_SITE_SETTINGS_FULFILLED",
+          payload: response.data
+        });
+      })
+      .catch(error => {
+        dispatch({ type: "FETCH_SITE_SETTINGS_REJECTED", payload: error });
+      });
+  };
+}
+
 
 // Todo: put this under userActions.js
 export function fetchUserList() {
@@ -91,6 +124,7 @@ export function fetchWorkerAvailability(prevRunningJob) {
           if (prevRunningJob.job_type_str.toLowerCase() === "train faces") {
             dispatch(fetchLabeledFacesList());
             dispatch(fetchInferredFacesList());
+            dispatch(fetchPeople())
           }
           if (prevRunningJob.job_type_str.toLowerCase() === "scan photos") {
             dispatch(fetchDateAlbumsPhotoHashList());

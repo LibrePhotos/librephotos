@@ -1,5 +1,10 @@
 export default function reducer(
   state = {
+
+    siteSettings: {},
+    fetchingSiteSettings: false,
+    fetchedSiteSettings: false,
+
     countStats: {},
     fetchingCountStats: false,
     fetchedCountStats: false,
@@ -53,6 +58,35 @@ export default function reducer(
   action
 ) {
   switch (action.type) {
+    case "SET_SITE_SETTINGS_FULFILLED": {
+      return {
+        ...state,
+        siteSettings: action.payload
+      };
+    }
+
+
+
+    case "FETCH_SITE_SETTINGS": {
+      return { ...state, fetchingSiteSettings: true };
+    }
+    case "FETCH_SITE_SETTINGS_FULFILLED": {
+      return {
+        ...state,
+        fetchingSiteSettings: false,
+        fetchedSiteSettings: true,
+        siteSettings: action.payload
+      };
+    }
+    case "FETCH_SITE_SETTINGS_REJECTED": {
+      return {
+        ...state,
+        fetchingSiteSettings:false,
+      }
+    }
+
+
+
     case "FETCH_USER_LIST": {
       return { ...state, fetchingUserList: true };
     }

@@ -1,10 +1,50 @@
 import axios from "axios";
-import {Server} from '../api_client/apiClient'
+import {Server, serverAddress} from '../api_client/apiClient'
 import _ from 'lodash'
 import moment from 'moment'
 import {notify} from 'reapop'
 
 import { fetchDateAlbumsPhotoHashList } from './albumsActions'
+import { copyToClipboard } from '../util/util'
+
+
+export function setPhotosPublic(image_hashes,val_public) {
+  return function(dispatch) {
+    dispatch({type: "SET_PHOTOS_PUBLIC"});
+    Server.post(`photosedit/makepublic/`,{image_hashes:image_hashes,val_public:val_public})
+      .then((response) => {
+        dispatch({type: "SET_PHOTOS_PUBLIC_FULFILLED", payload: {image_hashes:image_hashes,val_public:val_public,updatedPhotos:response.data.results}})
+        if (val_public) {
+            var notificationMessage = 'were successfully added to your public photos. Links to the photos were copied to the clipboard.'
+            // console.log('links to copy')
+            // console.log(image_hashes.map(ih=>{return serverAddress+'/media/photos/'+ih+'.jpg'}).join(' '))
+            const linksToCopy = image_hashes.map(ih=>{return serverAddress+'/media/photos/'+ih+'.jpg'}).join(' ')
+
+            // copyToClipboard(image_hashes.map(ih=>{return serverAddress+'/media/photos/'+ih+'.jpg'}).join(' '))
+            // copyToClipboard('helaelkqwjelkrqwer')
+        } else {
+            var notificationMessage = 'were successfully removed from your public photos'
+        }
+        dispatch(notify({
+            message:`${image_hashes.length} photo(s) ` + notificationMessage,
+            title:'Set photos public',
+            status:'success',
+            dismissible: true,
+            dismissAfter:3000,
+            position:'br'
+        }))
+        if (image_hashes.length == 1) {
+          dispatch(fetchPhotoDetail(image_hashes[0]))
+        }
+      })
+      .catch((err) => {
+        dispatch({type: "SET_PHOTOS_PUBLIC_REJECTED", payload: err})
+      })
+  }
+}
+
+
+
 
 export function setPhotosFavorite(image_hashes,favorite) {
   return function(dispatch) {

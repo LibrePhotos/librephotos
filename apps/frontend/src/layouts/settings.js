@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import {
   Form,
   Radio,
+  Label,
   Step,
   Progress,
   List,
@@ -28,7 +29,9 @@ import {
   generateEventAlbums,
   fetchAutoAlbumProcessingStatus,
   generateEventAlbumTitles,
-  fetchWorkerAvailability
+  fetchWorkerAvailability,
+  setSiteSettings,
+  fetchSiteSettings
 } from "../actions/utilActions";
 import { scanPhotos, fetchPhotos } from "../actions/photosActions";
 
@@ -59,24 +62,73 @@ export class Settings extends Component {
     this.props.dispatch(generateEventAlbums());
   };
 
+  componentDidMount() {
+    this.props.dispatch(fetchSiteSettings())
+  }
+
   render() {
     var buttonsDisabled = !this.props.workerAvailability;
 
+    console.log(this.props.siteSettings)
     return (
       <div style={{ padding: 10 }}>
         <Header as="h2">Settings</Header>
 
         <Divider hidden />
 
+        {
+            this.props.auth.access.is_admin &&
+            <div>
+                <Header as="h3">Site settings<Label color='red' size='mini'>Admin</Label></Header>
+
+                <Grid>
+                <Grid.Row>
+                    <Grid.Column width={5} textAlign="right">
+                    <b>Allow user registration</b>
+                    </Grid.Column>
+
+                    <Grid.Column width={9}>
+                    <Form>
+                        <Form.Field>
+                        <Radio
+                            label="Allow"
+                            name="radioGroup"
+                            value={true}
+                            onChange={() =>
+                            this.props.dispatch(setSiteSettings({allow_registration:true}))
+                            }
+                            checked={this.props.siteSettings.allow_registration}
+                        />
+                        </Form.Field>
+                        <Form.Field>
+                        <Radio
+                            label="Do not allow"
+                            name="radioGroup"
+                            value={false}
+                            onChange={() =>
+                            this.props.dispatch(setSiteSettings({allow_registration:false}))
+                            }
+                            checked={!this.props.siteSettings.allow_registration}
+                        />
+                        </Form.Field>
+                    </Form>
+                    </Grid.Column>
+                </Grid.Row>
+                </Grid>
+
+                <Divider hidden/>
+            </div>
+        }
+
         <Header as="h3">Appearance settings</Header>
 
         <Grid>
           <Grid.Row>
-            <Grid.Column width={2} textAlign="right">
+            <Grid.Column width={5} textAlign="right">
               <b>Thumbnail size</b>
             </Grid.Column>
 
-            <Grid.Column width={14}>
+            <Grid.Column width={9}>
               <Form>
                 <Form.Field>
                   <Radio
@@ -111,9 +163,8 @@ export class Settings extends Component {
           </Grid.Row>
         </Grid>
 
+        <Divider hidden/>
         <Header as="h3">Library actions</Header>
-
-        <Divider hidden />
 
         <Accordion fluid>
           <Accordion.Title
@@ -265,7 +316,9 @@ export class Settings extends Component {
 
 Settings = connect(store => {
   return {
+    auth: store.auth,
     gridType: store.ui.gridType,
+    siteSettings: store.util.siteSettings,
     statusPhotoScan: store.util.statusPhotoScan,
     statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
     generatingAutoAlbums: store.util.generatingAutoAlbums,

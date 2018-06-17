@@ -49,8 +49,7 @@ export class FaceClusterScatter extends Component {
     },this)
     if (this.props.clustered) {
         return (
-        <div>
-
+        <div style={{padding:10}}>
             <Header as='h3'>
                 Face Embeddings
                 <Header.Subheader>
@@ -59,7 +58,7 @@ export class FaceClusterScatter extends Component {
             </Header>
 
             <XYPlot
-            width={this.props.containerWidth}
+            width={this.props.containerWidth-30}
             height={this.props.height}>
             <HorizontalGridLines/>
             <VerticalGridLines/>
@@ -74,7 +73,7 @@ export class FaceClusterScatter extends Component {
         )
     } else {
         return (
-            <div><Loader active/></div>
+            <div style={{padding:10}}><Loader active/></div>
         )
     }
 

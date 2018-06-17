@@ -1,11 +1,10 @@
-import {serverAddress,Server} from '../api_client/apiClient'
-import { push } from 'react-router-redux'
+import { push } from 'react-router-redux';
+import { Server } from '../api_client/apiClient';
 
 
 
 
 
-import { RSAA } from 'redux-api-middleware';
 
 export const LOGIN_REQUEST = '@@auth/LOGIN_REQUEST';
 export const LOGIN_SUCCESS = '@@auth/LOGIN_SUCCESS';
@@ -40,7 +39,19 @@ export const TOKEN_FAILURE = '@@auth/TOKEN_FAILURE';
 // })
 
 
-
+export function signup(username,password,email) {
+  return function(dispatch) {
+    dispatch({type:"SIGNUP"})
+    Server.post('/user/', {email:email, username:username, password:password, scan_directory:'initial'})
+      .then((response) => {
+        dispatch({type: "SIGNUP_FULFILLED", payload: response.data})
+        dispatch(push('/login'))
+      })
+      .catch((err) => {
+        dispatch({type: "SIGNUP_REJECTED", payload: err})
+      })
+  }
+}
 
 export function login(username,password,from) {
   return function(dispatch) {
@@ -51,6 +62,7 @@ export function login(username,password,from) {
         dispatch(push(from))
       })
       .catch((err) => {
+        console.log(err)
         dispatch({type: "LOGIN_REJECTED", payload: err})
       })
   }

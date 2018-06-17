@@ -11,6 +11,7 @@ import photos from './photosReducer'
 import auth, * as fromAuth from './authReducer'
 import search from './searchReducer'
 import ui from './uiReducer'
+import pub from './publicReducer'
 
 
 const appReducer = combineReducers({
@@ -23,6 +24,7 @@ const appReducer = combineReducers({
   search,
   routerReducer,
   ui,
+  pub,
   notifications: notificationsReducer()
   
 })
