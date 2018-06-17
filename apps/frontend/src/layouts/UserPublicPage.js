@@ -5,7 +5,12 @@ import { connect } from "react-redux";
 import { PhotoListView } from "./ReusablePhotoListView";
 import _ from "lodash";
 import moment from "moment";
-import { TopMenuPublic, SideMenuNarrowPublic } from "./menubars";
+import {
+  TopMenu,
+  SideMenuNarrow,
+  TopMenuPublic,
+  SideMenuNarrowPublic
+} from "./menubars";
 
 var TOP_MENU_HEIGHT = 45; // don't change this
 var LEFT_MENU_WIDTH = 85; // don't change this
@@ -21,7 +26,7 @@ export class UserPublicPage extends Component {
     this.props.dispatch(
       fetchUserPublicPhotos(this.props.match.params.username)
     );
-    this.props.dispatch({ type: "HIDE_SIDEBAR" });
+    // this.props.dispatch({ type: "HIDE_SIDEBAR" });
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
@@ -74,10 +79,24 @@ export class UserPublicPage extends Component {
 
   render() {
     const { fetchingAlbumsUser } = this.props;
+    if (this.props.auth.access) {
+      var menu = (
+        <div>
+          {this.props.ui.showSidebar && <SideMenuNarrow />}
+          <TopMenu />
+        </div>
+      );
+    } else {
+      var menu = (
+        <div>
+          {this.props.ui.showSidebar && <SideMenuNarrowPublic />}
+          <TopMenuPublic />
+        </div>
+      );
+    }
     return (
       <div>
-        {this.props.ui.showSidebar && <SideMenuNarrowPublic />}
-        <TopMenuPublic />
+        {menu}
         <div
           style={{
             paddingTop: TOP_MENU_HEIGHT,
@@ -85,12 +104,16 @@ export class UserPublicPage extends Component {
           }}
         >
           <PhotoListView
-            title={"Public photos of " + this.props.match.params.username}
+            title={
+              this.props.auth.access
+                ? "Your public photos"
+                : "Public photos of " + this.props.match.params.username
+            }
             loading={this.props.pub.fetchingUserPublicPhotos}
             titleIconName={"globe"}
             photosGroupedByDate={this.state.photosGroupedByDate}
             idx2hash={this.state.idx2hash}
-            isPublic={true}
+            isPublic={this.props.auth.access === undefined}
           />
         </div>
       </div>
@@ -100,6 +123,7 @@ export class UserPublicPage extends Component {
 UserPublicPage = connect(store => {
   return {
     pub: store.pub,
-    ui: store.ui
+    ui: store.ui,
+    auth: store.auth
   };
 })(UserPublicPage);

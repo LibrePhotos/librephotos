@@ -1,265 +1,443 @@
-import React, {Component} from 'react'
+import React, { Component } from "react";
 import { connect } from "react-redux";
-import {Loader ,Segment, Image} from 'semantic-ui-react'
-import { Map, TileLayer, Marker, Popup } from 'react-leaflet'
-import { scanPhotos,fetchPhotos} from '../actions/photosActions'
-import { fetchAutoAlbumsList } from '../actions/albumsActions'
-import { fetchLocationClusters } from '../actions/utilActions'
-import {Server, serverAddress} from '../api_client/apiClient'
+import { Loader, Flag, Segment, Image } from "semantic-ui-react";
+import { Map, TileLayer, Marker, Popup } from "react-leaflet";
+import { scanPhotos, fetchPhotos } from "../actions/photosActions";
+import { fetchAutoAlbumsList } from "../actions/albumsActions";
+import { fetchLocationClusters } from "../actions/utilActions";
+import { Server, serverAddress } from "../api_client/apiClient";
+import MarkerClusterGroup from "react-leaflet-markercluster";
+import { fetchPlaceAlbumsList } from "../actions/albumsActions";
+import { Grid, List, WindowScroller, AutoSizer } from "react-virtualized";
+import { countryNames } from "../util/countryNames";
+import { Link } from "react-router-dom";
+import { SecuredImageJWT } from "../components/SecuredImage";
 
+var topMenuHeight = 45; // don't change this
+var ESCAPE_KEY = 27;
+var ENTER_KEY = 13;
+var RIGHT_ARROW_KEY = 39;
+var UP_ARROW_KEY = 38;
+var LEFT_ARROW_KEY = 37;
+var DOWN_ARROW_KEY = 40;
 
-
+var SIDEBAR_WIDTH = 85;
 
 export class LocationMap extends Component {
   render() {
-    var photosWithGPS = this.props.photos.filter(function(photo){
-      if (photo.exif_gps_lon !== null && photo.exif_gps_lon){
-        return true
+    var photosWithGPS = this.props.photos.filter(function(photo) {
+      if (photo.exif_gps_lon !== null && photo.exif_gps_lon) {
+        return true;
+      } else {
+        return false;
       }
-      else {
-        return false
-      }
-    })
-    
-    var sum_lat = 0
-    var sum_lon = 0
-    for (var i=0;i<photosWithGPS.length;i++){
-      sum_lat += parseFloat(photosWithGPS[i].exif_gps_lat)
-      sum_lon += parseFloat(photosWithGPS[i].exif_gps_lon)
-    }
-    var avg_lat = sum_lat/photosWithGPS.length
-    var avg_lon = sum_lon/photosWithGPS.length
+    });
 
-    var markers = photosWithGPS.map(function(photo){
+    var sum_lat = 0;
+    var sum_lon = 0;
+    for (var i = 0; i < photosWithGPS.length; i++) {
+      sum_lat += parseFloat(photosWithGPS[i].exif_gps_lat);
+      sum_lon += parseFloat(photosWithGPS[i].exif_gps_lon);
+    }
+    var avg_lat = sum_lat / photosWithGPS.length;
+    var avg_lon = sum_lon / photosWithGPS.length;
+
+    var markers = photosWithGPS.map(function(photo) {
       return (
-        <Marker key={photo.image_hash} position={[photo.exif_gps_lat, photo.exif_gps_lon]}>
+        <Marker
+          key={photo.image_hash}
+          position={[photo.exif_gps_lat, photo.exif_gps_lon]}
+        >
           <Popup>
             <div>
-            <Image src={photo.square_thumbnail}/>
+              <Image src={photo.square_thumbnail} />
             </div>
           </Popup>
         </Marker>
-      )
-    })
-    console.log(markers)
+      );
+    });
+    console.log(markers);
 
-    if (photosWithGPS.length>0){
+    if (photosWithGPS.length > 0) {
       if (this.props.zoom) {
-        var zoom = this.props.zoom
-      }
-      else {
-        var zoom = 2
+        var zoom = this.props.zoom;
+      } else {
+        var zoom = 2;
       }
       return (
-        <Segment style={{zIndex:2, height:this.props.height,padding:0}}>
-          <Map style={{height:this.props.height}} center={[avg_lat,avg_lon]} zoom={zoom}>
+        <Segment style={{ zIndex: 2, height: this.props.height, padding: 0 }}>
+          <Map
+            style={{ height: this.props.height }}
+            center={[avg_lat, avg_lon]}
+            zoom={zoom}
+          >
             <TileLayer
-              attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-              url='http://{s}.tile.osm.org/{z}/{x}/{y}.png'/>
+              attribution="&copy; <a href=&quot;http://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
+              url="http://{s}.tile.osm.org/{z}/{x}/{y}.png"
+            />
             {markers}
           </Map>
         </Segment>
-      )
-    }
-    else {
+      );
+    } else {
       return (
-        <Segment style={{height:this.props.height}}><Loader active>Map loading...</Loader></Segment>
-      )
+        <Segment style={{ height: this.props.height }}>
+          <Loader active>Map loading...</Loader>
+        </Segment>
+      );
     }
   }
 }
-
 
 export class EventMap extends Component {
   constructor(props) {
-    super(props)
-    this.preprocess = this.preprocess.bind(this)
-
+    super(props);
+    this.preprocess = this.preprocess.bind(this);
   }
 
   componentDidMount() {
-    this.props.dispatch(fetchAutoAlbumsList())
+    this.props.dispatch(fetchAutoAlbumsList());
   }
-
 
   preprocess() {
-    var eventsWithGPS = this.props.albumsAutoList.filter(function(album){
-      if (album.gps_lat != null && album.gps_lon != null){
-        return true
+    var eventsWithGPS = this.props.albumsAutoList.filter(function(album) {
+      if (album.gps_lat != null && album.gps_lon != null) {
+        return true;
+      } else {
+        return false;
       }
-      else {
-        return false
-      }
-    })
+    });
 
-    var sum_lat = 0
-    var sum_lon = 0
-    for (var i=0;i<eventsWithGPS.length;i++){
-      sum_lat += parseFloat(eventsWithGPS[i].gps_lat)
-      sum_lon += parseFloat(eventsWithGPS[i].gps_lon)
+    var sum_lat = 0;
+    var sum_lon = 0;
+    for (var i = 0; i < eventsWithGPS.length; i++) {
+      sum_lat += parseFloat(eventsWithGPS[i].gps_lat);
+      sum_lon += parseFloat(eventsWithGPS[i].gps_lon);
     }
-    var avg_lat = sum_lat/eventsWithGPS.length
-    var avg_lon = sum_lon/eventsWithGPS.length
+    var avg_lat = sum_lat / eventsWithGPS.length;
+    var avg_lon = sum_lon / eventsWithGPS.length;
 
-    var markers = eventsWithGPS.map(function(album){
-      return (
-        <Marker position={[album.gps_lat, album.gps_lon]}>
-        </Marker>
-      )
-    })
-    return [avg_lat, avg_lon, markers]
+    var markers = eventsWithGPS.map(function(album) {
+      return <Marker position={[album.gps_lat, album.gps_lon]} />;
+    });
+    return [avg_lat, avg_lon, markers];
   }
-
 
   render() {
     if (this.props.fetchedAlbumsAutoList) {
-      var res = this.preprocess()
-      var avg_lat = res[0]
-      var avg_lon = res[1]
-      var markers = res[2]
+      var res = this.preprocess();
+      var avg_lat = res[0];
+      var avg_lon = res[1];
+      var markers = res[2];
 
       return (
         <div>
-          <Map center={[avg_lat,avg_lon]} zoom={2}>
+          <Map center={[avg_lat, avg_lon]} zoom={2}>
             <TileLayer
-              attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-              url='http://{s}.tile.osm.org/{z}/{x}/{y}.png'/>
+              attribution="&copy; <a href=&quot;http://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
+              url="http://{s}.tile.osm.org/{z}/{x}/{y}.png"
+            />
             {markers}
           </Map>
         </div>
-      )
-    }
-
-    else {
-      return (
-        <div></div>
-      )
+      );
+    } else {
+      return <div />;
     }
   }
 }
 
-
-
-
-
-
-
-
-
-
-
 export class LocationClusterMap extends Component {
-  constructor(props) {
-    super(props)
-    this.preprocess = this.preprocess.bind(this)
+  state = {
+    visibleMarkers: [],
+    visiblePlaceAlbums: [],
+    locationClusters: [],
+    width: window.innerWidth,
+    height: window.innerHeight,
+    entrySquareSize: 200,
+    gridHeight: window.innerHeight - topMenuHeight - 60,
+    headerHeight: 60,
+    numEntrySquaresPerRow:3,
+  };
 
+  constructor(props) {
+    super(props);
+    this.mapRef = React.createRef();
+    this.preprocess = this.preprocess.bind(this);
+    this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this);
   }
 
   componentDidMount() {
+    this.calculateEntrySquareSize();
+    window.addEventListener("resize", this.calculateEntrySquareSize);
+    if (this.props.albumsPlaceList.length == 0) {
+      this.props.dispatch(fetchPlaceAlbumsList());
+    }
     if (!this.props.fetchedLocationClusters) {
-      this.props.dispatch(fetchLocationClusters())
+      this.props.dispatch(fetchLocationClusters());
     }
   }
 
+  onViewportChanged = viewport => {
+    console.log(viewport);
+    this.setState({ viewport });
+    const bounds = this.mapRef.current.leafletElement.getBounds();
+
+    const visibleMarkers = this.props.locationClusters.filter(loc => {
+      const markerLat = loc[0];
+      const markerLng = loc[1];
+      if (
+        markerLat < bounds._northEast.lat &&
+        markerLat > bounds._southWest.lat &&
+        markerLng < bounds._northEast.lng &&
+        markerLng > bounds._southWest.lng
+      ) {
+        return true;
+      } else {
+        return false;
+      }
+    });
+
+    const visiblePlaceNames = visibleMarkers.map(el => el[2]);
+
+    const visiblePlaceAlbums = this.props.albumsPlaceList.filter(el => {
+      if (visiblePlaceNames.includes(el.title)) {
+        return true;
+      } else {
+        return false;
+      }
+    });
+
+    console.log(visibleMarkers);
+    this.setState({
+      visibleMarkers: visibleMarkers,
+      visiblePlaceAlbums: visiblePlaceAlbums
+    });
+  };
+
+  static getDerivedStateFromProps(nextProps, prevState) {
+    if (prevState.locationClusters.length === 0) {
+      const visibleMarkers = nextProps.locationClusters
+      const visiblePlaceNames = visibleMarkers.map(el => el[2]);
+      const visiblePlaceAlbums = nextProps.albumsPlaceList.filter(el => {
+        if (visiblePlaceNames.includes(el.title)) {
+          return true;
+        } else {
+          return false;
+        }
+      });
+
+      return {
+        visibleMarkers: nextProps.locationClusters,
+        locationClusters: nextProps.locationClusters,
+        visiblePlaceAlbums: visiblePlaceAlbums
+      };
+    } else {
+      return { ...prevState };
+    }
+  }
 
   preprocess() {
-
-    var markers = this.props.locationClusters.map(function(loc){
-      if (loc[0]!=0) {
-        return (
-          <Marker position={[loc[0], loc[1]]}>
-          </Marker>
-        )
+    var markers = this.props.locationClusters.map(function(loc) {
+      if (loc[0] != 0) {
+        return <Marker position={[loc[0], loc[1]]} title={loc[2]} />;
       }
-    })
-    return markers
+    });
+    return markers;
   }
 
+  componentWillUnmount() {
+    window.removeEventListener("resize", this.calculateEntrySquareSize);
+  }
+
+  calculateEntrySquareSize() {
+    if (window.innerWidth < 600) {
+      var numEntrySquaresPerRow = 2;
+    } else if (window.innerWidth < 800) {
+      var numEntrySquaresPerRow = 3;
+    } else if (window.innerWidth < 1000) {
+      var numEntrySquaresPerRow = 4;
+    } else if (window.innerWidth < 1200) {
+      var numEntrySquaresPerRow = 5;
+    } else {
+      var numEntrySquaresPerRow = 6;
+    }
+
+    var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15;
+
+    var entrySquareSize = columnWidth / numEntrySquaresPerRow;
+    var numEntrySquaresPerRow = numEntrySquaresPerRow;
+    this.setState({
+      ...this.state,
+      width: window.innerWidth,
+      height: window.innerHeight,
+      entrySquareSize: entrySquareSize,
+      numEntrySquaresPerRow: numEntrySquaresPerRow
+    });
+  }
+
+  cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
+    var place = this.state.visiblePlaceAlbums;
+    var albumPlaceIndex =
+      rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
+    if (albumPlaceIndex < place.length) {
+      return (
+        <div key={key} style={style}>
+          <div
+            onClick={() => {
+              // store.dispatch(push(`/place/${this.props.albumsPlaceList[albumPlaceIndex].id}/`))
+              // store.dispatch(searchPhotos(this.props.albumsPlaceList[albumPlaceIndex].title))
+              // store.dispatch(push('/search'))
+            }}
+            style={{ padding: 5 }}
+          >
+            {place[albumPlaceIndex].cover_photos.slice(0, 1).map(photo => {
+              return (
+                <SecuredImageJWT
+                  label={{
+                    as: "a",
+                    corner: "left",
+                    icon: "map marker alternate"
+                  }}
+                  style={{ display: "inline-block", zIndex: 1 }}
+                  width={this.state.entrySquareSize - 10}
+                  height={this.state.entrySquareSize - 10}
+                  as={Link}
+                  to={`/place/${place[albumPlaceIndex].id}/`}
+                  src={
+                    serverAddress +
+                    "/media/square_thumbnails/" +
+                    photo.image_hash +
+                    ".jpg"
+                  }
+                />
+              );
+            })}
+          </div>
+          <div style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
+            {countryNames.includes(
+              place[albumPlaceIndex].title.toLowerCase()
+            ) ? (
+              <Flag name={place[albumPlaceIndex].title.toLowerCase()} />
+            ) : (
+              ""
+            )}
+            <b>{place[albumPlaceIndex].title}</b>
+            <br /> {place[albumPlaceIndex].photo_count} Photos
+          </div>
+        </div>
+      );
+    } else {
+      return <div key={key} style={style} />;
+    }
+  };
 
   render() {
+    console.log(this.state);
     if (this.props.fetchedLocationClusters) {
-      var markers = this.preprocess()
+      var markers = this.preprocess();
 
       return (
-        <div style={{zIndex:2, height:this.props.height,padding:0}}>
-          <Map style={{height:this.props.height}} center={[40,0]} zoom={3}>
+        <div style={{ zIndex: 2, height: this.props.height, padding: 0 }}>
+          <Map
+            ref={this.mapRef}
+            className="markercluster-map"
+            style={{
+              height: this.props.height - window.innerHeight * 0.6 + 10
+            }}
+            onViewportChanged={this.onViewportChanged}
+            center={[40, 0]}
+            zoom={3}
+          >
             <TileLayer
-              attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-              url='http://{s}.tile.osm.org/{z}/{x}/{y}.png'/>
-            {markers}
+              attribution="&copy; <a href=&quot;https://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <MarkerClusterGroup>{markers}</MarkerClusterGroup>
           </Map>
+          <div
+            style={{
+              paddingLeft: 10,
+              backgroundColor: "white",
+              bottom: 0,
+              height: window.innerHeight * 0.6,
+              width: this.state.width,
+              marginTop: -10,
+              position: "fixed",
+              fixed: "bottom",
+              overflowY: "auto"
+            }}
+          >
+            <AutoSizer
+              disableHeight
+              style={{ outline: "none", padding: 0, margin: 0 }}
+            >
+              {({ width }) => (
+                <Grid
+                  style={{ outline: "none" }}
+                  disableHeader={false}
+                  cellRenderer={this.cellRenderer}
+                  columnWidth={this.state.entrySquareSize}
+                  columnCount={this.state.numEntrySquaresPerRow}
+                  height={window.innerHeight * 0.6}
+                  rowHeight={this.state.entrySquareSize + 60}
+                  rowCount={Math.ceil(
+                    this.state.visiblePlaceAlbums.length /
+                      this.state.numEntrySquaresPerRow.toFixed(1)
+                  )}
+                  width={width}
+                />
+              )}
+            </AutoSizer>
+          </div>
         </div>
-      )
-    }
-
-    else {
+      );
+    } else {
       return (
-        <div style={{height:this.props.height}}><Loader active>Map loading...</Loader></div>
-      )
+        <div style={{ height: this.props.height }}>
+          <Loader active>Map loading...</Loader>
+        </div>
+      );
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 export class AllPhotosMap extends Component {
-	componentDidMount() {
-		this.props.dispatch(fetchPhotos())
-	}
+  componentDidMount() {
+    this.props.dispatch(fetchPhotos());
+  }
 
-
-
-	render(){
-		if (this.props.fetchedPhotos) {
-			var map = (<LocationMap photos={this.props.photos}/>)
-		}
-		else {
-			var map = (<div></div>)
-		}
-		return (
-			<div>
-				{map}
-			</div>
-		)
-	}
+  render() {
+    if (this.props.fetchedPhotos) {
+      var map = <LocationMap photos={this.props.photos} />;
+    } else {
+      var map = <div />;
+    }
+    return <div>{map}</div>;
+  }
 }
 
-
-
-
-AllPhotosMap = connect((store)=>{
+AllPhotosMap = connect(store => {
   return {
-  	photos: store.photos.photos,
-  	fetchingPhotos: store.photos.fetchingPhotos,
-  	fetchedPhotos: store.photos.fetchedPhotos
-  }
-})(AllPhotosMap)
+    photos: store.photos.photos,
+    fetchingPhotos: store.photos.fetchingPhotos,
+    fetchedPhotos: store.photos.fetchedPhotos
+  };
+})(AllPhotosMap);
 
-
-EventMap = connect((store)=>{
+EventMap = connect(store => {
   return {
     albumsAutoList: store.albums.albumsAutoList,
     fetchingAlbumsAutoList: store.albums.fetchingAlbumsAutoList,
-    fetchedAlbumsAutoList: store.albums.fetchedAlbumsAutoList,
-  }
-})(EventMap)
+    fetchedAlbumsAutoList: store.albums.fetchedAlbumsAutoList
+  };
+})(EventMap);
 
-
-LocationClusterMap = connect((store)=>{
+LocationClusterMap = connect(store => {
   return {
+    albumsPlaceList: store.albums.albumsPlaceList,
     locationClusters: store.util.locationClusters,
     fetchingLocationClusters: store.util.fetchingLocationClusters,
-    fetchedLocationClusters: store.util.fetchedLocationClusters,
-  }
-})(LocationClusterMap)
-
+    fetchedLocationClusters: store.util.fetchedLocationClusters
+  };
+})(LocationClusterMap);

@@ -38,7 +38,8 @@ export class SecuredImageJWT extends Component {
       avatar,
       as,
       to,
-      label
+      label,
+      circular,
     } = this.props;
     return (
       <Image
@@ -52,7 +53,8 @@ export class SecuredImageJWT extends Component {
           avatar,
           as,
           to,
-          label
+          label,
+          circular
         }}
         src={
           this.props.isPublic

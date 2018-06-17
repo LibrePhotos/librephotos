@@ -868,29 +868,59 @@ export class PhotoListView extends Component {
                   }
                 }}
               />
-
-              <Button.Group compact floated="right">
+              
+              <Button.Group floated='right' compact>
                 <Popup
                   inverted
                   trigger={
-                    <Button
+                    <Dropdown
+                      pointing='top right'
+                      icon="plus"
                       color="green"
-                      icon
-                      onClick={() => {
-                        if (this.state.selectedImageHashes.length > 0) {
-                          this.setState({ modalAddToAlbumOpen: true });
-                        }
-                      }}
+                      floating
+                      button
+                      compact
+                      floated='right'
+                      className="icon"
                     >
-                      <Icon name="plus" />
-                    </Button>
+                      <Dropdown.Menu>
+                      <Dropdown.Header>Album</Dropdown.Header>
+                        <Dropdown.Item
+                          onClick={() => {
+                            if (this.state.selectedImageHashes.length > 0) {
+                              this.setState({ modalAddToAlbumOpen: true });
+                            }
+                          }}
+                        >
+                          <Icon.Group>
+                          <Icon name="bookmark" color="red" />
+                          <Icon name="plus" corner/>
+                          </Icon.Group>Album
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          onClick={() => {
+                            if (this.state.selectedImageHashes.length > 0) {
+                              this.setState({ modalAddToAlbumOpen: true });
+                            }
+                          }}
+                        >
+                          <Icon.Group>
+                          <Icon name="share alternate" color="red"/>
+                          <Icon name="bookmark" corner  />
+                          </Icon.Group>Shared Album
+                        </Dropdown.Item>
+                      </Dropdown.Menu>
+                    </Dropdown>
                   }
                   content="Add to an existing album or create a new album"
                 />
                 <Dropdown
                   icon="ellipsis vertical"
+                  pointing='top right'
                   floating
                   button
+                  compact
+                  floated='right'
                   className="icon"
                 >
                   <Dropdown.Menu>

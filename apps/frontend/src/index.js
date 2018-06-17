@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom';
 import 'semantic-ui-css/semantic.min.css';
 import 'react-vis/dist/style.css'
 import 'font-awesome/css/font-awesome.min.css';
+import 'react-leaflet-markercluster/dist/styles.min.css'; // css
 
 
 

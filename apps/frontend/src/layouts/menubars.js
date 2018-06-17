@@ -39,6 +39,7 @@ import {
   fetchWorkerAvailability
 } from "../actions/utilActions";
 import { serverAddress } from "../api_client/apiClient";
+import { SecuredImageJWT } from "../components/SecuredImage";
 
 var ENTER_KEY = 13;
 var topMenuHeight = 45; // don't change this
@@ -83,6 +84,11 @@ export class TopMenuPublic extends Component {
               </Button>
             </Menu.Item>
           </Menu.Menu>
+          <Menu.Item position="right">
+            <Button as={Link} to="/login">
+              Login
+            </Button>
+          </Menu.Item>
         </Menu>
       </div>
     );
@@ -589,7 +595,7 @@ export class TopMenu extends Component {
                           inverted
                           content={person.text}
                           trigger={
-                            <Image
+                            <SecuredImageJWT
                               key={"suggestion_person_" + person.key}
                               onClick={() => {
                                 this.props.dispatch(
@@ -629,9 +635,6 @@ export class TopMenu extends Component {
     );
   }
 }
-
-
-
 
 export class SideMenuNarrowPublic extends Component {
   render() {
@@ -673,13 +676,9 @@ export class SideMenuNarrowPublic extends Component {
           <small>Public</small>
         </div>
       </Menu>
-    )
+    );
   }
 }
-
-
-
-
 
 export class SideMenuNarrow extends Component {
   state = { activeItem: "all photos" };
@@ -897,27 +896,29 @@ export class SideMenuNarrow extends Component {
                 <Dropdown.Divider />
                 <Dropdown.Header>Public</Dropdown.Header>
                 <Dropdown.Item
+                  disabled={!this.props.auth.access}
                   as={Link}
-                  to={`/user/${this.props.auth.access.name}`}
+                  to={
+                    this.props.auth.access
+                      ? `/user/${this.props.auth.access.name}`
+                      : "/"
+                  }
                 >
                   <Icon name="globe" />
                   {"  Your Public photos"}
                 </Dropdown.Item>
 
-
-
                 <Dropdown.Header>Internal</Dropdown.Header>
-                
+
                 <Dropdown.Item as={Link} to="/faces" disabled>
                   <Icon name="users" />
                   {"  Shared with others"}
                 </Dropdown.Item>
-                
+
                 <Dropdown.Item as={Link} to="/faces" disabled>
                   <Icon name="user circle" />
                   {"  Shared with you"}
                 </Dropdown.Item>
-
               </Dropdown.Menu>
             </Dropdown>
             <div style={{ marginTop: -17 }}>
