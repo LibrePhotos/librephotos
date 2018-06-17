@@ -220,9 +220,9 @@ def get_count_stats():
     return res
 
 
-def get_location_clusters():
+def get_location_clusters(user):
     start = datetime.now()
-    photos = Photo.objects.exclude(geolocation_json={})
+    photos = Photo.objects.filter(owner=user).exclude(geolocation_json={})
 
     level = -3
     coord_names = []
@@ -244,7 +244,7 @@ def get_location_clusters():
         groups.append(list(g))  # Store group iterator as a list
         uniquekeys.append(k)
 
-    res = [[g[0][1][1], g[0][1][0]] for g in groups]
+    res = [[g[0][1][1], g[0][1][0], g[0][0]] for g in groups]
     elapsed = (datetime.now() - start).total_seconds()
     logger.info('location clustering took %.2f seconds' % elapsed)
     return res
