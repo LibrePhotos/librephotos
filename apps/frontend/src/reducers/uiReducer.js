@@ -13,6 +13,10 @@ export default function reducer(state={
         return {...state, showSidebar: !state.showSidebar, contentWidth:contentWidth}
     }
 
+    case "HIDE_SIDEBAR": {
+        return {...state, showSidebar: false}
+    }
+
     case "SET_GRID_TYPE": {
         return {...state,gridType:action.payload}
     }

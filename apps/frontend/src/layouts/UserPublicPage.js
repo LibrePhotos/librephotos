@@ -10,7 +10,6 @@ import { TopMenuPublic, SideMenuNarrowPublic } from "./menubars";
 var TOP_MENU_HEIGHT = 45; // don't change this
 var LEFT_MENU_WIDTH = 85; // don't change this
 
-
 export class UserPublicPage extends Component {
   state = {
     photosGroupedByDate: [],
@@ -22,6 +21,7 @@ export class UserPublicPage extends Component {
     this.props.dispatch(
       fetchUserPublicPhotos(this.props.match.params.username)
     );
+    this.props.dispatch({ type: "HIDE_SIDEBAR" });
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
@@ -76,17 +76,22 @@ export class UserPublicPage extends Component {
     const { fetchingAlbumsUser } = this.props;
     return (
       <div>
-        { this.props.ui.showSidebar && <SideMenuNarrowPublic />}
+        {this.props.ui.showSidebar && <SideMenuNarrowPublic />}
         <TopMenuPublic />
-        <div style={{paddingTop:TOP_MENU_HEIGHT, paddingLeft: this.props.ui.showSidebar ? LEFT_MENU_WIDTH + 5 : 5}}>
-        <PhotoListView
-          title={"Public photos of " + this.props.match.params.username}
-          loading={this.props.pub.fetchingUserPublicPhotos}
-          titleIconName={"globe"}
-          photosGroupedByDate={this.state.photosGroupedByDate}
-          idx2hash={this.state.idx2hash}
-          isPublic={true}
-        />
+        <div
+          style={{
+            paddingTop: TOP_MENU_HEIGHT,
+            paddingLeft: this.props.ui.showSidebar ? LEFT_MENU_WIDTH + 5 : 5
+          }}
+        >
+          <PhotoListView
+            title={"Public photos of " + this.props.match.params.username}
+            loading={this.props.pub.fetchingUserPublicPhotos}
+            titleIconName={"globe"}
+            photosGroupedByDate={this.state.photosGroupedByDate}
+            idx2hash={this.state.idx2hash}
+            isPublic={true}
+          />
         </div>
       </div>
     );
@@ -95,6 +100,6 @@ export class UserPublicPage extends Component {
 UserPublicPage = connect(store => {
   return {
     pub: store.pub,
-    ui: store.ui,
+    ui: store.ui
   };
 })(UserPublicPage);
