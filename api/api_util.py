@@ -228,14 +228,19 @@ def get_location_clusters(user):
     coord_names = []
     names = []
     for p in photos:
-        try:
-            names.append(p.geolocation_json['features'][level]['text'])
-            coord_names.append([
-                p.geolocation_json['features'][level]['text'],
-                p.geolocation_json['features'][level]['center']
-            ])
-        except:
-            pass
+        for feature in p.geolocation_json['features']:
+            names.append(feature['text'])
+            if not feature['text'].isdigit():
+                coord_names.append([feature['text'], feature['center']])
+
+        # try:
+        #     names.append(p.geolocation_json['features'][level]['text'])
+        #     coord_names.append([
+        #         p.geolocation_json['features'][level]['text'],
+        #         p.geolocation_json['features'][level]['center']
+        #     ])
+        # except:
+        #     pass
 
     groups = []
     uniquekeys = []
