@@ -32,3 +32,5 @@ api/places365/*.tar.gz
 media*
 *.log
 api/migrations_dev
+protected_media
+.vscode
