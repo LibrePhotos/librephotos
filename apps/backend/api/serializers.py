@@ -602,6 +602,7 @@ class LongRunningJobSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     public_photo_count = serializers.SerializerMethodField()
+    public_photo_samples = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -620,37 +621,9 @@ class UserSerializer(serializers.ModelSerializer):
             }
         }
         fields = ('id', 'username', 'email', 'scan_directory', 'first_name',
-                  'last_name', 'public_photo_count', 'date_joined', 'password')
+                  'public_photo_samples', 'last_name', 'public_photo_count',
+                  'date_joined', 'password')
         # read_only_fields = ('id', 'scan_directory')
-
-    # def validate(self, data):
-    #     validated_data = {}
-    #     if 'username' not in data.keys():
-    #         raise serializers.ValidationError("username is required")
-    #     else:
-    #         validated_data['username'] = data['username']
-
-    #     if 'password' not in data.keys():
-    #         raise serializers.ValidationError("password is required")
-    #     else:
-    #         validated_data['password'] = data['password']
-
-    #     if 'email' not in data.keys():
-    #         validated_data['email'] = None
-    #     else:
-    #         validated_data['email'] = data['email']
-
-    #     if 'first_name' not in data.keys():
-    #         validated_data['first_name'] = None
-    #     else:
-    #         validated_data['first_name'] = data['first_name']
-
-    #     if 'last_name' not in data.keys():
-    #         validated_data['last_name'] = None
-    #     else:
-    #         validated_data['last_name'] = data['last_name']
-
-    #     return validated_data
 
     def create(self, validated_data):
         # ipdb.set_trace()
@@ -676,6 +649,11 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_public_photo_count(self, obj):
         return Photo.objects.filter(Q(owner=obj) & Q(public=True)).count()
+
+    def get_public_photo_samples(self, obj):
+        return PhotoSuperSimpleSerializer(
+            Photo.objects.filter(Q(owner=obj) & Q(public=True))[:10],
+            many=True).data
 
 
 class ManageUserSerializer(serializers.ModelSerializer):
