@@ -47,6 +47,9 @@ class TokenObtainPairSerializer(TokenObtainPairSerializer):
         # ipdb.set_trace()
         token['name'] = user.get_username()
         token['is_admin'] = user.is_superuser
+        token['first_name'] = user.first_name
+        token['last_name'] = user.last_name
+        token['scan_directory'] = user.scan_directory
         # ...
 
         return token
