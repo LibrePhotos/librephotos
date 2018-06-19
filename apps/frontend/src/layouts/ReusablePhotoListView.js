@@ -868,59 +868,53 @@ export class PhotoListView extends Component {
                   }
                 }}
               />
-              
-              <Button.Group floated='right' compact>
-                <Popup
-                  inverted
-                  trigger={
-                    <Dropdown
-                      pointing='top right'
-                      icon="plus"
-                      color="green"
-                      floating
-                      button
-                      compact
-                      floated='right'
-                      className="icon"
-                    >
-                      <Dropdown.Menu>
-                      <Dropdown.Header>Album</Dropdown.Header>
-                        <Dropdown.Item
-                          onClick={() => {
-                            if (this.state.selectedImageHashes.length > 0) {
-                              this.setState({ modalAddToAlbumOpen: true });
-                            }
-                          }}
-                        >
-                          <Icon.Group>
-                          <Icon name="bookmark" color="red" />
-                          <Icon name="plus" corner/>
-                          </Icon.Group>Album
-                        </Dropdown.Item>
-                        <Dropdown.Item
-                          onClick={() => {
-                            if (this.state.selectedImageHashes.length > 0) {
-                              this.setState({ modalAddToAlbumOpen: true });
-                            }
-                          }}
-                        >
-                          <Icon.Group>
-                          <Icon name="share alternate" color="red"/>
-                          <Icon name="bookmark" corner  />
-                          </Icon.Group>Shared Album
-                        </Dropdown.Item>
-                      </Dropdown.Menu>
-                    </Dropdown>
-                  }
-                  content="Add to an existing album or create a new album"
-                />
+
+              <Button.Group floated="right" compact>
                 <Dropdown
-                  icon="ellipsis vertical"
-                  pointing='top right'
+                  pointing="top right"
+                  icon="plus"
+                  color="green"
                   floating
                   button
                   compact
-                  floated='right'
+                  floated="right"
+                  className="icon"
+                >
+                  <Dropdown.Menu>
+                    <Dropdown.Header>
+                      Album ({this.state.selectedImageHashes.length} selected)
+                    </Dropdown.Header>
+                    <Dropdown.Divider />
+                    <Dropdown.Item
+                      onClick={() => {
+                        if (this.state.selectedImageHashes.length > 0) {
+                          this.setState({ modalAddToAlbumOpen: true });
+                        }
+                      }}
+                    >
+                      <Icon name="bookmark" color="red" />
+                      {" Album"}
+                    </Dropdown.Item>
+                    <Dropdown.Item
+                      onClick={() => {
+                        if (this.state.selectedImageHashes.length > 0) {
+                          this.setState({ modalAddToAlbumOpen: true });
+                        }
+                      }}
+                    >
+                      <Icon name="share alternate square" color="red" />
+                      {" Shared Album"}
+                    </Dropdown.Item>
+                  </Dropdown.Menu>
+                </Dropdown>
+
+                <Dropdown
+                  icon="ellipsis vertical"
+                  pointing="top right"
+                  floating
+                  button
+                  compact
+                  floated="right"
                   className="icon"
                 >
                   <Dropdown.Menu>

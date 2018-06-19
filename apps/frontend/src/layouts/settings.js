@@ -18,7 +18,8 @@ import {
   Divider,
   Button,
   Loader,
-  Dropdown
+  Dropdown,
+  Popup
 } from "semantic-ui-react";
 import { connect } from "react-redux";
 
@@ -63,62 +64,110 @@ export class Settings extends Component {
   };
 
   componentDidMount() {
-    this.props.dispatch(fetchSiteSettings())
+    this.props.dispatch(fetchSiteSettings());
   }
 
   render() {
     var buttonsDisabled = !this.props.workerAvailability;
 
-    console.log(this.props.siteSettings)
+    console.log(this.props.siteSettings);
     return (
       <div style={{ padding: 10 }}>
         <Header as="h2">Settings</Header>
 
         <Divider hidden />
 
-        {
-            this.props.auth.access.is_admin &&
-            <div>
-                <Header as="h3">Site settings<Label color='red' size='mini'>Admin</Label></Header>
+        <div>
+          <Header as="h3">Account Settings</Header>
 
-                <Grid>
-                <Grid.Row>
-                    <Grid.Column width={5} textAlign="right">
-                    <b>Allow user registration</b>
-                    </Grid.Column>
+          <Grid>
+            <Grid.Row>
+              <Grid.Column width={5} textAlign="right">
+                <b>Scan Directory</b>
+              </Grid.Column>
 
-                    <Grid.Column width={9}>
-                    <Form>
-                        <Form.Field>
+              <Grid.Column width={11}>
+                {this.props.auth.access.scan_directory}
+              </Grid.Column>
+            </Grid.Row>
+            <Grid.Row>
+              <Grid.Column width={5} textAlign="right">
+                <b>Account Information</b>
+              </Grid.Column>
+
+              <Grid.Column width={11}>
+                <Form>
+                  <Form.Group widths="equal">
+                    <Form.Input
+                      fluid
+                      label="First name"
+                      placeholder="First name"
+                    />
+                    <Form.Input
+                      fluid
+                      label="Last name"
+                      placeholder="Last name"
+                    />
+                  </Form.Group>
+                  <Form.Button>Submit</Form.Button>
+                </Form>{" "}
+              </Grid.Column>
+            </Grid.Row>
+          </Grid>
+
+          <Divider hidden />
+        </div>
+
+        {this.props.auth.access.is_admin && (
+          <div>
+            <Header as="h3">
+              Site settings<Label color="red" size="mini">
+                Admin
+              </Label>
+            </Header>
+
+            <Grid>
+              <Grid.Row>
+                <Grid.Column width={5} textAlign="right">
+                  <b>Allow user registration</b>
+                </Grid.Column>
+
+                <Grid.Column width={11}>
+                  <Form>
+                    <Form.Group>
+                      <Form.Field>
                         <Radio
-                            label="Allow"
-                            name="radioGroup"
-                            value={true}
-                            onChange={() =>
-                            this.props.dispatch(setSiteSettings({allow_registration:true}))
-                            }
-                            checked={this.props.siteSettings.allow_registration}
+                          label="Allow"
+                          name="radioGroup"
+                          onChange={() =>
+                            this.props.dispatch(
+                              setSiteSettings({ allow_registration: true })
+                            )
+                          }
+                          checked={this.props.siteSettings.allow_registration}
                         />
-                        </Form.Field>
-                        <Form.Field>
+                      </Form.Field>
+                      <Form.Field>
                         <Radio
-                            label="Do not allow"
-                            name="radioGroup"
-                            value={false}
-                            onChange={() =>
-                            this.props.dispatch(setSiteSettings({allow_registration:false}))
-                            }
-                            checked={!this.props.siteSettings.allow_registration}
+                          label="Do not allow"
+                          name="radioGroup"
+                          onChange={() =>
+                            this.props.dispatch(
+                              setSiteSettings({ allow_registration: false })
+                            )
+                          }
+                          checked={!this.props.siteSettings.allow_registration}
                         />
-                        </Form.Field>
-                    </Form>
-                    </Grid.Column>
-                </Grid.Row>
-                </Grid>
+                      </Form.Field>
+                    </Form.Group>
+                  </Form>
+                </Grid.Column>
+              </Grid.Row>
+            </Grid>
 
-                <Divider hidden/>
-            </div>
-        }
+            <Divider hidden />
+          </div>
+        )}
 
         <Header as="h3">Appearance settings</Header>
 
@@ -128,60 +177,80 @@ export class Settings extends Component {
               <b>Thumbnail size</b>
             </Grid.Column>
 
-            <Grid.Column width={9}>
+            <Grid.Column width={11}>
               <Form>
-                <Form.Field>
-                  <Radio
-                    label="Big thumbnails"
-                    name="radioGroup"
-                    value="loose"
-                    onChange={() =>
-                      this.props.dispatch({
-                        type: "SET_GRID_TYPE",
-                        payload: "loose"
-                      })
-                    }
-                    checked={this.props.gridType === "loose"}
-                  />
-                </Form.Field>
-                <Form.Field>
-                  <Radio
-                    label="Small thumbnails"
-                    name="radioGroup"
-                    value="dense"
-                    onChange={() =>
-                      this.props.dispatch({
-                        type: "SET_GRID_TYPE",
-                        payload: "dense"
-                      })
-                    }
-                    checked={this.props.gridType === "dense"}
-                  />
-                </Form.Field>
+                <Form.Group>
+                  <Form.Field>
+                    <Radio
+                      label="Big"
+                      name="radioGroup"
+                      value="loose"
+                      onChange={() =>
+                        this.props.dispatch({
+                          type: "SET_GRID_TYPE",
+                          payload: "loose"
+                        })
+                      }
+                      checked={this.props.gridType === "loose"}
+                    />
+                  </Form.Field>
+                  <Form.Field>
+                    <Radio
+                      label="Small"
+                      name="radioGroup"
+                      value="dense"
+                      onChange={() =>
+                        this.props.dispatch({
+                          type: "SET_GRID_TYPE",
+                          payload: "dense"
+                        })
+                      }
+                      checked={this.props.gridType === "dense"}
+                    />
+                  </Form.Field>
+                </Form.Group>
               </Form>
             </Grid.Column>
           </Grid.Row>
         </Grid>
 
-        <Divider hidden/>
+        <Divider hidden />
+
         <Header as="h3">Library actions</Header>
 
-        <Accordion fluid>
-          <Accordion.Title
-            active={this.state.accordionOneActive}
-            onClick={() => {
-              this.setState({
-                accordionOneActive: !this.state.accordionOneActive
-              });
-            }}
-          >
-            <b>Scan Photos</b>
-            <Icon name="question" />
-          </Accordion.Title>
-          <Accordion.Content active={this.state.accordionOneActive}>
-            <Message info attached="top">
-              <Message.Header>The backend server will:</Message.Header>
-              <Message.List>
+        <Grid>
+          <Grid.Row>
+            <Grid.Column width={5} textAlign="right">
+              <b>Scan Photos</b>
+            </Grid.Column>
+
+            <Grid.Column width={11}>
+              <Popup
+                trigger={
+                  <Button
+                    size="mini"
+                    onClick={this.onPhotoScanButtonClick}
+                    disabled={buttonsDisabled}
+                    color="blue"
+                  >
+                    <Icon
+                      name="refresh"
+                      loading={
+                        this.props.statusPhotoScan.status &&
+                        this.props.statusPhotoScan.added
+                      }
+                    />
+                    {this.props.statusPhotoScan.added
+                      ? "Scanning Photos " +
+                        `(${this.props.statusPhotoScan.added}/${
+                          this.props.statusPhotoScan.to_add
+                        })`
+                      : "Start"}
+                  </Button>
+                }
+              >
+                <Header>The backend server will:</Header>
+
                 <List bulleted>
                   <List.Item>
                     Make a list of all jpg files in subdirectories. For each jpg
@@ -205,110 +274,79 @@ export class Settings extends Component {
                   <List.Item>Extract faces. </List.Item>
                   <List.Item>Add photo to thing and place albums. </List.Item>
                 </List>
-              </Message.List>
-            </Message>
-          </Accordion.Content>
-        </Accordion>
+              </Popup>
+            </Grid.Column>
+          </Grid.Row>
 
-        <Button
-          fluid
-          size="tiny"
-          attached={this.state.accordionOneActive ? "bottom" : false}
-          onClick={this.onPhotoScanButtonClick}
-          disabled={buttonsDisabled}
-          color="blue"
-        >
-          <Icon
-            name="refresh"
-            loading={
-              this.props.statusPhotoScan.status &&
-              this.props.statusPhotoScan.added
-            }
-          />
-          {this.props.statusPhotoScan.added
-            ? "Scanning Photos " +
-              `(${this.props.statusPhotoScan.added}/${
-                this.props.statusPhotoScan.to_add
-              })`
-            : "Scan Photos"}
-        </Button>
+          <Grid.Row>
+            <Grid.Column width={5} textAlign="right">
+              <b>Make Event Albums</b>
+            </Grid.Column>
 
-        <Accordion fluid>
-          <Accordion.Title
-            active={this.state.accordionTwoActive}
-            onClick={() => {
-              this.setState({
-                accordionTwoActive: !this.state.accordionTwoActive
-              });
-            }}
-          >
-            <b>Make Event Albums</b>
-            <Icon name="question" />
-          </Accordion.Title>
-          <Accordion.Content active={this.state.accordionTwoActive}>
-            <Message positive attached="top">
-              <Message.Header>The backend server will:</Message.Header>
-              <Message.Content>
-                First group photos by time taken. If two consecutive photos are
-                taken within 12 hours of each other, the two photos are
-                considered to be from the same event. After groups are put
-                together in this way, it automatically generates a title for
-                this album.
-              </Message.Content>
-            </Message>
-          </Accordion.Content>
-        </Accordion>
+            <Grid.Column width={11}>
+              <Popup
+                trigger={
+                  <Button
+                    size="mini"
+                    attached={this.state.accordionTwoActive ? "bottom" : false}
+                    onClick={this.onGenerateEventAlbumsButtonClick}
+                    disabled={buttonsDisabled}
+                    color="green"
+                  >
+                    <Icon name="wizard" />Start
+                  </Button>
+                }
+              >
+                <Header>The backend server will:</Header>
 
-        <Button
-          fluid
-          size="tiny"
-          attached={this.state.accordionTwoActive ? "bottom" : false}
-          onClick={this.onGenerateEventAlbumsButtonClick}
-          disabled={buttonsDisabled}
-          color="green"
-        >
-          <Icon name="wizard" />Make Event Albums
-        </Button>
+                <p>
+                  First group photos by time taken. If two consecutive photos
+                  are taken within 12 hours of each other, the two photos are
+                  considered to be from the same event. After groups are put
+                  together in this way, it automatically generates a title for
+                  this album.
+                </p>
+              </Popup>
+            </Grid.Column>
+          </Grid.Row>
 
-        <Accordion fluid>
-          <Accordion.Title
-            active={this.state.accordionThreeActive}
-            onClick={() => {
-              this.setState({
-                accordionThreeActive: !this.state.accordionThreeActive
-              });
-            }}
-          >
-            <b>Regenerate Event Titles</b>
-            <Icon name="question" />
-          </Accordion.Title>
-          <Accordion.Content active={this.state.accordionThreeActive}>
-            <Message warning attached="top">
-              <Message.Header>What is this for?</Message.Header>
-              <Message.Content>
-                Automatically generated albums have names of people in the
-                titles. If you trained your face classifier after making event
-                albums, you can generate new titles for already existing event
-                albums to reflect the new names associated with the faces in
-                photos.
-              </Message.Content>
-            </Message>
-          </Accordion.Content>
-        </Accordion>
+          <Grid.Row>
+            <Grid.Column width={5} textAlign="right">
+              <b>Regenerate Event Titles</b>
+            </Grid.Column>
 
-        <Button
-          fluid
-          size="tiny"
-          attached={this.state.accordionThreeActive ? "bottom" : false}
-          onClick={() => {
-            this.props.dispatch(generateEventAlbumTitles());
-          }}
-          indicating
-          disabled={buttonsDisabled}
-          color="brown"
-        >
-          <Icon name="wizard" />Regenerate Event Titles
-        </Button>
+            <Grid.Column width={11}>
+              <Popup
+                trigger={
+                  <Button
+                    size="mini"
+                    attached={
+                      this.state.accordionThreeActive ? "bottom" : false
+                    }
+                    onClick={() => {
+                      this.props.dispatch(generateEventAlbumTitles());
+                    }}
+                    indicating="true"
+                    disabled={buttonsDisabled}
+                    color="brown"
+                  >
+                    <Icon name="wizard" />Start
+                  </Button>
+                }
+              >
+                <Header>What's this for?</Header>
+
+                <p>
+                  Automatically generated albums have names of people in the
+                  titles. If you trained your face classifier after making event
+                  albums, you can generate new titles for already existing event
+                  albums to reflect the new names associated with the faces in
+                  photos.
+                </p>
+              </Popup>
+            </Grid.Column>
+          </Grid.Row>
+        </Grid>
       </div>
     );
   }

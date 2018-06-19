@@ -780,7 +780,6 @@ export class SideMenuNarrow extends Component {
               <Icon name="star" color="yellow" />
               {"  Favorites"}
             </Dropdown.Item>
-            <Dropdown.Divider/>
             <Dropdown.Item
                   disabled={!this.props.auth.access}
                   as={Link}
@@ -790,8 +789,8 @@ export class SideMenuNarrow extends Component {
                       : "/"
                   }
                 >
-                  <Icon name="globe" />
-                  {"  Public photos"}
+                  <Icon color='green' name="globe" />
+                  {"  My Public Photos"}
                 </Dropdown.Item>
 
           </Dropdown.Menu>

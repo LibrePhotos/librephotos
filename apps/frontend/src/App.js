@@ -93,7 +93,8 @@ class App extends Component {
           !noMenubarPaths.includes(this.props.location.pathname) &&
           !(
             this.props.location.pathname.startsWith("/public") ||
-            this.props.location.pathname.startsWith("/user")
+            this.props.location.pathname.startsWith("/user/") ||
+            this.props.location.pathname.startsWith("/users/")
           ) ? (
             <Nav showSidebar={this.props.showSidebar} />
           ) : (

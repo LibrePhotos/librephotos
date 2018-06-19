@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { Header, Image, Item } from "semantic-ui-react";
+import { Header, Image, Item, Icon, Grid, Divider } from "semantic-ui-react";
 import {
   fetchUserPublicPhotos,
   fetchPublicUserList
@@ -15,6 +15,7 @@ import {
   SideMenuNarrowPublic
 } from "./menubars";
 import { Link } from "react-router-dom";
+import { serverAddress } from "../api_client/apiClient";
 
 var TOP_MENU_HEIGHT = 45; // don't change this
 var LEFT_MENU_WIDTH = 85; // don't change this
@@ -44,34 +45,75 @@ export class PublicUserList extends Component {
         {menu}
         <div
           style={{
-            paddingTop: TOP_MENU_HEIGHT + 5,
+            paddingTop: TOP_MENU_HEIGHT,
             paddingLeft: this.props.ui.showSidebar ? LEFT_MENU_WIDTH + 5 : 5
           }}
         >
-          <Header>
-            Users
-            <Header.Subheader>
-              {this.props.pub.publicUserList.length} Users on this server
-            </Header.Subheader>
-          </Header>
+          <div style={{ height: 60, paddingTop: 10 }}>
+            <Header as="h2">
+              <Icon name="users circle" />
+              <Header.Content>
+                Users{" "}
+                <Header.Subheader>
+                  Showing {this.props.pub.publicUserList.length} users
+                </Header.Subheader>
+              </Header.Content>
+            </Header>
+          </div>
+          <div style={{ padding: 10 }}>
+            <Item.Group unstackable>
+              {this.props.pub.publicUserList.map((el, idx) => {
+                if (el.first_name.length > 0 && el.last_name.length > 0) {
+                  var displayName = el.first_name + " " + el.last_name;
+                } else {
+                  var displayName = el.username;
+                }
 
-          <Item.Group unstackable>
-            {this.props.pub.publicUserList.map((el, idx) => {
-              return (
-                <Item as={Link} to={`/user/${el.username}/`}>
-                  <Item.Image avatar size="tiny" src="/unknown_user.jpg" />
-
-                  <Item.Content>
-                    <Item.Header>{el.username}</Item.Header>
-                    <Item.Description>
-                      {el.public_photo_count} public photos
-                    </Item.Description>
-                    <Item.Extra>Joined {moment(el.date_joined).format("MMM YYYY")}</Item.Extra>
-                  </Item.Content>
-                </Item>
-              );
-            })}
-          </Item.Group>
+                return (
+                  <Item>
+                    <Item.Image avatar size="tiny" src="/unknown_user.jpg" />
+                    <Item.Content>
+                      <Item.Header as={Link} to={`/user/${el.username}/`}>
+                        {displayName}
+                      </Item.Header>
+                      <Item.Meta>
+                        {el.public_photo_count} public photos
+                      </Item.Meta>
+                      <Item.Extra>
+                        Joined {moment(el.date_joined).format("MMM YYYY")}
+                      </Item.Extra>
+                      <Item.Description>
+                        <Grid doubling stackable>
+                          <Grid.Row
+                            columns={this.props.ui.gridType === "dense" ? 5 : 3}
+                          >
+                            {el.public_photo_samples
+                              .slice(
+                                0,
+                                this.props.ui.gridType === "dense" ? 10 : 6
+                              )
+                              .map(photo => (
+                                <Grid.Column>
+                                  <Image
+                                    src={
+                                      serverAddress +
+                                      "/media/square_thumbnails/" +
+                                      photo.image_hash +
+                                      ".jpg"
+                                    }
+                                  />
+                                  <Divider hidden />
+                                </Grid.Column>
+                              ))}
+                          </Grid.Row>
+                        </Grid>
+                      </Item.Description>
+                    </Item.Content>
+                  </Item>
+                );
+              })}
+            </Item.Group>
+          </div>
         </div>
       </div>
     );
