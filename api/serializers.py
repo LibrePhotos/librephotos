@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Count
 from django.db.models import Q
 from django.db.models import Prefetch
+import os
 
 
 class PhotoEditSerializer(serializers.ModelSerializer):
@@ -600,22 +601,81 @@ class LongRunningJobSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    public_photo_count = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ('id', 'username', 'password', 'email')
-        write_only_fields = ('password', )
-        read_only_fields = ('id', 'scan_directory')
+        extra_kwargs = {
+            'password': {
+                'write_only': True
+            },
+            'first_name': {
+                'required': False
+            },
+            'last_name': {
+                'required': False
+            },
+            'scan_directory': {
+                'required': False
+            }
+        }
+        fields = ('id', 'username', 'email', 'scan_directory', 'first_name',
+                  'last_name', 'public_photo_count', 'date_joined', 'password')
+        # read_only_fields = ('id', 'scan_directory')
+
+    # def validate(self, data):
+    #     validated_data = {}
+    #     if 'username' not in data.keys():
+    #         raise serializers.ValidationError("username is required")
+    #     else:
+    #         validated_data['username'] = data['username']
+
+    #     if 'password' not in data.keys():
+    #         raise serializers.ValidationError("password is required")
+    #     else:
+    #         validated_data['password'] = data['password']
+
+    #     if 'email' not in data.keys():
+    #         validated_data['email'] = None
+    #     else:
+    #         validated_data['email'] = data['email']
+
+    #     if 'first_name' not in data.keys():
+    #         validated_data['first_name'] = None
+    #     else:
+    #         validated_data['first_name'] = data['first_name']
+
+    #     if 'last_name' not in data.keys():
+    #         validated_data['last_name'] = None
+    #     else:
+    #         validated_data['last_name'] = data['last_name']
+
+    #     return validated_data
 
     def create(self, validated_data):
-        user = User.objects.create(
-            username=validated_data['username'],
-            email=validated_data['email'],
-        )
+        # ipdb.set_trace()
+        if 'scan_directory' in validated_data.keys():
+            validated_data.pop('scan_directory')
 
-        user.set_password(validated_data['password'])
+        user = User.objects.create_user(**validated_data)
         user.save()
-
         return user
+
+    def update(self, instance, validated_data):
+        # user can only update the following
+        if 'email' in validated_data:
+            instance.email = validated_data.pop('email')
+            instance.save()
+        if 'first_name' in validated_data:
+            instance.first_name = validated_data.pop('first_name')
+            instance.save()
+        if 'last_name' in validated_data:
+            instance.last_name = validated_data.pop('last_name')
+            instance.save()
+        return instance
+
+    def get_public_photo_count(self, obj):
+        return Photo.objects.filter(Q(owner=obj) & Q(public=True)).count()
 
 
 class ManageUserSerializer(serializers.ModelSerializer):
@@ -636,6 +696,8 @@ class ManageUserSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         if 'scan_directory' in validated_data:
-            instance.scan_directory = validated_data.pop('scan_directory')
-            instance.save()
+            new_scan_directory = validated_data.pop('scan_directory')
+            if os.path.exists(new_scan_directory):
+                instance.scan_directory = new_scan_directory
+                instance.save()
         return instance

@@ -49,6 +49,8 @@ from api.serializers import ManageUserSerializer
 from api.serializers_serpy import AlbumDateListWithPhotoHashSerializer as AlbumDateListWithPhotoHashSerializerSerpy
 from api.serializers_serpy import PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy
 
+from api.permissions import IsOwnerOrReadOnly, IsUserOrReadOnly
+
 from api.face_classify import train_faces, cluster_faces
 from api.social_graph import build_social_graph, build_ego_graph
 from api.autoalbum import generate_event_albums
@@ -116,9 +118,6 @@ class UpdatedAtKeyBit(KeyBitBase):
         if not value:
             value = datetime.datetime.utcnow()
             cache.set(key, value=value)
-            print('key not found, key: %s, value: %s' % (key, value))
-        else:
-            print('key found, key: %s, value: %s' % (key, value))
         return force_text(value)
 
 
@@ -285,6 +284,7 @@ class PhotoSuperSimpleSearchListViewSet(viewsets.ModelViewSet):
         'search_captions', 'search_location', 'faces__person__name',
         'exif_timestamp', 'image_path'
     ])
+
     # search_fields = (['faces__person__name','faces__person__name'])
 
     def get_queryset(self):
@@ -982,14 +982,19 @@ class LongRunningJobViewSet(viewsets.ModelViewSet):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by('-last_login')
     serializer_class = UserSerializer
+    # permission_classes = (IsUserOrReadOnly, )
 
     def get_permissions(self):
-        if self.request.method == 'POST':
+        if self.request.method == 'GET' or self.request.method == 'POST':
             self.permission_classes = (AllowAny, )
         else:
-            self.permission_classes = (IsAdminUser, )
-
+            self.permission_classes = (IsUserOrReadOnly, )
         return super(UserViewSet, self).get_permissions()
+
+    # def create(self, request,format=None):
+    #     new_user = User.objects.create_user(**request.data)
+    #     return Response(UserSerializer(new_user).data)
+
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -1048,7 +1053,7 @@ class SetPhotosShared(APIView):
         data = dict(request.data)
         print(data)
         shared = data['shared']  #bool
-        target_user_id = data['target_user_id']
+        target_user_id = data['target_user_id']  # user pk, int
         image_hashes = data['image_hashes']
 
         target_user = User.objects.get(id=target_user_id)
@@ -1056,7 +1061,11 @@ class SetPhotosShared(APIView):
         updated = []
         not_updated = []
         for image_hash in image_hashes:
-            photo = Photo.objects.get(image_hash=image_hash)
+            try:
+                photo = Photo.objects.get(
+                    image_hash=image_hash)  # todo: use in_bulk
+            except Photo.DoesNotExist:
+                continue
             if photo.owner == request.user:
                 if shared:
                     photo.target.add(target_user)
@@ -1085,7 +1094,10 @@ class SetPhotosPublic(APIView):
         updated = []
         not_updated = []
         for image_hash in image_hashes:
-            photo = Photo.objects.get(image_hash=image_hash)
+            try:
+                photo = Photo.objects.get(image_hash=image_hash)
+            except Photo.DoesNotExist:
+                continue
             if photo.owner == request.user:
                 photo.public = val_public
                 photo.save()
@@ -1111,7 +1123,10 @@ class SetPhotosFavorite(APIView):
         updated = []
         not_updated = []
         for image_hash in image_hashes:
-            photo = Photo.objects.get(image_hash=image_hash)
+            try:
+                photo = Photo.objects.get(image_hash=image_hash)
+            except Photo.DoesNotExist:
+                continue
             if photo.owner == request.user:
                 photo.favorited = val_favorite
                 photo.save()
@@ -1137,7 +1152,10 @@ class SetPhotosHidden(APIView):
         updated = []
         not_updated = []
         for image_hash in image_hashes:
-            photo = Photo.objects.get(image_hash=image_hash)
+            try:
+                photo = Photo.objects.get(image_hash=image_hash)
+            except Photo.DoesNotExist:
+                continue
             if photo.owner == request.user:
                 photo.hidden = val_hidden
                 photo.save()
