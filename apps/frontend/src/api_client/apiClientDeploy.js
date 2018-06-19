@@ -20,10 +20,10 @@ function listener() {
  }
 }
 
-export var serverAddress = 'http://changeme'
+export var serverAddress = 'changeme'
 
 export var Server = axios.create({
-  baseURL: 'http://changeme/api/',
+  baseURL: 'changeme/api/',
   headers: {
     'Content-Type': 'application/json'
   },

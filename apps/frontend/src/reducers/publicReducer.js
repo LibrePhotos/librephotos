@@ -3,6 +3,11 @@ export default function reducer(
     userPublicPhotos: {},
     fetchingUserPublicPhotos: false,
     fetchedUserPublicPhotos: false,
+
+    publicUserList: [],
+    fetchingPublicUserList: false,
+    fetchedPublicUserList: false,
+
     error: null
   },
   action
@@ -25,6 +30,24 @@ export default function reducer(
         }
       };
     }
+
+
+    case "FETCH_PUBLIC_USER_LIST": {
+      return {
+        ...state,
+        fetchingPublicUserList: true
+      };
+    }
+    case "FETCH_PUBLIC_USER_LIST_FULFILLED": {
+      return {
+        ...state,
+        fetchingPublicUserList: false,
+        fetchedPublicUserList: false,
+        publicUserList: action.payload
+      };
+    }
+
+
 
     default: {
       return { ...state };

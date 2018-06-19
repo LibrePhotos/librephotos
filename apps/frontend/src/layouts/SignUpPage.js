@@ -38,6 +38,8 @@ export class SignupPage extends Component {
   state = {
     username: "",
     password: "",
+    firstname:"",
+    lastname:"",
     passwordConfirm: "",
     serverAddress: "",
     email: "",
@@ -70,6 +72,8 @@ export class SignupPage extends Component {
     const {
       username,
       password,
+      firstname,
+      lastname,
       email,
       passwordConfirm,
       serverAddress
@@ -119,6 +123,24 @@ export class SignupPage extends Component {
                 />
               </Form.Field>
               <Form.Field>
+                <label>First name</label>
+                <Form.Input
+                  placeholder="First name"
+                  name="firstname"
+                  value={firstname}
+                  onChange={this.handleChange}
+                />
+              </Form.Field>
+              <Form.Field>
+                <label>Last name</label>
+                <Form.Input
+                  placeholder="Last name"
+                  name="lastname"
+                  value={lastname}
+                  onChange={this.handleChange}
+                />
+              </Form.Field>
+              <Form.Field>
                 <label>Password</label>
                 <Form.Input
                   error={
@@ -153,7 +175,9 @@ export class SignupPage extends Component {
                     signup(
                       this.state.username.toLowerCase(),
                       this.state.password,
-                      this.state.email
+                      this.state.email,
+                      this.state.firstname,
+                      this.state.lastname
                     )
                   );
                 }}

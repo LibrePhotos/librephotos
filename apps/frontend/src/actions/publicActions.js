@@ -9,13 +9,31 @@ export function fetchUserPublicPhotos(userName) {
       .then(response => {
         dispatch({
           type: "FETCH_USER_PUBLIC_PHOTOS_FULFILLED",
-          payload: {user:userName,photos:response.data.results}
+          payload: { user: userName, photos: response.data.results }
         });
         console.log(response);
       })
       .catch(err => {
         dispatch({ type: "FETCH_USER_PUBLIC_PHOTOS_REJECTED" });
         console.log(err);
+      });
+  };
+}
+
+export function fetchPublicUserList() {
+  return function(dispatch) {
+    dispatch({ type: "FETCH_PUBLIC_USER_LIST" });
+    Server.get("user/")
+      .then(response => {
+        dispatch({
+          type: "FETCH_PUBLIC_USER_LIST_FULFILLED",
+          payload: response.data.results
+        });
+      })
+      .catch(err => {
+        dispatch({
+          type: "FETCH_PUBLIC_USER_LIST_REJECTED"
+        });
       });
   };
 }

@@ -40,6 +40,7 @@ import { Settings } from "./layouts/settings";
 import { Statistics } from "./layouts/statistics";
 import { SecuredImage } from "./layouts/Bench";
 import { UserPublicPage } from "./layouts/UserPublicPage";
+import { PublicUserList } from "./layouts/PublicUserList";
 import { LocationClusterMap } from "./components/maps";
 /*
 store.subscribe(listener)
@@ -92,7 +93,7 @@ class App extends Component {
           !noMenubarPaths.includes(this.props.location.pathname) &&
           !(
             this.props.location.pathname.startsWith("/public") ||
-            this.props.location.pathname.startsWith("/user/")
+            this.props.location.pathname.startsWith("/user")
           ) ? (
             <Nav showSidebar={this.props.showSidebar} />
           ) : (
@@ -107,6 +108,8 @@ class App extends Component {
             <Route path="/signup" component={SignupPage} />
 
             <Route path="/public" component={UserPublicPage} />
+
+            <Route path="/users" component={PublicUserList} />
 
             <Route path="/user/:username" component={UserPublicPage} />
 
@@ -159,7 +162,7 @@ class App extends Component {
               component={AlbumUserGallery}
             />
 
-            <PrivateRoute path="/users" component={UserManagement} />
+            <PrivateRoute path="/manage/users" component={UserManagement} />
 
             <PrivateRoute path="/map" component={PhotoMap} />
             <PrivateRoute path="/placetree" component={LocationTree} />

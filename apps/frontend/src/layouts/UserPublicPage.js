@@ -105,7 +105,9 @@ export class UserPublicPage extends Component {
         >
           <PhotoListView
             title={
-              this.props.auth.access
+              this.props.auth.access &&
+              this.props.auth.access.name ===
+                this.props.match.params.username
                 ? "Your public photos"
                 : "Public photos of " + this.props.match.params.username
             }

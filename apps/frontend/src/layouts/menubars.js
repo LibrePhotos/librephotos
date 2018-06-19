@@ -101,7 +101,7 @@ export class TopMenuPublic extends Component {
               </Button>
               <Button
                 attached='right'
-                onClick={() => {
+                  onClick={() => {
                   this.props.dispatch({
                     type: "SET_GRID_TYPE",
                     payload: "loose"
@@ -422,7 +422,7 @@ export class TopMenu extends Component {
 
                   {this.props.auth.access.is_admin && (
                     <Dropdown.Item
-                      onClick={() => this.props.dispatch(push("/users"))}
+                      onClick={() => this.props.dispatch(push("/manage/users"))}
                     >
                       <Icon name="users" />
                       <b>Users</b>
@@ -694,11 +694,9 @@ export class SideMenuNarrowPublic extends Component {
         >
           <Dropdown.Menu>
             <Dropdown.Header>Public</Dropdown.Header>
-            <Dropdown.Item as={Link} to="/faces">
+            <Dropdown.Item as={Link} to="/users/">
               <Icon name="users" />
-              <Icon name="arrow right" />
-              <Icon name="globe" />
-              {"  Other's Public photos"}
+              {"  Users"}
             </Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown>
@@ -782,6 +780,20 @@ export class SideMenuNarrow extends Component {
               <Icon name="star" color="yellow" />
               {"  Favorites"}
             </Dropdown.Item>
+            <Dropdown.Divider/>
+            <Dropdown.Item
+                  disabled={!this.props.auth.access}
+                  as={Link}
+                  to={
+                    this.props.auth.access
+                      ? `/user/${this.props.auth.access.name}`
+                      : "/"
+                  }
+                >
+                  <Icon name="globe" />
+                  {"  Public photos"}
+                </Dropdown.Item>
+
           </Dropdown.Menu>
         </Dropdown>
         <div style={{ marginTop: -17 }}>
@@ -917,22 +929,15 @@ export class SideMenuNarrow extends Component {
               <Dropdown.Menu>
                 <Dropdown.Header>Sharing</Dropdown.Header>
 
-                <Dropdown.Divider />
-                <Dropdown.Header>Public</Dropdown.Header>
                 <Dropdown.Item
                   disabled={!this.props.auth.access}
                   as={Link}
-                  to={
-                    this.props.auth.access
-                      ? `/user/${this.props.auth.access.name}`
-                      : "/"
-                  }
+                  to={`/users/`}
                 >
                   <Icon name="globe" />
-                  {"  Your Public photos"}
+                  {"  Public photos"}
                 </Dropdown.Item>
 
-                <Dropdown.Header>Internal</Dropdown.Header>
 
                 <Dropdown.Item as={Link} to="/faces" disabled>
                   <Icon name="users" />
