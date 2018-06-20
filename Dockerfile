@@ -10,13 +10,13 @@ RUN apt-get update && \
     libsm6 \
     libboost-all-dev \
     libglib2.0-0 \
-    libxrender-dev \ 
+    libxrender-dev \
     python3-tk \
     python3 \
     python3-pip \
     wget \
     curl \
-    nginx 
+    nginx
 
 # RUN apt-get install libopenblas-dev liblapack-dev
 
@@ -34,7 +34,7 @@ RUN apt-get update && \
     cmake .. -DDLIB_USE_CUDA=0 -DUSE_AVX_INSTRUCTIONS=0 && \
     cmake --build . && \
     cd /dlib && \
-    /venv/bin/python setup.py install --no USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA 
+    /venv/bin/python setup.py install --no USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA
 
 RUN /venv/bin/pip install cython
 
@@ -60,7 +60,7 @@ RUN tar xf im2txt_data.tar.gz
 
 
 WORKDIR /
-RUN curl -sL https://deb.nodesource.com/setup_8.x -o nodesource_setup.sh 
+RUN curl -sL https://deb.nodesource.com/setup_8.x -o nodesource_setup.sh
 RUN bash nodesource_setup.sh
 RUN apt-get install nodejs
 
@@ -86,7 +86,7 @@ ENV ADMIN_PASSWORD changeme
 # Django key. CHANGEME
 ENV SECRET_KEY supersecretkey
 # Until we serve media files properly (django dev server doesn't serve media files with with debug=false)
-ENV DEBUG true 
+ENV DEBUG true
 
 # Database connection info
 ENV DB_BACKEND postgresql
@@ -97,6 +97,7 @@ ENV DB_HOST database
 ENV DB_PORT 5432
 
 ENV BACKEND_HOST localhost
+ENV BACKEND_PROTOCOL http
 
 
 # REDIS location

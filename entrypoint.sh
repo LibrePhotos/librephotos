@@ -1,6 +1,7 @@
 #! /bin/bash
 
 cp /code/nginx.conf /etc/nginx/sites-enabled/default
+BACKEND_URL=${BACKEND_PROTOCOL}${BACKEND_HOST}
 sed -i -e 's/replaceme/'"$BACKEND_HOST"'/g' /etc/nginx/sites-enabled/default
 service nginx restart
 
@@ -22,7 +23,7 @@ gunicorn --bind 0.0.0.0:8001 ownphotos.wsgi &
 
 
 
-sed -i -e 's/changeme/'"$BACKEND_HOST"'/g' /code/ownphotos-frontend/src/api_client/apiClient.js
+sed -i -e 's/http:\/\/changeme/'"$BACKEND_URL"'/g' /code/ownphotos-frontend/src/api_client/apiClient.js
 cd /code/ownphotos-frontend
 npm run build
 serve -s build
