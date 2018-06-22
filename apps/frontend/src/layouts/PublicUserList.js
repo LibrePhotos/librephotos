@@ -61,58 +61,51 @@ export class PublicUserList extends Component {
             </Header>
           </div>
           <div style={{ padding: 10 }}>
-            <Item.Group unstackable>
-              {this.props.pub.publicUserList.map((el, idx) => {
-                if (el.first_name.length > 0 && el.last_name.length > 0) {
-                  var displayName = el.first_name + " " + el.last_name;
-                } else {
-                  var displayName = el.username;
-                }
+            {this.props.pub.publicUserList.map((el, idx) => {
+              if (el.first_name.length > 0 && el.last_name.length > 0) {
+                var displayName = el.first_name + " " + el.last_name;
+              } else {
+                var displayName = el.username;
+              }
 
-                return (
-                  <Item>
-                    <Item.Image avatar size="tiny" src="/unknown_user.jpg" />
-                    <Item.Content>
-                      <Item.Header as={Link} to={`/user/${el.username}/`}>
-                        {displayName}
-                      </Item.Header>
-                      <Item.Meta>
+              return (
+                <div style={{padding:10}}>
+                  <Header as={Link} to={`/user/${el.username}/`}>
+                    <Image circular src="/unknown_user.jpg" />
+                    <Header.Content>
+                      {displayName}
+                      <Header.Subheader>
                         {el.public_photo_count} public photos
-                      </Item.Meta>
-                      <Item.Extra>
-                        Joined {moment(el.date_joined).format("MMM YYYY")}
-                      </Item.Extra>
-                      <Item.Description>
-                        <Grid doubling stackable>
-                          <Grid.Row
-                            columns={this.props.ui.gridType === "dense" ? 5 : 3}
-                          >
-                            {el.public_photo_samples
-                              .slice(
-                                0,
-                                this.props.ui.gridType === "dense" ? 10 : 6
-                              )
-                              .map(photo => (
-                                <Grid.Column>
-                                  <Image
-                                    src={
-                                      serverAddress +
-                                      "/media/square_thumbnails/" +
-                                      photo.image_hash +
-                                      ".jpg"
-                                    }
-                                  />
-                                  <Divider hidden />
-                                </Grid.Column>
-                              ))}
-                          </Grid.Row>
-                        </Grid>
-                      </Item.Description>
-                    </Item.Content>
-                  </Item>
-                );
-              })}
-            </Item.Group>
+                      </Header.Subheader>
+                    </Header.Content>
+                  </Header>
+                  {false && (
+                    <Grid doubling stackable>
+                      <Divider />
+                      <Grid.Row
+                        columns={this.props.ui.gridType === "dense" ? 5 : 3}
+                      >
+                        {el.public_photo_samples
+                          .slice(0, this.props.ui.gridType === "dense" ? 10 : 6)
+                          .map(photo => (
+                            <Grid.Column>
+                              <Image
+                                src={
+                                  serverAddress +
+                                  "/media/square_thumbnails/" +
+                                  photo.image_hash +
+                                  ".jpg"
+                                }
+                              />
+                              <Divider hidden />
+                            </Grid.Column>
+                          ))}
+                      </Grid.Row>
+                    </Grid>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -67,7 +67,6 @@ export function login(username,password,from) {
         dispatch(push(from))
       })
       .catch((err) => {
-        console.log(err)
         dispatch({type: "LOGIN_REJECTED", payload: err})
       })
   }
@@ -77,7 +76,6 @@ export function login(username,password,from) {
 export function refreshAccessToken(token) {
   return function(dispatch) {
     dispatch({type:"REFRESH_ACCESS_TOKEN"})
-    console.log(token)
     Server.post('/auth/token/refresh/', {refresh:token})
       .then((response) => {
         dispatch({type: "REFRESH_ACCESS_TOKEN_FULFILLED", payload: response.data})

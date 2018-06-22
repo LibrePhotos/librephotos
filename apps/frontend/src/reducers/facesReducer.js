@@ -169,7 +169,6 @@ export default function reducer(
     // mass labeling faces
     case "DELETE_FACES_FULFILLED": {
       const justDeletedFaces = action.payload;
-      console.log(justDeletedFaces);
       var newInferredFacesList = state.inferredFacesList.filter(
         face => !justDeletedFaces.includes(face.id)
       );

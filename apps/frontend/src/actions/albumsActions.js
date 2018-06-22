@@ -106,7 +106,6 @@ export function deleteUserAlbum(albumID,albumTitle) {
 
 
 export function editUserAlbum(album_id,title,image_hashes) {
-  console.log(title)
   return function(dispatch) {
     dispatch({type:"EDIT_USER_ALBUMS_LIST"});
     Server.patch(`albums/user/edit/${album_id}/`,{title:title,photos:image_hashes})
@@ -261,7 +260,6 @@ export function fetchDateAlbumsPhotoHashList() {
 export function fetchAlbumsAutoGalleries(album_id) {
   return function(dispatch) {
     dispatch({type: "FETCH_AUTO_ALBUMS_RETRIEVE"});
-    console.log(`albums/auto/${album_id}/`)
 
     Server.get(`albums/auto/${album_id}/`)
       .then((response) => {
@@ -291,7 +289,6 @@ export function toggleAlbumAutoFavorite(album_id,rating) {
     dispatch({type: "TOGGLE_ALBUM_AUTO_FAVORITE"});
     Server.patch(`albums/auto/list/${album_id}/`,{favorited:rating})
       .then((response) => {
-        console.log('patch request made. response',response)
         dispatch({type: "TOGGLE_ALBUM_AUTO_FAVORITE_FULFILLED", payload: response.data})
       })
       .catch((err) => {

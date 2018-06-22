@@ -192,7 +192,6 @@ export class AlbumAutoGalleryView extends Component {
       lightboxImageIndex: this.state.idx2hash.indexOf(image_hash),
       lightboxShow: true
     });
-    console.log(this.state);
   }
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
@@ -210,7 +209,6 @@ export class AlbumAutoGalleryView extends Component {
           <div
             onClick={() => {
               this.onPhotoClick(photoIndex);
-              console.log("clicked");
               // this.props.dispatch(push(`/person/${this.props.albumsPlace[this.props.match.params.albumID][photoIndex].key}`))
             }}
           >
@@ -259,7 +257,6 @@ export class AlbumAutoGalleryView extends Component {
         _.sortBy(photos, "exif_timestamp"),
         photo => photo.exif_timestamp.split("T")[0]
       );
-      console.log(byDate);
       return (
         <div>
           <div style={{ paddingTop: 10, paddingRight: 5 }}>

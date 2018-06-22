@@ -66,8 +66,6 @@ export class SignupPage extends Component {
   }
 
   render() {
-    console.log(this.state);
-    console.log(this.props);
 
     const {
       username,

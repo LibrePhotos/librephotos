@@ -42,6 +42,7 @@ import { SecuredImage } from "./layouts/Bench";
 import { UserPublicPage } from "./layouts/UserPublicPage";
 import { PublicUserList } from "./layouts/PublicUserList";
 import { LocationClusterMap } from "./components/maps";
+import { PhotosSharedToMe } from './layouts/PhotosSharedToMe'
 /*
 store.subscribe(listener)
 
@@ -84,7 +85,6 @@ class App extends Component {
 
   render() {
     const menuSpacing = 0;
-    console.log("app.js", this.props);
     return (
       <ConnectedRouter history={history}>
         <div>
@@ -162,6 +162,8 @@ class App extends Component {
               path="/useralbum/:albumID"
               component={AlbumUserGallery}
             />
+
+            <PrivateRoute path="/shared/tome" component={PhotosSharedToMe} />
 
             <PrivateRoute path="/manage/users" component={UserManagement} />
 

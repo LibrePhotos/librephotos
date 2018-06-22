@@ -22,6 +22,7 @@ import {
 
 import { copyToClipboard } from "../util/util";
 import { SecuredImage, SecuredImageJWT } from "../components/SecuredImage";
+import { ModalPhotosShare } from "../components/ModalPhotosShare";
 
 import {
   Dropdown,
@@ -148,7 +149,8 @@ export class PhotoListView extends Component {
       scrollTop: 0,
       selectMode: false,
       selectedImageHashes: [],
-      modalAddToAlbumOpen: false
+      modalAddToAlbumOpen: false,
+      modalSharePhotosOpen: false
     };
   }
 
@@ -674,7 +676,6 @@ export class PhotoListView extends Component {
   }
 
   componentDidUpdate(prevProps, prevState, snapshot) {
-    console.log("component did update");
     if (prevProps.showSidebar !== this.props.showSidebar) {
       this.handleResize();
     }
@@ -687,9 +688,6 @@ export class PhotoListView extends Component {
     var t0 = performance.now();
     const imagesGroupedByDate = nextProps.photosGroupedByDate;
     var t1 = performance.now();
-    console.log(
-      "grouping photos into dates took " + (t1 - t0) + " milliseconds."
-    );
 
     var idx2hash = [];
 
@@ -703,7 +701,6 @@ export class PhotoListView extends Component {
       hash2row,
       imagesGroupedByDate
     };
-    console.log(nextState);
     return nextState;
   }
 
@@ -827,7 +824,13 @@ export class PhotoListView extends Component {
       })
       .reduce((a, b) => a + b, 0);
 
-    console.log(this.props.route);
+    console.log(this.props);
+
+    if (this.props.route.location.pathname.startsWith("/useralbum/")) {
+      var isUserAlbum = true;
+    } else {
+      var isUserAlbum = false;
+    }
 
     return (
       <div>
@@ -835,7 +838,8 @@ export class PhotoListView extends Component {
           <Header as="h2">
             <Icon name={this.props.titleIconName} />
             <Header.Content>
-              {this.props.title}
+              {this.props.title}{" "}
+
               <Header.Subheader>
                 {this.props.photosGroupedByDate.length} Days,{" "}
                 {this.props.idx2hash.length} Photos
@@ -999,6 +1003,18 @@ export class PhotoListView extends Component {
                       <Icon name="key" />
                       {"  Make Private"}
                     </Dropdown.Item>
+
+                    <Dropdown.Divider />
+                    <Dropdown.Item
+                      onClick={() => {
+                        if (this.state.selectedImageHashes.length > 0) {
+                          this.setState({ modalSharePhotosOpen: true });
+                        }
+                      }}
+                    >
+                      <Icon name="share" />
+                      {"  Share"}
+                    </Dropdown.Item>
                   </Dropdown.Menu>
                 </Dropdown>
 
@@ -1010,10 +1026,6 @@ export class PhotoListView extends Component {
                         <Button
                           onClick={() => {
                             // todo: implement this
-                            console.log(
-                              "remove photos from useralbum: ",
-                              this.state.selectedImageHashes
-                            );
                           }}
                         >
                           <Icon.Group>
@@ -1197,6 +1209,17 @@ export class PhotoListView extends Component {
             selectedImageHashes={this.state.selectedImageHashes}
           />
         )}
+        {!this.props.isPublic && (
+          <ModalPhotosShare
+            isOpen={this.state.modalSharePhotosOpen}
+            onRequestClose={() => {
+              this.setState({
+                modalSharePhotosOpen: false
+              });
+            }}
+            selectedImageHashes={this.state.selectedImageHashes}
+          />
+        )}
       </div>
     );
   }
@@ -1339,8 +1362,6 @@ class ModalAlbumEdit extends Component {
                         )
                       );
                       this.props.onRequestClose();
-                      // console.log('trying to add photos: ',this.props.selectedImageHashes)
-                      // console.log('to user album id: ',item.id)
                     }}
                     as="a"
                   >

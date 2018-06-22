@@ -351,8 +351,6 @@ export class TopMenu extends Component {
                 size="large"
                 onFocus={() => {
                   this.setState({ searchBarFocused: true });
-                  console.log("searchbar focused");
-                  console.log("searchbar focused", this.state.searchBarFocused);
                 }}
                 onBlur={() => {
                   _.debounce(() => {
@@ -469,7 +467,6 @@ export class TopMenu extends Component {
                       <p
                         key={"suggestion_" + el}
                         onClick={() => {
-                          console.log("clicked");
                           this.props.dispatch(searchPhotos(el));
                           this.props.dispatch(searchPeople(el));
                           this.props.dispatch(searchThingAlbums(el));
@@ -512,7 +509,6 @@ export class TopMenu extends Component {
                         onClick={() => {
                           this.props.dispatch(push(`/useralbum/${album.id}`));
                           this.props.dispatch(fetchUserAlbum(album.id));
-                          console.log("clicked");
                         }}
                       >
                         <Icon name="bookmark" />
@@ -551,7 +547,6 @@ export class TopMenu extends Component {
                         onClick={() => {
                           this.props.dispatch(push(`/place/${place.id}`));
                           this.props.dispatch(fetchPlaceAlbum(place.id));
-                          console.log("clicked");
                         }}
                       >
                         <Icon name="map outline" />
@@ -590,7 +585,6 @@ export class TopMenu extends Component {
                         onClick={() => {
                           this.props.dispatch(push(`/search`));
                           this.props.dispatch(searchPhotos(thing.title));
-                          console.log("clicked");
                         }}
                       >
                         <Icon name="tag" />
@@ -938,14 +932,14 @@ export class SideMenuNarrow extends Component {
                 </Dropdown.Item>
 
 
-                <Dropdown.Item as={Link} to="/faces" disabled>
+                <Dropdown.Item as={Link} to="/shared/fromme" disabled>
                   <Icon name="users" />
-                  {"  Shared with others"}
+                  {"  Photos you shared"}
                 </Dropdown.Item>
 
-                <Dropdown.Item as={Link} to="/faces" disabled>
+                <Dropdown.Item as={Link} to="/shared/tome">
                   <Icon name="user circle" />
-                  {"  Shared with you"}
+                  {"  Photos others shared with you"}
                 </Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
@@ -967,7 +961,6 @@ export class SideMenu extends Component {
 
   render() {
     if (this.props.jwtToken == null) {
-      console.log("signed out");
       var authMenu = (
         <Menu.Item name="loginout" as={Link} to="/login">
           <Icon name="sign out" corner /> Log In

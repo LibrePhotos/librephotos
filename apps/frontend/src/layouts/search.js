@@ -141,7 +141,6 @@ export class SearchBar extends Component {
 
 
 	handleSearch(e,d) {
-		console.log(this.state.text)
 		this.props.dispatch(searchPhotos(this.state.text))
 	}
 
@@ -176,7 +175,6 @@ export class PhotoSearchResult extends Component {
       showModal:false,
       modalPhotoIndex:0
     })
-    console.log(this.state)
     document.addEventListener("keydown", this._handleKeyDown.bind(this));
   }
 

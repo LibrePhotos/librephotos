@@ -48,7 +48,6 @@ export class Statistics extends Component {
   render() {
     const {activeItem} = this.state
 
-    console.log(activeItem)
 
     return (
       <div style={{padding:10}}>

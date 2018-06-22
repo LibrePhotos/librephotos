@@ -25,7 +25,6 @@ export function setFacesPersonLabel(faceIDs, personName) {
         );
       })
       .catch(err => {
-        console.log("error");
       });
   };
 }
@@ -53,7 +52,6 @@ export function deleteFaces(faceIDs) {
         );
       })
       .catch(err => {
-        console.log("error");
       });
   };
 }

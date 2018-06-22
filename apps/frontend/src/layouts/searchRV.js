@@ -119,7 +119,6 @@ class DayGroupPlaceholder extends Component {
 
 class DayGroup extends Component {
     render () {
-        console.log(this.props.day.location)
         var photos = this.props.day.photos.map(function(photo) {
             return (
                 <Image key={'daygroup_image_'+photo.image_hash} style={{display:'inline-block',padding:1,margin:0}}

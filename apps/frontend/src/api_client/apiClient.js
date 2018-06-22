@@ -47,7 +47,6 @@ Server.interceptors.response.use(function (response) {
   // console.log('axios retrying')
   const originalRequest = error.config;
 
-  console.log(error)
   if (error.response.status === 401 && !originalRequest._retry && !isRefreshTokenExpired(store.getState())) {
 
     originalRequest._retry = true;

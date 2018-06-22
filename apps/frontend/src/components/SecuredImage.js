@@ -25,7 +25,29 @@ import {
 
 import { Server, serverAddress } from "../api_client/apiClient";
 
+import { instanceOf } from 'prop-types';
+import { withCookies, Cookies } from 'react-cookie';
+
 export class SecuredImageJWT extends Component {
+  static propTypes = {
+    cookies: instanceOf(Cookies).isRequired
+  }
+
+  state = {cookie:null}
+
+  constructor(props) {
+    super(props)
+  }
+
+  componentDidMount() {
+    if (this.props.auth.access) {
+      const {cookies} = this.props
+      cookies.set('jwt',this.props.auth.access.token)
+    }
+  }
+
+
+
   render() {
     const {
       height,
@@ -56,11 +78,7 @@ export class SecuredImageJWT extends Component {
           label,
           circular
         }}
-        src={
-          this.props.isPublic
-            ? src
-            : src + "?jwt=" + this.props.auth.access.token
-        }
+        src={src}
       />
     );
   }
@@ -98,3 +116,5 @@ SecuredImageJWT = connect(store => {
     auth: store.auth
   };
 })(SecuredImageJWT);
+
+SecuredImageJWT = withCookies(SecuredImageJWT)

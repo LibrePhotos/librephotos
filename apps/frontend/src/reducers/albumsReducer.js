@@ -166,7 +166,6 @@ export default function reducer(
       };
     }
     case "FETCH_DATE_ALBUMS_PHOTO_HASH_LIST_FULFILLED": {
-      console.log(action.payload.length);
       return {
         ...state,
         fetchingAlbumsDatePhotoHashList: false,
@@ -307,7 +306,6 @@ export default function reducer(
       new_album[action.payload.id] = action.payload;
 
       var new_album_list = [...state.albumsAutoList];
-      console.log(new_album_list);
 
       var index = -1;
 

@@ -55,14 +55,12 @@ export class UserPublicPage extends Component {
           )
         );
         var idx2hash = [];
-        console.log(groupedByDateList);
         groupedByDateList.forEach(g => {
           g.photos.forEach(p => {
             idx2hash.push(p.image_hash);
           });
         });
         var t1 = performance.now();
-        console.log(t1 - t0);
         return {
           ...prevState,
           photosGroupedByDate: groupedByDateList,

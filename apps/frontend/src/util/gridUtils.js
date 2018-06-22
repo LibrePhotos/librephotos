@@ -11,11 +11,6 @@ var gridType = 'dense'
 function listener() {
  var ui = select(store.getState())
  gridType = ui.gridType
- if (ui.gridType==='dense') {
-   console.log('dense grid')
- } else {
-   console.log('loose grid')
- }
 }
 
 

@@ -96,7 +96,6 @@ export class AlbumPeople extends Component {
         <div key={key} style={style}>
           <div
             onClick={() => {
-              console.log("clicked");
               if (
                 !this.props.albumsPeople.hasOwnProperty(
                   this.props.people[albumPersonIndex].key

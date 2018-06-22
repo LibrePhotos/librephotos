@@ -103,7 +103,6 @@ export class AlbumAuto extends Component {
         <div key={key} style={style}>
           <div
             onClick={() => {
-              console.log("clicked");
             }}
             style={{ padding: 5 }}
           >

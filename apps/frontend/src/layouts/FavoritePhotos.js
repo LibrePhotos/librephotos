@@ -71,7 +71,6 @@ export class FavoritePhotos extends Component {
 
           
           var t1 = performance.now();
-          console.log(t1-t0)
           return {
               ...prevState, 
               photosGroupedByDate: groupedByDateList,

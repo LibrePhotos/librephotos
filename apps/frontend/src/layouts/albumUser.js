@@ -105,7 +105,7 @@ export class AlbumUser extends Component {
         <div key={key} style={style}>
           <div
             onClick={() => {
-              console.log("clicked");
+                //todo
             }}
             style={{ padding: 5 }}
           >

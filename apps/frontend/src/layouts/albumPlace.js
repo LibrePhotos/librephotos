@@ -169,13 +169,11 @@ export class AlbumPlace extends Component {
     var album = this.props.albumsPlaceListGroupedByGeolocationLevel[
       this.state.geolocationLevel
     ];
-    console.log(album);
     var entrySquareSize = this.state.entrySquareSize;
     var numEntrySquaresPerRow = this.state.numEntrySquaresPerRow;
     var geolocationLevelOptions = _
       .keys(this.props.albumsPlaceListGroupedByGeolocationLevel)
       .map(el => ({ key: el, value: el, text: "Location Level " + `${el}` }));
-    console.log(this.state.gridHeight);
     return (
       <div>
         <div

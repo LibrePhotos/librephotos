@@ -11,11 +11,9 @@ export function fetchUserPublicPhotos(userName) {
           type: "FETCH_USER_PUBLIC_PHOTOS_FULFILLED",
           payload: { user: userName, photos: response.data.results }
         });
-        console.log(response);
       })
       .catch(err => {
         dispatch({ type: "FETCH_USER_PUBLIC_PHOTOS_REJECTED" });
-        console.log(err);
       });
   };
 }

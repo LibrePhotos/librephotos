@@ -15,6 +15,7 @@ import {
   Accordion,
   Container,
   Message,
+  Input,
   Divider,
   Button,
   Loader,
@@ -35,7 +36,7 @@ import {
   fetchSiteSettings
 } from "../actions/utilActions";
 import { scanPhotos, fetchPhotos } from "../actions/photosActions";
-
+import { fetchUserSelfDetails } from "../actions/userActions";
 import CountryPiChart from "../components/charts/countryPiChart";
 import { CountStats } from "../components/statistics";
 import WordCloud from "../components/charts/wordCloud";
@@ -47,13 +48,22 @@ import SocialGraph from "../components/socialGraph";
 import LazyLoad from "react-lazyload";
 import { LocationLink } from "../components/locationLink";
 
+import Dropzone from "react-dropzone";
+import AvatarEditor from "react-avatar-editor";
+
 export class Settings extends Component {
   state = {
     accordionOneActive: false,
     accordionTwoActive: false,
     accordionThreeActive: false,
-    accordionFourActive: false
+    accordionFourActive: false,
+    avatarImgSrc: null
   };
+
+  constructor(props) {
+    super(props);
+    this.dropzoneRef = React.createRef();
+  }
 
   onPhotoScanButtonClick = e => {
     this.props.dispatch(scanPhotos());
@@ -65,12 +75,28 @@ export class Settings extends Component {
 
   componentDidMount() {
     this.props.dispatch(fetchSiteSettings());
+    this.props.dispatch(fetchUserSelfDetails(this.props.auth.access.user_id))
   }
 
+  onAvatarFileDrop(files) {
+    console.log(files);
+    this.setState({ avatarImgSrc: files[0].preview });
+  }
+
+  
   render() {
+    
+    if (this.props.userSelfDetails.square_avatar) {
+      var avatarImgSrc = this.props.userSelfDetails.square_avatar
+    } else if (this.state.avatarImgSrc) {
+      var avatarImgSrc = this.state.avatarImgSrc
+    } else {
+      var avatarImgSrc = '/unknown_user.jpg'
+    }
+
+
     var buttonsDisabled = !this.props.workerAvailability;
 
-    console.log(this.props.siteSettings);
     return (
       <div style={{ padding: 10 }}>
         <Header as="h2">Settings</Header>
@@ -83,13 +109,47 @@ export class Settings extends Component {
           <Grid>
             <Grid.Row>
               <Grid.Column width={5} textAlign="right">
-                <b>Scan Directory</b>
+                <b>Avatar</b>
               </Grid.Column>
 
               <Grid.Column width={11}>
-                {this.props.auth.access.scan_directory}
+                <div style={{ paddingBottom: 10 }}>
+                  <Dropzone
+                    disableClick
+                    style={{ width: 150, height: 150, borderRadius: 75 }}
+                    ref={node => {
+                      this.dropzoneRef = node;
+                    }}
+                    onDrop={(accepted, rejected) => {
+                      console.log(accepted);
+                      this.setState({ avatarImgSrc: accepted[0].preview });
+                    }}
+                  >
+                    <AvatarEditor
+                      width={150}
+                      height={150}
+                      border={0}
+                      image={avatarImgSrc}
+                    />
+                  </Dropzone>
+                </div>
+                <Button
+                  color="blue"
+                  onClick={() => {
+                    this.dropzoneRef.open();
+                  }}
+                >
+                  <Icon name="image" />
+                  Choose image
+                </Button>
+
+                <Button color="green">
+                  <Icon name="upload" />
+                  Upload
+                </Button>
               </Grid.Column>
             </Grid.Row>
+
             <Grid.Row>
               <Grid.Column width={5} textAlign="right">
                 <b>Account Information</b>
@@ -111,6 +171,16 @@ export class Settings extends Component {
                   </Form.Group>
                   <Form.Button>Submit</Form.Button>
                 </Form>{" "}
+              </Grid.Column>
+            </Grid.Row>
+
+            <Grid.Row>
+              <Grid.Column width={5} textAlign="right">
+                <b>Scan Directory</b>
+              </Grid.Column>
+
+              <Grid.Column width={11}>
+                {this.props.auth.access.scan_directory}
               </Grid.Column>
             </Grid.Row>
           </Grid>
@@ -362,6 +432,7 @@ Settings = connect(store => {
     generatingAutoAlbums: store.util.generatingAutoAlbums,
     scanningPhotos: store.photos.scanningPhotos,
     fetchedCountStats: store.util.fetchedCountStats,
-    workerAvailability: store.util.workerAvailability
+    workerAvailability: store.util.workerAvailability,
+    userSelfDetails: store.user.userSelfDetails,
   };
 })(Settings);

@@ -22,7 +22,6 @@ var leftMenuWidth = 85 // don't change this
 
 
 const PrivateRoute = ({ component: Component, isAuthenticated, showSidebar, ...rest }) => {
-  console.log(isAuthenticated)
   return (
     <Route {...rest} render={props => (
       isAuthenticated ? (

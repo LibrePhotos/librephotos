@@ -27,10 +27,33 @@ export default function reducer(
     publicPhotos: [],
     fetchingPublicPhotos: false,
     fetchedPublicPhotos: false,
+
+    photosSharedToMe: [],
+    fetchingPhotosSharedToMe: false,
+    fetchedPhotosSharedToMe: false
   },
   action
 ) {
   switch (action.type) {
+    case "FETCH_PHOTOS_SHARED_TO_ME": {
+      return { ...state, fetchingPhotosSharedToMe: true };
+    }
+    case "FETCH_PHOTOS_SHARED_TO_ME_FULFILLED": {
+      return {
+        ...state,
+        fetchingPhotosSharedToMe: false,
+        fetchedPhotosSharedToMe: true,
+        photosSharedToMe: action.payload
+      };
+    }
+    case "FETCH_PHOTOS_SHARED_TO_ME_REJECTED": {
+      return {
+        ...state,
+        fetchingPhotosSharedToMe: false,
+        fetchedPhotosSharedToMe: false
+      };
+    }
+
     case "SCAN_PHOTOS": {
       return { ...state, scanningPhotos: true };
     }
@@ -129,9 +152,7 @@ export default function reducer(
       return { ...state, fetchingPhotoDetail: false, error: action.payload };
     }
 
-
     case "SET_PHOTOS_PUBLIC_FULFILLED": {
-      console.log(action);
       var valPublic = action.payload.public;
       var imageHashes = action.payload.image_hashes;
       var updatedPhotos = action.payload.updatedPhotos;
@@ -152,7 +173,6 @@ export default function reducer(
           newPublicPhotos.push(photo);
         });
       } else {
-        console.log(newPublicPhotos);
         newPublicPhotos = newPublicPhotos.filter(photo => {
           if (updatedPhotosImageHashes.includes(photo.image_hash)) {
             return false;
@@ -169,16 +189,7 @@ export default function reducer(
       };
     }
 
-
-
-
-
-
-
-
-
     case "SET_PHOTOS_FAVORITE_FULFILLED": {
-      console.log(action);
       var valFavorite = action.payload.favorite;
       var imageHashes = action.payload.image_hashes;
       var updatedPhotos = action.payload.updatedPhotos;
@@ -199,7 +210,6 @@ export default function reducer(
           newFavoritePhotos.push(photo);
         });
       } else {
-        console.log(newFavoritePhotos);
         newFavoritePhotos = newFavoritePhotos.filter(photo => {
           if (updatedPhotosImageHashes.includes(photo.image_hash)) {
             return false;
@@ -217,7 +227,6 @@ export default function reducer(
     }
 
     case "SET_PHOTOS_HIDDEN_FULFILLED": {
-      console.log(action);
       var valHidden = action.payload.hidden;
       var imageHashes = action.payload.image_hashes;
       var updatedPhotos = action.payload.updatedPhotos;
@@ -238,7 +247,6 @@ export default function reducer(
           newHiddenPhotos.push(photo);
         });
       } else {
-        console.log(newFavoritePhotos);
         newHiddenPhotos = newHiddenPhotos.filter(photo => {
           if (updatedPhotosImageHashes.includes(photo.image_hash)) {
             return false;
