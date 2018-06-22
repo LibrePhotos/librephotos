@@ -81,6 +81,7 @@ def get_or_create_person(name):
 
 class User(AbstractUser):
     scan_directory = models.CharField(max_length=512, db_index=True)
+    avatar = models.ImageField(upload_to='avatars', null=True)
 
 
 class Photo(models.Model):

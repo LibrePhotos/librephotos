@@ -111,6 +111,16 @@ router.register(
     r'api/albums/user', views.AlbumUserViewSet, base_name='album_user')
 
 router.register(r'api/persons', views.PersonViewSet, base_name='person')
+
+router.register(
+    r'api/photos/shared/tome',
+    views.SharedToMePhotoSuperSimpleListViewSet,
+    base_name='photo')
+router.register(
+    r'api/photos/shared/fromme',
+    views.SharedFromMePhotoSuperSimpleListViewSet,
+    base_name='photo')
+
 router.register(
     r'api/photos/notimestamp/list',
     views.NoTimestampPhotoHashListViewSet,
@@ -138,9 +148,11 @@ router.register(
     r'api/faces/inferred/list',
     views.FaceInferredListViewSet,
     base_name='face')
+
 router.register(
     r'api/faces/labeled/list', views.FaceLabeledListViewSet, base_name='face')
-router.register(r'api/faces/list', views.FaceListViewSet)
+
+router.register(r'api/faces/list', views.FaceListViewSet, base_name='face')
 
 router.register(
     r'api/faces/inferred', views.FaceInferredViewSet, base_name='face')
@@ -161,6 +173,7 @@ urlpatterns = [
     url(r'^api/photosedit/hide', views.SetPhotosHidden.as_view()),
     url(r'^api/photosedit/makepublic', views.SetPhotosPublic.as_view()),
     url(r'^api/photosedit/share', views.SetPhotosShared.as_view()),
+    url(r'^api/useralbum/share', views.SetUserAlbumShared.as_view()),
     url(r'^api/facetolabel', views.FaceToLabelView.as_view()),
     url(r'^api/trainfaces', views.TrainFaceView.as_view()),
     url(r'^api/clusterfaces', views.ClusterFaceView.as_view()),
