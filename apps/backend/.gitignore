@@ -34,3 +34,6 @@ media*
 api/migrations_dev
 protected_media
 .vscode
+.coverage
+htmlcov
+samplephotos

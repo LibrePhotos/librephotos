@@ -69,6 +69,7 @@ class PhotoSerializer(serializers.ModelSerializer):
 
     image_url = serializers.SerializerMethodField()
     people = serializers.SerializerMethodField()
+    shared_to = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
     # geolocation = serializers.SerializerMethodField()
     # persons = PersonSerializer(many=True, read_only=True)
@@ -81,7 +82,8 @@ class PhotoSerializer(serializers.ModelSerializer):
                   'square_thumbnail_url', 'big_square_thumbnail_url',
                   'small_square_thumbnail_url', 'tiny_square_thumbnail_url',
                   'geolocation_json', 'exif_json', 'people', 'image_url',
-                  'image_hash', 'image_path', 'favorited', 'hidden', 'public')
+                  'image_hash', 'image_path', 'favorited', 'hidden', 'public',
+                  'shared_to')
 
     def get_thumbnail_url(self, obj):
         try:
@@ -524,10 +526,12 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
 
 class AlbumUserSerializer(serializers.ModelSerializer):
     photos = PhotoSuperSimpleSerializer(many=True, read_only=True)
+    shared_to = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
     class Meta:
         model = AlbumUser
-        fields = ("id", "title", "photos", "created_on", "favorited")
+        fields = ("id", "title", "photos", "created_on", "favorited",
+                  "shared_to")
 
 
 class AlbumUserListSerializer(serializers.ModelSerializer):
@@ -535,6 +539,7 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
     # people = serializers.SerializerMethodField()
     # cover_photo_urls = serializers.SerializerMethodField()
     photo_count = serializers.SerializerMethodField()
+    shared_to = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
     class Meta:
         model = AlbumUser
@@ -547,6 +552,7 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
             # "cover_photo_urls",
             "title",
             # "photos",
+            "shared_to",
             "photo_count")
 
     def get_photo_count(self, obj):
@@ -582,10 +588,12 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
 
 class AlbumAutoListSerializer(serializers.ModelSerializer):
     photos = PhotoSuperSimpleSerializer
+    shared_to = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
     class Meta:
         model = AlbumAuto
-        fields = ("id", "title", "timestamp", "photos", "favorited")
+        fields = ("id", "title", "timestamp", "photos", "favorited",
+                  "shared_to")
 
 
 class LongRunningJobSerializer(serializers.ModelSerializer):
@@ -598,6 +606,17 @@ class LongRunningJobSerializer(serializers.ModelSerializer):
 
     def get_job_type_str(self, obj):
         return dict(LongRunningJob.JOB_TYPES)[obj.job_type]
+
+
+class SimpleUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = (
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+        )
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -622,7 +641,7 @@ class UserSerializer(serializers.ModelSerializer):
         }
         fields = ('id', 'username', 'email', 'scan_directory', 'first_name',
                   'public_photo_samples', 'last_name', 'public_photo_count',
-                  'date_joined', 'password')
+                  'date_joined', 'password', 'avatar')
         # read_only_fields = ('id', 'scan_directory')
 
     def create(self, validated_data):
@@ -679,3 +698,12 @@ class ManageUserSerializer(serializers.ModelSerializer):
                 instance.scan_directory = new_scan_directory
                 instance.save()
         return instance
+
+
+class SharedPhotoSuperSimpleSerializer(serializers.ModelSerializer):
+    owner = SimpleUserSerializer(many=False, read_only=True)
+
+    class Meta:
+        model = Photo
+        fields = ('image_hash', 'favorited', 'hidden', 'exif_timestamp',
+                  'public', 'owner')

@@ -43,6 +43,8 @@ from api.serializers import AlbumUserListSerializer
 
 from api.serializers import LongRunningJobSerializer
 
+from api.serializers import SharedPhotoSuperSimpleSerializer
+
 from api.serializers import UserSerializer
 from api.serializers import ManageUserSerializer
 
@@ -337,6 +339,26 @@ class PhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
 
 
 #         return super(PhotoSuperSimpleListViewSet, self).list(*args, **kwargs)
+
+
+class SharedToMePhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
+
+    serializer_class = SharedPhotoSuperSimpleSerializer
+    pagination_class = HugeResultsSetPagination
+
+    def get_queryset(self):
+        return Photo.objects.filter(shared_to__id__exact=self.request.user.id)
+
+
+class SharedFromMePhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
+
+    serializer_class = SharedPhotoSuperSimpleSerializer
+    pagination_class = HugeResultsSetPagination
+
+    def get_queryset(self):
+        return Photo.objects.annotate(shared_to_count=Count(shared_to)) \
+            .filter(shared_to_count__gt=0) \
+            .filter(owner=self.request.user.id)
 
 
 class FavoritePhotoListViewset(viewsets.ModelViewSet):
@@ -661,6 +683,32 @@ class AlbumAutoListViewSet(viewsets.ModelViewSet):
         return super(AlbumAutoListViewSet, self).list(*args, **kwargs)
 
 
+class SharedToMeAlbumAutoListViewSet(viewsets.ModelViewSet):
+
+    serializer_class = AlbumAutoListSerializer
+    pagination_class = HugeResultsSetPagination
+
+    def get_queryset(self):
+        return AlbumAuto.objects.filter(shared_to__id__exact=self.request.user.id) \
+            .filter(owner=self.request.user) \
+            .prefetch_related('photos') \
+            .order_by('-timestamp')
+
+
+class SharedFromMeAlbumAutoListViewSet(viewsets.ModelViewSet):
+
+    serializer_class = AlbumAutoListSerializer
+    pagination_class = HugeResultsSetPagination
+
+    def get_queryset(self):
+        return AlbumAuto.objects.filter(owner=self.request.user) \
+            .prefetch_related('photos') \
+            .order_by('-timestamp') \
+            .annotate(shared_to_count=Count(shared_to)) \
+            .filter(shared_to_count__gt=0) \
+            .filter(owner=self.request.user.id)
+
+
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumPersonViewSet(viewsets.ModelViewSet):
     #     queryset = Person.objects.all().prefetch_related('faces__photo').order_by('name')
@@ -982,6 +1030,7 @@ class LongRunningJobViewSet(viewsets.ModelViewSet):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by('-last_login')
     serializer_class = UserSerializer
+
     # permission_classes = (IsUserOrReadOnly, )
 
     def get_permissions(self):
@@ -994,7 +1043,6 @@ class UserViewSet(viewsets.ModelViewSet):
     # def create(self, request,format=None):
     #     new_user = User.objects.create_user(**request.data)
     #     return Response(UserSerializer(new_user).data)
-
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -1048,6 +1096,32 @@ class SiteSettingsView(APIView):
         return Response(out)
 
 
+class SetUserAlbumShared(APIView):
+    def post(self, request, format=None):
+        data = dict(request.data)
+        print(data)
+        shared = data['shared']  #bool
+        target_user_id = data['target_user_id']  # user pk, int
+        user_album_id = data['album_id']
+
+        target_user = User.objects.get(id=target_user_id)
+
+        user_album_to_share = AlbumUser.objects.get(id=user_album_id)
+
+        if user_album_to_share.owner != request.user:
+            return Response(
+                {
+                    'status': False,
+                    'message': "You cannot share an album you don't own"
+                },
+                status_code=400)
+
+        user_album_to_share.shared_to.add(target_user)
+        user_album_to_share.save()
+
+        return Response(AlbumUserListSerializer(user_album_to_share).data)
+
+
 class SetPhotosShared(APIView):
     def post(self, request, format=None):
         data = dict(request.data)
@@ -1068,9 +1142,9 @@ class SetPhotosShared(APIView):
                 continue
             if photo.owner == request.user:
                 if shared:
-                    photo.target.add(target_user)
+                    photo.shared_to.add(target_user)
                 else:
-                    photo.target.remove(target_user)
+                    photo.shared_to.remove(target_user)
                 photo.save()
                 updated.append(PhotoSerializer(photo).data)
             else:
@@ -1487,6 +1561,9 @@ class MediaAccessView(APIView):
     permission_classes = (AllowAny, )
 
     def get(self, request, path, fname, format=None):
+
+        jwt = request.COOKIES.get('jwt')
+
         image_hash = fname.split(".")[0].split('_')[0]
         try:
             photo = Photo.objects.get(image_hash=image_hash)
@@ -1502,9 +1579,9 @@ class MediaAccessView(APIView):
             return response
 
         # forbid access if trouble with jwt
-        if 'jwt' in request.query_params.keys():
+        if jwt is not None:
             try:
-                token = AccessToken(request.query_params['jwt'])
+                token = AccessToken(jwt)
             except TokenError:
                 return HttpResponseForbidden()
         else:
