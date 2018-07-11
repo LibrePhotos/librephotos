@@ -33,16 +33,19 @@ import { AlbumUserGallery } from "./layouts/albumUserGallery";
 import { AllPhotosHashListViewRV } from "./layouts/allPhotosViewHashRV";
 import { SideMenuNarrow, TopMenu } from "./layouts/menubars";
 import { NoTimestampPhotosView } from "./layouts/noTimestampPhotosView";
+import { RecentlyAddedPhotos } from './layouts/RecentlyAddedPhotos';
 import PrivateRoute from "./layouts/privateRoute";
 // import {SearchView} from './layouts/search'
 import { SearchView } from "./layouts/searchRV";
 import { Settings } from "./layouts/settings";
+import { AdminPage } from "./layouts/AdminPage";
 import { Statistics } from "./layouts/statistics";
 import { SecuredImage } from "./layouts/Bench";
 import { UserPublicPage } from "./layouts/UserPublicPage";
 import { PublicUserList } from "./layouts/PublicUserList";
 import { LocationClusterMap } from "./components/maps";
-import { PhotosSharedToMe } from './layouts/PhotosSharedToMe'
+import { SharedToMe } from './layouts/SharedToMe'
+import { SharedFromMe } from './layouts/SharedFromMe'
 /*
 store.subscribe(listener)
 
@@ -116,6 +119,8 @@ class App extends Component {
 
             <PrivateRoute path="/things" component={AlbumThing} />
 
+            <PrivateRoute path="/recent" component={RecentlyAddedPhotos} />
+
             <PrivateRoute path="/favorites" component={FavoritePhotos} />
 
             <PrivateRoute path="/hidden" component={HiddenPhotos} />
@@ -163,9 +168,11 @@ class App extends Component {
               component={AlbumUserGallery}
             />
 
-            <PrivateRoute path="/shared/tome" component={PhotosSharedToMe} />
+            <PrivateRoute path="/shared/tome/:which" component={SharedToMe} />
+            <PrivateRoute path="/shared/fromme/:which" component={SharedFromMe} />
 
-            <PrivateRoute path="/manage/users" component={UserManagement} />
+
+            <PrivateRoute path="/admin" component={AdminPage} />
 
             <PrivateRoute path="/map" component={PhotoMap} />
             <PrivateRoute path="/placetree" component={LocationTree} />

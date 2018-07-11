@@ -5,7 +5,7 @@ import { connect } from "react-redux";
 import SortableTree from "react-sortable-tree";
 import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
 import { Button, Grid, Header, Icon, Input, Loader, Table } from "semantic-ui-react";
-import { fetchDirectoryTree, fetchUserList, setUserScanDirectory } from "../actions/utilActions";
+import { fetchDirectoryTree, fetchUserList, manageUpdateUser} from "../actions/utilActions";
 
 
 
@@ -187,7 +187,7 @@ class ModalScanDirectoryEdit extends Component {
                         scan_directory: this.state.newScanDirectory
                       };
                       console.log(newUserData);
-                      this.props.dispatch(setUserScanDirectory(newUserData));
+                      this.props.dispatch(manageUpdateUser(newUserData));
                       this.props.onRequestClose()
                     }}
                   >

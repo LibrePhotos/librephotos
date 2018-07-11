@@ -4,6 +4,7 @@ import { withAuth } from '../reducers'
 import store from '../store'
 import {refreshAccessToken} from '../actions/authActions'
 import {isRefreshTokenExpired} from '../reducers/'
+import cookieClient from 'react-cookie'
 
 store.subscribe(listener)
 
@@ -27,6 +28,7 @@ export var Server = axios.create({
   headers: {
     'Content-Type': 'application/json'
   },
+  withCredentials:true,
   timeout: 30000,
 });
 

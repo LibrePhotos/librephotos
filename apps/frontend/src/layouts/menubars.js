@@ -41,6 +41,7 @@ import {
 import { serverAddress } from "../api_client/apiClient";
 import { SecuredImageJWT } from "../components/SecuredImage";
 
+
 var ENTER_KEY = 13;
 var topMenuHeight = 45; // don't change this
 
@@ -420,10 +421,10 @@ export class TopMenu extends Component {
 
                   {this.props.auth.access.is_admin && (
                     <Dropdown.Item
-                      onClick={() => this.props.dispatch(push("/manage/users"))}
+                      onClick={() => this.props.dispatch(push("/admin"))}
                     >
-                      <Icon name="users" />
-                      <b>Users</b>
+                      <Icon name="wrench" />
+                      <b>Admin Area</b>
                     </Dropdown.Item>
                   )}
                 </Dropdown.Menu>
@@ -766,8 +767,15 @@ export class SideMenuNarrow extends Component {
               {"  Without Timestamp"}
             </Dropdown.Item>
             <Dropdown.Divider />
+
+            <Dropdown.Item as={Link} to="/recent">
+              <Icon name="clock" />
+              {"  Recently Added"}
+            </Dropdown.Item>
+            <Dropdown.Divider />
+
             <Dropdown.Item as={Link} to="/hidden">
-              <Icon name="hide" />
+              <Icon color="red" name="hide" />
               {"  Hidden"}
             </Dropdown.Item>
             <Dropdown.Item as={Link} to="/favorites">
@@ -871,10 +879,6 @@ export class SideMenuNarrow extends Component {
               {"  Face Clusters"}
             </Dropdown.Item>
 
-            <Dropdown.Item as={Link} to="/countstats">
-              <Icon name="hashtag" />
-              {"  Count Stats"}
-            </Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown>
         <div style={{ marginTop: -17 }}>
@@ -915,7 +919,7 @@ export class SideMenuNarrow extends Component {
               item
               icon={
                 <Icon.Group size="big">
-                  <Icon name="share alternate" />
+                  <Icon name="users" />
                 </Icon.Group>
               }
             >
@@ -932,14 +936,14 @@ export class SideMenuNarrow extends Component {
                 </Dropdown.Item>
 
 
-                <Dropdown.Item as={Link} to="/shared/fromme" disabled>
-                  <Icon name="users" />
-                  {"  Photos you shared"}
+                <Dropdown.Item as={Link} to="/shared/fromme/photos/">
+                  <Icon name="share" color='red'/>
+                  {"  You shared"}
                 </Dropdown.Item>
 
-                <Dropdown.Item as={Link} to="/shared/tome">
-                  <Icon name="user circle" />
-                  {"  Photos others shared with you"}
+                <Dropdown.Item as={Link} to="/shared/tome/photos/">
+                  <Icon name="share" color='green'/>
+                  {"  Shared with you"}
                 </Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>

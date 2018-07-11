@@ -29,22 +29,23 @@ import { instanceOf } from 'prop-types';
 import { withCookies, Cookies } from 'react-cookie';
 
 export class SecuredImageJWT extends Component {
-  static propTypes = {
-    cookies: instanceOf(Cookies).isRequired
-  }
+  // static propTypes = {
+  //   cookies: instanceOf(Cookies).isRequired
+  // }
 
-  state = {cookie:null}
+  // state = {cookie:null}
 
-  constructor(props) {
-    super(props)
-  }
+  // constructor(props) {
+  //   super(props)
+  // }
 
-  componentDidMount() {
-    if (this.props.auth.access) {
-      const {cookies} = this.props
-      cookies.set('jwt',this.props.auth.access.token)
-    }
-  }
+  // componentDidMount() {
+  //   if (this.props.auth.access) {
+  //     const {cookies} = this.props
+  //     console.log('setting jwt cookie',this.props.auth.access.token)
+  //     cookies.set('jwt',this.props.auth.access.token, { path: '/' })
+  //   }
+  // }
 
 
 
@@ -65,20 +66,7 @@ export class SecuredImageJWT extends Component {
     } = this.props;
     return (
       <Image
-        {...{
-          height,
-          width,
-          style,
-          onClick,
-          size,
-          rounded,
-          avatar,
-          as,
-          to,
-          label,
-          circular
-        }}
-        src={src}
+        {...this.props}
       />
     );
   }
@@ -117,4 +105,4 @@ SecuredImageJWT = connect(store => {
   };
 })(SecuredImageJWT);
 
-SecuredImageJWT = withCookies(SecuredImageJWT)
+// SecuredImageJWT = withCookies(SecuredImageJWT)

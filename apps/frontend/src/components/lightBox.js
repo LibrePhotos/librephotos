@@ -12,7 +12,8 @@ import {
   fetchPhotoDetail,
   setPhotosFavorite,
   setPhotosHidden,
-  setPhotosPublic
+  setPhotosPublic,
+  generatePhotoIm2txtCaption
 } from "../actions/photosActions";
 import {
   Card,
@@ -22,6 +23,7 @@ import {
   Item,
   Loader,
   Dimmer,
+  Form,
   Modal,
   Sticky,
   Portal,
@@ -32,6 +34,7 @@ import {
   Popup,
   Segment,
   Button,
+  Input,
   Icon,
   Table,
   Transition,
@@ -99,12 +102,12 @@ export class LightBox extends Component {
         serverAddress +
         "/media/photos/" +
         this.props.idx2hash.slice(this.props.lightboxImageIndex)[0] +
-        ".jpg" + authGetParams;
+        ".jpg";
       var mainSrcThumbnail =
         serverAddress +
         "/media/thumbnails_small/" +
         this.props.idx2hash.slice(this.props.lightboxImageIndex)[0] +
-        ".jpg" + authGetParams;
+        ".jpg";
       if (
         this.props.photoDetails[
           this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]
@@ -127,7 +130,7 @@ export class LightBox extends Component {
             this.props.idx2hash.slice(
               (this.props.lightboxImageIndex + 1) % this.props.idx2hash.length
             )[0] +
-            ".jpg" + authGetParams
+            ".jpg"
           }
           prevSrc={
             serverAddress +
@@ -135,7 +138,7 @@ export class LightBox extends Component {
             this.props.idx2hash.slice(
               (this.props.lightboxImageIndex - 1) % this.props.idx2hash.length
             )[0] +
-            ".jpg" + authGetParams
+            ".jpg"
           }
           mainSrcThumbnail={mainSrcThumbnail}
           nextSrcThumbnail={
@@ -144,7 +147,7 @@ export class LightBox extends Component {
             this.props.idx2hash.slice(
               (this.props.lightboxImageIndex + 1) % this.props.idx2hash.length
             )[0] +
-            ".jpg" + authGetParams
+            ".jpg"
           }
           prevSrcThumbnail={
             serverAddress +
@@ -152,28 +155,46 @@ export class LightBox extends Component {
             this.props.idx2hash.slice(
               (this.props.lightboxImageIndex - 1) % this.props.idx2hash.length
             )[0] +
-            ".jpg" + authGetParams
+            ".jpg"
           }
           toolbarButtons={[
             <div>
               {!this.props.photoDetails[
                 this.props.idx2hash[this.props.lightboxImageIndex]
               ] && (
-                <Button loading color="black" icon circular>
+                <Button
+                  loading
+                  color="black"
+                  icon
+                  circular
+                  disabled={this.props.isPublic}
+                >
                   <Icon name="hide" color={"grey"} />
                 </Button>
               )}
               {!this.props.photoDetails[
                 this.props.idx2hash[this.props.lightboxImageIndex]
               ] && (
-                <Button loading color="black" icon circular>
+                <Button
+                  loading
+                  color="black"
+                  icon
+                  circular
+                  disabled={this.props.isPublic}
+                >
                   <Icon name="star" color={"grey"} />
                 </Button>
               )}
               {!this.props.photoDetails[
                 this.props.idx2hash[this.props.lightboxImageIndex]
               ] && (
-                <Button loading color="black" icon circular>
+                <Button
+                  loading
+                  color="black"
+                  icon
+                  circular
+                  disabled={this.props.isPublic}
+                >
                   <Icon name="globe" color={"grey"} />
                 </Button>
               )}
@@ -181,6 +202,7 @@ export class LightBox extends Component {
                 this.props.idx2hash[this.props.lightboxImageIndex]
               ] && (
                 <Button
+                  disabled={this.props.isPublic}
                   onClick={() => {
                     const image_hash = this.props.idx2hash[
                       this.props.lightboxImageIndex
@@ -208,6 +230,7 @@ export class LightBox extends Component {
                 this.props.idx2hash[this.props.lightboxImageIndex]
               ] && (
                 <Button
+                  disabled={this.props.isPublic}
                   onClick={() => {
                     const image_hash = this.props.idx2hash[
                       this.props.lightboxImageIndex
@@ -235,6 +258,7 @@ export class LightBox extends Component {
                 this.props.idx2hash[this.props.lightboxImageIndex]
               ] && (
                 <Button
+                  disabled={this.props.isPublic}
                   onClick={() => {
                     const image_hash = this.props.idx2hash[
                       this.props.lightboxImageIndex
@@ -459,11 +483,57 @@ export class LightBox extends Component {
                           <Icon name="write" /> Caption
                         </Item.Header>
                         <Item.Description>
-                          {
+                          {false &&
                             this.props.photoDetails[
                               this.props.idx2hash[this.props.lightboxImageIndex]
-                            ].captions_json.im2txt
-                          }
+                            ].captions_json.im2txt}
+                          <Form>
+                            <Form.TextArea
+                              disabled={this.props.isPublic}
+                              fluid
+                              placeholder={
+                                this.props.photoDetails[
+                                  this.props.idx2hash[
+                                    this.props.lightboxImageIndex
+                                  ]
+                                ].captions_json.im2txt
+                              }
+                            >
+                              {
+                                this.props.photoDetails[
+                                  this.props.idx2hash[
+                                    this.props.lightboxImageIndex
+                                  ]
+                                ].captions_json.im2txt
+                              }
+                            </Form.TextArea>
+                            <Button
+                              disabled={this.props.isPublic}
+                              floated="left"
+                              size="small"
+                              color="green"
+                            >
+                              Submit
+                            </Button>
+                            <Button
+                              loading={this.props.generatingCaptionIm2txt}
+                              onClick={()=>{this.props.dispatch(generatePhotoIm2txtCaption(this.props.idx2hash[this.props.lightboxImageIndex]))}}
+                              disabled={this.props.isPublic | this.props.generatingCaptionIm2txt}
+                              floated="left"
+                              size="small"
+                              color="blue"
+                            >
+                              Generate
+                            </Button>
+                            <Button
+                              disabled={this.props.isPublic}
+                              floated="right"
+                              size="small"
+                              basic
+                            >
+                              Cancel
+                            </Button>
+                          </Form>
                         </Item.Description>
                       </Item.Content>
                     </Item>
@@ -572,6 +642,8 @@ LightBox = connect(store => {
     photoDetails: store.photos.photoDetails,
     fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
     fetchedPhotoDetail: store.photos.fetchedPhotoDetail,
+    generatingCaptionIm2txt: store.photos.generatingCaptionIm2txt,
+    generatedCaptionIm2txt: store.photos.generatedCaptionIm2txt,
     photos: store.photos.photos
     // idx2hash: store.albums.idx2hash,
     // albumsDatePhotoHashList: store.albums.albumsDatePhotoHashList,

@@ -130,6 +130,21 @@ export class AlbumUser extends Component {
             style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}
           >
             
+            {
+              this.props.albumsUserList[albumUserIndex].shared_to.length>0 && 
+              <Popup 
+                style={{padding:10}}
+                size='tiny'
+                position='center right'
+                header='Shared with:'
+                trigger={<Icon name='users'/>}
+                content={
+                  this.props.albumsUserList[albumUserIndex].shared_to.map(el=>{
+                    return <div><Icon name='user circle'/><b>{el.username}</b></div>
+                  })
+                }/>
+
+            }
             <b>{this.props.albumsUserList[albumUserIndex].title}</b> <br />
             {this.props.albumsUserList[albumUserIndex].photo_count} Photo(s)
             {true && (

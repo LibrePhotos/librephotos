@@ -51,10 +51,40 @@ export function setPhotosShared(image_hashes, val_shared, target_user) {
   };
 }
 
+export function fetchRecentlyAddedPhotos() {
+  return function(dispatch) {
+    dispatch({ type: "FETCH_RECENTLY_ADDED_PHOTOS" })
+    Server.get("photos/recentlyadded/")
+      .then(response=>{
+        const res = 
+          _.toPairs(
+            _.groupBy(response.data.results,el=>moment(el.added_on).format('YYYY-MM-DD'))
+          ).map(pair=>{
+            return {
+              date: pair[0],
+              photos: pair[1],
+              location: null
+            }
+          })
+        var idx2hash = [];
+        res.forEach(day => {
+          day.photos.forEach(photo => {
+            idx2hash.push(photo.image_hash);
+          });
+        });
+
+        dispatch({ type: "FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED", payload: {res:res, idx2hash:idx2hash} })
+      })
+      .catch(error=>{
+        dispatch({ type: "FETCH_RECENTLY_ADDED_PHOTOS_REJECTED", payload: error })
+      })
+  }
+}
+
 export function fetchPhotosSharedToMe() {
   return function(dispatch) {
     dispatch({ type: "FETCH_PHOTOS_SHARED_TO_ME" });
-    Server.get("photos/shared/tome")
+    Server.get("photos/shared/tome/")
       .then(response => {
         const sharedPhotosGroupedByOwner = _
           .toPairs(_.groupBy(response.data.results, "owner.id"))
@@ -76,6 +106,39 @@ export function fetchPhotosSharedToMe() {
   };
 }
 
+export function fetchPhotosSharedFromMe() {
+  return function(dispatch) {
+    dispatch({ type: "FETCH_PHOTOS_SHARED_FROM_ME" });
+    Server.get("photos/shared/fromme/")
+      .then(response => {
+
+        const sharedPhotosGroupedBySharedTo = _
+          .toPairs(_.groupBy(response.data.results, "user_id"))
+          .map(el => {
+            return { user_id: parseInt(el[0]), photos: el[1].map(item=>{
+              return {...item.photo,shared_to:item.user}
+            }) 
+          };
+          });
+        
+          console.log(sharedPhotosGroupedBySharedTo)
+
+        dispatch({
+          type: "FETCH_PHOTOS_SHARED_FROM_ME_FULFILLED",
+          payload: sharedPhotosGroupedBySharedTo
+        });
+      })
+      .catch(err => {
+        dispatch({
+          type: "FETCH_PHOTOS_SHARED_FROM_ME_REJECTED",
+          payload: err
+        });
+      });
+  };
+}
+
+
+
 export function setPhotosPublic(image_hashes, val_public) {
   return function(dispatch) {
     dispatch({ type: "SET_PHOTOS_PUBLIC" });
@@ -89,7 +152,7 @@ export function setPhotosPublic(image_hashes, val_public) {
           payload: {
             image_hashes: image_hashes,
             val_public: val_public,
-            updatedPhotos: response.data.results
+            updatedPhotos: response.data.updated
           }
         });
         if (val_public) {
@@ -111,7 +174,7 @@ export function setPhotosPublic(image_hashes, val_public) {
         }
         dispatch(
           notify({
-            message: `${image_hashes.length} photo(s) ` + notificationMessage,
+            message: `${response.data.updated.length} photo(s) ` + notificationMessage,
             title: "Set photos public",
             status: "success",
             dismissible: true,
@@ -142,7 +205,7 @@ export function setPhotosFavorite(image_hashes, favorite) {
           payload: {
             image_hashes: image_hashes,
             favorite: favorite,
-            updatedPhotos: response.data.results
+            updatedPhotos: response.data.updated
           }
         });
         if (favorite) {
@@ -152,7 +215,7 @@ export function setPhotosFavorite(image_hashes, favorite) {
         }
         dispatch(
           notify({
-            message: `${image_hashes.length} photo(s) ` + notificationMessage,
+            message: `${response.data.updated.length} photo(s) ` + notificationMessage,
             title: "Favorite photos",
             status: "success",
             dismissible: true,
@@ -183,7 +246,7 @@ export function setPhotosHidden(image_hashes, hidden) {
           payload: {
             image_hashes: image_hashes,
             hidden: hidden,
-            updatedPhotos: response.data.results
+            updatedPhotos: response.data.updated
           }
         });
         if (hidden) {
@@ -193,7 +256,7 @@ export function setPhotosHidden(image_hashes, hidden) {
         }
         dispatch(
           notify({
-            message: `${image_hashes.length} photo(s) ` + notificationMessage,
+            message: `${response.data.updated.length} photo(s) ` + notificationMessage,
             title: "Hide photos",
             status: "success",
             dismissible: true,
@@ -235,6 +298,33 @@ export function scanPhotos() {
       });
   };
 }
+
+
+export function scanNextcloudPhotos() {
+  return function(dispatch) {
+    dispatch({ type: "SCAN_PHOTOS" });
+    dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
+
+    Server.get(`nextcloud/scanphotos/`)
+      .then(response => {
+        dispatch(
+          notify({
+            message: "Scan Nextcloud Photos started",
+            title: "Scan Photos",
+            status: "success",
+            dismissible: true,
+            dismissAfter: 3000,
+            position: "br"
+          })
+        );
+        dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: response.data });
+      })
+      .catch(err => {
+        dispatch({ type: "SCAN_PHOTOS_REJECTED", payload: err });
+      });
+  };
+}
+
 
 export function fetchPhotos() {
   return function(dispatch) {
@@ -341,4 +431,21 @@ export function fetchNoTimestampPhotoList() {
         dispatch({ type: "FETCH_NO_TIMESTAMP_PHOTOS_REJECTED", payload: err });
       });
   };
+}
+
+export function generatePhotoIm2txtCaption(image_hash) {
+  return function(dispatch) {
+    dispatch({ type: "GENERATE_PHOTO_CAPTION"});
+    Server.post('photosedit/generateim2txt',{image_hash:image_hash})
+      .then(response => {
+        console.log(response)
+        dispatch({ type: "GENERATE_PHOTO_CAPTION_FULFILLED"});
+        dispatch(fetchPhotoDetail(image_hash))
+      })
+      .catch(error => {
+        dispatch({ type: "GENERATE_PHOTO_CAPTION_REJECTED"});
+        console.log(error)
+      })
+    
+  }
 }

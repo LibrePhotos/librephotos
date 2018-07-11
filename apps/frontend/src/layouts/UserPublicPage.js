@@ -104,8 +104,7 @@ export class UserPublicPage extends Component {
           <PhotoListView
             title={
               this.props.auth.access &&
-              this.props.auth.access.name ===
-                this.props.match.params.username
+              this.props.auth.access.name === this.props.match.params.username
                 ? "Your public photos"
                 : "Public photos of " + this.props.match.params.username
             }
@@ -113,7 +112,10 @@ export class UserPublicPage extends Component {
             titleIconName={"globe"}
             photosGroupedByDate={this.state.photosGroupedByDate}
             idx2hash={this.state.idx2hash}
-            isPublic={this.props.auth.access === undefined}
+            isPublic={
+              this.props.auth.access === undefined ||
+              this.props.auth.access.name !== this.props.match.params.username
+            }
           />
         </div>
       </div>

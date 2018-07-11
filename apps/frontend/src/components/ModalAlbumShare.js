@@ -52,6 +52,8 @@ import { fetchPeople, addPerson } from "../actions/peopleActions";
 import { fetchPublicUserList } from "../actions/publicActions";
 import { serverAddress } from "../api_client/apiClient";
 import { setPhotosShared } from "../actions/photosActions";
+import { setUserAlbumShared } from "../actions/albumsActions";
+
 import Modal from "react-modal";
 import moment from "moment";
 // <Icon name='id badge' circular />
@@ -100,8 +102,11 @@ const modalStyles = {
   }
 };
 
-export class ModalPhotosShare extends Component {
-  state = { userNameFilter: "", valShare: true };
+export class ModalAlbumShare extends Component {
+  state = { 
+    userNameFilter: "",
+    valShare: true,
+  };
   render() {
     if (this.state.userNameFilter.length > 0) {
       var filteredUserList = this.props.pub.publicUserList.filter(
@@ -127,9 +132,11 @@ export class ModalPhotosShare extends Component {
       this.props.labeledFacesList
     );
 
-    var selectedImageSrcs = this.props.selectedImageHashes.map(image_hash => {
-      return serverAddress + "/media/square_thumbnails/" + image_hash + ".jpg";
-    });
+    console.log(this.props)
+
+    const userAlbum = this.props.albumsUser[this.props.match.params.albumID]
+    console.log(userAlbum)
+
     return (
       <Modal
         ariaHideApp={false}
@@ -143,31 +150,13 @@ export class ModalPhotosShare extends Component {
         }}
         style={modalStyles}
       >
-        <div style={{ height: 50, width: "100%", padding: 7 }}>
+        <div style={{ height: 50, width: "100%", padding: 7}}>
           <Header>
-            {this.state.valShare ? "Share Photos" : "Unshare Photos"}
+            {this.state.valShare ? "Share Album" : "Unshare Album"}
             <Header.Subheader>
-              {this.state.valShare ? "Share " : "Unshare "} selected{" "}
-              {this.props.selectedImageHashes.length} photo(s) with...
+              {this.state.valShare ? "Share" : "Unshare"} current album with...
             </Header.Subheader>
           </Header>
-        </div>
-        <Divider fitted />
-        <div
-          style={{ height: 100, padding: 5, height: 50, overflowY: "hidden" }}
-        >
-          <Image.Group>
-            {selectedImageSrcs
-              .slice(0, 100)
-              .map(image => (
-                <SecuredImageJWT
-                  key={"selected_image" + image}
-                  height={40}
-                  width={40}
-                  src={image}
-                />
-              ))}
-          </Image.Group>
         </div>
         <Divider fitted />
         <div
@@ -199,7 +188,7 @@ export class ModalPhotosShare extends Component {
               }
               return (
                 <div
-                  key={"modal_photos_share_user_" + item.username}
+                  key={"modal_albums_share_user_" + item.username}
                   style={{
                     height: 70,
                     justifyContent: "center",
@@ -207,66 +196,49 @@ export class ModalPhotosShare extends Component {
                   }}
                 >
                   <Header
-                    floated="left"
                     as="h4"
                     onClick={() => {
-                      //this.props.dispatch(
-                      //  setPhotosShared(
-                      //    this.props.selectedImageHashes,
-                      //    this.state.valShare,
-                      //    item
-                      //  )
-                      //);
-                      //this.props.onRequestClose();
+                      this.props.dispatch(
+                        setUserAlbumShared(
+                          parseInt(this.props.match.params.albumID), 
+                          item.id, 
+                          this.state.valShare))
+                      this.props.onRequestClose();
                     }}
                   >
                     <Image circular src="/unknown_user.jpg" />
                     <Header.Content>
-                      {displayName}
+                      {displayName} 
+                      {userAlbum.shared_to.map(e=>e.id).includes(item.id) &&
+                        <Popup 
+                          trigger={
+                            <Icon 
+                              flipped='horizontally' 
+                              name='share'/>
+                          } 
+                          inverted 
+                          content="Shared"/>
+                      }
                       <Header.Subheader>
                         Joined {moment(item.date_joined).format("MMMM YYYY")}
                       </Header.Subheader>
                     </Header.Content>
                   </Header>
-                  <Header floated="right" as="h5">
-                    <Button.Group size="mini" compact>
-                      <Button
-                        onClick={() => {
-                          this.props.dispatch(
-                            setPhotosShared(
-                              this.props.selectedImageHashes,
-                              true,
-                              item
-                            )
-                          );
-                          //this.props.onRequestClose();
-                        }}
-                        positive
-                        icon
-                      >
-                        <Icon name='linkify'/>
-                        Share
-                      </Button>
-                      <Button.Or/>
-                      <Button
-                        onClick={() => {
-                          this.props.dispatch(
-                            setPhotosShared(
-                              this.props.selectedImageHashes,
-                              false,
-                              item
-                            )
-                          );
-                          //this.props.onRequestClose();
-                        }}
-                        negative
-                        icon
-                      >
-                        <Icon name='linkify'/>
-                        Unshare
-                      </Button>
-                    </Button.Group>
-                  </Header>
+                  <div style={{float:'right',right:10,top:-40,position:'relative'}}>
+                    <Checkbox 
+                    inline
+                    slider 
+                    checked={userAlbum.shared_to.map(e=>e.id).includes(item.id)}
+                    onChange={(e,d)=>{
+                      this.props.dispatch(
+                        setUserAlbumShared(
+                          parseInt(this.props.match.params.albumID), 
+                          item.id, 
+                          !userAlbum.shared_to.map(e=>e.id).includes(item.id)))
+                    }}
+                    /> 
+                  </div>
+
                 </div>
               );
             })}
@@ -276,12 +248,14 @@ export class ModalPhotosShare extends Component {
   }
 }
 
-ModalPhotosShare = connect(store => {
+ModalAlbumShare = connect(store => {
   return {
     auth: store.auth,
     people: store.people.people,
     fetchingPeople: store.people.fetchingPeople,
     fetchedPeople: store.people.fetchedPeople,
+
+    albumsUser: store.albums.albumsUser,
 
     inferredFacesList: store.faces.inferredFacesList,
     labeledFacesList: store.faces.labeledFacesList,
@@ -293,4 +267,4 @@ ModalPhotosShare = connect(store => {
 
     pub: store.pub
   };
-})(ModalPhotosShare);
+})(ModalAlbumShare);

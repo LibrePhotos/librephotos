@@ -1,4 +1,5 @@
 import store from '../store'
+import _ from 'lodash'
 
 store.subscribe(listener)
 
@@ -11,6 +12,60 @@ var gridType = 'dense'
 function listener() {
  var ui = select(store.getState())
  gridType = ui.gridType
+}
+
+
+export const calculateSharedPhotoGridCells = (groupedBySharerList,itemsPerRow) => {
+    var gridContents = []
+    var rowCursor = []
+  
+    groupedBySharerList.forEach((group)=>{
+      gridContents.push([group])
+      var currRowIdx = gridContents.length
+      _.reverse(_.sortBy(group.photos,'exif_timestamp')).forEach((photo,idx)=>{
+        if (idx === 0 ) {
+          rowCursor = []
+        }
+        if (idx > 0 && idx % itemsPerRow === 0) {
+          gridContents.push(rowCursor)
+        }
+        if (idx % itemsPerRow === 0) {
+          rowCursor = []
+        }
+        rowCursor.push(photo)
+        if (idx === group.photos.length-1) {
+          gridContents.push(rowCursor)        
+        }
+  
+      })
+    })
+    return {cellContents:gridContents}
+}
+
+export const calculateSharedAlbumGridCells = (groupedBySharerList,itemsPerRow) => {
+    var gridContents = []
+    var rowCursor = []
+  
+    groupedBySharerList.forEach((group)=>{
+      gridContents.push([group])
+      var currRowIdx = gridContents.length
+      group.albums.forEach((album,idx)=>{
+        if (idx === 0 ) {
+          rowCursor = []
+        }
+        if (idx > 0 && idx % itemsPerRow === 0) {
+          gridContents.push(rowCursor)
+        }
+        if (idx % itemsPerRow === 0) {
+          rowCursor = []
+        }
+        rowCursor.push(album)
+        if (idx === group.albums.length-1) {
+          gridContents.push(rowCursor)        
+        }
+      })
+    })
+    return {cellContents:gridContents}
 }
 
 

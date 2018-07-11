@@ -70,9 +70,9 @@ export class CountStats extends Component {
 			)		}
 		console.log('rendering')
 		return (
-			<div style={{marginTop:'30%'}}>
+                <div>
 			{statsGroup}
-			</div>
+            </div>
 		)
 	}
 }

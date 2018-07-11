@@ -53,11 +53,49 @@ export default function reducer(
     fetchingDirectoryTree:false,
     fetchedDirectoryTree:false,
 
+    nextcloudDirectoryTree:[],
+    fetchingNextcloudDirectoryTree:false,
+    fetchedNextcloudDirectoryTree:false,
+
+    jobList: [],
+    jobCount: 0,
+    fetchingJobList: false,
+    fetchedJobList: false,
+
     error: null
   },
   action
 ) {
   switch (action.type) {
+
+    case "FETCH_JOB_LIST": {
+      return {
+        ...state,
+        fetchingJobList: true
+      };
+    }
+    case "FETCH_JOB_LIST_FULFILLED": {
+      return {
+        ...state,
+        jobList: action.payload.results,
+        jobCount: action.payload.count,
+        fetchedJobList: true,
+        fetchingJobList: false
+      }
+    }
+    case "FETCH_JOB_LIST_REJECTED": {
+      return {
+        ...state,
+        fetchingJobList: false,
+        fetchedJobList: false
+      };
+    }
+
+
+
+
+
+
     case "SET_SITE_SETTINGS_FULFILLED": {
       return {
         ...state,
@@ -120,6 +158,25 @@ export default function reducer(
       return {
         ...state,
         fetchingDirectoryTree:false,
+      }
+    }
+                                          
+    case "FETCH_NEXTCLOUD_DIRECTORY_TREE": {
+      return { ...state, fetchingNextcloudDirectoryTree: true };
+    }
+    case "FETCH_NEXTCLOUD_DIRECTORY_TREE_FULFILLED": {
+      return {
+        ...state,
+        fetchingNextcloudDirectoryTree: false,
+        fetchedNextcloudDirectoryTree: true,
+        nextcloudDirectoryTree: action.payload
+      };
+    }
+    case "FETCH_NEXTCLOUD_DIRECTORY_TREE_REJECTED": {
+      return {
+        ...state,
+        fetchingNextcloudDirectoryTree:false,
+        fetchedNextcloudDirectoryTree: false,
       }
     }
 

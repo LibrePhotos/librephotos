@@ -1,7 +1,7 @@
 export default function reducer(state={
     showSidebar: true,
     contentWidth: window.innerWidth-20,
-    gridType:'dense',
+    gridType:'loose',
     error: null,
   }, action) {
 

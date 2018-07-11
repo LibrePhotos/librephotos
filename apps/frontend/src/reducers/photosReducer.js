@@ -30,11 +30,68 @@ export default function reducer(
 
     photosSharedToMe: [],
     fetchingPhotosSharedToMe: false,
-    fetchedPhotosSharedToMe: false
+    fetchedPhotosSharedToMe: false,
+
+    photosSharedFromMe: [],
+    fetchingPhotosSharedFromMe: false,
+    fetchedPhotosSharedFromMe: false,
+
+    recentlyAddedPhotos: [],
+    recentlyAddedIdx2hash: [],
+    fetchingRecentlyAddedPhotos: false,
+    fetchedRecentlyAddedPhotos: false,
+
+    generatingCaptionIm2txt: false,
+    generatedCaptionIm2txt: false,
   },
   action
 ) {
   switch (action.type) {
+    case "GENERATE_PHOTO_CAPTION": {
+      return {...state, generatingCaptionIm2txt: true}
+    }
+
+    case "GENERATE_PHOTO_CAPTION_FULFILLED": {
+      return {...state, generatingCaptionIm2txt: false, generatedCaptionIm2txt: true}
+    }
+
+    case "GENERATE_PHOTO_CAPTION_REJECTED": {
+      return {...state, generatingCaptionIm2txt: false, generatedCaptionIm2txt: false}
+    }
+
+
+
+
+
+
+    case "FETCH_RECENTLY_ADDED_PHOTOS" : {
+      return {...state, fetchingRecentlyAddedPhotos: true}
+    } 
+
+    case "FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED" : {
+      return {
+        ...state,
+        fetchingRecentlyAddedPhotos: false,
+        fetchedRecentlyAddedPhotos: true,
+        recentlyAddedPhotos: action.payload.res,
+        recentlyAddedIdx2hash: action.payload.idx2hash
+           
+      }
+    } 
+
+    case "FETCH_RECENTLY_ADDED_PHOTOS_REJECTED" : {
+      return {
+        ...state,
+        fetchingRecentlyAddedPhotos: false,
+        fetchedRecentlyAddedPhotos: false
+      }
+    } 
+
+
+
+
+
+
     case "FETCH_PHOTOS_SHARED_TO_ME": {
       return { ...state, fetchingPhotosSharedToMe: true };
     }
@@ -53,6 +110,32 @@ export default function reducer(
         fetchedPhotosSharedToMe: false
       };
     }
+
+
+
+    case "FETCH_PHOTOS_SHARED_FROM_ME": {
+      return { ...state, fetchingPhotosSharedFromMe: true };
+    }
+    case "FETCH_PHOTOS_SHARED_FROM_ME_FULFILLED": {
+      return {
+        ...state,
+        fetchingPhotosSharedFromMe: false,
+        fetchedPhotosSharedFromMe: true,
+        photosSharedFromMe: action.payload
+      };
+    }
+    case "FETCH_PHOTOS_SHARED_FROM_ME_REJECTED": {
+      return {
+        ...state,
+        fetchingPhotosSharedFromMe: false,
+        fetchedPhotosSharedFromMe: false
+      };
+    }
+
+
+
+
+
 
     case "SCAN_PHOTOS": {
       return { ...state, scanningPhotos: true };
