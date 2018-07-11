@@ -44,14 +44,18 @@ from api.serializers import AlbumUserListSerializer
 from api.serializers import LongRunningJobSerializer
 
 from api.serializers import SharedPhotoSuperSimpleSerializer
+from api.serializers import SharedToMePhotoSuperSimpleSerializer
+
+from api.serializers import SharedFromMePhotoThroughSerializer
 
 from api.serializers import UserSerializer
 from api.serializers import ManageUserSerializer
 
 from api.serializers_serpy import AlbumDateListWithPhotoHashSerializer as AlbumDateListWithPhotoHashSerializerSerpy
 from api.serializers_serpy import PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy
-
-from api.permissions import IsOwnerOrReadOnly, IsUserOrReadOnly
+from api.serializers_serpy import PhotoSuperSimpleSerializerWithAddedOn as PhotoSuperSimpleSerializerWithAddedOnSerpy
+from api.serializers_serpy import SharedPhotoSuperSimpleSerializer as SharedPhotoSuperSimpleSerializerSerpy
+from api.permissions import IsOwnerOrReadOnly, IsUserOrReadOnly, IsPhotoOrAlbumSharedTo
 
 from api.face_classify import train_faces, cluster_faces
 from api.social_graph import build_social_graph, build_ego_graph
@@ -69,7 +73,8 @@ from api.api_util import \
     get_search_term_examples, \
     get_location_sunburst, \
     get_location_timeline, \
-    path_to_dict
+    path_to_dict, \
+    get_current_job
 
 import config
 
@@ -104,6 +109,7 @@ import time
 
 from django_rq import job
 import django_rq
+from django_bulk_update.helper import bulk_update
 
 # CACHE_TTL = 60 * 60 * 24 # 1 day
 CACHE_TTL = 60 * 60 * 24 * 30  # 1 month
@@ -152,13 +158,10 @@ class SmallResultsSetPagination(PageNumberPagination):
     max_page_size = 200
 
 
-def get_current_job():
-    job_detail = None
-    running_job = LongRunningJob.objects.filter(
-        finished=False).order_by('-started_at').first()
-    if running_job:
-        job_detail = LongRunningJobSerializer(running_job).data
-    return job_detail
+class TinyResultsSetPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 50
 
 
 def queue_can_accept_job():
@@ -183,7 +186,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
     serializer_class = PhotoSerializer
     pagination_class = HugeResultsSetPagination
     filter_backends = (filters.SearchFilter, )
-    permission_classes = (AllowAny, )
+    permission_classes = (IsPhotoOrAlbumSharedTo, )
     search_fields = ([
         'search_captions', 'search_location', 'faces__person__name',
         'exif_timestamp', 'image_path'
@@ -196,8 +199,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
             return Photo.objects.filter(
                 public=True).order_by('-exif_timestamp')
         else:
-            return Photo.objects.filter(
-                owner=self.request.user).order_by('-exif_timestamp')
+            return Photo.objects.all().order_by('-exif_timestamp')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -230,6 +232,7 @@ class PhotoHashListViewSet(viewsets.ModelViewSet):
     # queryset = Photo.objects.all().order_by('-exif_timestamp')
     serializer_class = PhotoHashListSerializer
     pagination_class = HugeResultsSetPagination
+    permission_classes = (IsAuthenticated, )
     filter_backends = (filters.SearchFilter, )
     search_fields = ([
         'search_captions', 'search_location', 'faces__person__name',
@@ -341,24 +344,104 @@ class PhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
 #         return super(PhotoSuperSimpleListViewSet, self).list(*args, **kwargs)
 
 
-class SharedToMePhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
+class RecentlyAddedPhotoListViewSet(viewsets.ModelViewSet):
 
-    serializer_class = SharedPhotoSuperSimpleSerializer
+    # queryset = Photo.objects.all().order_by('-exif_timestamp')
+    #     serializer_class = PhotoSuperSimpleSerializer
+    serializer_class = PhotoSuperSimpleSerializerWithAddedOnSerpy
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
-        return Photo.objects.filter(shared_to__id__exact=self.request.user.id)
+        queryset = Photo.objects.filter(owner=self.request.user).only(
+            'image_hash', 'exif_timestamp', 'favorited', 'public',
+            'hidden').order_by('-added_on')
+        return queryset
+
+    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
+    def list(self, *args, **kwargs):
+        return super(RecentlyAddedPhotoListViewSet, self).list(*args, **kwargs)
+
+
+class SharedToMePhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
+
+    serializer_class = SharedToMePhotoSuperSimpleSerializer
+    pagination_class = HugeResultsSetPagination
+
+    def get_queryset(self):
+        return Photo.objects.filter(shared_to__id__exact=self.request.user.id) \
+            .only(
+                'image_hash',
+                'public',
+                'favorited',
+                'owner',
+                'hidden',
+                'exif_timestamp',
+            ).prefetch_related('owner')
 
 
 class SharedFromMePhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
 
-    serializer_class = SharedPhotoSuperSimpleSerializer
+    serializer_class = SharedPhotoSuperSimpleSerializerSerpy
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
-        return Photo.objects.annotate(shared_to_count=Count(shared_to)) \
+        qs = Photo.objects \
+            .prefetch_related('owner') \
+            .prefetch_related(
+                Prefetch(
+                    'shared_to',
+                    queryset=User.objects.only(
+                        'id',
+                        'username',
+                        'first_name',
+                        'last_name'))) \
+            .annotate(shared_to_count=Count('shared_to')) \
             .filter(shared_to_count__gt=0) \
-            .filter(owner=self.request.user.id)
+            .filter(owner=self.request.user.id) \
+            .only(
+                'image_hash',
+                'favorited',
+                'hidden',
+                'exif_timestamp',
+                'public',
+                'shared_to',
+                'owner').distinct()
+        print(qs.query)
+        return qs
+
+
+class SharedFromMePhotoSuperSimpleListViewSet2(viewsets.ModelViewSet):
+
+    serializer_class = SharedFromMePhotoThroughSerializer
+    pagination_class = HugeResultsSetPagination
+
+    def get_queryset(self):
+        ThroughModel = Photo.shared_to.through
+
+        user_photos = Photo.objects.filter(
+            owner=self.request.user.id).only('image_hash')
+        qs = ThroughModel.objects.filter(photo_id__in=user_photos) \
+            .prefetch_related(Prefetch('user',queryset=User.objects.only(
+                'id',
+                'username',
+                'first_name',
+                'last_name'))) \
+            .prefetch_related(Prefetch('photo',queryset=Photo.objects.only(
+                'image_hash',
+                'favorited',
+                'hidden',
+                'exif_timestamp',
+                'public'))).order_by('photo__exif_timestamp')
+
+        # qs = Photo.objects \
+        #     .prefetch_related('owner') \
+        #     .prefetch_related(Prefetch('shared_to',queryset=User.objects.only('id','username','first_name','last_name'))) \
+        #     .annotate(shared_to_count=Count('shared_to')) \
+        #     .filter(shared_to_count__gt=0) \
+        #     .filter(owner=self.request.user.id) \
+        #     .only('image_hash','favorited','hidden','exif_timestamp','public','shared_to','owner').distinct()
+        print(qs.query)
+        return qs
 
 
 class FavoritePhotoListViewset(viewsets.ModelViewSet):
@@ -704,7 +787,7 @@ class SharedFromMeAlbumAutoListViewSet(viewsets.ModelViewSet):
         return AlbumAuto.objects.filter(owner=self.request.user) \
             .prefetch_related('photos') \
             .order_by('-timestamp') \
-            .annotate(shared_to_count=Count(shared_to)) \
+            .annotate(shared_to_count=Count('shared_to')) \
             .filter(shared_to_count__gt=0) \
             .filter(owner=self.request.user.id)
 
@@ -816,14 +899,17 @@ class AlbumDateListWithPhotoHashViewSet(viewsets.ReadOnlyModelViewSet):
     ])
 
     def get_queryset(self):
-        qs = AlbumDate.objects.filter(owner=self.request.user).exclude(
-            date=None).order_by('-date').prefetch_related(
+        qs = AlbumDate.objects.filter(owner=self.request.user) \
+            .exclude(date=None).order_by('-date') \
+            .prefetch_related(
                 Prefetch(
                     'photos',
-                    queryset=Photo.objects.all()
-                    .order_by('-exif_timestamp').only('image_hash', 'public',
-                                                      'exif_timestamp',
-                                                      'favorited', 'hidden')))
+                    queryset=Photo.objects.all().order_by('-exif_timestamp').only(
+                        'image_hash',
+                        'public',
+                        'exif_timestamp',
+                        'favorited',
+                        'hidden')))
         # ipdb.set_trace()
         return qs
 
@@ -971,13 +1057,16 @@ class AlbumUserEditViewSet(viewsets.ModelViewSet):
 
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumUserViewSet(viewsets.ModelViewSet):
-    queryset = AlbumUser.objects.all().order_by('title')
+    # queryset = AlbumUser.objects.all().order_by('title')
     serializer_class = AlbumUserSerializer
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
-        return AlbumUser.objects.filter(
-            owner=self.request.user).order_by('title')
+        qs = AlbumUser.objects.filter(
+            Q(owner=self.request.user)
+            | Q(shared_to__exact=self.request.user.id)).distinct(
+                'id').order_by('-id')
+        return qs
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -1022,16 +1111,77 @@ class AlbumUserListViewSet(viewsets.ModelViewSet):
         return super(AlbumUserListViewSet, self).list(*args, **kwargs)
 
 
+class SharedToMeAlbumUserListViewSet(viewsets.ModelViewSet):
+
+    serializer_class = AlbumUserListSerializer
+    pagination_class = HugeResultsSetPagination
+
+    def get_queryset(self):
+        return AlbumUser.objects.filter(
+            shared_to__id__exact=self.request.user.id)
+
+
+class SharedFromMeAlbumUserListViewSet(viewsets.ModelViewSet):
+
+    serializer_class = AlbumUserListSerializer
+    pagination_class = HugeResultsSetPagination
+
+    def get_queryset(self):
+        return AlbumUser.objects.annotate(shared_to_count=Count('shared_to')) \
+            .filter(shared_to_count__gt=0) \
+            .filter(owner=self.request.user.id)
+
+
+class SharedFromMeAlbumUserListViewSet2(viewsets.ModelViewSet):
+
+    serializer_class = AlbumUserListSerializer
+    pagination_class = HugeResultsSetPagination
+
+    def get_queryset(self):
+        ThroughModel = AlbumUser.shared_to.through
+
+        user_albums = AlbumUser.objects.filter(
+            owner=self.request.user.id).only('id')
+
+        qs = ThroughModel.objects.filter(albumuser_id__in=user_albums) \
+            .prefetch_related(Prefetch('user',queryset=User.objects.only(
+                'id',
+                'username',
+                'first_name',
+                'last_name'))) \
+            .prefetch_related(Prefetch('photo',queryset=AlbumUser.objects.only(
+                'image_hash',
+                'favorited',
+                'hidden',
+                'exif_timestamp',
+                'public')))
+        return AlbumUser.objects.annotate(shared_to_count=Count('shared_to')) \
+            .filter(shared_to_count__gt=0) \
+            .filter(owner=self.request.user.id)
+
+
 class LongRunningJobViewSet(viewsets.ModelViewSet):
     queryset = LongRunningJob.objects.all().order_by('-started_at')
     serializer_class = LongRunningJobSerializer
+    pagination_class = TinyResultsSetPagination
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all().order_by('-last_login')
+
     serializer_class = UserSerializer
 
-    # permission_classes = (IsUserOrReadOnly, )
+    permission_classes = (
+        IsUserOrReadOnly,
+        IsAdminUser,
+    )
+
+    def get_queryset(self):
+        queryset = User.objects.only(
+            'id', 'username', 'email', 'scan_directory', 'first_name',
+            'last_name', 'date_joined', 'avatar', 'nextcloud_server_address',
+            'nextcloud_username', 'nextcloud_scan_directory'
+        ).order_by('-last_login')
+        return queryset
 
     def get_permissions(self):
         if self.request.method == 'GET' or self.request.method == 'POST':
@@ -1104,9 +1254,23 @@ class SetUserAlbumShared(APIView):
         target_user_id = data['target_user_id']  # user pk, int
         user_album_id = data['album_id']
 
-        target_user = User.objects.get(id=target_user_id)
+        try:
+            target_user = User.objects.get(id=target_user_id)
+        except User.DoesNotExist:
+            return Response(
+                {
+                    'status': False,
+                    'message': "No such user"
+                }, status_code=400)
 
-        user_album_to_share = AlbumUser.objects.get(id=user_album_id)
+        try:
+            user_album_to_share = AlbumUser.objects.get(id=user_album_id)
+        except AlbumUser.DoesNotExist:
+            return Response(
+                {
+                    'status': False,
+                    'message': "No such album"
+                }, status_code=400)
 
         if user_album_to_share.owner != request.user:
             return Response(
@@ -1116,10 +1280,34 @@ class SetUserAlbumShared(APIView):
                 },
                 status_code=400)
 
-        user_album_to_share.shared_to.add(target_user)
+        if shared:
+            user_album_to_share.shared_to.add(target_user)
+        else:
+            user_album_to_share.shared_to.remove(target_user)
+
         user_album_to_share.save()
 
         return Response(AlbumUserListSerializer(user_album_to_share).data)
+
+
+class GeneratePhotoCaption(APIView):
+    permission_classes = (IsOwnerOrReadOnly, )
+
+    def post(self, request, format=None):
+        data = dict(request.data)
+        image_hash = data['image_hash']
+
+        photo = Photo.objects.get(image_hash=image_hash)
+        if photo.owner != request.user:
+            return Response(
+                {
+                    'status': False,
+                    'message': "you are not the owner of this photo"
+                },
+                status_code=400)
+
+        res = photo._generate_captions_im2txt()
+        return Response({'status': res})
 
 
 class SetPhotosShared(APIView):
@@ -1129,33 +1317,80 @@ class SetPhotosShared(APIView):
         shared = data['shared']  #bool
         target_user_id = data['target_user_id']  # user pk, int
         image_hashes = data['image_hashes']
+        '''
+        From https://stackoverflow.com/questions/6996176/how-to-create-an-object-for-a-django-model-with-a-many-to-many-field/10116452#10116452
+        # Access the through model directly
+        ThroughModel = Sample.users.through
 
-        target_user = User.objects.get(id=target_user_id)
+        users = Users.objects.filter(pk__in=[1,2])
 
-        updated = []
-        not_updated = []
-        for image_hash in image_hashes:
-            try:
-                photo = Photo.objects.get(
-                    image_hash=image_hash)  # todo: use in_bulk
-            except Photo.DoesNotExist:
-                continue
-            if photo.owner == request.user:
-                if shared:
-                    photo.shared_to.add(target_user)
-                else:
-                    photo.shared_to.remove(target_user)
-                photo.save()
-                updated.append(PhotoSerializer(photo).data)
-            else:
-                not_updated.append(PhotoSerializer(photo).data)
+        sample_object = Sample()
+        sample_object.save()
 
-        return Response({
-            'status': True,
-            'results': updated,
-            'updated': updated,
-            'not_updated': not_updated
-        })
+        ThroughModel.objects.bulk_create([
+            ThroughModel(users_id=users[0].pk, sample_id=sample_object.pk),
+            ThroughModel(users_id=users[1].pk, sample_id=sample_object.pk)
+        ])
+        '''
+
+        ThroughModel = Photo.shared_to.through
+        # photos = Photo.objects.filter(image_hash__in=image_hashes).only('image_hash')
+        # target_user = User.objects.get(id=target_user_id)
+
+        if shared:
+            already_existing = ThroughModel.objects.filter(
+                user_id=target_user_id,
+                photo_id__in=image_hashes).only('photo_id')
+            already_existing_image_hashes = [
+                e.photo_id for e in already_existing
+            ]
+            # print(already_existing)
+            # ipdb.set_trace()
+            res = ThroughModel.objects.bulk_create([
+                ThroughModel(user_id=target_user_id, photo_id=image_hash)
+                for image_hash in image_hashes
+                if image_hash not in already_existing_image_hashes
+            ])
+            print(len(res), 'photos shared')
+            res_count = len(res)
+        else:
+            res = ThroughModel.objects.filter(
+                user_id=target_user_id, photo_id__in=image_hashes).delete()
+            print(res[0], 'photos unshared')
+            res_count = res[0]
+            # ipdb.set_trace()
+
+        return Response({'status': True, 'count': res_count})
+
+        # target_user = User.objects.get(id=target_user_id)
+
+        # updated = []
+        # not_updated = []
+        # for image_hash in image_hashes:
+        #     try:
+        #         photo = Photo.objects.get(
+        #             image_hash=image_hash)  # todo: use in_bulk
+        #     except Photo.DoesNotExist:
+        #         continue
+        #     if photo.owner == request.user:
+        #         if shared:
+        #             photo.shared_to.add(target_user)
+        #         else:
+        #             photo.shared_to.remove(target_user)
+        #         photo.save()
+        #         updated.append(photo)
+        #     else:
+        #         not_updated.append(photo)
+
+        # res_updated = PhotoSerializer(updated, many=True).data
+        # res_not_updated = PhotoSerializer(not_updated, many=True).data
+
+        # return Response({
+        #     'status': True,
+        #     'results': res_updated,
+        #     'updated': res_updated,
+        #     'not_updated': res_not_updated
+        # })
 
 
 class SetPhotosPublic(APIView):
@@ -1172,7 +1407,7 @@ class SetPhotosPublic(APIView):
                 photo = Photo.objects.get(image_hash=image_hash)
             except Photo.DoesNotExist:
                 continue
-            if photo.owner == request.user:
+            if photo.owner == request.user and photo.public != val_public:
                 photo.public = val_public
                 photo.save()
                 updated.append(PhotoSerializer(photo).data)
@@ -1201,7 +1436,7 @@ class SetPhotosFavorite(APIView):
                 photo = Photo.objects.get(image_hash=image_hash)
             except Photo.DoesNotExist:
                 continue
-            if photo.owner == request.user:
+            if photo.owner == request.user and photo.favorited != val_favorite:
                 photo.favorited = val_favorite
                 photo.save()
                 updated.append(PhotoSerializer(photo).data)
@@ -1230,7 +1465,7 @@ class SetPhotosHidden(APIView):
                 photo = Photo.objects.get(image_hash=image_hash)
             except Photo.DoesNotExist:
                 continue
-            if photo.owner == request.user:
+            if photo.owner == request.user and photo.hidden != val_hidden:
                 photo.hidden = val_hidden
                 photo.save()
                 updated.append(PhotoSerializer(photo).data)
@@ -1309,7 +1544,7 @@ class RootPathTreeView(APIView):
 class SearchTermExamples(APIView):
     # @cache_response(CACHE_TTL_VIZ)
     def get(self, request, format=None):
-        search_term_examples = get_search_term_examples()
+        search_term_examples = get_search_term_examples(request.user)
         return Response({"results": search_term_examples})
 
 
@@ -1418,7 +1653,7 @@ class TrainFaceView(APIView):
 class SocialGraphView(APIView):
     # @cache_response(CACHE_TTL_VIZ)
     def get(self, request, format=None):
-        res = build_social_graph()
+        res = build_social_graph(request.user)
         return Response(res)
 
 
@@ -1450,7 +1685,7 @@ class AutoAlbumGenerateView(APIView):
 
 class StatsView(APIView):
     def get(self, requests, format=None):
-        res = get_count_stats()
+        res = get_count_stats(user=requests.user)
         return Response(res)
 
 
@@ -1563,7 +1798,6 @@ class MediaAccessView(APIView):
     def get(self, request, path, fname, format=None):
 
         jwt = request.COOKIES.get('jwt')
-
         image_hash = fname.split(".")[0].split('_')[0]
         try:
             photo = Photo.objects.get(image_hash=image_hash)
@@ -1582,7 +1816,7 @@ class MediaAccessView(APIView):
         if jwt is not None:
             try:
                 token = AccessToken(jwt)
-            except TokenError:
+            except TokenError as error:
                 return HttpResponseForbidden()
         else:
             return HttpResponseForbidden()
@@ -1597,7 +1831,14 @@ class MediaAccessView(APIView):
             response[
                 'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
             return response
-
+        else:
+            for album in photo.albumuser_set.only('shared_to'):
+                if user in album.shared_to.all():
+                    response = HttpResponse()
+                    response['Content-Type'] = 'image/jpeg'
+                    response[
+                        'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
+                    return response
         return HttpResponse(status=404)
 
 

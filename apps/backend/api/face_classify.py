@@ -146,13 +146,16 @@ def train_faces(user):
             face.person_label_probability = probability
             face.save()
 
-        res = cluster_faces()
+#         res = cluster_faces()
+#         print(res)
 
         lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
         lrj.finished = True
+        lrj.failed = False
         lrj.finished_at = datetime.datetime.now()
-        lrj.result = res
+        lrj.result = {}
         lrj.save()
+        return True
 
     except:
         res = []
@@ -162,6 +165,7 @@ def train_faces(user):
         lrj.finished = True
         lrj.finished_at = datetime.datetime.now()
         lrj.save()
+        return False
 
     return res
 

@@ -66,3 +66,7 @@ django-rq==1.1.0
 gunicorn==19.8.1
 django-constance==2.2.0
 django-picklefield==1.0.0
+django-cryptography==0.3
+pyocclient==0.4
+
+

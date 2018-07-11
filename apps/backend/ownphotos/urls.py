@@ -21,21 +21,18 @@ from django.conf.urls.static import static
 from rest_framework import routers
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from api import views
+from nextcloud import views as nextcloud_views
 
 # from rest_framework_jwt.views import obtain_jwt_token
 # from rest_framework_jwt.views import refresh_jwt_token
 # from rest_framework_jwt.views import verify_jwt_token
 
-from rest_framework_simplejwt.views import (
-    # TokenObtainPairView,
-    TokenRefreshView, )
-
 from api.views import media_access
 
 import ipdb
 
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 
 class TokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -50,6 +47,8 @@ class TokenObtainPairSerializer(TokenObtainPairSerializer):
         token['first_name'] = user.first_name
         token['last_name'] = user.last_name
         token['scan_directory'] = user.scan_directory
+        token['nextcloud_server_address'] = user.nextcloud_server_address
+        token['nextcloud_username'] = user.nextcloud_username
         # ...
 
         return token
@@ -58,10 +57,31 @@ class TokenObtainPairSerializer(TokenObtainPairSerializer):
 class TokenObtainPairView(TokenObtainPairView):
     serializer_class = TokenObtainPairSerializer
 
+    def post(self, request, *args, **kwargs):
+        # ipdb.set_trace()
+        response = super(TokenObtainPairView, self).post(
+            request, *args, **kwargs)
+        response.set_cookie('jwt', response.data['access'])
+        response.set_cookie('test', 'obtain')
+        response['Access-Control-Allow-Credentials'] = True
+        return response
+
+
+class TokenRefreshView(TokenRefreshView):
+    serializer_class = TokenRefreshSerializer
+
+    def post(self, request, *args, **kwargs):
+        # ipdb.set_trace()
+        response = super(TokenRefreshView, self).post(request, *args, **kwargs)
+        response.set_cookie('jwt', response.data['access'])
+        response.set_cookie('test', 'refresh')
+        response['Access-Control-Allow-Credentials'] = True
+        return response
+
 
 router = routers.DefaultRouter()
 
-router.register(r'api/user', views.UserViewSet)
+router.register(r'api/user', views.UserViewSet, base_name='user')
 router.register(r'api/manage/user', views.ManageUserViewSet)
 
 router.register(
@@ -99,6 +119,15 @@ router.register(
     base_name='album_user')
 
 router.register(
+    r'api/albums/user/shared/tome',
+    views.SharedToMeAlbumUserListViewSet,
+    base_name='album_user')
+router.register(
+    r'api/albums/user/shared/fromme',
+    views.SharedFromMeAlbumUserListViewSet,
+    base_name='album_user')
+
+router.register(
     r'api/albums/auto', views.AlbumAutoViewSet, base_name='album_auto')
 router.register(
     r'api/albums/person', views.AlbumPersonViewSet, base_name='person')
@@ -118,14 +147,20 @@ router.register(
     base_name='photo')
 router.register(
     r'api/photos/shared/fromme',
-    views.SharedFromMePhotoSuperSimpleListViewSet,
+    views.SharedFromMePhotoSuperSimpleListViewSet2,
     base_name='photo')
 
 router.register(
     r'api/photos/notimestamp/list',
     views.NoTimestampPhotoHashListViewSet,
     base_name='photo')
+
 router.register(r'api/photos/edit', views.PhotoEditViewSet, base_name='photo')
+
+router.register(
+    r'api/photos/recentlyadded',
+    views.RecentlyAddedPhotoListViewSet,
+    base_name='photo')
 router.register(
     r'api/photos/simplelist', views.PhotoSimpleListViewSet, base_name='photo')
 router.register(
@@ -173,6 +208,8 @@ urlpatterns = [
     url(r'^api/photosedit/hide', views.SetPhotosHidden.as_view()),
     url(r'^api/photosedit/makepublic', views.SetPhotosPublic.as_view()),
     url(r'^api/photosedit/share', views.SetPhotosShared.as_view()),
+    url(r'^api/photosedit/generateim2txt',
+        views.GeneratePhotoCaption.as_view()),
     url(r'^api/useralbum/share', views.SetUserAlbumShared.as_view()),
     url(r'^api/facetolabel', views.FaceToLabelView.as_view()),
     url(r'^api/trainfaces', views.TrainFaceView.as_view()),
@@ -200,6 +237,9 @@ urlpatterns = [
         name='media'),
     url(r'^api/rqavailable/$', views.QueueAvailabilityView.as_view()),
     url(r'^api/rqjobstat/$', views.RQJobStatView.as_view()),
+    url(r'^api/nextcloud/listdir', nextcloud_views.ListDir.as_view()),
+    url(r'^api/nextcloud/scanphotos',
+        nextcloud_views.ScanPhotosView.as_view()),
 
     #     url(r'^api/token-auth/', obtain_jwt_token),
     #     url(r'^api/token-refresh/', refresh_jwt_token),
@@ -209,3 +249,5 @@ urlpatterns = [
 #     settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 urlpatterns += [url('django-rq/', include('django_rq.urls'))]
+urlpatterns += [url(r'^silk/', include('silk.urls', namespace='silk'))]
+

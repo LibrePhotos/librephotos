@@ -4,7 +4,8 @@ import itertools
 from django.db.models import Count
 
 
-def build_social_graph():
+def build_social_graph(user):
+    #todo filter by user
     G = nx.Graph()
 
 

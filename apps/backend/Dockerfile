@@ -98,7 +98,7 @@ ENV DB_HOST database
 ENV DB_PORT 5432
 
 ENV BACKEND_HOST localhost
-
+ENV FRONTEND_HOST localhost
 
 # REDIS location
 ENV REDIS_HOST redis
