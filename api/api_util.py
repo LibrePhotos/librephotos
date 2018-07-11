@@ -1,4 +1,4 @@
-from api.models import Photo, Face, Person, AlbumAuto, AlbumDate, AlbumUser
+from api.models import Photo, Face, Person, AlbumAuto, AlbumDate, AlbumUser, LongRunningJob
 
 import numpy as np
 
@@ -17,7 +17,7 @@ from api.util import compute_bic
 from sklearn.cluster import MeanShift, estimate_bandwidth
 
 from django.db.models.functions import TruncMonth
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Q, Prefetch
 
 from nltk.corpus import stopwords
 
@@ -31,6 +31,13 @@ import seaborn as sns
 import pandas as pd
 from api.util import logger
 
+def get_current_job():
+    job_detail = None
+    running_job = LongRunningJob.objects.filter(
+        finished=False).order_by('-started_at').first()
+    if running_job:
+        job_detail = LongRunningJobSerializer(running_job).data
+    return job_detail
 
 def shuffle(l):
     random.shuffle(l)
@@ -114,8 +121,8 @@ def get_location_timeline():
     return data
 
 
-def get_search_term_examples():
-    pp = Photo.objects.exclude(geolocation_json={}).exclude(
+def get_search_term_examples(user):
+    pp = Photo.objects.filter(owner=user).exclude(geolocation_json={}).exclude(
         exif_timestamp=None).exclude(
             captions_json={}).prefetch_related('faces__person')
 
@@ -201,18 +208,28 @@ def get_search_term_examples():
     return list(set(search_terms))
 
 
-def get_count_stats():
-    num_photos = Photo.objects.count()
-    num_faces = Face.objects.count()
+def get_count_stats(user):
+    num_photos = Photo.objects.filter(owner=user).count()
+    num_faces = Face.objects.filter(photo__owner=user).count()
+    num_unknown_faces = Face.objects.filter(
+        Q(person__name__exact='unknown') & Q(photo__owner=user)).count()
+    num_labeled_faces = Face.objects.filter(
+        Q(person_label_is_inferred=False) & ~Q(person__name__exact='unknown') &
+        Q(photo__owner=user)).count()
+    num_inferred_faces = Face.objects.filter(
+        Q(person_label_is_inferred=True) & Q(photo__owner=user)).count()
     num_people = Person.objects.count()
-    num_albumauto = AlbumAuto.objects.count()
-    num_albumdate = AlbumDate.objects.count()
-    num_albumuser = AlbumUser.objects.count()
+    num_albumauto = AlbumAuto.objects.filter(owner=user).count()
+    num_albumdate = AlbumDate.objects.filter(owner=user).count()
+    num_albumuser = AlbumUser.objects.filter(owner=user).count()
 
     res = {
         "num_photos": num_photos,
         "num_faces": num_faces,
         "num_people": num_people,
+        "num_unknown_faces": num_unknown_faces,
+        "num_labeled_faces": num_labeled_faces,
+        "num_inferred_faces": num_inferred_faces,
         "num_albumauto": num_albumauto,
         "num_albumdate": num_albumdate,
         "num_albumuser": num_albumuser,

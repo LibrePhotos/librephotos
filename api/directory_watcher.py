@@ -77,9 +77,9 @@ def scan_photos(user):
                     with open(img_abs_path, "rb") as f:
                         for chunk in iter(lambda: f.read(4096), b""):
                             hash_md5.update(chunk)
-                    image_hash = hash_md5.hexdigest()
+                    image_hash = hash_md5.hexdigest() + str(user.id)
                     elapsed = (datetime.datetime.now() - start).total_seconds()
-                    util.logger.info('generating md5 took %.2f' % elapsed)
+                    util.logger.info('generating md5 took %.2f, image_hash: %s' % (elapsed,image_hash))
 
                     # qs = Photo.objects.filter(image_hash=image_hash)
 

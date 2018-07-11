@@ -12,6 +12,17 @@ from django.db.models import Prefetch
 import os
 
 
+class SimpleUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = (
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+        )
+
+
 class PhotoEditSerializer(serializers.ModelSerializer):
     class Meta:
         model = Photo
@@ -37,6 +48,13 @@ class PhotoSuperSimpleSerializer(serializers.ModelSerializer):
             'exif_timestamp',
             'public',
         )
+
+
+class PhotoSuperSimpleSerializerWithAddedOn(serializers.ModelSerializer):
+    class Meta:
+        model = Photo
+        fields = ('image_hash', 'favorited', 'hidden', 'exif_timestamp',
+                  'public', 'added_on')
 
 
 class PhotoSimpleSerializer(serializers.ModelSerializer):
@@ -526,11 +544,12 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
 
 class AlbumUserSerializer(serializers.ModelSerializer):
     photos = PhotoSuperSimpleSerializer(many=True, read_only=True)
-    shared_to = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    shared_to = SimpleUserSerializer(many=True, read_only=True)
+    owner = SimpleUserSerializer(many=False, read_only=True)
 
     class Meta:
         model = AlbumUser
-        fields = ("id", "title", "photos", "created_on", "favorited",
+        fields = ("id", "title", "photos", "created_on", "favorited", "owner",
                   "shared_to")
 
 
@@ -539,7 +558,8 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
     # people = serializers.SerializerMethodField()
     # cover_photo_urls = serializers.SerializerMethodField()
     photo_count = serializers.SerializerMethodField()
-    shared_to = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    shared_to = SimpleUserSerializer(many=True, read_only=True)
+    owner = SimpleUserSerializer(many=False, read_only=True)
 
     class Meta:
         model = AlbumUser
@@ -553,10 +573,14 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
             "title",
             # "photos",
             "shared_to",
+            "owner",
             "photo_count")
 
     def get_photo_count(self, obj):
-        return obj.photo_count
+        try:
+            return obj.photo_count
+        except:  # for when calling AlbumUserListSerializer(obj).data directly
+            return obj.photos.count()
 
 
 class AlbumAutoSerializer(serializers.ModelSerializer):
@@ -598,30 +622,21 @@ class AlbumAutoListSerializer(serializers.ModelSerializer):
 
 class LongRunningJobSerializer(serializers.ModelSerializer):
     job_type_str = serializers.SerializerMethodField()
+    started_by = SimpleUserSerializer(read_only=True)
 
     class Meta:
         model = LongRunningJob
         fields = ('job_id', 'finished', 'finished_at', 'started_at', 'failed',
-                  'job_type_str', 'job_type')
+                  'job_type_str', 'job_type', 'started_by', 'result', 'id')
 
     def get_job_type_str(self, obj):
         return dict(LongRunningJob.JOB_TYPES)[obj.job_type]
 
 
-class SimpleUserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = (
-            'id',
-            'username',
-            'first_name',
-            'last_name',
-        )
-
-
 class UserSerializer(serializers.ModelSerializer):
     public_photo_count = serializers.SerializerMethodField()
     public_photo_samples = serializers.SerializerMethodField()
+    photo_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -637,12 +652,29 @@ class UserSerializer(serializers.ModelSerializer):
             },
             'scan_directory': {
                 'required': False
+            },
+            'nextcloud_server_address': {
+                'required': False
+            },
+            'nextcloud_username': {
+                'required': False
+            },
+            'nextcloud_scan_directory': {
+                'required': False
+            },
+            'nextcloud_app_password': {
+                'write_only': True
             }
         }
         fields = ('id', 'username', 'email', 'scan_directory', 'first_name',
                   'public_photo_samples', 'last_name', 'public_photo_count',
-                  'date_joined', 'password', 'avatar')
+                  'date_joined', 'password', 'avatar','photo_count',
+                  'nextcloud_server_address', 'nextcloud_username',
+                  'nextcloud_app_password', 'nextcloud_scan_directory')
         # read_only_fields = ('id', 'scan_directory')
+
+    def validate_nextcloud_app_password(self, value):
+        return value
 
     def create(self, validated_data):
         # ipdb.set_trace()
@@ -655,6 +687,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         # user can only update the following
+        print(validated_data)
         if 'email' in validated_data:
             instance.email = validated_data.pop('email')
             instance.save()
@@ -664,7 +697,28 @@ class UserSerializer(serializers.ModelSerializer):
         if 'last_name' in validated_data:
             instance.last_name = validated_data.pop('last_name')
             instance.save()
+
+        if 'nextcloud_server_address' in validated_data:
+            instance.nextcloud_server_address = validated_data.pop(
+                'nextcloud_server_address')
+            instance.save()
+        if 'nextcloud_username' in validated_data:
+            instance.nextcloud_username = validated_data.pop(
+                'nextcloud_username')
+            instance.save()
+        if 'nextcloud_app_password' in validated_data:
+            instance.nextcloud_app_password = validated_data.pop(
+                'nextcloud_app_password')
+            instance.save()
+        if 'nextcloud_scan_directory' in validated_data:
+            instance.nextcloud_scan_directory = validated_data.pop(
+                'nextcloud_scan_directory')
+            instance.save()
+
         return instance
+
+    def get_photo_count(self,obj):
+        return Photo.objects.filter(owner=obj).count()
 
     def get_public_photo_count(self, obj):
         return Photo.objects.filter(Q(owner=obj) & Q(public=True)).count()
@@ -700,10 +754,32 @@ class ManageUserSerializer(serializers.ModelSerializer):
         return instance
 
 
-class SharedPhotoSuperSimpleSerializer(serializers.ModelSerializer):
+class SharedToMePhotoSuperSimpleSerializer(serializers.ModelSerializer):
     owner = SimpleUserSerializer(many=False, read_only=True)
+
+    # shared_to = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
     class Meta:
         model = Photo
         fields = ('image_hash', 'favorited', 'hidden', 'exif_timestamp',
                   'public', 'owner')
+
+
+class SharedPhotoSuperSimpleSerializer(serializers.ModelSerializer):
+    owner = SimpleUserSerializer(many=False, read_only=True)
+
+    shared_to = SimpleUserSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Photo
+        fields = ('image_hash', 'favorited', 'hidden', 'exif_timestamp',
+                  'public', 'owner', 'shared_to')
+
+
+class SharedFromMePhotoThroughSerializer(serializers.ModelSerializer):
+    photo = PhotoSuperSimpleSerializer(many=False, read_only=True)
+    user = SimpleUserSerializer(many=False, read_only=True)
+
+    class Meta:
+        model = Photo.shared_to.through
+        fields = ('user_id', 'user', 'photo')

@@ -38,6 +38,8 @@ import base64
 from io import StringIO
 
 import ipdb
+from django_cryptography.fields import encrypt
+
 
 geolocator = Nominatim()
 default_tz = pytz.timezone('Asia/Seoul')
@@ -83,10 +85,16 @@ class User(AbstractUser):
     scan_directory = models.CharField(max_length=512, db_index=True)
     avatar = models.ImageField(upload_to='avatars', null=True)
 
+    nextcloud_server_address = models.CharField(max_length=200,default=None,null=True)
+    nextcloud_username = models.CharField(max_length=64,default=None,null=True)
+    nextcloud_app_password = encrypt(models.CharField(max_length=64,default=None,null=True))
+    nextcloud_scan_directory = models.CharField(max_length=512, db_index=True,null=True)
+
 
 class Photo(models.Model):
-    image_path = models.FilePathField(max_length=512, db_index=True)
-    image_hash = models.CharField(primary_key=True, max_length=32, null=False)
+    image_path = models.CharField(max_length=512, db_index=True)
+    # md5_{user.id}
+    image_hash = models.CharField(primary_key=True, max_length=64, null=False)
 
     thumbnail = models.ImageField(upload_to='thumbnails')
     thumbnail_tiny = models.ImageField(upload_to='thumbnails_tiny')
@@ -127,11 +135,39 @@ class Photo(models.Model):
     public = models.BooleanField(default=False, db_index=True)
 
     def _generate_md5(self):
+        print(self.owner.id)
         hash_md5 = hashlib.md5()
         with open(self.image_path, "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
                 hash_md5.update(chunk)
-        self.image_hash = hash_md5.hexdigest()
+        self.image_hash = hash_md5.hexdigest() + str(self.owner.id)
+        print(self.image_hash)
+
+    def _generate_captions_im2txt(self):
+        image_path = self.thumbnail.path
+        captions = self.captions_json
+        search_captions = self.search_captions
+        try:
+            caption = im2txt(image_path)
+            caption = caption.replace("<start>", '').replace(
+                "<end>", '').strip().lower()
+            captions['im2txt'] = caption
+            self.captions_json = captions
+            # todo: handle duplicate captions
+            self.search_captions = search_captions + caption
+            self.save()
+            util.logger.info(
+                'generated im2txt captions for image %s. caption: %s' %
+                (image_path, caption))
+            return True
+        except:
+            util.logger.warning(
+                'could not generate im2txt captions for image %s' %
+                image_path)
+            return False
+
+
+
 
     def _generate_captions(self):
         image_path = self.thumbnail.path
@@ -759,7 +795,7 @@ class AlbumAuto(models.Model):
 
 
 class AlbumUser(models.Model):
-    title = models.CharField(unique=True, max_length=512)
+    title = models.CharField(max_length=512)
     created_on = models.DateTimeField(auto_now=True, db_index=True)
     photos = models.ManyToManyField(Photo)
     cover_photos = models.ManyToManyField(
@@ -773,6 +809,9 @@ class AlbumUser(models.Model):
         User, related_name='album_user_shared_to')
 
     public = models.BooleanField(default=False, db_index=True)
+
+    class Meta:
+        unique_together = ('title', 'owner')
 
 
 class LongRunningJob(models.Model):

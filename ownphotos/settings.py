@@ -27,7 +27,7 @@ RQ_API_TOKEN = os.environ['SECRET_KEY']
 DEBUG = (os.environ.get('DEBUG', '').lower() == 'true')
 
 ALLOWED_HOSTS = [
-    '192.168.1.100', 'localhost',
+    '192.168.1.100', 'localhost', 'ownphotos-api.local',
     os.environ.get('BACKEND_HOST'), 'ownphotos.local'
 ]
 
@@ -50,12 +50,14 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.postgres',
     'api',
+    'nextcloud',
     'rest_framework',
     'corsheaders',
     'django_extensions',
     "django_rq",
     'constance',
     'constance.backends.database',
+    'silk',
     #     'cachalot',
     #     'cacheops',
 ]
@@ -90,6 +92,8 @@ CORS_ALLOW_HEADERS = (
     'cache-control',
     'accept',
     'accept-encoding',
+    'allow-credentials',
+    'withcredentials',
     'authorization',
     'content-type',
     'dnt',
@@ -98,6 +102,8 @@ CORS_ALLOW_HEADERS = (
     'x-csrftoken',
     'x-requested-with',
 )
+
+CORS_ORIGIN_WHITELIST = ('localhost:3000','192.168.1.100:3000',)
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
@@ -127,6 +133,7 @@ REST_FRAMEWORK_EXTENSIONS = {
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'silk.middleware.SilkyMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -248,6 +255,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'protected_media')
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 THUMBNAIL_SIZE_TINY = (30, 30)
 THUMBNAIL_SIZE_SMALL = (100, 100)
@@ -257,4 +265,5 @@ THUMBNAIL_SIZE_BIG = (1000, 1000)
 
 FULLPHOTO_SIZE = (1000, 1000)
 
-CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_ALLOW_ALL = False
+CORS_ALLOW_CREDENTIALS = True
