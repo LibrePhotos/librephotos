@@ -57,7 +57,7 @@ INSTALLED_APPS = [
     "django_rq",
     'constance',
     'constance.backends.database',
-    'silk',
+    # 'silk',
     #     'cachalot',
     #     'cacheops',
 ]
@@ -103,7 +103,10 @@ CORS_ALLOW_HEADERS = (
     'x-requested-with',
 )
 
-CORS_ORIGIN_WHITELIST = ('localhost:3000','192.168.1.100:3000',)
+CORS_ORIGIN_WHITELIST = (
+    'localhost:3000',
+    '192.168.1.100:3000',
+)
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
@@ -133,7 +136,7 @@ REST_FRAMEWORK_EXTENSIONS = {
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'silk.middleware.SilkyMiddleware',
+    # 'silk.middleware.SilkyMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -255,6 +258,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'protected_media')
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 THUMBNAIL_SIZE_TINY = (30, 30)
@@ -267,3 +271,6 @@ FULLPHOTO_SIZE = (1000, 1000)
 
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
+
+# SILKY_PYTHON_PROFILER = True
+# SILKY_PYTHON_PROFILER_BINARY = True

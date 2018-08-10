@@ -612,14 +612,14 @@ class Person(models.Model):
             self.faces.prefetch_related(
                 Prefetch(
                     'photo',
-                    queryset=Photo.objects.filter(
+                    queryset=Photo.objects.exclude(image_hash=None).filter(
                         owner=owner).order_by('-exif_timestamp').only(
-                            'image_hash', 'exif_timestamp', 'favorited',
-                            'hidden'))))
+                            'image_hash', 'exif_timestamp', 'favorited','owner__id','public',
+                            'hidden').prefetch_related('owner'))))
 
         photos = [
             face.photo for face in faces
-            if hasattr(face.photo, 'owner') and face.photo.owner == owner
+            if hasattr(face.photo, 'owner')
         ]
         return photos
 
