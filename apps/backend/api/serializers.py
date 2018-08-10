@@ -612,12 +612,11 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
 
 class AlbumAutoListSerializer(serializers.ModelSerializer):
     photos = PhotoSuperSimpleSerializer
-    shared_to = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+#     shared_to = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
     class Meta:
         model = AlbumAuto
-        fields = ("id", "title", "timestamp", "photos", "favorited",
-                  "shared_to")
+        fields = ("id", "title", "timestamp", "photos", "favorited",)
 
 
 class LongRunningJobSerializer(serializers.ModelSerializer):

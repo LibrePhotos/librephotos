@@ -111,6 +111,8 @@ from django_rq import job
 import django_rq
 from django_bulk_update.helper import bulk_update
 
+# from silk.profiling.profiler import silk_profile
+
 # CACHE_TTL = 60 * 60 * 24 # 1 day
 CACHE_TTL = 60 * 60 * 24 * 30  # 1 month
 CACHE_TTL = 60 * 60 * 24  # 1 day
@@ -353,7 +355,7 @@ class RecentlyAddedPhotoListViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = Photo.objects.filter(owner=self.request.user).only(
-            'image_hash', 'exif_timestamp', 'favorited', 'public',
+            'image_hash', 'exif_timestamp', 'favorited', 'public','added_on',
             'hidden').order_by('-added_on')
         return queryset
 
@@ -728,8 +730,20 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
-        return AlbumAuto.objects.filter(
-            owner=self.request.user).order_by('-timestamp')
+#         fields = ("id", "title", "favorited", "timestamp", "created_on",
+#                   "gps_lat", 'people', "gps_lon", "photos")
+        return AlbumAuto.objects.filter(owner=self.request.user) \
+                .prefetch_related(
+                    Prefetch('photos',queryset=Photo.objects.only(
+                        'image_hash',
+                        'public',
+                        'favorited',
+                        'hidden',
+                        'exif_timestamp'
+                    ))
+                    ) \
+                .only('id','title','favorited','timestamp','created_on','gps_lat','gps_lon') \
+                .order_by('-timestamp')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -753,9 +767,20 @@ class AlbumAutoListViewSet(viewsets.ModelViewSet):
     ])
 
     def get_queryset(self):
-        return AlbumAuto.objects.filter(
-            owner=self.request.user).prefetch_related('photos').order_by(
-                '-timestamp')
+        return AlbumAuto.objects.filter(owner=self.request.user) \
+            .prefetch_related(
+                Prefetch(
+                    'photos',
+                    queryset=Photo.objects.only(
+                        'image_hash',
+                        'shared_to',
+                        'public',
+                        'exif_timestamp',
+                        'favorited',
+                        'hidden'))
+                ) \
+            .only('id','title','timestamp','favorited','shared_to') \
+            .order_by('-timestamp')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -1794,13 +1819,22 @@ import time
 
 class MediaAccessView(APIView):
     permission_classes = (AllowAny, )
-
+    
+    # @silk_profile(name='media')
     def get(self, request, path, fname, format=None):
+        if False:
+            response = HttpResponse()
+            response['Content-Type'] = 'image/jpeg'
+            response[
+                'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
+            return response
+        start = datetime.datetime.now()
 
         jwt = request.COOKIES.get('jwt')
         image_hash = fname.split(".")[0].split('_')[0]
         try:
-            photo = Photo.objects.get(image_hash=image_hash)
+            photo = Photo.objects.filter(image_hash=image_hash) \
+                    .only('public').first()
         except Photo.DoesNotExist:
             return HttpResponse(status=404)
 
@@ -1810,6 +1844,7 @@ class MediaAccessView(APIView):
             response['Content-Type'] = 'image/jpeg'
             response[
                 'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
+            # print((datetime.datetime.now() - start).total_seconds())
             return response
 
         # forbid access if trouble with jwt
@@ -1824,12 +1859,15 @@ class MediaAccessView(APIView):
         # grant access if the user is owner of the requested photo
         # or the photo is shared with the user
         image_hash = fname.split(".")[0].split('_')[0]  # janky alert
-        user = User.objects.get(id=token['user_id'])
+        query_start = datetime.datetime.now()
+        user = User.objects.filter(id=token['user_id']).only('id').first()
+        # print('query', (datetime.datetime.now() - query_start).total_seconds())
         if photo.owner == user or user in photo.shared_to.all():
             response = HttpResponse()
             response['Content-Type'] = 'image/jpeg'
             response[
                 'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
+            # print('response', (datetime.datetime.now() - start).total_seconds())
             return response
         else:
             for album in photo.albumuser_set.only('shared_to'):
@@ -1838,6 +1876,7 @@ class MediaAccessView(APIView):
                     response['Content-Type'] = 'image/jpeg'
                     response[
                         'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
+                    # print((datetime.datetime.now() - start).total_seconds())
                     return response
         return HttpResponse(status=404)
 
