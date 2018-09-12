@@ -2,10 +2,6 @@
 
 # Ownphotos
 
-[DEMO](https://demo.ownphotos.io)
-
-- ID: demo
-- Password: demo1234
 
 ## What is it?
 
