@@ -1,5 +1,4 @@
 api==0.0.7
-certifi==2017.4.17
 chardet==3.0.4
 click==6.7
 config==0.3.9
@@ -29,12 +28,9 @@ ipython-genutils==0.2.0
 ipython==6.1.0
 jedi==0.10.2
 matplotlib==2.0.2
-networkx==2.1
 nltk==3.2.4
-numpy==1.14.3
+numpy==1.15.2
 olefile==0.44
-opencv_python==3.4.0.12
-pandas==0.22.0
 pexpect==4.2.1
 pickleshare==0.7.4
 Pillow==5.1.0
@@ -49,13 +45,10 @@ python-memcached==1.58 # for memcached
 python_dateutil==2.7.3
 pytz==2018.4
 requests==2.18.4
-scikit_learn==0.19.1
-scipy==0.19.1
 seaborn==0.8.1
 serpy==0.3.1
 simplegeneric==0.8.1
 six==1.10.0
-spacy==2.0.11
 tornado==4.5.1
 tqdm==4.14.0
 traitlets==4.3.2

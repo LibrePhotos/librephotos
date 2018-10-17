@@ -60,8 +60,8 @@ def im2txt(image_path):
     decoder = decoder.to(device)
 
     # Load the trained model parameters
-    encoder.load_state_dict(torch.load(encoder_path))
-    decoder.load_state_dict(torch.load(decoder_path))
+    encoder.load_state_dict(torch.load(encoder_path,map_location='cpu'))
+    decoder.load_state_dict(torch.load(decoder_path,map_location='cpu'))
 
     # Prepare an image
     image = load_image(image_path, transform)
