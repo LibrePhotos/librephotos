@@ -2,10 +2,10 @@
 
 # Ownphotos
 
-[DEMO](https://demo.ownphotos.io)
+![](https://github.com/hooram/ownphotos/blob/dev/screenshots/Screenshot_2018-11-27_14-56-21.png?raw=true)
+![](https://github.com/hooram/ownphotos/blob/dev/screenshots/Screenshot_2018-11-27_14-57-50.png?raw=true)
+![](https://github.com/hooram/ownphotos/blob/dev/screenshots/Screenshot_2018-11-27_15-01-49.png?raw=true)
 
-- ID: demo
-- Password: demo1234
 
 ## What is it?
 
