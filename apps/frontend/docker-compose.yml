@@ -28,7 +28,7 @@ services:
     container_name: ownphotos-frontend
     image: guysoft/ownphotos-frontend:dev
     # For development uncomment this and comment the image name above
-    build: .
+    #build: .
     tty: true
     environment:
        # This is the path to the backend host public facing. if your website is ownphotos.org then this should be "ownphotos.org".
