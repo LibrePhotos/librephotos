@@ -51,13 +51,13 @@ def scan_photos(user):
 
         image_paths_to_add = []
         for image_path in tqdm(image_paths):
-            # hash_md5 = hashlib.md5()
-            # with open(image_path, "rb") as f:
-            #     for chunk in iter(lambda: f.read(4096), b""):
-            #         hash_md5.update(chunk)
-            # image_hash = hash_md5.hexdigest()
-            # if image_hash not in existing_hashes:
-            #     image_paths_to_add.append(image_path)
+            hash_md5 = hashlib.md5()
+            with open(image_path, "rb") as f:
+                for chunk in iter(lambda: f.read(4096), b""):
+                    hash_md5.update(chunk)
+            image_hash = hash_md5.hexdigest()
+            if image_hash not in existing_hashes:
+                image_paths_to_add.append(image_path)
 
             if not Photo.objects.filter(image_path=image_path).exists():
                 # ipdb.set_trace()
