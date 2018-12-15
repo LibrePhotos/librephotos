@@ -38,7 +38,7 @@ services:
       - "backend:backend"
 
   backend:
-    image: hooram/ownphotos:dev
+    image: guysoft/ownphotos:dev
     container_name: ownphotos-backend
     volumes:
       # Your photos go here
