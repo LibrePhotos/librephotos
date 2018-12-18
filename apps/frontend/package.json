@@ -37,7 +37,7 @@
     "react-dropzone": "^4.2.12",
     "react-grid-gallery": "^0.4.11",
     "react-grid-layout": "^0.16.6",
-    "react-image-lightbox": "github:hooram/react-image-lightbox",
+    "react-image-lightbox": "https://github.com/hooram/react-image-lightbox",
     "react-keydown": "^1.9.4",
     "react-lazyload": "^2.2.7",
     "react-leaflet": "^1.9.1",
@@ -65,7 +65,6 @@
     "redux-promise-middleware": "^5.1.1",
     "redux-thunk": "^2.3.0",
     "rumble-charts": "^2.0.0",
-    "semantic-ui": "^2.3.2",
     "semantic-ui-css": "^2.3.2",
     "semantic-ui-react": "^0.80.2"
   },
