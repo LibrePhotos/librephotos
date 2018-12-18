@@ -31,7 +31,6 @@ djangorestframework-simplejwt==3.2.3
 dlib==19.16.99
 docopt==0.6.2
 drf-extensions==0.3.1
-en-core-web-sm==2.0.0
 ExifRead==2.1.2
 face-recognition==1.2.2
 face-recognition-models==0.3.0
@@ -50,7 +49,6 @@ Jinja2==2.10
 MarkupSafe==1.0
 matplotlib==2.0.2
 mkl-fft==1.0.6
-mkl-random==1.0.1
 msgpack==0.5.6
 msgpack-numpy==0.4.3.2
 murmurhash==1.0.1
@@ -74,7 +72,7 @@ pycocotools==2.0.0
 pycparser==2.19
 Pygments==2.2.0
 PyJWT==1.6.4
-pyocclient==0.4
+https://github.com/owncloud/pyocclient/archive/master.zip
 pyparsing==2.2.0
 python-dateutil==2.7.3
 python-memcached==1.58
@@ -89,7 +87,7 @@ seaborn==0.8.1
 serpy==0.3.1
 simplegeneric==0.8.1
 six==1.10.0
-spacy==2.0.16
+spacy==2.0.18
 thinc==6.12.0
 toolz==0.9.0
 torch==0.4.1
