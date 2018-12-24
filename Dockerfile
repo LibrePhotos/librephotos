@@ -66,14 +66,6 @@ RUN apt-get install nodejs
 
 RUN rm -rf /var/lib/apt/lists/*
 
-WORKDIR /code
-RUN git clone https://github.com/hooram/ownphotos-frontend.git
-WORKDIR /code/ownphotos-frontend
-RUN git pull origin dev && git checkout dev
-RUN mv /code/ownphotos-frontend/src/api_client/apiClientDeploy.js /code/ownphotos-frontend/src/api_client/apiClient.js
-RUN npm install
-RUN npm install -g serve
-
 RUN apt-get remove --purge -y cmake git && \
     rm -rf /var/lib/apt/lists/*
 
@@ -108,7 +100,6 @@ ENV REDIS_PORT 11211
 ENV TIME_ZONE UTC
 
 EXPOSE 80
-EXPOSE 3000
 EXPOSE 5000
 
 COPY . /code
