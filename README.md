@@ -81,7 +81,7 @@ wget https://raw.githubusercontent.com/hooram/ownphotos/dev/docker-compose.yml
 docker-compose up -d
 ```
 
-You should have ownphotos accessibale after a few seconds of bootup on: [localhost:3000](http://localhost:3000)
+You should have ownphotos accessible after a few seconds of bootup on: [localhost:3000](http://localhost:3000)
 User is admin, password is admin and its important you change it on a public server via the ``docker-compose.yml`` file.
 
 ## Docker commands (outdated)
