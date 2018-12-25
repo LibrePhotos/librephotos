@@ -833,7 +833,7 @@ class LongRunningJob(models.Model):
     job_id = models.CharField(max_length=36, unique=True, db_index=True)
     started_at = models.DateTimeField(null=False)
     finished_at = models.DateTimeField(null=True)
-    result = JSONField(default={}, blank=False, null=False)
+    result = JSONField(default=dict, blank=False, null=False)
     started_by = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None)
 
