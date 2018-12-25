@@ -2,16 +2,23 @@
 
 # Ownphotos
 
+## Screenshots
+
 ![](https://github.com/hooram/ownphotos/blob/dev/screenshots/Screenshot_2018-11-27_14-56-21.png?raw=true)
 ![](https://github.com/hooram/ownphotos/blob/dev/screenshots/Screenshot_2018-11-27_14-57-50.png?raw=true)
 ![](https://github.com/hooram/ownphotos/blob/dev/screenshots/Screenshot_2018-11-27_15-01-49.png?raw=true)
+
+## Live demo
+Live [demo avilable here](http://ownphotos.gnethomelinux.com/).
+Its hosted by the [T.A.M.I makerspace](http://telavivmakers.org/).
+User is admin, password is admin.
 
 
 ## What is it?
 
 - Self hosted wannabe Google Photos clone, with a slight focus on cool graphs
 - Django backend & React frontend. 
-- In development. 
+- In development. Contributions are welcome!
 
 **Currently the project is in very early stages, so run it only for the sake of checking it out.**
 
@@ -36,6 +43,7 @@
 
   - Short term:
     - Share photos/albums
+    - Stability
 
   - Longer term, i.e. haven't thought much about them
     - Basic photo editing, like rotation
@@ -59,12 +67,24 @@
 
 Ownphotos comes with separate backend and frontend
 servers. The backend serves the restful API, and the frontend serves, well,
-the frontend. The easiest way to do it is using Docker.
+the frontend. They are connected via a proxy.
+The easiest way to do it is using Docker.
 
-Let's say you want the backend server to be reachable by
+If you want the backend server to be reachable by
 `ownphotos-api.example.com` and the frontend by `ownphotos.example.com` from
-outside. On your browser, you will want to connect to the frontend, so 
-`ownphotos.example.com` will be the one you will point your browser to. 
+outside. You must account for the corsaCross-Origin Resource Sharing (CORS) in your proxy.
+
+## Docker-compose method (Recommended)
+
+```
+wget https://raw.githubusercontent.com/hooram/ownphotos/dev/docker-compose.yml
+docker-compose up -d
+```
+
+You should have ownphotos accessibale after a few seconds of bootup on: [localhost:3000](http://localhost:3000)
+User is admin, password is admin and its important you change it on a public server via the ``docker-compose.yml`` file.
+
+## Docker commands (outdated)
 
 First, run cache (redis) and database (postgresql) containers. Please be mindful
 of the `POSTGRES_PASSWORD` environment variable being passed into the db
