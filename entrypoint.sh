@@ -1,4 +1,5 @@
 #! /bin/bash
+export PYTHONUNBUFFERED=TRUE
 mkdir -p /code/logs
 
 cp /code/nginx.conf /etc/nginx/sites-enabled/default
