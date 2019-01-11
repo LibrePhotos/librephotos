@@ -84,129 +84,15 @@ docker-compose up -d
 You should have ownphotos accessible after a few seconds of bootup on: [localhost:3000](http://localhost:3000)
 User is admin, password is admin and its important you change it on a public server via the ``docker-compose.yml`` file.
 
-## Docker commands (outdated)
+## First steps after setting up
 
-First, run cache (redis) and database (postgresql) containers. Please be mindful
-of the `POSTGRES_PASSWORD` environment variable being passed into the db
-container and change it.
+You need to log in as the admin user, and set up the directory for the users. To do this, click the top right button, and go to "Admin Area". On this page, it will show a list of users, and manually set the "Scan Directory" for the desired user. Only an admin can do this. And then you can go to Dashboard - Library and click the Green "Scan photos (file system)" button. If you have a Nextcloud instance, you can also input this in the Dashboard-Library page. Once logged in (the little circle next to "Nextcloud Scan Directory will be green), you can choose a top level directory in your logged in Nextcloud account. Once this works, you can click the blue "Scan photos (Nextcloud)". The backend system will essentially copy the contents of the Nextcloud directory you specified. 
 
-```
-docker run \ 
-    --restart always \
-    --name ownphotos-db \
-    -e POSTGRES_PASSWORD=CHANGE_ME_DB_PASS \
-    -e POSTGRES_DB=ownphotos \
-    -d postgres
+The basic idea is this:
 
-docker run \
-    --restart always \
-    --name ownphotos-redis \
-    -d redis
-```
-
-
-
-
-Now we can run the ownphotos container image. There are
-several options you need to specify.
-
-- Where your photos live on the host machine.
-- Where you want the thumbnails and face images to live on the host machine.
-  Ownphotos will make fullsize copies, thumbnails of all your images, and cropped faces for serving, so you
-  will need quite a lot of storage space on your host machine if you have a big library.
-- `SECRET_KEY`: Secret key for django. Generate some random string and use that.
-- `ADMIN_EMAIL`,`ADMIN_USERNAME`,`ADMIN_PASSWORD`: Your admin credentials. This is what you will use to log in.
-- `DB_PASS`: The one that you specified when running the database container from above.
-- `MAPBOX_API_KEY`: Your Mapbox API key. You can sign up for free on mapbox.com and get one there.
-- `BACKEND_HOST`: The domain name the backend API server will be reachable from.
-  In our case, it's `ownphotos-api.example.com`. 
-- Port 80 on the container is for the backend. For this example, we will map it
-  to port 8000 on the host machine.
-- Port 3000 on the container is for the frontend. For this example, we will map
-  it to port 8001 on the host machine.
-
-
-```
-docker run \
-    -v /where/your/photos/live/on/host:/data \
-    -v /place/to/store/thumbnails/and/faces/and/fullsize/copy/on/host:/code/media \
-    --link ownphotos-db:ownphotos-db \
-    --link ownphotos-redis:ownphotos-redis \
-    -e SECRET_KEY=CHANGE_ME \
-    -e ADMIN_EMAIL=CHANGE_ME \
-    -e ADMIN_USERNAME=CHANGE_ME \
-    -e ADMIN_PASSWORD=CHANGE_ME \
-    -e DEBUG=false \
-    -e DB_BACKEND=postgresql \
-    -e DB_NAME=ownphotos \
-    -e DB_USER=postgres \
-    -e DB_PASS=CHANGE_ME_DB_PASS \
-    -e DB_HOST=ownphotos-db \
-    -e DB_PORT=5432 \
-    -e REDIS_HOST=ownphotos-redis \
-    -e REDIS_PORT=6379 \
-    -e MAPBOX_API_KEY=CHANGE_ME \
-    -e BACKEND_HOST=CHANGE_ME \
-    -p 8000:80 \
-    -p 8001:3000 \
-    --name ownphotos \
-    nhooram/ownphotos:0.1
-```
-
-Wait a bit until everything warms up (migrations, and buildling frontend).
-
-Next, you need to configure the webserver on your host machine for proxy. If
-you're using nginx, 
-
-Add the following to your nginx configurations. Make sure to change the
-`server_name` parameters for both the backend and frontend to suit your needs!
-If you want to use https, you probably know what you need to do. If you do
-though, make sure http requests get redirected to https. It's important!
-
-
-```
-server {
-    # the port your site will be served on
-    listen      80;
-    server_name ownphotos-api.example.com;
-    charset     utf-8;
-
-    #Max upload size
-    client_max_body_size 75M;   # adjust to taste
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-}
-
-
-server {
-    # the port your site will be served on
-    listen      80;
-    server_name ownphotos.example.com;
-    charset     utf-8;
-
-    #Max upload size
-    client_max_body_size 75M;   # adjust to taste
-
-    location / {
-        proxy_pass http://127.0.0.1:8001;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-}
-```
-
-
-Restart nginx
-
-```
-sudo service nginx restart
-```
-
-Point your browser to the frontend domain name!
-
+- For scanning photos that reside in the local file system
+  - Only the admin user can change the "scan directory" of the users, including the admin itself.
+  - Normal users cannot change his/her own "scan directory"
+  - Only the admin can find the page to control this under the "user icon (top right) - admin area"
+- For scannign photos that reside in external Nextcloud instances
+  - Any user can change his/her own Nextcloud endpoint, and choose a top level directory in the Nextcloud account.
