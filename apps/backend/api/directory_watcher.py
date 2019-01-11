@@ -155,12 +155,12 @@ def scan_photos(user):
     already_existing_photo = 0
 
     try:
-        image_paths = []
-        for image_dir in image_dirs:
-            image_paths.extend([
-                os.path.join(dp, f) for dp, dn, fn in os.walk(image_dir)
-                for f in fn
-            ])
+        # image_paths = []
+        # for image_dir in image_dirs:
+        #     image_paths.extend([
+        #         os.path.join(dp, f) for dp, dn, fn in os.walk(image_dir)
+        #         for f in fn
+        #     ])
 
         image_paths.extend([
             os.path.join(dp, f) for dp, dn, fn in os.walk(user.scan_directory)
