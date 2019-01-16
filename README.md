@@ -13,6 +13,8 @@ Live [demo avilable here](http://ownphotos.gnethomelinux.com/).
 Its hosted by the [T.A.M.I makerspace](http://telavivmakers.org/).
 User is admin, password is admin.
 
+## Discord Server
+https://discord.gg/dPCdTBN
 
 ## What is it?
 
