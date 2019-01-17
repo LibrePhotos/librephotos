@@ -120,13 +120,8 @@ def handle_new_image(user, image_path):
                 util.logger.info(
                     'adding to AlbumThing took %.2f' % elapsed)
 
-                added_photo_count += 1
                 util.logger.info(
                     "Image processed: {}".format(img_abs_path))
-            else:
-                already_existing_photo += 1
-                util.logger.info("photo already exists in db")
-                print("photo already exists in db %s" % img_abs_path)
                 
         except Exception as e:
             print("Error in directory scan, got exception:")
@@ -156,11 +151,6 @@ def scan_photos(user):
 
     try:
         image_paths = []
-        # for image_dir in image_dirs:
-        #     image_paths.extend([
-        #         os.path.join(dp, f) for dp, dn, fn in os.walk(image_dir)
-        #         for f in fn
-        #     ])
 
         image_paths.extend([
             os.path.join(dp, f) for dp, dn, fn in os.walk(user.scan_directory)
@@ -176,15 +166,21 @@ def scan_photos(user):
         existing_hashes = [p.image_hash for p in Photo.objects.all()]
 
         # Create a list with all images whose hash is new or they do not exist in the db
+        image_paths_to_add = []
+        for image_path in tqdm(image_paths):
+            if not Photo.objects.filter(image_path=image_path).exists():
+                image_paths_to_add.append(image_path)
+                
+        for image_path in tqdm(image_paths_to_add):
+            handle_new_image(user,image_path)
+
+        '''
         image_paths_to_add = Parallel(n_jobs=multiprocessing.cpu_count(), backend="multiprocessing")(delayed(is_new_image)(existing_hashes, image_path) for image_path in tqdm(image_paths)) 
         image_paths_to_add = filter(None, image_paths_to_add)
-
         Parallel(n_jobs=multiprocessing.cpu_count(), backend="multiprocessing")(delayed(handle_new_image)(user, image_path) for image_path in tqdm(image_paths_to_add)) 
+        '''
 
-
-        util.logger.info("Added {}/{} photos".format(
-            added_photo_count,
-            len(image_paths) - already_existing_photo))
+        util.logger.info("Added {} photos".format(image_paths_to_add))
 
         lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
         lrj.finished = True
