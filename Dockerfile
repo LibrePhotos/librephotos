@@ -21,8 +21,8 @@ RUN apt-get install -y bzip2
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 RUN bash Miniconda3-latest-Linux-x86_64.sh -b -p /miniconda
 # RUN apt-get install libopenblas-dev liblapack-dev
-
-RUN yes | /miniconda/bin/conda install cython
+RUN /miniconda/bin/conda install -y faiss-cpu -c pytorch
+RUN /miniconda/bin/conda install -y cython
 
 # Build and install dlib
 RUN apt-get update && \

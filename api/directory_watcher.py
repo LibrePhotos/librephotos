@@ -120,6 +120,13 @@ def handle_new_image(user, image_path):
                 util.logger.info(
                     'adding to AlbumThing took %.2f' % elapsed)
 
+                start = datetime.datetime.now()
+                photo._im2vec()
+                elapsed = (
+                    datetime.datetime.now() - start).total_seconds()
+                util.logger.info(
+                    'im2vec took %.2f' % elapsed)
+
                 util.logger.info(
                     "Image processed: {}".format(img_abs_path))
                 
