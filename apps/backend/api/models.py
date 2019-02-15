@@ -39,10 +39,12 @@ from io import StringIO
 
 import ipdb
 from django_cryptography.fields import encrypt
+from api.im2vec import Im2Vec
 
 
 geolocator = Nominatim()
 default_tz = pytz.timezone('Asia/Seoul')
+im2vec = Im2Vec(cuda=False)
 
 
 def change_api_updated_at(sender=None, instance=None, *args, **kwargs):
@@ -133,6 +135,7 @@ class Photo(models.Model):
     shared_to = models.ManyToManyField(User, related_name='photo_shared_to')
 
     public = models.BooleanField(default=False, db_index=True)
+    encoding = models.TextField(default=None, null=True)
 
     def _generate_md5(self):
         print(self.owner.id)
@@ -453,6 +456,14 @@ class Photo(models.Model):
                 util.logger.warning('something went wrong with geolocating')
                 pass
                 # self.geolocation_json = {}
+    def _im2vec(self):
+        try:
+            image = PIL.Image.open(self.thumbnail_big)
+            vec = im2vec.get_vec(image)
+            self.encoding = vec.tobytes().hex()
+            self.save()
+        except ValueError:
+            pass
 
     def _extract_faces(self):
         qs_unknown_person = Person.objects.filter(name='unknown')
