@@ -61,6 +61,8 @@ from api.face_classify import train_faces, cluster_faces
 from api.social_graph import build_social_graph, build_ego_graph
 from api.autoalbum import generate_event_albums
 
+from api.vector_bank import  im2vec_bank
+
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 from django.utils import six
 
@@ -81,8 +83,8 @@ import config
 from api.directory_watcher import scan_photos
 from api.autoalbum import generate_event_albums, regenerate_event_titles
 
-from api.flags import is_photos_being_added
-from api.flags import is_auto_albums_being_processed
+# from api.flags import is_photos_being_added
+# from api.flags import is_auto_albums_being_processed
 
 from rest_framework.pagination import PageNumberPagination
 
@@ -110,6 +112,8 @@ import time
 from django_rq import job
 import django_rq
 from django_bulk_update.helper import bulk_update
+
+from api.util import logger
 
 # from silk.profiling.profiler import silk_profile
 
@@ -378,7 +382,7 @@ class SharedToMePhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
                 'owner',
                 'hidden',
                 'exif_timestamp',
-            ).prefetch_related('owner')
+            ).prefetch_related('owner').order_by('exif_timestamp')
 
 
 class SharedFromMePhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
@@ -407,8 +411,8 @@ class SharedFromMePhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
                 'exif_timestamp',
                 'public',
                 'shared_to',
-                'owner').distinct()
-        print(qs.query)
+                'owner').distinct().order_by('exif_timestamp')
+        # print(qs.query)
         return qs
 
 
@@ -442,7 +446,7 @@ class SharedFromMePhotoSuperSimpleListViewSet2(viewsets.ModelViewSet):
         #     .filter(shared_to_count__gt=0) \
         #     .filter(owner=self.request.user.id) \
         #     .only('image_hash','favorited','hidden','exif_timestamp','public','shared_to','owner').distinct()
-        print(qs.query)
+        # print(qs.query)
         return qs
 
 
@@ -580,9 +584,15 @@ class NoTimestampPhotoHashListViewSet(viewsets.ModelViewSet):
 
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class FaceListViewSet(viewsets.ModelViewSet):
-    queryset = Face.objects.all().select_related('person').order_by('id')
+#     queryset = Face.objects.all().select_related('person').order_by('id')
     serializer_class = FaceListSerializer
     pagination_class = StandardResultsSetPagination
+
+    def get_queryset(self):
+        # Todo: optimze query by only prefetching relevant models & fields
+        queryset = Face.objects.filter(
+            Q(photo__owner=self.request.user)).select_related(
+                    'person').order_by('id')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -711,7 +721,7 @@ class PersonViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Person.objects.filter(faces__photo__owner=self.request.user) \
-            .distinct().annotate(viewable_face_count=Count('faces'))
+            .distinct().annotate(viewable_face_count=Count('faces')).order_by('name')
         return qs
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
@@ -1274,7 +1284,7 @@ class SiteSettingsView(APIView):
 class SetUserAlbumShared(APIView):
     def post(self, request, format=None):
         data = dict(request.data)
-        print(data)
+        # print(data)
         shared = data['shared']  #bool
         target_user_id = data['target_user_id']  # user pk, int
         user_album_id = data['album_id']
@@ -1282,6 +1292,7 @@ class SetUserAlbumShared(APIView):
         try:
             target_user = User.objects.get(id=target_user_id)
         except User.DoesNotExist:
+            logger.warning('Cannot share album to user: target user_id {} does not exist'.format(target_user_id))
             return Response(
                 {
                     'status': False,
@@ -1291,6 +1302,7 @@ class SetUserAlbumShared(APIView):
         try:
             user_album_to_share = AlbumUser.objects.get(id=user_album_id)
         except AlbumUser.DoesNotExist:
+            logger.warning('Cannot share album to user: source user_album_id {} does not exist'.format(user_album_id))
             return Response(
                 {
                     'status': False,
@@ -1298,6 +1310,7 @@ class SetUserAlbumShared(APIView):
                 }, status_code=400)
 
         if user_album_to_share.owner != request.user:
+            logger.warning('Cannot share album to user: source user_album_id {} does not belong to user_id {}'.format(user_album_id, request.user.id))
             return Response(
                 {
                     'status': False,
@@ -1307,8 +1320,10 @@ class SetUserAlbumShared(APIView):
 
         if shared:
             user_album_to_share.shared_to.add(target_user)
+            logger.info('Shared user {}\'s album {} to user {}'.format(request.user.id, user_album_id, target_user_id))
         else:
             user_album_to_share.shared_to.remove(target_user)
+            logger.info('Unshared user {}\'s album {} to user {}'.format(request.user.id, user_album_id, target_user_id))
 
         user_album_to_share.save()
 
@@ -1338,7 +1353,6 @@ class GeneratePhotoCaption(APIView):
 class SetPhotosShared(APIView):
     def post(self, request, format=None):
         data = dict(request.data)
-        print(data)
         shared = data['shared']  #bool
         target_user_id = data['target_user_id']  # user pk, int
         image_hashes = data['image_hashes']
@@ -1376,12 +1390,12 @@ class SetPhotosShared(APIView):
                 for image_hash in image_hashes
                 if image_hash not in already_existing_image_hashes
             ])
-            print(len(res), 'photos shared')
+            logger.info("Shared {}'s {} images to user {}".format(request.user.id, len(res), target_user_id))
             res_count = len(res)
         else:
             res = ThroughModel.objects.filter(
                 user_id=target_user_id, photo_id__in=image_hashes).delete()
-            print(res[0], 'photos unshared')
+            logger.info("Unshared {}'s {} images to user {}".format(request.user.id, len(res), target_user_id))
             res_count = res[0]
             # ipdb.set_trace()
 
@@ -1421,7 +1435,6 @@ class SetPhotosShared(APIView):
 class SetPhotosPublic(APIView):
     def post(self, request, format=None):
         data = dict(request.data)
-        print(data)
         val_public = data['val_public']
         image_hashes = data['image_hashes']
 
@@ -1431,6 +1444,7 @@ class SetPhotosPublic(APIView):
             try:
                 photo = Photo.objects.get(image_hash=image_hash)
             except Photo.DoesNotExist:
+                logger.warning("Could not set photo {} to public. It does not exist.".format(image_hash))
                 continue
             if photo.owner == request.user and photo.public != val_public:
                 photo.public = val_public
@@ -1438,6 +1452,11 @@ class SetPhotosPublic(APIView):
                 updated.append(PhotoSerializer(photo).data)
             else:
                 not_updated.append(PhotoSerializer(photo).data)
+
+        if val_public:
+            logger.info("{} photos were set public. {} photos were already public.".format(len(updated),len(not_updated)))
+        else:
+            logger.info("{} photos were set private. {} photos were already public.".format(len(updated),len(not_updated)))
 
         return Response({
             'status': True,
@@ -1450,7 +1469,6 @@ class SetPhotosPublic(APIView):
 class SetPhotosFavorite(APIView):
     def post(self, request, format=None):
         data = dict(request.data)
-        print(data)
         val_favorite = data['favorite']
         image_hashes = data['image_hashes']
 
@@ -1460,6 +1478,7 @@ class SetPhotosFavorite(APIView):
             try:
                 photo = Photo.objects.get(image_hash=image_hash)
             except Photo.DoesNotExist:
+                logger.warning("Could not set photo {} to favorite. It does not exist.".format(image_hash))
                 continue
             if photo.owner == request.user and photo.favorited != val_favorite:
                 photo.favorited = val_favorite
@@ -1468,6 +1487,10 @@ class SetPhotosFavorite(APIView):
             else:
                 not_updated.append(PhotoSerializer(photo).data)
 
+        if val_favorite:
+            logger.info("{} photos were added to favorites. {} photos were already in favorites.".format(len(updated),len(not_updated)))
+        else:
+            logger.info("{} photos were removed from favorites. {} photos were already not in favorites.".format(len(updated),len(not_updated)))
         return Response({
             'status': True,
             'results': updated,
@@ -1479,7 +1502,6 @@ class SetPhotosFavorite(APIView):
 class SetPhotosHidden(APIView):
     def post(self, request, format=None):
         data = dict(request.data)
-        print(data)
         val_hidden = data['hidden']
         image_hashes = data['image_hashes']
 
@@ -1489,6 +1511,7 @@ class SetPhotosHidden(APIView):
             try:
                 photo = Photo.objects.get(image_hash=image_hash)
             except Photo.DoesNotExist:
+                logger.warning("Could not set photo {} to hidden. It does not exist.".format(image_hash))
                 continue
             if photo.owner == request.user and photo.hidden != val_hidden:
                 photo.hidden = val_hidden
@@ -1497,6 +1520,10 @@ class SetPhotosHidden(APIView):
             else:
                 not_updated.append(PhotoSerializer(photo).data)
 
+        if val_hidden:
+            logger.info("{} photos were set hidden. {} photos were already hidden.".format(len(updated),len(not_updated)))
+        else:
+            logger.info("{} photos were set unhidden. {} photos were already unhidden.".format(len(updated),len(not_updated)))
         return Response({
             'status': True,
             'results': updated,
@@ -1562,8 +1589,14 @@ class RootPathTreeView(APIView):
     permission_classes = (IsAdminUser, )
 
     def get(self, request, format=None):
-        res = [path_to_dict(p) for p in config.image_dirs]
-        return Response(res)
+        try:
+            logger.info('about to get root path tree')
+            res = [path_to_dict(p) for p in config.image_dirs]
+            logger.info('root path tree calculated')
+            return Response(res)
+        except Exception as e:
+            logger.error(str(e))
+            return Response({'message':str(e)})
 
 
 class SearchTermExamples(APIView):
@@ -1709,86 +1742,124 @@ class AutoAlbumGenerateView(APIView):
 
 
 class StatsView(APIView):
-    def get(self, requests, format=None):
-        res = get_count_stats(user=requests.user)
+    def get(self, request, format=None):
+        res = get_count_stats(user=request.user)
         return Response(res)
 
 
 class LocationClustersView(APIView):
     # @cache_response(CACHE_TTL_VIZ)
-    def get(self, requests, format=None):
-        res = get_location_clusters(requests.user)
+    def get(self, request, format=None):
+        res = get_location_clusters(request.user)
         return Response(res)
 
 
 class LocationSunburst(APIView):
     # @cache_response(CACHE_TTL_VIZ)
-    def get(self, requests, format=None):
-        res = get_location_sunburst()
+    def get(self, request, format=None):
+        res = get_location_sunburst(request.user)
         return Response(res)
 
 
 class LocationTimeline(APIView):
     # @cache_response(CACHE_TTL_VIZ)
-    def get(self, requests, format=None):
-        res = get_location_timeline()
+    def get(self, request, format=None):
+        res = get_location_timeline(request.user)
         return Response(res)
 
 
 class PhotoMonthCountsView(APIView):
     # @cache_response(CACHE_TTL_VIZ)
-    def get(self, requests, format=None):
-        res = get_photo_month_counts()
+    def get(self, request, format=None):
+        res = get_photo_month_counts(request.user)
         return Response(res)
 
 
 class PhotoCountryCountsView(APIView):
     # @cache_response(CACHE_TTL_VIZ)
-    def get(self, requests, format=None):
-        res = get_photo_country_counts()
+    def get(self, request, format=None):
+        res = get_photo_country_counts(request.user)
         return Response(res)
 
 
 class SearchTermWordCloudView(APIView):
     # @cache_response(CACHE_TTL_VIZ)
-    def get(self, requests, format=None):
-        res = get_searchterms_wordcloud()
+    def get(self, request, format=None):
+        res = get_searchterms_wordcloud(request.user)
         return Response(res)
 
 
 class ScanPhotosView(APIView):
-    def get(self, requests, format=None):
-        if get_current_job() is None:
-            # The user who triggers the photoscan event owns imported photos
-            print(requests.user)
-            res = scan_photos.delay(requests.user)
-            return Response({'status': True, 'job_id': res.id})
-        else:
-            return Response({
-                'status':
-                False,
-                'message':
-                'there are jobs being run',
-                'running_jobs':
-                [job for job in django_rq.get_queue().get_job_ids()]
-            })
+    def get(self, request, format=None):
+        try:
+            if get_current_job() is None:
+                # The user who triggers the photoscan event owns imported photos
+                logger.info(request.user.username)
+                res = scan_photos.delay(request.user)
+                return Response({'status': True, 'job_id': res.id})
+            else:
+                return Response({
+                    'status':
+                    False,
+                    'message':
+                    'there are jobs being run',
+                    'running_jobs':
+                    [job for job in django_rq.get_queue().get_job_ids()]
+                })
+        except Exception as e:
+            logger.error(str(e))
+            return Response({'status':False})
+
+class RebuildIm2VecBank(APIView):
+    permission_classes = (IsAuthenticated, )
+
+    def get(self, request, format=None):
+        im2vec_bank.build_index()
+        return Response({
+            'status': True,
+        })
+
+class SearchSimilarPhotosView(APIView):
+    permission_classes = (IsAuthenticated, )
+
+    def get(self,request,format=None):
+        image_hash = request.query_params['image_hash']
+        if 'n' in request.query_params.keys():
+            n = int(request.query_params['n'])
+        else: 
+            n = 50
+
+        try:
+            logger.info('searching {} similar photos to {}'.format(n,image_hash))
+
+            candidates = im2vec_bank.search_similar(image_hash,n)
+            image_hashes = [c['image_hash'] for c in candidates]
+            
+            owned = [res.image_hash for res in Photo.objects.filter(image_hash__in=image_hashes).filter(owner=request.user).only('image_hash')]
+
+            res = [c for c in candidates if c['image_hash'] in owned]
+        except Exception as e:
+            logger.error(str(e))
+
+        return Response(res)
+
 
 
 # watchers
 class IsPhotosBeingAddedView(APIView):
-    def get(self, requests, format=None):
+    def get(self, request, format=None):
         res = is_photos_being_added()
         return Response(res)
 
 
 class IsAutoAlbumsBeingProcessed(APIView):
-    def get(self, requests, format=None):
+    def get(self, request, format=None):
         res = is_auto_albums_being_processed()
         return Response(res)
 
 
 class QueueAvailabilityView(APIView):
-    def get(self, requests, format=None):
+    def get(self, request, format=None):
         job_detail = None
 
         running_job = LongRunningJob.objects.filter(
@@ -1803,10 +1874,13 @@ class QueueAvailabilityView(APIView):
         })
 
 
+
+
+
 class RQJobStatView(APIView):
-    def get(self, requests, format=None):
+    def get(self, request, format=None):
         # ipdb.set_trace()
-        job_id = requests.query_params['job_id']
+        job_id = request.query_params['job_id']
         # job_id = '1667f947-bf8c-4ca8-a1cc-f16c7f3615de'
         is_job_finished = django_rq.get_queue().fetch_job(job_id).is_finished
         return Response({'status': True, 'finished': is_job_finished})
@@ -1822,7 +1896,7 @@ class MediaAccessView(APIView):
     
     # @silk_profile(name='media')
     def get(self, request, path, fname, format=None):
-        if False:
+        if False: # allow all images to be viewable by everyone
             response = HttpResponse()
             response['Content-Type'] = 'image/jpeg'
             response[
@@ -1833,8 +1907,7 @@ class MediaAccessView(APIView):
         jwt = request.COOKIES.get('jwt')
         image_hash = fname.split(".")[0].split('_')[0]
         try:
-            photo = Photo.objects.filter(image_hash=image_hash) \
-                    .only('public').first()
+            photo = Photo.objects.get(image_hash=image_hash)
         except Photo.DoesNotExist:
             return HttpResponse(status=404)
 
@@ -1881,6 +1954,132 @@ class MediaAccessView(APIView):
         return HttpResponse(status=404)
 
 
+
+class MediaAccessFullsizeOriginalView(APIView):
+    permission_classes = (AllowAny, )
+    
+    # @silk_profile(name='media')
+    def get(self, request, path, fname, format=None):
+        if False: # allow all images to be viewable by everyone
+            response = HttpResponse()
+            response['Content-Type'] = 'image/jpeg'
+            response[
+                'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
+            return response
+
+        if path.lower() != 'photos':
+            start = datetime.datetime.now()
+
+            jwt = request.COOKIES.get('jwt')
+            image_hash = fname.split(".")[0].split('_')[0]
+            try:
+                photo = Photo.objects.get(image_hash=image_hash)
+            except Photo.DoesNotExist:
+                return HttpResponse(status=404)
+
+            # grant access if the requested photo is public
+            if photo.public:
+                response = HttpResponse()
+                response['Content-Type'] = 'image/jpeg'
+                response[
+                    'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
+                # print((datetime.datetime.now() - start).total_seconds())
+                return response
+
+            # forbid access if trouble with jwt
+            if jwt is not None:
+                try:
+                    token = AccessToken(jwt)
+                except TokenError as error:
+                    return HttpResponseForbidden()
+            else:
+                return HttpResponseForbidden()
+
+            # grant access if the user is owner of the requested photo
+            # or the photo is shared with the user
+            image_hash = fname.split(".")[0].split('_')[0]  # janky alert
+            query_start = datetime.datetime.now()
+            user = User.objects.filter(id=token['user_id']).only('id').first()
+            # print('query', (datetime.datetime.now() - query_start).total_seconds())
+            if photo.owner == user or user in photo.shared_to.all():
+                response = HttpResponse()
+                response['Content-Type'] = 'image/jpeg'
+                response[
+                    'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
+                # print('response', (datetime.datetime.now() - start).total_seconds())
+                return response
+            else:
+                for album in photo.albumuser_set.only('shared_to'):
+                    if user in album.shared_to.all():
+                        response = HttpResponse()
+                        response['Content-Type'] = 'image/jpeg'
+                        response[
+                            'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
+                        # print((datetime.datetime.now() - start).total_seconds())
+                        return response
+            return HttpResponse(status=404)
+        else:
+            start = datetime.datetime.now()
+
+            jwt = request.COOKIES.get('jwt')
+            image_hash = fname.split(".")[0].split('_')[0]
+            try:
+                photo = Photo.objects.get(image_hash=image_hash)
+            except Photo.DoesNotExist:
+                return HttpResponse(status=404)
+
+
+            if photo.image_path.startswith('/code/nextcloud_media/'):
+                internal_path = photo.image_path.replace('/code/nextcloud_media/','/nextcloud_original/')
+                internal_path = '/nextcloud_original'+photo.image_path[21:]
+            if photo.image_path.startswith('/data/'):
+                internal_path = '/original'+photo.image_path[5:]
+
+            # grant access if the requested photo is public
+            if photo.public:
+                response = HttpResponse()
+                response['Content-Type'] = 'image/jpeg'
+                response[
+                    'X-Accel-Redirect'] = internal_path
+                # print((datetime.datetime.now() - start).total_seconds())
+                return response
+
+            # forbid access if trouble with jwt
+            if jwt is not None:
+                try:
+                    token = AccessToken(jwt)
+                except TokenError as error:
+                    return HttpResponseForbidden()
+            else:
+                return HttpResponseForbidden()
+
+            # grant access if the user is owner of the requested photo
+            # or the photo is shared with the user
+            image_hash = fname.split(".")[0].split('_')[0]  # janky alert
+            query_start = datetime.datetime.now()
+            user = User.objects.filter(id=token['user_id']).only('id').first()
+            # print('query', (datetime.datetime.now() - query_start).total_seconds())
+            if photo.owner == user or user in photo.shared_to.all():
+                response = HttpResponse()
+                response['Content-Type'] = 'image/jpeg'
+                response[
+                    'X-Accel-Redirect'] = internal_path
+                # print('response', (datetime.datetime.now() - start).total_seconds())
+                return response
+            else:
+                for album in photo.albumuser_set.only('shared_to'):
+                    if user in album.shared_to.all():
+                        response = HttpResponse()
+                        response['Content-Type'] = 'image/jpeg'
+                        response[
+                            'X-Accel-Redirect'] = internal_path
+                        # print((datetime.datetime.now() - start).total_seconds())
+                        return response
+            return HttpResponse(status=404)
+
+
+
+
 def media_access(request, path):
     # ipdb.set_trace()
     """
@@ -1897,7 +2096,6 @@ def media_access(request, path):
     access_granted = False
 
     user = request.user
-    print('AUTHORIZATION' in request.META.keys())
     if user.is_authenticated:
         if user.is_staff:
             # If admin, everything is granted

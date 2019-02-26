@@ -7,6 +7,7 @@ from api.models import *
 import owncloud as nextcloud
 from api.api_util import get_current_job
 from nextcloud.directory_watcher import scan_photos
+from api.util import logger
 
 
 # Create your views here.
@@ -34,7 +35,7 @@ class ScanPhotosView(APIView):
     def get(self, requests, format=None):
         if get_current_job() is None:
             # The user who triggers the photoscan event owns imported photos
-            print(requests.user)
+            logger.info(requests.user.username)
             res = scan_photos.delay(requests.user)
             return Response({'status': True, 'job_id': res.id})
         else:

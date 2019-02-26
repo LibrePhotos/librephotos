@@ -10,6 +10,7 @@ from django.db.models import Count
 from django.db.models import Q
 from django.db.models import Prefetch
 import os
+from api.vector_bank import im2vec_bank
 
 
 class SimpleUserSerializer(serializers.ModelSerializer):
@@ -84,6 +85,7 @@ class PhotoSerializer(serializers.ModelSerializer):
     big_square_thumbnail_url = serializers.SerializerMethodField()
     small_square_thumbnail_url = serializers.SerializerMethodField()
     tiny_square_thumbnail_url = serializers.SerializerMethodField()
+    similar_photos = serializers.SerializerMethodField()
 
     image_url = serializers.SerializerMethodField()
     people = serializers.SerializerMethodField()
@@ -101,7 +103,21 @@ class PhotoSerializer(serializers.ModelSerializer):
                   'small_square_thumbnail_url', 'tiny_square_thumbnail_url',
                   'geolocation_json', 'exif_json', 'people', 'image_url',
                   'image_hash', 'image_path', 'favorited', 'hidden', 'public',
-                  'shared_to')
+                  'shared_to', 'similar_photos')
+
+    def get_similar_photos(self, obj):
+        candidates = im2vec_bank.search_similar(obj.image_hash)
+        image_hashes = [c['image_hash'] for c in candidates]
+
+        owned_and_visible = [
+            res.image_hash for res in Photo.objects.filter(
+                hidden=False).filter(image_hash__in=image_hashes).filter(
+                    owner=obj.owner).only('image_hash')
+        ]
+
+        res = [c for c in candidates if c['image_hash'] in owned_and_visible]
+
+        return res
 
     def get_thumbnail_url(self, obj):
         try:
@@ -218,7 +234,7 @@ class PersonSerializer(serializers.ModelSerializer):
             new_person = Person()
             new_person.name = name
             new_person.save()
-            print('created person with name %s' % name)
+            logger.info('created person {}' % new_person.id)
             return new_person
 
 
@@ -267,15 +283,15 @@ class FaceSerializer(serializers.ModelSerializer):
             p.name = name
             p.save()
             instance.person = p
-            print('created person with name %s' % name)
+            logger.info('created person with name %s' % name)
         if instance.person.name == 'unknown':
             instance.person_label_is_inferred = None
             instance.person_label_probability = 0.
         else:
             instance.person_label_is_inferred = False
             instance.person_label_probability = 1.
-        print('updated label for face %d to %s' % (instance.id,
-                                                   instance.person.name))
+        logger.info('updated label for face %d to %s' % (instance.id,
+                                                         instance.person.name))
         instance.save()
         return instance
 
@@ -437,7 +453,7 @@ class AlbumPersonSerializer(serializers.ModelSerializer):
         res = PhotoSuperSimpleSerializer(obj.get_photos(user), many=True).data
 
         elapsed = (datetime.now() - start).total_seconds()
-        print('serializing photos of faces took %.2f seconds' % elapsed)
+        logger.info('serializing photos of faces took %.2f seconds' % elapsed)
         return res
 
     # todo: remove this unecessary thing
@@ -524,21 +540,27 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
             if instance.cover_photos.count() < 4:
                 instance.cover_photos.add(obj)
         instance.save()
+        logger.info(u'Created user album {} with {} photos'.format(
+            instance.id, len(photos)))
         return instance
 
     def update(self, instance, validated_data):
         #         title = validated_data['title']
         image_hashes = validated_data['photos']
-        print(validated_data)
+        # logger.info(validated_data)
 
         photos = Photo.objects.in_bulk(image_hashes)
         photos_already_in_album = instance.photos.all()
+        cnt = 0
         for pk, obj in photos.items():
             if obj not in photos_already_in_album:
+                cnt += 1
                 instance.photos.add(obj)
                 if instance.cover_photos.count() < 4:
                     instance.cover_photos.add(obj)
         instance.save()
+        logger.info(u'Added {} photos to user album {}'.format(
+            cnt, instance.id))
         return instance
 
 
@@ -612,11 +634,18 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
 
 class AlbumAutoListSerializer(serializers.ModelSerializer):
     photos = PhotoSuperSimpleSerializer
-#     shared_to = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+
+    #     shared_to = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
     class Meta:
         model = AlbumAuto
-        fields = ("id", "title", "timestamp", "photos", "favorited",)
+        fields = (
+            "id",
+            "title",
+            "timestamp",
+            "photos",
+            "favorited",
+        )
 
 
 class LongRunningJobSerializer(serializers.ModelSerializer):
@@ -667,7 +696,7 @@ class UserSerializer(serializers.ModelSerializer):
         }
         fields = ('id', 'username', 'email', 'scan_directory', 'first_name',
                   'public_photo_samples', 'last_name', 'public_photo_count',
-                  'date_joined', 'password', 'avatar','photo_count',
+                  'date_joined', 'password', 'avatar', 'photo_count',
                   'nextcloud_server_address', 'nextcloud_username',
                   'nextcloud_app_password', 'nextcloud_scan_directory')
         # read_only_fields = ('id', 'scan_directory')
@@ -681,12 +710,12 @@ class UserSerializer(serializers.ModelSerializer):
             validated_data.pop('scan_directory')
 
         user = User.objects.create_user(**validated_data)
-        user.save()
+        logger.info("Created user {}".format(user.id))
         return user
 
     def update(self, instance, validated_data):
         # user can only update the following
-        print(validated_data)
+        #print(validated_data)
         if 'email' in validated_data:
             instance.email = validated_data.pop('email')
             instance.save()
@@ -716,7 +745,7 @@ class UserSerializer(serializers.ModelSerializer):
 
         return instance
 
-    def get_photo_count(self,obj):
+    def get_photo_count(self, obj):
         return Photo.objects.filter(owner=obj).count()
 
     def get_public_photo_count(self, obj):
@@ -750,6 +779,8 @@ class ManageUserSerializer(serializers.ModelSerializer):
             if os.path.exists(new_scan_directory):
                 instance.scan_directory = new_scan_directory
                 instance.save()
+                logger.info("Updated scan directory for user {}".format(
+                    instance.scan_directory))
         return instance
 
 

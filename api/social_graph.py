@@ -9,17 +9,17 @@ def build_social_graph(user):
     G = nx.Graph()
 
 
-    me = Person.objects.all().annotate(face_count=Count('faces')).order_by('-face_count').first()
+#     me = Person.objects.all().annotate(face_count=Count('faces')).order_by('-face_count').first()
 
     people = list(Person.objects.all().annotate(face_count=Count('faces')).order_by('-face_count'))[1:]
     for person in people:
-        if person.id == me.id:
-            continue
+#         if person.id == me.id:
+#             continue
         person = Person.objects.prefetch_related('faces__photo__faces__person').filter(id=person.id)[0]
         for this_person_face in person.faces.all():
             for other_person_face in this_person_face.photo.faces.all():
-                if other_person_face.person.id != me.id:
-                    G.add_edge(person.name,other_person_face.person.name)
+#                 if other_person_face.person.id != me.id:
+                G.add_edge(person.name,other_person_face.person.name)
 
     # pos = nx.kamada_kawai_layout(G,scale=1000)
     pos = nx.spring_layout(G,scale=1000,iterations=20)

@@ -27,7 +27,7 @@ RQ_API_TOKEN = os.environ['SECRET_KEY']
 DEBUG = (os.environ.get('DEBUG', '').lower() == 'true')
 
 ALLOWED_HOSTS = [
-    '192.168.1.100', 'localhost', 'ownphotos-api.local',
+    '192.168.1.100', 'localhost', 'ownphotos-api.local','backend',
     os.environ.get('BACKEND_HOST'), 'ownphotos.local'
 ]
 
@@ -265,7 +265,7 @@ THUMBNAIL_SIZE_TINY = (30, 30)
 THUMBNAIL_SIZE_SMALL = (100, 100)
 THUMBNAIL_SIZE_MEDIUM = (500, 500)
 THUMBNAIL_SIZE = (500, 500)
-THUMBNAIL_SIZE_BIG = (1000, 1000)
+THUMBNAIL_SIZE_BIG = (2048, 2048)
 
 FULLPHOTO_SIZE = (1000, 1000)
 

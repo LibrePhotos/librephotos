@@ -8,7 +8,6 @@ def login(user):
     nc.login(user.nextcloud_username, user.nextcloud_app_password)
 
     def path_to_dict(path):
-        print(path)
         d = {'title': os.path.basename(path), 'absolute_path': path}
         try:
             d['children'] = [

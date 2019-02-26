@@ -12,15 +12,18 @@ import numpy as np
 
 import ipdb
 
-from api.flags import \
-    is_auto_albums_being_processed, \
-    is_photos_being_added, \
-    set_auto_album_processing_flag_on, \
-    set_auto_album_processing_flag_off
+# from api.flags import \
+#     is_auto_albums_being_processed, \
+#     is_photos_being_added, \
+#     set_auto_album_processing_flag_on, \
+#     set_auto_album_processing_flag_off
 from django_rq import job
 
 from tqdm import tqdm
 import rq
+from api.util import logger
+import pytz
+
 
 # def is_auto_albums_being_processed():
 #     global FLAG_IS_AUTO_ALBUMS_BEING_PROCESSED
@@ -83,34 +86,18 @@ def regenerate_event_titles(user):
 
 @job
 def generate_event_albums(user):
+    job_id = rq.get_current_job().id
     lrj = LongRunningJob(
         started_by=user,
-        job_id=rq.get_current_job().id,
+        job_id=job_id,
         started_at=datetime.now(),
         job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUMS)
     lrj.save()
 
-    if is_auto_albums_being_processed()['status']:
-        status = False
-        message = "There are even albums being created at the moment. Please try again later."
-        return {'status': status, 'message': message}
 
-    set_auto_album_processing_flag_on()
-    photo_count = Photo.objects.filter(owner=user).count()
-    if photo_count == 0:
-        status = False
-        message = "Please add some more photos!"
-        set_auto_album_processing_flag_off()
-        return {'status': status, 'message': message}
-    else:
-        if is_photos_being_added()['status']:
-            status = False
-            message = "There are photos being added to the library. Please try again later."
-            set_auto_album_processing_flag_off()
-            return {'status': status, 'message': message}
 
     try:
-        photos = Photo.objects.filter(owner=user)
+        photos = Photo.objects.filter(owner=user).only('exif_timestamp')
 
         photos_with_timestamp = [(photo.exif_timestamp, photo)
                                  for photo in photos if photo.exif_timestamp]
@@ -138,14 +125,15 @@ def generate_event_albums(user):
 
         album_locations = []
 
+        date_format = "%Y:%m:%d %H:%M:%S"
         for group in groups:
             key = group[0].exif_timestamp
-            print(key)
+            logger.info('job {}: processing auto album with date: '.format(job_id) + key.strftime(date_format))
             items = group
             if len(group) >= 2:
                 qs = AlbumAuto.objects.filter(timestamp=key).filter(owner=user)
                 if qs.count() == 0:
-                    album = AlbumAuto(created_on=datetime.utcnow(), owner=user)
+                    album = AlbumAuto(created_on=datetime.utcnow().replace(tzinfo=pytz.utc), owner=user)
                     album.timestamp = key
                     album.save()
 
@@ -155,8 +143,6 @@ def generate_event_albums(user):
                         item.save()
                         if item.exif_gps_lat and item.exif_gps_lon:
                             locs.append([item.exif_gps_lat, item.exif_gps_lon])
-                        print('-', item.image_hash, item.exif_gps_lat,
-                              item.exif_gps_lon)
                     if len(locs) > 0:
                         album_location = np.mean(np.array(locs), 0)
                         album_locations.append(album_location)
@@ -166,6 +152,7 @@ def generate_event_albums(user):
                         album_locations.append([])
                     album._autotitle()
                     album.save()
+                    logger.info('job {}: generated auto album {}'.format(job_id,album.id))
         status = True
         message = 'success'
         res = {'status': status, 'message': message}
@@ -186,5 +173,4 @@ def generate_event_albums(user):
         lrj.finished_at = datetime.now()
         lrj.save()
 
-    set_auto_album_processing_flag_off()
     return 1
