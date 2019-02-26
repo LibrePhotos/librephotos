@@ -4,6 +4,10 @@ mkdir -p /code/logs
 
 cp /code/nginx.conf /etc/nginx/sites-enabled/default
 sed -i -e 's/replaceme/'"$BACKEND_HOST"'/g' /etc/nginx/sites-enabled/default
+
+# run nginx as root - see https://github.com/hooram/ownphotos/issues/78
+sed -i -e 's/user www-data/user root/g' /etc/nginx/nginx.conf
+
 service nginx restart
 
 # source /venv/bin/activate
@@ -25,4 +29,4 @@ EOF
 echo "Running backend server..."
 
 /miniconda/bin/python manage.py rqworker default 2>&1 | tee logs/rqworker.log &
-/miniconda/bin/gunicorn --bind 0.0.0.0:8001 ownphotos.wsgi 2>&1 | tee logs/gunicorn.log
+/miniconda/bin/gunicorn --bind 0.0.0.0:8001 --log-level=debug ownphotos.wsgi 2>&1 | tee logs/gunicorn.log

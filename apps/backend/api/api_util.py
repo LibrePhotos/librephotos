@@ -65,9 +65,9 @@ def jump_by_month(start_date, end_date, month_step=1):
         yield current_date
 
 
-def get_location_timeline():
+def get_location_timeline(user):
     qs_photos = Photo.objects.exclude(geolocation_json={}).exclude(
-        exif_timestamp=None).order_by('exif_timestamp')
+        exif_timestamp=None).filter(owner=user).order_by('exif_timestamp')
     photos = qs_photos.all()
     timestamp_loc = [(p.exif_timestamp,
                       p.geolocation_json['features'][-1]['text'])
@@ -131,7 +131,7 @@ def get_search_term_examples(user):
     except ValueError:
         return [
             'for people', 'for places', 'for things', 'for time',
-            'for file path'
+            'for file path or file name'
         ]
 
     search_data = []
@@ -288,8 +288,8 @@ def get_location_clusters(user):
     # return cluster_centers.tolist()
 
 
-def get_photo_country_counts():
-    photos_with_gps = Photo.objects.exclude(geolocation_json=None)
+def get_photo_country_counts(user):
+    photos_with_gps = Photo.objects.exclude(geolocation_json=None).filter(owner=user)
     geolocations = [p.geolocation_json for p in photos_with_gps]
     # countries = [gl['features'][0]['properties']['country'] for gl in geolocations if 'features' in gl.keys() and len(gl['features']) > 0]
     countries = []
@@ -300,13 +300,17 @@ def get_photo_country_counts():
                     countries.append(feature['place_name'])
 
     counts = Counter(countries)
-    print(counts)
+    # print(counts)
     return counts
 
 
-def get_location_sunburst():
+def get_location_sunburst(user):
     photos_with_gps = Photo.objects.exclude(geolocation_json={}).exclude(
-        geolocation_json=None)
+        geolocation_json=None).filter(owner=user)
+
+    if photos_with_gps.count() == 0:
+        return {'children':[]}
+
     geolocations = [p.geolocation_json for p in photos_with_gps]
 
     four_levels = []
@@ -363,8 +367,9 @@ def get_location_sunburst():
     return dataStructure
 
 
-def get_photo_month_counts():
+def get_photo_month_counts(user):
     counts = Photo.objects \
+        .filter(owner=user) \
         .exclude(exif_timestamp=None) \
         .annotate(month=TruncMonth('exif_timestamp')) \
         .values('month') \
@@ -375,28 +380,33 @@ def get_photo_month_counts():
         c['month'] for c in counts
         if c['month'].year >= 2000 and c['month'].year <= datetime.now().year
     ]
-    first_month = min(all_months)
-    last_month = max(all_months)
+    
+    if len(all_months) > 0:
 
-    month_span = jump_by_month(first_month, last_month)
-    counts = sorted(counts, key=lambda k: k['month'])
+        first_month = min(all_months)
+        last_month = max(all_months)
 
-    res = []
-    for count in counts:
-        key = '-'.join([str(count['month'].year), str(count['month'].month)])
-        count = count['c']
-        res.append([key, count])
-    res = dict(res)
+        month_span = jump_by_month(first_month, last_month)
+        counts = sorted(counts, key=lambda k: k['month'])
 
-    out = []
-    for month in month_span:
-        m = '-'.join([str(month.year), str(month.month)])
-        if m in res.keys():
-            out.append({'month': m, 'count': res[m]})
-        else:
-            out.append({'month': m, 'count': 0})
+        res = []
+        for count in counts:
+            key = '-'.join([str(count['month'].year), str(count['month'].month)])
+            count = count['c']
+            res.append([key, count])
+        res = dict(res)
 
-    return out
+        out = []
+        for month in month_span:
+            m = '-'.join([str(month.year), str(month.month)])
+            if m in res.keys():
+                out.append({'month': m, 'count': res[m]})
+            else:
+                out.append({'month': m, 'count': 0})
+
+        return out
+    else:
+        return []
 
 
 captions_sw = [
@@ -415,8 +425,8 @@ captions_sw = [
 ]
 
 
-def get_searchterms_wordcloud():
-    photos = Photo.objects.all().prefetch_related('faces__person')
+def get_searchterms_wordcloud(user):
+    photos = Photo.objects.filter(owner=user).prefetch_related('faces__person')
     captions = []
     locations = []
     people = []

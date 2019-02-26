@@ -41,7 +41,6 @@ import ipdb
 from django_cryptography.fields import encrypt
 from api.im2vec import Im2Vec
 
-
 geolocator = Nominatim()
 default_tz = pytz.timezone('Asia/Seoul')
 im2vec = Im2Vec(cuda=False)
@@ -83,14 +82,22 @@ def get_or_create_person(name):
     return Person.objects.get_or_create(name=name)[0]
 
 
+def get_default_longrunningjob_result():
+    return {'progress': {'target': 0, 'current': 0}}
+
+
 class User(AbstractUser):
     scan_directory = models.CharField(max_length=512, db_index=True)
     avatar = models.ImageField(upload_to='avatars', null=True)
 
-    nextcloud_server_address = models.CharField(max_length=200,default=None,null=True)
-    nextcloud_username = models.CharField(max_length=64,default=None,null=True)
-    nextcloud_app_password = encrypt(models.CharField(max_length=64,default=None,null=True))
-    nextcloud_scan_directory = models.CharField(max_length=512, db_index=True,null=True)
+    nextcloud_server_address = models.CharField(
+        max_length=200, default=None, null=True)
+    nextcloud_username = models.CharField(
+        max_length=64, default=None, null=True)
+    nextcloud_app_password = encrypt(
+        models.CharField(max_length=64, default=None, null=True))
+    nextcloud_scan_directory = models.CharField(
+        max_length=512, db_index=True, null=True)
 
 
 class Photo(models.Model):
@@ -138,13 +145,12 @@ class Photo(models.Model):
     encoding = models.TextField(default=None, null=True)
 
     def _generate_md5(self):
-        print(self.owner.id)
         hash_md5 = hashlib.md5()
         with open(self.image_path, "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
                 hash_md5.update(chunk)
         self.image_hash = hash_md5.hexdigest() + str(self.owner.id)
-        print(self.image_hash)
+        self.save()
 
     def _generate_captions_im2txt(self):
         image_path = self.thumbnail.path
@@ -152,8 +158,8 @@ class Photo(models.Model):
         search_captions = self.search_captions
         try:
             caption = im2txt(image_path)
-            caption = caption.replace("<start>", '').replace(
-                "<end>", '').strip().lower()
+            caption = caption.replace("<start>",
+                                      '').replace("<end>", '').strip().lower()
             captions['im2txt'] = caption
             self.captions_json = captions
             # todo: handle duplicate captions
@@ -165,12 +171,8 @@ class Photo(models.Model):
             return True
         except:
             util.logger.warning(
-                'could not generate im2txt captions for image %s' %
-                image_path)
+                'could not generate im2txt captions for image %s' % image_path)
             return False
-
-
-
 
     def _generate_captions(self):
         image_path = self.thumbnail.path
@@ -388,7 +390,8 @@ class Photo(models.Model):
                 if 'EXIF DateTimeOriginal' in exif.keys():
                     tst_str = exif['EXIF DateTimeOriginal'].values
                     try:
-                        tst_dt = datetime.strptime(tst_str, date_format)
+                        tst_dt = datetime.strptime(
+                            tst_str, date_format).replace(tzinfo=pytz.utc)
                     except:
                         tst_dt = None
                     # ipdb.set_trace()
@@ -418,7 +421,12 @@ class Photo(models.Model):
             try:
                 basename_without_extension = os.path.basename(self.image_path)
                 self.exif_timestamp = dateparser.parse(
-                    basename_without_extension, ignoretz=True, fuzzy=True)
+                    basename_without_extension, ignoretz=True,
+                    fuzzy=True).replace(tzinfo=pytz.utc)
+                util.logger.info(
+                    'determined date from filname for image {} - {}'.format(
+                        self.image_path,
+                        self.exif_timestamp.strftime(date_format)))
             except BaseException:
                 util.logger.warning(
                     "Failed to determine date from filename for image %s" %
@@ -448,7 +456,8 @@ class Photo(models.Model):
                 self.geolocation_json = res
                 if 'search_text' in res.keys():
                     if self.search_location:
-                        self.search_location = self.search_location + ' ' + res['search_text']
+                        self.search_location = self.search_location + ' ' + res[
+                            'search_text']
                     else:
                         self.search_location = res['search_text']
                 self.save()
@@ -458,7 +467,7 @@ class Photo(models.Model):
                 # self.geolocation_json = {}
     def _im2vec(self):
         try:
-            image = PIL.Image.open(self.thumbnail_big)
+            image = PIL.Image.open(self.square_thumbnail_big)
             vec = im2vec.get_vec(image)
             self.encoding = vec.tobytes().hex()
             self.save()
@@ -490,7 +499,8 @@ class Photo(models.Model):
                 face_image = PIL.Image.fromarray(face_image)
 
                 face = Face()
-                face.image_path = self.image_hash + "_" + str(idx_face) + '.jpg'
+                face.image_path = self.image_hash + "_" + str(
+                    idx_face) + '.jpg'
                 face.person = unknown_person
                 face.photo = self
                 face.location_top = face_location[0]
@@ -506,7 +516,8 @@ class Photo(models.Model):
                                 ContentFile(face_io.getvalue()))
                 face_io.close()
                 face.save()
-                print('face saved')
+            logger.info('image {}: {} face(s) saved'.format(
+                self.image_hash, len(face_locations)))
 
     def _add_to_album_thing(self):
         if type(self.captions_json
@@ -587,7 +598,6 @@ class Photo(models.Model):
                                 album_place.save()
         else:
             logger.warning('photo not addded to album place')
-            print('photo not added to album place')
 
     def __str__(self):
         return "%s" % self.image_hash
@@ -625,13 +635,11 @@ class Person(models.Model):
                     'photo',
                     queryset=Photo.objects.exclude(image_hash=None).filter(
                         owner=owner).order_by('-exif_timestamp').only(
-                            'image_hash', 'exif_timestamp', 'favorited','owner__id','public',
+                            'image_hash', 'exif_timestamp', 'favorited',
+                            'owner__id', 'public',
                             'hidden').prefetch_related('owner'))))
 
-        photos = [
-            face.photo for face in faces
-            if hasattr(face.photo, 'owner')
-        ]
+        photos = [face.photo for face in faces if hasattr(face.photo, 'owner')]
         return photos
 
 
@@ -798,6 +806,10 @@ class AlbumAuto(models.Model):
         if (max(timestamps) - min(timestamps)).days >= 3:
             when = '%d days' % ((max(timestamps) - min(timestamps)).days)
 
+        weekend = [5,6]
+        if max(timestamps).weekday() in weekend and min(timestamps).weekday() in weekend and not (max(timestamps).weekday() == min(timestamps).weekday()):
+            when = "Weekend"
+
         title = ' '.join([when, pep, loc]).strip()
         self.title = title
 
@@ -844,7 +856,8 @@ class LongRunningJob(models.Model):
     job_id = models.CharField(max_length=36, unique=True, db_index=True)
     started_at = models.DateTimeField(null=False)
     finished_at = models.DateTimeField(null=True)
-    result = JSONField(default=dict, blank=False, null=False)
+    result = JSONField(
+        default=get_default_longrunningjob_result, blank=False, null=False)
     started_by = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None)
 

@@ -23,7 +23,7 @@ class Im2Vec():
 
         self.model.eval()
 
-        self.scaler = transforms.Scale((224, 224))
+        self.scaler = transforms.Resize((224, 224))
         self.normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                               std=[0.229, 0.224, 0.225])
         self.to_tensor = transforms.ToTensor()

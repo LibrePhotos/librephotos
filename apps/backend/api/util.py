@@ -131,7 +131,6 @@ def mapzen_reverse_geocode(lat,lon):
 def mapbox_reverse_geocode(lat,lon):
     url = "https://api.mapbox.com/geocoding/v5/mapbox.places/%f,%f.json?access_token=%s"%(lon,lat,mapbox_api_key)
     resp = requests.get(url)
-    print(resp)
     if resp.status_code == 200:
         resp_json = resp.json()
         search_terms = []
@@ -141,9 +140,9 @@ def mapbox_reverse_geocode(lat,lon):
                 search_terms.append(feature['text'])
 
         resp_json['search_text'] = ' '.join(search_terms)
+        logger.info('mapbox returned status 200.')
         return resp_json
     else:
         # logger.info('mapbox returned non 200 response.')
-        logger.warning('mapbox returned non 200 response.')
-        print('mapbox returned non 200 response.')
+        logger.warning('mapbox returned status {} response.'.format(resp.status_code))
         return {}
