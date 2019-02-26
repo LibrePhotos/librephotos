@@ -15,7 +15,7 @@ export function searchPhotos(query) {
         .then((response) => {
           var groupedByDate = _.groupBy(response.data.results,(el)=>{
             if (el.exif_timestamp) {
-                return moment(el.exif_timestamp).format('YYYY-MM-DD')
+                return moment.utc(el.exif_timestamp).format('YYYY-MM-DD')
             } else {
                 return "No Timestamp"
             }

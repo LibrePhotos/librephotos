@@ -162,7 +162,7 @@ export function setPhotosPublic(image_hashes, val_public) {
           // console.log(image_hashes.map(ih=>{return serverAddress+'/media/photos/'+ih+'.jpg'}).join(' '))
           const linksToCopy = image_hashes
             .map(ih => {
-              return serverAddress + "/media/photos/" + ih + ".jpg";
+              return serverAddress.slice(2,serverAddress.length) + "/media/photos/" + ih + ".jpg";
             })
             .join(" ");
 

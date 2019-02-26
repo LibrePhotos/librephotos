@@ -22,7 +22,8 @@ import {
   Dropdown,
   Popup,
   Divider,
-  Pagination
+  Pagination,
+
 } from "semantic-ui-react";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
@@ -43,6 +44,7 @@ import {
   updateUser,
   fetchNextcloudDirectoryTree,
   fetchJobList,
+  deleteJob,
   fetchUserList,
   fetchDirectoryTree,
   manageUpdateUser
@@ -155,7 +157,7 @@ export class AdminPage extends Component {
           />
         </Header>
 
-        <Table compact>
+        <Table compact celled>
           <Table.Header>
             <Table.Row>
               <Table.HeaderCell>Username</Table.HeaderCell>
@@ -247,22 +249,33 @@ class JobList extends Component {
     }
   }
 
+
+
   render() {
     return (
       <div>
-        <Table compact attached="top">
+        <Table compact attached="top" celled>
           <Table.Header>
             <Table.Row>
               <Table.HeaderCell>Status</Table.HeaderCell>
               <Table.HeaderCell>Job Type</Table.HeaderCell>
-              <Table.HeaderCell>Time Started</Table.HeaderCell>
-              <Table.HeaderCell>Time Finished</Table.HeaderCell>
+              <Table.HeaderCell width={5}>Progress</Table.HeaderCell>
+              <Table.HeaderCell>Started</Table.HeaderCell>
               <Table.HeaderCell>Duration</Table.HeaderCell>
               <Table.HeaderCell>Started By</Table.HeaderCell>
+              <Table.HeaderCell>Delete</Table.HeaderCell>
             </Table.Row>
           </Table.Header>
           <Table.Body>
             {this.props.jobList.map(job => {
+              let progressPerc = 0
+              if (job.result.progress) {
+                  progressPerc = job.result.progress.current.toFixed()/job.result.progress.target*100
+              }
+              if (job.finished && !job.failed){
+                  progressPerc = 100
+              }
+              const jobSuccess = job.finished && !job.failed
               return (
                 <Table.Row
                   key={job.job_id}
@@ -282,19 +295,22 @@ class JobList extends Component {
                   </Table.Cell>
                   <Table.Cell>{job.job_type_str}</Table.Cell>
                   <Table.Cell>
-                    {moment(job.started_at).format("YYYY-MM-DD") +
-                      " (" +
-                      moment(job.started_at).fromNow() +
-                      ")"}
+                  {job.result.progress ? ( 
+                     <Progress 
+                      indicating
+                      size='small'
+                      progress='ratio'
+                      value={job.result.progress.current}
+                      total={job.result.progress.target}
+                      active={!job.finished} 
+                      success={jobSuccess}>
+                      {(job.result.progress.current.toFixed(2)/job.result.progress.target).toFixed(2)*100}%
+                    </Progress>) : null}
                   </Table.Cell>
                   <Table.Cell>
-                    {job.finished_at
-                      ? moment(job.finished_at).format("YYYY-MM-DD") +
-                        " (" +
-                        moment(job.finished_at).fromNow() +
-                        ")"
-                      : "still running..."}
+                    {moment(job.started_at).fromNow()}
                   </Table.Cell>
+                   
                   <Table.Cell>
                     {job.finished
                       ? moment
@@ -305,6 +321,19 @@ class JobList extends Component {
                       : "still running..."}
                   </Table.Cell>
                   <Table.Cell>{job.started_by.username}</Table.Cell>
+                  <Table.Cell>
+                    <Popup 
+                      trigger={
+                        <Button 
+                          onClick={()=>{
+                            this.props.dispatch(
+                              deleteJob(job.id, this.state.activatePage, this.state.pageSize)
+                            )}}
+                          color='red' size='tiny'>
+                          Remove
+                        </Button>} 
+                      content="Does not actually stop the job, only removes this entry from DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc."/>
+                  </Table.Cell>
                 </Table.Row>
               );
             })}

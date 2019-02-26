@@ -117,8 +117,12 @@ class ModalPersonEdit extends Component {
       this.props.labeledFacesList
     );
 
-    var selectedImageSrcs = this.props.selectedFaces.map(faceID => {
-      return allFaces.filter(face => face.id === faceID)[0].image;
+    var selectedImageIDs = this.props.selectedFaces.map(faceID => {
+      const res = allFaces.filter(face => face.id === faceID)[0].image; 
+      const splitBySlash = res.split('/')
+      console.log(splitBySlash[splitBySlash.length-1])
+      const faceImageID = splitBySlash[splitBySlash.length-1] 
+      return faceImageID
     });
     return (
       <Modal
@@ -146,8 +150,10 @@ class ModalPersonEdit extends Component {
           style={{ height: 100, padding: 5, height: 50, overflowY: "hidden" }}
         >
           <Image.Group>
-            {selectedImageSrcs.map(image => (
-              <SecuredImageJWT key={'selected_image'+image} height={40} width={40} src={image} />
+            {selectedImageIDs.map(image => (
+              <SecuredImageJWT 
+                key={'selected_image'+image} 
+                height={40} width={40} src={serverAddress + '/media/faces/' +image} />
             ))}
           </Image.Group>
         </div>

@@ -43,6 +43,7 @@ import {
   fetchNextcloudDirectoryTree,
   fetchJobList
 } from "../actions/utilActions";
+import {trainFaces} from '../actions/facesActions'
 import {
   scanPhotos,
   scanNextcloudPhotos,
@@ -132,7 +133,9 @@ export class Settings extends Component {
         </Header>
 
         <div>
+
           <Header as="h3">Account</Header>
+
 
           <Grid>
             <Grid.Row>
@@ -228,6 +231,7 @@ export class Settings extends Component {
                 </div>
               </Grid.Column>
             </Grid.Row>
+
 
             <Grid.Row>
               <Grid.Column width={4} textAlign="left">
@@ -491,7 +495,7 @@ export class Settings extends Component {
                     this.props.dispatch(scanNextcloudPhotos());
                   }}
                   disabled={
-                    !this.props.fetchedNextcloudDirectoryTree || buttonsDisabled
+                    !this.props.fetchedNextcloudDirectoryTree || buttonsDisabled || !this.props.userSelfDetails.nextcloud_scan_directory
                   }
                   color="blue"
                 >
@@ -577,7 +581,7 @@ export class Settings extends Component {
                   {this.props.util.countStats.num_people} People
                 </Header>
                 <Divider />
-                <Button fluid color="green">
+                <Button onClick={()=>{this.props.dispatch(trainFaces())}} fluid color="green">
                   <Icon name="lightning" /> Train Faces
                 </Button>
                 <Divider hidden />
@@ -728,8 +732,9 @@ class ModalNextcloudScanDirectoryEdit extends Component {
                   action
                   fluid
                 >
-                  <input value={''}/>
+                  <input value={this.state.newScanDirectory}/>
                   <Button
+                    disabled={this.state.newScanDirectory===""}
                     type="submit"
                     color="green"
                     onClick={() => {

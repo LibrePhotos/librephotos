@@ -501,7 +501,7 @@ export class PhotoListView extends Component {
                           setPhotosPublic([cell.image_hash], true)
                         );
                         copyToClipboard(
-                          serverAddress +
+                          serverAddress.replace('//','') +
                             "/media/photos/" +
                             cell.image_hash +
                             ".jpg"
@@ -1048,7 +1048,7 @@ export class PhotoListView extends Component {
                         );
                         const linksToCopy = this.state.selectedImageHashes
                           .map(
-                            ih => serverAddress + "/media/photos/" + ih + ".jpg"
+                            ih => serverAddress.replace('//','') + "/media/photos/" + ih + ".jpg"
                           )
                           .join("\n");
                         copyToClipboard(linksToCopy);

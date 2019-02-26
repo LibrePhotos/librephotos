@@ -14,7 +14,8 @@ import {
   Menu,
   Popup,
   Segment,
-  Sidebar
+  Sidebar,
+  Progress
 } from "semantic-ui-react";
 import {
   fetchPeopleAlbums,
@@ -317,6 +318,23 @@ export class TopMenu extends Component {
       filteredSuggestedThings
     } = this.state;
 
+
+    let runningJobPopupProgress = null
+    if (this.props.workerRunningJob && this.props.workerRunningJob.result && this.props.workerRunningJob.result.progress) {
+      runningJobPopupProgress = (
+        <div style={{width:150}}>
+        <Progress 
+          indicating
+          progress='ratio' 
+          value={this.props.workerRunningJob.result.progress.current}
+          total={this.props.workerRunningJob.result.progress.target}>
+            Running {this.props.workerRunningJob.job_type_str} ...
+        </Progress>
+        </div>
+      )
+    }
+
+
     // var searchBarWidth =  this.state.width - 130
     return (
       <div>
@@ -372,7 +390,6 @@ export class TopMenu extends Component {
             </Menu.Item>
             <Menu.Item>
               <Popup
-                size="mini"
                 trigger={
                   <Icon
                     style={{ paddingRight: 10 }}
@@ -380,16 +397,13 @@ export class TopMenu extends Component {
                     color={!this.props.workerAvailability ? "red" : "green"}
                   />
                 }
-                inverted
                 position="bottom center"
                 content={
                   this.props.workerAvailability
-                    ? "Worker available!"
+                    ? "Worker available! You can start scanning more photos, infer face labels, auto create event albums, or regenerate auto event album titles."
                     : !this.props.workerAvailability &&
                       this.props.workerRunningJob
-                      ? 'Running "' +
-                        this.props.workerRunningJob.job_type_str +
-                        '"...'
+                      ? runningJobPopupProgress
                       : "Busy..."
                 }
               />

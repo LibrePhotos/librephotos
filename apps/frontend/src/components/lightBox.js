@@ -50,6 +50,7 @@ import styles from "../App.css";
 import Draggable from "react-draggable";
 import debounce from "lodash/debounce";
 import * as moment from "moment";
+import { Link } from "react-router-dom";
 
 var topMenuHeight = 55; // don't change this
 var leftMenuWidth = 85; // don't change this
@@ -100,7 +101,7 @@ export class LightBox extends Component {
       console.log("light box has got main photo detail");
       var mainSrc =
         serverAddress +
-        "/media/photos/" +
+        "/media/thumbnails_big/" +
         this.props.idx2hash.slice(this.props.lightboxImageIndex)[0] +
         ".jpg";
       var mainSrcThumbnail =
@@ -126,7 +127,7 @@ export class LightBox extends Component {
           mainSrc={mainSrc}
           nextSrc={
             serverAddress +
-            "/media/photos/" +
+            "/media/thumbnails_big/" +
             this.props.idx2hash.slice(
               (this.props.lightboxImageIndex + 1) % this.props.idx2hash.length
             )[0] +
@@ -134,7 +135,7 @@ export class LightBox extends Component {
           }
           prevSrc={
             serverAddress +
-            "/media/photos/" +
+            "/media/thumbnails_big/" +
             this.props.idx2hash.slice(
               (this.props.lightboxImageIndex - 1) % this.props.idx2hash.length
             )[0] +
@@ -266,7 +267,7 @@ export class LightBox extends Component {
                     const val = !this.props.photoDetails[image_hash].public;
                     this.props.dispatch(setPhotosPublic([image_hash], val));
                     copyToClipboard(
-                      serverAddress + "/media/photos/" + image_hash + ".jpg"
+                      serverAddress.replace('//','') + "/media/thumbnails_big/" + image_hash + ".jpg"
                     );
                   }}
                   color="black"
@@ -377,7 +378,7 @@ export class LightBox extends Component {
                           <Icon name="calendar" /> Time Taken
                         </Item.Header>
                         <Item.Description>
-                          {moment(
+                          {moment.utc(
                             this.props.photoDetails[
                               this.props.idx2hash[this.props.lightboxImageIndex]
                             ].exif_timestamp
@@ -393,6 +394,9 @@ export class LightBox extends Component {
                         </Item.Header>
                         <Item.Description>
                           <Breadcrumb
+                            as={Link}
+                            to={serverAddress+'/media/photos/'+this.props.idx2hash[this.props.lightboxImageIndex]+'.jpg'}
+                            target='_blank'
                             divider="/"
                             sections={this.props.photoDetails[
                               this.props.idx2hash[this.props.lightboxImageIndex]
@@ -406,7 +410,10 @@ export class LightBox extends Component {
                       </Item.Content>
                     </Item>
 
-                    <Item>
+                    { this.props.photoDetails[
+                              this.props.idx2hash[this.props.lightboxImageIndex]
+                            ].people.length > 0 &&
+                    (<Item>
                       <Item.Content verticalAlign="middle">
                         <Item.Header>
                           <Icon name="users" /> People
@@ -439,9 +446,14 @@ export class LightBox extends Component {
                           </Label.Group>
                         </Item.Description>
                       </Item.Content>
-                    </Item>
+                    </Item>)
+                    }
 
-                    <Item>
+                    {
+                            this.props.photoDetails[
+                              this.props.idx2hash[this.props.lightboxImageIndex]
+                            ].search_location &&
+                    (<Item>
                       <Item.Content verticalAlign="middle">
                         <Item.Header>
                           <Icon name="point" /> Location
@@ -454,7 +466,8 @@ export class LightBox extends Component {
                           }
                         </Item.Description>
                       </Item.Content>
-                    </Item>
+                    </Item>)
+                    }
 
                     <div
                       style={{
@@ -625,6 +638,28 @@ export class LightBox extends Component {
                         </Item.Description>
                       </Item.Content>
                     </Item>
+                    <Item>
+                      <Item.Content verticalAlign="middle">
+                        <Item.Header>
+                          <Icon name="images"/>Similar Photos
+                        </Item.Header>
+                        <Item.Description>
+                          <Image.Group>
+                          {
+                                this.props.photoDetails[
+                                  this.props.idx2hash[
+                                    this.props.lightboxImageIndex
+                                  ]
+                                ].similar_photos.slice(0,30).map(el=>(
+                                  <Image width={95} height={95} 
+                                    src={serverAddress+"/media/square_thumbnails_small/"+el.image_hash+".jpg"}/>
+                                ))
+                          }
+                          </Image.Group>
+                        </Item.Description>
+                      </Item.Content>
+                    </Item>
+
                   </Item.Group>
                 </div>
               </div>
