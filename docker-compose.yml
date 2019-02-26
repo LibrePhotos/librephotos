@@ -43,7 +43,7 @@ services:
     volumes:
       # Your photos go here
       - $HOME/Pictures/:/data
-      - media:/code/protected_media
+      - $HOME/ownphotos_media:/code/protected_media
     environment:
       - SECRET_KEY=change_meme
       # This is backend host from within the service, you dont need to change this
@@ -63,6 +63,7 @@ services:
       - REDIS_HOST=ownphotos-redis
       - REDIS_PORT=6379
       - MAPBOX_API_KEY=CHANGE_MEAAAA
+      - TIME_ZONE=UTC
     links:
       - "ownphotos-db:ownphotos-db"
       - "ownphotos-redis:ownphotos-redis"
