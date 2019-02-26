@@ -43,7 +43,7 @@ services:
     volumes:
       # Your photos go here
       - $HOME/Pictures/:/data
-      - media:/code/media
+      - media:/code/protected_media
     environment:
       - SECRET_KEY=change_meme
       # This is backend host from within the service, you dont need to change this
