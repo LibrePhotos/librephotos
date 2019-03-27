@@ -2,6 +2,7 @@ import { notify } from "reapop";
 import { Server } from "../api_client/apiClient";
 import { fetchDateAlbumsPhotoHashList } from "./albumsActions";
 import { fetchInferredFacesList, fetchLabeledFacesList } from "./facesActions";
+import { fetchUserSelfDetails} from './userActions' ; 
 import { fetchPeople } from "./peopleActions";
 
 
@@ -141,6 +142,7 @@ export function updateUser(user) {
             position: "br"
           })
         )
+        dispatch(fetchUserSelfDetails(user.id))
       })
       .catch(error => {
         dispatch({ type: "UPDATE_USER_REJECTED", payload: error });

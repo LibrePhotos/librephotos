@@ -379,12 +379,12 @@ export class Settings extends Component {
                 fluid
                 disabled={
                   this.state.userDetails &&
-                  !this.state.userSelfDetails.nextcloud_username
+                  !this.props.userSelfDetails.nextcloud_username
                 }
                 placeholder={
-                  this.state.userSelfDetails.nextcloud_scan_directory
+                  this.props.userSelfDetails.nextcloud_scan_directory
                 }>
-                <input value={''} />
+                <input value={this.props.userSelfDetails.nextcloud_scan_directory} />
                 <Button
                   disabled={!this.props.fetchedNextcloudDirectoryTree}
                   onClick={() => {
