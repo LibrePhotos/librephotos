@@ -1,6 +1,7 @@
 from api.models import Face
 from api.models import Person
 from api.models import LongRunningJob
+from api.util import logger
 
 import base64
 import pickle
@@ -22,6 +23,7 @@ from sklearn.manifold import TSNE
 import seaborn as sns
 from django_rq import job
 import rq
+import pytz
 
 import datetime
 
@@ -68,12 +70,20 @@ def cluster_faces(user):
 
 @job
 def train_faces(user):
-    lrj = LongRunningJob(
-        started_by=user,
-        job_id=rq.get_current_job().id,
-        started_at=datetime.datetime.now(),
-        job_type=LongRunningJob.JOB_TRAIN_FACES)
-    lrj.save()
+    job_id = rq.get_current_job().id
+
+    if LongRunningJob.objects.filter(job_id=job_id).exists():
+        lrj = LongRunningJob.objects.get(job_id=job_id)
+        lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
+        lrj.save()
+    else:
+        lrj = LongRunningJob.objects.create(
+            started_by=user,
+            job_id=job_id,
+            queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+            started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+            job_type=LongRunningJob.JOB_TRAIN_FACES)
+        lrj.save()
 
     try:
 
@@ -137,8 +147,10 @@ def train_faces(user):
         face_ids_unknown = [f['id'] for f in id2face_unknown.values()]
         pred = clf.predict(face_encodings_unknown)
         probs = np.max(clf.predict_proba(face_encodings_unknown), 1)
-        for face_id, person_name, probability in zip(face_ids_unknown, pred,
-                                                     probs):
+
+        target_count = len(face_ids_unknown)
+
+        for idx, (face_id, person_name, probability) in enumerate(zip(face_ids_unknown, pred, probs)):
             person = Person.objects.get(name=person_name)
             face = Face.objects.get(id=face_id)
             face.person = person
@@ -146,21 +158,27 @@ def train_faces(user):
             face.person_label_probability = probability
             face.save()
 
+            lrj.result = {
+                'progress': {
+                    "current": idx + 1,
+                    "target": target_count
+                }
+            }
+            lrj.save()
+
 #         res = cluster_faces()
 #         print(res)
 
-        lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
         lrj.finished = True
         lrj.failed = False
         lrj.finished_at = datetime.datetime.now()
-        lrj.result = {}
         lrj.save()
         return True
 
-    except:
+    except BaseException as e:
+        logger.error(str(e))
         res = []
 
-        lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
         lrj.failed = True
         lrj.finished = True
         lrj.finished_at = datetime.datetime.now()

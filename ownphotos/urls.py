@@ -227,7 +227,7 @@ urlpatterns = [
     url(r'^api/photocountrycounts', views.PhotoCountryCountsView.as_view()),
     url(r'^api/photomonthcounts', views.PhotoMonthCountsView.as_view()),
     url(r'^api/wordcloud', views.SearchTermWordCloudView.as_view()),
-    url(r'^api/rebuildfaissindex', views.RebuildIm2VecBank.as_view()),
+
     url(r'^api/similar', views.SearchSimilarPhotosView.as_view()),
 
     url(r'^api/watcher/photo', views.IsPhotosBeingAddedView.as_view()),
@@ -242,6 +242,8 @@ urlpatterns = [
 
     url(r'^api/rqavailable/$', views.QueueAvailabilityView.as_view()),
     url(r'^api/rqjobstat/$', views.RQJobStatView.as_view()),
+    url(r'^api/rqjoblist/$', views.ListAllRQJobsView.as_view()),
+
     url(r'^api/nextcloud/listdir', nextcloud_views.ListDir.as_view()),
     url(r'^api/nextcloud/scanphotos',
         nextcloud_views.ScanPhotosView.as_view()),
@@ -253,5 +255,5 @@ urlpatterns = [
 # ] + static(
 #     settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-urlpatterns += [url('django-rq/', include('django_rq.urls'))]
+urlpatterns += [url(r'^api/django-rq/', include('django_rq.urls'))]
 # urlpatterns += [url(r'^silk/', include('silk.urls', namespace='silk'))]
