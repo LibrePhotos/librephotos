@@ -13,6 +13,7 @@ from tqdm import tqdm
 from config import image_dirs
 
 import api.util as util
+from api.image_similarity import build_image_similarity_index
 
 import ipdb
 from django_rq import job
@@ -20,7 +21,6 @@ import time
 import numpy as np
 import rq
 
-from api.vector_bank import im2vec_bank
 
 from django.db.models import Q
 import json
@@ -141,7 +141,6 @@ def handle_new_image(user, image_path, job_id):
 
                 start = datetime.datetime.now()
                 photo._im2vec()
-                im2vec_bank.add_photo_to_index(photo)
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 elapsed_times['im2vec'] = elapsed
 #                 util.logger.info('im2vec took %.2f' % elapsed)
@@ -165,12 +164,22 @@ def handle_new_image(user, image_path, job_id):
 @job
 def scan_photos(user):
     job_id = rq.get_current_job().id
-    lrj = LongRunningJob(
-        started_by=user,
-        job_id=rq.get_current_job().id,
-        started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-        job_type=LongRunningJob.JOB_SCAN_PHOTOS)
-    lrj.save()
+
+    if LongRunningJob.objects.filter(job_id=job_id).exists():
+        lrj = LongRunningJob.objects.get(job_id=job_id)
+        lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
+        lrj.save()
+    else:
+        lrj = LongRunningJob.objects.create(
+            started_by=user,
+            job_id=job_id,
+            queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+            started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS)
+        lrj.save()
+
+
+
 
     added_photo_count = 0
     already_existing_photo = 0
@@ -214,6 +223,7 @@ def scan_photos(user):
         '''
 
         util.logger.info("Added {} photos".format(len(image_paths_to_add)))
+        build_image_similarity_index(user)
 
         lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
         lrj.finished = True
@@ -225,7 +235,6 @@ def scan_photos(user):
         lrj.save()
     except Exception as e:
         util.logger.error(str(e))
-        util.logger.error(str(traceback.format_exc()))
         lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
         lrj.finished = True
         lrj.failed = True

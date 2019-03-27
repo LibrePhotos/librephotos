@@ -806,8 +806,10 @@ class AlbumAuto(models.Model):
         if (max(timestamps) - min(timestamps)).days >= 3:
             when = '%d days' % ((max(timestamps) - min(timestamps)).days)
 
-        weekend = [5,6]
-        if max(timestamps).weekday() in weekend and min(timestamps).weekday() in weekend and not (max(timestamps).weekday() == min(timestamps).weekday()):
+        weekend = [5, 6]
+        if max(timestamps).weekday() in weekend and min(
+                timestamps).weekday() in weekend and not (
+                    max(timestamps).weekday() == min(timestamps).weekday()):
             when = "Weekend"
 
         title = ' '.join([when, pep, loc]).strip()
@@ -854,7 +856,8 @@ class LongRunningJob(models.Model):
     finished = models.BooleanField(default=False, blank=False, null=False)
     failed = models.BooleanField(default=False, blank=False, null=False)
     job_id = models.CharField(max_length=36, unique=True, db_index=True)
-    started_at = models.DateTimeField(null=False)
+    queued_at = models.DateTimeField(default=datetime.now, null=False)
+    started_at = models.DateTimeField(null=True)
     finished_at = models.DateTimeField(null=True)
     result = JSONField(
         default=get_default_longrunningjob_result, blank=False, null=False)
