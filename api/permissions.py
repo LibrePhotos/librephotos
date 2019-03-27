@@ -1,5 +1,7 @@
 from rest_framework import permissions
 
+from constance import config as site_config
+
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
     """
@@ -48,3 +50,12 @@ class IsPhotoOrAlbumSharedTo(permissions.BasePermission):
                 return True
 
         return False
+
+
+class IsRegistrationAllowed(permissions.BasePermission):
+    """
+    Custom permission to only allow if registration is allowed globally.
+    """
+
+    def has_permission(self, request, view):
+        return bool(site_config.ALLOW_REGISTRATION)
