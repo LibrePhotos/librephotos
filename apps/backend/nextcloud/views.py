@@ -9,8 +9,8 @@ from api.api_util import get_current_job
 from nextcloud.directory_watcher import scan_photos
 from api.util import logger
 
+import datetime
 
-# Create your views here.
 class ListDir(APIView):
     def get(self, request, format=None):
         path = request.query_params['path']
@@ -31,19 +31,22 @@ class ListDir(APIView):
             return Response(status=400)
 
 
+# long running jobs
+
 class ScanPhotosView(APIView):
     def get(self, requests, format=None):
-        if get_current_job() is None:
-            # The user who triggers the photoscan event owns imported photos
-            logger.info(requests.user.username)
-            res = scan_photos.delay(requests.user)
+        try:
+            res = scan_photos.delay(request.user)
+            logger.info('queued job {}'.format(res.id))
+            if not LongRunningJob.objects.filter(job_id=res.id).exists():
+                lrj = LongRunningJob.objects.create(
+                    started_by=request.user,
+                    job_id=res.id,
+                    queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+                    job_type=LongRunningJob.JOB_SCAN_PHOTOS)
+                lrj.save()
             return Response({'status': True, 'job_id': res.id})
-        else:
-            return Response({
-                'status':
-                False,
-                'message':
-                'there are jobs being run',
-                'running_jobs':
-                [job for job in django_rq.get_queue().get_job_ids()]
-            })
+        except BaseException as e:
+            logger.error(str(e))
+            return Response({'status': False})
+

@@ -854,7 +854,8 @@ class LongRunningJob(models.Model):
     finished = models.BooleanField(default=False, blank=False, null=False)
     failed = models.BooleanField(default=False, blank=False, null=False)
     job_id = models.CharField(max_length=36, unique=True, db_index=True)
-    started_at = models.DateTimeField(null=False)
+    queued_at = models.DateTimeField(default=datetime.now,null=False)
+    started_at = models.DateTimeField(null=True)
     finished_at = models.DateTimeField(null=True)
     result = JSONField(
         default=get_default_longrunningjob_result, blank=False, null=False)

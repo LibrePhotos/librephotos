@@ -10,8 +10,6 @@ from sklearn import mixture
 from scipy.spatial import distance
 from sklearn.preprocessing import StandardScaler
 
-
-
 import requests
 
 from config import mapzen_api_key, mapbox_api_key
@@ -22,6 +20,7 @@ import logging.handlers
 import spacy
 
 import django_rq
+from ownphotos.settings import IMAGE_SIMILARITY_SERVER
 
 nlp = spacy.load('en_core_web_sm')
 
@@ -34,9 +33,6 @@ fileHandler = logging.handlers.RotatingFileHandler(
 fileHandler.setFormatter(fomatter)
 logger.addHandler(fileHandler)
 logger.setLevel(logging.INFO)
-
-
-
 
 
 
