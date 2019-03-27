@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import React, {Component} from 'react';
 import {
   Form,
   Radio,
@@ -23,13 +23,12 @@ import {
   Popup,
   Divider,
   Pagination,
+} from 'semantic-ui-react';
+import {connect} from 'react-redux';
+import {Link} from 'react-router-dom';
 
-} from "semantic-ui-react";
-import { connect } from "react-redux";
-import { Link } from "react-router-dom";
-
-import Modal from "react-modal";
-import moment from "moment";
+import Modal from 'react-modal';
+import moment from 'moment';
 
 import {
   fetchCountStats,
@@ -47,33 +46,33 @@ import {
   deleteJob,
   fetchUserList,
   fetchDirectoryTree,
-  manageUpdateUser
-} from "../actions/utilActions";
+  manageUpdateUser,
+} from '../actions/utilActions';
 import {
   scanPhotos,
   scanNextcloudPhotos,
-  fetchPhotos
-} from "../actions/photosActions";
-import { fetchUserSelfDetails } from "../actions/userActions";
-import CountryPiChart from "../components/charts/countryPiChart";
-import { CountStats } from "../components/statistics";
-import WordCloud from "../components/charts/wordCloud";
+  fetchPhotos,
+} from '../actions/photosActions';
+import {fetchUserSelfDetails} from '../actions/userActions';
+import CountryPiChart from '../components/charts/countryPiChart';
+import {CountStats} from '../components/statistics';
+import WordCloud from '../components/charts/wordCloud';
 
-import { AllPhotosMap, EventMap, LocationClusterMap } from "../components/maps";
-import EventCountMonthGraph from "../components/eventCountMonthGraph";
-import FaceClusterScatter from "../components/faceClusterGraph";
-import SocialGraph from "../components/socialGraph";
-import LazyLoad from "react-lazyload";
-import { LocationLink } from "../components/locationLink";
+import {AllPhotosMap, EventMap, LocationClusterMap} from '../components/maps';
+import EventCountMonthGraph from '../components/eventCountMonthGraph';
+import FaceClusterScatter from '../components/faceClusterGraph';
+import SocialGraph from '../components/socialGraph';
+import LazyLoad from 'react-lazyload';
+import {LocationLink} from '../components/locationLink';
 
-import Dropzone from "react-dropzone";
-import AvatarEditor from "react-avatar-editor";
-import MaterialIcon, { colorPallet } from "material-icons-react";
-import SortableTree from "react-sortable-tree";
-import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
+import Dropzone from 'react-dropzone';
+import AvatarEditor from 'react-avatar-editor';
+import MaterialIcon, {colorPallet} from 'material-icons-react';
+import SortableTree from 'react-sortable-tree';
+import FileExplorerTheme from 'react-sortable-tree-theme-file-explorer';
 
 export class AdminPage extends Component {
-  state = { modalOpen: false, userToEdit: null };
+  state = {modalOpen: false, userToEdit: null};
 
   componentDidMount() {
     if (this.props.auth.access.is_admin) {
@@ -94,13 +93,13 @@ export class AdminPage extends Component {
     } else if (this.state.avatarImgSrc) {
       var avatarImgSrc = this.state.avatarImgSrc;
     } else {
-      var avatarImgSrc = "/unknown_user.jpg";
+      var avatarImgSrc = '/unknown_user.jpg';
     }
 
     var buttonsDisabled = !this.props.workerAvailability;
 
     return (
-      <div style={{ padding: 10 }}>
+      <div style={{padding: 10}}>
         <Header as="h2">
           <Icon name="wrench" />
           <Header.Content>Admin Area</Header.Content>
@@ -124,7 +123,7 @@ export class AdminPage extends Component {
                       name="radioGroup"
                       onChange={() =>
                         this.props.dispatch(
-                          setSiteSettings({ allow_registration: true })
+                          setSiteSettings({allow_registration: true}),
                         )
                       }
                       checked={this.props.siteSettings.allow_registration}
@@ -136,7 +135,7 @@ export class AdminPage extends Component {
                       name="radioGroup"
                       onChange={() =>
                         this.props.dispatch(
-                          setSiteSettings({ allow_registration: false })
+                          setSiteSettings({allow_registration: false}),
                         )
                       }
                       checked={!this.props.siteSettings.allow_registration}
@@ -150,11 +149,8 @@ export class AdminPage extends Component {
 
         <Divider />
         <Header as="h3">
-          Users<Loader
-            size="mini"
-            active={this.props.fetchingUserList}
-            inline
-          />
+          Users
+          <Loader size="mini" active={this.props.fetchingUserList} inline />
         </Header>
 
         <Table compact celled>
@@ -177,11 +173,11 @@ export class AdminPage extends Component {
                       onClick={() => {
                         this.setState({
                           userToEdit: user,
-                          modalOpen: true
+                          modalOpen: true,
                         });
                       }}
                     />
-                    {user.scan_directory ? user.scan_directory : "Not set"}
+                    {user.scan_directory ? user.scan_directory : 'Not set'}
                   </Table.Cell>
                   <Table.Cell>{user.photo_count}</Table.Cell>
                   <Table.Cell>{moment(user.date_joined).fromNow()}</Table.Cell>
@@ -192,15 +188,12 @@ export class AdminPage extends Component {
         </Table>
 
         <Divider />
-        <Header as="h3">
-          Worker Logs{" "}
-          <Loader size="mini" active={this.props.fetchingJobList} inline />
-        </Header>
+
         <JobList />
 
         <ModalScanDirectoryEdit
           onRequestClose={() => {
-            this.setState({ modalOpen: false });
+            this.setState({modalOpen: false});
           }}
           userToEdit={this.state.userToEdit}
           isOpen={this.state.modalOpen}
@@ -217,49 +210,61 @@ const modalStyles = {
     right: 40,
     height: window.innerHeight - 300,
 
-    overflow: "hidden",
+    overflow: 'hidden',
     // paddingRight:0,
     // paddingBottomt:0,
     // paddingLeft:10,
     // paddingTop:10,
     padding: 0,
-    backgroundColor: "white"
+    backgroundColor: 'white',
   },
   overlay: {
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    position: "fixed",
+    position: 'fixed',
     borderRadius: 0,
     border: 0,
     zIndex: 102,
-    backgroundColor: "rgba(200,200,200,0.8)"
-  }
+    backgroundColor: 'rgba(200,200,200,0.8)',
+  },
 };
 
 class JobList extends Component {
-  state = { activePage: 1, pageSize: 10 };
+  state = {activePage: 1, pageSize: 10};
 
   componentDidMount() {
     if (this.props.auth.access.is_admin) {
       this.props.dispatch(
-        fetchJobList(this.state.activePage, this.state.pageSize)
+        fetchJobList(this.state.activePage, this.state.pageSize),
       );
     }
   }
 
-
-
   render() {
     return (
       <div>
+        <Header as="h3">
+          Worker Logs{' '}
+          <Loader size="mini" active={this.props.fetchingJobList} inline />
+        </Header>
+        <Button
+          size="mini"
+          onClick={() => {
+            this.props.dispatch(
+              fetchJobList(this.state.activePage, this.state.pageSize),
+            );
+          }}>
+          Reload
+        </Button>
         <Table compact attached="top" celled>
           <Table.Header>
             <Table.Row>
               <Table.HeaderCell>Status</Table.HeaderCell>
               <Table.HeaderCell>Job Type</Table.HeaderCell>
               <Table.HeaderCell width={5}>Progress</Table.HeaderCell>
+              <Table.HeaderCell>Queued</Table.HeaderCell>
               <Table.HeaderCell>Started</Table.HeaderCell>
               <Table.HeaderCell>Duration</Table.HeaderCell>
               <Table.HeaderCell>Started By</Table.HeaderCell>
@@ -268,20 +273,22 @@ class JobList extends Component {
           </Table.Header>
           <Table.Body>
             {this.props.jobList.map(job => {
-              let progressPerc = 0
+              let progressPerc = 0;
               if (job.result.progress) {
-                  progressPerc = job.result.progress.current.toFixed()/job.result.progress.target*100
+                progressPerc =
+                  (job.result.progress.current.toFixed() /
+                    job.result.progress.target) *
+                  100;
               }
-              if (job.finished && !job.failed){
-                  progressPerc = 100
+              if (job.finished && !job.failed) {
+                progressPerc = 100;
               }
-              const jobSuccess = job.finished && !job.failed
+              const jobSuccess = job.finished && !job.failed;
               return (
                 <Table.Row
                   key={job.job_id}
                   error={job.failed}
-                  warning={!job.finished_at}
-                >
+                  warning={!job.finished_at}>
                   <Table.Cell>
                     {job.finished ? (
                       job.failed ? (
@@ -289,50 +296,79 @@ class JobList extends Component {
                       ) : (
                         <Icon name="checkmark" color="green" />
                       )
-                    ) : (
+                    ) : job.started_at ? (
                       <Icon name="refresh" loading color="yellow" />
+                    ) : (
+                      <Icon name="wait" color="blue" />
                     )}
                   </Table.Cell>
                   <Table.Cell>{job.job_type_str}</Table.Cell>
                   <Table.Cell>
-                  {job.result.progress ? ( 
-                     <Progress 
-                      indicating
-                      size='small'
-                      progress='ratio'
-                      value={job.result.progress.current}
-                      total={job.result.progress.target}
-                      active={!job.finished} 
-                      success={jobSuccess}>
-                      {(job.result.progress.current.toFixed(2)/job.result.progress.target).toFixed(2)*100}%
-                    </Progress>) : null}
+                    {job.result.progress.target !== 0 && !job.finished ? (
+                      <Progress
+                        indicating
+                        size="small"
+                        progress="ratio"
+                        value={job.result.progress.current}
+                        total={
+                          job.result.progress.target > 0
+                            ? job.result.progress.target
+                            : 1
+                        }
+                        active={!job.finished}
+                        success={jobSuccess}>
+                        {(
+                          job.result.progress.current.toFixed(2) /
+                          job.result.progress.target
+                        ).toFixed(2) * 100}
+                        %
+                      </Progress>
+                    ) : job.finished ? (
+                      <Progress
+                        success={!job.failed}
+                        error={job.failed}
+                        percent={100}>
+                        {job.result.progress.current} Item(s) processed{' '}
+                      </Progress>
+                    ) : null}
                   </Table.Cell>
+                  <Table.Cell>{moment(job.queued_at).fromNow()}</Table.Cell>
                   <Table.Cell>
-                    {moment(job.started_at).fromNow()}
+                    {job.started_at ? moment(job.started_at).fromNow() : ''}
                   </Table.Cell>
-                   
+
                   <Table.Cell>
                     {job.finished
                       ? moment
                           .duration(
-                            moment(job.finished_at) - moment(job.started_at)
+                            moment(job.finished_at) - moment(job.started_at),
                           )
                           .humanize()
-                      : "still running..."}
+                      : job.started_at
+                      ? 'running'
+                      : ''}
                   </Table.Cell>
                   <Table.Cell>{job.started_by.username}</Table.Cell>
                   <Table.Cell>
-                    <Popup 
+                    <Popup
                       trigger={
-                        <Button 
-                          onClick={()=>{
+                        <Button
+                          onClick={() => {
                             this.props.dispatch(
-                              deleteJob(job.id, this.state.activatePage, this.state.pageSize)
-                            )}}
-                          color='red' size='tiny'>
+                              deleteJob(
+                                job.id,
+                                this.state.activatePage,
+                                this.state.pageSize,
+                              ),
+                            );
+                          }}
+                          color="red"
+                          size="tiny">
                           Remove
-                        </Button>} 
-                      content="Does not actually stop the job, only removes this entry from DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc."/>
+                        </Button>
+                      }
+                      content="Does not actually stop the job, only removes this entry from DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc."
+                    />
                   </Table.Cell>
                 </Table.Row>
               );
@@ -342,19 +378,25 @@ class JobList extends Component {
         <Pagination
           attached="bottom"
           defaultActivePage={this.state.page}
-          ellipsisItem={{ content: <Icon name='ellipsis horizontal' />, icon: true }}
-          firstItem={{ content: <Icon name='angle double left' />, icon: true }}
-          lastItem={{ content: <Icon name='angle double right' />, icon: true }}
-          prevItem={{ content: <Icon name='angle left' />, icon: true }}
-          nextItem={{ content: <Icon name='angle right' />, icon: true }}
-          totalPages={Math.ceil(this.props.jobCount.toFixed(1) / this.state.pageSize)}
-          onPageChange={(e,d)=>{
-            console.log(d.activePage)
-            this.setState({activePage:d.activePage})
-            this.props.dispatch(fetchJobList(d.activePage,this.state.pageSize))
+          ellipsisItem={{
+            content: <Icon name="ellipsis horizontal" />,
+            icon: true,
+          }}
+          firstItem={{content: <Icon name="angle double left" />, icon: true}}
+          lastItem={{content: <Icon name="angle double right" />, icon: true}}
+          prevItem={{content: <Icon name="angle left" />, icon: true}}
+          nextItem={{content: <Icon name="angle right" />, icon: true}}
+          totalPages={Math.ceil(
+            this.props.jobCount.toFixed(1) / this.state.pageSize,
+          )}
+          onPageChange={(e, d) => {
+            console.log(d.activePage);
+            this.setState({activePage: d.activePage});
+            this.props.dispatch(
+              fetchJobList(d.activePage, this.state.pageSize),
+            );
           }}
         />
-
       </div>
     );
   }
@@ -363,14 +405,14 @@ class JobList extends Component {
 class ModalScanDirectoryEdit extends Component {
   constructor(props) {
     super(props);
-    this.state = { newScanDirectory: "", treeData: [] };
+    this.state = {newScanDirectory: '', treeData: []};
     this.nodeClicked = this.nodeClicked.bind(this);
     this.inputRef = React.createRef();
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
     if (prevState.treeData.length === 0) {
-      return { ...prevState, treeData: nextProps.directoryTree };
+      return {...prevState, treeData: nextProps.directoryTree};
     } else {
       return prevState;
     }
@@ -379,7 +421,7 @@ class ModalScanDirectoryEdit extends Component {
   nodeClicked(event, rowInfo) {
     console.log(rowInfo);
     this.inputRef.current.inputRef.value = rowInfo.node.absolute_path;
-    this.setState({ newScanDirectory: rowInfo.node.absolute_path });
+    this.setState({newScanDirectory: rowInfo.node.absolute_path});
   }
 
   render() {
@@ -390,44 +432,40 @@ class ModalScanDirectoryEdit extends Component {
         isOpen={this.props.isOpen}
         onRequestClose={() => {
           this.props.onRequestClose();
-          this.setState({ newScanDirectory: "" });
+          this.setState({newScanDirectory: ''});
         }}
-        style={modalStyles}
-      >
-        <div style={{ padding: 10 }}>
+        style={modalStyles}>
+        <div style={{padding: 10}}>
           <Header as="h3">
-            Set the scan directory for user "{this.props.userToEdit
-              ? this.props.userToEdit.username
-              : "..."}"
+            Set the scan directory for user "
+            {this.props.userToEdit ? this.props.userToEdit.username : '...'}"
             <Header.Subheader>
-              When the user "{this.props.userToEdit
-                ? this.props.userToEdit.username
-                : "..."}" clicks on the 'scan photos' button, photos in the
-              directory that you specify here will be imported under the user's
-              account.
+              When the user "
+              {this.props.userToEdit ? this.props.userToEdit.username : '...'}"
+              clicks on the 'scan photos' button, photos in the directory that
+              you specify here will be imported under the user's account.
             </Header.Subheader>
           </Header>
         </div>
         <Grid>
           <Grid.Row>
             <Grid.Column>
-              <div style={{ padding: 10 }}>
+              <div style={{padding: 10}}>
                 <Header as="h5">User's current directory</Header>
               </div>
-              <div style={{ padding: 7 }}>
+              <div style={{padding: 7}}>
                 <Input
                   ref={this.inputRef}
                   type="text"
                   placeholder={
                     this.props.userToEdit
-                      ? this.props.userToEdit.scan_directory === ""
-                        ? "not set"
+                      ? this.props.userToEdit.scan_directory === ''
+                        ? 'not set'
                         : this.props.userToEdit.scan_directory
-                      : "..."
+                      : '...'
                   }
                   action
-                  fluid
-                >
+                  fluid>
                   <input />
                   <Button
                     type="submit"
@@ -435,13 +473,12 @@ class ModalScanDirectoryEdit extends Component {
                     onClick={() => {
                       const newUserData = {
                         ...this.props.userToEdit,
-                        scan_directory: this.state.newScanDirectory
+                        scan_directory: this.state.newScanDirectory,
                       };
                       console.log(newUserData);
                       this.props.dispatch(manageUpdateUser(newUserData));
                       this.props.onRequestClose();
-                    }}
-                  >
+                    }}>
                     Update
                   </Button>
                 </Input>
@@ -450,31 +487,30 @@ class ModalScanDirectoryEdit extends Component {
           </Grid.Row>
           <Grid.Row>
             <Grid.Column>
-              <div style={{ padding: 10 }}>
+              <div style={{padding: 10}}>
                 <Header as="h5">Choose a directory from below</Header>
               </div>
               <div
                 style={{
                   height: 300,
-                  width: "100%",
+                  width: '100%',
                   paddingLeft: 7,
                   paddingTop: 7,
-                  paddingBottom: 7
-                }}
-              >
+                  paddingBottom: 7,
+                }}>
                 <SortableTree
-                  innerStyle={{ outline: "none" }}
+                  innerStyle={{outline: 'none'}}
                   canDrag={() => false}
                   canDrop={() => false}
                   treeData={this.state.treeData}
-                  onChange={treeData => this.setState({ treeData })}
+                  onChange={treeData => this.setState({treeData})}
                   theme={FileExplorerTheme}
                   generateNodeProps={rowInfo => {
                     let nodeProps = {
-                      onClick: event => this.nodeClicked(event, rowInfo)
+                      onClick: event => this.nodeClicked(event, rowInfo),
                     };
                     if (this.state.selectedNodeId === rowInfo.node.id) {
-                      nodeProps.className = "selected-node";
+                      nodeProps.className = 'selected-node';
                     }
                     return nodeProps;
                   }}
@@ -494,7 +530,7 @@ JobList = connect(store => {
     jobList: store.util.jobList,
     jobCount: store.util.jobCount,
     fetchingJobList: store.util.fetchingJobList,
-    fetchedJobList: store.util.fetchedJobList
+    fetchedJobList: store.util.fetchedJobList,
   };
 })(JobList);
 
@@ -508,7 +544,7 @@ ModalScanDirectoryEdit = connect(store => {
 
     userList: store.util.userList,
     fetchingUSerList: store.util.fetchingUserList,
-    fetchedUserList: store.util.fetchedUserList
+    fetchedUserList: store.util.fetchedUserList,
   };
 })(ModalScanDirectoryEdit);
 
@@ -530,6 +566,6 @@ AdminPage = connect(store => {
     fetchedJobList: store.util.fetchedJobList,
     userList: store.util.userList,
     fetchingUserList: store.util.fetchingUserList,
-    fetchedUserList: store.util.fetchedUserList
+    fetchedUserList: store.util.fetchedUserList,
   };
 })(AdminPage);

@@ -1,51 +1,51 @@
-import React, { Component } from "react";
-import { connect } from "react-redux";
-import { Route, Switch } from "react-router-dom";
-import { ConnectedRouter } from "react-router-redux";
-import NotificationSystem from "reapop";
-import theme from "reapop-theme-wybo";
-import "./App.css";
-import { CountStats } from "./components/statistics";
-import Login from "./containers/login";
-import history from "./history";
+import React, {Component} from 'react';
+import {connect} from 'react-redux';
+import {Route, Switch} from 'react-router-dom';
+import {ConnectedRouter} from 'react-router-redux';
+import NotificationSystem from 'reapop';
+import theme from 'reapop-theme-wybo';
+import './App.css';
+import {CountStats} from './components/statistics';
+import Login from './containers/login';
+import history from './history';
 import {
   FaceScatter,
   Graph,
   LocationTree,
   PhotoMap,
   Timeline,
-  WordClouds
-} from "./layouts/DataVisualization";
-import { FaceDashboard } from "./layouts/FaceDashboardV3";
-import { FavoritePhotos } from "./layouts/FavoritePhotos";
-import { HiddenPhotos } from "./layouts/HiddenPhotos";
-import { SignupPage } from "./layouts/SignUpPage";
-import { UserManagement } from "./layouts/UserManagement";
-import { AlbumAutoGalleryView } from "./layouts/albumAutoGalleryView";
-import { AlbumAuto } from "./layouts/albumAuto";
-import { AlbumPeople } from "./layouts/albumPeople";
-import { AlbumPersonGallery } from "./layouts/albumPersonGallery";
-import { AlbumPlace } from "./layouts/albumPlace";
-import { AlbumPlaceGallery } from "./layouts/albumPlaceGallery";
-import { AlbumThing } from "./layouts/albumThing";
-import { AlbumUser } from "./layouts/albumUser";
-import { AlbumUserGallery } from "./layouts/albumUserGallery";
-import { AllPhotosHashListViewRV } from "./layouts/allPhotosViewHashRV";
-import { SideMenuNarrow, TopMenu } from "./layouts/menubars";
-import { NoTimestampPhotosView } from "./layouts/noTimestampPhotosView";
-import { RecentlyAddedPhotos } from './layouts/RecentlyAddedPhotos';
-import PrivateRoute from "./layouts/privateRoute";
+  WordClouds,
+} from './layouts/DataVisualization';
+import {FaceDashboard} from './layouts/FaceDashboardV3';
+import {FavoritePhotos} from './layouts/FavoritePhotos';
+import {HiddenPhotos} from './layouts/HiddenPhotos';
+import {SignupPage} from './layouts/SignUpPage';
+import {UserManagement} from './layouts/UserManagement';
+import {AlbumAutoGalleryView} from './layouts/albumAutoGalleryView';
+import {AlbumAuto} from './layouts/albumAuto';
+import {AlbumPeople} from './layouts/albumPeople';
+import {AlbumPersonGallery} from './layouts/albumPersonGallery';
+import {AlbumPlace} from './layouts/albumPlace';
+import {AlbumPlaceGallery} from './layouts/albumPlaceGallery';
+import {AlbumThing} from './layouts/albumThing';
+import {AlbumUser} from './layouts/albumUser';
+import {AlbumUserGallery} from './layouts/albumUserGallery';
+import {AllPhotosHashListViewRV} from './layouts/allPhotosViewHashRV';
+import {SideMenuNarrow, TopMenu} from './layouts/menubars';
+import {NoTimestampPhotosView} from './layouts/noTimestampPhotosView';
+import {RecentlyAddedPhotos} from './layouts/RecentlyAddedPhotos';
+import PrivateRoute from './layouts/privateRoute';
 // import {SearchView} from './layouts/search'
-import { SearchView } from "./layouts/searchRV";
-import { Settings } from "./layouts/settings";
-import { AdminPage } from "./layouts/AdminPage";
-import { Statistics } from "./layouts/statistics";
-import { SecuredImage } from "./layouts/Bench";
-import { UserPublicPage } from "./layouts/UserPublicPage";
-import { PublicUserList } from "./layouts/PublicUserList";
-import { LocationClusterMap } from "./components/maps";
-import { SharedToMe } from './layouts/SharedToMe'
-import { SharedFromMe } from './layouts/SharedFromMe'
+import {SearchView} from './layouts/searchRV';
+import {Settings} from './layouts/settings';
+import {AdminPage} from './layouts/AdminPage';
+import {Statistics} from './layouts/statistics';
+import {SecuredImage} from './layouts/Bench';
+import {UserPublicPage} from './layouts/UserPublicPage';
+import {PublicUserList} from './layouts/PublicUserList';
+import {LocationClusterMap} from './components/maps';
+import {SharedToMe} from './layouts/SharedToMe';
+import {SharedFromMe} from './layouts/SharedFromMe';
 /*
 store.subscribe(listener)
 
@@ -69,13 +69,13 @@ class Nav extends React.Component {
     return (
       <div>
         {this.props.showSidebar && <SideMenuNarrow visible={true} />}
-        <TopMenu style={{ zIndex: -1 }} />
+        <TopMenu style={{zIndex: -1}} />
       </div>
     );
   }
 }
 
-const noMenubarPaths = ["/signup", "/login"];
+const noMenubarPaths = ['/signup', '/login'];
 
 class App extends Component {
   /*
@@ -95,9 +95,9 @@ class App extends Component {
           {this.props.location &&
           !noMenubarPaths.includes(this.props.location.pathname) &&
           !(
-            this.props.location.pathname.startsWith("/public") ||
-            this.props.location.pathname.startsWith("/user/") ||
-            this.props.location.pathname.startsWith("/users/")
+            this.props.location.pathname.startsWith('/public') ||
+            this.props.location.pathname.startsWith('/user/') ||
+            this.props.location.pathname.startsWith('/users/')
           ) ? (
             <Nav showSidebar={this.props.showSidebar} />
           ) : (
@@ -169,8 +169,10 @@ class App extends Component {
             />
 
             <PrivateRoute path="/shared/tome/:which" component={SharedToMe} />
-            <PrivateRoute path="/shared/fromme/:which" component={SharedFromMe} />
-
+            <PrivateRoute
+              path="/shared/fromme/:which"
+              component={SharedFromMe}
+            />
 
             <PrivateRoute path="/admin" component={AdminPage} />
 
@@ -191,7 +193,7 @@ class App extends Component {
 App = connect(store => {
   return {
     showSidebar: store.ui.showSidebar,
-    location: store.routerReducer.location
+    location: store.routerReducer.location,
   };
 })(App);
 
