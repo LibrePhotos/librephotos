@@ -55,7 +55,7 @@ from api.serializers_serpy import AlbumDateListWithPhotoHashSerializer as AlbumD
 from api.serializers_serpy import PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy
 from api.serializers_serpy import PhotoSuperSimpleSerializerWithAddedOn as PhotoSuperSimpleSerializerWithAddedOnSerpy
 from api.serializers_serpy import SharedPhotoSuperSimpleSerializer as SharedPhotoSuperSimpleSerializerSerpy
-from api.permissions import IsOwnerOrReadOnly, IsUserOrReadOnly, IsPhotoOrAlbumSharedTo
+from api.permissions import IsOwnerOrReadOnly, IsUserOrReadOnly, IsPhotoOrAlbumSharedTo, IsRegistrationAllowed
 
 from api.face_classify import train_faces, cluster_faces
 from api.social_graph import build_social_graph, build_ego_graph
@@ -1225,7 +1225,11 @@ class UserViewSet(viewsets.ModelViewSet):
         return queryset
 
     def get_permissions(self):
-        if self.request.method == 'GET' or self.request.method == 'POST':
+        if self.action == 'create':
+            self.permission_classes = (IsRegistrationAllowed, )
+        elif self.action == 'list':
+            self.permission_classes = (IsAdminUser, )
+        elif self.request.method == 'GET' or self.request.method == 'POST':
             self.permission_classes = (AllowAny, )
         else:
             self.permission_classes = (IsUserOrReadOnly, )
