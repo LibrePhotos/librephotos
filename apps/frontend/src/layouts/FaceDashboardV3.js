@@ -320,7 +320,10 @@ export class FaceDashboard extends Component {
     var inferredGroupedByPersonList = _
       .sortBy(_.toPairsIn(inferredGroupedByPerson), el => el[0])
       .map(el => {
-        return { person_name: el[0], faces: el[1] };
+        return {
+          person_name: el[0],
+          faces: _.reverse(_.sortBy(el[1], el2 => el2.person_label_probability)),
+        };
       });
 
     var labeledGroupedByPerson = _.groupBy(
