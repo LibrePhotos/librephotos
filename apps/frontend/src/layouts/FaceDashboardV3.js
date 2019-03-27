@@ -61,7 +61,7 @@ const SPEED_THRESHOLD = 500;
 
 function fuzzy_match(str, pattern) {
   if (pattern.split("").length > 0) {
-    pattern = pattern.split("").reduce(function(a, b) {
+    pattern = pattern.split("").map(a => _.escapeRegExp(a)).reduce(function(a, b) {
       return a + ".*" + b;
     });
     return new RegExp(pattern).test(str);
