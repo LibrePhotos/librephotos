@@ -214,8 +214,21 @@ RQ_QUEUES = {
     'default': {
         'USE_REDIS_CACHE': 'default',
         'DEFAULT_TIMEOUT': -1,
+        'DB':0
     }
 }
+
+# RQ_QUEUES = {
+#     'default': {
+#         'DB': 'ownhotos',
+#         'NAME': os.environ['DB_NAME'],
+#         'USER': os.environ['DB_USER'],
+#         'PASSWORD': os.environ['DB_PASS'],
+#         'HOST': os.environ['DB_HOST'],
+#         'PORT': os.environ['DB_PORT'],
+#         'DEFAULT_TIMEOUT': -1,
+#     }
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/1.11/ref/settings/#auth-password-validators
@@ -271,6 +284,8 @@ FULLPHOTO_SIZE = (1000, 1000)
 
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
+
+IMAGE_SIMILARITY_SERVER = 'http://localhost:8002'
 
 # SILKY_PYTHON_PROFILER = True
 # SILKY_PYTHON_PROFILER_BINARY = True

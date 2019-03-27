@@ -10,7 +10,7 @@ from django.db.models import Count
 from django.db.models import Q
 from django.db.models import Prefetch
 import os
-from api.vector_bank import im2vec_bank
+from api.image_similarity import search_similar_image
 
 
 class SimpleUserSerializer(serializers.ModelSerializer):
@@ -106,18 +106,8 @@ class PhotoSerializer(serializers.ModelSerializer):
                   'shared_to', 'similar_photos')
 
     def get_similar_photos(self, obj):
-        candidates = im2vec_bank.search_similar(obj.image_hash)
-        image_hashes = [c['image_hash'] for c in candidates]
-
-        owned_and_visible = [
-            res.image_hash for res in Photo.objects.filter(
-                hidden=False).filter(image_hash__in=image_hashes).filter(
-                    owner=obj.owner).only('image_hash')
-        ]
-
-        res = [c for c in candidates if c['image_hash'] in owned_and_visible]
-
-        return res
+        res = search_similar_image(obj.owner,obj)
+        return [ {'image_hash':e} for e in res['result']]
 
     def get_thumbnail_url(self, obj):
         try:
@@ -654,7 +644,7 @@ class LongRunningJobSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = LongRunningJob
-        fields = ('job_id', 'finished', 'finished_at', 'started_at', 'failed',
+        fields = ('job_id', 'queued_at', 'finished', 'finished_at', 'started_at', 'failed',
                   'job_type_str', 'job_type', 'started_by', 'result', 'id')
 
     def get_job_type_str(self, obj):

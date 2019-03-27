@@ -61,7 +61,7 @@ from api.face_classify import train_faces, cluster_faces
 from api.social_graph import build_social_graph, build_ego_graph
 from api.autoalbum import generate_event_albums
 
-from api.vector_bank import  im2vec_bank
+from api.image_similarity import search_similar_image
 
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 from django.utils import six
@@ -94,6 +94,7 @@ import random
 import numpy as np
 import base64
 import datetime
+import pytz
 
 from django.core.cache import cache
 from django.utils.encoding import force_text
@@ -939,7 +940,7 @@ class AlbumDateListWithPhotoHashViewSet(viewsets.ReadOnlyModelViewSet):
             .prefetch_related(
                 Prefetch(
                     'photos',
-                    queryset=Photo.objects.all().order_by('-exif_timestamp').only(
+                    queryset=Photo.objects.filter(owner=self.request.user).order_by('-exif_timestamp').only(
                         'image_hash',
                         'public',
                         'exif_timestamp',
@@ -956,8 +957,13 @@ class AlbumDateListWithPhotoHashViewSet(viewsets.ReadOnlyModelViewSet):
     @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         # ipdb.set_trace()
-        return super(AlbumDateListWithPhotoHashViewSet, self).list(
+        start = datetime.datetime.now()
+        res = super(AlbumDateListWithPhotoHashViewSet, self).list(
             *args, **kwargs)
+        elapsed = (datetime.datetime.now() - start).total_seconds()
+        logger.info('querying & serializing took %.2f seconds'%elapsed)
+        return res
+
 
 
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
@@ -1610,21 +1616,8 @@ class SearchTermExamples(APIView):
         return Response({"results": search_term_examples})
 
 
-class RegenerateAutoAlbumTitles(APIView):
-    def get(self, request, format=None):
-        if get_current_job() is None:
-            # res = scan_photos.delay()
-            res = regenerate_event_titles.delay(user=request.user)
-            return Response({'status': True, 'job_id': res.id})
-        else:
-            return Response({
-                'status':
-                False,
-                'message':
-                'there are jobs being run',
-                'running_jobs':
-                [job for job in django_rq.get_queue().get_job_ids()]
-            })
+
+
 
 
 class FaceToLabelView(APIView):
@@ -1695,21 +1688,6 @@ class ClusterFaceView(APIView):
         return Response(res)
 
 
-class TrainFaceView(APIView):
-    def get(self, request, format=None):
-
-        if get_current_job() is None:
-            res = train_faces.delay(request.user)
-            return Response({'status': True, 'job_id': res.id})
-        else:
-            return Response({
-                'status':
-                False,
-                'message':
-                'there are jobs being run',
-                'running_jobs':
-                [job for job in django_rq.get_queue().get_job_ids()]
-            })
 
 
 class SocialGraphView(APIView):
@@ -1726,23 +1704,6 @@ class EgoGraphView(APIView):
         return Response(res)
 
 
-class AutoAlbumGenerateView(APIView):
-    def get(self, request, format=None):
-        if get_current_job() is None:
-            # res = scan_photos.delay()
-            res = generate_event_albums.delay(user=request.user)
-            return Response({'status': True, 'job_id': res.id})
-        else:
-            return Response({
-                'status':
-                False,
-                'message':
-                'there are jobs being run',
-                'running_jobs':
-                [job for job in django_rq.get_queue().get_job_ids()]
-            })
-
-        return Response(res)
 
 
 class StatsView(APIView):
@@ -1792,60 +1753,88 @@ class SearchTermWordCloudView(APIView):
         res = get_searchterms_wordcloud(request.user)
         return Response(res)
 
-
-class ScanPhotosView(APIView):
-    def get(self, request, format=None):
-        try:
-            if get_current_job() is None:
-                # The user who triggers the photoscan event owns imported photos
-                logger.info(request.user.username)
-                res = scan_photos.delay(request.user)
-                return Response({'status': True, 'job_id': res.id})
-            else:
-                return Response({
-                    'status':
-                    False,
-                    'message':
-                    'there are jobs being run',
-                    'running_jobs':
-                    [job for job in django_rq.get_queue().get_job_ids()]
-                })
-        except Exception as e:
-            logger.error(str(e))
-            return Response({'status':False})
-
-class RebuildIm2VecBank(APIView):
-    permission_classes = (IsAuthenticated, )
-
-    def get(self, request, format=None):
-        im2vec_bank.build_index()
-        return Response({
-            'status': True,
-        })
-
 class SearchSimilarPhotosView(APIView):
     permission_classes = (IsAuthenticated, )
 
     def get(self,request,format=None):
         image_hash = request.query_params['image_hash']
-        if 'n' in request.query_params.keys():
-            n = int(request.query_params['n'])
-        else: 
-            n = 50
+        res = search_similar_image(request.user, Photo.objects.get(image_hash=image_hash))
+        return Response({'results':[ {'image_hash':e} for e in res['result'] if image_hash is not e]})
+
+
+# long running jobs
+class ScanPhotosView(APIView):
+    def get(self, request, format=None):
+        try:
+            res = scan_photos.delay(request.user)
+            logger.info('queued job {}'.format(res.id))
+            if not LongRunningJob.objects.filter(job_id=res.id).exists():
+                lrj = LongRunningJob.objects.create(
+                    started_by=request.user,
+                    job_id=res.id,
+                    queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+                    job_type=LongRunningJob.JOB_SCAN_PHOTOS)
+                lrj.save()
+            return Response({'status': True, 'job_id': res.id})
+        except BaseException as e:
+            logger.error(str(e))
+            return Response({'status': False})
+
+
+class RegenerateAutoAlbumTitles(APIView):
+    def get(self, request, format=None):
+        try:
+            res = regenerate_event_titles.delay(user=request.user)
+            logger.info('queued job {}'.format(res.id))
+            if not LongRunningJob.objects.filter(job_id=res.id).exists():
+                lrj = LongRunningJob.objects.create(
+                    started_by=request.user,
+                    job_id=res.id,
+                    queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+                    job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUM_TITLES)
+                lrj.save()
+            return Response({'status': True, 'job_id': res.id})
+        except BaseException as e:
+            logger.error(str(e))
+            return Response({'status': False})
+
+
+class AutoAlbumGenerateView(APIView):
+    def get(self, request, format=None):
 
         try:
-            logger.info('searching {} similar photos to {}'.format(n,image_hash))
-
-            candidates = im2vec_bank.search_similar(image_hash,n)
-            image_hashes = [c['image_hash'] for c in candidates]
-            
-            owned = [res.image_hash for res in Photo.objects.filter(image_hash__in=image_hashes).filter(owner=request.user).only('image_hash')]
-
-            res = [c for c in candidates if c['image_hash'] in owned]
-        except Exception as e:
+            res = generate_event_albums.delay(user=request.user)
+            logger.info('queued job {}'.format(res.id))
+            if not LongRunningJob.objects.filter(job_id=res.id).exists():
+                lrj = LongRunningJob.objects.create(
+                    started_by=request.user,
+                    job_id=res.id,
+                    queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+                    job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUMS)
+                lrj.save()
+            return Response({'status': True, 'job_id': res.id})
+        except BaseException as e:
             logger.error(str(e))
+            return Response({'status': False})
 
-        return Response(res)
+
+class TrainFaceView(APIView):
+    def get(self, request, format=None):
+        try:
+            res = train_faces.delay(user=request.user)
+            logger.info('queued job {}'.format(res.id))
+            if not LongRunningJob.objects.filter(job_id=res.id).exists():
+                lrj = LongRunningJob.objects.create(
+                    started_by=request.user,
+                    job_id=res.id,
+                    queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+                    job_type=LongRunningJob.JOB_TRAIN_FACES)
+                lrj.save()
+            return Response({'status': True, 'job_id': res.id})
+        except BaseException as e:
+            logger.error(str(e))
+            return Response({'status': False})
+
 
 
 
@@ -1879,6 +1868,14 @@ class QueueAvailabilityView(APIView):
 
 
 
+class ListAllRQJobsView(APIView):
+    def get(self,request,format=None):
+        try:
+            all_jobs = django_rq.get_queue().all()
+            logger.info(str(all_jobs))
+        except BaseException as e:
+            logger.error(str(e))
+        return Response({})
 
 
 class RQJobStatView(APIView):

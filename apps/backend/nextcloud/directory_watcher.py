@@ -22,6 +22,7 @@ import time
 import numpy as np
 import rq
 from api.directory_watcher import is_new_image, handle_new_image
+from api.image_similarity import build_image_similarity_index
 
 
 def collect_photos(nc, path, photos):
@@ -35,12 +36,19 @@ def collect_photos(nc, path, photos):
 @job
 def scan_photos(user):
     job_id = rq.get_current_job().id
-    lrj = LongRunningJob(
-        started_by=user,
-        job_id=rq.get_current_job().id,
-        started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-        job_type=LongRunningJob.JOB_SCAN_PHOTOS)
-    lrj.save()
+
+    if LongRunningJob.objects.filter(job_id=job_id).exists():
+        lrj = LongRunningJob.objects.get(job_id=job_id)
+        lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
+        lrj.save()
+    else:
+        lrj = LongRunningJob.objects.create(
+            started_by=user,
+            job_id=job_id,
+            queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+            started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS)
+        lrj.save()
 
     nc = nextcloud.Client(user.nextcloud_server_address)
     nc.login(user.nextcloud_username, user.nextcloud_app_password)
@@ -92,6 +100,7 @@ def scan_photos(user):
             lrj.save()
 
         util.logger.info("Added {} photos".format(len(image_paths_to_add)))
+        build_image_similarity_index(user)
 
         lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
         lrj.finished = True
