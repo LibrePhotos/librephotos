@@ -28,7 +28,7 @@ django-rq==1.2.0
 djangorestframework==3.8.2
 djangorestframework-jwt==1.11.0
 djangorestframework-simplejwt==3.2.3
-dlib==19.16.99
+# dlib==19.16.99 separately installed from source
 docopt==0.6.2
 drf-extensions==0.3.1
 ExifRead==2.1.2
