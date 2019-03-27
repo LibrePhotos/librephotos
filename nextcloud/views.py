@@ -34,7 +34,7 @@ class ListDir(APIView):
 # long running jobs
 
 class ScanPhotosView(APIView):
-    def get(self, requests, format=None):
+    def get(self, request, format=None):
         try:
             res = scan_photos.delay(request.user)
             logger.info('queued job {}'.format(res.id))
