@@ -9,9 +9,8 @@
 ![](https://github.com/hooram/ownphotos/blob/dev/screenshots/Screenshot_2018-11-27_15-01-49.png?raw=true)
 
 ## Live demo
-Live [demo avilable here](http://ownphotos.gnethomelinux.com/).
-Its hosted by the [T.A.M.I makerspace](http://telavivmakers.org/).
-User is admin, password is admin.
+Live [demo avilable here](https://demo.ownphotos.io).
+User is demo, password is demo1234.
 
 ## Discord Server
 https://discord.gg/dPCdTBN
