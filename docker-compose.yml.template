@@ -45,9 +45,9 @@ services:
     #build: .
     container_name: ownphotos-backend
     volumes:
-      - /photos/on/host:/data
-      - /path/to/store/thumbnails/on/host:/code/protected_media
-      - /path/to/store/logs/on/host:/code/logs
+      - /photos/on/host:/data # CHANGE ME
+      - /path/to/store/thumbnails/on/host:/code/protected_media # CHANGE ME
+      - /path/to/store/logs/on/host:/code/logs # CHANGE ME
     environment:
       - SECRET_KEY=changeme # CHANGE ME
       - BACKEND_HOST=backend # DON'T CHANGE ME
