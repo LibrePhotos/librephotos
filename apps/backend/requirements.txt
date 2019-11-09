@@ -25,7 +25,7 @@ django-filter==2.0.0
 django-picklefield==1.0.0
 django-redis==4.9.0
 django-rq==1.2.0
-djangorestframework==3.8.2
+djangorestframework==3.9.1
 djangorestframework-jwt==1.11.0
 djangorestframework-simplejwt==3.2.3
 # dlib==19.16.99 separately installed from source
