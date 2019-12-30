@@ -41,7 +41,7 @@ export function setPhotosShared(image_hashes, val_shared, target_user) {
             position: "br"
           })
         );
-        if (image_hashes.length == 1) {
+        if (image_hashes.length === 1) {
           dispatch(fetchPhotoDetail(image_hashes[0]));
         }
       })
@@ -182,7 +182,7 @@ export function setPhotosPublic(image_hashes, val_public) {
             position: "br"
           })
         );
-        if (image_hashes.length == 1) {
+        if (image_hashes.length === 1) {
           dispatch(fetchPhotoDetail(image_hashes[0]));
         }
       })
@@ -223,7 +223,7 @@ export function setPhotosFavorite(image_hashes, favorite) {
             position: "br"
           })
         );
-        if (image_hashes.length == 1) {
+        if (image_hashes.length === 1) {
           dispatch(fetchPhotoDetail(image_hashes[0]));
         }
       })
@@ -264,7 +264,7 @@ export function setPhotosHidden(image_hashes, hidden) {
             position: "br"
           })
         );
-        if (image_hashes.length == 1) {
+        if (image_hashes.length === 1) {
           dispatch(fetchPhotoDetail(image_hashes[0]));
         }
       })

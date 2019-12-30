@@ -139,7 +139,7 @@ export class LocationLink extends React.Component {
               d => (d.isExpanded ? d.children : null)
             )}
             size={[sizeWidth, sizeHeight]}
-            separation={(a, b) => (a.parent == b.parent ? 1 : 0.5) / a.depth}
+            separation={(a, b) => (a.parent === b.parent ? 1 : 0.5) / a.depth}
           >
             {({ data }) => (
               <Group top={origin.y} left={origin.x}>

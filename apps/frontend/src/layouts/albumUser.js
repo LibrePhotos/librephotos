@@ -67,7 +67,7 @@ export class AlbumUser extends Component {
   componentWillMount() {
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
-    if (this.props.albumsUserList.length == 0) {
+    if (this.props.albumsUserList.length === 0) {
       this.props.dispatch(fetchUserAlbumsList());
     }
   }

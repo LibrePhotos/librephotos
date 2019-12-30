@@ -78,7 +78,7 @@ export class AlbumPeopleCard extends Component {
   render() {
     var album_id = this.props.person.key
     console.log(this.props)
-    if (this.props.person.value=='unknown'){
+    if (this.props.person.value==='unknown'){
       var personImageSrc = '/unknown_user.jpg'
     }
     else {
@@ -186,7 +186,7 @@ export class AlbumAutoGallery extends Component {
     if (this.props.fetchedAlbumsAuto) {
       console.log(albumID)
       var album = this.props.albumsAuto.filter(function(a){
-        return a.id == albumID
+        return a.id === albumID
       })
 
       var mappedRenderablePhotoArray = album[0].photos.map(function(photo){
@@ -242,7 +242,7 @@ export class AlbumAutoCard extends Component {
   }
 
   onRate(e,d) {
-    if (d.rating == 0) {
+    if (d.rating === 0) {
       console.log('unfavorited',this.props.album_id)
       var rating = false
     }
@@ -343,7 +343,7 @@ export class AlbumAutoCardPlain extends Component {
   }
 
   onRate(e,d) {
-    if (d.rating == 0) {
+    if (d.rating === 0) {
       console.log('unfavorited',this.props.album.id)
       var rating = false
     }
@@ -465,7 +465,7 @@ export class AlbumDateCard extends Component {
   }
 
   onRate(e,d) {
-    if (d.rating == 0) {
+    if (d.rating === 0) {
       console.log('unfavorited',this.props.album_id)
       var rating = false
     }
@@ -576,7 +576,7 @@ export class AlbumDateCardPlain extends Component {
   }
 
   onRate(e,d) {
-    if (d.rating == 0) {
+    if (d.rating === 0) {
       console.log('unfavorited',this.props.album.id)
       var rating = false
     }

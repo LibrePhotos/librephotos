@@ -40,7 +40,7 @@ export class NoTimestampPhotosView extends Component {
 
     static getDerivedStateFromProps(nextProps,prevState){
         const photos = nextProps.noTimestampPhotos.filter(photo=>photo.image_hash)
-        if (prevState.idx2hash.length != photos.length) {
+        if (prevState.idx2hash.length !== photos.length) {
 
             var t0 = performance.now();
             var groupedByDate = _.groupBy(photos,(el)=>{

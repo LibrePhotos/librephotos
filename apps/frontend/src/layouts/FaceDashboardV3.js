@@ -404,7 +404,7 @@ export class FaceDashboard extends Component {
       selectedFaces.push(faceID);
     }
     this.setState({ selectedFaces: selectedFaces });
-    if (selectedFaces.length == 0) {
+    if (selectedFaces.length === 0) {
       this.setState({ selectMode: false });
     }
   }

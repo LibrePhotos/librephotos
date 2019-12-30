@@ -28,7 +28,7 @@ export class CountryPiChart extends Component {
       var counts = Object.keys(countDict).map(function(key){
         return countDict[key]
       })
-      if (counts.length == 0){counts = [1]}
+      if (counts.length === 0){counts = [1]}
       console.log(counts)
       var series = [{data:counts}]
       var map = (

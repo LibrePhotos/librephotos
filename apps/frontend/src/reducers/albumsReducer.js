@@ -362,7 +362,7 @@ export default function reducer(
       var index = -1;
 
       for (var i = 0; i < new_album_list.length; i++) {
-        if (new_album_list[i].id == action.payload.id) {
+        if (new_album_list[i].id === action.payload.id) {
           index = i;
         }
       }

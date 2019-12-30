@@ -240,14 +240,14 @@ export class PhotoListView extends Component {
       selectedImageHashes.push(hash);
     }
     this.setState({ selectedImageHashes: selectedImageHashes });
-    if (selectedImageHashes.length == 0) {
+    if (selectedImageHashes.length === 0) {
       this.setState({ selectMode: false });
     }
   }
 
   onGroupSelect(hashes) {
     if (
-      _.intersection(hashes, this.state.selectedImageHashes).length ==
+      _.intersection(hashes, this.state.selectedImageHashes).length ===
       hashes.length
     ) {
       // for deselect
@@ -259,7 +259,7 @@ export class PhotoListView extends Component {
       var selectedImageHashes = _.union(this.state.selectedImageHashes, hashes);
     }
     this.setState({ selectedImageHashes: selectedImageHashes });
-    if (selectedImageHashes.length == 0) {
+    if (selectedImageHashes.length === 0) {
       this.setState({ selectMode: false });
     }
   }
@@ -287,7 +287,7 @@ export class PhotoListView extends Component {
                 <Header as="h3">
                   <Icon name="calendar outline" />
                   <Header.Content>
-                    {cell.date == "No Timestamp"
+                    {cell.date === "No Timestamp"
                       ? "No Timestamp"
                       : this.props.dayHeaderPrefix 
                         ? this.props.dayHeaderPrefix + moment(cell.date).format("MMM Do YYYY, dddd") 
@@ -308,7 +308,7 @@ export class PhotoListView extends Component {
                     _.intersection(
                       cell.photos.map(el => el.image_hash),
                       this.state.selectedImageHashes
-                    ).length == cell.photos.length
+                    ).length === cell.photos.length
                       ? "blue"
                       : "grey"
                   }
@@ -337,7 +337,7 @@ export class PhotoListView extends Component {
                 <Header as="h3">
                   <Icon name="calendar outline" />
                   <Header.Content>
-                    {cell.date == "No Timestamp"
+                    {cell.date === "No Timestamp"
                       ? "No Timestamp"
                       : this.props.dayHeaderPrefix 
                         ? this.props.dayHeaderPrefix + moment(cell.date).format("MMM Do YYYY, dddd") 

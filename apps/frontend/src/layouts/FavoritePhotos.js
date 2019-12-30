@@ -48,7 +48,7 @@ export class FavoritePhotos extends Component {
 
   static getDerivedStateFromProps(nextProps,prevState){
       const photos = nextProps.favoritePhotos
-      if (prevState.idx2hash.length != photos.length) {
+      if (prevState.idx2hash.length !== photos.length) {
 
           var t0 = performance.now();
           var groupedByDate = _.groupBy(photos,(el)=>{

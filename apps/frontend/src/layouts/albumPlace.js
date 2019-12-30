@@ -76,7 +76,7 @@ export class AlbumPlace extends Component {
   componentWillMount() {
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize);
-    if (this.props.albumsPlaceList.length == 0) {
+    if (this.props.albumsPlaceList.length === 0) {
       this.props.dispatch(fetchPlaceAlbumsList());
     }
   }

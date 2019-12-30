@@ -170,7 +170,7 @@ export class LocationClusterMap extends Component {
   componentDidMount() {
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize);
-    if (this.props.albumsPlaceList.length == 0) {
+    if (this.props.albumsPlaceList.length === 0) {
       this.props.dispatch(fetchPlaceAlbumsList());
     }
     if (!this.props.fetchedLocationClusters) {
@@ -245,7 +245,7 @@ export class LocationClusterMap extends Component {
 
   preprocess() {
     var markers = this.props.locationClusters.map(function(loc) {
-      if (loc[0] != 0) {
+      if (loc[0] !== 0) {
         return <Marker position={[loc[0], loc[1]]} title={loc[2]} />;
       }
     });
