@@ -45,7 +45,7 @@ export class AlbumPlaceGallery extends Component {
     static getDerivedStateFromProps(nextProps,prevState){
         if (nextProps.albumsPlace.hasOwnProperty(nextProps.match.params.albumID)){
             const photos = nextProps.albumsPlace[nextProps.match.params.albumID].photos
-            if (prevState.idx2hash.length != photos.length) {
+            if (prevState.idx2hash.length !== photos.length) {
 
                 var t0 = performance.now();
                 var groupedByDate = _.groupBy(photos,(el)=>{

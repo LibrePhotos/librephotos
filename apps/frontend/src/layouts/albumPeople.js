@@ -54,7 +54,7 @@ export class AlbumPeople extends Component {
   componentWillMount() {
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize);
-    if (this.props.people.length == 0) {
+    if (this.props.people.length === 0) {
       this.props.dispatch(fetchPeople());
     }
   }

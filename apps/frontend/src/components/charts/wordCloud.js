@@ -22,10 +22,10 @@ export class WordCloud extends Component {
 
 
   render(){
-    if (this.props.type=='captions'){
+    if (this.props.type==='captions'){
       var title = 'Things'
     }
-    else if (this.props.type=='location'){
+    else if (this.props.type==='location'){
       var title = 'Locations'
     }
     else {
@@ -36,10 +36,10 @@ export class WordCloud extends Component {
 
     if (this.props.fetchedWordCloud) {
       var wordCloud = this.props.wordCloud
-      if (this.props.type=='captions'){
+      if (this.props.type==='captions'){
         var series = [{data:wordCloud.captions}]
       }
-      else if (this.props.type=='location'){
+      else if (this.props.type==='location'){
         var series = [{data:wordCloud.locations}]        
       }
       else {

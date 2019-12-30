@@ -47,7 +47,7 @@ export class HiddenPhotos extends Component {
 
   static getDerivedStateFromProps(nextProps,prevState){
       const photos = nextProps.hiddenPhotos
-      if (prevState.idx2hash.length != photos.length) {
+      if (prevState.idx2hash.length !== photos.length) {
 
           var t0 = performance.now();
           var groupedByDate = _.groupBy(photos,(el)=>{

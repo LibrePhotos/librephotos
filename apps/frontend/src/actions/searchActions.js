@@ -5,7 +5,7 @@ import moment from 'moment'
 
 export function searchPhotos(query) {
   return function(dispatch) {
-    if (query.trim().length == 0) {
+    if (query.trim().length === 0) {
       dispatch({type:"SEARCH_PHOTOS_EMPTY_QUERY_ERROR"})
       dispatch({type:"SEARCH_EMPTY_QUERY_ERROR"})
     } else {
@@ -39,7 +39,7 @@ export function searchPhotos(query) {
 
 export function searchPeople(query) {
     return function(dispatch) {
-        if (query.trim().length == 0) {
+        if (query.trim().length === 0) {
             dispatch({type:"SEARCH_PHOTOS_EMPTY_QUERY_ERROR"}) // remove this line later
             dispatch({type:"SEARCH_EMPTY_QUERY_ERROR"})
         } else {

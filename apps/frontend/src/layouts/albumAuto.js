@@ -65,7 +65,7 @@ export class AlbumAuto extends Component {
   componentWillMount() {
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize);
-    if (this.props.albumsAutoList.length == 0) {
+    if (this.props.albumsAutoList.length === 0) {
       this.props.dispatch(fetchAutoAlbumsList());
     }
   }
