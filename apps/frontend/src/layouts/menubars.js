@@ -15,7 +15,7 @@ import {
   Popup,
   Segment,
   Sidebar,
-  Progress
+  Progress,
 } from "semantic-ui-react";
 import {
   fetchPeopleAlbums,
@@ -23,7 +23,7 @@ import {
   fetchPlaceAlbumsList,
   fetchThingAlbumsList,
   fetchUserAlbum,
-  fetchUserAlbumsList
+  fetchUserAlbumsList,
 } from "../actions/albumsActions";
 import { logout } from "../actions/authActions";
 import { fetchPeople } from "../actions/peopleActions";
@@ -31,24 +31,23 @@ import {
   searchPeople,
   searchPhotos,
   searchPlaceAlbums,
-  searchThingAlbums
+  searchThingAlbums,
 } from "../actions/searchActions";
 import { toggleSidebar } from "../actions/uiActions";
 import {
   fetchCountStats,
   fetchExampleSearchTerms,
-  fetchWorkerAvailability
+  fetchWorkerAvailability,
 } from "../actions/utilActions";
 import { serverAddress } from "../api_client/apiClient";
 import { SecuredImageJWT } from "../components/SecuredImage";
-
 
 var ENTER_KEY = 13;
 var topMenuHeight = 45; // don't change this
 
 function fuzzy_match(str, pattern) {
   if (pattern.split("").length > 0) {
-    pattern = pattern.split("").reduce(function(a, b) {
+    pattern = pattern.split("").reduce(function (a, b) {
       return a + ".*" + b;
     });
     return new RegExp(pattern).test(str);
@@ -79,7 +78,7 @@ export class TopMenuPublic extends Component {
               <Button
                 color="black"
                 style={{
-                  padding: 2
+                  padding: 2,
                 }}
               >
                 <Image height={30} src="/logo-white.png" />
@@ -88,32 +87,32 @@ export class TopMenuPublic extends Component {
           </Menu.Menu>
 
           <Menu.Item>
-              <Button
-                attached='left'
-                onClick={() => {
-                  this.props.dispatch({
-                    type: "SET_GRID_TYPE",
-                    payload: "dense"
-                  });
-                }}
-                icon
-                active={this.props.gridType === "dense"}
-              >
-                <Icon name="grid layout" />
-              </Button>
-              <Button
-                attached='right'
-                  onClick={() => {
-                  this.props.dispatch({
-                    type: "SET_GRID_TYPE",
-                    payload: "loose"
-                  });
-                }}
-                icon
-                active={this.props.gridType === "loose"}
-              >
-                <Icon name="block layout" />
-              </Button>
+            <Button
+              attached="left"
+              onClick={() => {
+                this.props.dispatch({
+                  type: "SET_GRID_TYPE",
+                  payload: "dense",
+                });
+              }}
+              icon
+              active={this.props.gridType === "dense"}
+            >
+              <Icon name="grid layout" />
+            </Button>
+            <Button
+              attached="right"
+              onClick={() => {
+                this.props.dispatch({
+                  type: "SET_GRID_TYPE",
+                  payload: "loose",
+                });
+              }}
+              icon
+              active={this.props.gridType === "loose"}
+            >
+              <Icon name="block layout" />
+            </Button>
           </Menu.Item>
 
           <Menu.Item position="right">
@@ -136,7 +135,7 @@ export class TopMenu extends Component {
     exampleSearchTerm: "Search...",
     searchBarFocused: false,
     filteredExampleSearchTerms: [],
-    filteredSuggestedPeople: []
+    filteredSuggestedPeople: [],
   };
 
   constructor(props) {
@@ -166,7 +165,7 @@ export class TopMenu extends Component {
           "Search " +
           this.props.exampleSearchTerms[
             Math.floor(Math.random() * this.props.exampleSearchTerms.length)
-          ]
+          ],
       });
     }, 5000);
 
@@ -186,28 +185,28 @@ export class TopMenu extends Component {
       var filteredSuggestedThings = [];
       var filteredSuggestedUserAlbums = [];
     } else {
-      filteredExampleSearchTerms = nextProps.exampleSearchTerms.filter(el =>
+      filteredExampleSearchTerms = nextProps.exampleSearchTerms.filter((el) =>
         fuzzy_match(el.toLowerCase(), prevState.searchText.toLowerCase())
       );
-      filteredSuggestedPeople = nextProps.people.filter(person =>
+      filteredSuggestedPeople = nextProps.people.filter((person) =>
         fuzzy_match(
           person.text.toLowerCase(),
           prevState.searchText.toLowerCase()
         )
       );
-      filteredSuggestedPlaces = nextProps.albumsPlaceList.filter(place =>
+      filteredSuggestedPlaces = nextProps.albumsPlaceList.filter((place) =>
         fuzzy_match(
           place.title.toLowerCase(),
           prevState.searchText.toLowerCase()
         )
       );
-      filteredSuggestedThings = nextProps.albumsThingList.filter(thing =>
+      filteredSuggestedThings = nextProps.albumsThingList.filter((thing) =>
         fuzzy_match(
           thing.title.toLowerCase(),
           prevState.searchText.toLowerCase()
         )
       );
-      filteredSuggestedUserAlbums = nextProps.albumsUserList.filter(album =>
+      filteredSuggestedUserAlbums = nextProps.albumsUserList.filter((album) =>
         fuzzy_match(
           album.title.toLowerCase(),
           prevState.searchText.toLowerCase()
@@ -220,7 +219,7 @@ export class TopMenu extends Component {
       filteredExampleSearchTerms,
       filteredSuggestedPlaces,
       filteredSuggestedThings,
-      filteredSuggestedUserAlbums
+      filteredSuggestedUserAlbums,
     };
   }
 
@@ -248,28 +247,28 @@ export class TopMenu extends Component {
       var filteredSuggestedThings = [];
       var filteredSuggestedUserAlbums = [];
     } else {
-      filteredExampleSearchTerms = this.props.exampleSearchTerms.filter(el =>
+      filteredExampleSearchTerms = this.props.exampleSearchTerms.filter((el) =>
         fuzzy_match(el.toLowerCase(), this.state.searchText.toLowerCase())
       );
-      filteredSuggestedPeople = this.props.people.filter(person =>
+      filteredSuggestedPeople = this.props.people.filter((person) =>
         fuzzy_match(
           person.text.toLowerCase(),
           this.state.searchText.toLowerCase()
         )
       );
-      filteredSuggestedPlaces = this.props.albumsPlaceList.filter(place =>
+      filteredSuggestedPlaces = this.props.albumsPlaceList.filter((place) =>
         fuzzy_match(
           place.title.toLowerCase(),
           this.state.searchText.toLowerCase()
         )
       );
-      filteredSuggestedThings = this.props.albumsThingList.filter(thing =>
+      filteredSuggestedThings = this.props.albumsThingList.filter((thing) =>
         fuzzy_match(
           thing.title.toLowerCase(),
           this.state.searchText.toLowerCase()
         )
       );
-      filteredSuggestedUserAlbums = this.props.albumsUserList.filter(album =>
+      filteredSuggestedUserAlbums = this.props.albumsUserList.filter((album) =>
         fuzzy_match(
           album.title.toLowerCase(),
           this.state.searchText.toLowerCase()
@@ -281,7 +280,7 @@ export class TopMenu extends Component {
       filteredExampleSearchTerms,
       filteredSuggestedPlaces,
       filteredSuggestedThings,
-      filteredSuggestedUserAlbums
+      filteredSuggestedUserAlbums,
     });
   }
 
@@ -315,27 +314,29 @@ export class TopMenu extends Component {
       filteredExampleSearchTerms,
       filteredSuggestedPeople,
       filteredSuggestedPlaces,
-      filteredSuggestedThings
+      filteredSuggestedThings,
     } = this.state;
 
-
-    let runningJobPopupProgress = null
-    if (this.props.workerRunningJob && this.props.workerRunningJob.result && this.props.workerRunningJob.result.progress) {
+    let runningJobPopupProgress = null;
+    if (
+      this.props.workerRunningJob &&
+      this.props.workerRunningJob.result &&
+      this.props.workerRunningJob.result.progress
+    ) {
       runningJobPopupProgress = (
-        <div style={{width:150}}>
-        <Progress 
-          indicating
-          progress='ratio' 
-          value={this.props.workerRunningJob.result.progress.current}
-          total={this.props.workerRunningJob.result.progress.target}>
+        <div style={{ width: 150 }}>
+          <Progress
+            indicating
+            progress="ratio"
+            value={this.props.workerRunningJob.result.progress.current}
+            total={this.props.workerRunningJob.result.progress.target}
+          >
             Running {this.props.workerRunningJob.job_type_str} ...
-        </Progress>
+          </Progress>
         </div>
-      )
+      );
     }
 
-
-    // var searchBarWidth =  this.state.width - 130
     return (
       <div>
         <Menu
@@ -356,7 +357,7 @@ export class TopMenu extends Component {
               <Button
                 color="black"
                 style={{
-                  padding: 2
+                  padding: 2,
                 }}
               >
                 <Image height={30} src="/logo-white.png" />
@@ -375,15 +376,24 @@ export class TopMenu extends Component {
                   _.debounce(() => {
                     this.setState({ searchBarFocused: false });
                   }, 200)();
-                  //this.setState({searchBarFocused:false})
-                  //console.log('searchbar unfocused', this.state.searchBarFocused)
+                }}
+                onKeyDown={(event) => {
+                  switch (event.keyCode) {
+                    case ENTER_KEY:
+                      this.props.dispatch(searchPhotos(this.state.searchText));
+                      this.props.dispatch(push("/search"));
+                      this.setState({searchBarFocused: false});
+                      break;
+                    default:
+                      break;
+                  }
                 }}
                 onChange={this.handleChange}
                 action={{
                   icon: "search",
                   color: "blue",
                   loading: this.props.searchingPhotos,
-                  onClick: this.handleSearch
+                  onClick: this.handleSearch,
                 }}
                 placeholder={this.state.exampleSearchTerm}
               />
@@ -403,8 +413,8 @@ export class TopMenu extends Component {
                     ? "Worker available! You can start scanning more photos, infer face labels, auto create event albums, or regenerate auto event album titles."
                     : !this.props.workerAvailability &&
                       this.props.workerRunningJob
-                      ? runningJobPopupProgress
-                      : "Busy..."
+                    ? runningJobPopupProgress
+                    : "Busy..."
                 }
               />
 
@@ -457,7 +467,7 @@ export class TopMenu extends Component {
               zIndex: 120,
               top: topMenuHeight,
               left: (this.state.width - searchBarWidth) / 2,
-              position: "absolute"
+              position: "absolute",
             }}
           >
             <Header as="h3" attached="top">
@@ -473,11 +483,11 @@ export class TopMenu extends Component {
                 <div
                   style={{
                     maxHeight: window.innerHeight / 8,
-                    overflowY: "auto"
+                    overflowY: "auto",
                   }}
                 >
                   <div style={{ height: 10 }} />
-                  {filteredExampleSearchTerms.slice(0, 10).map(el => {
+                  {filteredExampleSearchTerms.slice(0, 10).map((el) => {
                     return (
                       <p
                         key={"suggestion_" + el}
@@ -513,11 +523,11 @@ export class TopMenu extends Component {
                 <div
                   style={{
                     maxHeight: window.innerHeight / 8,
-                    overflowY: "auto"
+                    overflowY: "auto",
                   }}
                 >
                   <div style={{ height: 10 }} />
-                  {filteredSuggestedUserAlbums.slice(0, 10).map(album => {
+                  {filteredSuggestedUserAlbums.slice(0, 10).map((album) => {
                     return (
                       <p
                         key={"suggestion_place_" + album.title}
@@ -551,11 +561,11 @@ export class TopMenu extends Component {
                 <div
                   style={{
                     maxHeight: window.innerHeight / 8,
-                    overflowY: "auto"
+                    overflowY: "auto",
                   }}
                 >
                   <div style={{ height: 10 }} />
-                  {filteredSuggestedPlaces.slice(0, 10).map(place => {
+                  {filteredSuggestedPlaces.slice(0, 10).map((place) => {
                     return (
                       <p
                         key={"suggestion_place_" + place.title}
@@ -589,11 +599,11 @@ export class TopMenu extends Component {
                 <div
                   style={{
                     maxHeight: window.innerHeight / 8,
-                    overflowY: "auto"
+                    overflowY: "auto",
                   }}
                 >
                   <div style={{ height: 10 }} />
-                  {filteredSuggestedThings.slice(0, 10).map(thing => {
+                  {filteredSuggestedThings.slice(0, 10).map((thing) => {
                     return (
                       <p
                         key={"suggestion_thing_" + thing.title}
@@ -624,11 +634,11 @@ export class TopMenu extends Component {
                     maxWidth: searchBarWidth - 5,
                     height: 60,
                     padding: 5,
-                    overflow: "hidden"
+                    overflow: "hidden",
                   }}
                 >
                   <Image.Group>
-                    {filteredSuggestedPeople.map(person => {
+                    {filteredSuggestedPeople.map((person) => {
                       return (
                         <Popup
                           inverted
@@ -797,18 +807,17 @@ export class SideMenuNarrow extends Component {
               {"  Favorites"}
             </Dropdown.Item>
             <Dropdown.Item
-                  disabled={!this.props.auth.access}
-                  as={Link}
-                  to={
-                    this.props.auth.access
-                      ? `/user/${this.props.auth.access.name}`
-                      : "/"
-                  }
-                >
-                  <Icon color='green' name="globe" />
-                  {"  My Public Photos"}
-                </Dropdown.Item>
-
+              disabled={!this.props.auth.access}
+              as={Link}
+              to={
+                this.props.auth.access
+                  ? `/user/${this.props.auth.access.name}`
+                  : "/"
+              }
+            >
+              <Icon color="green" name="globe" />
+              {"  My Public Photos"}
+            </Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown>
         <div style={{ marginTop: -17 }}>
@@ -892,7 +901,6 @@ export class SideMenuNarrow extends Component {
               <Icon name="users circle" />
               {"  Face Clusters"}
             </Dropdown.Item>
-
           </Dropdown.Menu>
         </Dropdown>
         <div style={{ marginTop: -17 }}>
@@ -949,14 +957,13 @@ export class SideMenuNarrow extends Component {
                   {"  Public photos"}
                 </Dropdown.Item>
 
-
                 <Dropdown.Item as={Link} to="/shared/fromme/photos/">
-                  <Icon name="share" color='red'/>
+                  <Icon name="share" color="red" />
                   {"  You shared"}
                 </Dropdown.Item>
 
                 <Dropdown.Item as={Link} to="/shared/tome/photos/">
-                  <Icon name="share" color='green'/>
+                  <Icon name="share" color="green" />
                   {"  Shared with you"}
                 </Dropdown.Item>
               </Dropdown.Menu>
@@ -1024,7 +1031,8 @@ export class SideMenu extends Component {
           as={Link}
           to="/"
         >
-          <Icon name="image" corner />Browse
+          <Icon name="image" corner />
+          Browse
         </Menu.Item>
 
         <Menu.Item
@@ -1034,12 +1042,14 @@ export class SideMenu extends Component {
           as={Link}
           to="/search"
         >
-          <Icon name="search" corner />Search
+          <Icon name="search" corner />
+          Search
         </Menu.Item>
 
         <Menu.Item>
           <Menu.Header>
-            <Icon name="heart" />Favorites
+            <Icon name="heart" />
+            Favorites
           </Menu.Header>
           <Menu.Menu>
             <Menu.Item
@@ -1055,7 +1065,8 @@ export class SideMenu extends Component {
 
         <Menu.Item>
           <Menu.Header>
-            <Icon name="image" />Albums
+            <Icon name="image" />
+            Albums
           </Menu.Header>
           <Menu.Menu>
             <Menu.Item
@@ -1087,7 +1098,8 @@ export class SideMenu extends Component {
 
         <Menu.Item>
           <Menu.Header>
-            <Icon name="dashboard" />Dashboards
+            <Icon name="dashboard" />
+            Dashboards
           </Menu.Header>
           <Menu.Menu>
             <Menu.Item
@@ -1122,13 +1134,13 @@ export class SideMenu extends Component {
   }
 }
 
-SideMenu = connect(store => {
+SideMenu = connect((store) => {
   return {
-    jwtToken: store.auth.jwtToken
+    jwtToken: store.auth.jwtToken,
   };
 })(SideMenu);
 
-TopMenu = connect(store => {
+TopMenu = connect((store) => {
   return {
     showSidebar: store.ui.showSidebar,
     gridType: store.ui.gridType,
@@ -1158,21 +1170,21 @@ TopMenu = connect(store => {
 
     albumsPlaceList: store.albums.albumsPlaceList,
     fetchingAlbumsPlaceList: store.albums.fetchingAlbumsPlaceList,
-    fetchedAlbumsPlaceList: store.albums.fetchedAlbumsPlaceList
+    fetchedAlbumsPlaceList: store.albums.fetchedAlbumsPlaceList,
   };
 })(TopMenu);
 
-TopMenuPublic = connect(store => {
+TopMenuPublic = connect((store) => {
   return {
     showSidebar: store.ui.showSidebar,
-    gridType: store.ui.gridType
+    gridType: store.ui.gridType,
   };
 })(TopMenuPublic);
 
-SideMenuNarrow = connect(store => {
+SideMenuNarrow = connect((store) => {
   return {
     auth: store.auth,
     jwtToken: store.auth.jwtToken,
-    location: store.routerReducer.location
+    location: store.routerReducer.location,
   };
 })(SideMenuNarrow);
