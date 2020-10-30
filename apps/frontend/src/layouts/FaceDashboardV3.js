@@ -14,20 +14,11 @@ import {
   Label,
   Loader,
   Sticky,
-  Accordion
+  Accordion,
 } from "semantic-ui-react";
 
-import {SecuredImageJWT} from '../components/SecuredImage'
+import { SecuredImageJWT } from "../components/SecuredImage";
 
-import {
-  FaceToLabel,
-  FacesLabeled,
-  FacesInferred,
-  FaceStatistics,
-  FaceTableLabeled,
-  FaceTableInferred
-} from "../components/faces";
-import FaceClusterScatter from "../components/faceClusterGraph";
 import { connect } from "react-redux";
 import {
   deleteFaces,
@@ -37,14 +28,20 @@ import {
   clusterFaces,
   fetchInferredFacesList,
   fetchLabeledFacesList,
-  fetchFacesList
+  fetchFacesList,
 } from "../actions/facesActions";
 import LazyLoad from "react-lazyload";
 import _ from "lodash";
-import { Grid, List, WindowScroller, AutoSizer } from "react-virtualized";
+import {
+  Grid,
+  List,
+  WindowScroller,
+  AutoSizer,
+  CellMeasurer,
+} from "react-virtualized";
 import {
   calculateFaceGridCellSize,
-  calculateFaceGridCells
+  calculateFaceGridCells,
 } from "../util/gridUtils";
 import { ScrollSpeed, SCROLL_DEBOUNCE_DURATION } from "../util/scrollUtils";
 import debounce from "lodash/debounce";
@@ -61,9 +58,12 @@ const SPEED_THRESHOLD = 500;
 
 function fuzzy_match(str, pattern) {
   if (pattern.split("").length > 0) {
-    pattern = pattern.split("").map(a => _.escapeRegExp(a)).reduce(function(a, b) {
-      return a + ".*" + b;
-    });
+    pattern = pattern
+      .split("")
+      .map((a) => _.escapeRegExp(a))
+      .reduce(function (a, b) {
+        return a + ".*" + b;
+      });
     return new RegExp(pattern).test(str);
   } else {
     return false;
@@ -78,12 +78,8 @@ const modalStyles = {
     height: window.innerHeight - 300,
 
     overflow: "hidden",
-    // paddingRight:0,
-    // paddingBottomt:0,
-    // paddingLeft:10,
-    // paddingTop:10,
     padding: 0,
-    backgroundColor: "white"
+    backgroundColor: "white",
   },
   overlay: {
     top: 0,
@@ -94,15 +90,15 @@ const modalStyles = {
     borderRadius: 0,
     border: 0,
     zIndex: 102,
-    backgroundColor: "rgba(200,200,200,0.8)"
-  }
+    backgroundColor: "rgba(200,200,200,0.8)",
+  },
 };
 
 class ModalPersonEdit extends Component {
   state = { newPersonName: "" };
   render() {
     if (this.state.newPersonName.length > 0) {
-      var filteredPeopleList = this.props.people.filter(el =>
+      var filteredPeopleList = this.props.people.filter((el) =>
         fuzzy_match(
           el.text.toLowerCase(),
           this.state.newPersonName.toLowerCase()
@@ -117,12 +113,12 @@ class ModalPersonEdit extends Component {
       this.props.labeledFacesList
     );
 
-    var selectedImageIDs = this.props.selectedFaces.map(faceID => {
-      const res = allFaces.filter(face => face.id === faceID)[0].image; 
-      const splitBySlash = res.split('/')
-      console.log(splitBySlash[splitBySlash.length-1])
-      const faceImageID = splitBySlash[splitBySlash.length-1] 
-      return faceImageID
+    var selectedImageIDs = this.props.selectedFaces.map((faceID) => {
+      const res = allFaces.filter((face) => face.id === faceID)[0].image;
+      const splitBySlash = res.split("/");
+      console.log(splitBySlash[splitBySlash.length - 1]);
+      const faceImageID = splitBySlash[splitBySlash.length - 1];
+      return faceImageID;
     });
     return (
       <Modal
@@ -150,10 +146,13 @@ class ModalPersonEdit extends Component {
           style={{ height: 100, padding: 5, height: 50, overflowY: "hidden" }}
         >
           <Image.Group>
-            {selectedImageIDs.map(image => (
-              <SecuredImageJWT 
-                key={'selected_image'+image} 
-                height={40} width={40} src={serverAddress + '/media/faces/' +image} />
+            {selectedImageIDs.map((image) => (
+              <SecuredImageJWT
+                key={"selected_image" + image}
+                height={40}
+                width={40}
+                src={serverAddress + "/media/faces/" + image}
+              />
             ))}
           </Image.Group>
         </div>
@@ -164,7 +163,7 @@ class ModalPersonEdit extends Component {
             paddingTop: 10,
             overflowY: "scroll",
             height: window.innerHeight - 300 - 100,
-            width: "100%"
+            width: "100%",
           }}
         >
           <div style={{ paddingRight: 5 }}>
@@ -178,13 +177,13 @@ class ModalPersonEdit extends Component {
               }
               position="bottom center"
               open={this.props.people
-                .map(el => el.text.toLowerCase().trim())
+                .map((el) => el.text.toLowerCase().trim())
                 .includes(this.state.newPersonName.toLowerCase().trim())}
               trigger={
                 <Input
                   fluid
                   error={this.props.people
-                    .map(el => el.text.toLowerCase().trim())
+                    .map((el) => el.text.toLowerCase().trim())
                     .includes(this.state.newPersonName.toLowerCase().trim())}
                   onChange={(e, v) => {
                     this.setState({ newPersonName: v.value });
@@ -206,7 +205,7 @@ class ModalPersonEdit extends Component {
                       this.setState({ newPersonName: "" });
                     }}
                     disabled={this.props.people
-                      .map(el => el.text.toLowerCase().trim())
+                      .map((el) => el.text.toLowerCase().trim())
                       .includes(this.state.newPersonName.toLowerCase().trim())}
                     type="submit"
                   >
@@ -218,14 +217,14 @@ class ModalPersonEdit extends Component {
           </div>
           <Divider />
           {filteredPeopleList.length > 0 &&
-            filteredPeopleList.map(item => {
+            filteredPeopleList.map((item) => {
               return (
                 <div
-                  key={'modal_person_face_label_'+item.text}
+                  key={"modal_person_face_label_" + item.text}
                   style={{
                     height: 70,
                     justifyContent: "center",
-                    alignItems: "center"
+                    alignItems: "center",
                   }}
                 >
                   <Header
@@ -263,13 +262,14 @@ class ModalPersonEdit extends Component {
 
 export class FaceDashboard extends Component {
   state = {
+    lastChecked: null,
     activeItem: "labeled",
     entrySquareSize: 200,
     numEntrySquaresPerRow: 10,
     selectMode: false,
     selectedFaces: [],
     modalPersonEditOpen: false,
-    topRowPersonName: null
+    topRowPersonName: null,
   };
 
   handleItemClick = (e, { name }) => this.setState({ activeItem: name });
@@ -285,7 +285,7 @@ export class FaceDashboard extends Component {
     if (scrollSpeed >= SPEED_THRESHOLD) {
       this.setState({
         isScrollingFast: true,
-        scrollTop: scrollTop
+        scrollTop: scrollTop,
       });
     }
 
@@ -298,7 +298,7 @@ export class FaceDashboard extends Component {
 
     if (isScrollingFast) {
       this.setState({
-        isScrollingFast: false
+        isScrollingFast: false,
       });
     }
   }, SCROLL_DEBOUNCE_DURATION);
@@ -315,26 +315,30 @@ export class FaceDashboard extends Component {
 
     var inferredGroupedByPerson = _.groupBy(
       nextProps.inferredFacesList,
-      el => el.person_name
+      (el) => el.person_name
     );
-    var inferredGroupedByPersonList = _
-      .sortBy(_.toPairsIn(inferredGroupedByPerson), el => el[0])
-      .map(el => {
-        return {
-          person_name: el[0],
-          faces: _.reverse(_.sortBy(el[1], el2 => el2.person_label_probability)),
-        };
-      });
+    var inferredGroupedByPersonList = _.sortBy(
+      _.toPairsIn(inferredGroupedByPerson),
+      (el) => el[0]
+    ).map((el) => {
+      return {
+        person_name: el[0],
+        faces: _.reverse(
+          _.sortBy(el[1], (el2) => el2.person_label_probability)
+        ),
+      };
+    });
 
     var labeledGroupedByPerson = _.groupBy(
       nextProps.labeledFacesList,
-      el => el.person_name
+      (el) => el.person_name
     );
-    var labeledGroupedByPersonList = _
-      .sortBy(_.toPairsIn(labeledGroupedByPerson), el => el[0])
-      .map(el => {
-        return { person_name: el[0], faces: el[1] };
-      });
+    var labeledGroupedByPersonList = _.sortBy(
+      _.toPairsIn(labeledGroupedByPerson),
+      (el) => el[0]
+    ).map((el) => {
+      return { person_name: el[0], faces: el[1] };
+    });
     var t1 = performance.now();
 
     var idx2hash = [];
@@ -352,7 +356,7 @@ export class FaceDashboard extends Component {
       inferredCellContents,
       labeledCellContents,
       inferredGroupedByPersonList,
-      labeledGroupedByPersonList
+      labeledGroupedByPersonList,
     };
     return nextState;
   }
@@ -366,14 +370,14 @@ export class FaceDashboard extends Component {
 
     const {
       entrySquareSize,
-      numEntrySquaresPerRow
+      numEntrySquaresPerRow,
     } = calculateFaceGridCellSize(columnWidth);
 
     this.setState({
       width: window.innerWidth,
       height: window.innerHeight,
       entrySquareSize: entrySquareSize,
-      numEntrySquaresPerRow: numEntrySquaresPerRow
+      numEntrySquaresPerRow: numEntrySquaresPerRow,
     });
 
     if (this.state.inferredGroupedByPersonList) {
@@ -382,7 +386,7 @@ export class FaceDashboard extends Component {
         numEntrySquaresPerRow
       ).cellContents;
       this.setState({
-        inferredCellContents
+        inferredCellContents,
       });
     }
     if (this.state.labeledGroupedByPersonList) {
@@ -391,22 +395,56 @@ export class FaceDashboard extends Component {
         numEntrySquaresPerRow
       ).cellContents;
       this.setState({
-        labeledCellContents
+        labeledCellContents,
       });
     }
+  }
+
+  handleClick(e, cell) {
+    if (!this.state.lastChecked) {
+      this.state.lastChecked = cell;
+      this.onFaceSelect(cell.id);
+      return;
+    }
+    if (e.shiftKey) {
+      var currentCellsInRowFormat =
+        this.state.activeItem === "labeled"
+          ? this.state.labeledCellContents
+          : this.state.inferredCellContents;
+
+      var allFacesInCells = [];
+      for (var i = 0; i < currentCellsInRowFormat.length; i++) {
+        for (var j = 0; j < this.state.numEntrySquaresPerRow; j++) {
+          allFacesInCells.push(currentCellsInRowFormat[i][j]);
+        }
+      }
+      var start = allFacesInCells.indexOf(cell);
+      var end = allFacesInCells.indexOf(this.state.lastChecked);
+      console.log(start);
+      console.log(end);
+
+      var facesToSelect = allFacesInCells.slice(
+        Math.min(start, end),
+        Math.max(start, end) + 1
+      );
+      facesToSelect.forEach((face) => this.onFaceSelect(face.id));
+      return;
+    }
+    this.onFaceSelect(cell.id);
+    this.state.lastChecked = cell;
   }
 
   onFaceSelect(faceID) {
     var selectedFaces = this.state.selectedFaces;
     if (selectedFaces.includes(faceID)) {
-      selectedFaces = selectedFaces.filter(item => item !== faceID);
+      selectedFaces = selectedFaces.filter((item) => item !== faceID);
     } else {
       selectedFaces.push(faceID);
     }
     this.setState({ selectedFaces: selectedFaces });
-    if (selectedFaces.length === 0) {
-      this.setState({ selectMode: false });
-    }
+    console.log(selectedFaces.length)
+    console.log(selectedFaces > 0)
+    this.setState({ selectMode: selectedFaces.length > 0 });
   }
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
@@ -427,7 +465,7 @@ export class FaceDashboard extends Component {
               width: this.state.width,
               height: this.state.entrySquareSize,
               justifyContent: "center",
-              alignItems: "center"
+              alignItems: "center",
             }}
           >
             <Header size="huge">
@@ -443,10 +481,10 @@ export class FaceDashboard extends Component {
           labelProbability > 0.9
             ? "green"
             : labelProbability > 0.8
-              ? "yellow"
-              : labelProbability > 0.7
-                ? "orange"
-                : "red";
+            ? "yellow"
+            : labelProbability > 0.7
+            ? "orange"
+            : "red";
 
         var labelProbabilityIcon = (
           <div style={{ right: 6, bottom: 6, position: "absolute" }}>
@@ -512,7 +550,10 @@ export class FaceDashboard extends Component {
           );
         } else {
           // TODO: janky shit going on in the next line!
-          var faceImageSrc = serverAddress+'/media/faces/'+_.reverse(cell.image.split('/'))[0]
+          var faceImageSrc =
+            serverAddress +
+            "/media/faces/" +
+            _.reverse(cell.image.split("/"))[0];
           if (this.state.selectMode) {
             const isSelected = this.state.selectedFaces.includes(cell.id);
             return (
@@ -520,13 +561,13 @@ export class FaceDashboard extends Component {
                 <div
                   style={{
                     padding: 10,
-                    backgroundColor: isSelected ? "#AED6F1" : "#eeeeee"
+                    backgroundColor: isSelected ? "#AED6F1" : "#eeeeee",
                   }}
                 >
                   <SecuredImageJWT
                     rounded
-                    onClick={() => {
-                      this.onFaceSelect(cell.id);
+                    onClick={(e) => {
+                      this.handleClick(e, cell);
                     }}
                     src={faceImageSrc}
                     height={this.state.entrySquareSize - 30}
@@ -542,9 +583,8 @@ export class FaceDashboard extends Component {
               <div key={key} style={{ ...style, padding: 5 }}>
                 <SecuredImageJWT
                   rounded
-                  onClick={() => {
-                    this.setState({ selectMode: true });
-                    this.onFaceSelect(cell.id);
+                  onClick={(e) => {
+                    this.handleClick(e, cell);
                   }}
                   src={faceImageSrc}
                   height={this.state.entrySquareSize - 10}
@@ -599,7 +639,7 @@ export class FaceDashboard extends Component {
             right: 0,
             top: topMenuHeight,
             position: "fixed",
-            padding: 5
+            padding: 5,
           }}
         >
           <Label basic>{this.state.topRowPersonName}</Label>
@@ -612,7 +652,7 @@ export class FaceDashboard extends Component {
             paddingRight: 5,
             height: 40,
             paddingTop: 4,
-            backgroundColor: this.state.selectMode ? "#AED6F1" : "#eeeeee"
+            backgroundColor: this.state.selectMode ? "#AED6F1" : "#eeeeee",
           }}
         >
           <Checkbox
@@ -694,13 +734,13 @@ export class FaceDashboard extends Component {
                     this.setState({
                       topRowPersonName: this.state.labeledCellContents[
                         rowStartIndex
-                      ][0].person_name
+                      ][0].person_name,
                     });
                   } else {
                     this.setState({
                       topRowPersonName: this.state.inferredCellContents[
                         rowStartIndex
-                      ][0].person_name
+                      ][0].person_name,
                     });
                   }
                   // console.log(this.state.labeledCellContents[rowStartIndex][0].person_name)
@@ -726,7 +766,7 @@ export class FaceDashboard extends Component {
           onRequestClose={() => {
             this.setState({
               modalPersonEditOpen: false,
-              selectedFaces: []
+              selectedFaces: [],
             });
           }}
           selectedFaces={this.state.selectedFaces}
@@ -736,7 +776,7 @@ export class FaceDashboard extends Component {
   }
 }
 
-FaceDashboard = connect(store => {
+FaceDashboard = connect((store) => {
   return {
     workerAvailability: store.util.workerAvailability,
     workerRunningJob: store.util.workerRunningJob,
@@ -755,11 +795,11 @@ FaceDashboard = connect(store => {
     fetchingLabeledFacesList: store.faces.fetchingLabeledFacesList,
     fetchedLabeledFacesList: store.faces.fetchedLabeledFacesList,
     fetchingInferredFacesList: store.faces.fetchingInferredFacesList,
-    fetchedInferredFacesList: store.faces.fetchedInferredFacesList
+    fetchedInferredFacesList: store.faces.fetchedInferredFacesList,
   };
 })(FaceDashboard);
 
-ModalPersonEdit = connect(store => {
+ModalPersonEdit = connect((store) => {
   return {
     people: store.people.people,
     fetchingPeople: store.people.fetchingPeople,
@@ -771,25 +811,6 @@ ModalPersonEdit = connect(store => {
     fetchingLabeledFacesList: store.faces.fetchingLabeledFacesList,
     fetchedLabeledFacesList: store.faces.fetchedLabeledFacesList,
     fetchingInferredFacesList: store.faces.fetchingInferredFacesList,
-    fetchedInferredFacesList: store.faces.fetchedInferredFacesList
+    fetchedInferredFacesList: store.faces.fetchedInferredFacesList,
   };
 })(ModalPersonEdit);
-
-/*
-	            <AutoSizer disableHeight style={{outline:'none',padding:0,margin:0}}>
-	              {({width}) => (
-	                <Grid
-	                  style={{outline:'none'}}
-	                  disableHeader={false}
-	                  cellRenderer={this.cellRenderer}
-	                  columnWidth={this.state.entrySquareSize}
-	                  columnCount={this.state.numEntrySquaresPerRow}
-	                  height={this.state.height - topMenuHeight - 60}
-	                  rowHeight={this.state.entrySquareSize+60}
-	                  rowCount={Math.ceil(this.props.albumsUserList.length/this.state.numEntrySquaresPerRow.toFixed(1))}
-	                  width={width}
-	                />
-	              )}
-	            </AutoSizer>  
-
-*/
