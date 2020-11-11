@@ -12,14 +12,10 @@ service nginx restart
 
 # source /venv/bin/activate
 
-
-
-/miniconda/bin/pip install gevent
-
 /miniconda/bin/python image_similarity/main.py 2>&1 | tee logs/gunicorn_image_similarity.log &
-
-/miniconda/bin/python manage.py makemigrations api 2>&1 | tee logs/command_makemigrations.log
-/miniconda/bin/python manage.py migrate 2>&1 | tee logs/command_migrate.log
+/miniconda/bin/python manage.py showmigrations | tee logs/show_migrate.log
+/miniconda/bin/python manage.py makemigrations | tee logs/command_makemigrations.log
+/miniconda/bin/python manage.py migrate | tee logs/command_migrate.log
 /miniconda/bin/python manage.py build_similarity_index 2>&1 | tee logs/command_build_similarity_index.log
 
 /miniconda/bin/python manage.py shell <<EOF

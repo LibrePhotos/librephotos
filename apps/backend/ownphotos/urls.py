@@ -81,118 +81,118 @@ class TokenRefreshView(TokenRefreshView):
 
 router = routers.DefaultRouter()
 
-router.register(r'api/user', views.UserViewSet, base_name='user')
+router.register(r'api/user', views.UserViewSet, basename='user')
 router.register(r'api/manage/user', views.ManageUserViewSet)
 
 router.register(
     r'api/albums/auto/list',
     views.AlbumAutoListViewSet,
-    base_name='album_auto')
+    basename='album_auto')
 router.register(
     r'api/albums/date/list',
     views.AlbumDateListViewSet,
-    base_name='album_date')
+    basename='album_date')
 router.register(
     r'api/albums/date/photohash/list',
     views.AlbumDateListWithPhotoHashViewSet,
-    base_name='album_date')
+    basename='album_date')
 router.register(
     r'api/albums/person/list',
     views.AlbumPersonListViewSet,
-    base_name='person')
+    basename='person')
 router.register(
     r'api/albums/thing/list',
     views.AlbumThingListViewSet,
-    base_name='album_thing')
+    basename='album_thing')
 router.register(
     r'api/albums/place/list',
     views.AlbumPlaceListViewSet,
-    base_name='album_place')
+    basename='album_place')
 router.register(
     r'api/albums/user/list',
     views.AlbumUserListViewSet,
-    base_name='album_user')
+    basename='album_user')
 
 router.register(
     r'api/albums/user/edit',
     views.AlbumUserEditViewSet,
-    base_name='album_user')
+    basename='album_user')
 
 router.register(
     r'api/albums/user/shared/tome',
     views.SharedToMeAlbumUserListViewSet,
-    base_name='album_user')
+    basename='album_user')
 router.register(
     r'api/albums/user/shared/fromme',
     views.SharedFromMeAlbumUserListViewSet,
-    base_name='album_user')
+    basename='album_user')
 
 router.register(
-    r'api/albums/auto', views.AlbumAutoViewSet, base_name='album_auto')
+    r'api/albums/auto', views.AlbumAutoViewSet, basename='album_auto')
 router.register(
-    r'api/albums/person', views.AlbumPersonViewSet, base_name='person')
+    r'api/albums/person', views.AlbumPersonViewSet, basename='person')
 router.register(r'api/albums/date', views.AlbumDateViewSet)
 router.register(
-    r'api/albums/thing', views.AlbumThingViewSet, base_name='album_thing')
+    r'api/albums/thing', views.AlbumThingViewSet, basename='album_thing')
 router.register(
-    r'api/albums/place', views.AlbumPlaceViewSet, base_name='album_place')
+    r'api/albums/place', views.AlbumPlaceViewSet, basename='album_place')
 router.register(
-    r'api/albums/user', views.AlbumUserViewSet, base_name='album_user')
+    r'api/albums/user', views.AlbumUserViewSet, basename='album_user')
 
-router.register(r'api/persons', views.PersonViewSet, base_name='person')
+router.register(r'api/persons', views.PersonViewSet, basename='person')
 
 router.register(
     r'api/photos/shared/tome',
     views.SharedToMePhotoSuperSimpleListViewSet,
-    base_name='photo')
+    basename='photo')
 router.register(
     r'api/photos/shared/fromme',
     views.SharedFromMePhotoSuperSimpleListViewSet2,
-    base_name='photo')
+    basename='photo')
 
 router.register(
     r'api/photos/notimestamp/list',
     views.NoTimestampPhotoHashListViewSet,
-    base_name='photo')
+    basename='photo')
 
-router.register(r'api/photos/edit', views.PhotoEditViewSet, base_name='photo')
+router.register(r'api/photos/edit', views.PhotoEditViewSet, basename='photo')
 
 router.register(
     r'api/photos/recentlyadded',
     views.RecentlyAddedPhotoListViewSet,
-    base_name='photo')
+    basename='photo')
 router.register(
-    r'api/photos/simplelist', views.PhotoSimpleListViewSet, base_name='photo')
+    r'api/photos/simplelist', views.PhotoSimpleListViewSet, basename='photo')
 router.register(
-    r'api/photos/list', views.PhotoSuperSimpleListViewSet, base_name='photo')
+    r'api/photos/list', views.PhotoSuperSimpleListViewSet, basename='photo')
 router.register(
-    r'api/photos/favorites', views.FavoritePhotoListViewset, base_name='photo')
+    r'api/photos/favorites', views.FavoritePhotoListViewset, basename='photo')
 router.register(
-    r'api/photos/hidden', views.HiddenPhotoListViewset, base_name='photo')
+    r'api/photos/hidden', views.HiddenPhotoListViewset, basename='photo')
 router.register(
     r'api/photos/searchlist',
     views.PhotoSuperSimpleSearchListViewSet,
-    base_name='photo')
+    basename='photo')
 
 router.register(
-    r'api/photos/public', views.PublicPhotoListViewset, base_name='photo')
+    r'api/photos/public', views.PublicPhotoListViewset, basename='photo')
 
-router.register(r'api/photos', views.PhotoViewSet, base_name='photo')
+router.register(r'api/photos', views.PhotoViewSet, basename='photo')
 
 router.register(
     r'api/faces/inferred/list',
     views.FaceInferredListViewSet,
-    base_name='face')
+    basename='face')
 
 router.register(
-    r'api/faces/labeled/list', views.FaceLabeledListViewSet, base_name='face')
+    r'api/faces/labeled/list', views.FaceLabeledListViewSet, basename='face')
 
-router.register(r'api/faces/list', views.FaceListViewSet, base_name='face')
+router.register(r'api/faces/list', views.FaceListViewSet, basename='face')
 
 router.register(
-    r'api/faces/inferred', views.FaceInferredViewSet, base_name='face')
+    r'api/faces/inferred', views.FaceInferredViewSet, basename='face')
 router.register(
-    r'api/faces/labeled', views.FaceLabeledViewSet, base_name='face')
+    r'api/faces/labeled', views.FaceLabeledViewSet, basename='face')
 router.register(r'api/faces', views.FaceViewSet)
 
 router.register(r'api/jobs', views.LongRunningJobViewSet)

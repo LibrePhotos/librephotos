@@ -53,7 +53,8 @@ def scan_photos(user):
     nc = nextcloud.Client(user.nextcloud_server_address)
     nc.login(user.nextcloud_username, user.nextcloud_app_password)
 
-    scan_directory = user.nextcloud_scan_directory
+    scan_directory = user.scan_directory
+    user.nextcloud_scan_directory
     photos = []
 
     image_paths = []

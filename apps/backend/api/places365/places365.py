@@ -9,8 +9,6 @@ from torchvision import transforms as trn
 from torch.nn import functional as F
 import os
 import numpy as np
-from scipy.misc import imresize as imresize
-import cv2
 from PIL import Image
 from tqdm import tqdm
 import warnings
@@ -64,40 +62,22 @@ def remove_nonspace_separators(text):
     return ' '.join(' '.join(' '.join(text.split('_')).split('/')).split('-'))
 
 
-# load the labels
-classes, labels_IO, labels_attribute, W_attribute = load_labels()
 
-
-# img_root = '/home/hooram/ownphotos_media/photos/'
-
-# img_paths = [f for f in os.listdir(img_root) if f.endswith('.jpg')]
 
 def inference_places365(img_path):
-
-
-    def hook_feature(module, input, output):
-        features_blobs.append(np.squeeze(output.data.cpu().numpy()))
-
-    def load_model():
-        # this model has a last conv feature map as 14x14
-        # model_file = os.path.join(dir_places365_model,'whole_wideresnet18_places365_python36.pth.tar')
-        model_file = os.path.join(dir_places365_model,'wideresnet18_places365.pth.tar')
-
-        model = wideresnet.resnet18(num_classes=365)
-        checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        model.load_state_dict(state_dict)
-        model.eval()
-        # hook the feature extractor
-        features_names = ['layer4','avgpool'] # this is the last conv layer of the resnet
-        for name in features_names:
-            model._modules.get(name).register_forward_hook(hook_feature)
-        return model
-
-
+    # load the labels
+    classes, labels_IO, labels_attribute, W_attribute = load_labels()
     # load the model
     features_blobs = []
-    model = load_model()
+    # this model has a last conv feature map as 14x14
+    # model_file = os.path.join(dir_places365_model,'whole_wideresnet18_places365_python36.pth.tar')
+    model_file = os.path.join(dir_places365_model,'wideresnet18_places365.pth.tar')
+
+    model = models.__dict__['resnet18'](num_classes=365)
+    checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
+    state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+    model.load_state_dict(state_dict)
+    model.eval()
 
     # load the transformer
     tf = returnTF() # image transformer

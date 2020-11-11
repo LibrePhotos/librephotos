@@ -15,15 +15,12 @@ import base64
 import numpy as np
 import os
 import pytz
-import json
 
 from collections import Counter
 from io import BytesIO
 from django.core.files.base import ContentFile
 
 from geopy.geocoders import Nominatim
-
-# from django.contrib.auth.models import User as BaseUser
 from django.contrib.auth.models import AbstractUser
 
 from django.db.models.signals import post_save, post_delete
@@ -35,9 +32,7 @@ from api.im2txt.sample import im2txt
 
 import requests
 import base64
-from io import StringIO
 
-import ipdb
 from django_cryptography.fields import encrypt
 from api.im2vec import Im2Vec
 
@@ -215,7 +210,9 @@ class Photo(models.Model):
 
         # places365
         try:
+            util.logger.info("Place365 started")
             res_places365 = inference_places365(image_path)
+            util.logger.info("Place365 ended")
             captions['places365'] = res_places365
             self.captions_json = captions
             if self.search_captions:
@@ -229,7 +226,8 @@ class Photo(models.Model):
             self.save()
             util.logger.info(
                 'generated places365 captions for image %s.' % (image_path))
-        except:
+        except Exception as e:
+            util.logger.exception(e)
             util.logger.warning(
                 'could not generate places365 captions for image %s' %
                 image_path)

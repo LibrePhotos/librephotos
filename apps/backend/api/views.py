@@ -64,7 +64,7 @@ from api.autoalbum import generate_event_albums
 from api.image_similarity import search_similar_image
 
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
-from django.utils import six
+import six as six
 
 from api.api_util import \
     get_count_stats, \
@@ -98,7 +98,6 @@ import pytz
 
 from django.core.cache import cache
 from django.utils.encoding import force_text
-from rest_framework_extensions.cache.mixins import CacheResponseMixin
 
 from rest_framework_extensions.cache.decorators import cache_response
 from rest_framework_extensions.key_constructor.constructors import (

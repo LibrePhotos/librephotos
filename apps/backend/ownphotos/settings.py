@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 
 import os
 import datetime
-from api.im2txt.build_vocab import Vocabulary
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -104,8 +103,8 @@ CORS_ALLOW_HEADERS = (
 )
 
 CORS_ORIGIN_WHITELIST = (
-    'localhost:3000',
-    '192.168.1.100:3000',
+    'http://localhost:3000',
+    'http://192.168.1.100:3000'
 )
 
 REST_FRAMEWORK = {
@@ -213,22 +212,14 @@ CACHES = {
 RQ_QUEUES = {
     'default': {
         'USE_REDIS_CACHE': 'default',
-        'DEFAULT_TIMEOUT': -1,
+        'DEFAULT_TIMEOUT': 360,
         'DB':0
     }
 }
 
-# RQ_QUEUES = {
-#     'default': {
-#         'DB': 'ownhotos',
-#         'NAME': os.environ['DB_NAME'],
-#         'USER': os.environ['DB_USER'],
-#         'PASSWORD': os.environ['DB_PASS'],
-#         'HOST': os.environ['DB_HOST'],
-#         'PORT': os.environ['DB_PORT'],
-#         'DEFAULT_TIMEOUT': -1,
-#     }
-# }
+RQ = {
+    'DEFAULT_RESULT_TTL': 5000,
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/1.11/ref/settings/#auth-password-validators
