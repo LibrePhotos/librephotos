@@ -5,7 +5,6 @@ services:
   proxy:
     image: guysoft/ownphotos-proxy
     tty: true
-    container_name: ownphotos-proxy
     restart: always
     links:
       - "backend:backend"
@@ -15,7 +14,6 @@ services:
       
   ownphotos-db:
     image: postgres
-    container_name: ownphotos-db
     restart: always
     environment:
     # This db password is internal, you can change it if you want, but also change it in ownphotos-backend container
@@ -25,9 +23,11 @@ services:
       - ownphotos-data:/var/lib/postgresql/data
 
   frontend:
-    container_name: ownphotos-frontend
-    image: guysoft/ownphotos-frontend:dev
+    image: hooram/ownphotos-frontend:dev
+    build: ../ownphotos-frontend
     tty: true
+    volumes:
+       - ../ownphotos-frontend/src:/usr/src/app/src
     environment:
        # This is the path to the backend host public facing. if your website is ownphotos.org then this should be "ownphotos.org".
        # Default here is assuming you are running on localhost on port 3000 as given in ownphotos-proxy service
@@ -39,11 +39,10 @@ services:
     image: hooram/ownphotos:dev
     # For development uncomment this and comment the image name above
     #build: .
-    container_name: ownphotos-backend
     volumes:
-      # Your photos go here
-      - $HOME/Pictures/:/data
-      - $HOME/ownphotos_media:/code/protected_media
+      - /run/media/niaz/Plex/Pictures:/data # CHANGE ME
+      - /home/niaz/ownpictures/thumbs/:/code/protected_media # CHANGE ME
+      - /home/niaz/ownpictures/logs/:/code/logs # CHANGE ME
     environment:
       - SECRET_KEY=change_meme
       # This is backend host from within the service, you dont need to change this
@@ -70,7 +69,6 @@ services:
   
   ownphotos-redis:
     image: redis
-    container_name: ownphotos-redis
 
 volumes:
   ownphotos-data:

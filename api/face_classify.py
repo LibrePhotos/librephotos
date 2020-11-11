@@ -3,22 +3,11 @@ from api.models import Person
 from api.models import LongRunningJob
 from api.util import logger
 
-import base64
-import pickle
-import itertools
-import ipdb
+import sklearn
 
-from scipy import linalg
 from sklearn.decomposition import PCA
 import numpy as np
-from sklearn import cluster
-from sklearn import mixture
-from scipy.spatial import distance
-from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import SGDClassifier
 from sklearn.neural_network import MLPClassifier
-from sklearn import svm
-from sklearn.manifold import TSNE
 
 import seaborn as sns
 from django_rq import job
@@ -71,7 +60,7 @@ def cluster_faces(user):
 @job
 def train_faces(user):
     job_id = rq.get_current_job().id
-
+    logger.info(sklearn.show_versions())
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
@@ -125,25 +114,13 @@ def train_faces(user):
             [f['encoding'] for f in id2face_known.values()])
         person_names_known = np.array(
             [f['person_name'] for f in id2face_known.values()])
-
-        n_clusters = len(set(person_names_known.tolist()))
-
-        # clf = SGDClassifier(loss='log',penalty='l2')
+        logger.info("Before fitting")        
         clf = MLPClassifier(
-            solver='adam', alpha=1e-5, random_state=1, max_iter=1000)
-        # clf = svm.SVC(kernel='linear')
-        # scaler = StandardScaler()
-        # scaler.fit(face_encodings_all)
-        # X = scaler.transform(face_encodings_known)
-        X = face_encodings_known
-        Y = person_names_known
-        clf.fit(X, person_names_known)
-
+            solver='adam', alpha=1e-5, random_state=1, max_iter=1000).fit(face_encodings_known, person_names_known)
+        logger.info("After fitting")    
         face_encodings_unknown = np.array(
             [f['encoding'] for f in id2face_unknown.values()])
-        face_paths_unknown = [
-            f['image_path'] for f in id2face_unknown.values()
-        ]
+
         face_ids_unknown = [f['id'] for f in id2face_unknown.values()]
         pred = clf.predict(face_encodings_unknown)
         probs = np.max(clf.predict_proba(face_encodings_unknown), 1)
@@ -165,9 +142,6 @@ def train_faces(user):
                 }
             }
             lrj.save()
-
-#         res = cluster_faces()
-#         print(res)
 
         lrj.finished = True
         lrj.failed = False
