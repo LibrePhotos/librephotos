@@ -65,7 +65,7 @@ from api.image_similarity import search_similar_image
 from django_rq import get_worker
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 import six as six
-
+import uuid
 from api.api_util import \
     get_count_stats, \
     get_location_clusters, \
@@ -1599,9 +1599,7 @@ class RootPathTreeView(APIView):
 
     def get(self, request, format=None):
         try:
-            logger.info('about to get root path tree')
             res = [path_to_dict(p) for p in config.image_dirs]
-            logger.info('root path tree calculated')
             return Response(res)
         except Exception as e:
             logger.error(str(e))
@@ -1765,26 +1763,20 @@ class SearchSimilarPhotosView(APIView):
 class ScanPhotosView(APIView):
     def get(self, request, format=None):
         try:
-            scan_photos(request.user)
-            return Response({'status': True, 'job_id': "0"})
+            job_id = uuid.uuid4()
+            scan_photos(request.user, job_id)
+            return Response({'status': True, 'job_id': job_id})
         except BaseException as e:
-            logger.exception("gogogo")
+            logger.exception("An Error occured")
             return Response({'status': False})
 
 
 class RegenerateAutoAlbumTitles(APIView):
     def get(self, request, format=None):
         try:
-            res = regenerate_event_titles.delay(user=request.user)
-            logger.info('queued job {}'.format(res.id))
-            if not LongRunningJob.objects.filter(job_id=res.id).exists():
-                lrj = LongRunningJob.objects.create(
-                    started_by=request.user,
-                    job_id=res.id,
-                    queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-                    job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUM_TITLES)
-                lrj.save()
-            return Response({'status': True, 'job_id': res.id})
+            job_id = uuid.uuid4()
+            regenerate_event_titles(user=request.user, job_id = job_id)
+            return Response({'status': True, 'job_id':  job_id })
         except BaseException as e:
             logger.error(str(e))
             return Response({'status': False})
@@ -1792,18 +1784,10 @@ class RegenerateAutoAlbumTitles(APIView):
 
 class AutoAlbumGenerateView(APIView):
     def get(self, request, format=None):
-
         try:
-            res = generate_event_albums.delay(user=request.user)
-            logger.info('queued job {}'.format(res.id))
-            if not LongRunningJob.objects.filter(job_id=res.id).exists():
-                lrj = LongRunningJob.objects.create(
-                    started_by=request.user,
-                    job_id=res.id,
-                    queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-                    job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUMS)
-                lrj.save()
-            return Response({'status': True, 'job_id': res.id})
+            job_id = uuid.uuid4()
+            generate_event_albums(user=request.user, job_id= job_id)
+            return Response({'status': True, 'job_id': job_id})
         except BaseException as e:
             logger.error(str(e))
             return Response({'status': False})
@@ -1812,16 +1796,9 @@ class AutoAlbumGenerateView(APIView):
 class TrainFaceView(APIView):
     def get(self, request, format=None):
         try:
-            res = train_faces.delay(user=request.user)
-            logger.info('queued job {}'.format(res.id))
-            if not LongRunningJob.objects.filter(job_id=res.id).exists():
-                lrj = LongRunningJob.objects.create(
-                    started_by=request.user,
-                    job_id=res.id,
-                    queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-                    job_type=LongRunningJob.JOB_TRAIN_FACES)
-                lrj.save()
-            return Response({'status': True, 'job_id': res.id})
+            job_id = uuid.uuid4
+            train_faces(user=request.user, job_id=job_id)
+            return Response({'status': True, 'job_id': job_id})
         except BaseException as e:
             logger.error(str(e))
             return Response({'status': False})

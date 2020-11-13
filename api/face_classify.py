@@ -3,15 +3,12 @@ from api.models import Person
 from api.models import LongRunningJob
 from api.util import logger
 
-import sklearn
-
 from sklearn.decomposition import PCA
 import numpy as np
 from sklearn.neural_network import MLPClassifier
 
 import seaborn as sns
 from django_rq import job
-import rq
 import pytz
 
 import datetime
@@ -58,9 +55,7 @@ def cluster_faces(user):
 
 
 @job
-def train_faces(user):
-    job_id = rq.get_current_job().id
-    logger.info(sklearn.show_versions())
+def train_faces(user, job_id):
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
