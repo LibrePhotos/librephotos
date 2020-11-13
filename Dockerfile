@@ -21,6 +21,9 @@ RUN apt-get install -y bzip2
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 RUN bash Miniconda3-latest-Linux-x86_64.sh -b -p /miniconda
 
+RUN /miniconda/bin/conda install -y faiss-cpu -c pytorch
+RUN /miniconda/bin/conda install -y cython
+
 # Build and install dlib
 RUN apt-get update && \
     apt-get install -y cmake git build-essential && \
@@ -32,11 +35,10 @@ RUN apt-get update && \
     cd /dlib && \
     /miniconda/bin/python setup.py install --no USE_AVX_INSTRUCT
 
-RUN /miniconda/bin/conda install -y faiss-cpu -c pytorch
-RUN /miniconda/bin/conda install -y cython
-RUN /miniconda/bin/conda install -y pytorch=1.4.0 cpuonly -c pytorch
-RUN /miniconda/bin/conda install -y torchvision cpuonly -c pytorch
+
+RUN /miniconda/bin/conda install -y pytorch torchvision torchaudio cpuonly -c pytorch
 RUN /miniconda/bin/conda install -y psycopg2
+
 RUN /miniconda/bin/conda install -y numpy -c pytorch
 RUN /miniconda/bin/conda install -y pandas -c pytorch
 RUN /miniconda/bin/conda install -y scikit-learn -c pytorch

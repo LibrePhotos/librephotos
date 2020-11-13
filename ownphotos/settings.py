@@ -56,9 +56,6 @@ INSTALLED_APPS = [
     "django_rq",
     'constance',
     'constance.backends.database',
-    # 'silk',
-    #     'cachalot',
-    #     'cacheops',
 ]
 
 CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
@@ -69,23 +66,6 @@ CONSTANCE_CONFIG = {
 }
 
 INTERNAL_IPS = ('127.0.0.1', 'localhost', '192.168.1.100')
-
-# CACHEOPS_REDIS = {
-#     'host': os.environ['REDIS_HOST'], # redis-server is on same machine
-#     'port': os.environ["REDIS_PORT"], # default redis port
-#     'db': 1             # SELECT non-default redis database
-# }
-#
-# CACHEOPS_DEFAULTS = {
-#     'timeout': 60*60
-# }
-#
-# CACHEOPS = {
-#     # 'auth.user': {'ops': 'get', 'timeout': 60*15},
-#     # 'auth.*': {'ops': ('fetch', 'get')},
-#     # 'auth.permission': {'ops': 'all'},
-#     '*.*': {'ops':'all', 'timeout': 60*15}
-# }
 
 CORS_ALLOW_HEADERS = (
     'cache-control',
@@ -109,10 +89,8 @@ CORS_ORIGIN_WHITELIST = (
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
-        # 'rest_framework.permissions.IsAdminUser',
         'rest_framework.permissions.IsAuthenticated', ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        #         'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
@@ -135,7 +113,6 @@ REST_FRAMEWORK_EXTENSIONS = {
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    # 'silk.middleware.SilkyMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -177,22 +154,7 @@ DATABASES = {
         'HOST': os.environ['DB_HOST'],
         'PORT': os.environ['DB_PORT'],
     },
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': 'dev.db',
-    # }
 }
-
-# CACHES = {
-#     'default': {
-#         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-#         'LOCATION': os.environ['CACHE_HOST_PORT'],
-#         'TIMEOUT': 60 * 60 * 24 , # 1 day
-#         'OPTIONS': {
-#             'server_max_value_length': 1024 * 1024 * 128, #50mb
-#         }
-#     }
-# }
 
 CACHES = {
     "default": {
@@ -262,7 +224,6 @@ USE_TZ = True
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'protected_media')
-# MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 THUMBNAIL_SIZE_TINY = (30, 30)
@@ -277,6 +238,3 @@ CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
 
 IMAGE_SIMILARITY_SERVER = 'http://localhost:8002'
-
-# SILKY_PYTHON_PROFILER = True
-# SILKY_PYTHON_PROFILER_BINARY = True
