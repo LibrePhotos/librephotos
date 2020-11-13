@@ -9,7 +9,7 @@ from itertools import groupby
 import os
 import shutil
 import numpy as np
-
+import uuid
 import ipdb
 
 from django_rq import job
@@ -20,9 +20,7 @@ from api.util import logger
 import pytz
 
 @job
-def regenerate_event_titles(user):
-    job_id = rq.get_current_job().id
-
+def regenerate_event_titles(user,job_id):
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.now().replace(tzinfo=pytz.utc)
@@ -35,11 +33,7 @@ def regenerate_event_titles(user):
             started_at=datetime.now().replace(tzinfo=pytz.utc),
             job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUM_TITLES)
         lrj.save()
-
-
-
     try:
-
         aus = AlbumAuto.objects.filter(owner=user).prefetch_related('photos')
         target_count = len(aus)
         for idx,au in enumerate(aus):
@@ -74,9 +68,7 @@ def regenerate_event_titles(user):
 
 
 @job
-def generate_event_albums(user):
-    job_id = rq.get_current_job().id
-
+def generate_event_albums(user, job_id):
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.now().replace(tzinfo=pytz.utc)

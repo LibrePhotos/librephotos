@@ -2,7 +2,7 @@ import os
 import datetime
 import hashlib
 import pytz
-
+import uuid
 from api.models import (Photo, LongRunningJob)
 
 import api.util as util
@@ -10,9 +10,6 @@ from api.image_similarity import build_image_similarity_index
 
 from django_rq import job
 import rq
-
-from api.places365.places365 import inference_places365
-
 
 from django.db.models import Q
 import json
@@ -127,8 +124,7 @@ def handle_new_image(user, image_path, job_id):
 
 
 @job
-def scan_photos(user):
-    job_id = "69"
+def scan_photos(user, job_id):
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)

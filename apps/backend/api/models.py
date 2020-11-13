@@ -210,10 +210,7 @@ class Photo(models.Model):
 
         # places365
         try:
-            util.logger.info("Place365 started")
-            util.logger.info(image_path)
             res_places365 = inference_places365(image_path)
-            util.logger.info("Place365 ended")
             captions['places365'] = res_places365
             self.captions_json = captions
             if self.search_captions:
