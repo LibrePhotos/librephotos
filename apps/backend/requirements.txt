@@ -1,13 +1,11 @@
 aniso8601==8.0.0
 asn1crypto==1.4.0
 argparse==1.4.0 
-cffi==1.14.3
 chardet==3.0.4
 click==7.1.2
 config==0.4.2
 cycler==0.10.0
 cymem==2.0.4
-cmake==3.18.2
 cytoolz==0.11.0
 cython==0.29.21 
 dateutils==0.6.12
@@ -23,7 +21,7 @@ django-extensions==3.0.9
 django-filter==2.4.0
 django-picklefield==3.0.1
 django-redis==4.12.1
-django-rq==2.3.2
+django-rq==2.4.0
 djangorestframework==3.12.1
 djangorestframework-jwt==1.11.0
 djangorestframework-simplejwt==4.4.0
@@ -72,7 +70,7 @@ python-memcached==1.59
 pytz==2020.1
 redis==3.5.3
 regex==2020.10.28 
-rq==1.5.2
+rq==1.6.1
 six==1.15.0 
 scipy==1.5.3
 seaborn==0.11.0

@@ -19,9 +19,8 @@ import api.util as util
 import ipdb
 from django_rq import job
 import time
-import numpy as np
 import rq
-from api.directory_watcher import is_new_image, handle_new_image
+from api.directory_watcher import handle_new_image
 from api.image_similarity import build_image_similarity_index
 
 

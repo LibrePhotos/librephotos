@@ -10,7 +10,7 @@ from api.models import Photo, AlbumAuto, AlbumUser, Face, Person, AlbumDate, Alb
 from django.db.models import Count
 from django.db.models import Q
 from django.db.models import Prefetch
-
+from api.places365.places365 import inference_places365
 from django.http import HttpResponse
 from django.http import HttpResponseForbidden
 
@@ -62,7 +62,7 @@ from api.social_graph import build_social_graph, build_ego_graph
 from api.autoalbum import generate_event_albums
 
 from api.image_similarity import search_similar_image
-
+from django_rq import get_worker
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 import six as six
 
@@ -1765,18 +1765,10 @@ class SearchSimilarPhotosView(APIView):
 class ScanPhotosView(APIView):
     def get(self, request, format=None):
         try:
-            res = scan_photos.delay(request.user)
-            logger.info('queued job {}'.format(res.id))
-            if not LongRunningJob.objects.filter(job_id=res.id).exists():
-                lrj = LongRunningJob.objects.create(
-                    started_by=request.user,
-                    job_id=res.id,
-                    queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-                    job_type=LongRunningJob.JOB_SCAN_PHOTOS)
-                lrj.save()
-            return Response({'status': True, 'job_id': res.id})
+            scan_photos(request.user)
+            return Response({'status': True, 'job_id': "0"})
         except BaseException as e:
-            logger.error(str(e))
+            logger.exception("gogogo")
             return Response({'status': False})
 
 

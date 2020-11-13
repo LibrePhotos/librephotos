@@ -10,8 +10,6 @@ sed -i -e 's/user www-data/user root/g' /etc/nginx/nginx.conf
 
 service nginx restart
 
-source /venv/bin/activate
-
 /miniconda/bin/python image_similarity/main.py 2>&1 | tee logs/gunicorn_image_similarity.log &
 /miniconda/bin/python manage.py showmigrations | tee logs/show_migrate.log
 /miniconda/bin/python manage.py makemigrations | tee logs/command_makemigrations.log
@@ -31,7 +29,5 @@ EOF
 
 echo "Running backend server..."
 
-
 /miniconda/bin/python manage.py rqworker default 2>&1 | tee logs/rqworker.log &
 /miniconda/bin/gunicorn --workers=2 --worker-class=gevent --bind 0.0.0.0:8001 --log-level=info ownphotos.wsgi 2>&1 | tee logs/gunicorn_django.log 
-

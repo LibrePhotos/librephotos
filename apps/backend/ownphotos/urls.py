@@ -255,5 +255,5 @@ urlpatterns = [
 # ] + static(
 #     settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-urlpatterns += [url(r'^api/django-rq/', include('django_rq.urls'))]
+urlpatterns += [url('api/django-rq/', include('django_rq.urls'))]
 # urlpatterns += [url(r'^silk/', include('silk.urls', namespace='silk'))]

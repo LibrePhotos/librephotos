@@ -211,6 +211,7 @@ class Photo(models.Model):
         # places365
         try:
             util.logger.info("Place365 started")
+            util.logger.info(image_path)
             res_places365 = inference_places365(image_path)
             util.logger.info("Place365 ended")
             captions['places365'] = res_places365
@@ -227,8 +228,7 @@ class Photo(models.Model):
             util.logger.info(
                 'generated places365 captions for image %s.' % (image_path))
         except Exception as e:
-            util.logger.exception(e)
-            util.logger.warning(
+            util.logger.exception(
                 'could not generate places365 captions for image %s' %
                 image_path)
 

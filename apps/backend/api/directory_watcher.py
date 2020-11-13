@@ -11,24 +11,14 @@ from api.image_similarity import build_image_similarity_index
 from django_rq import job
 import rq
 
+from api.places365.places365 import inference_places365
+
 
 from django.db.models import Q
 import json
 
-
-def is_new_image(existing_hashes, image_path):
-    hash_md5 = hashlib.md5()
-    with open(image_path, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-    image_hash = hash_md5.hexdigest()
-    if image_hash not in existing_hashes or (
-            not Photo.objects.filter(image_path=image_path).exists()):
-        return image_path
-    return
-
-
 def handle_new_image(user, image_path, job_id):
+    
     if image_path.lower().endswith('.jpg'):
         try:
             elapsed_times = {
@@ -71,7 +61,8 @@ def handle_new_image(user, image_path, job_id):
                     added_on=datetime.datetime.now().replace(tzinfo=pytz.utc),
                     geolocation_json={})
                 #photo._generate_md5()
-
+                
+                   
                 start = datetime.datetime.now()
                 photo._generate_thumbnail()
                 elapsed = (datetime.datetime.now() - start).total_seconds()
@@ -92,23 +83,7 @@ def handle_new_image(user, image_path, job_id):
 
                 start = datetime.datetime.now()
                 photo._extract_exif()
-                photo.save()
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                elapsed_times['exif'] = elapsed
-                util.logger.info('exif extraction took %.2f' % elapsed)
-
-                start = datetime.datetime.now()
-                photo._geolocate_mapbox()
-                photo.save()
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                elapsed_times['geolocation'] = elapsed
-                util.logger.info('geolocation took %.2f' % elapsed)
-
-                start = datetime.datetime.now()
-                photo._add_to_album_place()
-                photo.save()
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                elapsed_times['album_place'] = elapsed
+                photo.save() 
                 util.logger.info('add to AlbumPlace took %.2f' % elapsed)
 
                 start = datetime.datetime.now()
@@ -144,17 +119,16 @@ def handle_new_image(user, image_path, job_id):
 
         except Exception as e:
             try:
-                util.logger.error("job {}: could not load image {}. reason: {}".format(
+                util.logger.exception("job {}: could not load image {}. reason: {}".format(
                     job_id,image_path, str(e)))
             except:
-                util.logger.error("job {}: could not load image {}".format(job_id,image_path))
-    return
+                util.logger.exception("job {}: could not load image {}".format(job_id,image_path))
+    
 
 
 @job
 def scan_photos(user):
-    job_id = rq.get_current_job().id
-
+    job_id = "69"
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
@@ -167,9 +141,6 @@ def scan_photos(user):
             started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
             job_type=LongRunningJob.JOB_SCAN_PHOTOS)
         lrj.save()
-
-
-
 
     added_photo_count = 0
     already_existing_photo = 0
@@ -206,11 +177,6 @@ def scan_photos(user):
                 }
             }
             lrj.save()
-        '''
-        image_paths_to_add = Parallel(n_jobs=multiprocessing.cpu_count(), backend="multiprocessing")(delayed(is_new_image)(existing_hashes, image_path) for image_path in tqdm(image_paths)) 
-        image_paths_to_add = filter(None, image_paths_to_add)
-        Parallel(n_jobs=multiprocessing.cpu_count(), backend="multiprocessing")(delayed(handle_new_image)(user, image_path) for image_path in tqdm(image_paths_to_add)) 
-        '''
 
         util.logger.info("Added {} photos".format(len(image_paths_to_add)))
         build_image_similarity_index(user)
@@ -223,8 +189,8 @@ def scan_photos(user):
         next_result['new_photo_count'] = added_photo_count
         lrj.result = next_result
         lrj.save()
-    except Exception as e:
-        util.logger.error(str(e))
+    except Exception:
+        util.logger.exception("An error occured:")
         lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
         lrj.finished = True
         lrj.failed = True
