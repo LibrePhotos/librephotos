@@ -10,7 +10,7 @@ sed -i -e 's/user www-data/user root/g' /etc/nginx/nginx.conf
 
 service nginx restart
 
-# source /venv/bin/activate
+source /venv/bin/activate
 
 /miniconda/bin/python image_similarity/main.py 2>&1 | tee logs/gunicorn_image_similarity.log &
 /miniconda/bin/python manage.py showmigrations | tee logs/show_migrate.log
@@ -30,7 +30,6 @@ else:
 EOF
 
 echo "Running backend server..."
-
 
 
 /miniconda/bin/python manage.py rqworker default 2>&1 | tee logs/rqworker.log &

@@ -218,7 +218,7 @@ RQ_QUEUES = {
 }
 
 RQ = {
-    'DEFAULT_RESULT_TTL': 5000,
+    'DEFAULT_RESULT_TTL': 60,
 }
 
 # Password validation
