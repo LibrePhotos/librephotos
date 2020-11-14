@@ -65,11 +65,6 @@ def remove_nonspace_separators(text):
 # load the labels
 classes, labels_IO, labels_attribute, W_attribute = load_labels()
 
-
-# img_root = '/home/hooram/ownphotos_media/photos/'
-
-# img_paths = [f for f in os.listdir(img_root) if f.endswith('.jpg')]
-
 def inference_places365(img_path):
     try:
 
