@@ -2,21 +2,18 @@ import os
 import datetime
 import hashlib
 import pytz
-import uuid
 from api.models import (Photo, LongRunningJob)
 
 import api.util as util
 from api.image_similarity import build_image_similarity_index
 
 from django_rq import job
-import rq
-
 from django.db.models import Q
 import json
 
 def handle_new_image(user, image_path, job_id):
     
-    if image_path.lower().endswith('.jpg'):
+    if image_path.lower().endswith('.jpg') or image_path.lower().endswith('.jpeg') :
         try:
             elapsed_times = {
                 'md5':None,
@@ -122,7 +119,7 @@ def handle_new_image(user, image_path, job_id):
                 util.logger.exception("job {}: could not load image {}".format(job_id,image_path))
     
 
-
+#job is currently not used, because the model.eval() doesn't execute when it is running as a job
 @job
 def scan_photos(user, job_id):
     if LongRunningJob.objects.filter(job_id=job_id).exists():
@@ -151,7 +148,7 @@ def scan_photos(user, job_id):
 
         image_paths = [
             p for p in image_paths
-            if p.lower().endswith('.jpg') and 'thumb' not in p.lower()
+            if (p.lower().endswith('.jpg') or p.lower().endswith('.jpeg')) and 'thumb' not in p.lower()
         ]
         image_paths.sort()
 
@@ -177,7 +174,7 @@ def scan_photos(user, job_id):
         util.logger.info("Added {} photos".format(len(image_paths_to_add)))
         build_image_similarity_index(user)
 
-        lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
+        lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.finished = True
         lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
         prev_result = lrj.result
@@ -187,7 +184,7 @@ def scan_photos(user, job_id):
         lrj.save()
     except Exception:
         util.logger.exception("An error occured:")
-        lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
+        lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.finished = True
         lrj.failed = True
         lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
