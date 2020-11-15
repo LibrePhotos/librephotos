@@ -13,7 +13,6 @@ import {
 export class LoginPage extends Component {
   constructor(props) {
     super(props);
-    console.log(process.env.BACKEND_HOST)
     this.onSubmit = this.onSubmit.bind(this);
     this.handleServerProtocolChange = this.handleServerProtocolChange.bind(
       this

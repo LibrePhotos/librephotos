@@ -1,6 +1,5 @@
 import { notify } from "reapop";
 import { Server } from "../api_client/apiClient";
-import { fetchPeople } from "./peopleActions";
 
 export function setFacesPersonLabel(faceIDs, personName) {
   return function(dispatch) {
@@ -78,15 +77,6 @@ export function trainFaces() {
     Server.get("trainfaces/", { timeout: 30000 })
       .then(response => {
         dispatch({ type: "TRAIN_FACES_FULFILLED", payload: response.data });
-        // dispatch(notify({
-        //   message:`Training finished`,
-        //   title:'Face training',
-        //   status:'success',
-        //   dismissible: true,
-        //   dismissAfter:3000,
-        //   position:'br'}))
-        // dispatch(fetchInferredFacesList())
-        // dispatch(fetchLabeledFacesList())
       })
       .catch(err => {
         dispatch({ type: "TRAIN_FACES_REJECTED", payload: err });
@@ -100,9 +90,6 @@ export function clusterFaces() {
     Server.get("clusterfaces/")
       .then(response => {
         dispatch({ type: "CLUSTER_FACES_FULFILLED", payload: response.data });
-        console.log(response.data);
-        // dispatch(fetchInferredFaces())
-        // dispatch(fetchLabeledFaces())
       })
       .catch(err => {
         dispatch({ type: "CLUSTER_FACES_REJECTED", payload: err });
