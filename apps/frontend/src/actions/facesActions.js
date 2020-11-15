@@ -100,6 +100,7 @@ export function clusterFaces() {
     Server.get("clusterfaces/")
       .then(response => {
         dispatch({ type: "CLUSTER_FACES_FULFILLED", payload: response.data });
+        console.log(response.data);
         // dispatch(fetchInferredFaces())
         // dispatch(fetchLabeledFaces())
       })

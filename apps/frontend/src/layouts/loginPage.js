@@ -10,14 +10,10 @@ import {
   Segment
 } from "semantic-ui-react";
 
-const options = [
-  { key: "https://", text: "https://", value: "https://" },
-  { key: "http://", text: "http://", value: "http://" }
-];
-
 export class LoginPage extends Component {
   constructor(props) {
     super(props);
+    console.log(process.env.BACKEND_HOST)
     this.onSubmit = this.onSubmit.bind(this);
     this.handleServerProtocolChange = this.handleServerProtocolChange.bind(
       this
@@ -58,7 +54,6 @@ export class LoginPage extends Component {
           width: "100%",
           height: "100%",
           overflowY: "auto",
-          // background:"url('/login_background.jpg')",
           backgroundColor: "#dddddd",
           backgroundSize: "cover"
         }}
@@ -153,19 +148,3 @@ export class LoginPage extends Component {
     );
   }
 }
-
-// <Form.Field>
-//   <label>Server Address</label>
-//   <Input
-//     icon='server'
-//     label={
-//     <Dropdown
-//       onChange={this.handleServerProtocolChange}
-//       defaultValue='https://'
-//       options={options} />
-//     }
-//     placeholder='ownphotos.example.com'
-//     name='serverAddress'
-//     value={serverAddress}
-//     onChange={this.handleChange} />
-// </Form.Field>

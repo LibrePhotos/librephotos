@@ -34,7 +34,7 @@ const configureStore = (history) => {
         reducer, {},
         applyMiddleware(  
             thunk,  
-            createLogger(), 
+            // createLogger(), 
             // apiMiddleware, 
             routerMiddleware(history) )
     )
