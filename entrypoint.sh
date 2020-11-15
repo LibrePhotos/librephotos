@@ -14,6 +14,7 @@ service nginx restart
 /miniconda/bin/python manage.py showmigrations | tee logs/show_migrate.log
 /miniconda/bin/python manage.py makemigrations | tee logs/command_makemigrations.log
 /miniconda/bin/python manage.py migrate | tee logs/command_migrate.log
+/miniconda/bin/python manage.py showmigrations | tee logs/show_migrate.log
 /miniconda/bin/python manage.py build_similarity_index 2>&1 | tee logs/command_build_similarity_index.log
 
 /miniconda/bin/python manage.py shell <<EOF
