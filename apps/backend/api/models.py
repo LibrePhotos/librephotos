@@ -833,7 +833,6 @@ class AlbumUser(models.Model):
     class Meta:
         unique_together = ('title', 'owner')
 
-
 class LongRunningJob(models.Model):
     JOB_SCAN_PHOTOS = 1
     JOB_GENERATE_AUTO_ALBUMS = 2
