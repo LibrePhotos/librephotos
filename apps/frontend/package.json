@@ -8,7 +8,6 @@
     "@vx/hierarchy": "0.0.161",
     "@vx/shape": "0.0.162",
     "axios": "^0.18.0",
-    "ansi-styles": "4.3.0" ,
     "bootstrap": "^4.1.1",
     "calendar-months": "^1.0.1",
     "d3-hierarchy": "^1.1.6",
@@ -75,7 +74,7 @@
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject"
   },
-  "proxy": "http://backend/",
+  "proxy": "http://192.168.1.100:8000/",
   "devDependencies": {
     "eslint": "^4.19.1",
     "eslint-plugin-react": "^7.10.0"

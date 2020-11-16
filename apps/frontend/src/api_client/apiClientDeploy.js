@@ -20,10 +20,10 @@ function listener() {
  }
 }
 
-export var serverAddress = 'changeme'
+export var serverAddress = ''
 
 export var Server = axios.create({
-  baseURL: 'changeme/api/',
+  baseURL: '/api/',
   headers: {
     'Content-Type': 'application/json'
   },
@@ -56,7 +56,7 @@ Server.interceptors.response.use(function (response) {
     // console.log('retrying')
 
     // store.dispatch(refreshAccessToken(refreshToken))
-    return Server.post(serverAddress+'/api/auth/token/refresh/', { refresh:refreshToken })
+    return Server.post(serverAddress+'/auth/token/refresh/', { refresh:refreshToken })
       .then((response) => {
       	store.dispatch({type: "REFRESH_ACCESS_TOKEN_FULFILLED", payload: response.data})
       	// console.log('setting refreshed access token in retry',response.data)
@@ -68,9 +68,4 @@ Server.interceptors.response.use(function (response) {
 
   return Promise.reject(error);
 });
-
-
-
-
-
 export default {serverAddress, Server}

@@ -108,30 +108,3 @@ export function isAuthenticated(state) {
 export function errors(state) {
     return  state.errors
 }
-
-
-
-
-
-/*
-export default function reducer(state={
-    jwtToken: null,
-    error: null,
-  }, action) {
-
-  switch (action.type) {
-  	case "LOGIN_FULFILLED": {
-  		return {...state, jwtToken: 'JWT '+action.payload}
-  	}
-
-    case "LOGOUT": {
-      return { jwtToken: null}      
-    }
-
-    default: {
-      return {...state}
-    }
-  }
-}
-*/
-
