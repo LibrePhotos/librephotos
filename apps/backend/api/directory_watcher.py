@@ -77,9 +77,8 @@ def handle_new_image(user, image_path, job_id):
 
                 start = datetime.datetime.now()
                 photo._extract_exif()
-                photo.save() 
                 util.logger.info('add to AlbumPlace took %.2f' % elapsed)
-
+                photo._geolocate_mapbox()
                 start = datetime.datetime.now()
                 photo._extract_faces()
                 elapsed = (datetime.datetime.now() - start).total_seconds()
