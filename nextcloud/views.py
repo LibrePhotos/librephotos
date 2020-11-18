@@ -8,6 +8,7 @@ import owncloud as nextcloud
 from api.api_util import get_current_job
 from nextcloud.directory_watcher import scan_photos
 from api.util import logger
+import uuid
 
 import datetime
 
@@ -36,17 +37,10 @@ class ListDir(APIView):
 class ScanPhotosView(APIView):
     def get(self, request, format=None):
         try:
-            res = scan_photos.delay(request.user)
-            logger.info('queued job {}'.format(res.id))
-            if not LongRunningJob.objects.filter(job_id=res.id).exists():
-                lrj = LongRunningJob.objects.create(
-                    started_by=request.user,
-                    job_id=res.id,
-                    queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-                    job_type=LongRunningJob.JOB_SCAN_PHOTOS)
-                lrj.save()
-            return Response({'status': True, 'job_id': res.id})
+            job_id = uuid.uuid4()
+            scan_photos(request.user, job_id)
+            return Response({'status': True, 'job_id': job_id})
         except BaseException as e:
-            logger.error(str(e))
+            logger.exception("An Error occured")
             return Response({'status': False})
 

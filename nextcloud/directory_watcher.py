@@ -1,4 +1,4 @@
-from api.models import (Photo, Person, LongRunningJob)
+from api.models import (Photo, LongRunningJob)
 from django_rq import job
 import owncloud as nextcloud
 import pathlib
@@ -7,7 +7,6 @@ import os
 from ownphotos import settings
 import os
 import datetime
-import hashlib
 import pytz
 import time
 
@@ -26,16 +25,14 @@ from api.image_similarity import build_image_similarity_index
 
 def collect_photos(nc, path, photos):
     for x in nc.list(path):
-        if x.path.lower().endswith('.jpg'):
+        if x.path.lower().endswith('.jpg') or x.path.lower().endswith('.jpeg'):
             photos.append(x.path)
         elif x.is_dir():
             collect_photos(nc, x.path, photos)
 
 
 @job
-def scan_photos(user):
-    job_id = rq.get_current_job().id
-
+def scan_photos(user, job_id):
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
@@ -51,14 +48,12 @@ def scan_photos(user):
 
     nc = nextcloud.Client(user.nextcloud_server_address)
     nc.login(user.nextcloud_username, user.nextcloud_app_password)
-
-    scan_directory = user.scan_directory
-    user.nextcloud_scan_directory
+    
     photos = []
 
     image_paths = []
 
-    collect_photos(nc, scan_directory, photos)
+    collect_photos(nc, user.nextcloud_scan_directory, photos)
 
     for photo in photos:
         local_dir = os.path.join(settings.BASE_DIR, 'nextcloud_media',
@@ -102,7 +97,7 @@ def scan_photos(user):
         util.logger.info("Added {} photos".format(len(image_paths_to_add)))
         build_image_similarity_index(user)
 
-        lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
+        lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.finished = True
         lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
         prev_result = lrj.result
@@ -111,9 +106,8 @@ def scan_photos(user):
         lrj.result = next_result
         lrj.save()
     except Exception as e:
-        util.logger.error(str(e))
-        util.logger.error(str(traceback.format_exc()))
-        lrj = LongRunningJob.objects.get(job_id=rq.get_current_job().id)
+        util.logger.exception(str(e))
+        lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.finished = True
         lrj.failed = True
         lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
