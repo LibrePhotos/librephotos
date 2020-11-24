@@ -10,7 +10,6 @@ db.sqlite3
 __pycache__
 .DS_Store
 tags
-api/migrations/
 api/places365/model/
 Conv2d.patch
 Linear.patch
@@ -31,7 +30,6 @@ api/places365/*.tar.gz
 *.db
 media*
 *.log
-api/migrations_dev
 protected_media
 .vscode
 .coverage

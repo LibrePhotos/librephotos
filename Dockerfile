@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:20.10
 MAINTAINER Hooram Nam <nhooram@gmail.com>
 
 ENV MAPZEN_API_KEY mapzen-XXXX
@@ -13,14 +13,14 @@ RUN apt-get update && \
     libxrender-dev \
     wget \
     curl \
-    nginx 
+    nginx \
+    cmake
 
 RUN apt-get install -y bzip2
 
-
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 RUN bash Miniconda3-latest-Linux-x86_64.sh -b -p /miniconda
-# RUN apt-get install libopenblas-dev liblapack-dev
+
 RUN /miniconda/bin/conda install -y faiss-cpu -c pytorch
 RUN /miniconda/bin/conda install -y cython
 
@@ -33,11 +33,16 @@ RUN apt-get update && \
     cmake .. -DDLIB_USE_CUDA=0 -DUSE_AVX_INSTRUCTIONS=0 && \
     cmake --build . && \
     cd /dlib && \
-    /miniconda/bin/python setup.py install --no USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA 
+    /miniconda/bin/python setup.py install --no USE_AVX_INSTRUCT
 
-RUN /miniconda/bin/conda install -y pytorch=0.4.1 -c pytorch
-# RUN /venv/bin/pip install http://download.pytorch.org/whl/cpu/torch-0.4.1-cp35-cp35m-linux_x86_64.whl && /venv/bin/pip install torchvision
+
+RUN /miniconda/bin/conda install -y pytorch torchvision torchaudio cpuonly -c pytorch
 RUN /miniconda/bin/conda install -y psycopg2
+
+RUN /miniconda/bin/conda install -y numpy -c pytorch
+RUN /miniconda/bin/conda install -y pandas -c pytorch
+RUN /miniconda/bin/conda install -y scikit-learn -c pytorch
+RUN /miniconda/bin/conda install -y scikit-image -c pytorch
 
 RUN mkdir /code
 WORKDIR /code
@@ -45,7 +50,7 @@ COPY requirements.txt /code/
 RUN /miniconda/bin/pip install -r requirements.txt
 
 RUN /miniconda/bin/python -m spacy download en_core_web_sm
-
+RUN apt-get install -y libgl1-mesa-glx
 WORKDIR /code/api/places365
 RUN wget https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/places365_model.tar.gz
 RUN tar xf places365_model.tar.gz
@@ -92,7 +97,6 @@ ENV TIME_ZONE UTC
 
 EXPOSE 80
 COPY . /code
-
 
 RUN mv /code/config_docker.py /code/config.py
 

@@ -15,15 +15,12 @@ import base64
 import numpy as np
 import os
 import pytz
-import json
 
 from collections import Counter
 from io import BytesIO
 from django.core.files.base import ContentFile
 
 from geopy.geocoders import Nominatim
-
-# from django.contrib.auth.models import User as BaseUser
 from django.contrib.auth.models import AbstractUser
 
 from django.db.models.signals import post_save, post_delete
@@ -35,9 +32,7 @@ from api.im2txt.sample import im2txt
 
 import requests
 import base64
-from io import StringIO
 
-import ipdb
 from django_cryptography.fields import encrypt
 from api.im2vec import Im2Vec
 
@@ -220,7 +215,8 @@ class Photo(models.Model):
             self.captions_json = captions
             if self.search_captions:
                 self.search_captions = self.search_captions + ' , ' + \
-                    ' , '.join(res_places365['attributes'] + res_places365['categories'] + [res_places365['environment']])
+                    ' , '.join(
+                        res_places365['attributes'] + res_places365['categories'] + [res_places365['environment']])
             else:
                 self.search_captions = ' , '.join(
                     res_places365['attributes'] + res_places365['categories'] +
@@ -229,8 +225,8 @@ class Photo(models.Model):
             self.save()
             util.logger.info(
                 'generated places365 captions for image %s.' % (image_path))
-        except:
-            util.logger.warning(
+        except Exception as e:
+            util.logger.exception(
                 'could not generate places365 captions for image %s' %
                 image_path)
 
@@ -370,52 +366,40 @@ class Photo(models.Model):
         image_io.close()
 
     def _extract_exif(self):
-        ret = {}
-        # ipdb.set_trace()
-        i = PIL.Image.open(self.image_path)
-        info = i._getexif()
         date_format = "%Y:%m:%d %H:%M:%S"
-        if info:
-            for tag, value in info.items():
-                decoded = EXIFTAGS.get(tag, tag)
-                ret[decoded] = value
-
-            with open(self.image_path, 'rb') as fimg:
-                exif = exifread.process_file(fimg, details=False)
-
-                serializable = dict(
+        with open(self.image_path, 'rb') as fimg:
+            exif = exifread.process_file(fimg, details=False)
+            serializable = dict(
                     [key, value.printable] for key, value in exif.items())
-                self.exif_json = serializable
-                # ipdb.set_trace()
-                if 'EXIF DateTimeOriginal' in exif.keys():
-                    tst_str = exif['EXIF DateTimeOriginal'].values
-                    try:
-                        tst_dt = datetime.strptime(
-                            tst_str, date_format).replace(tzinfo=pytz.utc)
-                    except:
-                        tst_dt = None
-                    # ipdb.set_trace()
-                    self.exif_timestamp = tst_dt
-                else:
-                    self.exif_timestamp = None
+            self.exif_json = serializable
+            if 'EXIF DateTimeOriginal' in exif.keys():
+                tst_str = exif['EXIF DateTimeOriginal'].values
+                try:
+                    tst_dt = datetime.strptime(
+                        tst_str, date_format).replace(tzinfo=pytz.utc)
+                except:
+                    tst_dt = None
+                self.exif_timestamp = tst_dt
+            else:
+                self.exif_timestamp = None
 
-                if 'GPS GPSLongitude' in exif.keys():
-                    self.exif_gps_lon = util.convert_to_degrees(
-                        exif['GPS GPSLongitude'].values)
-                    # Check for correct positive/negative degrees
-                    if exif['GPS GPSLongitudeRef'].values != 'E':
-                        self.exif_gps_lon = -self.exif_gps_lon
-                else:
-                    self.exif_gps_lon = None
+            if 'GPS GPSLongitude' in exif.keys():
+                self.exif_gps_lon = util.convert_to_degrees(
+                    exif['GPS GPSLongitude'].values)
+                # Check for correct positive/negative degrees
+                if exif['GPS GPSLongitudeRef'].values != 'E':
+                    self.exif_gps_lon = -float(self.exif_gps_lon)
+            else:
+                self.exif_gps_lon = None
 
-                if 'GPS GPSLatitude' in exif.keys():
-                    self.exif_gps_lat = util.convert_to_degrees(
-                        exif['GPS GPSLatitude'].values)
-                    # Check for correct positive/negative degrees
-                    if exif['GPS GPSLatitudeRef'].values != 'N':
-                        self.exif_gps_lat = -self.exif_gps_lat
-                else:
-                    self.exif_gps_lat = None
+            if 'GPS GPSLatitude' in exif.keys():
+                self.exif_gps_lat = util.convert_to_degrees(
+                    exif['GPS GPSLatitude'].values)
+                # Check for correct positive/negative degrees
+                if exif['GPS GPSLatitudeRef'].values != 'N':
+                    self.exif_gps_lat = -float(self.exif_gps_lat)
+            else:
+                self.exif_gps_lat = None
 
         if not self.exif_timestamp:
             try:
@@ -431,6 +415,7 @@ class Photo(models.Model):
                 util.logger.warning(
                     "Failed to determine date from filename for image %s" %
                     self.image_path)
+        self.save()
 
     def _geolocate(self):
         if not (self.exif_gps_lat and self.exif_gps_lon):
@@ -444,7 +429,6 @@ class Photo(models.Model):
                 self.save()
             except:
                 pass
-                # self.geolocation_json = {}
 
     def _geolocate_mapbox(self):
         if not (self.exif_gps_lat and self.exif_gps_lon):
@@ -464,7 +448,6 @@ class Photo(models.Model):
             except:
                 util.logger.warning('something went wrong with geolocating')
                 pass
-                # self.geolocation_json = {}
     def _im2vec(self):
         try:
             image = PIL.Image.open(self.square_thumbnail_big)
@@ -562,6 +545,7 @@ class Photo(models.Model):
             album_date.photos.add(self)
 
         if self.geolocation_json and len(self.geolocation_json) > 0:
+            util.logger.info(str(self.geolocation_json))
             city_name = [
                 f['text'] for f in self.geolocation_json['features'][1:-1]
                 if not f['text'].isdigit()
@@ -837,7 +821,6 @@ class AlbumUser(models.Model):
 
     class Meta:
         unique_together = ('title', 'owner')
-
 
 class LongRunningJob(models.Model):
     JOB_SCAN_PHOTOS = 1
