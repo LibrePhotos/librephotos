@@ -3,7 +3,7 @@ Flask-Cors==2.1.2
 Flask-RESTful==0.3.5
 Jinja2==2.8
 MarkupSafe==0.23
-Pillow==6.2.0
+Pillow==7.1.0
 Werkzeug==0.15.3
 aniso8601==1.1.0
 argparse==1.2.1
