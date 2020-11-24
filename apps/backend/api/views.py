@@ -10,7 +10,7 @@ from api.models import Photo, AlbumAuto, AlbumUser, Face, Person, AlbumDate, Alb
 from django.db.models import Count
 from django.db.models import Q
 from django.db.models import Prefetch
-
+from api.places365.places365 import inference_places365
 from django.http import HttpResponse
 from django.http import HttpResponseForbidden
 
@@ -62,10 +62,10 @@ from api.social_graph import build_social_graph, build_ego_graph
 from api.autoalbum import generate_event_albums
 
 from api.image_similarity import search_similar_image
-
+from django_rq import get_worker
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
-from django.utils import six
-
+import six as six
+import uuid
 from api.api_util import \
     get_count_stats, \
     get_location_clusters, \
@@ -98,7 +98,6 @@ import pytz
 
 from django.core.cache import cache
 from django.utils.encoding import force_text
-from rest_framework_extensions.cache.mixins import CacheResponseMixin
 
 from rest_framework_extensions.cache.decorators import cache_response
 from rest_framework_extensions.key_constructor.constructors import (
@@ -1600,9 +1599,7 @@ class RootPathTreeView(APIView):
 
     def get(self, request, format=None):
         try:
-            logger.info('about to get root path tree')
             res = [path_to_dict(p) for p in config.image_dirs]
-            logger.info('root path tree calculated')
             return Response(res)
         except Exception as e:
             logger.error(str(e))
@@ -1766,34 +1763,20 @@ class SearchSimilarPhotosView(APIView):
 class ScanPhotosView(APIView):
     def get(self, request, format=None):
         try:
-            res = scan_photos.delay(request.user)
-            logger.info('queued job {}'.format(res.id))
-            if not LongRunningJob.objects.filter(job_id=res.id).exists():
-                lrj = LongRunningJob.objects.create(
-                    started_by=request.user,
-                    job_id=res.id,
-                    queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-                    job_type=LongRunningJob.JOB_SCAN_PHOTOS)
-                lrj.save()
-            return Response({'status': True, 'job_id': res.id})
+            job_id = uuid.uuid4()
+            scan_photos(request.user, job_id)
+            return Response({'status': True, 'job_id': job_id})
         except BaseException as e:
-            logger.error(str(e))
+            logger.exception("An Error occured")
             return Response({'status': False})
 
 
 class RegenerateAutoAlbumTitles(APIView):
     def get(self, request, format=None):
         try:
-            res = regenerate_event_titles.delay(user=request.user)
-            logger.info('queued job {}'.format(res.id))
-            if not LongRunningJob.objects.filter(job_id=res.id).exists():
-                lrj = LongRunningJob.objects.create(
-                    started_by=request.user,
-                    job_id=res.id,
-                    queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-                    job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUM_TITLES)
-                lrj.save()
-            return Response({'status': True, 'job_id': res.id})
+            job_id = uuid.uuid4()
+            regenerate_event_titles(user=request.user, job_id = job_id)
+            return Response({'status': True, 'job_id':  job_id })
         except BaseException as e:
             logger.error(str(e))
             return Response({'status': False})
@@ -1801,18 +1784,10 @@ class RegenerateAutoAlbumTitles(APIView):
 
 class AutoAlbumGenerateView(APIView):
     def get(self, request, format=None):
-
         try:
-            res = generate_event_albums.delay(user=request.user)
-            logger.info('queued job {}'.format(res.id))
-            if not LongRunningJob.objects.filter(job_id=res.id).exists():
-                lrj = LongRunningJob.objects.create(
-                    started_by=request.user,
-                    job_id=res.id,
-                    queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-                    job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUMS)
-                lrj.save()
-            return Response({'status': True, 'job_id': res.id})
+            job_id = uuid.uuid4()
+            generate_event_albums(user=request.user, job_id= job_id)
+            return Response({'status': True, 'job_id': job_id})
         except BaseException as e:
             logger.error(str(e))
             return Response({'status': False})
@@ -1821,16 +1796,9 @@ class AutoAlbumGenerateView(APIView):
 class TrainFaceView(APIView):
     def get(self, request, format=None):
         try:
-            res = train_faces.delay(user=request.user)
-            logger.info('queued job {}'.format(res.id))
-            if not LongRunningJob.objects.filter(job_id=res.id).exists():
-                lrj = LongRunningJob.objects.create(
-                    started_by=request.user,
-                    job_id=res.id,
-                    queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-                    job_type=LongRunningJob.JOB_TRAIN_FACES)
-                lrj.save()
-            return Response({'status': True, 'job_id': res.id})
+            job_id = uuid.uuid4
+            train_faces(user=request.user, job_id=job_id)
+            return Response({'status': True, 'job_id': job_id})
         except BaseException as e:
             logger.error(str(e))
             return Response({'status': False})
