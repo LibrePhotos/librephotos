@@ -14,7 +14,7 @@ cytoolz==0.9.0.1
 dateutils==0.6.6
 decorator==4.0.11
 dill==0.2.8.2
-Django==2.1.11
+Django==2.2.13
 django-appconf==1.0.2
 django-bulk-update==2.2.0
 django-constance==2.2.0
