@@ -2,30 +2,18 @@ from api.models import (Photo, LongRunningJob)
 from django_rq import job
 import owncloud as nextcloud
 import pathlib
-import ipdb
 import os
 from ownphotos import settings
-import os
 import datetime
 import pytz
-import time
-
-from tqdm import tqdm
-from config import image_dirs
-
 import api.util as util
-
-import ipdb
-from django_rq import job
-import time
-import rq
-from api.directory_watcher import handle_new_image
+from api.directory_watcher import handle_new_image, isValidMedia
 from api.image_similarity import build_image_similarity_index
 
 
 def collect_photos(nc, path, photos):
     for x in nc.list(path):
-        if x.path.lower().endswith('.jpg') or x.path.lower().endswith('.jpeg'):
+        if isValidMedia(x):
             photos.append(x.path)
         elif x.is_dir():
             collect_photos(nc, x.path, photos)
