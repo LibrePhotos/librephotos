@@ -11,9 +11,12 @@ from django_rq import job
 from django.db.models import Q
 import json
 
+def isValidMedia(p):
+    return p.lower().endswith('.jpg') or p.lower().endswith('.jpeg') or p.lower().endswith('.png')
+
 def handle_new_image(user, image_path, job_id):
     
-    if image_path.lower().endswith('.jpg') or image_path.lower().endswith('.jpeg') :
+    if isValidMedia(image_path):
         try:
             elapsed_times = {
                 'md5':None,
@@ -147,7 +150,7 @@ def scan_photos(user, job_id):
 
         image_paths = [
             p for p in image_paths
-            if (p.lower().endswith('.jpg') or p.lower().endswith('.jpeg')) and 'thumb' not in p.lower()
+            if isValidMedia(p) and 'thumb' not in p.lower()
         ]
         image_paths.sort()
 
