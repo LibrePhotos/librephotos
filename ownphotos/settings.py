@@ -225,6 +225,7 @@ STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'protected_media')
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+DATA_ROOT = '/data'
 
 THUMBNAIL_SIZE_TINY = (30, 30)
 THUMBNAIL_SIZE_SMALL = (100, 100)
