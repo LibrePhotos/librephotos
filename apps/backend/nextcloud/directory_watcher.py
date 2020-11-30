@@ -13,7 +13,7 @@ from api.image_similarity import build_image_similarity_index
 
 def collect_photos(nc, path, photos):
     for x in nc.list(path):
-        if isValidMedia(x):
+        if isValidMedia(x.path):
             photos.append(x.path)
         elif x.is_dir():
             collect_photos(nc, x.path, photos)
@@ -44,10 +44,10 @@ def scan_photos(user, job_id):
     collect_photos(nc, user.nextcloud_scan_directory, photos)
 
     for photo in photos:
-        local_dir = os.path.join(settings.BASE_DIR, 'nextcloud_media',
+        local_dir = os.path.join(settings.DATA_ROOT, 'nextcloud_media',
                                  user.username,
                                  os.path.dirname(photo)[1:])
-        local_path = os.path.join(settings.BASE_DIR, 'nextcloud_media',
+        local_path = os.path.join(settings.DATA_ROOT, 'nextcloud_media',
                                   user.username, photo[1:])
         image_paths.append(local_path)
 
