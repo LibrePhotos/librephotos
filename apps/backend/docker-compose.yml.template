@@ -25,35 +25,29 @@ services:
       - ownphotos-data:/var/lib/postgresql/data
 
   frontend:
-    image: hooram/ownphotos-frontend:dev
+    image: derneuere/ownphotos-frontend:latest
+    # For development uncomment this and comment the image name above
+    #build: ./ownphotos/ownphotos-frontend/
     container_name: ownphotos-frontend
-    #image: hooram/ownphotos-frontend:dev
-    #build: ../ownphotos-frontend
     tty: true
-    #volumes:
-    #   - ../ownphotos-frontend/src:/usr/src/app/src
-    environment:
-       # This is the path to the backend host public facing. if your website is ownphotos.org then this should be "ownphotos.org".
-       # Default here is assuming you are running on localhost on port 3000 as given in ownphotos-proxy service
-       - BACKEND_HOST=localhost:3000 # CHANGE ME IF YOU WANT
     links:
       - "backend:backend"
 
   backend:
-    image: hooram/ownphotos:dev
+    image: derneuere/ownphotos:latest
     # For development uncomment this and comment the image name above
     #build: .
     container_name: ownphotos-backend
     volumes:
-      - /photos/on/host:/data # CHANGE ME
-      - /path/to/store/thumbnails/on/host:/code/protected_media # CHANGE ME
-      - /path/to/store/logs/on/host:/code/logs # CHANGE ME
+      - $HOME/photos:/data # CHANGE ME
+      - $HOME/ownphotos_media/:/code/protected_media # CHANGE ME
+      - $HOME/ownphotos_logs/:/code/logs # CHANGE ME
     environment:
       - SECRET_KEY=changeme # CHANGE ME
       - BACKEND_HOST=backend # DON'T CHANGE ME
       - ADMIN_EMAIL=admin@example.com # CHANGE ME
       - ADMIN_USERNAME=demo # CHANGE ME
-      - ADMIN_PASSWORD=demo1234 # CHAGNE ME
+      - ADMIN_PASSWORD=demo1234 # CHANGE ME
       - DEBUG=false
       - DB_BACKEND=postgresql
       - DB_NAME=ownphotos
@@ -64,7 +58,7 @@ services:
       - DB_PORT=5432
       - REDIS_HOST=ownphotos-redis
       - REDIS_PORT=6379
-      - MAPBOX_API_KEY=apikey # CHANGE ME - sign up at mapbox.com for an api key. You need this for reverse geocoding. 
+      - MAPBOX_API_KEY=apikey #CHANGE ME - sign up at mapbox.com for an api key. You need this for reverse geocoding
     links:
       - "ownphotos-db:ownphotos-db"
       - "ownphotos-redis:ownphotos-redis"

@@ -5,6 +5,7 @@ services:
   proxy:
     image: guysoft/ownphotos-proxy
     tty: true
+    container_name: ownphotos-proxy
     restart: always
     links:
       - "backend:backend"
@@ -14,6 +15,7 @@ services:
       
   ownphotos-db:
     image: postgres
+    container_name: ownphotos-db
     restart: always
     environment:
     # This db password is internal, you can change it if you want, but also change it in ownphotos-backend container
@@ -23,35 +25,26 @@ services:
       - ownphotos-data:/var/lib/postgresql/data
 
   frontend:
-    image: hooram/ownphotos-frontend:dev
-    build: ../ownphotos-frontend
+    image: derneuere/ownphotos-frontend:latest
+    container_name: ownphotos-frontend
     tty: true
-    volumes:
-       - ../ownphotos-frontend/src:/usr/src/app/src
-    environment:
-       # This is the path to the backend host public facing. if your website is ownphotos.org then this should be "ownphotos.org".
-       # Default here is assuming you are running on localhost on port 3000 as given in ownphotos-proxy service
-       - BACKEND_HOST=localhost:3000
     links:
       - "backend:backend"
 
   backend:
-    image: hooram/ownphotos:dev
-    # For development uncomment this and comment the image name above
-    #build: .
+    image: derneuere/ownphotos:latest
+    container_name: ownphotos-backend
     volumes:
-      - /run/media/niaz/Plex/Pictures:/data # CHANGE ME
-      - /home/niaz/ownpictures/thumbs/:/code/protected_media # CHANGE ME
-      - /home/niaz/ownpictures/logs/:/code/logs # CHANGE ME
+      - $HOME/photos:/data # CHANGE ME
+      - $HOME/ownphotos_media/:/code/protected_media # CHANGE ME
+      - $HOME/ownphotos_logs/:/code/logs # CHANGE ME
     environment:
-      - SECRET_KEY=change_meme
-      # This is backend host from within the service, you dont need to change this
-      - BACKEND_HOST=backend
-      - ADMIN_EMAIL=admin@example.com
-      - ADMIN_USERNAME=admin
-      # Change your admin password!
-      - ADMIN_PASSWORD=admin
-      - DEBUG=true
+      - SECRET_KEY=changeme # CHANGE ME
+      - BACKEND_HOST=backend # DON'T CHANGE ME
+      - ADMIN_EMAIL=admin@example.com # CHANGE ME
+      - ADMIN_USERNAME=demo # CHANGE ME
+      - ADMIN_PASSWORD=demo1234 # CHANGE ME
+      - DEBUG=false
       - DB_BACKEND=postgresql
       - DB_NAME=ownphotos
       - DB_USER=postgres
@@ -61,14 +54,14 @@ services:
       - DB_PORT=5432
       - REDIS_HOST=ownphotos-redis
       - REDIS_PORT=6379
-      - MAPBOX_API_KEY=CHANGE_MEAAAA
-      - TIME_ZONE=UTC
+      - MAPBOX_API_KEY=apikey #CHANGE ME - sign up at mapbox.com for an api key. You need this for reverse geocoding
     links:
       - "ownphotos-db:ownphotos-db"
       - "ownphotos-redis:ownphotos-redis"
   
   ownphotos-redis:
     image: redis
+    container_name: ownphotos-redis
 
 volumes:
   ownphotos-data:
