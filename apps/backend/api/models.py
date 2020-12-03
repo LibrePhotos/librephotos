@@ -2,7 +2,6 @@ from datetime import datetime
 import dateutil.parser as dateparser
 import PIL
 from PIL import ImageOps
-from PIL.ExifTags import TAGS as EXIFTAGS
 from django.db import models
 from django.db.models import Prefetch
 import face_recognition
@@ -15,6 +14,8 @@ import base64
 import numpy as np
 import os
 import pytz
+
+from api.exifreader import rotate_image
 
 from collections import Counter
 from io import BytesIO
@@ -233,31 +234,7 @@ class Photo(models.Model):
     def _generate_thumbnail(self):
         image = PIL.Image.open(self.image_path)
 
-        # If no ExifTags, no rotating needed.
-        try:
-            # Grab orientation value.
-            image_exif = image._getexif()
-            image_orientation = image_exif[274]
-
-            # Rotate depending on orientation.
-            if image_orientation == 2:
-                image = image.transpose(PIL.Image.FLIP_LEFT_RIGHT)
-            if image_orientation == 3:
-                image = image.transpose(PIL.Image.ROTATE_180)
-            if image_orientation == 4:
-                image = image.transpose(PIL.Image.FLIP_TOP_BOTTOM)
-            if image_orientation == 5:
-                image = image.transpose(PIL.Image.FLIP_LEFT_RIGHT).transpose(
-                    PIL.Image.ROTATE_90)
-            if image_orientation == 6:
-                image = image.transpose(PIL.Image.ROTATE_270)
-            if image_orientation == 7:
-                image = image.transpose(PIL.Image.FLIP_TOP_BOTTOM).transpose(
-                    PIL.Image.ROTATE_90)
-            if image_orientation == 8:
-                image = image.transpose(PIL.Image.ROTATE_90)
-        except:
-            pass
+        image = rotate_image(image)
 
         # make thumbnails
         image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_BIG,
@@ -333,30 +310,7 @@ class Photo(models.Model):
     def _save_image_to_db(self):
         image = PIL.Image.open(self.image_path)
 
-        try:
-            # Grab orientation value.
-            image_exif = image._getexif()
-            image_orientation = image_exif[274]
-
-            # Rotate depending on orientation.
-            if image_orientation == 2:
-                image = image.transpose(PIL.Image.FLIP_LEFT_RIGHT)
-            if image_orientation == 3:
-                image = image.transpose(PIL.Image.ROTATE_180)
-            if image_orientation == 4:
-                image = image.transpose(PIL.Image.FLIP_TOP_BOTTOM)
-            if image_orientation == 5:
-                image = image.transpose(PIL.Image.FLIP_LEFT_RIGHT).transpose(
-                    PIL.Image.ROTATE_90)
-            if image_orientation == 6:
-                image = image.transpose(PIL.Image.ROTATE_270)
-            if image_orientation == 7:
-                image = image.transpose(PIL.Image.FLIP_TOP_BOTTOM).transpose(
-                    PIL.Image.ROTATE_90)
-            if image_orientation == 8:
-                image = image.transpose(PIL.Image.ROTATE_90)
-        except:
-            pass
+        image = rotate_image(image)
 
         # image.thumbnail(ownphotos.settings.FULLPHOTO_SIZE, PIL.Image.ANTIALIAS)
         image_io = BytesIO()
@@ -465,14 +419,13 @@ class Photo(models.Model):
             unknown_person.save()
         else:
             unknown_person = qs_unknown_person[0]
-
-        image = PIL.Image.open(self.thumbnail)
+        image = PIL.Image.open(self.image_path)
+        image = rotate_image(image)
         image = np.array(image.convert('RGB'))
-
-        face_encodings = face_recognition.face_encodings(image)
+        
         face_locations = face_recognition.face_locations(image)
+        face_encodings = face_recognition.face_encodings(image, known_face_locations=face_locations)
 
-        faces = []
         if len(face_locations) > 0:
             for idx_face, face in enumerate(
                     zip(face_encodings, face_locations)):
