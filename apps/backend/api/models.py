@@ -448,6 +448,7 @@ class Photo(models.Model):
             except:
                 util.logger.warning('something went wrong with geolocating')
                 pass
+    
     def _im2vec(self):
         try:
             image = PIL.Image.open(self.square_thumbnail_big)
@@ -527,14 +528,6 @@ class Photo(models.Model):
                         album_thing.cover_photos.add(self)
                     album_thing.save()
 
-        # if self.search_captions:
-        #     doc = util.nlp('. '.join(self.search_captions.split(' , ')))
-        #     nouns = list(set([t.lemma_ for t in doc if t.tag_=="NN"]))
-        #     for noun in nouns:
-        #         album_thing = get_album_thing(title=noun)[0]
-        #         album_thing.photos.add(self)
-        #         album_thing.save()
-
     def _add_to_album_date(self):
         if self.exif_timestamp:
             album_date = get_album_date(
@@ -563,25 +556,21 @@ class Photo(models.Model):
         album_date.save()
 
     def _add_to_album_place(self):
-        if self.geolocation_json and len(self.geolocation_json) > 0:
-            if 'features' in self.geolocation_json.keys():
-                for geolocation_level, feature in enumerate(
-                        self.geolocation_json['features']):
-                    if 'text' in feature.keys():
-                        if not feature['text'].isnumeric():
-                            album_place = get_album_place(
-                                feature['text'], owner=self.owner)
-                            if album_place.photos.filter(
-                                    image_hash=self.image_hash).count() == 0:
-                                album_place.geolocation_level = len(
-                                    self.geolocation_json['features']
-                                ) - geolocation_level
-                                album_place.photos.add(self)
-                                if album_place.cover_photos.count() < 4:
-                                    album_place.cover_photos.add(self)
-                                album_place.save()
-        else:
-            logger.warning('photo not addded to album place')
+        if not self.geolocation_json or len(self.geolocation_json) == 0:
+            return
+        if  'features' not in self.geolocation_json.keys():
+            return
+
+        for geolocation_level, feature in enumerate(self.geolocation_json['features']):
+            if not 'text' in feature.keys() or feature['text'].isnumeric():
+                continue
+            album_place = get_album_place(feature['text'], owner=self.owner)
+            if album_place.photos.filter(image_hash=self.image_hash).count() == 0:
+                album_place.geolocation_level = len(self.geolocation_json['features']) - geolocation_level
+            if album_place.cover_photos.count() < 4:
+                     album_place.cover_photos.add(self)
+            album_place.photos.add(self)
+            album_place.save()
 
     def __str__(self):
         return "%s" % self.image_hash
