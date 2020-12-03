@@ -43,8 +43,6 @@ def handle_new_image(user, image_path, job_id):
             image_hash = hash_md5.hexdigest() + str(user.id)
             elapsed = (datetime.datetime.now() - start).total_seconds()
             elapsed_times['md5'] = elapsed
-#             util.logger.info('generating md5 took %.2f, image_hash: %s' %
-#                              (elapsed, image_hash))
 
             photo_exists = Photo.objects.filter(
                 Q(image_hash=image_hash)
@@ -56,57 +54,22 @@ def handle_new_image(user, image_path, job_id):
                     owner=user,
                     image_hash=image_hash,
                     added_on=datetime.datetime.now().replace(tzinfo=pytz.utc),
-                    geolocation_json={})
-                #photo._generate_md5()
-                
+                    geolocation_json={})                
                    
                 start = datetime.datetime.now()
+                
                 photo._generate_thumbnail()
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                elapsed_times['thumbnails'] = elapsed
-                util.logger.info('thumbnail get took %.2f' % elapsed)
-
-                start = datetime.datetime.now()
                 photo._generate_captions()
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                elapsed_times['captions'] = elapsed
-                util.logger.info('caption generation took %.2f' % elapsed)
-
-#                 start = datetime.datetime.now()
-#                 photo._save_image_to_db()
-#                 elapsed = (datetime.datetime.now() - start).total_seconds()
-#                 elapsed_times['image_save'] = elapsed
-                util.logger.info('image save took %.2f' % elapsed)
-
-                start = datetime.datetime.now()
                 photo._extract_exif()
-                util.logger.info('add to AlbumPlace took %.2f' % elapsed)
                 photo._geolocate_mapbox()
-                start = datetime.datetime.now()
+                photo._add_to_album_place()
                 photo._extract_faces()
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                elapsed_times['faces'] = elapsed
-                util.logger.info('face extraction took %.2f' % elapsed)
-
-                start = datetime.datetime.now()
                 photo._add_to_album_date()
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                elapsed_times['album_date'] = elapsed
-                util.logger.info('adding to AlbumDate took %.2f' % elapsed)
-
-                start = datetime.datetime.now()
                 photo._add_to_album_thing()
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                elapsed_times['album_thing'] = elapsed
-                util.logger.info('adding to AlbumThing took %.2f' % elapsed)
-
-                start = datetime.datetime.now()
                 photo._im2vec()
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                elapsed_times['im2vec'] = elapsed
-                util.logger.info('im2vec took %.2f' % elapsed)
 
-                util.logger.info("job {}: image processed: {}, elapsed: {}".format(job_id,img_abs_path,json.dumps(elapsed_times)))
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                util.logger.info("job {}: image processed: {}, elapsed: {}".format(job_id,img_abs_path,elapsed))
 
                 if photo.image_hash == '':
                     util.logger.warning("job {}: image hash is an empty string. File path: {}".format(job_id,photo.image_path))

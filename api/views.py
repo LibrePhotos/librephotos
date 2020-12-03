@@ -1042,16 +1042,6 @@ class AlbumPlaceViewSet(viewsets.ModelViewSet):
 
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumPlaceListViewSet(viewsets.ModelViewSet):
-    #     queryset = AlbumPlace.objects.annotate(photo_count=Count('photos')).filter(photo_count__gte=3).order_by('-photo_count')[:400]
-    # queryset = AlbumPlace.objects.all()
-    # queryset = AlbumPlace.objects.all() \
-    #     .annotate(photo_count=Count('photos')) \
-    #     .order_by('-title') \
-    #     .prefetch_related(
-    #         Prefetch(
-    #             'cover_photos',
-    #             queryset=Photo.objects.all() \
-    #                 .only('image_hash')))
     serializer_class = AlbumPlaceListSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter, )
