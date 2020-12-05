@@ -218,8 +218,6 @@ export function fetchWorkerAvailability(prevRunningJob) {
           type: "SET_WORKER_RUNNING_JOB",
           payload: response.data.job_detail
         });
-        // console.log(prevRunningJob);
-        // console.log(response.data.job_detail);
       })
       .catch(error => {
         dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });

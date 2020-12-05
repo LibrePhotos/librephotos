@@ -2,72 +2,32 @@ import React, {Component} from 'react';
 import {
   Form,
   Radio,
-  Label,
-  Step,
   Progress,
-  List,
   Grid,
-  Image,
   Icon,
-  Item,
   Header,
-  Segment,
-  Accordion,
-  Container,
-  Message,
   Input,
   Button,
   Loader,
   Table,
-  Dropdown,
   Popup,
   Divider,
   Pagination,
 } from 'semantic-ui-react';
 import {connect} from 'react-redux';
-import {Link} from 'react-router-dom';
 
 import Modal from 'react-modal';
 import moment from 'moment';
 
 import {
-  fetchCountStats,
-  fetchPhotoScanStatus,
-  fetchWordCloud,
-  generateEventAlbums,
-  fetchAutoAlbumProcessingStatus,
-  generateEventAlbumTitles,
-  fetchWorkerAvailability,
   setSiteSettings,
   fetchSiteSettings,
-  updateUser,
-  fetchNextcloudDirectoryTree,
   fetchJobList,
   deleteJob,
   fetchUserList,
   fetchDirectoryTree,
   manageUpdateUser,
 } from '../actions/utilActions';
-import {
-  scanPhotos,
-  scanNextcloudPhotos,
-  fetchPhotos,
-} from '../actions/photosActions';
-import {fetchUserSelfDetails} from '../actions/userActions';
-import CountryPiChart from '../components/charts/countryPiChart';
-import {CountStats} from '../components/statistics';
-import WordCloud from '../components/charts/wordCloud';
-
-import {AllPhotosMap, EventMap, LocationClusterMap} from '../components/maps';
-import EventCountMonthGraph from '../components/eventCountMonthGraph';
-import FaceClusterScatter from '../components/faceClusterGraph';
-import SocialGraph from '../components/socialGraph';
-import LazyLoad from 'react-lazyload';
-import {LocationLink} from '../components/locationLink';
-
-import Dropzone from 'react-dropzone';
-import AvatarEditor from 'react-avatar-editor';
-import MaterialIcon, {colorPallet} from 'material-icons-react';
 import SortableTree from 'react-sortable-tree';
 import FileExplorerTheme from 'react-sortable-tree-theme-file-explorer';
 
@@ -211,10 +171,6 @@ const modalStyles = {
     height: window.innerHeight - 300,
 
     overflow: 'hidden',
-    // paddingRight:0,
-    // paddingBottomt:0,
-    // paddingLeft:10,
-    // paddingTop:10,
     padding: 0,
     backgroundColor: 'white',
   },
@@ -425,7 +381,6 @@ class ModalScanDirectoryEdit extends Component {
   }
 
   render() {
-    console.log(this.inputRef);
     return (
       <Modal
         ariaHideApp={false}

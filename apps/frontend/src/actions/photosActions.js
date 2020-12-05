@@ -1,11 +1,8 @@
-import axios from "axios";
 import { Server, serverAddress } from "../api_client/apiClient";
 import _ from "lodash";
 import moment from "moment";
 import { notify } from "reapop";
 
-import { fetchDateAlbumsPhotoHashList } from "./albumsActions";
-import { copyToClipboard } from "../util/util";
 
 export function setPhotosShared(image_hashes, val_shared, target_user) {
   return function(dispatch) {
@@ -72,7 +69,6 @@ export function fetchRecentlyAddedPhotos() {
             idx2hash.push(photo.image_hash);
           });
         });
-
         dispatch({ type: "FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED", payload: {res:res, idx2hash:idx2hash} })
       })
       .catch(error=>{
@@ -158,16 +154,11 @@ export function setPhotosPublic(image_hashes, val_public) {
         if (val_public) {
           var notificationMessage =
             "were successfully added to your public photos. Links to the photos were copied to the clipboard.";
-          // console.log('links to copy')
-          // console.log(image_hashes.map(ih=>{return serverAddress+'/media/photos/'+ih+'.jpg'}).join(' '))
           const linksToCopy = image_hashes
             .map(ih => {
               return serverAddress.slice(2,serverAddress.length) + "/media/photos/" + ih + ".jpg";
             })
             .join(" ");
-
-          // copyToClipboard(image_hashes.map(ih=>{return serverAddress+'/media/photos/'+ih+'.jpg'}).join(' '))
-          // copyToClipboard('helaelkqwjelkrqwer')
         } else {
           var notificationMessage =
             "were successfully removed from your public photos";
@@ -335,7 +326,6 @@ export function fetchPhotos() {
         const res = _.keyBy(response.data.results, "image_hash");
         var t1 = performance.now();
         dispatch({ type: "FETCH_PHOTOS_FULFILLED", payload: res });
-        // dispatch(fetchDateAlbumsPhotoHashList())
       })
       .catch(err => {
         dispatch({ type: "FETCH_PHOTOS_REJECTED", payload: err });
@@ -348,15 +338,10 @@ export function fetchFavoritePhotos() {
     dispatch({ type: "FETCH_FAVORITE_PHOTOS" });
     Server.get("photos/favorites/", { timeout: 100000 })
       .then(response => {
-        //var t0 = performance.now();
-        //const res = _.keyBy(response.data.results,'image_hash')
-        //var t1 = performance.now();
-        //console.log("Call to doSomething took " + (t1 - t0) + " milliseconds.")
         dispatch({
           type: "FETCH_FAVORITE_PHOTOS_FULFILLED",
           payload: response.data.results
         });
-        // dispatch(fetchDateAlbumsPhotoHashList())
       })
       .catch(err => {
         dispatch({ type: "FETCH_FAVORITE_PHOTOS_REJECTED", payload: err });
@@ -369,15 +354,10 @@ export function fetchHiddenPhotos() {
     dispatch({ type: "FETCH_HIDDEN_PHOTOS" });
     Server.get("photos/hidden/", { timeout: 100000 })
       .then(response => {
-        //var t0 = performance.now();
-        //const res = _.keyBy(response.data.results,'image_hash')
-        //var t1 = performance.now();
-        //console.log("Call to doSomething took " + (t1 - t0) + " milliseconds.")
         dispatch({
           type: "FETCH_HIDDEN_PHOTOS_FULFILLED",
           payload: response.data.results
         });
-        // dispatch(fetchDateAlbumsPhotoHashList())
       })
       .catch(err => {
         dispatch({ type: "FETCH_HIDDEN_PHOTOS_REJECTED", payload: err });

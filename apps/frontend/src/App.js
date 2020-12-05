@@ -20,12 +20,10 @@ import {FaceDashboard} from './layouts/FaceDashboardV3';
 import {FavoritePhotos} from './layouts/FavoritePhotos';
 import {HiddenPhotos} from './layouts/HiddenPhotos';
 import {SignupPage} from './layouts/SignUpPage';
-import {UserManagement} from './layouts/UserManagement';
 import {AlbumAutoGalleryView} from './layouts/albumAutoGalleryView';
 import {AlbumAuto} from './layouts/albumAuto';
 import {AlbumPeople} from './layouts/albumPeople';
 import {AlbumPersonGallery} from './layouts/albumPersonGallery';
-import {AlbumPlace} from './layouts/albumPlace';
 import {AlbumPlaceGallery} from './layouts/albumPlaceGallery';
 import {AlbumThing} from './layouts/albumThing';
 import {AlbumUser} from './layouts/albumUser';
@@ -35,7 +33,6 @@ import {SideMenuNarrow, TopMenu} from './layouts/menubars';
 import {NoTimestampPhotosView} from './layouts/noTimestampPhotosView';
 import {RecentlyAddedPhotos} from './layouts/RecentlyAddedPhotos';
 import PrivateRoute from './layouts/privateRoute';
-// import {SearchView} from './layouts/search'
 import {SearchView} from './layouts/searchRV';
 import {Settings} from './layouts/settings';
 import {AdminPage} from './layouts/AdminPage';
@@ -46,23 +43,6 @@ import {PublicUserList} from './layouts/PublicUserList';
 import {LocationClusterMap} from './components/maps';
 import {SharedToMe} from './layouts/SharedToMe';
 import {SharedFromMe} from './layouts/SharedFromMe';
-/*
-store.subscribe(listener)
-
-var jwt = null
-
-function select(state) {
-  return state.auth.jwtToken
-}
-
-function listener() {
-  let token = select(store.getState())
-  jwt = token
-}
-*/
-
-var topMenuHeight = 55; // don't change this
-var leftMenuWidth = 85; // don't change this
 
 class Nav extends React.Component {
   render() {
@@ -78,13 +58,6 @@ class Nav extends React.Component {
 const noMenubarPaths = ['/signup', '/login'];
 
 class App extends Component {
-  /*
-  componentWillMount() {
-    if (this.props.jwtToken == null) {
-      store.dispatch(push('/login/'))
-    }
-  }
-  */
 
   render() {
     const menuSpacing = 0;
@@ -198,13 +171,3 @@ App = connect(store => {
 })(App);
 
 export default App;
-/*
-const mapStateToProps = (state) => ({
-  router: state.routerReducer
-})
-
-const mapDispatchToProps = (dispatch) => ({
-})
-
-export default connect(mapStateToProps, null)(App)
-*/
