@@ -2,24 +2,25 @@
 
 <div style="text-align:center"><img width="100" src ="/screenshots/logo.png"/></div>
 
-# Ownphotos
+# LibrePhotos
 
 ## Screenshots
 
-![](https://github.com/hooram/ownphotos/blob/dev/screenshots/Screenshot_2018-11-27_14-56-21.png?raw=true)
-![](https://github.com/hooram/ownphotos/blob/dev/screenshots/Screenshot_2018-11-27_14-57-50.png?raw=true)
-![](https://github.com/hooram/ownphotos/blob/dev/screenshots/Screenshot_2018-11-27_15-01-49.png?raw=true)
+![](https://github.com/LibrePhotos/librephotos/blob/dev/screenshots/Screenshot_2018-11-27_14-56-21.png?raw=true)
+![](https://github.com/LibrePhotos/librephotos/blob/dev/screenshots/Screenshot_2018-11-27_14-57-50.png?raw=true)
+![](https://github.com/LibrePhotos/librephotos/blob/dev/screenshots/Screenshot_2018-11-27_15-01-49.png?raw=true)
 
 ## Live demo
 Live [demo avilable here](https://demo.ownphotos.io).
 User is demo, password is demo1234.
 
 ## Discord Server
-https://discord.gg/dPCdTBN
+https://discord.gg/y4SmdUJQ
 
 ## What is it?
 
-- Self hosted wannabe Google Photos clone, with a slight focus on cool graphs
+- LibrePhotos is a fork of Ownphotos
+- Self hosted Google Photos clone, with a slight focus on cool graphs
 - Django backend & React frontend. 
 - In development. Contributions are welcome!
 
@@ -68,19 +69,15 @@ https://discord.gg/dPCdTBN
 
 ### Docker
 
-Ownphotos comes with separate backend and frontend
+LibrePhotos comes with separate backend and frontend
 servers. The backend serves the restful API, and the frontend serves, well,
 the frontend. They are connected via a proxy.
 The easiest way to do it is using Docker.
 
-If you want the backend server to be reachable by
-`ownphotos-api.example.com` and the frontend by `ownphotos.example.com` from
-outside. You must account for the corsaCross-Origin Resource Sharing (CORS) in your proxy.
-
 ## Docker-compose method (Recommended)
 
 ```
-wget https://raw.githubusercontent.com/hooram/ownphotos/dev/docker-compose.yml.template
+wget https://raw.githubusercontent.com/LibrePhotos/librephotos/dev/docker-compose.yml.template
 cp docker-compose.yml.template docker-compose.yml
 ```
 
@@ -90,7 +87,7 @@ Open `docker-compose.yml` in your favorite text editor and make changes in the l
 docker-compose up -d
 ```
 
-You should have ownphotos accessible after a few seconds of bootup on: [localhost:3000](http://localhost:3000)
+You should have librephotos accessible after a few minutes of bootup on: [localhost:3000](http://localhost:3000)
 User is admin, password is admin and its important you change it on a public server via the ``docker-compose.yml`` file.
 
 ## First steps after setting up
