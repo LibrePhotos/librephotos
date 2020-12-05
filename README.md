@@ -1,3 +1,5 @@
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=LibrePhotos_ownphotos&metric=alert_status)](https://sonarcloud.io/dashboard?id=LibrePhotos_ownphotos)
+
 <div style="text-align:center"><img width="100" src ="/screenshots/logo.png"/></div>
 
 # Ownphotos
