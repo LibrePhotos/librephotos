@@ -766,7 +766,7 @@ export class SideMenuNarrow extends Component {
           <Menu.Item name="logo">
             <img height={40} src="/logo.png" />
             <p>
-              <small>Ownphotos</small>
+              <small>LibrePhotos</small>
             </p>
           </Menu.Item>
         )}

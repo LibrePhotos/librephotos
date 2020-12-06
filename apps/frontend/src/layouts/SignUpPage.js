@@ -95,7 +95,7 @@ export class SignupPage extends Component {
         <div style={{ maxWidth: 500, padding: 20, margin: "0 auto" }}>
           <Header as="h3" textAlign="center">
             <Image src={"/logo.png"} />
-            <Header.Content>Ownphotos</Header.Content>
+            <Header.Content>LibrePhotos</Header.Content>
           </Header>
           <Segment attached>
             <Header>Signup</Header>
