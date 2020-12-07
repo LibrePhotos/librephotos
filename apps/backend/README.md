@@ -15,7 +15,7 @@ Live [demo avilable here](https://demo.ownphotos.io).
 User is demo, password is demo1234.
 
 ## Discord Server
-https://discord.gg/y4SmdUJQ
+https://discord.gg/xwRvtSDGWb
 
 ## What is it?
 
