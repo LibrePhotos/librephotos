@@ -648,7 +648,6 @@ class AlbumDate(models.Model):
     location = JSONField(blank=True, db_index=True, null=True)
     owner = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None)
-
     shared_to = models.ManyToManyField(
         User, related_name='album_date_shared_to')
 
@@ -657,6 +656,9 @@ class AlbumDate(models.Model):
 
     def __str__(self):
         return "%d: %s" % (self.id, self.title)
+
+    def has_visible_photos(self):
+        return self.photos.filter(hidden=False).count > 0
 
     def ordered_photos(self):
         return self.photos.all().order_by('-exif_timestamp')
