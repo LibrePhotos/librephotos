@@ -1,5 +1,6 @@
 from api.models import Photo, User
 from api.util import logger
+from django.db.models import Q
 import requests
 import numpy as np
 from ownphotos.settings import IMAGE_SIMILARITY_SERVER
@@ -25,7 +26,7 @@ def search_similar_image(user,photo):
 
 def build_image_similarity_index(user):
     logger.info('builing similarity index for user {}'.format(user.username))
-    photos = Photo.objects.filter(owner=user).exclude(encoding=None).only('encoding')
+    photos = Photo.objects.filter(Q(hidden=False) & Q(owner=user)).exclude(encoding=None).only('encoding')
 
     image_hashes = []
     image_embeddings = []

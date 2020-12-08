@@ -324,7 +324,7 @@ class Photo(models.Model):
         with open(self.image_path, 'rb') as fimg:
             exif = exifread.process_file(fimg, details=False)
             serializable = dict(
-                    [key, value.printable] for key, value in exif.items())
+                [key, value.printable] for key, value in exif.items())
             self.exif_json = serializable
             if 'EXIF DateTimeOriginal' in exif.keys():
                 tst_str = exif['EXIF DateTimeOriginal'].values
@@ -402,7 +402,7 @@ class Photo(models.Model):
             except:
                 util.logger.warning('something went wrong with geolocating')
                 pass
-    
+
     def _im2vec(self):
         try:
             image = PIL.Image.open(self.square_thumbnail_big)
@@ -422,9 +422,10 @@ class Photo(models.Model):
         image = PIL.Image.open(self.image_path)
         image = rotate_image(image)
         image = np.array(image.convert('RGB'))
-        
+
         face_locations = face_recognition.face_locations(image)
-        face_encodings = face_recognition.face_encodings(image, known_face_locations=face_locations)
+        face_encodings = face_recognition.face_encodings(
+            image, known_face_locations=face_locations)
 
         if len(face_locations) > 0:
             for idx_face, face in enumerate(
@@ -466,8 +467,6 @@ class Photo(models.Model):
                         image_hash=self.image_hash).count() == 0:
                     album_thing.photos.add(self)
                     album_thing.thing_type = 'places365_attribute'
-                    if album_thing.cover_photos.count() < 4:
-                        album_thing.cover_photos.add(self)
                     album_thing.save()
             for category in self.captions_json['places365']['categories']:
                 album_thing = get_album_thing(title=category, owner=self.owner)
@@ -477,8 +476,6 @@ class Photo(models.Model):
                         title=category, owner=self.owner)
                     album_thing.photos.add(self)
                     album_thing.thing_type = 'places365_category'
-                    if album_thing.cover_photos.count() < 4:
-                        album_thing.cover_photos.add(self)
                     album_thing.save()
 
     def _add_to_album_date(self):
@@ -511,7 +508,7 @@ class Photo(models.Model):
     def _add_to_album_place(self):
         if not self.geolocation_json or len(self.geolocation_json) == 0:
             return
-        if  'features' not in self.geolocation_json.keys():
+        if 'features' not in self.geolocation_json.keys():
             return
 
         for geolocation_level, feature in enumerate(self.geolocation_json['features']):
@@ -519,9 +516,8 @@ class Photo(models.Model):
                 continue
             album_place = get_album_place(feature['text'], owner=self.owner)
             if album_place.photos.filter(image_hash=self.image_hash).count() == 0:
-                album_place.geolocation_level = len(self.geolocation_json['features']) - geolocation_level
-            if album_place.cover_photos.count() < 4:
-                     album_place.cover_photos.add(self)
+                album_place.geolocation_level = len(
+                    self.geolocation_json['features']) - geolocation_level
             album_place.photos.add(self)
             album_place.save()
 
@@ -554,12 +550,11 @@ class Person(models.Model):
         # ipdb.set_trace()
 
     def get_photos(self, owner):
-        # prefetch_related(Prefetch('faces__photo', queryset=Photo.objects.all().order_by('-exif_timestamp').only('image_hash','exif_timestamp','favorited','hidden'))).order_by('name')
         faces = list(
             self.faces.prefetch_related(
                 Prefetch(
                     'photo',
-                    queryset=Photo.objects.exclude(image_hash=None).filter(
+                    queryset=Photo.objects.exclude(image_hash=None).filter(hidden=False,
                         owner=owner).order_by('-exif_timestamp').only(
                             'image_hash', 'exif_timestamp', 'favorited',
                             'owner__id', 'public',
@@ -584,8 +579,6 @@ class Face(models.Model):
     person_label_is_inferred = models.NullBooleanField(db_index=True)
     person_label_probability = models.FloatField(default=0., db_index=True)
 
-    # ignore = models.BooleanField(default=False,db_index=True)
-
     location_top = models.IntegerField()
     location_bottom = models.IntegerField()
     location_left = models.IntegerField()
@@ -600,9 +593,6 @@ class Face(models.Model):
 class AlbumThing(models.Model):
     title = models.CharField(max_length=512, db_index=True)
     photos = models.ManyToManyField(Photo)
-    cover_photos = models.ManyToManyField(
-        Photo, related_name='album_thing_cover_photos'
-    )  # should only have 4 photos. isn't enforced.
     thing_type = models.CharField(max_length=512, db_index=True, null=True)
     favorited = models.BooleanField(default=False, db_index=True)
     owner = models.ForeignKey(
@@ -614,6 +604,10 @@ class AlbumThing(models.Model):
     class Meta:
         unique_together = ('title', 'owner')
 
+    @property
+    def cover_photos(self):
+        return self.photos.filter(hidden=False)[:4]
+
     def __str__(self):
         return "%d: %s" % (self.id, self.title)
 
@@ -623,9 +617,6 @@ class AlbumPlace(models.Model):
     photos = models.ManyToManyField(Photo)
     geolocation_level = models.IntegerField(db_index=True, null=True)
     favorited = models.BooleanField(default=False, db_index=True)
-    cover_photos = models.ManyToManyField(
-        Photo, related_name='album_place_cover_photos'
-    )  # should only have 4 photos. isn't enforced.
     owner = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None)
 
@@ -634,6 +625,10 @@ class AlbumPlace(models.Model):
 
     class Meta:
         unique_together = ('title', 'owner')
+
+    @property
+    def cover_photos(self):
+        return self.photos.filter(hidden=False)[:4]
 
     def __str__(self):
         return "%d: %s" % (self.id, self.title)
@@ -656,9 +651,6 @@ class AlbumDate(models.Model):
 
     def __str__(self):
         return "%d: %s" % (self.id, self.title)
-
-    def has_visible_photos(self):
-        return self.photos.filter(hidden=False).count > 0
 
     def ordered_photos(self):
         return self.photos.all().order_by('-exif_timestamp')
@@ -751,9 +743,6 @@ class AlbumUser(models.Model):
     title = models.CharField(max_length=512)
     created_on = models.DateTimeField(auto_now=True, db_index=True)
     photos = models.ManyToManyField(Photo)
-    cover_photos = models.ManyToManyField(
-        Photo, related_name='album_user_cover_photos'
-    )  # should only have 4 photos. isn't enforced.
     favorited = models.BooleanField(default=False, db_index=True)
     owner = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None)
@@ -765,6 +754,11 @@ class AlbumUser(models.Model):
 
     class Meta:
         unique_together = ('title', 'owner')
+
+    @property
+    def cover_photos(self):
+        return self.photos.filter(hidden=False)[:4]
+
 
 class LongRunningJob(models.Model):
     JOB_SCAN_PHOTOS = 1
