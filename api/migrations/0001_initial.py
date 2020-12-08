@@ -286,4 +286,16 @@ class Migration(migrations.Migration):
             name='albumauto',
             unique_together={('timestamp', 'owner')},
         ),
+        migrations.RemoveField(
+            model_name='albumplace',
+            name='cover_photos'
+        ),
+        migrations.RemoveField(
+            model_name='albumthing',
+            name='cover_photos'
+        ),
+        migrations.RemoveField(
+            model_name='albumuser',
+            name='cover_photos'
+        )
     ]

@@ -340,13 +340,6 @@ class AlbumThingListSerializer(serializers.ModelSerializer):
     def get_photo_count(self, obj):
         return obj.photo_count
 
-    #     return obj.photos.count()
-
-    # def get_cover_photo_urls(self,obj):
-    #     first_photos = obj.photos.only('square_thumbnail__url')[:4]
-    #     return [first_photo.square_thumbnail_small.url for first_photo in first_photos]
-
-
 class AlbumDateSerializer(serializers.ModelSerializer):
     photos = PhotoSerializer(many=True, read_only=True)
 
