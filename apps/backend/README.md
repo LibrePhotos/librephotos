@@ -11,11 +11,11 @@
 ![](https://github.com/LibrePhotos/librephotos/blob/dev/screenshots/Screenshot_2018-11-27_15-01-49.png?raw=true)
 
 ## Live demo
-Live [demo avilable here](https://demo.ownphotos.io).
+Live [demo avilable here](https://demo2.librephotos.com/).
 User is demo, password is demo1234.
 
 ## Discord Server
-https://discord.gg/y4SmdUJQ
+https://discord.gg/xwRvtSDGWb
 
 ## What is it?
 
@@ -32,11 +32,11 @@ https://discord.gg/y4SmdUJQ
   
   - Label some faces manually, and train a face classifier to label the rest.
   - View photos by people in them.
-  - Automatically generate "event" albums with nice titles, like "Thursday in Berlin"
+  - Automatically generate "event" albums like "Thursday in Berlin"
   - See photos on the map
   - Backend caching
   - View photos grouped by date
-  - "Optimized" frontend (react virtualized... I tried my best.)
+  - "Optimized" frontend
   - Detect objects in photos, and make them searchable by objects 
   - Search photos by the location 
   - Authentication (using JWT)
@@ -92,13 +92,13 @@ User is admin, password is admin and its important you change it on a public ser
 
 ## First steps after setting up
 
-You need to log in as the admin user, and set up the directory for the users. To do this, click the top right button, and go to "Admin Area". On this page, it will show a list of users, and manually set the "Scan Directory" for the desired user. Only an admin can do this. And then you can go to Dashboard - Library and click the Green "Scan photos (file system)" button. If you have a Nextcloud instance, you can also input this in the Dashboard-Library page. Once logged in (the little circle next to "Nextcloud Scan Directory will be green), you can choose a top level directory in your logged in Nextcloud account. Once this works, you can click the blue "Scan photos (Nextcloud)". The backend system will essentially copy the contents of the Nextcloud directory you specified. 
+You need to log in as the admin user, and set up the directory for the users. To do this, click the top right button, and go to "Admin Area". On this page, it will show a list of users, and manually set the "Scan Directory" for the desired user. Only an admin can do this. And then you can go to Dashboard - Library and click the Green "Scan photos (file system)" button. If you have a Nextcloud instance, you can also input this in the Dashboard-Library page. Once logged in (the little circle next to "Nextcloud Scan Directory will be green), you can choose a top level directory in your logged in Nextcloud account. Once this works, you can click the blue "Scan photos (Nextcloud)". The backend system will copy the contents of the Nextcloud directory you specified. 
 
 The basic idea is this:
 
-- For scanning photos that reside in the local file system
+- For scaning photos that reside in the local file system
   - Only the admin user can change the "scan directory" of the users, including the admin itself.
   - Normal users cannot change his/her own "scan directory"
   - Only the admin can find the page to control this under the "user icon (top right) - admin area"
-- For scannign photos that reside in external Nextcloud instances
+- For scaning photos that reside in external Nextcloud instances
   - Any user can change his/her own Nextcloud endpoint, and choose a top level directory in the Nextcloud account.
