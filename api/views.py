@@ -8,7 +8,7 @@ from constance import config as site_config
 
 from api.models import Photo, AlbumAuto, AlbumUser, Face, Person, AlbumDate, AlbumPlace, AlbumThing, LongRunningJob, User, get_or_create_person
 from django.db.models import Count
-from django.db.models import Q
+from django.db.models import Q, F
 from django.db.models import Prefetch
 from api.places365.places365 import inference_places365
 from django.http import HttpResponse
@@ -638,7 +638,9 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
-        return AlbumAuto.objects.filter(owner=self.request.user) \
+        return AlbumAuto.objects \
+                .annotate(photo_count=Count('photos', filter=Q(photos__hidden=False), distinct=True)) \
+                .filter(Q(photo_count__gt=0)&Q(owner=self.request.user)) \
                 .prefetch_related(
                     Prefetch('photos',queryset=Photo.objects.filter(hidden=False).only(
                         'image_hash',
@@ -671,7 +673,9 @@ class AlbumAutoListViewSet(viewsets.ModelViewSet):
     ])
 
     def get_queryset(self):
-        return AlbumAuto.objects.filter(owner=self.request.user) \
+        return AlbumAuto.objects \
+            .annotate(photo_count=Count('photos', filter=Q(photos__hidden=False), distinct=True)) \
+            .filter(Q(photo_count__gt=0)&Q(owner=self.request.user)) \
             .prefetch_related(
                 Prefetch(
                     'photos',
@@ -701,7 +705,9 @@ class SharedToMeAlbumAutoListViewSet(viewsets.ModelViewSet):
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
-        return AlbumAuto.objects.filter(shared_to__id__exact=self.request.user.id) \
+        return AlbumAuto.objects \
+            .annotate(photo_count=Count('photos', filter=Q(photos__hidden=False), distinct=True)) \
+            .filter(Q(photo_count__gt=0)&Q(shared_to__id__exact=self.request.user.id)) \
             .filter(owner=self.request.user) \
             .prefetch_related('photos') \
             .order_by('-timestamp')
@@ -713,7 +719,9 @@ class SharedFromMeAlbumAutoListViewSet(viewsets.ModelViewSet):
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
-        return AlbumAuto.objects.filter(owner=self.request.user) \
+        return AlbumAuto.objects \
+            .annotate(photo_count=Count('photos', filter=Q(photos__hidden=False), distinct=True)) \
+            .filter(Q(photo_count__gt=0) & Q(owner=self.request.user)) \
             .prefetch_related('photos') \
             .order_by('-timestamp') \
             .annotate(shared_to_count=Count('shared_to')) \
@@ -807,21 +815,25 @@ class AlbumDateListWithPhotoHashViewSet(viewsets.ReadOnlyModelViewSet):
     ])
 
     def get_queryset(self):
-        qs = AlbumDate.objects \
-            .filter(Q(owner=self.request.user)) \
-            .exclude(date=None) \
-            .order_by('-date') \
-            .prefetch_related(
-                Prefetch(
-                    'photos',
-                    queryset=Photo.objects.filter(Q(hidden=False)& Q(owner=self.request.user)).order_by('-exif_timestamp').only(
-                        'image_hash',
-                        'public',
-                        'exif_timestamp',
-                        'favorited',
-                        'hidden')))
-            
-        return qs
+        try:
+            qs = AlbumDate.objects \
+                .annotate(photo_count=Count('photos', filter=Q(photos__hidden=False), distinct=True)) \
+                .filter(Q(photo_count__gt=0)&Q(owner=self.request.user)) \
+                .exclude(date=None) \
+                .order_by('-date') \
+                .prefetch_related(
+                    Prefetch(
+                        'photos',
+                        queryset=Photo.objects.filter(Q(hidden=False)& Q(owner=self.request.user)).order_by('-exif_timestamp').only(
+                            'image_hash',
+                            'public',
+                            'exif_timestamp',
+                            'favorited',
+                            'hidden')))
+            return qs
+        except:
+            logger.exception('Cannot load data')
+
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -865,8 +877,9 @@ class AlbumThingListViewSet(viewsets.ModelViewSet):
     search_fields = (['title'])
 
     def get_queryset(self):
-        return AlbumThing.objects.filter(owner=self.request.user) \
-            .annotate(photo_count=Count('photos')) \
+        return AlbumThing.objects \
+            .annotate(photo_count=Count('photos', filter=Q(photos__hidden=False), distinct=True)) \
+            .filter(Q(photo_count__gt=0)&Q(owner=self.request.user)) \
             .order_by('-title') \
             .prefetch_related(
                 Prefetch(
@@ -910,7 +923,8 @@ class AlbumPlaceListViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return AlbumPlace.objects.filter(owner=self.request.user) \
-            .annotate(photo_count=Count('photos')) \
+            .annotate(photo_count=Count('photos', filter=Q(photos__hidden=False), distinct=True)) \
+            .filter(Q(photo_count__gt=0)&Q(owner=self.request.user)) \
             .order_by('-title') \
             .prefetch_related(
                 Prefetch(
@@ -975,7 +989,8 @@ class AlbumUserListViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return AlbumUser.objects.filter(owner=self.request.user) \
-            .annotate(photo_count=Count('photos__hidden = false')) \
+            .annotate(photo_count=Count('photos', filter=Q(photos__hidden=False), distinct=True)) \
+            .filter(Q(photo_count__gt=0)&Q(owner=self.request.user)) \
             .order_by('-created_on') \
             .prefetch_related(
                 Prefetch(
