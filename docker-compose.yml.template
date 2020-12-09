@@ -3,9 +3,9 @@ version: '2'
 services:
 
   proxy:
-    image: guysoft/ownphotos-proxy
+    image: reallibrephotos/librephotos-proxy:dev
     tty: true
-    container_name: ownphotos-proxy
+    container_name: librephotos-proxy
     restart: always
     links:
       - "backend:backend"
@@ -13,35 +13,35 @@ services:
     ports:
       - "3000:80"
       
-  ownphotos-db:
+  librephotos-db:
     image: postgres
-    container_name: ownphotos-db
+    container_name: librephotos-db
     restart: always
     environment:
-    # This db password is internal, you can change it if you want, but also change it in ownphotos-backend container
+    # This db password is internal, you can change it if you want, but also change it in librephotos-backend container
       - POSTGRES_PASSWORD=AaAa1234
       - POSTGRES_DB=ownphotos
     volumes:
-      - ownphotos-data:/var/lib/postgresql/data
+      - librephotos-data:/var/lib/postgresql/data
 
   frontend:
-    image: derneuere/ownphotos-frontend:latest
+    image: reallibrephotos/librephotos-frontend:dev
     # For development uncomment this and comment the image name above
-    #build: ./ownphotos/ownphotos-frontend/
-    container_name: ownphotos-frontend
+    #build: ./librephotos/librephotos-frontend/
+    container_name: librephotos-frontend
     tty: true
     links:
       - "backend:backend"
 
   backend:
-    image: derneuere/ownphotos:latest
+    image: reallibrephotos/librephotos:dev
     # For development uncomment this and comment the image name above
     #build: .
-    container_name: ownphotos-backend
+    container_name: librephotos-backend
     volumes:
       - $HOME/photos:/data # CHANGE ME
-      - $HOME/ownphotos_media/:/code/protected_media # CHANGE ME
-      - $HOME/ownphotos_logs/:/code/logs # CHANGE ME
+      - $HOME/librephotos_media/:/code/protected_media # CHANGE ME
+      - $HOME/librephotos_logs/:/code/logs # CHANGE ME
     environment:
       - SECRET_KEY=changeme # CHANGE ME
       - BACKEND_HOST=backend # DON'T CHANGE ME
@@ -52,21 +52,21 @@ services:
       - DB_BACKEND=postgresql
       - DB_NAME=ownphotos
       - DB_USER=postgres
-      # This db password is internal, you can change it if you want, but also change it in ownphotos-db container
+      # This db password is internal, you can change it if you want, but also change it in librephotos-db container
       - DB_PASS=AaAa1234
-      - DB_HOST=ownphotos-db
+      - DB_HOST=librephotos-db
       - DB_PORT=5432
-      - REDIS_HOST=ownphotos-redis
+      - REDIS_HOST=librephotos-redis
       - REDIS_PORT=6379
       - MAPBOX_API_KEY=apikey #CHANGE ME - sign up at mapbox.com for an api key. You need this for reverse geocoding
     links:
-      - "ownphotos-db:ownphotos-db"
-      - "ownphotos-redis:ownphotos-redis"
+      - "librephotos-db:librephotos-db"
+      - "librephotos-redis:librephotosv-redis"
   
-  ownphotos-redis:
+  librephotos-redis:
     image: redis
-    container_name: ownphotos-redis
+    container_name: librephotos-redis
 
 volumes:
-  ownphotos-data:
+  librephotos-data:
   media:
