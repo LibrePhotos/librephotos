@@ -1,4 +1,4 @@
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=LibrePhotos_ownphotos&metric=alert_status)](https://sonarcloud.io/dashboard?id=LibrePhotos_ownphotos)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=LibrePhotos_ownphotos&metric=alert_status)](https://sonarcloud.io/dashboard?id=LibrePhotos_ownphotos) ![Discord](https://img.shields.io/discord/784619049208250388?style=plastic) ![Website](https://img.shields.io/website?down_color=lightgrey&down_message=offline&style=plastic&up_color=blue&up_message=online&url=https%3A%2F%2Flibrephotos.com) ![GitHub contributors](https://img.shields.io/github/contributors/librephotos/librephotos?style=plastic)
 
 <div style="text-align:center"><img width="100" src ="/screenshots/logo.png"/></div>
 
@@ -24,7 +24,7 @@ https://discord.gg/xwRvtSDGWb
 - Django backend & React frontend. 
 - In development. Contributions are welcome!
 
-**Currently the project is in very early stages, so run it only for the sake of checking it out.**
+**Currently the project is in very early stages, some bugs may exist. If you find any please log an issue**
 
 ### Features
 
@@ -88,7 +88,7 @@ docker-compose up -d
 ```
 
 You should have librephotos accessible after a few minutes of bootup on: [localhost:3000](http://localhost:3000)
-User is admin, password is admin and its important you change it on a public server via the ``docker-compose.yml`` file.
+User is demo, password is demo1234 unless you chaged it in the docker-compose.yml. It is recomended you change the admin username and password if Libre Photos is going to be publicly accessible via the ``docker-compose.yml`` file.
 
 ## First steps after setting up
 
