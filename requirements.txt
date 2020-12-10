@@ -89,3 +89,4 @@ wrapt==1.12.1
 yarg==0.1.9
 joblib==0.17.0
 gevent==20.9.0
+python-magic==0.4.18

@@ -184,10 +184,9 @@ class PhotoViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if self.request.user.is_anonymous:
-            return Photo.objects.filter(Q(hidden=False) & Q(
-                public=True)).order_by('-exif_timestamp')
+            return Photo.visible.filter(Q(public=True)).order_by('-exif_timestamp')
         else:
-            return Photo.objects.all().order_by('-exif_timestamp')
+            return Photo.visible.order_by('-exif_timestamp')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -203,7 +202,7 @@ class PhotoEditViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
-        return Photo.objects.filter(Q(hidden=False) & Q(owner=self.request.user))
+        return Photo.visible.filter(Q(owner=self.request.user))
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -225,8 +224,7 @@ class PhotoHashListViewSet(viewsets.ModelViewSet):
     ])
 
     def get_queryset(self):
-        return Photo.objects.filter(Q(hidden=False) & Q(
-            owner=self.request.user)).order_by('-exif_timestamp')
+        return Photo.visible.filter(Q(owner=self.request.user)).order_by('-exif_timestamp')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -247,8 +245,7 @@ class PhotoSimpleListViewSet(viewsets.ModelViewSet):
     ])
 
     def get_queryset(self):
-        return Photo.objects.filter(Q(hidden=False) & Q(
-            owner=self.request.user)).order_by('-exif_timestamp')
+        return Photo.visible.filter(Q(owner=self.request.user)).order_by('-exif_timestamp')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -270,8 +267,7 @@ class PhotoSuperSimpleSearchListViewSet(viewsets.ModelViewSet):
     ])
 
     def get_queryset(self):
-        return Photo.objects.filter(Q(hidden=False) & Q(
-            owner=self.request.user)).order_by('-exif_timestamp')
+        return Photo.visible.filter(Q(owner=self.request.user)).order_by('-exif_timestamp')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -286,7 +282,7 @@ class PhotoSuperSimpleSearchListViewSet(viewsets.ModelViewSet):
 
 class PhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
 
-    queryset = Photo.objects.filter(Q(hidden=False)).order_by('-exif_timestamp')
+    queryset = Photo.visible.order_by('-exif_timestamp')
     serializer_class = PhotoSuperSimpleSerializerSerpy
     pagination_class = HugeResultsSetPagination
     filter_backends = (filters.SearchFilter, )
@@ -302,7 +298,7 @@ class PhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
 
     @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, request):
-        queryset = Photo.objects.filter(Q(hidden=False)).only(
+        queryset = Photo.visible.only(
             'image_hash', 'exif_timestamp', 'favorited', 'public',
             'hidden').order_by('exif_timestamp')
         serializer = PhotoSuperSimpleSerializer(queryset, many=True)
@@ -314,7 +310,7 @@ class RecentlyAddedPhotoListViewSet(viewsets.ModelViewSet):
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
-        queryset = Photo.objects.filter(Q(hidden=False) & Q(owner=self.request.user)).only(
+        queryset = Photo.visible.filter(Q(owner=self.request.user)).only(
             'image_hash', 'exif_timestamp', 'favorited', 'public','added_on',
             'hidden').order_by('-added_on')
         return queryset
@@ -330,7 +326,7 @@ class SharedToMePhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
-        return Photo.objects.filter(Q(hidden=False) & Q(shared_to__id__exact=self.request.user.id)) \
+        return Photo.visible.filter(Q(shared_to__id__exact=self.request.user.id)) \
             .only(
                 'image_hash',
                 'public',
@@ -379,7 +375,7 @@ class SharedFromMePhotoSuperSimpleListViewSet2(viewsets.ModelViewSet):
     def get_queryset(self):
         ThroughModel = Photo.shared_to.through
 
-        user_photos = Photo.objects.filter(Q(hidden=False) & Q(
+        user_photos = Photo.visible.filter(Q(
             owner=self.request.user.id)).only('image_hash')
         qs = ThroughModel.objects.filter(photo_id__in=user_photos) \
             .prefetch_related(Prefetch('user',queryset=User.objects.only(
@@ -450,12 +446,12 @@ class PublicPhotoListViewset(viewsets.ModelViewSet):
     def get_queryset(self):
         if 'username' in self.request.query_params.keys():
             username = self.request.query_params['username']
-            return Photo.objects.filter(
-                Q(public=True) & Q(hidden=False) & Q(owner__username=username)).only(
+            return Photo.visible.filter(
+                Q(public=True) & Q(owner__username=username)).only(
                     'image_hash', 'exif_timestamp', 'favorited',
                     'hidden').order_by('-exif_timestamp')
 
-        return Photo.objects.filter(Q(hidden=False) & Q(public=True)).only(
+        return Photo.visible.filter(Q(public=True)).only(
             'image_hash', 'exif_timestamp', 'favorited',
             'hidden').order_by('-exif_timestamp')
 
@@ -469,7 +465,7 @@ class NoTimestampPhotoHashListViewSet(viewsets.ModelViewSet):
     ])
 
     def get_queryset(self):
-        return Photo.objects.filter(Q(hidden=False) & Q(exif_timestamp=None)).filter(
+        return Photo.visible.filter(Q(exif_timestamp=None)).filter(
             owner=self.request.user).order_by('image_path')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
@@ -818,7 +814,7 @@ class AlbumDateListWithPhotoHashViewSet(viewsets.ReadOnlyModelViewSet):
                 .prefetch_related(
                     Prefetch(
                         'photos',
-                        queryset=Photo.objects.filter(Q(hidden=False)& Q(owner=self.request.user)).order_by('-exif_timestamp').only(
+                        queryset=Photo.visible.filter(Q(owner=self.request.user)).order_by('-exif_timestamp').only(
                             'image_hash',
                             'public',
                             'exif_timestamp',
@@ -878,8 +874,7 @@ class AlbumThingListViewSet(viewsets.ModelViewSet):
             .prefetch_related(
                 Prefetch(
                     'photos',
-                    queryset=Photo.objects.filter(Q(hidden=False)) \
-            .only('image_hash')))
+                    queryset=Photo.visible.only('image_hash')))
         
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
@@ -925,8 +920,7 @@ class AlbumPlaceListViewSet(viewsets.ModelViewSet):
             .prefetch_related(
                 Prefetch(
                     'photos',
-                    queryset=Photo.objects.filter(Q(hidden=False))\
-                        .only('image_hash')))
+                    queryset=Photo.objects.visible.only('image_hash')))
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -991,8 +985,7 @@ class AlbumUserListViewSet(viewsets.ModelViewSet):
             .prefetch_related(
                 Prefetch(
                     'photos',
-                    queryset=Photo.objects.filter(Q(hidden=False))
-                        .only('image_hash')))
+                    queryset=Photo.visible.only('image_hash')))
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):

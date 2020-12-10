@@ -95,6 +95,9 @@ class User(AbstractUser):
     nextcloud_scan_directory = models.CharField(
         max_length=512, db_index=True, null=True)
 
+class VisiblePhotoManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(hidden=False)
 
 class Photo(models.Model):
     image_path = models.CharField(max_length=512, db_index=True)
@@ -139,6 +142,9 @@ class Photo(models.Model):
 
     public = models.BooleanField(default=False, db_index=True)
     encoding = models.TextField(default=None, null=True)
+    
+    objects = models.Manager()
+    visible = VisiblePhotoManager()
 
     def _generate_md5(self):
         hash_md5 = hashlib.md5()

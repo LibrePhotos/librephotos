@@ -9,10 +9,12 @@ from api.image_similarity import build_image_similarity_index
 
 from django_rq import job
 from django.db.models import Q
-import json
+import magic
 
 def isValidMedia(p):
-    return p.lower().endswith('.jpg') or p.lower().endswith('.jpeg') or p.lower().endswith('.png')
+    filetype = magic.from_file(p, mime=True)
+    util.logger.info(p + ": " + filetype)
+    return filetype.find('image/jpeg') or filetype.find('image/png')
 
 def handle_new_image(user, image_path, job_id):
     
