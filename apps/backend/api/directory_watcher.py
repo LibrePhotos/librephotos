@@ -13,7 +13,6 @@ import magic
 
 def isValidMedia(p):
     filetype = magic.from_file(p, mime=True)
-    util.logger.info(p + ": " + filetype)
     return filetype.find('image/jpeg') or filetype.find('image/png')
 
 def handle_new_image(user, image_path, job_id):
