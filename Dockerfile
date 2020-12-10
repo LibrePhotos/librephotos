@@ -33,7 +33,7 @@ RUN apt-get update && \
     cmake .. -DDLIB_USE_CUDA=0 -DUSE_AVX_INSTRUCTIONS=0 && \
     cmake --build . && \
     cd /dlib && \
-    /miniconda/bin/python setup.py install --no USE_AVX_INSTRUCT
+    /miniconda/bin/python setup.py install --no USE_AVX_INSTRUCTIONS
 
 
 RUN /miniconda/bin/conda install -y pytorch torchvision torchaudio cpuonly -c pytorch
