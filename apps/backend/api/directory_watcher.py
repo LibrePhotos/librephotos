@@ -12,8 +12,12 @@ from django.db.models import Q
 import magic
 
 def isValidMedia(p):
-    filetype = magic.from_file(p, mime=True)
-    return filetype.find('image/jpeg') or filetype.find('image/png')
+    try:
+        filetype = magic.from_file(p, mime=True)
+        return filetype.find('image/jpeg') or filetype.find('image/png')
+    except:
+        util.logger.exception("Following image throwed an exception: " + p)
+        return False
 
 def handle_new_image(user, image_path, job_id):
     
