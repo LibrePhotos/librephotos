@@ -606,9 +606,12 @@ class PersonViewSet(viewsets.ModelViewSet):
     search_fields = (['name'])
 
     def get_queryset(self):
-        qs = Person.objects.annotate(photo_count=Count('faces__photo', filter=Q(faces__photo__hidden=False), distinct=True)) \
+        qs = Person.objects \
+            .annotate(photo_count=Count('faces__photo', filter=Q(faces__photo__hidden=False), distinct=True)) \
             .filter(Q(photo_count__gt=0)& Q(faces__photo__owner=self.request.user)) \
-            .distinct().annotate(viewable_face_count=Count('faces')).order_by('name')
+            .distinct() \
+            .annotate(viewable_face_count=Count('faces', filter=Q(faces__photo__hidden=False), distinct=True)) \
+            .order_by('name')
         return qs
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
@@ -722,10 +725,10 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
-            return Person.objects \
-                .annotate(photo_count=Count('faces', filter=Q(faces__photo__hidden=False), distinct=True)) \
-                .filter(Q(photo_count__gt=0)) \
-                .prefetch_related(
+        return Person.objects \
+            .annotate(photo_count=Count('faces', filter=Q(faces__photo__hidden=False), distinct=True)) \
+            .filter(Q(photo_count__gt=0)) \
+            .prefetch_related(
                 Prefetch(
                     'faces__photo',
                     queryset=Photo.objects.filter(Q(faces__photo__hidden=False) &

@@ -222,14 +222,6 @@ class PersonSerializer(serializers.ModelSerializer):
             return new_person
 
 
-#     def get_photos(self,obj):
-#         faces = obj.faces.all()
-#         res = []
-#         for face in faces:
-#             res.append(PhotoSerializer(face.photo).data)
-#         return res
-
-
 class FaceListSerializer(serializers.ModelSerializer):
     person_name = serializers.SerializerMethodField()
 
@@ -244,11 +236,8 @@ class FaceListSerializer(serializers.ModelSerializer):
 
 class FaceSerializer(serializers.ModelSerializer):
     face_url = serializers.SerializerMethodField()
-    #     photo = PhotoSerializer(many=False, read_only=True)
-    # faces = serializers.StringRelatedField(many=True)
     person = PersonSerializer(many=False)
 
-    #     person = serializers.HyperlinkedRelatedField(view_name='person-detail',read_only=True)
     class Meta:
         model = Face
         fields = ('id', 'face_url', 'photo_id', 'person', 'person_id',
@@ -279,12 +268,6 @@ class FaceSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-
-#         pass
-#         ipdb.set_trace()
-#         person_data = validated_data.pop('id')
-
-
 class AlbumPlaceSerializer(serializers.ModelSerializer):
     photos = PhotoSuperSimpleSerializer(many=True, read_only=True)
 
@@ -294,8 +277,6 @@ class AlbumPlaceSerializer(serializers.ModelSerializer):
 
 
 class AlbumPlaceListSerializer(serializers.ModelSerializer):
-    #     photos = PhotoSerializer(many=True, read_only=True)
-    # people = serializers.SerializerMethodField()
     cover_photos = PhotoHashListSerializer(many=True, read_only=True)
     photo_count = serializers.SerializerMethodField()
 
@@ -304,7 +285,6 @@ class AlbumPlaceListSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "geolocation_level",
-            # "people",
             "cover_photos",
             "title",
             "photo_count")
@@ -323,17 +303,13 @@ class AlbumThingSerializer(serializers.ModelSerializer):
 
 class AlbumThingListSerializer(serializers.ModelSerializer):
     cover_photos = PhotoHashListSerializer(many=True, read_only=True)
-    # people = serializers.SerializerMethodField()
-    # cover_photo_urls = serializers.SerializerMethodField()
     photo_count = serializers.SerializerMethodField()
 
     class Meta:
         model = AlbumThing
         fields = (
             "id",
-            # "people",
             "cover_photos",
-            # "cover_photo_urls",
             "title",
             "photo_count")
 
@@ -349,12 +325,9 @@ class AlbumDateSerializer(serializers.ModelSerializer):
 
 
 class AlbumDateListSerializer(serializers.ModelSerializer):
-    #     photos = PhotoSerializer(many=True, read_only=True)
     people = serializers.SerializerMethodField()
     cover_photo_url = serializers.SerializerMethodField()
     photo_count = serializers.SerializerMethodField()
-
-    #     photos = PhotoHashListSerializer(many=True, read_only=True)
 
     class Meta:
         model = AlbumDate
@@ -365,7 +338,6 @@ class AlbumDateListSerializer(serializers.ModelSerializer):
             "title",
             "favorited",
             "photo_count",
-            #             "photos",
             "date")
 
     def get_photo_count(self, obj):
@@ -376,7 +348,6 @@ class AlbumDateListSerializer(serializers.ModelSerializer):
         return first_photo.square_thumbnail.url
 
     def get_people(self, obj):
-        # ipdb.set_trace()
         photos = obj.photos.all()
         res = []
         for photo in photos:
@@ -390,31 +361,20 @@ class AlbumDateListSerializer(serializers.ModelSerializer):
 
 class AlbumDateListWithPhotoHashSerializer(serializers.ModelSerializer):
     photos = PhotoSuperSimpleSerializer(many=True, read_only=True)
-
-    # photos = PhotoHashListSerializer(many=True, read_only=True)
     class Meta:
         model = AlbumDate
         fields = ("location", "id", "photos", "date")
 
 
 class AlbumPersonSerializer(serializers.ModelSerializer):
-    #     faces = FaceSerializer(many=True, read_only=False)
-    #     faces = serializers.StringRelatedField(many=True)
     photos = serializers.SerializerMethodField()
-
-    # people = serializers.SerializerMethodField()
     class Meta:
         model = Person
         fields = (
             'name',
             'photos',
-            # 'people',
             'id',
         )
-
-
-#                   'faces')
-
     def get_photos(self, obj):
         start = datetime.now()
 
@@ -429,21 +389,7 @@ class AlbumPersonSerializer(serializers.ModelSerializer):
         logger.info('serializing photos of faces took %.2f seconds' % elapsed)
         return res
 
-    # todo: remove this unecessary thing
-    # def get_people(self,obj):
-    #     faces = obj.faces.all()
-    #     res = []
-    #     for face in faces:
-    #         serialized_person = PersonSerializer(face.person).data
-    #         if serialized_person not in res:
-    #             res.append(serialized_person)
-    #     return res
-
-
 class AlbumPersonListSerializer(serializers.ModelSerializer):
-    #     faces = FaceSerializer(many=True, read_only=False)
-    #     faces = serializers.StringRelatedField(many=True)
-    #     people = serializers.SerializerMethodField()
     photo_count = serializers.SerializerMethodField()
     cover_photo_url = serializers.SerializerMethodField()
 
@@ -453,15 +399,10 @@ class AlbumPersonListSerializer(serializers.ModelSerializer):
             'name',
             "photo_count",
             "cover_photo_url",
-            #                   'people',
             'id',
         )
 
-
-#                   'faces')
-
     def get_photo_count(self, obj):
-        ipdb.set_trace()
         return obj.faces.count()
 
     def get_cover_photo_url(self, obj):
@@ -480,7 +421,6 @@ class AlbumPersonListSerializer(serializers.ModelSerializer):
 
 
 class AlbumUserEditSerializer(serializers.ModelSerializer):
-    #     photos = PhotoHashListSerializer(many=True, read_only=False)
     photos = serializers.PrimaryKeyRelatedField(
         many=True, read_only=False, queryset=Photo.objects.all())
 
@@ -501,7 +441,6 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
             user = request.user
 
         # check if an album exists with the given title and call the update method if it does
-        # ipdb.set_trace()
         instance, created = AlbumUser.objects.get_or_create(
             title=title, owner=user)
         if not created:
@@ -518,9 +457,7 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         return instance
 
     def update(self, instance, validated_data):
-        #         title = validated_data['title']
         image_hashes = validated_data['photos']
-        # logger.info(validated_data)
 
         photos = Photo.objects.in_bulk(image_hashes)
         photos_already_in_album = instance.photos.all()
@@ -550,8 +487,6 @@ class AlbumUserSerializer(serializers.ModelSerializer):
 
 class AlbumUserListSerializer(serializers.ModelSerializer):
     cover_photos = PhotoHashListSerializer(many=True, read_only=True)
-    # people = serializers.SerializerMethodField()
-    # cover_photo_urls = serializers.SerializerMethodField()
     photo_count = serializers.SerializerMethodField()
     shared_to = SimpleUserSerializer(many=True, read_only=True)
     owner = SimpleUserSerializer(many=False, read_only=True)
@@ -560,13 +495,10 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
         model = AlbumUser
         fields = (
             "id",
-            # "people",
             "cover_photos",
             "created_on",
             "favorited",
-            # "cover_photo_urls",
             "title",
-            # "photos",
             "shared_to",
             "owner",
             "photo_count")
@@ -588,7 +520,6 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
                   "gps_lat", 'people', "gps_lon", "photos")
 
     def get_people(self, obj):
-        # ipdb.set_trace()
         photos = obj.photos.all().prefetch_related(
             Prefetch(
                 'faces__person',
@@ -607,9 +538,6 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
 
 class AlbumAutoListSerializer(serializers.ModelSerializer):
     photos = PhotoSuperSimpleSerializer
-
-    #     shared_to = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-
     class Meta:
         model = AlbumAuto
         fields = (
@@ -672,13 +600,11 @@ class UserSerializer(serializers.ModelSerializer):
                   'date_joined', 'password', 'avatar', 'photo_count',
                   'nextcloud_server_address', 'nextcloud_username',
                   'nextcloud_app_password', 'nextcloud_scan_directory')
-        # read_only_fields = ('id', 'scan_directory')
 
     def validate_nextcloud_app_password(self, value):
         return value
 
     def create(self, validated_data):
-        # ipdb.set_trace()
         if 'scan_directory' in validated_data.keys():
             validated_data.pop('scan_directory')
 
@@ -688,7 +614,6 @@ class UserSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         # user can only update the following
-        #print(validated_data)
         if 'email' in validated_data:
             instance.email = validated_data.pop('email')
             instance.save()
@@ -759,8 +684,6 @@ class ManageUserSerializer(serializers.ModelSerializer):
 
 class SharedToMePhotoSuperSimpleSerializer(serializers.ModelSerializer):
     owner = SimpleUserSerializer(many=False, read_only=True)
-
-    # shared_to = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
     class Meta:
         model = Photo
