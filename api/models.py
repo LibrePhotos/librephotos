@@ -46,9 +46,14 @@ def change_api_updated_at(sender=None, instance=None, *args, **kwargs):
     cache.set('api_updated_at_timestamp', datetime.utcnow())
 
 
-def get_album_date(date, owner):
+def get_or_create_album_date(date, owner):
     return AlbumDate.objects.get_or_create(date=date, owner=owner)[0]
 
+def get_album_date(date, owner):
+    try:
+        return AlbumDate.objects.get(date=date, owner=owner)
+    except:
+        return None
 
 def get_album_thing(title, owner):
     return AlbumThing.objects.get_or_create(title=title, owner=owner)[0]
@@ -325,8 +330,22 @@ class Photo(models.Model):
                         ContentFile(image_io.getvalue()))
         image_io.close()
 
-    def _extract_exif(self):
+    def _find_album_date(self):
+        old_album_date = None
+        if self.exif_timestamp:
+            possible_old_album_date = get_album_date(
+                date=self.exif_timestamp.date(), owner=self.owner)
+            if(possible_old_album_date != None and possible_old_album_date.photos.filter(image_path=self.image_path).exists):
+                old_album_date = possible_old_album_date
+        else:
+            possible_old_album_date = get_album_date(date=None, owner=self.owner)
+            if(possible_old_album_date != None and possible_old_album_date.photos.filter(image_path=self.image_path).exists):
+                old_album_date = possible_old_album_date
+        return old_album_date
+
+    def _extract_date_time_from_exif(self):
         date_format = "%Y:%m:%d %H:%M:%S"
+        timestamp_from_exif = None
         with open(self.image_path, 'rb') as fimg:
             exif = exifread.process_file(fimg, details=False)
             serializable = dict(
@@ -335,14 +354,38 @@ class Photo(models.Model):
             if 'EXIF DateTimeOriginal' in exif.keys():
                 tst_str = exif['EXIF DateTimeOriginal'].values
                 try:
-                    tst_dt = datetime.strptime(
+                    timestamp_from_exif = datetime.strptime(
                         tst_str, date_format).replace(tzinfo=pytz.utc)
                 except:
-                    tst_dt = None
-                self.exif_timestamp = tst_dt
-            else:
-                self.exif_timestamp = None
+                    timestamp_from_exif = None
 
+        old_album_date = self._find_album_date()
+
+        if(self.exif_timestamp != timestamp_from_exif):
+            self.exif_timestamp = timestamp_from_exif
+        
+        if old_album_date is not None:
+            old_album_date.photos.remove(self)
+            old_album_date.save()
+
+        album_date = None
+
+        if self.exif_timestamp:
+            album_date = get_or_create_album_date(date=self.exif_timestamp.date(), owner=self.owner)
+            album_date.photos.add(self)
+        else:
+            album_date = get_or_create_album_date(date=None, owner=self.owner)
+            album_date.photos.add(self)
+        
+        album_date.save()
+        self.save()
+
+    def _extract_gps_from_exif(self):
+        with open(self.image_path, 'rb') as fimg:
+            exif = exifread.process_file(fimg, details=False)
+            serializable = dict(
+                [key, value.printable] for key, value in exif.items())
+            self.exif_json = serializable
             if 'GPS GPSLongitude' in exif.keys():
                 self.exif_gps_lon = util.convert_to_degrees(
                     exif['GPS GPSLongitude'].values)
@@ -360,26 +403,11 @@ class Photo(models.Model):
                     self.exif_gps_lat = -float(self.exif_gps_lat)
             else:
                 self.exif_gps_lat = None
-
-        if not self.exif_timestamp:
-            try:
-                basename_without_extension = os.path.basename(self.image_path)
-                self.exif_timestamp = dateparser.parse(
-                    basename_without_extension, ignoretz=True,
-                    fuzzy=True).replace(tzinfo=pytz.utc)
-                util.logger.info(
-                    'determined date from filname for image {} - {}'.format(
-                        self.image_path,
-                        self.exif_timestamp.strftime(date_format)))
-            except BaseException:
-                util.logger.warning(
-                    "Failed to determine date from filename for image %s" %
-                    self.image_path)
         self.save()
 
     def _geolocate(self):
         if not (self.exif_gps_lat and self.exif_gps_lon):
-            self._extract_exif()
+            self._extract_gps_from_exif()
         if (self.exif_gps_lat and self.exif_gps_lon):
             try:
                 location = geolocator.reverse(
@@ -392,7 +420,7 @@ class Photo(models.Model):
 
     def _geolocate_mapbox(self):
         if not (self.exif_gps_lat and self.exif_gps_lon):
-            self._extract_exif()
+            self._extract_gps_from_exif()
         if (self.exif_gps_lat and self.exif_gps_lon):
             try:
                 res = util.mapbox_reverse_geocode(self.exif_gps_lat,
@@ -485,14 +513,8 @@ class Photo(models.Model):
                     album_thing.save()
 
     def _add_to_album_date(self):
-        if self.exif_timestamp:
-            album_date = get_album_date(
-                date=self.exif_timestamp.date(), owner=self.owner)
-            album_date.photos.add(self)
-        else:
-            album_date = get_album_date(date=None, owner=self.owner)
-            album_date.photos.add(self)
-
+        
+        album_date = self._find_album_date()
         if self.geolocation_json and len(self.geolocation_json) > 0:
             util.logger.info(str(self.geolocation_json))
             city_name = [

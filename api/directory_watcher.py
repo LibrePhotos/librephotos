@@ -10,6 +10,7 @@ from api.image_similarity import build_image_similarity_index
 from django_rq import job
 from django.db.models import Q
 import magic
+from PIL import Image
 
 def isValidMedia(p):
     try:
@@ -19,8 +20,14 @@ def isValidMedia(p):
         util.logger.exception("Following image throwed an exception: " + p)
         return False
 
+def calculate_hash(user,image_path):
+    hash_md5 = hashlib.md5()
+    with open(image_path, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest() + str(user.id)
+
 def handle_new_image(user, image_path, job_id):
-    
     if isValidMedia(image_path):
         try:
             elapsed_times = {
@@ -41,11 +48,7 @@ def handle_new_image(user, image_path, job_id):
             util.logger.info('job {}: handling image {}'.format(job_id,img_abs_path))
 
             start = datetime.datetime.now()
-            hash_md5 = hashlib.md5()
-            with open(img_abs_path, "rb") as f:
-                for chunk in iter(lambda: f.read(4096), b""):
-                    hash_md5.update(chunk)
-            image_hash = hash_md5.hexdigest() + str(user.id)
+            image_hash = calculate_hash(user,image_path)
             elapsed = (datetime.datetime.now() - start).total_seconds()
             elapsed_times['md5'] = elapsed
 
@@ -65,7 +68,8 @@ def handle_new_image(user, image_path, job_id):
                 
                 photo._generate_thumbnail()
                 photo._generate_captions()
-                photo._extract_exif()
+                photo._extract_date_time_from_exif()
+                photo._extract_gps_from_exif()
                 photo._geolocate_mapbox()
                 photo._add_to_album_place()
                 photo._extract_faces()
@@ -87,7 +91,33 @@ def handle_new_image(user, image_path, job_id):
                     job_id,image_path, str(e)))
             except:
                 util.logger.exception("job {}: could not load image {}".format(job_id,image_path))
-    
+
+def rescan_image(user, image_path, job_id):
+    if isValidMedia(image_path):
+        try:
+            elapsed_times = {
+                'md5':None,
+                'thumbnails':None,
+                'captions':None,
+                'image_save':None,
+                'exif':None,
+                'geolocation':None,
+                'faces':None,
+                'album_place':None,
+                'album_date':None,
+                'album_thing':None,
+                'im2vec':None
+            }
+
+            photo = Photo.objects.filter(Q(image_path=image_path)).get()            
+            photo._extract_date_time_from_exif()
+
+        except Exception as e:
+            try:
+                util.logger.exception("job {}: could not load image {}. reason: {}".format(
+                    job_id,image_path, str(e)))
+            except:
+                util.logger.exception("job {}: could not load image {}".format(job_id,image_path))
 
 #job is currently not used, because the model.eval() doesn't execute when it is running as a job
 @job
@@ -106,7 +136,6 @@ def scan_photos(user, job_id):
         lrj.save()
 
     added_photo_count = 0
-    already_existing_photo = 0
 
     try:
         image_paths = []
@@ -122,15 +151,27 @@ def scan_photos(user, job_id):
         ]
         image_paths.sort()
 
-        existing_hashes = [p.image_hash for p in Photo.objects.all()]
-
         # Create a list with all images whose hash is new or they do not exist in the db
         image_paths_to_add = []
+        image_paths_to_rescan = []
         for image_path in image_paths:
-            if not Photo.objects.filter(image_path=image_path).exists():
+            if not Photo.objects.filter(Q(image_path=image_path)).exists():
                 image_paths_to_add.append(image_path)
+            else:
+                image_paths_to_rescan.append(image_path)
 
-        to_add_count = len(image_paths_to_add)
+        to_add_count = len(image_paths_to_add) + len(image_paths_to_rescan)
+        
+        for idx, image_path in enumerate(image_paths_to_rescan):
+            rescan_image(user, image_path, job_id)
+            lrj.result = {
+                'progress': {
+                    "current": idx + 1,
+                    "target": to_add_count
+                }
+            }
+            lrj.save()
+        
         for idx, image_path in enumerate(image_paths_to_add):
             handle_new_image(user, image_path, job_id)
             lrj.result = {

@@ -70,7 +70,6 @@ def train_faces(user, job_id):
         lrj.save()
 
     try:
-
         faces = Face.objects.filter(
             photo__owner=user).prefetch_related('person')
 
@@ -104,7 +103,15 @@ def train_faces(user, job_id):
                 id2face_known[face_id]['image_path'] = face_image_path
                 id2face_known[face_id]['person_name'] = person_name
                 id2face_known[face_id]['person_id'] = person_id
-
+        
+        if(len(id2face_known) == 0):
+            logger.warning("No labeled faces found")
+            lrj.finished = True
+            lrj.failed = False
+            lrj.finished_at = datetime.datetime.now()
+            lrj.save()
+            return True
+        
         face_encodings_known = np.array(
             [f['encoding'] for f in id2face_known.values()])
         person_names_known = np.array(
@@ -145,7 +152,7 @@ def train_faces(user, job_id):
         return True
 
     except BaseException as e:
-        logger.error(str(e))
+        logger.exception("An error occured")
         res = []
 
         lrj.failed = True
