@@ -40,8 +40,6 @@ class TokenObtainPairSerializer(TokenObtainPairSerializer):
     def get_token(cls, user):
         token = super(TokenObtainPairSerializer, cls).get_token(user)
 
-        # Add custom claims
-        # ipdb.set_trace()
         token['name'] = user.get_username()
         token['is_admin'] = user.is_superuser
         token['first_name'] = user.first_name
@@ -247,13 +245,7 @@ urlpatterns = [
     url(r'^api/nextcloud/listdir', nextcloud_views.ListDir.as_view()),
     url(r'^api/nextcloud/scanphotos',
         nextcloud_views.ScanPhotosView.as_view()),
-
-    #     url(r'^api/token-auth/', obtain_jwt_token),
-    #     url(r'^api/token-refresh/', refresh_jwt_token),
-    #     url(r'^api/token-verify/', verify_jwt_token),
 ]
-# ] + static(
-#     settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 urlpatterns += [url('api/django-rq/', include('django_rq.urls'))]
 # urlpatterns += [url(r'^silk/', include('silk.urls', namespace='silk'))]
