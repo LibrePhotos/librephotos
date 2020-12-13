@@ -13,7 +13,7 @@ from api.image_similarity import build_image_similarity_index
 
 def collect_photos(nc, path, photos):
     for x in nc.list(path):
-        if isValidMedia(nc.get_file_contents(x)):
+        if not x.is_dir() and isValidMedia(nc.get_file_contents(x.path)):
             photos.append(x.path)
         elif x.is_dir():
             collect_photos(nc, x.path, photos)

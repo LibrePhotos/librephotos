@@ -147,7 +147,7 @@ def scan_photos(user, job_id):
 
         image_paths = [
             p for p in image_paths
-            if isValidMedia(open(p,"rb").read(2048)) and 'thumb' not in p.lower()
+                if not os.path.isdir(p) and isValidMedia(open(p,"rb").read(2048)) and 'thumb' not in p.lower()
         ]
         image_paths.sort()
 
