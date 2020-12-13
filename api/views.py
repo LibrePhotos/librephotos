@@ -923,7 +923,7 @@ class AlbumPlaceListViewSet(viewsets.ModelViewSet):
             .prefetch_related(
                 Prefetch(
                     'photos',
-                    queryset=Photo.objects.visible.only('image_hash')))
+                    queryset=Photo.visible.only('image_hash')))
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
