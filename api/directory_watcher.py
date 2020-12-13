@@ -12,12 +12,12 @@ from django.db.models import Q
 import magic
 from PIL import Image
 
-def isValidMedia(p):
+def isValidMedia(filebuffer):
     try:
-        filetype = magic.from_file(p, mime=True)
+        filetype = magic.from_buffer(filebuffer, mime=True)
         return filetype.find('image/jpeg') or filetype.find('image/png')
     except:
-        util.logger.exception("Following image throwed an exception: " + p)
+        util.logger.exception("Following image throwed an exception: " + file.name)
         return False
 
 def calculate_hash(user,image_path):
@@ -28,7 +28,7 @@ def calculate_hash(user,image_path):
     return hash_md5.hexdigest() + str(user.id)
 
 def handle_new_image(user, image_path, job_id):
-    if isValidMedia(image_path):
+    if isValidMedia(open(image_path,"rb").read(2048)):
         try:
             elapsed_times = {
                 'md5':None,
@@ -93,7 +93,7 @@ def handle_new_image(user, image_path, job_id):
                 util.logger.exception("job {}: could not load image {}".format(job_id,image_path))
 
 def rescan_image(user, image_path, job_id):
-    if isValidMedia(image_path):
+    if isValidMedia(open(image_path,"rb").read(2048)):
         try:
             elapsed_times = {
                 'md5':None,
@@ -147,7 +147,7 @@ def scan_photos(user, job_id):
 
         image_paths = [
             p for p in image_paths
-            if isValidMedia(p) and 'thumb' not in p.lower()
+            if isValidMedia(open(p,"rb").read(2048)) and 'thumb' not in p.lower()
         ]
         image_paths.sort()
 
