@@ -17,7 +17,7 @@ def isValidMedia(filebuffer):
         filetype = magic.from_buffer(filebuffer, mime=True)
         return filetype.find('image/jpeg') or filetype.find('image/png')
     except:
-        util.logger.exception("Following image throwed an exception: " + file.name)
+        util.logger.exception("An image throwed an exception: ")
         return False
 
 def calculate_hash(user,image_path):
@@ -144,22 +144,17 @@ def scan_photos(user, job_id):
             os.path.join(dp, f) for dp, dn, fn in os.walk(user.scan_directory)
             for f in fn
         ])
-
-        image_paths = [
-            p for p in image_paths
-                if not os.path.isdir(p) and isValidMedia(open(p,"rb").read(2048)) and 'thumb' not in p.lower()
-        ]
         image_paths.sort()
 
         # Create a list with all images whose hash is new or they do not exist in the db
         image_paths_to_add = []
         image_paths_to_rescan = []
         for image_path in image_paths:
-            if not Photo.objects.filter(Q(image_path=image_path)).exists():
-                image_paths_to_add.append(image_path)
-            else:
-                image_paths_to_rescan.append(image_path)
-
+            if os.path.isfile(image_path):
+                if not Photo.objects.filter(image_path=image_path).exists():
+                    image_paths_to_add.append(image_path)
+                else:
+                    image_paths_to_rescan.append(image_path)
         to_add_count = len(image_paths_to_add) + len(image_paths_to_rescan)
         
         for idx, image_path in enumerate(image_paths_to_rescan):
