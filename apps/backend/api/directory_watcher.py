@@ -15,9 +15,9 @@ from PIL import Image
 def isValidMedia(filebuffer):
     try:
         filetype = magic.from_buffer(filebuffer, mime=True)
-        return filetype.find('image/jpeg') or filetype.find('image/png')
+        return 'image/jpeg' in filetype or 'image/png' in filetype
     except:
-        util.logger.exception("An image throwed an exception: ")
+        util.logger.exception("An image throwed an exception")
         return False
 
 def calculate_hash(user,image_path):
