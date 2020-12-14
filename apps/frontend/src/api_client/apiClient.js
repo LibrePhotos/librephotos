@@ -17,6 +17,8 @@ function listener() {
 }
 
 export var serverAddress = ""
+// This is a dirty hack. Grabs current host for when sharing. URL handling needs cleaned up. DW 12-13-20
+export var shareAddress = window.location.host
 
 export var Server = axios.create({
     baseURL: '/api/',
@@ -56,4 +58,4 @@ Server.interceptors.response.use(function (response) {
   return Promise.reject(error);
 });
 
-export default {serverAddress, Server}
+export default {serverAddress, Server, shareAddress}

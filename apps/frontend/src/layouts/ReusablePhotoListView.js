@@ -50,7 +50,7 @@ import {
   Breadcrumb
 } from "semantic-ui-react";
 
-import { Server, serverAddress } from "../api_client/apiClient";
+import { Server, serverAddress, shareAddress } from "../api_client/apiClient";
 import { LightBox } from "../components/lightBox";
 import { LightBoxV2 } from "../components/LightBoxV2";
 import LazyLoad from "react-lazyload";
@@ -500,8 +500,14 @@ export class PhotoListView extends Component {
                         this.props.dispatch(
                           setPhotosPublic([cell.image_hash], true)
                         );
+                        // Location of generated link when shareing from album. 
+                        //Origianl was 
+                        //serverAddress.replace('//','') +
+                        // "/media/reusableline505/" +
+                        // cell.image_hash +
+                        // ".jpg" DW 12-13-20
                         copyToClipboard(
-                          serverAddress.replace('//','') +
+                          shareAddress +
                             "/media/photos/" +
                             cell.image_hash +
                             ".jpg"

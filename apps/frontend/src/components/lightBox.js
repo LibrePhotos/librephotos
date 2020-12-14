@@ -40,7 +40,7 @@ import {
   Transition,
   Breadcrumb
 } from "semantic-ui-react";
-import { Server, serverAddress } from "../api_client/apiClient";
+import { Server, serverAddress, shareAddress } from "../api_client/apiClient";
 import LazyLoad from "react-lazyload";
 import Lightbox from "react-image-lightbox";
 import { LocationMap } from "../components/maps";
@@ -267,7 +267,10 @@ export class LightBox extends Component {
                     const val = !this.props.photoDetails[image_hash].public;
                     this.props.dispatch(setPhotosPublic([image_hash], val));
                     copyToClipboard(
-                      serverAddress.replace('//','') + "/media/thumbnails_big/" + image_hash + ".jpg"
+                      //edited from serverAddress.replace('//','') + "/media/thumbnails_big/" + image_hash + ".jpg"
+                      // as above removed the domain and just left /media/thumbnails_big/" + image_hash + ".jpg"  *DW 12/9/20
+                      // Not location of shared photo link Reverted to orgiinal *DW 12/13/20
+                      shareAddress + "/media/thumbnails_big/" + image_hash + ".jpg"
                     );
                   }}
                   color="black"
