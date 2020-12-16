@@ -151,10 +151,11 @@ def scan_photos(user, job_id):
         image_paths_to_rescan = []
         for image_path in image_paths:
             if os.path.isfile(image_path):
-                if not Photo.objects.filter(image_path=image_path).exists():
-                    image_paths_to_add.append(image_path)
-                else:
+                if Photo.objects.filter(image_path=image_path).count() > 0:
                     image_paths_to_rescan.append(image_path)
+                else:
+                    image_paths_to_add.append(image_path)
+                    
         to_add_count = len(image_paths_to_add) + len(image_paths_to_rescan)
         
         for idx, image_path in enumerate(image_paths_to_rescan):
