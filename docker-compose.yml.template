@@ -1,3 +1,7 @@
+# Rename this to docker-compose.yml
+
+# run cmd: docker-compose up &
+
 version: '2'
 
 services:
@@ -12,60 +16,77 @@ services:
       - "frontend:frontend"
     ports:
       - "3000:80"
-      
+
   librephotos-db:
     image: postgres
     container_name: librephotos-db
     restart: always
     environment:
-    # This db password is internal, you can change it if you want, but also change it in librephotos-backend container
+      - POSTGRES_USER=docker
       - POSTGRES_PASSWORD=AaAa1234
       - POSTGRES_DB=ownphotos
     volumes:
-      - librephotos-data:/var/lib/postgresql/data
+      - $HOME/librephotos_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ownphotos -U docker"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   frontend:
     image: reallibrephotos/librephotos-frontend:dev
-    # For development uncomment this and comment the image name above
-    #build: ./librephotos/librephotos-frontend/
     container_name: librephotos-frontend
+    restart: always
+    # For development uncomment the "build" line below and comment the "image" line above
+    # build: ../librephotos-frontend
     tty: true
     links:
       - "backend:backend"
 
   backend:
     image: reallibrephotos/librephotos:dev
-    # For development uncomment this and comment the image name above
-    #build: .
     container_name: librephotos-backend
+    restart: always
+    # For development uncomment the "build" line below and comment the "image" line above
+    # build: .
     volumes:
-      - $HOME/photos:/data # CHANGE ME
-      - $HOME/librephotos_media/:/code/protected_media # CHANGE ME
-      - $HOME/librephotos_logs/:/code/logs # CHANGE ME
+      - $HOME/photos/:/data
+      - $HOME/librephotos_thumbs/:/code/protected_media
+      - $HOME/librephotos_logs/:/code/logs
     environment:
-      - SECRET_KEY=changeme # CHANGE ME
-      - BACKEND_HOST=backend # DON'T CHANGE ME
-      - ADMIN_EMAIL=admin@example.com # CHANGE ME
-      - ADMIN_USERNAME=demo # CHANGE ME
-      - ADMIN_PASSWORD=demo1234 # CHANGE ME
-      - DEBUG=false
+      - SECRET_KEY=change_me
+      # This is backend host from within the service, you dont need to change this
+      - BACKEND_HOST=backend
+      - ADMIN_EMAIL=admin@example.com
+      - ADMIN_USERNAME=admin
+      # Change your admin password!
+      - ADMIN_PASSWORD=admin
+      - DEBUG=true
       - DB_BACKEND=postgresql
       - DB_NAME=ownphotos
-      - DB_USER=postgres
+      - DB_USER=docker
       # This db password is internal, you can change it if you want, but also change it in librephotos-db container
       - DB_PASS=AaAa1234
       - DB_HOST=librephotos-db
       - DB_PORT=5432
       - REDIS_HOST=librephotos-redis
       - REDIS_PORT=6379
-      - MAPBOX_API_KEY=apikey #CHANGE ME - sign up at mapbox.com for an api key. You need this for reverse geocoding
+      # https://account.mapbox.com/auth/signup/
+      - MAPBOX_API_KEY=pk.ey
+      # https://docs.djangoproject.com/en/3.1/ref/settings/#std:setting-TIME_ZONE
+      - TIME_ZONE=
     links:
       - "librephotos-db:librephotos-db"
-      - "librephotos-redis:librephotosv-redis"
-  
+      - "librephotos-redis:librephotos-redis"
+    # Wait for Postgres
+    depends_on:
+      librephotos-db:
+        condition: service_healthy
+
   librephotos-redis:
     image: redis
     container_name: librephotos-redis
+    restart: always
 
 volumes:
   librephotos-data:
