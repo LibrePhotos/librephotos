@@ -16,7 +16,7 @@ const Login = (props) => {
       )
     } else {
       return (
-        <Redirect to='/' />        
+        <Redirect to='/' />
       )
     }
   } else {
@@ -40,7 +40,7 @@ const mapDispatchToProps = (dispatch) => ({
     dispatch(login(username, password))
   },
   fetchSiteSettings: () => {
-    dispatch(fetchSiteSettings())  
+    dispatch(fetchSiteSettings())
   }
 
 })
