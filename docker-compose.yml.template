@@ -22,6 +22,7 @@ services:
     container_name: librephotos-db
     restart: always
     environment:
+    # This db password is internal, you can change it if you want, but also change it in librephotos-backend container
       - POSTGRES_USER=docker
       - POSTGRES_PASSWORD=AaAa1234
       - POSTGRES_DB=ownphotos
@@ -35,24 +36,24 @@ services:
 
   frontend:
     image: reallibrephotos/librephotos-frontend:dev
-    container_name: librephotos-frontend
-    restart: always
     # For development uncomment the "build" line below and comment the "image" line above
     # build: ../librephotos-frontend
+    container_name: librephotos-frontend
+    restart: always
     tty: true
     links:
       - "backend:backend"
 
   backend:
     image: reallibrephotos/librephotos:dev
-    container_name: librephotos-backend
-    restart: always
     # For development uncomment the "build" line below and comment the "image" line above
     # build: .
+    container_name: librephotos-backend
+    restart: always
     volumes:
-      - $HOME/photos/:/data
-      - $HOME/librephotos_thumbs/:/code/protected_media
-      - $HOME/librephotos_logs/:/code/logs
+      - $HOME/photos/:/data # CHANGE ME
+      - $HOME/librephotos_media/:/code/protected_media # CHANGE ME
+      - $HOME/librephotos_logs/:/code/logs # CHANGE ME
     environment:
       - SECRET_KEY=change_me
       # This is backend host from within the service, you dont need to change this
@@ -72,7 +73,7 @@ services:
       - REDIS_HOST=librephotos-redis
       - REDIS_PORT=6379
       # https://account.mapbox.com/auth/signup/
-      - MAPBOX_API_KEY=pk.ey
+      - MAPBOX_API_KEY=pk.ey # CHANGE ME - You need this for reverse photo geocoding
       # https://docs.djangoproject.com/en/3.1/ref/settings/#std:setting-TIME_ZONE
       - TIME_ZONE=
     links:
