@@ -15,6 +15,6 @@ EXPOSE 3000
 COPY . /usr/src/app
 RUN npm run build
 
-CMD [ "./run.sh" ]
+RUN ["chmod", "+x", "./run.sh" ]
 
 ENTRYPOINT ./run.sh
