@@ -36,3 +36,4 @@ protected_media
 htmlcov
 samplephotos
 nextcloud_media
+docker-compose.yml
