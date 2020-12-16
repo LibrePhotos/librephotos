@@ -8,7 +8,7 @@
  *
  */
 
-;(function ($, window, document, undefined) {
+(function ($, window, document, undefined) {
 
 'use strict';
 
@@ -769,7 +769,7 @@ $.api = $.fn.api = function(parameters) {
               }
               else if( module.is.form() ) {
 
-              }
+              } // why is this blank
               else {
                 data.text = $module.text();
               }

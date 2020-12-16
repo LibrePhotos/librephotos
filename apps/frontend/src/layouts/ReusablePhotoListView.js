@@ -1,19 +1,15 @@
 import React, { Component } from "react";
-import ReactDOM from "react-dom";
-import { Grid, WindowScroller, AutoSizer } from "react-virtualized";
+import { Grid, AutoSizer } from "react-virtualized";
 import "react-virtualized/styles.css"; // only needs to be imported once
 import { connect } from "react-redux";
 
 import {
-  fetchDateAlbumsPhotoHashList,
-  fetchAlbumsDateGalleries,
   fetchUserAlbumsList,
   editUserAlbum,
   createNewUserAlbum
 } from "../actions/albumsActions";
 
 import {
-  fetchPhotos,
   fetchPhotoDetail,
   setPhotosFavorite,
   setPhotosHidden,
@@ -21,45 +17,24 @@ import {
 } from "../actions/photosActions";
 
 import { copyToClipboard } from "../util/util";
-import { SecuredImage, SecuredImageJWT } from "../components/SecuredImage";
+import { SecuredImageJWT } from "../components/SecuredImage";
 import { ModalPhotosShare } from "../components/ModalPhotosShare";
 import { ModalAlbumShare } from "../components/ModalAlbumShare";
 import {
   Dropdown,
-  Checkbox,
-  Card,
   Header,
   Divider,
-  Item,
   Loader,
-  Dimmer,
-  Sticky,
-  Portal,
   Image,
-  List,
   Input,
-  Rating,
-  Container,
-  Label,
   Popup,
-  Segment,
   Button,
-  Icon,
-  Table,
-  Transition,
-  Breadcrumb
+  Icon
 } from "semantic-ui-react";
 
-import { Server, serverAddress, shareAddress } from "../api_client/apiClient";
+import { serverAddress, shareAddress } from "../api_client/apiClient";
 import { LightBox } from "../components/lightBox";
 import { LightBoxV2 } from "../components/LightBoxV2";
-import LazyLoad from "react-lazyload";
-// import Lightbox from 'react-image-lightbox';
-import { LocationMap } from "../components/maps";
-import { push } from "react-router-redux";
-import { searchPhotos } from "../actions/searchActions";
-import styles from "../App.css";
-import Draggable from "react-draggable";
 import debounce from "lodash/debounce";
 import _ from "lodash";
 import * as moment from "moment";
