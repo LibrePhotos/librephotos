@@ -1,8 +1,9 @@
 import { notify } from "reapop";
 import { Server } from "../api_client/apiClient";
+import { logout } from "../actions/authActions";
 import { fetchDateAlbumsPhotoHashList } from "./albumsActions";
 import { fetchInferredFacesList, fetchLabeledFacesList } from "./facesActions";
-import { fetchUserSelfDetails} from './userActions' ; 
+import { fetchUserSelfDetails} from './userActions' ;
 import { fetchPeople } from "./peopleActions";
 
 
@@ -221,6 +222,13 @@ export function fetchWorkerAvailability(prevRunningJob) {
       })
       .catch(error => {
         dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
+        console.log(error.message)
+
+        if (error.message.indexOf("502") !== -1) {
+          // Backend is offline; HTTP error status code 502
+          console.log("Backend is offline")
+          dispatch(logout())
+        }
       });
   };
 }
