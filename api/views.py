@@ -607,10 +607,10 @@ class PersonViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Person.objects \
-            .annotate(photo_count=Count('faces__photo', filter=Q(faces__photo__hidden=False), distinct=True)) \
-            .filter(Q(photo_count__gt=0)& Q(faces__photo__owner=self.request.user)) \
+            .filter(Q(faces__photo__hidden=False) & Q(faces__photo__owner=self.request.user)) \
             .distinct() \
-            .annotate(viewable_face_count=Count('faces', filter=Q(faces__photo__hidden=False), distinct=True)) \
+            .annotate(viewable_face_count=Count('faces')) \
+            .filter(Q(viewable_face_count__gt=0)) \
             .order_by('name')
         return qs
 
