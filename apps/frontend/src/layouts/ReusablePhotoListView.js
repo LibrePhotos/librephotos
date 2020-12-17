@@ -264,8 +264,8 @@ export class PhotoListView extends Component {
                   <Header.Content>
                     {cell.date === "No Timestamp"
                       ? "No Timestamp"
-                      : this.props.dayHeaderPrefix 
-                        ? this.props.dayHeaderPrefix + moment(cell.date).format("MMM Do YYYY, dddd") 
+                      : this.props.dayHeaderPrefix
+                        ? this.props.dayHeaderPrefix + moment(cell.date).format("MMM Do YYYY, dddd")
                         : moment(cell.date).format("MMM Do YYYY, dddd")}
                     <Header.Subheader>
                       <Icon name="photo" />
@@ -314,8 +314,8 @@ export class PhotoListView extends Component {
                   <Header.Content>
                     {cell.date === "No Timestamp"
                       ? "No Timestamp"
-                      : this.props.dayHeaderPrefix 
-                        ? this.props.dayHeaderPrefix + moment(cell.date).format("MMM Do YYYY, dddd") 
+                      : this.props.dayHeaderPrefix
+                        ? this.props.dayHeaderPrefix + moment(cell.date).format("MMM Do YYYY, dddd")
                         : moment(cell.date).format("MMM Do YYYY, dddd")}
                     {cell.location ? (
                       <Header.Subheader>
@@ -1029,7 +1029,7 @@ export class PhotoListView extends Component {
                         );
                         const linksToCopy = this.state.selectedImageHashes
                           .map(
-                            ih => serverAddress.replace('//','') + "/media/photos/" + ih + ".jpg"
+                            ih => serverAddress + "/media/photos/" + ih + ".jpg"
                           )
                           .join("\n");
                         copyToClipboard(linksToCopy);
@@ -1090,7 +1090,7 @@ export class PhotoListView extends Component {
                       }
                       content="Open sharing panel for the current album"
                     />
-                    
+
 
 
 
@@ -1277,7 +1277,7 @@ export class PhotoListView extends Component {
             >
               <b>
               {
-                this.props.dayHeaderPrefix 
+                this.props.dayHeaderPrefix
                   ? this.props.dayHeaderPrefix + this.state.date
                   : this.state.date
               }</b> <br />

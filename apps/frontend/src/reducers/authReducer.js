@@ -11,7 +11,7 @@ const initialState = {
 
 export default (state=initialState, action) => {
     switch(action.type) {
-        case "LOGIN_FULFILLED": 
+        case "LOGIN_FULFILLED":
             return {
             access: {
                 token: action.payload.access,
@@ -23,12 +23,12 @@ export default (state=initialState, action) => {
             },
             errors: {}
         }
-        case "LOGIN_REJECTED": 
+        case "LOGIN_REJECTED":
             return {
             ...state,
-            errors: action.payload.response||{non_field_errors:action.payload.message}
+            errors: action.payload.response
         }
-        case "REFRESH_ACCESS_TOKEN_FULFILLED": 
+        case "REFRESH_ACCESS_TOKEN_FULFILLED":
             return {
             ...state,
             access: {
@@ -63,8 +63,8 @@ export default (state=initialState, action) => {
             return {
             access: undefined,
             refresh: undefined,
-            errors: 
-                action.payload.response || 
+            errors:
+                action.payload.response ||
                 {'non_field_errors': action.payload.statusText},
         }
 
@@ -79,13 +79,13 @@ export function accessToken(state) {
         return  state.access.token
     }
 }
-    
+
 export function refreshToken(state) {
     if (state.refresh) {
         return  state.refresh.token
     }
 }
-    
+
 export function isAccessTokenExpired(state) {
     if (state.access && state.access.exp) {
         return 1000 * state.access.exp - (new Date()).getTime() < 5000

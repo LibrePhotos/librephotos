@@ -375,6 +375,9 @@ export class LightBox extends Component {
                   <Header as="h3">Details</Header>
 
                   <Item.Group relaxed>
+
+{/* Start Item Time Taken */}
+
                     <Item>
                       <Item.Content verticalAlign="middle">
                         <Item.Header>
@@ -389,6 +392,9 @@ export class LightBox extends Component {
                         </Item.Description>
                       </Item.Content>
                     </Item>
+
+{/* End Item Time Taken */}
+{/* Start Item File Path */}
 
                     <Item>
                       <Item.Content verticalAlign="middle">
@@ -413,7 +419,55 @@ export class LightBox extends Component {
                       </Item.Content>
                     </Item>
 
-                    { this.props.photoDetails[
+{/* End Item File Path */}
+{/* Start Item Location */}
+
+                    {
+                            this.props.photoDetails[
+                              this.props.idx2hash[this.props.lightboxImageIndex]
+                            ].search_location &&
+                    (<Item>
+                      <Item.Content verticalAlign="middle">
+                        <Item.Header>
+                          <Icon name="point" /> Location
+                        </Item.Header>
+                        <Item.Description>
+                          {
+                            this.props.photoDetails[
+                              this.props.idx2hash[this.props.lightboxImageIndex]
+                            ].search_location
+                          }
+                        </Item.Description>
+                      </Item.Content>
+                    </Item>)
+                    }
+
+                    <div
+                      style={{
+                        width: LIGHTBOX_SIDEBAR_WIDTH - 70,
+                        whiteSpace: "normal",
+                        lineHeight: "normal"
+                      }}
+                    >
+                      {this.props.photoDetails[
+                        this.props.idx2hash[this.props.lightboxImageIndex]
+                      ].exif_gps_lat && (
+                        <LocationMap
+                          zoom={16}
+                          photos={[
+                            this.props.photoDetails[
+                              this.props.idx2hash[this.props.lightboxImageIndex]
+                            ]
+                          ]}
+                        />
+                      )}
+                    </div>
+
+{/* End Item Location */}
+{/* Start Item People */}
+
+                    {
+                            this.props.photoDetails[
                               this.props.idx2hash[this.props.lightboxImageIndex]
                             ].people.length > 0 &&
                     (<Item>
@@ -452,46 +506,8 @@ export class LightBox extends Component {
                     </Item>)
                     }
 
-                    {
-                            this.props.photoDetails[
-                              this.props.idx2hash[this.props.lightboxImageIndex]
-                            ].search_location &&
-                    (<Item>
-                      <Item.Content verticalAlign="middle">
-                        <Item.Header>
-                          <Icon name="point" /> Location
-                        </Item.Header>
-                        <Item.Description>
-                          {
-                            this.props.photoDetails[
-                              this.props.idx2hash[this.props.lightboxImageIndex]
-                            ].search_location
-                          }
-                        </Item.Description>
-                      </Item.Content>
-                    </Item>)
-                    }
-
-                    <div
-                      style={{
-                        width: LIGHTBOX_SIDEBAR_WIDTH - 70,
-                        whiteSpace: "normal",
-                        lineHeight: "normal"
-                      }}
-                    >
-                      {this.props.photoDetails[
-                        this.props.idx2hash[this.props.lightboxImageIndex]
-                      ].exif_gps_lat && (
-                        <LocationMap
-                          zoom={8}
-                          photos={[
-                            this.props.photoDetails[
-                              this.props.idx2hash[this.props.lightboxImageIndex]
-                            ]
-                          ]}
-                        />
-                      )}
-                    </div>
+{/* End Item People */}
+{/* Start Item Caption */}
 
                     <Item>
                       <Item.Content verticalAlign="middle">
@@ -553,6 +569,9 @@ export class LightBox extends Component {
                         </Item.Description>
                       </Item.Content>
                     </Item>
+
+{/* End Item Caption */}
+{/* Start Item Scene */}
 
                     <Item>
                       <Item.Content verticalAlign="middle">
@@ -641,6 +660,10 @@ export class LightBox extends Component {
                         </Item.Description>
                       </Item.Content>
                     </Item>
+
+{/* End Item Scene */}
+{/* Start Item Similar Photos */}
+
                     <Item>
                       <Item.Content verticalAlign="middle">
                         <Item.Header>
@@ -654,7 +677,7 @@ export class LightBox extends Component {
                                     this.props.lightboxImageIndex
                                   ]
                                 ].similar_photos.slice(0,30).map(el=>(
-                                  <Image width={95} height={95} 
+                                  <Image width={95} height={95}
                                     src={serverAddress+"/media/square_thumbnails_small/"+el.image_hash+".jpg"}/>
                                 ))
                           }
@@ -662,6 +685,8 @@ export class LightBox extends Component {
                         </Item.Description>
                       </Item.Content>
                     </Item>
+
+{/* End Item Similar Photos */}
 
                   </Item.Group>
                 </div>

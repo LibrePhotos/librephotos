@@ -12,9 +12,9 @@ export const TOKEN_FAILURE = '@@auth/TOKEN_FAILURE';
 export function signup(username,password,email,firstname,lastname) {
   return function(dispatch) {
     dispatch({type:"SIGNUP"})
-    Server.post('/user/', {email:email, 
-        username:username, 
-        password:password, 
+    Server.post('/user/', {email:email,
+        username:username,
+        password:password,
         scan_directory:'initial',
         first_name:firstname,
         last_name:lastname})

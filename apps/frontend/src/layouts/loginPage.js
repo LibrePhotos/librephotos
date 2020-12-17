@@ -43,6 +43,8 @@ export class LoginPage extends Component {
 
     const { username, password } = this.state;
 
+    const timeNow = new Date().toLocaleTimeString();
+
     return (
       <div
         style={{
@@ -109,29 +111,55 @@ export class LoginPage extends Component {
             </Form>
           </Segment>
           {this.props.errors &&
-            this.props.errors.data && (
+            this.props.errors.data &&
+              this.props.errors.data.detail && (
               <Message color="red" secondary attached>
-                {this.props.errors.data.non_field_errors[0]}
+                <p>
+                  {this.props.errors.data.detail}
+                </p>
+                <p>
+                  {timeNow}
+                </p>
               </Message>
-            )}
+            )
+          }
           {this.props.errors &&
-            this.props.errors.non_field_errors && (
+            this.props.errors.data &&
+            !this.props.errors.data.detail && (
               <Message color="red" secondary attached>
-                No connection to backend server
+                <p>
+                  No connection to backend server, try again in a few minutes.
+                </p>
+                <p>
+                  {timeNow}
+                </p>
               </Message>
-            )}
+            )
+          }
           {this.props.errors &&
             this.props.errors.password && (
               <Message color="red" secondary attached>
+                <p>
                 Password may not be blank!
+                </p>
+                <p>
+                  {timeNow}
+                </p>
               </Message>
-            )}
+            )
+          }
           {this.props.errors &&
             this.props.errors.username && (
               <Message color="red" secondary attached="bottom">
+                <p>
                 Username may not be blank!
+                </p>
+                <p>
+                  {timeNow}
+                </p>
               </Message>
-            )}
+            )
+          }
         </div>
         <div
           style={{
