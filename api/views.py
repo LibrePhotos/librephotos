@@ -465,8 +465,7 @@ class NoTimestampPhotoHashListViewSet(viewsets.ModelViewSet):
     ])
 
     def get_queryset(self):
-        return Photo.visible.filter(Q(exif_timestamp=None)).filter(
-            owner=self.request.user).order_by('image_path')
+        return Photo.objects.filter(Q(hidden=False) & Q(exif_timestamp=None) & Q(owner=self.request.user)).order_by('image_path')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -810,9 +809,10 @@ class AlbumDateListWithPhotoHashViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
             qs = AlbumDate.objects \
-                .annotate(photo_count=Count('photos', filter=Q(photos__hidden=False), distinct=True)) \
-                .filter(Q(photo_count__gt=0)&Q(owner=self.request.user)) \
+                .filter(Q(owner=self.request.user) & Q(photos__hidden=False)) \
                 .exclude(date=None) \
+                .annotate(photo_count=Count('photos')) \
+                .filter(Q(photo_count__gt=0)) \
                 .order_by('-date') \
                 .prefetch_related(
                     Prefetch(
@@ -849,8 +849,9 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return AlbumThing.objects \
-                .annotate(photo_count=Count('photos', filter=Q(photos__hidden=False), distinct=True)) \
-                .filter(Q(photo_count__gt=0)&Q(owner=self.request.user)) \
+                .filter(Q(owner=self.request.user) & Q(photos__hidden=False)) \
+                .annotate(photo_count=Count('photos')) \
+                .filter(Q(photo_count__gt=0)) \
                 .order_by('title')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
@@ -871,8 +872,9 @@ class AlbumThingListViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):      
         return AlbumThing.objects \
-            .annotate(photo_count=Count('photos', filter=Q(photos__hidden=False), distinct=True)) \
-            .filter(Q(photo_count__gt=0)&Q(owner=self.request.user)) \
+            .filter(Q(owner=self.request.user) & Q(photos__hidden=False)) \
+            .annotate(photo_count=Count('photos')) \
+            .filter(Q(photo_count__gt=0)) \
             .order_by('-title') \
             .prefetch_related(
                 Prefetch(
