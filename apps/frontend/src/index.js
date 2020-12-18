@@ -10,7 +10,7 @@ import { CookiesProvider } from 'react-cookie'
 
 
 import App from './App';
-import registerServiceWorker from './registerServiceWorker';
+import { unregister } from './registerServiceWorker';
 import { Provider } from "react-redux"
 
 import store from './store'
@@ -24,4 +24,9 @@ ReactDOM.render(
 </Provider>
 , document.getElementById('root'));
 
-registerServiceWorker();
+
+// opt out of problematic service worker
+// registerServiceWorker();
+unregister()
+
+// Cache assets in nginx configurations instead
