@@ -95,21 +95,7 @@ def handle_new_image(user, image_path, job_id):
 def rescan_image(user, image_path, job_id):
     if isValidMedia(open(image_path,"rb").read(2048)):
         try:
-            elapsed_times = {
-                'md5':None,
-                'thumbnails':None,
-                'captions':None,
-                'image_save':None,
-                'exif':None,
-                'geolocation':None,
-                'faces':None,
-                'album_place':None,
-                'album_date':None,
-                'album_thing':None,
-                'im2vec':None
-            }
-
-            photo = Photo.objects.filter(Q(image_path=image_path)).get()            
+            photo = Photo.objects.filter(Q(image_path=image_path)).get()
             photo._extract_date_time_from_exif()
 
         except Exception as e:
@@ -149,9 +135,10 @@ def scan_photos(user, job_id):
         # Create a list with all images whose hash is new or they do not exist in the db
         image_paths_to_add = []
         image_paths_to_rescan = []
+        all_images_paths = Photo.objects.only("image_path").values_list('image_path', flat=True)
         for image_path in image_paths:
             if os.path.isfile(image_path):
-                if Photo.objects.filter(image_path=image_path).count() > 0:
+                if image_path in all_images_paths:
                     image_paths_to_rescan.append(image_path)
                 else:
                     image_paths_to_add.append(image_path)
