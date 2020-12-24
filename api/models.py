@@ -251,6 +251,8 @@ class Photo(models.Model):
         image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_BIG,
                         PIL.Image.ANTIALIAS)
         image_io_thumb = BytesIO()
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
         image.save(image_io_thumb, format="JPEG")
         self.thumbnail_big.save(self.image_hash + '.jpg',
                                 ContentFile(image_io_thumb.getvalue()))
