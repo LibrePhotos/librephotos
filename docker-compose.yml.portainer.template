@@ -1,4 +1,4 @@
-# Rename this to docker-compose.yml
+# Rename this to docker-compose.yml to run in portainer (does not support v2.1+ healthcheck)
 
 # Run options:
 # 1. Use prebuilt images:
@@ -7,7 +7,7 @@
 #   build cmd: COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose build
 #   run cmd: docker-compose up &
 
-version: '2.1'
+version: '2'
 
 services:
 
@@ -34,11 +34,6 @@ services:
     volumes:
       - $HOME/librephotos_data:/var/lib/postgresql/data
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c random_page_cost=1.0
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d ownphotos -U docker"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
   frontend:
     image: reallibrephotos/librephotos-frontend:dev
@@ -90,10 +85,6 @@ services:
     links:
       - "librephotos-db:librephotos-db"
       - "librephotos-redis:librephotos-redis"
-    # Wait for Postgres
-    depends_on:
-      librephotos-db:
-        condition: service_healthy
 
   librephotos-redis:
     image: redis
