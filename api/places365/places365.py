@@ -65,7 +65,7 @@ def remove_nonspace_separators(text):
 # load the labels
 classes, labels_IO, labels_attribute, W_attribute = load_labels()
 
-def inference_places365(img_path):
+def inference_places365(img_path, confidence):
     try:
 
         def hook_feature(module, input, output):
@@ -102,8 +102,8 @@ def inference_places365(img_path):
 
         
         # load the test image
-        # img_url = 'http://places2.csail.mit.edu/imgs/12.jpg'
-        # os.system('wget %s -q -O test.jpg' % img_url)
+        img_url = 'http://places2.csail.mit.edu/imgs/3.jpg'
+        os.system('wget %s -q -O test.jpg' % img_url)
         img = Image.open(img_path)
         input_img = V(tf(img).unsqueeze(0))
 
@@ -126,7 +126,8 @@ def inference_places365(img_path):
         # output the prediction of scene category
         res['categories'] = []
         for i in range(0, 5):
-            res['categories'].append(remove_nonspace_separators(classes[idx[i]]))
+            if probs[i] > confidence:
+                res['categories'].append(remove_nonspace_separators(classes[idx[i]]))
 
         # output the scene attributes
         responses_attribute = W_attribute.dot(features_blobs[1])
@@ -136,3 +137,6 @@ def inference_places365(img_path):
         return res
     except Exception:
         logger.exception("Error:")
+
+if __name__ == "__main__":
+    inference_places365("test.jpg", 0.1)
