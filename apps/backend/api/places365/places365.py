@@ -102,8 +102,8 @@ def inference_places365(img_path, confidence):
 
         
         # load the test image
-        img_url = 'http://places2.csail.mit.edu/imgs/3.jpg'
-        os.system('wget %s -q -O test.jpg' % img_url)
+        #img_url = 'http://places2.csail.mit.edu/imgs/3.jpg'
+        #os.system('wget %s -q -O test.jpg' % img_url)
         img = Image.open(img_path)
         input_img = V(tf(img).unsqueeze(0))
 
@@ -132,11 +132,11 @@ def inference_places365(img_path, confidence):
         # output the scene attributes
         responses_attribute = W_attribute.dot(features_blobs[1])
         idx_a = np.argsort(responses_attribute)
-        res['attributes'] = [ remove_nonspace_separators(labels_attribute[idx_a[i]]) for i in range(-1,-10,-1)]
+
+        res['attributes'] = []
+        for i in range(-1, -10, -1):
+            res['attributes'].append(remove_nonspace_separators(labels_attribute[idx_a[i]]))
 
         return res
     except Exception:
         logger.exception("Error:")
-
-if __name__ == "__main__":
-    inference_places365("test.jpg", 0.1)
