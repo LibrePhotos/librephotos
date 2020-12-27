@@ -222,7 +222,7 @@ class Photo(models.Model):
 
         # places365
         try:
-            res_places365 = inference_places365(image_path)
+            res_places365 = inference_places365(image_path, 0.1)  # TODO: make confidence configurable
             captions['places365'] = res_places365
             self.captions_json = captions
             if self.search_captions:
