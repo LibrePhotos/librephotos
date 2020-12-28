@@ -66,14 +66,18 @@ def remove_nonspace_separators(text):
 classes, labels_IO, labels_attribute, W_attribute = load_labels()
 
 def inference_places365(img_path, confidence):
+    """
+    @param img_path: path to the image to generate labels from
+    @param confidence: minimum confidence before an category is selected
+    @return: {'environment': 'indoor'/'outdoor', 'categories': [...], 'attributes': [...]}
+    """
     try:
 
         def hook_feature(module, input, output):
            features_blobs.append(np.squeeze(output.data.cpu().numpy()))
 
-        def load_model():
+        def load_model():  # TODO Should the model be reloaded for every photo? Wouldn't it be better to do that once?
             # this model has a last conv feature map as 14x14
-            # model_file = os.path.join(dir_places365_model,'whole_wideresnet18_places365_python36.pth.tar')
             model_file = os.path.join(dir_places365_model,'wideresnet18_places365.pth.tar')
         
             model = wideresnet.resnet18(num_classes=365)
@@ -105,6 +109,7 @@ def inference_places365(img_path, confidence):
         #img_url = 'http://places2.csail.mit.edu/imgs/3.jpg'
         #os.system('wget %s -q -O test.jpg' % img_url)
         img = Image.open(img_path)
+        # Normalize the image for processing
         input_img = V(tf(img).unsqueeze(0))
 
         # forward pass
@@ -117,22 +122,34 @@ def inference_places365(img_path, confidence):
         res = {}
 
         # output the IO prediction
-        io_image = np.mean(labels_IO[idx[:10]]) # vote for the indoor or outdoor
+        # labels_IO[idx[:10]] returns a list of 0's and 1's: 0 -> inside, 1 -> outside
+        # Determine the mean to reach a consensus
+        io_image = np.mean(labels_IO[idx[:10]])
         if io_image < 0.5:
             res['environment'] = 'indoor'
         else:
             res['environment'] = 'outdoor'
 
         # output the prediction of scene category
+        # idx[i] returns a index number for which class it corresponds to
+        # classes[idx[i]], thus returns the class name
+        # idx is sorted together with probs, with highest probabilities first
         res['categories'] = []
         for i in range(0, 5):
             if probs[i] > confidence:
                 res['categories'].append(remove_nonspace_separators(classes[idx[i]]))
+            else:
+                break
 
         # output the scene attributes
+        # This is something I don't quiet grasp yet
+        # Probs is not usable here anymore, we're not processing our input_image
+        # Take the dot product of out W_attribute model and the feature blobs
+        # And sort it along the -1 axis
+        # This results in idx_a, with the last elements the index numbers of attributes, we have the most confidence in
+        # Can't seem to get any confidence values, also all the attributes it detect are not really meaningful i.m.o.
         responses_attribute = W_attribute.dot(features_blobs[1])
         idx_a = np.argsort(responses_attribute)
-
         res['attributes'] = []
         for i in range(-1, -10, -1):
             res['attributes'].append(remove_nonspace_separators(labels_attribute[idx_a[i]]))
