@@ -669,7 +669,7 @@ export class FaceDashboard extends Component {
                   icon="plus"
                 />
               }
-              content="Add to an existing album or create a new album"
+              content="Add to an existing face ID or create a new face ID"
             />
             <Popup
               inverted
