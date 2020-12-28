@@ -112,7 +112,7 @@ export class AlbumPeopleGallery extends Component {
   render() {
 
     if (!this.props.fetchingAlbumsPeople) {
-      if (!this.props.match.params.albumID in this.props.albumsPeople){
+      if (!(this.props.match.params.albumID in this.props.albumsPeople)){
         this.props.dispatch(fetchPeopleAlbums(this.props.match.params.albumID))      
       }
     }
