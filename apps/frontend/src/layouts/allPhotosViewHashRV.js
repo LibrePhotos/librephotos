@@ -1,63 +1,10 @@
-import React, {Component} from 'react';
-import ReactDOM from 'react-dom';
-import { Grid, WindowScroller,AutoSizer } from 'react-virtualized';
+import React, { Component } from 'react';
 import 'react-virtualized/styles.css'; // only needs to be imported once
 import { connect } from "react-redux";
-
-import {  
-    fetchDateAlbumsPhotoHashList,
-    fetchAlbumsDateGalleries,
-    fetchUserAlbumsList,
-    editUserAlbum,
-    createNewUserAlbum} from '../actions/albumsActions'
-
-import { 
-    fetchPhotos, 
-    fetchPhotoDetail, 
-    setPhotosFavorite,
-    setPhotosHidden} from '../actions/photosActions'
-
-import { 
-    Card, 
-    Image, 
-    Header, 
-    Divider, 
-    Item, 
-    Loader, 
-    Dimmer, 
-    Sticky, 
-    Portal, 
-    List, 
-    Input, 
-    Rating, 
-    Container, 
-    Label, 
-    Popup, 
-    Segment, 
-    Button, 
-    Icon, 
-    Table, 
-    Transition, 
-    Breadcrumb} from 'semantic-ui-react';
-
-import {Server, serverAddress} from '../api_client/apiClient'
-import {LightBox} from '../components/lightBox'
-import LazyLoad from 'react-lazyload';
-// import Lightbox from 'react-image-lightbox';
-import {LocationMap} from '../components/maps'
-import { push } from 'react-router-redux'
-import {searchPhotos} from '../actions/searchActions'
-import styles from '../App.css';
-import Draggable from 'react-draggable';
-import debounce from 'lodash/debounce'
+import { fetchDateAlbumsPhotoHashList } from '../actions/albumsActions'
 import _ from 'lodash'
-import * as moment from 'moment';
-import Modal from 'react-modal';
+import { PhotoListView } from './ReusablePhotoListView'
 
-import {calculateGridCells, calculateGridCellSize} from '../util/gridUtils'
-import {ScrollSpeed, SPEED_THRESHOLD, SCROLL_DEBOUNCE_DURATION} from '../util/scrollUtils'
-import {fuzzy_match} from '../util/fuzzyMatch'
-import {PhotoListView} from './ReusablePhotoListView'
 
 var TOP_MENU_HEIGHT = 55 // don't change this
 var LEFT_MENU_WIDTH = 85 // don't change this

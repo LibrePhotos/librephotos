@@ -1,5 +1,4 @@
 import React, { Component } from "react";
-import { Header } from "semantic-ui-react";
 import { fetchUserPublicPhotos } from "../actions/publicActions";
 import { connect } from "react-redux";
 import { PhotoListView } from "./ReusablePhotoListView";
@@ -11,6 +10,7 @@ import {
   TopMenuPublic,
   SideMenuNarrowPublic
 } from "./menubars";
+
 
 var TOP_MENU_HEIGHT = 45; // don't change this
 var LEFT_MENU_WIDTH = 85; // don't change this

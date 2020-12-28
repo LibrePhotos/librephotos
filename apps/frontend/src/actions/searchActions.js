@@ -1,7 +1,7 @@
-import axios from "axios";
-import {Server} from '../api_client/apiClient'
+import { Server } from '../api_client/apiClient'
 import _ from 'lodash'
 import moment from 'moment'
+
 
 export function searchPhotos(query) {
   return function(dispatch) {

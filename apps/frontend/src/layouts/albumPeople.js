@@ -1,31 +1,21 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import {
-  fetchPeopleAlbums,
-  fetchAutoAlbums,
-  generateAutoAlbums
-} from "../actions/albumsActions";
-import { AlbumPeopleCard, AlbumPeopleGallery } from "../components/album";
+import { fetchPeopleAlbums } from "../actions/albumsActions";
 import {
   Popup,
-  Modal,
-  Container,
   Icon,
   Divider,
   Header,
   Image,
   Loader,
-  Button,
-  Card
+  Button
 } from "semantic-ui-react";
 import { fetchPeople, deletePerson } from "../actions/peopleActions";
-
-import { Server, serverAddress } from "../api_client/apiClient";
-import { Grid, List, WindowScroller, AutoSizer } from "react-virtualized";
+import { serverAddress } from "../api_client/apiClient";
+import { Grid, AutoSizer } from "react-virtualized";
 import { Link } from "react-router-dom";
 import { SecuredImageJWT } from "../components/SecuredImage";
 
-import { push } from "react-router-redux";
 
 var topMenuHeight = 45; // don't change this
 var ESCAPE_KEY = 27;

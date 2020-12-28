@@ -2,7 +2,6 @@ import jwtDecode from 'jwt-decode'
 import * as auth from '../actions/authActions'
 
 
-
 const initialState = {
     access: undefined,
     refresh: undefined,

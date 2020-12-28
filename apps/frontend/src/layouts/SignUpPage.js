@@ -1,30 +1,16 @@
 import React, { Component } from "react";
 import {
-  Card,
   Image,
-  Input,
   Header,
   Divider,
   Message,
-  Item,
-  Loader,
-  Dimmer,
-  Rating,
-  Dropdown,
-  Container,
-  Label,
-  Popup,
   Segment,
   Button,
-  Icon,
   Form
 } from "semantic-ui-react";
 import { connect } from "react-redux";
+import {signup} from "../actions/authActions";
 
-import { login, signup } from "../actions/authActions";
-import * as reducers from "../reducers";
-
-import { push } from "react-router-redux";
 
 export class SignupPage extends Component {
   constructor(props) {

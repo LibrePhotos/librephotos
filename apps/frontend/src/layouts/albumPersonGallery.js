@@ -1,24 +1,9 @@
-import React, {Component} from 'react';
+import React, { Component } from 'react';
 import { connect } from "react-redux";
-import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
-import {Container, Icon, Divider, Header, Image, Button, Card, Loader} from 'semantic-ui-react'
-import { fetchPeople, fetchEgoGraph } from '../actions/peopleActions';
-import { fetchPhotoDetail, fetchNoTimestampPhotoList} from '../actions/photosActions';
-
-import {Server, serverAddress} from '../api_client/apiClient'
-import { Grid, List, WindowScroller,AutoSizer } from 'react-virtualized';
-import {EgoGraph} from '../components/egoGraph'
-import { push } from 'react-router-redux'
-import {LightBox} from '../components/lightBox'
+import { fetchPeopleAlbums } from '../actions/albumsActions'
 import moment from 'moment'
 import _ from 'lodash'
-import debounce from 'lodash/debounce'
-
-
-import {calculateGridCells, calculateGridCellSize} from '../util/gridUtils'
-import {ScrollSpeed, SPEED_THRESHOLD, SCROLL_DEBOUNCE_DURATION} from '../util/scrollUtils'
-
-import {PhotoListView} from './ReusablePhotoListView'
+import { PhotoListView } from './ReusablePhotoListView'
 
 
 var topMenuHeight = 55 // don't change this

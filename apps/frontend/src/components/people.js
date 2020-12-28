@@ -1,23 +1,8 @@
 import React, { Component } from 'react';
 import { connect } from "react-redux";
-import { Image, Header, Message, Dropdown, Divider, Card, 
-         Container, Segment, Button, Icon, Popup, Loader, 
-         Dimmer, Grid, Reveal, Statistic, Label, Table,
-         Modal } from 'semantic-ui-react';
-import { fetchPeople, 
-         addPerson ,
-         addPersonAndSetLabelToFace} from '../actions/peopleActions';
-import { fetchFaces, 
-         fetchLabeledFaces,
-         fetchInferredFaces,
-         deleteFaceAndFetchNext, 
-         labelFacePerson ,
-         fetchFaceToLabel,
-         loadFaceToLabel,
-         labelFacePersonAndFetchNext} from '../actions/facesActions';
-
-import SocialGraph from './socialGraph'
-import {Server, serverAddress} from '../api_client/apiClient'
+import { Image, Card, Button } from 'semantic-ui-react';
+import { fetchPeople } from '../actions/peopleActions';
+import { serverAddress } from '../api_client/apiClient'
 
 export class PeopleCardGroup extends Component {
   componentWillMount() {

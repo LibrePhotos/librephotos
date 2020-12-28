@@ -1,16 +1,8 @@
-import React, {Component} from 'react'
-import {Segment, Header, Container} from 'semantic-ui-react'
-import {XYPlot, XAxis, YAxis, HorizontalGridLines, LineMarkSeries, LineSeries,
-        VerticalBarSeries,HorizontalBarSeries, makeHeightFlexible, makeVisFlexible,
-        MarkSeries, VerticalGridLines, Crosshair, DiscreteColorLegend} from 'react-vis';
-
-import {Chart, Transform, Bars} from 'rumble-charts'
-
+import React, { Component } from 'react'
+import { XYPlot, makeHeightFlexible } from 'react-vis';
+import { Chart, Transform, Bars } from 'rumble-charts'
 import Dimensions from 'react-dimensions'
 import { connect } from "react-redux";
-import { Graph } from 'react-d3-graph';
-import {fetchDateAlbumsList, fetchAutoAlbumsList} from '../actions/albumsActions'
-
 import Month from 'calendar-months';
 
 

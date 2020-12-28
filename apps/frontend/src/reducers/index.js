@@ -1,7 +1,6 @@
 import { combineReducers } from "redux"
 import { routerReducer } from 'react-router-redux'
-import {reducer as notificationsReducer} from 'reapop'
-
+import { reducer as notificationsReducer } from 'reapop'
 import people from "./peopleReducer"
 import faces from "./facesReducer"
 import albums from './albumsReducer'
@@ -13,6 +12,7 @@ import search from './searchReducer'
 import ui from './uiReducer'
 import pub from './publicReducer'
 import user from './userReducer'
+
 
 const appReducer = combineReducers({
   people,

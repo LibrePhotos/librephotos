@@ -1,5 +1,4 @@
 import { isRSAA, apiMiddleware } from 'redux-api-middleware';
-
 import { TOKEN_RECEIVED, refreshAccessToken } from './actions/authActions'
 import { refreshToken, isAccessTokenExpired } from './reducers'
 

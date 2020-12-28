@@ -1,20 +1,14 @@
-import React, {Component} from 'react';
-import { Card, Image, Header, Divider, Item, Loader, Dimmer,Rating,
-         Container, Label, Popup, Segment, Button, Icon} from 'semantic-ui-react';
+import React, { Component } from 'react';
+import { Card, Image, Header, Divider, Loader, Dimmer, Rating, Label, Popup } from 'semantic-ui-react';
 import Gallery from 'react-grid-gallery'
 import VisibilitySensor from 'react-visibility-sensor'
 import { connect } from "react-redux";
-import {
-  BrowserRouter as Router,
-  Route,
-  Link
-} from 'react-router-dom'
-import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums,toggleAlbumAutoFavorite,fetchAutoAlbumsList} from '../actions/albumsActions'
+import { BrowserRouter as Link } from 'react-router-dom'
+import { fetchPeopleAlbums, toggleAlbumAutoFavorite } from '../actions/albumsActions'
 import { Map, TileLayer, Marker } from 'react-leaflet'
-
-import {Server, serverAddress} from '../api_client/apiClient'
-
+import { serverAddress } from '../api_client/apiClient'
 import LazyLoad from 'react-lazyload';
+
 
 /*******************************************************************************
 COMMON

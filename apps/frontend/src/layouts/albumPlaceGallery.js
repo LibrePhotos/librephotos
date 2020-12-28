@@ -1,13 +1,9 @@
-import React, {Component} from 'react';
+import React, { Component } from 'react';
 import { connect } from "react-redux";
-import {fetchPlaceAlbum, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
-import {Container, Icon, Divider, Header, Image, Button, Flag, Card, Loader} from 'semantic-ui-react'
-
-import { push } from 'react-router-redux'
-
+import { fetchPlaceAlbum } from '../actions/albumsActions'
 import _ from 'lodash'
 import moment from 'moment'
-import {PhotoListView} from './ReusablePhotoListView'
+import { PhotoListView } from './ReusablePhotoListView'
 
 
 const topMenuHeight = 55 // don't change this

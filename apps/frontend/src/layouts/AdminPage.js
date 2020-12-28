@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import React, { Component } from 'react';
 import {
   Form,
   Radio,
@@ -14,11 +14,9 @@ import {
   Divider,
   Pagination,
 } from 'semantic-ui-react';
-import {connect} from 'react-redux';
-
+import { connect } from 'react-redux';
 import Modal from 'react-modal';
 import moment from 'moment';
-
 import {
   setSiteSettings,
   fetchSiteSettings,
@@ -30,6 +28,7 @@ import {
 } from '../actions/utilActions';
 import SortableTree from 'react-sortable-tree';
 import FileExplorerTheme from 'react-sortable-tree-theme-file-explorer';
+
 
 export class AdminPage extends Component {
   state = {modalOpen: false, userToEdit: null};

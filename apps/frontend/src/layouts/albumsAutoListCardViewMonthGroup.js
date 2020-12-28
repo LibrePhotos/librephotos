@@ -1,35 +1,6 @@
-import Immutable from "immutable";
-import PropTypes from "prop-types";
-import React, { PureComponent, Component} from "react";import {
-  Collection,
-  CellMeasurer,
-  CellMeasurerCache,
-  createMasonryCellPositioner,
-  Masonry,
-  List,
-  AutoSizer,
-  WindowScroller,
-} from 'react-virtualized';
+import React, { PureComponent } from "react";
+import {List, AutoSizer, WindowScroller} from 'react-virtualized';
 import styles from 'react-virtualized/styles.css'; // only needs to be imported once
-import { Card, Image, Header, Divider, Item, Loader, Dimmer,
-         Container, Label, Popup, Segment, Button, Icon, Rating} from 'semantic-ui-react';
-import { connect } from "react-redux";
-
-
-import {fetchAutoAlbumsList} from '../actions/albumsActions'
-
-import {
-  BrowserRouter as Router,
-  Route,
-  Link
-} from 'react-router-dom'
-
-import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
-import {fetchCountStats,fetchPhotoScanStatus,
-        fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
-import {Server, serverAddress} from '../api_client/apiClient'
-
-
 
 
 export class ListExample extends PureComponent {

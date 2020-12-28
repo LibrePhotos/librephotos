@@ -1,10 +1,7 @@
-
 import axios from "axios";
-import { withAuth } from '../reducers'
-
 import store from '../store'
-import {refreshAccessToken} from '../actions/authActions'
-import {isRefreshTokenExpired} from '../reducers/'
+import { isRefreshTokenExpired } from '../reducers/'
+
 
 store.subscribe(listener)
 

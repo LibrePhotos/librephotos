@@ -1,25 +1,17 @@
-import React, {Component} from 'react';
-import ReactDOM from 'react-dom';
-import { Grid, List, WindowScroller,AutoSizer } from 'react-virtualized';
+import React, { Component } from 'react';
+import { Grid, AutoSizer } from 'react-virtualized';
 import 'react-virtualized/styles.css'; // only needs to be imported once
 import { connect } from "react-redux";
-import {  fetchDateAlbumsPhotoHashList,fetchAlbumsDateGalleries} from '../actions/albumsActions'
-import {  fetchPhotoDetail} from '../actions/photosActions'
-import { Card, Image, Header, Divider, Item, Loader, Dimmer, Modal, Sticky, Portal, Input,
-         Container, Label, Popup, Segment, Button, Icon, Table, Transition} from 'semantic-ui-react';
-import {Server, serverAddress} from '../api_client/apiClient'
-import LazyLoad from 'react-lazyload';
+import { fetchPhotoDetail } from '../actions/photosActions'
+import { Image, Header, Loader, Icon } from 'semantic-ui-react';
+import { serverAddress } from '../api_client/apiClient'
 // import Lightbox from 'react-image-lightbox';
-import {LightBox} from '../components/lightBox'
-
-import {LocationMap} from '../components/maps'
-import { push } from 'react-router-redux'
-import {searchPhotos} from '../actions/searchActions'
+import { LightBox } from '../components/lightBox'
 import * as moment from 'moment';
 import debounce from 'lodash/debounce'
+import { calculateGridCells, calculateGridCellSize } from '../util/gridUtils'
+import { ScrollSpeed, SPEED_THRESHOLD, SCROLL_DEBOUNCE_DURATION } from '../util/scrollUtils'
 
-import {calculateGridCells, calculateGridCellSize} from '../util/gridUtils'
-import {ScrollSpeed, SPEED_THRESHOLD, SCROLL_DEBOUNCE_DURATION} from '../util/scrollUtils'
 
 var topMenuHeight = 55 // don't change this
 var leftMenuWidth = 85 // don't change this

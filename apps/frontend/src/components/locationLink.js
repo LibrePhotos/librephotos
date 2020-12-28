@@ -6,7 +6,7 @@ import { hierarchy } from "d3-hierarchy";
 import { pointRadial } from "d3-shape";
 import { fetchLocationSunburst } from "../actions/utilActions";
 import { connect } from "react-redux";
-import { Dropdown, Form } from "semantic-ui-react";
+import { Form } from "semantic-ui-react";
 
 import {
   LinkHorizontal,
@@ -22,6 +22,7 @@ import {
   LinkVerticalLine,
   LinkRadialLine
 } from "@vx/shape";
+
 
 export class LocationLink extends React.Component {
   state = {
