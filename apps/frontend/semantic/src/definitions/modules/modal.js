@@ -132,7 +132,7 @@ $.fn.modal = function(parameters) {
             $dimmer = $dimmable.dimmer('get dimmer');
           },
           id: function() {
-            id = (Math.random().toString(16) + '000000000').substr(2,8);
+            id = (cryptoObj.getRandomValues().toString(16) + '000000000').substr(2,8);
             elementEventNamespace = '.' + id;
             module.verbose('Creating unique id for element', id);
           }
@@ -212,7 +212,7 @@ $.fn.modal = function(parameters) {
 
         get: {
           id: function() {
-            return (Math.random().toString(16) + '000000000').substr(2,8);
+            return (cryptoObj.getRandomValues().toString(16) + '000000000').substr(2,8);
           }
         },
 

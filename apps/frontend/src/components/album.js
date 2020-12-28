@@ -505,7 +505,7 @@ export class AlbumDateCard extends Component {
     return (
       <Card key={this.props.key}>
           <LazyLoad once height={300} placeholder={
-            <Image src={'http://placehold.jp/150x150.png'}/>}
+            <Image src={'https://placehold.jp/150x150.png'}/>}
           >
             <Image 
               as={Link}
