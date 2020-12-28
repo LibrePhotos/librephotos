@@ -81,8 +81,8 @@ export class AlbumLocationMap extends Component {
         <div style={{ padding: 0 }}>
           <Map center={[avg_lat, avg_lon]} zoom={6}>
             <TileLayer
-              attribution="&copy; <a href=&quot;http://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
-              url="http://{s}.tile.osm.org/{z}/{x}/{y}.png"
+              attribution="&copy; <a href=&quot;https://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
+              url="https://{s}.tile.osm.org/{z}/{x}/{y}.png"
             />
             {markers}
           </Map>

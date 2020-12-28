@@ -49,7 +49,7 @@ export class AlbumLocationMap extends Component {
           <Map center={[avg_lat,avg_lon]} zoom={2}>
             <TileLayer
               attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-              url='http://{s}.tile.osm.org/{z}/{x}/{y}.png'/>
+              url='https://{s}.tile.osm.org/{z}/{x}/{y}.png'/>
             {markers}
           </Map>
           <Divider/>
@@ -283,7 +283,7 @@ export class AlbumAutoCard extends Component {
     return (
       <Card key={this.props.key}>
           <LazyLoad once height={150} placeholder={
-            <Image src={'http://placehold.jp/150x150.png'}/>}>
+            <Image src={'https://placehold.jp/150x150.png'}/>}>
           <Image 
             as={Link}
             to={`/albums/autoview/${this.props.album_id}`}
@@ -433,7 +433,7 @@ export class AlbumDateCardPlaceholder extends Component {
       <Card>
         <VisibilitySensor>
           <Image 
-            src={'http://placehold.jp/150x150.png'}/>
+            src={'https://placehold.jp/150x150.png'}/>
         </VisibilitySensor>
         <Card.Content>
         <Header as='h4'>{this.props.timestamp}</Header>
