@@ -118,7 +118,8 @@ export class AdminPage extends Component {
               <Table.HeaderCell>Username</Table.HeaderCell>
               <Table.HeaderCell>Scan Directory</Table.HeaderCell>
               <Table.HeaderCell>Photo Count</Table.HeaderCell>
-              <Table.HeaderCell>Last Login</Table.HeaderCell>
+              <!-- Changed Last Login due to well no last login kept in DB -->
+              <Table.HeaderCell>Joined</Table.HeaderCell>
             </Table.Row>
           </Table.Header>
           <Table.Body>
