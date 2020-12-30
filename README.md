@@ -11,7 +11,7 @@
 ![](https://github.com/LibrePhotos/librephotos/blob/dev/screenshots/Screenshot_2018-11-27_15-01-49.png?raw=true)
 
 ## Live demo
-Live [demo avilable here](https://demo2.librephotos.com/).
+Live [demo available here](https://demo2.librephotos.com/).
 User is demo, password is demo1234.
 
 ## Discord Server
