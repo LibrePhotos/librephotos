@@ -118,7 +118,7 @@ export class LightBox extends Component {
         var mainSrc = "/hidden.png";
         var mainSrcThumbnail = "/hidden.png";
       }
-      
+
       for (var i = 0; i < 10; i++) {
         setTimeout(() => {
 
@@ -139,7 +139,7 @@ export class LightBox extends Component {
             }
 
             // Since we disabled animations, we can set image_prev and image_next visibility hidden
-            // Fixes prev/next large wide 16:9 image were visible at same time as main small 9:16 image in view
+            // Fixes prev/next large wide 16:9 images were visible at same time as main small 9:16 image in view
             document.getElementsByClassName('ril-image-prev')[0].style.visibility = 'hidden';
             document.getElementsByClassName('ril-image-next')[0].style.visibility = 'hidden';
             document.getElementsByClassName('ril-image-current')[0].style.visibility = 'visible';
@@ -150,7 +150,7 @@ export class LightBox extends Component {
             }
           }
         }, 250*i);
-      }      
+      }
     }
 
     return (
