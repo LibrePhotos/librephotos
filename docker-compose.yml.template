@@ -83,7 +83,7 @@ services:
       - MAPBOX_API_KEY=pk.ey # CHANGE ME - You need this for reverse photo geocoding
       # https://docs.djangoproject.com/en/3.1/ref/settings/#std:setting-TIME_ZONE
       - TIME_ZONE=America/Chicago
-      # The number of Gunicorn worker processes; SET to (2*cpu cores); "NOT (2*cpu threads)"
+      # The number of Gunicorn worker processes: set it up to (2*cpu cores). Each worker needs 800MB of RAM
       - WEB_CONCURRENCY=2 # CHANGEME
       # Gunicorn worker timeout seconds (ensure that one bad request doesn't stall other requests forever)
       - WORKER_TIMEOUT=1800
