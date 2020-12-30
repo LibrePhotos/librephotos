@@ -118,6 +118,39 @@ export class LightBox extends Component {
         var mainSrc = "/hidden.png";
         var mainSrcThumbnail = "/hidden.png";
       }
+      
+      for (var i = 0; i < 10; i++) {
+        setTimeout(() => {
+
+          // Fix large wide images when side bar open; retry once per 250ms over 2.5 seconds
+          if (document.getElementsByClassName('ril-image-current').length > 0) {
+            this.state.wideImg = (document.getElementsByClassName('ril-image-current')[0].naturalWidth > window.innerWidth);
+
+            // 360px side bar /2 = 180px to the left = re-centers a wide image
+            var translate = (this.state.lightboxSidebarShow && this.state.wideImg) ? `-180px` : '';
+
+            if (document.getElementsByClassName('ril-image-current')[0].style.left !== translate) {
+              document.getElementsByClassName('ril-image-current')[0].style.left = translate;
+
+              // Fix react-image-lightbox
+              // It did not re-calculate the image_prev and image_next when pressed left or right arrow key
+              // It only updated those offsets on render / scroll / double click to zoom / etc.
+              this.forceUpdate();
+            }
+
+            // Since we disabled animations, we can set image_prev and image_next visibility hidden
+            // Fixes prev/next large wide 16:9 image were visible at same time as main small 9:16 image in view
+            document.getElementsByClassName('ril-image-prev')[0].style.visibility = 'hidden';
+            document.getElementsByClassName('ril-image-next')[0].style.visibility = 'hidden';
+            document.getElementsByClassName('ril-image-current')[0].style.visibility = 'visible';
+
+            // Make toolbar background fully transparent
+            if (document.getElementsByClassName('ril-toolbar').length > 0) {
+              document.getElementsByClassName('ril-toolbar')[0].style.backgroundColor = 'rgba(0, 0, 0, 0)';
+            }
+          }
+        }, 250*i);
+      }      
     }
 
     return (
