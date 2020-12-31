@@ -105,7 +105,7 @@ You need to log in as the admin user, and set up the directory for the users. To
 
 The basic idea is this:
 
-- For scaning photos that reside in the local file system
+- For scanning photos that reside in the local file system
   - Only the admin user can change the "scan directory" of the users, including the admin itself.
   - Normal users cannot change his/her own "scan directory"
   - Only the admin can find the page to control this under the "user icon (top right) - admin area"
