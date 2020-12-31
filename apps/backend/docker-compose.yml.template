@@ -91,7 +91,3 @@ services:
     image: redis
     container_name: librephotos-redis
     restart: always
-
-volumes:
-  librephotos-data:
-  media:
