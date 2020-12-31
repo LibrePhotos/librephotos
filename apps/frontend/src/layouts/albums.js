@@ -1,15 +1,5 @@
-import React, {Component} from 'react';
-import { connect } from "react-redux";
-import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums, fetchDateAlbumsList} from '../actions/albumsActions'
-import {AlbumDateCard, AlbumDateCardPlaceholder, AlbumDateCardPlain, AlbumDateCardPlainPlaceholder, AlbumAutoGallery} from '../components/album'
-import {Container, Icon, Header, Button, Card, Label, Popup, Image, Divider} from 'semantic-ui-react'
-import {fetchCountStats,fetchPhotoScanStatus,
-        fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
-
-import {Server, serverAddress} from '../api_client/apiClient'
-import LazyLoad from 'react-lazyload';
-import {AlbumAutoMonths} from './albumAutoMonths'
-import {AlbumDateMonths} from './albumDateMonths'
+import React, { Component } from 'react';
+import { Image, Divider } from 'semantic-ui-react'
 
 
 var ESCAPE_KEY = 27;

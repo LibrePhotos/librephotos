@@ -1,13 +1,10 @@
 import React, { Component } from "react";
 
 import { connect } from "react-redux";
-import {fetchRecentlyAddedPhotos} from '../actions/photosActions';
-import {Container, Icon, Divider, Header, Image, Button, Flag, Card, Loader} from 'semantic-ui-react'
-import { push } from 'react-router-redux'
-
+import { fetchRecentlyAddedPhotos } from '../actions/photosActions';
 import _ from 'lodash'
-import moment from 'moment'
-import {PhotoListView} from './ReusablePhotoListView'
+import { PhotoListView } from './ReusablePhotoListView'
+
 
 var topMenuHeight = 55 // don't change this
 var ESCAPE_KEY = 27;

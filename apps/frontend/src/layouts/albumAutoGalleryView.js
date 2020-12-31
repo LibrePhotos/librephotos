@@ -1,45 +1,26 @@
 import React, { Component } from "react";
 import {
-  Card,
   Header,
   Divider,
-  Item,
   Loader,
   Dimmer,
   Breadcrumb,
   Image,
-  Container,
   Label,
-  Popup,
-  Segment,
   Button,
   Icon
 } from "semantic-ui-react";
-import Gallery from "react-grid-gallery";
-import VisibilitySensor from "react-visibility-sensor";
 import { connect } from "react-redux";
 // import {Image} from '../components/authenticatedImage'
-import { BrowserRouter as Router, Route, Link } from "react-router-dom";
-import {
-  fetchPeopleAlbums,
-  fetchAutoAlbums,
-  generateAutoAlbums,
-  fetchAlbumsAutoGalleries
-} from "../actions/albumsActions";
+import { BrowserRouter as Link } from "react-router-dom";
+import { fetchAlbumsAutoGalleries } from "../actions/albumsActions";
 import { Map, TileLayer, Marker } from "react-leaflet";
-import { Server, serverAddress } from "../api_client/apiClient";
-import {
-  fetchPhotoDetail,
-  fetchNoTimestampPhotoList
-} from "../actions/photosActions";
-
+import {serverAddress } from "../api_client/apiClient";
+import {fetchPhotoDetail} from "../actions/photosActions";
 import * as moment from "moment";
 import _ from "lodash";
-import { push } from "react-router-redux";
 import LazyLoad from "react-lazyload";
 import { SecuredImageJWT } from "../components/SecuredImage";
-
-import { Grid, List, WindowScroller, AutoSizer } from "react-virtualized";
 import { LightBox } from "../components/lightBox";
 
 var topMenuHeight = 45; // don't change this
@@ -100,8 +81,8 @@ export class AlbumLocationMap extends Component {
         <div style={{ padding: 0 }}>
           <Map center={[avg_lat, avg_lon]} zoom={6}>
             <TileLayer
-              attribution="&copy; <a href=&quot;http://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
-              url="http://{s}.tile.osm.org/{z}/{x}/{y}.png"
+              attribution="&copy; <a href=&quot;https://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
+              url="https://{s}.tile.osm.org/{z}/{x}/{y}.png"
             />
             {markers}
           </Map>

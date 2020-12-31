@@ -1,11 +1,9 @@
-import React, {Component} from 'react'
-import {Segment, Header,Loader} from 'semantic-ui-react'
+import React, { Component } from 'react'
+import { Header,Loader } from 'semantic-ui-react'
 import Dimensions from 'react-dimensions'
 import { connect } from "react-redux";
-import {fetchWordCloud} from '../../actions/utilActions'
-
-import Month from 'calendar-months';
-import {Chart, Bars, Lines, Ticks, Layer, Pies, Transform, Cloud} from 'rumble-charts'
+import { fetchWordCloud } from '../../actions/utilActions'
+import { Chart, Transform, Cloud } from 'rumble-charts'
 
 
 export class WordCloud extends Component {

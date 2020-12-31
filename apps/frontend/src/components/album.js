@@ -1,20 +1,14 @@
-import React, {Component} from 'react';
-import { Card, Image, Header, Divider, Item, Loader, Dimmer,Rating,
-         Container, Label, Popup, Segment, Button, Icon} from 'semantic-ui-react';
+import React, { Component } from 'react';
+import { Card, Image, Header, Divider, Loader, Dimmer, Rating, Label, Popup } from 'semantic-ui-react';
 import Gallery from 'react-grid-gallery'
 import VisibilitySensor from 'react-visibility-sensor'
 import { connect } from "react-redux";
-import {
-  BrowserRouter as Router,
-  Route,
-  Link
-} from 'react-router-dom'
-import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums,toggleAlbumAutoFavorite,fetchAutoAlbumsList} from '../actions/albumsActions'
+import { BrowserRouter as Link } from 'react-router-dom'
+import { fetchPeopleAlbums, toggleAlbumAutoFavorite } from '../actions/albumsActions'
 import { Map, TileLayer, Marker } from 'react-leaflet'
-
-import {Server, serverAddress} from '../api_client/apiClient'
-
+import { serverAddress } from '../api_client/apiClient'
 import LazyLoad from 'react-lazyload';
+
 
 /*******************************************************************************
 COMMON
@@ -55,7 +49,7 @@ export class AlbumLocationMap extends Component {
           <Map center={[avg_lat,avg_lon]} zoom={2}>
             <TileLayer
               attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-              url='http://{s}.tile.osm.org/{z}/{x}/{y}.png'/>
+              url='https://{s}.tile.osm.org/{z}/{x}/{y}.png'/>
             {markers}
           </Map>
           <Divider/>
@@ -118,7 +112,7 @@ export class AlbumPeopleGallery extends Component {
   render() {
 
     if (!this.props.fetchingAlbumsPeople) {
-      if (!this.props.match.params.albumID in this.props.albumsPeople){
+      if (!(this.props.match.params.albumID in this.props.albumsPeople)){
         this.props.dispatch(fetchPeopleAlbums(this.props.match.params.albumID))      
       }
     }
@@ -289,7 +283,7 @@ export class AlbumAutoCard extends Component {
     return (
       <Card key={this.props.key}>
           <LazyLoad once height={150} placeholder={
-            <Image src={'http://placehold.jp/150x150.png'}/>}>
+            <Image src={'https://placehold.jp/150x150.png'}/>}>
           <Image 
             as={Link}
             to={`/albums/autoview/${this.props.album_id}`}
@@ -439,7 +433,7 @@ export class AlbumDateCardPlaceholder extends Component {
       <Card>
         <VisibilitySensor>
           <Image 
-            src={'http://placehold.jp/150x150.png'}/>
+            src={'https://placehold.jp/150x150.png'}/>
         </VisibilitySensor>
         <Card.Content>
         <Header as='h4'>{this.props.timestamp}</Header>
@@ -511,7 +505,7 @@ export class AlbumDateCard extends Component {
     return (
       <Card key={this.props.key}>
           <LazyLoad once height={300} placeholder={
-            <Image src={'http://placehold.jp/150x150.png'}/>}
+            <Image src={'https://placehold.jp/150x150.png'}/>}
           >
             <Image 
               as={Link}

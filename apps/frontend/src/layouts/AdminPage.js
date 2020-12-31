@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import React, { Component } from 'react';
 import {
   Form,
   Radio,
@@ -14,11 +14,9 @@ import {
   Divider,
   Pagination,
 } from 'semantic-ui-react';
-import {connect} from 'react-redux';
-
+import { connect } from 'react-redux';
 import Modal from 'react-modal';
 import moment from 'moment';
-
 import {
   setSiteSettings,
   fetchSiteSettings,
@@ -30,6 +28,7 @@ import {
 } from '../actions/utilActions';
 import SortableTree from 'react-sortable-tree';
 import FileExplorerTheme from 'react-sortable-tree-theme-file-explorer';
+
 
 export class AdminPage extends Component {
   state = {modalOpen: false, userToEdit: null};
@@ -112,7 +111,6 @@ export class AdminPage extends Component {
           Users
           <Loader size="mini" active={this.props.fetchingUserList} inline />
         </Header>
-
           <Table compact celled>
             <Table.Header>
               <Table.Row>
@@ -120,7 +118,8 @@ export class AdminPage extends Component {
                 <Table.HeaderCell>Scan Directory</Table.HeaderCell>
                 <Table.HeaderCell>Minimum Confidence</Table.HeaderCell>
                 <Table.HeaderCell>Photo Count</Table.HeaderCell>
-                <Table.HeaderCell>Last Login</Table.HeaderCell>
+                //Changed from Last Login because there is no last login kept in double
+                <Table.HeaderCell>Joined</Table.HeaderCell>
               </Table.Row>
             </Table.Header>
             <Table.Body>

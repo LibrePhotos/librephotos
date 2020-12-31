@@ -1,9 +1,7 @@
-import React, {Component} from 'react';
-import { Card, Image, Header, Divider, Item, Loader, Dimmer, Modal, Grid, 
-         Container, Label, Popup, Segment, Button, Icon, Table} from 'semantic-ui-react';
-
-import {ImageInfoTable} from './imageInfoTable';
-import {serverAddress} from '../api_client/apiClient'
+import React, { Component } from 'react';
+import { Image, Header, Divider } from 'semantic-ui-react';
+import { ImageInfoTable } from './imageInfoTable';
+import { serverAddress } from '../api_client/apiClient'
 
 
 export class ModalPhotoViewVertical extends Component {

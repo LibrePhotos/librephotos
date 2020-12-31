@@ -1,26 +1,10 @@
-import React, {Component} from 'react';
-import { Card, Image, Header, Divider, Item, Loader, Dimmer, Modal, Grid, Sticky, 
-         Container, Label, Popup, Segment, Button, Icon, Table, Transition} from 'semantic-ui-react';
-import Gallery from 'react-grid-gallery'
-import VisibilitySensor from 'react-visibility-sensor'
+import React, { Component } from 'react';
+import { Image, Header } from 'semantic-ui-react';
 import { connect } from "react-redux";
-import {
-  BrowserRouter as Router,
-  Route,
-  Link
-} from 'react-router-dom'
-import {  fetchDateAlbumsPhotoHashList,fetchAlbumsDateGalleries} from '../actions/albumsActions'
-import { Map, TileLayer, Marker } from 'react-leaflet'
-import {Server, serverAddress} from '../api_client/apiClient'
+import { fetchDateAlbumsPhotoHashList } from '../actions/albumsActions'
+import { serverAddress } from '../api_client/apiClient'
 import LazyLoad from 'react-lazyload';
-import {ChartyPhotosScrollbar} from '../components/chartyPhotosScrollbar'
 
-
-
-import {ImageInfoTable} from '../components/imageInfoTable'
-import {ModalPhotoViewVertical} from '../components/modalPhotoView';
-
-import ContentLoader from "react-content-loader"
 
 var ESCAPE_KEY = 27;
 var ENTER_KEY = 13;

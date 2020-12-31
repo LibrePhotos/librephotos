@@ -1,8 +1,5 @@
-import Immutable from "immutable";
-import PropTypes from "prop-types";
-import React, { PureComponent, Component} from "react";
+import React, { PureComponent, Component } from "react";
 import {
-  Collection,
   CellMeasurer,
   CellMeasurerCache,
   createMasonryCellPositioner,
@@ -11,24 +8,13 @@ import {
   WindowScroller,
 } from 'react-virtualized';
 import styles from 'react-virtualized/styles.css'; // only needs to be imported once
-import { Card, Image, Header, Divider, Item, Loader, Dimmer,
-         Container, Label, Popup, Segment, Button, Icon, Rating} from 'semantic-ui-react';
+import { Image, Header, Divider, Loader, Dimmer, Popup, Button, Icon, Rating } from 'semantic-ui-react';
 import { connect } from "react-redux";
-
-
-import {fetchAutoAlbumsList} from '../actions/albumsActions'
-
-import {
-  BrowserRouter as Router,
-  Route,
-  Link
-} from 'react-router-dom'
-
-import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums} from '../actions/albumsActions'
-import {fetchCountStats,fetchPhotoScanStatus,
-        fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
-
-import {Server, serverAddress} from '../api_client/apiClient'
+import { fetchAutoAlbumsList } from '../actions/albumsActions'
+import { BrowserRouter as Link } from 'react-router-dom'
+import { generateAutoAlbums } from '../actions/albumsActions'
+import { fetchPhotoScanStatus, fetchAutoAlbumProcessingStatus } from '../actions/utilActions'
+import { serverAddress } from '../api_client/apiClient'
 
 
 const month2month = {

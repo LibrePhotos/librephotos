@@ -114,7 +114,7 @@ $.fn.sidebar = function(parameters) {
 
         create: {
           id: function() {
-            id = (Math.random().toString(16) + '000000000').substr(2,8);
+            id = (cryptoObj.getRandomValues().toString(16) + '000000000').substr(2,8);
             elementNamespace = '.' + id;
             module.verbose('Creating unique id for element', id);
           }

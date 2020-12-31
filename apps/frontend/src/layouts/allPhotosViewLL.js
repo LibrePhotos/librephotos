@@ -1,9 +1,6 @@
-// all photos using lazyload
-
-import React, {Component} from 'react'
+import React, { Component } from 'react'
 import { connect } from "react-redux";
-import {fetchPhotos} from '../actions/photosActions'
-import {Server, serverAddress} from '../api_client/apiClient'
+import { fetchPhotos } from '../actions/photosActions'
 
 
 export class AllPhotosViewLL extends Component {

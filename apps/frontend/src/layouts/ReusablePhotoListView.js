@@ -2,20 +2,17 @@ import React, { Component } from "react";
 import { Grid, AutoSizer } from "react-virtualized";
 import "react-virtualized/styles.css"; // only needs to be imported once
 import { connect } from "react-redux";
-
 import {
   fetchUserAlbumsList,
   editUserAlbum,
   createNewUserAlbum
 } from "../actions/albumsActions";
-
 import {
   fetchPhotoDetail,
   setPhotosFavorite,
   setPhotosHidden,
   setPhotosPublic
 } from "../actions/photosActions";
-
 import { copyToClipboard } from "../util/util";
 import { SecuredImageJWT } from "../components/SecuredImage";
 import { ModalPhotosShare } from "../components/ModalPhotosShare";
@@ -31,7 +28,6 @@ import {
   Button,
   Icon
 } from "semantic-ui-react";
-
 import { serverAddress, shareAddress } from "../api_client/apiClient";
 import { LightBox } from "../components/lightBox";
 import { LightBoxV2 } from "../components/LightBoxV2";
@@ -39,13 +35,13 @@ import debounce from "lodash/debounce";
 import _ from "lodash";
 import * as moment from "moment";
 import Modal from "react-modal";
-
 import { calculateGridCells, calculateGridCellSize } from "../util/gridUtils";
 import {
   ScrollSpeed,
   SPEED_THRESHOLD,
   SCROLL_DEBOUNCE_DURATION
 } from "../util/scrollUtils";
+
 
 var TOP_MENU_HEIGHT = 45; // don't change this
 var LEFT_MENU_WIDTH = 85; // don't change this

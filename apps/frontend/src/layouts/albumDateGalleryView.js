@@ -1,17 +1,10 @@
-import React, {Component} from 'react';
-import { Card, Image, Header, Divider, Item, Loader, Dimmer,
-         Container, Label, Popup, Segment, Button, Icon} from 'semantic-ui-react';
+import React, { Component } from 'react';
+import { Header, Divider, Loader, Dimmer } from 'semantic-ui-react';
 import Gallery from 'react-grid-gallery'
-import VisibilitySensor from 'react-visibility-sensor'
 import { connect } from "react-redux";
-import {
-  BrowserRouter as Router,
-  Route,
-  Link
-} from 'react-router-dom'
-import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums, fetchAlbumsDateGalleries} from '../actions/albumsActions'
+import { fetchAlbumsDateGalleries } from '../actions/albumsActions'
 import { Map, TileLayer, Marker } from 'react-leaflet'
-import {Server, serverAddress} from '../api_client/apiClient'
+import { serverAddress } from '../api_client/apiClient'
 
 
 /*******************************************************************************
@@ -52,8 +45,8 @@ export class AlbumLocationMap extends Component {
         <div>
           <Map center={[avg_lat,avg_lon]} zoom={2}>
             <TileLayer
-              attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-              url='http://{s}.tile.osm.org/{z}/{x}/{y}.png'/>
+              attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
+              url='https://{s}.tile.osm.org/{z}/{x}/{y}.png'/>
             {markers}
           </Map>
           <Divider/>

@@ -2,17 +2,19 @@ import React, { Component } from "react";
 import { connect } from "react-redux";
 import { Loader, Flag, Segment, Image, Header, Icon } from "semantic-ui-react";
 import { Map, TileLayer, Marker, Popup } from "react-leaflet";
-import { scanPhotos, fetchPhotos } from "../actions/photosActions";
+import { fetchPhotos } from "../actions/photosActions";
 import { fetchAutoAlbumsList } from "../actions/albumsActions";
 import { fetchLocationClusters } from "../actions/utilActions";
-import { Server, serverAddress } from "../api_client/apiClient";
+import { serverAddress } from "../api_client/apiClient";
 import MarkerClusterGroup from "react-leaflet-markercluster";
 import { fetchPlaceAlbumsList } from "../actions/albumsActions";
-import { Grid, List, WindowScroller, AutoSizer } from "react-virtualized";
+import { Grid, AutoSizer } from "react-virtualized";
 import { countryNames } from "../util/countryNames";
 import { Link } from "react-router-dom";
 import { SecuredImageJWT } from "../components/SecuredImage";
 import _ from "lodash";
+
+
 var topMenuHeight = 45; // don't change this
 var ESCAPE_KEY = 27;
 var ENTER_KEY = 13;

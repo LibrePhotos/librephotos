@@ -1,13 +1,8 @@
 import React, { Component } from "react";
-import { Header, Image, Item, Icon, Grid, Divider } from "semantic-ui-react";
-import {
-  fetchUserPublicPhotos,
-  fetchPublicUserList
-} from "../actions/publicActions";
+import { Header, Image, Icon, Grid, Divider } from "semantic-ui-react";
+import { fetchPublicUserList } from "../actions/publicActions";
 import { connect } from "react-redux";
-import { PhotoListView } from "./ReusablePhotoListView";
 import _ from "lodash";
-import moment from "moment";
 import {
   TopMenu,
   SideMenuNarrow,
@@ -16,6 +11,7 @@ import {
 } from "./menubars";
 import { Link } from "react-router-dom";
 import { serverAddress } from "../api_client/apiClient";
+
 
 var TOP_MENU_HEIGHT = 45; // don't change this
 var LEFT_MENU_WIDTH = 85; // don't change this

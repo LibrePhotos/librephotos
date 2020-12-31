@@ -46,7 +46,7 @@ module.exports = {
 
   title      : 'Semantic UI',
   repository : 'https://github.com/Semantic-Org/Semantic-UI',
-  url        : 'http://www.semantic-ui.com/',
+  url        : 'https://www.semantic-ui.com/',
 
   banner: ''
     + ' /*' + '\n'

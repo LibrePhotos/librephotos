@@ -12,6 +12,8 @@ import { connect } from "react-redux";
 import { serverAddress } from "../api_client/apiClient";
 import { clusterFaces } from "../actions/facesActions";
 import { SecuredImageJWT } from "./SecuredImage";
+
+
 export class FaceClusterScatter extends Component {
   state = {
     crosshairValues: [],

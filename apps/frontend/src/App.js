@@ -44,6 +44,7 @@ import {LocationClusterMap} from './components/maps';
 import {SharedToMe} from './layouts/SharedToMe';
 import {SharedFromMe} from './layouts/SharedFromMe';
 
+
 class Nav extends React.Component {
   render() {
     return (

@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import React, { Component } from 'react';
 import {
   Form,
   Radio,
@@ -25,19 +25,12 @@ import {
 } from 'semantic-ui-react';
 import {connect} from 'react-redux';
 import {Link} from 'react-router-dom';
-
 import Modal from 'react-modal';
 import moment from 'moment';
-
 import {
   fetchCountStats,
-  fetchPhotoScanStatus,
-  fetchWordCloud,
   generateEventAlbums,
-  fetchAutoAlbumProcessingStatus,
   generateEventAlbumTitles,
-  fetchWorkerAvailability,
-  setSiteSettings,
   fetchSiteSettings,
   updateUser,
   fetchNextcloudDirectoryTree,
@@ -46,26 +39,16 @@ import {
 import {trainFaces} from '../actions/facesActions';
 import {
   scanPhotos,
-  scanNextcloudPhotos,
-  fetchPhotos,
+  scanNextcloudPhotos
 } from '../actions/photosActions';
 import {fetchUserSelfDetails} from '../actions/userActions';
-import CountryPiChart from '../components/charts/countryPiChart';
 import {CountStats} from '../components/statistics';
-import WordCloud from '../components/charts/wordCloud';
-
-import {AllPhotosMap, EventMap, LocationClusterMap} from '../components/maps';
-import EventCountMonthGraph from '../components/eventCountMonthGraph';
-import FaceClusterScatter from '../components/faceClusterGraph';
-import SocialGraph from '../components/socialGraph';
-import LazyLoad from 'react-lazyload';
-import {LocationLink} from '../components/locationLink';
-
 import Dropzone from 'react-dropzone';
 import AvatarEditor from 'react-avatar-editor';
 import MaterialIcon, {colorPallet} from 'material-icons-react';
 import SortableTree from 'react-sortable-tree';
 import FileExplorerTheme from 'react-sortable-tree-theme-file-explorer';
+
 
 export class Settings extends Component {
   state = {

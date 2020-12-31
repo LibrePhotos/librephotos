@@ -1,42 +1,15 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import {
-  AlbumDateCard,
-  AlbumDateCardPlaceholder,
-  AlbumDateCardPlain,
-  AlbumDateCardPlainPlaceholder,
-  AlbumAutoGallery
-} from "../components/album";
-import {
-  Container,
-  Icon,
-  Header,
-  Button,
-  Card,
-  Loader,
-  Label,
-  Popup,
-  Image,
-  Divider
-} from "semantic-ui-react";
-import {
-  fetchCountStats,
-  fetchPhotoScanStatus,
-  fetchAutoAlbumProcessingStatus
-} from "../actions/utilActions";
-import { Grid, List, WindowScroller, AutoSizer } from "react-virtualized";
-
-import { Server, serverAddress } from "../api_client/apiClient";
+import { Icon, Header, Loader, Image } from "semantic-ui-react";
+import { Grid, AutoSizer } from "react-virtualized";
+import { serverAddress } from "../api_client/apiClient";
 import LazyLoad from "react-lazyload";
-import { AlbumAutoMonths } from "./albumAutoMonths";
-import { AlbumDateMonths } from "./albumDateMonths";
-
 import { fetchThingAlbumsList } from "../actions/albumsActions";
 import { searchPhotos } from "../actions/searchActions";
 import { push } from "react-router-redux";
 import store from "../store";
-import { Link } from "react-router-dom";
 import { SecuredImageJWT } from "../components/SecuredImage";
+
 
 var topMenuHeight = 45; // don't change this
 var ESCAPE_KEY = 27;

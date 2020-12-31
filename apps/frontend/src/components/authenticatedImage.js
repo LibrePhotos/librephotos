@@ -1,9 +1,5 @@
-import React, {Component} from 'react';
-
-import { Card, Image as BasicImage, Header, Divider, Item, Loader, Dimmer, Breadcrumb,
-
-         Container, Label, Popup, Segment, Button, Icon} from 'semantic-ui-react';
-
+import React, { Component } from 'react';
+import { Image as BasicImage } from 'semantic-ui-react';
 import { connect } from "react-redux";
 
 

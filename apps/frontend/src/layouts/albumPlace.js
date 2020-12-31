@@ -1,51 +1,28 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
 import {
-  AlbumDateCard,
-  AlbumDateCardPlaceholder,
-  AlbumDateCardPlain,
-  AlbumDateCardPlainPlaceholder,
-  AlbumAutoGallery
-} from "../components/album";
-import {
-  Container,
   Icon,
   Dropdown,
   Header,
   Button,
-  Card,
   Loader,
-  Label,
-  Popup,
   Image,
   Flag,
-  Divider,
   Grid as GridSUI
 } from "semantic-ui-react";
-import {
-  fetchCountStats,
-  fetchPhotoScanStatus,
-  fetchAutoAlbumProcessingStatus
-} from "../actions/utilActions";
-
-import { Server, serverAddress } from "../api_client/apiClient";
+import { serverAddress } from "../api_client/apiClient";
 import LazyLoad from "react-lazyload";
-import { AlbumAutoMonths } from "./albumAutoMonths";
-import { AlbumDateMonths } from "./albumDateMonths";
-
 import { fetchPlaceAlbumsList } from "../actions/albumsActions";
 import { searchPhotos } from "../actions/searchActions";
 import { push } from "react-router-redux";
 import store from "../store";
-import { Grid, List, WindowScroller, AutoSizer } from "react-virtualized";
-import { AllPhotosMap, EventMap, LocationClusterMap } from "../components/maps";
-import CountryPiChart from "../components/charts/countryPiChart";
-import WordCloud from "../components/charts/wordCloud";
+import { Grid, AutoSizer } from "react-virtualized";
+import { LocationClusterMap } from "../components/maps";
 import { Link } from "react-router-dom";
 import { SecuredImageJWT } from "../components/SecuredImage";
-
 import { countryNames } from "../util/countryNames";
 import _ from "lodash";
+
 
 var topMenuHeight = 45; // don't change this
 var ESCAPE_KEY = 27;
