@@ -16,9 +16,6 @@ services:
     tty: true
     container_name: librephotos-proxy
     restart: always
-    links:
-      - "backend:backend"
-      - "frontend:frontend"
     ports:
       - "3000:80"
 
@@ -47,8 +44,6 @@ services:
     container_name: librephotos-frontend
     restart: always
     tty: true
-    links:
-      - "backend:backend"
 
   backend:
     image: reallibrephotos/librephotos:dev
@@ -87,9 +82,6 @@ services:
       - WEB_CONCURRENCY=2 # CHANGEME
       # Gunicorn worker timeout seconds (ensure that one bad request doesn't stall other requests forever)
       - WORKER_TIMEOUT=1800
-    links:
-      - "librephotos-db:librephotos-db"
-      - "librephotos-redis:librephotos-redis"
     # Wait for Postgres
     depends_on:
       librephotos-db:
