@@ -88,6 +88,6 @@ services:
         condition: service_healthy
 
   librephotos-redis:
-    image: redis
+    image: redis:alpine
     container_name: librephotos-redis
     restart: always
