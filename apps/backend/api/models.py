@@ -160,7 +160,7 @@ class Photo(models.Model):
         self.save()
 
     def _generate_captions_im2txt(self):
-        image_path = self.thumbnail.path
+        image_path = self.thumbnail_big.path
         captions = self.captions_json
         search_captions = self.search_captions
         try:
@@ -182,7 +182,7 @@ class Photo(models.Model):
             return False
 
     def _generate_captions(self):
-        image_path = self.thumbnail.path
+        image_path = self.thumbnail_big.path
         captions = {}
 
         # im2txt disabled for now
@@ -398,7 +398,7 @@ class Photo(models.Model):
 
     def _im2vec(self):
         try:
-            image = PIL.Image.open(self.square_thumbnail_big)
+            image = PIL.Image.open(self.square_thumbnail)
             vec = im2vec.get_vec(image)
             self.encoding = vec.tobytes().hex()
             self.save()
