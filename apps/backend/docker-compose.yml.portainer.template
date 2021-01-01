@@ -2,10 +2,10 @@
 
 # Run options:
 # 1. Use prebuilt images:
-#   run cmd: docker-compose up &
+#   run cmd: docker-compose up -d
 # 2. Build images on your own machine:
 #   build cmd: COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose build
-#   run cmd: docker-compose up &
+#   run cmd: docker-compose up -d
 
 version: '2'
 
