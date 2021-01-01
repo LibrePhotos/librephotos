@@ -247,9 +247,7 @@ class Photo(models.Model):
         image = rotate_image(image)
         if image.mode != 'RGB':
                 image = image.convert('RGB')
-        
-        #checks do not work at the moment, because the url keeps changing...
-        if not os.path.exists(self.thumbnail_big.url):
+        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()):
             image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_BIG,
                             PIL.Image.ANTIALIAS)
             image_io_thumb = BytesIO()
@@ -259,7 +257,7 @@ class Photo(models.Model):
                                 ContentFile(image_io_thumb.getvalue()))
             image_io_thumb.close()
 
-        if not os.path.exists(self.square_thumbnail.url):
+        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()):
             square_thumb = ImageOps.fit(image,
                                         ownphotos.settings.THUMBNAIL_SIZE_MEDIUM,
                                     PIL.Image.ANTIALIAS)
@@ -270,7 +268,7 @@ class Photo(models.Model):
                 ContentFile(image_io_square_thumb.getvalue()))
             image_io_square_thumb.close()
 
-        if not os.path.exists(self.square_thumbnail_small.url):
+        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()):
             square_thumb = ImageOps.fit(image,
                                     ownphotos.settings.THUMBNAIL_SIZE_SMALL,
                                     PIL.Image.ANTIALIAS)
