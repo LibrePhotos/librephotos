@@ -96,6 +96,7 @@ def rescan_image(user, image_path, job_id):
     if isValidMedia(open(image_path,"rb").read(2048)):
         try:
             photo = Photo.objects.filter(Q(image_path=image_path)).get()
+            photo._generate_thumbnail()
             photo._extract_date_time_from_exif()
 
         except Exception as e:

@@ -244,88 +244,46 @@ class Photo(models.Model):
 
     def _generate_thumbnail(self):
         image = PIL.Image.open(self.image_path)
-
         image = rotate_image(image)
-
-        # make thumbnails
-        image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_BIG,
-                        PIL.Image.ANTIALIAS)
-        image_io_thumb = BytesIO()
         if image.mode != 'RGB':
-            image = image.convert('RGB')
-        image.save(image_io_thumb, format="JPEG")
-        self.thumbnail_big.save(self.image_hash + '.jpg',
+                image = image.convert('RGB')
+
+        if not os.path.exists(self.thumbnail_big.url):
+            image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_BIG,
+                            PIL.Image.ANTIALIAS)
+            image_io_thumb = BytesIO()
+            
+            image.save(image_io_thumb, format="JPEG")
+            self.thumbnail_big.save(self.image_hash + '.jpg',
                                 ContentFile(image_io_thumb.getvalue()))
-        image_io_thumb.close()
+            image_io_thumb.close()
 
-        square_thumb = ImageOps.fit(
-            image, ownphotos.settings.THUMBNAIL_SIZE_BIG, PIL.Image.ANTIALIAS)
-        image_io_square_thumb = BytesIO()
-        square_thumb.save(image_io_square_thumb, format="JPEG")
-        self.square_thumbnail_big.save(
-            self.image_hash + '.jpg',
-            ContentFile(image_io_square_thumb.getvalue()))
-        image_io_square_thumb.close()
-
-        image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_MEDIUM,
-                        PIL.Image.ANTIALIAS)
-        image_io_thumb = BytesIO()
-        image.save(image_io_thumb, format="JPEG")
-        self.thumbnail.save(self.image_hash + '.jpg',
-                            ContentFile(image_io_thumb.getvalue()))
-        image_io_thumb.close()
-
-        square_thumb = ImageOps.fit(image,
-                                    ownphotos.settings.THUMBNAIL_SIZE_MEDIUM,
+        if not os.path.exists(self.square_thumbnail.url):
+            square_thumb = ImageOps.fit(image,
+                                        ownphotos.settings.THUMBNAIL_SIZE_MEDIUM,
                                     PIL.Image.ANTIALIAS)
-        image_io_square_thumb = BytesIO()
-        square_thumb.save(image_io_square_thumb, format="JPEG")
-        self.square_thumbnail.save(
-            self.image_hash + '.jpg',
-            ContentFile(image_io_square_thumb.getvalue()))
-        image_io_square_thumb.close()
-
-        image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_SMALL,
-                        PIL.Image.ANTIALIAS)
-        image_io_thumb = BytesIO()
-        image.save(image_io_thumb, format="JPEG")
-        self.thumbnail_small.save(self.image_hash + '.jpg',
-                                  ContentFile(image_io_thumb.getvalue()))
-        image_io_thumb.close()
-
-        square_thumb = ImageOps.fit(image,
+            image_io_square_thumb = BytesIO()
+            square_thumb.save(image_io_square_thumb, format="JPEG")
+            self.square_thumbnail.save(
+                self.image_hash + '.jpg',
+                ContentFile(image_io_square_thumb.getvalue()))
+            image_io_square_thumb.close()
+            
+        if not os.path.exists(self.square_thumbnail_small.url):
+            square_thumb = ImageOps.fit(image,
                                     ownphotos.settings.THUMBNAIL_SIZE_SMALL,
                                     PIL.Image.ANTIALIAS)
-        image_io_square_thumb = BytesIO()
-        square_thumb.save(image_io_square_thumb, format="JPEG")
-        self.square_thumbnail_small.save(
-            self.image_hash + '.jpg',
-            ContentFile(image_io_square_thumb.getvalue()))
-        image_io_square_thumb.close()
-
-        image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_TINY,
-                        PIL.Image.ANTIALIAS)
-        image_io_thumb = BytesIO()
-        image.save(image_io_thumb, format="JPEG")
-        self.thumbnail_tiny.save(self.image_hash + '.jpg',
-                                 ContentFile(image_io_thumb.getvalue()))
-        image_io_thumb.close()
-
-        square_thumb = ImageOps.fit(
-            image, ownphotos.settings.THUMBNAIL_SIZE_TINY, PIL.Image.ANTIALIAS)
-        image_io_square_thumb = BytesIO()
-        square_thumb.save(image_io_square_thumb, format="JPEG")
-        self.square_thumbnail_tiny.save(
-            self.image_hash + '.jpg',
-            ContentFile(image_io_square_thumb.getvalue()))
-        image_io_square_thumb.close()
+            image_io_square_thumb = BytesIO()
+            square_thumb.save(image_io_square_thumb, format="JPEG")
+            self.square_thumbnail_small.save(
+                self.image_hash + '.jpg',
+                ContentFile(image_io_square_thumb.getvalue()))
+            image_io_square_thumb.close()
 
     def _save_image_to_db(self):
         image = PIL.Image.open(self.image_path)
 
         image = rotate_image(image)
-
-        # image.thumbnail(ownphotos.settings.FULLPHOTO_SIZE, PIL.Image.ANTIALIAS)
         image_io = BytesIO()
         image.save(image_io, format="JPEG")
         self.image.save(self.image_hash + '.jpg',
