@@ -15,7 +15,7 @@ Live [demo available here](https://demo2.librephotos.com/).
 User is demo, password is demo1234.
 
 ## Communication
-You can join us via [IRC](chat.freenode.net) or [Discord](https://discord.gg/xwRvtSDGWb). There is a bridge between the IRC and Discord:
+You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://discord.gg/xwRvtSDGWb). There is a bridge between the IRC and Discord:
 | Discord            | Freenode IRC          |
 |--------------------|-----------------------|
 | #chit-chat         | #Libre-Photos         |
