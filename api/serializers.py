@@ -582,6 +582,9 @@ class UserSerializer(serializers.ModelSerializer):
             'scan_directory': {
                 'required': False
             },
+            'confidence': {
+                'required': False
+            },
             'nextcloud_server_address': {
                 'required': False
             },
@@ -595,7 +598,7 @@ class UserSerializer(serializers.ModelSerializer):
                 'write_only': True
             }
         }
-        fields = ('id', 'username', 'email', 'scan_directory', 'first_name',
+        fields = ('id', 'username', 'email', 'scan_directory', 'confidence', 'first_name',
                   'public_photo_samples', 'last_name', 'public_photo_count',
                   'date_joined', 'password', 'avatar', 'photo_count',
                   'nextcloud_server_address', 'nextcloud_username',
@@ -660,7 +663,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = get_user_model()
-        fields = ('username', 'scan_directory', 'last_login', 'date_joined',
+        fields = ('username', 'scan_directory', 'confidence', 'last_login', 'date_joined',
                   'photo_count', 'id')
         extra_kwargs = {
             'password': {
@@ -679,6 +682,12 @@ class ManageUserSerializer(serializers.ModelSerializer):
                 instance.save()
                 logger.info("Updated scan directory for user {}".format(
                     instance.scan_directory))
+        if 'confidence' in validated_data:
+            new_confidence = validated_data.pop('confidence')
+            instance.confidence = new_confidence
+            instance.save()
+            logger.info("Updated confidence for user {}".format(
+                instance.confidence))
         return instance
 
 

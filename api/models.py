@@ -89,6 +89,7 @@ def get_default_longrunningjob_result():
 
 class User(AbstractUser):
     scan_directory = models.CharField(max_length=512, db_index=True)
+    confidence = models.FloatField(default=0.1, db_index=True)
     avatar = models.ImageField(upload_to='avatars', null=True)
 
     nextcloud_server_address = models.CharField(
@@ -222,17 +223,22 @@ class Photo(models.Model):
 
         # places365
         try:
-            res_places365 = inference_places365(image_path, 0.1)  # TODO: make confidence configurable
+            confidence = self.owner.confidence
+            res_places365 = inference_places365(image_path, confidence)
             captions['places365'] = res_places365
             self.captions_json = captions
             if self.search_captions:
+                #self.search_captions = self.search_captions + ' , ' + \
+                #    ' , '.join(
+                #        res_places365['attributes'] + res_places365['categories'] + [res_places365['environment']])
                 self.search_captions = self.search_captions + ' , ' + \
                     ' , '.join(
-                        res_places365['attributes'] + res_places365['categories'] + [res_places365['environment']])
+                        res_places365['categories'] + [res_places365['environment']])
             else:
+                #self.search_captions = ' , '.join(
+                #    res_places365['attributes'] + res_places365['categories'] + [res_places365['environment']])
                 self.search_captions = ' , '.join(
-                    res_places365['attributes'] + res_places365['categories'] +
-                    [res_places365['environment']])
+                    res_places365['categories'] + [res_places365['environment']])
 
             self.save()
             util.logger.info(
@@ -496,14 +502,15 @@ class Photo(models.Model):
     def _add_to_album_thing(self):
         if type(self.captions_json
                 ) is dict and 'places365' in self.captions_json.keys():
-            for attribute in self.captions_json['places365']['attributes']:
-                album_thing = get_album_thing(
-                    title=attribute, owner=self.owner)
-                if album_thing.photos.filter(
-                        image_hash=self.image_hash).count() == 0:
-                    album_thing.photos.add(self)
-                    album_thing.thing_type = 'places365_attribute'
-                    album_thing.save()
+            if False:  # This is also disabled for now
+                for attribute in self.captions_json['places365']['attributes']:
+                    album_thing = get_album_thing(
+                        title=attribute, owner=self.owner)
+                    if album_thing.photos.filter(
+                            image_hash=self.image_hash).count() == 0:
+                        album_thing.photos.add(self)
+                        album_thing.thing_type = 'places365_attribute'
+                        album_thing.save()
             for category in self.captions_json['places365']['categories']:
                 album_thing = get_album_thing(title=category, owner=self.owner)
                 if album_thing.photos.filter(

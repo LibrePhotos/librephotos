@@ -49,6 +49,7 @@ def load_labels():
 
     return classes, labels_IO, labels_attribute, W_attribute
 
+
 def returnTF():
 # load the image transformer
     tf = trn.Compose([
@@ -74,12 +75,11 @@ def inference_places365(img_path, confidence):
     try:
 
         def hook_feature(module, input, output):
-           features_blobs.append(np.squeeze(output.data.cpu().numpy()))
+            features_blobs.append(np.squeeze(output.data.cpu().numpy()))
 
         def load_model():  # TODO Should the model be reloaded for every photo? Wouldn't it be better to do that once?
             # this model has a last conv feature map as 14x14
             model_file = os.path.join(dir_places365_model,'wideresnet18_places365.pth.tar')
-        
             model = wideresnet.resnet18(num_classes=365)
             checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
             state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
@@ -90,7 +90,6 @@ def inference_places365(img_path, confidence):
             for name in features_names:
                 model._modules.get(name).register_forward_hook(hook_feature)
             return model
-
 
         # load the model
         features_blobs = []
@@ -104,7 +103,6 @@ def inference_places365(img_path, confidence):
         weight_softmax = params[-2].data.numpy()
         weight_softmax[weight_softmax<0] = 0
 
-        
         # load the test image
         #img_url = 'http://places2.csail.mit.edu/imgs/3.jpg'
         #os.system('wget %s -q -O test.jpg' % img_url)
@@ -140,19 +138,19 @@ def inference_places365(img_path, confidence):
                 res['categories'].append(remove_nonspace_separators(classes[idx[i]]))
             else:
                 break
-
-        # output the scene attributes
-        # This is something I don't quiet grasp yet
-        # Probs is not usable here anymore, we're not processing our input_image
-        # Take the dot product of out W_attribute model and the feature blobs
-        # And sort it along the -1 axis
-        # This results in idx_a, with the last elements the index numbers of attributes, we have the most confidence in
-        # Can't seem to get any confidence values, also all the attributes it detect are not really meaningful i.m.o.
-        responses_attribute = W_attribute.dot(features_blobs[1])
-        idx_a = np.argsort(responses_attribute)
-        res['attributes'] = []
-        for i in range(-1, -10, -1):
-            res['attributes'].append(remove_nonspace_separators(labels_attribute[idx_a[i]]))
+        if False:  # Disable for now, they don't provide meaningful stuff
+            # output the scene attributes
+            # This is something I don't quiet grasp yet
+            # Probs is not usable here anymore, we're not processing our input_image
+            # Take the dot product of out W_attribute model and the feature blobs
+            # And sort it along the -1 axis
+            # This results in idx_a, with the last elements the index numbers of attributes, we have the most confidence in
+            # Can't seem to get any confidence values, also all the attributes it detect are not really meaningful i.m.o.
+            responses_attribute = W_attribute.dot(features_blobs[1])
+            idx_a = np.argsort(responses_attribute)
+            res['attributes'] = []
+            for i in range(-1, -10, -1):
+                res['attributes'].append(remove_nonspace_separators(labels_attribute[idx_a[i]]))
 
         return res
     except Exception:
