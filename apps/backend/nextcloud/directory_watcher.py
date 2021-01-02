@@ -11,7 +11,7 @@ from api.directory_watcher import handle_new_image, isValidMedia
 from api.image_similarity import build_image_similarity_index
 
 def isValidNCMedia(file_obj):
-    file_attr = file_obj[1].attributes
+    file_attr = file_obj.attributes
     filetype = file_attr.get("{DAV:}getcontenttype","")
     try:
         return 'jpeg' in filetype or 'png' in filetype or 'bmp' in filetype or 'gif' in filetype
