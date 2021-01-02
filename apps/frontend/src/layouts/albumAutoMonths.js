@@ -1,12 +1,8 @@
 import React, {Component} from 'react';
 import { connect } from "react-redux";
-import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums, fetchAutoAlbumsList} from '../actions/albumsActions'
-import {AlbumAutoCard, AlbumAutoCardPlain, AlbumAutoCardPlainPlaceholder, AlbumAutoGallery} from '../components/album'
-import {Container, Icon, Header, Button, Card, Label, Popup, Divider} from 'semantic-ui-react'
-import {fetchCountStats,fetchPhotoScanStatus,
-        fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
-
-import {Server, serverAddress} from '../api_client/apiClient'
+import { generateAutoAlbums, fetchAutoAlbumsList } from '../actions/albumsActions'
+import { AlbumAutoCardPlain, AlbumAutoCardPlainPlaceholder } from '../components/album'
+import { Container, Header, Card } from 'semantic-ui-react'
 import LazyLoad from 'react-lazyload';
 
 

@@ -3,41 +3,29 @@ import {
   Checkbox,
   Popup,
   Input,
-  Item,
   Menu,
   Image,
   Icon,
   Header,
-  Container,
   Divider,
   Button,
   Label,
   Loader,
-  Sticky,
-  Accordion,
 } from "semantic-ui-react";
 
 import { SecuredImageJWT } from "../components/SecuredImage";
-
 import { connect } from "react-redux";
 import {
   deleteFaces,
   setFacesPersonLabel,
-  loadFaceToLabel,
   trainFaces,
-  clusterFaces,
   fetchInferredFacesList,
   fetchLabeledFacesList,
-  fetchFacesList,
 } from "../actions/facesActions";
-import LazyLoad from "react-lazyload";
 import _ from "lodash";
 import {
   Grid,
-  List,
-  WindowScroller,
   AutoSizer,
-  CellMeasurer,
 } from "react-virtualized";
 import {
   calculateFaceGridCellSize,
@@ -45,10 +33,11 @@ import {
 } from "../util/gridUtils";
 import { ScrollSpeed, SCROLL_DEBOUNCE_DURATION } from "../util/scrollUtils";
 import debounce from "lodash/debounce";
-import { fetchPeople, addPerson } from "../actions/peopleActions";
+import { fetchPeople } from "../actions/peopleActions";
 import { serverAddress } from "../api_client/apiClient";
 import Modal from "react-modal";
-import moment from "moment";
+
+
 // <Icon name='id badge' circular />
 var topMenuHeight = 45; // don't change this
 var leftMenuWidth = 85; // don't change this
@@ -680,7 +669,7 @@ export class FaceDashboard extends Component {
                   icon="plus"
                 />
               }
-              content="Add to an existing album or create a new album"
+              content="Add to an existing face ID or create a new face ID"
             />
             <Popup
               inverted

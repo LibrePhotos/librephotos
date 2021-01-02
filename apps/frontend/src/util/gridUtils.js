@@ -1,6 +1,7 @@
 import store from '../store'
 import _ from 'lodash'
 
+
 store.subscribe(listener)
 
 function select(state) {

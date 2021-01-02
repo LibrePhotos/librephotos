@@ -1,24 +1,12 @@
-import React, {Component} from 'react'
-import {Label,Grid, Segment, Header, Loader} from 'semantic-ui-react'
+import React, { Component } from 'react'
+import { Label, Segment, Header, Loader } from 'semantic-ui-react'
 import Dimensions from 'react-dimensions'
 import { connect } from "react-redux";
-import {fetchDateAlbumsList, fetchAutoAlbumsList} from '../actions/albumsActions'
-import {fetchLocationTimeline} from '../actions/utilActions'
-
-import Month from 'calendar-months';
-import {Chart, Bars, Lines, Ticks, Layer, Transform, Handlers} from 'rumble-charts'
+import { fetchLocationTimeline } from '../actions/utilActions'
 import moment from 'moment'
+import { Hint, XYPlot, XAxis, HorizontalBarSeries } from 'react-vis'
 
-import {
-  Hint,
-  XYPlot,
-  XAxis,
-  YAxis,
-  VerticalGridLines,
-  HorizontalGridLines,
-  HorizontalBarSeries,
-  HorizontalBarSeriesCanvas
-} from 'react-vis'
+
 /*
 {
   x: el.value.x,

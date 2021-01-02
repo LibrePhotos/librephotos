@@ -1,23 +1,19 @@
 import React, { Component } from 'react';
 import { connect } from "react-redux";
-import { Image, Header, Message, Dropdown, Divider, Card, 
-         Container, Segment, Button, Icon, Popup, Loader, 
-         Dimmer, Grid, Reveal, Statistic, Label, Table,
-         Modal } from 'semantic-ui-react';
+import { Image, Header, Dropdown, Divider, Card, 
+         Container, Button, Icon, Popup, Loader, 
+         Dimmer, Statistic, Label, Table } from 'semantic-ui-react';
 import { fetchPeople, 
-         addPerson ,
-         addPersonAndSetLabelToFace} from '../actions/peopleActions';
+         addPerson } from '../actions/peopleActions';
 import { fetchFaces, 
          fetchLabeledFaces,
          fetchInferredFaces,
          deleteFaceAndFetchNext, 
-         labelFacePerson ,
          fetchFaceToLabel,
          loadFaceToLabel,
          trainFaces,
          labelFacePersonAndFetchNext} from '../actions/facesActions';
-import VisibilitySensor from 'react-visibility-sensor'
-import {Server, serverAddress} from '../api_client/apiClient'
+import { serverAddress} from '../api_client/apiClient'
 import LazyLoad from 'react-lazyload';
 
 

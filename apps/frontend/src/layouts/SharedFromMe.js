@@ -2,7 +2,6 @@ import React, { Component } from "react";
 import {
   Header,
   Image,
-  Item,
   Icon,
   Grid as SUGrid,
   Divider,
@@ -16,27 +15,15 @@ import { fetchPhotosSharedFromMe } from "../actions/photosActions";
 import { fetchPublicUserList } from "../actions/publicActions";
 import { fetchUserAlbumsSharedFromMe, deleteUserAlbum } from "../actions/albumsActions";
 import { connect } from "react-redux";
-import { PhotoListView } from "./ReusablePhotoListView";
 import _ from "lodash";
-import moment from "moment";
-import {
-  TopMenu,
-  SideMenuNarrow,
-  TopMenuPublic,
-  SideMenuNarrowPublic
-} from "./menubars";
 import { Link } from "react-router-dom";
 import { serverAddress } from "../api_client/apiClient";
 import { SecuredImageJWT } from "../components/SecuredImage";
-import { Grid, List, WindowScroller, AutoSizer } from "react-virtualized";
-import {
-  calculateGridCellSize,
-  calculateGridCells,
-  calculateSharedPhotoGridCells,
-  calculateSharedAlbumGridCells
-} from "../util/gridUtils";
+import { Grid, AutoSizer } from "react-virtualized";
+import { calculateGridCellSize, calculateSharedPhotoGridCells } from "../util/gridUtils";
 import { ScrollSpeed, SCROLL_DEBOUNCE_DURATION } from "../util/scrollUtils";
 import debounce from "lodash/debounce";
+
 
 var TOP_MENU_HEIGHT = 45; // don't change this
 var LEFT_MENU_WIDTH = 85; // don't change this

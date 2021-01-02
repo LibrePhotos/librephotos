@@ -1,20 +1,10 @@
-import React, {Component} from 'react';
+import React, { Component } from 'react';
 import { connect } from "react-redux";
-import {Popup, Modal, Container, Icon, Divider, Header, Loader, Image, Button, Card} from 'semantic-ui-react'
-import { fetchPhotoDetail, fetchNoTimestampPhotoList} from '../actions/photosActions';
-
-import {Server, serverAddress} from '../api_client/apiClient'
-import { Grid, List, WindowScroller,AutoSizer } from 'react-virtualized';
-import {LightBox} from '../components/lightBox'
-
-import { push } from 'react-router-redux'
-import {calculateGridCells, calculateGridCellSize} from '../util/gridUtils'
-
-import {ScrollSpeed, SPEED_THRESHOLD, SCROLL_DEBOUNCE_DURATION} from '../util/scrollUtils'
-import debounce from 'lodash/debounce'
+import { fetchNoTimestampPhotoList } from '../actions/photosActions';
 import _ from 'lodash'
 import moment from 'moment'
-import {PhotoListView} from './ReusablePhotoListView'
+import { PhotoListView } from './ReusablePhotoListView'
+
 
 var topMenuHeight = 55 // don't change this
 var ESCAPE_KEY = 27;

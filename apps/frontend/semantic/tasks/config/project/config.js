@@ -36,7 +36,7 @@ module.exports = {
             return;
           }
           // otherwise recurse
-          walk(nextDirectory, file);
+          walk(nextDirectory);
         }
       }
     ;

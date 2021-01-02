@@ -3,59 +3,19 @@ import {
   Checkbox,
   Popup,
   Input,
-  Item,
-  Menu,
   Image,
   Icon,
   Header,
-  Container,
   Divider,
-  Button,
-  Label,
-  Loader,
-  Sticky,
-  Accordion
 } from "semantic-ui-react";
-
-import { SecuredImageJWT } from "../components/SecuredImage";
-
-import {
-  FaceToLabel,
-  FacesLabeled,
-  FacesInferred,
-  FaceStatistics,
-  FaceTableLabeled,
-  FaceTableInferred
-} from "../components/faces";
-import FaceClusterScatter from "../components/faceClusterGraph";
 import { connect } from "react-redux";
-import {
-  deleteFaces,
-  setFacesPersonLabel,
-  loadFaceToLabel,
-  trainFaces,
-  clusterFaces,
-  fetchInferredFacesList,
-  fetchLabeledFacesList,
-  fetchFacesList
-} from "../actions/facesActions";
-import LazyLoad from "react-lazyload";
 import _ from "lodash";
-import { Grid, List, WindowScroller, AutoSizer } from "react-virtualized";
-import {
-  calculateFaceGridCellSize,
-  calculateFaceGridCells
-} from "../util/gridUtils";
-import { ScrollSpeed, SCROLL_DEBOUNCE_DURATION } from "../util/scrollUtils";
-import debounce from "lodash/debounce";
-import { fetchPeople, addPerson } from "../actions/peopleActions";
 import { fetchPublicUserList } from "../actions/publicActions";
-import { serverAddress } from "../api_client/apiClient";
-import { setPhotosShared } from "../actions/photosActions";
 import { setUserAlbumShared } from "../actions/albumsActions";
-
 import Modal from "react-modal";
 import moment from "moment";
+
+
 // <Icon name='id badge' circular />
 var topMenuHeight = 45; // don't change this
 var leftMenuWidth = 85; // don't change this

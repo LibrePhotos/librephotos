@@ -50,7 +50,7 @@ module.exports = {
   // root path to repos
   outputRoot  : '../repos/',
 
-  homepage    : 'http://www.semantic-ui.com',
+  homepage    : 'https://www.semantic-ui.com',
 
   // distributions that get separate repos
   distributions: [

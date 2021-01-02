@@ -1,7 +1,7 @@
 import axios from "axios";
-
 import store from '../store'
-import {isRefreshTokenExpired} from '../reducers/'
+import { isRefreshTokenExpired } from '../reducers/'
+
 
 store.subscribe(listener)
 

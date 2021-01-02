@@ -1,6 +1,5 @@
-import { notify } from "reapop";
 import { Server } from "../api_client/apiClient";
-import { fetchPeople } from "./peopleActions";
+
 
 export function fetchUserPublicPhotos(userName) {
   return function(dispatch) {

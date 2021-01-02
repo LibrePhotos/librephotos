@@ -1,30 +1,19 @@
 /**
  * @flow
  */
-import cn from "classnames";
-import Immutable from "immutable";
-import PropTypes from "prop-types";
 import React, { PureComponent } from "react";
+import { fetchPhotos } from '../actions/photosActions'
 import {
-  fetchPeopleAlbums, 
-  fetchAutoAlbums, 
-  fetchDateAlbumsList} from '../actions/albumsActions'
-import {fetchPhotos} from '../actions/photosActions'
-
-import {
-  Collection,
   CellMeasurer,
   CellMeasurerCache,
-  createMasonryCellPositioner,
-  Masonry,
   AutoSizer,
   List,
   WindowScroller,
 } from 'react-virtualized';
 import { connect } from "react-redux";
-import { Card, Image, Header, Divider, Item, Loader, Dimmer,
-         Container, Label, Popup, Segment, Button, Icon} from 'semantic-ui-react';
-import {Server, serverAddress} from '../api_client/apiClient'
+import { Image } from 'semantic-ui-react';
+import { serverAddress } from '../api_client/apiClient'
+
 
 function toInt(n){ return Math.round(Number(n)); };
 

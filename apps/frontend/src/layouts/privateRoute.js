@@ -1,8 +1,7 @@
-
-
 import React from 'react'
 import { connect } from 'react-redux'
 import * as reducers from '../reducers'
+// Router and Switch are needed Breaks site if not in import. DW
 import {
   BrowserRouter as Router,
   Route,
@@ -10,6 +9,7 @@ import {
   Redirect
 } from 'react-router-dom'
 import {SideMenuNarrow, TopMenu} from './menubars'
+
 
 var topMenuHeight = 45 // don't change this
 var leftMenuWidth = 85 // don't change this

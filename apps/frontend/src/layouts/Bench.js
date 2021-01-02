@@ -1,13 +1,6 @@
-import React, {Component} from 'react';
-import { connect } from "react-redux";
-import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums, fetchAutoAlbumsList} from '../actions/albumsActions'
-import {AlbumAutoCard, AlbumAutoGallery} from '../components/album'
-import {Container, Image, Icon, Header, Button, Card, Label, Popup} from 'semantic-ui-react'
-import {fetchCountStats,fetchPhotoScanStatus,
-        fetchAutoAlbumProcessingStatus} from '../actions/utilActions'
-
-import {Server, serverAddress} from '../api_client/apiClient'
-
+import React, { Component } from 'react';
+import { Image } from 'semantic-ui-react'
+import { Server } from '../api_client/apiClient'
 
 
 export class SecuredImage extends Component {

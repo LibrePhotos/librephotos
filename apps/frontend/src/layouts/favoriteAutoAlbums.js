@@ -1,9 +1,10 @@
 import React, { Component } from 'react';
 import { connect } from "react-redux";
-import {fetchPeopleAlbums, fetchAutoAlbums, generateAutoAlbums, fetchAutoAlbumsList} from '../actions/albumsActions'
-import {AlbumAutoCard, AlbumAutoGallery} from '../components/album'
-import {Container, Icon, Header, Button, Card, Label, Popup, Divider} from 'semantic-ui-react'
-import {Server, serverAddress} from '../api_client/apiClient'
+import { fetchAutoAlbumsList } from '../actions/albumsActions'
+import { AlbumAutoCard } from '../components/album'
+import { Container, Icon, Header, Card } from 'semantic-ui-react'
+import { serverAddress } from '../api_client/apiClient'
+
 
 export class FavoriteAutoAlbumsView extends Component {
 	constructor(props){

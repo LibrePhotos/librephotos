@@ -1,12 +1,9 @@
-import React, {Component} from 'react'
-import {Loader, Grid, Segment, Header} from 'semantic-ui-react'
+import React, { Component } from 'react'
+import { Loader, Segment, Header } from 'semantic-ui-react'
 import Dimensions from 'react-dimensions'
 import { connect } from "react-redux";
-import {fetchDateAlbumsList, fetchAutoAlbumsList} from '../actions/albumsActions'
-import {fetchPhotoMonthCounts} from '../actions/utilActions'
-
-import Month from 'calendar-months';
-import {Chart, Bars, Lines, Ticks, Layer} from 'rumble-charts'
+import { fetchPhotoMonthCounts } from '../actions/utilActions'
+import { Chart, Bars, Ticks, Layer } from 'rumble-charts'
 
 
 /*

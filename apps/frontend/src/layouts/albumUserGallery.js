@@ -1,45 +1,10 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import {
-  fetchUserAlbum,
-  fetchPlaceAlbum,
-  fetchAutoAlbums,
-  generateAutoAlbums
-} from "../actions/albumsActions";
-import {
-  Container,
-  Icon,
-  Divider,
-  Header,
-  Image,
-  Button,
-  Flag,
-  Card,
-  Loader,
-  Label
-} from "semantic-ui-react";
-import { fetchPeople, fetchEgoGraph } from "../actions/peopleActions";
-import {
-  fetchPhotoDetail,
-  fetchNoTimestampPhotoList
-} from "../actions/photosActions";
-
-import { Server, serverAddress } from "../api_client/apiClient";
-import { Grid, List, WindowScroller, AutoSizer } from "react-virtualized";
-import { EgoGraph } from "../components/egoGraph";
-import { push } from "react-router-redux";
-import { countryNames } from "../util/countryNames";
-import {
-  AllPhotosMap,
-  EventMap,
-  LocationClusterMap,
-  LocationMap
-} from "../components/maps";
-import { LightBox } from "../components/lightBox";
-
+import { fetchUserAlbum } from "../actions/albumsActions";
 import _ from "lodash";
 import moment from "moment";
 import { PhotoListView } from "./ReusablePhotoListView";
+
 
 var topMenuHeight = 45; // don't change this
 var ESCAPE_KEY = 27;
