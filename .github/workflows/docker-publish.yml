@@ -31,7 +31,7 @@ jobs:
             docker-compose --file docker-compose.test.yml build
             docker-compose --file docker-compose.test.yml run sut
           else
-            docker build . --file Dockerfile
+            DOCKER_BUILDKIT=1 docker build . --file Dockerfile
           fi
 
   # Push image to GitHub Packages.
