@@ -45,6 +45,7 @@ class TokenObtainPairSerializer(TokenObtainPairSerializer):
         token['first_name'] = user.first_name
         token['last_name'] = user.last_name
         token['scan_directory'] = user.scan_directory
+        token['confidence'] = user.confidence
         token['nextcloud_server_address'] = user.nextcloud_server_address
         token['nextcloud_username'] = user.nextcloud_username
         # ...
