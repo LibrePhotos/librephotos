@@ -52,11 +52,11 @@ RUN /miniconda/bin/pip install -r requirements.txt
 RUN /miniconda/bin/python -m spacy download en_core_web_sm
 
 WORKDIR /code/api/places365
-RUN wget --no-check-certificate https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/places365_model.tar.gz
+RUN wget https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/places365_model.tar.gz
 RUN tar xf places365_model.tar.gz
 
 WORKDIR /code/api/im2txt
-RUN wget --no-check-certificate https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/im2txt_model.tar.gz
+RUN wget https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/im2txt_model.tar.gz
 RUN tar xf im2txt_model.tar.gz
 RUN wget https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/im2txt_data.tar.gz
 RUN tar xf im2txt_data.tar.gz
