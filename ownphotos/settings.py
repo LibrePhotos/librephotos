@@ -156,15 +156,18 @@ DATABASES = {
     },
 }
 
+if 'REDIS_PATH' in os.environ:
+    redis_path = 'unix://' + os.environ['REDIS_PATH']
+    redis_path += '?db=' + os.environ.get('REDIS_DB', '0')
+else:
+    redis_path = "redis://" + os.environ['REDIS_HOST']
+    redis_path += ":" + os.environ["REDIS_PORT"] + "/1"
+
 CACHES = {
     "default": {
-        "BACKEND":
-        "django_redis.cache.RedisCache",
-        "LOCATION":
-        "redis://" + os.environ['REDIS_HOST'] + ":" + os.environ["REDIS_PORT"]
-        + "/1",
-        "TIMEOUT":
-        60 * 60 * 24,
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": redis_path,
+        "TIMEOUT": 60 * 60 * 24,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
