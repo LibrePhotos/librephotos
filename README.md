@@ -91,18 +91,20 @@ The easiest way to do it is using Docker.
 ## Docker-compose method (Recommended)
 
 ```
-wget https://raw.githubusercontent.com/LibrePhotos/librephotos/dev/docker-compose.yml.template
-cp docker-compose.yml.template docker-compose.yml
+wget https://raw.githubusercontent.com/LibrePhotos/librephotos/dev/docker-compose.yml
+wget https://raw.githubusercontent.com/LibrePhotos/librephotos/dev/.env
+
+Do not forget to create the directory's you specified in the ``.env`` file if they do not exist. 
 ```
 
-Open `docker-compose.yml` in your favorite text editor and make changes in the lines with `# CHANGE ME`
+Open `.env` in your favorite text editor and make the required changes.
 
 ```
 docker-compose up -d
 ```
 
-You should have librephotos accessible after a few minutes of bootup on: [localhost:3000](http://localhost:3000)
-User is demo, password is demo1234 unless you chaged it in the docker-compose.yml. It is recomended you change the admin username and password if Libre Photos is going to be publicly accessible via the ``docker-compose.yml`` file.
+You should have librephotos accessible after a few minutes of bootup on: [localhost:3000](http://localhost:3000) unless you changed it in the .env file.
+User is admin, password is admin unless you changed it in the .env file. It is recommended you change the admin username and password if Libre Photos is going to be publicly accessible via the ``.env`` file.
 
 ## First steps after setting up
 
