@@ -502,15 +502,14 @@ class Photo(models.Model):
     def _add_to_album_thing(self):
         if type(self.captions_json
                 ) is dict and 'places365' in self.captions_json.keys():
-            if False:  # This is also disabled for now
-                for attribute in self.captions_json['places365']['attributes']:
-                    album_thing = get_album_thing(
-                        title=attribute, owner=self.owner)
-                    if album_thing.photos.filter(
-                            image_hash=self.image_hash).count() == 0:
-                        album_thing.photos.add(self)
-                        album_thing.thing_type = 'places365_attribute'
-                        album_thing.save()
+            for attribute in self.captions_json['places365']['attributes']:
+                album_thing = get_album_thing(
+                    title=attribute, owner=self.owner)
+                if album_thing.photos.filter(
+                       image_hash=self.image_hash).count() == 0:
+                    album_thing.photos.add(self)
+                    album_thing.thing_type = 'places365_attribute'
+                    album_thing.save()
             for category in self.captions_json['places365']['categories']:
                 album_thing = get_album_thing(title=category, owner=self.owner)
                 if album_thing.photos.filter(
