@@ -612,7 +612,7 @@ export class LightBox extends Component {
                           <Icon name="tags" /> Scene
                         </Item.Header>
                         <Item.Description>
-                          <p>
+                          {/*<p> DISABLED FOR NOW
                             <b>Attributes</b>
                           </p>
                           <Label.Group>
@@ -650,7 +650,7 @@ export class LightBox extends Component {
                                 </Label>
                               )
                             )}
-                          </Label.Group>
+                          </Label.Group>*/}
                           <p>
                             <b>Categories</b>
                           </p>
