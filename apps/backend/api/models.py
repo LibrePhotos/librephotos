@@ -230,15 +230,10 @@ class Photo(models.Model):
             captions['places365'] = res_places365
             self.captions_json = captions
             if self.search_captions:
-                #self.search_captions = self.search_captions + ' , ' + \
-                #    ' , '.join(
-                #        res_places365['attributes'] + res_places365['categories'] + [res_places365['environment']])
                 self.search_captions = self.search_captions + ' , ' + \
                     ' , '.join(
                         res_places365['categories'] + [res_places365['environment']])
             else:
-                #self.search_captions = ' , '.join(
-                #    res_places365['attributes'] + res_places365['categories'] + [res_places365['environment']])
                 self.search_captions = ' , '.join(
                     res_places365['categories'] + [res_places365['environment']])
 
