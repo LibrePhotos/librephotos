@@ -8,6 +8,7 @@ WORKDIR /usr/src/app
 RUN npm install -g npm
 ENV CLI_WIDTH 80
 COPY package.json /usr/src/app
+COPY npm-shrinkwrap.json /usr/src/app
 RUN npm ci
 RUN npm install -g serve
 EXPOSE 3000
