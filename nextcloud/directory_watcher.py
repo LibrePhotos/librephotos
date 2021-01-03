@@ -7,7 +7,7 @@ from ownphotos import settings
 import datetime
 import pytz
 import api.util as util
-from api.directory_watcher import handle_new_image, isValidMedia
+from api.directory_watcher import handle_new_image
 from api.image_similarity import build_image_similarity_index
 
 def isValidNCMedia(file_obj):
