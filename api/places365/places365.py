@@ -138,19 +138,19 @@ def inference_places365(img_path, confidence):
                 res['categories'].append(remove_nonspace_separators(classes[idx[i]]))
             else:
                 break
-        if False:  # Disable for now, they don't provide meaningful stuff
-            # output the scene attributes
-            # This is something I don't quiet grasp yet
-            # Probs is not usable here anymore, we're not processing our input_image
-            # Take the dot product of out W_attribute model and the feature blobs
-            # And sort it along the -1 axis
-            # This results in idx_a, with the last elements the index numbers of attributes, we have the most confidence in
-            # Can't seem to get any confidence values, also all the attributes it detect are not really meaningful i.m.o.
-            responses_attribute = W_attribute.dot(features_blobs[1])
-            idx_a = np.argsort(responses_attribute)
-            res['attributes'] = []
-            for i in range(-1, -10, -1):
-                res['attributes'].append(remove_nonspace_separators(labels_attribute[idx_a[i]]))
+         # TODO Should be replaced with more meaningful tags in the future
+         # output the scene attributes
+         # This is something I don't quiet grasp yet
+         # Probs is not usable here anymore, we're not processing our input_image
+         # Take the dot product of out W_attribute model and the feature blobs
+         # And sort it along the -1 axis
+         # This results in idx_a, with the last elements the index numbers of attributes, we have the most confidence in
+         # Can't seem to get any confidence values, also all the attributes it detect are not really meaningful i.m.o.
+         responses_attribute = W_attribute.dot(features_blobs[1])
+         idx_a = np.argsort(responses_attribute)
+         res['attributes'] = []
+         for i in range(-1, -10, -1):
+            res['attributes'].append(remove_nonspace_separators(labels_attribute[idx_a[i]]))
 
         return res
     except Exception:
