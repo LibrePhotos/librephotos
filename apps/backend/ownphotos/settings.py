@@ -175,7 +175,7 @@ RQ_QUEUES = {
     'default': {
         'USE_REDIS_CACHE': 'default',
         'DEFAULT_TIMEOUT': 360,
-        'DB':0
+        'DB': 0
     }
 }
 
