@@ -92,7 +92,8 @@ The easiest way to do it is using Docker.
 
 ```
 wget https://raw.githubusercontent.com/LibrePhotos/librephotos/dev/docker-compose.yml
-wget https://raw.githubusercontent.com/LibrePhotos/librephotos/dev/.env
+wget https://raw.githubusercontent.com/LibrePhotos/librephotos/dev/librephotos.env
+cp librephotos.env .env
 
 Do not forget to create the directory's you specified in the ``.env`` file if they do not exist. 
 ```
