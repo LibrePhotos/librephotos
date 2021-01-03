@@ -14,6 +14,8 @@ import base64
 import numpy as np
 import os
 import pytz
+import pyheif
+import magic
 
 from api.exifreader import rotate_image
 
@@ -242,11 +244,34 @@ class Photo(models.Model):
                 'could not generate places365 captions for image %s' %
                 image_path)
 
-    def _generate_thumbnail(self):
-        image = PIL.Image.open(self.image_path)
+    def isHeic(self):
+        try:
+            filetype = magic.from_buffer(open(self.image_path,"rb").read(2048), mime=True)
+            return 'heic' in filetype or 'heif' in filetype
+        except:
+            util.logger.exception("An image throwed an exception")
+            return False
+    
+    def get_pil_image(self):
+        if self.isHeic():
+            heif_file = pyheif.read(self.image_path)
+            image = PIL.Image.frombytes(
+                heif_file.mode, 
+                heif_file.size, 
+                heif_file.data,
+                "raw",
+                heif_file.mode,
+                heif_file.stride,
+                )
+        else:
+            image = PIL.Image.open(self.image_path)
         image = rotate_image(image)
         if image.mode != 'RGB':
                 image = image.convert('RGB')
+        return image
+
+    def _generate_thumbnail(self):
+        image = self.get_pil_image()
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()):
             image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_BIG,
                             PIL.Image.ANTIALIAS)
@@ -280,9 +305,7 @@ class Photo(models.Model):
             image_io_square_thumb.close()
 
     def _save_image_to_db(self):
-        image = PIL.Image.open(self.image_path)
-
-        image = rotate_image(image)
+        image = self.get_pil_image()
         image_io = BytesIO()
         image.save(image_io, format="JPEG")
         self.image.save(self.image_hash + '.jpg',
@@ -412,9 +435,7 @@ class Photo(models.Model):
             unknown_person.save()
         else:
             unknown_person = qs_unknown_person[0]
-        image = PIL.Image.open(self.image_path)
-        image = rotate_image(image)
-        image = np.array(image.convert('RGB'))
+        image = np.array(self.get_pil_image())
 
         face_locations = face_recognition.face_locations(image)
         face_encodings = face_recognition.face_encodings(

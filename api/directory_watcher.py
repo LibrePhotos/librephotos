@@ -15,7 +15,7 @@ from PIL import Image
 def isValidMedia(filebuffer):
     try:
         filetype = magic.from_buffer(filebuffer, mime=True)
-        return 'jpeg' in filetype or 'png' in filetype or 'bmp' in filetype or 'gif' in filetype
+        return 'jpeg' in filetype or 'png' in filetype or 'bmp' in filetype or 'gif' in filetype or 'heic' in filetype or 'heif' in filetype
     except:
         util.logger.exception("An image throwed an exception")
         return False

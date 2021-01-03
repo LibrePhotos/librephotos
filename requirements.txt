@@ -68,6 +68,7 @@ pyparsing==2.4.7
 python-dateutil==2.8.1
 python-memcached==1.59
 pytz==2020.1
+pyheif==0.5.1
 redis==3.5.3
 regex==2020.10.28 
 rq==1.6.1
