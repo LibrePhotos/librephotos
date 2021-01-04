@@ -14,7 +14,7 @@ def isValidNCMedia(file_obj):
     file_attr = file_obj.attributes
     filetype = file_attr.get("{DAV:}getcontenttype","")
     try:
-        return 'jpeg' in filetype or 'png' in filetype or 'bmp' in filetype or 'gif' in filetype
+        return 'jpeg' in filetype or 'png' in filetype or 'bmp' in filetype or 'gif' in filetype or 'heic' in filetype or 'heif' in filetype
     except:
         util.logger.exception("An image throwed an exception")
         return False
