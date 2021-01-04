@@ -61,6 +61,9 @@ RUN tar xf im2txt_model.tar.gz
 RUN wget https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/im2txt_data.tar.gz
 RUN tar xf im2txt_data.tar.gz
 
+WORKDIR /root/.cache/torch/hub/checkpoints/
+RUN wget https://download.pytorch.org/models/resnet152-b121ed2d.pth
+
 VOLUME /data
 
 # Application admin creds
