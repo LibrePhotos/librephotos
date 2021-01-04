@@ -1,0 +1,17 @@
+# Run options:
+# 1. There are no options - This add additional tools to aid in the development of Libre Photos
+#   run cmd: docker-compose up -f docker-compose.yml -f docker-compose.dev.yml -d
+# 2. Current added tools:
+#    pgadmin User admin@admin pass admin port 3001
+
+  pgadmin:
+    container_name: librephotos_pgadmin
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@admin.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+    volumes:
+       - $HOME/pgadmin:/root/.pgadmin
+    ports:
+      - "3001:80"
+    restart: unless-stopped
