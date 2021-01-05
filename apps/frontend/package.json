@@ -7,7 +7,7 @@
     "@vx/group": "0.0.161",
     "@vx/hierarchy": "0.0.161",
     "@vx/shape": "0.0.162",
-    "axios": "^0.18.0",
+    "axios": "^0.21.1",
     "bootstrap": "^4.1.1",
     "calendar-months": "^1.0.1",
     "d3-hierarchy": "^1.1.6",
