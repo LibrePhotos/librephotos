@@ -1414,12 +1414,11 @@ class RootPathTreeView(APIView):
             res = [path_to_dict(p) for p in config.image_dirs]
             return Response(res)
         except Exception as e:
-            logger.error(str(e))
+            logger.exception(str(e))
             return Response({'message':str(e)})
 
 
 class SearchTermExamples(APIView):
-    # @cache_response(CACHE_TTL_VIZ)
     def get(self, request, format=None):
         search_term_examples = get_search_term_examples(request.user)
         return Response({"results": search_term_examples})
