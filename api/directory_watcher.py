@@ -1,4 +1,5 @@
 import os
+import stat
 import datetime
 import hashlib
 import pytz
@@ -26,6 +27,17 @@ def calculate_hash(user,image_path):
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest() + str(user.id)
+import os
+
+def is_hidden(filepath):
+    name = os.path.basename(os.path.abspath(filepath))
+    return name.startswith('.') or has_hidden_attribute(filepath)
+
+def has_hidden_attribute(filepath):
+    try:
+        return bool(os.stat(filepath).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
+    except:
+        return False
 
 def handle_new_image(user, image_path, job_id):
     if isValidMedia(open(image_path,"rb").read(2048)):
@@ -127,10 +139,11 @@ def scan_photos(user, job_id):
     try:
         image_paths = []
 
-        image_paths.extend([
-            os.path.join(dp, f) for dp, dn, fn in os.walk(user.scan_directory)
-            for f in fn
-        ])
+        for root, dirs, files in os.walk(user.scan_directory, followlinks=True):
+            files = [f for f in files if not is_hidden(os.path.join(root,f))]
+            dirs[:] = [d for d in dirs if not is_hidden(os.path.join(root,d))]
+            for file in files:
+                image_paths.append(os.path.join(root, file))
         image_paths.sort()
 
         # Create a list with all images whose hash is new or they do not exist in the db
