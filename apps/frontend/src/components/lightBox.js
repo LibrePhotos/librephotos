@@ -96,17 +96,11 @@ export class LightBox extends Component {
     ) {
       console.log("light box has not gotten main photo detail");
       var mainSrc = "/transparentbackground.png";
-      var mainSrcThumbnail = "/transparentbackground.png";
     } else {
       console.log("light box has got main photo detail");
       var mainSrc =
         serverAddress +
         "/media/thumbnails_big/" +
-        this.props.idx2hash.slice(this.props.lightboxImageIndex)[0] +
-        ".jpg";
-      var mainSrcThumbnail =
-        serverAddress +
-        "/media/thumbnails_small/" +
         this.props.idx2hash.slice(this.props.lightboxImageIndex)[0] +
         ".jpg";
       if (
@@ -116,7 +110,6 @@ export class LightBox extends Component {
         !this.props.showHidden
       ) {
         var mainSrc = "/hidden.png";
-        var mainSrcThumbnail = "/hidden.png";
       }
 
       for (var i = 0; i < 10; i++) {
@@ -169,23 +162,6 @@ export class LightBox extends Component {
           prevSrc={
             serverAddress +
             "/media/thumbnails_big/" +
-            this.props.idx2hash.slice(
-              (this.props.lightboxImageIndex - 1) % this.props.idx2hash.length
-            )[0] +
-            ".jpg"
-          }
-          mainSrcThumbnail={mainSrcThumbnail}
-          nextSrcThumbnail={
-            serverAddress +
-            "/media/thumbnails_small/" +
-            this.props.idx2hash.slice(
-              (this.props.lightboxImageIndex + 1) % this.props.idx2hash.length
-            )[0] +
-            ".jpg"
-          }
-          prevSrcThumbnail={
-            serverAddress +
-            "/media/thumbnails_small/" +
             this.props.idx2hash.slice(
               (this.props.lightboxImageIndex - 1) % this.props.idx2hash.length
             )[0] +
