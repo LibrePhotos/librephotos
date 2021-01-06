@@ -1,0 +1,9 @@
+<div class="search-content__inner-wrap">
+  <form class="search-content__form" onkeydown="return event.key != 'Enter';">
+    <label class="sr-only" for="search">
+      {{ site.data.ui-text[site.locale].search_label_text | default: 'Enter your search term...' }}
+    </label>
+    <input type="search" id="search" class="search-input" tabindex="-1" placeholder="{{ site.data.ui-text[site.locale].search_placeholder_text | default: 'Enter your search term...' }}" />
+  </form>
+  <div id="results" class="results"></div>
+</div>

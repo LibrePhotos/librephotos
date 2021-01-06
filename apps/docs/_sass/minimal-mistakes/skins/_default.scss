@@ -1,0 +1,31 @@
+/* ==========================================================================
+   Default skin
+   ========================================================================== */
+
+/* Colors */
+$background-color: #1f1f24;
+$text-color: #eaeaea;
+$primary-color: #d68709;
+$border-color: mix(#fff, $background-color, 20%);
+$code-background-color: mix(#fff, $background-color, 15%);
+$code-background-color-dark: mix(#fff, $background-color, 10%);
+$form-background-color: mix(#000, $background-color, 15%);
+$footer-background-color: mix(#000, $background-color, 30%);
+$link-color: mix($primary-color, $text-color, 90%);
+$link-color-hover: mix(#fff, $link-color, 20%);
+$link-color-visited: mix(#000, $link-color, 20%);
+$masthead-link-color: $text-color;
+$masthead-link-color-hover: mix(#000, $text-color, 20%);
+$masthead-link-color-hover: $link-color;
+$navicon-link-color-hover: mix(#000, $background-color, 30%);
+
+.author__urls.social-icons i,
+.author__urls.social-icons .svg-inline--fa,
+.page__footer-follow .social-icons i,
+.page__footer-follow .social-icons .svg-inline--fa  {
+  color: inherit;
+}
+
+.ais-search-box .ais-search-box--input {
+  background-color: $form-background-color;
+}
