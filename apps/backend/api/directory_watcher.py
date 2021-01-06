@@ -39,9 +39,9 @@ def has_hidden_attribute(filepath):
     except:
         return False
 
-def handle_new_image(user, image_path, job_id):
-    if isValidMedia(open(image_path,"rb").read(2048)):
-        try:
+def handle_new_image(user, image_path, job_id):   
+    try:
+        if isValidMedia(open(image_path,"rb").read(2048)):
             elapsed_times = {
                 'md5':None,
                 'thumbnails':None,
@@ -97,19 +97,19 @@ def handle_new_image(user, image_path, job_id):
             else:
                 util.logger.warning("job {}: file {} exists already".format(job_id,image_path))
 
-        except Exception as e:
-            try:
-                util.logger.exception("job {}: could not load image {}. reason: {}".format(
-                    job_id,image_path, str(e)))
-            except:
-                util.logger.exception("job {}: could not load image {}".format(job_id,image_path))
+    except Exception as e:
+        try:
+            util.logger.exception("job {}: could not load image {}. reason: {}".format(
+                job_id,image_path, str(e)))
+        except:
+            util.logger.exception("job {}: could not load image {}".format(job_id,image_path))
 
 def rescan_image(user, image_path, job_id):
-    if isValidMedia(open(image_path,"rb").read(2048)):
         try:
-            photo = Photo.objects.filter(Q(image_path=image_path)).get()
-            photo._generate_thumbnail()
-            photo._extract_date_time_from_exif()
+            if isValidMedia(open(image_path,"rb").read(2048)):
+                photo = Photo.objects.filter(Q(image_path=image_path)).get()
+                photo._generate_thumbnail()
+                photo._extract_date_time_from_exif()
 
         except Exception as e:
             try:
