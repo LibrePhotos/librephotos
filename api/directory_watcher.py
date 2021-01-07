@@ -29,6 +29,14 @@ def calculate_hash(user,image_path):
     return hash_md5.hexdigest() + str(user.id)
 import os
 
+def should_skip(filepath):
+    skipPatterns = os.getenv('SKIP_PATTERNS')
+    skipList = skipPatterns.split(',')
+    skipList = map(str.strip, skipList)
+
+    res = [ele for ele in skipList if(ele in filepath)] 
+    return bool(res)
+
 def is_hidden(filepath):
     name = os.path.basename(os.path.abspath(filepath))
     return name.startswith('.') or has_hidden_attribute(filepath)
@@ -140,8 +148,8 @@ def scan_photos(user, job_id):
         image_paths = []
 
         for root, dirs, files in os.walk(user.scan_directory, followlinks=True):
-            files = [f for f in files if not is_hidden(os.path.join(root,f))]
-            dirs[:] = [d for d in dirs if not is_hidden(os.path.join(root,d))]
+            files = [f for f in files if not is_hidden(os.path.join(root,f)) and not should_skip(os.path.join(root,f))]
+            dirs[:] = [d for d in dirs if not is_hidden(os.path.join(root,d)) and not should_skip(os.path.join(root,d))]
             for file in files:
                 image_paths.append(os.path.join(root, file))
         image_paths.sort()
