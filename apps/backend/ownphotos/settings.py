@@ -170,6 +170,8 @@ CACHES = {
         "TIMEOUT": 60 * 60 * 24,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            if 'REDIS_PASS' in os.environ:
+                "PASSWORD": os.environ['REDIS_PASS'],
         }
     }
 }
