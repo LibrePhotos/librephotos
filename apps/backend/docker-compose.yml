@@ -1,5 +1,5 @@
 # DO NOT EDIT
-# The .env file has everything you need to edit. 
+# The .env file has everything you need to edit.
 # Run options:
 # 1. Use prebuilt images (preferred method):
 #   run cmd: docker-compose up -d
@@ -9,7 +9,6 @@
 
 version: '2.1'
 services:
-
   proxy:
     image: reallibrephotos/librephotos-proxy:${tag}
     tty: true
@@ -30,7 +29,7 @@ services:
       - ${dbLocation}:/var/lib/postgresql/data
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c random_page_cost=1.0
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d $dbName -U $dbUser"]
+      test: ['CMD-SHELL', 'pg_isready -d $dbName -U $dbUser']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -46,10 +45,10 @@ services:
     container_name: librephotos-backend
     restart: always
     volumes:
-      - ${myPhotos}:/data 
-      - ${proMedia}:/code/protected_media 
-      - ${logLocation}:/code/logs 
-      - ${cachedir}:/root/.cache 
+      - ${myPhotos}:/data
+      - ${proMedia}:/code/protected_media
+      - ${logLocation}:/code/logs
+      - ${cachedir}:/root/.cache
 
     environment:
       - SECRET_KEY=${shhhhKey}
@@ -70,6 +69,8 @@ services:
       - TIME_ZONE=${timeZone}
       - WEB_CONCURRENCY=${gunniWorkers}
       - WORKER_TIMEOUT=${workerTimeOut}
+      - SKIP_PATTERNS=${skipPatterns}
+
     # Wait for Postgres
     depends_on:
       librephotos-db:
