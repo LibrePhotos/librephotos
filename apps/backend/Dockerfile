@@ -32,7 +32,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
     git clone https://github.com/davisking/dlib.git && \
     mkdir /dlib/build && \
     cd /dlib/build && \
-    cmake .. -DDLIB_USE_CUDA=0 -DUSE_AVX_INSTRUCTIONS=0 && \
+    cmake .. -DDLIB_USE_CUDA=0 -DUSE_AVX_INSTRUCTIONS=0 -DUSE_SSE4_INSTRUCTIONS=0 && \
     cmake --build . && \
     cd /dlib && \
     /miniconda/bin/python setup.py install --no USE_AVX_INSTRUCTIONS && \
