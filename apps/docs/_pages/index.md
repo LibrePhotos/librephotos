@@ -6,29 +6,30 @@ author_profile: true
 permalink: /
 ---
 
-## Table of Contents
+{% assign posts_size = site.posts | size %}
+{% if posts_size > 0 %}
 
-{% assign first_post = true %}
-{% assign latest_date = first_post.last_modified_at | date: "%s" %}
+## Table of Contents
 
 <ul>
 	{% for category in site.categories %}
 	{% capture category_name %}{{ category | first }}{% endcapture %}
 	{% assign category_articles = site.categories[category_name] %}
-	<li><a href="/{{ category_name | slugify }}">{{ category_name }}</a></li>
 	{% if category_articles != null %}
+	<li><a href="/{{ category_name | slugify }}">{{ category_name }}</a></li>
 	<ul>
 	{% for article in category_articles %}
-	{% assign article_last_modified_at = article.last_modified_at | date: "%s" %}
-	{% if first_post == true %}
-	{% assign latest_date = article.last_modified_at | date: "%s" %}
-	{% assign first_post = false %}
-	{% elsif article_last_modified_at > latest_date %}
-	{% assign latest_date = article_last_modified_at %}
-	{% endif %}
 	<li><a href="{{ article.url | relative_url }}">{{ article.title }}</a></li>
 	{% endfor %}
 	</ul>
 	{% endif %}
 	{% endfor %}
 </ul>
+
+{% else %}
+
+## Under Construction
+
+Our documentation is currently being written - check back soon!
+
+{% endif %}
