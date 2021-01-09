@@ -35,7 +35,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
     cmake .. -DDLIB_USE_CUDA=0 -DUSE_AVX_INSTRUCTIONS=0 -DUSE_SSE4_INSTRUCTIONS=0 && \
     cmake --build . && \
     cd /dlib && \
-    /miniconda/bin/python setup.py install --no USE_AVX_INSTRUCTIONS && \
+    /miniconda/bin/python setup.py install --no USE_AVX_INSTRUCTIONS USE_SSE4_INSTRUCTIONS && \
     rm -rf /var/lib/apt/lists/*
 
 RUN /miniconda/bin/conda install -y pytorch torchvision torchaudio cpuonly -c pytorch
