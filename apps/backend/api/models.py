@@ -188,41 +188,6 @@ class Photo(models.Model):
         image_path = self.thumbnail_big.path
         captions = {}
 
-        # im2txt disabled for now
-        if False:
-            try:
-                caption = im2txt(image_path)
-                caption = caption.replace("<start>", '').replace(
-                    "<end>", '').strip().lower()
-                captions['im2txt'] = caption
-                self.captions_json = captions
-                self.search_captions = caption
-                self.save()
-                util.logger.info(
-                    'generated im2txt captions for image %s. caption: %s' %
-                    (image_path, caption))
-            except:
-                util.logger.warning(
-                    'could not generate im2txt captions for image %s' %
-                    image_path)
-
-        # densecap disabled for now
-        if False:
-            try:
-                with open(image_path, "rb") as image_file:
-                    encoded_string = base64.b64encode(image_file.read())
-                encoded_string = str(encoded_string)[2:-1]
-                resp_captions = requests.post(
-                    'http://localhost:5000/', data=encoded_string)
-                captions['densecap'] = resp_captions.json()['data'][:10]
-                self.search_captions = ' , '.join(
-                    resp_captions.json()['data'][:10])
-                self.save()
-            except:
-                util.logger.warning(
-                    'could not generate densecap captions for image %s' %
-                    image_path)
-
         # places365
         try:
             confidence = self.owner.confidence
