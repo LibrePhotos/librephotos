@@ -1,5 +1,4 @@
 from datetime import datetime
-import dateutil.parser as dateparser
 import PIL
 from PIL import ImageOps
 from django.db import models
@@ -32,9 +31,6 @@ from django.contrib.postgres.fields import JSONField
 
 from api.places365.places365 import inference_places365
 from api.im2txt.sample import im2txt
-
-import requests
-import base64
 
 from django_cryptography.fields import encrypt
 from api.im2vec import Im2Vec
@@ -112,17 +108,11 @@ class Photo(models.Model):
     # md5_{user.id}
     image_hash = models.CharField(primary_key=True, max_length=64, null=False)
 
-    thumbnail = models.ImageField(upload_to='thumbnails')
-    thumbnail_tiny = models.ImageField(upload_to='thumbnails_tiny')
-    thumbnail_small = models.ImageField(upload_to='thumbnails_small')
-    thumbnail_big = models.ImageField(upload_to='thumbnails_big')
+    thumbnail_big = models.ImageField(upload_to='thumbnails')
 
     square_thumbnail = models.ImageField(upload_to='square_thumbnails')
-    square_thumbnail_tiny = models.ImageField(
-        upload_to='square_thumbnails_tiny')
     square_thumbnail_small = models.ImageField(
         upload_to='square_thumbnails_small')
-    square_thumbnail_big = models.ImageField(upload_to='square_thumbnails_big')
 
     image = models.ImageField(upload_to='photos')
 
