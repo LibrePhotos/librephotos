@@ -232,11 +232,14 @@ class Photo(models.Model):
             image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_BIG,
                             PIL.Image.ANTIALIAS)
             image_io_thumb = BytesIO()
-            
             image.save(image_io_thumb, format="JPEG")
-            self.thumbnail_big.save(self.image_hash + '.jpg',
-                                ContentFile(image_io_thumb.getvalue()))
+            self.thumbnail_big.save(
+                self.image_hash + '.jpg',
+                ContentFile(image_io_thumb.getvalue()))
             image_io_thumb.close()
+        #thumbnail already exists, add to photo
+        else:
+            self.thumbnail_big.name=os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()
 
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()):
             square_thumb = ImageOps.fit(image,
@@ -248,6 +251,9 @@ class Photo(models.Model):
                 self.image_hash + '.jpg',
                 ContentFile(image_io_square_thumb.getvalue()))
             image_io_square_thumb.close()
+        #thumbnail already exists, add to photo
+        else:
+            self.square_thumbnail.name=os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()
 
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()):
             square_thumb = ImageOps.fit(image,
@@ -259,6 +265,10 @@ class Photo(models.Model):
                 self.image_hash + '.jpg',
                 ContentFile(image_io_square_thumb.getvalue()))
             image_io_square_thumb.close()
+        #thumbnail already exists, add to photo
+        else:
+            self.square_thumbnail_small.name=os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()
+        self.save()
 
     def _save_image_to_db(self):
         image = self.get_pil_image()
