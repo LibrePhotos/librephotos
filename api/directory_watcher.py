@@ -29,15 +29,19 @@ def calculate_hash(user,image_path):
     return hash_md5.hexdigest() + str(user.id)
 import os
 
-def is_hidden(filepath):
-    name = os.path.basename(os.path.abspath(filepath))
-    return name.startswith('.') or has_hidden_attribute(filepath)
+if os.name == "Windows":
+    def is_hidden(filepath):
+        name = os.path.basename(os.path.abspath(filepath))
+        return name.startswith('.') or has_hidden_attribute(filepath)
 
-def has_hidden_attribute(filepath):
-    try:
-        return bool(os.stat(filepath).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
-    except:
-        return False
+    def has_hidden_attribute(filepath):
+        try:
+            return bool(os.stat(filepath).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
+        except:
+            return False
+else:
+    def is_hidden(filepath):
+        return os.path.basename(filepath).startswith('.')
 
 def handle_new_image(user, image_path, job_id):   
     try:
