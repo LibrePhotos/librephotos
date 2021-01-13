@@ -175,42 +175,29 @@ def scan_photos(user, job_id):
             job_type=LongRunningJob.JOB_SCAN_PHOTOS)
         lrj.save()
 
-    added_photo_count = 0
+    photo_count_before = Photo.objects.count()
 
     try:
         fc = file_counter() # first walk and count sum of files
         walk_directory(user.scan_directory, fc)
         files_found = fc.counter
 
-        photo_count_before = Photo.objects.count()
-
         ps = photo_scanner(user, lrj, job_id, files_found)
         walk_directory(user.scan_directory, ps) # now walk with photo-scannning
 
         util.logger.info("Scanned {} files in : {}".format(files_found, user.scan_directory))
 
-        added_photo_count = Photo.objects.count() - photo_count_before
-
-        util.logger.info("Added {} photos".format(added_photo_count))
         build_image_similarity_index(user)
-
-        lrj = LongRunningJob.objects.get(job_id=job_id)
-        lrj.finished = True
-        lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-        prev_result = lrj.result
-        next_result = prev_result
-        next_result['new_photo_count'] = added_photo_count
-        lrj.result = next_result
-        lrj.save()
     except Exception:
         util.logger.exception("An error occured:")
-        lrj = LongRunningJob.objects.get(job_id=job_id)
-        lrj.finished = True
         lrj.failed = True
-        lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-        prev_result = lrj.result
-        next_result = prev_result
-        next_result['new_photo_count'] = 0
-        lrj.result = next_result
-        lrj.save()
-    return {"new_photo_count": added_photo_count, "status": True}
+
+    added_photo_count = Photo.objects.count() - photo_count_before
+    util.logger.info("Added {} photos".format(added_photo_count))
+
+    lrj.finished = True
+    lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
+    lrj.result['new_photo_count'] = added_photo_count
+    lrj.save()
+
+    return {"new_photo_count": added_photo_count, "status": lrj.failed==False}
