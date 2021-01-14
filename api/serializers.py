@@ -105,7 +105,10 @@ class PhotoSerializer(serializers.ModelSerializer):
 
     def get_similar_photos(self, obj):
         res = search_similar_image(obj.owner,obj)
-        return [ {'image_hash':e} for e in res['result']]
+        if len(res) > 0:
+            return [ {'image_hash':e} for e in res['result']]
+        else:
+            return []
 
     def get_thumbnail_url(self, obj):
         try:
