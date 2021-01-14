@@ -105,10 +105,9 @@ class VisiblePhotoManager(models.Manager):
 
 class Photo(models.Model):
     image_path = models.CharField(max_length=512, db_index=True)
-    # md5_{user.id}
     image_hash = models.CharField(primary_key=True, max_length=64, null=False)
 
-    thumbnail_big = models.ImageField(upload_to='thumbnails')
+    thumbnail_big = models.ImageField(upload_to='thumbnails_big')
 
     square_thumbnail = models.ImageField(upload_to='square_thumbnails')
     square_thumbnail_small = models.ImageField(
