@@ -30,6 +30,9 @@ def calculate_hash(user,image_path):
 import os
 
 def should_skip(filepath):
+    if not os.getenv('SKIP_PATTERNS'):
+        return False
+        
     skipPatterns = os.getenv('SKIP_PATTERNS')
     skipList = skipPatterns.split(',')
     skipList = map(str.strip, skipList)
