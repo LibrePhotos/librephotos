@@ -1,54 +1,40 @@
-import React, { Component } from 'react';
+import React, { Component } from "react";
 import {
   Form,
   Radio,
-  Label,
-  Step,
-  Progress,
   List,
   Grid,
-  Image,
   Icon,
-  Item,
   Header,
   Segment,
-  Accordion,
-  Container,
-  Message,
   Input,
   Button,
-  Loader,
   Table,
-  Dropdown,
   Popup,
   Divider,
-} from 'semantic-ui-react';
-import {connect} from 'react-redux';
-import {Link} from 'react-router-dom';
-import Modal from 'react-modal';
-import moment from 'moment';
+} from "semantic-ui-react";
+import { connect } from "react-redux";
+import { Link } from "react-router-dom";
+import Modal from "react-modal";
 import {
   fetchCountStats,
   generateEventAlbums,
   generateEventAlbumTitles,
   fetchSiteSettings,
   updateUser,
+  manageUpdateUser,
   fetchNextcloudDirectoryTree,
   fetchJobList,
-} from '../actions/utilActions';
-import {trainFaces} from '../actions/facesActions';
-import {
-  scanPhotos,
-  scanNextcloudPhotos
-} from '../actions/photosActions';
-import {fetchUserSelfDetails} from '../actions/userActions';
-import {CountStats} from '../components/statistics';
-import Dropzone from 'react-dropzone';
-import AvatarEditor from 'react-avatar-editor';
-import MaterialIcon, {colorPallet} from 'material-icons-react';
-import SortableTree from 'react-sortable-tree';
-import FileExplorerTheme from 'react-sortable-tree-theme-file-explorer';
-
+} from "../actions/utilActions";
+import { trainFaces } from "../actions/facesActions";
+import { scanPhotos, scanNextcloudPhotos } from "../actions/photosActions";
+import { fetchUserSelfDetails } from "../actions/userActions";
+import { CountStats } from "../components/statistics";
+import Dropzone from "react-dropzone";
+import AvatarEditor from "react-avatar-editor";
+import MaterialIcon, { colorPallet } from "material-icons-react";
+import SortableTree from "react-sortable-tree";
+import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
 
 export class Settings extends Component {
   state = {
@@ -66,11 +52,11 @@ export class Settings extends Component {
     this.dropzoneRef = React.createRef();
   }
 
-  onPhotoScanButtonClick = e => {
+  onPhotoScanButtonClick = (e) => {
     this.props.dispatch(scanPhotos());
   };
 
-  onGenerateEventAlbumsButtonClick = e => {
+  onGenerateEventAlbumsButtonClick = (e) => {
     this.props.dispatch(generateEventAlbums());
   };
 
@@ -78,7 +64,7 @@ export class Settings extends Component {
     this.props.dispatch(fetchCountStats());
     this.props.dispatch(fetchSiteSettings());
     this.props.dispatch(fetchUserSelfDetails(this.props.auth.access.user_id));
-    this.props.dispatch(fetchNextcloudDirectoryTree('/'));
+    this.props.dispatch(fetchNextcloudDirectoryTree("/"));
     if (this.props.auth.access.is_admin) {
       this.props.dispatch(fetchJobList());
     }
@@ -86,12 +72,12 @@ export class Settings extends Component {
 
   onAvatarFileDrop(files) {
     console.log(files);
-    this.setState({avatarImgSrc: files[0].preview});
+    this.setState({ avatarImgSrc: files[0].preview });
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
     if (!prevState.userSelfDetails.id && nextProps.userSelfDetails.id) {
-      return {...prevState, userSelfDetails: nextProps.userSelfDetails};
+      return { ...prevState, userSelfDetails: nextProps.userSelfDetails };
     }
 
     return prevState;
@@ -103,14 +89,14 @@ export class Settings extends Component {
     } else if (this.state.avatarImgSrc) {
       var avatarImgSrc = this.state.avatarImgSrc;
     } else {
-      var avatarImgSrc = '/unknown_user.jpg';
+      var avatarImgSrc = "/unknown_user.jpg";
     }
 
     let buttonsDisabled = !this.props.workerAvailability;
     buttonsDisabled = false;
 
     return (
-      <div style={{padding: 10}}>
+      <div style={{ padding: 10 }}>
         <Header as="h2">
           <MaterialIcon icon="settings" color="#000000" size={32} />
           <Header.Content>Settings</Header.Content>
@@ -128,14 +114,15 @@ export class Settings extends Component {
               <Grid.Column width={12}>
                 <div
                   style={{
-                    display: 'inline-block',
-                    verticalAlign: 'top',
+                    display: "inline-block",
+                    verticalAlign: "top",
                     padding: 5,
-                  }}>
+                  }}
+                >
                   <Dropzone
                     disableClick
-                    style={{width: 150, height: 150, borderRadius: 75}}
-                    ref={node => {
+                    style={{ width: 150, height: 150, borderRadius: 75 }}
+                    ref={(node) => {
                       this.dropzoneRef = node;
                     }}
                     onDrop={(accepted, rejected) => {
@@ -143,7 +130,8 @@ export class Settings extends Component {
                       this.setState({
                         avatarImgSrc: accepted[0].preview,
                       });
-                    }}>
+                    }}
+                  >
                     <AvatarEditor
                       width={150}
                       height={150}
@@ -154,10 +142,11 @@ export class Settings extends Component {
                 </div>
                 <div
                   style={{
-                    display: 'inline-block',
-                    verticalAlign: 'top',
+                    display: "inline-block",
+                    verticalAlign: "top",
                     padding: 5,
-                  }}>
+                  }}
+                >
                   <p>
                     <b>Upload new avatar</b>
                   </p>
@@ -165,7 +154,8 @@ export class Settings extends Component {
                     size="small"
                     onClick={() => {
                       this.dropzoneRef.open();
-                    }}>
+                    }}
+                  >
                     <Icon name="image" />
                     Choose image
                   </Button>
@@ -188,19 +178,64 @@ export class Settings extends Component {
                   <Form.Group widths="equal">
                     <Form.Input
                       fluid
+                      onChange={(e, d) => {
+                        this.setState({
+                          userSelfDetails: {
+                            ...this.state.userSelfDetails,
+                            first_name: d.value,
+                          },
+                        });
+                        console.log(d.value);
+                      }}
                       label="First name"
                       placeholder="First name"
+                      value={this.state.userSelfDetails.first_name}
                     />
                     <Form.Input
                       fluid
+                      onChange={(e, d) => {
+                        this.setState({
+                          userSelfDetails: {
+                            ...this.state.userSelfDetails,
+                            last_name: d.value,
+                          },
+                        });
+                        console.log(d.value);
+                      }}
                       label="Last name"
                       placeholder="Last name"
+                      value={this.state.userSelfDetails.last_name}
                     />
                   </Form.Group>
-                  <Form.Input fluid label="E-mail" placeholder="email" />
-                </Form>{' '}
-                <div style={{paddingTop: 10}}>
-                  <Button size="small" color="green" floated="left">
+                  <Form.Input
+                    fluid
+                    label="E-mail"
+                    placeholder="email"
+                    value={this.state.userSelfDetails.email}
+                    onChange={(e, d) => {
+                      this.setState({
+                        userSelfDetails: {
+                          ...this.state.userSelfDetails,
+                          last_name: d.value,
+                        },
+                      });
+                      console.log(d.value);
+                    }}
+                  />
+                </Form>{" "}
+                <div style={{ paddingTop: 10 }}>
+                  <Button
+                    size="small"
+                    color="green"
+                    floated="left"
+                    onClick={() => {
+                      const newUserData = this.state.userSelfDetails;
+                      console.log(newUserData);
+                      delete newUserData["scan_directory"];
+                      this.props.dispatch(updateUser(newUserData));
+                      this.props.onRequestClose();
+                    }}
+                  >
                     Update profile settings
                   </Button>
                   <Button size="small" basic floated="right">
@@ -221,7 +256,8 @@ export class Settings extends Component {
                   action
                   fluid
                   disabled
-                  placeholder={this.props.auth.access.scan_directory}>
+                  placeholder={this.props.auth.access.scan_directory}
+                >
                   <input />
                   <Popup
                     inverted
@@ -264,7 +300,8 @@ export class Settings extends Component {
                       console.log(d.value);
                     }}
                     label="Server address"
-                    placeholder="https://...">
+                    placeholder="https://..."
+                  >
                     <input
                       value={
                         this.state.userSelfDetails.nextcloud_server_address
@@ -283,7 +320,8 @@ export class Settings extends Component {
                       console.log(d.value);
                     }}
                     label="User name"
-                    placeholder="User name">
+                    placeholder="User name"
+                  >
                     <input
                       value={this.state.userSelfDetails.nextcloud_username}
                     />
@@ -304,18 +342,19 @@ export class Settings extends Component {
                     placeholder="Nextcloud App Password"
                   />
                 </Form.Group>
-              </Form>{' '}
+              </Form>{" "}
               <div>
                 <Button
                   disabled={!this.state.userSelfDetails.nextcloud_app_password}
                   onClick={() => {
                     const ud = this.state.userSelfDetails;
-                    delete ud['scan_directory'];
+                    delete ud["scan_directory"];
                     this.props.dispatch(updateUser(ud));
                   }}
                   size="small"
                   color="blue"
-                  floated="left">
+                  floated="left"
+                >
                   Update Nextcloud credentials
                 </Button>
                 <Button
@@ -326,7 +365,8 @@ export class Settings extends Component {
                   }}
                   size="small"
                   basic
-                  floated="right">
+                  floated="right"
+                >
                   Cancel
                 </Button>
               </div>
@@ -341,7 +381,7 @@ export class Settings extends Component {
                     size="small"
                     name="circle"
                     color={
-                      this.props.fetchedNextcloudDirectoryTree ? 'green' : 'red'
+                      this.props.fetchedNextcloudDirectoryTree ? "green" : "red"
                     }
                   />
                 }
@@ -349,8 +389,8 @@ export class Settings extends Component {
                 position="right center"
                 content={
                   this.props.fetchedNextcloudDirectoryTree
-                    ? 'Logged into Nextcloud'
-                    : 'Not logged into Nextcloud'
+                    ? "Logged into Nextcloud"
+                    : "Not logged into Nextcloud"
                 }
               />
             </Grid.Column>
@@ -366,14 +406,18 @@ export class Settings extends Component {
                 }
                 placeholder={
                   this.props.userSelfDetails.nextcloud_scan_directory
-                }>
-                <input value={this.props.userSelfDetails.nextcloud_scan_directory} />
+                }
+              >
+                <input
+                  value={this.props.userSelfDetails.nextcloud_scan_directory}
+                />
                 <Button
                   disabled={!this.props.fetchedNextcloudDirectoryTree}
                   onClick={() => {
-                    this.setState({modalNextcloudScanDirectoryOpen: true});
+                    this.setState({ modalNextcloudScanDirectoryOpen: true });
                   }}
-                  type="submit">
+                  type="submit"
+                >
                   Change
                 </Button>
               </Input>
@@ -400,11 +444,11 @@ export class Settings extends Component {
                       value="loose"
                       onChange={() =>
                         this.props.dispatch({
-                          type: 'SET_GRID_TYPE',
-                          payload: 'loose',
+                          type: "SET_GRID_TYPE",
+                          payload: "loose",
                         })
                       }
-                      checked={this.props.gridType === 'loose'}
+                      checked={this.props.gridType === "loose"}
                     />
                   </Form.Field>
                   <Form.Field>
@@ -414,11 +458,11 @@ export class Settings extends Component {
                       value="dense"
                       onChange={() =>
                         this.props.dispatch({
-                          type: 'SET_GRID_TYPE',
-                          payload: 'dense',
+                          type: "SET_GRID_TYPE",
+                          payload: "dense",
                         })
                       }
-                      checked={this.props.gridType === 'dense'}
+                      checked={this.props.gridType === "dense"}
                     />
                   </Form.Field>
                 </Form.Group>
@@ -446,7 +490,8 @@ export class Settings extends Component {
                   fluid
                   color="green"
                   onClick={this.onPhotoScanButtonClick}
-                  disabled={buttonsDisabled}>
+                  disabled={buttonsDisabled}
+                >
                   <Icon
                     name="refresh"
                     loading={
@@ -455,11 +500,9 @@ export class Settings extends Component {
                     }
                   />
                   {this.props.statusPhotoScan.added
-                    ? 'Scanning photos (file system)' +
-                      `(${this.props.statusPhotoScan.added}/${
-                        this.props.statusPhotoScan.to_add
-                      })`
-                    : 'Scan photos (file system)'}
+                    ? "Scanning photos (file system)" +
+                      `(${this.props.statusPhotoScan.added}/${this.props.statusPhotoScan.to_add})`
+                    : "Scan photos (file system)"}
                 </Button>
                 <Button
                   attached="bottom"
@@ -472,7 +515,8 @@ export class Settings extends Component {
                     buttonsDisabled ||
                     !this.props.userSelfDetails.nextcloud_scan_directory
                   }
-                  color="blue">
+                  color="blue"
+                >
                   <Icon name="refresh" />
                   Scan photos (Nextcloud)
                 </Button>
@@ -496,7 +540,7 @@ export class Settings extends Component {
                   <List.Item>Generate image captions </List.Item>
                   <List.Item>Extract Exif information </List.Item>
                   <List.Item>
-                    Reverse geolocate to get location names from GPS coordinates{' '}
+                    Reverse geolocate to get location names from GPS coordinates{" "}
                   </List.Item>
                   <List.Item>Extract faces. </List.Item>
                   <List.Item>Add photo to thing and place albums. </List.Item>
@@ -511,10 +555,11 @@ export class Settings extends Component {
                 <Divider />
                 <Button
                   fluid
-                  attached={this.state.accordionTwoActive ? 'bottom' : false}
+                  attached={this.state.accordionTwoActive ? "bottom" : false}
                   onClick={this.onGenerateEventAlbumsButtonClick}
                   disabled={false && buttonsDisabled}
-                  color="green">
+                  color="green"
+                >
                   <Icon name="wizard" />
                   Generate Event Albums
                 </Button>
@@ -528,14 +573,15 @@ export class Settings extends Component {
                 </p>
                 <Divider />
                 <Button
-                  attached={this.state.accordionThreeActive ? 'bottom' : false}
+                  attached={this.state.accordionThreeActive ? "bottom" : false}
                   onClick={() => {
                     this.props.dispatch(generateEventAlbumTitles());
                   }}
                   indicating="true"
                   disabled={false && buttonsDisabled}
                   color="green"
-                  fluid>
+                  fluid
+                >
                   <Icon name="wizard" />
                   Regenerate Event Titles
                 </Button>
@@ -552,7 +598,7 @@ export class Settings extends Component {
             <Grid.Column>
               <Segment>
                 <Header textAlign="center">
-                  {this.props.util.countStats.num_faces} Faces,{' '}
+                  {this.props.util.countStats.num_faces} Faces,{" "}
                   {this.props.util.countStats.num_people} People
                 </Header>
                 <Divider />
@@ -561,7 +607,8 @@ export class Settings extends Component {
                     this.props.dispatch(trainFaces());
                   }}
                   fluid
-                  color="green">
+                  color="green"
+                >
                   <Icon name="lightning" /> Train Faces
                 </Button>
                 <Divider hidden />
@@ -612,10 +659,60 @@ export class Settings extends Component {
             </Grid.Column>
           </Grid.Row>
         </Grid>
+        <Divider />
+
+        <Header as="h3">Scan Options</Header>
+        <Grid>
+          <Grid.Row>
+            <Grid.Column width={4} textAlign="left">
+              <b>Scene Confidence</b>
+            </Grid.Column>
+            <Grid.Column width={12}>
+              <select
+                value={this.state.userSelfDetails.confidence}
+                onChange={(event) => {
+                  this.setState({
+                    userSelfDetails: {
+                      ...this.state.userSelfDetails,
+                      confidence: event.target.value,
+                    },
+                  });
+                  console.log(this.state.userSelfDetails);
+                }}
+              >
+                <option value="" disabled selected>
+                  Confidence Level
+                </option>
+                <option value="0.5">High</option>
+                <option value="0.1">Standard</option>
+                <option value="0.05">Low</option>
+                <option value="0">None</option>
+              </select>
+              </Grid.Column>
+              <Grid.Column width={12}>
+              <Button
+                type="submit"
+                color="green"
+                onClick={() => {
+                  const newUserData = {
+                    ...this.state.userSelfDetails,
+                    confidence: this.state.userSelfDetails.confidence,
+                  };
+                  console.log(newUserData);
+                  delete newUserData["scan_directory"];
+                  this.props.dispatch(manageUpdateUser(newUserData));
+                  this.props.onRequestClose();
+                }}
+              >
+                Update
+              </Button>
+              </Grid.Column>
+          </Grid.Row>
+        </Grid>
 
         <ModalNextcloudScanDirectoryEdit
           onRequestClose={() => {
-            this.setState({modalNextcloudScanDirectoryOpen: false});
+            this.setState({ modalNextcloudScanDirectoryOpen: false });
           }}
           userToEdit={this.state.userSelfDetails}
           isOpen={this.state.modalNextcloudScanDirectoryOpen}
@@ -632,38 +729,34 @@ const modalStyles = {
     right: 50,
     height: window.innerHeight - 100,
 
-    overflow: 'hidden',
-    // paddingRight:0,
-    // paddingBottomt:0,
-    // paddingLeft:10,
-    // paddingTop:10,
+    overflow: "hidden",
     padding: 0,
-    backgroundColor: 'white',
+    backgroundColor: "white",
   },
   overlay: {
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    position: 'fixed',
+    position: "fixed",
     borderRadius: 0,
     border: 0,
     zIndex: 102,
-    backgroundColor: 'rgba(200,200,200,0.8)',
+    backgroundColor: "rgba(200,200,200,0.8)",
   },
 };
 
 class ModalNextcloudScanDirectoryEdit extends Component {
   constructor(props) {
     super(props);
-    this.state = {newScanDirectory: '', treeData: []};
+    this.state = { newScanDirectory: "", treeData: [] };
     this.nodeClicked = this.nodeClicked.bind(this);
     this.inputRef = React.createRef();
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
     if (prevState.treeData.length === 0) {
-      return {...prevState, treeData: nextProps.nextcloudDirectoryTree};
+      return { ...prevState, treeData: nextProps.nextcloudDirectoryTree };
     } else {
       return prevState;
     }
@@ -672,7 +765,7 @@ class ModalNextcloudScanDirectoryEdit extends Component {
   nodeClicked(event, rowInfo) {
     console.log(rowInfo);
     this.inputRef.current.inputRef.value = rowInfo.node.absolute_path;
-    this.setState({newScanDirectory: rowInfo.node.absolute_path});
+    this.setState({ newScanDirectory: rowInfo.node.absolute_path });
   }
 
   render() {
@@ -683,82 +776,85 @@ class ModalNextcloudScanDirectoryEdit extends Component {
         isOpen={this.props.isOpen}
         onRequestClose={() => {
           this.props.onRequestClose();
-          this.setState({newScanDirectory: ''});
+          this.setState({ newScanDirectory: "" });
         }}
         style={modalStyles}
         onAfterOpen={() => {
-          this.props.dispatch(fetchNextcloudDirectoryTree('/'));
-        }}>
-        <div style={{padding: 10}}>
+          this.props.dispatch(fetchNextcloudDirectoryTree("/"));
+        }}
+      >
+        <div style={{ padding: 10 }}>
           <Header as="h3">Set your Nextcloud scan directory</Header>
         </div>
-        <div style={{padding: 10}}>
+        <div style={{ padding: 10 }}>
           <Header as="h5">Current Nextcloud scan directory</Header>
         </div>
-        <div style={{padding: 7}}>
+        <div style={{ padding: 7 }}>
           <Input
             ref={this.inputRef}
             type="text"
             placeholder={
               this.props.userToEdit
-                ? this.props.userToEdit.nextcloud_scan_directory === ''
-                  ? 'not set'
+                ? this.props.userToEdit.nextcloud_scan_directory === ""
+                  ? "not set"
                   : this.props.userToEdit.nextcloud_scan_directory
-                : '...'
+                : "..."
             }
             action
-            fluid>
+            fluid
+          >
             <input value={this.state.newScanDirectory} />
             <Button
-              disabled={this.state.newScanDirectory === ''}
               type="submit"
               color="green"
               onClick={() => {
                 const newUserData = {
                   ...this.props.userToEdit,
-                  nextcloud_scan_directory: this.state.newScanDirectory,
                 };
                 console.log(newUserData);
                 const ud = newUserData;
-                delete ud['scan_directory'];
+                delete ud["scan_directory"];
                 this.props.dispatch(updateUser(ud));
                 this.props.onRequestClose();
-              }}>
+              }}
+            >
               Update
             </Button>
             <Button
               onClick={() => {
                 this.props.onRequestClose();
-              }}>
+              }}
+            >
               Cancel
             </Button>
           </Input>
         </div>
         <Divider />
-        <div style={{paddingLeft: 10}}>
+        <div style={{ paddingLeft: 10 }}>
           <Header as="h5">Choose a directory from below</Header>
         </div>
         <div
           style={{
             height: window.innerHeight - 100 - 40.44 - 36 - 52 - 30 - 10,
-            width: '100%',
+            width: "100%",
             paddingLeft: 7,
             paddingTop: 7,
             paddingBottom: 7,
-          }}>
+          }}
+        >
           <SortableTree
-            innerStyle={{outline: 'none'}}
+            innerStyle={{ outline: "none" }}
             canDrag={() => false}
             canDrop={() => false}
             treeData={this.state.treeData}
-            onChange={treeData => this.setState({treeData})}
+            onChange={(treeData) => this.setState({ treeData })}
             theme={FileExplorerTheme}
-            generateNodeProps={rowInfo => {
+            generateNodeProps={(rowInfo) => {
               let nodeProps = {
-                onClick: event => this.nodeClicked(event, rowInfo),
+                onClick: (event) => this.nodeClicked(event, rowInfo),
               };
               if (this.state.selectedNodeId === rowInfo.node.id) {
-                nodeProps.className = 'selected-node';
+                nodeProps.className = "selected-node";
               }
               return nodeProps;
             }}
@@ -769,89 +865,7 @@ class ModalNextcloudScanDirectoryEdit extends Component {
   }
 }
 
-class JobList extends Component {
-  componentDidMount() {
-    if (this.props.auth.access.is_admin) {
-      this.props.dispatch(fetchJobList());
-    }
-  }
-
-  render() {
-    return (
-      <div>
-        <Table celled compact basic>
-          <Table.Header>
-            <Table.Row>
-              <Table.HeaderCell>Finished</Table.HeaderCell>
-              <Table.HeaderCell>Failed</Table.HeaderCell>
-              <Table.HeaderCell>Job Type</Table.HeaderCell>
-              <Table.HeaderCell>Time Started</Table.HeaderCell>
-              <Table.HeaderCell>Time Finished</Table.HeaderCell>
-              <Table.HeaderCell>Duration</Table.HeaderCell>
-              <Table.HeaderCell>Started By</Table.HeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {this.props.jobList.map(job => {
-              return (
-                <Table.Row
-                  key={job.job_id}
-                  error={job.failed}
-                  positive={!job.failed}
-                  warning={!job.finished_at}>
-                  <Table.Cell>{job.finished ? 'true' : 'false'}</Table.Cell>
-                  <Table.Cell>
-                    {job.finished
-                      ? job.failed
-                        ? 'true'
-                        : 'false'
-                      : 'stil running...'}
-                  </Table.Cell>
-                  <Table.Cell>{job.job_type_str}</Table.Cell>
-                  <Table.Cell>
-                    {moment(job.started_at).format('YYYY-MM-DD') +
-                      ' (' +
-                      moment(job.started_at).fromNow() +
-                      ')'}
-                  </Table.Cell>
-                  <Table.Cell>
-                    {job.finished_at
-                      ? moment(job.finished_at).format('YYYY-MM-DD') +
-                        ' (' +
-                        moment(job.finished_at).fromNow() +
-                        ')'
-                      : 'still running...'}
-                  </Table.Cell>
-                  <Table.Cell>
-                    {job.finished
-                      ? moment
-                          .duration(
-                            moment(job.finished_at) - moment(job.started_at),
-                          )
-                          .humanize()
-                      : 'still running...'}
-                  </Table.Cell>
-                  <Table.Cell>{job.started_by.username}</Table.Cell>
-                </Table.Row>
-              );
-            })}
-          </Table.Body>
-        </Table>
-      </div>
-    );
-  }
-}
-
-JobList = connect(store => {
-  return {
-    auth: store.auth,
-    jobList: store.util.jobList,
-    fetchingJobList: store.util.fetchingJobList,
-    fetchedJobList: store.util.fetchedJobList,
-  };
-})(JobList);
-
-ModalNextcloudScanDirectoryEdit = connect(store => {
+ModalNextcloudScanDirectoryEdit = connect((store) => {
   return {
     auth: store.auth,
 
@@ -865,7 +879,7 @@ ModalNextcloudScanDirectoryEdit = connect(store => {
   };
 })(ModalNextcloudScanDirectoryEdit);
 
-Settings = connect(store => {
+Settings = connect((store) => {
   return {
     auth: store.auth,
     util: store.util,

@@ -422,28 +422,16 @@ class ModalScanDirectoryEdit extends Component {
                       action
                       fluid>
                     <input />
-                    <select
-                        onChange={event => {this.state.newConfidence = event.target.value}}>
-                        <option value="" disabled selected>Confidence Level</option>
-                        <option value="0.5">High</option>
-                        <option value="0.1">Standard</option>
-                        <option value="0.05">Low</option>
-                        <option value="0">None</option>
-                    </select>
                     <Button
                         type="submit"
                         color="green"
                         onClick={() => {
-                            if (this.state.newConfidence === "") {
-                                this.state.newConfidence = this.props.userToEdit.confidence;
-                            }
                             if (this.state.newScanDirectory === "") {
                                 this.state.newScanDirectory = this.props.userToEdit.scan_directory;
                             }
                           const newUserData = {
                             ...this.props.userToEdit,
                             scan_directory: this.state.newScanDirectory,
-                            confidence: this.state.newConfidence
                           };
                           console.log(newUserData);
                           this.props.dispatch(manageUpdateUser(newUserData));
