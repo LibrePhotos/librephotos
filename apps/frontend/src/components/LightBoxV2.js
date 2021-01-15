@@ -1,23 +1,10 @@
 import React, {Component} from 'react';
-import ReactDOM from 'react-dom';
-import { List, WindowScroller,AutoSizer } from 'react-virtualized';
 import 'react-virtualized/styles.css'; // only needs to be imported once
 import { connect } from "react-redux";
-import {  fetchDateAlbumsPhotoHashList,fetchAlbumsDateGalleries} from '../actions/albumsActions'
-import {  fetchPhotoDetail, setPhotosFavorite, setPhotosHidden} from '../actions/photosActions'
 import { Card, Image, Header, Divider, Item, Loader, Dimmer, Sticky, Portal, Grid, List as ListSUI,
          Container, Label, Popup, Segment, Button, Icon, Table, Transition, Breadcrumb} from 'semantic-ui-react';
 import {Server, serverAddress} from '../api_client/apiClient'
 import Modal from 'react-modal'
-import LazyLoad from 'react-lazyload';
-import Lightbox from 'react-image-lightbox';
-import {LocationMap} from '../components/maps'
-import { push } from 'react-router-redux'
-import {searchPhotos} from '../actions/searchActions'
-import styles from '../App.css';
-import Draggable from 'react-draggable';
-import debounce from 'lodash/debounce'
-import * as moment from 'moment';
 
 var topMenuHeight = 55 // don't change this
 var leftMenuWidth = 85 // don't change this
@@ -181,10 +168,6 @@ LightBoxV2 = connect((store)=>{
     photoDetails: store.photos.photoDetails,
     fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
     fetchedPhotoDetail: store.photos.fetchedPhotoDetail,
-    photos:store.photos.photos,
-    // idx2hash: store.albums.idx2hash,
-    // albumsDatePhotoHashList: store.albums.albumsDatePhotoHashList,
-    // fetchingAlbumsDatePhotoHashList: store.albums.fetchingAlbumsDatePhotoHashList,
-    // fetchedAlbumsDatePhotoHashList: store.albums.fetchedAlbumsDatePhotoHashList,    
+    photos:store.photos.photos,   
   }
 })(LightBoxV2)

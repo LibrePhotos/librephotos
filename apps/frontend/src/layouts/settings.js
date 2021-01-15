@@ -216,7 +216,7 @@ export class Settings extends Component {
                       this.setState({
                         userSelfDetails: {
                           ...this.state.userSelfDetails,
-                          last_name: d.value,
+                          email: d.value,
                         },
                       });
                       console.log(d.value);

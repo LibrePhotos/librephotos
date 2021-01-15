@@ -717,9 +717,5 @@ LightBox = connect(store => {
     generatingCaptionIm2txt: store.photos.generatingCaptionIm2txt,
     generatedCaptionIm2txt: store.photos.generatedCaptionIm2txt,
     photos: store.photos.photos
-    // idx2hash: store.albums.idx2hash,
-    // albumsDatePhotoHashList: store.albums.albumsDatePhotoHashList,
-    // fetchingAlbumsDatePhotoHashList: store.albums.fetchingAlbumsDatePhotoHashList,
-    // fetchedAlbumsDatePhotoHashList: store.albums.fetchedAlbumsDatePhotoHashList,
   };
 })(LightBox);
