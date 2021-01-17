@@ -1,9 +1,7 @@
 ---
 title: "LibrePhotos Installation Guide"
 excerpt: "How to install Libre Photos"
-sidebar: ""
 author_profile: true
-permalink: /
 ---
 
 {% assign posts_size = site.posts | size %}
