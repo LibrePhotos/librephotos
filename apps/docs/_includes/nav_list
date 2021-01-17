@@ -10,7 +10,10 @@
       {% capture category_name %}{{ category | first }}{% endcapture %}
       {% assign category_articles = site.categories[category_name] | reverse %}
       <li>
-        <a href="/{{ category_name | slugify }}"><span class="nav__sub-title">{{ category_name }}</span></a>
+        {% assign category_name_split = category_name | replace: "-", " " | replace: "_", "-" | split: " " %}
+        {% capture category_name_capitalised %}{% for word in category_name_split %}{{ word | capitalize }} {% endfor %}{% endcapture %}
+
+        <a href="/{{ category_name }}"><span class="nav__sub-title">{{ category_name_capitalised }}</span></a>
 
         {% if category_articles != null %}
         <ul>

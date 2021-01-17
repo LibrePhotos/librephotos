@@ -139,6 +139,7 @@ defaults:
       path: ""
     values:
       author_profile: false
+      toc_sticky: true
       sidebar:
         nav: "docs"
   # _pages
