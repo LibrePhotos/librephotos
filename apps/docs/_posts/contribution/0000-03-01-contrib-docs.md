@@ -20,7 +20,7 @@ Categories how we organize all the articles. Categories have to be declared in t
 | Category Name          | Category Number |
 | :--------------------- | :-------------- |
 {% for category in site.data.categories %}
-| category.name | category.id |
+| {{ category.name }} | {{ category.id }} |
 {% endfor %}
 
 Let's take a moment to look at each section of the file name. 
