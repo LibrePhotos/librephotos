@@ -20,7 +20,7 @@ Categories how we organize the information. Categories have to be declared in tw
 
 
 | Category Name          | Category Number |
-| ---------------------- | --------------- |
+| :--------------------- | :-------------- |
 | Installation           | 01              |
 | Data Collection        | 02              |
 | Contribution           | 03              |
@@ -53,11 +53,13 @@ This is the category number from above should always be two digits.
 At the start of each page there needs to be a little bit of header info so that the documents can be built correctly. 
 The minimum that needs to be include is as below. 
 
-'---
-title: "Testing"
-excerpt: "A test article."
-last_modified_at: 2020-01-17
-category: test-category
----'
+```markdown
+---
+title: "Structure"
+excerpt: "How the theme is organized and what all of the files are for."
+last_modified_at: 2018-03-20
+category: getting-started
+---
+```
 
 Use a category name from the table above to ensure proper documentation build. 
