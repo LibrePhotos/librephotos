@@ -163,6 +163,11 @@ else:
     redis_path = "redis://" + os.environ['REDIS_HOST']
     redis_path += ":" + os.environ["REDIS_PORT"] + "/1"
 
+if 'REDIS_PASS' in os.environ:
+    redis_password = os.environ['REDIS_PASS']
+else:
+    redis_password = ""
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
@@ -170,6 +175,7 @@ CACHES = {
         "TIMEOUT": 60 * 60 * 24,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "PASSWORD": redis_password,
         }
     }
 }

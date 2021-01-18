@@ -1,5 +1,4 @@
 from datetime import datetime
-import dateutil.parser as dateparser
 import PIL
 from PIL import ImageOps
 from django.db import models
@@ -32,9 +31,6 @@ from django.contrib.postgres.fields import JSONField
 
 from api.places365.places365 import inference_places365
 from api.im2txt.sample import im2txt
-
-import requests
-import base64
 
 from django_cryptography.fields import encrypt
 from api.im2vec import Im2Vec
@@ -109,20 +105,13 @@ class VisiblePhotoManager(models.Manager):
 
 class Photo(models.Model):
     image_path = models.CharField(max_length=512, db_index=True)
-    # md5_{user.id}
     image_hash = models.CharField(primary_key=True, max_length=64, null=False)
 
-    thumbnail = models.ImageField(upload_to='thumbnails')
-    thumbnail_tiny = models.ImageField(upload_to='thumbnails_tiny')
-    thumbnail_small = models.ImageField(upload_to='thumbnails_small')
     thumbnail_big = models.ImageField(upload_to='thumbnails_big')
 
     square_thumbnail = models.ImageField(upload_to='square_thumbnails')
-    square_thumbnail_tiny = models.ImageField(
-        upload_to='square_thumbnails_tiny')
     square_thumbnail_small = models.ImageField(
         upload_to='square_thumbnails_small')
-    square_thumbnail_big = models.ImageField(upload_to='square_thumbnails_big')
 
     image = models.ImageField(upload_to='photos')
 
@@ -188,41 +177,6 @@ class Photo(models.Model):
         image_path = self.thumbnail_big.path
         captions = {}
 
-        # im2txt disabled for now
-        if False:
-            try:
-                caption = im2txt(image_path)
-                caption = caption.replace("<start>", '').replace(
-                    "<end>", '').strip().lower()
-                captions['im2txt'] = caption
-                self.captions_json = captions
-                self.search_captions = caption
-                self.save()
-                util.logger.info(
-                    'generated im2txt captions for image %s. caption: %s' %
-                    (image_path, caption))
-            except:
-                util.logger.warning(
-                    'could not generate im2txt captions for image %s' %
-                    image_path)
-
-        # densecap disabled for now
-        if False:
-            try:
-                with open(image_path, "rb") as image_file:
-                    encoded_string = base64.b64encode(image_file.read())
-                encoded_string = str(encoded_string)[2:-1]
-                resp_captions = requests.post(
-                    'http://localhost:5000/', data=encoded_string)
-                captions['densecap'] = resp_captions.json()['data'][:10]
-                self.search_captions = ' , '.join(
-                    resp_captions.json()['data'][:10])
-                self.save()
-            except:
-                util.logger.warning(
-                    'could not generate densecap captions for image %s' %
-                    image_path)
-
         # places365
         try:
             confidence = self.owner.confidence
@@ -277,11 +231,14 @@ class Photo(models.Model):
             image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_BIG,
                             PIL.Image.ANTIALIAS)
             image_io_thumb = BytesIO()
-            
             image.save(image_io_thumb, format="JPEG")
-            self.thumbnail_big.save(self.image_hash + '.jpg',
-                                ContentFile(image_io_thumb.getvalue()))
+            self.thumbnail_big.save(
+                self.image_hash + '.jpg',
+                ContentFile(image_io_thumb.getvalue()))
             image_io_thumb.close()
+        #thumbnail already exists, add to photo
+        else:
+            self.thumbnail_big.name=os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()
 
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()):
             square_thumb = ImageOps.fit(image,
@@ -293,6 +250,9 @@ class Photo(models.Model):
                 self.image_hash + '.jpg',
                 ContentFile(image_io_square_thumb.getvalue()))
             image_io_square_thumb.close()
+        #thumbnail already exists, add to photo
+        else:
+            self.square_thumbnail.name=os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()
 
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()):
             square_thumb = ImageOps.fit(image,
@@ -304,6 +264,10 @@ class Photo(models.Model):
                 self.image_hash + '.jpg',
                 ContentFile(image_io_square_thumb.getvalue()))
             image_io_square_thumb.close()
+        #thumbnail already exists, add to photo
+        else:
+            self.square_thumbnail_small.name=os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()
+        self.save()
 
     def _save_image_to_db(self):
         image = self.get_pil_image()
