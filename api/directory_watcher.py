@@ -37,6 +37,16 @@ def calculate_hash(user, image_path):
             hash_md5.update(chunk)
     return hash_md5.hexdigest() + str(user.id)
 
+def should_skip(filepath):
+    if not os.getenv('SKIP_PATTERNS'):
+        return False
+        
+    skipPatterns = os.getenv('SKIP_PATTERNS')
+    skipList = skipPatterns.split(',')
+    skipList = map(str.strip, skipList)
+
+    res = [ele for ele in skipList if(ele in filepath)] 
+    return bool(res)
 
 if os.name == "Windows":
 
@@ -164,7 +174,7 @@ def rescan_image(user, image_path, job_id):
 def walk_directory(directory, callback):
     for file in os.scandir(directory):
         fpath = os.path.join(directory, file)
-        if not is_hidden(fpath):
+        if not is_hidden(fpath) and not should_skip(fpath):            
             if os.path.isdir(fpath):
                 walk_directory(fpath, callback)
             else:
