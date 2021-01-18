@@ -88,6 +88,11 @@ body {
     border-bottom: 1px solid $border-color;
   }
 
+  h3 {
+    padding-bottom: 0.25em;
+    border-bottom: 0.5px solid $border-color;
+  }
+
 	h1, h2, h3, h4, h5, h6 {
 		.header-link {
 			position: relative;
