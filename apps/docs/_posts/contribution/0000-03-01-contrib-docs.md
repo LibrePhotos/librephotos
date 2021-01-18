@@ -2,7 +2,7 @@
 title: "LibrePhotos Docs: How-To"
 excerpt: "How to use contribute to the LibrePhotos documentation."
 last_modified_at: 2020-01-18
-category: contribution
+category: 3
 ---
 
 ## Overview
@@ -15,20 +15,13 @@ Now below is just some quick information on our standardized category names and 
 
 ## Categories explained
 
-Categories how we organize all the articles. Categories have to be declared in two locations: in the file name, and in the file itself.
+Categories how we organize all the articles. Categories have to be declared in the file name, and in the file itself.
 
 | Category Name          | Category Number |
 | :--------------------- | :-------------- |
-| installation           | 01              |
-| data-collection        | 02              |
-| contribution           | 03              |
-| dev-resources-frontend | 04              |
-| dev-resources-backend  | 05              |
-| dev-resources-nginx    | 06              |
-| dev-resources-redress  | 07              |
-| dev-resources-docker   | 08              |
-
-Note that any dashes (`-`) in category names will be converted to spaces, and any underscores (`_`) will be converted to dashes (`-`). Each word will be capitalized.
+{% for category in site.data.categories %}
+| category.name | category.id |
+{% endfor %}
 
 Let's take a moment to look at each section of the file name. 
 
@@ -61,7 +54,7 @@ At the start of each page, there needs to be header info, so that the documents 
 title: "Article Title"
 excerpt: "A short description of what the article is about."
 last_modified_at: 2020-01-18
-category: getting-started
+category: 1
 ---
 ```
 
