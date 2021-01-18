@@ -17,17 +17,20 @@ Now below is just some quick information on our standardized category names and 
 
 Categories how we organize all the articles. Categories have to be declared in the file name, and in the file itself.
 
-| Category Name          | Category Number |
-| :--------------------- | :-------------- |
+{% assign categories_table = "| Category Name | Category Number |
+| ---- | :----: |" %}
 {% for category in site.data.categories %}
-| {{ category.name }} | {{ category.id }} |
+{% assign categories_table = categories_table | append: "
+| " | append: category.name | append: " | " | append: category.id | append: " |" %}
 {% endfor %}
+
+{{ categories_table }}
 
 Let's take a moment to look at each section of the file name. 
 
 ### File Names
 
-File names are very easy to get right once you understand how they work. The name of the file can be broken up into 4 sections; an example valid file name would be `0000-03-01-contrib-docs.md `.
+File names are very easy to get right once you understand how they work. The name of the file can be broken up into 4 sections; an example valid file name would be `0000-03-01-documentation.md `.
 
 #### First group of numbers
 
@@ -58,7 +61,7 @@ category: 1
 ---
 ```
 
-Ensure you use a category name from the table above.
+Ensure you use a category ID from the table above.
 
 ## Local preview
 You can see what the documents will look like before you submit your pull request by setting up a local environment to do so. It is pretty easy really. 
