@@ -142,9 +142,6 @@ defaults:
       toc_sticky: true
       sidebar:
         nav: "docs"
-  - scope:
-      path: ""
-    values:
       archive: true
   # _pages
   - scope:
