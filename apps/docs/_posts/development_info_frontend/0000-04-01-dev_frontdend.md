@@ -2,7 +2,7 @@
 title: "LibrePhotos Development Frontend"
 excerpt: "Development Information regarding LibrePhotos Frontend."
 last_modified_at: 2020-01-18
-category: dev-resources-frontend
+category: 4
 ---
 
 ## Overview

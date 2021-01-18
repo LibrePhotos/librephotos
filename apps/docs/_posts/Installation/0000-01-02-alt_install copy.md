@@ -2,7 +2,7 @@
 title: "LibrePhotos Alt Install"
 excerpt: "Alternative Methods to install Libre Photos."
 last_modified_at: 2020-01-18
-category: installation 
+category: 1 
 ---
 
 ## Overview
