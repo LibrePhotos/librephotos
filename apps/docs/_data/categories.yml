@@ -1,0 +1,16 @@
+- id: 1
+  name: "Installation"
+- id: 2
+  name: "Data Collection"
+- id: 3
+  name: "Contribution"
+- id: 4
+  name: "Dev Resources: Frontend"
+- id: 5
+  name: "Dev Resources: Backend"
+- id: 6
+  name: "Dev Resources: Nginx"
+- id: 7
+  name: "Dev Resources: Redress"
+- id: 8
+  name: "Dev Resources: Docker"

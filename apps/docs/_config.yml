@@ -142,6 +142,7 @@ defaults:
       toc_sticky: true
       sidebar:
         nav: "docs"
+      archive: true
   # _pages
   - scope:
       path: "_pages"
@@ -149,6 +150,7 @@ defaults:
     values:
       layout: single
       permalink: /:basename/
+      archive: false
   # _docs
   - scope:
       path: ""
@@ -157,6 +159,7 @@ defaults:
       layout: single
       permalink: /:categories/:title/
       toc: true
+      archive: false
 
 
 # Sass/SCSS

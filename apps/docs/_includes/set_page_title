@@ -1,3 +1,14 @@
+{% if page.archive %}
+{% capture page_title %}
+{% for category in site.data.categories %}
+{% assign category_id = category.id | escape %}
+{% if category_id == page.title %}
+{{ category.name }}
+{% endif %}
+{% endfor %}
+{% endcapture %}
+{% endif %}
+
 {% unless page_title %}
 {% assign page_title = page.title %}
 {% endunless %}

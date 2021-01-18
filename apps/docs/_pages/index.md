@@ -13,12 +13,19 @@ permalink: /
 
 <ul>
 	{% for category in site.categories %}
-	{% capture category_name %}{{ category | first }}{% endcapture %}
-	{% assign category_articles = site.categories[category_name] %}
+	{% capture category_id %}{{ category | first }}{% endcapture %}
+	{% assign category_articles = site.categories[category_id] %}
 	{% if category_articles != null %}
-	{% assign category_name_split = category_name | replace: "-", " " | replace: "_", "-" | split: " " %}
-	{% capture category_name_capitalised %}{% for word in category_name_split %}{{ word | capitalize }} {% endfor %}{% endcapture %}
-	<li><a href="/{{ category_name | slugify }}">{{ category_name_capitalised }}</a></li>
+	{% capture category_name %}
+	{% for data_category in site.data.categories %}
+	{% assign data_category_id = data_category.id | escape %}
+	{% if data_category_id == category_id %}
+	{{ data_category.name }}
+	{% break %}
+	{% endif %}
+	{% endfor %}
+	{% endcapture %}
+	<li><a href="/{{ category_id }}">{{ category_name }}</a></li>
 	<ul>
 	{% for article in category_articles %}
 	<li><a href="{{ article.url | relative_url }}">{{ article.title }}</a></li>
