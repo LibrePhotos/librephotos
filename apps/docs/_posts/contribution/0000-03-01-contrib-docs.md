@@ -19,7 +19,7 @@ So how do we add information to the document repository. It is easy just do a pu
 Categories how we organize the information. Categories have to be declared in two locations. In the file name and in the file itself.  
 
 
- Category Name           | Category Number |
+| Category Name          | Category Number |
 | ---------------------- | --------------- |
 | Installation           | 01              |
 | Data Collection        | 02              |
@@ -50,14 +50,14 @@ This is the category number from above should always be two digits.
  This one is easy. it is just a short descriptive name. Needs to end in .md.
 
 ### Front Matter
-At the start of each page there needs to be a little bit of header into so that the documents can be built correctly. 
+At the start of each page there needs to be a little bit of header info so that the documents can be built correctly. 
 The minimum that needs to be include is as below. 
 
-'---'
-'title: "Testing"'
-'excerpt: "A test article."'
-'last_modified_at: 2020-01-17'
-'category: test-category'
-'---'
+'---
+title: "Testing"
+excerpt: "A test article."
+last_modified_at: 2020-01-17
+category: test-category
+---'
 
 Use a category name from the table above to ensure proper documentation build. 
