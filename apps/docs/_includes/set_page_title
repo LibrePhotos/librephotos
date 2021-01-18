@@ -1,0 +1,3 @@
+{% unless page_title %}
+{% assign page_title = page.title %}
+{% endunless %}

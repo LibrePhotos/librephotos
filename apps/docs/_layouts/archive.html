@@ -2,6 +2,8 @@
 layout: default
 ---
 
+{% include set_page_title %}
+
 {% if page.header.overlay_color or page.header.overlay_image or page.header.image %}
   {% include page__hero.html %}
 {% elsif page.header.video.id and page.header.video.provider %}
@@ -19,7 +21,7 @@ layout: default
 
   <div class="archive">
     {% unless page.header.overlay_color or page.header.overlay_image %}
-      <h1 id="page-title" class="page__title">{{ page.title }}</h1>
+      <h1 id="page-title" class="page__title">{{ page_title }}</h1>
     {% endunless %}
     {{ content }}
   </div>
