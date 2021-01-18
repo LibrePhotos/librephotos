@@ -1,65 +1,66 @@
 ---
-title: "Libre Docs how to"
-excerpt: "How to use Libre Docs."
-last_modified_at: 2020-01-17
-category: Contribution
-sidebar: ""
+title: "LibrePhotos Docs: How-To"
+excerpt: "How to use contribute to the LibrePhotos documentation."
+last_modified_at: 2020-01-18
+category: contribution
 ---
 
-## Welcome!
+## Overview
 
-### The Propose
+This documentation is a one-stop-shop for all resources for LibrePhotos - from installation (including one-off cases), to how the code actually works.
 
- This Document repository is a one stop shop for all resources for Libre Photos. From installation including one off cases, to how the code actually works.
-
-So how do we add information to the document repository. It is easy just do a pull request to the [librephotos.docs](https://github.com/LibrePhotos/librephotos.docs "librephotos.docs") repository.
+If you're looking to help us develop our documentation, it's as simple as submitting a pull request to [the librephotos.docs repository](https://github.com/LibrePhotos/librephotos.docs "librephotos.docs").
 
 ## Categories explained
 
-Categories how we organize the information. Categories have to be declared in two locations. In the file name and in the file itself.  
-
+Categories how we organise all the articles. Categories have to be declared in two locations: in the file name, and in the file itself.
 
 | Category Name          | Category Number |
 | :--------------------- | :-------------- |
-| Installation           | 01              |
-| Data Collection        | 02              |
-| Contribution           | 03              |
-| Dev Resources Frontend | 04              |
-| Dev Resources Backend  | 05              |
-| Dev Resources Nginx    | 06              |
-| Dev Resources Redress  | 07              |
-| Dev Resources Docker   | 08              |
+| installation           | 01              |
+| data-collection        | 02              |
+| contribution           | 03              |
+| dev-resources-frontend | 04              |
+| dev-resources-backend  | 05              |
+| dev-resources-nginx    | 06              |
+| dev-resources-redress  | 07              |
+| dev-resources-docker   | 08              |
 
-Lets take a moment and look at each section and how the file name should be set up and the front matter in each file. 
+Note that any dashes (`-`) in category names will be converted to spaces, and any underscores (`_`) will be converted to dashes (`-`). Each word will be capitalised.
+
+Let's take a moment to look at each section of the file name. 
 
 ### File Names
-File names are very easy to do once you understand how it works. 
-The name of the file is can be broken up into 4 sections.
-an example valid file name would be 0000-03-01-contrib-docs.md 
 
-#### Section 1
-This has to not change and start with 0000
+File names are very easy to get right once you understand how they work. The name of the file can be broken up into 4 sections; an example valid file name would be `0000-03-01-contrib-docs.md `.
 
-#### Section 2
-This is the category number from above should always be two digits. 
+#### First group of numbers
 
-#### Section 3
- Article / post number. This sets the order that the articles should appear in starting at 01. 
+This should always be `0000`.
 
-#### Section 4 
- This one is easy. it is just a short descriptive name. Needs to end in .md.
+#### Second group of numbers
+
+This is the category number from above, and should always be two digits. In the case of our example, this is `03`, meaning the article is from the `Contribution` category.
+
+#### Third group of numbers
+
+Article number. This sets the order that the articles should appear in, starting at 01, and should always be two digits. In the case of our example, this is `01`, meaning the article is the first in its category.
+
+#### Text section 
+
+This one is easy: it is just a short descriptive name of the article. Must end in `.md`. 
 
 ### Front Matter
-At the start of each page there needs to be a little bit of header info so that the documents can be built correctly. 
-The minimum that needs to be include is as below. 
+
+At the start of each page, there needs to be header info, so that the documents can be built correctly. The minimum requirement is: 
 
 ```markdown
 ---
-title: "Structure"
-excerpt: "How the theme is organized and what all of the files are for."
-last_modified_at: 2018-03-20
+title: "Article Title"
+excerpt: "A short description of what the article is about."
+last_modified_at: 2020-01-18
 category: getting-started
 ---
 ```
 
-Use a category name from the table above to ensure proper documentation build. 
+Ensure you use a category name from the table above.
