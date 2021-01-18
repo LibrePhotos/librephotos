@@ -23,6 +23,7 @@ User is demo, password is demo1234.
 
 ## Communication
 You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://discord.gg/xwRvtSDGWb). There is a bridge between the IRC and Discord:
+
 | Discord            | Freenode IRC          |
 |--------------------|-----------------------|
 | #chit-chat         | #Libre-Photos         |
@@ -97,17 +98,17 @@ The easiest way to do it is using Docker.
 
 ## Docker-compose method (Recommended)
 
-```
+```shell
 wget https://raw.githubusercontent.com/LibrePhotos/librephotos/dev/docker-compose.yml
 wget https://raw.githubusercontent.com/LibrePhotos/librephotos/dev/librephotos.env
 cp librephotos.env .env
-
-Do not forget to create the directory's you specified in the ``.env`` file if they do not exist. 
 ```
+
+Do not forget to create the directories you specified in the `.env` file if they do not exist. 
 
 Open `.env` in your favorite text editor and make the required changes.
 
-```
+```shell
 docker-compose up -d
 ```
 
