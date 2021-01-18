@@ -14,7 +14,7 @@ permalink: /
 <ul>
 	{% for category in site.categories %}
 	{% capture category_id %}{{ category | first }}{% endcapture %}
-	{% assign category_articles = site.categories[category_id] %}
+	{% assign category_articles = site.categories[category_id] | reverse %}
 	{% if category_articles != null %}
 	{% capture category_name %}
 	{% for data_category in site.data.categories %}
