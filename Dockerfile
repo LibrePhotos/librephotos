@@ -44,6 +44,11 @@ RUN /miniconda/bin/conda install -y numpy -c pytorch
 RUN /miniconda/bin/conda install -y pandas -c pytorch
 RUN /miniconda/bin/conda install -y scikit-learn -c pytorch
 RUN /miniconda/bin/conda install -y scikit-image -c pytorch
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN apt-get update -y
+RUN apt-get install -y clang
+RUN rustup default nightly
 
 RUN mkdir /code
 WORKDIR /code
@@ -61,8 +66,17 @@ RUN tar xf im2txt_model.tar.gz
 RUN wget https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/im2txt_data.tar.gz
 RUN tar xf im2txt_data.tar.gz
 
+WORKDIR /code/api/yolo
+RUN git clone --recursive https://github.com/philipperemy/yolo-9000.git
+WORKDIR /code/api/yolo/yolo-9000
+RUN cat yolo9000-weights/x* > yolo9000-weights/yolo9000.weights 
+WORKDIR /code/api/yolo/yolo-9000/darknet 
+RUN make
+
 WORKDIR /root/.cache/torch/hub/checkpoints/
 RUN wget https://download.pytorch.org/models/resnet152-b121ed2d.pth
+
+RUN cp -r /code/api/yolo/yolo-9000/darknet/data/ /code/
 
 VOLUME /data
 

@@ -16,6 +16,8 @@ import pytz
 import pyheif
 import magic
 
+from api.yolo.object_detection import detect_objects
+
 from api.exifreader import rotate_image
 
 from collections import Counter
@@ -176,6 +178,17 @@ class Photo(models.Model):
     def _generate_captions(self):
         image_path = self.thumbnail_big.path
         captions = {}
+
+        # yolo
+        try:
+            objects_in_picture = detect_objects(image_path)
+            util.logger.info(objects_in_picture)
+            util.logger.info(
+                'generated yolo captions for image %s.' % (image_path))
+        except Exception as e:
+            util.logger.exception(
+                'could not generate yolo captions for image %s' %
+                image_path)
 
         # places365
         try:

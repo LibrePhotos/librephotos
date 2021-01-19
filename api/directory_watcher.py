@@ -14,6 +14,7 @@ import magic
 from PIL import Image
 
 
+
 def isValidMedia(filebuffer):
     try:
         filetype = magic.from_buffer(filebuffer, mime=True)
@@ -218,12 +219,10 @@ def scan_photos(user, job_id):
         lrj.save()
 
     photo_count_before = Photo.objects.count()
-
     try:
         fc = file_counter()  # first walk and count sum of files
         walk_directory(user.scan_directory, fc)
         files_found = fc.counter
-
         ps = photo_scanner(user, lrj, job_id, files_found)
         walk_directory(user.scan_directory, ps)  # now walk with photo-scannning
 
