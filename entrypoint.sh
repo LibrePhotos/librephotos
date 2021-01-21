@@ -21,4 +21,4 @@ service nginx restart
 echo "Running backend server..."
 
 /miniconda/bin/python manage.py rqworker default 2>&1 | tee logs/rqworker.log &
-/miniconda/bin/gunicorn --worker-class=gevent --timeout 120 --bind 0.0.0.0:8001 --log-level=info ownphotos.wsgi 2>&1 | tee logs/gunicorn_django.log
+/miniconda/bin/gunicorn --worker-class=gevent --timeout $WORKER_TIMEOUT --bind 0.0.0.0:8001 --log-level=info ownphotos.wsgi 2>&1 | tee logs/gunicorn_django.log
