@@ -1,8 +1,9 @@
 {% if page.archive %}
+{% assign page_title_escaped = page.title | escape %}
 {% capture page_title %}
 {% for category in site.data.categories %}
 {% assign category_id = category.id | escape %}
-{% if category_id == page.title %}
+{% if category_id == page_title_escaped %}
 {{ category.name }}
 {% endif %}
 {% endfor %}

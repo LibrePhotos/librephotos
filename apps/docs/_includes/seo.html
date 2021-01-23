@@ -5,13 +5,10 @@
 {%- assign seo_url = seo_url | default: site.github.url -%}
 
 {% assign title_separator = site.title_separator | default: '-' | replace: '|', '&#124;' %}
+{% assign site_title = site.title | markdownify | strip_html | strip_newlines | escape_once %}
 
 {%- if page_title -%}
-  {%- assign seo_title = page_title | append: " " | append: title_separator | append: " " | append: site.title -%}
-{%- endif -%}
-
-{%- if seo_title -%}
-  {%- assign seo_title = seo_title | markdownify | strip_html | strip_newlines | escape_once -%}
+  {%- assign seo_title = page_title | markdownify | strip_html | strip_newlines | escape_once | append: " " | append: title_separator | append: " " | append: site_title -%}
 {%- endif -%}
 
 {% if page.canonical_url %}

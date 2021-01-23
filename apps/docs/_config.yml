@@ -8,7 +8,7 @@
 # Site Settings
 locale                   : "en-US"
 title                    : "LibrePhotos"
-title_separator          : "-"
+title_separator          : "|"
 subtitle                 : "Documentation"
 name                     : &name "LibrePhotos" # &name is a YAML anchor which can be *referenced later
 description              : &description "A self-hosted Google Photos clone, with a slight focus on cool graphs."
@@ -151,6 +151,11 @@ defaults:
       layout: single
       permalink: /:basename/
       archive: false
+  - scope:
+      path: "_pages/categories"
+    values:
+      layout: archive-taxonomy
+      archive: true
   # _docs
   - scope:
       path: ""
@@ -203,17 +208,17 @@ whitelist:
 #  - <base_path>/tags/my-awesome-tag/index.html ~> path: /tags/
 #  - <base_path>/categories/my-awesome-category/index.html ~> path: /categories/
 #  - <base_path>/my-awesome-category/index.html ~> path: /
-category_archive:
-  type: liquid
-  path: /
-# https://github.com/jekyll/jekyll-archives
-jekyll-archives:
-  enabled:
-    - categories
-  layouts:
-    category: archive-taxonomy
-  permalinks:
-    category: /:name/
+# category_archive:
+#   type: liquid
+#   path: /
+# # https://github.com/jekyll/jekyll-archives
+# jekyll-archives:
+#   enabled:
+#     - categories
+#   layouts:
+#     category: archive-taxonomy
+#   permalinks:
+#     category: /:name/
 
 
 # HTML Compression

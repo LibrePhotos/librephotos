@@ -1,5 +1,5 @@
 ---
-title: "LibrePhotos Documentation"
+title: "Documentation"
 excerpt: "A self-hosted Google Photos clone, with a slight focus on cool graphs."
 sidebar: ""
 author_profile: true
