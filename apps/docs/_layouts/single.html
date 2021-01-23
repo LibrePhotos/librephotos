@@ -26,12 +26,6 @@ layout: default
     {% if page.last_modified_at %}<meta itemprop="dateModified" content="{{ page.last_modified_at | date_to_xmlschema }}">{% endif %}
 
     <div class="page__inner-wrap">
-      {% unless page.header.overlay_color or page.header.overlay_image %}
-        <header>
-          {% if page_title %}<h1 id="page-title" class="page__title" itemprop="headline">{{ page_title | markdownify | remove: "<p>" | remove: "</p>" }}</h1>{% endif %}
-        </header>
-      {% endunless %}
-
       <section class="page__content" itemprop="text">
         {% if page.toc %}
           <aside class="sidebar__right {% if page.toc_sticky %}sticky{% endif %}">
@@ -41,6 +35,13 @@ layout: default
             </nav>
           </aside>
         {% endif %}
+
+        {% unless page.header.overlay_color or page.header.overlay_image %}
+          <header>
+            {% if page_title %}<h1 id="page-title" class="page__title" itemprop="headline">{{ page_title | markdownify | remove: "<p>" | remove: "</p>" }}</h1>{% endif %}
+          </header>
+        {% endunless %}
+
         {{ content }}
         {% if page.link %}<div><a href="{{ page.link }}" class="btn btn--primary">{{ site.data.ui-text[site.locale].ext_link_label | default: "Direct Link" }}</a></div>{% endif %}
       </section>

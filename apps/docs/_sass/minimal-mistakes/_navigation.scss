@@ -132,8 +132,10 @@
     border: 1px solid mix(#000, $border-color, 25%);
     border-radius: $border-radius;
 
+    @include yiq-contrasted(mix($toc-background-color, $background-color, 70%));
+
     &:hover {
-      @include yiq-contrasted(mix($primary-color, #000, 40%));
+      @include yiq-contrasted(mix($toc-background-color, $primary-color, 60%));
     }
 
     &:first-child {
@@ -177,7 +179,6 @@
   -ms-flex-align: center;
   align-items: center;
   min-height: $nav-height;
-  background: $background-color;
 
   a {
     display: block;
@@ -515,7 +516,7 @@
   .nav__title {
     color: #fff;
     font-size: $type-size-6;
-    background: mix($primary-color, #000, 90%);
+    background: mix($toc-background-color, $primary-color, 60%);
     border-top-left-radius: $border-radius;
     border-top-right-radius: $border-radius;
   }
@@ -526,6 +527,10 @@
 
   >:first-child:nth-last-child(n+2), >:first-child:nth-last-child(n+1)~* {
     display: initial;
+  }
+
+  a {
+    @include yiq-contrasted(mix($toc-background-color, $background-color, 10%));
   }
 
   // Scrollspy marks toc items as .active when they are in focus
