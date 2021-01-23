@@ -43,7 +43,6 @@ def should_skip(filepath):
         
     skipPatterns = os.getenv('SKIP_PATTERNS')
     skipList = skipPatterns.split(',')
-    skipList = map(str.strip, skipList)
 
     res = [ele for ele in skipList if(ele in filepath)] 
     return bool(res)
