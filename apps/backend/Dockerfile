@@ -15,7 +15,6 @@ RUN --mount=type=cache,target=/var/cache/apt \
     libsm6 libboost-all-dev libglib2.0-0 libxrender-dev wget curl nginx cmake libopenblas-dev liblapack-dev bzip2 libmagic1 libgl1-mesa-glx && \
     rm -rf /var/lib/apt/lists/*
 
-ENV MAPZEN_API_KEY mapzen-XXXX
 ENV MAPBOX_API_KEY mapbox-XXXX
 ENV ALLOWED_HOSTS=*
 
