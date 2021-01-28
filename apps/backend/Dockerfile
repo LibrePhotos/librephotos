@@ -12,7 +12,6 @@ RUN --mount=type=cache,target=/var/cache/apt \
 RUN apt-get install -y curl nginx libopenblas-dev libmagic1 libboost-all-dev libxrender-dev liblapack-dev
 RUN rm -rf /var/lib/apt/lists/*
 
-
 #install miniconda
 FROM base AS conda
 RUN curl -SL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh > Miniconda3-latest-Linux-x86_64.sh

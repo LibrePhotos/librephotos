@@ -39,12 +39,15 @@ def has_hidden_attribute(filepath):
     except:
         return False
 
-def path_to_dict(path):
+def path_to_dict(path, recurse = 2):
     d = {'title': os.path.basename(path), 'absolute_path': path}
-    d['children'] = [
-        path_to_dict(os.path.join(path, x)) for x in os.scandir(path)
-        if os.path.isdir(os.path.join(path, x)) and not is_hidden(os.path.join(path, x))
-    ]
+    if recurse > 0:
+        d['children'] = [
+            path_to_dict(os.path.join(path, x), recurse - 1) for x in os.scandir(path)
+            if os.path.isdir(os.path.join(path, x)) and not is_hidden(os.path.join(path, x))
+        ]
+    else:
+        d['children'] = []
     return d
 
 

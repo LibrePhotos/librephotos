@@ -21,5 +21,4 @@ image_dirs = [
 
 ]
 
-mapzen_api_key = 'take_care_of_me'
 mapbox_api_key = os.environ['MAPBOX_API_KEY']

@@ -16,18 +16,9 @@ service nginx restart
 /miniconda/bin/python manage.py showmigrations | tee logs/show_migrate.log
 /miniconda/bin/python manage.py build_similarity_index 2>&1 | tee logs/command_build_similarity_index.log
 
-/miniconda/bin/python manage.py shell <<EOF
-from api.models import User
-
-if User.objects.filter(username="$ADMIN_USERNAME").exists():
-    admin_user = User.objects.get(username="$ADMIN_USERNAME")
-    admin_user.set_password("$ADMIN_PASSWORD")
-    admin_user.save()
-else:
-    User.objects.create_superuser('$ADMIN_USERNAME', '$ADMIN_EMAIL', '$ADMIN_PASSWORD')
-EOF
+/miniconda/bin/python manage.py createadmin -u $ADMIN_USERNAME $ADMIN_EMAIL 2>&1 | tee logs/command_createadmin.log
 
 echo "Running backend server..."
 
 /miniconda/bin/python manage.py rqworker default 2>&1 | tee logs/rqworker.log &
-/miniconda/bin/gunicorn --worker-class=gevent --timeout 120 --bind 0.0.0.0:8001 --log-level=info ownphotos.wsgi 2>&1 | tee logs/gunicorn_django.log
+/miniconda/bin/gunicorn --worker-class=gevent --timeout $WORKER_TIMEOUT --bind 0.0.0.0:8001 --log-level=info ownphotos.wsgi 2>&1 | tee logs/gunicorn_django.log
