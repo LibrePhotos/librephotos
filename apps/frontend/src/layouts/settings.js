@@ -256,7 +256,7 @@ export class Settings extends Component {
                   action
                   fluid
                   disabled
-                  placeholder={this.props.auth.access.scan_directory}
+                  placeholder={this.state.userSelfDetails.scan_directory}
                 >
                   <input />
                   <Popup
@@ -400,17 +400,14 @@ export class Settings extends Component {
                 type="text"
                 action
                 fluid
-                disabled={
-                  this.state.userDetails &&
-                  !this.props.userSelfDetails.nextcloud_username
-                }
-                placeholder={
-                  this.props.userSelfDetails.nextcloud_scan_directory
-                }
+                disabled
+                value={this.props.userSelfDetails.nextcloud_scan_directory}
               >
-                <input
-                  value={this.props.userSelfDetails.nextcloud_scan_directory}
-                />
+                  <input
+                      value={
+                        this.state.userSelfDetails.nextcloud_scan_directory
+                      }
+                    />
                 <Button
                   disabled={!this.props.fetchedNextcloudDirectoryTree}
                   onClick={() => {
@@ -810,10 +807,10 @@ class ModalNextcloudScanDirectoryEdit extends Component {
               onClick={() => {
                 const newUserData = {
                   ...this.props.userToEdit,
+                  nextcloud_scan_directory: this.state.newScanDirectory,
                 };
                 console.log(newUserData);
                 const ud = newUserData;
-                delete ud["scan_directory"];
                 this.props.dispatch(updateUser(ud));
                 this.props.onRequestClose();
               }}
