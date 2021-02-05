@@ -1,6 +1,4 @@
-from api.models import Face
-from api.models import Person
-from api.models import LongRunningJob
+from api.models import Face, Person, LongRunningJob
 from api.util import logger
 
 from sklearn.decomposition import PCA

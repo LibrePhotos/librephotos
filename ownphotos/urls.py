@@ -23,10 +23,6 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from api import views
 from nextcloud import views as nextcloud_views
 
-# from rest_framework_jwt.views import obtain_jwt_token
-# from rest_framework_jwt.views import refresh_jwt_token
-# from rest_framework_jwt.views import verify_jwt_token
-
 from api.views import media_access
 
 import ipdb

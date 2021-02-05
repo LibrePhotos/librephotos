@@ -1,5 +1,4 @@
-from api.models import Face
-from api.models import Person
+from api.models import Face, Person
 
 import base64
 import pickle

@@ -1,7 +1,4 @@
-from api.models import Photo
-from api.models import Person
-from api.models import AlbumAuto
-from api.models import LongRunningJob
+from api.models import Photo, Person, AlbumAuto, LongRunningJob
 
 from datetime import datetime, timedelta
 from itertools import groupby

@@ -6,7 +6,8 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 
 from constance import config as site_config
 
-from api.models import Photo, AlbumAuto, AlbumUser, Face, Person, AlbumDate, AlbumPlace, AlbumThing, LongRunningJob, User, get_or_create_person
+from api.models import Photo, AlbumAuto, AlbumUser, Face, Person, AlbumDate, AlbumPlace, AlbumThing, LongRunningJob, User
+from api.models.person import get_or_create_person
 from django.db.models import Count
 from django.db.models import Q, F
 from django.db.models import Prefetch
