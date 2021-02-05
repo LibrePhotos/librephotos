@@ -10,7 +10,6 @@ from django.db import migrations, models
 import django.utils.timezone
 import django_cryptography.fields
 
-
 class Migration(migrations.Migration):
 
     initial = True
@@ -62,7 +61,7 @@ class Migration(migrations.Migration):
                 ('gps_lat', models.FloatField(blank=True, null=True)),
                 ('gps_lon', models.FloatField(blank=True, null=True)),
                 ('favorited', models.BooleanField(db_index=True, default=False)),
-                ('owner', models.ForeignKey(default=None, on_delete=models.SET(api.models.get_deleted_user), to=settings.AUTH_USER_MODEL)),
+                ('owner', models.ForeignKey(default=None, on_delete=models.SET(api.models.user.get_deleted_user), to=settings.AUTH_USER_MODEL)),
             ],
         ),
         migrations.CreateModel(
@@ -73,7 +72,7 @@ class Migration(migrations.Migration):
                 ('date', models.DateField(db_index=True, null=True)),
                 ('favorited', models.BooleanField(db_index=True, default=False)),
                 ('location', django.contrib.postgres.fields.jsonb.JSONField(blank=True, db_index=True, null=True)),
-                ('owner', models.ForeignKey(default=None, on_delete=models.SET(api.models.get_deleted_user), to=settings.AUTH_USER_MODEL)),
+                ('owner', models.ForeignKey(default=None, on_delete=models.SET(api.models.user.get_deleted_user), to=settings.AUTH_USER_MODEL)),
             ],
         ),
         migrations.CreateModel(
@@ -130,8 +129,8 @@ class Migration(migrations.Migration):
                 ('queued_at', models.DateTimeField(default=datetime.datetime.now)),
                 ('started_at', models.DateTimeField(null=True)),
                 ('finished_at', models.DateTimeField(null=True)),
-                ('result', django.contrib.postgres.fields.jsonb.JSONField(default=api.models.get_default_longrunningjob_result)),
-                ('started_by', models.ForeignKey(default=None, on_delete=models.SET(api.models.get_deleted_user), to=settings.AUTH_USER_MODEL)),
+                ('result', django.contrib.postgres.fields.jsonb.JSONField(default=api.models.long_running_job.get_default_longrunningjob_result)),
+                ('started_by', models.ForeignKey(default=None, on_delete=models.SET(api.models.user.get_deleted_user), to=settings.AUTH_USER_MODEL)),
             ],
         ),
         migrations.CreateModel(
@@ -142,7 +141,7 @@ class Migration(migrations.Migration):
                 ('kind', models.CharField(choices=[('USER', 'User Labelled'), ('CLUSTER', 'Cluster ID'), ('UNKNOWN', 'Unknown Person')], max_length=10)),
                 ('mean_face_encoding', models.TextField()),
                 ('cluster_id', models.IntegerField(null=True)),
-                ('account', models.OneToOneField(default=None, null=True, on_delete=models.SET(api.models.get_deleted_user), to=settings.AUTH_USER_MODEL)),
+                ('account', models.OneToOneField(default=None, null=True, on_delete=models.SET(api.models.user.get_deleted_user), to=settings.AUTH_USER_MODEL)),
             ],
         ),
         migrations.CreateModel(
@@ -172,19 +171,19 @@ class Migration(migrations.Migration):
                 ('hidden', models.BooleanField(db_index=True, default=False)),
                 ('public', models.BooleanField(db_index=True, default=False)),
                 ('encoding', models.TextField(default=None, null=True)),
-                ('owner', models.ForeignKey(default=None, on_delete=models.SET(api.models.get_deleted_user), to=settings.AUTH_USER_MODEL)),
+                ('owner', models.ForeignKey(default=None, on_delete=models.SET(api.models.user.get_deleted_user), to=settings.AUTH_USER_MODEL)),
                 ('shared_to', models.ManyToManyField(related_name='photo_shared_to', to=settings.AUTH_USER_MODEL)),
             ],
         ),
         migrations.AddField(
             model_name='face',
             name='person',
-            field=models.ForeignKey(on_delete=models.SET(api.models.get_unknown_person), related_name='faces', to='api.Person'),
+            field=models.ForeignKey(on_delete=models.SET(api.models.person.get_unknown_person), related_name='faces', to='api.Person'),
         ),
         migrations.AddField(
             model_name='face',
             name='photo',
-            field=models.ForeignKey(null=True, on_delete=models.SET(api.models.get_unknown_person), related_name='faces', to='api.Photo'),
+            field=models.ForeignKey(null=True, on_delete=models.SET(api.models.person.get_unknown_person), related_name='faces', to='api.Photo'),
         ),
         migrations.AddField(
             model_name='albumuser',
@@ -194,7 +193,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='albumuser',
             name='owner',
-            field=models.ForeignKey(default=None, on_delete=models.SET(api.models.get_deleted_user), to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(default=None, on_delete=models.SET(api.models.user.get_deleted_user), to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddField(
             model_name='albumuser',
@@ -214,7 +213,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='albumthing',
             name='owner',
-            field=models.ForeignKey(default=None, on_delete=models.SET(api.models.get_deleted_user), to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(default=None, on_delete=models.SET(api.models.user.get_deleted_user), to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddField(
             model_name='albumthing',
@@ -234,7 +233,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='albumplace',
             name='owner',
-            field=models.ForeignKey(default=None, on_delete=models.SET(api.models.get_deleted_user), to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(default=None, on_delete=models.SET(api.models.user.get_deleted_user), to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddField(
             model_name='albumplace',
