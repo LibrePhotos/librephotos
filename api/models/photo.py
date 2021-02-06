@@ -33,6 +33,7 @@ from api.im2txt.sample import im2txt
 
 from django_cryptography.fields import encrypt
 from api.im2vec import Im2Vec
+import api.models
 
 class VisiblePhotoManager(models.Manager):
     def get_queryset(self):
@@ -215,12 +216,12 @@ class Photo(models.Model):
     def _find_album_date(self):
         old_album_date = None
         if self.exif_timestamp:
-            possible_old_album_date = get_album_date(
+            possible_old_album_date = api.models.album_date.get_album_date(
                 date=self.exif_timestamp.date(), owner=self.owner)
             if(possible_old_album_date != None and possible_old_album_date.photos.filter(image_path=self.image_path).exists):
                 old_album_date = possible_old_album_date
         else:
-            possible_old_album_date = get_album_date(date=None, owner=self.owner)
+            possible_old_album_date = api.models.album_date.get_album_date(date=None, owner=self.owner)
             if(possible_old_album_date != None and possible_old_album_date.photos.filter(image_path=self.image_path).exists):
                 old_album_date = possible_old_album_date
         return old_album_date
@@ -253,10 +254,10 @@ class Photo(models.Model):
         album_date = None
 
         if self.exif_timestamp:
-            album_date = get_or_create_album_date(date=self.exif_timestamp.date(), owner=self.owner)
+            album_date = api.models.album_date.get_or_create_album_date(date=self.exif_timestamp.date(), owner=self.owner)
             album_date.photos.add(self)
         else:
-            album_date = get_or_create_album_date(date=None, owner=self.owner)
+            album_date = api.models.album_date.get_or_create_album_date(date=None, owner=self.owner)
             album_date.photos.add(self)
         
         album_date.save()
@@ -331,9 +332,9 @@ class Photo(models.Model):
             pass
 
     def _extract_faces(self):
-        qs_unknown_person = Person.objects.filter(name='unknown')
+        qs_unknown_person = api.models.person.Person.objects.filter(name='unknown')
         if qs_unknown_person.count() == 0:
-            unknown_person = Person(name='unknown')
+            unknown_person = api.models.person.Person(name='unknown')
             unknown_person.save()
         else:
             unknown_person = qs_unknown_person[0]
@@ -352,7 +353,7 @@ class Photo(models.Model):
                 face_image = image[top:bottom, left:right]
                 face_image = PIL.Image.fromarray(face_image)
 
-                face = Face()
+                face = api.models.face.Face()
                 face.image_path = self.image_hash + "_" + str(
                     idx_face) + '.jpg'
                 face.person = unknown_person
@@ -377,7 +378,7 @@ class Photo(models.Model):
         if type(self.captions_json
                 ) is dict and 'places365' in self.captions_json.keys():
             for attribute in self.captions_json['places365']['attributes']:
-                album_thing = get_album_thing(
+                album_thing = api.models.album_thing.get_album_thing(
                     title=attribute, owner=self.owner)
                 if album_thing.photos.filter(
                        image_hash=self.image_hash).count() == 0:
@@ -385,10 +386,10 @@ class Photo(models.Model):
                     album_thing.thing_type = 'places365_attribute'
                     album_thing.save()
             for category in self.captions_json['places365']['categories']:
-                album_thing = get_album_thing(title=category, owner=self.owner)
+                album_thing = api.models.album_thing.get_album_thing(title=category, owner=self.owner)
                 if album_thing.photos.filter(
                         image_hash=self.image_hash).count() == 0:
-                    album_thing = get_album_thing(
+                    album_thing = api.models.album_thing.get_album_thing(
                         title=category, owner=self.owner)
                     album_thing.photos.add(self)
                     album_thing.thing_type = 'places365_category'
@@ -424,7 +425,7 @@ class Photo(models.Model):
         for geolocation_level, feature in enumerate(self.geolocation_json['features']):
             if not 'text' in feature.keys() or feature['text'].isnumeric():
                 continue
-            album_place = get_album_place(feature['text'], owner=self.owner)
+            album_place = api.models.album_place.get_album_place(feature['text'], owner=self.owner)
             if album_place.photos.filter(image_hash=self.image_hash).count() == 0:
                 album_place.geolocation_level = len(
                     self.geolocation_json['features']) - geolocation_level
