@@ -10,7 +10,12 @@ def search_similar_image(user,photo):
         user_id = user
     else:
         user_id = user.id
-
+    
+    if(photo.encoding == None):
+        photo._im2vec()
+    if(photo.encoding == None):
+        return []
+    
     image_embedding = np.array(
         np.frombuffer(bytes.fromhex(photo.encoding)), dtype=np.float32)
     post_data = {

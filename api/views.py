@@ -307,7 +307,7 @@ class PhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
 
 
 class RecentlyAddedPhotoListViewSet(viewsets.ModelViewSet):
-    serializer_class = PhotoSuperSimpleSerializerWithAddedOnSerpy
+    serializer_class = PhotoSuperSimpleSerializerSerpy 
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):

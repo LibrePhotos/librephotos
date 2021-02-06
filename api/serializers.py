@@ -86,7 +86,7 @@ class PhotoSerializer(serializers.ModelSerializer):
     small_square_thumbnail_url = serializers.SerializerMethodField()
     tiny_square_thumbnail_url = serializers.SerializerMethodField()
     similar_photos = serializers.SerializerMethodField()
-
+    captions_json = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
     people = serializers.SerializerMethodField()
     shared_to = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
@@ -109,6 +109,16 @@ class PhotoSerializer(serializers.ModelSerializer):
             return [ {'image_hash':e} for e in res['result']]
         else:
             return []
+    
+    def get_captions_json(self, obj):
+        if obj.captions_json and len(obj.captions_json) > 0:
+            return obj.captions_json
+        else:
+            emptyArray = {
+                'im2txt':'',
+                'places365': {'attributes':[],'categories':[],'environment':[]}
+                }
+            return emptyArray
 
     def get_thumbnail_url(self, obj):
         try:
