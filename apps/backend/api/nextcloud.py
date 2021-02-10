@@ -1,7 +1,9 @@
-from api.models import *
+# import time
+
 import owncloud as nextcloud
-import ipdb
-import time
+
+from api.models import *
+
 
 def login(user):
     nc = nextcloud.Client(user.nextcloud_server_address)

@@ -1,39 +1,37 @@
-from datetime import datetime
-import PIL
-from PIL import ImageOps
-from django.db import models
-from django.db.models import Prefetch
-import face_recognition
 import hashlib
-import ownphotos.settings
-import api.util as util
-from api.util import logger
-import exifread
-import base64
-import numpy as np
 import os
-import pytz
-import pyheif
-import magic
-
-from api.exifreader import rotate_image
-
-from collections import Counter
+from datetime import datetime
+# from collections import Counter
 from io import BytesIO
-from django.core.files.base import ContentFile
-from geopy.geocoders import Nominatim
-from django.contrib.auth.models import AbstractUser
-from api.models.user import User, get_deleted_user
-from django.db.models.signals import post_save, post_delete
-from django.core.cache import cache
-from django.contrib.postgres.fields import JSONField
 
-from api.places365.places365 import inference_places365
-from api.im2txt.sample import im2txt
-
-from django_cryptography.fields import encrypt
-from api.im2vec import Im2Vec
 import api.models
+import api.util as util
+import exifread
+# from django.db.models import Prefetch
+import face_recognition
+import magic
+# import base64
+import numpy as np
+import ownphotos.settings
+import PIL
+import pyheif
+import pytz
+from api.exifreader import rotate_image
+from api.im2txt.sample import im2txt
+# from django_cryptography.fields import encrypt
+from api.im2vec import Im2Vec
+# from django.contrib.auth.models import AbstractUser
+from api.models.user import User, get_deleted_user
+from api.places365.places365 import inference_places365
+from api.util import logger
+# from django.db.models.signals import post_save, post_delete
+# from django.core.cache import cache
+from django.contrib.postgres.fields import JSONField
+from django.core.files.base import ContentFile
+from django.db import models
+from geopy.geocoders import Nominatim
+from PIL import ImageOps
+
 
 class VisiblePhotoManager(models.Manager):
     def get_queryset(self):

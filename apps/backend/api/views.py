@@ -1,116 +1,71 @@
-from django.shortcuts import render
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
-
-from constance import config as site_config
-
-from api.models import Photo, AlbumAuto, AlbumUser, Face, Person, AlbumDate, AlbumPlace, AlbumThing, LongRunningJob, User
-from api.models.person import get_or_create_person
-from django.db.models import Count
-from django.db.models import Q, F
-from django.db.models import Prefetch
-from api.places365.places365 import inference_places365
-from django.http import HttpResponse
-from django.http import HttpResponseForbidden
-
-from rest_framework import viewsets
-
-from api.serializers import PhotoSerializer
-from api.serializers import PhotoEditSerializer
-from api.serializers import PhotoHashListSerializer
-from api.serializers import PhotoSuperSimpleSerializer
-from api.serializers import PhotoSimpleSerializer
-from api.serializers import FaceSerializer
-from api.serializers import FaceListSerializer
-from api.serializers import PersonSerializer
-from api.serializers import AlbumAutoSerializer
-from api.serializers import AlbumPersonSerializer
-from api.serializers import AlbumDateSerializer
-from api.serializers import AlbumThingSerializer
-from api.serializers import AlbumPlaceSerializer
-from api.serializers import AlbumUserSerializer
-
-from api.serializers import AlbumUserEditSerializer
-
-from api.serializers import AlbumAutoListSerializer
-from api.serializers import AlbumPersonListSerializer
-from api.serializers import AlbumDateListSerializer
-from api.serializers import AlbumDateListWithPhotoHashSerializer
-from api.serializers import AlbumThingListSerializer
-from api.serializers import AlbumPlaceListSerializer
-from api.serializers import AlbumUserListSerializer
-
-from api.serializers import LongRunningJobSerializer
-
-from api.serializers import SharedPhotoSuperSimpleSerializer
-from api.serializers import SharedToMePhotoSuperSimpleSerializer
-
-from api.serializers import SharedFromMePhotoThroughSerializer
-
-from api.serializers import UserSerializer
-from api.serializers import ManageUserSerializer
-
-from api.serializers_serpy import AlbumDateListWithPhotoHashSerializer as AlbumDateListWithPhotoHashSerializerSerpy
-from api.serializers_serpy import PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy
-from api.serializers_serpy import PhotoSuperSimpleSerializerWithAddedOn as PhotoSuperSimpleSerializerWithAddedOnSerpy
-from api.serializers_serpy import SharedPhotoSuperSimpleSerializer as SharedPhotoSuperSimpleSerializerSerpy
-from api.permissions import IsOwnerOrReadOnly, IsUserOrReadOnly, IsPhotoOrAlbumSharedTo, IsRegistrationAllowed
-
-from api.face_classify import train_faces, cluster_faces
-from api.social_graph import build_social_graph, build_ego_graph
-from api.autoalbum import generate_event_albums
-
-from api.image_similarity import search_similar_image
-from django_rq import get_worker
-from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
-import six as six
+# import base64
+import datetime
+# import random
+# import time
 import uuid
-from api.api_util import \
-    get_count_stats, \
-    get_location_clusters, \
-    get_photo_country_counts, \
-    get_photo_month_counts, \
-    get_searchterms_wordcloud, \
-    get_search_term_examples, \
-    get_location_sunburst, \
-    get_location_timeline, \
-    path_to_dict, \
-    get_current_job
 
 import config
-
-from api.directory_watcher import scan_photos
-from api.autoalbum import generate_event_albums, regenerate_event_titles
-
-from rest_framework.pagination import PageNumberPagination
-
-from rest_framework import filters
-
-import random
-import numpy as np
-import base64
-import datetime
-import pytz
-
-from django.core.cache import cache
-from django.utils.encoding import force_text
-
-from rest_framework_extensions.cache.decorators import cache_response
-from rest_framework_extensions.key_constructor.constructors import (
-    DefaultKeyConstructor)
-from rest_framework_extensions.key_constructor.bits import (
-    KeyBitBase, RetrieveSqlQueryKeyBit, ListSqlQueryKeyBit, PaginationKeyBit)
-
-import ipdb
-from tqdm import tqdm
-import time
-
-from django_rq import job
 import django_rq
-from django_bulk_update.helper import bulk_update
+import numpy as np
+# import pytz
+import six
+from constance import config as site_config
+from django.core.cache import cache
+from django.db.models import Count, F, Prefetch, Q
+from django.http import HttpResponse, HttpResponseForbidden
+# from django.shortcuts import render
+from django.utils.encoding import force_text
+# from django_bulk_update.helper import bulk_update
+# from django_rq import get_worker, job
+from rest_framework import filters, viewsets
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_extensions.cache.decorators import cache_response
+from rest_framework_extensions.key_constructor.bits import (
+    KeyBitBase, ListSqlQueryKeyBit, PaginationKeyBit, RetrieveSqlQueryKeyBit)
+from rest_framework_extensions.key_constructor.constructors import \
+    DefaultKeyConstructor
 
+from api.api_util import get_count_stats  # get_current_job,
+from api.api_util import (get_location_clusters, get_location_sunburst,
+                          get_location_timeline, get_photo_country_counts,
+                          get_photo_month_counts, get_search_term_examples,
+                          get_searchterms_wordcloud, path_to_dict)
+from api.autoalbum import generate_event_albums, regenerate_event_titles
+from api.directory_watcher import scan_photos
+from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
+from api.face_classify import cluster_faces, train_faces
+from api.image_similarity import search_similar_image
+from api.models import (AlbumAuto, AlbumDate, AlbumPlace, AlbumThing,
+                        AlbumUser, Face, LongRunningJob, Person, Photo, User)
+from api.models.person import get_or_create_person
+from api.permissions import (IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo,
+                             IsRegistrationAllowed, IsUserOrReadOnly)
+# from api.places365.places365 import inference_places365
+from api.serializers import (  # AlbumDateListWithPhotoHashSerializer,; SharedPhotoSuperSimpleSerializer,
+    AlbumAutoListSerializer, AlbumAutoSerializer, AlbumDateListSerializer,
+    AlbumDateSerializer, AlbumPersonListSerializer, AlbumPersonSerializer,
+    AlbumPlaceListSerializer, AlbumPlaceSerializer, AlbumThingListSerializer,
+    AlbumThingSerializer, AlbumUserEditSerializer, AlbumUserListSerializer,
+    AlbumUserSerializer, FaceListSerializer, FaceSerializer,
+    LongRunningJobSerializer, ManageUserSerializer, PersonSerializer,
+    PhotoEditSerializer, PhotoHashListSerializer, PhotoSerializer,
+    PhotoSimpleSerializer, PhotoSuperSimpleSerializer,
+    SharedFromMePhotoThroughSerializer, SharedToMePhotoSuperSimpleSerializer,
+    UserSerializer)
+# from api.serializers_serpy import \
+#     PhotoSuperSimpleSerializerWithAddedOn as \
+#     PhotoSuperSimpleSerializerWithAdde1dOnSerpy
+from api.serializers_serpy import \
+    AlbumDateListWithPhotoHashSerializer as \
+    AlbumDateListWithPhotoHashSerializerSerpy
+from api.serializers_serpy import \
+    PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy
+from api.serializers_serpy import \
+    SharedPhotoSuperSimpleSerializer as SharedPhotoSuperSimpleSerializerSerpy
+from api.social_graph import build_ego_graph, build_social_graph
 from api.util import logger
 
 # CACHE_TTL = 60 * 60 * 24 # 1 day
@@ -751,7 +706,7 @@ class AlbumPersonListViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
-        ipdb.set_trace()
+        import pdb; pdb.set_trace()
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -1237,7 +1192,6 @@ class SetPhotosShared(APIView):
                 e.photo_id for e in already_existing
             ]
             # print(already_existing)
-            # ipdb.set_trace()
             res = ThroughModel.objects.bulk_create([
                 ThroughModel(user_id=target_user_id, photo_id=image_hash)
                 for image_hash in image_hashes
@@ -1357,7 +1311,6 @@ class SetPhotosHidden(APIView):
 class SetFacePersonLabel(APIView):
     def post(self, request, format=None):
         data = dict(request.data)
-        # ipdb.set_trace()
         person = get_or_create_person(name=data['person_name'])
         faces = Face.objects.in_bulk(data['face_ids'])
 
@@ -1379,7 +1332,6 @@ class SetFacePersonLabel(APIView):
             'updated': updated,
             'not_updated': not_updated
         })
-        # ipdb.set_trace()
 
 
 class DeleteFaces(APIView):
@@ -1657,16 +1609,16 @@ class ListAllRQJobsView(APIView):
 
 class RQJobStatView(APIView):
     def get(self, request, format=None):
-        # ipdb.set_trace()
         job_id = request.query_params['job_id']
         # job_id = '1667f947-bf8c-4ca8-a1cc-f16c7f3615de'
         is_job_finished = django_rq.get_queue().fetch_job(job_id).is_finished
         return Response({'status': True, 'finished': is_job_finished})
 
 
-from rest_framework_simplejwt.tokens import AccessToken
-from rest_framework_simplejwt.exceptions import TokenError
 import time
+
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import AccessToken
 
 
 class MediaAccessView(APIView):
@@ -1859,7 +1811,6 @@ class MediaAccessFullsizeOriginalView(APIView):
 
 
 def media_access(request, path):
-    # ipdb.set_trace()
     """
     When trying to access :
     myproject.com/media/uploads/passport.png
@@ -1869,7 +1820,7 @@ def media_access(request, path):
 
     This special URL will be handle by nginx we the help of X-Accel
     """
-    ipdb.set_trace()
+    import pdb; pdb.set_trace()
 
     access_granted = False
 
