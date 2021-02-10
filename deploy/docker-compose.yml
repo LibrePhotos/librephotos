@@ -1,0 +1,87 @@
+# DO NOT EDIT
+# The .env file has everything you need to edit.
+# Run options:
+# 1. Use prebuilt images (preferred method):
+#   run cmd: docker-compose up -d
+# 2. Build images on your own machine:
+#   build cmd: COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose build
+#   run cmd: docker-compose up -d
+
+version: '3.8'
+services:
+  proxy:
+    image: nginx
+    restart: always
+    volumes:
+      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - ${httpPort}:80
+    depends_on:
+      - backend
+      - frontend
+
+  db:
+    image: postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=${dbUser}
+      - POSTGRES_PASSWORD=${dbPass}
+      - POSTGRES_DB=${dbName}
+    volumes:
+      - ${dbLocation}:/var/lib/postgresql/data
+    command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c random_page_cost=1.0
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -d $dbName -U $dbUser']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    image: reallibrephotos/librephotos-frontend:${tag}
+    command: /entrypoint.sh
+    restart: always
+    volumes:
+      - ./frontend/entrypoint.sh:/entrypoint.sh
+    depends_on:
+      - backend
+
+  backend:
+    image: reallibrephotos/librephotos:${tag}
+    restart: always
+    command: /entrypoint.sh
+    volumes:
+      - ./backend/entrypoint.sh:/entrypoint.sh
+      - ${myPhotos}:/data
+      - ${proMedia}:/protected_media
+      - ${logLocation}:/logs
+      - ${cachedir}:/root/.cache
+
+    environment:
+      - SECRET_KEY=${shhhhKey}
+      - BACKEND_HOST=backend
+      - ADMIN_EMAIL=${adminEmail}
+      - ADMIN_USERNAME=${userName}
+      - ADMIN_PASSWORD=${userPass}
+      - DEBUG=true
+      - DB_BACKEND=postgresql
+      - DB_NAME=${dbName}
+      - DB_USER=${dbUser}
+      - DB_PASS=${dbPass}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MAPBOX_API_KEY=${mapApiKey}
+      - TIME_ZONE=${timeZone}
+      - WEB_CONCURRENCY=${gunniWorkers}
+      - WORKER_TIMEOUT=${workerTimeOut}
+      - SKIP_PATTERNS=${skipPatterns}
+
+    # Wait for Postgres
+    depends_on:
+      db:
+        condition: service_healthy
+
+  redis:
+    image: redis
+    restart: always
