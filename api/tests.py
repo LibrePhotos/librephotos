@@ -1,14 +1,10 @@
-from django.test import TestCase
-
-from rest_framework.test import APIRequestFactory
-from rest_framework.test import APIClient
-from api.models import *
-
-from api.directory_watcher import scan_photos
-from django_rq import get_worker
-
 import config
-import ipdb
+from django.test import TestCase
+from django_rq import get_worker
+from rest_framework.test import APIClient  # , APIRequestFactory
+
+#from api.directory_watcher import scan_photos
+from api.models import *
 
 samplephotos_dir = os.path.abspath('samplephotos')
 
@@ -270,7 +266,6 @@ class ScanPhotosTestCase(TestCase):
 #     def test_get_faces(self):
 #         res = self.client_users[0].get('/api/faces/list/')
 #         self.assertEqual(res.status_code, 200)
-#         ipdb.set_trace()
 #
 #     def test_get_labeled_faces(self):
 #         res = self.client_users[0].get('/api/faces/labeled/list/')

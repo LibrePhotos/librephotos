@@ -1,6 +1,6 @@
 #! /bin/bash
 export PYTHONUNBUFFERED=TRUE
-mkdir -p /code/logs
+mkdir -p /logs
 
 cp /code/nginx.conf /etc/nginx/sites-enabled/default
 sed -i -e 's/replaceme/'"$BACKEND_HOST"'/g' /etc/nginx/sites-enabled/default

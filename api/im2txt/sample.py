@@ -1,14 +1,14 @@
-import torch
-# import matplotlib.pyplot as plt
-import numpy as np 
 import argparse
-import pickle 
 import os
-from torchvision import transforms 
-from api.im2txt.model import EncoderCNN, DecoderRNN
+import pickle
+
+# import matplotlib.pyplot as plt
+import numpy as np
+import torch
 from api.im2txt.build_vocab import Vocabulary
+from api.im2txt.model import DecoderRNN, EncoderCNN
 from PIL import Image
-import ipdb
+from torchvision import transforms
 
 # parser.add_argument('--image', type=str, required=True, help='input image for generating caption')
 # parser.add_argument('--encoder_path', type=str, default='models/encoder-5-3000.pkl', help='path for trained encoder')

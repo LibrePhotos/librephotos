@@ -1,4 +1,3 @@
-import ipdb
 import serpy
 
 
@@ -10,7 +9,7 @@ class DateTimeField(serpy.Field):
             else:
                 return None
         except:
-            ipdb.set_trace()
+            import pdb; pdb.set_trace()
 
 
 class SimpleUserSerializer(serpy.Serializer):

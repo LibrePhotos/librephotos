@@ -1,40 +1,38 @@
-from datetime import datetime
-import PIL
-from PIL import ImageOps
+import base64
+
+# import api.util as util
+# import exifread
+# import face_recognition
+# import magic
+import numpy as np
+# import ownphotos.settings
+# import PIL
+# import pyheif
+# import pytz
+# from api.exifreader import rotate_image
+# from api.im2txt.sample import im2txt
+from api.models.photo import Photo
+from api.models.user import User, get_deleted_user
+# from api.places365.places365 import inference_places365
+from api.util import logger
+# from django.contrib.auth.models import AbstractUser
+# from django.contrib.postgres.fields import JSONField
+# from django.core.cache import cache
+# from django.core.files.base import ContentFile
 from django.db import models
 from django.db.models import Prefetch
-import face_recognition
-import hashlib
-import ownphotos.settings
-import api.util as util
-from api.util import logger
-import exifread
-import base64
-import numpy as np
-import os
-import pytz
-import pyheif
-import magic
+from django.db.models.signals import post_delete, post_save
 
-from api.exifreader import rotate_image
+# import hashlib
+# import os
+# from collections import Counter
+# from datetime import datetime
+# from io import BytesIO
 
-from collections import Counter
-from io import BytesIO
-from django.core.files.base import ContentFile
-from geopy.geocoders import Nominatim
-from django.contrib.auth.models import AbstractUser
+# from django_cryptography.fields import encrypt
+# from geopy.geocoders import Nominatim
+# from PIL import ImageOps
 
-from django.db.models.signals import post_save, post_delete
-from django.core.cache import cache
-from django.contrib.postgres.fields import JSONField
-
-from api.places365.places365 import inference_places365
-from api.im2txt.sample import im2txt
-
-from api.models.user import User, get_deleted_user
-from api.models.photo import Photo
-
-from django_cryptography.fields import encrypt
 
 class Person(models.Model):
     KIND_CHOICES = (('USER', 'User Labelled'), ('CLUSTER', 'Cluster ID'),
@@ -58,7 +56,6 @@ class Person(models.Model):
             encodings.append(encoding)
         mean_encoding = np.array(encodings).mean(axis=0)
         self.mean_face_encoding = base64.encodebytes(mean_encoding.tostring())
-        # ipdb.set_trace()
 
     def get_photos(self, owner):
         faces = list(

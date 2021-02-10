@@ -1,16 +1,16 @@
-from api.models import Photo, AlbumAuto, AlbumUser, AlbumPlace, Face, Person, AlbumDate, AlbumThing, LongRunningJob, User
-from rest_framework import serializers
-import ipdb
 import json
-import time
-from api.util import logger
-from datetime import datetime
-from django.contrib.auth import get_user_model
-from django.db.models import Count
-from django.db.models import Q
-from django.db.models import Prefetch
 import os
+# import time
+from datetime import datetime
+
+from django.contrib.auth import get_user_model
+from django.db.models import Count, Prefetch, Q
+from rest_framework import serializers
+
 from api.image_similarity import search_similar_image
+from api.models import (AlbumAuto, AlbumDate, AlbumPlace, AlbumThing,
+                        AlbumUser, Face, LongRunningJob, Person, Photo, User)
+from api.util import logger
 
 
 class SimpleUserSerializer(serializers.ModelSerializer):
@@ -30,7 +30,7 @@ class PhotoEditSerializer(serializers.ModelSerializer):
         fields = ('image_hash', 'hidden', 'favorited')
 
     def update(self, instance, validated_data):
-        ipdb.set_trace()
+        import pdb; pdb.set_trace()
 
 
 class PhotoHashListSerializer(serializers.ModelSerializer):

@@ -1,20 +1,17 @@
-from api.models import Photo, Person, AlbumAuto, LongRunningJob
-
+import os
+import shutil
+import uuid
 from datetime import datetime, timedelta
 from itertools import groupby
 
-import os
-import shutil
 import numpy as np
-import uuid
-import ipdb
-
+import pytz
+import rq
 from django_rq import job
 
-from tqdm import tqdm
-import rq
+from api.models import AlbumAuto, LongRunningJob, Person, Photo
 from api.util import logger
-import pytz
+
 
 @job
 def regenerate_event_titles(user,job_id):

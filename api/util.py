@@ -1,26 +1,21 @@
 import base64
-import pickle
 import itertools
-
-from scipy import linalg
-from sklearn.decomposition import PCA
-import numpy as np
-from sklearn import cluster
-from sklearn import mixture
-from scipy.spatial import distance
-from sklearn.preprocessing import StandardScaler
-
-import requests
-
-from config import mapbox_api_key
-
 import logging
 import logging.handlers
+import pickle
 
+# import django_rq
+import numpy as np
+import requests
 import spacy
+from config import mapbox_api_key
+# from ownphotos.settings import IMAGE_SIMILARITY_SERVER
+# from scipy import linalg
+from scipy.spatial import distance
 
-import django_rq
-from ownphotos.settings import IMAGE_SIMILARITY_SERVER
+# from sklearn import cluster, mixture
+# from sklearn.decomposition import PCA
+# from sklearn.preprocessing import StandardScaler
 
 nlp = spacy.load('en_core_web_sm')
 
@@ -29,7 +24,7 @@ fomatter = logging.Formatter(
     '%(asctime)s : %(filename)s : %(funcName)s : %(lineno)s : %(levelname)s : %(message)s')
 fileMaxByte = 256 * 1024 * 200  # 100MB
 fileHandler = logging.handlers.RotatingFileHandler(
-    './logs/ownphotos.log', maxBytes=fileMaxByte, backupCount=10)
+    '/logs/ownphotos.log', maxBytes=fileMaxByte, backupCount=10)
 fileHandler.setFormatter(fomatter)
 logger.addHandler(fileHandler)
 logger.setLevel(logging.INFO)

@@ -13,22 +13,20 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
-from django.conf.urls import url, include
-from django.urls import path
-from django.contrib import admin
-from django.conf import settings
-from django.conf.urls.static import static
-from rest_framework import routers
-from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from api import views
+# from api.views import media_access
+# from django.conf import settings
+from django.conf.urls import include, url
+# from django.conf.urls.static import static
+from django.contrib import admin
+# from django.urls import path
 from nextcloud import views as nextcloud_views
-
-from api.views import media_access
-
-import ipdb
-
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework import routers
+# from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework_simplejwt.serializers import (TokenObtainPairSerializer,
+                                                  TokenRefreshSerializer)
+from rest_framework_simplejwt.views import (TokenObtainPairView,
+                                            TokenRefreshView)
 
 
 class TokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -53,7 +51,6 @@ class TokenObtainPairView(TokenObtainPairView):
     serializer_class = TokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
-        # ipdb.set_trace()
         response = super(TokenObtainPairView, self).post(
             request, *args, **kwargs)
         response.set_cookie('jwt', response.data['access'])
@@ -66,7 +63,6 @@ class TokenRefreshView(TokenRefreshView):
     serializer_class = TokenRefreshSerializer
 
     def post(self, request, *args, **kwargs):
-        # ipdb.set_trace()
         response = super(TokenRefreshView, self).post(request, *args, **kwargs)
         response.set_cookie('jwt', response.data['access'])
         response.set_cookie('test', 'refresh')

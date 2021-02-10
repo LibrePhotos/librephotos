@@ -1,5 +1,6 @@
-import argparse
+# import argparse
 import os
+
 from PIL import Image
 
 image_dir = 'api/im2txt/data/train2014/'
