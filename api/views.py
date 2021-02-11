@@ -1744,7 +1744,24 @@ class MediaAccessFullsizeOriginalView(APIView):
             response[
                 'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
             return response
-
+        if path.lower() == 'avatars':
+            jwt = request.COOKIES.get('jwt')
+            if jwt is not None:
+                try:
+                    token = AccessToken(jwt)
+                except TokenError as error:
+                    return HttpResponseForbidden()
+            else:
+                return HttpResponseForbidden()
+            try:
+                user = User.objects.filter(id=token['user_id']).only('id').first()
+                response = HttpResponse()
+                response['Content-Type'] = 'image/png'
+                response[
+                    'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
+                return response
+            except:
+                return HttpResponse(status=404)
         if path.lower() != 'photos':
             start = datetime.datetime.now()
 
