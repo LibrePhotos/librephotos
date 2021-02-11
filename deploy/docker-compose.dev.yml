@@ -24,6 +24,8 @@ services:
 
   backend:
     tty: true
+    environment:
+      - DEBUG=1
     build:
       context: .
       dockerfile: backend/Dockerfile

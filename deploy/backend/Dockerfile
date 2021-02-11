@@ -12,10 +12,11 @@ RUN curl -SL https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/places365_mo
 RUN curl -SL https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/im2txt_model.tar.gz | tar -zxC /data_models/im2txt/
 RUN curl -SL https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/im2txt_data.tar.gz | tar -zxC /data_models/im2txt/
 RUN curl -SL https://download.pytorch.org/models/resnet152-b121ed2d.pth -o /root/.cache/torch/hub/checkpoints/resnet152-b121ed2d.pth
+RUN pip install torch==1.7.1+cpu torchvision==0.8.2+cpu -f https://download.pytorch.org/whl/torch_stable.html
 
 # actual project
 WORKDIR /code
-RUN git clone https://github.com/LibrePhotos/librephotos.git .
+RUN git clone https://github.com/parruc/librephotos .
 RUN pip install -r requirements.txt
 RUN python -m spacy download en_core_web_sm
 EXPOSE 80
