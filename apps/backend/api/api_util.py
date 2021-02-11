@@ -237,7 +237,6 @@ def get_location_clusters(user):
     start = datetime.now()
     photos = Photo.objects.filter(owner=user).exclude(geolocation_json={})
 
-    level = -3
     coord_names = []
     names = []
     for p in photos:
@@ -298,38 +297,36 @@ def get_location_sunburst(user):
     df = df.groupby(
         df.columns.tolist()).size().reset_index().rename(columns={4: 'count'})
 
-    dataStructure = {'name': 'Places I\'ve visited', 'children': []}
+    data_structure = {'name': 'Places I\'ve visited', 'children': []}
     palette = sns.color_palette('hls', 10).as_hex()
 
     for data in df.iterrows():
 
-        current = dataStructure
-        depthCursor = current['children']
+        current = data_structure
+        depth_cursor = current['children']
         for i, item in enumerate(data[1][:-2]):
             idx = None
             j = None
-            for j, c in enumerate(depthCursor):
+            for j, c in enumerate(depth_cursor):
                 if item in c.values():
                     idx = j
             if idx == None:
-                depthCursor.append({
+                depth_cursor.append({
                     'name': item,
                     'children': [],
                     'hex': random.choice(palette)
                 })
-                idx = len(depthCursor) - 1
+                idx = len(depth_cursor) - 1
 
-            depthCursor = depthCursor[idx]['children']
+            depth_cursor = depth_cursor[idx]['children']
             if i == len(data[1]) - 3:
-                depthCursor.append({
+                depth_cursor.append({
                     'name': '{}'.format(list(data[1])[-2]),
                     'value': list(data[1])[-1],
                     'hex': random.choice(palette)
                 })
 
-            current = depthCursor
-
-    return dataStructure
+    return data_structure
 
 
 def get_photo_month_counts(user):
@@ -425,8 +422,6 @@ def get_searchterms_wordcloud(user):
     location_tokens = [t for t in location_tokens if not t.isdigit()]
 
     caption_token_counts = Counter(caption_tokens)
-    location_token_counts = Counter(location_tokens)
-
     location_token_counts = Counter(location_entities)
 
     people_counts = Counter(people)

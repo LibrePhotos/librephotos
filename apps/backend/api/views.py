@@ -1608,11 +1608,11 @@ class AutoAlbumGenerateView(APIView):
 class TrainFaceView(APIView):
     def get(self, request, format=None):
         try:
-            job_id = uuid.uuid4
+            job_id = uuid.uuid4()
             train_faces(user=request.user, job_id=job_id)
             return Response({'status': True, 'job_id': job_id})
-        except BaseException as e:
-            logger.error(str(e))
+        except BaseException:
+            logger.exception()
             return Response({'status': False})
 
 # watchers

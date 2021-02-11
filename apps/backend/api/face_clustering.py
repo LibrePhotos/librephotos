@@ -16,7 +16,7 @@ from sklearn.preprocessing import StandardScaler
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 
-def compute_bic(kmeans,X):
+def compute_bic(kmeans,x):
     """
     Computes the BIC metric for a given clusters
 
@@ -24,7 +24,7 @@ def compute_bic(kmeans,X):
     -----------------------------------------
     kmeans:  List of clustering object from scikit learn
 
-    X     :  multidimension np array of data points
+    x     :  multidimension np array of data points
 
     Returns:
     -----------------------------------------
@@ -38,7 +38,7 @@ def compute_bic(kmeans,X):
     # size of the clusters
     n = np.bincount(labels)
     #size of data set
-    N, d = X.shape
+    N, d = x.shape
 
     #compute variance for all clusters beforehand
     cl_var = (1.0 / (N - m) / d) * sum([sum(distance.cdist(X[np.where(labels == i)], [centers[0][i]], 
@@ -82,7 +82,7 @@ except:
     vis_labelled = None
 
 
-X = vecs_all
+x = vecs_all
 ks = range(1,15)
 
 bics = []
@@ -94,7 +94,7 @@ for i_bic in range(num_experiments):
     # run 9 times kmeans and save each result in the KMeans object
     KMeans = [cluster.KMeans(n_clusters = i, init="k-means++").fit(vecs_all) for i in ks]
     # now run for each cluster the BIC computation
-    BIC = np.log([compute_bic(kmeansi,X) for kmeansi in KMeans])
+    BIC = np.log([compute_bic(kmeansi,x) for kmeansi in KMeans])
     bests.append(np.argmax(BIC))
     bics.append(BIC)
     
@@ -136,8 +136,6 @@ plt.scatter(vis_all.T[0],vis_all.T[1],marker='.',s=10,c=clusters)
 if vis_labelled is not None:
     for i,vis in enumerate(vis_labelled):
         plt.text(vis[0],vis[1], person_labels[i])
-# plt.xlim([-0.5,0.5])
-# plt.ylim([-0.2,0.5])
 plt.title('Face Clusters')
 plt.xlabel('PC1')
 plt.ylabel('PC2')
@@ -146,13 +144,6 @@ plt.xticks([])
 plt.tight_layout()
 fig.savefig('media/figs/linkage_scatter.png')
 plt.close(fig)
-
-
-# for face,cluster in zip(faces_all, clusters):
-#     person_cluster = Person.objects.get_or_create(name="cluster_%d"%cluster,kind="CLUSTER",cluster_id=cluster)
-#     face.person = person_cluster[0]
-#     face.save()
-
 
 
 #calculat average face embedding for each person model object
