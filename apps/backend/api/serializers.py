@@ -579,7 +579,7 @@ class UserSerializer(serializers.ModelSerializer):
     public_photo_count = serializers.SerializerMethodField()
     public_photo_samples = serializers.SerializerMethodField()
     photo_count = serializers.SerializerMethodField()
-
+    avatar_url = serializers.SerializerMethodField()
     class Meta:
         model = User
         extra_kwargs = {
@@ -615,7 +615,7 @@ class UserSerializer(serializers.ModelSerializer):
                   'public_photo_samples', 'last_name', 'public_photo_count',
                   'date_joined', 'password', 'avatar', 'photo_count',
                   'nextcloud_server_address', 'nextcloud_username',
-                  'nextcloud_app_password', 'nextcloud_scan_directory')
+                  'nextcloud_app_password', 'nextcloud_scan_directory', 'avatar_url')
 
     def validate_nextcloud_app_password(self, value):
         return value
@@ -630,6 +630,9 @@ class UserSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         # user can only update the following
+        if 'avatar' in validated_data:
+            instance.avatar = validated_data.pop('avatar')
+            instance.save()
         if 'email' in validated_data:
             instance.email = validated_data.pop('email')
             instance.save()
@@ -669,6 +672,12 @@ class UserSerializer(serializers.ModelSerializer):
         return PhotoSuperSimpleSerializer(
             Photo.objects.filter(Q(owner=obj) & Q(public=True))[:10],
             many=True).data
+
+    def get_avatar_url(self, obj):
+        try:
+            return obj.avatar.url
+        except:
+            return None
 
 
 class ManageUserSerializer(serializers.ModelSerializer):
