@@ -2,7 +2,6 @@
 # by Bolei Zhou, sep 2, 2017
 # last modified date: Dec. 27, 2017, migrating everything to python36 and latest pytorch and torchvision
 import os
-import warnings
 
 import numpy as np
 import torch
@@ -13,9 +12,12 @@ from torch.autograd import Variable as V
 from torch.nn import functional as F
 from torchvision import transforms as trn
 
+# import warnings
+
+
 torch.nn.Module.dump_patches = True
 
-dir_places365_model = '/data_model'
+dir_places365_model = os.path.join(os.sep, 'data_models', 'places365', 'model')
 
 def load_labels():
     # prepare all the labels
