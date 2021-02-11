@@ -1,4 +1,5 @@
-import config
+#import config
+from constance import config as site_config
 from django.test import TestCase
 from django_rq import get_worker
 from rest_framework.test import APIClient  # , APIRequestFactory
@@ -12,7 +13,7 @@ samplephotos_dir = os.path.abspath('samplephotos')
 # Create your tests here.
 class AdminTestCase(TestCase):
     def setUp(self):
-        config.image_dirs = [samplephotos_dir]
+        site_config.image_dirs = [samplephotos_dir]
         User.objects.create_superuser('test_admin', 'test_admin@test.com',
                                       'test_password')
         self.client = APIClient()

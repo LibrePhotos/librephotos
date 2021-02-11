@@ -1,17 +1,20 @@
-import base64
-import itertools
+#import base64
+#import itertools
 import logging
 import logging.handlers
-import pickle
+import os
 
 # import django_rq
 import numpy as np
 import requests
 import spacy
-from config import mapbox_api_key
+# from config import mapbox_api_key
 # from ownphotos.settings import IMAGE_SIMILARITY_SERVER
 # from scipy import linalg
 from scipy.spatial import distance
+
+#import pickle
+
 
 # from sklearn import cluster, mixture
 # from sklearn.decomposition import PCA
@@ -86,6 +89,7 @@ def compute_bic(kmeans,X):
     return(BIC)
 
 def mapbox_reverse_geocode(lat,lon):
+    mapbox_api_key = os.environ.get('MAPBOX_API_KEY', '')
     url = "https://api.mapbox.com/geocoding/v5/mapbox.places/%f,%f.json?access_token=%s"%(lon,lat,mapbox_api_key)
     resp = requests.get(url)
     if resp.status_code == 200:
