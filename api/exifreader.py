@@ -2,7 +2,7 @@
 import PIL
 from PIL import ImageOps
 from PIL.ExifTags import TAGS as EXIFTAGS
- 
+import api.util as util
  
 def rotate_image(image):
         # If no ExifTags, no rotating needed.
@@ -29,5 +29,6 @@ def rotate_image(image):
         if image_orientation == 8:
             image = image.transpose(PIL.Image.ROTATE_90)
     except:
+        util.logger.exception("Error when grabbing exif data " + image)
         pass
     return image

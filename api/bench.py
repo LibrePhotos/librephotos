@@ -62,8 +62,6 @@ for _ in tqdm(range(50)):
             for group_idx, group in enumerate(groups):
                 face_group_repr = group[0]
                 encoding_face_group_repr = get_face_encoding(face_group_repr)
-                # encoding_face_group_repr = np.array([get_face_encoding(f) for f in group]).mean(0)
-
                 if face_recognition.compare_faces([encoding_face_group_repr], encoding_face_curr, tolerance=0.65)[0]:
                     group_this_face_belongs_to = group_idx
 
@@ -88,11 +86,6 @@ if False:
         person = get_or_create_person(name="Person %d"%label)
         face.person = person
         face.save()
-
-# Z = linkage(face_encodings, 'ward')
-# fig = plt.figure(figsize=(25, 10))
-# dn = dendrogram(Z)
-
 
 #mean-shift
 if True:
@@ -141,7 +134,6 @@ if False:
             encoding_face_curr = get_face_encoding(face)
 
             for group_idx, group in enumerate(groups):
-                # face_group_repr = group[0]
                 encoding_face_group_repr = np.array([get_face_encoding(f) for f in group]).mean(0)
 
                 if face_recognition.compare_faces([encoding_face_group_repr], encoding_face_curr, tolerance=0.6)[0]:
@@ -168,16 +160,6 @@ if False:
 
     X = face_encodings
     X = preprocessing.normalize(face_encodings)
-
-    # # Number of samples per component
-    # n_samples = 500
-
-    # # Generate random sample, two components
-    # np.random.seed(0)
-    # C = np.array([[0., -0.1], [1.7, .4]])
-    # X = np.r_[np.dot(np.random.randn(n_samples, 2), C),
-    #           .7 * np.random.randn(n_samples, 2) + np.array([-6, 3])]
-
     lowest_bic = np.infty
     bic = []
     n_components_range = [num_people]
@@ -224,27 +206,11 @@ if False:
             continue
         plt.scatter(X[Y_ == i, 0], X[Y_ == i, 1], .8, color=color)
 
-        # Plot an ellipse to show the Gaussian component
-        # angle = np.arctan2(w[0][1], w[0][0])
-        # angle = 180. * angle / np.pi  # convert to degrees
-        # v = 2. * np.sqrt(2.) * np.sqrt(v)
-        # ell = mpl.patches.Ellipse(mean, v[0], v[1], 180. + angle, color=color)
-        # ell.set_clip_box(splot.bbox)
-        # ell.set_alpha(.5)
-        # splot.add_artist(ell)
-
     plt.xticks(())
     plt.yticks(())
     plt.title('Selected GMM: full model, 2 components')
     plt.subplots_adjust(hspace=.35, bottom=.02)
     plt.show()
-
-
-    # face_embedded = TSNE(n_components=2,n_iter=100000,verbose=1,perplexity=50).fit_transform(face_encodings)
-    # plt.scatter(face_embedded[:,0],face_embedded[:,1],c=Y_)
-    # plt.show()
-
-
 
     for cluster_id, face in zip(Y_,faces):
         print(face,cluster_id)
