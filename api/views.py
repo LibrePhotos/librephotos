@@ -4,7 +4,7 @@ import datetime
 # import time
 import uuid
 
-import config
+#import config
 import django_rq
 import numpy as np
 # import pytz
@@ -1364,7 +1364,7 @@ class RootPathTreeView(APIView):
 
     def get(self, request, format=None):
         try:
-            res = [path_to_dict(p) for p in config.image_dirs]
+            res = [path_to_dict(p) for p in site_config.image_dirs]
             return Response(res)
         except Exception as e:
             logger.exception(str(e))
