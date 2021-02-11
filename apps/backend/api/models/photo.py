@@ -294,7 +294,7 @@ class Photo(models.Model):
                 self.geolocation_json = location
                 self.save()
             except:
-                pass
+                util.logger.exception('something went wrong with geolocating')
 
     def _geolocate_mapbox(self):
         if not (self.exif_gps_lat and self.exif_gps_lon):
@@ -312,8 +312,7 @@ class Photo(models.Model):
                         self.search_location = res['search_text']
                 self.save()
             except:
-                util.logger.warning('something went wrong with geolocating')
-                pass
+                util.logger.exception('something went wrong with geolocating')
 
     def _im2vec(self):
         try:
@@ -322,8 +321,8 @@ class Photo(models.Model):
             vec = im2vec.get_vec(image)
             self.encoding = vec.tobytes().hex()
             self.save()
-        except ValueError:
-            pass
+        except:
+            util.logger.exception('something went wrong with im2vec')
 
     def _extract_faces(self):
         qs_unknown_person = api.models.person.Person.objects.filter(name='unknown')
@@ -357,8 +356,6 @@ class Photo(models.Model):
                 face.location_bottom = face_location[2]
                 face.location_left = face_location[3]
                 face.encoding = face_encoding.tobytes().hex()
-                #                 face.encoding = face_encoding.dumps()
-
                 face_io = BytesIO()
                 face_image.save(face_io, format="JPEG")
                 face.image.save(face.image_path,
