@@ -10,8 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
-import os
 import datetime
+import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -23,12 +23,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = os.environ['SECRET_KEY']
 RQ_API_TOKEN = os.environ['SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = (os.environ.get('DEBUG', '').lower() == 'true')
+DEBUG = (os.environ.get('DEBUG', '') == '1')
 
-ALLOWED_HOSTS = [
-    '192.168.1.100', 'localhost', 'ownphotos-api.local','backend',
-    os.environ.get('BACKEND_HOST'), 'ownphotos.local'
-]
+ALLOWED_HOSTS = ['backend', 'localhost', os.environ.get('BACKEND_HOST')]
 
 AUTH_USER_MODEL = 'api.User'
 
