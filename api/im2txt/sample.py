@@ -23,9 +23,11 @@ from torchvision import transforms
 embed_size = 256
 hidden_size = 512
 num_layers = 1
-encoder_path = 'api/im2txt/models/encoder-10-1000.ckpt'
-decoder_path = 'api/im2txt/models/decoder-10-1000.ckpt'
-vocab_path = 'api/im2txt/data/vocab.pkl'
+im2txt_models_path = os.path.join(os.sep, 'data_models', 'im2txt')
+
+encoder_path = os.path.join(im2txt_models_path, "models", "encoder-10-1000.ckpt")
+decoder_path = os.path.join(im2txt_models_path, "models", "decoder-10-1000.ckpt")
+vocab_path = os.path.join(im2txt_models_path, "data", "vocab.pkl")
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
