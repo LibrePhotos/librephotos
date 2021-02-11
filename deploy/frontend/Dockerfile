@@ -8,6 +8,7 @@ RUN npm install -g npm
 RUN npm install -g serve
 ENV CLI_WIDTH 80
 RUN git clone https://github.com/LibrePhotos/librephotos-frontend.git /usr/src/app
+RUN npm ci
 
 EXPOSE 3000
 
