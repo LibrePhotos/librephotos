@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
-#echo "building frontend"
-#npm run build
+echo "building frontend"
+npm install
+npm run build
+
 echo "serving frontend"
 serve build -d -l 3000
 

@@ -19,7 +19,7 @@ WORKDIR /code
 RUN git clone https://github.com/parruc/librephotos .
 RUN pip install -r requirements.txt
 RUN python -m spacy download en_core_web_sm
-EXPOSE 80
+EXPOSE 8001
 
 # TODO: prod vs dev requirements using docker-compose args
 # TODO: in dev copiare anche i vscode settings

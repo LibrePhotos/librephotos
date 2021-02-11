@@ -21,6 +21,8 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+    volumes:
+      - ${codedir}/frontend:/usr/src/app
 
   backend:
     tty: true
@@ -34,11 +36,10 @@ services:
       - ${myPhotos}:/data
       - ${proMedia}:/protected_media
       - ${logLocation}:/logs
-      - ${codedir}:/code
+      - ${codedir}/backend:/code
       - ${cachedir}:/root/.cache
 
   pgadmin:
-    container_name: librephotos_pgadmin
     image: dpage/pgadmin4
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@admin.com}
