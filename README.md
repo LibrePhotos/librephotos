@@ -67,7 +67,8 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
 
 - **Face detection:** [face_recognition](https://github.com/ageitgey/face_recognition) 
 - **Face classification/clusterization:** scikit-learn
-- **Object detection:** [densecap](https://github.com/jcjohnson/densecap), [places365](http://places.csail.mit.edu/)
+- **Image captioning:** [im2txt](https://github.com/HughKu/Im2txt), 
+- **Scene classification** [places365](http://places.csail.mit.edu/)
 - **Reverse geocoding:** [Mapbox](https://www.mapbox.com/): You need to have an API key. First 50,000 geocode lookups are free every month.
 
 
