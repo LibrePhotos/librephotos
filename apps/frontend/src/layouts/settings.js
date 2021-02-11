@@ -21,6 +21,7 @@ import {
   generateEventAlbums,
   generateEventAlbumTitles,
   fetchSiteSettings,
+  updateAvatar,
   updateUser,
   manageUpdateUser,
   fetchNextcloudDirectoryTree,
@@ -35,6 +36,7 @@ import AvatarEditor from "react-avatar-editor";
 import MaterialIcon, { colorPallet } from "material-icons-react";
 import SortableTree from "react-sortable-tree";
 import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
+import { serverAddress } from '../api_client/apiClient'
 
 export class Settings extends Component {
   state = {
@@ -42,10 +44,12 @@ export class Settings extends Component {
     accordionTwoActive: false,
     accordionThreeActive: false,
     accordionFourActive: false,
-    avatarImgSrc: null,
+    avatarImgSrc: "/unknown_user.jpg",
     userSelfDetails: {},
     modalNextcloudScanDirectoryOpen: false,
   };
+
+  setEditorRef = (editor) => this.editor = editor
 
   constructor(props) {
     super(props);
@@ -60,6 +64,16 @@ export class Settings extends Component {
     this.props.dispatch(generateEventAlbums());
   };
 
+  urltoFile=(url, filename, mimeType)=>{
+    mimeType = mimeType || (url.match(/^data:([^;]+);/)||'')[1];
+    return (fetch(url)
+        .then(function(res){return res.arrayBuffer();})
+        .then(function(buf){
+          return new File([buf], filename, {type:mimeType});
+        })
+    );
+  }
+
   componentDidMount() {
     this.props.dispatch(fetchCountStats());
     this.props.dispatch(fetchSiteSettings());
@@ -68,11 +82,7 @@ export class Settings extends Component {
     if (this.props.auth.access.is_admin) {
       this.props.dispatch(fetchJobList());
     }
-  }
 
-  onAvatarFileDrop(files) {
-    console.log(files);
-    this.setState({ avatarImgSrc: files[0].preview });
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
@@ -84,17 +94,15 @@ export class Settings extends Component {
   }
 
   render() {
-    if (this.props.userSelfDetails.square_avatar) {
-      var avatarImgSrc = this.props.userSelfDetails.square_avatar;
-    } else if (this.state.avatarImgSrc) {
-      var avatarImgSrc = this.state.avatarImgSrc;
-    } else {
-      var avatarImgSrc = "/unknown_user.jpg";
-    }
-
     let buttonsDisabled = !this.props.workerAvailability;
     buttonsDisabled = false;
-
+    if(this.state.avatarImgSrc == "/unknown_user.jpg"){
+      if (this.props.userSelfDetails.avatar_url) {
+        this.setState({
+          avatarImgSrc: serverAddress + this.props.userSelfDetails.avatar_url
+        });
+      }
+    }
     return (
       <div style={{ padding: 10 }}>
         <Header as="h2">
@@ -126,17 +134,17 @@ export class Settings extends Component {
                       this.dropzoneRef = node;
                     }}
                     onDrop={(accepted, rejected) => {
-                      console.log(accepted);
                       this.setState({
                         avatarImgSrc: accepted[0].preview,
                       });
                     }}
                   >
                     <AvatarEditor
+                      ref={this.setEditorRef}
                       width={150}
                       height={150}
                       border={0}
-                      image={avatarImgSrc}
+                      image={this.state.avatarImgSrc}
                     />
                   </Dropzone>
                 </div>
@@ -159,7 +167,18 @@ export class Settings extends Component {
                     <Icon name="image" />
                     Choose image
                   </Button>
-                  <Button size="small" color="green">
+                  <Button   
+                      size="small" 
+                      color="green"
+                      onClick={() => {
+                        let form_data = new FormData();
+                        this.urltoFile(this.editor.getImageScaledToCanvas().toDataURL(), this.state.userSelfDetails.first_name + "avatar.png")
+                        .then((file)=> { 
+                          form_data.append('avatar', file, this.state.userSelfDetails.first_name + "avatar.png");
+                          this.props.dispatch(updateAvatar(this.state.userSelfDetails,form_data));
+                          });
+                      }}                    
+                    >
                     <Icon name="upload" />
                     Upload
                   </Button>
@@ -232,8 +251,8 @@ export class Settings extends Component {
                       const newUserData = this.state.userSelfDetails;
                       console.log(newUserData);
                       delete newUserData["scan_directory"];
+                      delete newUserData["avatar"];
                       this.props.dispatch(updateUser(newUserData));
-                      this.props.onRequestClose();
                     }}
                   >
                     Update profile settings
@@ -349,6 +368,7 @@ export class Settings extends Component {
                   onClick={() => {
                     const ud = this.state.userSelfDetails;
                     delete ud["scan_directory"];
+                    delete ud["avatar"];
                     this.props.dispatch(updateUser(ud));
                   }}
                   size="small"
@@ -697,6 +717,7 @@ export class Settings extends Component {
                   };
                   console.log(newUserData);
                   delete newUserData["scan_directory"];
+                  delete newUserData["avatar"];
                   this.props.dispatch(manageUpdateUser(newUserData));
                   this.props.onRequestClose();
                 }}
@@ -766,7 +787,6 @@ class ModalNextcloudScanDirectoryEdit extends Component {
   }
 
   render() {
-    console.log(this.props.userToEdit);
     return (
       <Modal
         ariaHideApp={false}

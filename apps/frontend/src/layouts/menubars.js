@@ -41,7 +41,7 @@ import {
 } from "../actions/utilActions";
 import { serverAddress } from "../api_client/apiClient";
 import { SecuredImageJWT } from "../components/SecuredImage";
-
+import { fetchUserSelfDetails } from "../actions/userActions";
 
 var ENTER_KEY = 13;
 var topMenuHeight = 45; // don't change this
@@ -137,6 +137,7 @@ export class TopMenu extends Component {
     searchBarFocused: false,
     filteredExampleSearchTerms: [],
     filteredSuggestedPeople: [],
+    avatarImgSrc: "/unknown_user.jpg",
   };
 
   constructor(props) {
@@ -159,6 +160,7 @@ export class TopMenu extends Component {
     this.props.dispatch(fetchUserAlbumsList());
     this.props.dispatch(fetchExampleSearchTerms());
     this.props.dispatch(fetchCountStats());
+    this.props.dispatch(fetchUserSelfDetails(this.props.auth.access.user_id));
     window.addEventListener("resize", this.handleResize.bind(this));
     this.exampleSearchTermCylcer = setInterval(() => {
       this.setState({
@@ -306,6 +308,15 @@ export class TopMenu extends Component {
   }
 
   render() {
+    if(this.state.avatarImgSrc == "/unknown_user.jpg"){
+      console.log(this.state.avatarImgSrc);
+      if (this.props.userSelfDetails && this.props.userSelfDetails.avatar_url) {
+        console.log(serverAddress + this.props.userSelfDetails.avatar_url);
+        this.setState({
+          avatarImgSrc: serverAddress + this.props.userSelfDetails.avatar_url
+        });
+      }
+    }
     var searchBarWidth =
       this.state.width > 600 ? this.state.width - 200 : this.state.width - 220;
     var searchBarWidth = this.state.width - 300;
@@ -418,15 +429,10 @@ export class TopMenu extends Component {
                     : "Busy..."
                 }
               />
-
+              
               <Dropdown
-                size="big"
-                button
-                icon="user"
-                labeled
-                text={this.props.auth.access.name}
-                floating
-                className="icon"
+                trigger={<span><Image avatar src={this.state.avatarImgSrc}/><Icon name="caret down"/></span>}
+                icon={null}
               >
                 <Dropdown.Menu>
                   <Dropdown.Header>
@@ -1172,6 +1178,7 @@ TopMenu = connect((store) => {
     albumsPlaceList: store.albums.albumsPlaceList,
     fetchingAlbumsPlaceList: store.albums.fetchingAlbumsPlaceList,
     fetchedAlbumsPlaceList: store.albums.fetchedAlbumsPlaceList,
+    userSelfDetails: store.user.userSelfDetails,
   };
 })(TopMenu);
 
