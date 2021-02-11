@@ -1,6 +1,6 @@
 #! /bin/bash
 export PYTHONUNBUFFERED=TRUE
-
+pip install djangorestframework-simplejwt==4.6.0
 mkdir -p /logs
 
 python image_similarity/main.py 2>&1 | tee /logs/gunicorn_image_similarity.log &
