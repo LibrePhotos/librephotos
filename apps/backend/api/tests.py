@@ -13,7 +13,7 @@ samplephotos_dir = os.path.abspath('samplephotos')
 # Create your tests here.
 class AdminTestCase(TestCase):
     def setUp(self):
-        site_config.image_dirs = [samplephotos_dir]
+        site_config.IMAGE_DIRS = [samplephotos_dir]
         User.objects.create_superuser('test_admin', 'test_admin@test.com',
                                       'test_password')
         self.client = APIClient()
