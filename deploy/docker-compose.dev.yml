@@ -18,6 +18,8 @@ services:
 
   frontend:
     tty: true
+    environment:
+    - DEBUG=1
     build:
       context: .
       dockerfile: frontend/Dockerfile
