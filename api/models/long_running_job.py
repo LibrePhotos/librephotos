@@ -1,35 +1,12 @@
-
 from datetime import datetime
 
 from api.models.user import User, get_deleted_user
-# from django.db.models import Prefetch
-# import face_recognition
-# import hashlib
-# import ownphotos.settings
-# import api.util as util
-# from api.util import logger
-# from collections import Counter
-# from io import BytesIO
-# from django.core.files.base import ContentFile
-# from geopy.geocoders import Nominatim
-# from django.contrib.auth.models import AbstractUser
-# 
-# from django.db.models.signals import post_save, post_delete
-# from django.core.cache import cache
 from django.contrib.postgres.fields import JSONField
-# import PIL
-# from PIL import ImageOps
 from django.db import models
-
-# from api.places365.places365 import inference_places365
-# from api.im2txt.sample import im2txt
-# 
-# from django_cryptography.fields import encrypt
 
 
 def get_default_longrunningjob_result():
     return {'progress': {'target': 0, 'current': 0}}
-
 
 class LongRunningJob(models.Model):
     JOB_SCAN_PHOTOS = 1

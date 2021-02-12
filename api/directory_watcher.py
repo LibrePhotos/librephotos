@@ -14,7 +14,7 @@ from api.image_similarity import build_image_similarity_index
 from api.models import LongRunningJob, Photo
 
 
-def isValidMedia(filebuffer):
+def is_valid_media(filebuffer):
     try:
         filetype = magic.from_buffer(filebuffer, mime=True)
         return (
@@ -41,15 +41,14 @@ def should_skip(filepath):
     if not os.getenv('SKIP_PATTERNS'):
         return False
         
-    skipPatterns = os.getenv('SKIP_PATTERNS')
-    skipList = skipPatterns.split(',')
-    skipList = map(str.strip, skipList)
+    skip_patterns = os.getenv('SKIP_PATTERNS')
+    skip_list = skip_patterns.split(',')
+    skip_list = map(str.strip, skipList)
 
-    res = [ele for ele in skipList if(ele in filepath)] 
+    res = [ele for ele in skip_list if(ele in filepath)] 
     return bool(res)
 
 if os.name == "Windows":
-
     def is_hidden(filepath):
         name = os.path.basename(os.path.abspath(filepath))
         return name.startswith(".") or has_hidden_attribute(filepath)
@@ -61,10 +60,7 @@ if os.name == "Windows":
             )
         except:
             return False
-
-
 else:
-
     def is_hidden(filepath):
         return os.path.basename(filepath).startswith(".")
 
@@ -72,7 +68,7 @@ else:
 def handle_new_image(user, image_path, job_id):
     import ipdb; ipdb.set_trace()
     try:
-        if isValidMedia(open(image_path, "rb").read(2048)):
+        if is_valid_media(open(image_path, "rb").read(2048)):
             elapsed_times = {
                 "md5": None,
                 "thumbnails": None,
@@ -155,7 +151,7 @@ def handle_new_image(user, image_path, job_id):
 def rescan_image(user, image_path, job_id):
     import ipdb; ipdb.set_trace()
     try:
-        if isValidMedia(open(image_path, "rb").read(2048)):
+        if is_valid_media(open(image_path, "rb").read(2048)):
             photo = Photo.objects.filter(Q(image_path=image_path)).get()
             photo._generate_thumbnail()
             photo._extract_date_time_from_exif()

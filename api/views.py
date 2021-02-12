@@ -7,7 +7,6 @@ from constance import config as site_config
 from django.core.cache import cache
 from django.db.models import Count, F, Prefetch, Q
 from django.http import HttpResponse, HttpResponseForbidden
-
 from django.utils.encoding import force_text
 from rest_framework import filters, viewsets
 from rest_framework.pagination import PageNumberPagination
@@ -20,30 +19,30 @@ from rest_framework_extensions.key_constructor.bits import (
 from rest_framework_extensions.key_constructor.constructors import \
     DefaultKeyConstructor
 
-
 from api.api_util import (get_count_stats, get_search_term_examples,
                           path_to_dict)
 from api.directory_watcher import scan_photos
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
-
 from api.models import (AlbumAuto, AlbumDate, AlbumPlace, AlbumThing,
                         AlbumUser, Face, LongRunningJob, Person, Photo, User)
 from api.models.person import get_or_create_person
 from api.permissions import (IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo,
                              IsRegistrationAllowed, IsUserOrReadOnly)
-
-from api.serializers import (
-    AlbumAutoListSerializer, AlbumAutoSerializer, AlbumDateListSerializer,
-    AlbumDateSerializer, AlbumPersonListSerializer, AlbumPersonSerializer,
-    AlbumPlaceListSerializer, AlbumPlaceSerializer, AlbumThingListSerializer,
-    AlbumThingSerializer, AlbumUserEditSerializer, AlbumUserListSerializer,
-    AlbumUserSerializer, FaceListSerializer, FaceSerializer,
-    LongRunningJobSerializer, ManageUserSerializer, PersonSerializer,
-    PhotoEditSerializer, PhotoHashListSerializer, PhotoSerializer,
-    PhotoSimpleSerializer, PhotoSuperSimpleSerializer,
-    SharedFromMePhotoThroughSerializer, SharedToMePhotoSuperSimpleSerializer,
-    UserSerializer)
-
+from api.serializers import (AlbumAutoListSerializer, AlbumAutoSerializer,
+                             AlbumDateListSerializer, AlbumDateSerializer,
+                             AlbumPersonListSerializer, AlbumPersonSerializer,
+                             AlbumPlaceListSerializer, AlbumPlaceSerializer,
+                             AlbumThingListSerializer, AlbumThingSerializer,
+                             AlbumUserEditSerializer, AlbumUserListSerializer,
+                             AlbumUserSerializer, FaceListSerializer,
+                             FaceSerializer, LongRunningJobSerializer,
+                             ManageUserSerializer, PersonSerializer,
+                             PhotoEditSerializer, PhotoHashListSerializer,
+                             PhotoSerializer, PhotoSimpleSerializer,
+                             PhotoSuperSimpleSerializer,
+                             SharedFromMePhotoThroughSerializer,
+                             SharedToMePhotoSuperSimpleSerializer,
+                             UserSerializer)
 from api.serializers_serpy import \
     AlbumDateListWithPhotoHashSerializer as \
     AlbumDateListWithPhotoHashSerializerSerpy
@@ -51,7 +50,6 @@ from api.serializers_serpy import \
     PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy
 from api.serializers_serpy import \
     SharedPhotoSuperSimpleSerializer as SharedPhotoSuperSimpleSerializerSerpy
-
 from api.util import logger
 
 CACHE_TTL = 60 * 60 * 24  # 1 day
@@ -1545,11 +1543,11 @@ class AutoAlbumGenerateView(APIView):
 class TrainFaceView(APIView):
     def get(self, request, format=None):
         try:
-            job_id = uuid.uuid4
+            job_id = uuid.uuid4()
             train_faces(user=request.user, job_id=job_id)
             return Response({'status': True, 'job_id': job_id})
-        except BaseException as e:
-            logger.error(str(e))
+        except BaseException:
+            logger.exception()
             return Response({'status': False})
 
 # watchers
@@ -1667,10 +1665,24 @@ class MediaAccessFullsizeOriginalView(APIView):
     
     # @silk_profile(name='media')
     def get(self, request, path, fname, format=None):
-        logger.info("GETTING MEDIA")
-        logger.info(path)
-        logger.info(fname)
-
+        if path.lower() == 'avatars':
+            jwt = request.COOKIES.get('jwt')
+            if jwt is not None:
+                try:
+                    token = AccessToken(jwt)
+                except TokenError as error:
+                    return HttpResponseForbidden()
+            else:
+                return HttpResponseForbidden()
+            try:
+                user = User.objects.filter(id=token['user_id']).only('id').first()
+                response = HttpResponse()
+                response['Content-Type'] = 'image/png'
+                response[
+                    'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
+                return response
+            except:
+                return HttpResponse(status=404)
         if path.lower() != 'photos':
             jwt = request.COOKIES.get('jwt')
             image_hash = fname.split(".")[0].split('_')[0]

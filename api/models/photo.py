@@ -1,31 +1,23 @@
+
 import hashlib
 import os
 from datetime import datetime
-# from collections import Counter
 from io import BytesIO
 
 import api.models
 import api.util as util
 import exifread
-# from django.db.models import Prefetch
 import face_recognition
-import magic
-# import base64
 import numpy as np
 import ownphotos.settings
 import PIL
 import pyheif
 import pytz
 from api.exifreader import rotate_image
-from api.im2txt.sample import im2txt
-# from django_cryptography.fields import encrypt
 from api.im2vec import Im2Vec
-# from django.contrib.auth.models import AbstractUser
 from api.models.user import User, get_deleted_user
 from api.places365.places365 import inference_places365
 from api.util import logger
-# from django.db.models.signals import post_save, post_delete
-# from django.core.cache import cache
 from django.contrib.postgres.fields import JSONField
 from django.core.files.base import ContentFile
 from django.db import models
@@ -298,7 +290,7 @@ class Photo(models.Model):
                 self.geolocation_json = location
                 self.save()
             except:
-                pass
+                util.logger.exception('something went wrong with geolocating')
 
     def _geolocate_mapbox(self):
         if not (self.exif_gps_lat and self.exif_gps_lon):
@@ -316,8 +308,7 @@ class Photo(models.Model):
                         self.search_location = res['search_text']
                 self.save()
             except:
-                util.logger.warning('something went wrong with geolocating')
-                pass
+                util.logger.exception('something went wrong with geolocating')
 
     def _im2vec(self):
         try:
@@ -326,8 +317,8 @@ class Photo(models.Model):
             vec = im2vec.get_vec(image)
             self.encoding = vec.tobytes().hex()
             self.save()
-        except ValueError:
-            pass
+        except:
+            util.logger.exception('something went wrong with im2vec')
 
     def _extract_faces(self):
         qs_unknown_person = api.models.person.Person.objects.filter(name='unknown')
@@ -361,8 +352,6 @@ class Photo(models.Model):
                 face.location_bottom = face_location[2]
                 face.location_left = face_location[3]
                 face.encoding = face_encoding.tobytes().hex()
-                #                 face.encoding = face_encoding.dumps()
-
                 face_io = BytesIO()
                 face_image.save(face_io, format="JPEG")
                 face.image.save(face.image_path,
