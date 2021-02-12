@@ -225,7 +225,6 @@ urlpatterns = [
     url(r'^api/watcher/autoalbum', views.IsAutoAlbumsBeingProcessed.as_view()),
     url(r'^api/auth/token/obtain/$', TokenObtainPairView.as_view()),
     url(r'^api/auth/token/refresh/$', TokenRefreshView.as_view()),
-    #     url(r'^media/(?P<path>.*)', media_access, name='media'),
 
     url(r'^media/(?P<path>.*)/(?P<fname>.*)',
         views.MediaAccessFullsizeOriginalView.as_view(),

@@ -1,22 +1,14 @@
-# import base64
 import datetime
-# import random
-# import time
 import uuid
 
-#import config
 import django_rq
-# import numpy as np
-# import pytz
 import six
 from constance import config as site_config
 from django.core.cache import cache
 from django.db.models import Count, F, Prefetch, Q
-# from django.http import HttpResponse, HttpResponseForbidden
-# from django.shortcuts import render
+from django.http import HttpResponse, HttpResponseForbidden
+
 from django.utils.encoding import force_text
-# from django_bulk_update.helper import bulk_update
-# from django_rq import get_worker, job
 from rest_framework import filters, viewsets
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
@@ -28,25 +20,19 @@ from rest_framework_extensions.key_constructor.bits import (
 from rest_framework_extensions.key_constructor.constructors import \
     DefaultKeyConstructor
 
-# from api.api_util import get_count_stats  # get_current_job,
-# from api.api_util import (get_location_clusters, get_location_sunburst,
-#                           get_location_timeline, get_photo_country_counts,
-#                           get_photo_month_counts, get_search_term_examples,
-#                           get_searchterms_wordcloud, path_to_dict)
+
 from api.api_util import (get_count_stats, get_search_term_examples,
                           path_to_dict)
-# from api.autoalbum import generate_event_albums, regenerate_event_titles
 from api.directory_watcher import scan_photos
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
-# from api.face_classify import cluster_faces, train_faces
-# from api.image_similarity import search_similar_image
+
 from api.models import (AlbumAuto, AlbumDate, AlbumPlace, AlbumThing,
                         AlbumUser, Face, LongRunningJob, Person, Photo, User)
 from api.models.person import get_or_create_person
 from api.permissions import (IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo,
                              IsRegistrationAllowed, IsUserOrReadOnly)
-# from api.places365.places365 import inference_places365
-from api.serializers import (  # AlbumDateListWithPhotoHashSerializer,; SharedPhotoSuperSimpleSerializer,
+
+from api.serializers import (
     AlbumAutoListSerializer, AlbumAutoSerializer, AlbumDateListSerializer,
     AlbumDateSerializer, AlbumPersonListSerializer, AlbumPersonSerializer,
     AlbumPlaceListSerializer, AlbumPlaceSerializer, AlbumThingListSerializer,
@@ -57,9 +43,7 @@ from api.serializers import (  # AlbumDateListWithPhotoHashSerializer,; SharedPh
     PhotoSimpleSerializer, PhotoSuperSimpleSerializer,
     SharedFromMePhotoThroughSerializer, SharedToMePhotoSuperSimpleSerializer,
     UserSerializer)
-# from api.serializers_serpy import \
-#     PhotoSuperSimpleSerializerWithAddedOn as \
-#     PhotoSuperSimpleSerializerWithAdde1dOnSerpy
+
 from api.serializers_serpy import \
     AlbumDateListWithPhotoHashSerializer as \
     AlbumDateListWithPhotoHashSerializerSerpy
@@ -67,14 +51,11 @@ from api.serializers_serpy import \
     PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy
 from api.serializers_serpy import \
     SharedPhotoSuperSimpleSerializer as SharedPhotoSuperSimpleSerializerSerpy
-# from api.social_graph import build_ego_graph, build_social_graph
+
 from api.util import logger
 
-# CACHE_TTL = 60 * 60 * 24 # 1 day
-CACHE_TTL = 60 * 60 * 24 * 30  # 1 month
 CACHE_TTL = 60 * 60 * 24  # 1 day
 CACHE_TTL_VIZ = 60 * 60  # 1 hour
-CACHE_TTL = 1  # 1 sec
 
 
 #caching stuff straight out of https://chibisov.github.io/drf-extensions/docs/#caching
@@ -708,7 +689,8 @@ class AlbumPersonListViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
+        logger.info("Logging better than pdb in prod code")
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -1627,16 +1609,11 @@ from rest_framework_simplejwt.tokens import AccessToken
 class MediaAccessView(APIView):
     permission_classes = (AllowAny, )
     
+    def _get_protected_media_url(self, path, fname):
+        return "protected_media/{}/{}".format(path, fname)
+    
     # @silk_profile(name='media')
     def get(self, request, path, fname, format=None):
-        if False: # allow all images to be viewable by everyone
-            response = HttpResponse()
-            response['Content-Type'] = 'image/jpeg'
-            response[
-                'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
-            return response
-        start = datetime.datetime.now()
-
         jwt = request.COOKIES.get('jwt')
         image_hash = fname.split(".")[0].split('_')[0]
         try:
@@ -1648,9 +1625,7 @@ class MediaAccessView(APIView):
         if photo.public:
             response = HttpResponse()
             response['Content-Type'] = 'image/jpeg'
-            response[
-                'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
-            # print((datetime.datetime.now() - start).total_seconds())
+            response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname)
             return response
 
         # forbid access if trouble with jwt
@@ -1665,15 +1640,12 @@ class MediaAccessView(APIView):
         # grant access if the user is owner of the requested photo
         # or the photo is shared with the user
         image_hash = fname.split(".")[0].split('_')[0]  # janky alert
-        query_start = datetime.datetime.now()
         user = User.objects.filter(id=token['user_id']).only('id').first()
-        # print('query', (datetime.datetime.now() - query_start).total_seconds())
         if photo.owner == user or user in photo.shared_to.all():
             response = HttpResponse()
             response['Content-Type'] = 'image/jpeg'
             response[
-                'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
-            # print('response', (datetime.datetime.now() - start).total_seconds())
+                'X-Accel-Redirect'] = self._get_protected_media_url(path, fname)
             return response
         else:
             for album in photo.albumuser_set.only('shared_to'):
@@ -1681,8 +1653,7 @@ class MediaAccessView(APIView):
                     response = HttpResponse()
                     response['Content-Type'] = 'image/jpeg'
                     response[
-                        'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
-                    # print((datetime.datetime.now() - start).total_seconds())
+                        'X-Accel-Redirect'] = self._get_protected_media_url(path, fname)
                     return response
         return HttpResponse(status=404)
 
@@ -1691,18 +1662,16 @@ class MediaAccessView(APIView):
 class MediaAccessFullsizeOriginalView(APIView):
     permission_classes = (AllowAny, )
     
+    def _get_protected_media_url(self, path, fname):
+        return "/protected_media{}/{}".format(path, fname)
+    
     # @silk_profile(name='media')
     def get(self, request, path, fname, format=None):
-        if False: # allow all images to be viewable by everyone
-            response = HttpResponse()
-            response['Content-Type'] = 'image/jpeg'
-            response[
-                'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
-            return response
+        logger.info("GETTING MEDIA")
+        logger.info(path)
+        logger.info(fname)
 
         if path.lower() != 'photos':
-            start = datetime.datetime.now()
-
             jwt = request.COOKIES.get('jwt')
             image_hash = fname.split(".")[0].split('_')[0]
             try:
@@ -1714,9 +1683,7 @@ class MediaAccessFullsizeOriginalView(APIView):
             if photo.public:
                 response = HttpResponse()
                 response['Content-Type'] = 'image/jpeg'
-                response[
-                    'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
-                # print((datetime.datetime.now() - start).total_seconds())
+                response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname)
                 return response
 
             # forbid access if trouble with jwt
@@ -1731,29 +1698,21 @@ class MediaAccessFullsizeOriginalView(APIView):
             # grant access if the user is owner of the requested photo
             # or the photo is shared with the user
             image_hash = fname.split(".")[0].split('_')[0]  # janky alert
-            query_start = datetime.datetime.now()
             user = User.objects.filter(id=token['user_id']).only('id').first()
-            # print('query', (datetime.datetime.now() - query_start).total_seconds())
             if photo.owner == user or user in photo.shared_to.all():
                 response = HttpResponse()
                 response['Content-Type'] = 'image/jpeg'
-                response[
-                    'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
-                # print('response', (datetime.datetime.now() - start).total_seconds())
+                response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname)
                 return response
             else:
                 for album in photo.albumuser_set.only('shared_to'):
                     if user in album.shared_to.all():
                         response = HttpResponse()
                         response['Content-Type'] = 'image/jpeg'
-                        response[
-                            'X-Accel-Redirect'] = "/protected_media/" + path + '/' + fname
-                        # print((datetime.datetime.now() - start).total_seconds())
+                        response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname)
                         return response
             return HttpResponse(status=404)
         else:
-            start = datetime.datetime.now()
-
             jwt = request.COOKIES.get('jwt')
             image_hash = fname.split(".")[0].split('_')[0]
             try:
@@ -1762,8 +1721,8 @@ class MediaAccessFullsizeOriginalView(APIView):
                 return HttpResponse(status=404)
 
 
-            if photo.image_path.startswith('/code/nextcloud_media/'):
-                internal_path = photo.image_path.replace('/code/nextcloud_media/','/nextcloud_original/')
+            if photo.image_path.startswith('/nextcloud_media/'):
+                internal_path = photo.image_path.replace('/nextcloud_media/','/nextcloud_original/')
                 internal_path = '/nextcloud_original'+photo.image_path[21:]
             if photo.image_path.startswith('/data/'):
                 internal_path = '/original'+photo.image_path[5:]
@@ -1772,9 +1731,7 @@ class MediaAccessFullsizeOriginalView(APIView):
             if photo.public:
                 response = HttpResponse()
                 response['Content-Type'] = 'image/jpeg'
-                response[
-                    'X-Accel-Redirect'] = internal_path
-                # print((datetime.datetime.now() - start).total_seconds())
+                response['X-Accel-Redirect'] = internal_path
                 return response
 
             # forbid access if trouble with jwt
@@ -1789,65 +1746,17 @@ class MediaAccessFullsizeOriginalView(APIView):
             # grant access if the user is owner of the requested photo
             # or the photo is shared with the user
             image_hash = fname.split(".")[0].split('_')[0]  # janky alert
-            query_start = datetime.datetime.now()
             user = User.objects.filter(id=token['user_id']).only('id').first()
-            # print('query', (datetime.datetime.now() - query_start).total_seconds())
             if photo.owner == user or user in photo.shared_to.all():
                 response = HttpResponse()
                 response['Content-Type'] = 'image/jpeg'
-                response[
-                    'X-Accel-Redirect'] = internal_path
-                # print('response', (datetime.datetime.now() - start).total_seconds())
+                response['X-Accel-Redirect'] = internal_path
                 return response
             else:
                 for album in photo.albumuser_set.only('shared_to'):
                     if user in album.shared_to.all():
                         response = HttpResponse()
                         response['Content-Type'] = 'image/jpeg'
-                        response[
-                            'X-Accel-Redirect'] = internal_path
-                        # print((datetime.datetime.now() - start).total_seconds())
+                        response['X-Accel-Redirect'] = internal_path
                         return response
             return HttpResponse(status=404)
-
-
-
-
-def media_access(request, path):
-    """
-    When trying to access :
-    myproject.com/media/uploads/passport.png
-
-    If access is authorized, the request will be redirected to
-    myproject.com/protected/media/uploads/passport.png
-
-    This special URL will be handle by nginx we the help of X-Accel
-    """
-    import pdb; pdb.set_trace()
-
-    access_granted = False
-
-    user = request.user
-    if user.is_authenticated:
-        if user.is_staff:
-            # If admin, everything is granted
-            access_granted = True
-        else:
-            # For simple user, only their documents can be accessed
-            user_documents = [
-                user.identity_document,
-                # add here more allowed documents
-            ]
-
-            for doc in user_documents:
-                if path == doc.name:
-                    access_granted = True
-
-    if access_granted:
-        response = HttpResponse()
-        # Content-type will be detected by nginx
-        del response['Content-Type']
-        response['X-Accel-Redirect'] = '/media/' + path
-        return response
-    else:
-        return HttpResponseForbidden('Not authorized to access this media.')

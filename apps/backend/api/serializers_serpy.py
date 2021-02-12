@@ -9,7 +9,8 @@ class DateTimeField(serpy.Field):
             else:
                 return None
         except:
-            import pdb; pdb.set_trace()
+            #import pdb; pdb.set_trace()
+            logger.warning("DateTimefield error")
 
 
 class SimpleUserSerializer(serpy.Serializer):
