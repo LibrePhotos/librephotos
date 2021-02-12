@@ -30,8 +30,6 @@ def cluster_faces(user):
 
     pca = PCA(n_components=3)
     vis_all = pca.fit_transform(np.array(face_encodings_all))
-    #     vis_all = TSNE(n_components=2,n_iter=100000,verbose=1).fit_transform(face_encodings_all)
-
     res = []
     for face, vis in zip(faces, vis_all):
         person_id = face.person.id  #color
@@ -39,7 +37,6 @@ def cluster_faces(user):
         person_label_is_inferred = face.person_label_is_inferred
         face_url = face.image.url
         value = {'x': vis[0], 'y': vis[1], 'size': vis[2]}
-        #         value = {'x':vis[0],'y':vis[1],'size':0.1}
         out = {
             "person_id": person_id,
             "person_name": person_name,
@@ -106,7 +103,7 @@ def train_faces(user, job_id):
             logger.warning("No labeled faces found")
             lrj.finished = True
             lrj.failed = False
-            lrj.finished_at = datetime.datetime.now()
+            lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
             lrj.save()
             return True
         
@@ -145,17 +142,17 @@ def train_faces(user, job_id):
 
         lrj.finished = True
         lrj.failed = False
-        lrj.finished_at = datetime.datetime.now()
+        lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
         lrj.save()
         return True
 
-    except BaseException as e:
+    except BaseException:
         logger.exception("An error occured")
         res = []
 
         lrj.failed = True
         lrj.finished = True
-        lrj.finished_at = datetime.datetime.now()
+        lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
         lrj.save()
         return False
 

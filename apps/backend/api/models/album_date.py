@@ -1,36 +1,7 @@
-# import base64
-# import hashlib
-# import os
-# from collections import Counter
-# from datetime import datetime
-# from io import BytesIO
-# 
-# import api.util as util
-# import exifread
-# import face_recognition
-# import magic
-# import numpy as np
-# import ownphotos.settings
-# import PIL
-# import pyheif
-# import pytz
-# from api.exifreader import rotate_image
 from api.models.photo import Photo
 from api.models.user import User, get_deleted_user
-# from api.util import logger
-# from django.contrib.auth.models import AbstractUser
 from django.contrib.postgres.fields import JSONField
-# from django.core.cache import cache
-# from django.core.files.base import ContentFile
 from django.db import models
-
-# from django.db.models import Prefetch
-# from django.db.models.signals import post_delete, post_save
-# from django_cryptography.fields import encrypt
-# from geopy.geocoders import Nominatim
-# from api.im2txt.sample import im2txt
-# from PIL import ImageOps
-# from api.places365.places365 import inference_places365
 
 
 class AlbumDate(models.Model):

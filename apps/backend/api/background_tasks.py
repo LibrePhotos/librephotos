@@ -24,7 +24,7 @@ def geolocate(overwrite=False):
             logger.info('geolocating %s'%photo.image_path)
             photo._geolocate_mapbox()
         except:
-            print('could not geolocate photo:',photo)
+            logger.exception('could not geolocate photo: ' + photo)
 
 
 def regenerate_event_title():

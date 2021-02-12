@@ -1,15 +1,5 @@
-# from django.db.models import Prefetch
-# import face_recognition
-# import hashlib
-# import ownphotos.settings
-# import api.util as util
-# from api.util import logger
-# from django.core.files.base import ContentFile
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-# from django.db.models.signals import post_save, post_delete
-# from django.core.cache import cache
-# from django.contrib.postgres.fields import JSONField
 from django_cryptography.fields import encrypt
 
 
