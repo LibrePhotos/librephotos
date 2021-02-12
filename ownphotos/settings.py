@@ -230,7 +230,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'protected_media')
+MEDIA_ROOT = '/protected_media'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 DATA_ROOT = '/data'
 
