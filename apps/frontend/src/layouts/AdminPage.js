@@ -72,7 +72,6 @@ export class AdminPage extends Component {
             <Grid.Column width={4} textAlign="left">
               <b>Allow user registration</b>
             </Grid.Column>
-
             <Grid.Column width={12}>
               <Form>
                 <Form.Group>
@@ -99,6 +98,28 @@ export class AdminPage extends Component {
                       }
                       checked={!this.props.siteSettings.allow_registration}
                     />
+                  </Form.Field>
+                </Form.Group>
+              </Form>
+            </Grid.Column>
+          </Grid.Row>
+          <Grid.Row>
+            <Grid.Column width={4} textAlign="left">
+              <b>Paths for images</b>
+            </Grid.Column>
+            <Grid.Column width={12}>
+              <Form>
+                <Form.Group>
+                  <Form.Field>
+                    <textarea
+                      label="Insert on path per line"
+                      name="image_dirs"
+                      defaultValue={this.props.siteSettings.image_dirs}
+                      onChange={(event) => {
+                        this.props.dispatch(
+                          setSiteSettings({image_dirs: event.target.value}),
+                        )}}
+                      />
                   </Form.Field>
                 </Form.Group>
               </Form>
