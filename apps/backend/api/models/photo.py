@@ -160,7 +160,6 @@ class Photo(models.Model):
         return image
 
     def _generate_thumbnail(self):
-        import ipdb; pdb.set_trace()
         image = self.get_pil_image()
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()):            
             image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_BIG,

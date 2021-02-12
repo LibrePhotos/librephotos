@@ -1,9 +1,6 @@
-
 import PIL
-from PIL import ImageOps
-from PIL.ExifTags import TAGS as EXIFTAGS
- 
- 
+
+
 def rotate_image(image):
         # If no ExifTags, no rotating needed.
     try:
