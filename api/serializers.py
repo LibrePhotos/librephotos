@@ -30,7 +30,8 @@ class PhotoEditSerializer(serializers.ModelSerializer):
         fields = ('image_hash', 'hidden', 'favorited')
 
     def update(self, instance, validated_data):
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
+        logger.info("Removed pdb to avoid blocks")
 
 
 class PhotoHashListSerializer(serializers.ModelSerializer):
