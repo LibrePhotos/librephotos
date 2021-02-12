@@ -1,0 +1,14 @@
+// See https://aka.ms/vscode-remote/devcontainer.json for format details.
+{
+	"dockerComposeFile": ["docker-compose.yml", "docker-compose.dev.yml"],
+	"service": "backend",
+	"workspaceFolder": "/code/",
+	"extensions": ["ms-python.python",
+                       "ms-vscode.atom-keybindings",
+                       "mrorz.language-gettext",
+                       "ms-python.vscode-pylance",
+                       "batisteo.vscode-django",
+                       "keno.uikit-3-snippets",
+                       "dbaeumer.vscode-eslint",
+                       "christian-kohler.npm-intellisense"]
+}

@@ -15,9 +15,11 @@ RUN curl -SL https://download.pytorch.org/models/resnet152-b121ed2d.pth -o /root
 RUN pip install torch==1.7.1+cpu torchvision==0.8.2+cpu -f https://download.pytorch.org/whl/torch_stable.html
 
 # actual project
+ARG DEBUG
 WORKDIR /code
 RUN git clone https://github.com/parruc/librephotos .
 RUN pip install -r requirements.txt
+RUN if [ "$DEBUG" = 1 ] ; then pip install -r requirements.dev.txt ;  fi
 RUN python -m spacy download en_core_web_sm
 EXPOSE 8001
 

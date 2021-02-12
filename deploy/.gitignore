@@ -168,3 +168,5 @@ api/places365/*.tar.gz
 media*
 protected_media
 librephotos
+vscode/server-extensions
+vscode/server-insiders-extensions

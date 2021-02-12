@@ -1,6 +1,5 @@
 #! /bin/bash
 export PYTHONUNBUFFERED=TRUE
-pip install djangorestframework-simplejwt==4.6.0
 mkdir -p /logs
 
 python image_similarity/main.py 2>&1 | tee /logs/gunicorn_image_similarity.log &
@@ -14,8 +13,12 @@ python manage.py createadmin -u $ADMIN_USERNAME $ADMIN_EMAIL 2>&1 | tee /logs/co
 echo "Running backend server..."
 
 python manage.py rqworker default 2>&1 | tee /logs/rqworker.log &
-if [ $(ps -ef | grep -c "myApplication") -eq 1 ]; then echo "true"; fi
 
-[ "$DEBUG" = 1 ] && RELOAD="--reload" || RELOAD=""
-
-gunicorn --worker-class=gevent --timeout $WORKER_TIMEOUT $RELOAD --bind backend:8001 --log-level=info ownphotos.wsgi 2>&1 | tee /logs/gunicorn_django.log 
+if [ "$DEBUG" = 1 ]
+then
+    echo "develompent backend starting"
+    gunicorn --worker-class=gevent --timeout 36000 --reload --bind backend:8001 --log-level=info ownphotos.wsgi 2>&1 | tee /logs/gunicorn_django.log
+else
+    echo "production backend starting"
+    gunicorn --worker-class=gevent --timeout 3600 --bind backend:8001 --log-level=warning ownphotos.wsgi 2>&1
+fi
