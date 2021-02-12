@@ -59,7 +59,6 @@ services:
       - ADMIN_EMAIL=${adminEmail}
       - ADMIN_USERNAME=${userName}
       - ADMIN_PASSWORD=${userPass}
-      - DEBUG=true
       - DB_BACKEND=postgresql
       - DB_NAME=${dbName}
       - DB_USER=${dbUser}
