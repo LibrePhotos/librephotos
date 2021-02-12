@@ -59,7 +59,8 @@ CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
 CONSTANCE_DATABASE_CACHE_BACKEND = 'default'
 
 CONSTANCE_CONFIG = {
-    'ALLOW_REGISTRATION': (False, 'Publicly allow user registration', bool)
+    'ALLOW_REGISTRATION': (False, 'Publicly allow user registration', bool),
+    'IMAGE_DIRS': ("[]", 'Image dirs list (serialized json)', str)
 }
 
 INTERNAL_IPS = ('127.0.0.1', 'localhost', '192.168.1.100')

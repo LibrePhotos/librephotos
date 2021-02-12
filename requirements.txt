@@ -1,5 +1,4 @@
 argparse==1.4.0 
-config==0.4.2
 Django==3.0.10
 django-constance==2.7.0
 django-cors-headers==3.5.0
