@@ -1,13 +1,8 @@
-import base64
 import itertools
-from datetime import datetime
 
 import face_recognition
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-import requests
-from django.db.models import Prefetch
 from seaborn import color_palette
 from sklearn import mixture, preprocessing
 from sklearn.cluster import (DBSCAN, AgglomerativeClustering, MeanShift,

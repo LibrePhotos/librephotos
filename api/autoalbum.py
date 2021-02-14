@@ -1,15 +1,10 @@
-import os
-import shutil
-import uuid
 from datetime import datetime, timedelta
-from itertools import groupby
 
 import numpy as np
 import pytz
-import rq
 from django_rq import job
 
-from api.models import AlbumAuto, LongRunningJob, Person, Photo
+from api.models import AlbumAuto, LongRunningJob, Photo
 from api.util import logger
 
 
