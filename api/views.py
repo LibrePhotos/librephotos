@@ -19,10 +19,12 @@ from rest_framework_extensions.key_constructor.bits import (
 from rest_framework_extensions.key_constructor.constructors import \
     DefaultKeyConstructor
 
-from api.api_util import (get_count_stats, get_search_term_examples,
-                          path_to_dict)
+from api.api_util import (get_count_stats, get_location_sunburst,
+                          get_location_timeline, get_photo_month_counts,
+                          get_searchterms_wordcloud, path_to_dict)
 from api.directory_watcher import scan_photos
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
+from api.face_classify import cluster_faces
 from api.models import (AlbumAuto, AlbumDate, AlbumPlace, AlbumThing,
                         AlbumUser, Face, LongRunningJob, Person, Photo, User)
 from api.models.person import get_or_create_person
@@ -50,6 +52,7 @@ from api.serializers_serpy import \
     PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy
 from api.serializers_serpy import \
     SharedPhotoSuperSimpleSerializer as SharedPhotoSuperSimpleSerializerSerpy
+from api.social_graph import build_social_graph
 from api.util import logger
 
 CACHE_TTL = 60 * 60 * 24  # 1 day
