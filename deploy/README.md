@@ -19,3 +19,6 @@ docker-compose build --no-cache frontend
 docker-compose build --no-cache backend
 
 based on which one you changed if these changes need rebuild as for added dependencies/libraries etc.
+
+If you use vscode you can benefit auto completion and other goodies. For this just type `code .` in your dockerfile folder.
+Vscode will open and ask you if you want to reopen it in the container. If you do it he will add his server to the docker layers (first time you do it can take a couple of minutes) and you will have the same python interpreter librephotos is using internally hence the same installed libraries in auto completion and the same development environment will be shared by all devs (isort, flake8 and pylint for example)
