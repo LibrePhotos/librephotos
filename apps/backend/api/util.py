@@ -1,24 +1,11 @@
-#import base64
-#import itertools
 import logging
 import logging.handlers
 import os
 
-# import django_rq
 import numpy as np
 import requests
 import spacy
-# from config import mapbox_api_key
-# from ownphotos.settings import IMAGE_SIMILARITY_SERVER
-# from scipy import linalg
 from scipy.spatial import distance
-
-#import pickle
-
-
-# from sklearn import cluster, mixture
-# from sklearn.decomposition import PCA
-# from sklearn.preprocessing import StandardScaler
 
 nlp = spacy.load('en_core_web_sm')
 

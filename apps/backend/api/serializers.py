@@ -1,6 +1,5 @@
 import json
 import os
-# import time
 from datetime import datetime
 
 from django.contrib.auth import get_user_model

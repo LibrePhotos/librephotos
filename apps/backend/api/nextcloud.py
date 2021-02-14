@@ -1,5 +1,3 @@
-# import time
-
 import owncloud as nextcloud
 
 from api.models import *

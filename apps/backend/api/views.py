@@ -2,6 +2,7 @@ import datetime
 import uuid
 
 import django_rq
+import numpy as np
 import six
 from constance import config as site_config
 from django.core.cache import cache
@@ -19,12 +20,16 @@ from rest_framework_extensions.key_constructor.bits import (
 from rest_framework_extensions.key_constructor.constructors import \
     DefaultKeyConstructor
 
-from api.api_util import (get_count_stats, get_location_sunburst,
-                          get_location_timeline, get_photo_month_counts,
-                          get_searchterms_wordcloud, path_to_dict)
+from api.api_util import (get_count_stats, get_location_clusters,
+                          get_location_sunburst, get_location_timeline,
+                          get_photo_country_counts, get_photo_month_counts,
+                          get_search_term_examples, get_searchterms_wordcloud,
+                          path_to_dict)
+from api.autoalbum import generate_event_albums, regenerate_event_titles
 from api.directory_watcher import scan_photos
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
-from api.face_classify import cluster_faces
+from api.face_classify import cluster_faces, train_faces
+from api.image_similarity import search_similar_image
 from api.models import (AlbumAuto, AlbumDate, AlbumPlace, AlbumThing,
                         AlbumUser, Face, LongRunningJob, Person, Photo, User)
 from api.models.person import get_or_create_person
@@ -52,7 +57,7 @@ from api.serializers_serpy import \
     PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy
 from api.serializers_serpy import \
     SharedPhotoSuperSimpleSerializer as SharedPhotoSuperSimpleSerializerSerpy
-from api.social_graph import build_social_graph
+from api.social_graph import build_ego_graph, build_social_graph
 from api.util import logger
 
 CACHE_TTL = 60 * 60 * 24  # 1 day
@@ -1361,10 +1366,6 @@ class SearchTermExamples(APIView):
     def get(self, request, format=None):
         search_term_examples = get_search_term_examples(request.user)
         return Response({"results": search_term_examples})
-
-
-
-
 
 
 class FaceToLabelView(APIView):

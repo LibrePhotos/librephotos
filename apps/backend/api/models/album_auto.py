@@ -3,9 +3,7 @@ from collections import Counter
 import api.util as util
 from api.models.photo import Photo
 from api.models.user import User, get_deleted_user
-from django.core.cache import cache
 from django.db import models
-from django.db.models.signals import post_delete, post_save
 
 
 class AlbumAuto(models.Model):
