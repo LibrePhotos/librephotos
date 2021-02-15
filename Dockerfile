@@ -67,8 +67,9 @@ RUN wget https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/im2txt_data.tar.
 RUN tar xf im2txt_data.tar.gz
 
 WORKDIR /code/api/yolo
-RUN git clone --recursive https://github.com/philipperemy/yolo-9000.git
+RUN git clone https://github.com/philipperemy/yolo-9000.git
 WORKDIR /code/api/yolo/yolo-9000
+RUN git clone https://github.com/AlexeyAB/darknet
 RUN cat yolo9000-weights/x* > yolo9000-weights/yolo9000.weights 
 WORKDIR /code/api/yolo/yolo-9000/darknet 
 RUN make
@@ -77,7 +78,7 @@ WORKDIR /root/.cache/torch/hub/checkpoints/
 RUN wget https://download.pytorch.org/models/resnet152-b121ed2d.pth
 
 RUN cp -r /code/api/yolo/yolo-9000/darknet/data/ /code/
-
+RUN cp -r /code/api/yolo/yolo-9000/darknet/cfg/9k.names /code/data
 VOLUME /data
 
 # Application admin creds
