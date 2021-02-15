@@ -1,6 +1,8 @@
 # For common users:
 Set the needed variables in .env (take librephotos.env as model)
+
 Clone the repo: `git clone git@github.com:LibrePhotos/librephotos-docker.git`
+
 docker-compose up -d
 This will get the pre-built images and start all the needed processes
 
