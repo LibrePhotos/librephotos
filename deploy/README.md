@@ -15,8 +15,8 @@ This will build images from scratch (can take a long time)
 Now you can develop and benefit from code auto reload from both backend and frontend
 N.B. If you already built this image once, when you do changes you have to run 
 
-docker-compose build --no-cache frontend
-docker-compose build --no-cache backend
+`docker-compose -f docker-compose.yml -f docker-compose.dev.yml  build --no-cache frontend`
+`docker-compose -f docker-compose.yml -f docker-compose.dev.yml  build --no-cache backend`
 
 based on which one you changed if these changes need rebuild as for added dependencies/libraries etc.
 
