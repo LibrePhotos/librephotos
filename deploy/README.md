@@ -8,6 +8,7 @@ This will get the pre-built images and start all the needed processes
 Set the needed variables in .evn (take librephotos.env as model)
 Also set the codedir variable that tells docker where your source folder are
 Pull frontend code with `git clone https://github.com/LibrePhotos/librephotos-frontend.git ${codedir}/frontend/`
+
 Pull backend code into `git clone https://github.com/LibrePhotos/librephotos.git ${codedir}/backend/`
 Pull this repo and run
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
@@ -16,6 +17,7 @@ Now you can develop and benefit from code auto reload from both backend and fron
 N.B. If you already built this image once, when you do changes you have to run 
 
 `docker-compose -f docker-compose.yml -f docker-compose.dev.yml  build --no-cache frontend`
+
 `docker-compose -f docker-compose.yml -f docker-compose.dev.yml  build --no-cache backend`
 
 based on which one you changed if these changes need rebuild as for added dependencies/libraries etc.
