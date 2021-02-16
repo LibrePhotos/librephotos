@@ -3,14 +3,15 @@ import PIL
 from PIL import ImageOps
 from PIL.ExifTags import TAGS as EXIFTAGS
 import api.util as util
- 
+
 def rotate_image(image):
     # If no ExifTags, no rotating needed.
     try:
         # Grab orientation value.
+        ORIENTATION_KEY = 274
         image_exif = image._getexif()
-        if(image_exif):
-            image_orientation = image_exif[274]
+        if(image_exif and ORIENTATION_KEY in image_exif):
+            image_orientation = image_exif[ORIENTATION_KEY]
 
             # Rotate depending on orientation.
             if image_orientation == 2:
