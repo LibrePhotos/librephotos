@@ -21,8 +21,10 @@ services:
     build:
       context: .
       dockerfile: proxy/Dockerfile
-      volumes:
-        - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+    volumes:
+      - ${myPhotos}:/data
+      - ${proMedia}:/protected_media
+      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
 
   frontend:
     tty: true
