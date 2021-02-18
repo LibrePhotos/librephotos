@@ -40,12 +40,12 @@ def calculate_hash(user, image_path):
 def should_skip(filepath):
     if not os.getenv('SKIP_PATTERNS'):
         return False
-        
+
     skip_patterns = os.getenv('SKIP_PATTERNS')
     skip_list = skip_patterns.split(',')
-    skip_list = map(str.strip, skipList)
+    skip_list = map(str.strip, skip_list)
 
-    res = [ele for ele in skip_list if(ele in filepath)] 
+    res = [ele for ele in skip_list if(ele in filepath)]
     return bool(res)
 
 if os.name == "Windows":
@@ -92,7 +92,7 @@ def handle_new_image(user, image_path, job_id):
             elapsed_times["md5"] = elapsed
 
             photo_exists = Photo.objects.filter(
-                Q(image_hash=image_hash) & Q(image_path=image_path)
+                Q(image_hash=image_hash)
             ).exists()
 
             if not photo_exists:
@@ -172,7 +172,7 @@ def rescan_image(user, image_path, job_id):
 def walk_directory(directory, callback):
     for file in os.scandir(directory):
         fpath = os.path.join(directory, file)
-        if not is_hidden(fpath) and not should_skip(fpath):            
+        if not is_hidden(fpath) and not should_skip(fpath):
             if os.path.isdir(fpath):
                 walk_directory(fpath, callback)
             else:
