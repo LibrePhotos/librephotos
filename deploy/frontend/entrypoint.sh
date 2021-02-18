@@ -9,9 +9,6 @@ then
     echo "develompent running frontend"
     npm run start
 else
-    echo "production building frontend"
-    npm install -g serve
-    npm run build
     echo "productions running frontend"
     serve build -d -l 3000
 fi

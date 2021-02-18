@@ -32,7 +32,7 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
     volumes:
-      - ${codedir}/frontend:/usr/src/app
+      - ${codedir}/librephotos-frontend:/usr/src/app
 
   backend:
     tty: true
@@ -49,7 +49,7 @@ services:
       - ${myPhotos}:/data
       - ${proMedia}:/protected_media
       - ${logLocation}:/logs
-      - ${codedir}/backend:/code
+      - ${codedir}/librephotos:/code
       - ${cachedir}:/root/.cache
       - ./vscode/server-extensions:/root/.vscode-server/extensions
       - ./vscode/server-insiders-extensions:/root/.vscode-server-insiders/extensions
