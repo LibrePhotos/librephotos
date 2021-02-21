@@ -4,7 +4,7 @@ from api.util import logger
 from sklearn.decomposition import PCA
 import numpy as np
 from sklearn.neural_network import MLPClassifier
-
+from django.core.cache import cache
 import seaborn as sns
 from django_rq import job
 import pytz
@@ -144,6 +144,7 @@ def train_faces(user, job_id):
         lrj.failed = False
         lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
         lrj.save()
+        cache.clear()
         return True
 
     except BaseException:

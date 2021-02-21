@@ -1,6 +1,7 @@
 import datetime
 import uuid
-
+from django.core.cache import cache
+import ownphotos.settings
 import django_rq
 import six
 from constance import config as site_config
@@ -18,9 +19,10 @@ from rest_framework_extensions.key_constructor.bits import (
     KeyBitBase, ListSqlQueryKeyBit, PaginationKeyBit, RetrieveSqlQueryKeyBit)
 from rest_framework_extensions.key_constructor.constructors import \
     DefaultKeyConstructor
-
+from api.face_classify import train_faces, cluster_faces
+from api.social_graph import build_social_graph
 from api.api_util import (get_count_stats, get_search_term_examples,
-                          path_to_dict)
+                          path_to_dict, get_location_clusters, get_location_sunburst, get_searchterms_wordcloud, get_location_timeline)
 from api.directory_watcher import scan_photos
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 from api.models import (AlbumAuto, AlbumDate, AlbumPlace, AlbumThing,
@@ -1014,6 +1016,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action == 'create':
             self.permission_classes = (IsRegistrationAllowed, )
+            cache.clear()
         elif self.action == 'list':
             self.permission_classes = (IsAdminUser, )
         elif self.request.method == 'GET' or self.request.method == 'POST':
@@ -1116,7 +1119,7 @@ class SetUserAlbumShared(APIView):
             logger.info('Unshared user {}\'s album {} to user {}'.format(request.user.id, user_album_id, target_user_id))
 
         user_album_to_share.save()
-
+        cache.clear()
         return Response(AlbumUserListSerializer(user_album_to_share).data)
 
 
@@ -1135,7 +1138,7 @@ class GeneratePhotoCaption(APIView):
                     'message': "you are not the owner of this photo"
                 },
                 status_code=400)
-
+        cache.clear()
         res = photo._generate_captions_im2txt()
         return Response({'status': res})
 
@@ -1163,7 +1166,7 @@ class SetPhotosShared(APIView):
         '''
 
         ThroughModel = Photo.shared_to.through
-
+        cache.clear()
         if shared:
             already_existing = ThroughModel.objects.filter(
                 user_id=target_user_id,
@@ -1208,7 +1211,7 @@ class SetPhotosPublic(APIView):
                 updated.append(PhotoSerializer(photo).data)
             else:
                 not_updated.append(PhotoSerializer(photo).data)
-
+        cache.clear()
         if val_public:
             logger.info("{} photos were set public. {} photos were already public.".format(len(updated),len(not_updated)))
         else:
@@ -1242,7 +1245,7 @@ class SetPhotosFavorite(APIView):
                 updated.append(PhotoSerializer(photo).data)
             else:
                 not_updated.append(PhotoSerializer(photo).data)
-
+        cache.clear()
         if val_favorite:
             logger.info("{} photos were added to favorites. {} photos were already in favorites.".format(len(updated),len(not_updated)))
         else:
@@ -1275,7 +1278,7 @@ class SetPhotosHidden(APIView):
                 updated.append(PhotoSerializer(photo).data)
             else:
                 not_updated.append(PhotoSerializer(photo).data)
-
+        cache.clear()
         if val_hidden:
             logger.info("{} photos were set hidden. {} photos were already hidden.".format(len(updated),len(not_updated)))
         else:
@@ -1305,7 +1308,7 @@ class SetFacePersonLabel(APIView):
                 updated.append(FaceListSerializer(face).data)
             else:
                 not_updated.append(FaceListSerializer(face).data)
-
+        cache.clear()
         return Response({
             'status': True,
             'results': updated,
@@ -1327,7 +1330,7 @@ class DeleteFaces(APIView):
                 face.delete()
             else:
                 not_deleted.append(face.id)
-
+        cache.clear()
         return Response({
             'status': True,
             'results': deleted,
@@ -1344,7 +1347,7 @@ class RootPathTreeView(APIView):
 
     def get(self, request, format=None):
         try:
-            res = [path_to_dict(p) for p in site_config.IMAGE_DIRS.split("\n")]
+            res = [path_to_dict(ownphotos.settings.DATA_ROOT)]
             return Response(res)
         except Exception as e:
             logger.exception(str(e))
@@ -1443,9 +1446,6 @@ class EgoGraphView(APIView):
     def get(self, request, format=None):
         res = build_ego_graph(request.GET['person_id'])
         return Response(res)
-
-
-
 
 class StatsView(APIView):
     def get(self, request, format=None):

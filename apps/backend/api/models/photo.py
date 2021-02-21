@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 from io import BytesIO
 
+import magic
 import api.models
 import api.util as util
 import exifread
@@ -13,6 +14,7 @@ import ownphotos.settings
 import PIL
 import pyheif
 import pytz
+from django.core.cache import cache
 from api.exifreader import rotate_image
 from api.im2vec import Im2Vec
 from api.models.user import User, get_deleted_user
@@ -164,7 +166,7 @@ class Photo(models.Model):
             image_io_thumb.close()
         #thumbnail already exists, add to photo
         else:
-            self.thumbnail_big.name=os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()
+            self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + '.jpg').strip()
 
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()):
             square_thumb = ImageOps.fit(image,
@@ -178,7 +180,7 @@ class Photo(models.Model):
             image_io_square_thumb.close()
         #thumbnail already exists, add to photo
         else:
-            self.square_thumbnail.name=os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()
+            self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.jpg').strip()
 
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()):
             square_thumb = ImageOps.fit(image,
@@ -192,7 +194,7 @@ class Photo(models.Model):
             image_io_square_thumb.close()
         #thumbnail already exists, add to photo
         else:
-            self.square_thumbnail_small.name=os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()
+            self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.jpg').strip()
         self.save()
 
     def _save_image_to_db(self):
@@ -244,12 +246,12 @@ class Photo(models.Model):
         album_date = None
 
         if self.exif_timestamp:
-            album_date = api.models.album_date.get_or_create_album_date(date=self.exif_timestamp.date(), owner=self.owner)
+            album_date = api.models.album_date.get_or_create_album_date(date=self.exif_timestamp.date(), owner=self.owner)  
             album_date.photos.add(self)
         else:
             album_date = api.models.album_date.get_or_create_album_date(date=None, owner=self.owner)
             album_date.photos.add(self)
-        
+        cache.clear()     
         album_date.save()
         self.save()
 
@@ -360,6 +362,7 @@ class Photo(models.Model):
                 face.save()
             logger.info('image {}: {} face(s) saved'.format(
                 self.image_hash, len(face_locations)))
+        cache.clear() 
 
     def _add_to_album_thing(self):
         if type(self.captions_json
@@ -381,6 +384,7 @@ class Photo(models.Model):
                     album_thing.photos.add(self)
                     album_thing.thing_type = 'places365_category'
                     album_thing.save()
+        cache.clear() 
 
     def _add_to_album_date(self):
         
@@ -400,8 +404,8 @@ class Photo(models.Model):
                     album_date.location = new_value
             else:
                 album_date.location = {'places': [city_name]}
-
         album_date.save()
+        cache.clear() 
 
     def _add_to_album_place(self):
         if not self.geolocation_json or len(self.geolocation_json) == 0:
@@ -418,6 +422,7 @@ class Photo(models.Model):
                     self.geolocation_json['features']) - geolocation_level
             album_place.photos.add(self)
             album_place.save()
+        cache.clear() 
 
     def __str__(self):
         return "%s" % self.image_hash
