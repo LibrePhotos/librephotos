@@ -66,7 +66,6 @@ else:
 
 
 def handle_new_image(user, image_path, job_id):
-    import ipdb; ipdb.set_trace()
     try:
         if is_valid_media(open(image_path, "rb").read(2048)):
             elapsed_times = {
@@ -149,7 +148,6 @@ def handle_new_image(user, image_path, job_id):
 
 
 def rescan_image(user, image_path, job_id):
-    import ipdb; ipdb.set_trace()
     try:
         if is_valid_media(open(image_path, "rb").read(2048)):
             photo = Photo.objects.filter(Q(image_path=image_path)).get()
