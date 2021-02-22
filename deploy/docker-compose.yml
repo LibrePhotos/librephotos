@@ -10,7 +10,7 @@
 version: '3.8'
 services:
   proxy:
-    image: nginx
+    image: reallibrephotos/librephotos-proxy:${tag}
     restart: always
     volumes:
       - ${myPhotos}:/data
