@@ -1,0 +1,70 @@
+# Run options:
+# 1. There are no options - This add additional tools to aid in the development of Libre Photos
+#   run cmd: docker-compose up -f docker-compose.yml -f docker-compose.dev.yml -d
+# 2. Current added tools:
+#    pgadmin User admin@admin pass admin port 3001
+
+# DO NOT EDIT
+# The .env file has everything you need to edit.
+# Run options:
+# 1. Use prebuilt images (preferred method):
+#   run cmd: docker-compose up -d
+# 2. Build images on your own machine:
+#   build cmd: COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose build
+#   run cmd: docker-compose up -d
+
+version: '3.8'
+services:
+
+  proxy:
+    tty: true
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile
+    volumes:
+      - ${myPhotos}:/data
+      - ${proMedia}:/protected_media
+      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+
+  frontend:
+    tty: true
+    environment:
+    - DEBUG=1
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    volumes:
+      - ${codedir}/librephotos-frontend:/usr/src/app
+      - ./frontend/entrypoint.sh:/entrypoint.sh
+
+  backend:
+    tty: true
+    stdin_open: true
+    environment:
+      - DEBUG=1
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        DEBUG: 1
+    volumes:
+      - ${myPhotos}:/data
+      - ${proMedia}:/protected_media
+      - ${logLocation}:/logs
+      - ${codedir}/librephotos:/code
+      - ${cachedir}:/root/.cache
+      - ./vscode/server-extensions:/root/.vscode-server/extensions
+      - ./vscode/server-insiders-extensions:/root/.vscode-server-insiders/extensions
+      - ./vscode/settings.json:/code/.vscode/settings.json
+      - ./backend/entrypoint.sh:/entrypoint.sh
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@admin.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+    volumes:
+       - $HOME/pgadmin:/root/.pgadmin
+    ports:
+      - "3001:80"
+    restart: unless-stopped
