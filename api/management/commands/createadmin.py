@@ -1,9 +1,10 @@
-import sys
 import os
-from getpass import getpass
-from django.core.management.base import BaseCommand, CommandError
-from django.core.validators import validate_email, ValidationError
+import sys
+
 from api.models import User
+from django.core.management.base import BaseCommand, CommandError
+from django.core.validators import ValidationError, validate_email
+
 
 class Command(BaseCommand):
     help = 'Create a LibrePhotos user with administrative permissions'
@@ -31,7 +32,7 @@ class Command(BaseCommand):
         if 'ADMIN_PASSWORD' in os.environ:
             options['admin_password'] = os.environ['ADMIN_PASSWORD']
         else:
-            options['admin_password'] = getpass()
+            options['admin_password'] = User.objects.make_random_password()
 
         if not options['admin_password']:
             raise CommandError('Admin password cannot be empty')

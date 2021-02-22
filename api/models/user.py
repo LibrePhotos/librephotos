@@ -1,6 +1,7 @@
-from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.db import models
 from django_cryptography.fields import encrypt
+
 
 class User(AbstractUser):
     scan_directory = models.CharField(max_length=512, db_index=True)

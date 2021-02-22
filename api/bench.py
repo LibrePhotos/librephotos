@@ -1,30 +1,17 @@
-from api.models import Photo, Face, AlbumDate, Person
-from django.db.models import Prefetch
-from api.serializers_serpy import AlbumDateListWithPhotoHashSerializer as AlbumDateListWithPhotoHashSerializerSerpy
-from api.serializers import AlbumDateListWithPhotoHashSerializer as AlbumDateListWithPhotoHashSerializer
-
-import base64
-import requests
-import numpy as np
-from sklearn.manifold import TSNE
-import matplotlib.pyplot as plt
-from seaborn import color_palette
 import itertools
 
-from datetime import datetime
 import face_recognition
-
+import matplotlib.pyplot as plt
+import numpy as np
+from seaborn import color_palette
+from sklearn import mixture, preprocessing
+from sklearn.cluster import (DBSCAN, AgglomerativeClustering, MeanShift,
+                             estimate_bandwidth)
+from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 
-from sklearn import mixture
-from scipy import linalg
-from scipy.cluster.hierarchy import dendrogram, linkage
-import matplotlib as mpl
-from sklearn import preprocessing
-from sklearn.preprocessing import StandardScaler
+from api.models import Face, Person
 
-from sklearn.cluster import Birch, AgglomerativeClustering, DBSCAN
-from sklearn.cluster import MeanShift, estimate_bandwidth
 
 def get_or_create_person(name):
     qs = Person.objects.filter(name=name)

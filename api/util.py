@@ -1,26 +1,11 @@
-import base64
-import pickle
-import itertools
-
-from scipy import linalg
-from sklearn.decomposition import PCA
-import numpy as np
-from sklearn import cluster
-from sklearn import mixture
-from scipy.spatial import distance
-from sklearn.preprocessing import StandardScaler
-
-import requests
-
-from config import mapbox_api_key
-
 import logging
 import logging.handlers
+import os
 
+import numpy as np
+import requests
 import spacy
-
-import django_rq
-from ownphotos.settings import IMAGE_SIMILARITY_SERVER
+from scipy.spatial import distance
 
 nlp = spacy.load('en_core_web_sm')
 
@@ -29,7 +14,7 @@ fomatter = logging.Formatter(
     '%(asctime)s : %(filename)s : %(funcName)s : %(lineno)s : %(levelname)s : %(message)s')
 fileMaxByte = 256 * 1024 * 200  # 100MB
 fileHandler = logging.handlers.RotatingFileHandler(
-    './logs/ownphotos.log', maxBytes=fileMaxByte, backupCount=10)
+    '/logs/ownphotos.log', maxBytes=fileMaxByte, backupCount=10)
 fileHandler.setFormatter(fomatter)
 logger.addHandler(fileHandler)
 logger.setLevel(logging.INFO)
@@ -91,6 +76,7 @@ def compute_bic(kmeans,X):
     return(BIC)
 
 def mapbox_reverse_geocode(lat,lon):
+    mapbox_api_key = os.environ.get('MAPBOX_API_KEY', '')
     url = "https://api.mapbox.com/geocoding/v5/mapbox.places/%f,%f.json?access_token=%s"%(lon,lat,mapbox_api_key)
     resp = requests.get(url)
     if resp.status_code == 200:

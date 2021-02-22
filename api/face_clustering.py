@@ -1,20 +1,16 @@
-from api.models import Face, Person
-
 import base64
-import pickle
-import itertools
 
-from scipy import linalg
-from sklearn.decomposition import PCA
-import numpy as np
 import matplotlib as mpl
-from sklearn import cluster
-from sklearn import mixture
+import numpy as np
 from scipy.spatial import distance
-from sklearn.preprocessing import StandardScaler
+from sklearn import cluster
+from sklearn.decomposition import PCA
+
+from api.models import Face, Person
 
 mpl.use('Agg')
 import matplotlib.pyplot as plt
+
 
 def compute_bic(kmeans,x):
     """
@@ -115,9 +111,7 @@ if vis_labelled is not None:
 fig.savefig('media/figs/scatter.png')
 plt.close(fig)
  
-from scipy.cluster.hierarchy import fcluster
-from scipy.cluster.hierarchy import linkage
-from scipy.cluster.hierarchy import dendrogram
+from scipy.cluster.hierarchy import dendrogram, fcluster, linkage
 
 Z = linkage(vecs_all,metric='euclidean',method='ward')
 dendrogram(Z)

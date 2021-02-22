@@ -1,9 +1,9 @@
-import nltk
+# import argparse
 import pickle
-import argparse
 from collections import Counter
+
+import nltk
 from pycocotools.coco import COCO
-import ipdb
 from tqdm import tqdm
 
 caption_path = 'api/im2txt/data/annotations/captions_train2014.json'
@@ -69,7 +69,6 @@ def main():
 
 
 # if __name__ == '__main__':
-#     ipdb.set_trace()
 #     parser = argparse.ArgumentParser()
 #     parser.add_argument('--caption_path', type=str, 
 #                         default='data/annotations/captions_train2014.json', 

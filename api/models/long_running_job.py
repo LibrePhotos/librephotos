@@ -1,7 +1,9 @@
-from django.db import models
-from api.models.user import User, get_deleted_user
 from datetime import datetime
+
+from api.models.user import User, get_deleted_user
 from django.contrib.postgres.fields import JSONField
+from django.db import models
+
 
 def get_default_longrunningjob_result():
     return {'progress': {'target': 0, 'current': 0}}

@@ -1,7 +1,8 @@
+from api.models.photo import Photo
+from api.models.user import User, get_deleted_user
 from django.db import models
 from django.db.models import Prefetch
-from api.models.user import User, get_deleted_user
-from api.models.photo import Photo
+
 
 class Person(models.Model):
     KIND_CHOICES = (('USER', 'User Labelled'), ('CLUSTER', 'Cluster ID'),
@@ -25,7 +26,6 @@ class Person(models.Model):
             encodings.append(encoding)
         mean_encoding = np.array(encodings).mean(axis=0)
         self.mean_face_encoding = base64.encodebytes(mean_encoding.tostring())
-        # ipdb.set_trace()
 
     def get_photos(self, owner):
         faces = list(

@@ -1,14 +1,11 @@
+#import config
+from constance import config as site_config
 from django.test import TestCase
-
-from rest_framework.test import APIRequestFactory
-from rest_framework.test import APIClient
-from api.models import *
-
-from api.directory_watcher import scan_photos
 from django_rq import get_worker
+from rest_framework.test import APIClient  # , APIRequestFactory
 
-import config
-import ipdb
+#from api.directory_watcher import scan_photos
+from api.models import *
 
 samplephotos_dir = os.path.abspath('samplephotos')
 
@@ -16,7 +13,7 @@ samplephotos_dir = os.path.abspath('samplephotos')
 # Create your tests here.
 class AdminTestCase(TestCase):
     def setUp(self):
-        config.image_dirs = [samplephotos_dir]
+        site_config.IMAGE_DIRS = [samplephotos_dir]
         User.objects.create_superuser('test_admin', 'test_admin@test.com',
                                       'test_password')
         self.client = APIClient()
@@ -270,7 +267,6 @@ class ScanPhotosTestCase(TestCase):
 #     def test_get_faces(self):
 #         res = self.client_users[0].get('/api/faces/list/')
 #         self.assertEqual(res.status_code, 200)
-#         ipdb.set_trace()
 #
 #     def test_get_labeled_faces(self):
 #         res = self.client_users[0].get('/api/faces/labeled/list/')

@@ -1,13 +1,8 @@
-from datetime import datetime
-from django.db import models
-from django.db.models import Prefetch
-import api.util as util
 from api.models.photo import Photo
 from api.models.user import User, get_deleted_user
-from collections import Counter
-from django.db.models.signals import post_save, post_delete
-from django.core.cache import cache
 from django.contrib.postgres.fields import JSONField
+from django.db import models
+
 
 class AlbumDate(models.Model):
     title = models.CharField(

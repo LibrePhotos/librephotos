@@ -1,4 +1,3 @@
-import ipdb
 
 class FingerPrintMiddleware(object):
     def __init__(self, get_response):

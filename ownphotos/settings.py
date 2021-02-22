@@ -10,8 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
-import os
 import datetime
+import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -23,12 +23,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = os.environ['SECRET_KEY']
 RQ_API_TOKEN = os.environ['SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = (os.environ.get('DEBUG', '').lower() == 'true')
+DEBUG = (os.environ.get('DEBUG', '') == '1')
 
-ALLOWED_HOSTS = [
-    '192.168.1.100', 'localhost', 'ownphotos-api.local','backend',
-    os.environ.get('BACKEND_HOST'), 'ownphotos.local'
-]
+ALLOWED_HOSTS = ['backend', 'localhost', os.environ.get('BACKEND_HOST')]
 
 AUTH_USER_MODEL = 'api.User'
 
@@ -62,7 +59,8 @@ CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
 CONSTANCE_DATABASE_CACHE_BACKEND = 'default'
 
 CONSTANCE_CONFIG = {
-    'ALLOW_REGISTRATION': (False, 'Publicly allow user registration', bool)
+    'ALLOW_REGISTRATION': (False, 'Publicly allow user registration', bool),
+    'IMAGE_DIRS': ("/data", 'Image dirs list (serialized json)', str)
 }
 
 INTERNAL_IPS = ('127.0.0.1', 'localhost', '192.168.1.100')
@@ -232,7 +230,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'protected_media')
+MEDIA_ROOT = '/protected_media'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 DATA_ROOT = '/data'
 
