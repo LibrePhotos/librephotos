@@ -34,19 +34,14 @@ services:
 
   frontend:
     image: reallibrephotos/librephotos-frontend:${tag}
-    command: /entrypoint.sh
     restart: always
-    volumes:
-      - ./frontend/entrypoint.sh:/entrypoint.sh
     depends_on:
       - backend
 
   backend:
     image: reallibrephotos/librephotos:${tag}
     restart: always
-    command: /entrypoint.sh
     volumes:
-      - ./backend/entrypoint.sh:/entrypoint.sh
       - ${myPhotos}:/data
       - ${proMedia}:/protected_media
       - ${logLocation}:/logs

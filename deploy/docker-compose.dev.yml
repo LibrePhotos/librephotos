@@ -19,8 +19,8 @@ services:
   proxy:
     tty: true
     build:
-      context: .
-      dockerfile: proxy/Dockerfile
+      context: ./proxy
+      dockerfile: Dockerfile
     volumes:
       - ${myPhotos}:/data
       - ${proMedia}:/protected_media
@@ -31,10 +31,11 @@ services:
     environment:
     - DEBUG=1
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
     volumes:
       - ${codedir}/librephotos-frontend:/usr/src/app
+      - ./frontend/entrypoint.sh:/entrypoint.sh
 
   backend:
     tty: true
@@ -42,12 +43,11 @@ services:
     environment:
       - DEBUG=1
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
       args:
         DEBUG: 1
     volumes:
-      - ./backend/entrypoint.sh:/entrypoint.sh
       - ${myPhotos}:/data
       - ${proMedia}:/protected_media
       - ${logLocation}:/logs
@@ -56,6 +56,7 @@ services:
       - ./vscode/server-extensions:/root/.vscode-server/extensions
       - ./vscode/server-insiders-extensions:/root/.vscode-server-insiders/extensions
       - ./vscode/settings.json:/code/.vscode/settings.json
+      - ./backend/entrypoint.sh:/entrypoint.sh
 
   pgadmin:
     image: dpage/pgadmin4

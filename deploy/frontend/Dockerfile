@@ -11,5 +11,5 @@ RUN npm install
 RUN npm build
 
 EXPOSE 3000
-
-RUN ["chmod", "+x", "./run.sh" ]
+COPY entrypoint.sh /entrypoint.sh
+CMD ["/entrypoint.sh"]
