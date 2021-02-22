@@ -330,7 +330,7 @@ export class SharedToMe extends Component {
         <div style={{ height: 60, paddingTop: 10 }}>
           <Header as="h2">
             <Icon.Group size="big">
-              <Icon 
+              <Icon
                 name={activeItem==='photos' ? "image outline" :'images outline'}/>
               <Icon
                 corner

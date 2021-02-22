@@ -72,7 +72,6 @@ export class AdminPage extends Component {
             <Grid.Column width={4} textAlign="left">
               <b>Allow user registration</b>
             </Grid.Column>
-
             <Grid.Column width={12}>
               <Form>
                 <Form.Group>
