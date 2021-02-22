@@ -1,8 +1,7 @@
-from django.db import models
-from django.db.models import Prefetch
-from api.models.user import User
-from api.models.photo import Photo
 from api.models.person import Person, get_unknown_person
+from api.models.photo import Photo
+from django.db import models
+
 
 class Face(models.Model):
     photo = models.ForeignKey(

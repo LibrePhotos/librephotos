@@ -1,17 +1,17 @@
-import os
-import stat
 import datetime
 import hashlib
+import os
+import stat
+
+import magic
 import pytz
-from api.models import Photo, LongRunningJob
+from django.db.models import Q
+from django_rq import job
+from PIL import Image
 
 import api.util as util
 from api.image_similarity import build_image_similarity_index
-
-from django_rq import job
-from django.db.models import Q
-import magic
-from PIL import Image
+from api.models import LongRunningJob, Photo
 
 
 def is_valid_media(filebuffer):

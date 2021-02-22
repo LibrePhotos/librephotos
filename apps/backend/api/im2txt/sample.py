@@ -1,14 +1,14 @@
-import torch
-# import matplotlib.pyplot as plt
-import numpy as np 
 import argparse
-import pickle 
 import os
-from torchvision import transforms 
-from api.im2txt.model import EncoderCNN, DecoderRNN
+import pickle
+
+# import matplotlib.pyplot as plt
+import numpy as np
+import torch
 from api.im2txt.build_vocab import Vocabulary
+from api.im2txt.model import DecoderRNN, EncoderCNN
 from PIL import Image
-import ipdb
+from torchvision import transforms
 
 # parser.add_argument('--image', type=str, required=True, help='input image for generating caption')
 # parser.add_argument('--encoder_path', type=str, default='models/encoder-5-3000.pkl', help='path for trained encoder')
@@ -23,9 +23,11 @@ import ipdb
 embed_size = 256
 hidden_size = 512
 num_layers = 1
-encoder_path = 'api/im2txt/models/encoder-10-1000.ckpt'
-decoder_path = 'api/im2txt/models/decoder-10-1000.ckpt'
-vocab_path = 'api/im2txt/data/vocab.pkl'
+im2txt_models_path = os.path.join(os.sep, 'data_models', 'im2txt')
+
+encoder_path = os.path.join(im2txt_models_path, "models", "encoder-10-1000.ckpt")
+decoder_path = os.path.join(im2txt_models_path, "models", "decoder-10-1000.ckpt")
+vocab_path = os.path.join(im2txt_models_path, "data", "vocab.pkl")
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

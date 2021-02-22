@@ -1,22 +1,23 @@
 # PlacesCNN to predict the scene category, attribute, and class activation map in a single pass
 # by Bolei Zhou, sep 2, 2017
 # last modified date: Dec. 27, 2017, migrating everything to python36 and latest pytorch and torchvision
-from api.util import logger
-import torch
-from torch.autograd import Variable as V
-from torchvision import transforms as trn
-from torch.nn import functional as F
 import os
+
 import numpy as np
-from PIL import Image
-from tqdm import tqdm
-import warnings
+import torch
 import wideresnet
+from api.util import logger
+from PIL import Image
+from torch.autograd import Variable as V
+from torch.nn import functional as F
+from torchvision import transforms as trn
+
+# import warnings
 
 
 torch.nn.Module.dump_patches = True
 
-dir_places365_model = os.path.join(os.path.dirname(__file__),'model')
+dir_places365_model = os.path.join(os.sep, 'data_models', 'places365', 'model')
 
 def load_labels():
     # prepare all the labels

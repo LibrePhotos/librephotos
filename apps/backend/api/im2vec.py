@@ -1,7 +1,7 @@
 import torch
-import torch.nn as nn
-import wideresnet as models
+import torchvision.models as models
 import torchvision.transforms as transforms
+import wideresnet as models
 
 
 class Im2Vec():
