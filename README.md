@@ -29,7 +29,7 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
 - Django backend & React frontend. 
 
 ### Contributions
-- Librephotos is in development. Contributions are welcome!
+- Get started in less then 30 minutes by following the [guide here](https://github.com/LibrePhotos/librephotos-docker)
 - Join our discord server or open a pull request to start contributing
 - We are looking for developers who want to port LibrePhotos to ARM
 
