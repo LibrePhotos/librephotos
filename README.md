@@ -2,13 +2,13 @@
 
 # LibrePhotos
 
-![](https://github.com/sysoppl/librephotos/blob/update-screenshots/screenshots/mockups_main_fhd.png?raw=true)
+![](https://github.com/LibrePhotos/librephotos/blob/dev/screenshots/mockups_main_fhd.png?raw=true)
 <sub>Mockup designed by rawpixel.com / Freepik</sub>
 ## Screenshots
 
-![](https://github.com/sysoppl/librephotos/blob/update-screenshots/screenshots/photo_manage.png?raw=true)
-![](https://github.com/sysoppl/librephotos/blob/update-screenshots/screenshots/photo_info_fhd.png?raw=true)
-![](https://github.com/sysoppl/librephotos/blob/update-screenshots/screenshots/more_to_discover.png?raw=true)
+![](https://github.com/librephotos/librephotos/blob/dev/screenshots/photo_manage.png?raw=true)
+![](https://github.com/librephotos/librephotos/blob/dev/screenshots/photo_info_fhd.png?raw=true)
+![](https://github.com/librephotos/librephotos/blob/dev/screenshots/more_to_discover.png?raw=true)
 
 ## Live demo
 Live [demo available here](https://demo2.librephotos.com/).
