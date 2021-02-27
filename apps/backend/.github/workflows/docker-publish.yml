@@ -1,10 +1,12 @@
-name: Docker
-
 on:
   push:
     # Publish `dev` as Docker `latest` image.
     branches:
       - dev
+
+    # Publish `v1.2.3` tags as releases.
+    tags:
+      - v*
 
 jobs:
   # Run tests.
