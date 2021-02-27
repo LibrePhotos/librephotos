@@ -29,13 +29,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Run tests
-        run: |
-          if [ -f docker-compose.test.yml ]; then
-            docker-compose --file docker-compose.test.yml build
-            docker-compose --file docker-compose.test.yml run sut
-          else
-            docker build ./backend --file Dockerfile
-          fi
+        run: docker build ./backend --file Dockerfile
           
   myEvent:
     # Ensure test job passes before pushing image.
