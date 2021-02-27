@@ -2,13 +2,13 @@
 
 # LibrePhotos
 
-![](https://github.com/sysoppl/librephotos/blob/update-screenshots/screenshots/mockups_main_fhd.png?raw=true)
+![](https://github.com/LibrePhotos/librephotos/blob/dev/screenshots/mockups_main_fhd.png?raw=true)
 <sub>Mockup designed by rawpixel.com / Freepik</sub>
 ## Screenshots
 
-![](https://github.com/sysoppl/librephotos/blob/update-screenshots/screenshots/photo_manage.png?raw=true)
-![](https://github.com/sysoppl/librephotos/blob/update-screenshots/screenshots/photo_info_fhd.png?raw=true)
-![](https://github.com/sysoppl/librephotos/blob/update-screenshots/screenshots/more_to_discover.png?raw=true)
+![](https://github.com/librephotos/librephotos/blob/dev/screenshots/photo_manage.png?raw=true)
+![](https://github.com/librephotos/librephotos/blob/dev/screenshots/photo_info_fhd.png?raw=true)
+![](https://github.com/librephotos/librephotos/blob/dev/screenshots/more_to_discover.png?raw=true)
 
 ## Live demo
 Live [demo available here](https://demo2.librephotos.com/).
@@ -29,7 +29,7 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
 - Django backend & React frontend. 
 
 ### Contributions
-- Librephotos is in development. Contributions are welcome!
+- Get started in less then 30 minutes by following the [guide here](https://github.com/LibrePhotos/librephotos-docker)
 - Join our discord server or open a pull request to start contributing
 - We are looking for developers who want to port LibrePhotos to ARM
 
@@ -92,8 +92,8 @@ The easiest way to do it is using Docker.
 ## Docker-compose method (Recommended)
 
 ```
-wget https://raw.githubusercontent.com/LibrePhotos/librephotos/dev/docker-compose.yml
-wget https://raw.githubusercontent.com/LibrePhotos/librephotos/dev/librephotos.env
+wget https://raw.githubusercontent.com/LibrePhotos/librephotos-docker/main/docker-compose.yml
+wget https://raw.githubusercontent.com/LibrePhotos/librephotos-docker/main/librephotos.env
 cp librephotos.env .env
 
 Do not forget to create the directory's you specified in the ``.env`` file if they do not exist. 
