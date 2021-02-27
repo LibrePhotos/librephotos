@@ -21,8 +21,9 @@ from rest_framework_extensions.key_constructor.constructors import \
     DefaultKeyConstructor
 from api.face_classify import train_faces, cluster_faces
 from api.social_graph import build_social_graph
+from api.autoalbum import generate_event_albums, regenerate_event_titles
 from api.api_util import (get_count_stats, get_search_term_examples,
-                          path_to_dict, get_location_clusters, get_location_sunburst, get_searchterms_wordcloud, get_location_timeline)
+                          path_to_dict, get_location_clusters, get_location_sunburst, get_searchterms_wordcloud, get_location_timeline, get_photo_month_counts)
 from api.directory_watcher import scan_photos
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 from api.models import (AlbumAuto, AlbumDate, AlbumPlace, AlbumThing,
