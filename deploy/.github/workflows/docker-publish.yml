@@ -36,7 +36,6 @@ jobs:
     needs: test
 
     runs-on: ubuntu-latest
-    if: github.event_name == 'backend-commit-event'
 
     steps:
       - uses: actions/checkout@v2
