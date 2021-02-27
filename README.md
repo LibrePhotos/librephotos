@@ -37,7 +37,7 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
 
 ### Features
 
-#### - Currently implemented:
+#### Currently implemented:
   
   - Label some faces manually, and train a face classifier to label the rest.
   - View photos by people in them.
@@ -52,7 +52,7 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
   - Create custom albums
   - Docker ready
   
-#### - Upcoming
+#### Upcoming
 
   - Short term:
     - Share photos/albums
