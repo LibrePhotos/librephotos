@@ -34,7 +34,7 @@ jobs:
             docker-compose --file docker-compose.test.yml build
             docker-compose --file docker-compose.test.yml run sut
           else
-            DOCKER_BUILDKIT=1 docker build . --file Dockerfile
+            docker build ./backend --file Dockerfile
           fi
           
   myEvent:
