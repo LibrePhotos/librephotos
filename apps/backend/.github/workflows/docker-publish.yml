@@ -14,8 +14,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-
       - name: Run tests
+      - run: echo "to-do"
 
   # Push image to GitHub Packages.
   # See also https://docs.docker.com/docker-hub/builds/
