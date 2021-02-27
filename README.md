@@ -39,15 +39,13 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
 
 #### Currently implemented:
   
-  - Label some faces manually, and train a face classifier to label the rest.
-  - View photos by people in them.
+  - Label some faces manually, and train a face classifier to label the rest
+  - View photos by people in them
   - Automatically generate "event" albums like "Thursday in Berlin"
   - See photos on the map
-  - Backend caching
   - View photos grouped by date
-  - "Optimized" frontend
   - Detect objects in photos, and make them searchable by objects 
-  - Search photos by the location 
+  - Search photos by location 
   - Authentication (using JWT)
   - Create custom albums
   - Docker ready
@@ -55,13 +53,14 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
 #### Upcoming:
 
   - Short term:
-    - Share photos/albums
+    - Add support for RAW photos
+    - Add video support
     - Stability
 
   - Longer term, i.e. haven't thought much about them
     - Basic photo editing, like rotation
-    - Tag undetected face
-    - Add cool graphs
+    - Cluster undetected face
+    - Share photos/albums
 
 ## What does it use?
 
