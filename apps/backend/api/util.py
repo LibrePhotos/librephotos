@@ -1,3 +1,5 @@
+import ownphotos.settings
+import os.path
 import logging
 import logging.handlers
 import os
@@ -14,7 +16,8 @@ fomatter = logging.Formatter(
     '%(asctime)s : %(filename)s : %(funcName)s : %(lineno)s : %(levelname)s : %(message)s')
 fileMaxByte = 256 * 1024 * 200  # 100MB
 fileHandler = logging.handlers.RotatingFileHandler(
-    '/logs/ownphotos.log', maxBytes=fileMaxByte, backupCount=10)
+    os.path.join(ownphotos.settings.LOGS_ROOT,'ownphotos.log'),
+    maxBytes=fileMaxByte, backupCount=10)
 fileHandler.setFormatter(fomatter)
 logger.addHandler(fileHandler)
 logger.setLevel(logging.INFO)

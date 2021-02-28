@@ -9,9 +9,21 @@ https://docs.djangoproject.com/en/1.11/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.11/ref/settings/
 """
-
 import datetime
 import os
+
+for envvar in (
+    'SECRET_KEY',
+    'BACKEND_HOST',
+    'DB_BACKEND',
+    'DB_NAME',
+    'DB_USER',
+    'DB_PASS',
+    'DB_HOST',
+    'DB_PORT'):
+  if not envvar in os.environ :
+    raise NameError('Environnement variable not set :' + envvar)
+
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -228,11 +240,19 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
+# Allow to define data folder like /var/lib/librephotos
+
+BASE_DATA = os.environ.get('BASE_DATA', '')
+BASE_LOGS = os.environ.get('BASE_LOGS', '/logs/')
+
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
-MEDIA_ROOT = '/protected_media'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
-DATA_ROOT = '/data'
+MEDIA_ROOT = os.path.join(BASE_DATA,  'protected_media' )
+STATIC_ROOT = os.path.join(BASE_DIR,  'static')
+DATA_ROOT = os.path.join(BASE_DATA,  'data' )
+IM2TXT_ROOT = os.path.join(BASE_DATA,  'data_models', 'im2txt')
+PLACES365_ROOT = os.path.join(BASE_DATA,  'data_models', 'places365', 'model' )
+LOGS_ROOT = BASE_LOGS
 
 THUMBNAIL_SIZE_TINY = (30, 30)
 THUMBNAIL_SIZE_SMALL = (100, 100)
