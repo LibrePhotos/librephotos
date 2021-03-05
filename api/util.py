@@ -77,7 +77,7 @@ def compute_bic(kmeans,X):
 
 def mapbox_reverse_geocode(lat,lon):
     mapbox_api_key = os.environ.get('MAPBOX_API_KEY', '')
-    if mapbox_api_key == '':
+    if mapbox_api_key != '':
       url = "https://api.mapbox.com/geocoding/v5/mapbox.places/%f,%f.json?access_token=%s"%(lon,lat,mapbox_api_key)
       resp = requests.get(url)
       if resp.status_code == 200:
