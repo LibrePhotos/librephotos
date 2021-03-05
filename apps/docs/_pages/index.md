@@ -1,6 +1,6 @@
 ---
 title: "Documentation"
-excerpt: "A self-hosted Google Photos clone, with a slight focus on cool graphs."
+excerpt: "The one-stop-shop for everything LibrePhotos: from installation, to how how to contribute, you'll find it all here."
 sidebar: ""
 author_profile: true
 permalink: /
@@ -8,6 +8,8 @@ permalink: /
 
 {% assign posts_size = site.posts | size %}
 {% if posts_size > 0 %}
+
+The one-stop-shop for everything LibrePhotos: from installation, to how how to contribute, you'll find it all below.
 
 ## Table of Contents
 
