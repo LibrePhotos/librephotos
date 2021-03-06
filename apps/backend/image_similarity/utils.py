@@ -3,9 +3,7 @@ import os.path
 import logging
 import logging.handlers
 
-BASE_LOGS='/logs/'
-if 'BASE_LOGS' in os.environ:
-        BASE_LOGS = os.environ['BASE_LOGS']
+BASE_LOGS = os.environ.get('BASE_LOGS', '/logs/')
 
 logger = logging.getLogger('image_similarity')
 fomatter = logging.Formatter(
