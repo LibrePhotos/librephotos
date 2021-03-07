@@ -10,7 +10,7 @@
 version: '3.8'
 services:
   proxy:
-    image: reallibrephotos/librephotos-proxy:test
+    image: radicand/librephotos-proxy-arm:test
     restart: always
     volumes:
       - ${myPhotos}:/data
@@ -33,13 +33,13 @@ services:
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c random_page_cost=1.0
 
   frontend:
-    image: reallibrephotos/librephotos-frontend:latest
+    image: radicand/librephotos-frontend-arm:latest
     restart: always
     depends_on:
       - backend
 
   backend:
-    image: reallibrephotos/librephotos:latest
+    image: radicand/librephotos-backend-arm:latest
     restart: always
     volumes:
       - ${myPhotos}:/data
