@@ -14,12 +14,6 @@ category: 1
 
 **ARM Development is still in progress expect bugs.**
 
-**ARM install instructions can be found here**
-
-**No Really it works a lot better on x86 hardware at this time**
-
-**Final warning IT'S GOING TO BE SLOW**
-
 ### Size
 You will need at least 10 GB of HDD Space for the docker images. It needs that space because of the machine learning models.
 Librephotos will also create a database and thumbnails which will need additional space.
@@ -41,7 +35,7 @@ Open `.env` in your favorite text editor and make the required changes.
 
 Do not forget to create the directories you specified in the `.env` file if they do not exist.
 
-Run `docker-compose -f docker-compose.ARM.yml up -d`
+Run `docker-compose -f docker-compose.arm.yml up -d`
 
 **If you do not follow the above command and use just `docker-compose up -d` you are going to have a bad time**
 
