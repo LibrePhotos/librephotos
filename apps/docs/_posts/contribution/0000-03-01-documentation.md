@@ -1,7 +1,7 @@
 ---
-title: "LibrePhotos Docs: How-To"
+title: "Docs Contribution"
 excerpt: "How to use contribute to the LibrePhotos documentation."
-last_modified_at: 2020-01-18
+last_modified_at: 2021-03-07
 category: 3
 
 gallery:
@@ -23,7 +23,7 @@ feature_row:
     alt: "Round LibrePhotos logo"
     title: "Round LibrePhotos logo"
     excerpt: "Excerpt 2."
-    url: "#test-link"
+    url: "/"
     btn_label: "Button"
     btn_class: "btn--inverse"
   - image_path: /assets/images/logo-square.png
@@ -44,7 +44,7 @@ To compile the site and view it locally before submitting your pull request, fir
 * [macOS](https://jekyllrb.com/docs/installation/macos/)
 * [Other Linux](https://jekyllrb.com/docs/installation/other-linux/)
 
-Then, open the terminal (Command Prompt on Windows) and navigate to the repository:
+Then open the terminal (Command Prompt on Windows) and navigate to the repository:
 ```sh
 cd /path/to/folder
 ```
@@ -59,7 +59,7 @@ Finally, to preview the site:
 bundle exec jekyll serve
 ```
 
-Some information will then be printed. E.g.:
+Some information will then be displayed - e.g.:
 ```
 Configuration file: ~/librephotos-docs/_config.yml
             Source: ~/librephotos-docs
@@ -71,13 +71,13 @@ Configuration file: ~/librephotos-docs/_config.yml
     Server address: http://127.0.0.1:4000
   Server running... press ctrl-c to stop.
 ```
-Visit the URL next to `Server address`.
+Visit the URL next to `Server address: `.
 
 ## Naming
 
 ### Categories
 
-Articles are organised by category; the category for each article has to be declared in both the file name and the file itself. This will be explained below. The available categories are:
+Articles are organised by category; each article's category has to be declared in both the file name and the file content. This will be explained below. The available categories are:
 
 {% assign categories_table = "| Category Name | Category Number |
 | ---- | :----: |" %}
@@ -90,7 +90,7 @@ Articles are organised by category; the category for each article has to be decl
 
 ### File Names
 
-File names contain four parts; and an example valid file name would be `0000-03-01-documentation.md `.
+File names contain four parts; and an example valid file name would be `0000-03-01-documentation.md`.
 
 * First group of numbers: always `0000`.
 * Second group of numbers: the category number (from above). It should always be two digits.
@@ -101,7 +101,7 @@ File names contain four parts; and an example valid file name would be `0000-03-
 
 ### Front Matter
 
-The start of each page includes header info (called *front matter*), ensuring the articles are built correctly. Extra options are required if using [galleries](#gallery) or [feature rows](#feature-row), but the minimum requirement is: 
+The start of each page includes header info (called *front matter*), which ensures that articles are built correctly. Extra options are required if using [galleries](#gallery) or [feature rows](#feature-row), but the minimum requirement is: 
 
 ```markdown
 ---
@@ -201,7 +201,7 @@ Produces: CSS stands for "Cascading Style Sheets".
 
 ### Lists
 
-Unordered list:
+#### Unordered list
 
 ```markdown
 * Item 1
@@ -213,7 +213,8 @@ Unordered list:
     * Item 2
 * Item 3
 
-Ordered list:
+#### Ordered list
+
 ```markdown
 1. Item 1
     1. Item 2
@@ -291,7 +292,7 @@ Links can be made into buttons by applying the `btn` class:
 ```markdown
 [Link](#){: .btn}
 ```
-Other classes can be added to change the button's appearance, as seen below. Sizes and types and be combined.
+Other classes can be added to change the button's appearance, as seen below. Size and type classes can be combined (e.g. `[Text](#){: .btn .btn--primary .btn--large}`) or used on their own (e.g. `[Text](#){: .btn .btn--large}`).
 
 | Button Type   | Example                               | Class                     | Syntax                                  |
 | ------------- | ------------------------------------- | ------------------------- | --------------------------------------- |
@@ -313,7 +314,7 @@ Other classes can be added to change the button's appearance, as seen below. Siz
 
 ### Blockquotes
 
-Single line blockquote:
+#### Single line blockquote
 
 ```markdown
 > Stay hungry. Stay foolish.
@@ -321,16 +322,20 @@ Single line blockquote:
 
 > Stay hungry. Stay foolish.
 
-Multi line blockquote with a cite reference:
+#### Multi line blockquote with cite reference
 
 ```markdown
-> People think focus means saying yes to the thing you've got to focus on. But that's not what it means at all. It means saying no to the hundred other good ideas that there are. You have to pick carefully. I'm actually as proud of the things we haven't done as the things I have done. Innovation is saying no to 1,000 things.
+> People think focus means saying yes to the thing you've got to focus on. But that's not what it means at all. It means saying no to the hundred other good ideas that there are. You have to pick carefully.
+>
+> I'm actually as proud of the things we haven't done as the things I have done. Innovation is saying no to 1,000 things.
 
 <cite>Steve Jobs</cite> --- Apple Worldwide Developers' Conference, 1997
 {: .small}
 ```
 
-> People think focus means saying yes to the thing you've got to focus on. But that's not what it means at all. It means saying no to the hundred other good ideas that there are. You have to pick carefully. I'm actually as proud of the things we haven't done as the things I have done. Innovation is saying no to 1,000 things.
+> People think focus means saying yes to the thing you've got to focus on. But that's not what it means at all. It means saying no to the hundred other good ideas that there are. You have to pick carefully.
+>
+> I'm actually as proud of the things we haven't done as the things I have done. Innovation is saying no to 1,000 things.
 
 <cite>Steve Jobs</cite> --- Apple Worldwide Developers' Conference, 1997
 {: .small}
@@ -349,7 +354,7 @@ Multi line blockquote with a cite reference:
 | John Doe                              | $15K   | Some text.   |
 | [Jane Doe](https://duckduckgo.com)    | $100K  | More text.   |
 
-Colons can be added to the column separators define alignment:
+Colons can be added to the column separators to define alignment:
 
 ```markdown
 | Left Align | Center Align | Right Align |
@@ -413,7 +418,7 @@ Usage:
 
 ### Videos
 
-Videos can be embedded from YouTube, Vimeo, Google Drive, or this repository.
+Videos can be embedded if they are stored on YouTube, Vimeo, Google Drive, or this repository.
 
 {% raw %}
 ```liquid
@@ -476,14 +481,14 @@ They use some additional front matter:
 
 ```yaml
 gallery:
-  - url: /assets/images/unsplash-gallery-image-1.jpg
-    image_path: /assets/images/unsplash-gallery-image-1-th.jpg
-    alt: "placeholder image 1"
-    title: "Image 1 title caption"
-  - url: /assets/images/unsplash-gallery-image-2.jpg
-    image_path: /assets/images/unsplash-gallery-image-2-th.jpg
-    alt: "placeholder image 2"
-    title: "Image 2 title caption"
+  - url: /assets/images/logo-round.png
+    image_path: /assets/images/logo-round.png
+    alt: "Round LibrePhotos logo"
+    title: "Round LibrePhotos logo"
+  - url: /assets/images/logo-square.png
+    image_path: /assets/images/logo-square.png
+    alt: "Square LibrePhotos logo"
+    title: "Square LibrePhotos logo"
 ```
 
 | Name           | Required     | Description                                                                                                                                |
@@ -527,7 +532,7 @@ feature_row:
     alt: "Round LibrePhotos logo"
     title: "Round LibrePhotos logo"
     excerpt: "Excerpt 2."
-    url: "#test-link"
+    url: "/"
     btn_label: "Button"
     btn_class: "btn--inverse"
   - image_path: /assets/images/logo-square.png
