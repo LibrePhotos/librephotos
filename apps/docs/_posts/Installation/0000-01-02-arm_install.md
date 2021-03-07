@@ -1,6 +1,6 @@
 ---
-title: "LibrePhotos Install"
-excerpt: "How to install Libre Photos."
+title: "LibrePhotos ARM Install"
+excerpt: "How to install Libre Photos on a Pi."
 last_modified_at: 2021-03-07
 category: 1
 ---
@@ -9,14 +9,16 @@ category: 1
 
 **Currently the project is in very early stages, some bugs may exist. If you find any please log an issue**
 
-### Compatibility
-You need a x86 processor and it is recommended to have 8GBs of RAM.
 
 **It kind of works on ARM processors. Due to limited ram & processing power it will not be as fast.**
 
 **ARM Development is still in progress expect bugs.**
 
 **ARM install instructions can be found here**
+
+**No Really it works a lot better on x86 hardware at this time**
+
+**Final warning IT'S GOING TO BE SLOW**
 
 ### Size
 You will need at least 10 GB of HDD Space for the docker images. It needs that space because of the machine learning models.
@@ -39,7 +41,9 @@ Open `.env` in your favorite text editor and make the required changes.
 
 Do not forget to create the directories you specified in the `.env` file if they do not exist.
 
-Run `docker-compose up -d`
+Run `docker-compose -f docker-compose.ARM.yml up -d`
+
+**If you do not follow the above command and use just `docker-compose up -d` you are going to have a bad time**
 
 
 You should have librephotos accessible after a few minutes of bootup on: [localhost:3000](http://localhost:3000) unless you changed it in the .env file.
