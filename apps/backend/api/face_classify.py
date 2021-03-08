@@ -106,7 +106,7 @@ def train_faces(user, job_id):
 
         commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
         face_stack = []
-        columns = ['person','person_label_is_inferred','person_label_probability']
+        columns = ['person','person_label_is_inferred','person_label_probability','id']
         for idx, (face_id, person_name, probability) in enumerate(zip(face_ids_unknown, pred, probs)):
             person = Person.objects.get(name=person_name)
             face = Face.objects.get(id=face_id)
@@ -119,10 +119,10 @@ def train_faces(user, job_id):
                 lrj.save()
                 commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
             if len(face_stack) > 200:
-                bulk_update(face_stack)
+                bulk_update(face_stack,update_fields=columns)
                 face_stack = []
 
-        bulk_update(face_stack)
+        bulk_update(face_stack,update_fields=columns)
         lrj.finished = True
         lrj.failed = False
         lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
