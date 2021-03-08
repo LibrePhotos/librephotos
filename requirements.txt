@@ -8,6 +8,7 @@ django-filter==2.4.0
 django-picklefield==3.0.1
 django-redis==4.12.1
 django-rq==2.4.0
+django-bulk-update
 djangorestframework==3.12.1
 djangorestframework-simplejwt==4.6.0
 dlib==19.21.1
