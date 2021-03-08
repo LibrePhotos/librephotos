@@ -8,6 +8,7 @@ import seaborn as sns
 from django_rq import job
 import pytz
 import datetime
+from bulk_update.helper import bulk_update
 
 def cluster_faces(user):
     # for front end cluster visualization
@@ -104,18 +105,24 @@ def train_faces(user, job_id):
         target_count = len(face_ids_unknown)
 
         commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
+        face_stack = []
+        columns = ['person','person_label_is_inferred','person_label_probability']
         for idx, (face_id, person_name, probability) in enumerate(zip(face_ids_unknown, pred, probs)):
             person = Person.objects.get(name=person_name)
             face = Face.objects.get(id=face_id)
             face.person = person
             face.person_label_is_inferred = True
             face.person_label_probability = probability
-            face.save()
+            face_stack.append(face)
             if commit_time < datetime.datetime.now():
                 lrj.result = {'progress': {"current": idx + 1,"target": target_count}}
                 lrj.save()
                 commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
+            if len(face_stack) > 200:
+                bulk_update(face_stack)
+                face_stack = []
 
+        bulk_update(face_stack)
         lrj.finished = True
         lrj.failed = False
         lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
