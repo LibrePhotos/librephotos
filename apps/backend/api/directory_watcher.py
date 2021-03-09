@@ -12,7 +12,7 @@ from PIL import Image
 import api.util as util
 from api.image_similarity import build_image_similarity_index
 from api.models import LongRunningJob, Photo
-
+import api.models.album_thing
 
 def is_valid_media(filebuffer):
     try:
@@ -113,7 +113,6 @@ def handle_new_image(user, image_path, job_id):
                 photo._add_to_album_place()
                 photo._extract_faces()
                 photo._add_to_album_date()
-                photo._add_to_album_thing()
                 photo._im2vec()
 
                 elapsed = (datetime.datetime.now() - start).total_seconds()
@@ -236,7 +235,7 @@ def scan_photos(user, job_id):
         util.logger.info(
             "Scanned {} files in : {}".format(files_found, user.scan_directory)
         )
-
+        api.models.album_thing.update()
         build_image_similarity_index(user)
     except Exception:
         util.logger.exception("An error occured:")
