@@ -64,7 +64,7 @@ def train_faces(user, job_id):
     try:
         data = { 'known'   : {  'encoding' : [] , 'id' : [] },
                  'unknown' : {  'encoding' : [] , 'id' : [] }}
-        for face in Face.objects.filter(photo__owner=user):
+        for face in Face.objects.filter(photo__owner=user).prefetch_related('person'):
             unknown = face.person_label_is_inferred is not False or face.person.name == 'unknown'
             data_type = 'unknown' if unknown else 'known'
             data[data_type]['encoding'].append(np.frombuffer(bytes.fromhex(face.encoding)))
