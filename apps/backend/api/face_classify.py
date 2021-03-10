@@ -9,41 +9,32 @@ from django_rq import job
 import pytz
 import datetime
 from bulk_update.helper import bulk_update
+import pandas as pd
 
-def cluster_faces(user):
+def cluster_faces(user,inferred=True):
     # for front end cluster visualization
+    persons = [p.id for p in Person.objects.filter(faces__photo__owner=user).distinct()]
+    p2c = dict(zip(persons,sns.color_palette(n_colors=len(persons)).as_hex()))
 
-    people = [
-        p.id
-        for p in Person.objects.filter(faces__photo__owner=user).distinct()
-    ]
-    colors = sns.color_palette('Dark2', len(people)).as_hex()
-    p2c = dict(zip(people, colors))
-
+    face_encoding = []
     faces = Face.objects.filter(photo__owner=user)
-    face_encodings_all = []
     for face in faces:
-        face_encoding = np.frombuffer(bytes.fromhex(face.encoding))
-        face_encodings_all.append(face_encoding)
+        if (not face.person_label_is_inferred) or inferred :
+            face_encoding.append(np.frombuffer(bytes.fromhex(face.encoding)))
 
     pca = PCA(n_components=3)
-    vis_all = pca.fit_transform(np.array(face_encodings_all))
+    vis_all = pca.fit_transform(face_encoding)
+
     res = []
     for face, vis in zip(faces, vis_all):
-        person_id = face.person.id  #color
-        person_name = face.person.name
-        person_label_is_inferred = face.person_label_is_inferred
-        face_url = face.image.url
-        value = {'x': vis[0], 'y': vis[1], 'size': vis[2]}
-        out = {
-            "person_id": person_id,
-            "person_name": person_name,
-            "person_label_is_inferred": person_label_is_inferred,
-            "color": p2c[person_id],
-            "face_url": face_url,
-            "value": value
-        }
-        res.append(out)
+        res.append({
+            "person_id": face.person.id,
+            "person_name": face.person.name,
+            "person_label_is_inferred": face.person_label_is_inferred,
+            "color": p2c[face.person.id],
+            "face_url": face.image.url,
+            "value": {'x': vis[0], 'y': vis[1], 'size': vis[2]}
+        })
     return res
 
 @job
