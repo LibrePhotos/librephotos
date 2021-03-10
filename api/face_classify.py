@@ -62,28 +62,15 @@ def train_faces(user, job_id):
     lrj.save()
 
     try:
-        id2face_unknown = {}
-        id2face_known = {}
+        data = { 'known'   : {  'encoding' : [] , 'id' : [] },
+                 'unknown' : {  'encoding' : [] , 'id' : [] }}
+        for face in Face.objects.filter(photo__owner=user):
+            unknown = face.person_label_is_inferred is not False or face.person.name == 'unknown'
+            data_type = 'unknown' if unknown else 'known'
+            data[data_type]['encoding'].append(np.frombuffer(bytes.fromhex(face.encoding)))
+            data[data_type]['id'].append(face.id if unknown else face.person.id)
 
-        faces = Face.objects.filter(photo__owner=user).prefetch_related('person')
-
-        for face in faces:
-            id2face_object = {}
-            face_encoding = np.frombuffer(bytes.fromhex(face.encoding))
-            face_image = face.image.read()
-            face.image.close()
-            id2face_object['encoding'] = face_encoding
-            id2face_object['image'] = face_image
-            id2face_object['image_path'] = face.image_path
-            if face.person_label_is_inferred is not False or face.person.name == 'unknown':
-                id2face_object['id'] = face.id
-                id2face_unknown[face.id] = id2face_object
-            else:
-                id2face_object['person_name'] = face.person.name
-                id2face_object['person_id'] = face.person.id
-                id2face_known[face.id] = id2face_object
-
-        if(len(id2face_known) == 0):
+        if(len(data['known']['id']) == 0):
             logger.debug("No labeled faces found")
             lrj.finished = True
             lrj.failed = False
@@ -92,25 +79,24 @@ def train_faces(user, job_id):
             lrj.save()
             return True
 
-        face_encodings_known = np.array([f['encoding'] for f in id2face_known.values()])
-        person_names_known = np.array([f['person_name'] for f in id2face_known.values()])
         logger.debug("Before fitting")
-        clf = MLPClassifier(solver='adam', alpha=1e-5, random_state=1, max_iter=1000).fit(face_encodings_known, person_names_known)
+        clf = MLPClassifier(solver='adam', alpha=1e-5, random_state=1, max_iter=1000).fit(
+            np.array(data['known']['encoding']),
+            np.array(data['known']['id'])
+        )
         logger.debug("After fitting")
 
-        face_ids_unknown = [f['id'] for f in id2face_unknown.values()]
-        face_encodings_unknown = np.array([f['encoding'] for f in id2face_unknown.values()])
-        pred = clf.predict(face_encodings_unknown)
-        probs = np.max(clf.predict_proba(face_encodings_unknown), 1)
-        target_count = len(face_ids_unknown)
+        face_encodings_unknown_np = np.array(data['unknown']['encoding'])
+        pred = clf.predict(face_encodings_unknown_np)
+        probs = np.max(clf.predict_proba(face_encodings_unknown_np), 1)
+        target_count = len(data['unknown']['id'])
 
         commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
         face_stack = []
         columns = ['person','person_label_is_inferred','person_label_probability','id']
-        for idx, (face_id, person_name, probability) in enumerate(zip(face_ids_unknown, pred, probs)):
-            person = Person.objects.get(name=person_name)
+        for idx, (face_id, person_id, probability) in enumerate(zip(data['unknown']['id'], pred, probs)):
             face = Face.objects.get(id=face_id)
-            face.person = person
+            face.person_id = person_id
             face.person_label_is_inferred = True
             face.person_label_probability = probability
             face_stack.append(face)
