@@ -12,7 +12,7 @@ djangorestframework==3.12.1
 djangorestframework-simplejwt==4.6.0
 dlib==19.21.1
 drf-extensions==0.6.0
-ExifRead==2.1.2
+ExifRead==2.3.2
 face-recognition==1.2.3
 faiss-cpu==1.7.0
 Flask==1.0
