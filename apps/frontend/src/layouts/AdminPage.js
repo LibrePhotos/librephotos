@@ -274,8 +274,7 @@ class JobList extends Component {
                         success={jobSuccess}>
                         {(
                           job.result.progress.current.toFixed(2) /
-                          job.result.progress.target
-                        ).toFixed(2) * 100}
+                          job.result.progress.target * 100).toFixed(2)}
                         %
                       </Progress>
                     ) : job.finished ? (
