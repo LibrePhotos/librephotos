@@ -242,7 +242,7 @@ USE_TZ = True
 
 # Allow to define data folder like /var/lib/librephotos
 
-BASE_DATA = os.environ.get('BASE_DATA', '')
+BASE_DATA = os.environ.get('BASE_DATA', '/')
 BASE_LOGS = os.environ.get('BASE_LOGS', '/logs/')
 
 STATIC_URL = '/static/'
