@@ -18,7 +18,7 @@ faiss-cpu==1.7.0
 Flask==1.0
 Flask-Cors==3.0.3
 Flask-RESTful==0.3.6
-geopy==1.11.0
+geopy==2.1.0
 gunicorn==20.0.4
 matplotlib==3.3.2 
 networkx==2.5
