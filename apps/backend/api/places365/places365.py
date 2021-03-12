@@ -3,6 +3,7 @@
 # last modified date: Dec. 27, 2017, migrating everything to python36 and latest pytorch and torchvision
 import os
 
+import ownphotos.settings
 import numpy as np
 import torch
 import wideresnet
@@ -16,8 +17,8 @@ from torchvision import transforms as trn
 
 
 torch.nn.Module.dump_patches = True
+dir_places365_model = ownphotos.settings.PLACES365_ROOT
 
-dir_places365_model = os.path.join(os.sep, 'data_models', 'places365', 'model')
 
 def load_labels():
     # prepare all the labels
