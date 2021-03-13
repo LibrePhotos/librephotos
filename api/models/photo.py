@@ -79,7 +79,7 @@ class Photo(models.Model):
         self.image_hash = hash_md5.hexdigest() + str(self.owner.id)
         self.save()
 
-    def _generate_captions_im2txt(self):
+    def _generate_captions_im2txt(self,commit=True):
         image_path = self.thumbnail_big.path
         captions = self.captions_json
         search_captions = self.search_captions
@@ -91,7 +91,8 @@ class Photo(models.Model):
             self.captions_json = captions
             # todo: handle duplicate captions
             self.search_captions = search_captions + caption
-            self.save()
+            if commit:
+                self.save()
             util.logger.info(
                 'generated im2txt captions for image %s. caption: %s' %
                 (image_path, caption))
@@ -101,7 +102,7 @@ class Photo(models.Model):
                 'could not generate im2txt captions for image %s' % image_path)
             return False
 
-    def _generate_captions(self):
+    def _generate_captions(self,commit):
         image_path = self.thumbnail_big.path
         captions = {}
 
@@ -118,8 +119,8 @@ class Photo(models.Model):
             else:
                 self.search_captions = ' , '.join(
                     res_places365['categories'] + [res_places365['environment']])
-
-            self.save()
+            if commit:
+                self.save()
             util.logger.info(
                 'generated places365 captions for image %s.' % (image_path))
         except Exception as e:
@@ -153,49 +154,27 @@ class Photo(models.Model):
                 image = image.convert('RGB')
         return image
 
-    def _generate_thumbnail(self):
+    def _generate_thumbnail(self,commit=True):
         image = self.get_pil_image()
-        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()):            
-            image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_BIG,
-                            PIL.Image.ANTIALIAS)
-            image_io_thumb = BytesIO()
-            image.save(image_io_thumb, format="JPEG")
-            self.thumbnail_big.save(
-                self.image_hash + '.jpg',
-                ContentFile(image_io_thumb.getvalue()))
-            image_io_thumb.close()
-        #thumbnail already exists, add to photo
-        else:
-            self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + '.jpg').strip()
+        path= os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg')
+        if not os.path.exists(path):
+            image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_BIG,PIL.Image.ANTIALIAS)
+            image.save(path, format="JPEG")
+        self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + '.jpg').strip()
 
-        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()):
-            square_thumb = ImageOps.fit(image,
-                                        ownphotos.settings.THUMBNAIL_SIZE_MEDIUM,
-                                    PIL.Image.ANTIALIAS)
-            image_io_square_thumb = BytesIO()
-            square_thumb.save(image_io_square_thumb, format="JPEG")
-            self.square_thumbnail.save(
-                self.image_hash + '.jpg',
-                ContentFile(image_io_square_thumb.getvalue()))
-            image_io_square_thumb.close()
-        #thumbnail already exists, add to photo
-        else:
-            self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.jpg').strip()
+        path= os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg')
+        if not os.path.exists(path):
+            square_thumb = ImageOps.fit(image,ownphotos.settings.THUMBNAIL_SIZE_MEDIUM,PIL.Image.ANTIALIAS)
+            square_thumb.save(path, format="JPEG")
+        self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.jpg').strip()
 
-        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()):
-            square_thumb = ImageOps.fit(image,
-                                    ownphotos.settings.THUMBNAIL_SIZE_SMALL,
-                                    PIL.Image.ANTIALIAS)
-            image_io_square_thumb = BytesIO()
-            square_thumb.save(image_io_square_thumb, format="JPEG")
-            self.square_thumbnail_small.save(
-                self.image_hash + '.jpg',
-                ContentFile(image_io_square_thumb.getvalue()))
-            image_io_square_thumb.close()
-        #thumbnail already exists, add to photo
-        else:
-            self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.jpg').strip()
-        self.save()
+        path= os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg')
+        if not os.path.exists(path):
+            square_thumb = ImageOps.fit(image,ownphotos.settings.THUMBNAIL_SIZE_SMALL,PIL.Image.ANTIALIAS)
+            square_thumb.save(path, format="JPEG")
+        self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.jpg').strip()
+        if commit:
+            self.save()
 
     def _save_image_to_db(self):
         image = self.get_pil_image()
@@ -218,7 +197,7 @@ class Photo(models.Model):
                 old_album_date = possible_old_album_date
         return old_album_date
 
-    def _extract_date_time_from_exif(self):
+    def _extract_date_time_from_exif(self,commit=True):
         date_format = "%Y:%m:%d %H:%M:%S"
         timestamp_from_exif = None
         with open(self.image_path, 'rb') as fimg:
@@ -238,7 +217,7 @@ class Photo(models.Model):
 
         if(self.exif_timestamp != timestamp_from_exif):
             self.exif_timestamp = timestamp_from_exif
-        
+
         if old_album_date is not None:
             old_album_date.photos.remove(self)
             old_album_date.save()
@@ -251,11 +230,12 @@ class Photo(models.Model):
         else:
             album_date = api.models.album_date.get_or_create_album_date(date=None, owner=self.owner)
             album_date.photos.add(self)
-        cache.clear()     
+        cache.clear()
+        if commit:
+            self.save()
         album_date.save()
-        self.save()
 
-    def _extract_gps_from_exif(self):
+    def _extract_gps_from_exif(self,commit=True):
         with open(self.image_path, 'rb') as fimg:
             exif = exifread.process_file(fimg, details=False)
             serializable = dict(
@@ -278,7 +258,8 @@ class Photo(models.Model):
                     self.exif_gps_lat = -float(self.exif_gps_lat)
             else:
                 self.exif_gps_lat = None
-        self.save()
+        if commit:
+            self.save()
 
     def _geolocate(self):
         if not (self.exif_gps_lat and self.exif_gps_lon):
@@ -294,7 +275,7 @@ class Photo(models.Model):
             except:
                 util.logger.exception('something went wrong with geolocating')
 
-    def _geolocate_mapbox(self):
+    def _geolocate_mapbox(self,commit=True):
         if not (self.exif_gps_lat and self.exif_gps_lon):
             self._extract_gps_from_exif()
         if (self.exif_gps_lat and self.exif_gps_lon):
@@ -308,17 +289,19 @@ class Photo(models.Model):
                             'search_text']
                     else:
                         self.search_location = res['search_text']
-                self.save()
+                if commit:
+                    self.save()
             except:
                 util.logger.exception('something went wrong with geolocating')
 
-    def _im2vec(self):
+    def _im2vec(self,commit=True):
         try:
             im2vec = Im2Vec(cuda=False)
             image = PIL.Image.open(self.square_thumbnail)
             vec = im2vec.get_vec(image)
             self.encoding = vec.tobytes().hex()
-            self.save()
+            if commit:
+                self.save()
         except:
             util.logger.exception('something went wrong with im2vec')
 
