@@ -267,6 +267,6 @@ CORS_ALLOW_CREDENTIALS = True
 
 IMAGE_SIMILARITY_SERVER = 'http://localhost:8002'
 
-#Must be egal nb_core_CPU - 1 ( not thread else scan process will be lock)
+#Must be less or egal of nb core CPU ( Nearly 2GB per process)
 HEAVYWEIGHT_PROCESS_ENV = os.environ.get('HEAVYWEIGHT_PROCESS', '1')
 HEAVYWEIGHT_PROCESS = int(HEAVYWEIGHT_PROCESS_ENV) if HEAVYWEIGHT_PROCESS_ENV.isnumeric() else 1
