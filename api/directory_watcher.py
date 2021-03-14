@@ -1,5 +1,4 @@
 import datetime
-import traceback
 import hashlib
 import os
 import stat
@@ -10,7 +9,7 @@ from django import db
 from django.db.models import Q
 from django_rq import job
 from PIL import Image
-
+import django_rq
 import api.util as util
 from api.image_similarity import build_image_similarity_index
 from api.models import LongRunningJob, Photo
@@ -176,13 +175,15 @@ def walk_directory(directory, callback):
             else:
                 callback.append(fpath)
 
-def photo_scanner(user,path,job_id,lrj,files_found):
+@job('default')
+def photo_scanner(user, path, job_id, lrj, files_found):
         if Photo.objects.filter(image_path=path).exists():
             rescan_image(user, path, job_id)
         else:
             handle_new_image(user, path, job_id)
         lrj.result = {"progress": {"current": Photo.objects.count(), "target": files_found}}
         lrj.save()
+        return 0
 
 # job is currently not used, because the model.eval() doesn't execute when it is running as a job
 @job
@@ -211,8 +212,11 @@ def scan_photos(user, job_id):
         lrj.save()
 
         all = []
+        queue = django_rq.get_queue('default', autocommit=True, is_async=True, default_timeout=360)
+        queue.empty()
         for path in photoList:
-             all.append((user, path, job_id, lrj,files_found))
+             all.append((user, path, job_id, lrj, files_found))
+
 
         db.connections.close_all()
         with Pool(processes=ownphotos.settings.HEAVYWEIGHT_PROCESS) as pool:
@@ -224,7 +228,7 @@ def scan_photos(user, job_id):
 
         build_image_similarity_index(user)
     except Exception:
-        util.logger.exception("An error occured: ",traceback.format_exc())
+        util.logger.exception("An error occured: ")
         lrj.failed = True
 
     added_photo_count = Photo.objects.count() - photo_count_before
@@ -236,3 +240,4 @@ def scan_photos(user, job_id):
     lrj.save()
 
     return {"new_photo_count": added_photo_count, "status": lrj.failed == False}
+
