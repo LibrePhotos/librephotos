@@ -91,11 +91,7 @@ def handle_new_image(user, image_path, job_id):
             elapsed = (datetime.datetime.now() - start).total_seconds()
             elapsed_times["md5"] = elapsed
 
-            photo_exists = Photo.objects.filter(
-                Q(image_hash=image_hash)
-            ).exists()
-
-            if not photo_exists:
+            if not Photo.objects.filter(Q(image_hash=image_hash)).exists():
                 photo = Photo()
                 photo.image_path=img_abs_path
                 photo.owner=user
@@ -116,18 +112,15 @@ def handle_new_image(user, image_path, job_id):
                 photo._add_to_album_thing()
 
                 elapsed = (datetime.datetime.now() - start).total_seconds()
-                util.logger.info(
-                    "job {}: image processed: {}, elapsed: {}".format(
-                        job_id, img_abs_path, elapsed
-                    )
-                )
+                util.logger.info( "job {}: image processed: {}, elapsed: {}".format(
+                    job_id, img_abs_path, elapsed
+                ))
 
                 if photo.image_hash == "":
                     util.logger.warning(
                         "job {}: image hash is an empty string. File path: {}".format(
                             job_id, photo.image_path
-                        )
-                    )
+                    ))
             else:
                 util.logger.warning(
                     "job {}: file {} exists already".format(job_id, image_path)
@@ -144,7 +137,6 @@ def handle_new_image(user, image_path, job_id):
             util.logger.exception(
                 "job {}: could not load image {}".format(job_id, image_path)
             )
-
 
 def rescan_image(user, image_path, job_id):
     try:
@@ -165,7 +157,6 @@ def rescan_image(user, image_path, job_id):
                 "job {}: could not load image {}".format(job_id, image_path)
             )
 
-
 def walk_directory(directory, callback):
     for file in os.scandir(directory):
         fpath = os.path.join(directory, file)
@@ -175,7 +166,6 @@ def walk_directory(directory, callback):
             else:
                 callback.append(fpath)
 
-@job('default')
 def photo_scanner(user, path, job_id, lrj, files_found):
         if Photo.objects.filter(image_path=path).exists():
             rescan_image(user, path, job_id)
@@ -199,7 +189,6 @@ def scan_photos(user, job_id):
             started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,
         )
-    lrj.result = {"progress": {"current": 0, "target": 1}}
     lrj.save()
     photo_count_before = Photo.objects.count()
 
@@ -208,23 +197,15 @@ def scan_photos(user, job_id):
         walk_directory(user.scan_directory, photoList)
         files_found = len(photoList)
 
-        lrj.result = {"progress": {"current": 0, "target": files_found}}
-        lrj.save()
-
         all = []
-        queue = django_rq.get_queue('default', autocommit=True, is_async=True, default_timeout=360)
-        queue.empty()
         for path in photoList:
              all.append((user, path, job_id, lrj, files_found))
-
 
         db.connections.close_all()
         with Pool(processes=ownphotos.settings.HEAVYWEIGHT_PROCESS) as pool:
              pool.starmap(photo_scanner, all)
 
-        util.logger.info(
-            "Scanned {} files in : {}".format(files_found, user.scan_directory)
-        )
+        util.logger.info("Scanned {} files in : {}".format(files_found, user.scan_directory))
 
         build_image_similarity_index(user)
     except Exception:
@@ -240,4 +221,3 @@ def scan_photos(user, job_id):
     lrj.save()
 
     return {"new_photo_count": added_photo_count, "status": lrj.failed == False}
-
