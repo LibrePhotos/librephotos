@@ -155,17 +155,16 @@ def rescan_image(user, image_path, job_id):
             util.logger.exception(
                 "job {}: could not load image {}".format(job_id, image_path)
             )
-
-def walk_directory(directory, callback):
+def walk_directory(directory,user, job_id):
     for file in os.scandir(directory):
         fpath = os.path.join(directory, file)
         if not is_hidden(fpath) and not should_skip(fpath):
             if os.path.isdir(fpath):
-                walk_directory(fpath, callback)
+                yield from walk_directory(fpath,user,job_id)
             else:
-                callback.append(fpath)
+                yield (fpath,user,job_id)
 
-def photo_scanner(user, path, job_id):
+def photo_scanner(path, user,job_id):
         if Photo.objects.filter(image_path=path).exists():
             rescan_image(user, path, job_id)
         else:
@@ -196,19 +195,15 @@ def scan_photos(user, job_id):
     photo_count_before = Photo.objects.count()
 
     try:
-        photoList = []
-        walk_directory(user.scan_directory, photoList)
-        files_found = len(photoList)
-
-        all = []
-        for path in photoList:
-             all.append((user, path, job_id))
+        files_found = 0
+        for tmp in walk_directory(user.scan_directory,user, job_id):
+            files_found = files_found + 1
 
         lrj.result = {"progress": {"current": 0, "target": files_found}}
         lrj.save()
         db.connections.close_all()
         with Pool(processes=ownphotos.settings.HEAVYWEIGHT_PROCESS) as pool:
-             pool.starmap(photo_scanner, all)
+             pool.starmap(photo_scanner, walk_directory(user.scan_directory,user, job_id))
 
         util.logger.info("Scanned {} files in : {}".format(files_found, user.scan_directory))
 
