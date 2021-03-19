@@ -23,7 +23,7 @@ gunicorn==20.0.4
 matplotlib==3.3.2 
 networkx==2.5
 nltk==3.5
-Pillow==8.1.0
+Pillow==8.1.1
 psycopg2==2.8.6
 pycocotools==2.0.2
 https://github.com/owncloud/pyocclient/archive/master.zip
