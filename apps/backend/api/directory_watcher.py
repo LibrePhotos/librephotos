@@ -9,7 +9,6 @@ from django import db
 from django.db.models import Q
 from django_rq import job
 from PIL import Image
-import django_rq
 import api.util as util
 from api.image_similarity import build_image_similarity_index
 from api.models import LongRunningJob, Photo
@@ -105,7 +104,7 @@ def handle_new_image(user, image_path, job_id):
                 photo._geolocate_mapbox(False)
                 photo._im2vec(False)
                 photo._extract_date_time_from_exif(True)
-                photo.save()
+                #photo.save() # allready commit by photo._extract_date_time_from_exif(True)
                 photo._extract_faces()
                 photo._add_to_album_place()
                 photo._add_to_album_date()
@@ -142,8 +141,8 @@ def rescan_image(user, image_path, job_id):
     try:
         if is_valid_media(open(image_path, "rb").read(2048)):
             photo = Photo.objects.filter(Q(image_path=image_path)).get()
-            photo._generate_thumbnail()
-            photo._extract_date_time_from_exif()
+            photo._generate_thumbnail(False)
+            photo._extract_date_time_from_exif(True)
 
     except Exception as e:
         try:
@@ -166,14 +165,18 @@ def walk_directory(directory, callback):
             else:
                 callback.append(fpath)
 
-def photo_scanner(user, path, job_id, lrj, files_found):
+def photo_scanner(user, path, job_id):
         if Photo.objects.filter(image_path=path).exists():
             rescan_image(user, path, job_id)
         else:
             handle_new_image(user, path, job_id)
-        lrj.result = {"progress": {"current": Photo.objects.count(), "target": files_found}}
-        lrj.save()
-        return 0
+        with db.connection.cursor() as cursor:
+            cursor.execute("""
+                update api_longrunningjob
+                set result = jsonb_set(result,'{"progress","current"}',
+                      ((jsonb_extract_path(result,'progress','current')::int + 1)::text)::jsonb
+                ) where job_id = %(job_id)s""",
+                {'job_id': str(job_id)})
 
 # job is currently not used, because the model.eval() doesn't execute when it is running as a job
 @job
@@ -199,8 +202,10 @@ def scan_photos(user, job_id):
 
         all = []
         for path in photoList:
-             all.append((user, path, job_id, lrj, files_found))
+             all.append((user, path, job_id))
 
+        lrj.result = {"progress": {"current": 0, "target": files_found}}
+        lrj.save()
         db.connections.close_all()
         with Pool(processes=ownphotos.settings.HEAVYWEIGHT_PROCESS) as pool:
              pool.starmap(photo_scanner, all)
