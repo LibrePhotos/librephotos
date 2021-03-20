@@ -1,5 +1,3 @@
-api/migrations/0004_fixAlbumThingContraint.py 
-
 from django.db import migrations, models
 
 class Migration(migrations.Migration):
@@ -8,7 +6,7 @@ class Migration(migrations.Migration):
         ('api', '0003_remove_unused_thumbs'),
     ]
 
-    operations = [    
+    operations = [
         migrations.AlterUniqueTogether(
             name='albumthing',
             unique_together=set([]),
@@ -16,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="albumthing",
             constraint=models.UniqueConstraint(
-               fields=['room', 'date'],
+               fields=['title', 'thing_type' , 'owner'],
                 name="unique AlbumThing",
             ),
         ),
