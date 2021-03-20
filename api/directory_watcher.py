@@ -170,11 +170,10 @@ def photo_scanner(path, user,job_id):
             {'job_id': str(job_id)})
 
 
-def search_worker(user, job_id,unsearched_dirs, p):
+def search_worker(user, job_id,unsearched_dirs):
     while True:
         working_path = unsearched_dirs.get()
         for direntry in os.scandir(working_path):
-            print(p,direntry.path)
             if not is_hidden(direntry.path) and not should_skip(direntry.path):
                 if os.path.isdir(direntry.path):
                     unsearched_dirs.put(direntry.path)
@@ -218,7 +217,7 @@ def scan_photos(user, job_id):
 
         unsearched_dirs = Manager().Queue()
         unsearched_dirs.put(user.scan_directory)
-        param = [(user, job_id,unsearched_dirs, tmp) for tmp in range(ownphotos.settings.HEAVYWEIGHT_PROCESS)]
+        param = [(user, job_id,unsearched_dirs) for tmp in range(ownphotos.settings.HEAVYWEIGHT_PROCESS)]
         db.connections.close_all()
         with Pool(processes=ownphotos.settings.HEAVYWEIGHT_PROCESS) as pool:
              pool.starmap(search_worker, param)
