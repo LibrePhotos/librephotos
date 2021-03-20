@@ -99,16 +99,16 @@ def handle_new_image(user, image_path, job_id):
                 photo.geolocation_json={}
                 start = datetime.datetime.now()
                 photo._generate_thumbnail(False)
+                photo._im2vec(False)
                 photo._generate_captions(False)
                 photo._extract_gps_from_exif(False)
                 photo._geolocate_mapbox(False)
-                photo._im2vec(False)
                 photo._extract_date_time_from_exif(True)
                 #photo.save() # allready commit by photo._extract_date_time_from_exif(True)
                 photo._extract_faces()
                 photo._add_to_album_place()
                 photo._add_to_album_date()
-                photo._add_to_album_thing()
+                #photo._add_to_album_thing()
 
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info( "job {}: image processed: {}, elapsed: {}".format(
@@ -169,18 +169,29 @@ def photo_scanner(path, user,job_id):
             ) where job_id = %(job_id)s""",
             {'job_id': str(job_id)})
 
-
-def search_worker(user, job_id,unsearched_dirs):
+def search_worker(user, job_id,unsearched_dirs,photoQueue,working,nbproc):
     while True:
-        working_path = unsearched_dirs.get()
-        for direntry in os.scandir(working_path):
-            if not is_hidden(direntry.path) and not should_skip(direntry.path):
-                if os.path.isdir(direntry.path):
-                    unsearched_dirs.put(direntry.path)
-                elif os.path.isfile(direntry.path):
-                    photo_scanner(direntry.path,user,job_id)
-        if unsearched_dirs.empty():
-            unsearched_dirs.task_done()
+        if not unsearched_dirs.empty():
+            p = unsearched_dirs.get()
+            for direntry in os.scandir(p):
+                if not is_hidden(direntry.path) and not should_skip(direntry.path):
+                    if os.path.isdir(direntry.path):
+                        unsearched_dirs.put(direntry.path)
+                    elif os.path.isfile(direntry.path):
+                        photoQueue.put(direntry.path)
+
+        while not photoQueue.empty():
+           p = photoQueue.get()
+           photo_scanner(p,user,job_id)
+
+        working[nbproc] = ( photoQueue.empty() and unsearched_dirs.empty() )
+
+        leave = True
+        for proc in range(ownphotos.settings.HEAVYWEIGHT_PROCESS):
+            if not working[proc]:
+                 leave = False
+        if leave :
+            break
 
 def count_directory(directory):
     cpt = 0
@@ -192,6 +203,7 @@ def count_directory(directory):
             else:
                 cpt = cpt + 1
     return cpt
+
 # job is currently not used, because the model.eval() doesn't execute when it is running as a job
 @job
 def scan_photos(user, job_id):
@@ -210,18 +222,22 @@ def scan_photos(user, job_id):
     photo_count_before = Photo.objects.count()
 
     try:
-
         files_found = count_directory(user.scan_directory)
         lrj.result = {"progress": {"current": 0, "target": files_found}}
         lrj.save()
 
         unsearched_dirs = Manager().Queue()
+        photoQueue = Manager().Queue()
+        working = Manager().dict()
+        param = []
+        for nbproc in range(ownphotos.settings.HEAVYWEIGHT_PROCESS):
+            param.append((user, job_id,unsearched_dirs,photoQueue,working,nbproc))
+            working[nbproc] = False
         unsearched_dirs.put(user.scan_directory)
-        param = [(user, job_id,unsearched_dirs) for tmp in range(ownphotos.settings.HEAVYWEIGHT_PROCESS)]
+
         db.connections.close_all()
         with Pool(processes=ownphotos.settings.HEAVYWEIGHT_PROCESS) as pool:
              pool.starmap(search_worker, param)
-        unsearched_dirs.join()
 
         util.logger.info("Scanned {} files in : {}".format(files_found, user.scan_directory))
 
