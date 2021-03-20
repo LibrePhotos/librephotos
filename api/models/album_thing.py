@@ -15,7 +15,7 @@ class AlbumThing(models.Model):
         User, related_name='album_thing_shared_to')
 
     class Meta:
-        unique_together = ('title', 'owner')
+        constraints = [models.UniqueConstraint(fields=['title', 'thing_type' , 'owner'],name='unique AlbumThing')]
 
     @property
     def cover_photos(self):
