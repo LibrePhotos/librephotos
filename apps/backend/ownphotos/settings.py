@@ -267,6 +267,23 @@ CORS_ALLOW_CREDENTIALS = True
 
 IMAGE_SIMILARITY_SERVER = 'http://localhost:8002'
 
+
 #Must be less or egal of nb core CPU ( Nearly 2GB per process)
 HEAVYWEIGHT_PROCESS_ENV = os.environ.get('HEAVYWEIGHT_PROCESS', '1')
 HEAVYWEIGHT_PROCESS = int(HEAVYWEIGHT_PROCESS_ENV) if HEAVYWEIGHT_PROCESS_ENV.isnumeric() else 1
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+}
