@@ -63,7 +63,7 @@ def createNewAlbumThing(cursor):
         from api_albumthing_sql
         left join api_albumthing using (title, thing_type, owner_id)
         where  api_albumthing is null;
-    """.format(view_api_albumthing_sql)
+    """.replace("{}",view_api_albumthing_sql)
     cursor.execute(SQL)
 
 def CreateNewAlbumThingPhoto(cursor):
@@ -75,7 +75,7 @@ def CreateNewAlbumThingPhoto(cursor):
         from api_albumthing_photos_sql
         left join api_albumthing_photos using (albumthing_id, photo_id)
         where  api_albumthing_photos is null;
-    """.format(view_api_albumthing_photos_sql)
+    """.replace("{}",view_api_albumthing_photos_sql)
     cursor.execute(SQL)
 
 def DeleteNewAlbumThingPhoto(cursor):
@@ -84,7 +84,7 @@ def DeleteNewAlbumThingPhoto(cursor):
         with {}
         delete from api_albumthing_photos
         where (albumthing_id,photo_id) not in ( select albumthing_id, photo_id from api_albumthing_photos_sql)
-    """.format(view_api_albumthing_photos_sql)
+    """.replace("{}",view_api_albumthing_photos_sql)
     cursor.execute(SQL)
 
 def DeleteAlbumThing(cursor):
@@ -93,7 +93,7 @@ def DeleteAlbumThing(cursor):
         with {}
         delete from api_albumthing
         where (title, thing_type, owner_id) not in ( select title, thing_type, owner_id from api_albumthing_sql );
-    """.format(view_api_albumthing_sql)
+    """.replace("{}",view_api_albumthing_sql)
     cursor.execute(SQL)
 
 def update():
