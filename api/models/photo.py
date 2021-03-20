@@ -25,7 +25,7 @@ from django.core.files.base import ContentFile
 from django.db import models
 from geopy.geocoders import Nominatim
 from PIL import ImageOps
-
+from wand.image import Image
 
 class VisiblePhotoManager(models.Manager):
     def get_queryset(self):
@@ -128,51 +128,58 @@ class Photo(models.Model):
                 'could not generate places365 captions for image %s' %
                 image_path)
 
-    def isHeic(self):
-        try:
-            filetype = magic.from_buffer(open(self.image_path,"rb").read(2048), mime=True)
-            return 'heic' in filetype or 'heif' in filetype
-        except:
-            util.logger.exception("An image throwed an exception")
-            return False
-    
-    def get_pil_image(self):
-        if self.isHeic():
-            heif_file = pyheif.read(self.image_path)
-            image = PIL.Image.frombytes(
-                heif_file.mode, 
-                heif_file.size, 
-                heif_file.data,
-                "raw",
-                heif_file.mode,
-                heif_file.stride,
-                )
-        else:
-            image = PIL.Image.open(self.image_path)
-        image = rotate_image(image)
-        if image.mode != 'RGB':
-                image = image.convert('RGB')
-        return image
-
     def _generate_thumbnail(self,commit=True):
-        image = self.get_pil_image()
-        path= os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg')
-        if not os.path.exists(path):
-            image.thumbnail(ownphotos.settings.THUMBNAIL_SIZE_BIG,PIL.Image.ANTIALIAS)
-            image.save(path, format="JPEG")
-        self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + '.jpg').strip()
+        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()):
+            with Image(filename=self.image_path) as img:
+                with BytesIO() as transfer:
+                    with img.clone() as thumbnail: 
+                        thumbnail.format = "jpg" 
+                        thumbnail.transform(resize='x' + str(ownphotos.settings.THUMBNAIL_SIZE_BIG[1]))
+                        thumbnail.save(transfer)
+                    self.thumbnail_big.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
+        #thumbnail already exists, add to photo
+        else:
+            self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + '.jpg').strip()
 
-        path= os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg')
-        if not os.path.exists(path):
-            square_thumb = ImageOps.fit(image,ownphotos.settings.THUMBNAIL_SIZE_MEDIUM,PIL.Image.ANTIALIAS)
-            square_thumb.save(path, format="JPEG")
-        self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.jpg').strip()
+        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()):
+            with Image(filename=self.image_path) as img:
+                with BytesIO() as transfer:
+                    with img.clone() as thumbnail: 
+                        thumbnail.format = "jpg"
+                        dst_landscape = 1 > thumbnail.width / thumbnail.height
+                        wh = thumbnail.width if dst_landscape else thumbnail.height
+                        thumbnail.crop(
+                            left=int((thumbnail.width - wh) / 2),
+                            top=int((thumbnail.height - wh) / 2),
+                            width=int(wh),
+                            height=int(wh)
+                        )
+                        thumbnail.resize(width=ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[0], height=ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[1])
+                        thumbnail.save(transfer)
+                    self.square_thumbnail.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
+        #thumbnail already exists, add to photo
+        else:
+            self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.jpg').strip()
 
-        path= os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg')
-        if not os.path.exists(path):
-            square_thumb = ImageOps.fit(image,ownphotos.settings.THUMBNAIL_SIZE_SMALL,PIL.Image.ANTIALIAS)
-            square_thumb.save(path, format="JPEG")
-        self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.jpg').strip()
+        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()):
+            with Image(filename=self.image_path) as img:
+                with BytesIO() as transfer:
+                    with img.clone() as thumbnail: 
+                        thumbnail.format = "jpg"
+                        dst_landscape = 1 > thumbnail.width / thumbnail.height
+                        wh = thumbnail.width if dst_landscape else thumbnail.height
+                        thumbnail.crop(
+                            left=int((thumbnail.width - wh) / 2),
+                            top=int((thumbnail.height - wh) / 2),
+                            width=int(wh),
+                            height=int(wh)
+                        )
+                        thumbnail.resize(width=ownphotos.settings.THUMBNAIL_SIZE_SMALL[0], height=ownphotos.settings.THUMBNAIL_SIZE_SMALL[1])
+                        thumbnail.save(transfer)
+                    self.square_thumbnail_small.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
+        #thumbnail already exists, add to photo
+        else:
+            self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.jpg').strip()
         if commit:
             self.save()
 
@@ -312,7 +319,7 @@ class Photo(models.Model):
             unknown_person.save()
         else:
             unknown_person = qs_unknown_person[0]
-        image = np.array(self.get_pil_image())
+        image = np.array(PIL.Image.open(self.thumbnail_big.path))
 
         face_locations = face_recognition.face_locations(image)
         face_encodings = face_recognition.face_encodings(
