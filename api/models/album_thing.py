@@ -27,70 +27,74 @@ class AlbumThing(models.Model):
 def get_album_thing(title, owner):
     return AlbumThing.objects.get_or_create(title=title, owner=owner)[0]
 
-def update():
-    SQL = ["""
-        with api_albumthing_sql as (
-            select title, 'places365_attribute' thing_type, false favorited, owner_id
-            from (select owner_id, jsonb_array_elements_text(jsonb_extract_path(captions_json,  'places365', 'attributes')) title from api_photo ) photo_attribut
-            group by title, thing_type, favorited, owner_id
-            union all 
-            select title, 'places365_category' thing_type, false favorited, owner_id
-            from (select owner_id, jsonb_array_elements_text(jsonb_extract_path(captions_json,  'places365', 'categories')) title from api_photo ) photo_attribut
-            group by title, thing_type, favorited, owner_id
-        )
+#List all existing (thing / thing type / user)
+view_api_albumthing_sql = """
+    api_albumthing_sql as (
+       select title, 'places365_attribute' thing_type, false favorited, owner_id
+       from (select owner_id, jsonb_array_elements_text(jsonb_extract_path(captions_json,  'places365', 'attributes')) title from api_photo ) photo_attribut
+       group by title, thing_type, favorited, owner_id
+       union all
+       select title, 'places365_category' thing_type, false favorited, owner_id
+       from (select owner_id, jsonb_array_elements_text(jsonb_extract_path(captions_json,  'places365', 'categories')) title from api_photo ) photo_attribut
+       group by title, thing_type, favorited, owner_id
+    )"""
+
+#List all photos per albumThing
+view_api_albumthing_photos_sql = """
+    api_albumthing_photos_sql as (
+       select api_albumthing.id albumthing_id, photo_id
+       from (select owner_id, jsonb_array_elements_text(jsonb_extract_path(captions_json,  'places365', 'attributes')) title, image_hash photo_id, 'places365_attribute' thing_type from api_photo ) photo_attribut
+       join api_albumthing using (title,thing_type, owner_id )
+       group by api_albumthing.id, photo_id
+       union all
+       select api_albumthing.id albumthing_id, photo_id
+       from (select owner_id, jsonb_array_elements_text(jsonb_extract_path(captions_json,  'places365', 'categories')) title, image_hash photo_id, 'places365_category' thing_type from api_photo ) photo_attribut
+       join api_albumthing using (title,thing_type, owner_id )
+       group by api_albumthing.id, photo_id
+    )
+"""
+
+def createNewAlbumThing(cursor):
+    """This function create albums from all detected thing on photos"""
+    cursor.execute("""
+        with {}
         insert into api_albumthing (title, thing_type,favorited, owner_id)
         select api_albumthing_sql.*
-        from api_albumthing_sql 
+        from api_albumthing_sql
         left join api_albumthing using (title, thing_type, owner_id)
         where  api_albumthing is null;
-        """,
-        """
-        with api_albumthing_photos_sql as (
-            select api_albumthing.id albumthing_id, photo_id
-            from (select owner_id, jsonb_array_elements_text(jsonb_extract_path(captions_json,  'places365', 'attributes')) title, image_hash photo_id, 'places365_attribute' thing_type from api_photo ) photo_attribut
-            join api_albumthing using (title,thing_type, owner_id )
-            group by api_albumthing.id, photo_id
-            union all 
-            select api_albumthing.id albumthing_id, photo_id
-            from (select owner_id, jsonb_array_elements_text(jsonb_extract_path(captions_json,  'places365', 'categories')) title, image_hash photo_id, 'places365_category' thing_type from api_photo ) photo_attribut
-            join api_albumthing using (title,thing_type, owner_id )
-            group by api_albumthing.id, photo_id
-        )
+    """.format(view_api_albumthing_sql))
+
+def CreateNewAlbumThingPhoto(cursor):
+    """This function create link between albums thing and photo from all detected thing on photos"""
+    cursor.execute("""
+        with {}
         insert into api_albumthing_photos (albumthing_id, photo_id)
         select api_albumthing_photos_sql.*
-        from api_albumthing_photos_sql 
+        from api_albumthing_photos_sql
         left join api_albumthing_photos using (albumthing_id, photo_id)
         where  api_albumthing_photos is null;
-        """,
-        """
-        with api_albumthing_photos_sql as (
-            select api_albumthing.id albumthing_id, photo_id
-            from (select owner_id, jsonb_array_elements_text(jsonb_extract_path(captions_json,  'places365', 'attributes')) title, image_hash photo_id, 'places365_attribute' thing_type from api_photo ) photo_attribut
-            join api_albumthing using (title,thing_type, owner_id )
-            group by api_albumthing.id, photo_id
-            union all 
-            select api_albumthing.id albumthing_id, photo_id
-            from (select owner_id, jsonb_array_elements_text(jsonb_extract_path(captions_json,  'places365', 'categories')) title, image_hash photo_id, 'places365_category' thing_type from api_photo ) photo_attribut
-            join api_albumthing using (title,thing_type, owner_id )
-            group by api_albumthing.id, photo_id
-        )
-        DELETE
-        from api_albumthing_photos
+    """.format(view_api_albumthing_photos_sql))
+
+def DeleteNewAlbumThingPhoto(cursor):
+    """This function delete photos form albums thing where thing disapears"""
+    cursor.execute("""
+        with {}
+        delete from api_albumthing_photos
         where (albumthing_id,photo_id) not in ( select albumthing_id, photo_id from api_albumthing_photos_sql)
-        """,
-        """
-        with api_albumthing_sql as (
-            select title, 'places365_attribute' thing_type, owner_id
-            from (select owner_id, jsonb_array_elements_text(jsonb_extract_path(captions_json,  'places365', 'attributes')) title from api_photo ) photo_attribut
-            group by title, thing_type, owner_id
-            union all 
-            select title, 'places365_category' thing_type, owner_id
-            from (select owner_id, jsonb_array_elements_text(jsonb_extract_path(captions_json,  'places365', 'categories')) title from api_photo ) photo_attribut
-            group by title, thing_type, owner_id
-        )
+    """.format(view_api_albumthing_photos_sql))
+
+def DeleteAlbumThing(cursor):
+    """This function delete albums thing without photos"""
+    cursor.execute("""
+        with {}
         delete from api_albumthing
-        where (title, thing_type, owner_id) not in ( select title, thing_type, owner_id from  api_albumthing_sql );
-        """]
+        where (title, thing_type, owner_id) not in ( select title, thing_type, owner_id from api_albumthing_sql );
+    """.format(view_api_albumthing_sql))
+
+def update():
     with connection.cursor() as cursor:
-        for query in SQL:
-            cursor.execute(query)
+         createNewAlbumThing(cursor)
+         CreateNewAlbumThingPhoto(cursor)
+         DeleteNewAlbumThingPhoto(cursor)
+         DeleteAlbumThing(cursor)
