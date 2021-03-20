@@ -1,7 +1,7 @@
 FROM python:3.8
 
 # system packages installation
-RUN apt update && apt install -y curl libopenblas-dev libmagic1 libboost-all-dev libxrender-dev liblapack-dev git bzip2 cmake build-essential libsm6 libglib2.0-0 libgl1-mesa-glx --no-install-recommends
+RUN apt update && apt install -y curl libopenblas-dev libmagickwand-dev libheif-dev libmagic1 ufraw-batch libboost-all-dev libxrender-dev liblapack-dev git bzip2 cmake build-essential libsm6 libglib2.0-0 libgl1-mesa-glx --no-install-recommends
 
 # pre trained models download
 WORKDIR /data_models
