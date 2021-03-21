@@ -12,6 +12,7 @@ from PIL import Image
 import api.util as util
 from api.image_similarity import build_image_similarity_index
 from api.models import LongRunningJob, Photo
+from multiprocessing import Pool
 
 def calculate_hash(user, image_path):
     hash_md5 = hashlib.md5()
@@ -81,16 +82,16 @@ def handle_new_image(user, image_path, job_id):
             photo.geolocation_json={}
             start = datetime.datetime.now()
             photo._generate_thumbnail(False)
-            photo._im2vec(False)
             photo._generate_captions(False)
             photo._extract_gps_from_exif(False)
             photo._geolocate_mapbox(False)
+            photo._im2vec(False)
             photo._extract_date_time_from_exif(True)
             #photo.save() # allready commit by photo._extract_date_time_from_exif(True)
             photo._extract_faces()
             photo._add_to_album_place()
             photo._add_to_album_date()
-            #photo._add_to_album_thing()
+            photo._add_to_album_thing()
 
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info( "job {}: image processed: {}, elapsed: {}".format(
@@ -107,23 +108,6 @@ def handle_new_image(user, image_path, job_id):
                 "job {}: file {} exists already".format(job_id, image_path)
             )
 
-except Exception as e:
-    try:
-        util.logger.exception(
-            "job {}: could not load image {}. reason: {}".format(
-                job_id, image_path, str(e)
-            )
-        )
-    except:
-        util.logger.exception(
-            "job {}: could not load image {}".format(job_id, image_path)
-        )
-
-def rescan_image(user, image_path, job_id):
-    try:
-        photo = Photo.objects.filter(Q(image_path=image_path)).get()
-        photo._generate_thumbnail()
-        photo._extract_date_time_from_exif()
     except Exception as e:
         try:
             util.logger.exception(
@@ -136,53 +120,45 @@ def rescan_image(user, image_path, job_id):
                 "job {}: could not load image {}".format(job_id, image_path)
             )
 
-def photo_scanner(path, user,job_id):
-    if Photo.objects.filter(image_path=path).exists():
-        rescan_image(user, path, job_id)
-    else:
-        handle_new_image(user, path, job_id)
-    with db.connection.cursor() as cursor:
-        cursor.execute("""
-            update api_longrunningjob
-            set result = jsonb_set(result,'{"progress","current"}',
-                  ((jsonb_extract_path(result,'progress','current')::int + 1)::text)::jsonb
-            ) where job_id = %(job_id)s""",
-            {'job_id': str(job_id)})
+def rescan_image(user, image_path, job_id):
+    try:
+        photo = Photo.objects.filter(Q(image_path=image_path)).get()
+        photo._generate_thumbnail(False)
+        photo._extract_date_time_from_exif(True)
 
-def search_worker(user, job_id,unsearched_dirs,photoQueue,working,nbproc):
-    while True:
-        if not unsearched_dirs.empty():
-            p = unsearched_dirs.get()
-            for direntry in os.scandir(p):
-                if not is_hidden(direntry.path) and not should_skip(direntry.path):
-                    if os.path.isdir(direntry.path):
-                        unsearched_dirs.put(direntry.path)
-                    elif os.path.isfile(direntry.path):
-                        photoQueue.put(direntry.path)
+    except Exception as e:
+        try:
+            util.logger.exception(
+                "job {}: could not load image {}. reason: {}".format(
+                    job_id, image_path, str(e)
+                )
+            )
+        except:
+            util.logger.exception(
+                "job {}: could not load image {}".format(job_id, image_path)
+            )
 
-        while not photoQueue.empty():
-           p = photoQueue.get()
-           photo_scanner(p,user,job_id)
-
-        working[nbproc] = ( photoQueue.empty() and unsearched_dirs.empty() )
-
-        leave = True
-        for proc in range(ownphotos.settings.HEAVYWEIGHT_PROCESS):
-            if not working[proc]:
-                 leave = False
-        if leave :
-            break
-
-def count_directory(directory):
-    cpt = 0
+def walk_directory(directory, callback):
     for file in os.scandir(directory):
         fpath = os.path.join(directory, file)
         if not is_hidden(fpath) and not should_skip(fpath):
             if os.path.isdir(fpath):
-                cpt = cpt + count_directory(fpath)
+                walk_directory(fpath, callback)
             else:
-                cpt = cpt + 1
-    return cpt
+                callback.append(fpath)
+
+def photo_scanner(user, path, job_id):
+        if Photo.objects.filter(image_path=path).exists():
+            rescan_image(user, path, job_id)
+        else:
+            handle_new_image(user, path, job_id)
+        with db.connection.cursor() as cursor:
+            cursor.execute("""
+                update api_longrunningjob
+                set result = jsonb_set(result,'{"progress","current"}',
+                      ((jsonb_extract_path(result,'progress','current')::int + 1)::text)::jsonb
+                ) where job_id = %(job_id)s""",
+                {'job_id': str(job_id)})
 
 # job is currently not used, because the model.eval() doesn't execute when it is running as a job
 @job
@@ -202,22 +178,19 @@ def scan_photos(user, job_id):
     photo_count_before = Photo.objects.count()
 
     try:
-        files_found = count_directory(user.scan_directory)
+        photoList = []
+        walk_directory(user.scan_directory, photoList)
+        files_found = len(photoList)
+
+        all = []
+        for path in photoList:
+             all.append((user, path, job_id))
+
         lrj.result = {"progress": {"current": 0, "target": files_found}}
         lrj.save()
-
-        unsearched_dirs = Manager().Queue()
-        photoQueue = Manager().Queue()
-        working = Manager().dict()
-        param = []
-        for nbproc in range(ownphotos.settings.HEAVYWEIGHT_PROCESS):
-            param.append((user, job_id,unsearched_dirs,photoQueue,working,nbproc))
-            working[nbproc] = False
-        unsearched_dirs.put(user.scan_directory)
-
         db.connections.close_all()
         with Pool(processes=ownphotos.settings.HEAVYWEIGHT_PROCESS) as pool:
-             pool.starmap(search_worker, param)
+             pool.starmap(photo_scanner, all)
 
         util.logger.info("Scanned {} files in : {}".format(files_found, user.scan_directory))
 
