@@ -8,12 +8,21 @@ import ownphotos.settings
 from django import db
 from django.db.models import Q
 from django_rq import job
-from PIL import Image
+
 import api.util as util
 from api.image_similarity import build_image_similarity_index
 from api.models import LongRunningJob, Photo
 from multiprocessing import Pool
 import api.models.album_thing
+from wand.image import Image
+
+def is_valid_media(image_path):
+    try:
+        with Image(filename=image_path) as i:
+            return True
+    except Exception as e:
+        util.logger.info("Could not handle {}, because {}".format(image_path, str(e)))
+        return False
 
 def calculate_hash(user, image_path):
     hash_md5 = hashlib.md5()
@@ -51,79 +60,81 @@ else:
 
 
 def handle_new_image(user, image_path, job_id):
-    try:
-        elapsed_times = {
-            "md5": None,
-            "thumbnails": None,
-            "captions": None,
-            "image_save": None,
-            "exif": None,
-            "geolocation": None,
-            "faces": None,
-            "album_place": None,
-            "album_date": None,
-            "album_thing": None,
-            "im2vec": None,
-        }
-
-        img_abs_path = image_path
-        util.logger.info("job {}: handling image {}".format(job_id, img_abs_path))
-
-        start = datetime.datetime.now()
-        image_hash = calculate_hash(user, image_path)
-        elapsed = (datetime.datetime.now() - start).total_seconds()
-        elapsed_times["md5"] = elapsed
-
-        if not Photo.objects.filter(Q(image_hash=image_hash)).exists():
-            photo = Photo()
-            photo.image_path=img_abs_path
-            photo.owner=user
-            photo.image_hash=image_hash
-            photo.added_on=datetime.datetime.now().replace(tzinfo=pytz.utc)
-            photo.geolocation_json={}
-            start = datetime.datetime.now()
-            photo._generate_thumbnail(False)
-            photo._generate_captions(False)
-            photo._extract_gps_from_exif(False)
-            photo._geolocate_mapbox(False)
-            photo._im2vec(False)
-            photo._extract_date_time_from_exif(True)
-            photo._extract_faces()
-            photo._add_to_album_place()
-            photo._add_to_album_date()
-
-            elapsed = (datetime.datetime.now() - start).total_seconds()
-            util.logger.info( "job {}: image processed: {}, elapsed: {}".format(
-                job_id, img_abs_path, elapsed
-            ))
-
-            if photo.image_hash == "":
-                util.logger.warning(
-                    "job {}: image hash is an empty string. File path: {}".format(
-                        job_id, photo.image_path
-                ))
-        else:
-            util.logger.warning(
-                "job {}: file {} exists already".format(job_id, image_path)
-            )
-
-    except Exception as e:
+    if is_valid_media(image_path):
         try:
-            util.logger.exception(
-                "job {}: could not load image {}. reason: {}".format(
-                    job_id, image_path, str(e)
+            elapsed_times = {
+                "md5": None,
+                "thumbnails": None,
+                "captions": None,
+                "image_save": None,
+                "exif": None,
+                "geolocation": None,
+                "faces": None,
+                "album_place": None,
+                "album_date": None,
+                "album_thing": None,
+                "im2vec": None,
+            }
+
+            img_abs_path = image_path
+            util.logger.info("job {}: handling image {}".format(job_id, img_abs_path))
+
+            start = datetime.datetime.now()
+            image_hash = calculate_hash(user, image_path)
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            elapsed_times["md5"] = elapsed
+
+            if not Photo.objects.filter(Q(image_hash=image_hash)).exists():
+                photo = Photo()
+                photo.image_path=img_abs_path
+                photo.owner=user
+                photo.image_hash=image_hash
+                photo.added_on=datetime.datetime.now().replace(tzinfo=pytz.utc)
+                photo.geolocation_json={}
+                start = datetime.datetime.now()
+                photo._generate_thumbnail(False)
+                photo._generate_captions(False)
+                photo._extract_gps_from_exif(False)
+                photo._geolocate_mapbox(False)
+                photo._im2vec(False)
+                photo._extract_date_time_from_exif(True)
+                photo._extract_faces()
+                photo._add_to_album_place()
+                photo._add_to_album_date()
+
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                util.logger.info( "job {}: image processed: {}, elapsed: {}".format(
+                    job_id, img_abs_path, elapsed
+                ))
+
+                if photo.image_hash == "":
+                    util.logger.warning(
+                        "job {}: image hash is an empty string. File path: {}".format(
+                            job_id, photo.image_path
+                        )
+                    )
+            else:
+                util.logger.warning(
+                    "job {}: file {} exists already".format(job_id, image_path)
                 )
-            )
-        except:
-            util.logger.exception(
-                "job {}: could not load image {}".format(job_id, image_path)
-            )
+        except Exception as e:
+            try:
+                util.logger.exception(
+                    "job {}: could not load image {}. reason: {}".format(
+                        job_id, image_path, str(e)
+                    )
+                )
+            except:
+                util.logger.exception(
+                    "job {}: could not load image {}".format(job_id, image_path)
+                )
 
 def rescan_image(user, image_path, job_id):
     try:
-        photo = Photo.objects.filter(Q(image_path=image_path)).get()
-        photo._generate_thumbnail(False)
-        photo._extract_date_time_from_exif(True)
+        if is_valid_media(image_path):
+            photo = Photo.objects.filter(Q(image_path=image_path)).get()
+            photo._generate_thumbnail(False)
+            photo._extract_date_time_from_exif(True)
 
     except Exception as e:
         try:
