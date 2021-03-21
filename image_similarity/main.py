@@ -45,7 +45,7 @@ class SearchIndex(Resource):
 
 api.add_resource(BuildIndex,'/build/')
 api.add_resource(SearchIndex,'/search/')
-        
+
 if __name__ == '__main__':
     logger.info('starting server')
     server = WSGIServer(('0.0.0.0', 8002), app)
