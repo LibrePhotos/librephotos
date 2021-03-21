@@ -133,6 +133,7 @@ class Photo(models.Model):
                     with img.clone() as thumbnail: 
                         thumbnail.format = "jpg" 
                         thumbnail.transform(resize='x' + str(ownphotos.settings.THUMBNAIL_SIZE_BIG[1]))
+                        thumbnail.compression_quality = 80
                         thumbnail.save(transfer)
                     self.thumbnail_big.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
         #thumbnail already exists, add to photo
@@ -153,6 +154,8 @@ class Photo(models.Model):
                             height=int(wh)
                         )
                         thumbnail.resize(width=ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[0], height=ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[1])
+                        thumbnail.resolution = (ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[0], ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[1])
+                        thumbnail.compression_quality = 80
                         thumbnail.save(transfer)
                     self.square_thumbnail.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
         #thumbnail already exists, add to photo
@@ -173,6 +176,8 @@ class Photo(models.Model):
                             height=int(wh)
                         )
                         thumbnail.resize(width=ownphotos.settings.THUMBNAIL_SIZE_SMALL[0], height=ownphotos.settings.THUMBNAIL_SIZE_SMALL[1])
+                        thumbnail.resolution = (ownphotos.settings.THUMBNAIL_SIZE_SMALL[0], ownphotos.settings.THUMBNAIL_SIZE_SMALL[1])
+                        thumbnail.compression_quality = 80
                         thumbnail.save(transfer)
                     self.square_thumbnail_small.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
         #thumbnail already exists, add to photo
