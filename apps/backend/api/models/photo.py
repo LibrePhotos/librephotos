@@ -20,7 +20,6 @@ from api.im2vec import Im2Vec
 from api.models.user import User, get_deleted_user
 from api.places365.places365 import inference_places365
 from api.util import logger
-from django.contrib.postgres.fields import JSONField
 from django.core.files.base import ContentFile
 from django.db import models
 from geopy.geocoders import Nominatim
@@ -49,10 +48,10 @@ class Photo(models.Model):
     exif_gps_lon = models.FloatField(blank=True, null=True)
     exif_timestamp = models.DateTimeField(blank=True, null=True, db_index=True)
 
-    exif_json = JSONField(blank=True, null=True)
+    exif_json = models.JSONField(blank=True, null=True)
 
-    geolocation_json = JSONField(blank=True, null=True, db_index=True)
-    captions_json = JSONField(blank=True, null=True, db_index=True)
+    geolocation_json = models.JSONField(blank=True, null=True, db_index=True)
+    captions_json = models.JSONField(blank=True, null=True, db_index=True)
 
     search_captions = models.TextField(blank=True, null=True, db_index=True)
     search_location = models.TextField(blank=True, null=True, db_index=True)
