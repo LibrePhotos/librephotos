@@ -13,6 +13,7 @@ import api.util as util
 from api.image_similarity import build_image_similarity_index
 from api.models import LongRunningJob, Photo
 from multiprocessing import Pool
+import api.models.album_thing
 
 def calculate_hash(user, image_path):
     hash_md5 = hashlib.md5()
@@ -87,11 +88,9 @@ def handle_new_image(user, image_path, job_id):
             photo._geolocate_mapbox(False)
             photo._im2vec(False)
             photo._extract_date_time_from_exif(True)
-            #photo.save() # allready commit by photo._extract_date_time_from_exif(True)
             photo._extract_faces()
             photo._add_to_album_place()
             photo._add_to_album_date()
-            photo._add_to_album_thing()
 
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info( "job {}: image processed: {}, elapsed: {}".format(
@@ -193,6 +192,7 @@ def scan_photos(user, job_id):
              pool.starmap(photo_scanner, all)
 
         util.logger.info("Scanned {} files in : {}".format(files_found, user.scan_directory))
+        api.models.album_thing.update()
 
         build_image_similarity_index(user)
     except Exception:
