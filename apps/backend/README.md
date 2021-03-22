@@ -41,6 +41,7 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
   
   - Label some faces manually, and train a face classifier to label the rest
   - View photos by people in them
+  - Support for RAW photos
   - Automatically generate "event" albums like "Thursday in Berlin"
   - See photos on the map
   - View photos grouped by date
@@ -53,7 +54,6 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
 #### Upcoming:
 
   - Short term:
-    - Add support for RAW photos
     - Add video support
     - Stability
 
