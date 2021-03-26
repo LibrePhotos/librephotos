@@ -2,15 +2,17 @@ import datetime
 import hashlib
 import os
 import stat
-
 import magic
 import pytz
+import ownphotos.settings
+from django import db
 from django.db.models import Q
 from django_rq import job
 
 import api.util as util
 from api.image_similarity import build_image_similarity_index
 from api.models import LongRunningJob, Photo
+from multiprocessing import Pool
 import api.models.album_thing
 from wand.image import Image
 
@@ -82,37 +84,28 @@ def handle_new_image(user, image_path, job_id):
             elapsed = (datetime.datetime.now() - start).total_seconds()
             elapsed_times["md5"] = elapsed
 
-            photo_exists = Photo.objects.filter(
-                Q(image_hash=image_hash)
-            ).exists()
-
-            if not photo_exists:
-                photo = Photo.objects.create(
-                    image_path=img_abs_path,
-                    owner=user,
-                    image_hash=image_hash,
-                    added_on=datetime.datetime.now().replace(tzinfo=pytz.utc),
-                    geolocation_json={},
-                )
-
+            if not Photo.objects.filter(Q(image_hash=image_hash)).exists():
+                photo = Photo()
+                photo.image_path=img_abs_path
+                photo.owner=user
+                photo.image_hash=image_hash
+                photo.added_on=datetime.datetime.now().replace(tzinfo=pytz.utc)
+                photo.geolocation_json={}
                 start = datetime.datetime.now()
-                
-                photo._generate_thumbnail()
-                photo._generate_captions()
-                photo._extract_date_time_from_exif()
-                photo._extract_gps_from_exif()
-                photo._geolocate_mapbox()
-                photo._add_to_album_place()
+                photo._generate_thumbnail(False)
+                photo._generate_captions(False)
+                photo._extract_gps_from_exif(False)
+                photo._geolocate_mapbox(False)
+                photo._im2vec(False)
+                photo._extract_date_time_from_exif(True)
                 photo._extract_faces()
+                photo._add_to_album_place()
                 photo._add_to_album_date()
-                photo._im2vec()
 
                 elapsed = (datetime.datetime.now() - start).total_seconds()
-                util.logger.info(
-                    "job {}: image processed: {}, elapsed: {}".format(
-                        job_id, img_abs_path, elapsed
-                    )
-                )
+                util.logger.info( "job {}: image processed: {}, elapsed: {}".format(
+                    job_id, img_abs_path, elapsed
+                ))
 
                 if photo.image_hash == "":
                     util.logger.warning(
@@ -136,13 +129,12 @@ def handle_new_image(user, image_path, job_id):
                     "job {}: could not load image {}".format(job_id, image_path)
                 )
 
-
 def rescan_image(user, image_path, job_id):
     try:
         if is_valid_media(image_path):
             photo = Photo.objects.filter(Q(image_path=image_path)).get()
-            photo._generate_thumbnail()
-            photo._extract_date_time_from_exif()
+            photo._generate_thumbnail(False)
+            photo._extract_date_time_from_exif(True)
 
     except Exception as e:
         try:
@@ -156,7 +148,6 @@ def rescan_image(user, image_path, job_id):
                 "job {}: could not load image {}".format(job_id, image_path)
             )
 
-
 def walk_directory(directory, callback):
     for file in os.scandir(directory):
         fpath = os.path.join(directory, file)
@@ -164,37 +155,20 @@ def walk_directory(directory, callback):
             if os.path.isdir(fpath):
                 walk_directory(fpath, callback)
             else:
-                callback.read_file(fpath)
+                callback.append(fpath)
 
-
-class file_counter:
-    counter = 0
-
-    def read_file(self, path):
-        self.counter += 1
-
-
-class photo_scanner:
-    def __init__(self, user, lrj, job_id, file_count):
-        self.to_add_count = file_count
-        self.job_id = job_id
-        self.counter = 0
-        self.user = user
-        self.lrj = lrj
-
-    def read_file(self, path):
-        # update progress
-        self.counter += 1
-        self.lrj.result = {
-            "progress": {"current": self.counter, "target": self.to_add_count}
-        }
-        self.lrj.save()
-        # scan new or update existing image
+def photo_scanner(user, path, job_id):
         if Photo.objects.filter(image_path=path).exists():
-            rescan_image(self.user, path, self.job_id)
+            rescan_image(user, path, job_id)
         else:
-            handle_new_image(self.user, path, self.job_id)
-
+            handle_new_image(user, path, job_id)
+        with db.connection.cursor() as cursor:
+            cursor.execute("""
+                update api_longrunningjob
+                set result = jsonb_set(result,'{"progress","current"}',
+                      ((jsonb_extract_path(result,'progress','current')::int + 1)::text)::jsonb
+                ) where job_id = %(job_id)s""",
+                {'job_id': str(job_id)})
 
 # job is currently not used, because the model.eval() doesn't execute when it is running as a job
 @job
@@ -202,7 +176,6 @@ def scan_photos(user, job_id):
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-        lrj.save()
     else:
         lrj = LongRunningJob.objects.create(
             started_by=user,
@@ -211,25 +184,30 @@ def scan_photos(user, job_id):
             started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,
         )
-        lrj.save()
-
+    lrj.save()
     photo_count_before = Photo.objects.count()
 
     try:
-        fc = file_counter()  # first walk and count sum of files
-        walk_directory(user.scan_directory, fc)
-        files_found = fc.counter
+        photoList = []
+        walk_directory(user.scan_directory, photoList)
+        files_found = len(photoList)
 
-        ps = photo_scanner(user, lrj, job_id, files_found)
-        walk_directory(user.scan_directory, ps)  # now walk with photo-scannning
+        all = []
+        for path in photoList:
+             all.append((user, path, job_id))
 
-        util.logger.info(
-            "Scanned {} files in : {}".format(files_found, user.scan_directory)
-        )
+        lrj.result = {"progress": {"current": 0, "target": files_found}}
+        lrj.save()
+        db.connections.close_all()
+        with Pool(processes=ownphotos.settings.HEAVYWEIGHT_PROCESS) as pool:
+             pool.starmap(photo_scanner, all)
+
+        util.logger.info("Scanned {} files in : {}".format(files_found, user.scan_directory))
         api.models.album_thing.update()
+
         build_image_similarity_index(user)
     except Exception:
-        util.logger.exception("An error occured:")
+        util.logger.exception("An error occured: ")
         lrj.failed = True
 
     added_photo_count = Photo.objects.count() - photo_count_before
