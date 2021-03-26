@@ -193,7 +193,7 @@ CACHES = {
 RQ_QUEUES = {
     'default': {
         'USE_REDIS_CACHE': 'default',
-        'DEFAULT_TIMEOUT': 360,
+        'DEFAULT_TIMEOUT': 60 * 60 * 24 * 7,
         'DB': 0
     }
 }
@@ -266,6 +266,11 @@ CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
 
 IMAGE_SIMILARITY_SERVER = 'http://localhost:8002'
+
+
+#Must be less or egal of nb core CPU ( Nearly 2GB per process)
+HEAVYWEIGHT_PROCESS_ENV = os.environ.get('HEAVYWEIGHT_PROCESS', '1')
+HEAVYWEIGHT_PROCESS = int(HEAVYWEIGHT_PROCESS_ENV) if HEAVYWEIGHT_PROCESS_ENV.isnumeric() else 1
 
 LOGGING = {
     'version': 1,
