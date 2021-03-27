@@ -1542,7 +1542,7 @@ class TrainFaceView(APIView):
     def get(self, request, format=None):
         try:
             job_id = uuid.uuid4()
-            train_faces(user=request.user, job_id=job_id)
+            train_faces.delay(request.user, job_id)
             return Response({'status': True, 'job_id': job_id})
         except BaseException:
             logger.exception()
