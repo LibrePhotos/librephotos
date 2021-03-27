@@ -8,7 +8,7 @@ import ownphotos.settings
 from django import db
 from django.db.models import Q
 from django_rq import job
-
+from api.places365.places365 import place365_instance
 import api.util as util
 from api.image_similarity import build_image_similarity_index
 from api.models import LongRunningJob, Photo
@@ -202,6 +202,7 @@ def scan_photos(user, job_id):
         with Pool(processes=ownphotos.settings.HEAVYWEIGHT_PROCESS) as pool:
              pool.starmap(photo_scanner, all)
 
+        place365_instance.unload()
         util.logger.info("Scanned {} files in : {}".format(files_found, user.scan_directory))
         api.models.album_thing.update()
 

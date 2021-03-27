@@ -18,7 +18,7 @@ from django.core.cache import cache
 from api.exifreader import rotate_image
 from api.im2vec import Im2Vec
 from api.models.user import User, get_deleted_user
-from api.places365.places365 import inference_places365
+from api.places365.places365 import place365_instance
 from api.util import logger
 from django.core.files.base import ContentFile
 from django.db import models
@@ -108,7 +108,7 @@ class Photo(models.Model):
         # places365
         try:
             confidence = self.owner.confidence
-            res_places365 = inference_places365(image_path, confidence)
+            res_places365 = place365_instance.inference_places365(image_path, confidence)
             captions['places365'] = res_places365
             self.captions_json = captions
             if self.search_captions:
