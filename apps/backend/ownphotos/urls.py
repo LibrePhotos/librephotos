@@ -237,6 +237,7 @@ urlpatterns = [
     url(r'^api/nextcloud/listdir', nextcloud_views.ListDir.as_view()),
     url(r'^api/nextcloud/scanphotos',
         nextcloud_views.ScanPhotosView.as_view()),
+    url(r'^api/photos/download', views.ZipListPhotosView.as_view()),
 ]
 
 urlpatterns += [url('api/django-rq/', include('django_rq.urls'))]
