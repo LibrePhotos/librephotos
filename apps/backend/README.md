@@ -119,3 +119,7 @@ The basic idea is this:
   - Only the admin can find the page to control this under the "user icon (top right) - admin area"
 - For scanning photos that reside in external Nextcloud instances
   - Any user can change his/her own Nextcloud endpoint, and choose a top level directory in the Nextcloud account.
+
+### Alternative Linux installation scripts
+
+see : [librephotos-linux](https://github.com/LibrePhotos/librephotos-linux)
