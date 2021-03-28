@@ -1778,21 +1778,23 @@ class ZipListPhotosView(APIView):
     def post(self,request,format=None):
         try:
             data = dict(request.data)
-            if 'image_hashes' in data:
-                photos = Photo.objects.filter(owner=self.request.user).in_bulk(data['image_hashes'])
-                if len(photos) != 0:
-                    mf = io.BytesIO()
-                    photos_name = {}
-                    for photo in photos.values():
-                        photo_name=os.path.basename(photo.image_path)
-                        if photo_name in photos_name:
-                            photos_name[photo_name] = photos_name[photo_name] + 1
-                            photo_name = str(photos_name[photo_name]) + '-' + photo_name
-                        else:
-                            photos_name[photo_name] = 1
-                        with zipfile.ZipFile(mf, mode='a', compression=zipfile.ZIP_DEFLATED) as zf:
-                            zf.write(photo.image_path,arcname=photo_name)
-                    return HttpResponse(mf.getvalue(),content_type="application/x-zip-compressed")
+            if not 'image_hashes' in data:
+                return
+            photos = Photo.objects.filter(owner=self.request.user).in_bulk(data['image_hashes'])
+            if len(photos) == 0:
+                return
+            mf = io.BytesIO()
+            photos_name = {}
+            for photo in photos.values():
+                photo_name=os.path.basename(photo.image_path)
+                if photo_name in photos_name:
+                    photos_name[photo_name] = photos_name[photo_name] + 1
+                    photo_name = str(photos_name[photo_name]) + '-' + photo_name
+                else:
+                    photos_name[photo_name] = 1
+                with zipfile.ZipFile(mf, mode='a', compression=zipfile.ZIP_DEFLATED) as zf:
+                    zf.write(photo.image_path,arcname=photo_name)
+            return HttpResponse(mf.getvalue(),content_type="application/x-zip-compressed")
         except BaseException as e:
             logger.error(str(e))
             return HttpResponse(status=404)
