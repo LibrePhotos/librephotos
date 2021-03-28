@@ -3,7 +3,7 @@ import hashlib
 import os
 from datetime import datetime
 from io import BytesIO
-
+from api.im2txt.sample import im2txt
 import magic
 import api.models
 import api.util as util
