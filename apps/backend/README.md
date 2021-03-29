@@ -50,6 +50,7 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
   - Authentication (using JWT)
   - Create custom albums
   - Docker ready
+  - Multithreading
   
 #### Upcoming:
 
