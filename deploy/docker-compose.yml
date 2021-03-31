@@ -22,7 +22,7 @@ services:
       - frontend
 
   db:
-    image: postgres
+    image: postgres:13
     restart: always
     environment:
       - POSTGRES_USER=${dbUser}
@@ -72,5 +72,5 @@ services:
       - db
 
   redis:
-    image: redis
+    image: redis:6
     restart: always
