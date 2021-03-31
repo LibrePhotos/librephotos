@@ -28,14 +28,14 @@ When asking general "how to" questions:
 
 
 ### What architecture is LibrePhotos running on:
-x86 or ARM
+x64 or ARM
 
 
 ### How is LibrePhotos installed:
 Docker, Kubernetes, or .deb
 
 
-### If running via Docker or Kubernets please list version including docker-compose:
+### If running via Docker or Kubernetes please list version including docker-compose:
 
 
 ### Are you running LibrePhotos on a virtual machine if so please list:
