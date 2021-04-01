@@ -11,7 +11,8 @@ import {
   fetchPhotoDetail,
   setPhotosFavorite,
   setPhotosHidden,
-  setPhotosPublic
+  setPhotosPublic,
+  downloadPhotos
 } from "../actions/photosActions";
 import { copyToClipboard } from "../util/util";
 import { SecuredImageJWT } from "../components/SecuredImage";
@@ -1044,6 +1045,19 @@ export class PhotoListView extends Component {
                     >
                       <Icon name="key" />
                       {"  Make Private"}
+                    </Dropdown.Item>
+
+                    <Dropdown.Divider />
+                    <Dropdown.Item
+                      disabled={this.state.selectedImageHashes.length === 0}
+                      onClick={() => {
+                        this.props.dispatch(
+                          downloadPhotos(this.state.selectedImageHashes)
+                        );
+                      }}
+                    >
+                      <Icon name="download" />
+                      {"  Download"}
                     </Dropdown.Item>
 
                     <Dropdown.Divider />
