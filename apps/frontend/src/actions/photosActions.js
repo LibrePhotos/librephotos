@@ -3,6 +3,23 @@ import _ from "lodash";
 import moment from "moment";
 import { notify } from "reapop";
 
+export function downloadPhotos(image_hashes) {
+  return function(dispatch) {
+    Server.post(`photos/download`, {
+      image_hashes: image_hashes,
+    },{
+      responseType: 'blob'
+    }).then((reponse) => {
+        const downloadUrl = window.URL.createObjectURL(new Blob([reponse.data], { type: 'application/zip' }));
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.setAttribute('download', 'file.zip');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      });
+  };
+}
 
 export function setPhotosShared(image_hashes, val_shared, target_user) {
   return function(dispatch) {
