@@ -1,4 +1,4 @@
-name: build-frontend
+name: frontend
 
 on:
   repository_dispatch:
