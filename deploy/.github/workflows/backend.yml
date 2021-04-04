@@ -1,4 +1,4 @@
-name: build-backend
+name: backend
 
 on:
   repository_dispatch:
