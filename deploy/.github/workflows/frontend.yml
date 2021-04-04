@@ -1,4 +1,4 @@
-name: Docker
+name: build-frontend
 
 on:
   repository_dispatch:
