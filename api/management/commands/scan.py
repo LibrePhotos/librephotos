@@ -9,4 +9,4 @@ class Command(BaseCommand):
     help = 'scan directory for all users'
     def handle(self, *args, **kwargs):
         for user in User.objects.all():
-            scan_photos.delay(user,uuid.uuid4())
+            scan_photos(user,uuid.uuid4())
