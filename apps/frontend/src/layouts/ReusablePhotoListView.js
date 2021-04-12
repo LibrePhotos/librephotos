@@ -94,12 +94,6 @@ const customStyles = {
   }
 };
 
-const images = [
-  'https://upload.wikimedia.org/wikipedia/mediawiki/thumb/a/a9/Example.jpg/300px-Example.jpg',
-  'https://upload.wikimedia.org/wikipedia/mediawiki/thumb/a/a9/Example.jpg/300px-Example.jpg',
-  'https://upload.wikimedia.org/wikipedia/mediawiki/thumb/a/a9/Example.jpg/300px-Example.jpg',
-  'https://upload.wikimedia.org/wikipedia/mediawiki/thumb/a/a9/Example.jpg/300px-Example.jpg',
-];
 export class PhotoListView extends Component {
   constructor(props) {
     super(props);
@@ -589,7 +583,7 @@ export class PhotoListView extends Component {
                     key={"daygroup_image_" + cell.image_hash}
                     style={{ display: "inline-block", padding: 1, margin: 0 }}
                     onClick={() => {
-                      this.onPhotoClick("cell.image_hash");
+                      this.onPhotoClick(cell.image_hash);
                     }}
                     height={this.state.entrySquareSize}
                     width={this.state.entrySquareSize}
@@ -684,15 +678,14 @@ export class PhotoListView extends Component {
   }
 
   render() {
+    const { lightboxImageIndex } = this.state;
     if (
       this.props.loading ||
       this.props.idx2hash.length < 1 ||
       this.props.photosGroupedByDate.length < 1
     ) {
       return (
-        
         <div>
-        
           <div style={{ height: 60, paddingTop: 10 }}>
             <Header as="h2">
               <Icon name={this.props.titleIconName} />
