@@ -13743,6 +13743,7 @@
       "integrity": "sha1-KcVzMUgFe7Th913zW3qcty5qWd0=",
       "dependencies": {
         "source-map": "~0.5.1",
+        "uglify-to-browserify": "~1.0.0",
         "yargs": "~3.10.0"
       },
       "bin": {
@@ -14156,8 +14157,10 @@
       "resolved": "https://registry.npmjs.org/watchpack/-/watchpack-1.7.5.tgz",
       "integrity": "sha512-9P3MWk6SrKjHsGkLT2KHXdQ/9SNkyoJbabxnKOoJepsvJjJG8uYTR3yTPxPQvNDI3w4Nz1xnE0TLHK4RIVe/MQ==",
       "dependencies": {
+        "chokidar": "^3.4.1",
         "graceful-fs": "^4.1.2",
-        "neo-async": "^2.5.0"
+        "neo-async": "^2.5.0",
+        "watchpack-chokidar2": "^2.0.1"
       },
       "optionalDependencies": {
         "chokidar": "^3.4.1",

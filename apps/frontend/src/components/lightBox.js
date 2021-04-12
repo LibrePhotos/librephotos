@@ -1,62 +1,32 @@
 import React, { Component } from "react";
-import ReactDOM from "react-dom";
-import { List, WindowScroller, AutoSizer } from "react-virtualized";
 import "react-virtualized/styles.css"; // only needs to be imported once
 import { connect } from "react-redux";
-import {
-  fetchDateAlbumsPhotoHashList,
-  fetchAlbumsDateGalleries
-} from "../actions/albumsActions";
 import { copyToClipboard } from "../util/util";
 import {
-  fetchPhotoDetail,
   setPhotosFavorite,
   setPhotosHidden,
   setPhotosPublic,
   generatePhotoIm2txtCaption
 } from "../actions/photosActions";
 import {
-  Card,
   Image,
   Header,
-  Divider,
   Item,
-  Loader,
-  Dimmer,
   Form,
-  Modal,
-  Sticky,
-  Portal,
-  Grid,
   List as ListSUI,
-  Container,
   Label,
-  Popup,
-  Segment,
   Button,
-  Input,
   Icon,
-  Table,
   Transition,
   Breadcrumb
 } from "semantic-ui-react";
-import { Server, serverAddress, shareAddress } from "../api_client/apiClient";
-import LazyLoad from "react-lazyload";
+import { serverAddress, shareAddress } from "../api_client/apiClient";
 import Lightbox from "react-image-lightbox";
 import { LocationMap } from "../components/maps";
 import { push } from "react-router-redux";
 import { searchPhotos } from "../actions/searchActions";
-import styles from "../App.css";
-import Draggable from "react-draggable";
-import debounce from "lodash/debounce";
 import * as moment from "moment";
 import { Link } from "react-router-dom";
-
-var topMenuHeight = 55; // don't change this
-var leftMenuWidth = 85; // don't change this
-var SIDEBAR_WIDTH = 85;
-var timelineScrollWidth = 0;
-var DAY_HEADER_HEIGHT = 35;
 
 if (window.innerWidth < 600) {
   var LIGHTBOX_SIDEBAR_WIDTH = window.innerWidth;
@@ -86,9 +56,6 @@ export class LightBox extends Component {
   };
 
   render() {
-    const authGetParams = !this.props.isPublic
-      ? "?jwt=" + this.props.auth.access.token
-      : "";
     if (
       !this.props.photoDetails[
         this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]
@@ -98,9 +65,8 @@ export class LightBox extends Component {
       var mainSrc = "/transparentbackground.png";
     } else {
       console.log("light box has got main photo detail");
-      var mainSrc =
-        serverAddress +
-        "/media/thumbnails_big/" +
+      var mainSrc = serverAddress +
+       "/media/thumbnails_big/" +
         this.props.idx2hash.slice(this.props.lightboxImageIndex)[0] +
         ".jpg";
       if (
@@ -324,9 +290,6 @@ export class LightBox extends Component {
           }
           reactModalStyle={{
             content: {
-              // transform: this.state.lightboxSidebarShow ? `scale(0.5,1)` : ''
-              // right: this.state.lightboxSidebarShow ? LIGHTBOX_SIDEBAR_WIDTH : 0,
-              // width: this.state.lightboxSidebarShow ? window.innerWidth - LIGHTBOX_SIDEBAR_WIDTH : window.innerWidth,
             },
             overlay: {
               right: this.state.lightboxSidebarShow
