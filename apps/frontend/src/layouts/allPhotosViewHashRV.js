@@ -26,20 +26,10 @@ const customStyles = {
         height:window.innerHeight-300,
         width:window.innerWidth < 600 ? window.innerWidth-30-SIDEBAR_WIDTH : '60%' ,
         overflow:'hidden',
-        // paddingRight:0,
-        // paddingBottomt:0,
-        // paddingLeft:10,
-        // paddingTop:10,
         padding:0,
         backgroundColor:'white'
     }
 };
-
-
-
-
-
-
 
 export class AllPhotosHashListViewRV extends Component {
     componentDidMount() {

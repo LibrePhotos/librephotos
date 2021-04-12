@@ -27,12 +27,16 @@ import { push } from "react-router-redux";
 import { searchPhotos } from "../actions/searchActions";
 import * as moment from "moment";
 import { Link } from "react-router-dom";
+import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
 
 if (window.innerWidth < 600) {
   var LIGHTBOX_SIDEBAR_WIDTH = window.innerWidth;
 } else {
   var LIGHTBOX_SIDEBAR_WIDTH = 360;
 }
+
+var topMenuHeight = 55; // don't change this
+var leftMenuWidth = 85; // don't change this
 
 const colors = [
   "red",
@@ -522,7 +526,7 @@ export class LightBox extends Component {
                             <Button
                               loading={this.props.generatingCaptionIm2txt}
                               onClick={()=>{this.props.dispatch(generatePhotoIm2txtCaption(this.props.idx2hash[this.props.lightboxImageIndex]))}}
-                              disabled={this.props.isPublic | this.props.generatingCaptionIm2txt}
+                              disabled={this.props.isPublic | this.props.generatingCaptionIm2txt != null}
                               floated="left"
                               size="small"
                               color="blue"
@@ -650,6 +654,7 @@ export class LightBox extends Component {
                                   ]
                                 ].similar_photos.slice(0,30).map(el=>(
                                   <Image width={95} height={95}
+                                    key={el.image_hash}
                                     src={serverAddress+"/media/square_thumbnails_small/"+el.image_hash+".jpg"}/>
                                 ))
                           }

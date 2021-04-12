@@ -8,20 +8,6 @@ export class SecuredImageJWT extends Component {
 
 
   render() {
-    const {
-      height,
-      width,
-      style,
-      src,
-      onClick,
-      size,
-      rounded,
-      avatar,
-      as,
-      to,
-      label,
-      circular,
-    } = this.props;
     return (
       <Image
         {...this.props}

@@ -7,9 +7,6 @@ import { Chart, Transform, Cloud } from 'rumble-charts'
 
 
 export class WordCloud extends Component {
-  constructor(props) {
-    super(props)
-  }
 
   componentDidMount() {
     if (!this.props.fetchedWordCloud) {

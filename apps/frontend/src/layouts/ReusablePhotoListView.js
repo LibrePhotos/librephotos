@@ -31,7 +31,6 @@ import {
 } from "semantic-ui-react";
 import { serverAddress, shareAddress } from "../api_client/apiClient";
 import { LightBox } from "../components/lightBox";
-import { LightBoxV2 } from "../components/LightBoxV2";
 import debounce from "lodash/debounce";
 import _ from "lodash";
 import * as moment from "moment";
@@ -95,6 +94,12 @@ const customStyles = {
   }
 };
 
+const images = [
+  'https://upload.wikimedia.org/wikipedia/mediawiki/thumb/a/a9/Example.jpg/300px-Example.jpg',
+  'https://upload.wikimedia.org/wikipedia/mediawiki/thumb/a/a9/Example.jpg/300px-Example.jpg',
+  'https://upload.wikimedia.org/wikipedia/mediawiki/thumb/a/a9/Example.jpg/300px-Example.jpg',
+  'https://upload.wikimedia.org/wikipedia/mediawiki/thumb/a/a9/Example.jpg/300px-Example.jpg',
+];
 export class PhotoListView extends Component {
   constructor(props) {
     super(props);
@@ -157,10 +162,6 @@ export class PhotoListView extends Component {
   }, SCROLL_DEBOUNCE_DURATION);
 
   componentDidMount() {
-    // this.props.dispatch(fetchPhotos())
-    // if (this.props.photosGroupedByDate.length < 1) {
-    //     this.props.dispatch(fetchDateAlbumsPhotoHashList())
-    // }
     this.handleResize();
     window.addEventListener("resize", this.handleResize);
   }
@@ -588,7 +589,7 @@ export class PhotoListView extends Component {
                     key={"daygroup_image_" + cell.image_hash}
                     style={{ display: "inline-block", padding: 1, margin: 0 }}
                     onClick={() => {
-                      this.onPhotoClick(cell.image_hash);
+                      this.onPhotoClick("cell.image_hash");
                     }}
                     height={this.state.entrySquareSize}
                     width={this.state.entrySquareSize}
@@ -668,12 +669,7 @@ export class PhotoListView extends Component {
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
-    var t0 = performance.now();
     const imagesGroupedByDate = nextProps.photosGroupedByDate;
-    var t1 = performance.now();
-
-    var idx2hash = [];
-
     const { cellContents, hash2row } = calculateGridCells(
       imagesGroupedByDate,
       prevState.numEntrySquaresPerRow
@@ -688,15 +684,15 @@ export class PhotoListView extends Component {
   }
 
   render() {
-    const { lightboxImageIndex } = this.state;
     if (
       this.props.loading ||
       this.props.idx2hash.length < 1 ||
       this.props.photosGroupedByDate.length < 1
     ) {
-      //if (true) {
       return (
+        
         <div>
+        
           <div style={{ height: 60, paddingTop: 10 }}>
             <Header as="h2">
               <Icon name={this.props.titleIconName} />
@@ -713,6 +709,7 @@ export class PhotoListView extends Component {
                 )}
               </Header.Content>
             </Header>
+            
           </div>
 
           {this.props.idx2hash.length < 1 ||
@@ -723,7 +720,6 @@ export class PhotoListView extends Component {
                 justifyContent: "center",
                 alignItems: "center",
                 height: this.state.height - TOP_MENU_HEIGHT - 60
-                // width:this.state.width
               }}
             >
               <Header>{this.props.noResultsMessage}</Header>
@@ -843,20 +839,6 @@ export class PhotoListView extends Component {
                 backgroundColor: "#f6f6f6"
               }}
             >
-              {/* <Checkbox
-                fitted
-                label={" "}
-                style={{ padding: 5 }}
-                toggle
-                checked={this.state.selectMode}
-                onClick={() => {
-                  this.setState({ selectMode: !this.state.selectMode });
-                  if (this.state.selectMode) {
-                    this.setState({ selectedImageHashes: [] });
-                  }
-                }}
-              /> */}
-
               <Button.Group
                 compact
                 floated="left"
@@ -1090,7 +1072,6 @@ export class PhotoListView extends Component {
                         <Dropdown.Item
                           disabled={!this.props.route.location.pathname.startsWith("/useralbum/")}
                           onClick={() => {
-                              //todo
                             this.setState({ modalAlbumShareOpen: true });
                           }}
                         >
@@ -1100,10 +1081,6 @@ export class PhotoListView extends Component {
                       }
                       content="Open sharing panel for the current album"
                     />
-
-
-
-
                   </Dropdown.Menu>
                 </Dropdown>
               </Button.Group>
@@ -1242,9 +1219,6 @@ export class PhotoListView extends Component {
                 this.props.isPublic
                   ? this.state.height - TOP_MENU_HEIGHT - 60
                   : this.state.height - TOP_MENU_HEIGHT - 60 - 40
-                // this.state.selectMode
-                //   ? this.state.height - TOP_MENU_HEIGHT - 60 - 40
-                //   : this.state.height - TOP_MENU_HEIGHT - 60
               }
               estimatedRowSize={
                 totalListHeight / this.state.cellContents.length.toFixed(1)
@@ -1309,23 +1283,6 @@ export class PhotoListView extends Component {
           }}
         />
 
-        {this.state.lightboxShow &&
-          false && (
-            <LightBoxV2
-              isOpen={this.state.lightboxShow}
-              onCloseRequest={() => {
-                this.setState({ lightboxShow: false });
-              }}
-              idx2hash={this.props.idx2hash}
-              lightboxImageIndex={this.state.lightboxImageIndex}
-              onImageLoad={() => {
-                this.getPhotoDetails(
-                  this.props.idx2hash[this.state.lightboxImageIndex]
-                );
-              }}
-            />
-          )}
-
         {this.state.lightboxShow && (
           <LightBox
             isPublic={this.props.isPublic}
@@ -1372,7 +1329,7 @@ export class PhotoListView extends Component {
             }}
           />
         )}
-
+              
         {!this.props.isPublic && (
           <ModalAlbumEdit
             isOpen={this.state.modalAddToAlbumOpen}
@@ -1409,6 +1366,7 @@ export class PhotoListView extends Component {
             />
           )}
       </div>
+      
     );
   }
 }
@@ -1579,6 +1537,7 @@ class ModalAlbumEdit extends Component {
             })}
         </div>
       </Modal>
+      
     );
   }
 }
@@ -1607,10 +1566,3 @@ PhotoListView = connect(store => {
     route: store.routerReducer
   };
 })(PhotoListView);
-//photosGroupedByDate
-//idx2hash
-//title
-//subtitle
-//titleIconName
-//titleIconColor
-//isPublic

@@ -9,11 +9,8 @@ import { ModalPhotoViewVertical } from '../components/modalPhotoView';
 
 
 var ESCAPE_KEY = 27;
-var ENTER_KEY = 13;
 var RIGHT_ARROW_KEY = 39;
-var UP_ARROW_KEY = 38;
 var LEFT_ARROW_KEY = 37;
-var DOWN_ARROW_KEY = 40;
 
 var SIDEBAR_WIDTH = 85;
 
@@ -27,11 +24,9 @@ function calculateDayHeight(numPhotos,sidebarVisible) {
   var spacePerRow = Math.floor(columnWidth / photoSize)
   if (spacePerRow >= numPhotos) {
     var numRows = 1
-    var numCols = numPhotos
   }
   else {
     var numRows = Math.ceil( numPhotos / spacePerRow )
-    var numCols = spacePerRow
   }
 
   return numRows * photoSize + 2
@@ -57,18 +52,9 @@ class DayPlaceholder extends Component {
     window.addEventListener("resize", this.calculatePlaceholderSize.bind(this));
   }
 
-  /**
-   * Remove event listener
-  componentWillUnmount() {
-    window.removeEventListener("resize", this.updateDimensions.bind(this));
-  }
-   */
-
   calculatePlaceholderSize() {
     var numPhotos = this.props.numPhotos
     var photoSize = 250
-    // var columnWidth = this.state.width - 120
-
 
     var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15
 
@@ -229,7 +215,6 @@ class PhotoDayGroupReactGridGallery extends Component {
   }
   render() {
     if (this.props.albumsDateGalleries.hasOwnProperty(this.props.album.id)) {
-      var photos = this.props.albumsDateGalleries[this.props.album.id].photos
       var images = this.props.albumsDateGalleries[this.props.album.id].photos.map(function(image,idx){
         return (
           {
@@ -259,8 +244,6 @@ class PhotoDayGroupReactGridGallery extends Component {
       return(<DayPlaceholder sidebarVisible={this.props.sidebarVisible} numPhotos={this.props.album.photo_count}/>)
     }
   }}
-
-
 
 export class AllPhotosView extends Component {
 
