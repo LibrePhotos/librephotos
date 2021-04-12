@@ -15,7 +15,7 @@ You need a x86 processor and it is recommended to have 8GBs of RAM.
 
 #### ARM
 
-You can run this on ARM using the ARM compose templates. Due to limited ram & processing power it will not be as fast. ARM Development is still in progress expect bugs.
+You can run this on ARM using the ARM compose templates. Due to limited ram & processing power it will not be as fast. ARM Development is still in progress - expect bugs.
 
 [ARM install instructions can be found here]({% post_url Installation/0000-01-02-arm_install %})
 
