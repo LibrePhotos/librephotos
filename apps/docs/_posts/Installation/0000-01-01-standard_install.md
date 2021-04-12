@@ -7,7 +7,7 @@ category: 1
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=LibrePhotos_ownphotos&metric=alert_status)](https://sonarcloud.io/dashboard?id=LibrePhotos_ownphotos) ![Discord](https://img.shields.io/discord/784619049208250388?style=plastic) ![Website](https://img.shields.io/website?down_color=lightgrey&down_message=offline&style=plastic&up_color=blue&up_message=online&url=https%3A%2F%2Flibrephotos.com) ![GitHub contributors](https://img.shields.io/github/contributors/librephotos/librephotos?style=plastic)
 
-> Currently the project is in very early stages, some bugs may exist. If you find any please log an issue
+> Currently the project is in very early stages; some bugs may exist. If you find any please log an issue
 
 ### Compatibility
 
@@ -62,4 +62,4 @@ The basic idea is this:
 ### Contributions
 
 - Librephotos is in development. Contributions are welcome!
-- Join our discord server or open a pull request to start contributing
+- Join [our Discord server](https://discord.gg/xwRvtSDGWb) or open a pull request to start contributing.

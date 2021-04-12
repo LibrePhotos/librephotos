@@ -83,9 +83,9 @@ Visit the URL next to `Server address:`.
 
 ### Using Dev Container
 
-To make the process more consistant you can use the dev container in Visual Studio Code. To do this open the folder you cloned the `librephotos.docs` repository to and run `code .`. Visual Studio Code will then prompt you to run in a container. This will take a while the firect time as the container is being built.
+For a simpler setup procedure, you can run the dev container in Visual Studio Code. To do this, open the folder you cloned the `librephotos.docs` repository to and run `code .`. Visual Studio Code will then prompt you to run in a container. The container will take a while to build.
 
-When in the container you can use the Tasks to run the site locally and test using [http://localhost:4000/](http://localhost:4000/).
+When in the container, you can use Visual Studio Code's [Tasks function](https://code.visualstudio.com/Docs/editor/tasks) to build and host the site locally, at [http://localhost:4000/](http://localhost:4000/).
 
 ## Naming
 

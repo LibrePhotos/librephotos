@@ -7,7 +7,7 @@ category: 1
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=LibrePhotos_ownphotos&metric=alert_status)](https://sonarcloud.io/dashboard?id=LibrePhotos_ownphotos) ![Discord](https://img.shields.io/discord/784619049208250388?style=plastic) ![Website](https://img.shields.io/website?down_color=lightgrey&down_message=offline&style=plastic&up_color=blue&up_message=online&url=https%3A%2F%2Flibrephotos.com) ![GitHub contributors](https://img.shields.io/github/contributors/librephotos/librephotos?style=plastic)
 
-> Currently the project is in very early stages, some bugs may exist. If you find any please log an issue.
+> Currently the project is in very early stages; some bugs may exist. If you find any please log an issue.
 
 > It kind of works on ARM processors. Due to limited ram & processing power it will not be as fast.
 > ARM Development is still in progress expect bugs.
@@ -16,8 +16,8 @@ category: 1
 
 ### Size
 
-You will need at least 10 GB of HDD Space for the docker images. It needs that space because of the machine learning models.
-Librephotos will also create a database and thumbnails which will need additional space.
+You will need at least 10 GB of storage space for the docker images. This space is mainly used by machine learning models.
+LibrePhotos will also create a database and thumbnails which will need additional space.
 
 ### Docker
 
@@ -45,7 +45,7 @@ User is admin, password is admin unless you changed it in the .env file. It is r
 
 ## First steps after setting up
 
-You need to log in as the admin user, and set up the directory for the users. To do this, click the top right button, and go to "Admin Area". On this page, it will show a list of users, and manually set the "Scan Directory" for the desired user. Only an admin can do this. And then you can go to Dashboard - Library and click the Green "Scan photos (file system)" button. If you have a Nextcloud instance, you can also input this in the Dashboard-Library page. Once logged in (the little circle next to "Nextcloud Scan Directory will be green), you can choose a top level directory in your logged in Nextcloud account. Once this works, you can click the blue "Scan photos (Nextcloud)". The backend system will copy the contents of the Nextcloud directory you specified.
+You need to log in as the admin user, and set up the directory for the users. To do this, click the top right button, and go to `Admin Area`. On this page, it will show a list of users. Manually set the `Scan Directory` for the desired user. Only an admin can do this. Next, go to `Dashboard`, and then `Library`; and click the green `Scan photos (file system)` button. If you have a Nextcloud instance, you can also input this in the `Dashboard`>`Library` page. Once logged in (the little circle next to `Nextcloud Scan Directory` will be green), you can choose a top level directory in your logged in Nextcloud account. Once this has been configured, you can click the blue `Scan photos (Nextcloud)` button. The backend system will copy the contents of the specified Nextcloud directory to the local filesystem.
 
 The basic idea is this:
 
@@ -54,9 +54,9 @@ The basic idea is this:
   - Normal users cannot change his/her own "scan directory"
   - Only the admin can find the page to control this under the "user icon (top right) - admin area"
 - For scanning photos that reside in external Nextcloud instances
-  - Any user can change his/her own Nextcloud endpoint, and choose a top level directory in the Nextcloud account.
+  - Any user can change their own Nextcloud endpoint, and choose a top level directory in the Nextcloud account.
 
 ### Contributions
 
-- Librephotos is in development. Contributions are welcome!
-- Join our discord server or open a pull request to start contributing
+- LibrePhotos is in development. Contributions are welcome!
+- Join [our Discord server](https://discord.gg/xwRvtSDGWb) or open a pull request to start contributing.

@@ -1,16 +1,16 @@
 ---
-title: "LibrePhotos Developer"
+title: "LibrePhotos for Developers"
 excerpt: "How to install LibrePhotos for Developers"
 last_modified_at: 2021-3-06
 category: 1 
 ---
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=LibrePhotos_ownphotos&metric=alert_status)](https://sonarcloud.io/dashboard?id=LibrePhotos_ownphotos) ![Discord](https://img.shields.io/discord/784619049208250388?style=plastic) ![Website](https://img.shields.io/website?down_color=lightgrey&down_message=offline&style=plastic&up_color=blue&up_message=online&url=https%3A%2F%2Flibrephotos.com) ![GitHub contributors](https://img.shields.io/github/contributors/librephotos/librephotos?style=plastic)
 
-> Currently the project is in very early stages, some bugs may exist. If you find any please log an issue
+> Currently the project is in very early stages; some bugs may exist. If you find any please log an issue
 
-## For developers
+## For Developers
 
-Create a directory for the project, this is where all the git repositories will be cloned into. For this document we will use `/dev/librephotos` as an example.
+Create a directory for the project: this is where all the Git repositories will be cloned into. In this guide, we will use `/dev/librephotos` as an example.
 
 Pull frontend code with `git clone https://github.com/LibrePhotos/librephotos-frontend.git ${codedir}/frontend/`
 
@@ -29,6 +29,8 @@ git clone https://github.com/LibrePhotos/librephotos-docker.git
 ```
 
 ### Setting up in Windows
+
+In PowerShell:
 
 ```powershell
 $Env:codedir = "/dev/librephotos"
@@ -62,6 +64,8 @@ docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
 ### Visual Studio Code
 
-If you use Visual Studio Code you can also benefit auto completion and other goodies. For this just type `code .` in your dockerfile folder which is `/dev/librephotos/librephotos-docker` using the example path above.
+If you use Visual Studio Code, you can also benefit from auto-completion and other goodies. For this, just type `code .` in your dockerfile folder, which is `/dev/librephotos/librephotos-docker` in our example.
 
-Visual Studio Code will open and ask you if you want to reopen it in the container. If you do it will create the images from scratch (first time you do it can take a couple of minutes) and you will have the same python interpreter librephotos is using internally hence the same installed libraries in auto completion and the same development environment will be shared by all devs including the tools like isort, flake8 and pylint.
+Visual Studio Code will open and ask you if you want to reopen it in the container. If you do it will create the images from scratch (first time you do it can take a couple of minutes) and you will have the same Python interpreter that LibrePhotos is using internally - and hence the same installed libraries in auto completion, and the same development environment, will be shared by all devs. This includes tools like isort, flake8 and pylint.
+
+Alternatively, you can run the `Remote-Containers: Open Folder in Container` command from the Command Palette. Note that in order to open this container, you must have the required dependencies installed. More details can be found [here](https://code.visualstudio.com/docs/remote/containers).
