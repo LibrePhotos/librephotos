@@ -37,7 +37,7 @@
     "react-dropzone": "^4.2.12",
     "react-grid-gallery": "^0.4.11",
     "react-grid-layout": "^0.16.6",
-    "react-image-lightbox": "git+https://github.com/LibrePhotos/react-image-lightbox.git",
+    "react-image-lightbox": "git://github.com/LibrePhotos/react-image-lightbox.git",
     "react-keydown": "^1.9.4",
     "react-lazyload": "^2.2.7",
     "react-leaflet": "^1.9.1",
