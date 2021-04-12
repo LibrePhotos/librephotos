@@ -64,7 +64,7 @@ docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
 ### Visual Studio Code
 
-If you use Visual Studio Code, you can also benefit from auto-completion and other goodies. For this, just type `code .` in your dockerfile folder, which is `/dev/librephotos/librephotos-docker` in our example.
+If you use Visual Studio Code, you can also benefit from auto-completion and other goodies. For this, just run `code .` in your Dockerfile folder, which is `/dev/librephotos/librephotos-docker` in our example.
 
 Visual Studio Code will open and ask you if you want to reopen it in the container. If you do it will create the images from scratch (first time you do it can take a couple of minutes) and you will have the same Python interpreter that LibrePhotos is using internally - and hence the same installed libraries in auto completion, and the same development environment, will be shared by all devs. This includes tools like isort, flake8 and pylint.
 
