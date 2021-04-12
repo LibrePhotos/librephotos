@@ -45,7 +45,7 @@ User is admin, password is admin unless you changed it in the .env file. It is r
 
 ## First steps after setting up
 
-You need to log in as the admin user, and set up the directory for the users. To do this, click the top right button, and go to `Admin Area`. On this page, it will show a list of users. Manually set the `Scan Directory` for the desired user. Only an admin can do this. Next, go to `Dashboard`, and then `Library`; and click the green `Scan photos (file system)` button. If you have a Nextcloud instance, you can also input this in the `Dashboard`>`Library` page. Once logged in (the little circle next to `Nextcloud Scan Directory` will be green), you can choose a top level directory in your logged in Nextcloud account. Once this has been configured, you can click the blue `Scan photos (Nextcloud)` button. The backend system will copy the contents of the specified Nextcloud directory to the local filesystem.
+You need to log in as the admin user, and set up the directory for the users. To do this, click the top right button, and go to `Admin Area`. On this page, it will show a list of users. Manually set the `Scan Directory` for the desired user. Only an admin can do this. Then, go to `Dashboard` > `Library` and click the green `Scan photos (file system)` button. If you have a Nextcloud instance, you can also input login details for it in the `Dashboard` > `Library` page. Once logged in (the little circle next to `Nextcloud Scan Directory` will be green), you can choose a top level directory in your logged in Nextcloud account. Once this has been configured, you can click the blue `Scan photos (Nextcloud)` button. This will copy the contents of the specified Nextcloud directory to the local filesystem.
 
 The basic idea is this:
 
