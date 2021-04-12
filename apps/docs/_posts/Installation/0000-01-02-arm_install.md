@@ -17,7 +17,7 @@ category: 1
 ### Size
 
 You will need at least 10 GB of storage space for the docker images. This space is mainly used by machine learning models.
-LibrePhotos will also create a database and thumbnails which will need additional space.
+LibrePhotos will also create a database and thumbnails, which will need additional space.
 
 ### Docker
 
