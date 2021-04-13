@@ -10,8 +10,9 @@ export class CountStats extends Component {
 	}
 
 	render() {
+		var statsGroup
 		if (this.props.fetchedCountStats) {
-			var statsGroup = (
+			statsGroup = (
 			  <div style={{height:'60px'}}>
 			    <Statistic.Group size='tiny'  widths='five'>
 			      <Statistic>
@@ -39,7 +40,7 @@ export class CountStats extends Component {
 			)
 		}
 		else {
-			var statsGroup = (
+			statsGroup = (
 			  <div style={{height:'60px'}}>
 			    <Statistic.Group size='tiny'  widths='five'>
 			      <Statistic>

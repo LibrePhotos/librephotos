@@ -16,14 +16,10 @@ export class AlbumPersonGallery extends Component {
     }
   }
 
-
-
   static getDerivedStateFromProps(nextProps,prevState){
     if (nextProps.albumsPeople.hasOwnProperty(nextProps.match.params.albumID)){
       const photos = nextProps.albumsPeople[nextProps.match.params.albumID].photos
       if (prevState.idx2hash.length !== photos.length) {
-
-          var t0 = performance.now();
           var groupedByDate = _.groupBy(photos,(el)=>{
               if (el.exif_timestamp) {
                   return moment.utc(el.exif_timestamp).format('YYYY-MM-DD')
@@ -41,9 +37,6 @@ export class AlbumPersonGallery extends Component {
                   idx2hash.push(p.image_hash)
               })
           })
-
-          
-          var t1 = performance.now();
           return {
               ...prevState, 
               photosGroupedByDate: groupedByDateList,
@@ -60,7 +53,7 @@ export class AlbumPersonGallery extends Component {
 
 
   render() {
-    const {albumsPeople,fetchingAlbumsPeople,fetchedAlbumsPeople,fetchingPeople} = this.props
+    const {fetchingAlbumsPeople,fetchingPeople} = this.props
     return (
       <PhotoListView 
         title={this.props.albumsPeople[this.props.match.params.albumID] ? this.props.albumsPeople[this.props.match.params.albumID].name : "Loading... "}

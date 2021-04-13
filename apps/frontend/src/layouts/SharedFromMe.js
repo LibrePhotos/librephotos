@@ -15,7 +15,6 @@ import { fetchPhotosSharedFromMe } from "../actions/photosActions";
 import { fetchPublicUserList } from "../actions/publicActions";
 import { fetchUserAlbumsSharedFromMe, deleteUserAlbum } from "../actions/albumsActions";
 import { connect } from "react-redux";
-import _ from "lodash";
 import { Link } from "react-router-dom";
 import { serverAddress } from "../api_client/apiClient";
 import { SecuredImageJWT } from "../components/SecuredImage";
@@ -26,7 +25,6 @@ import debounce from "lodash/debounce";
 
 
 var TOP_MENU_HEIGHT = 45; // don't change this
-var LEFT_MENU_WIDTH = 85; // don't change this
 const SPEED_THRESHOLD = 300;
 var SIDEBAR_WIDTH = 85;
 var DAY_HEADER_HEIGHT = 70;
@@ -99,10 +97,9 @@ export class SharedFromMe extends Component {
   }
 
   handleResize() {
+    var columnWidth = window.innerWidth - 5 - 5 - 10;
     if (this.props.showSidebar) {
-      var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10;
-    } else {
-      var columnWidth = window.innerWidth - 5 - 5 - 10;
+      columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10;
     }
 
     const { entrySquareSize, numEntrySquaresPerRow } = calculateGridCellSize(
@@ -121,7 +118,6 @@ export class SharedFromMe extends Component {
   }
 
   photoCellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    var cell = this.state.photoGridContents[rowIndex][columnIndex];
     if (this.state.photoGridContents[rowIndex][columnIndex]) {
       // non empty cell
       const cell = this.state.photoGridContents[rowIndex][columnIndex];
@@ -130,13 +126,12 @@ export class SharedFromMe extends Component {
         const owner = this.props.pub.publicUserList.filter(
           e => e.id === cell.user_id
         )[0];
+        var displayName = cell.user_id;
         if (owner && owner.last_name.length + owner.first_name.length > 0) {
-          var displayName = owner.first_name + " " + owner.last_name;
+          displayName = owner.first_name + " " + owner.last_name;
         } else if (owner) {
-          var displayName = owner.username;
-        } else {
-          var displayName = cell.user_id;
-        }
+          displayName = owner.username;
+        } 
         return (
           <div
             key={key}
@@ -292,9 +287,10 @@ export class SharedFromMe extends Component {
 
   render() {
     const { activeItem } = this.state;
-
+    var subheader
+    var totalListHeight
     if (activeItem === "photos") {
-      var subheader = (
+      subheader = (
         <Header.Subheader>
           {"   "}
           {this.props.photos.photosSharedFromMe.length > 0 &&
@@ -305,7 +301,7 @@ export class SharedFromMe extends Component {
           {this.props.photos.photosSharedFromMe.length}{" "} user(s) 
         </Header.Subheader>
       );
-      var totalListHeight = this.state.photoGridContents
+      totalListHeight = this.state.photoGridContents
         .map((row, index) => {
           if (row[0].user_id) {
             //header row
@@ -317,7 +313,7 @@ export class SharedFromMe extends Component {
         })
         .reduce((a, b) => a + b, 0);
     } else {
-      var subheader = (
+      subheader = (
         <Header.Subheader>
           You shared{" "}
           {this.props.albums.albumsSharedFromMe.length} albums
@@ -406,10 +402,11 @@ export class SharedFromMe extends Component {
                       const cell = this.state.photoGridContents[
                         rowStartIndex
                       ][0];
+                      var sharedTo
                       if (cell.user_id) {
-                        var sharedTo = cell.photos[0].shared_to.username;
+                        sharedTo = cell.photos[0].shared_to.username;
                       } else {
-                        var sharedTo = cell.shared_to.username;
+                        sharedTo = cell.shared_to.username;
                       }
                       this.setState({ topRowOwner: sharedTo });
                     }}
@@ -420,7 +417,6 @@ export class SharedFromMe extends Component {
                     columnWidth={this.state.entrySquareSize}
                     columnCount={this.state.numEntrySquaresPerRow}
                     height={this.state.height - 45 - 60 - 40}
-                    rowHeight={this.state.entrySquareSize}
                     rowCount={this.state.photoGridContents.length}
                     rowHeight={({ index }) => {
                       if (this.state.photoGridContents[index][0].user_id) {
@@ -491,16 +487,15 @@ export class SharedFromMe extends Component {
                 const owner = this.props.pub.publicUserList.filter(
                   e => e.id === el.user_id
                 )[0];
+                var displayName = el.user_id;
                 if (
                   owner &&
                   owner.last_name.length + owner.first_name.length > 0
                 ) {
-                  var displayName = owner.first_name + " " + owner.last_name;
+                  displayName = owner.first_name + " " + owner.last_name;
                 } else if (owner) {
-                  var displayName = owner.username;
-                } else {
-                  var displayName = el.user_id;
-                }
+                  displayName = owner.username;
+                } 
 
                 return (
                   <div style={{ padding: 10 }}>
@@ -552,15 +547,14 @@ export class SharedFromMe extends Component {
                 const owner = this.props.pub.publicUserList.filter(
                   e => e.id === el.user_id
                 )[0];
+                var displayName = el.user_id;
                 if (
                   owner &&
                   owner.last_name.length + owner.first_name.length > 0
                 ) {
-                  var displayName = owner.first_name + " " + owner.last_name;
+                  displayName = owner.first_name + " " + owner.last_name;
                 } else if (owner) {
-                  var displayName = owner.username;
-                } else {
-                  var displayName = el.user_id;
+                  displayName = owner.username;
                 }
 
                 return (

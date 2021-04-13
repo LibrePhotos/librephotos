@@ -5,20 +5,7 @@ import { connect } from "react-redux";
 import { fetchPhotoMonthCounts } from '../actions/utilActions'
 import { Chart, Bars, Ticks, Layer } from 'rumble-charts'
 
-
-/*
-{
-  x: el.value.x,
-  y: el.value.y,
-  size: el.value.size,
-  name: el.person_name,
-}
-*/
-
 export class EventCountMonthGraph extends Component {
-  constructor(props) {
-    super(props)
-  }
 
   componentWillMount() {
     if (!this.props.fetchedPhotoMonthCounts){

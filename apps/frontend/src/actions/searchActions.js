@@ -9,7 +9,6 @@ export function searchPhotos(query) {
       dispatch({type:"SEARCH_PHOTOS_EMPTY_QUERY_ERROR"})
       dispatch({type:"SEARCH_EMPTY_QUERY_ERROR"})
     } else {
-      var url = `photos/?search=${query}`
       dispatch({type:"SEARCH_PHOTOS",payload: query});
       Server.get(`photos/searchlist/?search=${query}`,{timeout:100000})
         .then((response) => {

@@ -1,7 +1,6 @@
 import store from '../store'
 import _ from 'lodash'
 
-
 store.subscribe(listener)
 
 function select(state) {
@@ -15,14 +14,12 @@ function listener() {
  gridType = ui.gridType
 }
 
-
 export const calculateSharedPhotoGridCells = (groupedBySharerList,itemsPerRow) => {
     var gridContents = []
     var rowCursor = []
   
     groupedBySharerList.forEach((group)=>{
       gridContents.push([group])
-      var currRowIdx = gridContents.length
       _.reverse(_.sortBy(group.photos,'exif_timestamp')).forEach((photo,idx)=>{
         if (idx === 0 ) {
           rowCursor = []
@@ -49,7 +46,6 @@ export const calculateSharedAlbumGridCells = (groupedBySharerList,itemsPerRow) =
   
     groupedBySharerList.forEach((group)=>{
       gridContents.push([group])
-      var currRowIdx = gridContents.length
       group.albums.forEach((album,idx)=>{
         if (idx === 0 ) {
           rowCursor = []
@@ -140,7 +136,6 @@ export const calculateGridCellSize = (gridWidth) => {
 
 
     var entrySquareSize = gridWidth / numEntrySquaresPerRow
-    var numEntrySquaresPerRow = numEntrySquaresPerRow
 
     return {
         entrySquareSize: entrySquareSize,
@@ -185,7 +180,7 @@ export const calculateFaceGridCells = (groupedByPersonList,itemsPerRow) => {
 
 
 export const calculateFaceGridCellSize = (gridWidth) => {
-    var numEntrySquaresPerRow
+    var numEntrySquaresPerRow = 10
     if (gridWidth < 300) {
         numEntrySquaresPerRow = 2
     }     
@@ -201,12 +196,8 @@ export const calculateFaceGridCellSize = (gridWidth) => {
     else if (gridWidth < 1200) {
         numEntrySquaresPerRow = 8
     }
-    else {
-        numEntrySquaresPerRow = 10
-    }
 
     var entrySquareSize = gridWidth / numEntrySquaresPerRow
-    var numEntrySquaresPerRow = numEntrySquaresPerRow
 
     return {
         entrySquareSize: entrySquareSize,

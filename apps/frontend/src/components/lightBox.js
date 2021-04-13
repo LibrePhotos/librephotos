@@ -13,7 +13,6 @@ import {
   Header,
   Item,
   Form,
-  List as ListSUI,
   Label,
   Button,
   Icon,
@@ -29,14 +28,10 @@ import * as moment from "moment";
 import { Link } from "react-router-dom";
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
 
+var LIGHTBOX_SIDEBAR_WIDTH = 360;
 if (window.innerWidth < 600) {
-  var LIGHTBOX_SIDEBAR_WIDTH = window.innerWidth;
-} else {
-  var LIGHTBOX_SIDEBAR_WIDTH = 360;
-}
-
-var topMenuHeight = 55; // don't change this
-var leftMenuWidth = 85; // don't change this
+  LIGHTBOX_SIDEBAR_WIDTH = window.innerWidth;
+} 
 
 const colors = [
   "red",
@@ -60,16 +55,17 @@ export class LightBox extends Component {
   };
 
   render() {
+    var mainSrc = "";
     if (
       !this.props.photoDetails[
         this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]
       ]
     ) {
       console.log("light box has not gotten main photo detail");
-      var mainSrc = "/transparentbackground.png";
+      mainSrc = "/transparentbackground.png";
     } else {
       console.log("light box has got main photo detail");
-      var mainSrc = serverAddress +
+      mainSrc = serverAddress +
        "/media/thumbnails_big/" +
         this.props.idx2hash.slice(this.props.lightboxImageIndex)[0] +
         ".jpg";
@@ -79,7 +75,7 @@ export class LightBox extends Component {
         ].hidden &&
         !this.props.showHidden
       ) {
-        var mainSrc = "/hidden.png";
+        mainSrc = "/hidden.png";
       }
 
       for (var i = 0; i < 10; i++) {
@@ -87,7 +83,7 @@ export class LightBox extends Component {
 
           // Fix large wide images when side bar open; retry once per 250ms over 2.5 seconds
           if (document.getElementsByClassName('ril-image-current').length > 0) {
-            this.state.wideImg = (document.getElementsByClassName('ril-image-current')[0].naturalWidth > window.innerWidth);
+            this.setState({wideImg: (document.getElementsByClassName('ril-image-current')[0].naturalWidth > window.innerWidth)});
 
             // 360px side bar /2 = 180px to the left = re-centers a wide image
             var translate = (this.state.lightboxSidebarShow && this.state.wideImg) ? `-180px` : '';
@@ -573,16 +569,6 @@ export class LightBox extends Component {
                                     nc
                                   }
                                   tag
-                                  color={
-                                    colors[
-                                      idx %
-                                        this.props.photoDetails[
-                                          this.props.idx2hash[
-                                            this.props.lightboxImageIndex
-                                          ]
-                                        ].search_captions.split(" , ").length
-                                    ]
-                                  }
                                   color="blue"
                                   onClick={() => {
                                     this.props.dispatch(searchPhotos(nc));
@@ -612,16 +598,6 @@ export class LightBox extends Component {
                                     nc
                                   }
                                   tag
-                                  color={
-                                    colors[
-                                      idx %
-                                        this.props.photoDetails[
-                                          this.props.idx2hash[
-                                            this.props.lightboxImageIndex
-                                          ]
-                                        ].search_captions.split(" , ").length
-                                    ]
-                                  }
                                   color="teal"
                                   onClick={() => {
                                     this.props.dispatch(searchPhotos(nc));

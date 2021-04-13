@@ -5,7 +5,6 @@ import { connect } from "react-redux";
 import { fetchPhotoDetail } from '../actions/photosActions'
 import { Image, Header, Loader, Icon } from 'semantic-ui-react';
 import { serverAddress } from '../api_client/apiClient'
-// import Lightbox from 'react-image-lightbox';
 import { LightBox } from '../components/lightBox'
 import * as moment from 'moment';
 import debounce from 'lodash/debounce'
@@ -14,16 +13,9 @@ import { ScrollSpeed, SPEED_THRESHOLD, SCROLL_DEBOUNCE_DURATION } from '../util/
 
 
 var topMenuHeight = 55 // don't change this
-var leftMenuWidth = 85 // don't change this
 var SIDEBAR_WIDTH = 85
 var timelineScrollWidth = 0
 var DAY_HEADER_HEIGHT = 70
-
-if (window.innerWidth < 600) {
-    var LIGHTBOX_SIDEBAR_WIDTH = window.innerWidth
-} else {
-    var LIGHTBOX_SIDEBAR_WIDTH = 360
-}
 
 
 export class SearchMultipleCategories extends Component {

@@ -1,4 +1,4 @@
-import { Server, serverAddress } from "../api_client/apiClient";
+import { Server } from "../api_client/apiClient";
 import _ from "lodash";
 import moment from "moment";
 import { notify } from "reapop";
@@ -38,13 +38,12 @@ export function setPhotosShared(image_hashes, val_shared, target_user) {
             updatedPhotos: response.data.results
           }
         });
-        if (val_shared) {
-          var notificationMessage =
-            "were successfully shared with " + target_user.username;
-        } else {
-          var notificationMessage =
+        var notificationMessage =
             "were successfully unshared with " + target_user.username;
-        }
+        if (val_shared) {
+            notificationMessage =
+            "were successfully shared with " + target_user.username;
+        } 
         dispatch(
           notify({
             message: `${image_hashes.length} photo(s) ` + notificationMessage,
@@ -64,6 +63,7 @@ export function setPhotosShared(image_hashes, val_shared, target_user) {
       });
   };
 }
+
 
 export function fetchRecentlyAddedPhotos() {
   return function(dispatch) {
@@ -102,7 +102,7 @@ export function fetchPhotosSharedToMe() {
         const sharedPhotosGroupedByOwner = _
           .toPairs(_.groupBy(response.data.results, "owner.id"))
           .map(el => {
-            return { user_id: parseInt(el[0]), photos: el[1] };
+            return { user_id: parseInt(el[0],10), photos: el[1] };
           });
 
         dispatch({
@@ -128,7 +128,7 @@ export function fetchPhotosSharedFromMe() {
         const sharedPhotosGroupedBySharedTo = _
           .toPairs(_.groupBy(response.data.results, "user_id"))
           .map(el => {
-            return { user_id: parseInt(el[0]), photos: el[1].map(item=>{
+            return { user_id: parseInt(el[0],10), photos: el[1].map(item=>{
               return {...item.photo,shared_to:item.user}
             }) 
           };
@@ -168,17 +168,11 @@ export function setPhotosPublic(image_hashes, val_public) {
             updatedPhotos: response.data.updated
           }
         });
-        if (val_public) {
-          var notificationMessage =
-            "were successfully added to your public photos. Links to the photos were copied to the clipboard.";
-          const linksToCopy = image_hashes
-            .map(ih => {
-              return serverAddress.slice(2,serverAddress.length) + "/media/photos/" + ih + ".jpg";
-            })
-            .join(" ");
-        } else {
-          var notificationMessage =
+        var notificationMessage =
             "were successfully removed from your public photos";
+        if (val_public) {
+          notificationMessage =
+            "were successfully added to your public photos. Links to the photos were copied to the clipboard.";
         }
         dispatch(
           notify({
@@ -216,10 +210,9 @@ export function setPhotosFavorite(image_hashes, favorite) {
             updatedPhotos: response.data.updated
           }
         });
+        var notificationMessage = "were successfully removed from favorites";
         if (favorite) {
-          var notificationMessage = "were successfully added to favorites";
-        } else {
-          var notificationMessage = "were successfully removed from favorites";
+          notificationMessage = "were successfully added to favorites";
         }
         dispatch(
           notify({
@@ -257,10 +250,9 @@ export function setPhotosHidden(image_hashes, hidden) {
             updatedPhotos: response.data.updated
           }
         });
+        var notificationMessage = "were successfully unhidden";
         if (hidden) {
-          var notificationMessage = "were successfully hidden";
-        } else {
-          var notificationMessage = "were successfully unhidden";
+          notificationMessage = "were successfully hidden";
         }
         dispatch(
           notify({
@@ -339,9 +331,7 @@ export function fetchPhotos() {
     dispatch({ type: "FETCH_PHOTOS" });
     Server.get("photos/list/", { timeout: 100000 })
       .then(response => {
-        var t0 = performance.now();
         const res = _.keyBy(response.data.results, "image_hash");
-        var t1 = performance.now();
         dispatch({ type: "FETCH_PHOTOS_FULFILLED", payload: res });
       })
       .catch(err => {

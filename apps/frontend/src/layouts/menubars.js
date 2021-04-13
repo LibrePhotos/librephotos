@@ -303,12 +303,12 @@ export class TopMenu extends Component {
   }
 
   handleChange(e, d) {
-    this.state.searchText = d.value;
+    this.setState({ searchText: d.value});
     this.filterSearchSuggestions();
   }
 
   render() {
-    if(this.state.avatarImgSrc == "/unknown_user.jpg"){
+    if(this.state.avatarImgSrc === "/unknown_user.jpg"){
       console.log(this.state.avatarImgSrc);
       if (this.props.userSelfDetails && this.props.userSelfDetails.avatar_url) {
         console.log(serverAddress + this.props.userSelfDetails.avatar_url);
@@ -317,8 +317,6 @@ export class TopMenu extends Component {
         });
       }
     }
-    var searchBarWidth =
-      this.state.width > 600 ? this.state.width - 200 : this.state.width - 220;
     var searchBarWidth = this.state.width - 300;
 
     const {
@@ -741,19 +739,6 @@ export class SideMenuNarrow extends Component {
   handleLogout = (e, { name }) => this.props.dispatch(logout());
 
   render() {
-    var authMenu = (
-      <Menu.Item onClick={this.handleLogout} name="loginout">
-        <Popup
-          inverted
-          size="mini"
-          position="right center"
-          content="Sign out"
-          trigger={<Icon name="sign out" corner />}
-        />
-      </Menu.Item>
-    );
-
-    const { activeItem } = this.state;
     return (
       <Menu
         borderless
@@ -771,7 +756,7 @@ export class SideMenuNarrow extends Component {
 
         {false && (
           <Menu.Item name="logo">
-            <img height={40} src="/logo.png" />
+            <img height={40} alt="Logo of LibrePhotos" src="/logo.png" />
             <p>
               <small>LibrePhotos</small>
             </p>
@@ -992,14 +977,15 @@ export class SideMenu extends Component {
   handleLogout = (e, { name }) => this.props.dispatch(logout());
 
   render() {
+    var authMenu
     if (this.props.jwtToken == null) {
-      var authMenu = (
+      authMenu = (
         <Menu.Item name="loginout" as={Link} to="/login">
           <Icon name="sign out" corner /> Log In
         </Menu.Item>
       );
     } else {
-      var authMenu = (
+      authMenu = (
         <Menu.Item
           onClick={this.handleLogout}
           name="loginout"
@@ -1026,7 +1012,7 @@ export class SideMenu extends Component {
         inverted
       >
         <Menu.Item name="logo">
-          <img src="/logo-white.png" />
+          <img alt="Logo of LibrePhotos" src="/logo-white.png" />
         </Menu.Item>
 
         {authMenu}

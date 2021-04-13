@@ -33,7 +33,7 @@ import { fetchUserSelfDetails } from "../actions/userActions";
 import { CountStats } from "../components/statistics";
 import Dropzone from "react-dropzone";
 import AvatarEditor from "react-avatar-editor";
-import MaterialIcon, { colorPallet } from "material-icons-react";
+import MaterialIcon from "material-icons-react";
 import SortableTree from "react-sortable-tree";
 import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
 import { serverAddress } from '../api_client/apiClient'
@@ -96,7 +96,7 @@ export class Settings extends Component {
   render() {
     let buttonsDisabled = !this.props.workerAvailability;
     buttonsDisabled = false;
-    if(this.state.avatarImgSrc == "/unknown_user.jpg"){
+    if(this.state.avatarImgSrc === "/unknown_user.jpg"){
       if (this.props.userSelfDetails.avatar_url) {
         this.setState({
           avatarImgSrc: serverAddress + this.props.userSelfDetails.avatar_url

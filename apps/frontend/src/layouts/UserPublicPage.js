@@ -26,7 +26,6 @@ export class UserPublicPage extends Component {
     this.props.dispatch(
       fetchUserPublicPhotos(this.props.match.params.username)
     );
-    // this.props.dispatch({ type: "HIDE_SIDEBAR" });
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
@@ -38,7 +37,6 @@ export class UserPublicPage extends Component {
       const photos =
         nextProps.pub.userPublicPhotos[nextProps.match.params.username];
       if (prevState.idx2hash.length !== photos.length) {
-        var t0 = performance.now();
         var groupedByDate = _.groupBy(photos, el => {
           if (el.exif_timestamp) {
             return moment.utc(el.exif_timestamp).format("YYYY-MM-DD");
@@ -60,7 +58,6 @@ export class UserPublicPage extends Component {
             idx2hash.push(p.image_hash);
           });
         });
-        var t1 = performance.now();
         return {
           ...prevState,
           photosGroupedByDate: groupedByDateList,
@@ -76,16 +73,16 @@ export class UserPublicPage extends Component {
   }
 
   render() {
-    const { fetchingAlbumsUser } = this.props;
+    var menu
     if (this.props.auth.access) {
-      var menu = (
+      menu = (
         <div>
           {this.props.ui.showSidebar && <SideMenuNarrow />}
           <TopMenu />
         </div>
       );
     } else {
-      var menu = (
+      menu = (
         <div>
           {this.props.ui.showSidebar && <SideMenuNarrowPublic />}
           <TopMenuPublic />

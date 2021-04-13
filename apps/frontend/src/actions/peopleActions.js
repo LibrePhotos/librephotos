@@ -66,10 +66,6 @@ export function addPersonAndSetLabelToFace(person_name,face_id) {
     // Make post request to /persons/
     Server.post("persons/",{"name":person_name})
       .then((response1) => {
-        var personDropdownOption1 = {
-          text: response1.data.name,
-          value: response1.data.name,
-          key: response1.data.id}
         // Make patch request to update person label 
         var endpoint = `faces/${face_id}/`
         Server.patch(endpoint,{"person":{"name":person_name}})

@@ -5,23 +5,6 @@ import _ from 'lodash'
 import moment from 'moment'
 import { PhotoListView } from './ReusablePhotoListView'
 
-
-const topMenuHeight = 55 // don't change this
-const ESCAPE_KEY = 27;
-const ENTER_KEY = 13;
-const RIGHT_ARROW_KEY = 39;
-const UP_ARROW_KEY = 38;
-const LEFT_ARROW_KEY = 37;
-const DOWN_ARROW_KEY = 40;
-
-const SIDEBAR_WIDTH = 85;
-
-const DAY_HEADER_HEIGHT = 70
-const leftMenuWidth = 85 // don't change this
-
-
-
-
 export class AlbumPlaceGallery extends Component {
     state = {
       photosGroupedByDate: [],
@@ -32,18 +15,11 @@ export class AlbumPlaceGallery extends Component {
     componentDidMount() {
         this.props.dispatch(fetchPlaceAlbum(this.props.match.params.albumID))
     }
-
-
-
-  
-  
   
     static getDerivedStateFromProps(nextProps,prevState){
         if (nextProps.albumsPlace.hasOwnProperty(nextProps.match.params.albumID)){
             const photos = nextProps.albumsPlace[nextProps.match.params.albumID].photos
             if (prevState.idx2hash.length !== photos.length) {
-
-                var t0 = performance.now();
                 var groupedByDate = _.groupBy(photos,(el)=>{
                     if (el.exif_timestamp) {
                         return moment.utc(el.exif_timestamp).format('YYYY-MM-DD')
@@ -60,7 +36,6 @@ export class AlbumPlaceGallery extends Component {
                         idx2hash.push(p.image_hash)
                     })
                 })
-                var t1 = performance.now();
                 return {
                     ...prevState, 
                     photosGroupedByDate: groupedByDateList,

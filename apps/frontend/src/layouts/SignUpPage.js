@@ -46,9 +46,6 @@ export class SignupPage extends Component {
         this.state.email
       )
     );
-    // console.log(this.props);
-    // console.log(this.state.password)
-    // this.props.onSubmit(this.state.username.toLowerCase(), this.state.password);
   }
 
   render() {
@@ -59,8 +56,7 @@ export class SignupPage extends Component {
       firstname,
       lastname,
       email,
-      passwordConfirm,
-      serverAddress
+      passwordConfirm
     } = this.state;
 
     return (

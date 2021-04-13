@@ -40,10 +40,8 @@ export class LocationLink extends React.Component {
 
   render() {
     const {
-      // data,
       width,
       height,
-      events = false,
       margin = {
         top: 20,
         left: 70,

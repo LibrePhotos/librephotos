@@ -3,23 +3,13 @@ import { connect } from 'react-redux'
 import * as reducers from '../reducers'
 // Router and Switch are needed Breaks site if not in import. DW
 import {
-  BrowserRouter as Router,
   Route,
-  Switch,
   Redirect
 } from 'react-router-dom'
-import {SideMenuNarrow, TopMenu} from './menubars'
 
 
 var topMenuHeight = 45 // don't change this
 var leftMenuWidth = 85 // don't change this
-var leftMenuWidth = 85 // don't change this
-
-      // <div>
-      //   <Nav />
-      //   <Component {...props}/>
-      // </div>
-
 
 const PrivateRoute = ({ component: Component, isAuthenticated, showSidebar, ...rest }) => {
   return (
@@ -40,21 +30,6 @@ const PrivateRoute = ({ component: Component, isAuthenticated, showSidebar, ...r
       )
     )}/>
   )
-}
-
-
-
-
-
-class Nav extends React.Component {
-  render() {
-    return (
-      <div>
-        <SideMenuNarrow/>
-        <TopMenu style={{zIndex:-1}}/>
-      </div>
-    )
-  }
 }
 
 

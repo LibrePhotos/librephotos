@@ -46,6 +46,10 @@ export default function reducer(
   },
   action
 ) {
+  var updatedPhotos;
+  var newPhotos;
+  var updatedPhotosImageHashes;
+
   switch (action.type) {
     case "GENERATE_PHOTO_CAPTION": {
       return {...state, generatingCaptionIm2txt: true}
@@ -58,11 +62,6 @@ export default function reducer(
     case "GENERATE_PHOTO_CAPTION_REJECTED": {
       return {...state, generatingCaptionIm2txt: false, generatedCaptionIm2txt: false}
     }
-
-
-
-
-
 
     case "FETCH_RECENTLY_ADDED_PHOTOS" : {
       return {...state, fetchingRecentlyAddedPhotos: true}
@@ -87,11 +86,6 @@ export default function reducer(
       }
     } 
 
-
-
-
-
-
     case "FETCH_PHOTOS_SHARED_TO_ME": {
       return { ...state, fetchingPhotosSharedToMe: true };
     }
@@ -110,9 +104,6 @@ export default function reducer(
         fetchedPhotosSharedToMe: false
       };
     }
-
-
-
     case "FETCH_PHOTOS_SHARED_FROM_ME": {
       return { ...state, fetchingPhotosSharedFromMe: true };
     }
@@ -131,12 +122,6 @@ export default function reducer(
         fetchedPhotosSharedFromMe: false
       };
     }
-
-
-
-
-
-
     case "SCAN_PHOTOS": {
       return { ...state, scanningPhotos: true };
     }
@@ -237,11 +222,10 @@ export default function reducer(
 
     case "SET_PHOTOS_PUBLIC_FULFILLED": {
       var valPublic = action.payload.public;
-      var imageHashes = action.payload.image_hashes;
-      var updatedPhotos = action.payload.updatedPhotos;
-      var newPhotos = { ...state.photoDetails };
+      updatedPhotos = action.payload.updatedPhotos;
+      newPhotos = { ...state.photoDetails };
 
-      var updatedPhotosImageHashes = updatedPhotos.map(
+      updatedPhotosImageHashes = updatedPhotos.map(
         photo => photo.image_hash
       );
 
@@ -274,11 +258,10 @@ export default function reducer(
 
     case "SET_PHOTOS_FAVORITE_FULFILLED": {
       var valFavorite = action.payload.favorite;
-      var imageHashes = action.payload.image_hashes;
-      var updatedPhotos = action.payload.updatedPhotos;
-      var newPhotos = { ...state.photoDetails };
+      updatedPhotos = action.payload.updatedPhotos;
+      newPhotos = { ...state.photoDetails };
 
-      var updatedPhotosImageHashes = updatedPhotos.map(
+      updatedPhotosImageHashes = updatedPhotos.map(
         photo => photo.image_hash
       );
 
@@ -310,12 +293,10 @@ export default function reducer(
     }
 
     case "SET_PHOTOS_HIDDEN_FULFILLED": {
-      var valHidden = action.payload.hidden;
-      var imageHashes = action.payload.image_hashes;
-      var updatedPhotos = action.payload.updatedPhotos;
-      var newPhotos = { ...state.photoDetails };
+      updatedPhotos = action.payload.updatedPhotos;
+      newPhotos = { ...state.photoDetails };
 
-      var updatedPhotosImageHashes = updatedPhotos.map(
+      updatedPhotosImageHashes = updatedPhotos.map(
         photo => photo.image_hash
       );
 

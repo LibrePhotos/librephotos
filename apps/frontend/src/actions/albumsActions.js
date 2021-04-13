@@ -425,12 +425,9 @@ export function fetchUserAlbumsSharedToMe() {
         const sharedAlbumssGroupedByOwner = _
         .toPairs(_.groupBy(response.data.results, "owner.id"))
         .map(el => {
-          return { user_id: parseInt(el[0]), albums: el[1] };
+          return { user_id: parseInt(el[0], 10), albums: el[1] };
         });
         console.log(sharedAlbumssGroupedByOwner)
-
-
-
         dispatch({
           type: "FETCH_ALBUMS_SHARED_TO_ME_FULFILLED",
           payload: sharedAlbumssGroupedByOwner

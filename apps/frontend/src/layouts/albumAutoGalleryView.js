@@ -24,13 +24,6 @@ import { SecuredImageJWT } from "../components/SecuredImage";
 import { LightBox } from "../components/lightBox";
 
 var topMenuHeight = 45; // don't change this
-var ESCAPE_KEY = 27;
-var ENTER_KEY = 13;
-var RIGHT_ARROW_KEY = 39;
-var UP_ARROW_KEY = 38;
-var LEFT_ARROW_KEY = 37;
-var DOWN_ARROW_KEY = 40;
-
 var SIDEBAR_WIDTH = 85;
 
 const colors = [
@@ -125,22 +118,20 @@ export class AlbumAutoGalleryView extends Component {
   }
 
   calculateEntrySquareSize() {
+    var numEntrySquaresPerRow = 10;
     if (window.innerWidth < 600) {
-      var numEntrySquaresPerRow = 2;
+      numEntrySquaresPerRow = 2;
     } else if (window.innerWidth < 800) {
-      var numEntrySquaresPerRow = 4;
+      numEntrySquaresPerRow = 4;
     } else if (window.innerWidth < 1000) {
-      var numEntrySquaresPerRow = 6;
+      numEntrySquaresPerRow = 6;
     } else if (window.innerWidth < 1200) {
-      var numEntrySquaresPerRow = 8;
-    } else {
-      var numEntrySquaresPerRow = 10;
+      numEntrySquaresPerRow = 8;
     }
 
     var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 20;
 
     var entrySquareSize = columnWidth / numEntrySquaresPerRow;
-    var numEntrySquaresPerRow = numEntrySquaresPerRow;
     this.setState({
       width: window.innerWidth,
       height: window.innerHeight,
@@ -149,26 +140,8 @@ export class AlbumAutoGalleryView extends Component {
     });
   }
 
-  // componentWillReceiveProps(nextProps){
-  //   console.log('componen receiving props')
-  //   var albumID = nextProps.match.params.albumID
-  //   if (nextProps.albumsAutoGalleries.hasOwnProperty(albumID) && !nextProps.fetchingAlbumsAutoGalleries && this.state.idx2hash.length==0) {
-  //       var album = nextProps.albumsAutoGalleries[nextProps.match.params.albumID]
-  //       var photos = _.sortBy(album.photos,'exif_timestamp')
-  //       var idx2hash = album.photos.map((el)=>el.image_hash)
-  //       console.log(idx2hash)
-  //       this.setState({idx2hash:idx2hash})
-  //   }
-  // }
 
   onPhotoClick(image_hash) {
-    // var album = this.props.albumsAutoGalleries[this.props.match.params.albumID]
-    // var photos = _.sortBy(album.photos,'exif_timestamp')
-
-    // // if (this.state.idx2hash.length != this.props.albumsAutoGalleries[this.props.match.params.albumID].photos.length) {
-    // if (this.state.idx2hash.length == 0) {
-    //     this.setState({idx2hash:this.props.albumsAutoGalleries[this.props.match.params.albumID].photos.map((el)=>el.image_hash)})
-    // }
     this.setState({
       lightboxImageIndex: this.state.idx2hash.indexOf(image_hash),
       lightboxShow: true
@@ -190,7 +163,6 @@ export class AlbumAutoGalleryView extends Component {
           <div
             onClick={() => {
               this.onPhotoClick(photoIndex);
-              // this.props.dispatch(push(`/person/${this.props.albumsPlace[this.props.match.params.albumID][photoIndex].key}`))
             }}
           >
             <SecuredImageJWT
@@ -218,8 +190,6 @@ export class AlbumAutoGalleryView extends Component {
   }
 
   render() {
-    var entrySquareSize = this.state.entrySquareSize;
-    var numEntrySquaresPerRow = this.state.numEntrySquaresPerRow;
     var albumID = this.props.match.params.albumID;
     if (
       this.props.albumsAutoGalleries.hasOwnProperty(albumID) &&
@@ -330,6 +300,7 @@ export class AlbumAutoGalleryView extends Component {
                         photo.geolocation_json.features.length - 3
                       ].text;
                     }
+                    return "";
                   });
                 return (
                   <div>
@@ -454,80 +425,3 @@ AlbumAutoGalleryView = connect(store => {
     fetchedPhotoDetail: store.photos.fetchedPhotoDetail
   };
 })(AlbumAutoGalleryView);
-
-/*
-
-export class AlbumAutoGalleryView extends Component {
-  componentWillMount() {
-    this.props.dispatch(fetchAlbumsAutoGalleries(this.props.match.params.albumID))
-  }
-
-  render() {
-    console.log(this.props)
-    var albumID = this.props.match.params.albumID
-    console.log('property exists',this.props.albumsAutoGalleries.hasOwnProperty(albumID))
-    console.log('the property',this.props.albumsAutoGalleries[albumID])
-    if (this.props.albumsAutoGalleries.hasOwnProperty(albumID) && !this.props.fetchingAlbumsAutoGalleries) {
-      var mappedRenderablePhotoArray = this.props.albumsAutoGalleries[albumID].photos.map(function(photo){
-        return ({
-          src: serverAddress+photo.image_url,
-          thumbnail: serverAddress+photo.thumbnail_url,
-          thumbnailWidth:photo.thumbnail_width,
-          thumbnailHeight:photo.thumbnail_height,
-        });
-      });
-
-      var mappedPeopleIcons = this.props.albumsAutoGalleries[albumID].people.map(function(person){
-        return (
-          <Label key={'gallery-person-icon-'+albumID+'-'+person.id} image>
-            <img src={serverAddress+person.face_url}/>
-            {person.name}
-          </Label>
-        )
-      })
-
-      var renderable = (
-        <div style={{
-            display: "block",
-            minHeight: "1px",
-            width: "100%",
-            border: "0px solid #ddd",
-            overflow: "hidden"}}>
-          <AlbumLocationMap photos={this.props.albumsAutoGalleries[albumID].photos}/>
-
-        <Header  as='h2' textAlign='center'>
-          <Header.Content>
-            {this.props.albumsAutoGalleries[albumID].title}
-            <Header.Subheader>{this.props.albumsAutoGalleries[albumID].photos.length} Photos</Header.Subheader>
-            {mappedPeopleIcons}
-          </Header.Content>
-        </Header>
-
-
-
-          <Divider/>
-          <Gallery 
-            images={mappedRenderablePhotoArray}
-            enableImageSelection={false}
-            rowHeight={250}/>
-        </div>
-      )
-    }
-    else {
-      var renderable = (
-        <div>
-          <Dimmer active>
-            <Loader active/>
-          </Dimmer>
-        </div>
-      )
-    }
-    return (
-      <div>
-      {renderable}
-      </div>
-    )
-  }
-}
-
-*/

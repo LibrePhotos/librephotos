@@ -65,6 +65,7 @@ export default function reducer(
   },
   action
 ) {
+  var new_album
   switch (action.type) {
 
 
@@ -117,7 +118,7 @@ export default function reducer(
       return { ...state, fetchingAlbumsPeople: false, error: action.payload };
     }
     case "FETCH_PEOPLE_ALBUMS_FULFILLED": {
-      var new_album = { ...state.albumsPeople };
+      new_album = { ...state.albumsPeople };
       new_album[action.payload.id] = action.payload;
       return {
         ...state,
@@ -182,7 +183,7 @@ export default function reducer(
       };
     }
     case "FETCH_AUTO_ALBUMS_RETRIEVE_FULFILLED": {
-      var new_album = { ...state.albumsAutoGalleries };
+      new_album = { ...state.albumsAutoGalleries };
       new_album[action.payload.id] = action.payload;
       return {
         ...state,
@@ -244,7 +245,7 @@ export default function reducer(
       };
     }
     case "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED": {
-      var new_album = { ...state.albumsDateGalleries };
+      new_album = { ...state.albumsDateGalleries };
       new_album[action.payload.id] = action.payload;
       return {
         ...state,
@@ -354,7 +355,7 @@ export default function reducer(
       return { ...state };
     }
     case "TOGGLE_ALBUM_AUTO_FAVORITE_FULFILLED": {
-      var new_album = { ...state.albumsAutoGalleries };
+      new_album = { ...state.albumsAutoGalleries };
       new_album[action.payload.id] = action.payload;
 
       var new_album_list = [...state.albumsAutoList];

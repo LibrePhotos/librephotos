@@ -41,7 +41,7 @@ export class AllPhotosGroupedByDate extends Component {
       height: window.innerHeight,
       entrySquareSize:200
   	})
-  }
+  } 
 
   calculateEntrySquareSize() {
   	if (window.innerWidth < 600) {

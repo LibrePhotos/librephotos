@@ -21,13 +21,6 @@ import { SecuredImageJWT } from "../components/SecuredImage";
 
 
 var topMenuHeight = 45; // don't change this
-var ESCAPE_KEY = 27;
-var ENTER_KEY = 13;
-var RIGHT_ARROW_KEY = 39;
-var UP_ARROW_KEY = 38;
-var LEFT_ARROW_KEY = 37;
-var DOWN_ARROW_KEY = 40;
-
 var SIDEBAR_WIDTH = 85;
 
 export class AlbumUser extends Component {
@@ -51,22 +44,20 @@ export class AlbumUser extends Component {
   }
 
   calculateEntrySquareSize() {
+    var numEntrySquaresPerRow = 6;
     if (window.innerWidth < 600) {
-      var numEntrySquaresPerRow = 2;
+      numEntrySquaresPerRow = 2;
     } else if (window.innerWidth < 800) {
-      var numEntrySquaresPerRow = 3;
+      numEntrySquaresPerRow = 3;
     } else if (window.innerWidth < 1000) {
-      var numEntrySquaresPerRow = 4;
+      numEntrySquaresPerRow = 4;
     } else if (window.innerWidth < 1200) {
-      var numEntrySquaresPerRow = 5;
-    } else {
-      var numEntrySquaresPerRow = 6;
-    }
+      numEntrySquaresPerRow = 5;
+    } 
 
     var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15;
 
     var entrySquareSize = columnWidth / numEntrySquaresPerRow;
-    var numEntrySquaresPerRow = numEntrySquaresPerRow;
     this.setState({
       width: window.innerWidth,
       height: window.innerHeight,
@@ -172,8 +163,6 @@ export class AlbumUser extends Component {
   };
 
   render() {
-    var entrySquareSize = this.state.entrySquareSize;
-    var numEntrySquaresPerRow = this.state.numEntrySquaresPerRow;
     return (
       <div>
         <div style={{ height: 60, paddingTop: 10 }}>

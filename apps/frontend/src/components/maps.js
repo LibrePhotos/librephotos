@@ -16,13 +16,6 @@ import _ from "lodash";
 
 
 var topMenuHeight = 45; // don't change this
-var ESCAPE_KEY = 27;
-var ENTER_KEY = 13;
-var RIGHT_ARROW_KEY = 39;
-var UP_ARROW_KEY = 38;
-var LEFT_ARROW_KEY = 37;
-var DOWN_ARROW_KEY = 40;
-
 var SIDEBAR_WIDTH = 85;
 
 export class LocationMap extends Component {
@@ -96,10 +89,9 @@ export class LocationMap extends Component {
     console.log(markers);
 
     if (photosWithGPS.length > 0) {
+      var zoom = 2;
       if (this.props.zoom) {
-        var zoom = this.props.zoom;
-      } else {
-        var zoom = 2;
+        zoom = this.props.zoom;
       }
       return (
         <Segment style={{ zIndex: 2, height: this.props.height, padding: 0 }}>
@@ -347,6 +339,7 @@ export class LocationClusterMap extends Component {
       if (loc[0] !== 0) {
         return <Marker position={[loc[0], loc[1]]} title={loc[2]} />;
       }
+      return <div/>
     });
     return markers;
   }
@@ -356,22 +349,20 @@ export class LocationClusterMap extends Component {
   }
 
   calculateEntrySquareSize() {
+    var numEntrySquaresPerRow = 6;
     if (window.innerWidth < 600) {
-      var numEntrySquaresPerRow = 2;
+      numEntrySquaresPerRow = 2;
     } else if (window.innerWidth < 800) {
-      var numEntrySquaresPerRow = 3;
+      numEntrySquaresPerRow = 3;
     } else if (window.innerWidth < 1000) {
-      var numEntrySquaresPerRow = 4;
+      numEntrySquaresPerRow = 4;
     } else if (window.innerWidth < 1200) {
-      var numEntrySquaresPerRow = 5;
-    } else {
-      var numEntrySquaresPerRow = 6;
-    }
+      numEntrySquaresPerRow = 5;
+    } 
 
     var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15;
 
     var entrySquareSize = columnWidth / numEntrySquaresPerRow;
-    var numEntrySquaresPerRow = numEntrySquaresPerRow;
     this.setState({
       ...this.state,
       width: window.innerWidth,
@@ -390,9 +381,6 @@ export class LocationClusterMap extends Component {
         <div key={key} style={style}>
           <div
             onClick={() => {
-              // store.dispatch(push(`/place/${this.props.albumsPlaceList[albumPlaceIndex].id}/`))
-              // store.dispatch(searchPhotos(this.props.albumsPlaceList[albumPlaceIndex].title))
-              // store.dispatch(push('/search'))
             }}
             style={{ padding: 5 }}
           >
@@ -523,10 +511,9 @@ export class AllPhotosMap extends Component {
   }
 
   render() {
+    var map = <div />;
     if (this.props.fetchedPhotos) {
-      var map = <LocationMap photos={this.props.photos} />;
-    } else {
-      var map = <div />;
+      map = <LocationMap photos={this.props.photos} />;
     }
     return <div>{map}</div>;
   }

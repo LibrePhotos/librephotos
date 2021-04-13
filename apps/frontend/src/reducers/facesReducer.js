@@ -39,6 +39,8 @@ export default function reducer(
   },
   action
 ) {
+  var newInferredFacesList
+  var newLabeledFacesList
   switch (action.type) {
     // all faces
     case "FETCH_FACES": {
@@ -143,15 +145,14 @@ export default function reducer(
         inferredFacesList: action.payload
       };
     }
-
     // mass labeling faces
     case "SET_FACES_PERSON_LABEL_FULFILLED": {
       const justLabeledFaceIDs = action.payload.map(face => face.id);
 
-      var newInferredFacesList = state.inferredFacesList.filter(
+      newInferredFacesList = state.inferredFacesList.filter(
         face => !justLabeledFaceIDs.includes(face.id)
       );
-      var newLabeledFacesList = state.labeledFacesList.filter(
+      newLabeledFacesList = state.labeledFacesList.filter(
         face => !justLabeledFaceIDs.includes(face.id)
       );
 
@@ -169,10 +170,10 @@ export default function reducer(
     // mass labeling faces
     case "DELETE_FACES_FULFILLED": {
       const justDeletedFaces = action.payload;
-      var newInferredFacesList = state.inferredFacesList.filter(
+      newInferredFacesList = state.inferredFacesList.filter(
         face => !justDeletedFaces.includes(face.id)
       );
-      var newLabeledFacesList = state.labeledFacesList.filter(
+      newLabeledFacesList = state.labeledFacesList.filter(
         face => !justDeletedFaces.includes(face.id)
       );
 

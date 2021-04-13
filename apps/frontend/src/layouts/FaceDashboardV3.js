@@ -37,10 +37,7 @@ import { fetchPeople } from "../actions/peopleActions";
 import { serverAddress } from "../api_client/apiClient";
 import Modal from "react-modal";
 
-
-// <Icon name='id badge' circular />
 var topMenuHeight = 45; // don't change this
-var leftMenuWidth = 85; // don't change this
 var SIDEBAR_WIDTH = 85;
 
 const SPEED_THRESHOLD = 500;
@@ -86,16 +83,15 @@ const modalStyles = {
 class ModalPersonEdit extends Component {
   state = { newPersonName: "" };
   render() {
+    var filteredPeopleList = this.props.people;
     if (this.state.newPersonName.length > 0) {
-      var filteredPeopleList = this.props.people.filter((el) =>
+      filteredPeopleList = this.props.people.filter((el) =>
         fuzzy_match(
           el.text.toLowerCase(),
           this.state.newPersonName.toLowerCase()
         )
       );
-    } else {
-      var filteredPeopleList = this.props.people;
-    }
+    } 
 
     const allFaces = _.concat(
       this.props.inferredFacesList,
@@ -132,7 +128,7 @@ class ModalPersonEdit extends Component {
         </div>
         <Divider fitted />
         <div
-          style={{ height: 100, padding: 5, height: 50, overflowY: "hidden" }}
+          style={{ padding: 5, height: 50, overflowY: "hidden" }}
         >
           <Image.Group>
             {selectedImageIDs.map((image) => (
@@ -300,8 +296,6 @@ export class FaceDashboard extends Component {
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
-    var t0 = performance.now();
-
     var inferredGroupedByPerson = _.groupBy(
       nextProps.inferredFacesList,
       (el) => el.person_name
@@ -328,10 +322,6 @@ export class FaceDashboard extends Component {
     ).map((el) => {
       return { person_name: el[0], faces: el[1] };
     });
-    var t1 = performance.now();
-
-    var idx2hash = [];
-
     const inferredCellContents = calculateFaceGridCells(
       inferredGroupedByPersonList,
       prevState.numEntrySquaresPerRow
@@ -351,10 +341,9 @@ export class FaceDashboard extends Component {
   }
 
   handleResize() {
+    var columnWidth = window.innerWidth - 5 - 5 - 10;
     if (this.props.showSidebar) {
-      var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10;
-    } else {
-      var columnWidth = window.innerWidth - 5 - 5 - 10;
+      columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10;
     }
 
     const {
@@ -391,7 +380,7 @@ export class FaceDashboard extends Component {
 
   handleClick(e, cell) {
     if (!this.state.lastChecked) {
-      this.state.lastChecked = cell;
+      this.setState({lastChecked : cell});
       this.onFaceSelect(cell.id);
       return;
     }
@@ -420,7 +409,7 @@ export class FaceDashboard extends Component {
       return;
     }
     this.onFaceSelect(cell.id);
-    this.state.lastChecked = cell;
+    this.setState({lastChecked : cell});
   }
 
   onFaceSelect(faceID) {
@@ -437,10 +426,9 @@ export class FaceDashboard extends Component {
   }
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
+    var cell = this.state.inferredCellContents[rowIndex][columnIndex];
     if (this.state.activeItem === "labeled") {
-      var cell = this.state.labeledCellContents[rowIndex][columnIndex];
-    } else {
-      var cell = this.state.inferredCellContents[rowIndex][columnIndex];
+      cell = this.state.labeledCellContents[rowIndex][columnIndex];
     }
 
     if (cell) {
@@ -694,7 +682,7 @@ export class FaceDashboard extends Component {
                   disabled={!this.props.workerAvailability}
                   loading={
                     this.props.workerRunningJob &&
-                    this.props.workerRunningJob.job_type_str == "Train Faces"
+                    this.props.workerRunningJob.job_type_str === "Train Faces"
                   }
                   color="blue"
                   onClick={() => {

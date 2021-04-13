@@ -51,12 +51,13 @@ Server.interceptors.response.use(function (response) {
       	store.dispatch({type: "REFRESH_ACCESS_TOKEN_FULFILLED", payload: response.data})
         axios.defaults.headers.common['Authorization'] = 'Bearer ' + response.data.access;
         originalRequest.headers['Authorization'] = 'Bearer ' + response.data.access;
-	if (originalRequest.baseURL == originalRequest.url.substring(0, 5)) {
+	if (originalRequest.baseURL === originalRequest.url.substring(0, 5)) {
           originalRequest.baseURL = ''
         }
         return Server(originalRequest);
       });
   }
+  
 
   return Promise.reject(error);
 });

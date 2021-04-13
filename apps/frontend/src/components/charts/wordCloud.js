@@ -17,30 +17,24 @@ export class WordCloud extends Component {
 
 
   render(){
+    var title = 'People'
     if (this.props.type==='captions'){
-      var title = 'Things'
+      title = 'Things'
     }
-    else if (this.props.type==='location'){
-      var title = 'Locations'
+    if (this.props.type==='location'){
+      title = 'Locations'
     }
-    else {
-      var title = 'People'
-    }
-
-
-
+    var chart
     if (this.props.fetchedWordCloud) {
       var wordCloud = this.props.wordCloud
+      var series = [{data:wordCloud.people}]  
       if (this.props.type==='captions'){
-        var series = [{data:wordCloud.captions}]
+        series = [{data:wordCloud.captions}]
       }
       else if (this.props.type==='location'){
-        var series = [{data:wordCloud.locations}]        
+        series = [{data:wordCloud.locations}]        
       }
-      else {
-        var series = [{data:wordCloud.people}]        
-      }
-      var chart = (
+      chart = (
         <div>
           <Header as='h3'>{title}</Header>
             <Chart 
@@ -57,7 +51,7 @@ export class WordCloud extends Component {
     else {
       var h = this.props.height-70
       var w = this.props.containerWidth+60
-      var chart = (
+      chart = (
         <div>
           <Header as='h3'>{title}{" "}<Loader inline size='mini' active/></Header>
             <div style={{height:h, width:w}}>

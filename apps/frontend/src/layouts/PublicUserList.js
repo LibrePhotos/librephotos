@@ -2,7 +2,6 @@ import React, { Component } from "react";
 import { Header, Image, Icon, Grid, Divider } from "semantic-ui-react";
 import { fetchPublicUserList } from "../actions/publicActions";
 import { connect } from "react-redux";
-import _ from "lodash";
 import {
   TopMenu,
   SideMenuNarrow,
@@ -21,15 +20,16 @@ export class PublicUserList extends Component {
     this.props.dispatch(fetchPublicUserList());
   }
   render() {
+    var menu
     if (this.props.auth.access) {
-      var menu = (
+      menu = (
         <div>
           {this.props.ui.showSidebar && <SideMenuNarrow />}
           <TopMenu />
         </div>
       );
     } else {
-      var menu = (
+      menu = (
         <div>
           {this.props.ui.showSidebar && <SideMenuNarrowPublic />}
           <TopMenuPublic />
@@ -58,10 +58,11 @@ export class PublicUserList extends Component {
           </div>
           <div style={{ padding: 10 }}>
             {this.props.pub.publicUserList.map((el, idx) => {
+              var displayName
               if (el.first_name.length > 0 && el.last_name.length > 0) {
-                var displayName = el.first_name + " " + el.last_name;
+                displayName = el.first_name + " " + el.last_name;
               } else {
-                var displayName = el.username;
+                displayName = el.username;
               }
 
               return (

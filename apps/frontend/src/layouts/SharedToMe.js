@@ -12,7 +12,6 @@ import { fetchPhotosSharedToMe, fetchPhotosSharedFromMe } from "../actions/photo
 import { fetchPublicUserList } from "../actions/publicActions";
 import { fetchUserAlbumsSharedToMe } from "../actions/albumsActions";
 import { connect } from "react-redux";
-import _ from "lodash";
 import { Link } from "react-router-dom";
 import { serverAddress } from "../api_client/apiClient";
 import { SecuredImageJWT } from "../components/SecuredImage";
@@ -27,7 +26,6 @@ import debounce from "lodash/debounce";
 
 
 var TOP_MENU_HEIGHT = 45; // don't change this
-var LEFT_MENU_WIDTH = 85; // don't change this
 const SPEED_THRESHOLD = 300;
 var SIDEBAR_WIDTH = 85;
 var DAY_HEADER_HEIGHT = 70;
@@ -106,10 +104,11 @@ export class SharedToMe extends Component {
   }
 
   handleResize() {
+    var columnWidth = 0;
     if (this.props.showSidebar) {
-      var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10;
+      columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10;
     } else {
-      var columnWidth = window.innerWidth - 5 - 5 - 10;
+      columnWidth = window.innerWidth - 5 - 5 - 10;
     }
 
     const { entrySquareSize, numEntrySquaresPerRow } = calculateGridCellSize(
@@ -128,7 +127,6 @@ export class SharedToMe extends Component {
   }
 
   photoCellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    var cell = this.state.photoGridContents[rowIndex][columnIndex];
     if (this.state.photoGridContents[rowIndex][columnIndex]) {
       // non empty cell
       const cell = this.state.photoGridContents[rowIndex][columnIndex];
@@ -137,13 +135,12 @@ export class SharedToMe extends Component {
         const owner = this.props.pub.publicUserList.filter(
           e => e.id === cell.user_id
         )[0];
+        var displayName = cell.user_id;
         if (owner && owner.last_name.length + owner.first_name.length > 0) {
-          var displayName = owner.first_name + " " + owner.last_name;
+           displayName = owner.first_name + " " + owner.last_name;
         } else if (owner) {
-          var displayName = owner.username;
-        } else {
-          var displayName = cell.user_id;
-        }
+           displayName = owner.username;
+        } 
         return (
           <div
             key={key}
@@ -202,7 +199,6 @@ export class SharedToMe extends Component {
   };
 
   albumCellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    var cell = this.state.albumGridContents[rowIndex][columnIndex];
     if (this.state.albumGridContents[rowIndex][columnIndex]) {
       // non empty cell
       const cell = this.state.albumGridContents[rowIndex][columnIndex];
@@ -211,12 +207,11 @@ export class SharedToMe extends Component {
         const owner = this.props.pub.publicUserList.filter(
           e => e.id === cell.user_id
         )[0];
+        var displayName = cell.user_id;
         if (owner && owner.last_name.length + owner.first_name.length > 0) {
-          var displayName = owner.first_name + " " + owner.last_name;
+          displayName = owner.first_name + " " + owner.last_name;
         } else if (owner) {
-          var displayName = owner.username;
-        } else {
-          var displayName = cell.user_id;
+          displayName = owner.username;
         }
         return (
           <div
@@ -279,9 +274,10 @@ export class SharedToMe extends Component {
 
   render() {
     const { activeItem } = this.state;
-
+    var subheader
+    var totalListHeight
     if (activeItem === "photos") {
-      var subheader = (
+      subheader = (
         <Header.Subheader>
           {this.props.photos.photosSharedToMe.length} user(s) shared{" "}
           {this.props.photos.photosSharedToMe.length > 0 &&
@@ -291,7 +287,7 @@ export class SharedToMe extends Component {
           photo(s) with you
         </Header.Subheader>
       );
-      var totalListHeight = this.state.photoGridContents
+      totalListHeight = this.state.photoGridContents
         .map((row, index) => {
           if (row[0].user_id) {
             //header row
@@ -303,7 +299,7 @@ export class SharedToMe extends Component {
         })
         .reduce((a, b) => a + b, 0);
     } else {
-      var subheader = (
+      subheader = (
         <Header.Subheader>
           {this.props.albums.albumsSharedToMe.length} user(s) shared{" "}
           {this.props.albums.albumsSharedToMe.length > 0 &&
@@ -313,7 +309,7 @@ export class SharedToMe extends Component {
           album(s) with you
         </Header.Subheader>
       );
-      var totalListHeight = this.state.albumGridContents
+      totalListHeight = this.state.albumGridContents
         .map((row, index) => {
           if (row[0].user_id) {
             //header row
@@ -403,10 +399,11 @@ export class SharedToMe extends Component {
                     ref={this.photoGridRef}
                     onSectionRendered={({ rowStartIndex }) => {
                       const cell = this.state.photoGridContents[rowStartIndex][0]
+                      var owner = ""
                       if (cell.user_id) {
-                        var owner = cell.photos[0].owner.username
+                        owner = cell.photos[0].owner.username
                       } else {
-                        var owner = cell.owner.username
+                        owner = cell.owner.username
                       }
                       this.setState({topRowOwner:owner})
                     }}
@@ -417,7 +414,6 @@ export class SharedToMe extends Component {
                     columnWidth={this.state.entrySquareSize}
                     columnCount={this.state.numEntrySquaresPerRow}
                     height={this.state.height - 45 - 60 - 40}
-                    rowHeight={this.state.entrySquareSize}
                     rowCount={this.state.photoGridContents.length}
                     rowHeight={({ index }) => {
                       if (this.state.photoGridContents[index][0].user_id) {
@@ -464,10 +460,11 @@ export class SharedToMe extends Component {
                     ref={this.photoGridRef}
                     onSectionRendered={({ rowStartIndex }) => {
                       const cell = this.state.albumGridContents[rowStartIndex][0]
+                      var owner = ""
                       if (cell.user_id) {
-                        var owner = cell.albums[0].owner.username
+                        owner = cell.albums[0].owner.username
                       } else {
-                        var owner = cell.owner.username
+                        owner = cell.owner.username
                       }
                       this.setState({topRowOwner:owner})
                     }}
@@ -478,7 +475,6 @@ export class SharedToMe extends Component {
                     columnWidth={this.state.entrySquareSize}
                     columnCount={this.state.numEntrySquaresPerRow}
                     height={this.state.height - 45 - 60 - 40}
-                    rowHeight={this.state.entrySquareSize}
                     rowCount={this.state.albumGridContents.length}
                     rowHeight={({ index }) => {
                       if (this.state.albumGridContents[index][0].user_id) {
@@ -507,15 +503,14 @@ export class SharedToMe extends Component {
                 const owner = this.props.pub.publicUserList.filter(
                   e => e.id === el.user_id
                 )[0];
+                var displayName = el.user_id;
                 if (
                   owner &&
                   owner.last_name.length + owner.first_name.length > 0
                 ) {
-                  var displayName = owner.first_name + " " + owner.last_name;
+                  displayName = owner.first_name + " " + owner.last_name;
                 } else if (owner) {
-                  var displayName = owner.username;
-                } else {
-                  var displayName = el.user_id;
+                  displayName = owner.username;
                 }
 
                 return (
@@ -568,16 +563,15 @@ export class SharedToMe extends Component {
                 const owner = this.props.pub.publicUserList.filter(
                   e => e.id === el.user_id
                 )[0];
+                var displayName = el.user_id;
                 if (
                   owner &&
                   owner.last_name.length + owner.first_name.length > 0
                 ) {
-                  var displayName = owner.first_name + " " + owner.last_name;
+                  displayName = owner.first_name + " " + owner.last_name;
                 } else if (owner) {
-                  var displayName = owner.username;
-                } else {
-                  var displayName = el.user_id;
-                }
+                  displayName = owner.username;
+                } 
 
                 return (
                   <div style={{ padding: 10 }}>

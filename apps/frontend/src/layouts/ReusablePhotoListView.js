@@ -44,16 +44,10 @@ import {
 
 
 var TOP_MENU_HEIGHT = 45; // don't change this
-var LEFT_MENU_WIDTH = 85; // don't change this
 var SIDEBAR_WIDTH = 85;
 var TIMELINE_SCROLL_WIDTH = 0;
 var DAY_HEADER_HEIGHT = 70;
 
-if (window.innerWidth < 600) {
-  var LIGHTBOX_SIDEBAR_WIDTH = window.innerWidth;
-} else {
-  var LIGHTBOX_SIDEBAR_WIDTH = 360;
-}
 
 function fuzzy_match(str, pattern) {
   if (pattern.split("").length > 0) {
@@ -74,10 +68,6 @@ const customStyles = {
     height: window.innerHeight - 300,
 
     overflow: "hidden",
-    // paddingRight:0,
-    // paddingBottomt:0,
-    // paddingLeft:10,
-    // paddingTop:10,
     padding: 0,
     backgroundColor: "white"
   },
@@ -165,11 +155,10 @@ export class PhotoListView extends Component {
   }
 
   handleResize() {
+    var columnWidth = window.innerWidth - 5 - 5 - 10;
     if (this.props.showSidebar) {
-      var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10;
-    } else {
-      var columnWidth = window.innerWidth - 5 - 5 - 10;
-    }
+        columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10;
+    } 
 
     const { entrySquareSize, numEntrySquaresPerRow } = calculateGridCellSize(
       columnWidth
@@ -213,17 +202,18 @@ export class PhotoListView extends Component {
   }
 
   onGroupSelect(hashes) {
+    var selectedImageHashes
     if (
       _.intersection(hashes, this.state.selectedImageHashes).length ===
       hashes.length
     ) {
       // for deselect
-      var selectedImageHashes = _.difference(
+      selectedImageHashes = _.difference(
         this.state.selectedImageHashes,
         hashes
       );
     } else {
-      var selectedImageHashes = _.union(this.state.selectedImageHashes, hashes);
+      selectedImageHashes = _.union(this.state.selectedImageHashes, hashes);
     }
     this.setState({ selectedImageHashes: selectedImageHashes });
     if (selectedImageHashes.length === 0) {
@@ -331,12 +321,14 @@ export class PhotoListView extends Component {
 
         if (!this.state.isScrollingFast) {
           // photo cell not scrolling fast
+
+          var favIcon
           if (
             this.props.photoDetails[cell.image_hash]
               ? this.props.photoDetails[cell.image_hash].favorited
               : cell.favorited
           ) {
-            var favIcon = (
+            favIcon = (
               <div style={{ right: 6, bottom: 6, position: "absolute" }}>
                 <Icon
                   circular
@@ -352,7 +344,7 @@ export class PhotoListView extends Component {
               </div>
             );
           } else {
-            var favIcon = (
+            favIcon = (
               <div
                 className="gridCellActions"
                 style={{ right: 6, bottom: 6, position: "absolute" }}
@@ -379,13 +371,13 @@ export class PhotoListView extends Component {
               </div>
             );
           }
-
+          var hiddenIcon
           if (
             this.props.photoDetails[cell.image_hash]
               ? this.props.photoDetails[cell.image_hash].hidden
               : cell.hidden
           ) {
-            var hiddenIcon = (
+            hiddenIcon = (
               <div style={{ left: 6, bottom: 6, position: "absolute" }}>
                 <Icon
                   circular
@@ -401,7 +393,7 @@ export class PhotoListView extends Component {
               </div>
             );
           } else {
-            var hiddenIcon = (
+            hiddenIcon = (
               <div
                 className="gridCellActions"
                 style={{ left: 6, bottom: 6, position: "absolute" }}
@@ -428,13 +420,13 @@ export class PhotoListView extends Component {
               </div>
             );
           }
-
+          var publicIcon  
           if (
             this.props.photoDetails[cell.image_hash]
               ? this.props.photoDetails[cell.image_hash].public
               : cell.public
           ) {
-            var publicIcon = (
+            publicIcon = (
               <div style={{ right: 6, top: 6, position: "absolute" }}>
                 <Icon
                   circular
@@ -450,7 +442,7 @@ export class PhotoListView extends Component {
               </div>
             );
           } else {
-            var publicIcon = (
+            publicIcon = (
               <div
                 className="gridCellActions"
                 style={{ right: 6, top: 6, position: "absolute" }}
@@ -467,12 +459,6 @@ export class PhotoListView extends Component {
                         this.props.dispatch(
                           setPhotosPublic([cell.image_hash], true)
                         );
-                        // Location of generated link when shareing from album. 
-                        //Origianl was 
-                        //serverAddress.replace('//','') +
-                        // "/media/reusableline505/" +
-                        // cell.image_hash +
-                        // ".jpg" DW 12-13-20
                         copyToClipboard(
                           shareAddress +
                             "/media/photos/" +
@@ -678,7 +664,6 @@ export class PhotoListView extends Component {
   }
 
   render() {
-    const { lightboxImageIndex } = this.state;
     if (
       this.props.loading ||
       this.props.idx2hash.length < 1 ||
@@ -797,11 +782,9 @@ export class PhotoListView extends Component {
       .reduce((a, b) => a + b, 0);
 
     console.log(this.props);
-
+    var isUserAlbum = false;
     if (this.props.route.location.pathname.startsWith("/useralbum/")) {
-      var isUserAlbum = true;
-    } else {
-      var isUserAlbum = false;
+      isUserAlbum = true;
     }
 
     return (
@@ -1189,7 +1172,7 @@ export class PhotoListView extends Component {
                 const cell = this.state.cellContents[rowStartIndex][0];
                 if (cell.date) {
                   var date = cell.date;
-                  if (date == "No Timestamp") {
+                  if (date === "No Timestamp") {
                     this.setState({
                       date: date,
                       fromNow: date
@@ -1367,15 +1350,16 @@ export class PhotoListView extends Component {
 class ModalAlbumEdit extends Component {
   state = { newAlbumTitle: "" };
   render() {
+    var filteredUserAlbumList
     if (this.state.newAlbumTitle.length > 0) {
-      var filteredUserAlbumList = this.props.albumsUserList.filter(el =>
+      filteredUserAlbumList = this.props.albumsUserList.filter(el =>
         fuzzy_match(
           el.title.toLowerCase(),
           this.state.newAlbumTitle.toLowerCase()
         )
       );
     } else {
-      var filteredUserAlbumList = this.props.albumsUserList;
+      filteredUserAlbumList = this.props.albumsUserList;
     }
     return (
       <Modal
@@ -1401,7 +1385,7 @@ class ModalAlbumEdit extends Component {
         </div>
         <Divider fitted />
         <div
-          style={{ height: 100, padding: 5, height: 50, overflowY: "hidden" }}
+          style={{ padding: 5, height: 50, overflowY: "hidden" }}
         >
           <Image.Group>
             {this.props.selectedImageHashes.map(image_hash => (
@@ -1491,7 +1475,6 @@ class ModalAlbumEdit extends Component {
                   }}
                 >
                   <Header
-                    as="h4"
                     onClick={() => {
                       this.props.dispatch(
                         editUserAlbum(

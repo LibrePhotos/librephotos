@@ -5,20 +5,6 @@ import _ from "lodash";
 import moment from "moment";
 import { PhotoListView } from "./ReusablePhotoListView";
 
-
-var topMenuHeight = 45; // don't change this
-var ESCAPE_KEY = 27;
-var ENTER_KEY = 13;
-var RIGHT_ARROW_KEY = 39;
-var UP_ARROW_KEY = 38;
-var LEFT_ARROW_KEY = 37;
-var DOWN_ARROW_KEY = 40;
-
-var SIDEBAR_WIDTH = 85;
-
-var DAY_HEADER_HEIGHT = 70;
-var leftMenuWidth = 85; // don't change this
-
 export class AlbumUserGallery extends Component {
   state = {
     photosGroupedByDate: [],
@@ -34,7 +20,7 @@ export class AlbumUserGallery extends Component {
     if (nextProps.albumsUser.hasOwnProperty(nextProps.match.params.albumID)) {
       const photos =
         nextProps.albumsUser[nextProps.match.params.albumID].photos;
-      if (prevState.idx2hash.length != photos.length) {
+      if (prevState.idx2hash.length !== photos.length) {
         var t0 = performance.now();
         var groupedByDate = _.groupBy(photos, el => {
           if (el.exif_timestamp) {

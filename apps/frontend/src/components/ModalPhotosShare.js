@@ -2,20 +2,11 @@ import React, { Component } from "react";
 import { Input, Image, Icon, Header, Divider, Button } from "semantic-ui-react";
 import { SecuredImageJWT } from "../components/SecuredImage";
 import { connect } from "react-redux";
-import _ from "lodash";
 import { fetchPublicUserList } from "../actions/publicActions";
 import { serverAddress } from "../api_client/apiClient";
 import { setPhotosShared } from "../actions/photosActions";
 import Modal from "react-modal";
 import moment from "moment";
-
-
-// <Icon name='id badge' circular />
-var topMenuHeight = 45; // don't change this
-var leftMenuWidth = 85; // don't change this
-var SIDEBAR_WIDTH = 85;
-
-const SPEED_THRESHOLD = 500;
 
 function fuzzy_match(str, pattern) {
   if (pattern.split("").length > 0) {
@@ -36,10 +27,6 @@ const modalStyles = {
     height: window.innerHeight - 300,
 
     overflow: "hidden",
-    // paddingRight:0,
-    // paddingBottomt:0,
-    // paddingLeft:10,
-    // paddingTop:10,
     padding: 0,
     backgroundColor: "white"
   },
@@ -59,8 +46,9 @@ const modalStyles = {
 export class ModalPhotosShare extends Component {
   state = { userNameFilter: "", valShare: true };
   render() {
+    var filteredUserList
     if (this.state.userNameFilter.length > 0) {
-      var filteredUserList = this.props.pub.publicUserList.filter(
+      filteredUserList = this.props.pub.publicUserList.filter(
         el =>
           fuzzy_match(
             el.username.toLowerCase(),
@@ -72,15 +60,10 @@ export class ModalPhotosShare extends Component {
           )
       );
     } else {
-      var filteredUserList = this.props.pub.publicUserList;
+      filteredUserList = this.props.pub.publicUserList;
     }
     filteredUserList = filteredUserList.filter(
       el => el.id !== this.props.auth.access.user_id
-    );
-
-    const allFaces = _.concat(
-      this.props.inferredFacesList,
-      this.props.labeledFacesList
     );
 
     var selectedImageSrcs = this.props.selectedImageHashes.map(image_hash => {
@@ -110,7 +93,7 @@ export class ModalPhotosShare extends Component {
         </div>
         <Divider fitted />
         <div
-          style={{ height: 100, padding: 5, height: 50, overflowY: "hidden" }}
+          style={{ padding: 5, height: 50, overflowY: "hidden" }}
         >
           <Image.Group>
             {selectedImageSrcs
@@ -148,10 +131,9 @@ export class ModalPhotosShare extends Component {
           <Divider />
           {filteredUserList.length > 0 &&
             filteredUserList.map(item => {
+              var displayName = item.username;
               if (item.first_name.length > 0 && item.last_name.length > 0) {
                 var displayName = item.first_name + " " + item.last_name;
-              } else {
-                var displayName = item.username;
               }
               return (
                 <div
@@ -166,14 +148,6 @@ export class ModalPhotosShare extends Component {
                     floated="left"
                     as="h4"
                     onClick={() => {
-                      //this.props.dispatch(
-                      //  setPhotosShared(
-                      //    this.props.selectedImageHashes,
-                      //    this.state.valShare,
-                      //    item
-                      //  )
-                      //);
-                      //this.props.onRequestClose();
                     }}
                   >
                     <Image circular src="/unknown_user.jpg" />
@@ -195,7 +169,6 @@ export class ModalPhotosShare extends Component {
                               item
                             )
                           );
-                          //this.props.onRequestClose();
                         }}
                         positive
                         icon
@@ -213,7 +186,6 @@ export class ModalPhotosShare extends Component {
                               item
                             )
                           );
-                          //this.props.onRequestClose();
                         }}
                         negative
                         icon

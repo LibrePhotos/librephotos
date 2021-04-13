@@ -5,7 +5,6 @@ import { connect } from "react-redux";
 import { Graph } from 'react-d3-graph';
 import { fetchSocialGraph } from '../actions/peopleActions'
 
-
 export class SocialGraph extends Component {
 	componentWillMount() {
 		if (!this.props.fetched){
@@ -17,7 +16,6 @@ export class SocialGraph extends Component {
 		var width = this.props.containerWidth
 
 		console.log('social graph width',width)
-		var data = this.props.socialGraph
 		var myConfig = {
 			automaticRearrangeAfterDropNode: false,
 			staticGraph:true,
@@ -38,15 +36,15 @@ export class SocialGraph extends Component {
 		    height: this.props.height,
 		    width: width
 		}
-
+		var graph
 		if (this.props.fetched && this.props.socialGraph.nodes.length > 0) {
             console.log(this.props.socialGraph)
-			var graph = <Graph id='social-graph'
+			graph = <Graph id='social-graph'
 					config={myConfig}
 					data={this.props.socialGraph}/>
 		}
 		else {
-			var graph = <Loader active>Fetching Social Graph</Loader>
+			graph = <Loader active>Fetching Social Graph</Loader>
 		}
 
 		console.log(this.props)

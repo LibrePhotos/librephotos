@@ -9,19 +9,10 @@ import {
   Divider,
 } from "semantic-ui-react";
 import { connect } from "react-redux";
-import _ from "lodash";
 import { fetchPublicUserList } from "../actions/publicActions";
 import { setUserAlbumShared } from "../actions/albumsActions";
 import Modal from "react-modal";
 import moment from "moment";
-
-
-// <Icon name='id badge' circular />
-var topMenuHeight = 45; // don't change this
-var leftMenuWidth = 85; // don't change this
-var SIDEBAR_WIDTH = 85;
-
-const SPEED_THRESHOLD = 500;
 
 function fuzzy_match(str, pattern) {
   if (pattern.split("").length > 0) {
@@ -42,10 +33,6 @@ const modalStyles = {
     height: window.innerHeight - 300,
 
     overflow: "hidden",
-    // paddingRight:0,
-    // paddingBottomt:0,
-    // paddingLeft:10,
-    // paddingTop:10,
     padding: 0,
     backgroundColor: "white"
   },
@@ -68,8 +55,9 @@ export class ModalAlbumShare extends Component {
     valShare: true,
   };
   render() {
+    var filteredUserList
     if (this.state.userNameFilter.length > 0) {
-      var filteredUserList = this.props.pub.publicUserList.filter(
+      filteredUserList = this.props.pub.publicUserList.filter(
         el =>
           fuzzy_match(
             el.username.toLowerCase(),
@@ -81,21 +69,12 @@ export class ModalAlbumShare extends Component {
           )
       );
     } else {
-      var filteredUserList = this.props.pub.publicUserList;
+      filteredUserList = this.props.pub.publicUserList;
     }
     filteredUserList = filteredUserList.filter(
       el => el.id !== this.props.auth.access.user_id
     );
-
-    const allFaces = _.concat(
-      this.props.inferredFacesList,
-      this.props.labeledFacesList
-    );
-
-    console.log(this.props)
-
     const userAlbum = this.props.albumsUser[this.props.match.params.albumID]
-    console.log(userAlbum)
 
     return (
       <Modal
@@ -141,10 +120,11 @@ export class ModalAlbumShare extends Component {
           <Divider />
           {filteredUserList.length > 0 &&
             filteredUserList.map(item => {
+              var displayName
               if (item.first_name.length > 0 && item.last_name.length > 0) {
-                var displayName = item.first_name + " " + item.last_name;
+                displayName = item.first_name + " " + item.last_name;
               } else {
-                var displayName = item.username;
+                displayName = item.username;
               }
               return (
                 <div
@@ -160,7 +140,7 @@ export class ModalAlbumShare extends Component {
                     onClick={() => {
                       this.props.dispatch(
                         setUserAlbumShared(
-                          parseInt(this.props.match.params.albumID), 
+                          parseInt(this.props.match.params.albumID, 10), 
                           item.id, 
                           this.state.valShare))
                       this.props.onRequestClose();
@@ -192,7 +172,7 @@ export class ModalAlbumShare extends Component {
                     onChange={(e,d)=>{
                       this.props.dispatch(
                         setUserAlbumShared(
-                          parseInt(this.props.match.params.albumID), 
+                          parseInt(this.props.match.params.albumID, 10), 
                           item.id, 
                           !userAlbum.shared_to.map(e=>e.id).includes(item.id)))
                     }}
