@@ -426,9 +426,12 @@ export class FaceDashboard extends Component {
   }
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    var cell = this.state.inferredCellContents[rowIndex][columnIndex];
+    var cell;
     if (this.state.activeItem === "labeled") {
       cell = this.state.labeledCellContents[rowIndex][columnIndex];
+    }
+    else{
+      cell = this.state.inferredCellContents[rowIndex][columnIndex];
     }
 
     if (cell) {
