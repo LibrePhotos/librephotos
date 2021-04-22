@@ -20,8 +20,12 @@ def build_social_graph(user):
     G = nx.Graph()
     with connection.cursor() as cursor:
         cursor.execute(query)
-        for link in cursor.fetchall():
+        links = cursor.fetchall()
+        if len(links) == 0:
+            return {"nodes" : [], "links" : [] }
+        for link in links:
             G.add_edge(link[0],link[1])
+            nodata = False
     pos = nx.spring_layout(G, k=1/2, scale=1000, iterations=20)
     return { "nodes" : [{'id':node,'x':pos[0],'y':pos[1]} for node,pos in pos.items()],
              "links" : [{'source':pair[0], 'target':pair[1]} for pair in G.edges()] }
