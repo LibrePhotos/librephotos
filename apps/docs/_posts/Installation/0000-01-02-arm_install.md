@@ -14,6 +14,11 @@ category: 1
 
 ## Requirements
 
+### Architecture
+
+LibrePhotos will only work, when you have a ARM64 installation.
+Check what version you have by running `dpkg --print-architecture`. If it says `arm64`, you are good to go. Otherwise, you need to reinstall your PI with ARM64.
+
 ### Size
 
 You will need at least 10 GB of storage space for the docker images. This space is mainly used by machine learning models.
