@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "django_rq",
     'constance',
     'constance.backends.database',
+    'drf_yasg',
 ]
 
 CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
