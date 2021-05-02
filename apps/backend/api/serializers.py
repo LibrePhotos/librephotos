@@ -62,7 +62,6 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Photo
         fields = (
-            'thumbnail',
             'square_thumbnail',
             'image',
             'image_hash',
@@ -371,14 +370,6 @@ class AlbumDateListSerializer(serializers.ModelSerializer):
                 if serialized_person not in res:
                     res.append(serialized_person)
         return res
-
-
-class AlbumDateListWithPhotoHashSerializer(serializers.ModelSerializer):
-    photos = PhotoSuperSimpleSerializer(many=True, read_only=True)
-    class Meta:
-        model = AlbumDate
-        fields = ("location", "id", "photos", "date")
-
 
 class AlbumPersonSerializer(serializers.ModelSerializer):
     photos = serializers.SerializerMethodField()

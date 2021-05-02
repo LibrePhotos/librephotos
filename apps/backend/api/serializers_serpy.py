@@ -38,7 +38,7 @@ class PhotoSuperSimpleSerializer(serpy.Serializer):
     public = serpy.BoolField()
     hidden = serpy.BoolField()
     exif_timestamp = DateTimeField()
-    # shared_to_count = serpy.IntField()
+    allow_null = False
 
 
 class PhotoSuperSimpleSerializerWithAddedOn(serpy.Serializer):
@@ -51,12 +51,12 @@ class PhotoSuperSimpleSerializerWithAddedOn(serpy.Serializer):
 
 
 class AlbumDateListWithPhotoHashSerializer(serpy.Serializer):
-    #     photos = PhotoSuperSimpleSerializer(many=True, call=True, attr='ordered_photos')
     photos = PhotoSuperSimpleSerializer(
         many=True, call=True, attr='photos.all')
     location = serpy.Field()
     id = serpy.IntField()
     date = DateTimeField()
+    allow_null = False
 
 
 # todo
