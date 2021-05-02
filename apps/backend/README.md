@@ -64,6 +64,7 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
 
 ## What does it use?
 
+- **Image Conversion:** [ImageMagick](https://github.com/ImageMagick/ImageMagick) 
 - **Face detection:** [face_recognition](https://github.com/ageitgey/face_recognition) 
 - **Face classification/clusterization:** scikit-learn
 - **Image captioning:** [im2txt](https://github.com/HughKu/Im2txt), 
