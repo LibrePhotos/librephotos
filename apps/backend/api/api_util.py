@@ -159,8 +159,8 @@ def get_search_term_examples(user):
 
             term_time = random.choice(datum['time'])
             search_terms.append(term_time)
-
-            term_thing = random.choice(datum['things'])
+            if(datum['things']):
+                term_thing = random.choice(datum['things'])
 
             if len(datum['people']) > 0:
                 term_people = random.choice(datum['people'])
