@@ -59,6 +59,18 @@ The basic idea is this:
 - For scanning photos that reside in external Nextcloud instances
   - Any user can change his/her own Nextcloud endpoint, and choose a top level directory in the Nextcloud account.
 
+## Auto scan all folders
+
+You can start a scan with the following command: 
+~~~
+sudo docker exec --user root CONTAINER_NAME python3 manage.py scan
+~~~
+You can just create a cron job to regulary call this command
+~~~
+# Every day at 3 AM
+0 3 * * * sudo docker exec --user root CONTAINER_NAME python3 manage.py scan >/dev/null 2>&1
+~~~
+
 ### Contributions
 
 - Librephotos is in development. Contributions are welcome!
