@@ -1,5 +1,5 @@
 argparse==1.4.0 
-Django==3.1.6
+Django==3.1.8
 django-constance==2.7.0
 django-cors-headers==3.5.0
 django-cryptography==1.0
@@ -9,10 +9,11 @@ django-picklefield==3.0.1
 django-redis==4.12.1
 django-rq==2.4.0
 django-bulk-update
-djangorestframework==3.12.1
+djangorestframework==3.12.4
 djangorestframework-simplejwt==4.6.0
 dlib==19.21.1
 drf-extensions==0.7.0
+drf-yasg==1.20.0 
 ExifRead==2.3.2
 face-recognition==1.2.3
 faiss-cpu==1.7.0
@@ -20,7 +21,7 @@ Flask==1.0
 Flask-Cors==3.0.3
 Flask-RESTful==0.3.6
 geopy==2.1.0
-gunicorn==20.0.4
+gunicorn==20.1.0
 matplotlib==3.3.2 
 networkx==2.5
 nltk==3.5

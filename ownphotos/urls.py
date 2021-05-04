@@ -14,21 +14,28 @@ Including another URLconf
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
 from api import views
-# from api.views import media_access
-# from django.conf import settings
 from django.conf.urls import include, url
-# from django.conf.urls.static import static
 from django.contrib import admin
-# from django.urls import path
 from nextcloud import views as nextcloud_views
 from rest_framework import routers
-# from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
-from rest_framework_simplejwt.serializers import (TokenObtainPairSerializer,
-                                                  TokenRefreshSerializer)
-from rest_framework_simplejwt.views import (TokenObtainPairView,
-                                            TokenRefreshView)
+from rest_framework_simplejwt.serializers import (TokenObtainPairSerializer, TokenRefreshSerializer)
+from rest_framework_simplejwt.views import (TokenObtainPairView, TokenRefreshView)
+from rest_framework import permissions
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
 
-
+schema_view = get_schema_view(
+   openapi.Info(
+      title="LibrePhotos API",
+      default_version='v1',
+      description="All of the API endpoints in LibrePhotos",
+      terms_of_service="https://www.google.com/policies/terms/",
+      contact=openapi.Contact(email="contact@snippets.local"),
+      license=openapi.License(name="MIT License"),
+   ),
+   public=True,
+   permission_classes=(permissions.AllowAny,),
+)
 class TokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
@@ -189,6 +196,9 @@ router.register(r'api/faces', views.FaceViewSet)
 router.register(r'api/jobs', views.LongRunningJobViewSet)
 
 urlpatterns = [
+    url(r'^api/swagger/json', schema_view.without_ui(cache_timeout=0), name='schema-json'),
+    url(r'^api/swagger', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    url(r'^api/redoc', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     url(r'^', include(router.urls)),
     url(r'^admin/', admin.site.urls),
     url(r'^api/sitesettings', views.SiteSettingsView.as_view()),

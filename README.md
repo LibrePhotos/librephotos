@@ -31,7 +31,6 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
 ### Contributions
 - Get started in less then 30 minutes by following the [guide here](https://github.com/LibrePhotos/librephotos-docker)
 - Join our discord server or open a pull request to start contributing
-- We are looking for developers who want to port LibrePhotos to ARM
 
 **Currently the project is in very early stages, some bugs may exist. If you find any please log an issue**
 
@@ -50,6 +49,7 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
   - Authentication (using JWT)
   - Create custom albums
   - Docker ready
+  - Multithreading
   
 #### Upcoming:
 
@@ -64,6 +64,7 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
 
 ## What does it use?
 
+- **Image Conversion:** [ImageMagick](https://github.com/ImageMagick/ImageMagick) 
 - **Face detection:** [face_recognition](https://github.com/ageitgey/face_recognition) 
 - **Face classification/clusterization:** scikit-learn
 - **Image captioning:** [im2txt](https://github.com/HughKu/Im2txt), 
@@ -75,7 +76,7 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
 
 ### Compatibility
 You need a x86 processor and it is recommended to have 8GBs of RAM.
-**It does not work on ARM processors.** That also means that it won't run on a raspberry pi.
+We have a version in testing, that supports arm processors see [link](https://docs.librephotos.com/1/arm_install/)
 
 ### Size
 You will need at least 10 GB of HDD Space for the docker images. It needs that space because of the machine learning models.
