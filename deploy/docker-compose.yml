@@ -66,6 +66,7 @@ services:
       - WEB_CONCURRENCY=${gunniWorkers}
       - SKIP_PATTERNS=${skipPatterns}
       - DEBUG=0
+      - HEAVYWEIGHT_PROCESS=${HEAVYWEIGHT_PROCESS}
 
     # Wait for Postgres
     depends_on:
