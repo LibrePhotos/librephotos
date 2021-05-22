@@ -16,7 +16,14 @@ from multiprocessing import Pool
 import api.models.album_thing
 from wand.image import Image
 
+def is_video(image_path):
+    mime = magic.Magic(mime=True)
+    filename = mime.from_file(image_path)
+    return filename.find('video') != -1
+
 def is_valid_media(image_path):
+    if(is_video(image_path)):
+        return True
     try:
         with Image(filename=image_path) as i:
             return True
@@ -91,8 +98,9 @@ def handle_new_image(user, image_path, job_id):
                 photo.image_hash=image_hash
                 photo.added_on=datetime.datetime.now().replace(tzinfo=pytz.utc)
                 photo.geolocation_json={}
+                photo.video = is_video(img_abs_path)
                 start = datetime.datetime.now()
-                photo._generate_thumbnail(False)
+                photo._generate_thumbnail(True)
                 photo._generate_captions(False)
                 photo._extract_gps_from_exif(False)
                 photo._geolocate_mapbox(False)

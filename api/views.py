@@ -7,6 +7,7 @@ from django.core.cache import cache
 import ownphotos.settings
 import django_rq
 import six
+import magic
 from constance import config as site_config
 from django.core.cache import cache
 from django.db.models import Count, F, Prefetch, Q
@@ -1664,7 +1665,20 @@ class MediaAccessFullsizeOriginalView(APIView):
     def _get_protected_media_url(self, path, fname):
         return "/protected_media{}/{}".format(path, fname)
     
-    # @silk_profile(name='media')
+    def _generate_response(self, photo, path, fname):
+        if not photo.video or "thumbnail" in path:
+            response = HttpResponse()
+            response['Content-Type'] = 'image/jpeg'
+            response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname)
+            return response
+        else:
+            mime = magic.Magic(mime=True)
+            filename = mime.from_file(photo.image_path)
+            response = HttpResponse()
+            response['Content-Type'] = filename
+            response['X-Accel-Redirect'] = photo.image_path
+            return response
+
     def get(self, request, path, fname, format=None):
         if path.lower() == 'avatars':
             jwt = request.COOKIES.get('jwt')
@@ -1694,11 +1708,8 @@ class MediaAccessFullsizeOriginalView(APIView):
 
             # grant access if the requested photo is public
             if photo.public:
-                response = HttpResponse()
-                response['Content-Type'] = 'image/jpeg'
-                response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname)
-                return response
-
+                return self._generate_response(photo,path,fname)
+            
             # forbid access if trouble with jwt
             if jwt is not None:
                 try:
@@ -1713,17 +1724,11 @@ class MediaAccessFullsizeOriginalView(APIView):
             image_hash = fname.split(".")[0].split('_')[0]  # janky alert
             user = User.objects.filter(id=token['user_id']).only('id').first()
             if photo.owner == user or user in photo.shared_to.all():
-                response = HttpResponse()
-                response['Content-Type'] = 'image/jpeg'
-                response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname)
-                return response
+                return self._generate_response(photo,path,fname)
             else:
                 for album in photo.albumuser_set.only('shared_to'):
                     if user in album.shared_to.all():
-                        response = HttpResponse()
-                        response['Content-Type'] = 'image/jpeg'
-                        response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname)
-                        return response
+                        return self._generate_response(photo,path,fname)
             return HttpResponse(status=404)
         else:
             jwt = request.COOKIES.get('jwt')
