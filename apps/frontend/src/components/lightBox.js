@@ -52,7 +52,7 @@ const colors = [
 
 export class LightBox extends Component {
   state = {
-    lightboxSidebarShow: false
+    lightboxSidebarShow: false,
   };
 
   getCurrentPhotodetail(){
@@ -63,6 +63,30 @@ export class LightBox extends Component {
     return !this.props.photoDetails[this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]];
   }
 
+  getCurrentHash(){
+    return this.props.idx2hash.slice(this.props.lightboxImageIndex)[0];
+  }
+
+  getLastHash(){
+    return  this.props.idx2hash.slice(
+      (this.props.lightboxImageIndex - 1) % this.props.idx2hash.length
+    )[0];
+  }
+
+  getNextHash(){
+    this.props.idx2hash.slice(
+      (this.props.lightboxImageIndex + 1) % this.props.idx2hash.length
+    )[0];
+  }
+
+  getPictureUrl(hash){
+    return serverAddress + "/media/thumbnails_big/" + hash + ".jpg";
+  }
+
+  getVideoUrl(hash){
+    return serverAddress + "/media/video/" + hash;
+  }
+
   isVideo(){
     if (this.getCurrentPhotodetail() === undefined || this.getCurrentPhotodetail().video === undefined){
       return false;
@@ -71,86 +95,50 @@ export class LightBox extends Component {
   }
 
   render() {
-    var mainSrc = "";
-    if (
-      !this.props.photoDetails[
-        this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]
-      ]
-    ) {
-      console.log("light box has not gotten main photo detail");
-      mainSrc = "/transparentbackground.png";
-    } else {
-      console.log("light box has got main photo detail");
-      mainSrc = serverAddress +
-       "/media/thumbnails_big/" +
-        this.props.idx2hash.slice(this.props.lightboxImageIndex)[0] +
-        ".jpg";
-      if (
-        this.props.photoDetails[
-          this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]
-        ].hidden &&
-        !this.props.showHidden
-      ) {
-        mainSrc = "/hidden.png";
-      }
-      for (var i = 0; i < 10; i++) {
-        setTimeout(() => {
+      if(!this.isVideo()){
+        for (var i = 0; i < 10; i++) {
+          setTimeout(() => {
 
-          // Fix large wide images when side bar open; retry once per 250ms over 2.5 seconds
-          if (document.getElementsByClassName('ril-image-current').length > 0) {
-            this.setState({wideImg: (document.getElementsByClassName('ril-image-current')[0].naturalWidth > window.innerWidth)});
+            // Fix large wide images when side bar open; retry once per 250ms over 2.5 seconds
+            if (document.getElementsByClassName('ril-image-current').length > 0) {
+              this.setState({wideImg: (document.getElementsByClassName('ril-image-current')[0].naturalWidth > window.innerWidth)});
 
-            // 360px side bar /2 = 180px to the left = re-centers a wide image
-            var translate = (this.state.lightboxSidebarShow && this.state.wideImg) ? `-180px` : '';
+              // 360px side bar /2 = 180px to the left = re-centers a wide image
+              var translate = (this.state.lightboxSidebarShow && this.state.wideImg) ? `-180px` : '';
 
-            if (document.getElementsByClassName('ril-image-current')[0].style.left !== translate) {
-              document.getElementsByClassName('ril-image-current')[0].style.left = translate;
+              if (document.getElementsByClassName('ril-image-current')[0].style.left !== translate) {
+                document.getElementsByClassName('ril-image-current')[0].style.left = translate;
 
-              // Fix react-image-lightbox
-              // It did not re-calculate the image_prev and image_next when pressed left or right arrow key
-              // It only updated those offsets on render / scroll / double click to zoom / etc.
-              this.forceUpdate();
+                // Fix react-image-lightbox
+                // It did not re-calculate the image_prev and image_next when pressed left or right arrow key
+                // It only updated those offsets on render / scroll / double click to zoom / etc.
+                this.forceUpdate();
+              }
+
+              // Since we disabled animations, we can set image_prev and image_next visibility hidden
+              // Fixes prev/next large wide 16:9 images were visible at same time as main small 9:16 image in view
+              document.getElementsByClassName('ril-image-prev')[0].style.visibility = 'hidden';
+              document.getElementsByClassName('ril-image-next')[0].style.visibility = 'hidden';
+              document.getElementsByClassName('ril-image-current')[0].style.visibility = 'visible';
+
+              // Make toolbar background fully transparent
+              if (document.getElementsByClassName('ril-toolbar').length > 0) {
+                document.getElementsByClassName('ril-toolbar')[0].style.backgroundColor = 'rgba(0, 0, 0, 0)';
+              }
             }
-
-            // Since we disabled animations, we can set image_prev and image_next visibility hidden
-            // Fixes prev/next large wide 16:9 images were visible at same time as main small 9:16 image in view
-            document.getElementsByClassName('ril-image-prev')[0].style.visibility = 'hidden';
-            document.getElementsByClassName('ril-image-next')[0].style.visibility = 'hidden';
-            document.getElementsByClassName('ril-image-current')[0].style.visibility = 'visible';
-
-            // Make toolbar background fully transparent
-            if (document.getElementsByClassName('ril-toolbar').length > 0) {
-              document.getElementsByClassName('ril-toolbar')[0].style.backgroundColor = 'rgba(0, 0, 0, 0)';
-            }
-          }
-        }, 250*i);
+          }, 250*i);
+        }
       }
-    }
-
+    
     return (
       <div>
         <Lightbox
           animationDisabled={true}
-          mainSrc={!this.isVideo() ? mainSrc : null}
-          nextSrc={
-            serverAddress +
-            "/media/thumbnails_big/" +
-            this.props.idx2hash.slice(
-              (this.props.lightboxImageIndex + 1) % this.props.idx2hash.length
-            )[0] +
-            ".jpg"
-          }
-          prevSrc={
-            serverAddress +
-            "/media/thumbnails_big/" +
-            this.props.idx2hash.slice(
-              (this.props.lightboxImageIndex - 1) % this.props.idx2hash.length
-            )[0] +
-            ".jpg"
-          }
-          mainCustomContent={this.isVideo() ? <ReactPlayer width='100%' height='100%' controls={true} url={serverAddress +
-        "/media/video/" +
-        this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]}></ReactPlayer> : null}
+          mainSrc={!this.isVideo() ? this.getPictureUrl(this.getCurrentHash()) : null}
+          nextSrc={this.getPictureUrl(this.getNextHash())}
+          prevSrc={this.getPictureUrl(this.getLastHash())}
+          mainCustomContent={this.isVideo() ? <ReactPlayer width='100%' height='100%' controls={true} url={this.getVideoUrl(this.getCurrentHash())} progressInterval={100}></ReactPlayer> : null}
+          imageLoadErrorMessage={""}
           toolbarButtons={[
             <div>
               {!this.props.photoDetails[
