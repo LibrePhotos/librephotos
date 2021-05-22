@@ -26,6 +26,7 @@ class SharedPhotoSuperSimpleSerializer(serpy.Serializer):
     favorited = serpy.BoolField()
     public = serpy.BoolField()
     hidden = serpy.BoolField()
+    video = serpy.BoolField()
     exif_timestamp = DateTimeField()
     owner = SimpleUserSerializer()
     shared_to = SimpleUserSerializer(
@@ -37,6 +38,7 @@ class PhotoSuperSimpleSerializer(serpy.Serializer):
     favorited = serpy.BoolField()
     public = serpy.BoolField()
     hidden = serpy.BoolField()
+    video = serpy.BoolField()
     exif_timestamp = DateTimeField()
     allow_null = False
 
@@ -46,6 +48,7 @@ class PhotoSuperSimpleSerializerWithAddedOn(serpy.Serializer):
     favorited = serpy.BoolField()
     public = serpy.BoolField()
     hidden = serpy.BoolField()
+    video = serpy.BoolField()
     exif_timestamp = DateTimeField()
     added_on = DateTimeField()
 

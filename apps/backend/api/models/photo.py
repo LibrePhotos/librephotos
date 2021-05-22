@@ -4,15 +4,13 @@ import os
 from datetime import datetime
 from io import BytesIO
 from api.im2txt.sample import im2txt
-import magic
+import exiftool
 import api.models
 import api.util as util
-import exifread
 import face_recognition
 import numpy as np
 import ownphotos.settings
 import PIL
-import pyheif
 import pytz
 from django.core.cache import cache
 from api.exifreader import rotate_image
@@ -25,6 +23,7 @@ from django.db import models
 from geopy.geocoders import Nominatim
 from PIL import ImageOps
 from wand.image import Image
+import subprocess
 
 class VisiblePhotoManager(models.Manager):
     def get_queryset(self):
@@ -58,7 +57,7 @@ class Photo(models.Model):
 
     favorited = models.BooleanField(default=False, db_index=True)
     hidden = models.BooleanField(default=False, db_index=True)
-
+    video = models.BooleanField(default=False)
     owner = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None)
 
@@ -129,61 +128,73 @@ class Photo(models.Model):
 
     def _generate_thumbnail(self,commit=True):
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()):
-            with Image(filename=self.image_path) as img:
-                with BytesIO() as transfer:
-                    with img.clone() as thumbnail: 
-                        thumbnail.format = "jpg" 
-                        thumbnail.transform(resize='x' + str(ownphotos.settings.THUMBNAIL_SIZE_BIG[1]))
-                        thumbnail.compression_quality = 80
-                        thumbnail.auto_orient()
-                        thumbnail.save(transfer)
-                    self.thumbnail_big.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
-        #thumbnail already exists, add to photo
+            if(not self.video):
+                with Image(filename=self.image_path) as img:
+                    with BytesIO() as transfer:
+                        with img.clone() as thumbnail: 
+                            thumbnail.format = "jpg" 
+                            thumbnail.transform(resize='x' + str(ownphotos.settings.THUMBNAIL_SIZE_BIG[1]))
+                            thumbnail.compression_quality = 80
+                            thumbnail.auto_orient()
+                            thumbnail.save(transfer)
+                        self.thumbnail_big.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
+            else:
+                subprocess.call(['ffmpeg', '-i', self.image_path, '-ss', '00:00:00.000', '-vframes', '1', os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()])
+                self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + '.jpg').strip()
+            #thumbnail already exists, add to photo
         else:
             self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + '.jpg').strip()
 
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()):
-            with Image(filename=self.image_path) as img:
-                with BytesIO() as transfer:
-                    with img.clone() as thumbnail: 
-                        thumbnail.format = "jpg"
-                        dst_landscape = 1 > thumbnail.width / thumbnail.height
-                        wh = thumbnail.width if dst_landscape else thumbnail.height
-                        thumbnail.crop(
-                            left=int((thumbnail.width - wh) / 2),
-                            top=int((thumbnail.height - wh) / 2),
-                            width=int(wh),
-                            height=int(wh)
-                        )
-                        thumbnail.resize(width=ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[0], height=ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[1])
-                        thumbnail.resolution = (ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[0], ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[1])                       
-                        thumbnail.compression_quality = 80
-                        thumbnail.auto_orient()
-                        thumbnail.save(transfer)
-                    self.square_thumbnail.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
+            if(not self.video):
+                with Image(filename=self.image_path) as img:
+                    with BytesIO() as transfer:
+                        with img.clone() as thumbnail: 
+                            thumbnail.format = "jpg"
+                            dst_landscape = 1 > thumbnail.width / thumbnail.height
+                            wh = thumbnail.width if dst_landscape else thumbnail.height
+                            thumbnail.crop(
+                                left=int((thumbnail.width - wh) / 2),
+                                top=int((thumbnail.height - wh) / 2),
+                                width=int(wh),
+                                height=int(wh)
+                            )
+                            thumbnail.resize(width=ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[0], height=ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[1])
+                            thumbnail.resolution = (ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[0], ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[1])                       
+                            thumbnail.compression_quality = 80
+                            thumbnail.auto_orient()
+                            thumbnail.save(transfer)
+                        self.square_thumbnail.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
+            else:
+                subprocess.call(['ffmpeg', '-i', self.image_path, '-ss', '00:00:00.000', '-vframes', '1', '-vf','scale=500:500:force_original_aspect_ratio=increase,crop=500:500', os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()])
+                self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.jpg').strip()
         #thumbnail already exists, add to photo
         else:
             self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.jpg').strip()
 
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()):
-            with Image(filename=self.image_path) as img:
-                with BytesIO() as transfer:
-                    with img.clone() as thumbnail: 
-                        thumbnail.format = "jpg"
-                        dst_landscape = 1 > thumbnail.width / thumbnail.height
-                        wh = thumbnail.width if dst_landscape else thumbnail.height
-                        thumbnail.crop(
-                            left=int((thumbnail.width - wh) / 2),
-                            top=int((thumbnail.height - wh) / 2),
-                            width=int(wh),
-                            height=int(wh)
-                        )
-                        thumbnail.resize(width=ownphotos.settings.THUMBNAIL_SIZE_SMALL[0], height=ownphotos.settings.THUMBNAIL_SIZE_SMALL[1])
-                        thumbnail.resolution = (ownphotos.settings.THUMBNAIL_SIZE_SMALL[0], ownphotos.settings.THUMBNAIL_SIZE_SMALL[1])
-                        thumbnail.compression_quality = 80
-                        thumbnail.auto_orient()
-                        thumbnail.save(transfer)
-                    self.square_thumbnail_small.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
+            if(not self.video):
+                with Image(filename=self.image_path) as img:
+                    with BytesIO() as transfer:
+                        with img.clone() as thumbnail: 
+                            thumbnail.format = "jpg"
+                            dst_landscape = 1 > thumbnail.width / thumbnail.height
+                            wh = thumbnail.width if dst_landscape else thumbnail.height
+                            thumbnail.crop(
+                                left=int((thumbnail.width - wh) / 2),
+                                top=int((thumbnail.height - wh) / 2),
+                                width=int(wh),
+                                height=int(wh)
+                            )
+                            thumbnail.resize(width=ownphotos.settings.THUMBNAIL_SIZE_SMALL[0], height=ownphotos.settings.THUMBNAIL_SIZE_SMALL[1])
+                            thumbnail.resolution = (ownphotos.settings.THUMBNAIL_SIZE_SMALL[0], ownphotos.settings.THUMBNAIL_SIZE_SMALL[1])
+                            thumbnail.compression_quality = 80
+                            thumbnail.auto_orient()
+                            thumbnail.save(transfer)
+                        self.square_thumbnail_small.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
+            else:
+                subprocess.call(['ffmpeg', '-i', self.image_path, '-ss', '00:00:00.000', '-vframes', '1', '-vf','scale=100:100:force_original_aspect_ratio=increase,crop=100:100', os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()])
+                self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.jpg').strip()
         #thumbnail already exists, add to photo
         else:
             self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.jpg').strip()
@@ -214,16 +225,19 @@ class Photo(models.Model):
     def _extract_date_time_from_exif(self,commit=True):
         date_format = "%Y:%m:%d %H:%M:%S"
         timestamp_from_exif = None
-        with open(self.image_path, 'rb') as fimg:
-            exif = exifread.process_file(fimg, details=False)
-            serializable = dict(
-                [key, value.printable] for key, value in exif.items())
-            self.exif_json = serializable
-            if 'EXIF DateTimeOriginal' in exif.keys():
-                tst_str = exif['EXIF DateTimeOriginal'].values
+        with exiftool.ExifTool() as et:
+            exif = et.get_tag('EXIF:DateTimeOriginal', self.image_path)
+            exifvideo = et.get_tag('QuickTime:CreateDate', self.image_path)
+            if exif:
                 try:
                     timestamp_from_exif = datetime.strptime(
-                        tst_str, date_format).replace(tzinfo=pytz.utc)
+                        exif, date_format).replace(tzinfo=pytz.utc)
+                except:
+                    timestamp_from_exif = None
+            if exifvideo:
+                try:
+                    timestamp_from_exif = datetime.strptime(
+                        exifvideo, date_format).replace(tzinfo=pytz.utc)
                 except:
                     timestamp_from_exif = None
 
@@ -250,29 +264,14 @@ class Photo(models.Model):
         album_date.save()
 
     def _extract_gps_from_exif(self,commit=True):
-        with open(self.image_path, 'rb') as fimg:
-            exif = exifread.process_file(fimg, details=False)
-            serializable = dict(
-                [key, value.printable] for key, value in exif.items())
-            self.exif_json = serializable
-            if 'GPS GPSLongitude' in exif.keys():
-                self.exif_gps_lon = util.convert_to_degrees(
-                    exif['GPS GPSLongitude'].values)
-                # Check for correct positive/negative degrees
-                if exif['GPS GPSLongitudeRef'].values != 'E':
-                    self.exif_gps_lon = -float(self.exif_gps_lon)
-            else:
-                self.exif_gps_lon = None
-
-            if 'GPS GPSLatitude' in exif.keys():
-                self.exif_gps_lat = util.convert_to_degrees(
-                    exif['GPS GPSLatitude'].values)
-                # Check for correct positive/negative degrees
-                if exif['GPS GPSLatitudeRef'].values != 'N':
-                    self.exif_gps_lat = -float(self.exif_gps_lat)
-            else:
-                self.exif_gps_lat = None
-        if commit:
+         with exiftool.ExifTool() as et:
+            gpslon = et.get_tag('Composite:GPSLongitude', self.image_path)
+            gpslat = et.get_tag('Composite:GPSLatitude', self.image_path)
+            if(gpslon):
+                self.exif_gps_lon = float(gpslon)
+            if(gpslat):
+                self.exif_gps_lat = float(gpslat)   
+         if commit:
             self.save()
 
     def _geolocate(self):
