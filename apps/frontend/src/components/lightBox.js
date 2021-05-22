@@ -93,7 +93,6 @@ export class LightBox extends Component {
       ) {
         mainSrc = "/hidden.png";
       }
-
       for (var i = 0; i < 10; i++) {
         setTimeout(() => {
 
@@ -149,9 +148,9 @@ export class LightBox extends Component {
             )[0] +
             ".jpg"
           }
-          mainCustomContent={this.isVideo() && this.isLoaded() ? <ReactPlayer width='100%' height='100%' controls={true} url={serverAddress +
-            "/media/video/" +
-            this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]} /> : null}
+          mainCustomContent={this.isVideo() ? <ReactPlayer width='100%' height='100%' controls={true} url={serverAddress +
+        "/media/video/" +
+        this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]}></ReactPlayer> : null}
           toolbarButtons={[
             <div>
               {!this.props.photoDetails[
