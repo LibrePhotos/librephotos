@@ -22,7 +22,7 @@ services:
       - frontend
 
   db:
-    image: postgres
+    image: postgres:13
     restart: always
     environment:
       - POSTGRES_USER=${dbUser}
@@ -66,11 +66,12 @@ services:
       - WEB_CONCURRENCY=${gunniWorkers}
       - SKIP_PATTERNS=${skipPatterns}
       - DEBUG=0
+      - HEAVYWEIGHT_PROCESS=${HEAVYWEIGHT_PROCESS}
 
     # Wait for Postgres
     depends_on:
       - db
 
   redis:
-    image: redis
+    image: redis:6
     restart: always
