@@ -321,7 +321,26 @@ export class PhotoListView extends Component {
 
         if (!this.state.isScrollingFast) {
           // photo cell not scrolling fast
-
+          var videoIcon
+          if (
+            this.props.photoDetails[cell.image_hash]
+              ? this.props.photoDetails[cell.image_hash].video
+              : cell.video
+          ) {
+            videoIcon = (
+              <div style={{top: "50%", left: "50%", transform: "translate(-50%, -50%)", position: "absolute" }}>
+                <Icon
+                  circular
+                  style={{ backgroundColor: "rgba(255,255,255,0.5)" }}
+                  onClick={() => {
+                      this.onPhotoClick(cell.image_hash);
+                    }}
+                  color="black"
+                  name="play"
+                />
+              </div>
+            );
+          }
           var favIcon
           if (
             this.props.photoDetails[cell.image_hash]
@@ -542,6 +561,7 @@ export class PhotoListView extends Component {
                     }
                   />
                 </div>
+                {videoIcon}
                 {!this.props.isPublic && hiddenIcon}
                 {!this.props.isPublic && favIcon}
                 {!this.props.isPublic && publicIcon}
@@ -605,6 +625,7 @@ export class PhotoListView extends Component {
                     />
                   )}
                 </div>
+                {videoIcon}
                 {!this.props.isPublic && hiddenIcon}
                 {!this.props.isPublic && favIcon}
                 {!this.props.isPublic && publicIcon}

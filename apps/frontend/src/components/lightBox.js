@@ -26,6 +26,7 @@ import { push } from "react-router-redux";
 import { searchPhotos } from "../actions/searchActions";
 import * as moment from "moment";
 import { Link } from "react-router-dom";
+import ReactPlayer from 'react-player'
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
 
 var LIGHTBOX_SIDEBAR_WIDTH = 360;
@@ -53,6 +54,21 @@ export class LightBox extends Component {
   state = {
     lightboxSidebarShow: false
   };
+
+  getCurrentPhotodetail(){
+    return this.props.photoDetails[this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]];
+  }
+
+  isLoaded(){
+    return !this.props.photoDetails[this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]];
+  }
+
+  isVideo(){
+    if (this.getCurrentPhotodetail() === undefined || this.getCurrentPhotodetail().video === undefined){
+      return false;
+    }
+    return this.getCurrentPhotodetail().video;
+  }
 
   render() {
     var mainSrc = "";
@@ -116,7 +132,7 @@ export class LightBox extends Component {
       <div>
         <Lightbox
           animationDisabled={true}
-          mainSrc={mainSrc}
+          mainSrc={!this.isVideo() ? mainSrc : null}
           nextSrc={
             serverAddress +
             "/media/thumbnails_big/" +
@@ -133,6 +149,9 @@ export class LightBox extends Component {
             )[0] +
             ".jpg"
           }
+          mainCustomContent={this.isVideo() && this.isLoaded() ? <ReactPlayer width='100%' height='100%' controls={true} url={serverAddress +
+            "/media/video/" +
+            this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]} /> : null}
           toolbarButtons={[
             <div>
               {!this.props.photoDetails[
