@@ -211,13 +211,13 @@ class PersonSerializer(serializers.ModelSerializer):
 
     def get_face_url(self, obj):
         try:
-            face = obj.faces.first()
+            face = obj.faces.filter(Q(person_label_is_inferred=False)& Q(photo__hidden=False)).first()
             return face.image.url
         except:
             return None
 
     def get_face_photo_url(self, obj):
-        first_face = obj.faces.filter(Q(photo__hidden=False)).first()
+        first_face = obj.faces.filter(Q(person_label_is_inferred=False) & Q(photo__hidden=False)).first()
         if first_face:
             return os.path.join(ownphotos.settings.MEDIA_URL, first_face.photo.square_thumbnail.name)
         else:
@@ -410,17 +410,17 @@ class AlbumPersonListSerializer(serializers.ModelSerializer):
         )
 
     def get_photo_count(self, obj):
-        return obj.faces.count()
+        return obj.filter(Q(person_label_is_inferred=False)).faces.count()
 
     def get_cover_photo_url(self, obj):
-        first_face = obj.faces.first()
+        first_face = obj.faces.filter(Q(person_label_is_inferred=False)).first()
         if first_face:
             return first_face.photo.square_thumbnail.url
         else:
             return None
 
     def get_face_photo_url(self, obj):
-        first_face = obj.faces.first()
+        first_face = obj.faces.filter(Q(person_label_is_inferred=False)).first()
         if first_face:
             return first_face.photo.image.url
         else:
