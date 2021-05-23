@@ -550,7 +550,7 @@ class PersonViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Person.objects \
-            .filter(Q(faces__photo__hidden=False) & Q(faces__photo__owner=self.request.user)) \
+            .filter(Q(faces__photo__hidden=False) & Q(faces__photo__owner=self.request.user) & Q(faces__person_label_is_inferred=False)) \
             .distinct() \
             .annotate(viewable_face_count=Count('faces')) \
             .filter(Q(viewable_face_count__gt=0)) \
@@ -671,11 +671,12 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
         return Person.objects \
             .annotate(photo_count=Count('faces', filter=Q(faces__photo__hidden=False), distinct=True)) \
             .filter(Q(photo_count__gt=0)) \
+            .prefetch_related(Prefetch('faces',queryset=Face.objects.filter(Q(person_label_is_inferred=False)))) \
             .prefetch_related(
                 Prefetch(
                     'faces__photo',
                     queryset=Photo.objects.filter(Q(faces__photo__hidden=False) &
-                        Q(owner=self.request.user)).order_by('-exif_timestamp').only(
+                        Q(owner=self.request.user)).distinct().order_by('-exif_timestamp').only(
                             'image_hash', 'exif_timestamp', 'favorited', 'public',
                             'hidden'))).order_by('name')
 
