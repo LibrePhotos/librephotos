@@ -41,6 +41,7 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
   - Label some faces manually, and train a face classifier to label the rest
   - View photos by people in them
   - Support for RAW photos
+  - Support for Video 
   - Automatically generate "event" albums like "Thursday in Berlin"
   - See photos on the map
   - View photos grouped by date
@@ -54,7 +55,6 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
 #### Upcoming:
 
   - Short term:
-    - Add video support
     - Stability
 
   - Longer term, i.e. haven't thought much about them
@@ -65,6 +65,8 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
 ## What does it use?
 
 - **Image Conversion:** [ImageMagick](https://github.com/ImageMagick/ImageMagick) 
+- **Video Conversion:** [FFmpeg](https://github.com/FFmpeg/FFmpeg)
+- **Exif Support:** [ExifTool](https://github.com/exiftool/exiftool)
 - **Face detection:** [face_recognition](https://github.com/ageitgey/face_recognition) 
 - **Face classification/clusterization:** scikit-learn
 - **Image captioning:** [im2txt](https://github.com/HughKu/Im2txt), 
