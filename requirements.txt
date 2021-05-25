@@ -18,7 +18,7 @@ ExifRead==2.3.2
 face-recognition==1.2.3
 faiss-cpu==1.7.0
 Flask==1.0
-Flask-Cors==3.0.3
+Flask-Cors==3.0.9
 Flask-RESTful==0.3.6
 geopy==2.1.0
 gunicorn==20.1.0
