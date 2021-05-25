@@ -15,7 +15,7 @@ class Face(models.Model):
 
     person = models.ForeignKey(
         Person, on_delete=models.SET(get_unknown_person), related_name='faces')
-    person_label_is_inferred = models.NullBooleanField(db_index=True)
+    person_label_is_inferred = models.BooleanField(null= True, db_index=True)
     person_label_probability = models.FloatField(default=0., db_index=True)
 
     location_top = models.IntegerField()
