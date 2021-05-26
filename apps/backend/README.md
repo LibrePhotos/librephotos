@@ -25,7 +25,7 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
 ## What is it?
 
 - LibrePhotos is a fork of Ownphotos
-- Self hosted Google Photos clone, with a slight focus on cool graphs
+- A self-hosted open source photo management service, with a slight focus on cool graphs
 - Django backend and React frontend
 
 ### Contributions
