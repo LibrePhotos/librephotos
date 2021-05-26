@@ -93,7 +93,7 @@ def handle_new_image(user, image_path, job_id):
 
             if not Photo.objects.filter(Q(image_hash=image_hash)).exists():
                 photo = Photo()
-                photo.image_path=img_abs_path
+                photo.image_paths.append(img_abs_path)
                 photo.owner=user
                 photo.image_hash=image_hash
                 photo.added_on=datetime.datetime.now().replace(tzinfo=pytz.utc)
@@ -122,6 +122,10 @@ def handle_new_image(user, image_path, job_id):
                         )
                     )
             else:
+                photo = Photo.objects.filter(Q(image_hash=image_hash)).first()
+                photo.image_paths.append(img_abs_path)
+                photo.save()
+                photo._check_image_paths()
                 util.logger.warning(
                     "job {}: file {} exists already".format(job_id, image_path)
                 )
@@ -140,9 +144,10 @@ def handle_new_image(user, image_path, job_id):
 def rescan_image(user, image_path, job_id):
     try:
         if is_valid_media(image_path):
-            photo = Photo.objects.filter(Q(image_path=image_path)).get()
+            photo = Photo.objects.filter(Q(image_paths__contains=image_path)).get()
             photo._generate_thumbnail(False)
             photo._extract_date_time_from_exif(True)
+            
 
     except Exception as e:
         try:
@@ -166,7 +171,7 @@ def walk_directory(directory, callback):
                 callback.append(fpath)
 
 def photo_scanner(user, path, job_id):
-        if Photo.objects.filter(image_path=path).exists():
+        if Photo.objects.filter(image_paths__contains=path).exists():
             rescan_image(user, path, job_id)
         else:
             handle_new_image(user, path, job_id)
@@ -213,7 +218,10 @@ def scan_photos(user, job_id):
         place365_instance.unload()
         util.logger.info("Scanned {} files in : {}".format(files_found, user.scan_directory))
         api.models.album_thing.update()
-
+        exisisting_photos = Photo.objects.filter(owner=user.id)
+        for existing_photo in exisisting_photos:
+            util.logger.info(existing_photo.image_paths)
+            existing_photo._check_image_paths()
         build_image_similarity_index(user)
     except Exception:
         util.logger.exception("An error occured: ")

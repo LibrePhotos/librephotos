@@ -91,7 +91,7 @@ class PhotoSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
     people = serializers.SerializerMethodField()
     shared_to = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-
+    image_path = serializers.SerializerMethodField()
     class Meta:
         model = Photo
         fields = ('exif_gps_lat', 'exif_gps_lon', 'exif_timestamp',
@@ -120,6 +120,12 @@ class PhotoSerializer(serializers.ModelSerializer):
                 'places365': {'attributes':[],'categories':[],'environment':[]}
                 }
             return emptyArray
+
+    def get_image_path(self, obj):
+        try:
+            return obj.image_paths[0]
+        except:
+            return "Missing"
 
     def get_thumbnail_url(self, obj):
         try:

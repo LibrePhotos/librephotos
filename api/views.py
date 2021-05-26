@@ -25,7 +25,7 @@ from rest_framework_extensions.key_constructor.constructors import \
     DefaultKeyConstructor
 from api.face_classify import train_faces, cluster_faces
 from api.social_graph import build_social_graph
-from api.autoalbum import generate_event_albums, regenerate_event_titles
+from api.autoalbum import generate_event_albums, delete_missing_photos, regenerate_event_titles
 from api.api_util import (get_count_stats, get_search_term_examples,
                           path_to_dict, get_location_clusters, get_location_sunburst, get_searchterms_wordcloud, get_location_timeline, get_photo_month_counts)
 from api.directory_watcher import scan_photos
@@ -123,7 +123,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
     permission_classes = (IsPhotoOrAlbumSharedTo, )
     search_fields = ([
         'search_captions', 'search_location', 'faces__person__name',
-        'exif_timestamp', 'image_path'
+        'exif_timestamp', 'image_paths'
     ])
 
     def get_queryset(self):
@@ -164,7 +164,7 @@ class PhotoHashListViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter, )
     search_fields = ([
         'search_captions', 'search_location', 'faces__person__name',
-        'exif_timestamp', 'image_path'
+        'exif_timestamp', 'image_paths'
     ])
 
     def get_queryset(self):
@@ -185,7 +185,7 @@ class PhotoSimpleListViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter, )
     search_fields = ([
         'search_captions', 'search_location', 'faces__person__name',
-        'exif_timestamp', 'image_path'
+        'exif_timestamp', 'image_paths'
     ])
 
     def get_queryset(self):
@@ -207,7 +207,7 @@ class PhotoSuperSimpleSearchListViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter, )
     search_fields = ([
         'search_captions', 'search_location', 'faces__person__name',
-        'exif_timestamp', 'image_path'
+        'exif_timestamp', 'image_paths'
     ])
 
     def get_queryset(self):
@@ -232,7 +232,7 @@ class PhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter, )
     search_fields = ([
         'search_captions', 'search_location', 'faces__person__name',
-        'exif_timestamp', 'image_path'
+        'exif_timestamp', 'image_paths'
     ])
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
@@ -409,7 +409,7 @@ class NoTimestampPhotoHashListViewSet(viewsets.ModelViewSet):
     ])
 
     def get_queryset(self):
-        return Photo.objects.filter(Q(hidden=False) & Q(exif_timestamp=None) & Q(owner=self.request.user)).order_by('image_path')
+        return Photo.objects.filter(Q(hidden=False) & Q(exif_timestamp=None) & Q(owner=self.request.user)).order_by('image_paths')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -1520,6 +1520,15 @@ class ScanPhotosView(APIView):
             logger.exception("An Error occured")
             return Response({'status': False})
 
+class DeleteMissingPhotosView(APIView):
+    def get(self, request, format=None):
+        try:
+            job_id = uuid.uuid4()
+            delete_missing_photos(request.user, job_id)
+            return Response({'status': True, 'job_id': job_id})
+        except BaseException as e:
+            logger.exception("An Error occured")
+            return Response({'status': False})
 
 class RegenerateAutoAlbumTitles(APIView):
     def get(self, request, format=None):
@@ -1674,10 +1683,10 @@ class MediaAccessFullsizeOriginalView(APIView):
             return response
         else:
             mime = magic.Magic(mime=True)
-            filename = mime.from_file(photo.image_path)
+            filename = mime.from_file(photo.image_paths[0])
             response = HttpResponse()
             response['Content-Type'] = filename
-            response['X-Accel-Redirect'] = photo.image_path
+            response['X-Accel-Redirect'] = photo.image_paths[0]
             return response
 
     def get(self, request, path, fname, format=None):
@@ -1740,11 +1749,11 @@ class MediaAccessFullsizeOriginalView(APIView):
                 return HttpResponse(status=404)
 
 
-            if photo.image_path.startswith('/nextcloud_media/'):
-                internal_path = photo.image_path.replace('/nextcloud_media/','/nextcloud_original/')
-                internal_path = '/nextcloud_original'+photo.image_path[21:]
-            if photo.image_path.startswith('/data/'):
-                internal_path = '/original'+photo.image_path[5:]
+            if photo.image_paths[0].startswith('/nextcloud_media/'):
+                internal_path = photo.image_paths[0].replace('/nextcloud_media/','/nextcloud_original/')
+                internal_path = '/nextcloud_original'+photo.image_paths[0][21:]
+            if photo.image_paths[0].startswith('/data/'):
+                internal_path = '/original'+photo.image_paths[0][5:]
 
             # grant access if the requested photo is public
             if photo.public:
@@ -1792,14 +1801,14 @@ class ZipListPhotosView(APIView):
             mf = io.BytesIO()
             photos_name = {}
             for photo in photos.values():
-                photo_name=os.path.basename(photo.image_path)
+                photo_name=os.path.basename(photo.image_paths[0])
                 if photo_name in photos_name:
                     photos_name[photo_name] = photos_name[photo_name] + 1
                     photo_name = str(photos_name[photo_name]) + '-' + photo_name
                 else:
                     photos_name[photo_name] = 1
                 with zipfile.ZipFile(mf, mode='a', compression=zipfile.ZIP_DEFLATED) as zf:
-                    zf.write(photo.image_path,arcname=photo_name)
+                    zf.write(photo.image_paths[0],arcname=photo_name)
             return HttpResponse(mf.getvalue(),content_type="application/x-zip-compressed")
         except BaseException as e:
             logger.error(str(e))

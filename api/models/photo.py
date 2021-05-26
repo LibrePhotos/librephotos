@@ -24,13 +24,14 @@ from geopy.geocoders import Nominatim
 from PIL import ImageOps
 from wand.image import Image
 import subprocess
+import json
 
 class VisiblePhotoManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset().filter(hidden=False)
 
 class Photo(models.Model):
-    image_path = models.CharField(max_length=512, db_index=True)
+    image_paths = models.JSONField(default=list)
     image_hash = models.CharField(primary_key=True, max_length=64, null=False)
 
     thumbnail_big = models.ImageField(upload_to='thumbnails_big')
@@ -71,7 +72,7 @@ class Photo(models.Model):
 
     def _generate_md5(self):
         hash_md5 = hashlib.md5()
-        with open(self.image_path, "rb") as f:
+        with open(self.image_paths[0], "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
                 hash_md5.update(chunk)
         self.image_hash = hash_md5.hexdigest() + str(self.owner.id)
@@ -129,7 +130,7 @@ class Photo(models.Model):
     def _generate_thumbnail(self,commit=True):
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()):
             if(not self.video):
-                with Image(filename=self.image_path) as img:
+                with Image(filename=self.image_paths[0]) as img:
                     with BytesIO() as transfer:
                         with img.clone() as thumbnail: 
                             thumbnail.format = "jpg" 
@@ -139,7 +140,7 @@ class Photo(models.Model):
                             thumbnail.save(transfer)
                         self.thumbnail_big.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
             else:
-                subprocess.call(['ffmpeg', '-i', self.image_path, '-ss', '00:00:00.000', '-vframes', '1', os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()])
+                subprocess.call(['ffmpeg', '-i', self.image_paths[0], '-ss', '00:00:00.000', '-vframes', '1', os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()])
                 self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + '.jpg').strip()
             #thumbnail already exists, add to photo
         else:
@@ -147,7 +148,7 @@ class Photo(models.Model):
 
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()):
             if(not self.video):
-                with Image(filename=self.image_path) as img:
+                with Image(filename=self.image_paths[0]) as img:
                     with BytesIO() as transfer:
                         with img.clone() as thumbnail: 
                             thumbnail.format = "jpg"
@@ -166,7 +167,7 @@ class Photo(models.Model):
                             thumbnail.save(transfer)
                         self.square_thumbnail.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
             else:
-                subprocess.call(['ffmpeg', '-i', self.image_path, '-ss', '00:00:00.000', '-vframes', '1', '-vf','scale=500:500:force_original_aspect_ratio=increase,crop=500:500', os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()])
+                subprocess.call(['ffmpeg', '-i', self.image_paths[0], '-ss', '00:00:00.000', '-vframes', '1', '-vf','scale=500:500:force_original_aspect_ratio=increase,crop=500:500', os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()])
                 self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.jpg').strip()
         #thumbnail already exists, add to photo
         else:
@@ -174,7 +175,7 @@ class Photo(models.Model):
 
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()):
             if(not self.video):
-                with Image(filename=self.image_path) as img:
+                with Image(filename=self.image_paths[0]) as img:
                     with BytesIO() as transfer:
                         with img.clone() as thumbnail: 
                             thumbnail.format = "jpg"
@@ -193,7 +194,7 @@ class Photo(models.Model):
                             thumbnail.save(transfer)
                         self.square_thumbnail_small.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
             else:
-                subprocess.call(['ffmpeg', '-i', self.image_path, '-ss', '00:00:00.000', '-vframes', '1', '-vf','scale=100:100:force_original_aspect_ratio=increase,crop=100:100', os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()])
+                subprocess.call(['ffmpeg', '-i', self.image_paths[0], '-ss', '00:00:00.000', '-vframes', '1', '-vf','scale=100:100:force_original_aspect_ratio=increase,crop=100:100', os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()])
                 self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.jpg').strip()
         #thumbnail already exists, add to photo
         else:
@@ -214,11 +215,11 @@ class Photo(models.Model):
         if self.exif_timestamp:
             possible_old_album_date = api.models.album_date.get_album_date(
                 date=self.exif_timestamp.date(), owner=self.owner)
-            if(possible_old_album_date != None and possible_old_album_date.photos.filter(image_path=self.image_path).exists):
+            if(possible_old_album_date != None and possible_old_album_date.photos.filter(image_hash=self.image_hash).exists):
                 old_album_date = possible_old_album_date
         else:
             possible_old_album_date = api.models.album_date.get_album_date(date=None, owner=self.owner)
-            if(possible_old_album_date != None and possible_old_album_date.photos.filter(image_path=self.image_path).exists):
+            if(possible_old_album_date != None and possible_old_album_date.photos.filter(image_hash=self.image_hash).exists):
                 old_album_date = possible_old_album_date
         return old_album_date
 
@@ -226,8 +227,8 @@ class Photo(models.Model):
         date_format = "%Y:%m:%d %H:%M:%S"
         timestamp_from_exif = None
         with exiftool.ExifTool() as et:
-            exif = et.get_tag('EXIF:DateTimeOriginal', self.image_path)
-            exifvideo = et.get_tag('QuickTime:CreateDate', self.image_path)
+            exif = et.get_tag('EXIF:DateTimeOriginal', self.image_paths[0])
+            exifvideo = et.get_tag('QuickTime:CreateDate', self.image_paths[0])
             if exif:
                 try:
                     timestamp_from_exif = datetime.strptime(
@@ -265,8 +266,8 @@ class Photo(models.Model):
 
     def _extract_gps_from_exif(self,commit=True):
          with exiftool.ExifTool() as et:
-            gpslon = et.get_tag('Composite:GPSLongitude', self.image_path)
-            gpslat = et.get_tag('Composite:GPSLatitude', self.image_path)
+            gpslon = et.get_tag('Composite:GPSLongitude', self.image_paths[0])
+            gpslat = et.get_tag('Composite:GPSLatitude', self.image_paths[0])
             if(gpslon):
                 self.exif_gps_lon = float(gpslon)
             if(gpslat):
@@ -419,6 +420,14 @@ class Photo(models.Model):
             album_place.photos.add(self)
             album_place.save()
         cache.clear() 
+
+    def _check_image_paths(self):
+        exisiting_image_paths = []
+        for image_path in self.image_paths:
+            if(os.path.exists(image_path)):
+                exisiting_image_paths.append(image_path)
+        self.image_paths = exisiting_image_paths
+        self.save()
 
     def __str__(self):
         return "%s" % self.image_hash

@@ -204,8 +204,10 @@ def get_search_term_examples(user):
     return list(set(search_terms))
 
 
+
 def get_count_stats(user):
     num_photos = Photo.objects.filter(owner=user).count()
+    num_missing_photos = Photo.objects.filter(Q(owner=user) & Q(image_paths=[])).count()
     num_faces = Face.objects.filter(photo__owner=user).count()
     num_unknown_faces = Face.objects.filter(
         Q(person__name__exact='unknown') & Q(photo__owner=user)).count()
@@ -221,6 +223,7 @@ def get_count_stats(user):
 
     res = {
         "num_photos": num_photos,
+        "num_missing_photos": num_missing_photos, 
         "num_faces": num_faces,
         "num_people": num_people,
         "num_unknown_faces": num_unknown_faces,
