@@ -350,7 +350,7 @@ class ModalScanDirectoryEdit extends Component {
 
   nodeClicked(event, rowInfo) {
     console.log(rowInfo);
-    this.inputRef.current.inputRef.value = rowInfo.node.absolute_path;
+    this.inputRef.current.value = rowInfo.node.absolute_path;
     this.setState({newScanDirectory: rowInfo.node.absolute_path});
   }
 
