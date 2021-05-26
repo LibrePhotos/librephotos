@@ -1,4 +1,3 @@
-from api.models.photo import Photo
 from django.db import migrations, models
 import json
 
@@ -9,6 +8,7 @@ class Migration(migrations.Migration):
     ]
 
     def forwards_func(apps, schema):
+        Photo = apps.get_model('api', 'Photo')
         for obj in Photo.objects.all():
             try:
                 obj.image_paths.append(obj.image_path)
