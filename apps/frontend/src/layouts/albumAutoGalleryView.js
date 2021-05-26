@@ -12,7 +12,7 @@ import {
 } from "semantic-ui-react";
 import { connect } from "react-redux";
 // import {Image} from '../components/authenticatedImage'
-import { BrowserRouter as Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { fetchAlbumsAutoGalleries } from "../actions/albumsActions";
 import { Map, TileLayer, Marker } from "react-leaflet";
 import {serverAddress } from "../api_client/apiClient";
@@ -109,12 +109,12 @@ export class AlbumAutoGalleryView extends Component {
     this.onPhotoClick = this.onPhotoClick.bind(this);
   }
 
-  componentWillMount() {
+  componentWillMount() {    
+    this.calculateEntrySquareSize();
+    window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
     this.props.dispatch(
       fetchAlbumsAutoGalleries(this.props.match.params.albumID)
     );
-    this.calculateEntrySquareSize();
-    window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
   }
 
   calculateEntrySquareSize() {
@@ -272,6 +272,7 @@ export class AlbumAutoGalleryView extends Component {
                 <Label.Group circular>
                   {album.people.map((person, idx) => (
                     <Label
+                      key={person.id}
                       as={Link}
                       to={`/person/${person.id}`}
                       color={colors[idx % album.people.length]}

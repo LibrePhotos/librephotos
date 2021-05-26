@@ -11,9 +11,7 @@ export class AlbumPersonGallery extends Component {
   }
 
   componentDidMount() {
-    if (this.props.people.length === 0){
       this.props.dispatch(fetchPeopleAlbums(this.props.match.params.albumID))
-    }
   }
 
   static getDerivedStateFromProps(nextProps,prevState){

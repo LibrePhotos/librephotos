@@ -323,7 +323,6 @@ export function fetchDateAlbumsPhotoHashList() {
 export function fetchAlbumsAutoGalleries(album_id) {
   return function(dispatch) {
     dispatch({ type: "FETCH_AUTO_ALBUMS_RETRIEVE" });
-
     Server.get(`albums/auto/${album_id}/`)
       .then(response => {
         dispatch({
