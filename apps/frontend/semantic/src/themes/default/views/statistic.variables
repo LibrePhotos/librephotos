@@ -6,17 +6,18 @@
          View
 --------------------*/
 
-@margin: 1em 0em;
+@verticalMargin: 1em;
+@margin: @verticalMargin 0;
 @textAlign: center;
-@maxWidth: auto;
+@maxWidth: none;
 
 /* Group */
 @horizontalSpacing: 1.5em;
-@rowSpacing: 2em;
-@groupMargin: 1em -@horizontalSpacing -@rowSpacing;
+@rowSpacing: 1em;
+@groupMargin: @verticalMargin -@horizontalSpacing -@rowSpacing;
 
 /* Group Element */
-@elementMargin: 0em @horizontalSpacing @rowSpacing;
+@elementMargin: 0 @horizontalSpacing @rowSpacing;
 @elementMaxWidth: @maxWidth;
 
 /*-------------------
@@ -32,8 +33,8 @@
 
 /* Label */
 @labelSize: @relativeMedium;
-@topLabelDistance: 0rem;
-@bottomLabelDistance: 0rem;
+@topLabelDistance: 0;
+@bottomLabelDistance: 0;
 @labelFont: @headerFont;
 @labelFontWeight: @bold;
 @labelColor: @textColor;
@@ -53,7 +54,7 @@
       Types
 --------------------*/
 
-@horizontalGroupElementMargin: 1em 0em;
+@horizontalGroupElementMargin: 1em 0;
 @horizontalLabelDistance: 0.75em;
 
 /*-------------------
@@ -61,16 +62,20 @@
 --------------------*/
 
 /* Floated */
-@leftFloatedMargin: 0em 2em 1em 0em;
-@rightFloatedMargin: 0em 0em 1em 2em;
+@leftFloatedMargin: 0 2em 1em 0;
+@rightFloatedMargin: 0 0 1em 2em;
 
 /* Inverted */
 @invertedValueColor: @white;
 @invertedLabelColor: @invertedTextColor;
 
 /* Item Width */
-@itemGroupMargin: 0em 0em -@rowSpacing;
-@itemMargin: 0em 0em @rowSpacing;
+@itemGroupMargin: 0 0 -@rowSpacing;
+@itemMargin: 0 0 @rowSpacing;
+
+/* Stackable */
+@stackableRowSpacing: 2rem;
+@stackableGutter: 2rem;
 
 /* Size */
 @miniTextValueSize: 1rem;
@@ -93,6 +98,14 @@
 @largeValueSize: 5rem;
 @largeHorizontalValueSize: 4rem;
 
+@bigTextValueSize: 2.5rem;
+@bigValueSize: 5.5rem;
+@bigHorizontalValueSize: 4.5rem;
+
 @hugeTextValueSize: 2.5rem;
 @hugeValueSize: 6rem;
 @hugeHorizontalValueSize: 5rem;
+
+@massiveTextValueSize: 3rem;
+@massiveValueSize: 7rem;
+@massiveHorizontalValueSize: 6rem;

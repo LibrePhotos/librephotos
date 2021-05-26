@@ -7,10 +7,10 @@
 --------------------*/
 
 @verticalMargin: 1em;
-@horizontalMargin: 0em;
+@horizontalMargin: 0;
 @margin: @verticalMargin @horizontalMargin;
 @borderCollapse: separate;
-@borderSpacing: 0px;
+@borderSpacing: 0;
 @borderRadius: @defaultBorderRadius;
 @transition:
   background @defaultDuration @defaultEasing,
@@ -22,6 +22,7 @@
 @border: @borderWidth solid @borderColor;
 @boxShadow: none;
 @textAlign: left;
+@verticalAlign: middle;
 
 /*--------------
      Parts
@@ -57,7 +58,7 @@
 @footerDivider: none;
 @footerBackground: @offWhite;
 @footerAlign: inherit;
-@footerVerticalAlign: middle;
+@footerVerticalAlign: inherit;
 @footerColor: @textColor;
 @footerVerticalPadding: @cellVerticalPadding;
 @footerHorizontalPadding: @cellHorizontalPadding;
@@ -69,10 +70,10 @@
 @responsiveHeaderDisplay: block;
 @responsiveFooterDisplay: block;
 @responsiveRowVerticalPadding: 1em;
-@responsiveRowBoxShadow: 0px -1px 0px 0px rgba(0, 0, 0, 0.1) inset !important;
+@responsiveRowBoxShadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset;
 @responsiveCellVerticalPadding: 0.25em;
 @responsiveCellHorizontalPadding: 0.75em;
-@responsiveCellBoxShadow: none !important;
+@responsiveCellBoxShadow: none;
 @responsiveCellHeaderFontWeight: @bold;
 
 /*-------------------
@@ -82,7 +83,7 @@
 /* Definition */
 @definitionPageBackground: @white;
 
-@definitionHeaderBackground: transparent;
+@definitionHeaderBackground: @white;
 @definitionHeaderColor: @unselectedTextColor;
 @definitionHeaderFontWeight: @normal;
 
@@ -110,36 +111,36 @@
      States
 ---------------*/
 
-@stateMarkerWidth: 0px;
+@stateMarkerWidth: 0;
 
 /* Positive */
 @positiveColor: @positiveTextColor;
-@positiveBoxShadow: @stateMarkerWidth 0px 0px @positiveBorderColor inset;
+@positiveBoxShadow: @stateMarkerWidth 0 0 @positiveBorderColor inset;
 @positiveBackgroundHover: darken(@positiveBackgroundColor, 3);
 @positiveColorHover: darken(@positiveColor, 3);
 
 /* Negative */
 @negativeColor: @negativeTextColor;
-@negativeBoxShadow: @stateMarkerWidth 0px 0px @negativeBorderColor inset;
+@negativeBoxShadow: @stateMarkerWidth 0 0 @negativeBorderColor inset;
 @negativeBackgroundHover: darken(@negativeBackgroundColor, 3);
 @negativeColorHover: darken(@negativeColor, 3);
 
 /* Error */
 @errorColor: @errorTextColor;
-@errorBoxShadow: @stateMarkerWidth 0px 0px @errorBorderColor inset;
+@errorBoxShadow: @stateMarkerWidth 0 0 @errorBorderColor inset;
 @errorBackgroundHover: darken(@errorBackgroundColor, 3);
 @errorColorHover: darken(@errorColor, 3);
 
 /* Warning */
 @warningColor: @warningTextColor;
-@warningBoxShadow: @stateMarkerWidth 0px 0px @warningBorderColor inset;
+@warningBoxShadow: @stateMarkerWidth 0 0 @warningBorderColor inset;
 @warningBackgroundHover: darken(@warningBackgroundColor, 3);
 @warningColorHover: darken(@warningColor, 3);
 
 /* Active */
 @activeColor: @textColor;
 @activeBackgroundColor: #E0E0E0;
-@activeBoxShadow: @stateMarkerWidth 0px 0px @activeColor inset;
+@activeBoxShadow: @stateMarkerWidth 0 0 @activeColor inset;
 
 @activeBackgroundHover: #EFEFEF;
 @activeColorHover: @selectedTextColor;
@@ -149,10 +150,10 @@
 ---------------*/
 
 /* Attached */
-@attachedTopOffset: 0px;
-@attachedBottomOffset: 0px;
+@attachedTopOffset: 0;
+@attachedBottomOffset: 0;
 @attachedHorizontalOffset: -@borderWidth;
-@attachedWidth: ~"calc(100% + "-@attachedHorizontalOffset * 2~")";
+@attachedWidth: e(%("calc(100%% + %d)", -@attachedHorizontalOffset * 2));
 @attachedBoxShadow: none;
 @attachedBorder: @borderWidth solid @solidBorderColor;
 @attachedBottomBoxShadow:
@@ -200,11 +201,13 @@
 
 /* Colors */
 @coloredBorderSize: 0.2em;
-@coloredBorderRadius: 0em 0em @borderRadius @borderRadius;
+@coloredBorderRadius: 0 0 @borderRadius @borderRadius;
+@coloredBorderSizeCover: @coloredBorderSize / 2;
 
 /* Inverted */
 @invertedBackground: #333333;
 @invertedBorder: none;
+@invertedCellBorder: 1px solid @whiteBorderColor;
 @invertedCellBorderColor: @whiteBorderColor;
 @invertedCellColor: @invertedTextColor;
 

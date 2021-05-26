@@ -1,6 +1,6 @@
 /*!
- * # Semantic UI - Feed
- * http://github.com/semantic-org/semantic-ui/
+ * # Fomantic-UI - Feed
+ * http://github.com/fomantic/Fomantic-UI/
  *
  *
  * Released under the MIT license
@@ -25,10 +25,10 @@
   margin: @margin;
 }
 .ui.feed:first-child {
-  margin-top: 0em;
+  margin-top: 0;
 }
 .ui.feed:last-child {
-  margin-bottom: 0em;
+  margin-bottom: 0;
 }
 
 
@@ -47,11 +47,11 @@
   border-top: @eventDivider;
 }
 .ui.feed > .event:first-child {
-  border-top: 0px;
-  padding-top: 0em;
+  border-top: 0;
+  padding-top: 0;
 }
 .ui.feed > .event:last-child {
-  padding-bottom: 0em;
+  padding-bottom: 0;
 }
 
 /* Event Label */
@@ -114,7 +114,6 @@
   font-weight: @dateFontWeight;
   font-size: @dateFontSize;
   font-style: @dateFontStyle;
-  color: @dateColor;
 }
 
 /*--------------
@@ -219,7 +218,7 @@
 .ui.feed > .event > .content .meta > *:after {
   content: @metadataDivider;
   color: @metadataDividerColor;
-  top: 0em;
+  top: 0;
   left: @metadataDividerOffset;
   opacity: 1;
   position: absolute;
@@ -230,16 +229,16 @@
   color: @likeColor;
   transition: @likeTransition;
 }
-.ui.feed > .event > .content .meta .like:hover .icon {
+.ui.feed > .event > .content .meta .like:hover i.icon {
   color: @likeHoverColor;
 }
-.ui.feed > .event > .content .meta .active.like .icon {
+.ui.feed > .event > .content .meta .active.like i.icon {
   color: @likeActiveColor;
 }
 
 /* First element */
 .ui.feed > .event > .content .meta > :first-child {
-  margin-left: 0em;
+  margin-left: 0;
 }
 .ui.feed > .event > .content .meta > :first-child::after {
   display: none;
@@ -247,15 +246,15 @@
 
 /* Action */
 .ui.feed > .event > .content .meta a,
-.ui.feed > .event > .content .meta > .icon {
+.ui.feed > .event > .content .meta > i.icon {
   cursor: @metadataActionCursor;
   opacity: @metadataActionOpacity;
   color: @metadataActionColor;
   transition: @metadataActionTransition;
 }
 .ui.feed > .event > .content .meta a:hover,
-.ui.feed > .event > .content .meta a:hover .icon,
-.ui.feed > .event > .content .meta > .icon:hover {
+.ui.feed > .event > .content .meta a:hover i.icon,
+.ui.feed > .event > .content .meta > i.icon:hover {
   color: @metadataActionHoverColor;
 }
 
@@ -265,14 +264,41 @@
             Variations
 *******************************/
 
-.ui.small.feed {
-  font-size: @small;
-}
 .ui.feed {
   font-size: @medium;
 }
-.ui.large.feed {
-  font-size: @large;
+& when not (@variationFeedSizes = false) {
+  each(@variationFeedSizes, {
+    @s: @@value;
+    .ui.@{value}.feed  {
+      font-size: @s;
+    }
+  })
 }
+
+& when (@variationFeedInverted) {
+  /*------------------
+        Inverted
+  -------------------*/
+
+  .ui.inverted.feed > .event {
+    background: @black;
+  }
+
+  .ui.inverted.feed > .event > .content .date,
+  .ui.inverted.feed > .event > .content .meta .like {
+    color: @invertedLightTextColor;
+  }
+
+  .ui.inverted.feed > .event > .content .summary,
+  .ui.inverted.feed > .event > .content .extra.text {
+    color: @invertedTextColor;
+  }
+
+  .ui.inverted.feed > .event > .content .meta .like:hover {
+    color: @invertedSelectedTextColor;
+  }
+}
+
 
 .loadUIOverrides();

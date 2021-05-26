@@ -1,6 +1,6 @@
 /*!
- * # Semantic UI - Rating
- * http://github.com/semantic-org/semantic-ui/
+ * # Fomantic-UI - Rating
+ * http://github.com/fomantic/Fomantic-UI/
  *
  *
  * Released under the MIT license
@@ -8,9 +8,13 @@
  *
  */
 
-(function ($, window, document, undefined) {
+;(function ($, window, document, undefined) {
 
 'use strict';
+
+$.isFunction = $.isFunction || function(obj) {
+  return typeof obj === "function" && typeof obj.nodeType !== "number";
+};
 
 window = (typeof window != 'undefined' && window.Math == Math)
   ? window
@@ -43,7 +47,7 @@ $.fn.rating = function(parameters) {
         className       = settings.className,
         metadata        = settings.metadata,
         selector        = settings.selector,
-        error           = settings.error,
+        cssVars         = settings.cssVars,
 
         eventNamespace  = '.' + namespace,
         moduleNamespace = 'module-' + namespace,
@@ -67,7 +71,7 @@ $.fn.rating = function(parameters) {
             module.setup.layout();
           }
 
-          if(settings.interactive) {
+          if(settings.interactive && !module.is.disabled()) {
             module.enable();
           }
           else {
@@ -103,7 +107,8 @@ $.fn.rating = function(parameters) {
           layout: function() {
             var
               maxRating = module.get.maxRating(),
-              html      = $.fn.rating.settings.templates.icon(maxRating)
+              icon      = module.get.icon(),
+              html      = $.fn.rating.settings.templates.icon(maxRating, icon)
             ;
             module.debug('Generating icon html dynamically');
             $module
@@ -204,10 +209,20 @@ $.fn.rating = function(parameters) {
         is: {
           initialLoad: function() {
             return initialLoad;
+          },
+          disabled: function() {
+            return $module.hasClass(className.disabled);
           }
         },
 
         get: {
+          icon: function(){
+            var icon = $module.data(metadata.icon);
+            if (icon) {
+              $module.removeData(metadata.icon);
+            }
+            return icon || settings.icon;
+          },
           initialRating: function() {
             if($module.data(metadata.rating) !== undefined) {
               $module.removeData(metadata.rating);
@@ -234,10 +249,17 @@ $.fn.rating = function(parameters) {
         set: {
           rating: function(rating) {
             var
-              ratingIndex = (rating - 1 >= 0)
-                ? (rating - 1)
-                : 0,
-              $activeIcon = $icon.eq(ratingIndex)
+              ratingIndex = Math.floor(
+                (rating - 1 >= 0)
+                  ? (rating - 1)
+                  : 0
+              ),
+              $activeIcon = $icon.eq(ratingIndex),
+              $partialActiveIcon = rating <= 1
+                ? $activeIcon
+                : $activeIcon.next()
+              ,
+              filledPercentage = (rating % 1) * 100
             ;
             $module
               .removeClass(className.selected)
@@ -245,14 +267,30 @@ $.fn.rating = function(parameters) {
             $icon
               .removeClass(className.selected)
               .removeClass(className.active)
+              .removeClass(className.partiallyActive)
             ;
             if(rating > 0) {
               module.verbose('Setting current rating to', rating);
               $activeIcon
                 .prevAll()
                 .addBack()
-                  .addClass(className.active)
+                .addClass(className.active)
               ;
+              if($activeIcon.next() && rating % 1 !== 0) {
+                $partialActiveIcon
+                  .addClass(className.partiallyActive)
+                  .addClass(className.active)
+                ;
+                $partialActiveIcon
+                  .css(cssVars.filledCustomPropName, filledPercentage + '%')
+                ;
+                if($partialActiveIcon.css('backgroundColor') === 'transparent') {
+                  $partialActiveIcon
+                    .removeClass(className.partiallyActive)
+                    .removeClass(className.active)
+                  ;
+                }
+              }
             }
             if(!module.is.initialLoad()) {
               settings.onRate.call(element, rating);
@@ -415,7 +453,7 @@ $.fn.rating = function(parameters) {
           else if(found !== undefined) {
             response = found;
           }
-          if($.isArray(returnedValue)) {
+          if(Array.isArray(returnedValue)) {
             returnedValue.push(response);
           }
           else if(returnedValue !== undefined) {
@@ -453,7 +491,9 @@ $.fn.rating.settings = {
   name          : 'Rating',
   namespace     : 'rating',
 
-  slent         : false,
+  icon          : 'star',
+
+  silent        : false,
   debug         : false,
   verbose       : false,
   performance   : true,
@@ -475,14 +515,20 @@ $.fn.rating.settings = {
 
   metadata: {
     rating    : 'rating',
-    maxRating : 'maxRating'
+    maxRating : 'maxRating',
+    icon      : 'icon'
   },
 
   className : {
     active   : 'active',
     disabled : 'disabled',
     selected : 'selected',
-    loading  : 'loading'
+    loading  : 'loading',
+    partiallyActive : 'partial'
+  },
+
+  cssVars : {
+    filledCustomPropName : '--full'
   },
 
   selector  : {
@@ -490,13 +536,13 @@ $.fn.rating.settings = {
   },
 
   templates: {
-    icon: function(maxRating) {
+    icon: function(maxRating, iconClass) {
       var
         icon = 1,
         html = ''
       ;
       while(icon <= maxRating) {
-        html += '<i class="icon"></i>';
+        html += '<i class="'+iconClass+' icon"></i>';
         icon++;
       }
       return html;

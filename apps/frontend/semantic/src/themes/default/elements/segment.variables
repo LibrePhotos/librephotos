@@ -16,7 +16,7 @@
 @padding: @verticalPadding @horizontalPadding;
 
 @verticalMargin: 1rem;
-@horizontalMargin: 0em;
+@horizontalMargin: 0;
 @margin: @verticalMargin @horizontalMargin;
 @borderRadius: @defaultBorderRadius;
 
@@ -33,7 +33,7 @@
 
 @groupedSegmentBorder: none;
 @groupedSegmentDivider: @border;
-@groupedSegmentMargin: 0em;
+@groupedSegmentMargin: 0;
 @groupedSegmentWidth: auto;
 @groupedSegmentBoxShadow: none;
 
@@ -45,21 +45,18 @@
 @pageGridMargin: (2 * @verticalPadding);
 
 /*******************************
-            States
+            Types
 *******************************/
 
-/* Loading Dimmer */
-@loaderDimmerColor: rgba(255, 255, 255, 0.8);
-@loaderDimmerZIndex: 100;
+/* Placeholder */
+@placeholderBackground: @offWhite;
+@placeholderPadding: @padding;
+@placeholderBorderColor: @borderColor;
+@placeholderBoxShadow: 0 2px 25px 0 rgba(34, 36, 38, 0.05) inset;
+@placeholderMinHeight: 18rem;
+@placeholderContentMaxWidth: 15rem;
+@placeholderContentInlineButtonMargin: 0 @5px 0 0;
 
-/* Loading Spinner */
-@loaderSize: 3em;
-@loaderLineZIndex: 101;
-
-
-/*******************************
-            Variations
-*******************************/
 
 /* Piled */
 @piledZIndex: auto;
@@ -77,6 +74,25 @@
 @stackedPadding: @verticalPadding + (0.4em);
 @tallStackedPadding: @verticalPadding + (0.8em);
 
+/*******************************
+            States
+*******************************/
+
+/* Loading Dimmer */
+@loaderDimmerColor: rgba(255, 255, 255, 0.8);
+@loaderInvertedDimmerColor: rgba(0, 0, 0 , 0.85);
+@loaderDimmerZIndex: 100;
+
+/* Loading Spinner */
+@loaderSize: 3em;
+@loaderLineZIndex: 101;
+
+
+/*******************************
+            Variations
+*******************************/
+
+
 /* Raised */
 @raisedBoxShadow: @floatingShadow;
 
@@ -85,10 +101,10 @@
 @veryPaddedSegmentPadding: 3em;
 
 /* Attached */
-@attachedTopOffset: 0px;
-@attachedBottomOffset: 0px;
+@attachedTopOffset: 0;
+@attachedBottomOffset: 0;
 @attachedHorizontalOffset: -@borderWidth;
-@attachedWidth: ~"calc(100% + "-@attachedHorizontalOffset * 2~")";
+@attachedWidth: e(%("calc(100%% + %d)", -@attachedHorizontalOffset * 2));
 @attachedBoxShadow: none;
 @attachedBorder: @borderWidth solid @solidBorderColor;
 @attachedBottomBoxShadow:
@@ -106,7 +122,7 @@
 @basicBackground: none transparent;
 @basicBorder: none;
 @basicBoxShadow: none;
-@basicBorderRadius: 0px;
+@basicBorderRadius: 0;
 
 /* Colors */
 @coloredBorderSize: 2px;
@@ -122,7 +138,7 @@
 @secondaryInvertedBackground:
   lighten(@black, (@secondaryInvertedLightness * 100))
   linear-gradient(
-    rgba(255, 255, 255, @secondaryInvertedLightness) 0%,
+    rgba(255, 255, 255, @secondaryInvertedLightness) 0,
     rgba(255, 255, 255, @secondaryInvertedLightness) 100%
   )
 ;
@@ -132,7 +148,7 @@
 @tertiaryInvertedBackground:
   lighten(@black, (@tertiaryInvertedLightness * 100))
   linear-gradient(
-    rgba(255, 255, 255, @tertiaryInvertedLightness) 0%,
+    rgba(255, 255, 255, @tertiaryInvertedLightness) 0,
     rgba(255, 255, 255, @tertiaryInvertedLightness) 100%
   )
 ;

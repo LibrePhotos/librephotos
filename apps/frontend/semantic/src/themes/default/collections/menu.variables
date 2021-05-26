@@ -8,7 +8,7 @@
 
 /* Menu */
 @verticalMargin: @medium;
-@horizontalMargin: 0em;
+@horizontalMargin: 0;
 @margin: @verticalMargin @horizontalMargin;
 @background: #FFFFFF;
 @fontFamily: @pageFont;
@@ -38,11 +38,11 @@
 
 /* Sub Menu */
 @subMenuDistance: 0.5em;
-@subMenuMargin: @subMenuDistance -@itemHorizontalPadding 0em;
+@subMenuMargin: @subMenuDistance -@itemHorizontalPadding 0;
 @subMenuFontSize: @relativeTiny;
 @subMenuTextColor: rgba(0, 0, 0, 0.5);
 
-@subMenuIndent: 0em;
+@subMenuIndent: 0;
 @subMenuHorizontalPadding: (@itemHorizontalPadding / @tinySize) + @subMenuIndent;
 @subMenuVerticalPadding: 0.5em;
 
@@ -55,7 +55,7 @@
 
 /* Icon */
 @iconFloat: none;
-@iconMargin: 0em @relative5px 0em 0em;
+@iconMargin: 0 @relative5px 0 0;
 @iconOpacity: 0.9;
 
 /* Dropdown Icon */
@@ -69,10 +69,10 @@
 
 /* Vertical Icon */
 @verticalIconFloat: right;
-@verticalIconMargin: 0em 0em 0em 0.5em;
+@verticalIconMargin: 0 0 0 0.5em;
 
 /* Vertical Header */
-@verticalHeaderMargin: 0em 0em 0.5em;
+@verticalHeaderMargin: 0 0 0.5em;
 @verticalHeaderFontSize: @relativeMedium;
 @verticalHeaderFontWeight: @bold;
 
@@ -97,18 +97,18 @@
 
 /* Button */
 @buttonSize: @relativeMedium;
-@buttonOffset: 0em;
-@buttonMargin: -0.5em 0em;
+@buttonOffset: 0;
+@buttonMargin: -0.5em 0;
 @buttonVerticalPadding: @relativeMini;
 
 /* Input */
 @inputSize: @relativeMedium;
 @inputVerticalMargin: -0.5em;
-@inputOffset: 0em;
+@inputOffset: 0;
 @inputVerticalPadding: @relative8px;
 
 /* Image */
-@imageMargin: -0.3em 0em;
+@imageMargin: -0.3em 0;
 @imageWidth: 2.5em;
 @verticalImageWidth: auto;
 
@@ -119,16 +119,23 @@
 
 @labelTextMargin: 1em;
 @labelVerticalPadding: 0.3em;
+@circularLabelVerticalPadding: 0.5em; /* has to be equal to @circularPadding from label.less */
 @labelHorizontalPadding: @relativeMini;
 
 @labelAndIconFloat: none;
-@labelAndIconMargin: 0em 0.5em 0em 0em;
+@labelAndIconMargin: 0 0.5em 0 0;
+
+/* Image Label */
+@imageLabelTextDistance: 0.8em;
+@imageLabelVerticalPadding: 0.2833em; /* Calculates as: @verticalLabel (from label.less) - @labelVerticalPadding (from here) */
+@imageLabelHeight: (1em + @imageLabelVerticalPadding * 2);  /* Logic adopted from label.less */
+@imageLabelImageMargin: -@imageLabelVerticalPadding @imageLabelTextDistance -@imageLabelVerticalPadding -@imageLabelTextDistance;
 
 /* Dropdown in Menu */
-@dropdownMenuBoxShadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.08);
+@dropdownMenuBoxShadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08);
 
 @dropdownBackground: #FFFFFF;
-@dropdownMenuDistance: 0em;
+@dropdownMenuDistance: 0;
 @dropdownMenuBorderRadius: @borderRadius;
 
 @dropdownItemFontSize: @relativeMedium;
@@ -142,13 +149,13 @@
 
 @dropdownItemIconFloat: none;
 @dropdownItemIconFontSize: @relativeMedium;
-@dropdownItemIconMargin: 0em 0.75em 0em 0em;
+@dropdownItemIconMargin: 0 0.75em 0 0;
 
 @dropdownHoveredItemBackground: @transparentBlack;
 @dropdownHoveredItemColor: @selectedTextColor;
 
 /* Dropdown Variations */
-@dropdownVerticalMenuBoxShadow: 0 1px 3px 0px rgba(0, 0, 0, 0.08);
+@dropdownVerticalMenuBoxShadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08);
 @secondaryDropdownMenuDistance: @relative5px;
 @pointingDropdownMenuDistance: 0.75em;
 @invertedSelectionDropdownColor: @invertedTextColor;
@@ -208,10 +215,10 @@
 
 /* Secondary */
 @secondaryBackground: none;
-@secondaryMargin: 0em -@secondaryItemSpacing;
+@secondaryMargin: 0 -@secondaryItemSpacing;
 @secondaryItemBackground: none;
 @secondaryItemSpacing: @relative5px;
-@secondaryItemMargin: 0em @secondaryItemSpacing;
+@secondaryItemMargin: 0 @secondaryItemSpacing;
 @secondaryItemVerticalPadding: @relativeMini;
 @secondaryItemHorizontalPadding: @relativeSmall;
 @secondaryItemPadding: @relativeMini @relativeSmall;
@@ -234,11 +241,11 @@
 @secondaryHeaderBorder: none;
 
 @secondaryItemVerticalSpacing: @secondaryItemSpacing;
-@secondaryVerticalItemMargin: 0em 0em @secondaryItemVerticalSpacing;
+@secondaryVerticalItemMargin: 0 0 @secondaryItemVerticalSpacing;
 @secondaryVerticalItemBorderRadius: @defaultBorderRadius;
 
-@secondaryMenuSubMenuMargin: 0em -@secondaryItemHorizontalPadding;
-@secondaryMenuSubMenuItemMargin: 0em;
+@secondaryMenuSubMenuMargin: 0 -@secondaryItemHorizontalPadding;
+@secondaryMenuSubMenuItemMargin: 0;
 @secondarySubMenuHorizontalPadding: (@itemHorizontalPadding / @tinySize) + @subMenuIndent;
 @secondaryMenuSubMenuItemPadding: @relative7px @secondarySubMenuHorizontalPadding;
 
@@ -250,7 +257,7 @@
 
 @secondaryPointingHoverTextColor: @textColor;
 
-@secondaryPointingActiveBorderColor: @black;
+@secondaryPointingActiveBorderColor: currentColor;
 @secondaryPointingActiveTextColor: @selectedTextColor;
 @secondaryPointingActiveFontWeight: @bold;
 
@@ -260,7 +267,7 @@
 @secondaryPointingActiveHoverTextColor: @secondaryPointingActiveTextColor;
 
 @secondaryPointingHeaderColor: @darkTextColor;
-@secondaryVerticalPointingItemMargin: 0em -@secondaryPointingBorderWidth 0em 0em;
+@secondaryVerticalPointingItemMargin: 0 -@secondaryPointingBorderWidth 0 0;
 
 
 /* Inverted Secondary */
@@ -276,7 +283,7 @@
 @secondaryPointingInvertedBorderColor: @whiteBorderColor;
 @secondaryPointingInvertedItemTextColor: @invertedTextColor;
 @secondaryPointingInvertedItemHeaderColor: @white;
-@secondaryPointingInvertedItemHoverTextColor: @selectedTextColor;
+@secondaryPointingInvertedItemHoverTextColor: @invertedSelectedTextColor;
 @secondaryPointingInvertedActiveBorderColor: @white;
 @secondaryPointingInvertedActiveColor: @invertedSelectedTextColor;
 
@@ -321,7 +328,7 @@
 @tabularVerticalBackground: none @tabularBackgroundColor;
 
 @tabularFluidOffset: 1px;
-@tabularFluidWidth: ~"calc(100% + "(@tabularFluidOffset * 2)~")";
+@tabularFluidWidth: e(%("calc(100%% + %d)", @tabularFluidOffset * 2));
 
 @tabularActiveBackground: none @white;
 @tabularActiveColor: @selectedTextColor;
@@ -347,13 +354,13 @@
 @textMenuMargin: @relativeMedium -(@textMenuItemSpacing);
 @textMenuItemColor: @mutedTextColor;
 @textMenuItemFontWeight: @normal;
-@textMenuItemMargin: 0em 0em;
+@textMenuItemMargin: 0 0;
 @textMenuItemPadding: @relative5px @textMenuItemSpacing;
 @textMenuItemTransition: opacity @defaultDuration @defaultEasing;
 
-@textMenuSubMenuMargin: 0em;
-@textMenuSubMenuItemMargin: 0em;
-@textMenuSubMenuItemPadding: @relative7px 0em;
+@textMenuSubMenuMargin: 0;
+@textMenuSubMenuItemMargin: 0;
+@textMenuSubMenuItemPadding: @relative7px 0;
 
 @textMenuActiveItemFontWeight: @normal;
 @textMenuActiveItemColor: @selectedTextColor;
@@ -363,9 +370,9 @@
 @textMenuHeaderFontWeight: @bold;
 @textMenuHeaderTextTransform: uppercase;
 
-@textVerticalMenuMargin: @relativeMedium 0em;
-@textVerticalMenuHeaderMargin: @relative8px 0em @relative10px;
-@textVerticalMenuItemMargin: @relative8px 0em;
+@textVerticalMenuMargin: @relativeMedium 0;
+@textVerticalMenuHeaderMargin: @relative8px 0 @relative10px;
+@textVerticalMenuItemMargin: @relative8px 0;
 
 @textVerticalMenuIconFloat: none;
 @textVerticalMenuIconMargin: @iconMargin;
@@ -378,7 +385,7 @@
 /* Inverted */
 @invertedBackground: @black;
 @invertedBoxShadow: none;
-@invertedBorder: 0px solid transparent;
+@invertedBorder: 0 solid transparent;
 @invertedHeaderBackground: transparent;
 
 @invertedItemBackground: transparent;
@@ -400,7 +407,7 @@
 @invertedMenuPressedColor: @invertedSelectedTextColor;
 
 /* Inverted Active */
-@invertedActiveBackground: @strongTransparentWhite;
+@invertedActiveBackground: @invertedArrowActiveColor;
 @invertedActiveColor: @invertedSelectedTextColor;
 @invertedArrowActiveColor: #3D3E3F;
 
@@ -427,10 +434,10 @@
 @floatedDistance: 0.5rem;
 
 /* Attached */
-@attachedTopOffset: 0px;
-@attachedBottomOffset: 0px;
+@attachedTopOffset: 0;
+@attachedBottomOffset: 0;
 @attachedHorizontalOffset: -@borderWidth;
-@attachedWidth: ~"calc(100% + "-@attachedHorizontalOffset * 2~")";
+@attachedWidth: e(%("calc(100%% + %d)", -@attachedHorizontalOffset * 2));
 @attachedBoxShadow: none;
 @attachedBorder: @borderWidth solid @solidBorderColor;
 @attachedBottomBoxShadow:
@@ -456,3 +463,21 @@
 @bigWidth: 20rem;
 @hugeWidth: 22rem;
 @massiveWidth: 25rem;
+
+
+/*-------------------
+  Inverted dropdowns
+--------------------*/
+@invertedDropdownBackground: @black;
+@invertedDropdownMenuBoxShadow: none;
+
+@invertedDropdownItemColor: @invertedMutedTextColor;
+
+@invertedDropdownHoveredItemBackground: @transparentWhite;
+@invertedDropdownHoveredItemColor: @invertedDropdownItemColor;
+
+@invertedDropdownActiveItemBackground: transparent;
+@invertedDropdownActiveItemColor: @invertedDropdownItemColor;
+
+@invertedDropdownSelectedItemBackground: @strongTransparentWhite;
+@invertedDropdownSelectedItemColor: @invertedDropdownItemColor;

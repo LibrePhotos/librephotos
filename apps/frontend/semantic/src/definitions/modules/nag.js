@@ -1,6 +1,6 @@
 /*!
- * # Semantic UI - Nag
- * http://github.com/semantic-org/semantic-ui/
+ * # Fomantic-UI - Nag
+ * http://github.com/fomantic/Fomantic-UI/
  *
  *
  * Released under the MIT license
@@ -8,9 +8,13 @@
  *
  */
 
-(function ($, window, document, undefined) {
+;(function ($, window, document, undefined) {
 
 'use strict';
+
+$.isFunction = $.isFunction || function(obj) {
+  return typeof obj === "function" && typeof obj.nodeType !== "number";
+};
 
 window = (typeof window != 'undefined' && window.Math == Math)
   ? window
@@ -39,7 +43,6 @@ $.fn.nag = function(parameters) {
           ? $.extend(true, {}, $.fn.nag.settings, parameters)
           : $.extend({}, $.fn.nag.settings),
 
-        className       = settings.className,
         selector        = settings.selector,
         error           = settings.error,
         namespace       = settings.namespace,
@@ -49,7 +52,6 @@ $.fn.nag = function(parameters) {
 
         $module         = $(this),
 
-        $close          = $module.find(selector.close),
         $context        = (settings.context)
           ? $(settings.context)
           : $('body'),
@@ -57,24 +59,7 @@ $.fn.nag = function(parameters) {
         element         = this,
         instance        = $module.data(moduleNamespace),
 
-        moduleOffset,
-        moduleHeight,
-
-        contextWidth,
-        contextHeight,
-        contextOffset,
-
-        yOffset,
-        yPosition,
-
-        timer,
-        module,
-
-        requestAnimationFrame = window.requestAnimationFrame
-          || window.mozRequestAnimationFrame
-          || window.webkitRequestAnimationFrame
-          || window.msRequestAnimationFrame
-          || function(callback) { setTimeout(callback, 0); }
+        module
       ;
       module = {
 
@@ -405,7 +390,7 @@ $.fn.nag = function(parameters) {
           else if(found !== undefined) {
             response = found;
           }
-          if($.isArray(returnedValue)) {
+          if(Array.isArray(returnedValue)) {
             returnedValue.push(response);
           }
           else if(returnedValue !== undefined) {

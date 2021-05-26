@@ -17,8 +17,8 @@
 @loaderTopOffset: 50%;
 @loaderLeftOffset: 50%;
 
-@shapeBorderColor: @loaderLineColor transparent transparent;
-@invertedShapeBorderColor: @invertedLoaderLineColor transparent transparent;
+@shapeBorderColor: @loaderLineColor;
+@invertedShapeBorderColor: @invertedLoaderLineColor;
 
 /*-------------------
         Types
@@ -28,6 +28,7 @@
 @textDistance: @relativeMini;
 @loaderTextColor: @textColor;
 @invertedLoaderTextColor: @invertedTextColor;
+
 
 /*-------------------
         States
@@ -41,7 +42,7 @@
 --------------------*/
 
 @inlineVerticalAlign: middle;
-@inlineMargin: 0em;
+@inlineMargin: 0;
 
 /* Exact Sizes (Avoids Rounding Errors) */
 @mini    : @14px;
@@ -53,14 +54,14 @@
 @huge    : @58px;
 @massive : @64px;
 
-@miniOffset: 0em 0em 0em -(@mini / 2);
-@tinyOffset: 0em 0em 0em -(@tiny / 2);
-@smallOffset: 0em 0em 0em -(@small / 2);
-@mediumOffset: 0em 0em 0em -(@medium / 2);
-@largeOffset: 0em 0em 0em -(@large / 2);
-@bigOffset: 0em 0em 0em -(@big / 2);
-@hugeOffset: 0em 0em 0em -(@huge / 2);
-@massiveOffset: 0em 0em 0em -(@massive / 2);
+@miniOffset: 0 0 0 -(@mini / 2);
+@tinyOffset: 0 0 0 -(@tiny / 2);
+@smallOffset: 0 0 0 -(@small / 2);
+@mediumOffset: 0 0 0 -(@medium / 2);
+@largeOffset: 0 0 0 -(@large / 2);
+@bigOffset: 0 0 0 -(@big / 2);
+@hugeOffset: 0 0 0 -(@huge / 2);
+@massiveOffset: 0 0 0 -(@massive / 2);
 
 @tinyFontSize: @relativeTiny;
 @miniFontSize: @relativeMini;

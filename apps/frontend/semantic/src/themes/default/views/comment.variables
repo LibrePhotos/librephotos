@@ -8,7 +8,7 @@
 --------------------*/
 
 @maxWidth: 650px;
-@margin: 1.5em 0em;
+@margin: 1.5em 0;
 
 /*-------------------
       Elements
@@ -16,17 +16,17 @@
 
 /* Comment */
 @commentBackground: none;
-@commentMargin: 0.5em 0em 0em;
-@commentPadding: 0.5em 0em 0em;
+@commentMargin: 0.5em 0 0;
+@commentPadding: 0.5em 0 0;
 @commentDivider: none;
 @commentBorder: none;
 @commentLineHeight: 1.2;
-@firstCommentMargin: 0em;
-@firstCommentPadding: 0em;
+@firstCommentMargin: 0;
+@firstCommentPadding: 0;
 
 /* Nested Comment */
-@nestedCommentsMargin: 0em 0em 0.5em 0.5em;
-@nestedCommentsPadding: 1em 0em 1em 1em;
+@nestedCommentsMargin: 0 0 0.5em 0.5em;
+@nestedCommentsPadding: 1em 0 1em 1em;
 
 @nestedCommentDivider: none;
 @nestedCommentBorder: none;
@@ -38,7 +38,7 @@
 @avatarWidth: 2.5em;
 @avatarHeight: auto;
 @avatarSpacing: 1em;
-@avatarMargin: (@commentLineHeight - 1em) 0em 0em;
+@avatarMargin: (@commentLineHeight - 1em) 0 0;
 @avatarBorderRadius: 0.25rem;
 
 /* Content */
@@ -59,7 +59,7 @@
 
 /* Text */
 @textFontSize: 1em;
-@textMargin: 0.25em 0em 0.5em;
+@textMargin: 0.25em 0 0.5em;
 @textWordWrap: break-word;
 @textLineHeight: 1.3;
 
@@ -82,14 +82,14 @@
 
 /* Threaded */
 @threadedCommentMargin: -1.5em 0 -1em  (@avatarWidth / 2);
-@threadedCommentPadding: 3em 0em 2em 2.25em;
-@threadedCommentBoxShadow: -1px 0px 0px @borderColor;
+@threadedCommentPadding: 3em 0 2em 2.25em;
+@threadedCommentBoxShadow: -1px 0 0 @borderColor;
 
 
 /* Minimal */
 @minimalActionPosition: absolute;
-@minimalActionTop: 0px;
-@minimalActionRight: 0px;
+@minimalActionTop: 0;
+@minimalActionRight: 0;
 @minimalActionLeft: auto;
 
 @minimalTransitionDelay: 0.1s;

@@ -1,28 +1,27 @@
 /*******************************
-         Check Install
-*******************************/
+ *        Check Install
+ *******************************/
 
 var
   // node dependencies
-  gulp         = require('gulp'),
-  fs           = require('fs'),
-  console      = require('better-console'),
-  install      = require('./config/project/install')
+  gulp    = require('gulp'),
+  console = require('better-console'),
+  isSetup = require('./config/project/install').isSetup,
+
+  install = require('./install'),
+  watch   = require('./watch')
 ;
 
 // export task
-module.exports = function() {
+module.exports = function (callback) {
 
-  setTimeout(function() {
-    if( !install.isSetup() ) {
+  setTimeout(function () {
+    if (!isSetup()) {
       console.log('Starting install...');
-      gulp.start('install');
-      return;
-    }
-    else {
-      gulp.start('watch');
+      install(callback);
+    } else {
+      watch(callback);
     }
   }, 50); // Delay to allow console.clear to remove messages from check event
-
 
 };

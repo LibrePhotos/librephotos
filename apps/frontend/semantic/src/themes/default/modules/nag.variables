@@ -9,14 +9,14 @@
 @position: relative;
 @width: 100%;
 @zIndex: 999;
-@margin: 0em;
+@margin: 0;
 
 @background: #555555;
 @opacity: 0.95;
-@minHeight: 0em;
+@minHeight: 0;
 @padding: 0.75em 1em;
 @lineHeight: 1em;
-@boxShadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.2);
+@boxShadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
 
 @fontSize: 1rem;
 @textAlign: center;
@@ -31,10 +31,10 @@
 
 /* Title */
 @titleColor: @white;
-@titleMargin: 0em 0.5em;
+@titleMargin: 0 0.5em;
 
 @closeSize: 1em;
-@closeMargin: (-@closeSize / 2) 0em 0em;
+@closeMargin: (-@closeSize / 2) 0 0;
 @closeTop: 50%;
 @closeRight: 1em;
 @closeColor: @white;
@@ -57,11 +57,11 @@
 ---------------*/
 
 /* Top / Bottom */
-@top: 0em;
-@bottom: 0em;
+@top: 0;
+@bottom: 0;
 @borderRadius: @defaultBorderRadius;
-@topBorderRadius: 0em 0em @borderRadius @borderRadius;
-@bottomBorderRadius: @borderRadius @borderRadius 0em 0em;
+@topBorderRadius: 0 0 @borderRadius @borderRadius;
+@bottomBorderRadius: @borderRadius @borderRadius 0 0;
 
 /* Inverted */
 @invertedBackground: @darkWhite;
@@ -70,5 +70,5 @@
       Plural
 ---------------*/
 
-@groupedBorderRadius: 0em;
+@groupedBorderRadius: 0;
 

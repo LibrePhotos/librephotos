@@ -29,7 +29,7 @@
 @arrowSize: @relative10px;
 @arrowWidth: 1em;
 @arrowDistanceFromEdge: 1em;
-@boxArrowOffset: 0em;
+@boxArrowOffset: 0;
 @popupDistanceAway: @arrowSize;
 
 
@@ -45,7 +45,7 @@
 
 /* Arrow */
 @arrowBackground: @background;
-@arrowZIndex: 2;
+@arrowZIndex: 1901;
 @arrowJitter: 0.05em;
 @arrowOffset: -(@arrowSize / 2) + @arrowJitter;
 
@@ -57,10 +57,10 @@
 @arrowCenterBackground: @arrowBackground;
 @arrowBottomBackground: @arrowBackground;
 
-@arrowBoxShadow: @arrowStroke @arrowStroke 0px 0px @arrowColor;
-@leftArrowBoxShadow: @arrowStroke -@arrowStroke 0px 0px @arrowColor;
-@rightArrowBoxShadow: -@arrowStroke @arrowStroke 0px 0px @arrowColor;
-@bottomArrowBoxShadow: -@arrowStroke -@arrowStroke 0px 0px @arrowColor;
+@arrowBoxShadow: @arrowStroke @arrowStroke 0 0 @arrowColor;
+@leftArrowBoxShadow: @arrowStroke -@arrowStroke 0 0 @arrowColor;
+@rightArrowBoxShadow: -@arrowStroke @arrowStroke 0 0 @arrowColor;
+@bottomArrowBoxShadow: -@arrowStroke -@arrowStroke 0 0 @arrowColor;
 
 /*-------------------
        Types
@@ -79,7 +79,7 @@
 @tooltipFontSize: @medium;
 @tooltipLineHeight: @lineHeight;
 @tooltipDistanceAway: @relative7px;
-@tooltipZIndex: 1;
+@tooltipZIndex: 1900;
 @tooltipDuration: @defaultDuration;
 @tooltipEasing: @defaultEasing;
 
@@ -106,7 +106,7 @@
 
 /* Grid Inside Popup */
 @nestedGridMargin: -0.7rem -0.875rem; /* (padding * @medium) */
-@nestedGridWidth: ~"calc(100% + 1.75rem)";
+@nestedGridWidth: e("calc(100% + 1.75rem)");
 
 /*-------------------
        States

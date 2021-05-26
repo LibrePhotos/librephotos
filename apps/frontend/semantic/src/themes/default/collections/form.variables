@@ -11,17 +11,17 @@
 @rowDistance: 1em;
 
 /* Text */
-@paragraphMargin: @rowDistance 0em;
+@paragraphMargin: @rowDistance 0;
 
 /* Field */
-@fieldMargin: 0em 0em @rowDistance;
+@fieldMargin: 0 0 @rowDistance;
 
 /* Fields */
-@fieldsMargin: 0em -(@gutterWidth / 2) @rowDistance;
+@fieldsMargin: 0 -(@gutterWidth / 2) @rowDistance;
 
 /* Form Label */
 @labelDistance: @4px;
-@labelMargin: 0em 0em @labelDistance 0em;
+@labelMargin: 0 0 @labelDistance 0;
 @labelFontSize: @relativeSmall;
 @labelFontWeight: @bold;
 @labelTextTransform: none;
@@ -39,7 +39,7 @@
   color @defaultDuration @defaultEasing,
   border-color @defaultDuration @defaultEasing
 ;
-@inputBoxShadow: 0em 0em 0em 0em transparent inset;
+@inputBoxShadow: 0 0 0 0 transparent inset;
 
 /* Select */
 @selectBackground: @white;
@@ -66,13 +66,17 @@
 @checkboxVerticalAlign: top;
 @checkboxLabelFontSize: 1em;
 @checkboxLabelTextTransform: @labelTextTransform;
+@checkboxLabelFieldTopMargin: 0.7em;
+@checkboxFieldTopMargin: 1.2em;
+@checkboxToggleFieldTopMargin: 1em;
+@checkboxSliderFieldTopMargin: 1.4em;
 
 /* Inline Validation Prompt */
 @promptBackground: @white;
 @promptBorderColor: @formErrorBorder;
 @promptBorder: 1px solid @promptBorderColor;
 @promptTextColor: @formErrorColor;
-@inlinePromptMargin: -0.25em 0em -0.5em 0.5em;
+@inlinePromptMargin: -0.25em 0 -0.5em 0.5em;
 @inlinePromptBorderWidth: 1px;
 
 /*-------------------
@@ -80,13 +84,13 @@
 --------------------*/
 
 /* Focus */
-@inputFocusPointerSize: 0px;
+@inputFocusPointerSize: 0;
 
 /* Input Focus */
 @inputFocusBackground: @inputBackground;
 @inputFocusBorderColor: @focusedFormBorderColor;
 @inputFocusColor: @selectedTextColor;
-@inputFocusBoxShadow: @inputFocusPointerSize 0em 0em 0em @selectedBorderColor inset;
+@inputFocusBoxShadow: @inputFocusPointerSize 0 0 0 @selectedBorderColor inset;
 @inputFocusBorderRadius: @inputBorderRadius;
 
 /* Text Area Focus */
@@ -99,43 +103,12 @@
 /* Disabled */
 @disabledLabelOpacity: @disabledOpacity;
 
-/* Errored Input */
-@formErrorColor: @negativeTextColor;
-@formErrorBorder: @negativeBorderColor;
-@formErrorBackground: @negativeBackgroundColor;
-
-/* AutoFill */
-@inputAutoFillBackground: #FFFFF0;
-@inputAutoFillBorder: #E5DFA1;
-@inputAutoFillFocusBackground: @inputAutoFillBackground;
-@inputAutoFillFocusBorder: #D5C315;
-@inputAutoFillErrorBackground: #FFFAF0;
-@inputAutoFillErrorBorder: #E0B4B4;
-
-
-/* Input Error */
-@inputErrorBorderRadius: '';
-@inputErrorBoxShadow: none;
-
-/* Dropdown Error */
-@dropdownErrorHoverBackground: #FBE7E7;
-@dropdownErrorSelectedBackground: @dropdownErrorHoverBackground;
-@dropdownErrorActiveBackground: #FDCFCF;
-@dropdownErrorLabelBackground: #EACBCB;
-@dropdownErrorLabelColor: @errorTextColor;
-
-/* Focused Error */
-@inputErrorFocusBackground: @negativeBackgroundColor;
-@inputErrorFocusColor: @negativeTextColor;
-@inputErrorFocusBorder: @negativeBorderColor;
-@inputErrorFocusBoxShadow: none;
-
-/* Placeholder Error */
-@inputErrorPlaceholderColor: lighten(@formErrorColor, 40);
-@inputErrorPlaceholderFocusColor: lighten(@formErrorColor, 30);
+/* Input states */
+@transparentPadding: @inputPadding;
 
 /* Loading Dimmer */
 @loaderDimmerColor: rgba(255, 255, 255, 0.8);
+@loaderInvertedDimmerColor: rgba(0, 0, 0 , 0.85);
 @loaderDimmerZIndex: 100;
 
 /* Loading Spinner */
@@ -151,7 +124,7 @@
 @requiredColor: @negativeColor;
 @requiredVerticalOffset: -0.2em;
 @requiredDistance: 0.2em;
-@requiredMargin: @requiredVerticalOffset 0em 0em @requiredDistance;
+@requiredMargin: @requiredVerticalOffset 0 0 @requiredDistance;
 
 /* Inverted */
 @invertedInputBackground: @inputBackground;
@@ -167,7 +140,7 @@
 
 /* Grouped Fields */
 @groupedMargin: @fieldMargin;
-@groupedFieldMargin: 0.5em 0em;
+@groupedFieldMargin: 0.5em 0;
 
 @groupedLabelDistance: @labelDistance;
 @groupedLabelColor: @labelColor;
@@ -185,11 +158,13 @@
 @inlineLabelFontSize: @labelFontSize;
 @inlineLabelFontWeight: @labelFontWeight;
 @inlineLabelTextTransform: @labelTextTransform;
+@inlineCalendarWidth: 13.11em;
 
-@groupedInlineLabelMargin: 0.035714em 1em 0em 0em;
+@groupedInlineLabelMargin: 0.035714em 1em 0 0;
+@groupedInlineCheckboxBottomMargin: 0.4em;
 
 /*-------------------
        Groups
 --------------------*/
 
-@inlineFieldsMargin: 0em 1em 0em 0em;
+@inlineFieldsMargin: 0 1em 0 0;

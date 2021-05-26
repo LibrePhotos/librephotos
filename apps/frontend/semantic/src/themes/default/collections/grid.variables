@@ -19,7 +19,7 @@
 @gutterWidth: 2rem;
 @rowSpacing: 2rem;
 
-@tableWidth: ~"calc(100% + "@gutterWidth~")";
+@tableWidth: e(%("calc(100%% + %d)", @gutterWidth));
 @columnMaxImageWidth: 100%;
 
 @consecutiveGridDistance: (@rowSpacing / 2);
@@ -39,17 +39,17 @@
      Divided
 ---------------*/
 
-@dividedBorder: -1px 0px 0px 0px @borderColor;
-@verticallyDividedBorder: 0px -1px 0px 0px @borderColor;
+@dividedBorder: -1px 0 0 0 @borderColor;
+@verticallyDividedBorder: 0 -1px 0 0 @borderColor;
 
-@dividedInvertedBorder: -1px 0px 0px 0px @whiteBorderColor;
-@verticallyDividedInvertedBorder: 0px -1px 0px 0px @whiteBorderColor;
+@dividedInvertedBorder: -1px 0 0 0 @whiteBorderColor;
+@verticallyDividedInvertedBorder: 0 -1px 0 0 @whiteBorderColor;
 
 /*--------------
     Celled
 ---------------*/
 
-@celledMargin: 1em 0em;
+@celledMargin: 1em 0;
 @celledWidth: 1px;
 @celledBorderColor: @solidBorderColor;
 
@@ -57,9 +57,9 @@
 @celledRelaxedPadding: 1.5em;
 @celledVeryRelaxedPadding: 2em;
 
-@celledGridDivider: 0px 0px 0px @celledWidth @celledBorderColor;
-@celledRowDivider: 0px (-@celledWidth) 0px 0px @celledBorderColor;
-@celledColumnDivider: (-@celledWidth) 0px 0px 0px @celledBorderColor;
+@celledGridDivider: 0 0 0 @celledWidth @celledBorderColor;
+@celledRowDivider: 0 (-@celledWidth) 0 0 @celledBorderColor;
+@celledColumnDivider: (-@celledWidth) 0 0 0 @celledBorderColor;
 
 
 /*--------------
@@ -70,6 +70,22 @@
 @stackableGutter: @gutterWidth;
 @stackableMobileBorder: 1px solid @borderColor;
 @stackableInvertedMobileBorder: 1px solid @whiteBorderColor;
+
+/*--------------
+    Compact
+---------------*/
+@compactGutterWidth: @gutterWidth / 2;
+@compactRowSpacing: @rowSpacing / 2;
+@compactCelledRelaxedPadding: @celledRelaxedPadding / 2;
+@compactCelledVeryRelaxedPadding: @celledVeryRelaxedPadding / 2;
+
+/*------------------
+    Very Compact
+------------------*/
+@veryCompactGutterWidth: @compactGutterWidth / 2;
+@veryCompactRowSpacing: @compactRowSpacing / 2;
+@veryCompactCelledRelaxedPadding: @compactCelledRelaxedPadding / 2;
+@veryCompactCelledVeryRelaxedPadding: @compactCelledVeryRelaxedPadding / 2;
 
 
 /*******************************
@@ -83,21 +99,21 @@
 /* Legacy (DO NOT USE)
  */
 @mobileWidth: auto;
-@mobileMargin: 0em;
-@mobileGutter: 0em;
+@mobileMargin: 0;
+@mobileGutter: 0;
 
 @tabletWidth: auto;
-@tabletMargin: 0em;
+@tabletMargin: 0;
 @tabletGutter: 2em;
 
 @computerWidth: auto;
-@computerMargin: 0em;
+@computerMargin: 0;
 @computerGutter: 3%;
 
 @largeMonitorWidth: auto;
-@largeMonitorMargin: 0em;
+@largeMonitorMargin: 0;
 @largeMonitorGutter: 15%;
 
 @widescreenMonitorWidth: auto;
-@widescreenMargin: 0em;
+@widescreenMargin: 0;
 @widescreenMonitorGutter: 23%;

@@ -6,7 +6,7 @@
         Feed
 --------------------*/
 
-@margin: 1em 0em;
+@margin: 1em 0;
 
 /*-------------------
       Elements
@@ -14,8 +14,8 @@
 
 /* Event */
 @eventWidth: 100%;
-@eventPadding: @3px 0em;
-@eventMargin: 0em;
+@eventPadding: @3px 0;
+@eventMargin: 0;
 @eventBackground: none;
 @eventDivider: none;
 
@@ -41,8 +41,8 @@
 @imageLabelBorderRadius: @circularRadius;
 
 /* Content w/ Label */
-@labeledContentMargin: 0.5em 0em @relative5px @relativeLarge;
-@lastLabeledContentPadding: 0em;
+@labeledContentMargin: 0.5em 0 @relative5px @relativeLarge;
+@lastLabeledContentPadding: 0;
 
 /* Content */
 @contentAlignSelf: stretch;
@@ -50,15 +50,15 @@
 @contentWordWrap: break-word;
 
 /* Date */
-@dateMargin: -0.5rem 0em 0em;
-@datePadding: 0em;
+@dateMargin: -0.5rem 0 0;
+@datePadding: 0;
 @dateColor: @lightTextColor;
 @dateFontSize: @relativeMedium;
 @dateFontWeight: @normal;
 @dateFontStyle: @normal;
 
 /* Summary */
-@summaryMargin: 0em;
+@summaryMargin: 0;
 @summaryFontSize: @relativeMedium;
 @summaryFontWeight: @bold;
 @summaryColor: @textColor;
@@ -66,15 +66,15 @@
 /* Summary Image */
 @summaryImageWidth: auto;
 @summaryImageHeight: 10em;
-@summaryImageMargin: -0.25em 0.25em 0em 0em;
+@summaryImageMargin: -0.25em 0.25em 0 0;
 @summaryImageVerticalAlign: middle;
 @summaryImageBorderRadius: 0.25em;
 
 /* Summary Date */
 @summaryDateDisplay: inline-block;
 @summaryDateFloat: none;
-@summaryDateMargin: 0em 0em 0em 0.5em;
-@summaryDatePadding: 0em;
+@summaryDateMargin: 0 0 0 0.5em;
+@summaryDatePadding: 0;
 @summaryDateFontSize: @relativeTiny;
 @summaryDateFontWeight: @dateFontWeight;
 @summaryDateFontStyle: @dateFontStyle;
@@ -82,24 +82,24 @@
 
 /* User */
 @userFontWeight: @bold;
-@userDistance: 0em;
+@userDistance: 0;
 @userImageWidth: @summaryImageWidth;
 @userImageHeight: @summaryImageHeight;
 @userImageMargin: @summaryImageMargin;
 @userImageVerticalAlign: @summaryImageVerticalAlign;
 
 /* Extra Summary Data */
-@extraMargin: 0.5em 0em 0em;
+@extraMargin: 0.5em 0 0;
 @extraBackground: none;
-@extraPadding: 0em;
+@extraPadding: 0;
 @extraColor: @textColor;
 
 /* Extra Images */
-@extraImageMargin: 0em 0.25em 0em 0em;
+@extraImageMargin: 0 0.25em 0 0;
 @extraImageWidth: 6em;
 
 /* Extra Text */
-@extraTextPadding: 0em;
+@extraTextPadding: 0;
 @extraTextPointer: none;
 @extraTextFontSize: @relativeMedium;
 @extraTextLineHeight: @lineHeight;
@@ -108,12 +108,12 @@
 /* Metadata Group */
 @metadataDisplay: inline-block;
 @metadataFontSize: @relativeTiny;
-@metadataMargin: 0.5em 0em 0em;
+@metadataMargin: 0.5em 0 0;
 @metadataBackground: none;
 @metadataBorder: none;
 @metadataBorderRadius: 0;
 @metadataBoxShadow: none;
-@metadataPadding: 0em;
+@metadataPadding: 0;
 @metadataColor: rgba(0, 0, 0, 0.6);
 
 @metadataElementSpacing: 0.75em;

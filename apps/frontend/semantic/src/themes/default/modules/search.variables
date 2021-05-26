@@ -18,10 +18,10 @@
   box-shadow @defaultDuration @defaultEasing,
   border-color @defaultDuration @defaultEasing
 ;
-@promptBoxShadow: 0em 0em 0em 0em transparent inset;
+@promptBoxShadow: 0 0 0 0 transparent inset;
 
 /* Mobile */
-@mobileMaxWidth: ~"calc(100vw - 2rem)";
+@mobileMaxWidth: e("calc(100vw - 2rem)");
 
 /* Result Box */
 @resultsWidth: 18em;
@@ -47,14 +47,26 @@
 @resultImageWidth: 5em;
 @resultImageHeight: 3em;
 @resultImageBorderRadius: 0.25em;
-@resultImageMargin: 0em 6em 0em 0em;
+@resultImageMargin: 0 6em 0 0;
 
 /* Result Content */
 @resultTitleFont: @headerFont;
-@resultTitleMargin: -@headerLineHeightOffset 0em 0em;
+@resultTitleMargin: -@headerLineHeightOffset 0 0;
 @resultTitleFontWeight: @bold;
 @resultTitleFontSize: @relativeMedium;
 @resultTitleColor: @darkTextColor;
+
+/* Result Scrolling */
+@scrollingMobileMaxResults: 4;
+@scrollingTabletMaxResults: 6;
+@scrollingComputerMaxResults: 8;
+@scrollingWidescreenMaxResults: 12;
+
+@scrollingResultHeight: (@resultVerticalPadding * 2) + @resultLineHeight;
+@scrollingMobileMaxResultsHeight: (@scrollingResultHeight * @scrollingMobileMaxResults);
+@scrollingTabletMaxResultsHeight: (@scrollingResultHeight * @scrollingTabletMaxResults);
+@scrollingComputerMaxResultsHeight: (@scrollingResultHeight * @scrollingComputerMaxResults);
+@scrollingWidescreenMaxResultsHeight: (@scrollingResultHeight * @scrollingWidescreenMaxResults);
 
 /* Description */
 @resultDescriptionFontSize: @relativeSmall;
@@ -120,12 +132,12 @@
 /* Selection */
 @selectionPromptBorderRadius: @defaultBorderRadius;
 
-@selectionCloseTop: 0em;
+@selectionCloseTop: 0;
 @selectionCloseTransition:
   color @defaultDuration @defaultEasing,
   opacity @defaultDuration @defaultEasing
 ;
-@selectionCloseRight: 0em;
+@selectionCloseRight: 0;
 @selectionCloseIconOpacity: 0.8;
 @selectionCloseIconColor: '';
 @selectionCloseIconHoverOpacity: 1;
@@ -159,3 +171,11 @@
 @categoryNamePadding: 0.4em 1em;
 @categoryNameFontWeight: @bold;
 @categoryNameColor: @lightTextColor;
+
+@miniSearchSize: @relativeMini;
+@tinySearchSize: @relativeTiny;
+@smallSearchSize: @relativeSmall;
+@largeSearchSize: @relativeLarge;
+@bigSearchSize: @relativeBig;
+@hugeSearchSize: @relativeHuge;
+@massiveSearchSize: @relativeMassive;

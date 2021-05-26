@@ -243,13 +243,9 @@ class JobList extends Component {
                       <Progress
                         indicating
                         size="small"
-                        progress="ratio"
+                        progress= {(job.result.progress.current.toFixed(2) / job.result.progress.target * 100).toFixed(2) < 20 ? "value" : "ratio"}
                         value={job.result.progress.current}
-                        total={
-                          job.result.progress.target > 0
-                            ? job.result.progress.target
-                            : 1
-                        }
+                        total={job.result.progress.target}
                         active={!job.finished}
                         success={jobSuccess}>
                         {(

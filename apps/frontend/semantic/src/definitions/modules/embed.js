@@ -1,6 +1,6 @@
 /*!
- * # Semantic UI - Embed
- * http://github.com/semantic-org/semantic-ui/
+ * # Fomantic-UI - Embed
+ * http://github.com/fomantic/Fomantic-UI/
  *
  *
  * Released under the MIT license
@@ -8,9 +8,13 @@
  *
  */
 
-(function ($, window, document, undefined) {
+;(function ($, window, document, undefined) {
 
-'use strict';
+"use strict";
+
+$.isFunction = $.isFunction || function(obj) {
+  return typeof obj === "function" && typeof obj.nodeType !== "number";
+};
 
 window = (typeof window != 'undefined' && window.Math == Math)
   ? window
@@ -54,7 +58,6 @@ $.fn.embed = function(parameters) {
         eventNamespace  = '.' + namespace,
         moduleNamespace = 'module-' + namespace,
 
-        $window         = $(window),
         $module         = $(this),
         $placeholder    = $module.find(selector.placeholder),
         $icon           = $module.find(selector.icon),
@@ -181,6 +184,7 @@ $.fn.embed = function(parameters) {
         // clears embed
         reset: function() {
           module.debug('Clearing embed and showing placeholder');
+          module.remove.data();
           module.remove.active();
           module.remove.embed();
           module.showPlaceholder();
@@ -300,6 +304,15 @@ $.fn.embed = function(parameters) {
         },
 
         remove: {
+          data: function() {
+            $module
+              .removeData(metadata.id)
+              .removeData(metadata.icon)
+              .removeData(metadata.placeholder)
+              .removeData(metadata.source)
+              .removeData(metadata.url)
+            ;
+          },
           active: function() {
             $module.removeClass(className.active);
           },
@@ -531,7 +544,7 @@ $.fn.embed = function(parameters) {
           else if(found !== undefined) {
             response = found;
           }
-          if($.isArray(returnedValue)) {
+          if(Array.isArray(returnedValue)) {
             returnedValue.push(response);
           }
           else if(returnedValue !== undefined) {
@@ -666,7 +679,7 @@ $.fn.embed.settings = {
       return ''
         + '<iframe src="' + src + '"'
         + ' width="100%" height="100%"'
-        + ' frameborder="0" scrolling="no" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>'
+        + ' webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>'
       ;
     },
     placeholder : function(image, icon) {

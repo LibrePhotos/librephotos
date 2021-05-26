@@ -9,23 +9,23 @@
 /* List */
 @listStyleType: none;
 @listStylePosition: outside;
-@margin: 1em 0em;
-@verticalPadding: 0em;
-@horizontalPadding: 0em;
+@margin: 1em 0;
+@verticalPadding: 0;
+@horizontalPadding: 0;
 
 /* List Item */
 @itemVerticalPadding: @relative3px;
-@itemHorizontalPadding: 0em;
+@itemHorizontalPadding: 0;
 @itemPadding: @itemVerticalPadding @itemHorizontalPadding;
 @itemLineHeight: @relativeLarge;
 
 /* Sub List */
-@childListPadding: 0.75em 0em 0.25em 0.5em;
+@childListPadding: 0.75em 0 0.25em 0.5em;
 @childListIndent: 1em;
 
 /* Sub List Item */
 @childItemVerticalPadding: @relative2px;
-@childItemHorizontalPadding: 0em;
+@childItemHorizontalPadding: 0;
 @childItemPadding: @childItemVerticalPadding @childItemHorizontalPadding;
 @childItemLineHeight: inherit;
 
@@ -35,7 +35,7 @@
 
 /* Icon */
 @iconDistance: @relative4px;
-@iconOffset: 0em;
+@iconOffset: 0;
 @iconTransition: color @defaultDuration @defaultEasing;
 @iconVerticalAlign: top;
 @iconContentVerticalAlign: top;
@@ -49,6 +49,7 @@
 @contentLineHeight: @itemLineHeight;
 @contentLineHeightOffset: (@contentLineHeight - 1em) / 2;
 @contentVerticalAlign: top;
+@contentColor: @textColor;
 
 /* Header */
 @itemHeaderFontFamily: @headerFont;
@@ -84,8 +85,8 @@
 
 /* Float */
 @floatDistance: 1em;
-@leftFloatMargin: 0em @floatDistance 0em 0em;
-@rightFloatMargin: 0em 0em 0em @floatDistance;
+@leftFloatMargin: 0 @floatDistance 0 0;
+@rightFloatMargin: 0 0 0 @floatDistance;
 
 /* Horizontal */
 @horizontalSpacing: 1em;
@@ -98,6 +99,7 @@
 @invertedDescriptionColor: @invertedLightTextColor;
 @invertedItemLinkColor: @invertedTextColor;
 @invertedItemLinkHoverColor: @linkHoverColor;
+@invertedContentColor: @invertedLightTextColor;
 
 /* Link List */
 @linkListItemColor: @unselectedTextColor;
@@ -115,7 +117,7 @@
 @invertedLinkListItemActiveColor: @invertedSelectedTextColor;
 
 /* Selection List */
-@selectionListItemMargin: 0em;
+@selectionListItemMargin: 0;
 @selectionListItemBorderRadius: 0.5em;
 @selectionListItemVerticalPadding: 0.5em;
 @selectionListItemHorizontalPadding: 0.5em;
@@ -160,7 +162,7 @@
 @bulletOffset: -@bulletDistance;
 
 @bulletOpacity: 1;
-@bulletCharacter: '•';
+@bulletCharacter: '\2022';
 @bulletColor: inherit;
 @bulletLinkColor: @textColor;
 @bulletVerticalAlign: top;
@@ -172,7 +174,10 @@
 
 /* Ordered List */
 @orderedCountName: ordered;
-@orderedCountContent: counters(ordered, ".") " ";
+@orderedCountSeparator: ".";
+@orderedCountSuffix: ".";
+@orderedCountContent: counters(@orderedCountName, @orderedCountSeparator) " ";
+@orderedCountContentSuffixed: counters(@orderedCountName, @orderedCountSeparator) @orderedCountSuffix;
 @orderedCountColor: @textColor;
 @orderedCountDistance: 1.25rem;
 @orderedCountOpacity: 0.8;
@@ -201,7 +206,7 @@
 /* Divided */
 @celledBorderWidth: 1px;
 @celledBorder: @celledBorderWidth solid @borderColor;
-@celledInvertedBorder: @dividedBorderWidth solid @whiteBorderColor;
+@celledInvertedBorder: @whiteBorderColor;
 @celledHorizontalPadding: 0.5em;
 @celledChildListBorder: none;
 @celledChildItemBorder: none;
@@ -222,3 +227,10 @@
 @veryRelaxedHeaderMargin: 0.5rem;
 @veryRelaxedHorizontalPadding: 1.5rem;
 
+@miniListSize: @relativeMini;
+@tinyListSize: @relativeTiny;
+@smallListSize: @relativeSmall;
+@largeListSize: @relativeLarge;
+@bigListSize: @relativeBig;
+@hugeListSize: @relativeHuge;
+@massiveListSize: @relativeMassive;

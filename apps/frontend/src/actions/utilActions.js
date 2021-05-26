@@ -259,6 +259,38 @@ export function fetchWorkerAvailability(prevRunningJob) {
   };
 }
 
+export function deleteMissingPhotos() {
+  return function(dispatch) {
+    dispatch({ type: "DELETE_MISSING_PHOTOS" });
+    dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
+    dispatch({
+      type: "SET_WORKER_RUNNING_JOB",
+      payload: { job_type_str: "Delete Missing Photos" }
+    });
+    Server.get(`deletemissingphotos`)
+      .then(response => {
+        dispatch(
+          notify({
+            message: "Delete Missing Photos started",
+            title: "Delete Missing Photos",
+            status: "success",
+            dismissible: true,
+            dismissAfter: 3000,
+            position: "br"
+          })
+        );
+        dispatch({
+          type: "DELETE_MISSING_PHOTOS_FULFILLED",
+          payload: response.data
+        });
+      })
+      .catch(err => {
+        dispatch({ type: "DELETE_MISSING_PHOTOS_REJECTED", payload: err });
+      });
+  };
+}
+
+
 export function generateEventAlbums() {
   return function(dispatch) {
     dispatch({ type: "GENERATE_EVENT_ALBUMS" });

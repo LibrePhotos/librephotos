@@ -1,6 +1,6 @@
 /*!
- * # Semantic UI - Visibility
- * http://github.com/semantic-org/semantic-ui/
+ * # Fomantic-UI - Visibility
+ * http://github.com/fomantic/Fomantic-UI/
  *
  *
  * Released under the MIT license
@@ -8,9 +8,13 @@
  *
  */
 
-(function ($, window, document, undefined) {
+;(function ($, window, document, undefined) {
 
 'use strict';
+
+$.isFunction = $.isFunction || function(obj) {
+  return typeof obj === "function" && typeof obj.nodeType !== "number";
+};
 
 window = (typeof window != 'undefined' && window.Math == Math)
   ? window
@@ -58,7 +62,6 @@ $.fn.visibility = function(parameters) {
 
         $placeholder,
 
-        selector        = $module.selector || '',
         instance        = $module.data(moduleNamespace),
 
         requestAnimationFrame = window.requestAnimationFrame
@@ -506,8 +509,7 @@ $.fn.visibility = function(parameters) {
 
         passed: function(amount, newCallback) {
           var
-            calculations   = module.get.elementCalculations(),
-            amountInPixels
+            calculations   = module.get.elementCalculations()
           ;
           // assign callback
           if(amount && newCallback) {
@@ -900,7 +902,7 @@ $.fn.visibility = function(parameters) {
               element.offset.top += $context.scrollTop() - $context.offset().top;
             }
             if(module.is.horizontallyScrollableContext()) {
-              element.offset.left += $context.scrollLeft - $context.offset().left;
+              element.offset.left += $context.scrollLeft() - $context.offset().left;
             }
             // store
             module.cache.element = element;
@@ -1172,7 +1174,7 @@ $.fn.visibility = function(parameters) {
           else if(found !== undefined) {
             response = found;
           }
-          if($.isArray(returnedValue)) {
+          if(Array.isArray(returnedValue)) {
             returnedValue.push(response);
           }
           else if(returnedValue !== undefined) {
@@ -1297,7 +1299,7 @@ $.fn.visibility.settings = {
 
   className: {
     fixed       : 'fixed',
-    placeholder : 'placeholder',
+    placeholder : 'constraint',
     visible     : 'visible'
   },
 

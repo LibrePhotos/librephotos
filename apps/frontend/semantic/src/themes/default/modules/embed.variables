@@ -28,7 +28,7 @@
 ;
 @iconColor: @white;
 @iconShadow:
-  0px 2px 10px rgba(34, 36, 38, 0.2)
+  0 2px 10px rgba(34, 36, 38, 0.2)
 ;
 @iconZIndex: 10;
 

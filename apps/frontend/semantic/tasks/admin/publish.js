@@ -1,6 +1,6 @@
 /*******************************
-          Release All
-*******************************/
+ *         Release All
+ *******************************/
 
 /*
  This task update all SUI individual component repos with new versions of components
@@ -10,16 +10,15 @@
 */
 
 var
-  runSequence = require('run-sequence')
+  gulp = require('gulp')
 ;
 
 /* Release All */
-module.exports = function(callback) {
+module.exports = function (callback) {
 
-  runSequence(
+  gulp.series(
     'update distributions', // commit less/css versions to github
     'update components', // commit components to github
-    callback
-  );
+  )(callback);
 
 };

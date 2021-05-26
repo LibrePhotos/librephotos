@@ -1,6 +1,6 @@
 /*!
- * # Semantic UI - Site
- * http://github.com/semantic-org/semantic-ui/
+ * # Fomantic-UI - Site
+ * http://github.com/fomantic/Fomantic-UI/
  *
  *
  * Released under the MIT license
@@ -34,8 +34,8 @@ html {
 }
 
 body {
-  margin: 0px;
-  padding: 0px;
+  margin: 0;
+  padding: 0;
   overflow-x: @pageOverflowX;
   min-width: @pageMinWidth;
   background: @pageBackground;
@@ -43,7 +43,6 @@ body {
   font-size: @fontSize;
   line-height: @lineHeight;
   color: @textColor;
-  /* font-smoothing: @fontSmoothing; */
 }
 
 /*******************************
@@ -59,7 +58,7 @@ h5 {
   line-height: @headerLineHeight;
   margin: @headerMargin;
   font-weight: @headerFontWeight;
-  padding: 0em;
+  padding: 0;
 }
 
 h1 {
@@ -84,7 +83,7 @@ h2:first-child,
 h3:first-child,
 h4:first-child,
 h5:first-child {
-  margin-top: 0em;
+  margin-top: 0;
 }
 
 h1:last-child,
@@ -92,7 +91,7 @@ h2:last-child,
 h3:last-child,
 h4:last-child,
 h5:last-child {
-  margin-bottom: 0em;
+  margin-bottom: 0;
 }
 
 
@@ -105,10 +104,10 @@ p {
   line-height: @paragraphLineHeight;
 }
 p:first-child {
-  margin-top: 0em;
+  margin-top: 0;
 }
 p:last-child {
-  margin-bottom: 0em;
+  margin-bottom: 0;
 }
 
 /*-------------------
@@ -155,16 +154,16 @@ a:hover {
   }
 
   /* Inverted UI */
-  body .ui.inverted::-webkit-scrollbar-track {
+  body .ui.inverted:not(.dimmer)::-webkit-scrollbar-track {
     background: @trackInvertedBackground;
   }
-  body .ui.inverted::-webkit-scrollbar-thumb {
+  body .ui.inverted:not(.dimmer)::-webkit-scrollbar-thumb {
     background: @thumbInvertedBackground;
   }
-  body .ui.inverted::-webkit-scrollbar-thumb:window-inactive {
+  body .ui.inverted:not(.dimmer)::-webkit-scrollbar-thumb:window-inactive {
     background: @thumbInvertedInactiveBackground;
   }
-  body .ui.inverted::-webkit-scrollbar-thumb:hover {
+  body .ui.inverted:not(.dimmer)::-webkit-scrollbar-thumb:hover {
     background: @thumbInvertedHoverBackground;
   }
 }

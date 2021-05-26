@@ -7,14 +7,14 @@
 --------------------*/
 
 /* Group */
-@groupMargin: 1.5em 0em;
+@groupMargin: 1.5em 0;
 
 /* Item */
 @display: flex;
 @background: transparent;
-@borderRadius: 0rem;
-@minHeight: 0px;
-@padding: 0em;
+@borderRadius: 0;
+@minHeight: 0;
+@padding: 0;
 @width: 100%;
 @boxShadow: none;
 @border: none;
@@ -44,9 +44,9 @@
 @imageDisplay: block;
 @imageFloat: none;
 @imageMaxHeight: '';
-@imageVerticalAlign: top;
-@imageMargin: 0em;
-@imagePadding: 0em;
+@imageVerticalAlign: start;
+@imageMargin: 0;
+@imagePadding: 0;
 @imageBorder: none;
 @imageBorderRadius: 0.125rem;
 @imageBoxShadow: none;
@@ -54,26 +54,27 @@
 
 /* Content */
 @contentDisplay: block;
-@contentVerticalAlign: top;
+@contentVerticalAlign: start;
 
 @contentWidth: auto;
-@contentOffset: 0em;
+@contentOffset: 0;
 @contentBackground: none;
-@contentMargin: 0em;
-@contentPadding: 0em;
+@contentMargin: 0;
+@contentPadding: 0;
 @contentFontSize: 1em;
 @contentBorder: none;
-@contentBorderRadius: 0em;
+@contentBorderRadius: 0;
 @contentBoxShadow: none;
+@contentColor: @textColor;
 
 /* Header */
-@headerMargin: -@lineHeightOffset 0em 0em;
+@headerMargin: -@lineHeightOffset 0 0;
 @headerFontWeight: @bold;
 @headerFontSize: @relativeBig;
 @headerColor: @darkTextColor;
 
 /* Metadata */
-@metaMargin: 0.5em 0em 0.5em;
+@metaMargin: 0.5em 0 0.5em;
 @metaFontSize: 1em;
 @metaLineHeight: 1em;
 @metaSpacing: 0.3em;
@@ -109,7 +110,7 @@
 
 /* Content Image */
 @contentImageWidth: '';
-@contentImageVerticalAlign: middle;
+@contentImageVerticalAlign: center;
 
 /* Avatar Image */
 @avatarSize: @contentImageWidth;
@@ -126,11 +127,11 @@
 @extraBackground: none;
 @extraDisplay: block;
 @extraPosition: relative;
-@extraMargin: (1rem - @extraRowSpacing) 0em 0em;
-@extraTop: 0em;
-@extraLeft: 0em;
+@extraMargin: (1rem - @extraRowSpacing) 0 0;
+@extraTop: 0;
+@extraLeft: 0;
 @extraWidth: 100%;
-@extraPadding: 0em 0em 0em;
+@extraPadding: 0 0 0;
 @extraBoxShadow: none;
 @extraColor: @lightTextColor;
 @extraTransition: color @defaultDuration @defaultEasing;
@@ -145,13 +146,41 @@
 
 /* Divided */
 @dividedBorder: 1px solid @borderColor;
-@dividedMargin: 0em;
-@dividedPadding: 1em 0em;
+@dividedMargin: 0;
+@dividedPadding: 1em 0;
 
-@dividedFirstLastMargin: 0em;
-@dividedFirstLastPadding: 0em;
+@dividedFirstLastMargin: 0;
+@dividedFirstLastPadding: 0;
 
 
 /* Unstackable */
 @unstackableMobileImageWidth: 125px;
 
+/* Inverted */
+@invertedBackground: @background;
+@invertedContentBackground: @contentBackground;
+@invertedExtraBackground: @extraBackground;
+@invertedHeaderColor: @invertedTextColor;
+@invertedHeaderLinkColor: @invertedHeaderColor;
+@invertedHeaderLinkHoverColor: @invertedHoveredTextColor;
+@invertedMetaLinkColor: @invertedLightTextColor;
+@invertedMetaLinkHoverColor: @invertedTextColor;
+@invertedContentColor: @invertedTextColor;
+@invertedContentLinkColor: lighten(saturate(@linkColor, 30), 25, relative);
+@invertedContentLinkHoverColor: @linkColor;
+@invertedExtraColor: @invertedLightTextColor;
+@invertedDescriptionColor: @invertedTextColor;
+@invertedMetaColor: rgba(255, 255, 255, 0.8);
+@invertedLikeColor: lighten(@likeColor,10);
+@invertedLikeActiveColor: lighten(@likeActiveColor,10);
+@invertedFavoriteColor: lighten(@favoriteColor,10);
+@invertedFavoriteActiveColor: lighten(@favoriteActiveColor,10);
+@invertedDividedBorder: 1px solid @whiteBorderColor;
+
+@miniItemSize: @relativeMini;
+@tinyItemSize: @relativeTiny;
+@smallItemSize: @relativeSmall;
+@largeItemSize: @relativeLarge;
+@bigItemSize: @relativeBig;
+@hugeItemSize: @relativeHuge;
+@massiveItemSize: @relativeMassive;

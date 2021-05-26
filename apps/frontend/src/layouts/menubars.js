@@ -337,9 +337,8 @@ export class TopMenu extends Component {
         <div style={{ width: 150 }}>
           <Progress
             indicating
-            progress="ratio"
-            value={this.props.workerRunningJob.result.progress.current}
-            total={this.props.workerRunningJob.result.progress.target}
+            progress
+            percent={(this.props.workerRunningJob.result.progress.current.toFixed(2) / this.props.workerRunningJob.result.progress.target * 100).toFixed(0)}
           >
             Running {this.props.workerRunningJob.job_type_str} ...
           </Progress>
@@ -767,9 +766,7 @@ export class SideMenuNarrow extends Component {
           pointing="left"
           item
           icon={
-            <Icon.Group size="big">
-              <Icon name="image outline" />
-            </Icon.Group>
+              <Icon size="big" name="image outline" />
           }
         >
           <Dropdown.Menu>
@@ -822,10 +819,12 @@ export class SideMenuNarrow extends Component {
           pointing="left"
           item
           icon={
-            <Icon.Group size="big">
+            <div>
+            <Icon.Group size="big" >
               <Icon name="images outline" />
               <Icon name="bookmark" corner />
             </Icon.Group>
+            </div>
           }
         >
           <Dropdown.Menu>
@@ -861,11 +860,7 @@ export class SideMenuNarrow extends Component {
         <Dropdown
           pointing="left"
           item
-          icon={
-            <Icon.Group size="big">
-              <Icon name="bar chart" />
-            </Icon.Group>
-          }
+          icon={<Icon size="big" name="bar chart" />}
         >
           <Dropdown.Menu>
             <Dropdown.Header>Data Visualization</Dropdown.Header>
@@ -903,11 +898,7 @@ export class SideMenuNarrow extends Component {
         <Dropdown
           pointing="left"
           item
-          icon={
-            <Icon.Group size="big">
-              <Icon name="dashboard" />
-            </Icon.Group>
-          }
+          icon={<Icon size="big" name="dashboard" />}
         >
           <Dropdown.Menu>
             <Dropdown.Header>Dashboards</Dropdown.Header>
@@ -931,11 +922,7 @@ export class SideMenuNarrow extends Component {
             <Dropdown
               pointing="left"
               item
-              icon={
-                <Icon.Group size="big">
-                  <Icon name="users" />
-                </Icon.Group>
-              }
+              icon={<Icon size="big" name="users"/>}
             >
               <Dropdown.Menu>
                 <Dropdown.Header>Sharing</Dropdown.Header>

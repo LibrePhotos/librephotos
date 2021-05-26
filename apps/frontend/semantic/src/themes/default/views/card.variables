@@ -8,19 +8,19 @@
 
 /* Shadow */
 @shadowDistance: 1px;
-@shadowBoxShadow: 0px @shadowDistance 3px 0px @solidBorderColor;
+@shadowBoxShadow: 0 @shadowDistance 3px 0 @solidBorderColor;
 
 /* Card */
 @fontFamily: @pageFont;
 @display: flex;
 @background: @white;
 @borderRadius: @defaultBorderRadius;
-@margin: 1em 0em;
-@minHeight: 0px;
-@padding: 0em;
+@margin: 1em 0;
+@minHeight: 0;
+@padding: 0;
 @width: 290px;
 @borderWidth: 1px;
-@borderShadow: 0px 0px 0px @borderWidth @solidBorderColor;
+@borderShadow: 0 0 0 @borderWidth @solidBorderColor;
 @boxShadow:
   @shadowBoxShadow,
   @borderShadow
@@ -53,18 +53,18 @@
 
 /* Image */
 @imageBackground: @transparentBlack;
-@imagePadding: 0em;
+@imagePadding: 0;
 @imageBorder: none;
 @imageBoxShadow: none;
 @imageBorder: none;
 
 /* Content */
 @contentDivider: @borderWidth solid @internalBorderColor;
-@contentMargin: 0em;
+@contentMargin: 0;
 @contentBackground: none;
 @contentPadding: 1em 1em;
 @contentFontSize: 1em;
-@contentBorderRadius: 0em;
+@contentBorderRadius: 0;
 @contentBoxShadow: none;
 @contentBorder: none;
 
@@ -127,9 +127,9 @@
 @extraBackground: none;
 @extraPosition: static;
 @extraWidth: auto;
-@extraTop: 0em;
-@extraLeft: 0em;
-@extraMargin: 0em 0em;
+@extraTop: 0;
+@extraLeft: 0;
+@extraMargin: 0 0;
 @extraPadding: 0.75em 1em;
 @extraBoxShadow: none;
 @extraColor: @lightTextColor;
@@ -140,8 +140,8 @@
 @extraLinkHoverColor: @linkHoverColor;
 
 /* Buttons */
-@buttonMargin: 0px -@borderWidth;
-@buttonWidth: ~"calc(100% + "(@borderWidth * 2)~")";
+@buttonMargin: 0 -@borderWidth;
+@buttonWidth: e(%("calc(100%% + %d)", @borderWidth * 2));
 
 /*-------------------
       Variations
@@ -154,12 +154,16 @@
 @linkHoverRaiseDistance: 3px;
 @linkHoverTransform: translateY(-@linkHoverRaiseDistance);
 
-@shadowHoverBoxShadow: 0px @shadowDistance @linkHoverRaiseDistance 0px @solidSelectedBorderColor;
+@shadowHoverBoxShadow: 0 @shadowDistance @linkHoverRaiseDistance 0 @solidSelectedBorderColor;
 @linkHoverBoxShadow:
   @shadowHoverBoxShadow,
   @borderShadow
 ;
 
+/* Horizontal */
+@horizontalMinWidth: 270px;
+@horizontalWidth: 400px;
+@horizontalImageWidth: 150px;
 
 /* Raised */
 @raisedShadow:
@@ -176,7 +180,7 @@
 @cardSpacing: 0.75em;
 @smallCardSpacing: 0.5em;
 
-@oneCardSpacing: 0em;
+@oneCardSpacing: 0;
 @twoCardSpacing: @wideCardSpacing;
 @threeCardSpacing: @wideCardSpacing;
 @fourCardSpacing: @cardSpacing;
@@ -188,33 +192,50 @@
 @tenCardSpacing: @smallCardSpacing;
 
 @oneCard: @oneColumn;
-@oneCardOffset: 0em;
-@twoCard: ~"calc("@twoColumn~" - "(@twoCardSpacing * 2)~")";
+@oneCardOffset: 0;
+@twoCard: e(%("calc(%d - %d)", @twoColumn, @twoCardSpacing * 2));
 @twoCardOffset: -@twoCardSpacing;
-@threeCard: ~"calc("@threeColumn~" - "(@threeCardSpacing * 2)~")";
+@threeCard: e(%("calc(%d - %d)", @threeColumn, @threeCardSpacing * 2));
 @threeCardOffset: -@threeCardSpacing;
-@fourCard: ~"calc("@fourColumn~" - "(@fourCardSpacing * 2)~")";
+@fourCard: e(%("calc(%d - %d)", @fourColumn, @fourCardSpacing * 2));
 @fourCardOffset: -@fourCardSpacing;
-@fiveCard: ~"calc("@fiveColumn~" - "(@fiveCardSpacing * 2)~")";
+@fiveCard: e(%("calc(%d - %d)", @fiveColumn, @fiveCardSpacing * 2));
 @fiveCardOffset: -@fiveCardSpacing;
-@sixCard: ~"calc("@sixColumn~" - "(@sixCardSpacing * 2)~")";
+@sixCard: e(%("calc(%d - %d)", @sixColumn, @sixCardSpacing * 2));
 @sixCardOffset: -@sixCardSpacing;
-@sevenCard: ~"calc("@sevenColumn~" - "(@sevenCardSpacing * 2)~")";
+@sevenCard: e(%("calc(%d - %d)", @sevenColumn, @sevenCardSpacing * 2));
 @sevenCardOffset: -@sevenCardSpacing;
-@eightCard: ~"calc("@eightColumn~" - "(@sevenCardSpacing * 2)~")";
+@eightCard: e(%("calc(%d - %d)", @eightColumn, @sevenCardSpacing * 2));
 @eightCardOffset: -@sevenCardSpacing;
-@nineCard: ~"calc("@nineColumn~" - "(@nineCardSpacing * 2)~")";
+@nineCard: e(%("calc(%d - %d)", @nineColumn, @nineCardSpacing * 2));
 @nineCardOffset: -@nineCardSpacing;
-@tenCard: ~"calc("@tenColumn~" - "(@tenCardSpacing * 2)~")";
+@tenCard: e(%("calc(%d - %d)", @tenColumn, @tenCardSpacing * 2));
 @tenCardOffset: -@tenCardSpacing;
 
 /* Stackable */
 @stackableRowSpacing: 1em;
 @stackableCardSpacing: 1em;
-@stackableMargin: ~"calc("@oneColumn~" - "(@stackableCardSpacing * 2)~")";
+@stackableMargin: e(%("calc(%d - %d)", @oneColumn, @stackableCardSpacing * 2));
 
 /* Sizes */
 @medium: 1em;
 
 /* Colored */
 @coloredShadowDistance: 2px;
+
+/* Inverted */
+@invertedBackground: @black;
+@invertedContentDivider: @borderWidth solid rgba(255, 255, 255, 0.15);
+@invertedHeaderColor: @invertedTextColor;
+@invertedDescriptionColor: @invertedMutedTextColor;
+@invertedMetaColor: @invertedLightTextColor;
+@invertedMetaLinkColor: @invertedLightTextColor;
+@invertedMetaLinkHoverColor: @invertedHoveredTextColor;
+@invertedExtraColor: @invertedLightTextColor;
+@invertedExtraLinkColor: @invertedUnselectedTextColor;
+@invertedExtraDivider: 1px solid rgba(255, 255, 255, 0.15);
+@invertedLinkHoverBackground: @black;
+@invertedBoxShadow:
+  0 @shadowDistance 3px 0 @solidWhiteBorderColor,
+  0 0 0 @borderWidth @solidWhiteBorderColor
+;

@@ -11,7 +11,7 @@
 @maxWidth: 100%;
 
 /* Devices */
-@mobileMinimumGutter: 0em;
+@mobileMinimumGutter: 0;
 @mobileWidth: auto;
 @mobileGutter: 1em;
 
@@ -33,19 +33,19 @@
 @veryRelaxedGridGutterWidth: 5rem;
 
 @mobileGridWidth: @mobileWidth;
-@tabletGridWidth: ~"calc("@tabletWidth~" + "@gridGutterWidth~")";
-@computerGridWidth: ~"calc("@computerWidth~" + "@gridGutterWidth~")";
-@largeMonitorGridWidth: ~"calc("@largeMonitorWidth~" + "@gridGutterWidth~")";
+@tabletGridWidth: e(%("calc(%d + %d)", @tabletWidth, @gridGutterWidth));
+@computerGridWidth: e(%("calc(%d + %d)", @computerWidth, @gridGutterWidth));
+@largeMonitorGridWidth: e(%("calc(%d + %d)", @largeMonitorWidth, @gridGutterWidth));
 
 @mobileRelaxedGridWidth: @mobileWidth;
-@tabletRelaxedGridWidth: ~"calc("@tabletWidth~" + "@relaxedGridGutterWidth~")";
-@computerRelaxedGridWidth: ~"calc("@computerWidth~" + "@relaxedGridGutterWidth~")";
-@largeMonitorRelaxedGridWidth: ~"calc("@largeMonitorWidth~" + "@relaxedGridGutterWidth~")";
+@tabletRelaxedGridWidth: e(%("calc(%d + %d)", @tabletWidth, @relaxedGridGutterWidth));
+@computerRelaxedGridWidth: e(%("calc(%d + %d)", @computerWidth, @relaxedGridGutterWidth));
+@largeMonitorRelaxedGridWidth: e(%("calc(%d + %d)", @largeMonitorWidth, @relaxedGridGutterWidth));
 
 @mobileVeryRelaxedGridWidth: @mobileWidth;
-@tabletVeryRelaxedGridWidth: ~"calc("@tabletWidth~" + "@veryRelaxedGridGutterWidth~")";
-@computerVeryRelaxedGridWidth: ~"calc("@computerWidth~" + "@veryRelaxedGridGutterWidth~")";
-@largeMonitorVeryRelaxedGridWidth: ~"calc("@largeMonitorWidth~" + "@veryRelaxedGridGutterWidth~")";
+@tabletVeryRelaxedGridWidth: e(%("calc(%d + %d)", @tabletWidth, @veryRelaxedGridGutterWidth));
+@computerVeryRelaxedGridWidth: e(%("calc(%d + %d)", @computerWidth, @veryRelaxedGridGutterWidth));
+@largeMonitorVeryRelaxedGridWidth: e(%("calc(%d + %d)", @largeMonitorWidth, @veryRelaxedGridGutterWidth));
 
 /*-------------------
        Types

@@ -1,6 +1,6 @@
 /*!
- * # Semantic UI - Rating
- * http://github.com/semantic-org/semantic-ui/
+ * # Fomantic-UI - Rating
+ * http://github.com/fomantic/Fomantic-UI/
  *
  *
  * Released under the MIT license
@@ -28,13 +28,13 @@
   vertical-align: @verticalAlign;
 }
 .ui.rating:last-child {
-  margin-right: 0em;
+  margin-right: 0;
 }
 
 /* Icon */
 .ui.rating .icon {
-  padding: 0em;
-  margin: 0em;
+  padding: 0;
+  margin: 0;
   text-align: center;
   font-weight: @normal;
   font-style: normal;
@@ -43,6 +43,8 @@
   width: @iconWidth;
   height: @iconHeight;
   transition: @iconTransition;
+  line-height: 1;
+  backface-visibility: hidden;
 }
 
 
@@ -67,82 +69,76 @@
   color: @activeColor;
 }
 
+/* Partially Active Icon */
+.ui.rating .icon.partial.active {
+  background: linear-gradient(to right, @activeColor 0% var(--full), @inactiveColor var(--full) 100%);
+  background-clip: text;
+  color: transparent;
+}
+
 /* Selected Icon */
 .ui.rating .icon.selected,
-.ui.rating .icon.selected.active {
+.ui.rating .icon.selected.active,
+.ui.rating .icon.selected.partial.active {
   background: @selectedBackground;
   color: @selectedColor;
+  background-clip: unset;
 }
 
+/*--------------
+     Colors
+-------------- */
 
-/*-------------------
-        Star
---------------------*/
+each(@colors, {
+  @color: replace(@key, '@', '');
+  @c: @colors[@@color][color];
+  @l: @colors[@@color][light];
+  @h: @colors[@@color][hover];
+  @lh: @colors[@@color][lightHover];
 
-/* Inactive */
-.ui.star.rating .icon {
-  width: @starIconWidth;
-  height: @starIconHeight;
-  background: @starInactiveBackground;
-  color: @starInactiveColor;
-  text-shadow: @starInactiveTextShadow;
-}
+  .ui.@{color}.rating .active.icon {
+    color: @l;
+    text-shadow: 0px -@shadowWidth 0px @c,
+                 -@shadowWidth 0px 0px @c,
+                 0px @shadowWidth 0px @c,
+                 @shadowWidth 0px 0px @c;
+  }
+  .ui.@{color}.rating .icon.selected,
+  .ui.@{color}.rating .icon.selected.active,
+  .ui.@{color}.rating .icon.selected.partial.active {
+    background: inherit;
+    color: @lh;
+    text-shadow: 0px -@shadowWidth 0px @h,
+                 -@shadowWidth 0px 0px @h,
+                 0px @shadowWidth 0px @h,
+                 @shadowWidth 0px 0px @h;
 
-/* Active Star */
-.ui.star.rating .active.icon {
-  background: @starActiveBackground !important;
-  color: @starActiveColor !important;
-  text-shadow: @starActiveTextShadow !important;
-}
-
-/* Selected Star */
-.ui.star.rating .icon.selected,
-.ui.star.rating .icon.selected.active {
-  background: @starSelectedBackground !important;
-  color: @starSelectedColor !important;
-  text-shadow: @starSelectedTextShadow !important;
-}
-
-
-/*-------------------
-        Heart
---------------------*/
-
-.ui.heart.rating .icon {
-  width: @heartIconWidth;
-  height: @heartIconHeight;
-  background: @heartInactiveBackground;
-  color: @heartInactiveColor;
-  text-shadow: @heartInactiveTextShadow !important;
-}
-
-/* Active Heart */
-.ui.heart.rating .active.icon {
-  background: @heartActiveBackground !important;
-  color: @heartActiveColor !important;
-  text-shadow: @heartActiveTextShadow !important;
-}
-
-/* Selected Heart */
-.ui.heart.rating .icon.selected,
-.ui.heart.rating .icon.selected.active {
-  background: @heartSelectedBackground !important;
-  color: @heartSelectedColor !important;
-  text-shadow: @heartSelectedTextShadow !important;
-}
+    -webkit-text-stroke: unset;
+    background-clip: unset;
+  }
+  .ui.@{color}.rating .icon.partial.active {
+    background: linear-gradient(to right, @l 0% var(--full), @inactiveColor var(--full) 100%);
+    text-shadow: none;
+    -webkit-text-stroke: @c 0.78px;
+    background-clip: text;
+    color: transparent;
+  }
+})
 
 
 /*******************************
              States
 *******************************/
 
-/*-------------------
-       Disabled
---------------------*/
+& when (@variationRatingDisabled) {
+  /*-------------------
+         Disabled
+  --------------------*/
 
-/* disabled rating */
-.ui.disabled.rating .icon {
-  cursor: default;
+  /* disabled rating */
+  .ui.disabled.rating .icon {
+    cursor: default;
+  }
 }
 
 
@@ -165,26 +161,16 @@
           Variations
 *******************************/
 
-.ui.mini.rating {
-  font-size: @mini;
-}
-.ui.tiny.rating {
-  font-size: @tiny;
-}
-.ui.small.rating {
-  font-size: @small;
-}
 .ui.rating {
   font-size: @medium;
 }
-.ui.large.rating {
-  font-size: @large;
-}
-.ui.huge.rating {
-  font-size: @huge;
-}
-.ui.massive.rating {
-  font-size: @massive;
+& when not (@variationRatingSizes = false) {
+  each(@variationRatingSizes, {
+    @s: @@value;
+    .ui.@{value}.rating  {
+      font-size: @s;
+    }
+  })
 }
 
 

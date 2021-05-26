@@ -1,6 +1,6 @@
 /*!
- * # Semantic UI - Item
- * http://github.com/semantic-org/semantic-ui/
+ * # Fomantic-UI - Item
+ * http://github.com/fomantic/Fomantic-UI/
  *
  *
  * Released under the MIT license
@@ -27,7 +27,7 @@
 
 .ui.items > .item {
   display: @display;
-  margin: @itemSpacing 0em;
+  margin: @itemSpacing 0;
   width: @width;
   min-height: @minHeight;
   background: @background;
@@ -52,10 +52,10 @@
 }
 
 .ui.items:first-child {
-  margin-top: 0em !important;
+  margin-top: 0 !important;
 }
 .ui.items:last-child {
-  margin-bottom: 0em !important;
+  margin-bottom: 0 !important;
 }
 
 /*--------------
@@ -65,16 +65,16 @@
 .ui.items > .item:after {
   display: block;
   content: ' ';
-  height: 0px;
+  height: 0;
   clear: both;
   overflow: hidden;
   visibility: hidden;
 }
 .ui.items > .item:first-child {
-  margin-top: 0em;
+  margin-top: 0;
 }
 .ui.items > .item:last-child {
-  margin-bottom: 0em;
+  margin-bottom: 0;
 }
 
 
@@ -114,6 +114,7 @@
   display: block;
   flex: 1 1 auto;
   background: @contentBackground;
+  color: @contentColor;
   margin: @contentMargin;
   padding: @contentPadding;
   box-shadow: @contentBoxShadow;
@@ -124,7 +125,7 @@
 .ui.items > .item > .content:after {
   display: block;
   content: ' ';
-  height: 0px;
+  height: 0;
   clear: both;
   overflow: hidden;
   visibility: hidden;
@@ -196,10 +197,10 @@
 ---------------*/
 
 .ui.items > .item > .content p {
-  margin: 0em 0em @paragraphDistance;
+  margin: 0 0 @paragraphDistance;
 }
 .ui.items > .item > .content p:last-child {
-  margin-bottom: 0em;
+  margin-bottom: 0;
 }
 
 /*--------------
@@ -216,11 +217,11 @@
   margin-right: @metaSpacing;
 }
 .ui.items > .item .meta :last-child {
-  margin-right: 0em;
+  margin-right: 0;
 }
 
 .ui.items > .item .meta [class*="right floated"] {
-  margin-right: 0em;
+  margin-right: 0;
   margin-left: @metaSpacing;
 }
 
@@ -310,16 +311,16 @@
   border-top: @extraDivider;
 }
 .ui.items > .item .extra > * {
-  margin: (@extraRowSpacing / 2) @extraHorizontalSpacing (@extraRowSpacing / 2) 0em;
+  margin: (@extraRowSpacing / 2) @extraHorizontalSpacing (@extraRowSpacing / 2) 0;
 }
 .ui.items > .item .extra > [class*="right floated"] {
-  margin: (@extraRowSpacing / 2) 0em (@extraRowSpacing / 2) @extraHorizontalSpacing;
+  margin: (@extraRowSpacing / 2) 0 (@extraRowSpacing / 2) @extraHorizontalSpacing;
 }
 
 .ui.items > .item .extra:after {
   display: block;
   content: ' ';
-  height: 0px;
+  height: 0;
   clear: both;
   overflow: hidden;
   visibility: hidden;
@@ -339,14 +340,14 @@
 /* Tablet Only */
 @media only screen and (min-width: @tabletBreakpoint) and (max-width: @largestTabletScreen) {
   .ui.items > .item {
-    margin: @tabletItemSpacing 0em;
+    margin: @tabletItemSpacing 0;
   }
   .ui.items > .item > .image:not(.ui) {
     width: @tabletImageWidth;
   }
   .ui.items > .item > .image + .content {
     display: block;
-    padding: 0em 0em 0em @tabletContentImageDistance;
+    padding: 0 0 0 @tabletContentImageDistance;
   }
 
 }
@@ -355,7 +356,7 @@
 @media only screen and (max-width: @largestMobileScreen) {
   .ui.items:not(.unstackable) > .item {
     flex-direction: column;
-    margin: @mobileItemSpacing 0em;
+    margin: @mobileItemSpacing 0;
   }
   .ui.items:not(.unstackable) > .item > .image {
     display: block;
@@ -370,7 +371,7 @@
   }
   .ui.items:not(.unstackable) > .item > .image + .content {
     display: block;
-    padding: @mobileContentImageDistance 0em 0em;
+    padding: @mobileContentImageDistance 0 0;
   }
 }
 
@@ -379,76 +380,81 @@
            Variations
 *******************************/
 
+& when (@variationItemAligned) {
+  /*-------------------
+         Aligned
+  --------------------*/
 
-/*-------------------
-       Aligned
---------------------*/
-
-.ui.items > .item > .image + [class*="top aligned"].content {
-  align-self: flex-start;
-}
-.ui.items > .item > .image + [class*="middle aligned"].content {
-  align-self: center;
-}
-.ui.items > .item > .image + [class*="bottom aligned"].content {
-  align-self: flex-end;
-}
-
-
-/*--------------
-     Relaxed
----------------*/
-
-.ui.relaxed.items > .item {
-  margin: @relaxedItemSpacing 0em;
-}
-.ui[class*="very relaxed"].items > .item {
-  margin: @veryRelaxedItemSpacing 0em;
+  .ui.items > .item > .image + [class*="top aligned"].content {
+    align-self: flex-start;
+  }
+  .ui.items > .item > .image + [class*="middle aligned"].content {
+    align-self: center;
+  }
+  .ui.items > .item > .image + [class*="bottom aligned"].content {
+    align-self: flex-end;
+  }
 }
 
+& when (@variationItemRelaxed) {
+  /*--------------
+       Relaxed
+  ---------------*/
 
-/*-------------------
-      Divided
---------------------*/
-
-.ui.divided.items > .item {
-  border-top: @dividedBorder;
-  margin: @dividedMargin;
-  padding: @dividedPadding;
-}
-.ui.divided.items > .item:first-child {
-  border-top: none;
-  margin-top: @dividedFirstLastMargin !important;
-  padding-top: @dividedFirstLastPadding !important;
-}
-.ui.divided.items > .item:last-child {
-  margin-bottom: @dividedFirstLastMargin !important;
-  padding-bottom: @dividedFirstLastPadding !important;
+  .ui.relaxed.items > .item {
+    margin: @relaxedItemSpacing 0;
+  }
+  .ui[class*="very relaxed"].items > .item {
+    margin: @veryRelaxedItemSpacing 0;
+  }
 }
 
-/* Relaxed Divided */
-.ui.relaxed.divided.items > .item {
-  margin: 0em;
-  padding: @relaxedItemSpacing 0em;
+& when (@variationItemDivided) {
+  /*-------------------
+        Divided
+  --------------------*/
+
+  .ui.divided.items > .item {
+    border-top: @dividedBorder;
+    margin: @dividedMargin;
+    padding: @dividedPadding;
+  }
+  .ui.divided.items > .item:first-child {
+    border-top: none;
+    margin-top: @dividedFirstLastMargin !important;
+    padding-top: @dividedFirstLastPadding !important;
+  }
+  .ui.divided.items > .item:last-child {
+    margin-bottom: @dividedFirstLastMargin !important;
+    padding-bottom: @dividedFirstLastPadding !important;
+  }
+  & when (@variationItemRelaxed) {
+    /* Relaxed Divided */
+    .ui.relaxed.divided.items > .item {
+      margin: 0;
+      padding: @relaxedItemSpacing 0;
+    }
+    .ui[class*="very relaxed"].divided.items > .item {
+      margin: 0;
+      padding: @veryRelaxedItemSpacing 0;
+    }
+  }
 }
-.ui[class*="very relaxed"].divided.items > .item {
-  margin: 0em;
-  padding: @veryRelaxedItemSpacing 0em;
-}
 
+& when (@variationItemLink) {
+  /*-------------------
+          Link
+  --------------------*/
 
-/*-------------------
-        Link
---------------------*/
+  .ui.items a.item:hover,
+  .ui.link.items > .item:hover {
+    cursor: pointer;
+  }
 
-.ui.items a.item:hover,
-.ui.link.items > .item:hover {
-  cursor: pointer;
-}
-
-.ui.items a.item:hover .content .header,
-.ui.link.items > .item:hover .content .header {
-  color: @headerLinkHoverColor;
+  .ui.items a.item:hover .content .header,
+  .ui.link.items > .item:hover .content .header {
+    color: @headerLinkHoverColor;
+  }
 }
 
 
@@ -459,15 +465,94 @@
 .ui.items > .item {
   font-size: @relativeMedium;
 }
+& when not (@variationItemSizes = false) {
+  each(@variationItemSizes, {
+    @s: @{value}ItemSize;
+    .ui.@{value}.items > .item  {
+      font-size: @@s;
+    }
+  })
+}
 
-/*---------------
-   Unstackable
-----------------*/
+& when (@variationItemUnstackable) {
+  /*---------------
+     Unstackable
+  ----------------*/
 
-@media only screen and (max-width: @largestMobileScreen) {
-  .ui.unstackable.items > .item > .image,
-  .ui.unstackable.items > .item > .image > img {
-    width: @unstackableMobileImageWidth !important;
+  @media only screen and (max-width: @largestMobileScreen) {
+    .ui.unstackable.items > .item > .image,
+    .ui.unstackable.items > .item > .image > img {
+      width: @unstackableMobileImageWidth !important;
+    }
+  }
+}
+
+& when (@variationItemInverted) {
+  /*--------------
+       Inverted
+  ---------------*/
+
+  .ui.inverted.items > .item {
+    background: @invertedBackground;
+  }
+  .ui.inverted.items > .item > .content {
+    background: @invertedContentBackground;
+    color: @invertedContentColor;
+  }
+  .ui.inverted.items > .item .extra {
+    background: @invertedExtraBackground;
+  }
+  .ui.inverted.items > .item > .content > .header {
+    color: @invertedHeaderColor;
+  }
+  .ui.inverted.items > .item > .content > .description {
+    color: @invertedDescriptionColor;
+  }
+  .ui.inverted.items > .item .meta {
+    color: @invertedMetaColor;
+  }
+  .ui.inverted.items > .item > .content a:not(.ui) {
+    color: @invertedContentLinkColor;
+  }
+  .ui.inverted.items > .item > .content a:not(.ui):hover {
+    color: @invertedContentLinkHoverColor;
+  }
+  .ui.inverted.items > .item > .content > a.header {
+    color: @invertedHeaderLinkColor;
+  }
+  .ui.inverted.items > .item > .content > a.header:hover {
+    color: @invertedHeaderLinkHoverColor;
+  }
+  .ui.inverted.items > .item .meta > a:not(.ui) {
+    color: @invertedMetaLinkColor;
+  }
+  .ui.inverted.items > .item .meta > a:not(.ui):hover {
+    color: @invertedMetaLinkHoverColor;
+  }
+  .ui.inverted.items > .item > .content .favorite.icon:hover {
+    color: @invertedFavoriteColor;
+  }
+  .ui.inverted.items > .item > .content .active.favorite.icon {
+    color: @invertedFavoriteActiveColor;
+  }
+  .ui.inverted.items > .item > .content .like.icon:hover {
+    color: @invertedLikeColor;
+  }
+  .ui.inverted.items > .item > .content .active.like.icon {
+    color: @invertedLikeActiveColor;
+  }
+  .ui.inverted.items > .item .extra {
+    color: @invertedExtraColor;
+  }
+  .ui.inverted.items a.item:hover .content .header,
+  .ui.inverted.link.items > .item:hover .content .header {
+    color: @invertedHeaderLinkHoverColor;
+  }
+  .ui.inverted.divided.items > .item {
+    border-top: @invertedDividedBorder;
+  }
+  .ui.inverted.divided.items > .item:first-child {
+    border-top: none;
   }
 }
 

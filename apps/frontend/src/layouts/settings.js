@@ -12,6 +12,7 @@ import {
   Table,
   Popup,
   Divider,
+  Confirm
 } from "semantic-ui-react";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
@@ -26,6 +27,7 @@ import {
   manageUpdateUser,
   fetchNextcloudDirectoryTree,
   fetchJobList,
+  deleteMissingPhotos
 } from "../actions/utilActions";
 import { trainFaces } from "../actions/facesActions";
 import { scanPhotos, scanNextcloudPhotos } from "../actions/photosActions";
@@ -44,10 +46,13 @@ export class Settings extends Component {
     accordionTwoActive: false,
     accordionThreeActive: false,
     accordionFourActive: false,
+    open: false,
     avatarImgSrc: "/unknown_user.jpg",
     userSelfDetails: {},
     modalNextcloudScanDirectoryOpen: false,
   };
+  open = () => this.setState({ open: true })
+  close = () => this.setState({ open: false })
 
   setEditorRef = (editor) => this.editor = editor
 
@@ -62,6 +67,11 @@ export class Settings extends Component {
 
   onGenerateEventAlbumsButtonClick = (e) => {
     this.props.dispatch(generateEventAlbums());
+  };
+
+  onDeleteMissingPhotosButtonClick = (e) => {
+    this.props.dispatch(deleteMissingPhotos());
+    this.close();
   };
 
   urltoFile=(url, filename, mimeType)=>{
@@ -495,7 +505,7 @@ export class Settings extends Component {
         <Divider hidden />
 
         <Grid stackable>
-          <Grid.Row columns={3}>
+          <Grid.Row columns={4}>
             <Grid.Column>
               <Segment>
                 <Header textAlign="center">
@@ -561,7 +571,37 @@ export class Settings extends Component {
                   </List.Item>
                   <List.Item>Extract faces. </List.Item>
                   <List.Item>Add photo to thing and place albums. </List.Item>
+                  <List.Item>Check if photos are missing or have been moved. </List.Item>
                 </List>
+              </Segment>
+            </Grid.Column>
+            <Grid.Column>
+            <Segment>
+                <Header textAlign="center">
+                  {this.props.util.countStats.num_missing_photos} Missing Photos
+                </Header>
+                <Divider />
+                <Button
+                  fluid
+                  attached={this.state.accordionTwoActive ? "bottom" : false}
+                  onClick={this.open}
+                  disabled={false && buttonsDisabled}
+                  color="red"
+                >
+                  <Icon name="trash" />
+                  Remove missing photos
+                </Button>
+                <Confirm
+                  open={this.state.open}
+                  onCancel={this.close}
+                  onConfirm={this.onDeleteMissingPhotosButtonClick}
+                />
+                <Divider hidden />
+                <p>
+                  On every scan LibrePhotos will check if the files are still in the same location or if they have been moved.
+                  If they are missing, then they get marked as such.
+                </p>
+                <Divider />
               </Segment>
             </Grid.Column>
             <Grid.Column>

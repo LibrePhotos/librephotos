@@ -1,6 +1,6 @@
 /*!
- * # Semantic UI - Input
- * http://github.com/semantic-org/semantic-ui/
+ * # Fomantic-UI - Input
+ * http://github.com/fomantic/Fomantic-UI/
  *
  *
  * Released under the MIT license
@@ -35,7 +35,7 @@
   color: @inputColor;
 }
 .ui.input > input {
-  margin: 0em;
+  margin: 0;
   max-width: 100%;
   flex: 1 0 auto;
   outline: none;
@@ -76,19 +76,20 @@
 /*******************************
             States
 *******************************/
+& when (@variationInputDisabled) {
+  /*--------------------
+          Disabled
+  ---------------------*/
 
-/*--------------------
-        Disabled
----------------------*/
+  .ui.disabled.input,
+  .ui.input:not(.disabled) input[disabled] {
+    opacity: @disabledOpacity;
+  }
 
-.ui.disabled.input,
-.ui.input:not(.disabled) input[disabled] {
-  opacity: @disabledOpacity;
-}
-
-.ui.disabled.input > input,
-.ui.input:not(.disabled) input[disabled] {
-  pointer-events: none;
+  .ui.disabled.input > input,
+  .ui.input:not(.disabled) input[disabled] {
+    pointer-events: none;
+  }
 }
 
 /*--------------------
@@ -103,43 +104,41 @@
   box-shadow: @downBoxShadow;
 }
 
-/*--------------------
-       Loading
----------------------*/
+& when (@variationInputLoading) {
+  /*--------------------
+         Loading
+  ---------------------*/
 
-.ui.loading.loading.input > i.icon:before {
-  position: absolute;
-  content: '';
-  top: 50%;
-  left: 50%;
+  .ui.loading.loading.input > i.icon:before {
+    position: absolute;
+    content: '';
+    top: 50%;
+    left: 50%;
 
-  margin: @loaderMargin;
-  width: @loaderSize;
-  height: @loaderSize;
+    margin: @loaderMargin;
+    width: @loaderSize;
+    height: @loaderSize;
 
-  border-radius: @circularRadius;
-  border: @loaderLineWidth solid @loaderFillColor;
-}
-.ui.loading.loading.input > i.icon:after {
-  position: absolute;
-  content: '';
-  top: 50%;
-  left: 50%;
+    border-radius: @circularRadius;
+    border: @loaderLineWidth solid @loaderFillColor;
+  }
+  .ui.loading.loading.input > i.icon:after {
+    position: absolute;
+    content: '';
+    top: 50%;
+    left: 50%;
 
-  margin: @loaderMargin;
-  width: @loaderSize;
-  height: @loaderSize;
+    margin: @loaderMargin;
+    width: @loaderSize;
+    height: @loaderSize;
 
-  animation: button-spin @loaderSpeed linear;
-  animation-iteration-count: infinite;
+    animation: loader @loaderSpeed infinite linear;
 
-  border-radius: @circularRadius;
+    border: @loaderLineWidth solid @loaderLineColor;
+    border-radius: @circularRadius;
 
-  border-color: @loaderLineColor transparent transparent;
-  border-style: solid;
-  border-width: @loaderLineWidth;
-
-  box-shadow: 0px 0px 0px 1px transparent;
+    box-shadow: 0 0 0 1px transparent;
+  }
 }
 
 
@@ -168,341 +167,399 @@
 }
 
 
+& when (@variationInputStates) {
+  /*--------------------
+          States
+  ---------------------*/
+  each(@formStates, {
+    @state: replace(@key, '@', '');
 
-/*--------------------
-        Error
----------------------*/
+    .ui.input.@{state} > input {
+      background-color: @formStates[@@state][background];
+      border-color: @formStates[@@state][borderColor];
+      color: @formStates[@@state][color];
+      box-shadow: @formStates[@@state][boxShadow];
+    }
 
-.ui.input.error > input {
-  background-color: @errorBackground;
-  border-color: @errorBorder;
-  color: @errorColor;
-  box-shadow: @errorBoxShadow;
-}
+    /* Placeholder */
+    .ui.input.@{state} > input::-webkit-input-placeholder {
+      color: @formStates[@@state][inputPlaceholderColor];
+    }
+    .ui.input.@{state} > input::-moz-placeholder {
+      color: @formStates[@@state][inputPlaceholderColor];
+    }
+    .ui.input.@{state} > input:-ms-input-placeholder {
+      color: @formStates[@@state][inputPlaceholderColor] !important;
+    }
 
-/* Error Placeholder */
-.ui.input.error > input::-webkit-input-placeholder {
-  color: @placeholderErrorColor;
+    /* Focused Placeholder */
+    .ui.input.@{state} > input:focus::-webkit-input-placeholder {
+      color: @formStates[@@state][inputPlaceholderFocusColor];
+    }
+    .ui.input.@{state} > input:focus::-moz-placeholder {
+      color: @formStates[@@state][inputPlaceholderFocusColor];
+    }
+    .ui.input.@{state} > input:focus:-ms-input-placeholder {
+      color: @formStates[@@state][inputPlaceholderFocusColor] !important;
+    }
+  })
 }
-.ui.input.error > input::-moz-placeholder {
-  color: @placeholderErrorColor;
-}
-.ui.input.error > input:-ms-input-placeholder {
-  color: @placeholderErrorColor !important;
-}
-
-/* Focused Error Placeholder */
-.ui.input.error > input:focus::-webkit-input-placeholder {
-  color: @placeholderErrorFocusColor;
-}
-.ui.input.error > input:focus::-moz-placeholder {
-  color: @placeholderErrorFocusColor;
-}
-.ui.input.error > input:focus:-ms-input-placeholder {
-  color: @placeholderErrorFocusColor !important;
-}
-
 /*******************************
            Variations
 *******************************/
 
-/*--------------------
-      Transparent
----------------------*/
+& when (@variationInputTransparent) {
+  /*--------------------
+        Transparent
+  ---------------------*/
 
 
-.ui.transparent.input > input {
-  border-color: transparent !important;
-  background-color: transparent !important;
-  padding: 0em !important;
-  box-shadow: none !important;
-  border-radius: 0px !important;
+  .ui.transparent.input > textarea,
+  .ui.transparent.input > input {
+    border-color: transparent !important;
+    background-color: transparent !important;
+    padding: 0;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  .field .ui.transparent.input > textarea {
+    padding: @padding;
+  }
+
+  /* Transparent Icon */
+  :not(.field) > .ui.transparent.icon.input > i.icon {
+    width: @transparentIconWidth;
+  }
+  :not(.field) > .ui.ui.ui.transparent.icon.input > input {
+    padding-left: 0;
+    padding-right: @transparentIconMargin;
+  }
+  :not(.field) > .ui.ui.ui.transparent[class*="left icon"].input > input {
+    padding-left: @transparentIconMargin;
+    padding-right: 0;
+  }
+  & when (@variationInputInverted) {
+    /* Transparent Inverted */
+    .ui.transparent.inverted.input {
+      color: @transparentInvertedColor;
+    }
+    .ui.ui.transparent.inverted.input > textarea,
+    .ui.ui.transparent.inverted.input > input {
+      color: inherit;
+    }
+
+    .ui.transparent.inverted.input > input::-webkit-input-placeholder {
+      color: @transparentInvertedPlaceholderColor;
+    }
+    .ui.transparent.inverted.input > input::-moz-placeholder {
+      color: @transparentInvertedPlaceholderColor;
+    }
+    .ui.transparent.inverted.input > input:-ms-input-placeholder {
+      color: @transparentInvertedPlaceholderColor;
+    }
+  }
 }
 
-/* Transparent Icon */
-.ui.transparent.icon.input > i.icon {
-  width: @transparentIconWidth;
-}
-.ui.transparent.icon.input > input {
-  padding-left: 0em !important;
-  padding-right: @transparentIconMargin !important;
-}
-.ui.transparent[class*="left icon"].input > input {
-  padding-left: @transparentIconMargin !important;
-  padding-right: 0em !important;
+& when (@variationInputIcon) {
+  /*--------------------
+           Icon
+  ---------------------*/
+
+  .ui.icon.input > i.icon {
+    cursor: default;
+    position: absolute;
+    line-height: 1;
+    text-align: center;
+    top: 0;
+    right: 0;
+    margin: 0;
+    height: 100%;
+
+    width: @iconWidth;
+    opacity: @iconOpacity;
+    border-radius: 0 @borderRadius @borderRadius 0;
+    transition: @iconTransition;
+  }
+  .ui.icon.input > i.icon:not(.link) {
+    pointer-events: none;
+  }
+  .ui.ui.ui.ui.icon.input > textarea,
+  .ui.ui.ui.ui.icon.input > input {
+    padding-right: @iconMargin;
+  }
+
+  .ui.icon.input > i.icon:before,
+  .ui.icon.input > i.icon:after {
+    left: 0;
+    position: absolute;
+    text-align: center;
+    top: 50%;
+    width: 100%;
+    margin-top: @iconOffset;
+  }
+  .ui.icon.input > i.link.icon {
+    cursor: pointer;
+  }
+  .ui.icon.input > i.circular.icon {
+    top: @circularIconVerticalOffset;
+    right: @circularIconHorizontalOffset;
+  }
+
+  /* Left Icon Input */
+  .ui[class*="left icon"].input > i.icon {
+    right: auto;
+    left: @borderWidth;
+    border-radius: @borderRadius 0 0 @borderRadius;
+  }
+  .ui[class*="left icon"].input > i.circular.icon {
+    right: auto;
+    left: @circularIconHorizontalOffset;
+  }
+  .ui.ui.ui.ui[class*="left icon"].input > textarea,
+  .ui.ui.ui.ui[class*="left icon"].input > input {
+    padding-left: @iconMargin;
+    padding-right: @horizontalPadding;
+  }
+
+  /* Focus */
+  .ui.icon.input > textarea:focus ~ i.icon,
+  .ui.icon.input > input:focus ~ i.icon {
+    opacity: 1;
+  }
 }
 
-/* Transparent Inverted */
-.ui.transparent.inverted.input {
-  color: @transparentInvertedColor;
-}
-.ui.transparent.inverted.input > input {
-  color: inherit;
+& when (@variationInputLabeled) {
+  /*--------------------
+          Labeled
+  ---------------------*/
+
+  /* Adjacent Label */
+  .ui.labeled.input > .label {
+    flex: 0 0 auto;
+    margin: 0;
+    font-size: @relativeMedium;
+  }
+  .ui.labeled.input > .label:not(.corner) {
+    padding-top: @verticalPadding;
+    padding-bottom: @verticalPadding;
+  }
+
+  /* Regular Label on Left */
+  .ui.labeled.input:not([class*="corner labeled"]) .label:first-child {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  .ui.labeled.input:not([class*="corner labeled"]) .label:first-child + input {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left-color: transparent;
+  }
+  .ui.labeled.input:not([class*="corner labeled"]) .label:first-child + input:focus {
+    border-left-color: @focusBorderColor;
+  }
+
+  /* Regular Label on Right */
+  .ui[class*="right labeled"].input > input {
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    border-right-color: transparent !important;
+  }
+  .ui[class*="right labeled"].input > input + .label {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+
+  .ui[class*="right labeled"].input > input:focus {
+    border-right-color: @focusBorderColor !important;
+  }
 }
 
-.ui.transparent.inverted.input > input::-webkit-input-placeholder {
-  color: @transparentInvertedPlaceholderColor;
+& when (@variationInputCorner) {
+  /* Corner Label */
+  .ui.labeled.input .corner.label {
+    top: @labelCornerTop;
+    right: @labelCornerRight;
+    font-size: @labelCornerSize;
+    border-radius: 0 @borderRadius 0 0;
+  }
+
+  /* Spacing with corner label */
+  .ui[class*="corner labeled"]:not([class*="left corner labeled"]).labeled.input > textarea,
+  .ui[class*="corner labeled"]:not([class*="left corner labeled"]).labeled.input > input {
+    padding-right: @labeledMargin !important;
+  }
+  .ui[class*="corner labeled"].icon.input:not([class*="left corner labeled"]) > textarea,
+  .ui[class*="corner labeled"].icon.input:not([class*="left corner labeled"]) > input {
+    padding-right: @labeledIconInputMargin !important;
+  }
+  .ui[class*="corner labeled"].icon.input:not([class*="left corner labeled"]) > i.icon {
+    margin-right: @labeledIconMargin;
+  }
+
+  /* Left Labeled */
+  .ui[class*="left corner labeled"].labeled.input > textarea,
+  .ui[class*="left corner labeled"].labeled.input > input {
+    padding-left: @labeledMargin !important;
+  }
+  & when (@variationInputIcon) {
+    .ui[class*="left corner labeled"].icon.input > textarea,
+    .ui[class*="left corner labeled"].icon.input > input {
+      padding-left: @labeledIconInputMargin !important;
+    }
+    .ui[class*="left corner labeled"].icon.input > i.icon {
+      margin-left: @labeledIconMargin;
+    }
+  }
 }
-.ui.transparent.inverted.input > input::-moz-placeholder {
-  color: @transparentInvertedPlaceholderColor;
+& when (@variationInputIcon) {
+  .ui.icon.input > textarea ~ i.icon {
+    height: @textareaIconHeight;
+  }
+  :not(.field) > .ui.transparent.icon.input > textarea ~ i.icon {
+    height: @transparentTextareaIconHeight;
+  }
 }
-.ui.transparent.inverted.input > input:-ms-input-placeholder {
-  color: @transparentInvertedPlaceholderColor;
+& when (@variationInputCorner) {
+  /* Corner Label Position  */
+  .ui.input > .ui.corner.label {
+    top: @borderWidth;
+    right: @borderWidth;
+  }
+  .ui.input > .ui.left.corner.label {
+    right: auto;
+    left: @borderWidth;
+  }
 }
 
+& when (@variationInputLabeled)  or (@variationInputAction) {
+  /* Labeled and action input states */
+  each(@formStates, {
+    @state: replace(@key, '@', '');
+    @borderColor: @formStates[@@state][borderColor];
 
-/*--------------------
-         Icon
----------------------*/
-
-.ui.icon.input > i.icon {
-  cursor: default;
-  position: absolute;
-  line-height: 1;
-  text-align: center;
-  top: 0px;
-  right: 0px;
-  margin: 0em;
-  height: 100%;
-
-  width: @iconWidth;
-  opacity: @iconOpacity;
-  border-radius: 0em @borderRadius @borderRadius 0em;
-  transition: @iconTransition;
-}
-.ui.icon.input > i.icon:not(.link) {
-  pointer-events: none;
-}
-.ui.icon.input > input {
-  padding-right: @iconMargin !important;
-}
-
-.ui.icon.input > i.icon:before,
-.ui.icon.input > i.icon:after {
-  left: 0;
-  position: absolute;
-  text-align: center;
-  top: 50%;
-  width: 100%;
-  margin-top: @iconOffset;
-}
-.ui.icon.input > i.link.icon {
-  cursor: pointer;
-}
-.ui.icon.input > i.circular.icon {
-  top: @circularIconVerticalOffset;
-  right: @circularIconHorizontalOffset;
+    .ui.form .field.@{state} > .ui.action.input > .ui.button,
+    .ui.form .field.@{state} > .ui.labeled.input:not([class*="corner labeled"]) > .ui.label,
+    .ui.action.input.@{state} > .ui.button,
+    .ui.labeled.input.@{state}:not([class*="corner labeled"]) > .ui.label {
+      border-top: @borderWidth solid @borderColor;
+      border-bottom: @borderWidth solid @borderColor;
+    }
+    .ui.form .field.@{state} > .ui[class*="left action"].input > .ui.button,
+    .ui.form .field.@{state} > .ui.labeled.input:not(.right):not([class*="corner labeled"]) > .ui.label,
+    .ui[class*="left action"].input.@{state} > .ui.button,
+    .ui.labeled.input.@{state}:not(.right):not([class*="corner labeled"]) > .ui.label {
+      border-left: @borderWidth solid @borderColor;
+    }
+    .ui.form .field.@{state} > .ui.action.input:not([class*="left action"]) > input + .ui.button,
+    .ui.form .field.@{state} > .ui.right.labeled.input:not([class*="corner labeled"]) > input + .ui.label,
+    .ui.action.input.@{state}:not([class*="left action"]) > input + .ui.button,
+    .ui.right.labeled.input.@{state}:not([class*="corner labeled"]) > input + .ui.label {
+      border-right: @borderWidth solid @borderColor;
+    }
+    .ui.form .field.@{state} > .ui.right.labeled.input:not([class*="corner labeled"]) > .ui.label:first-child,
+    .ui.right.labeled.input.@{state}:not([class*="corner labeled"]) > .ui.label:first-child {
+      border-left: @borderWidth solid @borderColor;
+    }
+  })
 }
 
-/* Left Icon Input */
-.ui[class*="left icon"].input > i.icon {
-  right: auto;
-  left: @borderWidth;
-  border-radius: @borderRadius 0em 0em @borderRadius;
-}
-.ui[class*="left icon"].input > i.circular.icon {
-  right: auto;
-  left: @circularIconHorizontalOffset;
-}
-.ui[class*="left icon"].input > input {
-  padding-left: @iconMargin !important;
-  padding-right: @horizontalPadding !important;
+& when (@variationInputAction) {
+  /*--------------------
+          Action
+  ---------------------*/
+
+  .ui.action.input > .button,
+  .ui.action.input > .buttons {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+  }
+  .ui.action.input > .button,
+  .ui.action.input > .buttons > .button {
+    padding-top: @verticalPadding;
+    padding-bottom: @verticalPadding;
+    margin: 0;
+  }
+
+  /* Input when ui Left*/
+  .ui[class*="left action"].input > input {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left-color: transparent;
+  }
+
+  /* Input when ui Right*/
+  .ui.action.input:not([class*="left action"]) > input {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-right-color: transparent;
+  }
+
+  /* Button and Dropdown */
+  .ui.action.input > .dropdown:first-child,
+  .ui.action.input > .button:first-child,
+  .ui.action.input > .buttons:first-child > .button {
+    border-radius: @borderRadius 0 0 @borderRadius;
+  }
+  .ui.action.input > .dropdown:not(:first-child),
+  .ui.action.input > .button:not(:first-child),
+  .ui.action.input > .buttons:not(:first-child) > .button {
+    border-radius: 0;
+  }
+  .ui.action.input > .dropdown:last-child,
+  .ui.action.input > .button:last-child,
+  .ui.action.input > .buttons:last-child > .button {
+    border-radius: 0 @borderRadius @borderRadius 0;
+  }
+
+  /* Input Focus */
+  .ui.action.input:not([class*="left action"]) > input:focus {
+    border-right-color: @focusBorderColor;
+  }
+
+  .ui.ui[class*="left action"].input > input:focus {
+    border-left-color: @focusBorderColor;
+  }
 }
 
-/* Focus */
-.ui.icon.input > input:focus ~ i.icon {
-  opacity: 1;
+& when (@variationInputInverted) {
+  /*--------------------
+         Inverted
+  ---------------------*/
+
+  /* Standard */
+  .ui.inverted.input > input {
+    border: none;
+  }
 }
 
-/*--------------------
-        Labeled
----------------------*/
+& when (@variationInputFluid) {
+  /*--------------------
+          Fluid
+  ---------------------*/
 
-/* Adjacent Label */
-.ui.labeled.input > .label {
-  flex: 0 0 auto;
-  margin: 0;
-  font-size: @relativeMedium;
-}
-.ui.labeled.input > .label:not(.corner) {
-  padding-top: @verticalPadding;
-  padding-bottom: @verticalPadding;
-}
-
-/* Regular Label on Left */
-.ui.labeled.input:not([class*="corner labeled"]) .label:first-child {
-  border-top-right-radius: 0px;
-  border-bottom-right-radius: 0px;
-}
-.ui.labeled.input:not([class*="corner labeled"]) .label:first-child + input {
-  border-top-left-radius: 0px;
-  border-bottom-left-radius: 0px;
-  border-left-color: transparent;
-}
-.ui.labeled.input:not([class*="corner labeled"]) .label:first-child + input:focus {
-  border-left-color: @focusBorderColor;
-}
-
-/* Regular Label on Right */
-.ui[class*="right labeled"].input > input {
-  border-top-right-radius: 0px !important;
-  border-bottom-right-radius: 0px !important;
-  border-right-color: transparent !important;
-}
-.ui[class*="right labeled"].input > input + .label {
-  border-top-left-radius: 0px;
-  border-bottom-left-radius: 0px;
-}
-
-.ui[class*="right labeled"].input > input:focus {
-  border-right-color: @focusBorderColor !important;
-}
-
-/* Corner Label */
-.ui.labeled.input .corner.label {
-  top: @labelCornerTop;
-  right: @labelCornerRight;
-  font-size: @labelCornerSize;
-  border-radius: 0em @borderRadius 0em 0em;
-}
-
-/* Spacing with corner label */
-.ui[class*="corner labeled"]:not([class*="left corner labeled"]).labeled.input > input {
-  padding-right: @labeledMargin !important;
-}
-.ui[class*="corner labeled"].icon.input:not([class*="left corner labeled"]) > input {
-  padding-right: @labeledIconInputMargin !important;
-}
-.ui[class*="corner labeled"].icon.input:not([class*="left corner labeled"]) > .icon {
-  margin-right: @labeledIconMargin;
-}
-
-/* Left Labeled */
-.ui[class*="left corner labeled"].labeled.input > input {
-  padding-left: @labeledMargin !important;
-}
-.ui[class*="left corner labeled"].icon.input > input {
-  padding-left: @labeledIconInputMargin !important;
-}
-.ui[class*="left corner labeled"].icon.input > .icon {
-  margin-left: @labeledIconMargin;
-}
-
-/* Corner Label Position  */
-.ui.input > .ui.corner.label {
-  top: @borderWidth;
-  right: @borderWidth;
-}
-.ui.input > .ui.left.corner.label {
-  right: auto;
-  left: @borderWidth;
-}
-
-
-/*--------------------
-        Action
----------------------*/
-
-.ui.action.input > .button,
-.ui.action.input > .buttons {
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
-}
-.ui.action.input > .button,
-.ui.action.input > .buttons > .button {
-  padding-top: @verticalPadding;
-  padding-bottom: @verticalPadding;
-  margin: 0;
-}
-
-/* Button on Right */
-.ui.action.input:not([class*="left action"]) > input {
-  border-top-right-radius: 0px !important;
-  border-bottom-right-radius: 0px !important;
-  border-right-color: transparent !important;
-}
-.ui.action.input:not([class*="left action"]) > .dropdown:not(:first-child),
-.ui.action.input:not([class*="left action"]) > .button:not(:first-child),
-.ui.action.input:not([class*="left action"]) > .buttons:not(:first-child) > .button {
-  border-radius: 0px;
-}
-.ui.action.input:not([class*="left action"]) > .dropdown:last-child,
-.ui.action.input:not([class*="left action"]) > .button:last-child,
-.ui.action.input:not([class*="left action"]) > .buttons:last-child > .button {
-  border-radius: 0px @borderRadius @borderRadius 0px;
-}
-
-/* Input Focus */
-.ui.action.input:not([class*="left action"]) > input:focus {
-  border-right-color: @focusBorderColor !important;
-}
-
-/* Button on Left */
-.ui[class*="left action"].input > input {
-  border-top-left-radius: 0px !important;
-  border-bottom-left-radius: 0px !important;
-  border-left-color: transparent !important;
-}
-.ui[class*="left action"].input > .dropdown,
-.ui[class*="left action"].input > .button,
-.ui[class*="left action"].input > .buttons > .button {
-  border-radius: 0px;
-}
-.ui[class*="left action"].input > .dropdown:first-child,
-.ui[class*="left action"].input > .button:first-child,
-.ui[class*="left action"].input > .buttons:first-child > .button {
-  border-radius: @borderRadius 0px 0px @borderRadius;
-}
-/* Input Focus */
-.ui[class*="left action"].input > input:focus {
-  border-left-color: @focusBorderColor !important;
-}
-
-/*--------------------
-       Inverted
----------------------*/
-
-/* Standard */
-.ui.inverted.input > input {
-  border: none;
-}
-
-/*--------------------
-        Fluid
----------------------*/
-
-.ui.fluid.input {
-  display: flex;
-}
-.ui.fluid.input > input {
-  width: 0px !important;
+  .ui.fluid.input {
+    display: flex;
+  }
+  .ui.fluid.input > input {
+    width: 0 !important;
+  }
 }
 
 /*--------------------
         Size
 ---------------------*/
 
-.ui.mini.input {
-  font-size: @relativeMini;
-}
-.ui.small.input {
-  font-size: @relativeSmall;
-}
 .ui.input {
   font-size: @relativeMedium;
 }
-.ui.large.input {
-  font-size: @relativeLarge;
-}
-.ui.big.input {
-  font-size: @relativeBig;
-}
-.ui.huge.input {
-  font-size: @relativeHuge;
-}
-.ui.massive.input {
-  font-size: @relativeMassive;
+& when not (@variationInputSizes = false) {
+  each(@variationInputSizes, {
+    @s: @{value}InputSize;
+    .ui.@{value}.input {
+      font-size: @@s;
+    }
+  })
 }
 
 .loadUIOverrides();

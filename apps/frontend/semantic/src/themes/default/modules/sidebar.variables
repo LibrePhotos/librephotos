@@ -19,7 +19,7 @@
 @canvasBackground: @lightBlack;
 
 /* Shadow */
-@boxShadow: 0px 0px 20px @borderColor;
+@boxShadow: 0 0 20px @borderColor;
 @horizontalBoxShadow: @boxShadow;
 @verticalBoxShadow: @boxShadow;
 

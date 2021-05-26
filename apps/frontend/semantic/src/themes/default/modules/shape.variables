@@ -23,7 +23,7 @@
 @backfaceVisibility: hidden;
 
 /* Side */
-@sideMargin: 0em;
+@sideMargin: 0;
 
 /*--------------
       Types
@@ -34,7 +34,7 @@
 @cubeBackground: #E6E6E6;
 @cubePadding: 2em;
 @cubeTextColor: @textColor;
-@cubeBoxShadow: 0px 0px 2px rgba(0, 0, 0, 0.3);
+@cubeBoxShadow: 0 0 2px rgba(0, 0, 0, 0.3);
 
 @cubeTextAlign: center;
 @cubeFontSize: 2em;

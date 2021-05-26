@@ -22,6 +22,8 @@ export default function reducer(
 
     generatingAutoAlbums: false,
 
+    deleteMissingPhotos: false,
+
     locationClusters: [],
     fetchingLocationClusters: false,
     fetchedLocationClusters: false,
@@ -185,6 +187,19 @@ export default function reducer(
     }
     case "SET_WORKER_RUNNING_JOB": {
       return { ...state, workerRunningJob: action.payload };
+    }
+
+    case "DELETE_MISSING_PHOTOS": {
+      return { ...state, deleteMissingPhotos: true };
+    }
+    case "DELETE_MISSING_PHOTOS_REJECTED": {
+      return { ...state, deleteMissingPhotos: false, error: action.payload };
+    }
+    case "DELETE_MISSING_PHOTOS_FULFILLED": {
+      return {
+        ...state,
+        deleteMissingPhotos: false
+      };
     }
 
     case "GENERATE_EVENT_ALBUMS": {
