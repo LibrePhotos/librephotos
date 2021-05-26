@@ -25,8 +25,10 @@ class AlbumDate(models.Model):
         return self.photos.all().order_by('-exif_timestamp')
 
 def get_or_create_album_date(date, owner):
-    return AlbumDate.objects.get_or_create(date=date, owner=owner)[0]
-
+    try:
+        return AlbumDate.objects.get_or_create(date=date, owner=owner)[0]
+    except AlbumDate.MultipleObjectsReturned:
+        return AlbumDate.objects.filter(date=date, owner=owner).first()
 def get_album_date(date, owner):
     try:
         return AlbumDate.objects.get(date=date, owner=owner)

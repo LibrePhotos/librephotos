@@ -12,11 +12,13 @@ class LongRunningJob(models.Model):
     JOB_GENERATE_AUTO_ALBUMS = 2
     JOB_GENERATE_AUTO_ALBUM_TITLES = 3
     JOB_TRAIN_FACES = 4
+    JOB_DELETE_MISSING_PHOTOS = 5
     JOB_TYPES = (
         (JOB_SCAN_PHOTOS, "Scan Photos"),
         (JOB_GENERATE_AUTO_ALBUMS, "Generate Event Albums"),
         (JOB_GENERATE_AUTO_ALBUM_TITLES, "Regenerate Event Titles"),
         (JOB_TRAIN_FACES, "Train Faces"),
+        (JOB_DELETE_MISSING_PHOTOS, "Delete Missing Photos")
     )
 
     job_type = models.PositiveIntegerField(choices=JOB_TYPES, )

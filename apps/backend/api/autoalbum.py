@@ -3,10 +3,10 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytz
 from django_rq import job
-
-from api.models import AlbumAuto, LongRunningJob, Photo
+from django.db.models import Q
+from api.models import AlbumAuto, AlbumDate, AlbumPlace, AlbumUser, AlbumThing, Face, LongRunningJob, Photo
 from api.util import logger
-
+from django.core.cache import cache
 
 @job
 def regenerate_event_titles(user,job_id):
@@ -155,4 +155,53 @@ def generate_event_albums(user, job_id):
         lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
         lrj.save()
 
+    return 1
+
+@job
+def delete_missing_photos(user,job_id):
+    if LongRunningJob.objects.filter(job_id=job_id).exists():
+        lrj = LongRunningJob.objects.get(job_id=job_id)
+        lrj.started_at = datetime.now().replace(tzinfo=pytz.utc)
+        lrj.save()
+    else:
+        lrj = LongRunningJob.objects.create(
+            started_by=user,
+            job_id=job_id,
+            queued_at=datetime.now().replace(tzinfo=pytz.utc),
+            started_at=datetime.now().replace(tzinfo=pytz.utc),
+            job_type=LongRunningJob.JOB_DELETE_MISSING_PHOTOS)
+        lrj.save()
+    try:
+        missing_photos = Photo.objects.filter(Q(owner=user) & Q(image_paths=[]))
+        for missing_photo in missing_photos:
+            album_dates = AlbumDate.objects.filter(photos=missing_photo)
+            for album_date in album_dates:
+                album_date.photos.remove(missing_photo)
+            album_things = AlbumThing.objects.filter(photos=missing_photo)
+            for album_thing in album_things:
+                album_thing.photos.remove(missing_photo)
+            album_places = AlbumPlace.objects.filter(photos=missing_photo)
+            for album_place in album_places:
+                album_place.photos.remove(missing_photo)
+            album_users = AlbumUser.objects.filter(photos=missing_photo)
+            for album_user in album_users:
+                album_user.photos.remove(missing_photo)
+            faces = Face.objects.filter(photo=missing_photo)
+            faces.delete()
+        missing_photos.delete()
+        cache.clear()
+
+        status = True
+        message = 'success'
+        res = {'status': status, 'message': message}
+
+        lrj.finished = True
+        lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
+        lrj.save()
+    except:
+        logger.exception("An error occured")
+        lrj.failed = True
+        lrj.finished = True
+        lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
+        lrj.save()
     return 1
