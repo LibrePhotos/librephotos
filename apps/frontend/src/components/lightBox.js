@@ -528,7 +528,7 @@ export class LightBox extends Component {
                             <Button
                               loading={this.props.generatingCaptionIm2txt}
                               onClick={()=>{this.props.dispatch(generatePhotoIm2txtCaption(this.props.idx2hash[this.props.lightboxImageIndex]))}}
-                              disabled={this.props.isPublic | this.props.generatingCaptionIm2txt != null}
+                              disabled={this.props.isPublic | (this.props.generatingCaptionIm2txt != null && this.props.generatingCaptionIm2txt)}
                               floated="left"
                               size="small"
                               color="blue"
