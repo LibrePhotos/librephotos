@@ -27,7 +27,7 @@ backend:
 
 ### Solution 2: Building the docker image yourself
 
-Clone the repo: <code> git clone git@github.com:LibrePhotos/librephotos-docker.git </code>
+Clone the repo: <code> git clone https://github.com/LibrePhotos/librephotos-docker.git </code>
 
 Open the terminal, go to `.\backend` and build the image with: 
 
