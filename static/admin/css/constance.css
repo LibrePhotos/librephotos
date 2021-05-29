@@ -1,0 +1,34 @@
+#result_list .changed {
+    background-color: #ffc;
+}
+#changelist table thead th .text {
+    padding: 2px 5px;
+}
+#changelist table tbody td:first-child {
+    text-align: left;
+}
+#changelist-form ul.errorlist {
+    margin: 0 !important;
+}
+.help {
+    font-weight: normal !important;
+}
+#results {
+    overflow-x: auto;
+}
+.item-anchor {
+    visibility: hidden;
+    margin-left: .1em;
+} 
+.item-name {
+    white-space: nowrap;
+}
+.item-name:hover .item-anchor {
+    visibility: visible;
+}
+.sticky-footer {
+    position: sticky;
+    width: 100%;
+    left: 0;
+    bottom: 0;
+}
