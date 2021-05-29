@@ -739,4 +739,4 @@ class SharedFromMePhotoThroughSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Photo.shared_to.through
-        fields = ('user_id', 'user', 'photo', 'video')
+        fields = ('user_id', 'user', 'photo')
