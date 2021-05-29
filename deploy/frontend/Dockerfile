@@ -6,7 +6,7 @@ RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 RUN npm install -g serve
 ENV CLI_WIDTH 80
-RUN git clone https://github.com/LibrePhotos/librephotos-frontend /usr/src/app
+COPY . /usr/src/app
 RUN npm install
 RUN npm run build
 
