@@ -1,0 +1,73 @@
+html {
+    box-sizing: border-box;
+    overflow: -moz-scrollbars-vertical;
+    overflow-y: scroll;
+}
+
+*,
+*:before,
+*:after {
+    box-sizing: inherit;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+}
+
+body.swagger-body {
+    background: #fafafa;
+}
+
+.hidden {
+    display: none;
+}
+
+#django-session-auth > div {
+    display: inline-block;
+}
+
+#django-session-auth .btn.authorize {
+    padding: 10px 23px;
+}
+
+#django-session-auth .btn.authorize a {
+    color: #49cc90;
+    text-decoration: none;
+}
+
+#django-session-auth .hello {
+    margin-right: 5px;
+}
+
+#django-session-auth .hello .django-session {
+    font-weight: bold;
+}
+
+.label {
+    display: inline;
+    padding: .2em .6em .3em;
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: .25em;
+}
+
+.label-primary {
+    background-color: #337ab7;
+}
+
+.divider {
+    margin-right: 8px;
+    background: #16222c44;
+    width: 2px;
+}
+
+svg.swagger-defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+}
