@@ -27,7 +27,7 @@ nltk==3.5
 Pillow==8.1.1
 psycopg2==2.8.6
 pycocotools==2.0.2
-https://github.com/owncloud/pyocclient/archive/master.zip
+pyocclient==0.6.0
 pytz==2020.1
 PyExifTool==0.4.9
 rq==1.6.1

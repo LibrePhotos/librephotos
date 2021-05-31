@@ -122,6 +122,8 @@ venv.bak/
 
 # visual studio
 .vs/
+# pycharm
+.idea
 
 # mkdocs documentation
 /site
