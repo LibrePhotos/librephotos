@@ -14,7 +14,17 @@ RUN curl -SL https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/im2txt_model
 RUN curl -SL https://s3.eu-central-1.amazonaws.com/ownphotos-deploy/im2txt_data.tar.gz | tar -zxC /data_models/im2txt/
 RUN curl -SL https://download.pytorch.org/models/resnet152-b121ed2d.pth -o /root/.cache/torch/hub/checkpoints/resnet152-b121ed2d.pth
 RUN pip install torch==1.8.0+cpu torchvision==0.9.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
-RUN pip install -v --install-option="--no" --install-option="DLIB_USE_CUDA" --install-option="--no" --install-option="USE_AVX_INSTRUCTIONS" --install-option="--no" --install-option="USE_SSE4_INSTRUCTIONS" dlib
+
+# Build and install dlib
+WORKDIR /
+RUN git clone https://github.com/davisking/dlib.git && \
+    mkdir /dlib/build && \
+    cd /dlib/build && \
+    cmake .. -DDLIB_USE_CUDA=0 -DUSE_AVX_INSTRUCTIONS=0 -DLIB_NO_GUI_SUPPORT=0 && \
+    cmake --build . && \
+    cd /dlib && \
+    python setup.py install --no USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA --no USE_SSE4_INSTRUCTIONS  
+
 # actual project
 ARG DEBUG
 WORKDIR /code
