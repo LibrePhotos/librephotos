@@ -137,7 +137,7 @@ export class LightBox extends Component {
           mainSrc={!this.isVideo() ? this.getPictureUrl(this.getCurrentHash()) : null}
           nextSrc={this.getPictureUrl(this.getNextHash())}
           prevSrc={this.getPictureUrl(this.getLastHash())}
-          mainCustomContent={this.isVideo() ? <ReactPlayer width='100%' height='100%' controls={true} url={this.getVideoUrl(this.getCurrentHash())} progressInterval={100}></ReactPlayer> : null}
+          mainCustomContent={this.isVideo() ? <ReactPlayer width='100%' height='100%' controls={true} playing={true} url={this.getVideoUrl(this.getCurrentHash())} progressInterval={100}></ReactPlayer> : null}
           imageLoadErrorMessage={""}
           toolbarButtons={[
             <div>
