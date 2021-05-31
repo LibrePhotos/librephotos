@@ -1,7 +1,7 @@
 ---
 title: "Documentation"
 excerpt: "How to contribute to the LibrePhotos documentation."
-last_modified_at: 2021-03-07
+last_modified_at: 2021-05-31
 category: 3
 
 gallery:
@@ -34,13 +34,17 @@ feature_row:
 
 ## Overview
 
-Contributing to our documentation is as simple as submitting a pull request to the [librephotos.docs repository](https://github.com/LibrePhotos/librephotos.docs/wiki "librephotos.docs"). Below is an explanation of all the templated elements available and the naming conventions used, along with details of how to preview this site locally.
+Contributing to our documentation is as simple as submitting a pull request to the 
+[librephotos.docs repository](https://github.com/LibrePhotos/librephotos.docs/wiki "librephotos.docs"). Below is an 
+explanation of all the templated elements available, and the naming conventions used, along with details of how to 
+preview this site locally.
 
 ## Previewing Locally
 
 ### Manually
 
-To compile the site and view it locally before submitting your pull request, first install the required packages for your OS:
+To compile the site and view it locally before submitting your pull request, first install the required packages for 
+your OS:
 
 * [Ubuntu](https://jekyllrb.com/docs/installation/ubuntu/)
 * [Windows](https://jekyllrb.com/docs/installation/windows/) (make sure you install Ruby `2.x`, not `3.x`)
@@ -83,15 +87,19 @@ Visit the URL next to `Server address:`.
 
 ### Using Dev Container
 
-For a simpler setup procedure, you can run the dev container in Visual Studio Code. To do this, open the folder you cloned the `librephotos.docs` repository to and run `code .`. Visual Studio Code will then prompt you to run in a container. The container will take a while to build.
+For a simpler setup procedure, you can run the dev container in Visual Studio Code. To do this, open the folder you
+cloned the `librephotos.docs` repository to and run `code .`. Visual Studio Code will then prompt you to run in a
+container. The container will take a while to build.
 
-When in the container, you can use Visual Studio Code's [Tasks function](https://code.visualstudio.com/Docs/editor/tasks) to build and host the site locally, at [http://localhost:4000/](http://localhost:4000/).
+When in the container, you can use Visual Studio Code's [Tasks function](https://code.visualstudio.com/Docs/editor/tasks)
+to build and host the site locally, at [http://localhost:4000/](http://localhost:4000/).
 
 ## Naming
 
 ### Categories
 
-Articles are organised by category; each article's category has to be declared in both the file name and the file content. This will be explained below. The available categories are:
+Articles are organised by categories; each article's category has to be declared in both the file name, and the file
+content. This will be explained below. The available categories are:
 
 | {% assign categories_table = " | Category Name | Category Number |
 | ------------------------------ | :-----------: |" %}
@@ -109,13 +117,16 @@ File names contain four parts; and an example valid file name would be `0000-03-
 * First group of numbers: always `0000`.
 * Second group of numbers: the category number (from above). It should always be two digits.
   * The example above has `03`, which means the article is in the `Contribution` category.
-* Third group of numbers: the article number. Starting at `01`, this sets the order in which the articles appear. It should always be two digits.
+* Third group of numbers: the article number. Starting at `01`, this sets the order in which the articles appear. It
+  should always be two digits.
   * The example above has `01`, meaning it is the first article in the category
 * Fourth section (text): a short name for the article. This must end in `.md`.
 
 ### Front Matter
 
-The start of each page includes header info (called *front matter*), which ensures that articles are built correctly. Extra options are required if using [galleries](#gallery) or [feature rows](#feature-row), but the minimum requirement is:
+The start of each page includes header info (called *front matter*), which ensures that articles are built correctly.
+Extra options are required if using [galleries](#gallery) or [feature rows](#feature-row), but the minimum requirement
+is:
 
 ```markdown
 ---
@@ -325,7 +336,8 @@ Links can be made into buttons by applying the `btn` class:
 [Link](#){: .btn}
 ```
 
-Other classes can be added to change the button's appearance, as seen below. Size and type classes can be combined (e.g. `[Text](#){: .btn .btn--primary .btn--large}`) or used on their own (e.g. `[Text](#){: .btn .btn--large}`).
+Other classes can be added to change the button's appearance, as seen below. Size and type classes can be combined 
+(e.g. `[Text](#){: .btn .btn--primary .btn--large}`) or used on their own (e.g. `[Text](#){: .btn .btn--large}`).
 
 | Button Type   | Example                               | Class                    | Syntax                                  |
 | ------------- | ------------------------------------- | ------------------------ | --------------------------------------- |
@@ -506,7 +518,8 @@ To embed `https://drive.google.com/file/d/1u41lIbMLbV53PvMbyYc9HzvBug5lNWaO/prev
 
 #### Stored in this Repository
 
-Videos stored in this repository must be stored in the `/assets/videos/` directory. To embed a video at `/assets/videos/video.mp4`:
+Videos stored in this repository must be stored in the `/assets/videos/` directory. To embed a video at
+`/assets/videos/video.mp4`:
 
 {% raw %}
 

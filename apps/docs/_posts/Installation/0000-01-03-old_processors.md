@@ -1,20 +1,21 @@
 ---
 title: "Docker Compose - Processors without AVX instructions"
 excerpt: "How to build the backend yourself to support old processors"
-last_modified_at: 2021-04-26
+last_modified_at: 2021-05-31
 category: 1
 ---
 
 ### The error
 
-AVX is a ten year old instruction set that is used for machine learning applications.
+AVX is a ten-year-old instruction set used for machine learning applications.
 
-If you use an old processor or an processor that doesn't support AVX instruction sets, you will get the error message in the frontend "Backend is not connected". The logs will show worker who continuously reboot.
+If you use an old processor, or any processor that doesn't support AVX instruction sets, you will get the error message
+in the frontend "Backend is not connected". The logs will indicate a worker which continuously restarts.
 
 ### Solution 1: Docker Image from a community member
 
-To resolve this issue you can either download an backend image from another community member:
-Change the following line in your docker-compose.yml file.
+Specify an alternate docker image from another community member by changing the following line in your 
+`docker-compose.yml` file:
 
  ~~~diff
 backend:
