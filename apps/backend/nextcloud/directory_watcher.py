@@ -73,7 +73,7 @@ def scan_photos(user, job_id):
 
         image_paths_to_add = []
         for image_path in image_paths:
-            if not Photo.objects.filter(image_path=image_path).exists():
+            if not Photo.objects.filter(image_paths__contains=image_path).exists():
                 image_paths_to_add.append(image_path)
 
         added_photo_count = 0
