@@ -4,12 +4,10 @@ import { connect } from "react-redux";
 import { PhotoListView } from "./ReusablePhotoListView";
 import _ from "lodash";
 import moment from "moment";
-import {
-  TopMenu,
-  SideMenuNarrow,
-  TopMenuPublic,
-  SideMenuNarrowPublic
-} from "./menubars";
+import {TopMenu} from "../components/menubars/TopMenu";
+import {SideMenuNarrow} from "../components/menubars/SideMenuNarrow";
+import {TopMenuPublic} from "../components/menubars/TopMenuPublic";
+import {SideMenuNarrowPublic} from "../components/menubars/SideMenuNarrowPublic";
 
 
 var TOP_MENU_HEIGHT = 45; // don't change this
@@ -94,7 +92,7 @@ export class UserPublicPage extends Component {
         {menu}
         <div
           style={{
-            paddingTop: TOP_MENU_HEIGHT,
+            paddingTop: -5,
             paddingLeft: this.props.ui.showSidebar ? LEFT_MENU_WIDTH + 5 : 5
           }}
         >

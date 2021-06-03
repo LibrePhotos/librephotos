@@ -33,20 +33,21 @@ import {
   GridColumn,
 } from "semantic-ui-react";
 import { serverAddress, shareAddress } from "../api_client/apiClient";
-import { LightBox } from "../components/lightBox";
+import { LightBox } from "../components/lightbox/LightBox";
 import debounce from "lodash/debounce";
 import _ from "lodash";
 import * as moment from "moment";
 import Modal from "react-modal";
 import { calculateGridCells, calculateGridCellSize } from "../util/gridUtils";
+import { toggleLightbox, hideLightbox, toggleSidebar } from "../actions/uiActions";
 import {
   ScrollSpeed,
   SPEED_THRESHOLD,
   SCROLL_DEBOUNCE_DURATION,
 } from "../util/scrollUtils";
 
-var TOP_MENU_HEIGHT = 45; // don't change this
-var SIDEBAR_WIDTH = 85;
+var TOP_MENU_HEIGHT = 69; // don't change this
+var SIDEBAR_WIDTH = 100;
 var TIMELINE_SCROLL_WIDTH = 0;
 var DAY_HEADER_HEIGHT = 70;
 
@@ -100,7 +101,6 @@ export class PhotoListView extends Component {
       idx2hash: [],
       photos: {},
       lightboxImageIndex: 1,
-      lightboxShow: false,
       lightboxSidebarShow: false,
       scrollToIndex: undefined,
       width: window.innerWidth,
@@ -155,6 +155,14 @@ export class PhotoListView extends Component {
     this.scrollSpeedHandler.clearTimeout();
   }
 
+  getColumnWidth() {
+    var columnWidth = window.innerWidth - 5 - 5 - 10;
+    if (this.props.showSidebar) {
+      columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10;
+    }
+    return columnWidth;
+  }
+
   handleResize() {
     var columnWidth = window.innerWidth - 5 - 5 - 10;
     if (this.props.showSidebar) {
@@ -185,8 +193,9 @@ export class PhotoListView extends Component {
   onPhotoClick(hash) {
     this.setState({
       lightboxImageIndex: this.props.idx2hash.indexOf(hash),
-      lightboxShow: true,
     });
+    this.props.dispatch(toggleLightbox());
+    this.props.dispatch(toggleSidebar());
   }
 
   onPhotoSelect(hash) {
@@ -702,7 +711,7 @@ export class PhotoListView extends Component {
     ) {
       return (
         <div>
-          <div style={{ height: 60, paddingTop: 10 }}>
+          <div style={{ height: 60, width: this.state.width, paddingTop: 10 }}>
             <Header as="h2">
               <Icon name={this.props.titleIconName} />
               <Header.Content>
@@ -819,10 +828,10 @@ export class PhotoListView extends Component {
 
     return (
       <div>
-        <GridSemantic columns={2}>
+        <GridSemantic columns={2} style={{ width: this.getColumnWidth() }}>
           <GridRow>
             <GridColumn>
-              <Header as="h2" style={{ paddingTop: 10, paddingRight: 10 }}>
+              <Header as="h2" style={{ paddingRight: 10 }}>
                 <Icon name={this.props.titleIconName} />
                 <Header.Content>
                   {this.props.title}{" "}
@@ -838,7 +847,7 @@ export class PhotoListView extends Component {
               <Header
                 textAlign="right"
                 size="small"
-                style={{ paddingTop: 10, paddingRight: 10 }}
+                style={{ paddingRight: 10 }}
               >
                 <Header.Content>
                   {this.props.dayHeaderPrefix
@@ -856,6 +865,7 @@ export class PhotoListView extends Component {
               marginLeft: -5,
               paddingLeft: 5,
               paddingRight: 5,
+              width: this.getColumnWidth(),
               height: 40,
               paddingTop: 4,
               backgroundColor: "#f6f6f6",
@@ -1270,13 +1280,15 @@ export class PhotoListView extends Component {
           }}
         />
 
-        {this.state.lightboxShow && (
+        {this.props.showLightbox && (
           <LightBox
             isPublic={this.props.isPublic}
             showHidden={this.props.showHidden}
             idx2hash={this.props.idx2hash}
             lightboxImageIndex={this.state.lightboxImageIndex}
-            onCloseRequest={() => this.setState({ lightboxShow: false })}
+            onCloseRequest={() => {this.props.dispatch(hideLightbox());
+                                   this.props.dispatch(toggleSidebar());
+            }}
             onImageLoad={() => {
               this.getPhotoDetails(
                 this.props.idx2hash[this.state.lightboxImageIndex]
@@ -1534,6 +1546,7 @@ ModalAlbumEdit = connect((store) => {
 
 PhotoListView = connect((store) => {
   return {
+    showLightbox: store.ui.showLightbox,
     showSidebar: store.ui.showSidebar,
     gridType: store.ui.gridType,
 

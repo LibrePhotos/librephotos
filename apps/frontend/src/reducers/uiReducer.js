@@ -1,28 +1,45 @@
-export default function reducer(state={
+export default function reducer(
+  state = {
     showSidebar: true,
-    contentWidth: window.innerWidth-20,
-    gridType:'loose',
+    showLightbox: false,
+    contentWidth: window.innerWidth - 20,
+    gridType: "loose",
     error: null,
-  }, action) {
-
+  },
+  action
+) {
   switch (action.type) {
     case "TOGGLE_SIDEBAR": {
-        const showSidebar = !state.showSidebar
-        const contentWidth = showSidebar ? window.innerWidth - 85 : window.innerWidth 
+      const showSidebar = !state.showSidebar;
+      const contentWidth = showSidebar
+        ? window.innerWidth - 85
+        : window.innerWidth;
 
-        return {...state, showSidebar: !state.showSidebar, contentWidth:contentWidth}
+      return {
+        ...state,
+        showSidebar: !state.showSidebar,
+        contentWidth: contentWidth,
+      };
     }
 
     case "HIDE_SIDEBAR": {
-        return {...state, showSidebar: false}
+      return { ...state, showSidebar: false };
+    }
+
+    case "TOGGLE_LIGHTBOX": {
+      return { ...state, showLightbox: true };
+    }
+
+    case "HIDE_LIGHTBOX": {
+      return { ...state, showLightbox: false };
     }
 
     case "SET_GRID_TYPE": {
-        return {...state,gridType:action.payload}
+      return { ...state, gridType: action.payload };
     }
 
     default: {
-      return {...state}
+      return { ...state };
     }
   }
 }

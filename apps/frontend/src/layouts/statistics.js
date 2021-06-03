@@ -13,29 +13,9 @@ import SocialGraph from '../components/socialGraph'
 
 export class Statistics extends Component {
 
-  state = { activeItem: 'map' }
+  state = { activeItem: 'location tree' }
 
   handleItemClick = (e, { name }) => this.setState({ activeItem: name })
-
-  // componentDidMount() {
-  //   var _dispatch = this.props.dispatch
-  //   this.setState({dispatch:_dispatch})
-  //   var intervalId = setInterval(function(){
-  //       _dispatch(fetchPhotoScanStatus())
-  //       _dispatch(fetchAutoAlbumProcessingStatus())
-  //     },2000
-  //   )
-  //   this.setState({intervalId:intervalId})
-  // }
-
-  // componentWillUnmount() {
-  //   clearInterval(this.state.intervalId)
-  // }
-
-  // onPhotoScanButtonClick = e => {
-  //   this.props.dispatch(scanPhotos())
-  // }
-  
 
   render() {
     const {activeItem} = this.state
@@ -48,17 +28,7 @@ export class Statistics extends Component {
 
         <div>
 
-        <Menu stackable={false} pointing secondary widths={6}>
-          <Popup 
-            inverted 
-            position='bottom center' 
-            content="Map" 
-            trigger={
-                <Menu.Item 
-                    icon='map' 
-                    active={activeItem==='map'} 
-                    onClick={()=>{this.setState({activeItem:'map'})}}/>
-            }/>
+        <Menu stackable={false} pointing secondary widths={5}>
           <Popup 
             inverted 
             position='bottom center' 
@@ -112,10 +82,7 @@ export class Statistics extends Component {
         </Menu>
 
         </div>
-
-
-
-
+        
         { activeItem==='location tree' && (
             <div>
                 <Divider hidden/>

@@ -176,3 +176,15 @@ display : inline;
     z-index: 2;
     padding: 0 10px;
 }
+
+.fp-wrapper {
+  height: 100%;
+  display: flex;
+  flex-wrap: nowrap;
+}
+.sidebar {
+  width: 5%;
+}
+.fp-panel-main {
+  width: 95%;
+}
