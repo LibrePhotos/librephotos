@@ -2,17 +2,12 @@ import React, { Component } from "react";
 import { Grid, AutoSizer } from "react-virtualized";
 import "react-virtualized/styles.css"; // only needs to be imported once
 import { connect } from "react-redux";
-import {
-  fetchUserAlbumsList,
-  editUserAlbum,
-  createNewUserAlbum,
-} from "../actions/albumsActions";
+import { ModalAlbumEdit } from "../components/album/ModalAlbumEdit";
 import {
   fetchPhotoDetail,
   setPhotosFavorite,
   setPhotosHidden,
   setPhotosPublic,
-  downloadPhotos,
 } from "../actions/photosActions";
 import { copyToClipboard } from "../util/util";
 import { SecuredImageJWT } from "../components/SecuredImage";
@@ -21,23 +16,17 @@ import { ModalAlbumShare } from "../components/ModalAlbumShare";
 import {
   Dropdown,
   Header,
-  Divider,
   Loader,
-  Image,
-  Input,
   Popup,
   Button,
   Icon,
-  Grid as GridSemantic,
-  GridRow,
-  GridColumn,
 } from "semantic-ui-react";
 import { serverAddress, shareAddress } from "../api_client/apiClient";
 import { LightBox } from "../components/lightbox/LightBox";
 import debounce from "lodash/debounce";
 import _ from "lodash";
 import * as moment from "moment";
-import Modal from "react-modal";
+import getToolbar from "../components/photolist/Toolbar";
 import { calculateGridCells, calculateGridCellSize } from "../util/gridUtils";
 import {
   ScrollSpeed,
@@ -48,42 +37,7 @@ import {
 var TOP_MENU_HEIGHT = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
 var TIMELINE_SCROLL_WIDTH = 0;
-var DAY_HEADER_HEIGHT = 70;
-
-function fuzzy_match(str, pattern) {
-  if (pattern.split("").length > 0) {
-    pattern = pattern.split("").reduce(function (a, b) {
-      return a + ".*" + b;
-    });
-    return new RegExp(pattern).test(str);
-  } else {
-    return false;
-  }
-}
-
-const customStyles = {
-  content: {
-    top: 150,
-    left: 40,
-    right: 40,
-    height: window.innerHeight - 300,
-
-    overflow: "hidden",
-    padding: 0,
-    backgroundColor: "white",
-  },
-  overlay: {
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    position: "fixed",
-    borderRadius: 0,
-    border: 0,
-    zIndex: 102,
-    backgroundColor: "rgba(200,200,200,0.8)",
-  },
-};
+var DAY_HEADER_HEIGHT = 35;
 
 export class PhotoListView extends Component {
   constructor(props) {
@@ -236,27 +190,23 @@ export class PhotoListView extends Component {
                 ...style,
                 width: this.state.width,
                 height: DAY_HEADER_HEIGHT,
-                paddingTop: 20,
+                paddingTop: 5,
               }}
             >
               <div
                 style={{ backgroundColor: "white", display: "inline-block" }}
               >
-                <Header as="h3">
-                  <Icon name="calendar outline" />
-                  <Header.Content>
-                    {cell.date === "No Timestamp"
-                      ? "No Timestamp"
-                      : this.props.dayHeaderPrefix
-                      ? this.props.dayHeaderPrefix +
-                        moment(cell.date).format("MMM Do YYYY, dddd")
-                      : moment(cell.date).format("MMM Do YYYY, dddd")}
-                    <Header.Subheader>
-                      <Icon name="photo" />
-                      {cell.photos.length} Photos
-                    </Header.Subheader>
-                  </Header.Content>
-                </Header>
+                {cell.date === "No Timestamp"
+                  ? ""
+                  : this.props.dayHeaderPrefix
+                  ? this.props.dayHeaderPrefix +
+                    moment(cell.date).format("MMM Do YYYY, dddd")
+                  : moment(cell.date).format("MMM Do YYYY, dddd")}
+                <span style={{ color: "grey" }}>
+                  {cell.location ? "     " : ""}
+                  {cell.location ? <Icon name="map" color="lightGrey" /> : ""}
+                  {cell.location ? cell.location.places.join(", ") : ""}
+                </span>
               </div>
               <div
                 style={{ float: "left", top: 3, left: 0, position: "relative" }}
@@ -289,33 +239,20 @@ export class PhotoListView extends Component {
                 ...style,
                 width: this.state.width,
                 height: DAY_HEADER_HEIGHT,
-                paddingTop: 20,
+                paddingTop: 5,
               }}
             >
-              <div style={{ backgroundColor: "white" }}>
-                <Header as="h3">
-                  <Icon name="calendar outline" />
-                  <Header.Content>
-                    {cell.date === "No Timestamp"
-                      ? "No Timestamp"
-                      : this.props.dayHeaderPrefix
-                      ? this.props.dayHeaderPrefix +
-                        moment(cell.date).format("MMM Do YYYY, dddd")
-                      : moment(cell.date).format("MMM Do YYYY, dddd")}
-                    {cell.location ? (
-                      <Header.Subheader>
-                        <Icon name="map" />
-                        {cell.location.places.join(", ")}
-                      </Header.Subheader>
-                    ) : (
-                      <Header.Subheader>
-                        <Icon name="photo" />
-                        {cell.photos.length} Photos
-                      </Header.Subheader>
-                    )}
-                  </Header.Content>
-                </Header>
-              </div>
+              {cell.date === "No Timestamp"
+                ? ""
+                : this.props.dayHeaderPrefix
+                ? this.props.dayHeaderPrefix +
+                  moment(cell.date).format("MMM Do YYYY, dddd")
+                : moment(cell.date).format("MMM Do YYYY, dddd")}
+              <span style={{ color: "grey" }}>
+                {cell.location ? "     " : ""}
+                {cell.location ? <Icon name="map" color="lightGrey" /> : ""}
+                {cell.location ? cell.location.places.join(", ") : ""}
+              </span>
             </div>
           );
         }
@@ -703,19 +640,10 @@ export class PhotoListView extends Component {
       return (
         <div>
           <div style={{ height: 60, paddingTop: 10 }}>
-            <Header as="h2">
-              <Icon name={this.props.titleIconName} />
+            <Header as="h4">
               <Header.Content>
-                {this.props.title}
+                Loading...
                 <Loader inline active={this.props.loading} size="mini" />
-                {this.props.loading ? (
-                  <Header.Subheader>Loading...</Header.Subheader>
-                ) : (
-                  <Header.Subheader>
-                    {this.props.photosGroupedByDate.length} Days,{" "}
-                    {this.props.idx2hash.length} Photos
-                  </Header.Subheader>
-                )}
               </Header.Content>
             </Header>
           </div>
@@ -819,37 +747,6 @@ export class PhotoListView extends Component {
 
     return (
       <div>
-        <GridSemantic columns={2}>
-          <GridRow>
-            <GridColumn>
-              <Header as="h2" style={{ paddingTop: 10, paddingRight: 10 }}>
-                <Icon name={this.props.titleIconName} />
-                <Header.Content>
-                  {this.props.title}{" "}
-                  <Header.Subheader>
-                    {this.props.photosGroupedByDate.length} days,{" "}
-                    {this.props.idx2hash.length} photos
-                    {this.props.additionalSubHeader}
-                  </Header.Subheader>
-                </Header.Content>
-              </Header>
-            </GridColumn>
-            <GridColumn>
-              <Header
-                textAlign="right"
-                size="small"
-                style={{ paddingTop: 10, paddingRight: 10 }}
-              >
-                <Header.Content>
-                  {this.props.dayHeaderPrefix
-                    ? this.props.dayHeaderPrefix + this.state.date
-                    : this.state.date}
-                  <Header.Subheader>{this.state.fromNow}</Header.Subheader>
-                </Header.Content>
-              </Header>
-            </GridColumn>
-          </GridRow>
-        </GridSemantic>
         {true && !this.props.isPublic && (
           <div
             style={{
@@ -943,169 +840,7 @@ export class PhotoListView extends Component {
                 }
               />
             </Button.Group>
-
-            <Button.Group
-              style={{ paddingLeft: 2, paddingRight: 2 }}
-              compact
-              floated="right"
-              color="orange"
-            >
-              <Dropdown
-                icon="ellipsis vertical"
-                pointing="top right"
-                floating
-                button
-                compact
-                floated="right"
-                className="icon"
-                color="blue"
-              >
-                <Dropdown.Menu>
-                  <Dropdown.Header>
-                    <Icon name="image" />
-                    Photo Actions ({this.state.selectedImageHashes.length}{" "}
-                    selected)
-                  </Dropdown.Header>
-
-                  <Dropdown.Divider />
-                  <Dropdown.Item
-                    disabled={this.state.selectedImageHashes.length === 0}
-                    onClick={() => {
-                      this.props.dispatch(
-                        setPhotosFavorite(this.state.selectedImageHashes, true)
-                      );
-                    }}
-                  >
-                    <Icon name="star" color="yellow" />
-                    {"  Favorite"}
-                  </Dropdown.Item>
-                  <Dropdown.Item
-                    disabled={this.state.selectedImageHashes.length === 0}
-                    onClick={() => {
-                      this.props.dispatch(
-                        setPhotosFavorite(this.state.selectedImageHashes, false)
-                      );
-                    }}
-                  >
-                    <Icon name="star outline" color="yellow" />
-                    {"  Unfavorite"}
-                  </Dropdown.Item>
-
-                  <Dropdown.Divider />
-                  <Dropdown.Item
-                    disabled={this.state.selectedImageHashes.length === 0}
-                    onClick={() => {
-                      this.props.dispatch(
-                        setPhotosHidden(this.state.selectedImageHashes, true)
-                      );
-                    }}
-                  >
-                    <Icon name="hide" color="red" />
-                    {"  Hide"}
-                  </Dropdown.Item>
-                  <Dropdown.Item
-                    disabled={this.state.selectedImageHashes.length === 0}
-                    onClick={() => {
-                      this.props.dispatch(
-                        setPhotosHidden(this.state.selectedImageHashes, false)
-                      );
-                    }}
-                  >
-                    <Icon name="unhide" color="black" />
-                    {"  Unhide"}
-                  </Dropdown.Item>
-
-                  <Dropdown.Divider />
-                  <Dropdown.Item
-                    disabled={this.state.selectedImageHashes.length === 0}
-                    onClick={() => {
-                      this.props.dispatch(
-                        setPhotosPublic(this.state.selectedImageHashes, true)
-                      );
-                      const linksToCopy = this.state.selectedImageHashes
-                        .map(
-                          (ih) => serverAddress + "/media/photos/" + ih + ".jpg"
-                        )
-                        .join("\n");
-                      copyToClipboard(linksToCopy);
-                    }}
-                  >
-                    <Icon name="globe" />
-                    {"  Make Public"}
-                  </Dropdown.Item>
-                  <Dropdown.Item
-                    disabled={this.state.selectedImageHashes.length === 0}
-                    onClick={() => {
-                      this.props.dispatch(
-                        setPhotosPublic(this.state.selectedImageHashes, false)
-                      );
-                    }}
-                  >
-                    <Icon name="key" />
-                    {"  Make Private"}
-                  </Dropdown.Item>
-
-                  <Dropdown.Divider />
-                  <Dropdown.Item
-                    disabled={this.state.selectedImageHashes.length === 0}
-                    onClick={() => {
-                      this.props.dispatch(
-                        downloadPhotos(this.state.selectedImageHashes)
-                      );
-                    }}
-                  >
-                    <Icon name="download" />
-                    {"  Download"}
-                  </Dropdown.Item>
-
-                  <Dropdown.Divider />
-                  <Popup
-                    inverted
-                    position="left center"
-                    trigger={
-                      <Dropdown.Item
-                        disabled={this.state.selectedImageHashes.length === 0}
-                        onClick={() => {
-                          if (this.state.selectedImageHashes.length > 0) {
-                            this.setState({ modalSharePhotosOpen: true });
-                          }
-                        }}
-                      >
-                        <Icon name="share" />
-                        {"  Sharing"}
-                      </Dropdown.Item>
-                    }
-                    content="Open sharing panel for selected photos"
-                  />
-                  <Dropdown.Divider />
-                  <Dropdown.Header>
-                    <Icon name="images" />
-                    Album Actions
-                  </Dropdown.Header>
-                  <Popup
-                    inverted
-                    position="left center"
-                    trigger={
-                      <Dropdown.Item
-                        disabled={
-                          !this.props.route.location.pathname.startsWith(
-                            "/useralbum/"
-                          )
-                        }
-                        onClick={() => {
-                          this.setState({ modalAlbumShareOpen: true });
-                        }}
-                      >
-                        <Icon name="share" />
-                        {"  Sharing"}
-                      </Dropdown.Item>
-                    }
-                    content="Open sharing panel for the current album"
-                  />
-                </Dropdown.Menu>
-              </Dropdown>
-            </Button.Group>
-
+            {getToolbar(this)}
             <Button.Group
               style={{ paddingLeft: 2, paddingRight: 2 }}
               floated="right"
@@ -1355,182 +1090,6 @@ export class PhotoListView extends Component {
     );
   }
 }
-
-class ModalAlbumEdit extends Component {
-  state = { newAlbumTitle: "" };
-  render() {
-    var filteredUserAlbumList;
-    if (this.state.newAlbumTitle.length > 0) {
-      filteredUserAlbumList = this.props.albumsUserList.filter((el) =>
-        fuzzy_match(
-          el.title.toLowerCase(),
-          this.state.newAlbumTitle.toLowerCase()
-        )
-      );
-    } else {
-      filteredUserAlbumList = this.props.albumsUserList;
-    }
-    return (
-      <Modal
-        ariaHideApp={false}
-        onAfterOpen={() => {
-          this.props.dispatch(fetchUserAlbumsList());
-        }}
-        isOpen={this.props.isOpen}
-        onRequestClose={() => {
-          this.props.onRequestClose();
-          this.setState({ newAlbumTitle: "" });
-        }}
-        style={customStyles}
-      >
-        <div style={{ height: 50, width: "100%", padding: 7 }}>
-          <Header>
-            Add to Album
-            <Header.Subheader>
-              Add selected {this.props.selectedImageHashes.length} photo(s)
-              to...
-            </Header.Subheader>
-          </Header>
-        </div>
-        <Divider fitted />
-        <div style={{ padding: 5, height: 50, overflowY: "hidden" }}>
-          <Image.Group>
-            {this.props.selectedImageHashes.map((image_hash) => (
-              <SecuredImageJWT
-                isPublic={this.props.isPublic}
-                height={40}
-                width={40}
-                src={
-                  serverAddress +
-                  "/media/square_thumbnails/" +
-                  image_hash +
-                  ".jpg"
-                }
-              />
-            ))}
-          </Image.Group>
-        </div>
-        <Divider fitted />
-        <div
-          style={{
-            paddingLeft: 10,
-            paddingTop: 10,
-            overflowY: "scroll",
-            height: window.innerHeight - 300 - 100,
-            width: "100%",
-          }}
-        >
-          <div style={{ paddingRight: 5 }}>
-            <Header as="h4">New album</Header>
-            <Popup
-              inverted
-              content={
-                'Album "' +
-                this.state.newAlbumTitle.trim() +
-                '" already exists.'
-              }
-              position="bottom center"
-              open={this.props.albumsUserList
-                .map((el) => el.title.toLowerCase().trim())
-                .includes(this.state.newAlbumTitle.toLowerCase().trim())}
-              trigger={
-                <Input
-                  fluid
-                  error={this.props.albumsUserList
-                    .map((el) => el.title.toLowerCase().trim())
-                    .includes(this.state.newAlbumTitle.toLowerCase().trim())}
-                  onChange={(e, v) => {
-                    this.setState({ newAlbumTitle: v.value });
-                  }}
-                  placeholder="Album title"
-                  action
-                >
-                  <input />
-                  <Button
-                    positive
-                    onClick={() => {
-                      this.props.dispatch(
-                        createNewUserAlbum(
-                          this.state.newAlbumTitle,
-                          this.props.selectedImageHashes
-                        )
-                      );
-                      this.props.onRequestClose();
-                      this.setState({ newAlbumTitle: "" });
-                    }}
-                    disabled={this.props.albumsUserList
-                      .map((el) => el.title.toLowerCase().trim())
-                      .includes(this.state.newAlbumTitle.toLowerCase().trim())}
-                    type="submit"
-                  >
-                    Create
-                  </Button>
-                </Input>
-              }
-            />
-          </div>
-          <Divider />
-          {filteredUserAlbumList.length > 0 &&
-            filteredUserAlbumList.map((item) => {
-              return (
-                <div
-                  key={`useralbum_${item.id}`}
-                  style={{
-                    height: 70,
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <Header
-                    onClick={() => {
-                      this.props.dispatch(
-                        editUserAlbum(
-                          item.id,
-                          item.title,
-                          this.props.selectedImageHashes
-                        )
-                      );
-                      this.props.onRequestClose();
-                    }}
-                    as="a"
-                  >
-                    <SecuredImageJWT
-                      isPublic={this.props.isPublic}
-                      height={50}
-                      width={50}
-                      src={
-                        item.cover_photos[0]
-                          ? serverAddress +
-                            "/media/square_thumbnails_small/" +
-                            item.cover_photos[0].image_hash +
-                            ".jpg"
-                          : "/thumbnail_placeholder.png"
-                      }
-                    />
-                    <Header.Content>
-                      {item.title}
-                      <Header.Subheader>
-                        {item.photo_count} Item(s) <br />
-                        {"Updated " + moment(item.created_on).fromNow()}
-                      </Header.Subheader>
-                    </Header.Content>
-                  </Header>
-                </div>
-              );
-            })}
-        </div>
-      </Modal>
-    );
-  }
-}
-
-ModalAlbumEdit = connect((store) => {
-  return {
-    albumsUserList: store.albums.albumsUserList,
-    fetchingAlbumsUserList: store.albums.fetchingAlbumsUserList,
-    fetchedAlbumsUserList: store.albums.fetchedAlbumsUserList,
-  };
-})(ModalAlbumEdit);
 
 PhotoListView = connect((store) => {
   return {
