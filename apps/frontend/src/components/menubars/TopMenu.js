@@ -3,7 +3,7 @@ import React, { Component} from "react";
 import { connect } from "react-redux";
 import { push } from "react-router-redux";
 import {
-  Grid,
+  Menu,
   Button,
   Dropdown,
   Icon,
@@ -88,98 +88,91 @@ export class TopMenu extends Component {
     }
 
     return (
-        <Grid
-          columns={3}
-          style={{ backgroundColor: "#eeeeee" }}
-          fixed
-          size="mini"
-          columns="equal"
-        >
-          <Grid.Row>
-            <Grid.Column
-              textAlign="left"
-              verticalAlign="middle"
-              style={{ paddingTop: 10, paddingLeft: 15 }}
-            >
-              <Button
-                color="black"
-                style={{
-                  verticalAlign: "bottom",
-                  padding: 2,
-                }}
-              >
-                <Image height={30} src="/logo-white.png" />
-              </Button>
-            </Grid.Column>
-            <Grid.Column width={10} style={{
-                      paddingTop: 10,
-                    }}>
-              <CustomSearch/>
-            </Grid.Column>
-            <Grid.Column textAlign="right">
-              <Popup
-                trigger={
-                  <Icon
-                    style={{
-                      paddingTop: 10,
-                      paddingRight: 10,
-                      paddingLeft: 10,
-                    }}
-                    name="circle"
-                    color={!this.props.workerAvailability ? "red" : "green"}
-                  />
-                }
-                content={
-                  this.props.workerAvailability
-                    ? "Worker available! You can start scanning more photos, infer face labels, auto create event albums, or regenerate auto event album titles."
-                    : !this.props.workerAvailability &&
-                      this.props.workerRunningJob
-                    ? runningJobPopupProgress
-                    : "Busy..."
-                }
-              />
-
-              <Dropdown
-                style={{ paddingTop: 10, paddingRight: 10, paddingLeft: 10 }}
-                trigger={
-                  <span>
-                    <Image avatar src={this.state.avatarImgSrc} />
-                    <Icon name="caret down" />
-                  </span>
-                }
-                direction="left"
-                floating
-                icon={null}
-              >
-                <Dropdown.Menu>
-                  <Dropdown.Header>
-                    Logged in as <b>{this.props.auth.access.name}</b>
-                  </Dropdown.Header>
-                  <Dropdown.Item onClick={() => this.props.dispatch(logout())}>
-                    <Icon name="sign out" />
-                    <b>Logout</b>
-                  </Dropdown.Item>
-                  <Dropdown.Item
-                    onClick={() => this.props.dispatch(push("/settings"))}
-                  >
-                    <Icon name="settings" />
-                    <b>Settings</b>
-                  </Dropdown.Item>
-                  {this.props.auth.access.is_admin && <Dropdown.Divider />}
-
-                  {this.props.auth.access.is_admin && (
-                    <Dropdown.Item
-                      onClick={() => this.props.dispatch(push("/admin"))}
-                    >
-                      <Icon name="wrench" />
-                      <b>Admin Area</b>
+        <div>
+          <Menu
+            style={{ contentAlign: "left", backgroundColor: "#eeeeee" }}
+            borderless
+            fixed="top"
+            size="mini"
+          >
+            <Menu.Menu position="left">
+              <Menu.Item>
+                <Icon
+                  size="big"
+                  onClick={() => {
+                    this.props.dispatch(toggleSidebar());
+                  }}
+                  name={"sidebar"}
+                />
+                <Button
+                  color="black"
+                  style={{
+                    padding: 2,
+                  }}
+                >
+                  <Image height={30} src="/logo-white.png" />
+                </Button>
+              </Menu.Item>
+            </Menu.Menu>
+  
+            <Menu.Menu position="right">
+              <Menu.Item>
+                <CustomSearch></CustomSearch>
+              </Menu.Item>
+              <Menu.Item>
+                <Popup
+                  trigger={
+                    <Icon
+                      style={{ paddingRight: 10 }}
+                      name="circle"
+                      color={!this.props.workerAvailability ? "red" : "green"}
+                    />
+                  }
+                  position="bottom center"
+                  content={
+                    this.props.workerAvailability
+                      ? "Worker available! You can start scanning more photos, infer face labels, auto create event albums, or regenerate auto event album titles."
+                      : !this.props.workerAvailability &&
+                        this.props.workerRunningJob
+                      ? runningJobPopupProgress
+                      : "Busy..."
+                  }
+                />
+                
+                <Dropdown
+                  trigger={<span><Image avatar src={this.state.avatarImgSrc}/><Icon name="caret down"/></span>}
+                  icon={null}
+                >
+                  <Dropdown.Menu>
+                    <Dropdown.Header>
+                      Logged in as <b>{this.props.auth.access.name}</b>
+                    </Dropdown.Header>
+                    <Dropdown.Item onClick={() => this.props.dispatch(logout())}>
+                      <Icon name="sign out" />
+                      <b>Logout</b>
                     </Dropdown.Item>
-                  )}
-                </Dropdown.Menu>
-              </Dropdown>
-            </Grid.Column>
-          </Grid.Row>
-        </Grid>
+                    <Dropdown.Item
+                      onClick={() => this.props.dispatch(push("/settings"))}
+                    >
+                      <Icon name="settings" />
+                      <b>Settings</b>
+                    </Dropdown.Item>
+                    {this.props.auth.access.is_admin && <Dropdown.Divider />}
+  
+                    {this.props.auth.access.is_admin && (
+                      <Dropdown.Item
+                        onClick={() => this.props.dispatch(push("/admin"))}
+                      >
+                        <Icon name="wrench" />
+                        <b>Admin Area</b>
+                      </Dropdown.Item>
+                    )}
+                  </Dropdown.Menu>
+                </Dropdown>
+              </Menu.Item>
+            </Menu.Menu>
+          </Menu>
+        </div>
     );
   }
 }

@@ -20,23 +20,15 @@ export class SideMenuNarrow extends Component {
   
     render() {
       return (
-        <Sidebar
-          as={Menu}
-          borderless 
-          icon
-          visible={true}
-          vertical
-          style={{overflowX: "hidden", background: "#eeeeee"}}
-        >
-        <Menu.Item >
-          <Icon
-                size="big"
-                onClick={() => {
-                  this.props.dispatch(toggleSidebar());
-                }}
-                name={"sidebar"}
-              />
-          </Menu.Item>
+        <Menu
+        borderless
+        icon="labeled"
+        vertical
+        fixed="left"
+        floated
+        pointing
+        width="thin"
+      >
           <Divider hidden />
           <Divider hidden />
           <Divider hidden />
@@ -66,7 +58,7 @@ export class SideMenuNarrow extends Component {
           </Menu.Item>
           <Menu.Item as={Link} to="/faces">
                   <Icon name="user circle outline"/>
-            <small>Face Recognition</small>
+            <small>Faces </small>
           </Menu.Item>
           <Menu.Item as={Link} to="/users">
                   <Icon name="share alternate icon"/>
@@ -78,9 +70,9 @@ export class SideMenuNarrow extends Component {
           </Menu.Item>
           <Menu.Item as={Link} to="/admin">
                   <Icon name="wrench"/>
-            <small>Admin Area</small>
+            <small>Admin <br/> Area</small>
           </Menu.Item>
-        </Sidebar>
+        </Menu>
       );
     }
   }
