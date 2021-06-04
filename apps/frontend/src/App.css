@@ -178,13 +178,14 @@ display : inline;
 }
 
 .fp-wrapper {
-  height: 100%;
+  width: 100%;
   display: flex;
   flex-wrap: nowrap;
 }
 .sidebar {
-  width: 5%;
+  width: 175px;
+  background: "#eeeeee"
 }
 .fp-panel-main {
-  width: 95%;
+  width: 100% - 175px;
 }
