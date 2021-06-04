@@ -2,7 +2,7 @@ import React, { Component } from "react";
 
 import { connect } from "react-redux";
 import { fetchRecentlyAddedPhotos } from '../actions/photosActions';
-import { PhotoListView } from './ReusablePhotoListView'
+import { PhotoListView } from './PhotoListView'
 
 export class RecentlyAddedPhotos extends Component {
   componentDidMount() {

@@ -3,7 +3,7 @@ import { connect } from "react-redux";
 import { fetchPeopleAlbums } from '../actions/albumsActions'
 import moment from 'moment'
 import _ from 'lodash'
-import { PhotoListView } from './ReusablePhotoListView'
+import { PhotoListView } from './PhotoListView'
 export class AlbumPersonGallery extends Component {
   state = {
     photosGroupedByDate: [],

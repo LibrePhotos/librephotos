@@ -3,7 +3,7 @@ import { connect } from "react-redux";
 import { fetchHiddenPhotos } from '../actions/photosActions';
 import moment from 'moment'
 import _ from 'lodash'
-import { PhotoListView } from './ReusablePhotoListView'
+import { PhotoListView } from './PhotoListView'
 
 export class HiddenPhotos extends Component {
   state = {

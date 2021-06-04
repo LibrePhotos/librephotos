@@ -3,6 +3,7 @@ import React, { Component} from "react";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
 import { push } from "react-router-redux";
+import './menubars/TopMenu.css';
 import {
   Header,
   Icon,
@@ -228,11 +229,11 @@ export class CustomSearch extends Component {
       filteredSuggestedThings,
     } = this.state;
 
-    return (<div>
+    return (<div className =  "element">
               <Search
-                fluid
-                showNoResults={false}
-                input={{ fluid: true }}
+                className = "header"
+                open={false}
+                input={{ className: "element" }}
                 onFocus={() => {
                   this.setState({ searchBarFocused: true });
                 }}
@@ -258,12 +259,11 @@ export class CustomSearch extends Component {
         {this.state.searchBarFocused && (
           <div
             style={{
-              paddingTop: 5,
               width: searchBarWidth,
               textAlign: "left",
               zIndex: 120,
               top: topMenuHeight,
-              left: 0,
+              left: (this.state.width - searchBarWidth) / 2,
               position: "absolute",
             }}
           >
@@ -275,7 +275,7 @@ export class CustomSearch extends Component {
               >
                 <div
                   style={{
-                    maxHeight: window.innerHeight / 8,
+                    maxHeight: window.innerHeight / 5,
                     overflowY: "auto",
                   }}
                 >
@@ -309,7 +309,7 @@ export class CustomSearch extends Component {
               >
                 <div
                   style={{
-                    maxHeight: window.innerHeight / 8,
+                    maxHeight: window.innerHeight / 5,
                     overflowY: "auto",
                   }}
                 >
@@ -340,7 +340,7 @@ export class CustomSearch extends Component {
               >
                 <div
                   style={{
-                    maxHeight: window.innerHeight / 8,
+                    maxHeight: window.innerHeight / 5,
                     overflowY: "auto",
                   }}
                 >
@@ -371,7 +371,7 @@ export class CustomSearch extends Component {
               >
                 <div
                   style={{
-                    maxHeight: window.innerHeight / 8,
+                    maxHeight: window.innerHeight / 5,
                     overflowY: "auto",
                   }}
                 >

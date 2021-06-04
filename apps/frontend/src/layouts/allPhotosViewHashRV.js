@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import 'react-virtualized/styles.css'; // only needs to be imported once
 import { connect } from "react-redux";
 import { fetchDateAlbumsPhotoHashList } from '../actions/albumsActions'
-import { PhotoListView } from './ReusablePhotoListView'
+import { PhotoListView } from './PhotoListView'
 
 export class AllPhotosHashListViewRV extends Component {
     componentDidMount() {

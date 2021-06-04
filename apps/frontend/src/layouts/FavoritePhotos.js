@@ -4,7 +4,7 @@ import { connect } from "react-redux";
 import { fetchFavoritePhotos } from '../actions/photosActions';
 import moment from 'moment'
 import _ from 'lodash'
-import { PhotoListView } from './ReusablePhotoListView'
+import { PhotoListView } from './PhotoListView'
 
 export class FavoritePhotos extends Component {
   state = {
