@@ -196,15 +196,17 @@ export class PhotoListView extends Component {
               <div
                 style={{ backgroundColor: "white", display: "inline-block" }}
               >
-                {cell.date === "No Timestamp"
-                  ? ""
-                  : this.props.dayHeaderPrefix
-                  ? this.props.dayHeaderPrefix +
-                    moment(cell.date).format("MMM Do YYYY, dddd")
-                  : moment(cell.date).format("MMM Do YYYY, dddd")}
+                <b>
+                  {cell.date === "No Timestamp"
+                    ? ""
+                    : this.props.dayHeaderPrefix
+                    ? this.props.dayHeaderPrefix +
+                      moment(cell.date).format("MMM Do YYYY, dddd")
+                    : moment(cell.date).format("MMM Do YYYY, dddd")}
+                </b>
                 <span style={{ color: "grey" }}>
                   {cell.location ? "     " : ""}
-                  {cell.location ? <Icon name="map" color="lightGrey" /> : ""}
+                  {cell.location ? <Icon name="map" /> : ""}
                   {cell.location ? cell.location.places.join(", ") : ""}
                 </span>
               </div>
@@ -242,17 +244,22 @@ export class PhotoListView extends Component {
                 paddingTop: 5,
               }}
             >
-              {cell.date === "No Timestamp"
-                ? ""
-                : this.props.dayHeaderPrefix
-                ? this.props.dayHeaderPrefix +
-                  moment(cell.date).format("MMM Do YYYY, dddd")
-                : moment(cell.date).format("MMM Do YYYY, dddd")}
+              <b>
+                {cell.date === "No Timestamp"
+                  ? ""
+                  : this.props.dayHeaderPrefix
+                  ? this.props.dayHeaderPrefix +
+                    moment(cell.date).format("MMM Do YYYY, dddd")
+                  : moment(cell.date).format("MMM Do YYYY, dddd")}
+              </b>
+              {console.log(cell)}
+              <a href={"place/" + (cell.location ? cell.location.places[0].key : "")}>
               <span style={{ color: "grey" }}>
-                {cell.location ? "     " : ""}
-                {cell.location ? <Icon name="map" color="lightGrey" /> : ""}
-                {cell.location ? cell.location.places.join(", ") : ""}
+                    {cell.location ? "     " : ""}
+                    {cell.location ? <Icon name="map" color="lightGrey" /> : ""}
+                    {cell.location ? cell.location.places.join(", ") : ""}
               </span>
+              </a>
             </div>
           );
         }
@@ -372,7 +379,7 @@ export class PhotoListView extends Component {
                   trigger={
                     <Icon
                       circular
-                      onClick={() => {
+                      onClick={() => {cell.location
                         this.props.dispatch(
                           setPhotosHidden([cell.image_hash], true)
                         );

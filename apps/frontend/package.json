@@ -45,6 +45,7 @@
     "react-leaflet": "^1.9.1",
     "react-leaflet-markercluster": "^1.1.8",
     "react-modal": "^3.4.5",
+    "react-pig": "1.2.0",
     "react-placeholder": "^3.0.1",
     "react-player": "2.9.0",
     "react-redux": "^5.0.5",
