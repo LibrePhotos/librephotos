@@ -31,8 +31,8 @@ You can join us via [IRC](https://webchat.freenode.net/) or [Discord](https://di
 - Django backend and React frontend
 
 ### Contributions
-- Get started in less then 30 minutes by following the [guide here](https://github.com/LibrePhotos/librephotos-docker)
-- Join our discord server or open a pull request to start contributing
+- Get started in less than 30 minutes by following the [guide here](https://github.com/LibrePhotos/librephotos-docker)
+- Join our discord server, or open a pull request to start contributing
 
 **Currently the project is in very early stages, some bugs may exist. If you find any please log an issue**
 
@@ -114,7 +114,7 @@ User is admin, password is admin unless you changed it in the .env file. It is r
 
 ## First steps after setting up
 
-You need to log in as the admin user, and set up the directory for the users. To do this, click the top right button, and go to "Admin Area". On this page, it will show a list of users, and manually set the "Scan Directory" for the desired user. Only an admin can do this. And then you can go to Dashboard - Library and click the Green "Scan photos (file system)" button. If you have a Nextcloud instance, you can also input this in the Dashboard-Library page. Once logged in (the little circle next to "Nextcloud Scan Directory will be green), you can choose a top level directory in your logged in Nextcloud account. Once this works, you can click the blue "Scan photos (Nextcloud)". The backend system will copy the contents of the Nextcloud directory you specified. 
+You need to log in as the admin user, and set up the directory for the users. To do this, click the top right button and go to "Admin Area". On this page, it will show a list of users; manually set the "Scan Directory" for the desired user. Only an admin can do this. And then you can go to Dashboard - Library and click the Green "Scan photos (file system)" button. If you have a Nextcloud instance, you can also input its details in the Dashboard-Library page. Once logged in (the little circle next to "Nextcloud Scan Directory" will be green), you can choose a top level directory in your logged-in Nextcloud account. Once this works, you can click the blue "Scan photos (Nextcloud)". The backend system will copy the contents of the Nextcloud directory you specified. 
 
 The basic idea is this:
 
