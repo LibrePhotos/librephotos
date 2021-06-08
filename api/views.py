@@ -1676,7 +1676,7 @@ class MediaAccessFullsizeOriginalView(APIView):
         return "/protected_media{}/{}".format(path, fname)
     
     def _generate_response(self, photo, path, fname):
-        if not photo.video or "thumbnail" in path:
+        if not photo.video or "thumbnail" in path or "faces" in path:
             response = HttpResponse()
             response['Content-Type'] = 'image/jpeg'
             response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname)
