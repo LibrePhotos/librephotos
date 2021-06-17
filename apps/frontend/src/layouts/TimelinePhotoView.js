@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
-import 'react-virtualized/styles.css'; // only needs to be imported once
 import { connect } from "react-redux";
 import { fetchDateAlbumsPhotoHashList } from '../actions/albumsActions'
-import { PhotoListView } from './PhotoListView'
+import { PhotoListView } from '../components/photolist/PhotoListView'
+import * as moment from "moment";
 
-export class AllPhotosHashListViewRV extends Component {
+export class TimelinePhotoView extends Component {
     componentDidMount() {
         if (this.props.albumsDatePhotoHashList.length < 1) {
             this.props.dispatch(fetchDateAlbumsPhotoHashList())
@@ -12,20 +12,24 @@ export class AllPhotosHashListViewRV extends Component {
     }
 
     render() {
+        // This will get changed every time it is called...
         const {fetchingAlbumsDatePhotoHashList} = this.props
+        var changedStuff = this.props.albumsDatePhotoHashList
+        changedStuff.forEach(group => group.date = moment(group.date ).format("MMM Do YYYY, dddd"))
         return (
             <PhotoListView 
                 title={"Photos"}
                 loading={fetchingAlbumsDatePhotoHashList}
                 titleIconName={'images'}
-                photosGroupedByDate={this.props.albumsDatePhotoHashList}
-                idx2hash={this.props.idx2hash}
+                isDateView={true}
+                photosGroupedByDate={changedStuff}
+                idx2hash={this.props.albumsDatePhotoHashList.flatMap((el)=>el.items)}
             />
         )
     }
 }
 
-AllPhotosHashListViewRV = connect((store)=>{
+TimelinePhotoView = connect((store)=>{
   return {
     showSidebar: store.ui.showSidebar,
 
@@ -43,4 +47,4 @@ AllPhotosHashListViewRV = connect((store)=>{
     fetchingAlbumsDatePhotoHashList: store.albums.fetchingAlbumsDatePhotoHashList,
     fetchedAlbumsDatePhotoHashList: store.albums.fetchedAlbumsDatePhotoHashList,    
   }
-})(AllPhotosHashListViewRV)
+})(TimelinePhotoView)

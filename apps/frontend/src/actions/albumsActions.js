@@ -298,17 +298,11 @@ export function fetchDateAlbumsPhotoHashList() {
     dispatch({ type: "FETCH_DATE_ALBUMS_PHOTO_HASH_LIST" });
     Server.get("albums/date/photohash/list/", { timeout: 100000 })
       .then(response => {
-        var idx2hash = [];
-        response.data.results.forEach(day => {
-          day.photos.forEach(photo => {
-            idx2hash.push(photo.image_hash);
-          });
-        });
+        
         dispatch({
           type: "FETCH_DATE_ALBUMS_PHOTO_HASH_LIST_FULFILLED",
           payload: response.data.results
         });
-        dispatch({ type: "SET_IDX_TO_IMAGE_HASH", payload: idx2hash });
       })
       .catch(err => {
         dispatch({

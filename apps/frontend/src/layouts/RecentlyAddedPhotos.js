@@ -2,7 +2,7 @@ import React, { Component } from "react";
 
 import { connect } from "react-redux";
 import { fetchRecentlyAddedPhotos } from '../actions/photosActions';
-import { PhotoListView } from './PhotoListView'
+import { PhotoListView } from '../components/photolist/PhotoListView'
 
 export class RecentlyAddedPhotos extends Component {
   componentDidMount() {
@@ -15,7 +15,8 @@ export class RecentlyAddedPhotos extends Component {
                 title={"Recently Added"}
                 loading={fetchingRecentlyAddedPhotos}
                 titleIconName={'clock'}
-                photosGroupedByDate={this.props.recentlyAddedPhotos.slice(0,1)}
+                isDateView={false}
+                photosGroupedByDate={this.props.recentlyAddedPhotos[0] ? this.props.recentlyAddedPhotos[0].photos : []}
                 idx2hash={this.props.recentlyAddedIdx2hash}
                 dayHeaderPrefix={'Added on ' }
             />

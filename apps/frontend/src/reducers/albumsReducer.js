@@ -219,6 +219,7 @@ export default function reducer(
       };
     }
     case "FETCH_DATE_ALBUMS_PHOTO_HASH_LIST_FULFILLED": {
+      console.log(action.payload)
       return {
         ...state,
         fetchingAlbumsDatePhotoHashList: false,
@@ -339,7 +340,8 @@ export default function reducer(
     case "FETCH_USER_ALBUMS_REJECTED": {
       return { ...state, fetchingAlbumsUser: false, error: action.payload };
     }
-    case "FETCH_USER_ALBUMS_FULFILLED": {
+    case "FETCH_USER_ALBUMS_FULFILLED": { 
+      
       return {
         ...state,
         fetchingAlbumsUser: false,

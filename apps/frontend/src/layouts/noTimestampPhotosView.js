@@ -3,7 +3,7 @@ import { connect } from "react-redux";
 import { fetchNoTimestampPhotoList } from '../actions/photosActions';
 import _ from 'lodash'
 import moment from 'moment'
-import { PhotoListView } from './PhotoListView'
+import { PhotoListView } from  '../components/photolist/PhotoListView'
 
 export class NoTimestampPhotosView extends Component {
     state = {
@@ -70,7 +70,7 @@ export class NoTimestampPhotosView extends Component {
 NoTimestampPhotosView = connect((store)=>{
   return {
   	fetchingNoTimestampPhotos: store.photos.fetchingNoTimestampPhotos,
-	fetchedNoTimestampPhotos: store.photos.fetchedNoTimestampPhotos,
+	  fetchedNoTimestampPhotos: store.photos.fetchedNoTimestampPhotos,
     noTimestampPhotos: store.photos.noTimestampPhotos,
     photoDetails: store.photos.photoDetails,
     fetchingPhotoDetail: store.photos.fetchingPhotoDetail,

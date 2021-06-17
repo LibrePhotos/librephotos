@@ -3,8 +3,7 @@ import { connect } from "react-redux";
 import { fetchHiddenPhotos } from '../actions/photosActions';
 import moment from 'moment'
 import _ from 'lodash'
-import { PhotoListView } from './PhotoListView'
-
+import { PhotoListView } from '../components/photolist/PhotoListView'
 export class HiddenPhotos extends Component {
   state = {
     photosGroupedByDate: [],
@@ -15,38 +14,6 @@ export class HiddenPhotos extends Component {
     this.props.dispatch(fetchHiddenPhotos())
   }
 
-
-
-  static getDerivedStateFromProps(nextProps,prevState){
-      const photos = nextProps.hiddenPhotos
-      if (prevState.idx2hash.length !== photos.length) {
-          var groupedByDate = _.groupBy(photos,(el)=>{
-              if (el.exif_timestamp) {
-                  return moment(el.exif_timestamp).format('YYYY-MM-DD')
-              } else {
-                  return "No Timestamp"
-              }
-          })
-          var groupedByDateList = _.reverse(_.sortBy(_.toPairsIn(groupedByDate).map((el)=>{
-              return {date:el[0],photos:el[1]}
-          }),(el)=>el.date))
-
-          var idx2hash = []
-          groupedByDateList.forEach((g)=>{
-              g.photos.forEach((p)=>{
-                  idx2hash.push(p.image_hash)
-              })
-          })
-          return {
-              ...prevState, 
-              photosGroupedByDate: groupedByDateList,
-              idx2hash:idx2hash,
-          }
-      } else {
-        return null
-      }
-  }
-
   render() {
     const {fetchingHiddenPhotos} = this.props
     return (
@@ -55,7 +22,8 @@ export class HiddenPhotos extends Component {
         title={"Hidden Photos"}
         loading={fetchingHiddenPhotos}
         titleIconName={'hide'}
-        photosGroupedByDate={this.state.photosGroupedByDate}
+        isDateView={true}
+        photosGroupedByDate={this.props.hiddenPhotos}
         idx2hash={this.state.idx2hash}
       />
     )  

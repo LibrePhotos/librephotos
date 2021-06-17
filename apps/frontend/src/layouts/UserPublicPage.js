@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import { fetchUserPublicPhotos } from "../actions/publicActions";
 import { connect } from "react-redux";
-import { PhotoListView } from "./PhotoListView";
+import { PhotoListView } from '../components/photolist/PhotoListView'
 import _ from "lodash";
 import moment from "moment";
 import {TopMenu} from "../components/menubars/TopMenu";

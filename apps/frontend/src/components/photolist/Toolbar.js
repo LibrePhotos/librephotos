@@ -32,15 +32,15 @@ export default function getToolbar(photoList) {
       <Dropdown.Menu>
         <Dropdown.Header>
           <Icon name="image" />
-          Photo Actions ({photoList.state.selectedImageHashes.length} selected)
+          Photo Actions ({photoList.state.selectedItems.length} selected)
         </Dropdown.Header>
 
         <Dropdown.Divider />
         <Dropdown.Item
-          disabled={photoList.state.selectedImageHashes.length === 0}
+          disabled={photoList.state.selectedItems.length === 0}
           onClick={() => {
             photoList.props.dispatch(
-              setPhotosFavorite(photoList.state.selectedImageHashes, true)
+              setPhotosFavorite(photoList.state.selectedItems, true)
             );
           }}
         >
@@ -48,10 +48,10 @@ export default function getToolbar(photoList) {
           {"  Favorite"}
         </Dropdown.Item>
         <Dropdown.Item
-          disabled={photoList.state.selectedImageHashes.length === 0}
+          disabled={photoList.state.selectedItems.length === 0}
           onClick={() => {
             photoList.props.dispatch(
-              setPhotosFavorite(photoList.state.selectedImageHashes, false)
+              setPhotosFavorite(photoList.state.selectedItems, false)
             );
           }}
         >
@@ -61,10 +61,10 @@ export default function getToolbar(photoList) {
 
         <Dropdown.Divider />
         <Dropdown.Item
-          disabled={photoList.state.selectedImageHashes.length === 0}
+          disabled={photoList.state.selectedItems.length === 0}
           onClick={() => {
             photoList.props.dispatch(
-              setPhotosHidden(photoList.state.selectedImageHashes, true)
+              setPhotosHidden(photoList.state.selectedItems, true)
             );
           }}
         >
@@ -72,10 +72,10 @@ export default function getToolbar(photoList) {
           {"  Hide"}
         </Dropdown.Item>
         <Dropdown.Item
-          disabled={photoList.state.selectedImageHashes.length === 0}
+          disabled={photoList.state.selectedItems.length === 0}
           onClick={() => {
             photoList.props.dispatch(
-              setPhotosHidden(photoList.state.selectedImageHashes, false)
+              setPhotosHidden(photoList.state.selectedItems, false)
             );
           }}
         >
@@ -85,12 +85,12 @@ export default function getToolbar(photoList) {
 
         <Dropdown.Divider />
         <Dropdown.Item
-          disabled={photoList.state.selectedImageHashes.length === 0}
+          disabled={photoList.state.selectedItems.length === 0}
           onClick={() => {
             photoList.props.dispatch(
-              setPhotosPublic(photoList.state.selectedImageHashes, true)
+              setPhotosPublic(photoList.state.selectedItems, true)
             );
-            const linksToCopy = photoList.state.selectedImageHashes
+            const linksToCopy = photoList.state.selectedItems
               .map((ih) => serverAddress + "/media/photos/" + ih + ".jpg")
               .join("\n");
             copyToClipboard(linksToCopy);
@@ -100,10 +100,10 @@ export default function getToolbar(photoList) {
           {"  Make Public"}
         </Dropdown.Item>
         <Dropdown.Item
-          disabled={photoList.state.selectedImageHashes.length === 0}
+          disabled={photoList.state.selectedItems.length === 0}
           onClick={() => {
             photoList.props.dispatch(
-              setPhotosPublic(photoList.state.selectedImageHashes, false)
+              setPhotosPublic(photoList.state.selectedItems, false)
             );
           }}
         >
@@ -113,9 +113,9 @@ export default function getToolbar(photoList) {
 
         <Dropdown.Divider />
         <Dropdown.Item
-          disabled={photoList.state.selectedImageHashes.length === 0}
+          disabled={photoList.state.selectedItems.length === 0}
           onClick={() => {
-            photoList.props.dispatch(downloadPhotos(photoList.state.selectedImageHashes));
+            photoList.props.dispatch(downloadPhotos(photoList.state.selectedItems));
           }}
         >
           <Icon name="download" />
@@ -128,9 +128,9 @@ export default function getToolbar(photoList) {
           position="left center"
           trigger={
             <Dropdown.Item
-              disabled={photoList.state.selectedImageHashes.length === 0}
+              disabled={photoList.state.selectedItems.length === 0}
               onClick={() => {
-                if (photoList.state.selectedImageHashes.length > 0) {
+                if (photoList.state.selectedItems.length > 0) {
                   photoList.setState({ modalSharePhotosOpen: true });
                 }
               }}

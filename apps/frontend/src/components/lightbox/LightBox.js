@@ -19,13 +19,13 @@ export class LightBox extends Component {
 
   getCurrentPhotodetail() {
     return this.props.photoDetails[
-      this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]
+      this.props.idx2hash.slice(this.props.lightboxImageIndex)[0].id
     ];
   }
 
   isLoaded() {
     return !this.props.photoDetails[
-      this.props.idx2hash.slice(this.props.lightboxImageIndex)[0]
+      this.props.idx2hash.slice(this.props.lightboxImageIndex)[0].id
     ];
   }
 
@@ -40,17 +40,17 @@ export class LightBox extends Component {
   }
 
   getNextHash() {
-    this.props.idx2hash.slice(
+    return this.props.idx2hash.slice(
       (this.props.lightboxImageIndex + 1) % this.props.idx2hash.length
     )[0];
   }
 
   getPictureUrl(hash) {
-    return serverAddress + "/media/thumbnails_big/" + hash + ".jpg";
+    return serverAddress + "/media/thumbnails_big/" + hash.id + ".jpg";
   }
 
   getVideoUrl(hash) {
-    return serverAddress + "/media/video/" + hash;
+    return serverAddress + "/media/video/" + hash.id;
   }
 
   isVideo() {

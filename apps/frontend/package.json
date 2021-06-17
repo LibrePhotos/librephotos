@@ -45,13 +45,13 @@
     "react-leaflet": "^1.9.1",
     "react-leaflet-markercluster": "^1.1.8",
     "react-modal": "^3.4.5",
-    "react-pig": "1.2.0",
+    "react-pig": "git+https://github.com/derneuere/react-pig.git",
     "react-placeholder": "^3.0.1",
     "react-player": "2.9.0",
     "react-redux": "^5.0.5",
     "react-router-dom": "^4.3.1",
     "react-router-redux": "^5.0.0-alpha.9",
-    "react-scripts": "^1.1.4",
+    "react-scripts": "^2.0.3",
     "react-sortable-tree": "^2.2.0",
     "react-sortable-tree-theme-file-explorer": "^1.1.2",
     "react-transition-group": "^2.3.1",
@@ -80,7 +80,12 @@
   },
   "proxy": "http://192.168.1.100:8000/",
   "devDependencies": {
-    "eslint": "^4.19.1",
     "eslint-plugin-react": "^7.10.0"
-  }
+  },
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "not ie <= 11",
+    "not op_mini all"
+  ]
 }
