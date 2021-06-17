@@ -23,6 +23,7 @@ from rest_framework_extensions.key_constructor.bits import (
     KeyBitBase, ListSqlQueryKeyBit, PaginationKeyBit, RetrieveSqlQueryKeyBit)
 from rest_framework_extensions.key_constructor.constructors import \
     DefaultKeyConstructor
+
 from api.face_classify import train_faces, cluster_faces
 from api.social_graph import build_social_graph
 from api.autoalbum import generate_event_albums, delete_missing_photos, regenerate_event_titles
@@ -53,6 +54,7 @@ from api.serializers import (AlbumAutoListSerializer, AlbumAutoSerializer,
 from api.serializers_serpy import \
     AlbumDateListWithPhotoHashSerializer as \
     AlbumDateListWithPhotoHashSerializerSerpy
+from api.serializers_serpy import PigAlbumDateSerializer, AlbumUserSerializerSerpy, PigPhotoSerilizer, GroupedPhotosSerializer
 from api.serializers_serpy import \
     PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy
 from api.serializers_serpy import \
@@ -202,7 +204,7 @@ class PhotoSimpleListViewSet(viewsets.ModelViewSet):
 
 class PhotoSuperSimpleSearchListViewSet(viewsets.ModelViewSet):
 
-    serializer_class = PhotoSuperSimpleSerializer
+    serializer_class = GroupedPhotosSerializer
     pagination_class = HugeResultsSetPagination
     filter_backends = (filters.SearchFilter, )
     search_fields = ([
@@ -213,15 +215,15 @@ class PhotoSuperSimpleSearchListViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Photo.visible.filter(Q(owner=self.request.user)).order_by('-exif_timestamp')
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(PhotoSuperSimpleSearchListViewSet, self).retrieve(
             *args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
-    def list(self, *args, **kwargs):
-        return super(PhotoSuperSimpleSearchListViewSet, self).list(
-            *args, **kwargs)
+    def list(self, request):
+        queryset = Photo.visible.filter(Q(owner=self.request.user)).order_by('-exif_timestamp')
+        grouped_photos = get_photos_ordered_by_date(queryset)
+        serializer = GroupedPhotosSerializer(grouped_photos, many=True)
+        return Response({'results': serializer.data})
 
 
 class PhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
@@ -250,13 +252,12 @@ class PhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
 
 
 class RecentlyAddedPhotoListViewSet(viewsets.ModelViewSet):
-    serializer_class = PhotoSuperSimpleSerializerSerpy 
+    serializer_class = PigPhotoSerilizer 
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
-        queryset = Photo.visible.filter(Q(owner=self.request.user)).only(
-            'image_hash', 'exif_timestamp', 'favorited', 'public','added_on',
-            'hidden').order_by('-added_on')
+        queryset = Photo.visible.filter(Q(owner=self.request.user) and Q(aspect_ratio__isnull=False)).only(
+            'image_hash', 'exif_timestamp', 'aspect_ratio', 'added_on', 'search_location').order_by('-added_on')
         return queryset
 
     @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
@@ -336,8 +337,34 @@ class SharedFromMePhotoSuperSimpleListViewSet2(viewsets.ModelViewSet):
         return qs
 
 
+class PhotosGroupedByDate():
+    
+    def __init__(self, location, date, photos):
+        self.photos = photos
+        self.date = date
+        self.location = location
+
+def get_photos_ordered_by_date(photos):
+    from collections import defaultdict
+
+    groups = defaultdict(list)
+
+    for photo in photos:
+        groups[photo.exif_timestamp].append(photo)
+
+    groupedPhoto = list(groups.values())
+    result = []
+    for group in groupedPhoto:
+        location = ""
+        if(group[0].exif_timestamp):
+            date = group[0].exif_timestamp.date().strftime("%Y-%m-%d")
+        else:
+            date = "No timestamp"
+        result.append(PhotosGroupedByDate(location, date, group))
+    return result
+
 class FavoritePhotoListViewset(viewsets.ModelViewSet):
-    serializer_class = PhotoSuperSimpleSerializerSerpy
+    serializer_class = PigPhotoSerilizer
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
@@ -350,17 +377,17 @@ class FavoritePhotoListViewset(viewsets.ModelViewSet):
     def retrieve(self, *args, **kwargs):
         return super(FavoritePhotoListViewset, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, request):
         queryset = Photo.objects.filter(
             Q(favorited=True) & Q(hidden=False) & Q(owner=self.request.user)).only(
                 'image_hash', 'exif_timestamp', 'favorited', 'public',
                 'hidden').order_by('exif_timestamp')
-        serializer = PhotoSuperSimpleSerializer(queryset, many=True)
+        grouped_photos = get_photos_ordered_by_date(queryset)
+        serializer = GroupedPhotosSerializer(grouped_photos, many=True)
         return Response({'results': serializer.data})
 
 class HiddenPhotoListViewset(viewsets.ModelViewSet):
-    serializer_class = PhotoSuperSimpleSerializerSerpy
+    serializer_class = PigPhotoSerilizer
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
@@ -379,7 +406,8 @@ class HiddenPhotoListViewset(viewsets.ModelViewSet):
             Q(hidden=True) & Q(owner=self.request.user)).only(
                 'image_hash', 'exif_timestamp', 'favorited', 'public',
                 'hidden').order_by('exif_timestamp')
-        serializer = PhotoSuperSimpleSerializer(queryset, many=True)
+        grouped_photos = get_photos_ordered_by_date(queryset)
+        serializer = GroupedPhotosSerializer(grouped_photos, many=True)
         return Response({'results': serializer.data})
 
 class PublicPhotoListViewset(viewsets.ModelViewSet):
@@ -401,7 +429,7 @@ class PublicPhotoListViewset(viewsets.ModelViewSet):
 
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class NoTimestampPhotoHashListViewSet(viewsets.ModelViewSet):
-    serializer_class = PhotoSuperSimpleSerializerSerpy
+    serializer_class = PigPhotoSerilizer
     pagination_class = HugeResultsSetPagination
     filter_backends = (filters.SearchFilter, )
     search_fields = ([
@@ -744,7 +772,7 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
 
 
 class AlbumDateListWithPhotoHashViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = AlbumDateListWithPhotoHashSerializerSerpy
+    serializer_class = PigAlbumDateSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter, )
     ordering_fields = ('photos__exif_timestamp', )
@@ -900,9 +928,8 @@ class AlbumUserEditViewSet(viewsets.ModelViewSet):
             owner=self.request.user).order_by('title')
 
 
-@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumUserViewSet(viewsets.ModelViewSet):
-    serializer_class = AlbumUserSerializer
+    serializer_class = AlbumUserSerializerSerpy
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
@@ -1676,17 +1703,18 @@ class MediaAccessFullsizeOriginalView(APIView):
         return "/protected_media{}/{}".format(path, fname)
     
     def _generate_response(self, photo, path, fname):
-        if not photo.video or "thumbnail" in path:
-            response = HttpResponse()
-            response['Content-Type'] = 'image/jpeg'
-            response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname)
-            return response
-        else:
+        if photo.video and not "thumbnail" in path:
+            # This is probably very slow -> Save the mime type when scanning
             mime = magic.Magic(mime=True)
             filename = mime.from_file(photo.image_paths[0])
             response = HttpResponse()
             response['Content-Type'] = filename
             response['X-Accel-Redirect'] = photo.image_paths[0]
+            return response
+        else:
+            response = HttpResponse()
+            response['Content-Type'] = 'image/jpeg'
+            response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname)
             return response
 
     def get(self, request, path, fname, format=None):

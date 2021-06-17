@@ -42,6 +42,8 @@ class Photo(models.Model):
 
     image = models.ImageField(upload_to='photos')
 
+    aspect_ratio = models.FloatField(blank=True, null=True)
+
     added_on = models.DateTimeField(null=False, blank=False, db_index=True)
 
     exif_gps_lat = models.FloatField(blank=True, null=True)
@@ -210,6 +212,9 @@ class Photo(models.Model):
                         ContentFile(image_io.getvalue()))
         image_io.close()
 
+    def _find_album_place(self):
+        return api.models.AlbumPlace.objects().filter(photos__in=self)
+
     def _find_album_date(self):
         old_album_date = None
         if self.exif_timestamp:
@@ -222,6 +227,15 @@ class Photo(models.Model):
             if(possible_old_album_date != None and possible_old_album_date.photos.filter(image_hash=self.image_hash).exists):
                 old_album_date = possible_old_album_date
         return old_album_date
+
+    def _calculate_aspect_ratio(self, et, commit=True):
+        with exiftool.ExifTool() as et:
+            height = et.get_tag('ImageHeight', self.thumbnail_big.path)
+            width = et.get_tag('ImageWidth', self.thumbnail_big.path)
+            self.aspect_ratio = round((width / height), 2)
+
+        if commit:
+            self.save()
 
     def _extract_date_time_from_exif(self,commit=True):
         date_format = "%Y:%m:%d %H:%M:%S"
@@ -290,23 +304,70 @@ class Photo(models.Model):
                 util.logger.exception('something went wrong with geolocating')
 
     def _geolocate_mapbox(self,commit=True):
-        if not (self.exif_gps_lat and self.exif_gps_lon):
-            self._extract_gps_from_exif()
-        if (self.exif_gps_lat and self.exif_gps_lon):
-            try:
-                res = util.mapbox_reverse_geocode(self.exif_gps_lat,
-                                                  self.exif_gps_lon)
-                self.geolocation_json = res
-                if 'search_text' in res.keys():
-                    if self.search_location:
-                        self.search_location = self.search_location + ' ' + res[
-                            'search_text']
-                    else:
-                        self.search_location = res['search_text']
-                if commit:
-                    self.save()
-            except:
-                util.logger.exception('something went wrong with geolocating')
+        old_gps_lat = self.exif_gps_lat
+        old_gps_lon = self.exif_gps_lon
+        self._extract_gps_from_exif()
+        # Skip if it hasn't changed or is null
+        if(not self.exif_gps_lat or not self.exif_gps_lon):
+            return
+        if (old_gps_lat == self.exif_gps_lat and old_gps_lon == self.exif_gps_lon):
+            return
+        # Skip if the request fails or is empty
+        res = None
+        try:
+            res = util.mapbox_reverse_geocode(self.exif_gps_lat,self.exif_gps_lon)
+            if not res or len(res) == 0:
+                return
+            if 'features' not in res.keys():
+                return
+        except:
+            util.logger.exception('something went wrong with geolocating')
+            return
+        
+        self.geolocation_json = res
+        
+        if 'search_text' in res.keys():
+            if self.search_location:
+                self.search_location = self.search_location + ' ' + res[
+                    'search_text']
+            else:
+                self.search_location = res['search_text']
+        # Delete photo from album places if location has changed
+        old_album_places = self._find_album_places()
+        if old_album_places is not None:
+            for old_album_place in old_album_places:
+                old_album_place.photos.remove(self)
+                old_album_place.save()
+        # Add photo to new album places
+        for geolocation_level, feature in enumerate(self.geolocation_json['features']):
+            if not 'text' in feature.keys() or feature['text'].isnumeric():
+                continue
+            album_place = api.models.album_place.get_album_place(feature['text'], owner=self.owner)
+            if album_place.photos.filter(image_hash=self.image_hash).count() == 0:
+                album_place.geolocation_level = len(
+                    self.geolocation_json['features']) - geolocation_level
+            album_place.photos.add(self)
+            album_place.save()
+        # Add location to album dates
+        album_date = self._find_album_date()
+        city_name = [
+            f['text'] for f in self.geolocation_json['features'][1:-1]
+            if not f['text'].isdigit()
+        ][0]
+        if album_date.location and len(album_date.location) > 0:
+            prev_value = album_date.location
+            new_value = prev_value
+            if city_name not in prev_value['places']:
+                new_value['places'].append(city_name)
+                new_value['places'] = list(set(new_value['places']))
+                album_date.location = new_value
+        else:
+            album_date.location = {'places': [city_name]}
+        album_date.save()
+        if commit:
+            self.save()
+        cache.clear() 
+        
 
     def _im2vec(self,commit=True):
         try:
@@ -383,43 +444,6 @@ class Photo(models.Model):
                     album_thing.save()
         cache.clear() 
 
-    def _add_to_album_date(self):
-        
-        album_date = self._find_album_date()
-        if self.geolocation_json and len(self.geolocation_json) > 0:
-            util.logger.info(str(self.geolocation_json))
-            city_name = [
-                f['text'] for f in self.geolocation_json['features'][1:-1]
-                if not f['text'].isdigit()
-            ][0]
-            if album_date.location and len(album_date.location) > 0:
-                prev_value = album_date.location
-                new_value = prev_value
-                if city_name not in prev_value['places']:
-                    new_value['places'].append(city_name)
-                    new_value['places'] = list(set(new_value['places']))
-                    album_date.location = new_value
-            else:
-                album_date.location = {'places': [city_name]}
-        album_date.save()
-        cache.clear() 
-
-    def _add_to_album_place(self):
-        if not self.geolocation_json or len(self.geolocation_json) == 0:
-            return
-        if 'features' not in self.geolocation_json.keys():
-            return
-
-        for geolocation_level, feature in enumerate(self.geolocation_json['features']):
-            if not 'text' in feature.keys() or feature['text'].isnumeric():
-                continue
-            album_place = api.models.album_place.get_album_place(feature['text'], owner=self.owner)
-            if album_place.photos.filter(image_hash=self.image_hash).count() == 0:
-                album_place.geolocation_level = len(
-                    self.geolocation_json['features']) - geolocation_level
-            album_place.photos.add(self)
-            album_place.save()
-        cache.clear() 
 
     def _check_image_paths(self):
         exisiting_image_paths = []
