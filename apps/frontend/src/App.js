@@ -15,34 +15,34 @@ import {
   PhotoMap,
   Timeline,
   WordClouds,
-} from "./layouts/DataVisualization";
-import { FaceDashboard } from "./layouts/FaceDashboardV3";
-import { FavoritePhotos } from "./layouts/FavoritePhotos";
-import { HiddenPhotos } from "./layouts/HiddenPhotos";
-import { SignupPage } from "./layouts/SignUpPage";
-import { AlbumAutoGalleryView } from "./layouts/albumAutoGalleryView";
-import { AlbumAuto } from "./layouts/albumAuto";
-import { AlbumPeople } from "./layouts/albumPeople";
-import { AlbumPersonGallery } from "./layouts/albumPersonGallery";
-import { AlbumPlaceGallery } from "./layouts/albumPlaceGallery";
-import { AlbumThing } from "./layouts/albumThing";
-import { AlbumUser } from "./layouts/albumUser";
-import { AlbumUserGallery } from "./layouts/albumUserGallery";
-import { TimelinePhotoView } from "./layouts/TimelinePhotoView";
+} from "./layouts/dataviz/DataVisualization";
+import { FaceDashboard } from "./layouts/dataviz/FaceDashboard";
+import { FavoritePhotos } from "./layouts/photos/FavoritePhotos";
+import { HiddenPhotos } from "./layouts/photos/HiddenPhotos";
+import { SignupPage } from "./layouts/login/SignUpPage";
+import { AlbumAutoGalleryView } from "./layouts/albums/AlbumAutoGalleryView";
+import { AlbumAuto } from "./layouts/albums/AlbumAuto";
+import { AlbumPeople } from "./layouts/albums/AlbumPeople";
+import { AlbumPersonGallery } from "./layouts/albums/AlbumPersonGallery";
+import { AlbumPlaceGallery } from "./layouts/albums/AlbumPlaceGallery";
+import { AlbumThing } from "./layouts/albums/AlbumThing";
+import { AlbumUser } from "./layouts/albums/AlbumUser";
+import { AlbumUserGallery } from "./layouts/albums/AlbumUserGallery";
+import { TimelinePhotoView } from "./layouts/albums/TimelinePhotoView";
 import { SideMenuNarrow } from "./components/menubars/SideMenuNarrow";
 import { TopMenu } from "./components/menubars/TopMenu";
-import { NoTimestampPhotosView } from "./layouts/noTimestampPhotosView";
-import { RecentlyAddedPhotos } from "./layouts/RecentlyAddedPhotos";
-import PrivateRoute from "./layouts/privateRoute";
-import { SearchView } from "./layouts/searchRV";
-import { Settings } from "./layouts/settings";
-import { AdminPage } from "./layouts/AdminPage";
-import { Statistics } from "./layouts/statistics";
-import { UserPublicPage } from "./layouts/UserPublicPage";
-import { PublicUserList } from "./layouts/PublicUserList";
+import { NoTimestampPhotosView } from "./layouts/photos/NoTimestampPhotosView";
+import { RecentlyAddedPhotos } from "./layouts/photos/RecentlyAddedPhotos";
+import PrivateRoute from "./layouts/PrivateRoute";
+import { SearchView } from "./layouts/SearchView";
+import { Settings } from "./layouts/settings/Settings";
+import { AdminPage } from "./layouts/settings/AdminPage";
+import { Statistics } from "./layouts/dataviz/Statistics";
+import { UserPublicPage } from "./layouts/public/UserPublicPage";
+import { PublicUserList } from "./layouts/public/PublicUserList";
 import { LocationClusterMap } from "./components/maps";
-import { SharedToMe } from "./layouts/SharedToMe";
-import { SharedFromMe } from "./layouts/SharedFromMe";
+import { SharedToMe } from "./layouts/sharing/SharedToMe";
+import { SharedFromMe } from "./layouts/sharing/SharedFromMe";
 
 class Nav extends React.Component {
   render() {

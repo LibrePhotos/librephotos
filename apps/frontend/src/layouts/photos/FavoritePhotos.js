@@ -1,10 +1,10 @@
 
 import React, { Component } from 'react';
 import { connect } from "react-redux";
-import { fetchFavoritePhotos } from '../actions/photosActions';
+import { fetchFavoritePhotos } from '../../actions/photosActions';
 import moment from 'moment'
 import _ from 'lodash'
-import { PhotoListView } from '../components/photolist/PhotoListView'
+import { PhotoListView } from '../../components/photolist/PhotoListView'
 
 export class FavoritePhotos extends Component {
   

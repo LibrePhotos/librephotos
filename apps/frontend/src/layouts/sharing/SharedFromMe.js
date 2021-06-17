@@ -11,16 +11,16 @@ import {
   Button,
   Popup
 } from "semantic-ui-react";
-import { fetchPhotosSharedFromMe } from "../actions/photosActions";
-import { fetchPublicUserList } from "../actions/publicActions";
-import { fetchUserAlbumsSharedFromMe, deleteUserAlbum } from "../actions/albumsActions";
+import { fetchPhotosSharedFromMe } from "../../actions/photosActions";
+import { fetchPublicUserList } from "../../actions/publicActions";
+import { fetchUserAlbumsSharedFromMe, deleteUserAlbum } from "../../actions/albumsActions";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
-import { serverAddress } from "../api_client/apiClient";
-import { SecuredImageJWT } from "../components/SecuredImage";
+import { serverAddress } from "../../api_client/apiClient";
+import { SecuredImageJWT } from "../../components/SecuredImage";
 import { Grid, AutoSizer } from "react-virtualized";
-import { calculateGridCellSize, calculateSharedPhotoGridCells } from "../util/gridUtils";
-import { ScrollSpeed, SCROLL_DEBOUNCE_DURATION } from "../util/scrollUtils";
+import { calculateGridCellSize, calculateSharedPhotoGridCells } from "../../util/gridUtils";
+import { ScrollSpeed, SCROLL_DEBOUNCE_DURATION } from "../../util/scrollUtils";
 import debounce from "lodash/debounce";
 
 

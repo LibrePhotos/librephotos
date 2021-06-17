@@ -13,7 +13,7 @@ import {
   Loader,
 } from "semantic-ui-react";
 
-import { SecuredImageJWT } from "../components/SecuredImage";
+import { SecuredImageJWT } from "../../components/SecuredImage";
 import { connect } from "react-redux";
 import {
   deleteFaces,
@@ -21,7 +21,7 @@ import {
   trainFaces,
   fetchInferredFacesList,
   fetchLabeledFacesList,
-} from "../actions/facesActions";
+} from "../../actions/facesActions";
 import _ from "lodash";
 import {
   Grid,
@@ -30,11 +30,11 @@ import {
 import {
   calculateFaceGridCellSize,
   calculateFaceGridCells,
-} from "../util/gridUtils";
-import { ScrollSpeed, SCROLL_DEBOUNCE_DURATION } from "../util/scrollUtils";
+} from "../../util/gridUtils";
+import { ScrollSpeed, SCROLL_DEBOUNCE_DURATION } from "../../util/scrollUtils";
 import debounce from "lodash/debounce";
-import { fetchPeople } from "../actions/peopleActions";
-import { serverAddress } from "../api_client/apiClient";
+import { fetchPeople } from "../../actions/peopleActions";
+import { serverAddress } from "../../api_client/apiClient";
 import Modal from "react-modal";
 
 var topMenuHeight = 45; // don't change this

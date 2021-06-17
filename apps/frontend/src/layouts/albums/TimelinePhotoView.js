@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from "react-redux";
-import { fetchDateAlbumsPhotoHashList } from '../actions/albumsActions'
-import { PhotoListView } from '../components/photolist/PhotoListView'
+import { fetchDateAlbumsPhotoHashList } from '../../actions/albumsActions'
+import { PhotoListView } from '../../components/photolist/PhotoListView'
 import * as moment from "moment";
 
 export class TimelinePhotoView extends Component {

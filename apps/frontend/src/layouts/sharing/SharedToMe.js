@@ -8,20 +8,20 @@ import {
   Loader,
   Label
 } from "semantic-ui-react";
-import { fetchPhotosSharedToMe, fetchPhotosSharedFromMe } from "../actions/photosActions";
-import { fetchPublicUserList } from "../actions/publicActions";
-import { fetchUserAlbumsSharedToMe } from "../actions/albumsActions";
+import { fetchPhotosSharedToMe, fetchPhotosSharedFromMe } from "../../actions/photosActions";
+import { fetchPublicUserList } from "../../actions/publicActions";
+import { fetchUserAlbumsSharedToMe } from "../../actions/albumsActions";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
-import { serverAddress } from "../api_client/apiClient";
-import { SecuredImageJWT } from "../components/SecuredImage";
+import { serverAddress } from "../../api_client/apiClient";
+import { SecuredImageJWT } from "../../components/SecuredImage";
 import { Grid, AutoSizer } from "react-virtualized";
 import {
   calculateGridCellSize,
   calculateSharedPhotoGridCells,
   calculateSharedAlbumGridCells
-} from "../util/gridUtils";
-import { ScrollSpeed, SCROLL_DEBOUNCE_DURATION } from "../util/scrollUtils";
+} from "../../util/gridUtils";
+import { ScrollSpeed, SCROLL_DEBOUNCE_DURATION } from "../../util/scrollUtils";
 import debounce from "lodash/debounce";
 
 

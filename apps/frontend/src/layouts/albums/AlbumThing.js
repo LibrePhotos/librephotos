@@ -2,13 +2,13 @@ import React, { Component } from "react";
 import { connect } from "react-redux";
 import { Icon, Header, Loader, Image } from "semantic-ui-react";
 import { Grid, AutoSizer } from "react-virtualized";
-import { serverAddress } from "../api_client/apiClient";
+import { serverAddress } from "../../api_client/apiClient";
 import LazyLoad from "react-lazyload";
-import { fetchThingAlbumsList } from "../actions/albumsActions";
-import { searchPhotos } from "../actions/searchActions";
+import { fetchThingAlbumsList } from "../../actions/albumsActions";
+import { searchPhotos } from "../../actions/searchActions";
 import { push } from "react-router-redux";
-import store from "../store";
-import { SecuredImageJWT } from "../components/SecuredImage";
+import store from "../../store";
+import { SecuredImageJWT } from "../../components/SecuredImage";
 
 
 var topMenuHeight = 45; // don't change this

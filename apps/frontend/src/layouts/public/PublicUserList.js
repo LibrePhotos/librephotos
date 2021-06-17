@@ -1,13 +1,13 @@
 import React, { Component } from "react";
 import { Header, Image, Icon, Grid, Divider } from "semantic-ui-react";
-import { fetchPublicUserList } from "../actions/publicActions";
+import { fetchPublicUserList } from "../../actions/publicActions";
 import { connect } from "react-redux";
-import {TopMenu} from "../components/menubars/TopMenu";
-import {SideMenuNarrow} from "../components/menubars/SideMenuNarrow";
-import {TopMenuPublic} from "../components/menubars/TopMenuPublic";
-import {SideMenuNarrowPublic} from "../components/menubars/SideMenuNarrowPublic";
+import {TopMenu} from "../../components/menubars/TopMenu";
+import {SideMenuNarrow} from "../../components/menubars/SideMenuNarrow";
+import {TopMenuPublic} from "../../components/menubars/TopMenuPublic";
+import {SideMenuNarrowPublic} from "../../components/menubars/SideMenuNarrowPublic";
 import { Link } from "react-router-dom";
-import { serverAddress } from "../api_client/apiClient";
+import { serverAddress } from "../../api_client/apiClient";
 
 
 var TOP_MENU_HEIGHT = 45; // don't change this

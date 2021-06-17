@@ -28,17 +28,17 @@ import {
   fetchNextcloudDirectoryTree,
   fetchJobList,
   deleteMissingPhotos
-} from "../actions/utilActions";
-import { trainFaces } from "../actions/facesActions";
-import { scanPhotos, scanNextcloudPhotos } from "../actions/photosActions";
-import { fetchUserSelfDetails } from "../actions/userActions";
-import { CountStats } from "../components/statistics";
+} from "../../actions/utilActions";
+import { trainFaces } from "../../actions/facesActions";
+import { scanPhotos, scanNextcloudPhotos } from "../../actions/photosActions";
+import { fetchUserSelfDetails } from "../../actions/userActions";
+import { CountStats } from "../../components/statistics";
 import Dropzone from "react-dropzone";
 import AvatarEditor from "react-avatar-editor";
 import MaterialIcon from "material-icons-react";
 import SortableTree from "react-sortable-tree";
 import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
-import { serverAddress } from '../api_client/apiClient'
+import { serverAddress } from '../../api_client/apiClient'
 
 export class Settings extends Component {
   state = {

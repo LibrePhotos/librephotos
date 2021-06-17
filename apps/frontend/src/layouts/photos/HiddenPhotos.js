@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import { connect } from "react-redux";
-import { fetchHiddenPhotos } from '../actions/photosActions';
+import { fetchHiddenPhotos } from '../../actions/photosActions';
 import moment from 'moment'
 import _ from 'lodash'
-import { PhotoListView } from '../components/photolist/PhotoListView'
+import { PhotoListView } from '../../components/photolist/PhotoListView'
 export class HiddenPhotos extends Component {
   state = {
     photosGroupedByDate: [],

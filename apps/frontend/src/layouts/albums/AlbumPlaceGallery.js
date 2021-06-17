@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import { connect } from "react-redux";
-import { fetchPlaceAlbum } from '../actions/albumsActions'
+import { fetchPlaceAlbum } from '../../actions/albumsActions'
 import _ from 'lodash'
 import moment from 'moment'
-import { PhotoListView } from '../components/photolist/PhotoListView'
+import { PhotoListView } from '../../components/photolist/PhotoListView'
 
 export class AlbumPlaceGallery extends Component {
     state = {

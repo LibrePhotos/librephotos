@@ -1,14 +1,14 @@
 import React, {Component} from 'react'
 import { Popup, Divider, Menu} from 'semantic-ui-react'
 import { connect } from "react-redux";
-import {CountStats} from '../components/statistics'
-import WordCloud from '../components/charts/wordCloud'
-import {LocationLink} from '../components/locationLink'
-import {LocationClusterMap} from '../components/maps'
-import EventCountMonthGraph from '../components/eventCountMonthGraph'
-import LocationDurationStackedBar from '../components/locationDurationStackedBar'
-import FaceClusterScatter  from '../components/faceClusterGraph'
-import SocialGraph from '../components/socialGraph'
+import {CountStats} from '../../components/statistics'
+import WordCloud from '../../components/charts/wordCloud'
+import {LocationLink} from '../../components/locationLink'
+import {LocationClusterMap} from '../../components/maps'
+import EventCountMonthGraph from '../../components/eventCountMonthGraph'
+import LocationDurationStackedBar from '../../components/locationDurationStackedBar'
+import FaceClusterScatter  from '../../components/faceClusterGraph'
+import SocialGraph from '../../components/socialGraph'
 
 
 export class Statistics extends Component {
