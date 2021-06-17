@@ -209,8 +209,6 @@ export default function reducer(
     }
     case "FETCH_PHOTO_DETAIL_FULFILLED": {
       var newPhotoDetails = { ...state.photoDetails };
-      console.log("Yay got something back")
-      console.log(action.payload)
       newPhotoDetails[action.payload.image_hash] = action.payload;
       return {
         ...state,

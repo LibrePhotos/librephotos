@@ -13,7 +13,7 @@ export default function getToolbar(box) {
   return [
     <div>
       {!box.props.photoDetails[
-        box.props.idx2hash[box.props.lightboxImageIndex]
+        box.props.idx2hash[box.props.lightboxImageIndex].id
       ] && (
         <Button
           loading
@@ -26,7 +26,7 @@ export default function getToolbar(box) {
         </Button>
       )}
       {!box.props.photoDetails[
-        box.props.idx2hash[box.props.lightboxImageIndex]
+        box.props.idx2hash[box.props.lightboxImageIndex].id
       ] && (
         <Button
           loading
@@ -39,7 +39,7 @@ export default function getToolbar(box) {
         </Button>
       )}
       {!box.props.photoDetails[
-        box.props.idx2hash[box.props.lightboxImageIndex]
+        box.props.idx2hash[box.props.lightboxImageIndex].id
       ] && (
         <Button
           loading
@@ -52,7 +52,7 @@ export default function getToolbar(box) {
         </Button>
       )}
       {box.props.photoDetails[
-        box.props.idx2hash[box.props.lightboxImageIndex]
+        box.props.idx2hash[box.props.lightboxImageIndex].id
       ] && (
         <Button
           disabled={box.props.isPublic}
@@ -71,7 +71,7 @@ export default function getToolbar(box) {
             name="hide"
             color={
               box.props.photoDetails[
-                box.props.idx2hash[box.props.lightboxImageIndex]
+                box.props.idx2hash[box.props.lightboxImageIndex].id
               ].hidden
                 ? "red"
                 : "grey"
@@ -80,7 +80,7 @@ export default function getToolbar(box) {
         </Button>
       )}
       {box.props.photoDetails[
-        box.props.idx2hash[box.props.lightboxImageIndex]
+        box.props.idx2hash[box.props.lightboxImageIndex].id
       ] && (
         <Button
           disabled={box.props.isPublic}
@@ -99,7 +99,7 @@ export default function getToolbar(box) {
             name="star"
             color={
               box.props.photoDetails[
-                box.props.idx2hash[box.props.lightboxImageIndex]
+                box.props.idx2hash[box.props.lightboxImageIndex].id
               ].favorited
                 ? "yellow"
                 : "grey"
@@ -108,14 +108,14 @@ export default function getToolbar(box) {
         </Button>
       )}
       {box.props.photoDetails[
-        box.props.idx2hash[box.props.lightboxImageIndex]
+        box.props.idx2hash[box.props.lightboxImageIndex].id
       ] && (
         <Button
           disabled={box.props.isPublic}
           onClick={() => {
             const image_hash = box.props.idx2hash[
               box.props.lightboxImageIndex
-            ];
+            ].id;
             const val = !box.props.photoDetails[image_hash].public;
             box.props.dispatch(setPhotosPublic([image_hash], val));
             copyToClipboard(
@@ -133,7 +133,7 @@ export default function getToolbar(box) {
             name="globe"
             color={
               box.props.photoDetails[
-                box.props.idx2hash[box.props.lightboxImageIndex]
+                box.props.idx2hash[box.props.lightboxImageIndex].id
               ].public
                 ? "green"
                 : "grey"

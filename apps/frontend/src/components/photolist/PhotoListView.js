@@ -150,9 +150,7 @@ export class PhotoListView extends Component {
   }
 
   getPhotoDetails(image) {
-    console.log(image);
     this.props.dispatch(fetchPhotoDetail(image));
-    console.log("It is fetched");
   }
 
   render() {
@@ -201,8 +199,8 @@ export class PhotoListView extends Component {
       <div>
         <div
           style={{
-            position: "fixed",
-            top: TOP_MENU_HEIGHT,
+            position: "sticky",
+            top: TOP_MENU_HEIGHT - 10,
             width: "100%",
             zIndex: 100,
             backgroundColor: "white",
@@ -211,7 +209,7 @@ export class PhotoListView extends Component {
           <Grid columns={2}>
             <GridRow>
               <GridColumn>
-                <Header as="h2" style={{ paddingTop: 10, paddingRight: 10 }}>
+                <Header as="h2" style={{ paddingRight: 10 }}>
                   <Icon name={this.props.titleIconName} />
                   <Header.Content>
                     {this.props.title}{" "}
@@ -227,7 +225,7 @@ export class PhotoListView extends Component {
                 <Header
                   textAlign="right"
                   size="small"
-                  style={{ paddingTop: 10, paddingRight: 10 }}
+                  style={{ paddingRight: 10 }}
                 >
                   <Header.Content>
                     {this.props.dayHeaderPrefix

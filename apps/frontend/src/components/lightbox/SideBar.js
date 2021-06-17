@@ -67,7 +67,7 @@ export default function getSideBar(box) {
         }}
       >
         {box.props.photoDetails.hasOwnProperty(
-          box.props.idx2hash[box.props.lightboxImageIndex]
+          box.props.idx2hash[box.props.lightboxImageIndex].id
         ) && (
           <div style={{ width: LIGHTBOX_SIDEBAR_WIDTH }}>
             <div
@@ -103,7 +103,7 @@ export default function getSideBar(box) {
                       {moment
                         .utc(
                           box.props.photoDetails[
-                            box.props.idx2hash[box.props.lightboxImageIndex]
+                            box.props.idx2hash[box.props.lightboxImageIndex].id
                           ].exif_timestamp
                         )
                         .format("dddd, MMMM Do YYYY, h:mm a")}
@@ -125,13 +125,13 @@ export default function getSideBar(box) {
                         to={
                           serverAddress +
                           "/media/photos/" +
-                          box.props.idx2hash[box.props.lightboxImageIndex] +
+                          box.props.idx2hash[box.props.lightboxImageIndex].id +
                           ".jpg"
                         }
                         target="_blank"
                         divider="/"
                         sections={box.props.photoDetails[
-                          box.props.idx2hash[box.props.lightboxImageIndex]
+                          box.props.idx2hash[box.props.lightboxImageIndex].id
                         ].image_path
                           .split("/")
                           .map((el) => {
@@ -146,7 +146,7 @@ export default function getSideBar(box) {
                 {/* Start Item Location */}
 
                 {box.props.photoDetails[
-                  box.props.idx2hash[box.props.lightboxImageIndex]
+                  box.props.idx2hash[box.props.lightboxImageIndex].id
                 ].search_location && (
                   <Item>
                     <Item.Content verticalAlign="middle">
@@ -156,7 +156,7 @@ export default function getSideBar(box) {
                       <Item.Description>
                         {
                           box.props.photoDetails[
-                            box.props.idx2hash[box.props.lightboxImageIndex]
+                            box.props.idx2hash[box.props.lightboxImageIndex].id
                           ].search_location
                         }
                       </Item.Description>
@@ -172,13 +172,13 @@ export default function getSideBar(box) {
                   }}
                 >
                   {box.props.photoDetails[
-                    box.props.idx2hash[box.props.lightboxImageIndex]
+                    box.props.idx2hash[box.props.lightboxImageIndex].id
                   ].exif_gps_lat && (
                     <LocationMap
                       zoom={16}
                       photos={[
                         box.props.photoDetails[
-                          box.props.idx2hash[box.props.lightboxImageIndex]
+                          box.props.idx2hash[box.props.lightboxImageIndex].id
                         ],
                       ]}
                     />
@@ -189,7 +189,7 @@ export default function getSideBar(box) {
                 {/* Start Item People */}
 
                 {box.props.photoDetails[
-                  box.props.idx2hash[box.props.lightboxImageIndex]
+                  box.props.idx2hash[box.props.lightboxImageIndex].id
                 ].people.length > 0 && (
                   <Item>
                     <Item.Content verticalAlign="middle">
@@ -199,7 +199,7 @@ export default function getSideBar(box) {
                       <Item.Description>
                         <Label.Group>
                           {box.props.photoDetails[
-                            box.props.idx2hash[box.props.lightboxImageIndex]
+                            box.props.idx2hash[box.props.lightboxImageIndex].id
                           ].people.map((nc, idx) => (
                             <Label
                               color={
@@ -208,7 +208,7 @@ export default function getSideBar(box) {
                                     box.props.photoDetails[
                                       box.props.idx2hash[
                                         box.props.lightboxImageIndex
-                                      ]
+                                      ].id
                                     ].people.length
                                 ]
                               }
@@ -238,7 +238,7 @@ export default function getSideBar(box) {
                     <Item.Description>
                       {false &&
                         box.props.photoDetails[
-                          box.props.idx2hash[box.props.lightboxImageIndex]
+                          box.props.idx2hash[box.props.lightboxImageIndex].id
                         ].captions_json.im2txt}
                       <Form>
                         <Form.TextArea
@@ -246,13 +246,13 @@ export default function getSideBar(box) {
                           fluid
                           placeholder={
                             box.props.photoDetails[
-                              box.props.idx2hash[box.props.lightboxImageIndex]
+                              box.props.idx2hash[box.props.lightboxImageIndex].id
                             ].captions_json.im2txt
                           }
                         >
                           {
                             box.props.photoDetails[
-                              box.props.idx2hash[box.props.lightboxImageIndex]
+                              box.props.idx2hash[box.props.lightboxImageIndex].id
                             ].captions_json.im2txt
                           }
                         </Form.TextArea>
@@ -271,7 +271,7 @@ export default function getSideBar(box) {
                               generatePhotoIm2txtCaption(
                                 box.props.idx2hash[
                                   box.props.lightboxImageIndex
-                                ]
+                                ].id
                               )
                             );
                           }}
@@ -313,14 +313,14 @@ export default function getSideBar(box) {
                       </p>
                       <Label.Group>
                         {box.props.photoDetails[
-                          box.props.idx2hash[box.props.lightboxImageIndex]
+                          box.props.idx2hash[box.props.lightboxImageIndex].id
                         ].captions_json.places365.attributes.map((nc, idx) => (
                           <Label
                             key={
                               "lightbox_attribute_label_" +
                               box.props.idx2hash[
                                 box.props.lightboxImageIndex
-                              ] +
+                              ].id +
                               "_" +
                               nc
                             }
@@ -340,14 +340,14 @@ export default function getSideBar(box) {
                       </p>
                       <Label.Group>
                         {box.props.photoDetails[
-                          box.props.idx2hash[box.props.lightboxImageIndex]
+                          box.props.idx2hash[box.props.lightboxImageIndex].id
                         ].captions_json.places365.categories.map((nc, idx) => (
                           <Label
                             key={
                               "lightbox_category_label_" +
                               box.props.idx2hash[
                                 box.props.lightboxImageIndex
-                              ] +
+                              ].id +
                               "_" +
                               nc
                             }
@@ -378,7 +378,7 @@ export default function getSideBar(box) {
                     <Item.Description>
                       <Image.Group>
                         {box.props.photoDetails[
-                          box.props.idx2hash[box.props.lightboxImageIndex]
+                          box.props.idx2hash[box.props.lightboxImageIndex].id
                         ].similar_photos
                           .slice(0, 30)
                           .map((el) => (
