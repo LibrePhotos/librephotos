@@ -17,7 +17,7 @@ export class RecentlyAddedPhotos extends Component {
                 titleIconName={'clock'}
                 isDateView={false}
                 photosGroupedByDate={this.props.recentlyAddedPhotos[0] ? this.props.recentlyAddedPhotos[0].photos : []}
-                idx2hash={this.props.recentlyAddedIdx2hash}
+                idx2hash={this.props.recentlyAddedPhotos[0] ? this.props.recentlyAddedPhotos[0].photos : []}
                 dayHeaderPrefix={'Added on ' }
             />
         )

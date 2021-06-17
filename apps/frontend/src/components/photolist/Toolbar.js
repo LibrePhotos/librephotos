@@ -40,7 +40,7 @@ export default function getToolbar(photoList) {
           disabled={photoList.state.selectedItems.length === 0}
           onClick={() => {
             photoList.props.dispatch(
-              setPhotosFavorite(photoList.state.selectedItems, true)
+              setPhotosFavorite(photoList.state.selectedItems.map(i => i.id), true)
             );
           }}
         >
@@ -51,7 +51,7 @@ export default function getToolbar(photoList) {
           disabled={photoList.state.selectedItems.length === 0}
           onClick={() => {
             photoList.props.dispatch(
-              setPhotosFavorite(photoList.state.selectedItems, false)
+              setPhotosFavorite(photoList.state.selectedItems.map(i => i.id), false)
             );
           }}
         >
@@ -64,7 +64,7 @@ export default function getToolbar(photoList) {
           disabled={photoList.state.selectedItems.length === 0}
           onClick={() => {
             photoList.props.dispatch(
-              setPhotosHidden(photoList.state.selectedItems, true)
+              setPhotosHidden(photoList.state.selectedItems.map(i => i.id), true)
             );
           }}
         >
@@ -75,7 +75,7 @@ export default function getToolbar(photoList) {
           disabled={photoList.state.selectedItems.length === 0}
           onClick={() => {
             photoList.props.dispatch(
-              setPhotosHidden(photoList.state.selectedItems, false)
+              setPhotosHidden(photoList.state.selectedItems.map(i => i.id), false)
             );
           }}
         >
@@ -88,9 +88,9 @@ export default function getToolbar(photoList) {
           disabled={photoList.state.selectedItems.length === 0}
           onClick={() => {
             photoList.props.dispatch(
-              setPhotosPublic(photoList.state.selectedItems, true)
+              setPhotosPublic(photoList.state.selectedItems.map(i => i.id), true)
             );
-            const linksToCopy = photoList.state.selectedItems
+            const linksToCopy = photoList.state.selectedItems.map(i => i.id)
               .map((ih) => serverAddress + "/media/photos/" + ih + ".jpg")
               .join("\n");
             copyToClipboard(linksToCopy);
@@ -103,7 +103,7 @@ export default function getToolbar(photoList) {
           disabled={photoList.state.selectedItems.length === 0}
           onClick={() => {
             photoList.props.dispatch(
-              setPhotosPublic(photoList.state.selectedItems, false)
+              setPhotosPublic(photoList.state.selectedItems.map(i => i.id), false)
             );
           }}
         >
@@ -115,7 +115,7 @@ export default function getToolbar(photoList) {
         <Dropdown.Item
           disabled={photoList.state.selectedItems.length === 0}
           onClick={() => {
-            photoList.props.dispatch(downloadPhotos(photoList.state.selectedItems));
+            photoList.props.dispatch(downloadPhotos(photoList.state.selectedItems.map(i => i.id)));
           }}
         >
           <Icon name="download" />

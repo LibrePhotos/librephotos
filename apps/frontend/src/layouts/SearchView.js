@@ -4,16 +4,16 @@ import { connect } from "react-redux";
 import { PhotoListView } from '../components/photolist/PhotoListView'
 export class SearchView extends Component {
     render() {
-        const {searchingPhotos,searchedPhotos,searchQuery} = this.props
+        console.log(this.props.searchPhotosResGroupedByDate)
+        const {searchingPhotos,searchQuery} = this.props
         return (
             <PhotoListView 
                 title={searchingPhotos ? `Searching "${searchQuery}"...` : searchQuery===null ? "Search for things, places, people, and time." : `"${searchQuery}"`}
                 loading={searchingPhotos}
                 titleIconName={'search'}
-                subtitle={"hehehe"}
                 isDateView={true}
-                photosGroupedByDate={this.props.searchPhotosResGroupedByDate}
-                idx2hash={this.props.idx2hash}
+                photosGroupedByDate={this.props.searchPhotosResGroupedByDate[0] ? this.props.searchPhotosResGroupedByDate : []}
+                idx2hash={[]}
             />
         )
     }

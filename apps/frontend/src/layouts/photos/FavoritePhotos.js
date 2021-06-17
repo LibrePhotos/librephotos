@@ -23,7 +23,7 @@ export class FavoritePhotos extends Component {
         titleIconName={'star'}
         isDateView={true}
         photosGroupedByDate={this.props.favoritePhotos}
-        idx2hash={[]}
+        idx2hash={this.props.favoritePhotos.flatMap((el)=>el.items)}
       />
     )  
   }

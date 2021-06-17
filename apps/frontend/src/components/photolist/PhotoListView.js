@@ -390,7 +390,7 @@ export class PhotoListView extends Component {
           )}
         </div>
         {this.props.photosGroupedByDate ? (
-          <div style={{top: TOP_MENU_HEIGHT}}>
+          <div style={{ top: TOP_MENU_HEIGHT }}>
             <Pig
               imageData={
                 !Array.isArray(this.props.photosGroupedByDate)
@@ -403,7 +403,16 @@ export class PhotoListView extends Component {
               handleClick={this.handleClick}
               groupByDate={this.props.isDateView}
               getUrl={(url, pxHeight) => {
-                return serverAddress + "/media/thumbnails_big/" + url + ".jpg";
+                if (url.split(";")[1] === ".mp4") {
+                  return serverAddress + "/media/video/" + url.split(";")[0];
+                } else {
+                  return (
+                    serverAddress +
+                    "/media/thumbnails_big/" +
+                    url.split(";")[0] +
+                    ".jpg"
+                  );
+                }
               }}
             >
               {console.log(this.props.photosGroupedByDate)}

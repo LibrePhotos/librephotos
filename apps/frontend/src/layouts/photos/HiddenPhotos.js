@@ -5,10 +5,6 @@ import moment from 'moment'
 import _ from 'lodash'
 import { PhotoListView } from '../../components/photolist/PhotoListView'
 export class HiddenPhotos extends Component {
-  state = {
-    photosGroupedByDate: [],
-    idx2hash: [],
-  }
 
   componentDidMount() {
     this.props.dispatch(fetchHiddenPhotos())
@@ -24,7 +20,7 @@ export class HiddenPhotos extends Component {
         titleIconName={'hide'}
         isDateView={true}
         photosGroupedByDate={this.props.hiddenPhotos}
-        idx2hash={this.state.idx2hash}
+        idx2hash={this.props.hiddenPhotos.flatMap((el)=>el.items)}
       />
     )  
   }

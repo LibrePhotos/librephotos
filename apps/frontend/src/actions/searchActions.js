@@ -12,20 +12,10 @@ export function searchPhotos(query) {
       dispatch({type:"SEARCH_PHOTOS",payload: query});
       Server.get(`photos/searchlist/?search=${query}`,{timeout:100000})
         .then((response) => {
-          var groupedByDate = _.groupBy(response.data.results,(el)=>{
-            if (el.exif_timestamp) {
-                return moment.utc(el.exif_timestamp).format('YYYY-MM-DD')
-            } else {
-                return "No Timestamp"
-            }
-          })
-          var groupedByDateList = _.toPairsIn(groupedByDate).map((el)=>{
-            return {date:el[0],photos:el[1]}
-          })
           var idx2hash = response.data.results.map((el)=>el.image_hash)
 
           dispatch({type:"SEARCH_RES_IDX2HASH",payload: idx2hash})
-          dispatch({type:"SEARCH_RES_GROUP_BY_DATE",payload: groupedByDateList})
+          dispatch({type:"SEARCH_RES_GROUP_BY_DATE",payload: response.data})
           dispatch({type:"SEARCH_PHOTOS_FULFILLED",payload: response.data.results})
         }) 
         .catch((err) => {
