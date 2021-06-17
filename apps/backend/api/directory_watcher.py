@@ -102,13 +102,11 @@ def handle_new_image(user, image_path, job_id):
                 start = datetime.datetime.now()
                 photo._generate_thumbnail(True)
                 photo._generate_captions(False)
-                photo._extract_gps_from_exif(False)
                 photo._geolocate_mapbox(False)
                 photo._im2vec(False)
+                photo._calculate_aspect_ratio(False)
                 photo._extract_date_time_from_exif(True)
                 photo._extract_faces()
-                photo._add_to_album_place()
-                photo._add_to_album_date()
 
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info( "job {}: image processed: {}, elapsed: {}".format(
@@ -146,9 +144,10 @@ def rescan_image(user, image_path, job_id):
         if is_valid_media(image_path):
             photo = Photo.objects.filter(Q(image_paths__contains=image_path)).get()
             photo._generate_thumbnail(False)
+            photo._calculate_aspect_ratio(True)
             photo._extract_date_time_from_exif(True)
+            photo._geolocate_mapbox(True)
             
-
     except Exception as e:
         try:
             util.logger.exception(
