@@ -200,7 +200,6 @@ export class PhotoListView extends Component {
         <div
           style={{
             position: "sticky",
-            top: TOP_MENU_HEIGHT - 10,
             width: "100%",
             zIndex: 100,
             backgroundColor: "white",
