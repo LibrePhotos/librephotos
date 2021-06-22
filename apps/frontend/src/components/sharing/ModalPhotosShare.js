@@ -1,10 +1,10 @@
 import React, { Component } from "react";
 import { Input, Image, Icon, Header, Divider, Button } from "semantic-ui-react";
-import { SecuredImageJWT } from "../components/SecuredImage";
+import { SecuredImageJWT } from "../SecuredImage";
 import { connect } from "react-redux";
-import { fetchPublicUserList } from "../actions/publicActions";
-import { serverAddress } from "../api_client/apiClient";
-import { setPhotosShared } from "../actions/photosActions";
+import { fetchPublicUserList } from "../../actions/publicActions";
+import { serverAddress } from "../../api_client/apiClient";
+import { setPhotosShared } from "../../actions/photosActions";
 import Modal from "react-modal";
 import moment from "moment";
 

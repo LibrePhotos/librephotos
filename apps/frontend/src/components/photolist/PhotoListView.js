@@ -4,7 +4,7 @@ import "react-virtualized/styles.css"; // only needs to be imported once
 import { connect } from "react-redux";
 import { ModalAlbumEdit } from "../album/ModalAlbumEdit";
 import { fetchPhotoDetail } from "../../actions/photosActions";
-import { ModalPhotosShare } from "../ModalPhotosShare";
+import { ModalPhotosShare } from "../sharing/ModalPhotosShare";
 import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
 import {
   Dropdown,
@@ -200,8 +200,9 @@ export class PhotoListView extends Component {
         <div
           style={{
             position: "sticky",
-            width: "100%",
+            top: TOP_MENU_HEIGHT - 9, /* required */
             marginTop: 5,
+            width: "100%",
             zIndex: 100,
             backgroundColor: "white",
           }}
@@ -389,7 +390,7 @@ export class PhotoListView extends Component {
           )}
         </div>
         {this.props.photosGroupedByDate ? (
-          <div style={{ top: TOP_MENU_HEIGHT }}>
+          <div style={{ top: TOP_MENU_HEIGHT + 70 }}>
             <Pig
               imageData={
                 !Array.isArray(this.props.photosGroupedByDate)
@@ -421,6 +422,7 @@ export class PhotoListView extends Component {
         ) : (
           <div></div>
         )}
+        
         <div
           style={{
             backgroundColor: "white",

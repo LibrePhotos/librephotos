@@ -9,8 +9,8 @@ import {
   Divider,
 } from "semantic-ui-react";
 import { connect } from "react-redux";
-import { fetchPublicUserList } from "../actions/publicActions";
-import { setUserAlbumShared } from "../actions/albumsActions";
+import { fetchPublicUserList } from "../../actions/publicActions";
+import { setUserAlbumShared } from "../../actions/albumsActions";
 import Modal from "react-modal";
 import moment from "moment";
 
