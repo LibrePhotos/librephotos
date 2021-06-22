@@ -3,11 +3,13 @@ import zipfile
 import io
 import datetime
 import uuid
+import re
 from django.core.cache import cache
 import ownphotos.settings
 import django_rq
 import six
 import magic
+from api.views.PhotosGroupedByDate import get_photos_ordered_by_date
 from constance import config as site_config
 from django.core.cache import cache
 from django.db.models import Count, F, Prefetch, Q
@@ -36,7 +38,7 @@ from api.models import (AlbumAuto, AlbumDate, AlbumPlace, AlbumThing,
 from api.models.person import get_or_create_person
 from api.permissions import (IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo,
                              IsRegistrationAllowed, IsUserOrReadOnly)
-from api.serializers import (AlbumAutoListSerializer, AlbumAutoSerializer,
+from api.views.serializers import (AlbumAutoListSerializer, AlbumAutoSerializer,
                              AlbumDateListSerializer, AlbumDateSerializer,
                              AlbumPersonListSerializer, AlbumPersonSerializer,
                              AlbumPlaceListSerializer, AlbumPlaceSerializer,
@@ -51,13 +53,13 @@ from api.serializers import (AlbumAutoListSerializer, AlbumAutoSerializer,
                              SharedFromMePhotoThroughSerializer,
                              SharedToMePhotoSuperSimpleSerializer,
                              UserSerializer)
-from api.serializers_serpy import \
+from api.views.serializers_serpy import \
     AlbumDateListWithPhotoHashSerializer as \
     AlbumDateListWithPhotoHashSerializerSerpy
-from api.serializers_serpy import PigAlbumDateSerializer, AlbumUserSerializerSerpy, PigPhotoSerilizer, GroupedPhotosSerializer
-from api.serializers_serpy import \
+from api.views.serializers_serpy import PigAlbumDateSerializer, AlbumUserSerializerSerpy, PigPhotoSerilizer, GroupedPhotosSerializer, GroupedPersonPhotosSerializer
+from api.views.serializers_serpy import \
     PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy
-from api.serializers_serpy import \
+from api.views.serializers_serpy import \
     SharedPhotoSuperSimpleSerializer as SharedPhotoSuperSimpleSerializerSerpy
 from api.util import logger
 
@@ -337,31 +339,7 @@ class SharedFromMePhotoSuperSimpleListViewSet2(viewsets.ModelViewSet):
         return qs
 
 
-class PhotosGroupedByDate():
-    
-    def __init__(self, location, date, photos):
-        self.photos = photos
-        self.date = date
-        self.location = location
 
-def get_photos_ordered_by_date(photos):
-    from collections import defaultdict
-
-    groups = defaultdict(list)
-
-    for photo in photos:
-        groups[photo.exif_timestamp].append(photo)
-
-    groupedPhoto = list(groups.values())
-    result = []
-    for group in groupedPhoto:
-        location = ""
-        if(group[0].exif_timestamp):
-            date = group[0].exif_timestamp.date().strftime("%Y-%m-%d")
-        else:
-            date = "No timestamp"
-        result.append(PhotosGroupedByDate(location, date, group))
-    return result
 
 class FavoritePhotoListViewset(viewsets.ModelViewSet):
     serializer_class = PigPhotoSerilizer
@@ -692,9 +670,6 @@ class SharedFromMeAlbumAutoListViewSet(viewsets.ModelViewSet):
 
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumPersonViewSet(viewsets.ModelViewSet):
-    serializer_class = AlbumPersonSerializer
-    pagination_class = StandardResultsSetPagination
-
     def get_queryset(self):
         return Person.objects \
             .annotate(photo_count=Count('faces', filter=Q(faces__photo__hidden=False), distinct=True)) \
@@ -710,11 +685,19 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
-        return super(AlbumPersonViewSet, self).retrieve(*args, **kwargs)
+        queryset = self.get_queryset()
+        logger.warning(args[0].__str__())
+        albumid = re.findall(r'\'(.+?)\'', args[0].__str__())[0].split("/")[-2]        
+        serializer = GroupedPersonPhotosSerializer(queryset.filter(id = albumid).first())
+        serializer.context = {'request': self.request}
+        return Response({'results': serializer.data})
 
     @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
-        return super(AlbumPersonViewSet, self).list(*args, **kwargs)
+        queryset = self.get_queryset()
+        serializer = GroupedPersonPhotosSerializer(queryset, many=True)
+        serializer.context = {'request': self.request}
+        return Response({'results': serializer.data})
 
 
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
