@@ -5,7 +5,7 @@ import { connect } from "react-redux";
 import { ModalAlbumEdit } from "../album/ModalAlbumEdit";
 import { fetchPhotoDetail } from "../../actions/photosActions";
 import { ModalPhotosShare } from "../ModalPhotosShare";
-import { ModalAlbumShare } from "../ModalAlbumShare";
+import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
 import {
   Dropdown,
   Header,
@@ -489,7 +489,7 @@ export class PhotoListView extends Component {
                 modalSharePhotosOpen: false,
               });
             }}
-            selectedImageHashes={this.state.selectedItems}
+            selectedImageHashes={this.state.selectedItems.map(i => i.id)}
           />
         )}
         {!this.props.isPublic && isUserAlbum && (
@@ -501,7 +501,7 @@ export class PhotoListView extends Component {
               });
             }}
             match={this.props.match}
-            selectedImageHashes={this.state.selectedItems}
+            selectedImageHashes={this.state.selectedItems.map(i => i.id)}
           />
         )}
       </div>
