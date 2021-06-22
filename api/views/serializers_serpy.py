@@ -1,5 +1,6 @@
 import serpy
 from api.util import logger
+from api.views.PhotosGroupedByDate import get_photos_ordered_by_date
 
 #Serpy is used, because it is way faster when serializing than the django restframework
 class DateTimeField(serpy.Field):
@@ -68,11 +69,25 @@ class PigPhotoSerilizer(serpy.Serializer):
             return obj.image_hash + ";photo"
 
 
+
 class GroupedPhotosSerializer(serpy.Serializer):
     date = serpy.StrField()
     location = serpy.StrField()
-    items = PigPhotoSerilizer(many=True, attr='photos')
+    items = PigPhotoSerilizer(many=True, attr='photos')    
 
+class GroupedPersonPhotosSerializer(serpy.Serializer):
+    id = serpy.StrField()
+    name = serpy.StrField()
+    grouped_photos = serpy.MethodField("get_photos")
+
+    def get_photos(self, obj):
+        user = None
+        request = self.context.get("request")
+        if request and hasattr(request, "user"):
+            user = request.user
+        grouped_photos = get_photos_ordered_by_date(obj.get_photos(user))
+        res = GroupedPhotosSerializer(grouped_photos, many=True).data
+        return res
 
 class PigAlbumDateSerializer(serpy.Serializer):
     date = DateTimeField()

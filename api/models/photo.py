@@ -13,7 +13,6 @@ import ownphotos.settings
 import PIL
 import pytz
 from django.core.cache import cache
-from api.exifreader import rotate_image
 from api.im2vec import Im2Vec
 from api.models.user import User, get_deleted_user
 from api.places365.places365 import place365_instance
