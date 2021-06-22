@@ -57,8 +57,8 @@ export class AlbumPersonGallery extends Component {
         title={this.props.albumsPeople[this.props.match.params.albumID] ? this.props.albumsPeople[this.props.match.params.albumID].name : "Loading... "}
         loading={fetchingAlbumsPeople || fetchingPeople}
         titleIconName={'user'}
-        photosGroupedByDate={this.state.photosGroupedByDate}
-        idx2hash={this.state.idx2hash}
+        photosGroupedByDate={this.props.albumsPeople}
+        idx2hash={[]}
       />
     )  
   }

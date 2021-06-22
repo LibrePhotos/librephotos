@@ -201,6 +201,7 @@ export class PhotoListView extends Component {
           style={{
             position: "sticky",
             width: "100%",
+            marginTop: 5,
             zIndex: 100,
             backgroundColor: "white",
           }}
@@ -222,11 +223,10 @@ export class PhotoListView extends Component {
               </GridColumn>
               <GridColumn>
                 <Header
-                  textAlign="right"
                   size="small"
                   style={{ paddingRight: 10 }}
                 >
-                  <Header.Content>
+                  <Header.Content  floated="right" textAlign="right">
                     {this.props.dayHeaderPrefix
                       ? this.props.dayHeaderPrefix + this.state.date
                       : this.state.date}
@@ -478,7 +478,7 @@ export class PhotoListView extends Component {
                 modalAddToAlbumOpen: false,
               });
             }}
-            selectedImageHashes={this.state.selectedItems}
+            selectedImageHashes={this.state.selectedItems.map(i => i.id)}
           />
         )}
         {!this.props.isPublic && (
