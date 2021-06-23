@@ -51,7 +51,6 @@ class PhotoSuperSimpleSerializer(serializers.ModelSerializer):
             'video'
         )
 
-
 class PhotoSuperSimpleSerializerWithAddedOn(serializers.ModelSerializer):
     class Meta:
         model = Photo
