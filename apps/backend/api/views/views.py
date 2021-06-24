@@ -12,19 +12,15 @@ import magic
 from api.views.PhotosGroupedByDate import get_photos_ordered_by_date
 from constance import config as site_config
 from django.core.cache import cache
-from django.db.models import Count, F, Prefetch, Q
+from django.db.models import Count, Prefetch, Q
 from django.http import HttpResponse, HttpResponseForbidden
-from django.utils.encoding import force_text
 from rest_framework import filters, viewsets
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_extensions.cache.decorators import cache_response
-from rest_framework_extensions.key_constructor.bits import (
-    KeyBitBase, ListSqlQueryKeyBit, PaginationKeyBit, RetrieveSqlQueryKeyBit)
-from rest_framework_extensions.key_constructor.constructors import \
-    DefaultKeyConstructor
+
+
 
 from api.face_classify import train_faces, cluster_faces
 from api.social_graph import build_social_graph
@@ -40,11 +36,11 @@ from api.permissions import (IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo,
                              IsRegistrationAllowed, IsUserOrReadOnly)
 from api.views.serializers import (AlbumAutoListSerializer, AlbumAutoSerializer,
                              AlbumDateListSerializer, AlbumDateSerializer,
-                             AlbumPersonListSerializer, AlbumPersonSerializer,
+                             AlbumPersonListSerializer, 
                              AlbumPlaceListSerializer, AlbumPlaceSerializer,
                              AlbumThingListSerializer, AlbumThingSerializer,
                              AlbumUserEditSerializer, AlbumUserListSerializer,
-                             AlbumUserSerializer, FaceListSerializer,
+                             FaceListSerializer,
                              FaceSerializer, LongRunningJobSerializer,
                              ManageUserSerializer, PersonSerializer,
                              PhotoEditSerializer, PhotoHashListSerializer,
@@ -53,60 +49,15 @@ from api.views.serializers import (AlbumAutoListSerializer, AlbumAutoSerializer,
                              SharedFromMePhotoThroughSerializer,
                              SharedToMePhotoSuperSimpleSerializer,
                              UserSerializer)
-from api.views.serializers_serpy import \
-    AlbumDateListWithPhotoHashSerializer as \
-    AlbumDateListWithPhotoHashSerializerSerpy
 from api.views.serializers_serpy import PigAlbumDateSerializer, AlbumUserSerializerSerpy, PigPhotoSerilizer, GroupedPhotosSerializer, GroupedPersonPhotosSerializer
 from api.views.serializers_serpy import \
     PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy
 from api.views.serializers_serpy import \
     SharedPhotoSuperSimpleSerializer as SharedPhotoSuperSimpleSerializerSerpy
+from api.views.pagination import HugeResultsSetPagination, StandardResultsSetPagination, TinyResultsSetPagination
+from api.views.caching import CustomObjectKeyConstructor, CustomListKeyConstructor, CACHE_TTL
 from api.util import logger
 
-CACHE_TTL = 60 * 60 * 24  # 1 day
-CACHE_TTL_VIZ = 60 * 60  # 1 hour
-
-
-#caching stuff straight out of https://chibisov.github.io/drf-extensions/docs/#caching
-class UpdatedAtKeyBit(KeyBitBase):
-    def get_data(self, **kwargs):
-        key = 'api_updated_at_timestamp'
-        value = cache.get(key, None)
-        if not value:
-            value = datetime.datetime.utcnow()
-            cache.set(key, value=value)
-        return force_text(value)
-
-
-class CustomObjectKeyConstructor(DefaultKeyConstructor):
-    retrieve_sql = RetrieveSqlQueryKeyBit()
-    updated_at = UpdatedAtKeyBit()
-
-
-class CustomListKeyConstructor(DefaultKeyConstructor):
-    list_sql = ListSqlQueryKeyBit()
-    pagination = PaginationKeyBit()
-    updated_at = UpdatedAtKeyBit()
-
-
-class HugeResultsSetPagination(PageNumberPagination):
-    page_size = 50000
-    page_size_query_param = 'page_size'
-    max_page_size = 100000
-
-
-class StandardResultsSetPagination(PageNumberPagination):
-    page_size = 10000
-    page_size_query_param = 'page_size'
-    max_page_size = 100000
-class SmallResultsSetPagination(PageNumberPagination):
-    page_size = 100
-    page_size_query_param = 'page_size'
-    max_page_size = 200
-class TinyResultsSetPagination(PageNumberPagination):
-    page_size = 20
-    page_size_query_param = 'page_size'
-    max_page_size = 50
 
 def queue_can_accept_job():
     default_queue_stat = [
@@ -253,18 +204,7 @@ class PhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
         return Response({'results': serializer.data})
 
 
-class RecentlyAddedPhotoListViewSet(viewsets.ModelViewSet):
-    serializer_class = PigPhotoSerilizer 
-    pagination_class = HugeResultsSetPagination
 
-    def get_queryset(self):
-        queryset = Photo.visible.filter(Q(owner=self.request.user) and Q(aspect_ratio__isnull=False)).only(
-            'image_hash', 'exif_timestamp', 'aspect_ratio', 'added_on', 'search_location').order_by('-added_on')
-        return queryset
-
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
-    def list(self, *args, **kwargs):
-        return super(RecentlyAddedPhotoListViewSet, self).list(*args, **kwargs)
 
 
 class SharedToMePhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
@@ -450,7 +390,7 @@ class FaceListViewSet(viewsets.ModelViewSet):
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class FaceInferredListViewSet(viewsets.ModelViewSet):
     serializer_class = FaceListSerializer
-    pagination_class = StandardResultsSetPagination
+    pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
         # Todo: optimze query by only prefetching relevant models & fields
@@ -472,7 +412,7 @@ class FaceInferredListViewSet(viewsets.ModelViewSet):
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class FaceLabeledListViewSet(viewsets.ModelViewSet):
     serializer_class = FaceListSerializer
-    pagination_class = StandardResultsSetPagination
+    pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
         # Todo: optimze query by only prefetching relevant models & fields
