@@ -166,9 +166,9 @@ router.register(
 router.register(
     r'api/photos/list', views.PhotoSuperSimpleListViewSet, basename='photo')
 router.register(
-    r'api/photos/favorites', views.FavoritePhotoListViewset, basename='photo')
+    r'api/photos/favorites', photos.FavoritePhotoListViewset, basename='photo')
 router.register(
-    r'api/photos/hidden', views.HiddenPhotoListViewset, basename='photo')
+    r'api/photos/hidden', photos.HiddenPhotoListViewset, basename='photo')
 router.register(
     r'api/photos/searchlist',
     views.PhotoSuperSimpleSearchListViewSet,
