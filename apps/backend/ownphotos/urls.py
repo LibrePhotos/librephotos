@@ -152,7 +152,7 @@ router.register(
 
 router.register(
     r'api/photos/notimestamp/list',
-    views.NoTimestampPhotoHashListViewSet,
+    photos.NoTimestampPhotoHashListViewSet,
     basename='photo')
 
 router.register(r'api/photos/edit', views.PhotoEditViewSet, basename='photo')

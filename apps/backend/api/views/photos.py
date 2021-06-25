@@ -1,13 +1,14 @@
-
+import six
 from api.views.serializers_serpy import PigPhotoSerilizer, GroupedPhotosSerializer
 from api.views.pagination import HugeResultsSetPagination
-from rest_framework import viewsets
+from rest_framework import filters, viewsets
 from django.db.models import Q
 from rest_framework_extensions.cache.decorators import cache_response
 from api.views.caching import CustomListKeyConstructor, CustomObjectKeyConstructor, CACHE_TTL
 from api.models import Photo
 from rest_framework.response import Response
 from api.views.PhotosGroupedByDate import get_photos_ordered_by_date
+from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 
 class RecentlyAddedPhotoListViewSet(viewsets.ModelViewSet):
     serializer_class = PigPhotoSerilizer 
@@ -70,3 +71,27 @@ class HiddenPhotoListViewset(viewsets.ModelViewSet):
         grouped_photos = get_photos_ordered_by_date(queryset)
         serializer = GroupedPhotosSerializer(grouped_photos, many=True)
         return Response({'results': serializer.data})
+
+
+@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
+class NoTimestampPhotoHashListViewSet(viewsets.ModelViewSet):
+    serializer_class = PigPhotoSerilizer
+    pagination_class = HugeResultsSetPagination
+    filter_backends = (filters.SearchFilter, )
+    search_fields = ([
+        'search_captions', 'search_location', 'faces__person__name'
+    ])
+
+    def get_queryset(self):
+        return Photo.objects.filter(Q(hidden=False) & Q(exif_timestamp=None) & Q(owner=self.request.user)).order_by('image_paths')
+
+    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
+    def retrieve(self, *args, **kwargs):
+        return super(NoTimestampPhotoHashListViewSet, self).retrieve(
+            *args, **kwargs)
+
+    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
+    def list(self, *args, **kwargs):
+        return super(NoTimestampPhotoHashListViewSet, self).list(
+            *args, **kwargs)
+
