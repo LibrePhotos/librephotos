@@ -11,6 +11,7 @@ import face_recognition
 import numpy as np
 import ownphotos.settings
 import PIL
+import pyvips
 import pytz
 from django.core.cache import cache
 from api.im2vec import Im2Vec
@@ -20,14 +21,12 @@ from api.util import logger
 from django.core.files.base import ContentFile
 from django.db import models
 from geopy.geocoders import Nominatim
-from PIL import ImageOps
-from wand.image import Image
 import subprocess
-import json
+from django.db.models import Q
 
 class VisiblePhotoManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().filter(hidden=False)
+        return super().get_queryset().filter(Q(hidden=False) & Q(aspect_ratio__isnull=False))
 
 class Photo(models.Model):
     image_paths = models.JSONField(default=list)
@@ -131,74 +130,38 @@ class Photo(models.Model):
     def _generate_thumbnail(self,commit=True):
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()):
             if(not self.video):
-                with Image(filename=self.image_paths[0]) as img:
-                    with BytesIO() as transfer:
-                        with img.clone() as thumbnail: 
-                            thumbnail.format = "jpg" 
-                            thumbnail.transform(resize='x' + str(ownphotos.settings.THUMBNAIL_SIZE_BIG[1]))
-                            thumbnail.compression_quality = 80
-                            thumbnail.auto_orient()
-                            thumbnail.save(transfer)
-                        self.thumbnail_big.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
+                image = pyvips.Image.thumbnail(self.image_paths[0], auto_rotate=True)
+                image.write_to_file(os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnail_big', self.image_hash + '.jpg').strip())
+                self.thumbnail_big.name=os.path.join('thumbnail_big', self.image_hash + '.jpg').strip()
             else:
                 subprocess.call(['ffmpeg', '-i', self.image_paths[0], '-ss', '00:00:00.000', '-vframes', '1', os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()])
-                self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + '.jpg').strip()
-            #thumbnail already exists, add to photo
+                self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + '.jpg').strip()       
         else:
+            #thumbnail already exists, add to photo
             self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + '.jpg').strip()
 
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()):
             if(not self.video):
-                with Image(filename=self.image_paths[0]) as img:
-                    with BytesIO() as transfer:
-                        with img.clone() as thumbnail: 
-                            thumbnail.format = "jpg"
-                            dst_landscape = 1 > thumbnail.width / thumbnail.height
-                            wh = thumbnail.width if dst_landscape else thumbnail.height
-                            thumbnail.crop(
-                                left=int((thumbnail.width - wh) / 2),
-                                top=int((thumbnail.height - wh) / 2),
-                                width=int(wh),
-                                height=int(wh)
-                            )
-                            thumbnail.resize(width=ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[0], height=ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[1])
-                            thumbnail.resolution = (ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[0], ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[1])                       
-                            thumbnail.compression_quality = 80
-                            thumbnail.auto_orient()
-                            thumbnail.save(transfer)
-                        self.square_thumbnail.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
+                image = pyvips.Image.thumbnail(self.image_paths[0], height=ownphotos.settings.THUMBNAIL_SIZE_MEDIUM, auto_rotate=True)
+                image.write_to_file(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip())
+                self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.jpg').strip()
             else:
                 subprocess.call(['ffmpeg', '-i', self.image_paths[0], '-ss', '00:00:00.000', '-vframes', '1', '-vf','scale=500:500:force_original_aspect_ratio=increase,crop=500:500', os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()])
                 self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.jpg').strip()
-        #thumbnail already exists, add to photo
         else:
+            #thumbnail already exists, add to photo
             self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.jpg').strip()
 
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()):
             if(not self.video):
-                with Image(filename=self.image_paths[0]) as img:
-                    with BytesIO() as transfer:
-                        with img.clone() as thumbnail: 
-                            thumbnail.format = "jpg"
-                            dst_landscape = 1 > thumbnail.width / thumbnail.height
-                            wh = thumbnail.width if dst_landscape else thumbnail.height
-                            thumbnail.crop(
-                                left=int((thumbnail.width - wh) / 2),
-                                top=int((thumbnail.height - wh) / 2),
-                                width=int(wh),
-                                height=int(wh)
-                            )
-                            thumbnail.resize(width=ownphotos.settings.THUMBNAIL_SIZE_SMALL[0], height=ownphotos.settings.THUMBNAIL_SIZE_SMALL[1])
-                            thumbnail.resolution = (ownphotos.settings.THUMBNAIL_SIZE_SMALL[0], ownphotos.settings.THUMBNAIL_SIZE_SMALL[1])
-                            thumbnail.compression_quality = 80
-                            thumbnail.auto_orient()
-                            thumbnail.save(transfer)
-                        self.square_thumbnail_small.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
+                image = pyvips.Image.thumbnail(self.image_paths[0], height=ownphotos.settings.THUMBNAIL_SIZE_SMALL, auto_rotate=True)
+                image.write_to_file(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip())
+                self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.jpg').strip()
             else:
                 subprocess.call(['ffmpeg', '-i', self.image_paths[0], '-ss', '00:00:00.000', '-vframes', '1', '-vf','scale=100:100:force_original_aspect_ratio=increase,crop=100:100', os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()])
                 self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.jpg').strip()
-        #thumbnail already exists, add to photo
         else:
+            #thumbnail already exists, add to photo
             self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.jpg').strip()
         if commit:
             self.save()

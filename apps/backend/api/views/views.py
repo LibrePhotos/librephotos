@@ -281,52 +281,7 @@ class SharedFromMePhotoSuperSimpleListViewSet2(viewsets.ModelViewSet):
 
 
 
-class FavoritePhotoListViewset(viewsets.ModelViewSet):
-    serializer_class = PigPhotoSerilizer
-    pagination_class = HugeResultsSetPagination
 
-    def get_queryset(self):
-        return Photo.objects.filter(
-            Q(favorited=True) & Q(hidden=False) & Q(owner=self.request.user)).only(
-                'image_hash', 'exif_timestamp', 'favorited', 'public',
-                'hidden').order_by('-exif_timestamp')
-
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
-    def retrieve(self, *args, **kwargs):
-        return super(FavoritePhotoListViewset, self).retrieve(*args, **kwargs)
-
-    def list(self, request):
-        queryset = Photo.objects.filter(
-            Q(favorited=True) & Q(hidden=False) & Q(owner=self.request.user)).only(
-                'image_hash', 'exif_timestamp', 'favorited', 'public',
-                'hidden').order_by('exif_timestamp')
-        grouped_photos = get_photos_ordered_by_date(queryset)
-        serializer = GroupedPhotosSerializer(grouped_photos, many=True)
-        return Response({'results': serializer.data})
-
-class HiddenPhotoListViewset(viewsets.ModelViewSet):
-    serializer_class = PigPhotoSerilizer
-    pagination_class = HugeResultsSetPagination
-
-    def get_queryset(self):
-        return Photo.objects.filter(
-            Q(hidden=True) & Q(owner=self.request.user)).only(
-                'image_hash', 'exif_timestamp', 'favorited', 'public',
-                'hidden').order_by('-exif_timestamp')
-
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
-    def retrieve(self, *args, **kwargs):
-        return super(HiddenPhotoListViewset, self).retrieve(*args, **kwargs)
-
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
-    def list(self, request):
-        queryset = Photo.objects.filter(
-            Q(hidden=True) & Q(owner=self.request.user)).only(
-                'image_hash', 'exif_timestamp', 'favorited', 'public',
-                'hidden').order_by('exif_timestamp')
-        grouped_photos = get_photos_ordered_by_date(queryset)
-        serializer = GroupedPhotosSerializer(grouped_photos, many=True)
-        return Response({'results': serializer.data})
 
 class PublicPhotoListViewset(viewsets.ModelViewSet):
     serializer_class = PhotoSuperSimpleSerializer
@@ -344,29 +299,6 @@ class PublicPhotoListViewset(viewsets.ModelViewSet):
         return Photo.visible.filter(Q(public=True)).only(
             'image_hash', 'exif_timestamp', 'favorited',
             'hidden').order_by('-exif_timestamp')
-
-@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
-class NoTimestampPhotoHashListViewSet(viewsets.ModelViewSet):
-    serializer_class = PigPhotoSerilizer
-    pagination_class = HugeResultsSetPagination
-    filter_backends = (filters.SearchFilter, )
-    search_fields = ([
-        'search_captions', 'search_location', 'faces__person__name'
-    ])
-
-    def get_queryset(self):
-        return Photo.objects.filter(Q(hidden=False) & Q(exif_timestamp=None) & Q(owner=self.request.user)).order_by('image_paths')
-
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
-    def retrieve(self, *args, **kwargs):
-        return super(NoTimestampPhotoHashListViewSet, self).retrieve(
-            *args, **kwargs)
-
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
-    def list(self, *args, **kwargs):
-        return super(NoTimestampPhotoHashListViewSet, self).list(
-            *args, **kwargs)
-
 
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class FaceListViewSet(viewsets.ModelViewSet):

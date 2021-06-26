@@ -16,7 +16,7 @@ class RecentlyAddedPhotoListViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         latestDate = Photo.visible.filter(Q(owner=self.request.user)).only('added_on').order_by('-added_on').first().added_on
-        queryset = Photo.visible.filter(Q(owner=self.request.user) & Q(added_on__year=latestDate.year, added_on__month=latestDate.month, added_on__day=latestDate.day)).only(
+        queryset = Photo.visible.filter(Q(owner=self.request.user) & Q(aspect_ratio__isnull=False) & Q(added_on__year=latestDate.year, added_on__month=latestDate.month, added_on__day=latestDate.day)).only(
             'image_hash', 'exif_timestamp', 'favorited', 'public','added_on',
             'hidden').order_by('-added_on')
         return queryset
@@ -83,7 +83,7 @@ class NoTimestampPhotoHashListViewSet(viewsets.ModelViewSet):
     ])
 
     def get_queryset(self):
-        return Photo.objects.filter(Q(hidden=False) & Q(exif_timestamp=None) & Q(owner=self.request.user)).order_by('image_paths')
+        return Photo.visible.filter(Q(exif_timestamp=None) & Q(owner=self.request.user)).order_by('image_paths')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
