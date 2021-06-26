@@ -4,6 +4,22 @@ version = "0.3.0"
 description = "A self-hosted open source photo management service, with a slight focus on cool graphs."
 authors = ["Faradani Rad <faridani.rad@gmail.com>"]
 license = "MIT"
+readme = "README.md"
+homepage = "https://librephotos.com/"
+repository = "https://github.com/LibrePhotos/librephotos"
+documentation = "https://docs.librephotos.com/"
+keywords = ['owncloud', 'ownphotos', 'photos', '']
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: Other Environment",
+    "Framework :: Django",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: MIT License",
+
+]
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -49,7 +65,15 @@ spacy = "2.3.2"
 tqdm = "4.51.0"
 gevent = "20.9.0"
 python-magic = "0.4.18"
-Wand = "0.6.6 "
+Wand = "0.6.6"
+[[tool.poetry.dependencies.torch]]
+python = "^3.8"
+markers = "platform_system == 'Linux'"
+url = "https://download.pytorch.org/whl/cpu/torch-1.8.1%2Bcpu-cp38-cp38-linux_x86_64.whl"
+[[tool.poetry.dependencies.torchvision]]
+python = "^3.8"
+markers = "platform_system == 'Linux'"
+url = "https://download.pytorch.org/whl/cpu/torchvision-0.9.1%2Bcpu-cp38-cp38-linux_x86_64.whl"
 
 [tool.poetry.dev-dependencies]
 ipdb = "0.10.3"
