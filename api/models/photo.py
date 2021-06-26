@@ -130,7 +130,7 @@ class Photo(models.Model):
     def _generate_thumbnail(self,commit=True):
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()):
             if(not self.video):
-                image = pyvips.Image.thumbnail(self.image_paths[0], auto_rotate=True)
+                image = pyvips.Image.thumbnail(filename = self.image_paths[0], auto_rotate=True)
                 image.write_to_file(os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnail_big', self.image_hash + '.jpg').strip())
                 self.thumbnail_big.name=os.path.join('thumbnail_big', self.image_hash + '.jpg').strip()
             else:
@@ -142,7 +142,7 @@ class Photo(models.Model):
 
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()):
             if(not self.video):
-                image = pyvips.Image.thumbnail(self.image_paths[0], height=ownphotos.settings.THUMBNAIL_SIZE_MEDIUM, auto_rotate=True)
+                image = pyvips.Image.thumbnail(filename=self.image_paths[0], height=400, auto_rotate=True)
                 image.write_to_file(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip())
                 self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.jpg').strip()
             else:
@@ -154,7 +154,7 @@ class Photo(models.Model):
 
         if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()):
             if(not self.video):
-                image = pyvips.Image.thumbnail(self.image_paths[0], height=ownphotos.settings.THUMBNAIL_SIZE_SMALL, auto_rotate=True)
+                image = pyvips.Image.thumbnail(filename=self.image_paths[0], height=200, auto_rotate=True)
                 image.write_to_file(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip())
                 self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.jpg').strip()
             else:
