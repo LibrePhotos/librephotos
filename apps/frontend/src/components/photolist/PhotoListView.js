@@ -164,7 +164,7 @@ export class PhotoListView extends Component {
           <div style={{ height: 60, paddingTop: 10 }}>
             <Header as="h4">
               <Header.Content>
-                Loading...
+                {this.props.loading ? "Loading..." : "No images found"}
                 <Loader inline active={this.props.loading} size="mini" />
               </Header.Content>
             </Header>

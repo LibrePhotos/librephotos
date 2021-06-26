@@ -13,7 +13,6 @@ export class TimelinePhotoView extends Component {
   }
 
   render() {
-    // This will get changed every time it is called...
     const { fetchingAlbumsDatePhotoHashList } = this.props;
     const changedStuff = this.props.albumsDatePhotoHashList;
     changedStuff.forEach(

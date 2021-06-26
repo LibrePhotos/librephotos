@@ -43,7 +43,7 @@ import { PublicUserList } from "./layouts/public/PublicUserList";
 import { LocationClusterMap } from "./components/maps";
 import { SharedToMe } from "./layouts/sharing/SharedToMe";
 import { SharedFromMe } from "./layouts/sharing/SharedFromMe";
-
+import 'semantic-ui-css/semantic.min.css'
 class Nav extends React.Component {
   render() {
     return (

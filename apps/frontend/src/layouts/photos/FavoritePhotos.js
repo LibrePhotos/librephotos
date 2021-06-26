@@ -15,6 +15,10 @@ export class FavoritePhotos extends Component {
 
   render() {
     const {fetchingFavoritePhotos} = this.props
+    const changedStuff = this.props.favoritePhotos;
+    changedStuff.forEach(
+      (group) => (group.date = moment(group.date).format("MMM Do YYYY, dddd") !== "Invalid date" ?  moment(group.date).format("MMM Do YYYY, dddd") : group.date)
+    );
     return (
       <PhotoListView 
         showHidden={false}
@@ -22,8 +26,8 @@ export class FavoritePhotos extends Component {
         loading={fetchingFavoritePhotos}
         titleIconName={'star'}
         isDateView={true}
-        photosGroupedByDate={this.props.favoritePhotos}
-        idx2hash={this.props.favoritePhotos.flatMap((el)=>el.items)}
+        photosGroupedByDate={changedStuff}
+        idx2hash={changedStuff.flatMap((el)=>el.items)}
       />
     )  
   }

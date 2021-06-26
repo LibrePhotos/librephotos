@@ -12,6 +12,10 @@ export class HiddenPhotos extends Component {
 
   render() {
     const {fetchingHiddenPhotos} = this.props
+    const changedStuff = this.props.hiddenPhotos;
+    changedStuff.forEach(
+      (group) => (group.date = moment(group.date).format("MMM Do YYYY, dddd") !== "Invalid date" ?  moment(group.date).format("MMM Do YYYY, dddd") : group.date)
+    );
     return (
       <PhotoListView 
         showHidden={true}
@@ -19,8 +23,8 @@ export class HiddenPhotos extends Component {
         loading={fetchingHiddenPhotos}
         titleIconName={'hide'}
         isDateView={true}
-        photosGroupedByDate={this.props.hiddenPhotos}
-        idx2hash={this.props.hiddenPhotos.flatMap((el)=>el.items)}
+        photosGroupedByDate={changedStuff}
+        idx2hash={changedStuff.flatMap((el)=>el.items)}
       />
     )  
   }

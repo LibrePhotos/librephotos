@@ -17,6 +17,7 @@
     "file-loader": "^1.1.11",
     "fomantic-ui": "^2.8.7",
     "font-awesome": "^4.7.0",
+    "gulp": "^4.0.2",
     "immutable": "^3.8.1",
     "jwt-decode": "^2.2.0",
     "leaflet": "1.7.1",

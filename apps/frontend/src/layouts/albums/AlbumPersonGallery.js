@@ -19,7 +19,7 @@ export class AlbumPersonGallery extends Component {
         titleIconName={'user'}
         isDateView={true}
         photosGroupedByDate={albumsPeople[this.props.match.params.albumID] ? albumsPeople[this.props.match.params.albumID].grouped_photos : []}
-        idx2hash={[]}
+        idx2hash={albumsPeople[this.props.match.params.albumID] ? albumsPeople[this.props.match.params.albumID].grouped_photos.flatMap((el)=>el.items) : []}
       />
     )  
   }
