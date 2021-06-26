@@ -152,7 +152,7 @@ export class TopMenu extends Component {
               >
                 <Dropdown.Menu>
                   <Dropdown.Header>
-                    Logged in as <b>{this.props.auth.access.name}</b>
+                    Logged in as {this.props.auth.access.name}
                   </Dropdown.Header>
                   <Dropdown.Item onClick={() => this.props.dispatch(logout())}>
                     <Icon name="sign out" />
