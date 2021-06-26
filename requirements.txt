@@ -41,3 +41,4 @@ tqdm==4.51.0
 gevent==20.9.0
 python-magic==0.4.18
 Wand==0.6.6 
+pyvips==2.1.14
