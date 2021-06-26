@@ -16,7 +16,7 @@ python manage.py rqworker default 2>&1 | tee /logs/rqworker.log &
 
 if [ "$DEBUG" = 1 ]
 then
-    echo "develompent backend starting"
+    echo "development backend starting"
     gunicorn --worker-class=gevent --timeout 36000 --reload --bind backend:8001 --log-level=info ownphotos.wsgi 2>&1 | tee /logs/gunicorn_django.log
 else
     echo "production backend starting"
