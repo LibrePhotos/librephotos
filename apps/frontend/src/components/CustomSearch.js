@@ -1,16 +1,15 @@
 import _ from "lodash";
 import React, { Component} from "react";
 import { connect } from "react-redux";
-import { Link } from "react-router-dom";
 import { push } from "react-router-redux";
 import './menubars/TopMenu.css';
 import {
-  Header,
   Icon,
   Image,
   Search,
   Popup,
   Segment,
+  Loader,
 } from "semantic-ui-react";
 import {
   fetchPeopleAlbums,
@@ -75,10 +74,6 @@ export class CustomSearch extends Component {
 
   componentDidMount() {
     this.props.dispatch(fetchExampleSearchTerms());
-    this.props.dispatch(fetchPeople());
-    this.props.dispatch(fetchPlaceAlbumsList());
-    this.props.dispatch(fetchThingAlbumsList());
-    this.props.dispatch(fetchUserAlbumsList());
     window.addEventListener("resize", this.handleResize.bind(this));
     this.exampleSearchTermCylcer = setInterval(() => {
       this.setState({
@@ -154,6 +149,19 @@ export class CustomSearch extends Component {
   }
 
   filterSearchSuggestions() {
+    if(this.props.people.length == 0){
+      this.props.dispatch(fetchPeople());
+    }
+    if(this.props.albumsPlaceList.length == 0){
+      this.props.dispatch(fetchPlaceAlbumsList());
+    }
+    if(this.props.albumsThingList.length == 0){
+      this.props.dispatch(fetchThingAlbumsList());
+    } 
+    if(this.props.albumsUserList.length == 0){
+      this.props.dispatch(fetchUserAlbumsList());
+    }
+    
     if (this.state.searchText.trim().length === 0) {
       var filteredExampleSearchTerms = [];
       var filteredSuggestedPeople = [];
@@ -432,6 +440,22 @@ export class CustomSearch extends Component {
                     })}
                   </Image.Group>
                 </div>
+              </Segment>
+            )}
+            {this.props.albumsThingList.length == 0 && this.state.searchText.length > 0 && (
+              <Segment 
+                attached
+                textAlign="left"
+                style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}>
+                <div
+                  style={{
+                    maxHeight: window.innerHeight / 5,
+                    overflowY: "auto",
+                  }}
+                >
+                  Loading...
+                  <Loader inline active={true} size="mini" />
+                  </div>
               </Segment>
             )}
           </div>
