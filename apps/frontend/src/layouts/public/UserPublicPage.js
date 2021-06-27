@@ -26,50 +26,6 @@ export class UserPublicPage extends Component {
     );
   }
 
-  static getDerivedStateFromProps(nextProps, prevState) {
-    if (
-      nextProps.pub.userPublicPhotos.hasOwnProperty(
-        nextProps.match.params.username
-      )
-    ) {
-      const photos =
-        nextProps.pub.userPublicPhotos[nextProps.match.params.username];
-      if (prevState.idx2hash.length !== photos.length) {
-        var groupedByDate = _.groupBy(photos, el => {
-          if (el.exif_timestamp) {
-            return moment.utc(el.exif_timestamp).format("YYYY-MM-DD");
-          } else {
-            return "No Timestamp";
-          }
-        });
-        var groupedByDateList = _.reverse(
-          _.sortBy(
-            _.toPairsIn(groupedByDate).map(el => {
-              return { date: el[0], photos: el[1] };
-            }),
-            el => el.date
-          )
-        );
-        var idx2hash = [];
-        groupedByDateList.forEach(g => {
-          g.photos.forEach(p => {
-            idx2hash.push(p.image_hash);
-          });
-        });
-        return {
-          ...prevState,
-          photosGroupedByDate: groupedByDateList,
-          idx2hash: idx2hash,
-          username: nextProps.match.params.username
-        };
-      } else {
-        return null;
-      }
-    } else {
-      return null;
-    }
-  }
-
   render() {
     var menu
     if (this.props.auth.access) {
@@ -90,12 +46,8 @@ export class UserPublicPage extends Component {
     return (
       <div>
         {menu}
-        <div
-          style={{
-            paddingTop: -5,
-            paddingLeft: this.props.ui.showSidebar ? LEFT_MENU_WIDTH + 5 : 5
-          }}
-        >
+        <div style={{paddingLeft:this.props.ui.showSidebar ? LEFT_MENU_WIDTH+5 : 5,paddingRight:0}}>
+            <div style={{paddingTop:TOP_MENU_HEIGHT}}>
           <PhotoListView
             title={
               this.props.auth.access &&
@@ -105,14 +57,16 @@ export class UserPublicPage extends Component {
             }
             loading={this.props.pub.fetchingUserPublicPhotos}
             titleIconName={"globe"}
-            photosGroupedByDate={this.state.photosGroupedByDate}
-            idx2hash={this.state.idx2hash}
+            photosGroupedByDate={this.props.pub.userPublicPhotos[this.props.match.params.username] ? this.props.pub.userPublicPhotos[this.props.match.params.username] : []}
+            isDateView={false}
+            idx2hash={this.props.pub.userPublicPhotos[this.props.match.params.username] ? this.props.pub.userPublicPhotos[this.props.match.params.username] : []}
             isPublic={
               this.props.auth.access === undefined ||
               this.props.auth.access.name !== this.props.match.params.username
             }
           />
-        </div>
+          </div>
+          </div>
       </div>
     );
   }
