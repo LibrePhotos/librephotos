@@ -85,11 +85,13 @@ export class ModalAlbumEdit extends Component {
         >
           <div style={{ height: 50, width: "100%", padding: 7 }}>
             <Header>
+            <Header.Content>
               Add to Album
               <Header.Subheader>
                 Add selected {this.props.selectedImageHashes.length} photo(s)
                 to...
               </Header.Subheader>
+              </Header.Content>
             </Header>
           </div>
           <Divider fitted />
