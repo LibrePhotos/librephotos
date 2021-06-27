@@ -448,9 +448,11 @@ export class FaceDashboard extends Component {
               alignItems: "center",
             }}
           >
-            <Header size="huge">
+            <Header size="huge" > 
+            <Header.Content>
               {cell.person_name}
               <Header.Subheader>{cell.faces.length} Faces</Header.Subheader>
+              </Header.Content>
             </Header>
             <Divider />
           </div>
