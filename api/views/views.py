@@ -278,13 +278,8 @@ class SharedFromMePhotoSuperSimpleListViewSet2(viewsets.ModelViewSet):
                 'public'))).order_by('photo__exif_timestamp')
         return qs
 
-
-
-
-
-
 class PublicPhotoListViewset(viewsets.ModelViewSet):
-    serializer_class = PhotoSuperSimpleSerializer
+    serializer_class = PigPhotoSerilizer
     pagination_class = HugeResultsSetPagination
     permission_classes = (AllowAny, )
 
