@@ -11,6 +11,7 @@ import {
   Button,
   Label,
   Loader,
+  HeaderSubheader,
 } from "semantic-ui-react";
 
 import { SecuredImageJWT } from "../../components/SecuredImage";
@@ -120,10 +121,12 @@ class ModalPersonEdit extends Component {
       >
         <div style={{ height: 50, width: "100%", padding: 7 }}>
           <Header>
+          <Header.Content>
             Label faces
             <Header.Subheader>
               Label selected {this.props.selectedFaces.length} face(s) as...
             </Header.Subheader>
+            </Header.Content>
           </Header>
         </div>
         <Divider fitted />
