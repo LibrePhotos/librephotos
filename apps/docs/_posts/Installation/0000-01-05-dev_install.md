@@ -13,9 +13,9 @@ category: 1
 Create a directory for the project: this is where all the Git repositories will be cloned into. In this guide, we will
 use `/dev/librephotos` as an example.
 
-Pull frontend code with `git clone https://github.com/LibrePhotos/librephotos-frontend.git ${codedir}/frontend/`
+Pull frontend code with `git clone https://github.com/LibrePhotos/librephotos-frontend.git `
 
-Pull backend code into `git clone https://github.com/LibrePhotos/librephotos.git ${codedir}/backend/`
+Pull backend code into `git clone https://github.com/LibrePhotos/librephotos.git `
 
 Pull librephotos-docker repo `git clone https://github.com/LibrePhotos/librephotos-docker.git`
 
@@ -24,8 +24,8 @@ Pull librephotos-docker repo `git clone https://github.com/LibrePhotos/librephot
 ```bash
 codedir=/dev/librephotos
 cd ${codedir}
-git clone https://github.com/LibrePhotos/librephotos-frontend.git ${codedir}/frontend/
-git clone https://github.com/LibrePhotos/librephotos.git ${codedir}/backend/
+git clone https://github.com/LibrePhotos/librephotos-frontend.git 
+git clone https://github.com/LibrePhotos/librephotos.git 
 git clone https://github.com/LibrePhotos/librephotos-docker.git
 ```
 
@@ -36,8 +36,8 @@ In PowerShell:
 ```powershell
 $Env:codedir = "/dev/librephotos"
 CD $Env:codedir
-git clone https://github.com/LibrePhotos/librephotos-frontend.git $Env:codedir/frontend/
-git clone https://github.com/LibrePhotos/librephotos.git $Env:codedir/backend/
+git clone https://github.com/LibrePhotos/librephotos-frontend.git 
+git clone https://github.com/LibrePhotos/librephotos.git 
 git clone https://github.com/LibrePhotos/librephotos-docker.git
 ```
 
