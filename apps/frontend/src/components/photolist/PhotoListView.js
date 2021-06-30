@@ -200,7 +200,7 @@ export class PhotoListView extends Component {
         <div
           style={{
             position: "sticky",
-            top: TOP_MENU_HEIGHT - 9, /* required */
+            top: TOP_MENU_HEIGHT - 9 /* required */,
             marginTop: 5,
             width: "100%",
             zIndex: 100,
@@ -223,11 +223,8 @@ export class PhotoListView extends Component {
                 </Header>
               </GridColumn>
               <GridColumn>
-                <Header
-                  size="small"
-                  style={{ paddingRight: 10 }}
-                >
-                  <Header.Content  floated="right" textAlign="right">
+                <Header size="small" style={{ paddingRight: 10 }}>
+                  <Header.Content floated="right" textAlign="right">
                     {this.props.dayHeaderPrefix
                       ? this.props.dayHeaderPrefix + this.state.date
                       : this.state.date}
@@ -403,16 +400,26 @@ export class PhotoListView extends Component {
               handleClick={this.handleClick}
               groupByDate={this.props.isDateView}
               getUrl={(url, pxHeight) => {
-                if (url.split(";")[1] === ".mp4") {
-                  return serverAddress + "/media/video/" + url.split(";")[0];
-                } else {
+                console.log(pxHeight);
+                if (pxHeight < 250) {
                   return (
                     serverAddress +
-                    "/media/thumbnails_big/" +
-                    url.split(";")[0] +
-                    ".webp"
+                    "/media/square_thumbnails_small/" +
+                    url.split(";")[0]
                   );
                 }
+                if (pxHeight < 500) {
+                  return (
+                    serverAddress +
+                    "/media/square_thumbnails/" +
+                    url.split(";")[0]
+                  );
+                }
+                return (
+                  serverAddress +
+                  "/media/thumbnails_big/" +
+                  url.split(";")[0]
+                );
               }}
             >
               {console.log(this.props.photosGroupedByDate)}
@@ -422,7 +429,7 @@ export class PhotoListView extends Component {
         ) : (
           <div></div>
         )}
-        
+
         <div
           style={{
             backgroundColor: "white",
@@ -480,7 +487,7 @@ export class PhotoListView extends Component {
                 modalAddToAlbumOpen: false,
               });
             }}
-            selectedImageHashes={this.state.selectedItems.map(i => i.id)}
+            selectedImageHashes={this.state.selectedItems.map((i) => i.id)}
           />
         )}
         {!this.props.isPublic && (
@@ -491,7 +498,7 @@ export class PhotoListView extends Component {
                 modalSharePhotosOpen: false,
               });
             }}
-            selectedImageHashes={this.state.selectedItems.map(i => i.id)}
+            selectedImageHashes={this.state.selectedItems.map((i) => i.id)}
           />
         )}
         {!this.props.isPublic && isUserAlbum && (
@@ -503,7 +510,7 @@ export class PhotoListView extends Component {
               });
             }}
             match={this.props.match}
-            selectedImageHashes={this.state.selectedItems.map(i => i.id)}
+            selectedImageHashes={this.state.selectedItems.map((i) => i.id)}
           />
         )}
       </div>
