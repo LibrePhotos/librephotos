@@ -1,9 +1,6 @@
-
 import React from "react";
 import "react-virtualized/styles.css"; // only needs to be imported once
-import {
-  generatePhotoIm2txtCaption
-} from "../../actions/photosActions";
+import { generatePhotoIm2txtCaption } from "../../actions/photosActions";
 import {
   Image,
   Header,
@@ -14,7 +11,7 @@ import {
   Icon,
   Modal,
   Transition,
-  Breadcrumb
+  Breadcrumb,
 } from "semantic-ui-react";
 import { serverAddress } from "../../api_client/apiClient";
 import { LocationMap } from "../../components/maps";
@@ -29,20 +26,20 @@ if (window.innerWidth < 600) {
 }
 
 const colors = [
-    "red",
-    "orange",
-    "yellow",
-    "olive",
-    "green",
-    "teal",
-    "blue",
-    "violet",
-    "purple",
-    "pink",
-    "brown",
-    "grey",
-    "black",
-  ];
+  "red",
+  "orange",
+  "yellow",
+  "olive",
+  "green",
+  "teal",
+  "blue",
+  "violet",
+  "purple",
+  "pink",
+  "brown",
+  "grey",
+  "black",
+];
 
 export default function getSideBar(box) {
   return (
@@ -246,13 +243,15 @@ export default function getSideBar(box) {
                           fluid
                           placeholder={
                             box.props.photoDetails[
-                              box.props.idx2hash[box.props.lightboxImageIndex].id
+                              box.props.idx2hash[box.props.lightboxImageIndex]
+                                .id
                             ].captions_json.im2txt
                           }
                         >
                           {
                             box.props.photoDetails[
-                              box.props.idx2hash[box.props.lightboxImageIndex].id
+                              box.props.idx2hash[box.props.lightboxImageIndex]
+                                .id
                             ].captions_json.im2txt
                           }
                         </Form.TextArea>
@@ -269,9 +268,8 @@ export default function getSideBar(box) {
                           onClick={() => {
                             box.props.dispatch(
                               generatePhotoIm2txtCaption(
-                                box.props.idx2hash[
-                                  box.props.lightboxImageIndex
-                                ].id
+                                box.props.idx2hash[box.props.lightboxImageIndex]
+                                  .id
                               )
                             );
                           }}
@@ -301,104 +299,117 @@ export default function getSideBar(box) {
 
                 {/* End Item Caption */}
                 {/* Start Item Scene */}
+                {box.props.photoDetails[
+                  box.props.idx2hash[box.props.lightboxImageIndex].id
+                ].captions_json.places365 && (
+                  <div>
+                    <Item>
+                      <Item.Content verticalAlign="middle">
+                        <Item.Header>
+                          <Icon name="tags" /> Scene
+                        </Item.Header>
+                        <Item.Description>
+                          <p>
+                            <b>Attributes</b>
+                          </p>
+                          <Label.Group>
+                            {box.props.photoDetails[
+                              box.props.idx2hash[box.props.lightboxImageIndex]
+                                .id
+                            ].captions_json.places365.attributes.map(
+                              (nc, idx) => (
+                                <Label
+                                  key={
+                                    "lightbox_attribute_label_" +
+                                    box.props.idx2hash[
+                                      box.props.lightboxImageIndex
+                                    ].id +
+                                    "_" +
+                                    nc
+                                  }
+                                  tag
+                                  color="blue"
+                                  onClick={() => {
+                                    box.props.dispatch(searchPhotos(nc));
+                                    box.props.dispatch(push("/search"));
+                                  }}
+                                >
+                                  {nc}
+                                </Label>
+                              )
+                            )}
+                          </Label.Group>
 
-                <Item>
-                  <Item.Content verticalAlign="middle">
-                    <Item.Header>
-                      <Icon name="tags" /> Scene
-                    </Item.Header>
-                    <Item.Description>
-                      <p>
-                        <b>Attributes</b>
-                      </p>
-                      <Label.Group>
-                        {box.props.photoDetails[
-                          box.props.idx2hash[box.props.lightboxImageIndex].id
-                        ].captions_json.places365.attributes.map((nc, idx) => (
-                          <Label
-                            key={
-                              "lightbox_attribute_label_" +
-                              box.props.idx2hash[
-                                box.props.lightboxImageIndex
-                              ].id +
-                              "_" +
-                              nc
-                            }
-                            tag
-                            color="blue"
-                            onClick={() => {
-                              box.props.dispatch(searchPhotos(nc));
-                              box.props.dispatch(push("/search"));
-                            }}
-                          >
-                            {nc}
-                          </Label>
-                        ))}
-                      </Label.Group>
-                      <p>
-                        <b>Categories</b>
-                      </p>
-                      <Label.Group>
-                        {box.props.photoDetails[
-                          box.props.idx2hash[box.props.lightboxImageIndex].id
-                        ].captions_json.places365.categories.map((nc, idx) => (
-                          <Label
-                            key={
-                              "lightbox_category_label_" +
-                              box.props.idx2hash[
-                                box.props.lightboxImageIndex
-                              ].id +
-                              "_" +
-                              nc
-                            }
-                            tag
-                            color="teal"
-                            onClick={() => {
-                              box.props.dispatch(searchPhotos(nc));
-                              box.props.dispatch(push("/search"));
-                            }}
-                          >
-                            {nc}
-                          </Label>
-                        ))}
-                      </Label.Group>
-                    </Item.Description>
-                  </Item.Content>
-                </Item>
-
+                          <p>
+                            <b>Categories</b>
+                          </p>
+                          <Label.Group>
+                            {box.props.photoDetails[
+                              box.props.idx2hash[box.props.lightboxImageIndex]
+                                .id
+                            ].captions_json.places365.categories.map(
+                              (nc, idx) => (
+                                <Label
+                                  key={
+                                    "lightbox_category_label_" +
+                                    box.props.idx2hash[
+                                      box.props.lightboxImageIndex
+                                    ].id +
+                                    "_" +
+                                    nc
+                                  }
+                                  tag
+                                  color="teal"
+                                  onClick={() => {
+                                    box.props.dispatch(searchPhotos(nc));
+                                    box.props.dispatch(push("/search"));
+                                  }}
+                                >
+                                  {nc}
+                                </Label>
+                              )
+                            )}
+                          </Label.Group>
+                        </Item.Description>
+                      </Item.Content>
+                    </Item>
+                  </div>
+                )}
                 {/* End Item Scene */}
                 {/* Start Item Similar Photos */}
-
-                <Item>
-                  <Item.Content verticalAlign="middle">
-                    <Item.Header>
-                      <Icon name="images" />
-                      Similar Photos
-                    </Item.Header>
-                    <Item.Description>
-                      <Image.Group>
-                        {box.props.photoDetails[
-                          box.props.idx2hash[box.props.lightboxImageIndex].id
-                        ].similar_photos
-                          .slice(0, 30)
-                          .map((el) => (
-                            <Image
-                              width={95}
-                              height={95}
-                              key={el.image_hash}
-                              src={
-                                serverAddress +
-                                "/media/square_thumbnails_small/" +
-                                el.image_hash +
-                                ".jpg"
-                              }
-                            />
-                          ))}
-                      </Image.Group>
-                    </Item.Description>
-                  </Item.Content>
-                </Item>
-
+                {box.props.photoDetails[
+                  box.props.idx2hash[box.props.lightboxImageIndex].id
+                ].similar_photos.length > 0 && (
+                  <Item>
+                    <Item.Content verticalAlign="middle">
+                      <Item.Header>
+                        <Icon name="images" />
+                        Similar Photos
+                      </Item.Header>
+                      <Item.Description>
+                        <Image.Group>
+                          {box.props.photoDetails[
+                            box.props.idx2hash[box.props.lightboxImageIndex].id
+                          ].similar_photos
+                            .slice(0, 30)
+                            .map((el) => (
+                              <Image
+                                width={95}
+                                height={95}
+                                key={el.image_hash}
+                                src={
+                                  serverAddress +
+                                  "/media/square_thumbnails_small/" +
+                                  el.image_hash +
+                                  ".jpg"
+                                }
+                              />
+                            ))}
+                        </Image.Group>
+                      </Item.Description>
+                    </Item.Content>
+                  </Item>
+                )}
                 {/* End Item Similar Photos */}
               </Item.Group>
             </div>

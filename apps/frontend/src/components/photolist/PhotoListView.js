@@ -410,7 +410,7 @@ export class PhotoListView extends Component {
                     serverAddress +
                     "/media/thumbnails_big/" +
                     url.split(";")[0] +
-                    ".jpg"
+                    ".webp"
                   );
                 }
               }}
