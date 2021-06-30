@@ -1,5 +1,6 @@
 
 import hashlib
+from api.thumbnails import createThumbnail
 import os
 from datetime import datetime
 from io import BytesIO
@@ -11,7 +12,6 @@ import face_recognition
 import numpy as np
 import ownphotos.settings
 import PIL
-import pyvips
 import pytz
 from django.core.cache import cache
 from api.im2vec import Im2Vec
@@ -23,7 +23,6 @@ from django.db import models
 from geopy.geocoders import Nominatim
 import subprocess
 from django.db.models import Q
-
 class VisiblePhotoManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset().filter(Q(hidden=False) & Q(aspect_ratio__isnull=False))
@@ -128,41 +127,38 @@ class Photo(models.Model):
                 image_path)
 
     def _generate_thumbnail(self,commit=True):
-        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()):
+        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.webp').strip()):
             if(not self.video):
-                image = pyvips.Image.thumbnail(filename = self.image_paths[0], auto_rotate=True)
-                image.write_to_file(os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnail_big', self.image_hash + '.jpg').strip())
-                self.thumbnail_big.name=os.path.join('thumbnail_big', self.image_hash + '.jpg').strip()
+                createThumbnail(inputPath=self.image_paths[0], outputHeight=1080, outputPath='thumbnails_big', hash=self.image_hash, fileType=".webp")
+                self.thumbnail_big.name=os.path.join('thumbnail_big', self.image_hash + '.webp').strip()
             else:
-                subprocess.call(['ffmpeg', '-i', self.image_paths[0], '-ss', '00:00:00.000', '-vframes', '1', os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()])
-                self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + '.jpg').strip()       
+                subprocess.call(['ffmpeg', '-i', self.image_paths[0], '-ss', '00:00:05', '-vcodec', 'libwebp', '-filter:v fps=fps=24', '-lossless', '0' , '-compression_level', '3', '-q:v', '70', '-loop', '1', '-preset picture', '-an', '-vsync', '0', os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnail_big', self.image_hash + '.webp').strip()])
+                self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + '.webp').strip()       
         else:
             #thumbnail already exists, add to photo
-            self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + '.jpg').strip()
+            self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + '.webp').strip()
 
-        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()):
+        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.webp').strip()):
             if(not self.video):
-                image = pyvips.Image.thumbnail(filename=self.image_paths[0], height=400, auto_rotate=True)
-                image.write_to_file(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip())
-                self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.jpg').strip()
+                createThumbnail(inputPath=self.image_paths[0], outputHeight=400,outputPath='square_thumbnails', hash=self.image_hash, fileType=".webp")
+                self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.webp').strip()
             else:
-                subprocess.call(['ffmpeg', '-i', self.image_paths[0], '-ss', '00:00:00.000', '-vframes', '1', '-vf','scale=500:500:force_original_aspect_ratio=increase,crop=500:500', os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()])
-                self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.jpg').strip()
+                subprocess.call(['ffmpeg', '-i', self.image_paths[0], '-ss', '00:00:05', '-vcodec', 'libwebp', '-filter:v fps=fps=24', '-lossless', '0' , '-compression_level', '3', '-q:v', '70', '-loop', '1', '-preset picture', '-an', '-vsync', '0', 'scale=-1:400', os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.webp').strip()])
+                self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.webp').strip()
         else:
             #thumbnail already exists, add to photo
-            self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.jpg').strip()
+            self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.webp').strip()
 
-        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()):
+        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.webp').strip()):
             if(not self.video):
-                image = pyvips.Image.thumbnail(filename=self.image_paths[0], height=200, auto_rotate=True)
-                image.write_to_file(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip())
-                self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.jpg').strip()
+                createThumbnail(inputPath=self.image_paths[0], outputHeight=200, outputPath='square_thumbnails_small', hash=self.image_hash, fileType=".webp")
+                self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.webp').strip()
             else:
-                subprocess.call(['ffmpeg', '-i', self.image_paths[0], '-ss', '00:00:00.000', '-vframes', '1', '-vf','scale=100:100:force_original_aspect_ratio=increase,crop=100:100', os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()])
-                self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.jpg').strip()
+                subprocess.call(['ffmpeg', '-i', self.image_paths[0], '-ss', '00:00:05', '-vcodec', 'libwebp', '-filter:v fps=fps=24', '-lossless', '0' , '-compression_level', '3', '-q:v', '70', '-loop', '1', '-preset picture', '-an', '-vsync', '0', 'scale=-1:200', os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.webp').strip()])                
+                self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.webp').strip()
         else:
             #thumbnail already exists, add to photo
-            self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.jpg').strip()
+            self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.webp').strip()
         if commit:
             self.save()
 
@@ -192,7 +188,8 @@ class Photo(models.Model):
 
     def _calculate_aspect_ratio(self, et, commit=True):
         with exiftool.ExifTool() as et:
-            height = et.get_tag('ImageHeight', self.thumbnail_big.path)
+            util.logger.info(et.get_tags(self.thumbnail_big.path))
+            height = et.get_tag('ImageHeight', )
             width = et.get_tag('ImageWidth', self.thumbnail_big.path)
             self.aspect_ratio = round((width / height), 2)
 
