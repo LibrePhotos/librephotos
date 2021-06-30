@@ -1563,8 +1563,14 @@ class MediaAccessFullsizeOriginalView(APIView):
             return response
         else:
             response = HttpResponse()
-            response['Content-Type'] = 'image/jpeg'
-            response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname)
+            # This is probably very slow -> Save the mime type when scanning
+            mime = magic.Magic(mime=True)
+            filename = mime.from_file(photo.thumbnail_big.path)
+            response['Content-Type'] = filename
+            if(not "webp" in filename):
+                response['X-Accel-Redirect'] = photo.thumbnail_big.path
+            else:
+                response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname + ".webp")
             return response
 
     def get(self, request, path, fname, format=None):
