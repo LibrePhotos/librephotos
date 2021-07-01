@@ -1,6 +1,6 @@
 
 import hashlib
-from api.thumbnails import createThumbnail
+from api.thumbnails import createThumbnail, createAnimatedThumbnail, doesThumbnailExists
 import os
 from datetime import datetime
 from io import BytesIO
@@ -127,38 +127,29 @@ class Photo(models.Model):
                 image_path)
 
     def _generate_thumbnail(self,commit=True):
-        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.webp').strip()):
+        if not doesThumbnailExists('thumbnails_big', self.image_hash):
             if(not self.video):
                 createThumbnail(inputPath=self.image_paths[0], outputHeight=1080, outputPath='thumbnails_big', hash=self.image_hash, fileType=".webp")
-                self.thumbnail_big.name=os.path.join('thumbnail_big', self.image_hash + '.webp').strip()
             else:
-                subprocess.call(['ffmpeg', '-i', self.image_paths[0], '-ss', '00:00:05', '-vcodec', 'libwebp', '-filter:v fps=fps=24', '-lossless', '0' , '-compression_level', '3', '-q:v', '70', '-loop', '1', '-preset picture', '-an', '-vsync', '0', os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnail_big', self.image_hash + '.webp').strip()])
-                self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + '.webp').strip()       
-        else:
-            #thumbnail already exists, add to photo
-            self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + '.webp').strip()
+                createAnimatedThumbnail(inputPath=self.image_paths[0], outputHeight=1080, outputPath='thumbnails_big', hash=self.image_hash, fileType=".mp4") 
 
-        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.webp').strip()):
+        if not doesThumbnailExists('square_thumbnails', self.image_hash):
             if(not self.video):
-                createThumbnail(inputPath=self.image_paths[0], outputHeight=400,outputPath='square_thumbnails', hash=self.image_hash, fileType=".webp")
-                self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.webp').strip()
+                createThumbnail(inputPath=self.image_paths[0], outputHeight=500,outputPath='square_thumbnails', hash=self.image_hash, fileType=".webp")
             else:
-                subprocess.call(['ffmpeg', '-i', self.image_paths[0], '-ss', '00:00:05', '-vcodec', 'libwebp', '-filter:v fps=fps=24', '-lossless', '0' , '-compression_level', '3', '-q:v', '70', '-loop', '1', '-preset picture', '-an', '-vsync', '0', 'scale=-1:400', os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.webp').strip()])
-                self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.webp').strip()
-        else:
-            #thumbnail already exists, add to photo
-            self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.webp').strip()
+                createAnimatedThumbnail(inputPath=self.image_paths[0], outputHeight=500,outputPath='square_thumbnails', hash=self.image_hash, fileType=".mp4")           
 
-        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.webp').strip()):
+        if not doesThumbnailExists('square_thumbnails_small', self.image_hash):
             if(not self.video):
-                createThumbnail(inputPath=self.image_paths[0], outputHeight=200, outputPath='square_thumbnails_small', hash=self.image_hash, fileType=".webp")
-                self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.webp').strip()
+                createThumbnail(inputPath=self.image_paths[0], outputHeight=250, outputPath='square_thumbnails_small', hash=self.image_hash, fileType=".webp")
             else:
-                subprocess.call(['ffmpeg', '-i', self.image_paths[0], '-ss', '00:00:05', '-vcodec', 'libwebp', '-filter:v fps=fps=24', '-lossless', '0' , '-compression_level', '3', '-q:v', '70', '-loop', '1', '-preset picture', '-an', '-vsync', '0', 'scale=-1:200', os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.webp').strip()])                
-                self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.webp').strip()
-        else:
-            #thumbnail already exists, add to photo
-            self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.webp').strip()
+                createAnimatedThumbnail(inputPath=self.image_paths[0], outputHeight=250, outputPath='square_thumbnails_small', hash=self.image_hash, fileType=".mp4")          
+        filetype = '.webp'
+        if(self.video):
+            filetype = '.mp4'
+        self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + filetype).strip()
+        self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + filetype).strip()
+        self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + filetype).strip()
         if commit:
             self.save()
 
@@ -188,7 +179,6 @@ class Photo(models.Model):
 
     def _calculate_aspect_ratio(self, et, commit=True):
         with exiftool.ExifTool() as et:
-            util.logger.info(et.get_metadata(self.image_paths[0]))
             height = et.get_tag('ImageHeight', self.image_paths[0])
             width = et.get_tag('ImageWidth', self.image_paths[0])
             self.aspect_ratio = round((width / height), 2)

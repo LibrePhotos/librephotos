@@ -14,7 +14,7 @@ from api.image_similarity import build_image_similarity_index
 from api.models import LongRunningJob, Photo
 from multiprocessing import Pool
 import api.models.album_thing
-from wand.image import Image
+import pyvips
 
 def is_video(image_path):
     mime = magic.Magic(mime=True)
@@ -25,8 +25,8 @@ def is_valid_media(image_path):
     if(is_video(image_path)):
         return True
     try:
-        with Image(filename=image_path) as i:
-            return True
+        pyvips.Image.thumbnail(image_path, 10000, height=200, size=pyvips.enums.Size.DOWN)
+        return True
     except Exception as e:
         util.logger.info("Could not handle {}, because {}".format(image_path, str(e)))
         return False
