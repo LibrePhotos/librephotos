@@ -125,12 +125,12 @@ export class TopMenu extends Component {
               <Popup
                 trigger={
                   <Icon
-                    style={{ paddingRight: 10 }}
                     name="circle"
                     color={!this.props.workerAvailability ? "red" : "green"}
                   />
                 }
-                position="bottom center"
+                position="bottom right"
+                offset={[13, 0]}
                 content={
                   this.props.workerAvailability
                     ? "Worker available! You can start scanning more photos, infer face labels, auto create event albums, or regenerate auto event album titles."
