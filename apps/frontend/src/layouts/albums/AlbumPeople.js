@@ -92,7 +92,6 @@ export class AlbumPeople extends Component {
             {this.props.people[albumPersonIndex].face_count > 0 ? (
               this.props.people[albumPersonIndex].text === "unknown" ? (
                 <Image
-                  label={{ as: "a", corner: "left", icon: "user circle" }}
                   height={this.state.entrySquareSize - 10}
                   width={this.state.entrySquareSize - 10}
                   as={Link}
@@ -101,7 +100,6 @@ export class AlbumPeople extends Component {
                 />
               ) : (
                 <SecuredImageJWT
-                  label={{ as: "a", corner: "left", icon: "user circle" }}
                   height={this.state.entrySquareSize - 10}
                   width={this.state.entrySquareSize - 10}
                   as={Link}

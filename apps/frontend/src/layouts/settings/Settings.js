@@ -453,52 +453,6 @@ export class Settings extends Component {
         </Grid>
 
         <Divider />
-        <Header as="h3">Appearance</Header>
-
-        <Grid>
-          <Grid.Row>
-            <Grid.Column width={4} textAlign="left">
-              <b>Thumbnail size</b>
-            </Grid.Column>
-
-            <Grid.Column width={12}>
-              <Form>
-                <Form.Group>
-                  <Form.Field>
-                    <Radio
-                      label="Big"
-                      name="radioGroup"
-                      value="loose"
-                      onChange={() =>
-                        this.props.dispatch({
-                          type: "SET_GRID_TYPE",
-                          payload: "loose",
-                        })
-                      }
-                      checked={this.props.gridType === "loose"}
-                    />
-                  </Form.Field>
-                  <Form.Field>
-                    <Radio
-                      label="Small"
-                      name="radioGroup"
-                      value="dense"
-                      onChange={() =>
-                        this.props.dispatch({
-                          type: "SET_GRID_TYPE",
-                          payload: "dense",
-                        })
-                      }
-                      checked={this.props.gridType === "dense"}
-                    />
-                  </Form.Field>
-                </Form.Group>
-              </Form>
-            </Grid.Column>
-          </Grid.Row>
-        </Grid>
-
-        <Divider />
         <Header as="h3">Library</Header>
 
         <CountStats />

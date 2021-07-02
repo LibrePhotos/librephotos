@@ -81,15 +81,13 @@ export class AlbumThing extends Component {
               .map(photo => {
                 return (
                   <SecuredImageJWT
-                    label={{ as: 'a', corner: 'left', icon: 'tag' }}
-                    style={{ display: "inline-block" }}
+                    style={{ display: "inline-block", objectFit: "cover" }}
                     width={this.state.entrySquareSize - 10}
                     height={this.state.entrySquareSize - 10}
                     src={
                       serverAddress +
-                      "/media/square_thumbnails/" +
-                      photo.image_hash +
-                      ".jpg"
+                      "/media/thumbnails_big/" +
+                      photo.image_hash
                     }
                   />
                 );
