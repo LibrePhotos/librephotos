@@ -1553,7 +1553,21 @@ class MediaAccessFullsizeOriginalView(APIView):
         return "/protected_media{}/{}".format(path, fname)
     
     def _generate_response(self, photo, path, fname):
-        if photo.video and not "thumbnail" in path:
+        if "thumbnail" in path:
+            response = HttpResponse()
+            filename = os.path.splitext(photo.square_thumbnail.path)[1]
+            if("jpg" in filename):
+                # handle non migrated systems
+                response['Content-Type'] = "image/jpg"
+                response['X-Accel-Redirect'] = photo.thumbnail_big.path
+            if("webp" in filename):
+                response['Content-Type'] = "image/webp"
+                response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname + ".webp")
+            if("mp4" in filename):
+                response['Content-Type'] = "video/mp4"
+                response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname + ".mp4")
+            return response
+        if photo.video:
             # This is probably very slow -> Save the mime type when scanning
             mime = magic.Magic(mime=True)
             filename = mime.from_file(photo.image_paths[0])
@@ -1561,21 +1575,11 @@ class MediaAccessFullsizeOriginalView(APIView):
             response['Content-Type'] = filename
             response['X-Accel-Redirect'] = photo.image_paths[0]
             return response
-        else:
-            response = HttpResponse()
-            # This is probably very slow -> Save the mime type when scanning
-            mime = magic.Magic(mime=True)
-            logger.info(photo.thumbnail_big.path)
-            filename = mime.from_file(photo.thumbnail_big.path)
-            response['Content-Type'] = filename
-            if(not "webp" or "mp4" in filename):
-                response['X-Accel-Redirect'] = photo.thumbnail_big.path
-            else:
-                if("webp" in filename):
-                    response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname + ".webp")
-                if("mp4" in filename):
-                    response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname + ".mp4")
-            return response
+        #faces and avatars
+        response = HttpResponse()
+        response['Content-Type'] = "image/jpg"
+        response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname)
+        return response
 
     def get(self, request, path, fname, format=None):
         if path.lower() == 'avatars':

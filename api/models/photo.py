@@ -1,6 +1,6 @@
 
 import hashlib
-from api.thumbnails import createThumbnail, createAnimatedThumbnail, doesThumbnailExists
+from api.thumbnails import createThumbnail, createAnimatedThumbnail, doesVideoThumbnailExists, doesStaticThumbnailExists, createThumbnailForVideo
 import os
 from datetime import datetime
 from io import BytesIO
@@ -127,27 +127,26 @@ class Photo(models.Model):
                 image_path)
 
     def _generate_thumbnail(self,commit=True):
-        if not doesThumbnailExists('thumbnails_big', self.image_hash):
+        if not doesStaticThumbnailExists('thumbnails_big', self.image_hash):
             if(not self.video):
                 createThumbnail(inputPath=self.image_paths[0], outputHeight=1080, outputPath='thumbnails_big', hash=self.image_hash, fileType=".webp")
             else:
-                createAnimatedThumbnail(inputPath=self.image_paths[0], outputHeight=1080, outputPath='thumbnails_big', hash=self.image_hash, fileType=".mp4") 
+                createThumbnailForVideo(inputPath=self.image_paths[0], outputPath='thumbnails_big', hash=self.image_hash, fileType=".webp") 
 
-        if not doesThumbnailExists('square_thumbnails', self.image_hash):
-            if(not self.video):
-                createThumbnail(inputPath=self.image_paths[0], outputHeight=500,outputPath='square_thumbnails', hash=self.image_hash, fileType=".webp")
-            else:
-                createAnimatedThumbnail(inputPath=self.image_paths[0], outputHeight=500,outputPath='square_thumbnails', hash=self.image_hash, fileType=".mp4")           
+        if(not self.video and not doesStaticThumbnailExists('square_thumbnails', self.image_hash)):
+            createThumbnail(inputPath=self.image_paths[0], outputHeight=500,outputPath='square_thumbnails', hash=self.image_hash, fileType=".webp")
+        if(not doesVideoThumbnailExists('square_thumbnails', self.image_hash)):
+            createAnimatedThumbnail(inputPath=self.image_paths[0], outputHeight=500,outputPath='square_thumbnails', hash=self.image_hash, fileType=".mp4")           
 
-        if not doesThumbnailExists('square_thumbnails_small', self.image_hash):
-            if(not self.video):
-                createThumbnail(inputPath=self.image_paths[0], outputHeight=250, outputPath='square_thumbnails_small', hash=self.image_hash, fileType=".webp")
-            else:
-                createAnimatedThumbnail(inputPath=self.image_paths[0], outputHeight=250, outputPath='square_thumbnails_small', hash=self.image_hash, fileType=".mp4")          
+
+        if(not self.video and not doesStaticThumbnailExists('square_thumbnails_small', self.image_hash)):
+            createThumbnail(inputPath=self.image_paths[0], outputHeight=250, outputPath='square_thumbnails_small', hash=self.image_hash, fileType=".webp")
+        if(not doesVideoThumbnailExists('square_thumbnails_small', self.image_hash)):
+            createAnimatedThumbnail(inputPath=self.image_paths[0], outputHeight=250, outputPath='square_thumbnails_small', hash=self.image_hash, fileType=".mp4")          
         filetype = '.webp'
         if(self.video):
             filetype = '.mp4'
-        self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + filetype).strip()
+        self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + ".webp").strip()
         self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + filetype).strip()
         self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + filetype).strip()
         if commit:
@@ -321,7 +320,7 @@ class Photo(models.Model):
     def _im2vec(self,commit=True):
         try:
             im2vec = Im2Vec(cuda=False)
-            image = PIL.Image.open(self.square_thumbnail)
+            image = PIL.Image.open(self.thumbnail_big)
             vec = im2vec.get_vec(image)
             self.encoding = vec.tobytes().hex()
             if commit:
