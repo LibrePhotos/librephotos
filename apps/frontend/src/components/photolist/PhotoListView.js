@@ -408,18 +408,11 @@ export class PhotoListView extends Component {
                     url.split(";")[0]
                   );
                 }
-                if (pxHeight < 500) {
                   return (
                     serverAddress +
                     "/media/square_thumbnails/" +
                     url.split(";")[0]
                   );
-                }
-                return (
-                  serverAddress +
-                  "/media/thumbnails_big/" +
-                  url.split(";")[0]
-                );
               }}
             >
               {console.log(this.props.photosGroupedByDate)}

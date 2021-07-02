@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
 import { fetchAutoAlbumsList } from "../../actions/albumsActions";
-import { Icon, Header, Loader, Image } from "semantic-ui-react";
+import { Icon, Header, Loader, Image, Label } from "semantic-ui-react";
 import { Grid, AutoSizer } from "react-virtualized";
 import { serverAddress } from "../../api_client/apiClient";
 import LazyLoad from "react-lazyload";
@@ -9,7 +9,6 @@ import { searchPhotos } from "../../actions/searchActions";
 import { push } from "react-router-redux";
 import store from "../../store";
 import { Link } from "react-router-dom";
-import { SecuredImageJWT } from "../../components/SecuredImage";
 
 
 var topMenuHeight = 45; // don't change this
@@ -69,19 +68,18 @@ export class AlbumAuto extends Component {
             }}
             style={{ padding: 5 }}
           >
-            <SecuredImageJWT
-              label={{ as: 'a', corner: 'left', icon: 'wizard' }}
-              style={{ display: "inline-block" }}
-              as={Link}
-              to={`/event/${this.props.albumsAutoList[albumAutoIndex].id}`}
+            <Link to={"/event/$" +this.props.albumsAutoList[albumAutoIndex].id}> 
+            <Image
+              style={{objectFit: "cover"}}
               width={this.state.entrySquareSize - 10}
               height={this.state.entrySquareSize - 10}
               src={
                 serverAddress +
                 "/media/square_thumbnails/" +
-                this.props.albumsAutoList[albumAutoIndex].photos[0]+".jpg"
+                this.props.albumsAutoList[albumAutoIndex].photos[0]
               }
             />
+            </Link>
           </div>
           <div
             className="personCardName"
@@ -147,15 +145,14 @@ export class EntrySquare extends Component {
   render() {
     var images = this.props.cover_photos.map(function(photo) {
       return (
-        <SecuredImageJWT
-          style={{ display: "inline-block" }}
+        <Image
+          style={{ display: "inline-block", objectFit: "cover" }}
           width={this.props.size / 2 - 20}
           height={this.props.size / 2 - 20}
           src={
             serverAddress +
             "/media/square_thumbnails/" +
-            photo.image_hash +
-            ".jpg"
+            photo.image_hash
           }
         />
       );

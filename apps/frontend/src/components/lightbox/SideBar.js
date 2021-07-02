@@ -396,12 +396,12 @@ export default function getSideBar(box) {
                               <Image
                                 width={95}
                                 height={95}
+                                style={{objectFit: "cover"}}
                                 key={el.image_hash}
                                 src={
                                   serverAddress +
                                   "/media/square_thumbnails_small/" +
-                                  el.image_hash +
-                                  ".jpg"
+                                  el.image_hash
                                 }
                               />
                             ))}

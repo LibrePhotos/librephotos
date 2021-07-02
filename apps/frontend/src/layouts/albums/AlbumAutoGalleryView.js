@@ -165,14 +165,14 @@ export class AlbumAutoGalleryView extends Component {
               this.onPhotoClick(photoIndex);
             }}
           >
-            <SecuredImageJWT
+            <Image
               height={this.state.entrySquareSize - 5}
               width={this.state.entrySquareSize - 5}
+              style={{objectFit: "cover"}}
               src={
                 serverAddress +
                 "/media/square_thumbnails/" +
-                image_hash +
-                ".jpg"
+                image_hash
               }
             />
           </div>
@@ -351,7 +351,7 @@ export class AlbumAutoGalleryView extends Component {
                             />
                           }
                         >
-                          <SecuredImageJWT
+                          <Image
                             onClick={() =>
                               this.setState({
                                 lightboxImageIndex: idx2hash.indexOf(
@@ -360,7 +360,7 @@ export class AlbumAutoGalleryView extends Component {
                                 lightboxShow: true
                               })
                             }
-                            style={{ paddingLeft: 2.5, paddingRight: 2.5 }}
+                            style={{ paddingLeft: 2.5, paddingRight: 2.5, objectFit: "cover" }}
                             height={this.state.entrySquareSize}
                             width={this.state.entrySquareSize}
                             src={serverAddress + photo.square_thumbnail_url}
