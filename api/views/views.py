@@ -156,7 +156,6 @@ class PhotoSimpleListViewSet(viewsets.ModelViewSet):
 
 
 class PhotoSuperSimpleSearchListViewSet(viewsets.ModelViewSet):
-
     serializer_class = GroupedPhotosSerializer
     pagination_class = HugeResultsSetPagination
     filter_backends = (filters.SearchFilter, )
@@ -173,7 +172,7 @@ class PhotoSuperSimpleSearchListViewSet(viewsets.ModelViewSet):
             *args, **kwargs)
 
     def list(self, request):
-        queryset = Photo.visible.filter(Q(owner=self.request.user)).order_by('-exif_timestamp')
+        queryset = self.filter_queryset(Photo.visible.filter(Q(owner=self.request.user)).order_by('-exif_timestamp'))
         grouped_photos = get_photos_ordered_by_date(queryset)
         serializer = GroupedPhotosSerializer(grouped_photos, many=True)
         return Response({'results': serializer.data})
