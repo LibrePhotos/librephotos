@@ -884,7 +884,6 @@ class UserViewSet(viewsets.ModelViewSet):
 
     permission_classes = (
         IsUserOrReadOnly,
-        IsAdminUser,
     )
 
     def get_queryset(self):
@@ -900,7 +899,7 @@ class UserViewSet(viewsets.ModelViewSet):
             self.permission_classes = (IsRegistrationAllowed, )
             cache.clear()
         elif self.action == 'list':
-            self.permission_classes = (IsAdminUser, )
+            self.permission_classes = (AllowAny, )
         elif self.request.method == 'GET' or self.request.method == 'POST':
             self.permission_classes = (AllowAny, )
         else:
