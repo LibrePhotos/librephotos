@@ -1,5 +1,6 @@
 import datetime
 import hashlib
+from api.thumbnails import isRawPicture
 import os
 import stat
 import magic
@@ -23,6 +24,8 @@ def is_video(image_path):
 
 def is_valid_media(image_path):
     if(is_video(image_path)):
+        return True
+    if(isRawPicture(image_path)):
         return True
     try:
         pyvips.Image.thumbnail(image_path, 10000, height=200, size=pyvips.enums.Size.DOWN)
@@ -219,7 +222,6 @@ def scan_photos(user, job_id):
         api.models.album_thing.update()
         exisisting_photos = Photo.objects.filter(owner=user.id)
         for existing_photo in exisisting_photos:
-            util.logger.info(existing_photo.image_paths)
             existing_photo._check_image_paths()
         build_image_similarity_index(user)
     except Exception:

@@ -10,7 +10,6 @@ import api.models
 import api.util as util
 import face_recognition
 import numpy as np
-import ownphotos.settings
 import PIL
 import pytz
 from django.core.cache import cache
@@ -21,7 +20,6 @@ from api.util import logger
 from django.core.files.base import ContentFile
 from django.db import models
 from geopy.geocoders import Nominatim
-import subprocess
 from django.db.models import Q
 class VisiblePhotoManager(models.Manager):
     def get_queryset(self):
@@ -135,13 +133,12 @@ class Photo(models.Model):
 
         if(not self.video and not doesStaticThumbnailExists('square_thumbnails', self.image_hash)):
             createThumbnail(inputPath=self.image_paths[0], outputHeight=500,outputPath='square_thumbnails', hash=self.image_hash, fileType=".webp")
-        if(not doesVideoThumbnailExists('square_thumbnails', self.image_hash)):
-            createAnimatedThumbnail(inputPath=self.image_paths[0], outputHeight=500,outputPath='square_thumbnails', hash=self.image_hash, fileType=".mp4")           
-
+        if(self.video and not doesVideoThumbnailExists('square_thumbnails', self.image_hash)):
+            createAnimatedThumbnail(inputPath=self.image_paths[0], outputHeight=500,outputPath='square_thumbnails', hash=self.image_hash, fileType=".mp4")
 
         if(not self.video and not doesStaticThumbnailExists('square_thumbnails_small', self.image_hash)):
             createThumbnail(inputPath=self.image_paths[0], outputHeight=250, outputPath='square_thumbnails_small', hash=self.image_hash, fileType=".webp")
-        if(not doesVideoThumbnailExists('square_thumbnails_small', self.image_hash)):
+        if(self.video and not doesVideoThumbnailExists('square_thumbnails_small', self.image_hash)):
             createAnimatedThumbnail(inputPath=self.image_paths[0], outputHeight=250, outputPath='square_thumbnails_small', hash=self.image_hash, fileType=".mp4")          
         filetype = '.webp'
         if(self.video):
