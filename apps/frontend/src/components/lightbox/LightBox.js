@@ -1,21 +1,26 @@
 import React, { Component } from "react";
 import "react-virtualized/styles.css"; // only needs to be imported once
 import { connect } from "react-redux";
-import { serverAddress} from "../../api_client/apiClient";
+import { serverAddress } from "../../api_client/apiClient";
 import Lightbox from "react-image-lightbox";
 import ReactPlayer from "react-player";
 import "react-image-lightbox/style.css"; // This only needs to be imported once in your app
-import getToolbar from "./Toolbar"
-import getSideBar from "./SideBar"
+import getToolbar from "./Toolbar";
+import getSideBar from "./SideBar";
 
 var LIGHTBOX_SIDEBAR_WIDTH = 360;
 if (window.innerWidth < 600) {
   LIGHTBOX_SIDEBAR_WIDTH = window.innerWidth;
-} 
+}
 export class LightBox extends Component {
   state = {
     lightboxSidebarShow: false,
   };
+
+  closeSidepanel() {
+    this.setState({ lightboxSidebarShow: false });
+    this.forceUpdate();
+  }
 
   getCurrentPhotodetail() {
     return this.props.photoDetails[
@@ -115,7 +120,7 @@ export class LightBox extends Component {
             }
           }
         }, 250 * i);
-      } 
+      }
     }
 
     return (
@@ -163,9 +168,7 @@ export class LightBox extends Component {
             },
           }}
         />
-       {getSideBar(this)};
-        
-
+        {getSideBar(this)};
       </div>
     );
   }

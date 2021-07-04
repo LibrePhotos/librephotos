@@ -196,16 +196,15 @@ export class ModalAlbumEdit extends Component {
                       }}
                       as="a"
                     >
-                      <SecuredImageJWT
-                        isPublic={this.props.isPublic}
+                      <Image
                         height={50}
                         width={50}
+                        style={{objectFit: "cover" }}
                         src={
                           item.cover_photos[0]
                             ? serverAddress +
                               "/media/square_thumbnails_small/" +
-                              item.cover_photos[0].image_hash +
-                              ".jpg"
+                              item.cover_photos[0].image_hash 
                             : "/thumbnail_placeholder.png"
                         }
                       />

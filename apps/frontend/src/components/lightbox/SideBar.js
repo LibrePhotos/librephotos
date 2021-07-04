@@ -82,8 +82,7 @@ export default function getSideBar(box) {
                 circular
                 icon="close"
                 onClick={() => {
-                  box.setState({ lightboxSidebarShow: false });
-                  box.forceUpdate();
+                  box.closeSidepanel()
                 }}
               />
               <Header as="h3">Details</Header>
