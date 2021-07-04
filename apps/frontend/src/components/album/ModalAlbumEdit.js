@@ -6,7 +6,6 @@ import {
   editUserAlbum,
   createNewUserAlbum,
 } from "../../actions/albumsActions";
-import { SecuredImageJWT } from "../../components/SecuredImage";
 import {
   Header,
   Divider,
@@ -98,15 +97,14 @@ export class ModalAlbumEdit extends Component {
           <div style={{ padding: 5, height: 50, overflowY: "hidden" }}>
             <Image.Group>
               {this.props.selectedImageHashes.map((image_hash) => (
-                <SecuredImageJWT
-                  isPublic={this.props.isPublic}
+                <Image
+                  style={{objectFit: "cover" }}
                   height={40}
                   width={40}
                   src={
                     serverAddress +
                     "/media/square_thumbnails/" +
-                    image_hash +
-                    ".jpg"
+                    image_hash
                   }
                 />
               ))}
@@ -203,7 +201,7 @@ export class ModalAlbumEdit extends Component {
                         src={
                           item.cover_photos[0]
                             ? serverAddress +
-                              "/media/square_thumbnails_small/" +
+                              "/media/thumbnails_big/" +
                               item.cover_photos[0].image_hash 
                             : "/thumbnail_placeholder.png"
                         }
