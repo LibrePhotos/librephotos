@@ -13,7 +13,7 @@ export class SearchView extends Component {
                 titleIconName={'search'}
                 isDateView={true}
                 photosGroupedByDate={this.props.searchPhotosResGroupedByDate[0] ? this.props.searchPhotosResGroupedByDate : []}
-                idx2hash={[]}
+                idx2hash={this.props.searchPhotosResGroupedByDate[0] ? this.props.searchPhotosResGroupedByDate.flatMap((el) => el.items) : []}
             />
         )
     }

@@ -46,7 +46,7 @@ export class LightBox extends Component {
   }
 
   getPictureUrl(hash) {
-    return serverAddress + "/media/thumbnails_big/" + hash.id + ".jpg";
+    return serverAddress + "/media/thumbnails_big/" + hash.id;
   }
 
   getVideoUrl(hash) {
