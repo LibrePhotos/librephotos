@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-
+import * as moment from "moment";
 import { connect } from "react-redux";
 import { fetchRecentlyAddedPhotos } from '../../actions/photosActions';
 import { PhotoListView } from '../../components/photolist/PhotoListView'
@@ -16,8 +16,9 @@ export class RecentlyAddedPhotos extends Component {
                 loading={fetchingRecentlyAddedPhotos}
                 titleIconName={'clock'}
                 isDateView={false}
-                photosGroupedByDate={this.props.recentlyAddedPhotos[0] ? this.props.recentlyAddedPhotos[0].photos : []}
-                idx2hash={this.props.recentlyAddedPhotos[0] ? this.props.recentlyAddedPhotos[0].photos : []}
+                date={moment(this.props.recentlyAddedPhotos.date).format("MMM Do YYYY, dddd") !== "Invalid date" ?  moment(this.props.recentlyAddedPhotos.date).format("MMM Do YYYY, dddd") : this.props.recentlyAddedPhotos.date}
+                photosGroupedByDate={this.props.recentlyAddedPhotos.photos}
+                idx2hash={this.props.recentlyAddedPhotos.photos}
                 dayHeaderPrefix={'Added on ' }
             />
         )
@@ -28,7 +29,6 @@ RecentlyAddedPhotos = connect(store => {
   return {
     fetchingRecentlyAddedPhotos: store.photos.fetchingRecentlyAddedPhotos,
     fetchedRecentlyAddedPhotos: store.photos.fetchedRecentlyAddedPhotos,
-    recentlyAddedPhotos: store.photos.recentlyAddedPhotos,
-    recentlyAddedIdx2hash: store.photos.recentlyAddedIdx2hash
+    recentlyAddedPhotos: store.photos.recentlyAddedPhotos
   };
 })(RecentlyAddedPhotos);

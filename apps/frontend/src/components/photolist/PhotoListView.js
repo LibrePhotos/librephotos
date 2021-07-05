@@ -223,14 +223,22 @@ export class PhotoListView extends Component {
                 </Header>
               </GridColumn>
               <GridColumn>
-                <Header size="small" style={{ paddingRight: 10 }}>
-                  <Header.Content floated="right" textAlign="right">
+                <div
+                  style={{
+                    textAlign: "right",
+                    margin: "0 auto",
+                    padding: 20,
+                  }}
+                >
+                  <span style={{ paddingLeft: 5, fontSize: 18 }}>
+                    <b>
                     {this.props.dayHeaderPrefix
-                      ? this.props.dayHeaderPrefix + this.state.date
-                      : this.state.date}
-                    <Header.Subheader>{this.state.fromNow}</Header.Subheader>
-                  </Header.Content>
-                </Header>
+                      ? this.props.dayHeaderPrefix + this.props.date
+                      : this.props.date}
+                    {this.state.fromNow}
+                    </b>
+                  </span>
+                </div>
               </GridColumn>
             </GridRow>
           </Grid>
@@ -408,11 +416,11 @@ export class PhotoListView extends Component {
                     url.split(";")[0]
                   );
                 }
-                  return (
-                    serverAddress +
-                    "/media/square_thumbnails/" +
-                    url.split(";")[0]
-                  );
+                return (
+                  serverAddress +
+                  "/media/square_thumbnails/" +
+                  url.split(";")[0]
+                );
               }}
             >
               {console.log(this.props.photosGroupedByDate)}
