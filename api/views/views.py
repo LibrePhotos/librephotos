@@ -49,7 +49,7 @@ from api.views.serializers import (AlbumAutoListSerializer, AlbumAutoSerializer,
                              SharedFromMePhotoThroughSerializer,
                              SharedToMePhotoSuperSimpleSerializer,
                              UserSerializer)
-from api.views.serializers_serpy import PigAlbumDateSerializer, AlbumUserSerializerSerpy, PigPhotoSerilizer, GroupedPhotosSerializer, GroupedPersonPhotosSerializer
+from api.views.serializers_serpy import PigAlbumDateSerializer, AlbumUserSerializerSerpy, PigPhotoSerilizer, GroupedPhotosSerializer, GroupedPersonPhotosSerializer, GroupedPlacePhotosSerializer
 from api.views.serializers_serpy import \
     PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy
 from api.views.serializers_serpy import \
@@ -726,7 +726,12 @@ class AlbumPlaceViewSet(viewsets.ModelViewSet):
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
-        return super(AlbumPlaceViewSet, self).retrieve(*args, **kwargs)
+        queryset = self.get_queryset()
+        logger.warning(args[0].__str__())
+        albumid = re.findall(r'\'(.+?)\'', args[0].__str__())[0].split("/")[-2]        
+        serializer = GroupedPlacePhotosSerializer(queryset.filter(id = albumid).first())
+        serializer.context = {'request': self.request}
+        return Response({'results': serializer.data})
 
     @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
