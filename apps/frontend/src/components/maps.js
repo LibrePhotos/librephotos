@@ -387,23 +387,15 @@ export class LocationClusterMap extends Component {
             {place[albumPlaceIndex].cover_photos.slice(0, 1).map(photo => {
               return (
                 <SecuredImageJWT
-                  label={{
-                    as: "a",
-                    corner: "left",
-                    icon: "map marker alternate"
-                  }}
-                  style={{ display: "inline-block", zIndex: 1 }}
-                  width={this.state.entrySquareSize - 10}
-                  height={this.state.entrySquareSize - 10}
-                  as={Link}
-                  to={`/place/${place[albumPlaceIndex].id}/`}
-                  src={
-                    serverAddress +
-                    "/media/square_thumbnails/" +
-                    photo.image_hash +
-                    ".jpg"
-                  }
-                />
+                    style={{ display: "inline-block", objectFit: "cover" }}
+                    width={this.state.entrySquareSize - 10}
+                    height={this.state.entrySquareSize - 10}
+                    src={
+                      serverAddress +
+                      "/media/thumbnails_big/" +
+                      photo.image_hash
+                    }
+                  />
               );
             })}
           </div>
