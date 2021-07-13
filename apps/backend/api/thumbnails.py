@@ -26,7 +26,7 @@ def createThumbnail(inputPath, outputHeight, outputPath, hash, fileType):
             bigThumbnailPath = os.path.join(ownphotos.settings.MEDIA_ROOT, "thumbnails_big", hash + fileType)
             x = pyvips.Image.thumbnail(bigThumbnailPath, 10000, height=outputHeight, size=pyvips.enums.Size.DOWN)
             completePath = os.path.join(ownphotos.settings.MEDIA_ROOT, outputPath, hash + fileType).strip()
-            x.write_to_file(completePath)
+            x.write_to_file(completePath, Q = 95)
         return completePath
     else:
         x = pyvips.Image.thumbnail(inputPath, 10000, height=outputHeight, size=pyvips.enums.Size.DOWN)
