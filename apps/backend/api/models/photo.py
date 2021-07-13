@@ -175,8 +175,8 @@ class Photo(models.Model):
 
     def _calculate_aspect_ratio(self, et, commit=True):
         with exiftool.ExifTool() as et:
-            height = et.get_tag('ImageHeight', self.image_paths[0])
-            width = et.get_tag('ImageWidth', self.image_paths[0])
+            height = et.get_tag('ImageHeight', self.thumbnail_big.path)
+            width = et.get_tag('ImageWidth', self.thumbnail_big.path)
             self.aspect_ratio = round((width / height), 2)
 
         if commit:

@@ -146,10 +146,11 @@ def rescan_image(user, image_path, job_id):
     try:
         if is_valid_media(image_path):
             photo = Photo.objects.filter(Q(image_paths__contains=image_path)).get()
-            photo._generate_thumbnail(False)
-            photo._calculate_aspect_ratio(True)
+            photo._generate_thumbnail(True)
+            photo._calculate_aspect_ratio(False)
+            photo._geolocate_mapbox(False)
             photo._extract_date_time_from_exif(True)
-            photo._geolocate_mapbox(True)
+            
             
     except Exception as e:
         try:
@@ -188,6 +189,10 @@ def photo_scanner(user, path, job_id):
 # job is currently not used, because the model.eval() doesn't execute when it is running as a job
 @job
 def scan_photos(user, job_id):
+    if(not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT, "thumbnails_big"))):
+        os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "square_thumbnails_small"))
+        os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "square_thumbnails"))
+        os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "thumbnails_big"))
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
