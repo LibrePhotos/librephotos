@@ -301,7 +301,6 @@ export default function getSideBar(box) {
                 {box.props.photoDetails[
                   box.props.idx2hash[box.props.lightboxImageIndex].id
                 ].captions_json.places365 && (
-                  <div>
                     <Item>
                       <Item.Content verticalAlign="middle">
                         <Item.Header>
@@ -372,7 +371,6 @@ export default function getSideBar(box) {
                         </Item.Description>
                       </Item.Content>
                     </Item>
-                  </div>
                 )}
                 {/* End Item Scene */}
                 {/* Start Item Similar Photos */}

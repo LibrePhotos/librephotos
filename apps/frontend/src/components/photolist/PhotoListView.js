@@ -215,7 +215,7 @@ export class PhotoListView extends Component {
                   <Header.Content>
                     {this.props.title}{" "}
                     <Header.Subheader>
-                      {this.props.photosGroupedByDate.length} days,{" "}
+                      {this.props.photosGroupedByDate.length != this.props.idx2hash.length ? (this.props.photosGroupedByDate.length +  " days, " ): ""}
                       {this.props.idx2hash.length} photos
                       {this.props.additionalSubHeader}
                     </Header.Subheader>
