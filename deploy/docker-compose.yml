@@ -39,7 +39,7 @@ services:
       - backend
 
   backend:
-    image: reallibrephotos/librephotos:${tag}
+    image: reallibrephotos/librephotos-backend:${tag}
     restart: always
     volumes:
       - ${myPhotos}:/data
