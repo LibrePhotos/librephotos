@@ -10,7 +10,7 @@ class Face(models.Model):
         on_delete=models.SET(get_unknown_person),
         blank=False,
         null=True)
-    image = models.ImageField(upload_to='faces')
+    image = models.ImageField(upload_to='faces', null=True)
     image_path = models.FilePathField()
 
     person = models.ForeignKey(

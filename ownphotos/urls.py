@@ -220,6 +220,7 @@ urlpatterns = [
     url(r'^api/socialgraph', views.SocialGraphView.as_view()),
     url(r'^api/egograph', views.EgoGraphView.as_view()),
     url(r'^api/scanphotos', views.ScanPhotosView.as_view()),
+    url(r'^api/scanfaces', views.ScanFacesView.as_view()),
     url(r'^api/deletemissingphotos', views.DeleteMissingPhotosView.as_view()),
     url(r'^api/autoalbumgen', views.AutoAlbumGenerateView.as_view()),
     url(r'^api/autoalbumtitlegen', views.RegenerateAutoAlbumTitles.as_view()),
