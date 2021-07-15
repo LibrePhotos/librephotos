@@ -258,7 +258,7 @@ def scan_faces(user, job_id):
             job_id=job_id,
             queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
             started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            job_type=LongRunningJob.JOB_SCAN_FACES,
         )
     lrj.save()
 
@@ -282,7 +282,7 @@ def scan_faces(user, job_id):
 
     lrj.finished = True
     lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-    lrj.result["new_photo_count"] = added_photo_count
+    lrj.result["new_face_count"] = added_face_count 
     lrj.save()
     
-    return {"new_face_count": added_faces_count, "status": lrj.failed == False}
+    return {"new_face_count": added_face_count, "status": lrj.failed == False}
