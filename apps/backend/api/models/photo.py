@@ -341,16 +341,20 @@ class Photo(models.Model):
                 face_image = image[top:bottom, left:right]
                 face_image = PIL.Image.fromarray(face_image)
 
-                face = api.models.face.Face()
-                face.image_path = self.image_hash + "_" + str(
+                image_path = self.image_hash + "_" + str(
                     idx_face) + '.jpg'
-                face.person = unknown_person
-                face.photo = self
-                face.location_top = face_location[0]
-                face.location_right = face_location[1]
-                face.location_bottom = face_location[2]
-                face.location_left = face_location[3]
-                face.encoding = face_encoding.tobytes().hex()
+
+                face,created = api.models.face.Face.objects.get_or_create(
+                        image_path      = image_path,
+                        photo           = self,
+                        location_top    = face_location[0],
+                        location_right  = face_location[1],
+                        location_bottom = face_location[2],
+                        location_left   = face_location[3],
+                        encoding        = face_encoding.tobytes().hex(),
+                        defaults        = {'person': unknown_person}
+                        )
+
                 face_io = BytesIO()
                 face_image.save(face_io, format="JPEG")
                 face.image.save(face.image_path,

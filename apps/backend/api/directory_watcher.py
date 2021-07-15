@@ -11,7 +11,7 @@ from django_rq import job
 from api.places365.places365 import place365_instance
 import api.util as util
 from api.image_similarity import build_image_similarity_index
-from api.models import LongRunningJob, Photo
+from api.models import LongRunningJob, Photo, Face
 from multiprocessing import Pool
 import api.models.album_thing
 from wand.image import Image
@@ -236,3 +236,53 @@ def scan_photos(user, job_id):
     lrj.save()
 
     return {"new_photo_count": added_photo_count, "status": lrj.failed == False}
+
+def face_scanner(photo, job_id):
+        photo._extract_faces()
+        with db.connection.cursor() as cursor:
+            cursor.execute("""
+                update api_longrunningjob
+                set result = jsonb_set(result,'{"progress","current"}',
+                      ((jsonb_extract_path(result,'progress','current')::int + 1)::text)::jsonb
+                ) where job_id = %(job_id)s""",
+                {'job_id': str(job_id)})
+
+@job
+def scan_faces(user, job_id):
+    if LongRunningJob.objects.filter(job_id=job_id).exists():
+        lrj = LongRunningJob.objects.get(job_id=job_id)
+        lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
+    else:
+        lrj = LongRunningJob.objects.create(
+            started_by=user,
+            job_id=job_id,
+            queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+            started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+            job_type=LongRunningJob.JOB_SCAN_FACES,
+        )
+    lrj.save()
+
+    face_count_before = Face.objects.count()
+    try:
+        existing_photos = Photo.objects.filter(owner=user.id)
+        all = [(photo, job_id) for photo in existing_photos]
+       
+        lrj.result = {"progress": {"current": 0, "target": existing_photos.count()}}
+        lrj.save()
+        db.connections.close_all()
+        with Pool(processes=ownphotos.settings.HEAVYWEIGHT_PROCESS) as pool:
+            pool.starmap(face_scanner, all)
+
+    except Exception:
+        util.logger.exception("An error occured: ")
+        lrj.failed = True
+
+    added_face_count = Face.objects.count() - face_count_before
+    util.logger.info("Added {} faces".format(added_face_count))
+
+    lrj.finished = True
+    lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
+    lrj.result["new_face_count"] = added_face_count 
+    lrj.save()
+    
+    return {"new_face_count": added_face_count, "status": lrj.failed == False}
