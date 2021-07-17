@@ -120,11 +120,17 @@ class PhotoViewSet(viewsets.ModelViewSet):
     serializer_class = PhotoSerializer
     pagination_class = HugeResultsSetPagination
     filter_backends = (filters.SearchFilter, )
-    permission_classes = (IsPhotoOrAlbumSharedTo, )
     search_fields = ([
         'search_captions', 'search_location', 'faces__person__name',
         'exif_timestamp', 'image_paths'
     ])
+
+    def get_permissions(self):
+        if self.action == 'list' or self.action == 'retrieve':
+            permission_classes = [IsPhotoOrAlbumSharedTo]
+        else:
+            permission_classes = [IsAdminUser | IsOwnerOrReadOnly]
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         if self.request.user.is_anonymous:
