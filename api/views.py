@@ -12,6 +12,7 @@ from constance import config as site_config
 from django.core.cache import cache
 from django.db.models import Count, F, Prefetch, Q
 from django.http import HttpResponse, HttpResponseForbidden
+from django.shortcuts import get_object_or_404
 from django.utils.encoding import force_text
 from rest_framework import filters, viewsets
 from rest_framework.pagination import PageNumberPagination
@@ -145,7 +146,6 @@ class PhotoViewSet(viewsets.ModelViewSet):
     @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(PhotoViewSet, self).list(*args, **kwargs)
-
 
 class PhotoEditViewSet(viewsets.ModelViewSet):
     serializer_class = PhotoEditSerializer
@@ -1234,6 +1234,28 @@ class SetPhotosPublic(APIView):
             'results': updated,
             'updated': updated,
             'not_updated': not_updated
+        })
+
+
+class DeletePhotos(APIView):
+    def delete(self, request):
+        data = dict(request.data)
+        photos = Photo.objects.in_bulk(data['image_hashes'])
+
+        deleted = []
+        not_deleted = []
+        for photo in photos.values():
+            if photo.owner == request.user:
+                deleted.append(photo.image_hash)
+                photo.delete()
+            else:
+                not_deleted.append(photo.image_hash)
+        cache.clear()
+        return Response({
+            'status': True,
+            'results': deleted,
+            'not_deleted': not_deleted,
+            'deleted': deleted
         })
 
 
