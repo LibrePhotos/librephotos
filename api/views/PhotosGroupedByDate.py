@@ -1,17 +1,25 @@
+import datetime
+import pytz
+
+utc=pytz.UTC
 class PhotosGroupedByDate():
     def __init__(self, location, date, photos):
         self.photos = photos
         self.date = date
         self.location = location
 
+
 def get_photos_ordered_by_date(photos):
     from collections import defaultdict
 
     groups = defaultdict(list)
-
+    
     for photo in photos:
-        groups[photo.exif_timestamp].append(photo)
-
+        if photo.exif_timestamp:
+            groups[photo.exif_timestamp.date().strftime("%Y-%m-%d")].append(photo)
+        else:
+            groups[photo.exif_timestamp].append(photo)
+    
     groupedPhoto = list(groups.values())
     result = []
     noTimestampPhotos = []

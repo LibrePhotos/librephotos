@@ -57,19 +57,11 @@ class PhotoSuperSimpleSerializerWithAddedOn(serpy.Serializer):
 class PigPhotoSerilizer(serpy.Serializer):
     id = serpy.StrField(attr='image_hash')
     dominantColor = serpy.StrField(attr='image_hash') #To-Do
-    url = serpy.MethodField("get_url")
+    url = serpy.StrField(attr='image_hash')
     location = serpy.StrField(attr='search_location')
     date =  DateTimeField(attr='exif_timestamp')
     birthTime = serpy.StrField(attr='exif_timestamp')
     aspectRatio = serpy.FloatField(attr='aspect_ratio')
-    
-    def get_url(self, obj):
-        if(obj.video):
-            return obj.image_hash + ";.mp4"
-        else:
-            return obj.image_hash + ";photo"
-
-
 
 class GroupedPhotosSerializer(serpy.Serializer):
     date = serpy.StrField()
