@@ -43,6 +43,11 @@ export class UserPublicPage extends Component {
         </div>
       );
     }
+    const groupedPhotos = this.props.pub.userPublicPhotos[this.props.match.params.username];
+    if(groupedPhotos){
+    groupedPhotos.forEach(
+      (group) => (group.date = moment(group.date).format("MMM Do YYYY, dddd") !== "Invalid date" ?  moment(group.date).format("MMM Do YYYY, dddd") : group.date)
+    );}
     return (
       <div>
         {menu}
@@ -57,9 +62,9 @@ export class UserPublicPage extends Component {
             }
             loading={this.props.pub.fetchingUserPublicPhotos}
             titleIconName={"globe"}
-            photosGroupedByDate={this.props.pub.userPublicPhotos[this.props.match.params.username] ? this.props.pub.userPublicPhotos[this.props.match.params.username] : []}
-            isDateView={false}
-            idx2hash={this.props.pub.userPublicPhotos[this.props.match.params.username] ? this.props.pub.userPublicPhotos[this.props.match.params.username] : []}
+            photosGroupedByDate={groupedPhotos ? groupedPhotos : []}
+            isDateView={true}
+            idx2hash={groupedPhotos ? groupedPhotos.flatMap((el)=>el.items) : []}
             isPublic={
               this.props.auth.access === undefined ||
               this.props.auth.access.name !== this.props.match.params.username

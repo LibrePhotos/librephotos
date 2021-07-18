@@ -423,8 +423,6 @@ export class PhotoListView extends Component {
                 );
               }}
             >
-              {console.log(this.props.photosGroupedByDate)}
-              {console.log(this.props.idx2hash)}
             </Pig>
           </div>
         ) : (

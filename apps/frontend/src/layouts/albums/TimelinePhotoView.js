@@ -14,8 +14,8 @@ export class TimelinePhotoView extends Component {
 
   render() {
     const { fetchingAlbumsDatePhotoHashList } = this.props;
-    const changedStuff = this.props.albumsDatePhotoHashList;
-    changedStuff.forEach(
+    const groupedPhotos = this.props.albumsDatePhotoHashList;
+    groupedPhotos.forEach(
       (group) => (group.date = moment(group.date).format("MMM Do YYYY, dddd") !== "Invalid date" ?  moment(group.date).format("MMM Do YYYY, dddd") : group.date)
     );
     return (
@@ -24,7 +24,7 @@ export class TimelinePhotoView extends Component {
         loading={fetchingAlbumsDatePhotoHashList}
         titleIconName={"images"}
         isDateView={true}
-        photosGroupedByDate={changedStuff}
+        photosGroupedByDate={groupedPhotos}
         idx2hash={this.props.albumsDatePhotoHashList.flatMap((el) => el.items)}
       />
     );

@@ -14,12 +14,10 @@ import { Link } from "react-router-dom";
 import { SecuredImageJWT } from "../components/SecuredImage";
 import _ from "lodash";
 
-
 var topMenuHeight = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
 
 export class LocationMap extends Component {
-
   constructor(props) {
     super(props);
     this.mapRef = React.createRef();
@@ -28,7 +26,7 @@ export class LocationMap extends Component {
   componentDidMount() {
     console.log("Map was just set visible.");
 
-    var resizeDone = false
+    var resizeDone = false;
 
     // attempt resize 8 times; mapRef.current might be undefined
     for (let i = 0; i < 8; i++) {
@@ -37,16 +35,19 @@ export class LocationMap extends Component {
           if (this.mapRef.current) {
             const map = this.mapRef.current.leafletElement;
             map.invalidateSize(true);
-            resizeDone = true
-            console.log('Map resized.')
+            resizeDone = true;
+            console.log("Map resized.");
           }
         }
-      }, 1000*(i+1));
-    };
+      }, 1000 * (i + 1));
+    }
   }
 
-    onViewportChanged = viewport => {
-    console.log('Viewport changed, mapping new photo location: ', viewport.center);
+  onViewportChanged = (viewport) => {
+    console.log(
+      "Viewport changed, mapping new photo location: ",
+      viewport.center
+    );
     this.setState({ viewport });
 
     const map = this.mapRef.current.leafletElement;
@@ -54,7 +55,7 @@ export class LocationMap extends Component {
   };
 
   render() {
-    var photosWithGPS = this.props.photos.filter(function(photo) {
+    var photosWithGPS = this.props.photos.filter(function (photo) {
       if (photo.exif_gps_lon !== null && photo.exif_gps_lon) {
         return true;
       } else {
@@ -71,7 +72,7 @@ export class LocationMap extends Component {
     var avg_lat = sum_lat / photosWithGPS.length;
     var avg_lon = sum_lon / photosWithGPS.length;
 
-    var markers = photosWithGPS.map(function(photo) {
+    var markers = photosWithGPS.map(function (photo) {
       return (
         <Marker
           key={photo.image_hash}
@@ -102,7 +103,7 @@ export class LocationMap extends Component {
             zoom={zoom}
           >
             <TileLayer
-              attribution="&copy; <a href=&quot;https://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
+              attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.osm.org/{z}/{x}/{y}.png"
             />
             {markers}
@@ -131,7 +132,7 @@ export class EventMap extends Component {
 
     console.log("Map was just made visible.");
 
-    var resizeDone = false
+    var resizeDone = false;
 
     // attempt resize 8 times; mapRef.current might be undefined
     for (let i = 0; i < 8; i++) {
@@ -140,16 +141,19 @@ export class EventMap extends Component {
           if (this.mapRef.current) {
             const map = this.mapRef.current.leafletElement;
             map.invalidateSize(true);
-            resizeDone = true
-            console.log('Map resized.')
+            resizeDone = true;
+            console.log("Map resized.");
           }
         }
-      }, 1000*(i+1));
-    };
+      }, 1000 * (i + 1));
+    }
   }
 
-  onViewportChanged = viewport => {
-    console.log('Viewport changed, mapping new photo location: ', viewport.center);
+  onViewportChanged = (viewport) => {
+    console.log(
+      "Viewport changed, mapping new photo location: ",
+      viewport.center
+    );
     this.setState({ viewport });
 
     const map = this.mapRef.current.leafletElement;
@@ -157,7 +161,7 @@ export class EventMap extends Component {
   };
 
   preprocess() {
-    var eventsWithGPS = this.props.albumsAutoList.filter(function(album) {
+    var eventsWithGPS = this.props.albumsAutoList.filter(function (album) {
       if (album.gps_lat != null && album.gps_lon != null) {
         return true;
       } else {
@@ -174,7 +178,7 @@ export class EventMap extends Component {
     var avg_lat = sum_lat / eventsWithGPS.length;
     var avg_lon = sum_lon / eventsWithGPS.length;
 
-    var markers = eventsWithGPS.map(function(album) {
+    var markers = eventsWithGPS.map(function (album) {
       return <Marker position={[album.gps_lat, album.gps_lon]} />;
     });
     return [avg_lat, avg_lon, markers];
@@ -189,13 +193,9 @@ export class EventMap extends Component {
 
       return (
         <div>
-          <Map
-            ref={this.mapRef}
-            center={[avg_lat, avg_lon]}
-            zoom={2}
-          >
+          <Map ref={this.mapRef} center={[avg_lat, avg_lon]} zoom={2}>
             <TileLayer
-              attribution="&copy; <a href=&quot;https://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
+              attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.osm.org/{z}/{x}/{y}.png"
             />
             {markers}
@@ -218,7 +218,7 @@ export class LocationClusterMap extends Component {
     entrySquareSize: 200,
     gridHeight: window.innerHeight - topMenuHeight - 300,
     headerHeight: 60,
-    numEntrySquaresPerRow: 3
+    numEntrySquaresPerRow: 3,
   };
 
   constructor(props) {
@@ -243,7 +243,7 @@ export class LocationClusterMap extends Component {
 
     console.log("Map was just set visible.");
 
-    var resizeDone = false
+    var resizeDone = false;
 
     // attempt resize 8 times; mapRef.current might be undefined
     for (let i = 0; i < 8; i++) {
@@ -252,17 +252,19 @@ export class LocationClusterMap extends Component {
           if (this.mapRef.current) {
             const map = this.mapRef.current.leafletElement;
             map.invalidateSize(true);
-            resizeDone = true
-            console.log('Map resized.')
+            resizeDone = true;
+            console.log("Map resized.");
           }
         }
-      }, 1000*(i+1));
-    };
-
+      }, 1000 * (i + 1));
+    }
   }
 
-  onViewportChanged = viewport => {
-    console.log('Viewport changed, mapping new photo location: ', viewport.center);
+  onViewportChanged = (viewport) => {
+    console.log(
+      "Viewport changed, mapping new photo location: ",
+      viewport.center
+    );
     this.setState({ viewport });
 
     const map = this.mapRef.current.leafletElement;
@@ -274,7 +276,7 @@ export class LocationClusterMap extends Component {
 
     const bounds = map.getBounds();
 
-    const visibleMarkers = this.props.locationClusters.filter(loc => {
+    const visibleMarkers = this.props.locationClusters.filter((loc) => {
       const markerLat = loc[0];
       const markerLng = loc[1];
       if (
@@ -289,9 +291,9 @@ export class LocationClusterMap extends Component {
       }
     });
 
-    const visiblePlaceNames = visibleMarkers.map(el => el[2]);
+    const visiblePlaceNames = visibleMarkers.map((el) => el[2]);
 
-    const visiblePlaceAlbums = this.props.albumsPlaceList.filter(el => {
+    const visiblePlaceAlbums = this.props.albumsPlaceList.filter((el) => {
       if (visiblePlaceNames.includes(el.title)) {
         return true;
       } else {
@@ -304,16 +306,16 @@ export class LocationClusterMap extends Component {
       visibleMarkers: visibleMarkers,
       visiblePlaceAlbums: _.sortBy(visiblePlaceAlbums, [
         "geolocation_level",
-        "photo_count"
-      ])
+        "photo_count",
+      ]),
     });
   };
 
   static getDerivedStateFromProps(nextProps, prevState) {
     if (prevState.locationClusters.length === 0) {
       const visibleMarkers = nextProps.locationClusters;
-      const visiblePlaceNames = visibleMarkers.map(el => el[2]);
-      const visiblePlaceAlbums = nextProps.albumsPlaceList.filter(el => {
+      const visiblePlaceNames = visibleMarkers.map((el) => el[2]);
+      const visiblePlaceAlbums = nextProps.albumsPlaceList.filter((el) => {
         if (visiblePlaceNames.includes(el.title)) {
           return true;
         } else {
@@ -326,8 +328,8 @@ export class LocationClusterMap extends Component {
         locationClusters: nextProps.locationClusters,
         visiblePlaceAlbums: _.sortBy(visiblePlaceAlbums, [
           "geolocation_level",
-          "photo_count"
-        ])
+          "photo_count",
+        ]),
       };
     } else {
       return { ...prevState };
@@ -335,11 +337,11 @@ export class LocationClusterMap extends Component {
   }
 
   preprocess() {
-    var markers = this.props.locationClusters.map(function(loc) {
+    var markers = this.props.locationClusters.map(function (loc) {
       if (loc[0] !== 0) {
         return <Marker position={[loc[0], loc[1]]} title={loc[2]} />;
       }
-      return <div/>
+      return <div />;
     });
     return markers;
   }
@@ -358,7 +360,7 @@ export class LocationClusterMap extends Component {
       numEntrySquaresPerRow = 4;
     } else if (window.innerWidth < 1200) {
       numEntrySquaresPerRow = 5;
-    } 
+    }
 
     var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15;
 
@@ -368,7 +370,7 @@ export class LocationClusterMap extends Component {
       width: window.innerWidth,
       height: window.innerHeight,
       entrySquareSize: entrySquareSize,
-      numEntrySquaresPerRow: numEntrySquaresPerRow
+      numEntrySquaresPerRow: numEntrySquaresPerRow,
     });
   }
 
@@ -379,14 +381,11 @@ export class LocationClusterMap extends Component {
     if (albumPlaceIndex < place.length) {
       return (
         <div key={key} style={style}>
-          <div
-            onClick={() => {
-            }}
-            style={{ padding: 5 }}
-          >
-            {place[albumPlaceIndex].cover_photos.slice(0, 1).map(photo => {
+          <div onClick={() => {}} style={{ padding: 5 }}>
+            {place[albumPlaceIndex].cover_photos.slice(0, 1).map((photo) => {
               return (
-                <SecuredImageJWT
+                <Link to={`/place/${place[albumPlaceIndex].id}/`}>
+                  <SecuredImageJWT
                     style={{ display: "inline-block", objectFit: "cover" }}
                     width={this.state.entrySquareSize - 10}
                     height={this.state.entrySquareSize - 10}
@@ -396,6 +395,7 @@ export class LocationClusterMap extends Component {
                       photo.image_hash
                     }
                   />
+                </Link>
               );
             })}
           </div>
@@ -428,7 +428,7 @@ export class LocationClusterMap extends Component {
             style={{
               height: this.state.headerHeight,
               paddingTop: 10,
-              paddingRight: 5
+              paddingRight: 5,
             }}
           >
             <Header as="h2">
@@ -441,7 +441,8 @@ export class LocationClusterMap extends Component {
                   active={this.props.fetchingAlbumsPlaceList}
                 />
                 <Header.Subheader>
-                  Showing {this.state.visiblePlaceAlbums.length} places on the map
+                  Showing {this.state.visiblePlaceAlbums.length} places on the
+                  map
                 </Header.Subheader>
               </Header.Content>
             </Header>
@@ -451,14 +452,14 @@ export class LocationClusterMap extends Component {
               ref={this.mapRef}
               className="markercluster-map"
               style={{
-                height: 240
+                height: 240,
               }}
               onViewportChanged={this.onViewportChanged}
               center={[40, 0]}
               zoom={2}
             >
               <TileLayer
-                attribution="&copy; <a href=&quot;https://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
+                attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
               <MarkerClusterGroup>{markers}</MarkerClusterGroup>
@@ -511,27 +512,27 @@ export class AllPhotosMap extends Component {
   }
 }
 
-AllPhotosMap = connect(store => {
+AllPhotosMap = connect((store) => {
   return {
     photos: store.photos.photos,
     fetchingPhotos: store.photos.fetchingPhotos,
-    fetchedPhotos: store.photos.fetchedPhotos
+    fetchedPhotos: store.photos.fetchedPhotos,
   };
 })(AllPhotosMap);
 
-EventMap = connect(store => {
+EventMap = connect((store) => {
   return {
     albumsAutoList: store.albums.albumsAutoList,
     fetchingAlbumsAutoList: store.albums.fetchingAlbumsAutoList,
-    fetchedAlbumsAutoList: store.albums.fetchedAlbumsAutoList
+    fetchedAlbumsAutoList: store.albums.fetchedAlbumsAutoList,
   };
 })(EventMap);
 
-LocationClusterMap = connect(store => {
+LocationClusterMap = connect((store) => {
   return {
     albumsPlaceList: store.albums.albumsPlaceList,
     locationClusters: store.util.locationClusters,
     fetchingLocationClusters: store.util.fetchingLocationClusters,
-    fetchedLocationClusters: store.util.fetchedLocationClusters
+    fetchedLocationClusters: store.util.fetchedLocationClusters,
   };
 })(LocationClusterMap);

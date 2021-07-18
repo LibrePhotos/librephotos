@@ -44,6 +44,7 @@ import { LocationClusterMap } from "./components/maps";
 import { SharedToMe } from "./layouts/sharing/SharedToMe";
 import { SharedFromMe } from "./layouts/sharing/SharedFromMe";
 import 'semantic-ui-css/semantic.min.css'
+import { AlbumPlace } from "./layouts/albums/AlbumPlace";
 class Nav extends React.Component {
   render() {
     return (
@@ -103,7 +104,7 @@ class App extends Component {
 
             <PrivateRoute path="/useralbums" component={AlbumUser} />
 
-            <PrivateRoute path="/places" component={LocationClusterMap} />
+            <PrivateRoute path="/places" component={AlbumPlace} />
 
             <PrivateRoute path="/people" component={AlbumPeople} />
 

@@ -8,14 +8,13 @@ import {
   Header,
   Image,
   Loader,
-  Button
+  Button,
 } from "semantic-ui-react";
 import { fetchPeople, deletePerson } from "../../actions/peopleActions";
 import { serverAddress } from "../../api_client/apiClient";
 import { Grid, AutoSizer } from "react-virtualized";
 import { Link } from "react-router-dom";
 import { SecuredImageJWT } from "../../components/SecuredImage";
-
 
 var topMenuHeight = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
@@ -31,7 +30,7 @@ export class AlbumPeople extends Component {
   state = {
     width: window.innerWidth,
     height: window.innerHeight,
-    entrySquareSize: 200
+    entrySquareSize: 200,
   };
 
   componentWillMount() {
@@ -56,7 +55,7 @@ export class AlbumPeople extends Component {
       numEntrySquaresPerRow = 4;
     } else if (window.innerWidth < 1200) {
       numEntrySquaresPerRow = 5;
-    } 
+    }
 
     var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15;
 
@@ -65,7 +64,7 @@ export class AlbumPeople extends Component {
       width: window.innerWidth,
       height: window.innerHeight,
       entrySquareSize: entrySquareSize,
-      numEntrySquaresPerRow: numEntrySquaresPerRow
+      numEntrySquaresPerRow: numEntrySquaresPerRow,
     });
   }
 
@@ -96,19 +95,22 @@ export class AlbumPeople extends Component {
                   width={this.state.entrySquareSize - 10}
                   as={Link}
                   to={`/person/${this.props.people[albumPersonIndex].key}`}
-                  src={'/unknown_user.jpg'}
+                  src={"/unknown_user.jpg"}
                 />
               ) : (
-                <SecuredImageJWT
-                  height={this.state.entrySquareSize - 10}
-                  width={this.state.entrySquareSize - 10}
-                  as={Link}
-                  to={`/person/${this.props.people[albumPersonIndex].key}`}
-                  src={
-                    serverAddress +
-                    this.props.people[albumPersonIndex].face_photo_url
-                  }
-                />
+                <Link to={`/person/${this.props.people[albumPersonIndex].key}`}>
+                  <Image
+                    style={{ display: "inline-block", objectFit: "cover" }}
+                    height={this.state.entrySquareSize - 10}
+                    width={this.state.entrySquareSize - 10}
+                    src={
+                      serverAddress +
+                      this.props.people[albumPersonIndex].face_photo_url
+                        .replace(".jpg", "")
+                        .replace(".webp", "")
+                    }
+                  />
+                </Link>
               )
             ) : (
               <Image
@@ -139,7 +141,8 @@ export class AlbumPeople extends Component {
                     <div style={{ textAlign: "center" }}>
                       Are you sure you want to delete{" "}
                       <b>{this.props.people[albumPersonIndex].text}</b>?<br />
-                      This action cannot be undone!<br />
+                      This action cannot be undone!
+                      <br />
                       All the faces associated with this person will be tagged{" "}
                       <i>unknown</i>.
                       <Divider />
@@ -215,13 +218,13 @@ export class AlbumPeople extends Component {
   }
 }
 
-AlbumPeople = connect(store => {
+AlbumPeople = connect((store) => {
   return {
     albumsPeople: store.albums.albumsPeople,
     fetchingAlbumsPeople: store.albums.fetchingAlbumsPeople,
     fetchedAlbumsPeople: store.albums.fetchedAlbumsPeople,
     people: store.people.people,
     fetchedPeople: store.people.fetched,
-    fetchingPeople: store.people.fetching
+    fetchingPeople: store.people.fetching,
   };
 })(AlbumPeople);

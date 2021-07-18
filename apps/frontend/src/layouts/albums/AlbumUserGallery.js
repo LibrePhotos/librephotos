@@ -48,9 +48,9 @@ export class AlbumUserGallery extends Component {
         }
         loading={fetchingAlbumsUser}
         titleIconName={"bookmark"}
-        isDateView={true}
-        photosGroupedByDate={fetchingAlbumsUser ? [] : this.props.albumsUser[this.props.match.params.albumID]}
-        idx2hash={this.state.idx2hash}
+        isDateView={false} // Should be a Date View I Think
+        photosGroupedByDate={ this.props.albumsUser[this.props.match.params.albumID] ?  this.props.albumsUser[this.props.match.params.albumID].items:[]}
+        idx2hash={this.props.albumsUser[this.props.match.params.albumID] ? this.props.albumsUser[this.props.match.params.albumID].items.flatMap((el)=>el.items) : []}
         match={this.props.match}
         isPublic={isPublic}
       />

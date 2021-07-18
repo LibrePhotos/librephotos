@@ -78,21 +78,19 @@ export class AlbumUser extends Component {
             }}
             style={{ padding: 5 }}
           >
+          <Link to={`/useralbum/${this.props.albumsUserList[albumUserIndex].id}`}>
             <SecuredImageJWT
-              label={{ as: 'a', corner: 'left', icon: 'bookmark', color: 'red' }}
-              style={{ display: "inline-block" }}
-              as={Link}
-              to={`/useralbum/${this.props.albumsUserList[albumUserIndex].id}`}
+              style={{ display: "inline-block", objectFit: "cover" }}
               width={this.state.entrySquareSize - 10}
               height={this.state.entrySquareSize - 10}
               src={
                 serverAddress +
                 "/media/square_thumbnails/" +
                 this.props.albumsUserList[albumUserIndex].cover_photos[0]
-                  .image_hash +
-                ".jpg"
+                  .image_hash
               }
             />
+          </Link>
           </div>
           <div
             className="personCardName"
