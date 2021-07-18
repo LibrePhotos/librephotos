@@ -9,6 +9,7 @@ from api.models import Photo
 from rest_framework.response import Response
 from api.views.PhotosGroupedByDate import get_photos_ordered_by_date
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
+from rest_framework.permissions import AllowAny
 
 class RecentlyAddedPhotoListViewSet(viewsets.ModelViewSet):
     serializer_class = PigPhotoSerilizer 
@@ -56,7 +57,7 @@ class HiddenPhotoListViewset(viewsets.ModelViewSet):
         return Photo.objects.filter(
             Q(hidden=True) & Q(owner=self.request.user)).only(
                 'image_hash', 'exif_timestamp', 'favorited', 'public',
-                'hidden').order_by('exif_timestamp')
+                'hidden').order_by('-exif_timestamp')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -69,6 +70,33 @@ class HiddenPhotoListViewset(viewsets.ModelViewSet):
         serializer = GroupedPhotosSerializer(grouped_photos, many=True)
         return Response({'results': serializer.data})
 
+class PublicPhotoListViewset(viewsets.ModelViewSet):
+    serializer_class = PigPhotoSerilizer
+    pagination_class = HugeResultsSetPagination
+    permission_classes = (AllowAny, )
+
+    def get_queryset(self):
+        if 'username' in self.request.query_params.keys():
+            username = self.request.query_params['username']
+            return Photo.visible.filter(
+                Q(public=True) & Q(owner__username=username)).only(
+                    'image_hash', 'exif_timestamp', 'favorited',
+                    'hidden').order_by('-exif_timestamp')
+
+        return Photo.visible.filter(Q(public=True)).only(
+            'image_hash', 'exif_timestamp', 'favorited',
+            'hidden').order_by('-exif_timestamp')
+
+    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
+    def retrieve(self, *args, **kwargs):
+        return super(PublicPhotoListViewset, self).retrieve(*args, **kwargs)
+
+    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
+    def list(self, request):
+        queryset = self.get_queryset()
+        grouped_photos = get_photos_ordered_by_date(queryset)
+        serializer = GroupedPhotosSerializer(grouped_photos, many=True)
+        return Response({'results': serializer.data})
 
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class NoTimestampPhotoHashListViewSet(viewsets.ModelViewSet):
