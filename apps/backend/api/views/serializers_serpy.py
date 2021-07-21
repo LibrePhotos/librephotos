@@ -62,7 +62,14 @@ class PigPhotoSerilizer(serpy.Serializer):
     date =  DateTimeField(attr='exif_timestamp')
     birthTime = serpy.StrField(attr='exif_timestamp')
     aspectRatio = serpy.FloatField(attr='aspect_ratio')
+    type = serpy.MethodField("get_type")
 
+    def get_type(self, obj):
+        if(obj.isVideo):
+            return "video"
+        else:
+            return "image"
+            
 class GroupedPhotosSerializer(serpy.Serializer):
     date = serpy.StrField()
     location = serpy.StrField()
