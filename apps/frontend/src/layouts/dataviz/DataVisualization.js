@@ -4,7 +4,7 @@ import { connect } from "react-redux";
 import { fetchWordCloud } from "../../actions/utilActions";
 import WordCloud from "../../components/charts/wordCloud";
 import { LocationLink } from "../../components/locationLink";
-import { LocationClusterMap } from "../../components/maps";
+import { AlbumPlace } from "../albums/AlbumPlace";
 import EventCountMonthGraph from "../../components/eventCountMonthGraph";
 import LocationDurationStackedBar from "../../components/locationDurationStackedBar";
 import FaceClusterScatter from "../../components/faceClusterGraph";
@@ -27,7 +27,7 @@ export class PhotoMap extends Component {
   render() {
     return (
       <div style={{ marginLeft: -5 }}>
-        <LocationClusterMap
+        <AlbumPlace
           height={window.innerHeight - 55}
         />
       </div>

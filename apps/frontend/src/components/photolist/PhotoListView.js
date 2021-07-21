@@ -418,14 +418,14 @@ export class PhotoListView extends Component {
                 }
                 return (
                   serverAddress +
-                  "/media/square_thumbnails/" +
+                  "/media/square_thumbnails/" + 
                   url.split(";")[0]
                 );
               }}
             >
             </Pig>
           </div>
-        ) : (
+        ) : ( 
           <div></div>
         )}
 

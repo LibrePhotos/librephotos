@@ -4,7 +4,7 @@ import { connect } from "react-redux";
 import {CountStats} from '../../components/statistics'
 import WordCloud from '../../components/charts/wordCloud'
 import {LocationLink} from '../../components/locationLink'
-import {LocationClusterMap} from '../../components/maps'
+import { AlbumPlace } from "../albums/AlbumPlace";
 import EventCountMonthGraph from '../../components/eventCountMonthGraph'
 import LocationDurationStackedBar from '../../components/locationDurationStackedBar'
 import FaceClusterScatter  from '../../components/faceClusterGraph'
@@ -92,7 +92,7 @@ export class Statistics extends Component {
 
         { activeItem==='map' && (
             <div style={{paddingTop:10}}>
-                <LocationClusterMap height={window.innerHeight-250}/>
+                <AlbumPlace height={window.innerHeight-250}/>
             </div>
         )}
 

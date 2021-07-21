@@ -68,7 +68,7 @@ export class AlbumAuto extends Component {
             }}
             style={{ padding: 5 }}
           >
-            <Link to={"/event/$" +this.props.albumsAutoList[albumAutoIndex].id}> 
+            <Link to={"/event/" +this.props.albumsAutoList[albumAutoIndex].id}> 
             <Image
               style={{objectFit: "cover"}}
               width={this.state.entrySquareSize - 10}

@@ -363,7 +363,7 @@ export class AlbumAutoGalleryView extends Component {
                             style={{ paddingLeft: 2.5, paddingRight: 2.5, objectFit: "cover" }}
                             height={this.state.entrySquareSize}
                             width={this.state.entrySquareSize}
-                            src={serverAddress + photo.square_thumbnail_url}
+                            src={serverAddress + "/media/square_thumbnails/" + photo.image_hash}
                           />
                         </LazyLoad>
                       </div>

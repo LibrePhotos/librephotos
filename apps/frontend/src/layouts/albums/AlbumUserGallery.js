@@ -3,13 +3,13 @@ import { connect } from "react-redux";
 import { fetchUserAlbum } from "../../actions/albumsActions";
 import _ from "lodash";
 import moment from "moment";
-import { PhotoListView } from '../../components/photolist/PhotoListView'
+import { PhotoListView } from "../../components/photolist/PhotoListView";
 
 export class AlbumUserGallery extends Component {
   state = {
     photosGroupedByDate: [],
     idx2hash: [],
-    albumID: null
+    albumID: null,
   };
 
   componentDidMount() {
@@ -23,23 +23,28 @@ export class AlbumUserGallery extends Component {
       this.props.albumsUser[this.props.match.params.albumID] &&
       this.props.albumsUser[this.props.match.params.albumID].owner.id !==
         this.props.auth.access.user_id;
+    const groupedPhotos =
+      this.props.albumsUser[this.props.match.params.albumID];
+    if (groupedPhotos) {
+      groupedPhotos.grouped_photos.forEach(
+        (group) =>
+          (group.date =
+            moment(group.date).format("MMM Do YYYY, dddd") !== "Invalid date"
+              ? moment(group.date).format("MMM Do YYYY, dddd")
+              : group.date)
+      );
+    }
     return (
       <PhotoListView
-        title={
-          this.props.albumsUser[this.props.match.params.albumID]
-            ? this.props.albumsUser[this.props.match.params.albumID].title
-            : "Loading... "
-        }
+        title={groupedPhotos ? groupedPhotos.title : "Loading... "}
         additionalSubHeader={
-          this.props.albumsUser[this.props.match.params.albumID] && isPublic ? (
+          groupedPhotos && isPublic ? (
             <span>
               {", "}owned by{" "}
               <b style={{ color: "black" }}>
-                {this.props.albumsUser[this.props.match.params.albumID].owner
-                  .id === this.props.auth.access.user_id
+                {groupedPhotos.owner.id === this.props.auth.access.user_id
                   ? "you"
-                  : this.props.albumsUser[this.props.match.params.albumID].owner
-                      .username}
+                  : groupedPhotos.owner.username}
               </b>
             </span>
           ) : (
@@ -48,9 +53,13 @@ export class AlbumUserGallery extends Component {
         }
         loading={fetchingAlbumsUser}
         titleIconName={"bookmark"}
-        isDateView={false} // Should be a Date View I Think
-        photosGroupedByDate={ this.props.albumsUser[this.props.match.params.albumID] ?  this.props.albumsUser[this.props.match.params.albumID].items:[]}
-        idx2hash={this.props.albumsUser[this.props.match.params.albumID] ? this.props.albumsUser[this.props.match.params.albumID].items.flatMap((el)=>el.items) : []}
+        isDateView={true}
+        photosGroupedByDate={groupedPhotos ? groupedPhotos.grouped_photos : []}
+        idx2hash={
+          groupedPhotos
+            ? groupedPhotos.grouped_photos.flatMap((el) => el.items)
+            : []
+        }
         match={this.props.match}
         isPublic={isPublic}
       />
@@ -58,7 +67,7 @@ export class AlbumUserGallery extends Component {
   }
 }
 
-AlbumUserGallery = connect(store => {
+AlbumUserGallery = connect((store) => {
   return {
     auth: store.auth,
     albumsUser: store.albums.albumsUser,
@@ -66,6 +75,6 @@ AlbumUserGallery = connect(store => {
     fetchedAlbumsUser: store.albums.fetchedAlbumsUser,
     photoDetails: store.photos.photoDetails,
     fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
-    fetchedPhotoDetail: store.photos.fetchedPhotoDetail
+    fetchedPhotoDetail: store.photos.fetchedPhotoDetail,
   };
 })(AlbumUserGallery);
