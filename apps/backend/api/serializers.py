@@ -595,6 +595,9 @@ class UserSerializer(serializers.ModelSerializer):
             'confidence': {
                 'required': False
             },
+            'semantic_search_topk': {
+                'required': False
+            },
             'nextcloud_server_address': {
                 'required': False
             },
@@ -608,7 +611,7 @@ class UserSerializer(serializers.ModelSerializer):
                 'write_only': True
             }
         }
-        fields = ('id', 'username', 'email', 'scan_directory', 'confidence', 'first_name',
+        fields = ('id', 'username', 'email', 'scan_directory', 'confidence', 'semantic_search_topk', 'first_name',
                   'public_photo_samples', 'last_name', 'public_photo_count',
                   'date_joined', 'password', 'avatar', 'photo_count',
                   'nextcloud_server_address', 'nextcloud_username',
@@ -683,7 +686,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = get_user_model()
-        fields = ('username', 'scan_directory', 'confidence', 'last_login', 'date_joined',
+        fields = ('username', 'scan_directory', 'confidence', 'semantic_search_topk', 'last_login', 'date_joined',
                   'photo_count', 'id')
         extra_kwargs = {
             'password': {
@@ -708,6 +711,12 @@ class ManageUserSerializer(serializers.ModelSerializer):
             instance.save()
             logger.info("Updated confidence for user {}".format(
                 instance.confidence))
+        if 'semantic_search_topk' in validated_data:
+            new_semantic_search_topk = validated_data.pop('semantic_search_topk')
+            instance.semantic_search_topk = new_semantic_search_topk
+            instance.save()
+            logger.info("Updated semantic_search_topk for user {}".format(
+                instance.semantic_search_topk))
         cache.clear()
         return instance
 
