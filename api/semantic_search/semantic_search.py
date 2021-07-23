@@ -30,18 +30,18 @@ class SemanticSearch():
         imgs = [Image.open(img_path)]
         imgs_emb = self.model.encode(imgs, batch_size=1, convert_to_tensor=True)
         img_emb = imgs_emb[0].tolist()
-        magnitute = np.linalg.norm(img_emb)
+        magnitude = np.linalg.norm(img_emb)
 
-        return img_emb, magnitute
+        return img_emb, magnitude
 
     def calculate_query_embeddings(self, query):
         if not self.model_is_loaded:
             self.load()
 
         query_emb = self.model.encode([query], convert_to_tensor=True)[0].tolist()
-        magnitute = np.linalg.norm(query_emb)
+        magnitude = np.linalg.norm(query_emb)
 
-        return query_emb, magnitute
+        return query_emb, magnitude
 
 
 semantic_search_instance = SemanticSearch()
