@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import "react-virtualized/styles.css"; // only needs to be imported once
 import { copyToClipboard } from "../../util/util";
+import { connect } from "react-redux";
 import {
   setPhotosFavorite,
   setPhotosHidden,
@@ -9,150 +10,129 @@ import {
 import { Button, Icon } from "semantic-ui-react";
 import { shareAddress } from "../../api_client/apiClient";
 
-export default function getToolbar(box) {
-  return [
-    <div>
-      {!box.props.photoDetails[
-        box.props.idx2hash[box.props.lightboxImageIndex].id
-      ] && (
+export default class Toolbar extends Component {
+  constructor (props){
+    super(props);
+  }
+  
+  render() {
+    return (
+      <div>
+        {!this.props.photosDetail && (
+          <Button
+            loading
+            color="black"
+            icon
+            circular
+            disabled={this.props.isPublic}
+          >
+            <Icon name="hide" color={"grey"} />
+          </Button>
+        )}
+        {!this.props.photosDetail && (
+          <Button
+            loading
+            color="black"
+            icon
+            circular
+            disabled={this.props.isPublic}
+          >
+            <Icon name="star" color={"grey"} />
+          </Button>
+        )}
+        {!this.props.photosDetail && (
+          <Button
+            loading
+            color="black"
+            icon
+            circular
+            disabled={this.props.isPublic}
+          >
+            <Icon name="globe" color={"grey"} />
+          </Button>
+        )}
+        {this.props.photosDetail && (
+          <Button
+            disabled={this.props.isPublic}
+            onClick={() => {
+              const image_hash = this.props.photosDetail.id;
+              const val = !this.props.photosDetail.hidden;
+              this.props.dispatch(setPhotosHidden([image_hash], val));
+            }}
+            color="black"
+            icon
+            circular
+          >
+            <Icon
+              name="hide"
+              color={this.props.photosDetail.hidden ? "red" : "grey"}
+            />
+          </Button>
+        )}
+        {this.props.photosDetail && (
+          <Button
+            disabled={this.props.isPublic}
+            onClick={() => {
+              const image_hash = this.props.photosDetail.id;
+              const val = !this.props.photosDetail.favorited;
+              this.props.dispatch(setPhotosFavorite([image_hash], val));
+            }}
+            color="black"
+            icon
+            circular
+          >
+            <Icon
+              name="star"
+              color={this.props.photosDetail.favorited ? "yellow" : "grey"}
+            />
+          </Button>
+        )}
+        {this.props.photosDetail && (
+          <Button
+            disabled={this.props.isPublic}
+            onClick={() => {
+              const image_hash = this.props.photosDetail.id;
+              const val = !this.props.photosDetail.public;
+              this.props.dispatch(setPhotosPublic([image_hash], val));
+              copyToClipboard(
+                //edited from serverAddress.replace('//','') + "/media/thumbnails_big/" + image_hash + ".jpg"
+                // as above removed the domain and just left /media/thumbnails_big/" + image_hash + ".jpg"  *DW 12/9/20
+                // Not location of shared photo link Reverted to orgiinal *DW 12/13/20
+                shareAddress + "/media/thumbnails_big/" + image_hash + ".jpg"
+              );
+            }}
+            color="black"
+            icon
+            circular
+          >
+            <Icon
+              name="globe"
+              color={this.props.photosDetail.public ? "green" : "grey"}
+            />
+          </Button>
+        )}
         <Button
-          loading
-          color="black"
           icon
+          active={this.props.lightboxSidebarShow}
           circular
-          disabled={box.props.isPublic}
+          onClick={() => this.props.closeSidepanel()}
         >
-          <Icon name="hide" color={"grey"} />
+          <Icon name="info" />
         </Button>
-      )}
-      {!box.props.photoDetails[
-        box.props.idx2hash[box.props.lightboxImageIndex].id
-      ] && (
-        <Button
-          loading
-          color="black"
-          icon
-          circular
-          disabled={box.props.isPublic}
-        >
-          <Icon name="star" color={"grey"} />
-        </Button>
-      )}
-      {!box.props.photoDetails[
-        box.props.idx2hash[box.props.lightboxImageIndex].id
-      ] && (
-        <Button
-          loading
-          color="black"
-          icon
-          circular
-          disabled={box.props.isPublic}
-        >
-          <Icon name="globe" color={"grey"} />
-        </Button>
-      )}
-      {box.props.photoDetails[
-        box.props.idx2hash[box.props.lightboxImageIndex].id
-      ] && (
-        <Button
-          disabled={box.props.isPublic}
-          onClick={() => {
-            const image_hash = box.props.idx2hash[
-              box.props.lightboxImageIndex
-            ];
-            const val = !box.props.photoDetails[image_hash].hidden;
-            box.props.dispatch(setPhotosHidden([image_hash], val));
-          }}
-          color="black"
-          icon
-          circular
-        >
-          <Icon
-            name="hide"
-            color={
-              box.props.photoDetails[
-                box.props.idx2hash[box.props.lightboxImageIndex].id
-              ].hidden
-                ? "red"
-                : "grey"
-            }
-          />
-        </Button>
-      )}
-      {box.props.photoDetails[
-        box.props.idx2hash[box.props.lightboxImageIndex].id
-      ] && (
-        <Button
-          disabled={box.props.isPublic}
-          onClick={() => {
-            const image_hash = box.props.idx2hash[
-              box.props.lightboxImageIndex
-            ];
-            const val = !box.props.photoDetails[image_hash].favorited;
-            box.props.dispatch(setPhotosFavorite([image_hash], val));
-          }}
-          color="black"
-          icon
-          circular
-        >
-          <Icon
-            name="star"
-            color={
-              box.props.photoDetails[
-                box.props.idx2hash[box.props.lightboxImageIndex].id
-              ].favorited
-                ? "yellow"
-                : "grey"
-            }
-          />
-        </Button>
-      )}
-      {box.props.photoDetails[
-        box.props.idx2hash[box.props.lightboxImageIndex].id
-      ] && (
-        <Button
-          disabled={box.props.isPublic}
-          onClick={() => {
-            const image_hash = box.props.idx2hash[
-              box.props.lightboxImageIndex
-            ].id;
-            const val = !box.props.photoDetails[image_hash].public;
-            box.props.dispatch(setPhotosPublic([image_hash], val));
-            copyToClipboard(
-              //edited from serverAddress.replace('//','') + "/media/thumbnails_big/" + image_hash + ".jpg"
-              // as above removed the domain and just left /media/thumbnails_big/" + image_hash + ".jpg"  *DW 12/9/20
-              // Not location of shared photo link Reverted to orgiinal *DW 12/13/20
-              shareAddress + "/media/thumbnails_big/" + image_hash + ".jpg"
-            );
-          }}
-          color="black"
-          icon
-          circular
-        >
-          <Icon
-            name="globe"
-            color={
-              box.props.photoDetails[
-                box.props.idx2hash[box.props.lightboxImageIndex].id
-              ].public
-                ? "green"
-                : "grey"
-            }
-          />
-        </Button>
-      )}
-      <Button
-        icon
-        active={box.state.lightboxSidebarShow}
-        circular
-        onClick={() => {
-          box.setState({
-            lightboxSidebarShow: !box.state.lightboxSidebarShow,
-          });
-        }}
-      >
-        <Icon name="info" />
-      </Button>
-    </div>,
-  ];
+      </div>
+    )
+  }
 }
+
+Toolbar = connect((store) => {
+  return {
+    auth: store.auth,
+    showSidebar: store.ui.showSidebar,
+    photoDetails: store.photos.photoDetails,
+    fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
+    fetchedPhotoDetail: store.photos.fetchedPhotoDetail,
+    generatingCaptionIm2txt: store.photos.generatingCaptionIm2txt,
+    generatedCaptionIm2txt: store.photos.generatedCaptionIm2txt,
+    photos: store.photos.photos,
+  };
+})(Toolbar);

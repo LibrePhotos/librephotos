@@ -5,20 +5,26 @@ import { serverAddress } from "../../api_client/apiClient";
 import Lightbox from "react-image-lightbox";
 import ReactPlayer from "react-player";
 import "react-image-lightbox/style.css"; // This only needs to be imported once in your app
-import getToolbar from "./Toolbar";
-import getSideBar from "./SideBar";
+import Toolbar from "./Toolbar";
+import Sidebar from "./Sidebar";
 
 var LIGHTBOX_SIDEBAR_WIDTH = 360;
 if (window.innerWidth < 600) {
   LIGHTBOX_SIDEBAR_WIDTH = window.innerWidth;
 }
 export class LightBox extends Component {
+  constructor(props) {
+    super(props);
+
+    this.closeSidepanel = this.closeSidepanel.bind(this);
+  }
+
   state = {
     lightboxSidebarShow: false,
   };
 
   closeSidepanel() {
-    this.setState({ lightboxSidebarShow: false });
+    this.setState({ lightboxSidebarShow: !this.state.lightboxSidebarShow });
     this.forceUpdate();
   }
 
@@ -122,7 +128,6 @@ export class LightBox extends Component {
         }, 250 * i);
       }
     }
-
     return (
       <div>
         <Lightbox
@@ -145,7 +150,18 @@ export class LightBox extends Component {
             ) : null
           }
           imageLoadErrorMessage={""}
-          toolbarButtons={getToolbar(this)}
+          toolbarButtons={[
+            <Toolbar
+              photosDetail={
+                this.props.photoDetails[
+                  this.props.idx2hash.slice(this.props.lightboxImageIndex)[0].id
+                ]
+              }
+              lightboxSidebarShow={this.state.lightboxSidebarShow}
+              closeSidepanel={this.closeSidepanel}
+              isPublic={this.props.isPublic}
+            ></Toolbar>,
+          ]}
           onCloseRequest={this.props.onCloseRequest}
           onAfterOpen={() => {
             console.log("lightbox trying to fetch photo detail");
@@ -153,9 +169,6 @@ export class LightBox extends Component {
           }}
           onMovePrevRequest={this.props.onMovePrevRequest}
           onMoveNextRequest={this.props.onMoveNextRequest}
-          sidebarWidth={
-            this.state.lightboxSidebarShow ? LIGHTBOX_SIDEBAR_WIDTH : 0
-          }
           reactModalStyle={{
             content: {},
             overlay: {
@@ -168,7 +181,15 @@ export class LightBox extends Component {
             },
           }}
         />
-        {getSideBar(this)};
+        {
+          <Sidebar
+            photoDetail={this.getCurrentPhotodetail()}
+            lightboxSidebarShow={this.state.lightboxSidebarShow}
+            closeSidepanel={this.closeSidepanel}
+            isPublic={this.props.isPublic}
+          ></Sidebar>
+        }
+        ;
       </div>
     );
   }

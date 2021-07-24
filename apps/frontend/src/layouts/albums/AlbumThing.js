@@ -8,8 +8,7 @@ import { fetchThingAlbumsList } from "../../actions/albumsActions";
 import { searchPhotos } from "../../actions/searchActions";
 import { push } from "react-router-redux";
 import store from "../../store";
-import { SecuredImageJWT } from "../../components/SecuredImage";
-
+import { Tile } from "../../components/Tile";
 
 var topMenuHeight = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
@@ -20,7 +19,7 @@ export class AlbumThing extends Component {
     this.setState({
       width: window.innerWidth,
       height: window.innerHeight,
-      entrySquareSize: 200
+      entrySquareSize: 200,
     });
     this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this);
     this.cellRenderer = this.cellRenderer.bind(this);
@@ -48,7 +47,7 @@ export class AlbumThing extends Component {
       numEntrySquaresPerRow = 4;
     } else if (window.innerWidth < 1200) {
       numEntrySquaresPerRow = 5;
-    } 
+    }
 
     var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15;
 
@@ -57,7 +56,7 @@ export class AlbumThing extends Component {
       width: window.innerWidth,
       height: window.innerHeight,
       entrySquareSize: entrySquareSize,
-      numEntrySquaresPerRow: numEntrySquaresPerRow
+      numEntrySquaresPerRow: numEntrySquaresPerRow,
     });
   }
 
@@ -78,23 +77,16 @@ export class AlbumThing extends Component {
           >
             {this.props.albumsThingList[albumThingIndex].cover_photos
               .slice(0, 1)
-              .map(photo => {
-                return (
-                  <SecuredImageJWT
-                    style={{ display: "inline-block", objectFit: "cover" }}
-                    width={this.state.entrySquareSize - 10}
-                    height={this.state.entrySquareSize - 10}
-                    src={
-                      serverAddress +
-                      "/media/thumbnails_big/" +
-                      photo.image_hash
-                    }
-                  />
-                );
+              .map((photo) => {
+                return <Tile 
+                        video = {photo.video === true} 
+                        height = {this.state.entrySquareSize - 10}
+                        width = {this.state.entrySquareSize - 10}
+                        image_hash = {photo.image_hash}
+                        ></Tile> 
               })}
           </div>
           <div style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
-            
             <b>{this.props.albumsThingList[albumThingIndex].title}</b>
             <br />
             {this.props.albumsThingList[albumThingIndex].photo_count} Photos
@@ -152,57 +144,10 @@ export class AlbumThing extends Component {
   }
 }
 
-export class EntrySquare extends Component {
-  render() {
-    var images = this.props.cover_photos.map(function(photo) {
-      return (
-        <SecuredImageJWT
-          style={{ display: "inline-block" }}
-          width={this.props.size / 2 - 20}
-          height={this.props.size / 2 - 20}
-          src={
-            serverAddress +
-            "/media/square_thumbnails/" +
-            photo.image_hash +
-            ".jpg"
-          }
-        />
-      );
-    }, this);
-    return (
-      <div
-        style={{
-          width: this.props.size,
-          display: "inline-block",
-          paddingLeft: 10,
-          paddingRight: 10
-        }}
-        onClick={() => {
-          store.dispatch(searchPhotos(this.props.title));
-          store.dispatch(push("/search"));
-        }}
-      >
-        <div style={{ height: this.props.size }}>
-          <LazyLoad
-            once={true}
-            unmountIfInvisible={true}
-            height={this.props.size}
-          >
-            <Image.Group>{images}</Image.Group>
-          </LazyLoad>
-        </div>
-        <div style={{ height: 100 }}>
-          <b>{this.props.title}</b> ({this.props.photoCount})
-        </div>
-      </div>
-    );
-  }
-}
-
-AlbumThing = connect(store => {
+AlbumThing = connect((store) => {
   return {
     albumsThingList: store.albums.albumsThingList,
     fetchingAlbumsThingList: store.albums.fetchingAlbumsThingList,
-    fetchedAlbumsThingList: store.albums.fetchedAlbumsThingList
+    fetchedAlbumsThingList: store.albums.fetchedAlbumsThingList,
   };
 })(AlbumThing);
