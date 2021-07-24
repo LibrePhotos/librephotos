@@ -4,6 +4,7 @@ import os
 import torch
 import numpy as np
 import ownphotos
+# from api.models.photo import Photo
 
 dir_clip_ViT_B_32_model = ownphotos.settings.CLIP_ROOT
 
@@ -23,25 +24,46 @@ class SemanticSearch():
     def load_model(self):
         self.model = SentenceTransformer(dir_clip_ViT_B_32_model)
 
-    def calculate_clip_embeddings(self, img_path):
+    # def load_embeddings(self):
+    #     embeddings = []
+        
+    #     for obj in Photo.objects.all():
+    #         emb = obj.clip_embeddings
+    #         if emb:
+    #             embeddings.append(np.array(emb))
+            
+
+    #     self.embeddings = np.array(embeddings)
+
+    def calculate_clip_embeddings(self, img_paths):
         if not self.model_is_loaded:
             self.load()
-        
-        imgs = [Image.open(img_path)]
-        imgs_emb = self.model.encode(imgs, batch_size=1, convert_to_tensor=True)
-        img_emb = imgs_emb[0].tolist()
-        magnitute = np.linalg.norm(img_emb)
 
-        return img_emb, magnitute
+        if type(img_paths) is list:
+            imgs = list(map(Image.open, img_paths))
+        else:
+            imgs = [Image.open(img_paths)]
+
+        imgs_emb = self.model.encode(imgs, batch_size=32, convert_to_tensor=True)
+
+        if type(img_paths) is list:
+            magnitudes = map(np.linalg.norm, imgs_emb)
+
+            return imgs_emb, magnitudes
+        else:
+            img_emb = imgs_emb[0].tolist()
+            magnitude = np.linalg.norm(img_emb)
+
+            return img_emb, magnitude
 
     def calculate_query_embeddings(self, query):
         if not self.model_is_loaded:
             self.load()
 
         query_emb = self.model.encode([query], convert_to_tensor=True)[0].tolist()
-        magnitute = np.linalg.norm(query_emb)
+        magnitude = np.linalg.norm(query_emb)
 
-        return query_emb, magnitute
+        return query_emb, magnitude
 
 
 semantic_search_instance = SemanticSearch()

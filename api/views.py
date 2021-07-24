@@ -1014,7 +1014,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = User.objects.only(
-            'id', 'username', 'email', 'scan_directory', 'confidence', 'first_name',
+            'id', 'username', 'email', 'scan_directory', 'confidence', 'semantic_search_topk', 'first_name',
             'last_name', 'date_joined', 'avatar', 'nextcloud_server_address',
             'nextcloud_username', 'nextcloud_scan_directory'
         ).order_by('-last_login')
