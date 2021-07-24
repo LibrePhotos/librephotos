@@ -44,7 +44,6 @@ class PhotoSuperSimpleSerializer(serpy.Serializer):
     exif_timestamp = DateTimeField()
     allow_null = False
 
-
 class PhotoSuperSimpleSerializerWithAddedOn(serpy.Serializer):
     image_hash = serpy.StrField()
     favorited = serpy.BoolField()
@@ -65,11 +64,11 @@ class PigPhotoSerilizer(serpy.Serializer):
     type = serpy.MethodField("get_type")
 
     def get_type(self, obj):
-        if(obj.isVideo):
+        if(obj.video):
             return "video"
         else:
             return "image"
-            
+
 class GroupedPhotosSerializer(serpy.Serializer):
     date = serpy.StrField()
     location = serpy.StrField()
@@ -112,12 +111,18 @@ class PigAlbumDateSerializer(serpy.Serializer):
 
 class AlbumUserSerializerSerpy(serpy.Serializer):
     id = serpy.StrField()
+    title = serpy.StrField()
     owner = SimpleUserSerializer()
     shared_to = SimpleUserSerializer(
         many=True, call=True, attr='shared_to.all')
     date = serpy.MethodField("get_date")
     location = serpy.MethodField("get_location")
-    items = PigPhotoSerilizer(many=True, call=True, attr='photos.all')
+    grouped_photos = serpy.MethodField("get_photos")
+
+    def get_photos(self, obj):
+        grouped_photos = get_photos_ordered_by_date(obj.photos.all())
+        res = GroupedPhotosSerializer(grouped_photos, many=True).data
+        return res
 
     def get_location(self, obj):
         for photo in obj.photos.all():
