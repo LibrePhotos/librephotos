@@ -4,8 +4,6 @@ import os
 import torch
 import numpy as np
 import ownphotos
-# from api.models.photo import Photo
-
 dir_clip_ViT_B_32_model = ownphotos.settings.CLIP_ROOT
 
 class SemanticSearch():
@@ -23,17 +21,6 @@ class SemanticSearch():
 
     def load_model(self):
         self.model = SentenceTransformer(dir_clip_ViT_B_32_model)
-
-    # def load_embeddings(self):
-    #     embeddings = []
-        
-    #     for obj in Photo.objects.all():
-    #         emb = obj.clip_embeddings
-    #         if emb:
-    #             embeddings.append(np.array(emb))
-            
-
-    #     self.embeddings = np.array(embeddings)
 
     def calculate_clip_embeddings(self, img_paths):
         if not self.model_is_loaded:
