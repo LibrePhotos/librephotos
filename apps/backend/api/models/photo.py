@@ -69,7 +69,7 @@ class Photo(models.Model):
     public = models.BooleanField(default=False, db_index=True)
     encoding = models.TextField(default=None, null=True)
     clip_embeddings = ArrayField(models.FloatField(blank=True, null=True), size=512)
-    clip_embeddings_magnitutde = models.FloatField(blank=True, null=True)
+    clip_embeddings_magnitude = models.FloatField(blank=True, null=True)
     
     objects = models.Manager()
     visible = VisiblePhotoManager()
@@ -109,9 +109,9 @@ class Photo(models.Model):
         image_path = self.image_paths[0]
 
         try:
-            img_emb, magnitutde = semantic_search_instance.calculate_clip_embeddings(image_path)
+            img_emb, magnitude = semantic_search_instance.calculate_clip_embeddings(image_path)
             self.clip_embeddings = img_emb
-            self.clip_embeddings_magnitutde = magnitutde
+            self.clip_embeddings_magnitude = magnitude
             if commit:
                 self.save()
             util.logger.info(

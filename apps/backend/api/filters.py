@@ -21,26 +21,26 @@ class SemanticSearchFilter(filters.SearchFilter):
             for search_field in search_fields
         ]
 
-        query = request.query_params.get('search')
-        emb, magnitute = semantic_search_instance.calculate_query_embeddings(query)
-        similarity_factor = 0.225   # Fewer but accurate results will be returned if higher
-
-        # Calculating the cosine similarity
-        semantic_search_query = """
-            Select image_hash from (SELECT (
-                SELECT sum(a*b)/(%s*clip_embeddings_magnitutde)
-                FROM unnest(
-                clip_embeddings, -- ex1
-                %s  -- ex2
-                ) AS t(a,b)
-            ) as similarity, *
-                FROM public.api_photo
-            WHERE
-                owner_id=%s
-            Order by similarity desc) as t
-            WHERE 
-                t.similarity > %s
-        """
+        if request.user.semantic_search_topk > 0:
+            query = request.query_params.get('search')
+            emb, magnitude = semantic_search_instance.calculate_query_embeddings(query)
+            
+            # Calculating the cosine similarity
+            semantic_search_query = """
+                Select image_hash from (SELECT (
+                    SELECT sum(a*b)/(%s*clip_embeddings_magnitude)
+                    FROM unnest(
+                    clip_embeddings, -- ex1
+                    %s  -- ex2
+                    ) AS t(a,b)
+                ) as similarity, *
+                    FROM public.api_photo
+                WHERE
+                    owner_id=%s
+                Order by similarity desc
+                Limit %s) as t
+                where t.similarity > 0.25
+            """
 
         base = queryset
         conditions = []
@@ -49,7 +49,10 @@ class SemanticSearchFilter(filters.SearchFilter):
                 Q(**{orm_lookup: search_term})
                 for orm_lookup in orm_lookups
             ]
-            queries += [Q(image_hash__in=RawSQL(semantic_search_query, [magnitute, emb, request.user.id, similarity_factor]))]
+
+            if request.user.semantic_search_topk > 0:
+                queries += [Q(image_hash__in=RawSQL(semantic_search_query, [magnitude, emb, request.user.id, request.user.semantic_search_topk]))]
+
             conditions.append(reduce(operator.or_, queries))
         queryset = queryset.filter(reduce(operator.and_, conditions))
 
