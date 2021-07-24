@@ -6,10 +6,12 @@ from django.contrib.auth import get_user_model
 from django.db.models import Count, Prefetch, Q
 from rest_framework import serializers
 from django.core.cache import cache
+from api.batch_jobs import create_batch_job
 from api.image_similarity import search_similar_image
 from api.models import (AlbumAuto, AlbumDate, AlbumPlace, AlbumThing,
                         AlbumUser, Face, LongRunningJob, Person, Photo, User)
 from api.util import logger
+
 
 
 class SimpleUserSerializer(serializers.ModelSerializer):
@@ -713,6 +715,10 @@ class ManageUserSerializer(serializers.ModelSerializer):
                 instance.confidence))
         if 'semantic_search_topk' in validated_data:
             new_semantic_search_topk = validated_data.pop('semantic_search_topk')
+            
+            if instance.semantic_search_topk == 0 and new_semantic_search_topk > 0:
+                create_batch_job(LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS, User.objects.get(id=instance.id))
+            
             instance.semantic_search_topk = new_semantic_search_topk
             instance.save()
             logger.info("Updated semantic_search_topk for user {}".format(

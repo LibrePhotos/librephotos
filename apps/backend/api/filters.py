@@ -39,6 +39,7 @@ class SemanticSearchFilter(filters.SearchFilter):
                     owner_id=%s
                 Order by similarity desc
                 Limit %s) as t
+                where t.similarity > 0.25
             """
 
         base = queryset
