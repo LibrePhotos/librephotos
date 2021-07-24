@@ -9,20 +9,26 @@ import {
   Loader,
   Label,
   Button,
-  Popup
+  Popup,
 } from "semantic-ui-react";
 import { fetchPhotosSharedFromMe } from "../../actions/photosActions";
 import { fetchPublicUserList } from "../../actions/publicActions";
-import { fetchUserAlbumsSharedFromMe, deleteUserAlbum } from "../../actions/albumsActions";
+import {
+  fetchUserAlbumsSharedFromMe,
+  deleteUserAlbum,
+} from "../../actions/albumsActions";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
 import { serverAddress } from "../../api_client/apiClient";
 import { SecuredImageJWT } from "../../components/SecuredImage";
 import { Grid, AutoSizer } from "react-virtualized";
-import { calculateGridCellSize, calculateSharedPhotoGridCells } from "../../util/gridUtils";
+import {
+  calculateGridCellSize,
+  calculateSharedPhotoGridCells,
+} from "../../util/gridUtils";
 import { ScrollSpeed, SCROLL_DEBOUNCE_DURATION } from "../../util/scrollUtils";
 import debounce from "lodash/debounce";
-
+import {Tile} from "../../components/Tile";
 
 var TOP_MENU_HEIGHT = 45; // don't change this
 const SPEED_THRESHOLD = 300;
@@ -37,7 +43,7 @@ export class SharedFromMe extends Component {
     photoGridContents: null,
     albumGridContents: null,
     isScrollingFast: false,
-    topRowOwner: null
+    topRowOwner: null,
   };
 
   constructor(props) {
@@ -56,7 +62,7 @@ export class SharedFromMe extends Component {
     if (scrollSpeed >= SPEED_THRESHOLD) {
       this.setState({
         isScrollingFast: true,
-        scrollTop: scrollTop
+        scrollTop: scrollTop,
       });
     }
 
@@ -69,7 +75,7 @@ export class SharedFromMe extends Component {
 
     if (isScrollingFast) {
       this.setState({
-        isScrollingFast: false
+        isScrollingFast: false,
       });
     }
   }, SCROLL_DEBOUNCE_DURATION);
@@ -89,7 +95,6 @@ export class SharedFromMe extends Component {
       prevState.numEntrySquaresPerRow
     ).cellContents;
 
-
     return {
       activeItem: nextProps.match.params.which,
       photoGridContents: photoGridContents,
@@ -102,15 +107,14 @@ export class SharedFromMe extends Component {
       columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10;
     }
 
-    const { entrySquareSize, numEntrySquaresPerRow } = calculateGridCellSize(
-      columnWidth
-    );
+    const { entrySquareSize, numEntrySquaresPerRow } =
+      calculateGridCellSize(columnWidth);
 
     this.setState({
       width: window.innerWidth,
       height: window.innerHeight,
       entrySquareSize: entrySquareSize,
-      numEntrySquaresPerRow: numEntrySquaresPerRow
+      numEntrySquaresPerRow: numEntrySquaresPerRow,
     });
     if (this.photoGridRef.current) {
       this.photoGridRef.current.recomputeGridSize();
@@ -124,14 +128,14 @@ export class SharedFromMe extends Component {
       if (cell.user_id) {
         // sharer info header
         const owner = this.props.pub.publicUserList.filter(
-          e => e.id === cell.user_id
+          (e) => e.id === cell.user_id
         )[0];
         var displayName = cell.user_id;
         if (owner && owner.last_name.length + owner.first_name.length > 0) {
           displayName = owner.first_name + " " + owner.last_name;
         } else if (owner) {
           displayName = owner.username;
-        } 
+        }
         return (
           <div
             key={key}
@@ -140,7 +144,7 @@ export class SharedFromMe extends Component {
               width: this.state.width,
               height: DAY_HEADER_HEIGHT,
               paddingTop: 15,
-              paddingLeft: 5
+              paddingLeft: 5,
             }}
           >
             <Header as="h3">
@@ -165,19 +169,15 @@ export class SharedFromMe extends Component {
                   margin: 1,
                   backgroundColor: "#dddddd",
                   width: this.state.entrySquareSize - 2,
-                  height: this.state.entrySquareSize - 2
+                  height: this.state.entrySquareSize - 2,
                 }}
               />
             ) : (
-              <SecuredImageJWT
-                width={this.state.entrySquareSize - 2}
+              <Tile
+                video={false}
                 height={this.state.entrySquareSize - 2}
-                src={
-                  serverAddress +
-                  "/media/square_thumbnails/" +
-                  cell.image_hash +
-                  ".jpg"
-                }
+                width={this.state.entrySquareSize - 2}
+                image_hash={cell.image_hash}
               />
             )}
           </div>
@@ -197,12 +197,17 @@ export class SharedFromMe extends Component {
         <div key={key} style={style}>
           <div
             onClick={() => {
-                //todo
+              //todo
             }}
             style={{ padding: 5 }}
           >
             <SecuredImageJWT
-              label={{ as: 'a', corner: 'left', icon: 'bookmark', color: 'red' }}
+              label={{
+                as: "a",
+                corner: "left",
+                icon: "bookmark",
+                color: "red",
+              }}
               style={{ display: "inline-block" }}
               as={Link}
               to={`/useralbum/${this.props.albumsSharedFromMe[albumUserIndex].id}`}
@@ -212,8 +217,7 @@ export class SharedFromMe extends Component {
                 serverAddress +
                 "/media/square_thumbnails/" +
                 this.props.albumsSharedFromMe[albumUserIndex].cover_photos[0]
-                  .image_hash +
-                ".jpg"
+                  .image_hash
               }
             />
           </div>
@@ -221,22 +225,26 @@ export class SharedFromMe extends Component {
             className="personCardName"
             style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}
           >
-            
-            {
-              this.props.albumsSharedFromMe[albumUserIndex].shared_to.length>0 && 
-              <Popup 
-                style={{padding:10}}
-                size='tiny'
-                position='center right'
-                header='Shared with:'
-                trigger={<Icon name='users'/>}
-                content={
-                  this.props.albumsSharedFromMe[albumUserIndex].shared_to.map(el=>{
-                    return <div><Icon name='user circle'/><b>{el.username}</b></div>
-                  })
-                }/>
-
-            }
+            {this.props.albumsSharedFromMe[albumUserIndex].shared_to.length >
+              0 && (
+              <Popup
+                style={{ padding: 10 }}
+                size="tiny"
+                position="center right"
+                header="Shared with:"
+                trigger={<Icon name="users" />}
+                content={this.props.albumsSharedFromMe[
+                  albumUserIndex
+                ].shared_to.map((el) => {
+                  return (
+                    <div>
+                      <Icon name="user circle" />
+                      <b>{el.username}</b>
+                    </div>
+                  );
+                })}
+              />
+            )}
             <b>{this.props.albumsSharedFromMe[albumUserIndex].title}</b> <br />
             {this.props.albumsSharedFromMe[albumUserIndex].photo_count} Photo(s)
             {true && (
@@ -252,16 +260,22 @@ export class SharedFromMe extends Component {
                   content={
                     <div style={{ textAlign: "center" }}>
                       Are you sure you want to delete{" "}
-                      <b>{this.props.albumsSharedFromMe[albumUserIndex].title}</b>?<br />
-                      This action cannot be undone!<br />
+                      <b>
+                        {this.props.albumsSharedFromMe[albumUserIndex].title}
+                      </b>
+                      ?<br />
+                      This action cannot be undone!
+                      <br />
                       <Divider />
                       <div>
                         <Button
                           onClick={() =>
                             this.props.dispatch(
                               deleteUserAlbum(
-                                this.props.albumsSharedFromMe[albumUserIndex].id,
-                                this.props.albumsSharedFromMe[albumUserIndex].title
+                                this.props.albumsSharedFromMe[albumUserIndex]
+                                  .id,
+                                this.props.albumsSharedFromMe[albumUserIndex]
+                                  .title
                               )
                             )
                           }
@@ -287,18 +301,18 @@ export class SharedFromMe extends Component {
 
   render() {
     const { activeItem } = this.state;
-    var subheader
-    var totalListHeight
+    var subheader;
+    var totalListHeight;
     if (activeItem === "photos") {
       subheader = (
         <Header.Subheader>
           {"   "}
           {this.props.photos.photosSharedFromMe.length > 0 &&
             this.props.photos.photosSharedFromMe
-              .map(el => el.photos.length)
+              .map((el) => el.photos.length)
               .reduce((a, b) => a + b)}{" "}
-          {" "}photo share(s) with {" "}
-          {this.props.photos.photosSharedFromMe.length}{" "} user(s) 
+          photo share(s) with {this.props.photos.photosSharedFromMe.length}{" "}
+          user(s)
         </Header.Subheader>
       );
       totalListHeight = this.state.photoGridContents
@@ -315,8 +329,7 @@ export class SharedFromMe extends Component {
     } else {
       subheader = (
         <Header.Subheader>
-          You shared{" "}
-          {this.props.albums.albumsSharedFromMe.length} albums
+          You shared {this.props.albums.albumsSharedFromMe.length} albums
         </Header.Subheader>
       );
     }
@@ -325,16 +338,14 @@ export class SharedFromMe extends Component {
         <div style={{ height: 60, paddingTop: 10 }}>
           <Header as="h2">
             <Icon.Group size="big">
-              <Icon 
-                name={activeItem==='photos' ? "image outline" :'images outline'}/>
               <Icon
-                corner
-                name="share"
-                color="red"
-                size='mimi'
+                name={
+                  activeItem === "photos" ? "image outline" : "images outline"
+                }
               />
+              <Icon corner name="share" color="red" size="mimi" />
             </Icon.Group>
-            <Header.Content style={{paddingLeft:10}}>
+            <Header.Content style={{ paddingLeft: 10 }}>
               {activeItem === "photos" ? "Photos" : "Albums"} you shared{" "}
               {subheader}
             </Header.Content>
@@ -365,10 +376,10 @@ export class SharedFromMe extends Component {
             right: 0,
             top: TOP_MENU_HEIGHT + 60,
             position: "fixed",
-            padding: 5
+            padding: 5,
           }}
         >
-          {this.state.topRowOwner && activeItem==='photos' && (
+          {this.state.topRowOwner && activeItem === "photos" && (
             <Label basic>Shared to: {this.state.topRowOwner}</Label>
           )}
         </div>
@@ -399,10 +410,9 @@ export class SharedFromMe extends Component {
                   <Grid
                     ref={this.photoGridRef}
                     onSectionRendered={({ rowStartIndex }) => {
-                      const cell = this.state.photoGridContents[
-                        rowStartIndex
-                      ][0];
-                      var sharedTo
+                      const cell =
+                        this.state.photoGridContents[rowStartIndex][0];
+                      var sharedTo;
                       if (cell.user_id) {
                         sharedTo = cell.photos[0].shared_to.username;
                       } else {
@@ -468,9 +478,9 @@ export class SharedFromMe extends Component {
                     columnWidth={this.state.entrySquareSize}
                     columnCount={this.state.numEntrySquaresPerRow}
                     height={this.state.height - 45 - 60 - 40}
-                    rowHeight={this.state.entrySquareSize+60}
+                    rowHeight={this.state.entrySquareSize + 60}
                     rowCount={Math.ceil(
-                        this.props.albums.albumsSharedFromMe.length /
+                      this.props.albums.albumsSharedFromMe.length /
                         this.state.numEntrySquaresPerRow.toFixed(1)
                     )}
                     width={width}
@@ -480,151 +490,146 @@ export class SharedFromMe extends Component {
             </div>
           )}
 
-        {false &&
-          activeItem === "photos" && (
-            <div style={{ paddingTop: 13, paddingLeft: 10, paddingRight: 10 }}>
-              {this.props.photos.photosSharedFromMe.map((el, idx) => {
-                const owner = this.props.pub.publicUserList.filter(
-                  e => e.id === el.user_id
-                )[0];
-                var displayName = el.user_id;
-                if (
-                  owner &&
-                  owner.last_name.length + owner.first_name.length > 0
-                ) {
-                  displayName = owner.first_name + " " + owner.last_name;
-                } else if (owner) {
-                  displayName = owner.username;
-                } 
+        {false && activeItem === "photos" && (
+          <div style={{ paddingTop: 13, paddingLeft: 10, paddingRight: 10 }}>
+            {this.props.photos.photosSharedFromMe.map((el, idx) => {
+              const owner = this.props.pub.publicUserList.filter(
+                (e) => e.id === el.user_id
+              )[0];
+              var displayName = el.user_id;
+              if (
+                owner &&
+                owner.last_name.length + owner.first_name.length > 0
+              ) {
+                displayName = owner.first_name + " " + owner.last_name;
+              } else if (owner) {
+                displayName = owner.username;
+              }
 
-                return (
-                  <div style={{ padding: 10 }}>
-                    <Header>
-                      <Image circular src="/unknown_user.jpg" />
-                      <Header.Content>
-                        {displayName}
-                        <Header.Subheader>
-                          shared {el.photos.length} photos
-                        </Header.Subheader>
-                      </Header.Content>
-                    </Header>
-                    {true && (
-                      <div>
-                        <SUGrid doubling unstackable>
-                          <SUGrid.Row
-                            columns={this.props.ui.gridType === "dense" ? 5 : 3}
-                          >
-                            {el.photos
-                              //.slice(
-                              //  0,
-                              //  this.props.ui.gridType === "dense" ? 5 : 3
-                              //)
-                              .map(photo => (
-                                <SUGrid.Column>
-                                  <SecuredImageJWT
-                                    src={
-                                      serverAddress +
-                                      "/media/square_thumbnails/" +
-                                      photo.image_hash +
-                                      ".jpg"
-                                    }
-                                  />
-                                </SUGrid.Column>
-                              ))}
-                          </SUGrid.Row>
-                        </SUGrid>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        {false &&
-          activeItem === "albums" && (
-            <div style={{ paddingTop: 13, paddingLeft: 10, paddingRight: 10 }}>
-              {this.props.albums.albumsSharedFromMe.map((el, idx) => {
-                const owner = this.props.pub.publicUserList.filter(
-                  e => e.id === el.user_id
-                )[0];
-                var displayName = el.user_id;
-                if (
-                  owner &&
-                  owner.last_name.length + owner.first_name.length > 0
-                ) {
-                  displayName = owner.first_name + " " + owner.last_name;
-                } else if (owner) {
-                  displayName = owner.username;
-                }
+              return (
+                <div style={{ padding: 10 }}>
+                  <Header>
+                    <Image circular src="/unknown_user.jpg" />
+                    <Header.Content>
+                      {displayName}
+                      <Header.Subheader>
+                        shared {el.photos.length} photos
+                      </Header.Subheader>
+                    </Header.Content>
+                  </Header>
+                  {true && (
+                    <div>
+                      <SUGrid doubling unstackable>
+                        <SUGrid.Row
+                          columns={this.props.ui.gridType === "dense" ? 5 : 3}
+                        >
+                          {el.photos
+                            //.slice(
+                            //  0,
+                            //  this.props.ui.gridType === "dense" ? 5 : 3
+                            //)
+                            .map((photo) => (
+                              <SUGrid.Column>
+                                <Tile
+                                  video={false}
+                                  height={this.state.entrySquareSize}
+                                  width={this.state.entrySquareSize}
+                                  image_hash={photo.image_hash}
+                                />
+                              </SUGrid.Column>
+                            ))}
+                        </SUGrid.Row>
+                      </SUGrid>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {false && activeItem === "albums" && (
+          <div style={{ paddingTop: 13, paddingLeft: 10, paddingRight: 10 }}>
+            {this.props.albums.albumsSharedFromMe.map((el, idx) => {
+              const owner = this.props.pub.publicUserList.filter(
+                (e) => e.id === el.user_id
+              )[0];
+              var displayName = el.user_id;
+              if (
+                owner &&
+                owner.last_name.length + owner.first_name.length > 0
+              ) {
+                displayName = owner.first_name + " " + owner.last_name;
+              } else if (owner) {
+                displayName = owner.username;
+              }
 
-                return (
-                  <div style={{ padding: 10 }}>
-                    <Header>
-                      <Image circular src="/unknown_user.jpg" />
-                      <Header.Content>
-                        {displayName}
-                        <Header.Subheader>
-                          shared {el.albums.length} albums
-                        </Header.Subheader>
-                      </Header.Content>
-                    </Header>
-                    {true && (
-                      <div>
-                        <SUGrid doubling unstackable>
-                          <SUGrid.Row
-                            columns={this.props.ui.gridType === "dense" ? 5 : 3}
-                          >
-                            {el.albums
-                              //.slice(
-                              //  0,
-                              //  this.props.ui.gridType === "dense" ? 5 : 3
-                              //)
-                              .map(album => (
-                                <SUGrid.Column>
-                                  <SecuredImageJWT
-                                    as={Link}
-                                    to={`/useralbum/${album.id}/`}
-                                    label={{
-                                      as: "a",
-                                      corner: "left",
-                                      icon: "bookmark",
-                                      color: "red"
-                                    }}
-                                    src={
-                                      serverAddress +
-                                      "/media/square_thumbnails/" +
-                                      album.cover_photos[0].image_hash +
-                                      ".jpg"
-                                    }
-                                  />
-                                  <div
-                                    style={{
-                                      paddingLeft: 15,
-                                      paddingRight: 15,
-                                      paddingTop: 5
-                                    }}
-                                  >
-                                    <b>{album.title}</b>
-                                    <br />
-                                    {album.photo_count} Photos
-                                  </div>
-                                </SUGrid.Column>
-                              ))}
-                          </SUGrid.Row>
-                        </SUGrid>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+              return (
+                <div style={{ padding: 10 }}>
+                  <Header>
+                    <Image circular src="/unknown_user.jpg" />
+                    <Header.Content>
+                      {displayName}
+                      <Header.Subheader>
+                        shared {el.albums.length} albums
+                      </Header.Subheader>
+                    </Header.Content>
+                  </Header>
+                  {true && (
+                    <div>
+                      <SUGrid doubling unstackable>
+                        <SUGrid.Row
+                          columns={this.props.ui.gridType === "dense" ? 5 : 3}
+                        >
+                          {el.albums
+                            //.slice(
+                            //  0,
+                            //  this.props.ui.gridType === "dense" ? 5 : 3
+                            //)
+                            .map((album) => (
+                              <SUGrid.Column>
+                                <SecuredImageJWT
+                                  as={Link}
+                                  to={`/useralbum/${album.id}/`}
+                                  label={{
+                                    as: "a",
+                                    corner: "left",
+                                    icon: "bookmark",
+                                    color: "red",
+                                  }}
+                                  src={
+                                    serverAddress +
+                                    "/media/square_thumbnails/" +
+                                    album.cover_photos[0].image_hash
+                                  }
+                                />
+                                <div
+                                  style={{
+                                    paddingLeft: 15,
+                                    paddingRight: 15,
+                                    paddingTop: 5,
+                                  }}
+                                >
+                                  <b>{album.title}</b>
+                                  <br />
+                                  {album.photo_count} Photos
+                                </div>
+                              </SUGrid.Column>
+                            ))}
+                        </SUGrid.Row>
+                      </SUGrid>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   }
 }
 
-SharedFromMe = connect(store => {
+SharedFromMe = connect((store) => {
   return {
     showSidebar: store.ui.showSidebar,
     pub: store.pub,
@@ -632,7 +637,6 @@ SharedFromMe = connect(store => {
     auth: store.auth,
     photos: store.photos,
     albums: store.albums,
-    albumsSharedFromMe: store.albums.albumsSharedFromMe
-
+    albumsSharedFromMe: store.albums.albumsSharedFromMe,
   };
 })(SharedFromMe);

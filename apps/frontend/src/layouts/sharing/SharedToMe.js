@@ -23,7 +23,7 @@ import {
 } from "../../util/gridUtils";
 import { ScrollSpeed, SCROLL_DEBOUNCE_DURATION } from "../../util/scrollUtils";
 import debounce from "lodash/debounce";
-
+import Tile from "../../components/Tile"
 
 var TOP_MENU_HEIGHT = 45; // don't change this
 const SPEED_THRESHOLD = 300;
@@ -184,8 +184,7 @@ export class SharedToMe extends Component {
                 src={
                   serverAddress +
                   "/media/square_thumbnails/" +
-                  cell.image_hash +
-                  ".jpg"
+                  cell.image_hash
                 }
               />
             )}
@@ -254,8 +253,7 @@ export class SharedToMe extends Component {
               src={
                 serverAddress +
                 "/media/square_thumbnails/" +
-                cell.cover_photos[0].image_hash +
-                ".jpg"
+                cell.cover_photos[0].image_hash
               }
             />
             <div style={{ height: 40, paddingLeft: 10, paddingTop: 5 }}>
@@ -537,13 +535,11 @@ export class SharedToMe extends Component {
                               //)
                               .map(photo => (
                                 <SUGrid.Column>
-                                  <SecuredImageJWT
-                                    src={
-                                      serverAddress +
-                                      "/media/square_thumbnails/" +
-                                      photo.image_hash +
-                                      ".jpg"
-                                    }
+                                  <Tile
+                                    video = {false}
+                                    height = {this.state.entrySquareSize}
+                                    width = {this.state.entrySquareSize}
+                                    image_hash={photo.image_hash}
                                   />
                                 </SUGrid.Column>
                               ))}
@@ -609,8 +605,7 @@ export class SharedToMe extends Component {
                                     src={
                                       serverAddress +
                                       "/media/square_thumbnails/" +
-                                      album.cover_photos[0].image_hash +
-                                      ".jpg"
+                                      album.cover_photos[0].image_hash
                                     }
                                   />
                                   <div
