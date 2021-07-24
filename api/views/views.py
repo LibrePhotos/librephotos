@@ -398,29 +398,6 @@ class FaceLabeledViewSet(viewsets.ModelViewSet):
         return super(FaceLabeledViewSet, self).list(*args, **kwargs)
 
 
-@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
-class PersonViewSet(viewsets.ModelViewSet):
-    serializer_class = PersonSerializer
-    pagination_class = StandardResultsSetPagination
-    filter_backends = (filters.SearchFilter, )
-    search_fields = (['name'])
-
-    def get_queryset(self):
-        qs = Person.objects \
-            .filter(Q(faces__photo__hidden=False) & Q(faces__photo__owner=self.request.user) & Q(faces__person_label_is_inferred=False)) \
-            .distinct() \
-            .annotate(viewable_face_count=Count('faces')) \
-            .filter(Q(viewable_face_count__gt=0)) \
-            .order_by('name')
-        return qs
-
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
-    def retrieve(self, *args, **kwargs):
-        return super(PersonViewSet, self).retrieve(*args, **kwargs)
-
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
-    def list(self, *args, **kwargs):
-        return super(PersonViewSet, self).list(*args, **kwargs)
 
 
 

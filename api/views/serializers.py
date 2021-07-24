@@ -36,7 +36,7 @@ class PhotoEditSerializer(serializers.ModelSerializer):
 class PhotoHashListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Photo
-        fields = ('image_hash', )
+        fields = ('image_hash', 'video')
 
 
 class PhotoSuperSimpleSerializer(serializers.ModelSerializer):
@@ -106,8 +106,17 @@ class PhotoSerializer(serializers.ModelSerializer):
 
     def get_similar_photos(self, obj):
         res = search_similar_image(obj.owner,obj)
+        arr = []
         if len(res) > 0:
-            return [ {'image_hash':e} for e in res['result']]
+            [arr.append(e) for e in res['result']]
+            photos = Photo.objects.filter(image_hash__in=arr).all()
+            res = []
+            for photo in photos:
+                type = "image"
+                if(photo.video):
+                    type = "video"
+                res.append({"image_hash": photo.image_hash, "type": type})
+            return res
         else:
             return []
     

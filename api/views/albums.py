@@ -236,7 +236,7 @@ class AlbumThingListViewSet(viewsets.ModelViewSet):
             .prefetch_related(
                 Prefetch(
                     'photos',
-                    queryset=Photo.visible.only('image_hash')))
+                    queryset=Photo.visible.only('image_hash', 'video')))
         
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
