@@ -14,7 +14,6 @@ import PIL
 import pytz
 from django.core.cache import cache
 from api.exifreader import rotate_image
-from api.im2vec import Im2Vec
 from api.models.user import User, get_deleted_user
 from api.places365.places365 import place365_instance
 from api.semantic_search.semantic_search import semantic_search_instance
@@ -67,7 +66,6 @@ class Photo(models.Model):
     shared_to = models.ManyToManyField(User, related_name='photo_shared_to')
 
     public = models.BooleanField(default=False, db_index=True)
-    encoding = models.TextField(default=None, null=True)
     clip_embeddings = ArrayField(models.FloatField(blank=True, null=True), size=512)
     clip_embeddings_magnitude = models.FloatField(blank=True, null=True)
     
@@ -327,17 +325,6 @@ class Photo(models.Model):
                     self.save()
             except:
                 util.logger.exception('something went wrong with geolocating')
-
-    def _im2vec(self,commit=True):
-        try:
-            im2vec = Im2Vec(cuda=False)
-            image = PIL.Image.open(self.square_thumbnail)
-            vec = im2vec.get_vec(image)
-            self.encoding = vec.tobytes().hex()
-            if commit:
-                self.save()
-        except:
-            util.logger.exception('something went wrong with im2vec')
 
     def _extract_faces(self):
         qs_unknown_person = api.models.person.Person.objects.filter(name='unknown')
