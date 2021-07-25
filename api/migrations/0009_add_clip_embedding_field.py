@@ -24,5 +24,9 @@ class Migration(migrations.Migration):
             model_name='User',
             name='semantic_search_topk',
             field= models.IntegerField(default=0, null=False)
+        ),
+        migrations.RemoveField(
+            model_name='Photo',
+            name='encoding',
         )
     ]
