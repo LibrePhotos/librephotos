@@ -1,5 +1,6 @@
 import datetime
 import hashlib
+from api.thumbnails import isRawPicture
 import os
 import stat
 import magic
@@ -14,7 +15,7 @@ from api.image_similarity import build_image_similarity_index
 from api.models import LongRunningJob, Photo
 from multiprocessing import Pool
 import api.models.album_thing
-from wand.image import Image
+import pyvips
 
 def is_video(image_path):
     mime = magic.Magic(mime=True)
@@ -24,9 +25,11 @@ def is_video(image_path):
 def is_valid_media(image_path):
     if(is_video(image_path)):
         return True
+    if(isRawPicture(image_path)):
+        return True
     try:
-        with Image(filename=image_path) as i:
-            return True
+        pyvips.Image.thumbnail(image_path, 10000, height=200, size=pyvips.enums.Size.DOWN)
+        return True
     except Exception as e:
         util.logger.info("Could not handle {}, because {}".format(image_path, str(e)))
         return False
@@ -102,13 +105,11 @@ def handle_new_image(user, image_path, job_id):
                 start = datetime.datetime.now()
                 photo._generate_thumbnail(True)
                 photo._generate_captions(False)
-                photo._extract_gps_from_exif(False)
                 photo._geolocate_mapbox(False)
                 photo._im2vec(False)
+                photo._calculate_aspect_ratio(False)
                 photo._extract_date_time_from_exif(True)
                 photo._extract_faces()
-                photo._add_to_album_place()
-                photo._add_to_album_date()
 
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info( "job {}: image processed: {}, elapsed: {}".format(
@@ -145,10 +146,12 @@ def rescan_image(user, image_path, job_id):
     try:
         if is_valid_media(image_path):
             photo = Photo.objects.filter(Q(image_paths__contains=image_path)).get()
-            photo._generate_thumbnail(False)
+            photo._generate_thumbnail(True)
+            photo._calculate_aspect_ratio(False)
+            photo._geolocate_mapbox(False)
             photo._extract_date_time_from_exif(True)
             
-
+            
     except Exception as e:
         try:
             util.logger.exception(
@@ -186,6 +189,10 @@ def photo_scanner(user, path, job_id):
 # job is currently not used, because the model.eval() doesn't execute when it is running as a job
 @job
 def scan_photos(user, job_id):
+    if(not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT, "thumbnails_big"))):
+        os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "square_thumbnails_small"))
+        os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "square_thumbnails"))
+        os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "thumbnails_big"))
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
@@ -220,7 +227,6 @@ def scan_photos(user, job_id):
         api.models.album_thing.update()
         exisisting_photos = Photo.objects.filter(owner=user.id)
         for existing_photo in exisisting_photos:
-            util.logger.info(existing_photo.image_paths)
             existing_photo._check_image_paths()
         build_image_similarity_index(user)
     except Exception:

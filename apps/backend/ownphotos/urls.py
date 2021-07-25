@@ -13,7 +13,7 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
-from api import views
+from api.views import views, photos, albums
 from django.conf.urls import include, url
 from django.conf.urls.static import static
 from django.conf import settings
@@ -86,7 +86,7 @@ router.register(r'api/manage/user', views.ManageUserViewSet)
 
 router.register(
     r'api/albums/auto/list',
-    views.AlbumAutoListViewSet,
+    albums.AlbumAutoListViewSet,
     basename='album_auto')
 router.register(
     r'api/albums/date/list',
@@ -98,19 +98,19 @@ router.register(
     basename='album_date')
 router.register(
     r'api/albums/person/list',
-    views.AlbumPersonListViewSet,
+    albums.AlbumPersonListViewSet,
     basename='person')
 router.register(
     r'api/albums/thing/list',
-    views.AlbumThingListViewSet,
+    albums.AlbumThingListViewSet,
     basename='album_thing')
 router.register(
     r'api/albums/place/list',
-    views.AlbumPlaceListViewSet,
+    albums.AlbumPlaceListViewSet,
     basename='album_place')
 router.register(
     r'api/albums/user/list',
-    views.AlbumUserListViewSet,
+    albums.AlbumUserListViewSet,
     basename='album_user')
 
 router.register(
@@ -128,18 +128,18 @@ router.register(
     basename='album_user')
 
 router.register(
-    r'api/albums/auto', views.AlbumAutoViewSet, basename='album_auto')
+    r'api/albums/auto', albums.AlbumAutoViewSet, basename='album_auto')
 router.register(
-    r'api/albums/person', views.AlbumPersonViewSet, basename='person')
+    r'api/albums/person', albums.AlbumPersonViewSet, basename='person')
 router.register(r'api/albums/date', views.AlbumDateViewSet)
 router.register(
-    r'api/albums/thing', views.AlbumThingViewSet, basename='album_thing')
+    r'api/albums/thing', albums.AlbumThingViewSet, basename='album_thing')
 router.register(
-    r'api/albums/place', views.AlbumPlaceViewSet, basename='album_place')
+    r'api/albums/place', albums.AlbumPlaceViewSet, basename='album_place')
 router.register(
-    r'api/albums/user', views.AlbumUserViewSet, basename='album_user')
+    r'api/albums/user', albums.AlbumUserViewSet, basename='album_user')
 
-router.register(r'api/persons', views.PersonViewSet, basename='person')
+router.register(r'api/persons', albums.PersonViewSet, basename='person')
 
 router.register(
     r'api/photos/shared/tome',
@@ -152,30 +152,30 @@ router.register(
 
 router.register(
     r'api/photos/notimestamp/list',
-    views.NoTimestampPhotoHashListViewSet,
+    photos.NoTimestampPhotoHashListViewSet,
     basename='photo')
 
 router.register(r'api/photos/edit', views.PhotoEditViewSet, basename='photo')
 
 router.register(
     r'api/photos/recentlyadded',
-    views.RecentlyAddedPhotoListViewSet,
+    photos.RecentlyAddedPhotoListViewSet,
     basename='photo')
 router.register(
     r'api/photos/simplelist', views.PhotoSimpleListViewSet, basename='photo')
 router.register(
     r'api/photos/list', views.PhotoSuperSimpleListViewSet, basename='photo')
 router.register(
-    r'api/photos/favorites', views.FavoritePhotoListViewset, basename='photo')
+    r'api/photos/favorites', photos.FavoritePhotoListViewset, basename='photo')
 router.register(
-    r'api/photos/hidden', views.HiddenPhotoListViewset, basename='photo')
+    r'api/photos/hidden', photos.HiddenPhotoListViewset, basename='photo')
 router.register(
     r'api/photos/searchlist',
     views.PhotoSuperSimpleSearchListViewSet,
     basename='photo')
 
 router.register(
-    r'api/photos/public', views.PublicPhotoListViewset, basename='photo')
+    r'api/photos/public', photos.PublicPhotoListViewset, basename='photo')
 
 router.register(r'api/photos', views.PhotoViewSet, basename='photo')
 
