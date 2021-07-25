@@ -6,6 +6,7 @@ from django_cryptography.fields import encrypt
 class User(AbstractUser):
     scan_directory = models.CharField(max_length=512, db_index=True)
     confidence = models.FloatField(default=0.1, db_index=True)
+    semantic_search_topk = models.IntegerField(default=0)
     avatar = models.ImageField(upload_to='avatars', null=True)
 
     nextcloud_server_address = models.CharField(
