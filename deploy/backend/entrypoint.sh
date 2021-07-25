@@ -1,5 +1,6 @@
 #! /bin/bash
 export PYTHONUNBUFFERED=TRUE
+export PYTHONFAULTHANDLER=1
 mkdir -p /logs
 service statd start
 python image_similarity/main.py 2>&1 | tee /logs/gunicorn_image_similarity.log &
