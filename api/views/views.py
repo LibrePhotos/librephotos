@@ -363,7 +363,7 @@ class FaceViewSet(viewsets.ModelViewSet):
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class FaceInferredViewSet(viewsets.ModelViewSet):
     serializer_class = FaceSerializer
-    pagination_class = StandardResultsSetPagination
+    pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
         return Face.objects.filter(
@@ -382,7 +382,7 @@ class FaceInferredViewSet(viewsets.ModelViewSet):
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class FaceLabeledViewSet(viewsets.ModelViewSet):
     serializer_class = FaceSerializer
-    pagination_class = StandardResultsSetPagination
+    pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
         return Face.objects.filter(
