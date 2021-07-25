@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 echo "installing frontend"
-npm install
+npm install --legacy-peer-deps
 
 echo "serving frontend"
 if [ "$DEBUG" = 1 ]
