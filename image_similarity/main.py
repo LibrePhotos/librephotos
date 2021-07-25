@@ -36,12 +36,17 @@ class SearchIndex(Resource):
             else:
                 n = 100
 
-            res = index.search_similar(user_id,image_embedding,n)
+            if 'threshold' in request_body.keys():
+                thres = float(request_body['threshold'])
+            else:
+                thres = 27.0
+
+            res = index.search_similar(user_id, image_embedding, n, thres)
 
             return jsonify({'status':True,'result':res})
         except BaseException as e:
             logger.error(str(e))
-            return jsonify({'status':False,'result':[]},status=500)
+            return jsonify({'status':False,'result':[]}), 500
 
 api.add_resource(BuildIndex,'/build/')
 api.add_resource(SearchIndex,'/search/')
