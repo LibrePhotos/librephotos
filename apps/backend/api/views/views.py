@@ -29,6 +29,7 @@ from api.api_util import (get_count_stats, get_search_term_examples,
                           path_to_dict, get_location_clusters, get_location_sunburst, get_searchterms_wordcloud, get_location_timeline, get_photo_month_counts)
 from api.directory_watcher import scan_photos
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
+from api.filters import SemanticSearchFilter
 from api.models import (AlbumAuto, AlbumDate, AlbumPlace, AlbumThing,
                         AlbumUser, Face, LongRunningJob, Person, Photo, User)
 from api.models.person import get_or_create_person
@@ -158,7 +159,7 @@ class PhotoSimpleListViewSet(viewsets.ModelViewSet):
 class PhotoSuperSimpleSearchListViewSet(viewsets.ModelViewSet):
     serializer_class = GroupedPhotosSerializer
     pagination_class = HugeResultsSetPagination
-    filter_backends = (filters.SearchFilter, )
+    filter_backends = (SemanticSearchFilter, )
     search_fields = ([
         'search_captions', 'search_location', 'faces__person__name',
         'exif_timestamp', 'image_paths'
@@ -603,7 +604,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = User.objects.only(
-            'id', 'username', 'email', 'scan_directory', 'confidence', 'first_name',
+            'id', 'username', 'email', 'scan_directory', 'confidence', 'semantic_search_topk', 'first_name',
             'last_name', 'date_joined', 'avatar', 'nextcloud_server_address',
             'nextcloud_username', 'nextcloud_scan_directory'
         ).order_by('-last_login')
