@@ -1,4 +1,4 @@
-FROM ubuntu:groovy
+FROM python:3.8-slim-buster
 # system packages installation
 
 RUN apt update && apt install -y ffmpeg libimage-exiftool-perl curl nfs-common cifs-utils libopenblas-dev libheif-dev libmagic1 libraw-dev libboost-all-dev libxrender-dev liblapack-dev git bzip2 cmake build-essential libsm6 libglib2.0-dev libgl1-mesa-glx libpq-dev libexpat-dev \
@@ -20,16 +20,8 @@ RUN apt update && apt install -y ffmpeg libimage-exiftool-perl curl nfs-common c
 	libtool-bin \
 	wget \
 	libwebp-dev --no-install-recommends
-#Build and install python
-RUN apt-get update \
-  && apt-get install -y python3-pip python3-dev \
-  && cd /usr/local/bin \
-  && ln -s /usr/bin/python3 python \
-  && pip3 install --upgrade pip
 
 #Build and install libraw
-#RUN mkdir /libraw
-#RUN curl -SL https://www.libraw.org/data/LibRaw-0.20.2.tar.gz | tar -zxC /libraw
 RUN git clone https://github.com/LibRaw/LibRaw
 RUN ls
 WORKDIR /LibRaw
@@ -42,7 +34,7 @@ RUN make install
 WORKDIR /
 RUN mkdir /imagemagick
 RUN curl -SL https://www.imagemagick.org/download/ImageMagick.tar.gz | tar -zxC /imagemagick
-WORKDIR /imagemagick/ImageMagick-7.1.0-2
+WORKDIR /imagemagick/ImageMagick-7.1.0-4
 RUN ./configure --with-modules
 RUN make install
 RUN ldconfig /usr/local/lib
