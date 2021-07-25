@@ -254,6 +254,7 @@ STATIC_ROOT = os.path.join(BASE_DIR,  'static')
 DATA_ROOT = os.path.join(BASE_DATA,  'data' )
 IM2TXT_ROOT = os.path.join(BASE_DATA,  'data_models', 'im2txt')
 PLACES365_ROOT = os.path.join(BASE_DATA,  'data_models', 'places365', 'model' )
+CLIP_ROOT = os.path.join(BASE_DATA,  'data_models', 'clip-embeddings' )
 LOGS_ROOT = BASE_LOGS
 
 THUMBNAIL_SIZE_TINY = (30, 30)

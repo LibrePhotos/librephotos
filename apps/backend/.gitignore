@@ -122,6 +122,7 @@ venv.bak/
 
 # visual studio
 .vs/
+.vscode/
 
 # mkdocs documentation
 /site
