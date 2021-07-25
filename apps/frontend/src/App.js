@@ -1,13 +1,13 @@
-import React, {Component} from 'react';
-import {connect} from 'react-redux';
-import {Route, Switch} from 'react-router-dom';
-import {ConnectedRouter} from 'react-router-redux';
-import NotificationSystem from 'reapop';
-import theme from 'reapop-theme-wybo';
-import './App.css';
-import {CountStats} from './components/statistics';
-import Login from './containers/login';
-import history from './history';
+import React, { Component } from "react";
+import { connect } from "react-redux";
+import { Route, Switch } from "react-router-dom";
+import { ConnectedRouter } from "react-router-redux";
+import NotificationSystem from "reapop";
+import theme from "reapop-theme-wybo";
+import "./App.css";
+import { CountStats } from "./components/statistics";
+import Login from "./containers/login";
+import history from "./history";
 import {
   FaceScatter,
   Graph,
@@ -15,51 +15,50 @@ import {
   PhotoMap,
   Timeline,
   WordClouds,
-} from './layouts/DataVisualization';
-import {FaceDashboard} from './layouts/FaceDashboardV3';
-import {FavoritePhotos} from './layouts/FavoritePhotos';
-import {HiddenPhotos} from './layouts/HiddenPhotos';
-import {SignupPage} from './layouts/SignUpPage';
-import {AlbumAutoGalleryView} from './layouts/albumAutoGalleryView';
-import {AlbumAuto} from './layouts/albumAuto';
-import {AlbumPeople} from './layouts/albumPeople';
-import {AlbumPersonGallery} from './layouts/albumPersonGallery';
-import {AlbumPlaceGallery} from './layouts/albumPlaceGallery';
-import {AlbumThing} from './layouts/albumThing';
-import {AlbumUser} from './layouts/albumUser';
-import {AlbumUserGallery} from './layouts/albumUserGallery';
-import {AllPhotosHashListViewRV} from './layouts/allPhotosViewHashRV';
-import {SideMenuNarrow, TopMenu} from './layouts/menubars';
-import {NoTimestampPhotosView} from './layouts/noTimestampPhotosView';
-import {RecentlyAddedPhotos} from './layouts/RecentlyAddedPhotos';
-import PrivateRoute from './layouts/privateRoute';
-import {SearchView} from './layouts/searchRV';
-import {Settings} from './layouts/settings';
-import {AdminPage} from './layouts/AdminPage';
-import {Statistics} from './layouts/statistics';
-import {SecuredImage} from './layouts/Bench';
-import {UserPublicPage} from './layouts/UserPublicPage';
-import {PublicUserList} from './layouts/PublicUserList';
-import {LocationClusterMap} from './components/maps';
-import {SharedToMe} from './layouts/SharedToMe';
-import {SharedFromMe} from './layouts/SharedFromMe';
-
-
+} from "./layouts/dataviz/DataVisualization";
+import { FaceDashboard } from "./layouts/dataviz/FaceDashboard";
+import { FavoritePhotos } from "./layouts/photos/FavoritePhotos";
+import { HiddenPhotos } from "./layouts/photos/HiddenPhotos";
+import { SignupPage } from "./layouts/login/SignUpPage";
+import { AlbumAutoGalleryView } from "./layouts/albums/AlbumAutoGalleryView";
+import { AlbumAuto } from "./layouts/albums/AlbumAuto";
+import { AlbumPeople } from "./layouts/albums/AlbumPeople";
+import { AlbumPersonGallery } from "./layouts/albums/AlbumPersonGallery";
+import { AlbumPlaceGallery } from "./layouts/albums/AlbumPlaceGallery";
+import { AlbumThing } from "./layouts/albums/AlbumThing";
+import { AlbumUser } from "./layouts/albums/AlbumUser";
+import { AlbumUserGallery } from "./layouts/albums/AlbumUserGallery";
+import { TimelinePhotoView } from "./layouts/albums/TimelinePhotoView";
+import { SideMenuNarrow } from "./components/menubars/SideMenuNarrow";
+import { TopMenu } from "./components/menubars/TopMenu";
+import { NoTimestampPhotosView } from "./layouts/photos/NoTimestampPhotosView";
+import { RecentlyAddedPhotos } from "./layouts/photos/RecentlyAddedPhotos";
+import PrivateRoute from "./layouts/PrivateRoute";
+import { SearchView } from "./layouts/SearchView";
+import { Settings } from "./layouts/settings/Settings";
+import { AdminPage } from "./layouts/settings/AdminPage";
+import { Statistics } from "./layouts/dataviz/Statistics";
+import { UserPublicPage } from "./layouts/public/UserPublicPage";
+import { PublicUserList } from "./layouts/public/PublicUserList";
+import { LocationClusterMap } from "./components/maps";
+import { SharedToMe } from "./layouts/sharing/SharedToMe";
+import { SharedFromMe } from "./layouts/sharing/SharedFromMe";
+import 'semantic-ui-css/semantic.min.css'
+import { AlbumPlace } from "./layouts/albums/AlbumPlace";
 class Nav extends React.Component {
   render() {
     return (
       <div>
         {this.props.showSidebar && <SideMenuNarrow visible={true} />}
-        <TopMenu style={{zIndex: -1}} />
+        <TopMenu style={{ zIndex: -1 }} />
       </div>
     );
   }
 }
 
-const noMenubarPaths = ['/signup', '/login'];
+const noMenubarPaths = ["/signup", "/login"];
 
 class App extends Component {
-
   render() {
     return (
       <ConnectedRouter history={history}>
@@ -68,9 +67,9 @@ class App extends Component {
           {this.props.location &&
           !noMenubarPaths.includes(this.props.location.pathname) &&
           !(
-            this.props.location.pathname.startsWith('/public') ||
-            this.props.location.pathname.startsWith('/user/') ||
-            this.props.location.pathname.startsWith('/users/')
+            this.props.location.pathname.startsWith("/public") ||
+            this.props.location.pathname.startsWith("/user/") ||
+            this.props.location.pathname.startsWith("/users/")
           ) ? (
             <Nav showSidebar={this.props.showSidebar} />
           ) : (
@@ -78,7 +77,7 @@ class App extends Component {
           )}
 
           <Switch>
-            <PrivateRoute exact path="/" component={AllPhotosHashListViewRV} />
+            <PrivateRoute exact path="/" component={TimelinePhotoView} />
 
             <Route path="/login" component={Login} />
 
@@ -105,7 +104,7 @@ class App extends Component {
 
             <PrivateRoute path="/useralbums" component={AlbumUser} />
 
-            <PrivateRoute path="/places" component={LocationClusterMap} />
+            <PrivateRoute path="/places" component={AlbumPlace} />
 
             <PrivateRoute path="/people" component={AlbumPeople} />
 
@@ -118,8 +117,6 @@ class App extends Component {
             <PrivateRoute path="/faces" component={FaceDashboard} />
 
             <PrivateRoute path="/search" component={SearchView} />
-
-            <PrivateRoute path="/bench" component={SecuredImage} />
 
             <PrivateRoute
               path="/person/:albumID"
@@ -163,7 +160,7 @@ class App extends Component {
   }
 }
 
-App = connect(store => {
+App = connect((store) => {
   return {
     showSidebar: store.ui.showSidebar,
     location: store.routerReducer.location,

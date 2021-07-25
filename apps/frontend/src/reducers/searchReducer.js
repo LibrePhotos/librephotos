@@ -32,7 +32,7 @@ export default function reducer(state={
     }
 
     case "SEARCH_RES_GROUP_BY_DATE": {
-      return { ...state, searchPhotosResGroupedByDate: action.payload}
+      return { ...state, searchPhotosResGroupedByDate: action.payload.results}
     }
 
     case "SEARCH_RES_IDX2HASH": {

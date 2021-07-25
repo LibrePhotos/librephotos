@@ -176,3 +176,16 @@ display : inline;
     z-index: 2;
     padding: 0 10px;
 }
+
+.fp-wrapper {
+  width: 100%;
+  display: flex;
+  flex-wrap: nowrap;
+}
+.sidebar {
+  width: 175px;
+  background: "#eeeeee"
+}
+.fp-panel-main {
+  width: 100% - 175px;
+}

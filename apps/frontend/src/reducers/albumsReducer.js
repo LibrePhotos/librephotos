@@ -119,7 +119,7 @@ export default function reducer(
     }
     case "FETCH_PEOPLE_ALBUMS_FULFILLED": {
       new_album = { ...state.albumsPeople };
-      new_album[action.payload.id] = action.payload;
+      new_album[parseInt(action.payload.results.id)] = action.payload.results;
       return {
         ...state,
         fetchingAlbumsPeople: false,
@@ -219,6 +219,7 @@ export default function reducer(
       };
     }
     case "FETCH_DATE_ALBUMS_PHOTO_HASH_LIST_FULFILLED": {
+      console.log(action.payload)
       return {
         ...state,
         fetchingAlbumsDatePhotoHashList: false,
@@ -307,14 +308,13 @@ export default function reducer(
       return { ...state, fetchingAlbumsPlace: false, error: action.payload };
     }
     case "FETCH_PLACE_ALBUMS_FULFILLED": {
+      new_album = { ...state.albumsPlace };
+      new_album[parseInt(action.payload.results.id)] = action.payload.results;
       return {
         ...state,
         fetchingAlbumsPlace: false,
         fetchedAlbumsPlace: true,
-        albumsPlace: {
-          ...state.albumsPlace,
-          [action.payload.id]: action.payload
-        }
+        albumsPlace: new_album
       };
     }
 
@@ -339,7 +339,8 @@ export default function reducer(
     case "FETCH_USER_ALBUMS_REJECTED": {
       return { ...state, fetchingAlbumsUser: false, error: action.payload };
     }
-    case "FETCH_USER_ALBUMS_FULFILLED": {
+    case "FETCH_USER_ALBUMS_FULFILLED": { 
+      
       return {
         ...state,
         fetchingAlbumsUser: false,

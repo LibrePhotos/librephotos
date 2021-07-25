@@ -112,8 +112,23 @@ export const calculateGridCellSize = (gridWidth) => {
         else if (gridWidth < 1200) {
             numEntrySquaresPerRow = 7
         }
+        else if (gridWidth < 1400) {
+          numEntrySquaresPerRow = 9
+        }
+        else if (gridWidth < 1600) {
+          numEntrySquaresPerRow = 11
+        }
+        else if (gridWidth < 1800) {
+          numEntrySquaresPerRow = 13
+        }
+        else if (gridWidth < 2000) {
+          numEntrySquaresPerRow = 15
+        }
+        else if (gridWidth < 2200) {
+          numEntrySquaresPerRow = 17
+        }
         else {
-            numEntrySquaresPerRow = 8 
+            numEntrySquaresPerRow = 19 
         }
     } else {
         if (gridWidth < 600) {
@@ -128,8 +143,23 @@ export const calculateGridCellSize = (gridWidth) => {
         else if (gridWidth < 1200) {
             numEntrySquaresPerRow = 4
         }
+        else if (gridWidth < 1400) {
+          numEntrySquaresPerRow = 5
+        }
+        else if (gridWidth < 1600) {
+          numEntrySquaresPerRow = 6
+        }
+        else if (gridWidth < 1800) {
+          numEntrySquaresPerRow = 7
+        }
+        else if (gridWidth < 2000) {
+          numEntrySquaresPerRow = 6
+        }
+        else if (gridWidth < 2200) {
+          numEntrySquaresPerRow = 9
+        }
         else {
-            numEntrySquaresPerRow = 4
+            numEntrySquaresPerRow = 10
         }
     }
 

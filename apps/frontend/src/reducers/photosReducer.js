@@ -37,7 +37,6 @@ export default function reducer(
     fetchedPhotosSharedFromMe: false,
 
     recentlyAddedPhotos: [],
-    recentlyAddedIdx2hash: [],
     fetchingRecentlyAddedPhotos: false,
     fetchedRecentlyAddedPhotos: false,
 
@@ -68,13 +67,12 @@ export default function reducer(
     } 
 
     case "FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED" : {
+      console.log(action.payload)
       return {
         ...state,
         fetchingRecentlyAddedPhotos: false,
         fetchedRecentlyAddedPhotos: true,
-        recentlyAddedPhotos: action.payload.res,
-        recentlyAddedIdx2hash: action.payload.idx2hash
-           
+        recentlyAddedPhotos: action.payload.res[0],
       }
     } 
 
@@ -158,6 +156,7 @@ export default function reducer(
       return { ...state, fetchingFavoritePhotos: false, error: action.payload };
     }
     case "FETCH_FAVORITE_PHOTOS_FULFILLED": {
+      
       return {
         ...state,
         fetchingFavoritePhotos: false,
