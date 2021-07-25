@@ -1,5 +1,6 @@
 from sentence_transformers import SentenceTransformer, util
 from PIL import Image
+import gc
 import os
 import torch
 import numpy as np
@@ -16,6 +17,7 @@ class SemanticSearch():
 
     def unload(self):
         self.model = None
+        gc.collect()
         model_is_loaded = False
         pass
 

@@ -7,6 +7,7 @@ from django.db.models.expressions import RawSQL
 from django.db.models import Q
 from rest_framework import filters
 from api.semantic_search.semantic_search import semantic_search_instance
+from api.image_similarity import search_similar_embedding
 
 class SemanticSearchFilter(filters.SearchFilter):
     def filter_queryset(self, request, queryset, view):
@@ -24,23 +25,9 @@ class SemanticSearchFilter(filters.SearchFilter):
         if request.user.semantic_search_topk > 0:
             query = request.query_params.get('search')
             emb, magnitude = semantic_search_instance.calculate_query_embeddings(query)
-            
-            # Calculating the cosine similarity
-            semantic_search_query = """
-                Select image_hash from (SELECT (
-                    SELECT sum(a*b)/(%s*clip_embeddings_magnitude)
-                    FROM unnest(
-                    clip_embeddings, -- ex1
-                    %s  -- ex2
-                    ) AS t(a,b)
-                ) as similarity, *
-                    FROM public.api_photo
-                WHERE
-                    owner_id=%s
-                Order by similarity desc
-                Limit %s) as t
-                where t.similarity > 0.25
-            """
+            semantic_search_instance.unload()
+
+            image_hashes = search_similar_embedding(request.user.id, emb, request.user.semantic_search_topk, threshold=27)
 
         base = queryset
         conditions = []
@@ -51,7 +38,7 @@ class SemanticSearchFilter(filters.SearchFilter):
             ]
 
             if request.user.semantic_search_topk > 0:
-                queries += [Q(image_hash__in=RawSQL(semantic_search_query, [magnitude, emb, request.user.id, request.user.semantic_search_topk]))]
+                queries += [Q(image_hash__in=image_hashes)]
 
             conditions.append(reduce(operator.or_, queries))
         queryset = queryset.filter(reduce(operator.and_, conditions))
