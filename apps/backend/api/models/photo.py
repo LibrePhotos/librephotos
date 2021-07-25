@@ -13,7 +13,6 @@ import numpy as np
 import PIL
 import pytz
 from django.core.cache import cache
-from api.exifreader import rotate_image
 from api.models.user import User, get_deleted_user
 from api.places365.places365 import place365_instance
 from api.semantic_search.semantic_search import semantic_search_instance
