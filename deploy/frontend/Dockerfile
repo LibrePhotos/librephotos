@@ -1,4 +1,4 @@
-FROM node:13
+FROM node:13-slim
 
 RUN apt-get update && apt-get install -y curl git xsel
 
