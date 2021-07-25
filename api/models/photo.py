@@ -14,12 +14,13 @@ import PIL
 import pytz
 from django.core.cache import cache
 from api.exifreader import rotate_image
-from api.im2vec import Im2Vec
 from api.models.user import User, get_deleted_user
 from api.places365.places365 import place365_instance
+from api.semantic_search.semantic_search import semantic_search_instance
 from api.util import logger
 from django.core.files.base import ContentFile
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
 from geopy.geocoders import Nominatim
 from PIL import ImageOps
 from wand.image import Image
@@ -65,7 +66,8 @@ class Photo(models.Model):
     shared_to = models.ManyToManyField(User, related_name='photo_shared_to')
 
     public = models.BooleanField(default=False, db_index=True)
-    encoding = models.TextField(default=None, null=True)
+    clip_embeddings = ArrayField(models.FloatField(blank=True, null=True), size=512)
+    clip_embeddings_magnitude = models.FloatField(blank=True, null=True)
     
     objects = models.Manager()
     visible = VisiblePhotoManager()
@@ -100,6 +102,22 @@ class Photo(models.Model):
             util.logger.warning(
                 'could not generate im2txt captions for image %s' % image_path)
             return False
+
+    def _generate_clip_embeddings(self, commit=True):
+        image_path = self.thumbnail_big.path
+
+        try:
+            img_emb, magnitude = semantic_search_instance.calculate_clip_embeddings(image_path)
+            self.clip_embeddings = img_emb
+            self.clip_embeddings_magnitude = magnitude
+            if commit:
+                self.save()
+            util.logger.info(
+                'generated clip embeddings for image %s.' % (image_path))
+        except Exception as e:
+            util.logger.exception(
+                'could not generate clip embeddings for image %s' %
+                image_path)
 
     def _generate_captions(self,commit):
         image_path = self.thumbnail_big.path
@@ -307,17 +325,6 @@ class Photo(models.Model):
                     self.save()
             except:
                 util.logger.exception('something went wrong with geolocating')
-
-    def _im2vec(self,commit=True):
-        try:
-            im2vec = Im2Vec(cuda=False)
-            image = PIL.Image.open(self.square_thumbnail)
-            vec = im2vec.get_vec(image)
-            self.encoding = vec.tobytes().hex()
-            if commit:
-                self.save()
-        except:
-            util.logger.exception('something went wrong with im2vec')
 
     def _extract_faces(self):
         qs_unknown_person = api.models.person.Person.objects.filter(name='unknown')
