@@ -103,8 +103,8 @@ class Photo(models.Model):
                 'could not generate im2txt captions for image %s' % image_path)
             return False
 
-    def _generate_clip_embeddings(self, commit):
-        image_path = self.image_paths[0]
+    def _generate_clip_embeddings(self, commit=True):
+        image_path = self.thumbnail_big.path
 
         try:
             img_emb, magnitude = semantic_search_instance.calculate_clip_embeddings(image_path)
