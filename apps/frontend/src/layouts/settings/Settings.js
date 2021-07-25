@@ -687,8 +687,7 @@ export class Settings extends Component {
                       ...this.state.userSelfDetails,
                       confidence: event.target.value,
                     },
-                  });
-                  console.log(this.state.userSelfDetails);
+                  }, () => {console.log(this.state.userSelfDetails)});
                 }}
               >
                 <option value="" disabled selected>
@@ -700,20 +699,46 @@ export class Settings extends Component {
                 <option value="0">None</option>
               </select>
               </Grid.Column>
+          </Grid.Row>
+          <Grid.Row>
+            <Grid.Column width={4} textAlign="left">
+              <b>Semantic Search Max Results</b>
+            </Grid.Column>
+            <Grid.Column width={12}>
+              <select
+                value={this.state.userSelfDetails.semantic_search_topk}
+                onChange={(event) => {
+                  this.setState({
+                    userSelfDetails: {
+                      ...this.state.userSelfDetails,
+                      semantic_search_topk: event.target.value,
+                    },
+                  }, () => {console.log(this.state.userSelfDetails)});
+                }}
+              >
+                <option value="" disabled selected>
+                  Semantic Search Results
+                </option>
+                <option value="100">Top 100</option>
+                <option value="50">Top 50</option>
+                <option value="10">Top 10</option>
+                <option value="0">Disabled</option>
+              </select>
+              </Grid.Column>
+          </Grid.Row>
+          <Grid.Row>
               <Grid.Column width={12}>
               <Button
                 type="submit"
                 color="green"
                 onClick={() => {
-                  const newUserData = {
-                    ...this.state.userSelfDetails,
-                    confidence: this.state.userSelfDetails.confidence,
-                  };
+                  const newUserData = this.state.userSelfDetails;
                   console.log(newUserData);
                   delete newUserData["scan_directory"];
                   delete newUserData["avatar"];
                   this.props.dispatch(manageUpdateUser(newUserData));
-                  this.props.onRequestClose();
+                  if (typeof this.props.onRequestClose == 'function')
+                    this.props.onRequestClose();
                 }}
               >
                 Update
