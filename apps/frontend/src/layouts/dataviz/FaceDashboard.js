@@ -24,10 +24,7 @@ import {
   fetchLabeledFacesList,
 } from "../../actions/facesActions";
 import _ from "lodash";
-import {
-  Grid,
-  AutoSizer,
-} from "react-virtualized";
+import { Grid, AutoSizer } from "react-virtualized";
 import {
   calculateFaceGridCellSize,
   calculateFaceGridCells,
@@ -92,7 +89,7 @@ class ModalPersonEdit extends Component {
           this.state.newPersonName.toLowerCase()
         )
       );
-    } 
+    }
 
     const allFaces = _.concat(
       this.props.inferredFacesList,
@@ -121,18 +118,16 @@ class ModalPersonEdit extends Component {
       >
         <div style={{ height: 50, width: "100%", padding: 7 }}>
           <Header>
-          <Header.Content>
-            Label faces
-            <Header.Subheader>
-              Label selected {this.props.selectedFaces.length} face(s) as...
-            </Header.Subheader>
+            <Header.Content>
+              Label faces
+              <Header.Subheader>
+                Label selected {this.props.selectedFaces.length} face(s) as...
+              </Header.Subheader>
             </Header.Content>
           </Header>
         </div>
         <Divider fitted />
-        <div
-          style={{ padding: 5, height: 50, overflowY: "hidden" }}
-        >
+        <div style={{ padding: 5, height: 50, overflowY: "hidden" }}>
           <Image.Group>
             {selectedImageIDs.map((image) => (
               <SecuredImageJWT
@@ -349,10 +344,8 @@ export class FaceDashboard extends Component {
       columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10;
     }
 
-    const {
-      entrySquareSize,
-      numEntrySquaresPerRow,
-    } = calculateFaceGridCellSize(columnWidth);
+    const { entrySquareSize, numEntrySquaresPerRow } =
+      calculateFaceGridCellSize(columnWidth);
 
     this.setState({
       width: window.innerWidth,
@@ -383,7 +376,7 @@ export class FaceDashboard extends Component {
 
   handleClick(e, cell) {
     if (!this.state.lastChecked) {
-      this.setState({lastChecked : cell});
+      this.setState({ lastChecked: cell });
       this.onFaceSelect(cell.id);
       return;
     }
@@ -412,7 +405,7 @@ export class FaceDashboard extends Component {
       return;
     }
     this.onFaceSelect(cell.id);
-    this.setState({lastChecked : cell});
+    this.setState({ lastChecked: cell });
   }
 
   onFaceSelect(faceID) {
@@ -423,8 +416,8 @@ export class FaceDashboard extends Component {
       selectedFaces.push(faceID);
     }
     this.setState({ selectedFaces: selectedFaces });
-    console.log(selectedFaces.length)
-    console.log(selectedFaces > 0)
+    console.log(selectedFaces.length);
+    console.log(selectedFaces > 0);
     this.setState({ selectMode: selectedFaces.length > 0 });
   }
 
@@ -432,8 +425,7 @@ export class FaceDashboard extends Component {
     var cell;
     if (this.state.activeItem === "labeled") {
       cell = this.state.labeledCellContents[rowIndex][columnIndex];
-    }
-    else{
+    } else {
       cell = this.state.inferredCellContents[rowIndex][columnIndex];
     }
 
@@ -451,10 +443,10 @@ export class FaceDashboard extends Component {
               alignItems: "center",
             }}
           >
-            <Header size="huge" > 
-            <Header.Content>
-              {cell.person_name}
-              <Header.Subheader>{cell.faces.length} Faces</Header.Subheader>
+            <Header size="huge">
+              <Header.Content>
+                {cell.person_name}
+                <Header.Subheader>{cell.faces.length} Faces</Header.Subheader>
               </Header.Content>
             </Header>
             <Divider />
@@ -502,20 +494,17 @@ export class FaceDashboard extends Component {
                   name="image"
                 />
               }
+              popperModifiers={{
+                boundariesElement: 'viewport'
+              }}
               on="focus"
               flowing
               hideOnScroll
               inverted
-              position="bottom center"
               content={
                 <SecuredImageJWT
                   size="large"
-                  src={
-                    serverAddress +
-                    "/media/thumbnails_big/" +
-                    cell.photo +
-                    ".jpg"
-                  }
+                  src={serverAddress + "/media/thumbnails_big/" + cell.photo}
                 />
               }
             />
@@ -717,15 +706,15 @@ export class FaceDashboard extends Component {
                 onSectionRendered={({ rowStartIndex }) => {
                   if (activeItem === "labeled") {
                     this.setState({
-                      topRowPersonName: this.state.labeledCellContents[
-                        rowStartIndex
-                      ][0].person_name,
+                      topRowPersonName:
+                        this.state.labeledCellContents[rowStartIndex][0]
+                          .person_name,
                     });
                   } else {
                     this.setState({
-                      topRowPersonName: this.state.inferredCellContents[
-                        rowStartIndex
-                      ][0].person_name,
+                      topRowPersonName:
+                        this.state.inferredCellContents[rowStartIndex][0]
+                          .person_name,
                     });
                   }
                   // console.log(this.state.labeledCellContents[rowStartIndex][0].person_name)
