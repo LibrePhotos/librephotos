@@ -1281,6 +1281,11 @@ class MediaAccessFullsizeOriginalView(APIView):
                 response['Content-Type'] = "video/mp4"
                 response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname + ".mp4")
             return response
+        if "faces" in path:
+            response = HttpResponse()
+            response['Content-Type'] = "image/jpg"
+            response['X-Accel-Redirect'] = self._get_protected_media_url(path, fname)
+            return response
         if photo.video:
             # This is probably very slow -> Save the mime type when scanning
             mime = magic.Magic(mime=True)
