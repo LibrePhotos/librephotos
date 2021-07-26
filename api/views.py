@@ -1247,7 +1247,7 @@ class DeletePhotos(APIView):
         for photo in photos.values():
             if photo.owner == request.user:
                 deleted.append(photo.image_hash)
-                photo.delete()
+                photo.manual_delete()
             else:
                 not_deleted.append(photo.image_hash)
         cache.clear()
