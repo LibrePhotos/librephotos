@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# Docker
+Dockerfile
+entrypoint.sh
+
 # Distribution / packaging
 .Python
 build/
@@ -122,6 +126,7 @@ venv.bak/
 
 # visual studio
 .vs/
+.vscode/
 
 # mkdocs documentation
 /site

@@ -1,5 +1,6 @@
 
 import hashlib
+from api.thumbnails import createThumbnail, createAnimatedThumbnail, doesVideoThumbnailExists, doesStaticThumbnailExists, createThumbnailForVideo
 import os
 from datetime import datetime
 from io import BytesIO
@@ -9,26 +10,21 @@ import api.models
 import api.util as util
 import face_recognition
 import numpy as np
-import ownphotos.settings
 import PIL
 import pytz
 from django.core.cache import cache
-from api.exifreader import rotate_image
-from api.im2vec import Im2Vec
 from api.models.user import User, get_deleted_user
 from api.places365.places365 import place365_instance
+from api.semantic_search.semantic_search import semantic_search_instance
 from api.util import logger
 from django.core.files.base import ContentFile
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
 from geopy.geocoders import Nominatim
-from PIL import ImageOps
-from wand.image import Image
-import subprocess
-import json
-
+from django.db.models import Q
 class VisiblePhotoManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().filter(hidden=False)
+        return super().get_queryset().filter(Q(hidden=False) & Q(aspect_ratio__isnull=False))
 
 class Photo(models.Model):
     image_paths = models.JSONField(default=list)
@@ -41,6 +37,8 @@ class Photo(models.Model):
         upload_to='square_thumbnails_small')
 
     image = models.ImageField(upload_to='photos')
+
+    aspect_ratio = models.FloatField(blank=True, null=True)
 
     added_on = models.DateTimeField(null=False, blank=False, db_index=True)
 
@@ -65,7 +63,8 @@ class Photo(models.Model):
     shared_to = models.ManyToManyField(User, related_name='photo_shared_to')
 
     public = models.BooleanField(default=False, db_index=True)
-    encoding = models.TextField(default=None, null=True)
+    clip_embeddings = ArrayField(models.FloatField(blank=True, null=True), size=512)
+    clip_embeddings_magnitude = models.FloatField(blank=True, null=True)
     
     objects = models.Manager()
     visible = VisiblePhotoManager()
@@ -101,6 +100,22 @@ class Photo(models.Model):
                 'could not generate im2txt captions for image %s' % image_path)
             return False
 
+    def _generate_clip_embeddings(self, commit=True):
+        image_path = self.thumbnail_big.path
+
+        try:
+            img_emb, magnitude = semantic_search_instance.calculate_clip_embeddings(image_path)
+            self.clip_embeddings = img_emb
+            self.clip_embeddings_magnitude = magnitude
+            if commit:
+                self.save()
+            util.logger.info(
+                'generated clip embeddings for image %s.' % (image_path))
+        except Exception as e:
+            util.logger.exception(
+                'could not generate clip embeddings for image %s' %
+                image_path)
+
     def _generate_captions(self,commit):
         image_path = self.thumbnail_big.path
         captions = {}
@@ -128,77 +143,27 @@ class Photo(models.Model):
                 image_path)
 
     def _generate_thumbnail(self,commit=True):
-        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()):
+        if not doesStaticThumbnailExists('thumbnails_big', self.image_hash):
             if(not self.video):
-                with Image(filename=self.image_paths[0]) as img:
-                    with BytesIO() as transfer:
-                        with img.clone() as thumbnail: 
-                            thumbnail.format = "jpg" 
-                            thumbnail.transform(resize='x' + str(ownphotos.settings.THUMBNAIL_SIZE_BIG[1]))
-                            thumbnail.compression_quality = 80
-                            thumbnail.auto_orient()
-                            thumbnail.save(transfer)
-                        self.thumbnail_big.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
+                createThumbnail(inputPath=self.image_paths[0], outputHeight=1080, outputPath='thumbnails_big', hash=self.image_hash, fileType=".webp")
             else:
-                subprocess.call(['ffmpeg', '-i', self.image_paths[0], '-ss', '00:00:00.000', '-vframes', '1', os.path.join(ownphotos.settings.MEDIA_ROOT,'thumbnails_big', self.image_hash + '.jpg').strip()])
-                self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + '.jpg').strip()
-            #thumbnail already exists, add to photo
-        else:
-            self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + '.jpg').strip()
+                createThumbnailForVideo(inputPath=self.image_paths[0], outputPath='thumbnails_big', hash=self.image_hash, fileType=".webp") 
 
-        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()):
-            if(not self.video):
-                with Image(filename=self.image_paths[0]) as img:
-                    with BytesIO() as transfer:
-                        with img.clone() as thumbnail: 
-                            thumbnail.format = "jpg"
-                            dst_landscape = 1 > thumbnail.width / thumbnail.height
-                            wh = thumbnail.width if dst_landscape else thumbnail.height
-                            thumbnail.crop(
-                                left=int((thumbnail.width - wh) / 2),
-                                top=int((thumbnail.height - wh) / 2),
-                                width=int(wh),
-                                height=int(wh)
-                            )
-                            thumbnail.resize(width=ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[0], height=ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[1])
-                            thumbnail.resolution = (ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[0], ownphotos.settings.THUMBNAIL_SIZE_MEDIUM[1])                       
-                            thumbnail.compression_quality = 80
-                            thumbnail.auto_orient()
-                            thumbnail.save(transfer)
-                        self.square_thumbnail.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
-            else:
-                subprocess.call(['ffmpeg', '-i', self.image_paths[0], '-ss', '00:00:00.000', '-vframes', '1', '-vf','scale=500:500:force_original_aspect_ratio=increase,crop=500:500', os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails', self.image_hash + '.jpg').strip()])
-                self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.jpg').strip()
-        #thumbnail already exists, add to photo
-        else:
-            self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + '.jpg').strip()
+        if(not self.video and not doesStaticThumbnailExists('square_thumbnails', self.image_hash)):
+            createThumbnail(inputPath=self.image_paths[0], outputHeight=500,outputPath='square_thumbnails', hash=self.image_hash, fileType=".webp")
+        if(self.video and not doesVideoThumbnailExists('square_thumbnails', self.image_hash)):
+            createAnimatedThumbnail(inputPath=self.image_paths[0], outputHeight=500,outputPath='square_thumbnails', hash=self.image_hash, fileType=".mp4")
 
-        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()):
-            if(not self.video):
-                with Image(filename=self.image_paths[0]) as img:
-                    with BytesIO() as transfer:
-                        with img.clone() as thumbnail: 
-                            thumbnail.format = "jpg"
-                            dst_landscape = 1 > thumbnail.width / thumbnail.height
-                            wh = thumbnail.width if dst_landscape else thumbnail.height
-                            thumbnail.crop(
-                                left=int((thumbnail.width - wh) / 2),
-                                top=int((thumbnail.height - wh) / 2),
-                                width=int(wh),
-                                height=int(wh)
-                            )
-                            thumbnail.resize(width=ownphotos.settings.THUMBNAIL_SIZE_SMALL[0], height=ownphotos.settings.THUMBNAIL_SIZE_SMALL[1])
-                            thumbnail.resolution = (ownphotos.settings.THUMBNAIL_SIZE_SMALL[0], ownphotos.settings.THUMBNAIL_SIZE_SMALL[1])
-                            thumbnail.compression_quality = 80
-                            thumbnail.auto_orient()
-                            thumbnail.save(transfer)
-                        self.square_thumbnail_small.save(self.image_hash + '.jpg', ContentFile(transfer.getvalue()))
-            else:
-                subprocess.call(['ffmpeg', '-i', self.image_paths[0], '-ss', '00:00:00.000', '-vframes', '1', '-vf','scale=100:100:force_original_aspect_ratio=increase,crop=100:100', os.path.join(ownphotos.settings.MEDIA_ROOT,'square_thumbnails_small', self.image_hash + '.jpg').strip()])
-                self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.jpg').strip()
-        #thumbnail already exists, add to photo
-        else:
-            self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + '.jpg').strip()
+        if(not self.video and not doesStaticThumbnailExists('square_thumbnails_small', self.image_hash)):
+            createThumbnail(inputPath=self.image_paths[0], outputHeight=250, outputPath='square_thumbnails_small', hash=self.image_hash, fileType=".webp")
+        if(self.video and not doesVideoThumbnailExists('square_thumbnails_small', self.image_hash)):
+            createAnimatedThumbnail(inputPath=self.image_paths[0], outputHeight=250, outputPath='square_thumbnails_small', hash=self.image_hash, fileType=".mp4")          
+        filetype = '.webp'
+        if(self.video):
+            filetype = '.mp4'
+        self.thumbnail_big.name=os.path.join('thumbnails_big', self.image_hash + ".webp").strip()
+        self.square_thumbnail.name=os.path.join('square_thumbnails', self.image_hash + filetype).strip()
+        self.square_thumbnail_small.name=os.path.join('square_thumbnails_small', self.image_hash + filetype).strip()
         if commit:
             self.save()
 
@@ -209,6 +174,9 @@ class Photo(models.Model):
         self.image.save(self.image_hash + '.jpg',
                         ContentFile(image_io.getvalue()))
         image_io.close()
+
+    def _find_album_place(self):
+        return api.models.AlbumPlace.objects().filter(photos__in=self)
 
     def _find_album_date(self):
         old_album_date = None
@@ -222,6 +190,15 @@ class Photo(models.Model):
             if(possible_old_album_date != None and possible_old_album_date.photos.filter(image_hash=self.image_hash).exists):
                 old_album_date = possible_old_album_date
         return old_album_date
+
+    def _calculate_aspect_ratio(self, et, commit=True):
+        with exiftool.ExifTool() as et:
+            height = et.get_tag('ImageHeight', self.thumbnail_big.path)
+            width = et.get_tag('ImageWidth', self.thumbnail_big.path)
+            self.aspect_ratio = round((width / height), 2)
+
+        if commit:
+            self.save()
 
     def _extract_date_time_from_exif(self,commit=True):
         date_format = "%Y:%m:%d %H:%M:%S"
@@ -290,34 +267,70 @@ class Photo(models.Model):
                 util.logger.exception('something went wrong with geolocating')
 
     def _geolocate_mapbox(self,commit=True):
-        if not (self.exif_gps_lat and self.exif_gps_lon):
-            self._extract_gps_from_exif()
-        if (self.exif_gps_lat and self.exif_gps_lon):
-            try:
-                res = util.mapbox_reverse_geocode(self.exif_gps_lat,
-                                                  self.exif_gps_lon)
-                self.geolocation_json = res
-                if 'search_text' in res.keys():
-                    if self.search_location:
-                        self.search_location = self.search_location + ' ' + res[
-                            'search_text']
-                    else:
-                        self.search_location = res['search_text']
-                if commit:
-                    self.save()
-            except:
-                util.logger.exception('something went wrong with geolocating')
-
-    def _im2vec(self,commit=True):
+        old_gps_lat = self.exif_gps_lat
+        old_gps_lon = self.exif_gps_lon
+        self._extract_gps_from_exif()
+        # Skip if it hasn't changed or is null
+        if(not self.exif_gps_lat or not self.exif_gps_lon):
+            return
+        if (old_gps_lat == self.exif_gps_lat and old_gps_lon == self.exif_gps_lon):
+            return
+        # Skip if the request fails or is empty
+        res = None
         try:
-            im2vec = Im2Vec(cuda=False)
-            image = PIL.Image.open(self.square_thumbnail)
-            vec = im2vec.get_vec(image)
-            self.encoding = vec.tobytes().hex()
-            if commit:
-                self.save()
+            res = util.mapbox_reverse_geocode(self.exif_gps_lat,self.exif_gps_lon)
+            if not res or len(res) == 0:
+                return
+            if 'features' not in res.keys():
+                return
         except:
-            util.logger.exception('something went wrong with im2vec')
+            util.logger.exception('something went wrong with geolocating')
+            return
+        
+        self.geolocation_json = res
+        
+        if 'search_text' in res.keys():
+            if self.search_location:
+                self.search_location = self.search_location + ' ' + res[
+                    'search_text']
+            else:
+                self.search_location = res['search_text']
+        # Delete photo from album places if location has changed
+        old_album_places = self._find_album_places()
+        if old_album_places is not None:
+            for old_album_place in old_album_places:
+                old_album_place.photos.remove(self)
+                old_album_place.save()
+        # Add photo to new album places
+        for geolocation_level, feature in enumerate(self.geolocation_json['features']):
+            if not 'text' in feature.keys() or feature['text'].isnumeric():
+                continue
+            album_place = api.models.album_place.get_album_place(feature['text'], owner=self.owner)
+            if album_place.photos.filter(image_hash=self.image_hash).count() == 0:
+                album_place.geolocation_level = len(
+                    self.geolocation_json['features']) - geolocation_level
+            album_place.photos.add(self)
+            album_place.save()
+        # Add location to album dates
+        album_date = self._find_album_date()
+        city_name = [
+            f['text'] for f in self.geolocation_json['features'][1:-1]
+            if not f['text'].isdigit()
+        ][0]
+        if album_date.location and len(album_date.location) > 0:
+            prev_value = album_date.location
+            new_value = prev_value
+            if city_name not in prev_value['places']:
+                new_value['places'].append(city_name)
+                new_value['places'] = list(set(new_value['places']))
+                album_date.location = new_value
+        else:
+            album_date.location = {'places': [city_name]}
+        album_date.save()
+        if commit:
+            self.save()
+        cache.clear() 
+        
 
     def _extract_faces(self):
         qs_unknown_person = api.models.person.Person.objects.filter(name='unknown')
@@ -383,43 +396,6 @@ class Photo(models.Model):
                     album_thing.save()
         cache.clear() 
 
-    def _add_to_album_date(self):
-        
-        album_date = self._find_album_date()
-        if self.geolocation_json and len(self.geolocation_json) > 0:
-            util.logger.info(str(self.geolocation_json))
-            city_name = [
-                f['text'] for f in self.geolocation_json['features'][1:-1]
-                if not f['text'].isdigit()
-            ][0]
-            if album_date.location and len(album_date.location) > 0:
-                prev_value = album_date.location
-                new_value = prev_value
-                if city_name not in prev_value['places']:
-                    new_value['places'].append(city_name)
-                    new_value['places'] = list(set(new_value['places']))
-                    album_date.location = new_value
-            else:
-                album_date.location = {'places': [city_name]}
-        album_date.save()
-        cache.clear() 
-
-    def _add_to_album_place(self):
-        if not self.geolocation_json or len(self.geolocation_json) == 0:
-            return
-        if 'features' not in self.geolocation_json.keys():
-            return
-
-        for geolocation_level, feature in enumerate(self.geolocation_json['features']):
-            if not 'text' in feature.keys() or feature['text'].isnumeric():
-                continue
-            album_place = api.models.album_place.get_album_place(feature['text'], owner=self.owner)
-            if album_place.photos.filter(image_hash=self.image_hash).count() == 0:
-                album_place.geolocation_level = len(
-                    self.geolocation_json['features']) - geolocation_level
-            album_place.photos.add(self)
-            album_place.save()
-        cache.clear() 
 
     def _check_image_paths(self):
         exisiting_image_paths = []

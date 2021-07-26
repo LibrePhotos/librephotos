@@ -1,5 +1,5 @@
 from api.models import Photo, Face, Person, AlbumAuto, AlbumDate, AlbumUser, LongRunningJob
-from api.serializers import LongRunningJobSerializer
+from api.views.serializers import LongRunningJobSerializer
 import numpy as np
 
 import os
