@@ -2,7 +2,10 @@ from api.models.photo import Photo
 from api.models.user import User, get_deleted_user
 from django.db import models
 from django.db.models import Prefetch
+import datetime
+import pytz
 
+utc=pytz.UTC
 
 class Person(models.Model):
     KIND_CHOICES = (('USER', 'User Labelled'), ('CLUSTER', 'Cluster ID'),
@@ -39,6 +42,7 @@ class Person(models.Model):
                             'hidden').prefetch_related('owner'))))
 
         photos = [face.photo for face in faces if hasattr(face.photo, 'owner')]
+        photos.sort(key=lambda x: x.exif_timestamp or utc.localize(datetime.datetime.min), reverse=True)
         return photos
 
 def get_unknown_person():
