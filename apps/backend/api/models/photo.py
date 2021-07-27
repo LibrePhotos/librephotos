@@ -102,19 +102,19 @@ class Photo(models.Model):
 
     def _generate_clip_embeddings(self, commit=True):
         image_path = self.thumbnail_big.path
-
-        try:
-            img_emb, magnitude = semantic_search_instance.calculate_clip_embeddings(image_path)
-            self.clip_embeddings = img_emb
-            self.clip_embeddings_magnitude = magnitude
-            if commit:
-                self.save()
-            util.logger.info(
-                'generated clip embeddings for image %s.' % (image_path))
-        except Exception as e:
-            util.logger.exception(
-                'could not generate clip embeddings for image %s' %
-                image_path)
+        if not self.clip_embeddings:
+            try:
+                img_emb, magnitude = semantic_search_instance.calculate_clip_embeddings(image_path)
+                self.clip_embeddings = img_emb
+                self.clip_embeddings_magnitude = magnitude
+                if commit:
+                    self.save()
+                util.logger.info(
+                    'generated clip embeddings for image %s.' % (image_path))
+            except Exception as e:
+                util.logger.exception(
+                    'could not generate clip embeddings for image %s' %
+                    image_path)
 
     def _generate_captions(self,commit):
         image_path = self.thumbnail_big.path
