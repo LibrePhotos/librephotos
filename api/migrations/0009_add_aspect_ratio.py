@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
                         obj.aspect_ratio = round((width /height), 2)
                         obj.save()
                     except:
-                        print('Cannot convert {} object'.format(obj.image_path))
+                        print('Cannot convert {} object'.format(obj))
 
     operations = [    
         migrations.AddField(model_name='Photo', name='aspect_ratio', field=models.FloatField(blank=True, null=True)),
