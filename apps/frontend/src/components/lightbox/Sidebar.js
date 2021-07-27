@@ -169,7 +169,7 @@ export default class Sidebar extends Component {
                       <LocationMap
                         zoom={16}
                         photos={[
-                          this.props.photoDetail.id
+                          this.props.photoDetail
                         ]}
                       />
                     )}
