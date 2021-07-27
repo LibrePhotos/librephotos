@@ -148,6 +148,7 @@ def rescan_image(user, image_path, job_id):
             photo._generate_thumbnail(True)
             photo._calculate_aspect_ratio(False)
             photo._geolocate_mapbox(False)
+            photo._generate_clip_embeddings(True)
             photo._extract_date_time_from_exif(True)
             
             
