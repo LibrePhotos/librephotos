@@ -16,6 +16,7 @@ export default class Toolbar extends Component {
   }
   
   render() {
+    console.log(this.props.photosDetail)
     return (
       <div>
         {!this.props.photosDetail && (
@@ -55,7 +56,7 @@ export default class Toolbar extends Component {
           <Button
             disabled={this.props.isPublic}
             onClick={() => {
-              const image_hash = this.props.photosDetail.id;
+              const image_hash = this.props.photosDetail.image_hash;
               const val = !this.props.photosDetail.hidden;
               this.props.dispatch(setPhotosHidden([image_hash], val));
             }}
@@ -73,7 +74,7 @@ export default class Toolbar extends Component {
           <Button
             disabled={this.props.isPublic}
             onClick={() => {
-              const image_hash = this.props.photosDetail.id;
+              const image_hash = this.props.photosDetail.image_hash;
               const val = !this.props.photosDetail.favorited;
               this.props.dispatch(setPhotosFavorite([image_hash], val));
             }}
@@ -91,7 +92,7 @@ export default class Toolbar extends Component {
           <Button
             disabled={this.props.isPublic}
             onClick={() => {
-              const image_hash = this.props.photosDetail.id;
+              const image_hash = this.props.photosDetail.image_hash;
               const val = !this.props.photosDetail.public;
               this.props.dispatch(setPhotosPublic([image_hash], val));
               copyToClipboard(
