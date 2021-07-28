@@ -3,7 +3,6 @@ import zipfile
 import io
 import datetime
 import uuid
-import re
 from django.core.cache import cache
 import ownphotos.settings
 import django_rq
@@ -30,27 +29,22 @@ from api.api_util import (get_count_stats, get_search_term_examples,
 from api.directory_watcher import scan_photos
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 from api.filters import SemanticSearchFilter
-from api.models import (AlbumAuto, AlbumDate, AlbumPlace, AlbumThing,
-                        AlbumUser, Face, LongRunningJob, Person, Photo, User)
+from api.models import (AlbumAuto, AlbumDate, AlbumUser, Face,
+                        LongRunningJob, Photo, User)
 from api.models.person import get_or_create_person
 from api.permissions import (IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo,
                              IsRegistrationAllowed, IsUserOrReadOnly)
-from api.views.serializers import (AlbumAutoListSerializer, AlbumAutoSerializer,
-                             AlbumDateListSerializer, AlbumDateSerializer,
-                             AlbumPersonListSerializer, 
-                             AlbumPlaceListSerializer, AlbumPlaceSerializer,
-                             AlbumThingListSerializer, AlbumThingSerializer,
-                             AlbumUserEditSerializer, AlbumUserListSerializer,
-                             FaceListSerializer,
-                             FaceSerializer, LongRunningJobSerializer,
-                             ManageUserSerializer, PersonSerializer,
+from api.views.serializers import (AlbumAutoListSerializer, AlbumDateListSerializer,
+                             AlbumDateSerializer, AlbumUserEditSerializer,
+                             AlbumUserListSerializer, 
+                             FaceListSerializer, FaceSerializer,
+                             LongRunningJobSerializer, ManageUserSerializer,
                              PhotoEditSerializer, PhotoHashListSerializer,
-                             PhotoSerializer, PhotoSimpleSerializer,
-                             PhotoSuperSimpleSerializer,
-                             SharedFromMePhotoThroughSerializer,
-                             SharedToMePhotoSuperSimpleSerializer,
+                             PhotoSerializer,
+                             PhotoSimpleSerializer, PhotoSuperSimpleSerializer,
+                             SharedFromMePhotoThroughSerializer, SharedToMePhotoSuperSimpleSerializer,
                              UserSerializer)
-from api.views.serializers_serpy import PigAlbumDateSerializer, AlbumUserSerializerSerpy, PigPhotoSerilizer, GroupedPhotosSerializer, GroupedPersonPhotosSerializer, GroupedPlacePhotosSerializer
+from api.views.serializers_serpy import GroupedPhotosSerializer, PigAlbumDateSerializer
 from api.views.serializers_serpy import \
     PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy
 from api.views.serializers_serpy import \
@@ -1134,7 +1128,7 @@ class ScanPhotosView(APIView):
             job_id = uuid.uuid4()
             scan_photos.delay(request.user, job_id)
             return Response({'status': True, 'job_id': job_id})
-        except BaseException as e:
+        except BaseException:
             logger.exception("An Error occured")
             return Response({'status': False})
 
@@ -1144,7 +1138,7 @@ class DeleteMissingPhotosView(APIView):
             job_id = uuid.uuid4()
             delete_missing_photos(request.user, job_id)
             return Response({'status': True, 'job_id': job_id})
-        except BaseException as e:
+        except BaseException:
             logger.exception("An Error occured")
             return Response({'status': False})
 
@@ -1228,7 +1222,6 @@ class RQJobStatView(APIView):
         return Response({'status': True, 'finished': is_job_finished})
 
 
-import time
 
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
@@ -1260,7 +1253,7 @@ class MediaAccessView(APIView):
         if jwt is not None:
             try:
                 token = AccessToken(jwt)
-            except TokenError as error:
+            except TokenError:
                 return HttpResponseForbidden()
         else:
             return HttpResponseForbidden()
@@ -1328,7 +1321,7 @@ class MediaAccessFullsizeOriginalView(APIView):
             if jwt is not None:
                 try:
                     token = AccessToken(jwt)
-                except TokenError as error:
+                except TokenError:
                     return HttpResponseForbidden()
             else:
                 return HttpResponseForbidden()
@@ -1357,7 +1350,7 @@ class MediaAccessFullsizeOriginalView(APIView):
             if jwt is not None:
                 try:
                     token = AccessToken(jwt)
-                except TokenError as error:
+                except TokenError:
                     return HttpResponseForbidden()
             else:
                 return HttpResponseForbidden()
@@ -1399,7 +1392,7 @@ class MediaAccessFullsizeOriginalView(APIView):
             if jwt is not None:
                 try:
                     token = AccessToken(jwt)
-                except TokenError as error:
+                except TokenError:
                     return HttpResponseForbidden()
             else:
                 return HttpResponseForbidden()

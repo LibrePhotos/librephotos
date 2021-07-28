@@ -1,60 +1,22 @@
-import os
-import zipfile
-import io
-import datetime
-import uuid
 import re
-from django.core.cache import cache
-import ownphotos.settings
-import django_rq
 import six
-import magic
-from api.views.PhotosGroupedByDate import get_photos_ordered_by_date
-from constance import config as site_config
-from django.core.cache import cache
 from django.db.models import Count, Prefetch, Q
-from django.http import HttpResponse, HttpResponseForbidden
 from rest_framework import filters, viewsets
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from rest_framework_extensions.cache.decorators import cache_response
 
 
 
-from api.face_classify import train_faces, cluster_faces
-from api.social_graph import build_social_graph
-from api.autoalbum import generate_event_albums, delete_missing_photos, regenerate_event_titles
-from api.api_util import (get_count_stats, get_search_term_examples,
-                          path_to_dict, get_location_clusters, get_location_sunburst, get_searchterms_wordcloud, get_location_timeline, get_photo_month_counts)
-from api.directory_watcher import scan_photos
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
-from api.models import (AlbumAuto, AlbumDate, AlbumPlace, AlbumThing,
-                        AlbumUser, Face, LongRunningJob, Person, Photo, User)
-from api.models.person import get_or_create_person
-from api.permissions import (IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo,
-                             IsRegistrationAllowed, IsUserOrReadOnly)
+from api.models import (AlbumAuto, AlbumPlace, AlbumThing, AlbumUser,
+                        Face, Person, Photo)
 from api.views.serializers import (AlbumAutoListSerializer, AlbumAutoSerializer,
-                             AlbumDateListSerializer, AlbumDateSerializer,
-                             AlbumPersonListSerializer, 
-                             AlbumPlaceListSerializer, AlbumPlaceSerializer,
+                             AlbumPersonListSerializer, AlbumPlaceListSerializer,
+                             AlbumPlaceSerializer, 
                              AlbumThingListSerializer, AlbumThingSerializer,
-                             AlbumUserEditSerializer, AlbumUserListSerializer,
-                             FaceListSerializer,
-                             FaceSerializer, LongRunningJobSerializer,
-                             ManageUserSerializer, PersonSerializer,
-                             PhotoEditSerializer, PhotoHashListSerializer,
-                             PhotoSerializer, PhotoSimpleSerializer,
-                             PhotoSuperSimpleSerializer,
-                             SharedFromMePhotoThroughSerializer,
-                             SharedToMePhotoSuperSimpleSerializer,
-                             UserSerializer)
-from api.views.serializers_serpy import PigAlbumDateSerializer, AlbumUserSerializerSerpy, PigPhotoSerilizer, GroupedPhotosSerializer, GroupedPersonPhotosSerializer, GroupedPlacePhotosSerializer
-from api.views.serializers_serpy import \
-    PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy
-from api.views.serializers_serpy import \
-    SharedPhotoSuperSimpleSerializer as SharedPhotoSuperSimpleSerializerSerpy
-from api.views.pagination import HugeResultsSetPagination, StandardResultsSetPagination, TinyResultsSetPagination
+                             AlbumUserListSerializer, PersonSerializer)
+from api.views.serializers_serpy import AlbumUserSerializerSerpy, GroupedPersonPhotosSerializer, GroupedPlacePhotosSerializer
+from api.views.pagination import StandardResultsSetPagination
 from api.views.caching import CustomObjectKeyConstructor, CustomListKeyConstructor, CACHE_TTL
 from api.util import logger
 
