@@ -1,4 +1,4 @@
-import { applyMiddleware, createStore } from 'redux';
+import { applyMiddleware, createStore, compose } from 'redux';
 import thunk from "redux-thunk"
 import storage from 'redux-persist/es/storage'
 import { createFilter } from 'redux-persist-transform-filter';
@@ -20,12 +20,13 @@ const configureStore = (history) => {
         },
         rootReducer)
 
+    const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
     const store = createStore(
         reducer, {},
-        applyMiddleware(  
+        composeEnhancers(applyMiddleware(
             thunk,
-            routerMiddleware(history) )
-    )
+            routerMiddleware(history) ))
+    );
 
     persistStore(store)
 
