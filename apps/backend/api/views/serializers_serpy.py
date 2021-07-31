@@ -62,6 +62,7 @@ class PigPhotoSerilizer(serpy.Serializer):
     birthTime = serpy.StrField(attr='exif_timestamp')
     aspectRatio = serpy.FloatField(attr='aspect_ratio')
     type = serpy.MethodField("get_type")
+    favorited = serpy.BoolField('favorited')
 
     def get_type(self, obj):
         if(obj.video):
