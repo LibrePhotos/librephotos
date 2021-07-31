@@ -5,7 +5,7 @@
 
 ## What is it?
 
-- Self hosted Google Photos clone, with a slight focus on cool graphs
+- A self-hosted open source photo management service. 
 - Django backend & React frontend. 
 - In development. 
 
