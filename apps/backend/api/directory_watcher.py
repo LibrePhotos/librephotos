@@ -103,6 +103,7 @@ def handle_new_image(user, image_path, job_id):
                 photo.video = is_video(img_abs_path)
                 start = datetime.datetime.now()
                 photo._generate_thumbnail(True)
+                photo._calculate_aspect_ratio(False)
                 photo._generate_captions(False)
                 photo._generate_clip_embeddings(True)
                 photo._extract_gps_from_exif(False)
