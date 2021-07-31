@@ -408,4 +408,12 @@ class Photo(models.Model):
     def __str__(self):
         return "%s" % self.image_hash
 
+    def manual_delete(self):
+        for path in self.image_paths:
+            if os.path.isfile(path):
+                logger.info("Removing photo {}".format(path))
+                os.remove(path)
+
+        cache.clear()
+        return self.delete()
 

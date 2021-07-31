@@ -7,7 +7,7 @@ class Face(models.Model):
     photo = models.ForeignKey(
         Photo,
         related_name='faces',
-        on_delete=models.SET(get_unknown_person),
+        on_delete=models.CASCADE,
         blank=False,
         null=True)
     image = models.ImageField(upload_to='faces')

@@ -208,6 +208,7 @@ urlpatterns = [
     url(r'^api/dirtree', views.RootPathTreeView.as_view()),
     url(r'^api/labelfaces', views.SetFacePersonLabel.as_view()),
     url(r'^api/deletefaces', views.DeleteFaces.as_view()),
+    url(r'^api/photosedit/delete', views.DeletePhotos.as_view()),
     url(r'^api/photosedit/favorite', views.SetPhotosFavorite.as_view()),
     url(r'^api/photosedit/hide', views.SetPhotosHidden.as_view()),
     url(r'^api/photosedit/makepublic', views.SetPhotosPublic.as_view()),
