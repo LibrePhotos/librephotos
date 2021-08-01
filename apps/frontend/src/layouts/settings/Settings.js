@@ -29,7 +29,7 @@ import {
   fetchJobList,
   deleteMissingPhotos
 } from "../../actions/utilActions";
-import { trainFaces } from "../../actions/facesActions";
+import { rescanFaces, trainFaces } from "../../actions/facesActions";
 import { scanPhotos, scanNextcloudPhotos } from "../../actions/photosActions";
 import { fetchUserSelfDetails } from "../../actions/userActions";
 import { CountStats } from "../../components/statistics";
@@ -666,6 +666,16 @@ export class Settings extends Component {
                   <Icon name="share" />
                   Face Dashboard
                 </Button>
+                <Divider hidden />
+                <Button
+                  fluid
+                  color="green"
+                  onClick={() => {this.props.dispatch(rescanFaces());}}
+                >
+                  <Icon name="lightning" />
+                  Rescan Faces
+                </Button>
+
               </Segment>
             </Grid.Column>
           </Grid.Row>
