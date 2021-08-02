@@ -84,6 +84,36 @@ export function trainFaces() {
   };
 }
 
+// reusing training faces reducers since they are of similar nature
+export function rescanFaces() {
+  return function(dispatch) {
+    dispatch({ type: "TRAIN_FACES" });
+    dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
+    dispatch({
+      type: "SET_WORKER_RUNNING_JOB",
+      payload: { job_type_str: "Scan Faces" }
+    });
+
+    dispatch(
+      notify({
+        message: `Scanning started`,
+        title: "Face scanning",
+        status: "success",
+        dismissible: true,
+        dismissAfter: 3000,
+        position: "br"
+      })
+    );
+    Server.get("scanfaces/", { timeout: 30000 })
+      .then(response => {
+        dispatch({ type: "TRAIN_FACES_FULFILLED", payload: response.data });
+      })
+      .catch(err => {
+        dispatch({ type: "TRAIN_FACES_REJECTED", payload: err });
+      });
+  };
+}
+
 export function clusterFaces() {
   return function(dispatch) {
     dispatch({ type: "CLUSTER_FACES" });
