@@ -125,7 +125,7 @@ export default class Sidebar extends Component {
                           to={
                             serverAddress +
                             "/media/photos/" +
-                            this.props.photoDetail.id +
+                            this.props.photoDetail.image_hash +
                             ".jpg"
                           }
                           target="_blank"
@@ -245,7 +245,7 @@ export default class Sidebar extends Component {
                             onClick={() => {
                               this.props.dispatch(
                                 generatePhotoIm2txtCaption(
-                                  this.props.photoDetail.id
+                                  this.props.photoDetail.image_hash
                                 )
                               );
                             }}
@@ -291,7 +291,7 @@ export default class Sidebar extends Component {
                                 <Label
                                   key={
                                     "lightbox_attribute_label_" +
-                                    this.props.photoDetail.id +
+                                    this.props.photoDetail.image_hash +
                                     "_" +
                                     nc
                                   }
@@ -317,7 +317,7 @@ export default class Sidebar extends Component {
                                 <Label
                                   key={
                                     "lightbox_category_label_" +
-                                    this.props.photoDetail.id +
+                                    this.props.photoDetail.image_hash +
                                     "_" +
                                     nc
                                   }
