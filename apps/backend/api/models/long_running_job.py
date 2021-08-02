@@ -14,12 +14,15 @@ class LongRunningJob(models.Model):
     JOB_TRAIN_FACES = 4
     JOB_DELETE_MISSING_PHOTOS = 5
     JOB_CALCULATE_CLIP_EMBEDDINGS = 6
+    JOB_SCAN_FACES = 7
+    
     JOB_TYPES = (
         (JOB_SCAN_PHOTOS, "Scan Photos"),
         (JOB_GENERATE_AUTO_ALBUMS, "Generate Event Albums"),
         (JOB_GENERATE_AUTO_ALBUM_TITLES, "Regenerate Event Titles"),
         (JOB_TRAIN_FACES, "Train Faces"),
         (JOB_DELETE_MISSING_PHOTOS, "Delete Missing Photos"),
+        (JOB_SCAN_FACES, "Scan Faces"),
         (JOB_CALCULATE_CLIP_EMBEDDINGS, "Calculate Clip Embeddings")
     )
 
