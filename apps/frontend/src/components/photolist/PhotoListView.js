@@ -21,6 +21,7 @@ import { serverAddress } from "../../api_client/apiClient";
 import { LightBox } from "../lightbox/LightBox";
 import _ from "lodash";
 import getToolbar from "../photolist/Toolbar";
+import FavoritedOverlay from "./FavoritedOverlay";
 
 var TOP_MENU_HEIGHT = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
@@ -422,6 +423,7 @@ export class PhotoListView extends Component {
                   url.split(";")[0]
                 );
               }}
+              overlay={FavoritedOverlay}
             >
             </Pig>
           </div>
