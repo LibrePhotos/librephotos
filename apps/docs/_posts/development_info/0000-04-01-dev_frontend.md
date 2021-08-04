@@ -1,12 +1,9 @@
 ---
-title: "Overview"
+title: "Frontend"
 excerpt: "Development Information regarding LibrePhotos Frontend."
 last_modified_at: 2021-05-31
 category: 4
 ---
-
-## Overview
-
 We developed our frontend with the following technologies:
 - React
 - Semantic UI
