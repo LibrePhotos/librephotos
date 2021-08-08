@@ -757,6 +757,56 @@ export class Settings extends Component {
           </Grid.Row>
         </Grid>
 
+        <Header as="h3">Favorite options</Header>
+        <Grid>
+          <Grid.Row>
+            <Grid.Column width={4} textAlign="left">
+              <b>Minimum image rating to interpret as favorite</b>
+            </Grid.Column>
+            <Grid.Column width={12}>
+              <select
+                value={this.state.userSelfDetails.favorite_min_rating}
+                onChange={(event) => {
+                  this.setState({
+                    userSelfDetails: {
+                      ...this.state.userSelfDetails,
+                      favorite_min_rating: parseInt(event.target.value),
+                    },
+                  }, () => { console.log(this.state.userSelfDetails) });
+                }}
+              >
+                <option value="" disabled selected>
+                  Minimum rating
+                </option>
+                <option value={1}>1</option>
+                <option value={2}>2</option>
+                <option value={3}>3</option>
+                <option value={4}>4</option>
+                <option value={5}>5</option>
+              </select>
+            </Grid.Column>
+          </Grid.Row>
+          <Grid.Row>
+            <Grid.Column width={12}>
+              <Button
+                type="submit"
+                color="green"
+                onClick={() => {
+                  const newUserData = this.state.userSelfDetails;
+                  console.log(newUserData);
+                  delete newUserData["scan_directory"];
+                  delete newUserData["avatar"];
+                  this.props.dispatch(manageUpdateUser(newUserData));
+                  if (typeof this.props.onRequestClose == 'function')
+                    this.props.onRequestClose();
+                }}
+              >
+                Update
+              </Button>
+            </Grid.Column>
+          </Grid.Row>
+        </Grid>
+
         <ModalNextcloudScanDirectoryEdit
           onRequestClose={() => {
             this.setState({ modalNextcloudScanDirectoryOpen: false });

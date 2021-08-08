@@ -75,7 +75,7 @@ export default class Toolbar extends Component {
             disabled={this.props.isPublic}
             onClick={() => {
               const image_hash = this.props.photosDetail.image_hash;
-              const val = !this.props.photosDetail.favorited;
+              const val = !(this.props.photosDetail.rating >= this.props.favorite_min_rating);
               this.props.dispatch(setPhotosFavorite([image_hash], val));
             }}
             color="black"
@@ -84,7 +84,7 @@ export default class Toolbar extends Component {
           >
             <Icon
               name="star"
-              color={this.props.photosDetail.favorited ? "yellow" : "grey"}
+              color={this.props.photosDetail.rating >= this.props.favorite_min_rating ? "yellow" : "grey"}
             />
           </Button>
         )}
@@ -135,5 +135,6 @@ Toolbar = connect((store) => {
     generatingCaptionIm2txt: store.photos.generatingCaptionIm2txt,
     generatedCaptionIm2txt: store.photos.generatedCaptionIm2txt,
     photos: store.photos.photos,
+    favorite_min_rating: store.user.userSelfDetails.favorite_min_rating,
   };
 })(Toolbar);
