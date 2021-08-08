@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { IndexExampleContainer } from '@/Containers'
 import { GalleryContainer } from '@/Containers'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
+import { UnderConstructionContainer } from '../Containers'
 
 const Tab = createBottomTabNavigator()
 
@@ -21,8 +22,18 @@ const MainNavigator = () => {
         }}
       />
       <Tab.Screen
+        name="Photos"
+        component={GalleryContainer}
+        options={{
+          tabBarLabel: 'Photos',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="image" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
         name="Search"
-        component={IndexExampleContainer}
+        component={UnderConstructionContainer}
         options={{
           tabBarLabel: 'Search',
           tabBarIcon: ({ color, size }) => (
@@ -31,12 +42,30 @@ const MainNavigator = () => {
         }}
       />
       <Tab.Screen
-        name="Settings"
-        component={GalleryContainer}
+        name="Albums"
+        component={UnderConstructionContainer}
         options={{
-          tabBarLabel: 'Profile',
+          tabBarLabel: 'Albums',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account" color={color} size={size} />
+            <MaterialCommunityIcons
+              name="image-multiple"
+              color={color}
+              size={size}
+            />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={UnderConstructionContainer}
+        options={{
+          tabBarLabel: 'Settings',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="account-cog"
+              color={color}
+              size={size}
+            />
           ),
         }}
       />

@@ -49,7 +49,7 @@ const IndexExampleContainer = () => {
   }
 
   return (
-    <View style={[Layout.fill, Layout.colCenter, Gutters.smallHPadding]}>
+    <View style={[Layout.fill, Layout.colCenter, Gutters.smallHPadding, ]}>
       <View style={[[Layout.colCenter, Gutters.smallHPadding]]}>
         <Brand />
         {fetchOneUserLoading && <ActivityIndicator />}

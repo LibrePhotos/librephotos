@@ -17,7 +17,6 @@ const ApplicationNavigator = () => {
   const { colors } = NavigationTheme
   const [isApplicationLoaded, setIsApplicationLoaded] = useState(false)
   const applicationIsLoading = useSelector(state => state.startup.loading)
-  const isLoggedIn = useSelector(state => state.auth.isLoggedin)
 
   useEffect(() => {
     if (MainNavigator == null && !applicationIsLoading) {

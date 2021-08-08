@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
 } from 'react-native'
+import { Button, Badge, HStack } from 'native-base'
 import { useNavigation } from '@react-navigation/native'
 import { Brand } from '@/Components'
 import { useTheme } from '@/Theme'
@@ -16,6 +17,7 @@ import ChangeTheme from '@/Store/Theme/ChangeTheme'
 import LogoutUser from '@/Store/Auth/LogoutUser'
 import FetchAlbumByDate from '@/Store/Album/FetchByDate'
 import TimelineList from '../../Components/TimelineList'
+import { TopBar } from '../../Components'
 
 const GalleryContainer = () => {
   const { t } = useTranslation()
@@ -26,14 +28,16 @@ const GalleryContainer = () => {
   const photos = useSelector(state => state.album.albumByDate.results)
 
   const photoMapper = photosResult => {
+    if (typeof photosResult === 'undefined' || photosResult.length < 1) {
+      return []
+    }
+
     let finalmap = photosResult.map(item => {
       return {
         title: item.date,
         data: item.items,
       }
     })
-
-    console.log(finalmap)
 
     return finalmap
   }
@@ -61,9 +65,36 @@ const GalleryContainer = () => {
   }
 
   return (
-    <View style={[Layout.fill, Layout.colCenter]}>
-      <TimelineList data={photoMapper(photos)} />
-    </View>
+    <>
+      <TopBar />
+      <View style={[Common.backgroundDefault, Layout.colCenter]}>
+        <HStack
+          space={{
+            base: 3,
+            md: 4,
+          }}
+          mx={{
+            base: 5,
+            md: 0,
+          }}
+          my={{
+            base: 2,
+            md: 0,
+          }}
+          style={[Common.backgroundDefault]}
+        >
+          <Button size="xs" variant="solid" colorScheme="dark" onPress={() => console.log('hello world')}>
+          With Timestamp
+          </Button>
+          <Button size="xs" variant="outline" colorScheme="dark" onPress={() => console.log('hello world')}>
+          Without Timestamp
+          </Button>
+        </HStack>
+      </View>
+      <View style={[Layout.fill, Layout.colCenter, Common.backgroundDefault]}>
+        <TimelineList data={photoMapper(photos)} />
+      </View>
+    </>
   )
 }
 

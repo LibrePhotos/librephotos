@@ -5,6 +5,7 @@
  */
 import { StyleSheet } from 'react-native'
 import buttonStyles from './components/Buttons'
+import timelineStyles from './components/Timeline'
 /**
  *
  * @param Theme can be spread like {Colors, NavigationColors, Gutters, Layout, Common, ...args}
@@ -13,9 +14,13 @@ import buttonStyles from './components/Buttons'
 export default function ({ Colors, ...args }) {
   return {
     button: buttonStyles({ Colors, ...args }),
+    timeline: timelineStyles({ Colors, ...args }),
     ...StyleSheet.create({
       backgroundPrimary: {
         backgroundColor: Colors.primary,
+      },
+      backgroundDefault: {
+        backgroundColor: 'white',
       },
       backgroundReset: {
         backgroundColor: Colors.transparent,

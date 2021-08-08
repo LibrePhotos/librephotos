@@ -21,6 +21,7 @@
     "axios": "^0.21.1",
     "i18next": "^20.3.2",
     "jwt-decode": "^3.1.2",
+    "moment": "^2.29.1",
     "native-base": "^3.0.6",
     "prop-types": "^15.7.2",
     "react": "17.0.1",
