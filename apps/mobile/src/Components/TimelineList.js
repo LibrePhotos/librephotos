@@ -1,16 +1,14 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { View, Image, FlatList, SectionList } from 'react-native'
+import { View, SectionList } from 'react-native'
 import { Text } from 'native-base'
-import { useDispatch, useSelector } from 'react-redux'
 import moment from 'moment'
 import { useTheme } from '@/Theme'
-import { Config } from '../Config'
 import { NoResultsError } from '.'
+import ImageGrid from './ImageGrid'
 
 const TimelineList = ({ data, height, width, mode }) => {
-  const { Common, Colors, Layout, Gutters } = useTheme()
-  const authToken = useSelector(state => state.auth.access.token)
+  const { Colors, Gutters } = useTheme()
 
   const COLUMNS = 3
 
@@ -23,34 +21,12 @@ const TimelineList = ({ data, height, width, mode }) => {
     )
   }
 
-  const renderPhoto = ({ item, index, section, seperators }) => {
-    return (
-      <Image
-        style={[Common.timeline.photoItem]}
-        source={{
-          uri: Config.MEDIA_URL + '/square_thumbnails/' + item.url,
-          method: 'GET',
-          headers: {
-            Authorization: 'Bearer ' + authToken,
-          },
-        }}
-        // resizeMode={'contain'}
-      />
-    )
-  }
-
   const renderSectionListItem = ({ item, index, section, seperators }) => {
     if (index % COLUMNS !== 0) {
       return null
     }
 
-    return (
-      <FlatList
-        numColumns={COLUMNS}
-        data={section.data}
-        renderItem={renderPhoto}
-      />
-    )
+    return <ImageGrid data={section.data} numColumns={3} />
   }
 
   return (

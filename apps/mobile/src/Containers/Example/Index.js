@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next'
 import ChangeTheme from '@/Store/Theme/ChangeTheme'
 import LogoutUser from '@/Store/Auth/LogoutUser'
 import FetchAlbumByDate from '@/Store/Album/FetchByDate'
+import FetchPhotosWithoutDate from '@/Store/Album/FetchPhotosWithoutDate'
 
 const IndexExampleContainer = () => {
   const { t } = useTranslation()
@@ -46,10 +47,11 @@ const IndexExampleContainer = () => {
 
   const loadPhotos = () => {
     dispatch(FetchAlbumByDate.action())
+    dispatch(FetchPhotosWithoutDate.action())
   }
 
   return (
-    <View style={[Layout.fill, Layout.colCenter, Gutters.smallHPadding, ]}>
+    <View style={[Layout.fill, Layout.colCenter, Gutters.smallHPadding]}>
       <View style={[[Layout.colCenter, Gutters.smallHPadding]]}>
         <Brand />
         {fetchOneUserLoading && <ActivityIndicator />}

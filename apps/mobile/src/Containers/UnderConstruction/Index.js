@@ -11,7 +11,7 @@ const UnderConstructionContainer = () => {
     <View style={[Layout.fill, Layout.colCenter]}>
       <Icon
         size="3xl"
-        as={<MaterialCommunityIcons name="alert" />}
+        as={<MaterialCommunityIcons name="hammer-wrench" />}
         color="black"
       />
       <Text style={[Gutters.smallTMargin]}> Under Construction </Text>

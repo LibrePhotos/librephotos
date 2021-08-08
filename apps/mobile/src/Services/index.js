@@ -30,7 +30,6 @@ const instance = axios.create({
 instance.interceptors.response.use(
   response => response,
   function (error) {
-    console.log('Refreshing Token..')
     const originalRequest = error.config
     const dispatch = store.dispatch
     const authState = select(store.getState())
@@ -40,6 +39,7 @@ instance.interceptors.response.use(
       !originalRequest._retry &&
       !isRefreshTokenExpired(authState)
     ) {
+      console.log('Refreshing Token..')
       originalRequest._retry = true
 
       const refreshToken = authState.refresh.token
@@ -83,7 +83,6 @@ instance.interceptors.response.use(
 instance.interceptors.response.use(
   response => response,
   ({ message, response: { data, status } }) => {
-    console.log(data)
     return handleError({ message, data, status })
   },
 )

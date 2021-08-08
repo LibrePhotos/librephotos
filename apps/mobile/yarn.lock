@@ -725,6 +725,14 @@
     exec-sh "^0.3.2"
     minimist "^1.2.0"
 
+"@dudigital/react-native-zoomable-view@^1.1.3":
+  version "1.1.3"
+  resolved "https://registry.yarnpkg.com/@dudigital/react-native-zoomable-view/-/react-native-zoomable-view-1.1.3.tgz#f237644ec7d180758a190c77cb10b4dede97b32a"
+  integrity sha512-Ue43aUZ6dkMEu1SHU4JGt9hVEds3x+ctITIgR7KerfKV0RHmVu4W9rt5Yk/nfiF+3DulGZR70Dj4k9ucFYJTwQ==
+  dependencies:
+    prop-types "^15.7.2"
+    react-native ">=0.54.0"
+
 "@egjs/hammerjs@^2.0.17":
   version "2.0.17"
   resolved "https://registry.yarnpkg.com/@egjs/hammerjs/-/hammerjs-2.0.17.tgz#5dc02af75a6a06e4c2db0202cae38c9263895124"
@@ -6881,7 +6889,7 @@ react-native-vector-icons@^8.1.0:
     prop-types "^15.7.2"
     yargs "^16.1.1"
 
-react-native@0.64.2:
+react-native@0.64.2, react-native@>=0.54.0:
   version "0.64.2"
   resolved "https://registry.yarnpkg.com/react-native/-/react-native-0.64.2.tgz#233b6ed84ac4749c8bc2a2d6cf63577a1c437d18"
   integrity sha512-Ty/fFHld9DcYsFZujXYdeVjEhvSeQcwuTGXezyoOkxfiGEGrpL/uwUZvMzwShnU4zbbTKDu2PAm/uwuOittRGA==

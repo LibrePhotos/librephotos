@@ -18,6 +18,7 @@ import LogoutUser from '@/Store/Auth/LogoutUser'
 import FetchAlbumByDate from '@/Store/Album/FetchByDate'
 import TimelineList from '../../Components/TimelineList'
 import { TopBar } from '../../Components'
+import ImageGrid from '../../Components/ImageGrid'
 
 const GalleryContainer = () => {
   const { t } = useTranslation()
@@ -25,7 +26,10 @@ const GalleryContainer = () => {
   const dispatch = useDispatch()
   const navigation = useNavigation()
 
-  const photos = useSelector(state => state.album.albumByDate.results)
+  const photosByDate = useSelector(state => state.album.albumByDate.results)
+  const photosWithoutDate = useSelector(
+    state => state.album.albumWithoutDate.results,
+  )
 
   const photoMapper = photosResult => {
     if (typeof photosResult === 'undefined' || photosResult.length < 1) {
@@ -42,27 +46,7 @@ const GalleryContainer = () => {
     return finalmap
   }
 
-  const [userId, setUserId] = useState('1')
-
-  const fetch = id => {
-    setUserId(id)
-    if (id) {
-      dispatch(FetchOne.action(id))
-    }
-  }
-
-  const changeTheme = ({ theme, darkMode }) => {
-    dispatch(ChangeTheme.action({ theme, darkMode }))
-  }
-
-  const logout = () => {
-    dispatch(LogoutUser.action())
-    navigation.navigate('Login')
-  }
-
-  const loadPhotos = () => {
-    dispatch(FetchAlbumByDate.action())
-  }
+  const [showPhotosByDate, setPhotosByDate] = useState(true)
 
   return (
     <>
@@ -83,16 +67,33 @@ const GalleryContainer = () => {
           }}
           style={[Common.backgroundDefault]}
         >
-          <Button size="xs" variant="solid" colorScheme="dark" onPress={() => console.log('hello world')}>
-          With Timestamp
+          <Button
+            size="xs"
+            variant={showPhotosByDate ? 'solid' : 'outline'}
+            colorScheme="dark"
+            onPress={() => setPhotosByDate(true)}
+          >
+            With Timestamp
           </Button>
-          <Button size="xs" variant="outline" colorScheme="dark" onPress={() => console.log('hello world')}>
-          Without Timestamp
+          <Button
+            size="xs"
+            variant={!showPhotosByDate ? 'solid' : 'outline'}
+            colorScheme="dark"
+            onPress={() => setPhotosByDate(false)}
+          >
+            Without Timestamp
           </Button>
         </HStack>
       </View>
       <View style={[Layout.fill, Layout.colCenter, Common.backgroundDefault]}>
-        <TimelineList data={photoMapper(photos)} />
+        {showPhotosByDate && <TimelineList data={photoMapper(photosByDate)} />}
+        {!showPhotosByDate && (
+          <ImageGrid
+            data={photosWithoutDate}
+            numColumns={3}
+            displayError={true}
+          />
+        )}
       </View>
     </>
   )

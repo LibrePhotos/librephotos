@@ -7,9 +7,9 @@ import api from '@/Services'
 
 export default {
   initialState: buildAsyncState(),
-  action: buildAsyncActions('album/fetchByDate', async (args, k) => {
+  action: buildAsyncActions('album/fetchPhotosWithoutDate', async (args, k) => {
     return await api
-      .get('/albums/date/photohash/list/', {
+      .get('/photos/notimestamp/list/', {
         timeout: 10000,
       })
       .then(response => {
@@ -17,5 +17,5 @@ export default {
         return response.data
       })
   }),
-  reducers: buildAsyncReducers({ itemKey: 'albumByDate' }), // We do not want to modify some item by default
+  reducers: buildAsyncReducers({ itemKey: 'albumWithoutDate' }), // We do not want to modify some item by default
 }

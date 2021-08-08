@@ -10,12 +10,13 @@ export default {
   action: buildAsyncActions(
     'photos/fetchPhotos',
     async (args, { dispatch }) => {
-      await api
+      return await api
         .get('/photos/', {
           timeout: 10000,
         })
         .then(response => {
           console.log('fetchPhotos successful', response.data.results)
+          return response.data
         })
     },
   ),
