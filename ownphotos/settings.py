@@ -73,7 +73,8 @@ CONSTANCE_DATABASE_CACHE_BACKEND = 'default'
 
 CONSTANCE_CONFIG = {
     'ALLOW_REGISTRATION': (False, 'Publicly allow user registration', bool),
-    'IMAGE_DIRS': ("/data", 'Image dirs list (serialized json)', str)
+    'IMAGE_DIRS': ("/data", 'Image dirs list (serialized json)', str),
+    'DEFAULT_FAVORITE_MIN_RATING': (4, 'Default minimum image rating that counts as favorite', int)
 }
 
 INTERNAL_IPS = ('127.0.0.1', 'localhost', '192.168.1.100')

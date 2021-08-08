@@ -28,7 +28,7 @@ class SimpleUserSerializer(serializers.ModelSerializer):
 class PhotoEditSerializer(serializers.ModelSerializer):
     class Meta:
         model = Photo
-        fields = ('image_hash', 'hidden', 'favorited', 'video')
+        fields = ('image_hash', 'hidden', 'rating', 'video')
 
     def update(self, instance, validated_data):
         #import pdb; pdb.set_trace()
@@ -46,7 +46,7 @@ class PhotoSuperSimpleSerializer(serializers.ModelSerializer):
         model = Photo
         fields = (
             'image_hash',
-            'favorited',
+            'rating',
             'hidden',
             'exif_timestamp',
             'public',
@@ -56,7 +56,7 @@ class PhotoSuperSimpleSerializer(serializers.ModelSerializer):
 class PhotoSuperSimpleSerializerWithAddedOn(serializers.ModelSerializer):
     class Meta:
         model = Photo
-        fields = ('image_hash', 'favorited', 'hidden', 'exif_timestamp',
+        fields = ('image_hash', 'rating', 'hidden', 'exif_timestamp',
                   'public', 'added_on', 'video')
 
 
@@ -70,7 +70,7 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
             'exif_timestamp',
             'exif_gps_lat',
             'exif_gps_lon',
-            'favorited',
+            'rating',
             'geolocation_json',
             'public',
             'video'
@@ -102,7 +102,7 @@ class PhotoSerializer(serializers.ModelSerializer):
                   'square_thumbnail_url', 'big_square_thumbnail_url',
                   'small_square_thumbnail_url', 'tiny_square_thumbnail_url',
                   'geolocation_json', 'exif_json', 'people', 'image_url',
-                  'image_hash', 'image_path', 'favorited', 'hidden', 'public',
+                  'image_hash', 'image_path', 'rating', 'hidden', 'public',
                   'shared_to', 'similar_photos', 'video')
 
     def get_similar_photos(self, obj):
@@ -620,13 +620,16 @@ class UserSerializer(serializers.ModelSerializer):
             },
             'nextcloud_app_password': {
                 'write_only': True
+            },
+            'favorite_min_rating': {
+                'required': False
             }
         }
         fields = ('id', 'username', 'email', 'scan_directory', 'confidence', 'semantic_search_topk', 'first_name',
                   'public_photo_samples', 'last_name', 'public_photo_count',
                   'date_joined', 'password', 'avatar', 'photo_count',
                   'nextcloud_server_address', 'nextcloud_username',
-                  'nextcloud_app_password', 'nextcloud_scan_directory', 'avatar_url')
+                  'nextcloud_app_password', 'nextcloud_scan_directory', 'avatar_url', 'favorite_min_rating')
 
     def validate_nextcloud_app_password(self, value):
         return value
@@ -698,7 +701,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = ('username', 'scan_directory', 'confidence', 'semantic_search_topk', 'last_login', 'date_joined',
-                  'photo_count', 'id')
+                  'photo_count', 'id', 'favorite_min_rating')
         extra_kwargs = {
             'password': {
                 'write_only': True
@@ -732,6 +735,12 @@ class ManageUserSerializer(serializers.ModelSerializer):
             instance.save()
             logger.info("Updated semantic_search_topk for user {}".format(
                 instance.semantic_search_topk))
+        if 'favorite_min_rating' in validated_data:
+            new_favorite_min_rating = validated_data.pop('favorite_min_rating')
+            instance.favorite_min_rating = new_favorite_min_rating
+            instance.save()
+            logger.info("Updated favorite_min_rating for user {}".format(
+                instance.favorite_min_rating))
         cache.clear()
         return instance
 
@@ -741,7 +750,7 @@ class SharedToMePhotoSuperSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Photo
-        fields = ('image_hash', 'favorited', 'hidden', 'exif_timestamp',
+        fields = ('image_hash', 'rating', 'hidden', 'exif_timestamp',
                   'public', 'owner', 'video')
 
 
@@ -752,7 +761,7 @@ class SharedPhotoSuperSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Photo
-        fields = ('image_hash', 'favorited', 'hidden', 'exif_timestamp',
+        fields = ('image_hash', 'rating', 'hidden', 'exif_timestamp',
                   'public', 'owner', 'shared_to', 'video')
 
 

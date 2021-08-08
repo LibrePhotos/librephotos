@@ -54,7 +54,12 @@ class Photo(models.Model):
     search_captions = models.TextField(blank=True, null=True, db_index=True)
     search_location = models.TextField(blank=True, null=True, db_index=True)
 
-    favorited = models.BooleanField(default=False, db_index=True)
+    # `favorited` has been removed.
+    # Data migrations:
+    #   `favorited = false` => `rating = 0`
+    #   `favorited = true` => `rating = 4`
+    rating = models.IntegerField(default=0, db_index=True)
+
     hidden = models.BooleanField(default=False, db_index=True)
     video = models.BooleanField(default=False)
     owner = models.ForeignKey(
