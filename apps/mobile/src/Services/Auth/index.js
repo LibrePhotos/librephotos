@@ -1,3 +1,7 @@
+export function login() {
+  return true
+}
+
 export function accessToken(authState) {
   if (authState.access) {
     return authState.access.token

@@ -1,5 +1,12 @@
 export default {
   welcome: 'Welcome to React Native LibrePhotosMobile by TheCodingMachine',
+  auth: {
+    label: {
+      username: 'Username',
+      password: 'Password',
+      submit: 'Login',
+    },
+  },
   actions: {
     continue: 'Continue',
   },

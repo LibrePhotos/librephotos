@@ -17,7 +17,7 @@ const ApplicationNavigator = () => {
   const { colors } = NavigationTheme
   const [isApplicationLoaded, setIsApplicationLoaded] = useState(false)
   const applicationIsLoading = useSelector(state => state.startup.loading)
-  const isLoggedIn = false
+  const isLoggedIn = useSelector(state => state.auth.isLoggedin)
 
   useEffect(() => {
     if (MainNavigator == null && !applicationIsLoading) {
@@ -41,7 +41,7 @@ const ApplicationNavigator = () => {
         <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} />
         <Stack.Navigator headerMode={'none'}>
           <Stack.Screen name="Startup" component={IndexStartupContainer} />
-          {isApplicationLoaded && !isLoggedIn && MainNavigator != null && (
+          {isApplicationLoaded && (
             <Stack.Screen
               name="Login"
               component={IndexLoginContainer}
@@ -50,7 +50,7 @@ const ApplicationNavigator = () => {
               }}
             />
           )}
-          {isApplicationLoaded && isLoggedIn && MainNavigator != null && (
+          {isApplicationLoaded && MainNavigator != null && (
             <Stack.Screen
               name="Main"
               component={MainNavigator}

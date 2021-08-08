@@ -7,16 +7,20 @@ import {
   TextInput,
   TouchableOpacity,
 } from 'react-native'
+import { useNavigation } from '@react-navigation/native'
 import { Brand } from '@/Components'
 import { useTheme } from '@/Theme'
 import FetchOne from '@/Store/User/FetchOne'
 import { useTranslation } from 'react-i18next'
 import ChangeTheme from '@/Store/Theme/ChangeTheme'
+import LogoutUser from '@/Store/Auth/LogoutUser'
+import FetchAlbumByDate from '@/Store/Album/FetchByDate'
 
 const IndexExampleContainer = () => {
   const { t } = useTranslation()
   const { Common, Fonts, Gutters, Layout } = useTheme()
   const dispatch = useDispatch()
+  const navigation = useNavigation()
 
   const user = useSelector(state => state.user.item)
   const fetchOneUserLoading = useSelector(state => state.user.fetchOne.loading)
@@ -33,6 +37,15 @@ const IndexExampleContainer = () => {
 
   const changeTheme = ({ theme, darkMode }) => {
     dispatch(ChangeTheme.action({ theme, darkMode }))
+  }
+
+  const logout = () => {
+    dispatch(LogoutUser.action())
+    navigation.navigate('Login')
+  }
+
+  const loadPhotos = () => {
+    dispatch(FetchAlbumByDate.action())
   }
 
   return (
@@ -89,6 +102,18 @@ const IndexExampleContainer = () => {
         onPress={() => changeTheme({ darkMode: false })}
       >
         <Text style={Fonts.textRegular}>Light</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[Common.button.outline, Gutters.regularBMargin]}
+        onPress={() => loadPhotos()}
+      >
+        <Text style={Fonts.textRegular}>Photos</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[Common.button.outline, Gutters.regularBMargin]}
+        onPress={() => logout()}
+      >
+        <Text style={Fonts.textRegular}>Logout</Text>
       </TouchableOpacity>
     </View>
   )

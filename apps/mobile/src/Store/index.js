@@ -12,12 +12,19 @@ import {
 } from 'redux-persist'
 import thunk from 'redux-thunk'
 import { configureStore } from '@reduxjs/toolkit'
+import axios from 'axios'
 
+import auth from './Auth'
+import album from './Album'
+import photos from './Photos'
 import startup from './Startup'
 import user from './User'
 import theme from './Theme'
 
 const reducers = combineReducers({
+  auth,
+  album,
+  photos,
   startup,
   user,
   theme,
@@ -26,7 +33,7 @@ const reducers = combineReducers({
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
-  whitelist: ['theme'],
+  whitelist: ['auth', 'theme'],
 }
 
 const persistedReducer = persistReducer(persistConfig, reducers)
@@ -45,11 +52,26 @@ const store = configureStore({
     if (__DEV__ && !process.env.JEST_WORKER_ID) {
       const createDebugger = require('redux-flipper').default
       middlewares.push(createDebugger())
+      console.log('Debugging..')
     }
 
     return middlewares
   },
 })
+
+store.subscribe(listener)
+
+function select(state) {
+  return state.auth
+}
+
+function listener() {
+  var authState = select(store.getState())
+  if (authState.access) {
+    axios.defaults.headers.common.Authorization =
+      'Bearer ' + authState.access.token
+  }
+}
 
 const persistor = persistStore(store)
 
