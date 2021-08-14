@@ -1,10 +1,16 @@
 import React from 'react'
-import { HStack, IconButton, Icon, Text, StatusBar } from 'native-base'
+import { View, HStack, IconButton, Icon, Text, StatusBar } from 'native-base'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '@/Theme'
+import { useNavigation } from '@react-navigation/native'
 
-const TopBar = ({ height, width, mode }) => {
+const TopBar = ({
+  title = 'LibrePhotos',
+  showBack = false,
+  showMenu = false,
+}) => {
   const { Layout, Images } = useTheme()
+  const navigation = useNavigation()
 
   return (
     <>
@@ -20,31 +26,44 @@ const TopBar = ({ height, width, mode }) => {
         alignItems="center"
       >
         <HStack space={1} alignItems="center">
-          <IconButton
-            icon={
-              <Icon
-                size="sm"
-                as={<MaterialCommunityIcons name="chevron-left" />}
-                color="black"
-              />
-            }
-          />
+          {showBack ? (
+            <IconButton
+              icon={
+                <Icon
+                  size="sm"
+                  as={<MaterialCommunityIcons name="chevron-left" />}
+                  color="black"
+                />
+              }
+              onPress={() => navigation.goBack()}
+            />
+          ) : (
+            <IconButton
+              icon={<Icon size="sm" as={<Text> </Text>} color="black" />}
+            />
+          )}
         </HStack>
         <HStack space={4} alignItems="center">
           <Text color="black" fontSize={20} fontWeight="bold">
-            LibrePhotos
+            {title}
           </Text>
         </HStack>
         <HStack space={2}>
-          <IconButton
-            icon={
-              <Icon
-                as={<MaterialCommunityIcons name="dots-vertical" />}
-                size="sm"
-                color="black"
-              />
-            }
-          />
+          {showMenu ? (
+            <IconButton
+              icon={
+                <Icon
+                  as={<MaterialCommunityIcons name="dots-vertical" />}
+                  size="sm"
+                  color="black"
+                />
+              }
+            />
+          ) : (
+            <IconButton
+              icon={<Icon size="sm" as={<Text> </Text>} color="black" />}
+            />
+          )}
         </HStack>
       </HStack>
     </>

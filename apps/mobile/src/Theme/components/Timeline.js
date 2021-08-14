@@ -14,8 +14,16 @@ export default function ({ Colors, Gutters, Layout }) {
     margin: 2,
   }
 
+  const albumItem = {
+    width: 160,
+    height: 160,
+    margin: 0,
+    padding: 0,
+  }
+
   return StyleSheet.create({
     base,
     photoItem,
+    albumItem,
   })
 }

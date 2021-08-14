@@ -17,6 +17,7 @@ import axios from 'axios'
 import auth from './Auth'
 import album from './Album'
 import photos from './Photos'
+import gallerylist from './GalleryList'
 import startup from './Startup'
 import user from './User'
 import theme from './Theme'
@@ -25,6 +26,7 @@ const reducers = combineReducers({
   auth,
   album,
   photos,
+  gallerylist,
   startup,
   user,
   theme,

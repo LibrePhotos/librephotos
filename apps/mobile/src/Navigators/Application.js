@@ -6,6 +6,7 @@ import { NavigationContainer } from '@react-navigation/native'
 import { navigationRef } from '@/Navigators/Root'
 import { SafeAreaView, StatusBar } from 'react-native'
 import { useTheme } from '@/Theme'
+import { AlbumListContainer, GalleryListContainer } from '../Containers'
 
 const Stack = createStackNavigator()
 
@@ -58,6 +59,20 @@ const ApplicationNavigator = () => {
               }}
             />
           )}
+          <Stack.Screen
+            name="AlbumList"
+            component={AlbumListContainer}
+            options={{
+              animationEnabled: true,
+            }}
+          />
+          <Stack.Screen
+            name="PhotoList"
+            component={GalleryListContainer}
+            options={{
+              animationEnabled: true,
+            }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaView>

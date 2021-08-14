@@ -14,7 +14,7 @@ import { useTheme } from '@/Theme'
 import { Config } from '../Config'
 import NoResultsError from './NoResultsError'
 
-const ImageGrid = ({ data, numColumns, displayError = false }) => {
+const ImageGrid = ({ data, numColumns = 3, displayError = false }) => {
   const { Common, Layout } = useTheme()
 
   const [zoomViewVisible, setZoomViewVisible] = useState(false)
@@ -32,6 +32,7 @@ const ImageGrid = ({ data, numColumns, displayError = false }) => {
   const renderPhoto = ({ item, index, section, seperators }) => {
     return (
       <Pressable
+        key={index}
         style={[Common.timeline.photoItem]}
         onPress={() => handleImagePress(item, index, section)}
       >
@@ -44,7 +45,6 @@ const ImageGrid = ({ data, numColumns, displayError = false }) => {
               Authorization: 'Bearer ' + authToken,
             },
           }}
-          // resizeMode={'contain'}
         />
       </Pressable>
     )

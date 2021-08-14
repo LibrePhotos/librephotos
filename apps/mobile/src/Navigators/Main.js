@@ -2,6 +2,7 @@ import React from 'react'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { IndexExampleContainer } from '@/Containers'
 import { GalleryContainer } from '@/Containers'
+import { AlbumContainer } from '@/Containers'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 import { UnderConstructionContainer } from '../Containers'
 
@@ -43,7 +44,7 @@ const MainNavigator = () => {
       />
       <Tab.Screen
         name="Albums"
-        component={UnderConstructionContainer}
+        component={AlbumContainer}
         options={{
           tabBarLabel: 'Albums',
           tabBarIcon: ({ color, size }) => (

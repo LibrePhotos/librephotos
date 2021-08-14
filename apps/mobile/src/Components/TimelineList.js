@@ -7,7 +7,7 @@ import { useTheme } from '@/Theme'
 import { NoResultsError } from '.'
 import ImageGrid from './ImageGrid'
 
-const TimelineList = ({ data, height, width, mode }) => {
+const TimelineList = ({ data }) => {
   const { Colors, Gutters } = useTheme()
 
   const COLUMNS = 3

@@ -38,6 +38,7 @@ const GalleryContainer = () => {
 
     let finalmap = photosResult.map(item => {
       return {
+        id: item.date,
         title: item.date,
         data: item.items,
       }
@@ -86,8 +87,9 @@ const GalleryContainer = () => {
         </HStack>
       </View>
       <View style={[Layout.fill, Layout.colCenter, Common.backgroundDefault]}>
-        {showPhotosByDate && <TimelineList data={photoMapper(photosByDate)} />}
-        {!showPhotosByDate && (
+        {showPhotosByDate ? (
+          <TimelineList data={photoMapper(photosByDate)} />
+        ) : (
           <ImageGrid
             data={photosWithoutDate}
             numColumns={3}
