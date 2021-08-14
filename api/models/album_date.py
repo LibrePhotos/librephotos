@@ -2,7 +2,6 @@ from api.models.photo import Photo
 from api.models.user import User, get_deleted_user
 from django.db import models
 
-
 class AlbumDate(models.Model):
     title = models.CharField(
         blank=True, null=True, max_length=512, db_index=True)

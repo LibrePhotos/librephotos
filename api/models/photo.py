@@ -176,7 +176,7 @@ class Photo(models.Model):
         image_io.close()
 
     def _find_album_place(self):
-        return api.models.AlbumPlace.objects().filter(photos__in=self)
+        return api.models.album_place.AlbumPlace.objects.filter(Q(photos__in=[self])).all()
 
     def _find_album_date(self):
         old_album_date = None
@@ -241,44 +241,26 @@ class Photo(models.Model):
             self.save()
         album_date.save()
 
-    def _extract_gps_from_exif(self,commit=True):
-         with exiftool.ExifTool() as et:
-            gpslon = et.get_tag('Composite:GPSLongitude', self.image_paths[0])
-            gpslat = et.get_tag('Composite:GPSLatitude', self.image_paths[0])
-            if(gpslon):
-                self.exif_gps_lon = float(gpslon)
-            if(gpslat):
-                self.exif_gps_lat = float(gpslat)   
-         if commit:
-            self.save()
-
-    def _geolocate(self):
-        if not (self.exif_gps_lat and self.exif_gps_lon):
-            self._extract_gps_from_exif()
-        if (self.exif_gps_lat and self.exif_gps_lon):
-            try:
-                geolocator = Nominatim()
-                location = geolocator.reverse(
-                    "%f,%f" % (self.exif_gps_lat, self.exif_gps_lon))
-                location = location.raw
-                self.geolocation_json = location
-                self.save()
-            except:
-                util.logger.exception('something went wrong with geolocating')
-
     def _geolocate_mapbox(self,commit=True):
         old_gps_lat = self.exif_gps_lat
         old_gps_lon = self.exif_gps_lon
-        self._extract_gps_from_exif()
+        with exiftool.ExifTool() as et:
+            new_gps_lat = et.get_tag('Composite:GPSLatitude', self.image_paths[0])
+            new_gps_lon = et.get_tag('Composite:GPSLongitude', self.image_paths[0])     
+        old_album_places = self._find_album_place()       
         # Skip if it hasn't changed or is null
-        if(not self.exif_gps_lat or not self.exif_gps_lon):
+        if(not new_gps_lat or not new_gps_lon):
             return
-        if (old_gps_lat == self.exif_gps_lat and old_gps_lon == self.exif_gps_lon):
+        if (old_gps_lat == float(new_gps_lat) and old_gps_lon == float(new_gps_lon) and old_album_places.count() != 0):
             return
+        self.exif_gps_lon = float(new_gps_lon)
+        self.exif_gps_lat = float(new_gps_lat)
+        if commit:
+            self.save()
         # Skip if the request fails or is empty
         res = None
         try:
-            res = util.mapbox_reverse_geocode(self.exif_gps_lat,self.exif_gps_lon)
+            res = util.mapbox_reverse_geocode(new_gps_lat,new_gps_lon)
             if not res or len(res) == 0:
                 return
             if 'features' not in res.keys():
@@ -296,7 +278,7 @@ class Photo(models.Model):
             else:
                 self.search_location = res['search_text']
         # Delete photo from album places if location has changed
-        old_album_places = self._find_album_places()
+       
         if old_album_places is not None:
             for old_album_place in old_album_places:
                 old_album_place.photos.remove(self)
@@ -327,8 +309,6 @@ class Photo(models.Model):
         else:
             album_date.location = {'places': [city_name]}
         album_date.save()
-        if commit:
-            self.save()
         cache.clear() 
         
 
