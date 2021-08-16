@@ -18,7 +18,6 @@ import { connect } from 'react-redux';
 import Modal from 'react-modal';
 import moment from 'moment';
 import {
-  setSiteSettings,
   fetchSiteSettings,
   fetchJobList,
   deleteJob,
@@ -59,7 +58,6 @@ export class AdminPage extends Component {
         <Header as="h3">Site settings</Header>
         <SiteSettings
           allow_registration={this.props.siteSettings.allow_registration}
-          default_favorite_min_rating={this.props.siteSettings.default_favorite_min_rating}
           dispatch={this.props.dispatch}
         />
 

@@ -40,35 +40,6 @@ export default class SiteSettings extends Component {
                     </Form>
                 </Grid.Column>
             </Grid.Row>
-
-            <Grid.Row>
-                <Grid.Column width={4} textAlign="left">
-                    <b>Default minimum image rating to interpret as favorite</b>
-                </Grid.Column>
-                <Grid.Column width={12}>
-                    <Form>
-                        <Form.Group>
-                            <Form.Field>
-                                <select
-                                    value={this.props.default_favorite_min_rating}
-                                    onChange={(event) => {
-                                        this.props.dispatch(setSiteSettings({ default_favorite_min_rating: event.target.value }));
-                                    }}
-                                >
-                                    <option value="" disabled>
-                                        Minimum rating
-                                    </option>
-                                    <option value={1}>1</option>
-                                    <option value={2}>2</option>
-                                    <option value={3}>3</option>
-                                    <option value={4}>4</option>
-                                    <option value={5}>5</option>
-                                </select>
-                            </Form.Field>
-                        </Form.Group>
-                    </Form>
-                </Grid.Column>
-            </Grid.Row>
         </Grid>
     )}
 }
