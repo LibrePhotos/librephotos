@@ -34,12 +34,12 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
                     Prefetch('photos',queryset=Photo.objects.filter(hidden=False).only(
                         'image_hash',
                         'public',
-                        'favorited',
+                        'rating',
                         'hidden',
                         'exif_timestamp'
                     ))
                     ) \
-                .only('id','title','favorited','timestamp','created_on','gps_lat','gps_lon') \
+                .only('id','title','rating','timestamp','created_on','gps_lat','gps_lon') \
                 .order_by('-timestamp')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
@@ -73,10 +73,10 @@ class AlbumAutoListViewSet(viewsets.ModelViewSet):
                         'shared_to',
                         'public',
                         'exif_timestamp',
-                        'favorited',
+                        'rating',
                         'hidden'))
                 ) \
-            .only('id','title','timestamp','favorited','shared_to') \
+            .only('id','title','timestamp','rating','shared_to') \
             .order_by('-timestamp')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
@@ -117,7 +117,7 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
                     'faces__photo',
                     queryset=Photo.objects.filter(Q(faces__photo__hidden=False) &
                         Q(owner=self.request.user)).distinct().order_by('-exif_timestamp').only(
-                            'image_hash', 'exif_timestamp', 'favorited', 'public',
+                            'image_hash', 'exif_timestamp', 'rating', 'public',
                             'hidden')))
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())

@@ -1,11 +1,12 @@
 import six
 from api.views.serializers_serpy import PigPhotoSerilizer, GroupedPhotosSerializer
 from api.views.pagination import HugeResultsSetPagination
+from constance import config as site_config
 from rest_framework import filters, viewsets
 from django.db.models import Q
 from rest_framework_extensions.cache.decorators import cache_response
 from api.views.caching import CustomListKeyConstructor, CustomObjectKeyConstructor, CACHE_TTL
-from api.models import Photo
+from api.models import Photo, User
 from rest_framework.response import Response
 from api.views.PhotosGroupedByDate import get_photos_ordered_by_date
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
@@ -18,7 +19,7 @@ class RecentlyAddedPhotoListViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         latestDate = Photo.visible.filter(Q(owner=self.request.user)).only('added_on').order_by('-added_on').first().added_on
         queryset = Photo.visible.filter(Q(owner=self.request.user) & Q(aspect_ratio__isnull=False) & Q(added_on__year=latestDate.year, added_on__month=latestDate.month, added_on__day=latestDate.day)).only(
-            'image_hash', 'exif_timestamp', 'favorited', 'public','added_on',
+            'image_hash', 'exif_timestamp', 'rating', 'public','added_on',
             'hidden').order_by('-added_on')
         return queryset
 
@@ -34,9 +35,10 @@ class FavoritePhotoListViewset(viewsets.ModelViewSet):
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
+        user = User.objects.get(username=self.request.user)
         return Photo.objects.filter(
-            Q(favorited=True) & Q(hidden=False) & Q(owner=self.request.user)).only(
-                'image_hash', 'exif_timestamp', 'favorited', 'public',
+            Q(rating__gte=user.favorite_min_rating) & Q(hidden=False) & Q(owner=self.request.user)).only(
+                'image_hash', 'exif_timestamp', 'rating', 'public',
                 'hidden').order_by('-exif_timestamp')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
@@ -56,7 +58,7 @@ class HiddenPhotoListViewset(viewsets.ModelViewSet):
     def get_queryset(self):
         return Photo.objects.filter(
             Q(hidden=True) & Q(owner=self.request.user)).only(
-                'image_hash', 'exif_timestamp', 'favorited', 'public',
+                'image_hash', 'exif_timestamp', 'rating', 'public',
                 'hidden').order_by('-exif_timestamp')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
@@ -80,11 +82,11 @@ class PublicPhotoListViewset(viewsets.ModelViewSet):
             username = self.request.query_params['username']
             return Photo.visible.filter(
                 Q(public=True) & Q(owner__username=username)).only(
-                    'image_hash', 'exif_timestamp', 'favorited',
+                    'image_hash', 'exif_timestamp', 'rating',
                     'hidden').order_by('-exif_timestamp')
 
         return Photo.visible.filter(Q(public=True)).only(
-            'image_hash', 'exif_timestamp', 'favorited',
+            'image_hash', 'exif_timestamp', 'rating',
             'hidden').order_by('-exif_timestamp')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())

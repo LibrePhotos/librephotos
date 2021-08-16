@@ -1,6 +1,7 @@
 import serpy
 from api.util import logger
 from api.views.PhotosGroupedByDate import get_photos_ordered_by_date
+from constance import config as site_config
 
 #Serpy is used, because it is way faster when serializing than the django restframework
 class DateTimeField(serpy.Field):
@@ -22,10 +23,9 @@ class SimpleUserSerializer(serpy.Serializer):
     last_name = serpy.StrField()
 
 
-# 'image_hash', 'favorited', 'hidden', 'exif_timestamp','public', 'owner', 'shared_to'
 class SharedPhotoSuperSimpleSerializer(serpy.Serializer):
     image_hash = serpy.StrField()
-    favorited = serpy.BoolField()
+    rating = serpy.IntField()
     public = serpy.BoolField()
     hidden = serpy.BoolField()
     video = serpy.BoolField()
@@ -37,7 +37,7 @@ class SharedPhotoSuperSimpleSerializer(serpy.Serializer):
 
 class PhotoSuperSimpleSerializer(serpy.Serializer):
     image_hash = serpy.StrField()
-    favorited = serpy.BoolField()
+    rating = serpy.IntField()
     public = serpy.BoolField()
     hidden = serpy.BoolField()
     video = serpy.BoolField()
@@ -46,7 +46,7 @@ class PhotoSuperSimpleSerializer(serpy.Serializer):
 
 class PhotoSuperSimpleSerializerWithAddedOn(serpy.Serializer):
     image_hash = serpy.StrField()
-    favorited = serpy.BoolField()
+    rating = serpy.IntField()
     public = serpy.BoolField()
     hidden = serpy.BoolField()
     video = serpy.BoolField()
@@ -62,7 +62,7 @@ class PigPhotoSerilizer(serpy.Serializer):
     birthTime = serpy.StrField(attr='exif_timestamp')
     aspectRatio = serpy.FloatField(attr='aspect_ratio')
     type = serpy.MethodField("get_type")
-    favorited = serpy.BoolField('favorited')
+    rating = serpy.IntField('rating')
 
     def get_type(self, obj):
         if(obj.video):
