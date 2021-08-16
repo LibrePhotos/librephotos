@@ -22,6 +22,7 @@ import { LightBox } from "../lightbox/LightBox";
 import _ from "lodash";
 import getToolbar from "../photolist/Toolbar";
 import FavoritedOverlay from "./FavoritedOverlay";
+import { fetchSiteSettings } from "../../actions/utilActions";
 
 var TOP_MENU_HEIGHT = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
@@ -51,6 +52,7 @@ export class PhotoListView extends Component {
   componentDidMount() {
     this.handleResize();
     window.addEventListener("resize", this.handleResize);
+    this.props.dispatch(fetchSiteSettings());
   }
   componentWillUnmount() {
     window.removeEventListener("resize", this.handleResize);

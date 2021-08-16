@@ -18,7 +18,6 @@ import { connect } from 'react-redux';
 import Modal from 'react-modal';
 import moment from 'moment';
 import {
-  setSiteSettings,
   fetchSiteSettings,
   fetchJobList,
   deleteJob,
@@ -28,6 +27,7 @@ import {
 } from '../../actions/utilActions';
 import SortableTree from 'react-sortable-tree';
 import FileExplorerTheme from 'react-sortable-tree-theme-file-explorer';
+import SiteSettings from './SiteSettings';
 
 
 export class AdminPage extends Component {
@@ -56,44 +56,10 @@ export class AdminPage extends Component {
 
         <Divider />
         <Header as="h3">Site settings</Header>
-
-        <Grid>
-          <Grid.Row>
-            <Grid.Column width={4} textAlign="left">
-              <b>Allow user registration</b>
-            </Grid.Column>
-            <Grid.Column width={12}>
-              <Form>
-                <Form.Group>
-                  <Form.Field>
-                    <Radio
-                      label="Allow"
-                      name="radioGroup"
-                      onChange={() =>
-                        this.props.dispatch(
-                          setSiteSettings({allow_registration: true}),
-                        )
-                      }
-                      checked={this.props.siteSettings.allow_registration}
-                    />
-                  </Form.Field>
-                  <Form.Field>
-                    <Radio
-                      label="Do not allow"
-                      name="radioGroup"
-                      onChange={() =>
-                        this.props.dispatch(
-                          setSiteSettings({allow_registration: false}),
-                        )
-                      }
-                      checked={!this.props.siteSettings.allow_registration}
-                    />
-                  </Form.Field>
-                </Form.Group>
-              </Form>
-            </Grid.Column>
-          </Grid.Row>
-        </Grid>
+        <SiteSettings
+          allow_registration={this.props.siteSettings.allow_registration}
+          dispatch={this.props.dispatch}
+        />
 
         <Divider />
         <Header as="h3">
@@ -113,7 +79,7 @@ export class AdminPage extends Component {
             <Table.Body>
               {this.props.userList.map(user => {
                 return (
-                    <Table.Row>
+                    <Table.Row key={user.username}>
                       <Table.Cell>{user.username}</Table.Cell>
                       <Table.Cell error={!user.scan_directory}>
                         <Icon

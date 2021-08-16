@@ -28,6 +28,16 @@ export default function reducer(
       return { ...state, fetchingUserDetails: false, error: action.payload };
     }
 
+    case "UPDATE_USER_FULFILLED": {
+      let newState = {
+        ...state,
+      };
+      if (action.payload.favorite_min_rating !== undefined) {
+        newState.userSelfDetails.favorite_min_rating = action.payload.favorite_min_rating;
+      }
+      return newState;
+    }
+
     default: {
       return { ...state };
     }
