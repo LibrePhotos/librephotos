@@ -106,8 +106,8 @@ def handle_new_image(user, image_path, job_id):
                 photo._calculate_aspect_ratio(False)
                 photo._generate_captions(False)
                 photo._generate_clip_embeddings(True)
-                photo._geolocate_mapbox(False)
                 photo._extract_date_time_from_exif(True)
+                photo._geolocate_mapbox(True)
                 photo._extract_faces()
 
                 elapsed = (datetime.datetime.now() - start).total_seconds()
@@ -147,9 +147,9 @@ def rescan_image(user, image_path, job_id):
             photo = Photo.objects.filter(Q(image_paths__contains=image_path)).get()
             photo._generate_thumbnail(True)
             photo._calculate_aspect_ratio(False)
-            photo._geolocate_mapbox(False)
             photo._generate_clip_embeddings(True)
             photo._extract_date_time_from_exif(True)
+            photo._geolocate_mapbox(True)
             
             
     except Exception as e:
