@@ -197,7 +197,7 @@ class PhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
     @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, request):
         queryset = Photo.visible.only(
-            'image_hash', 'exif_timestamp', 'favorited', 'public',
+            'image_hash', 'exif_timestamp', 'rating', 'public',
             'hidden').order_by('exif_timestamp')
         serializer = PhotoSuperSimpleSerializer(queryset, many=True)
         return Response({'results': serializer.data})
@@ -216,7 +216,7 @@ class SharedToMePhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
             .only(
                 'image_hash',
                 'public',
-                'favorited',
+                'rating',
                 'owner',
                 'hidden',
                 'exif_timestamp',
@@ -244,7 +244,7 @@ class SharedFromMePhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
             .filter(owner=self.request.user.id) \
             .only(
                 'image_hash',
-                'favorited',
+                'rating',
                 'hidden',
                 'exif_timestamp',
                 'public',
@@ -271,7 +271,7 @@ class SharedFromMePhotoSuperSimpleListViewSet2(viewsets.ModelViewSet):
                 'last_name'))) \
             .prefetch_related(Prefetch('photo',queryset=Photo.objects.filter(hidden=False).only(
                 'image_hash',
-                'favorited',
+                'rating',
                 'hidden',
                 'exif_timestamp',
                 'public'))).order_by('photo__exif_timestamp')
@@ -496,7 +496,7 @@ class AlbumDateListWithPhotoHashViewSet(viewsets.ReadOnlyModelViewSet):
                             'image_hash',
                             'public',
                             'exif_timestamp',
-                            'favorited',
+                            'rating',
                             'hidden')))
             return qs
 
@@ -578,7 +578,7 @@ class SharedFromMeAlbumUserListViewSet2(viewsets.ModelViewSet):
                 'last_name'))) \
             .prefetch_related(Prefetch('photo',queryset=AlbumUser.objects.only(
                 'image_hash',
-                'favorited',
+                'rating',
                 'hidden',
                 'exif_timestamp',
                 'public')))
@@ -605,7 +605,7 @@ class UserViewSet(viewsets.ModelViewSet):
         queryset = User.objects.only(
             'id', 'username', 'email', 'scan_directory', 'confidence', 'semantic_search_topk', 'first_name',
             'last_name', 'date_joined', 'avatar', 'nextcloud_server_address',
-            'nextcloud_username', 'nextcloud_scan_directory'
+            'nextcloud_username', 'nextcloud_scan_directory', 'favorite_min_rating'
         ).order_by('-last_login')
         return queryset
 
@@ -851,16 +851,24 @@ class SetPhotosFavorite(APIView):
 
         updated = []
         not_updated = []
+        user = User.objects.get(username=request.user)
         for image_hash in image_hashes:
             try:
                 photo = Photo.objects.get(image_hash=image_hash)
             except Photo.DoesNotExist:
                 logger.warning("Could not set photo {} to favorite. It does not exist.".format(image_hash))
                 continue
-            if photo.owner == request.user and photo.favorited != val_favorite:
-                photo.favorited = val_favorite
-                photo.save()
-                updated.append(PhotoSerializer(photo).data)
+            if photo.owner == request.user:
+                if val_favorite and photo.rating < user.favorite_min_rating:
+                    photo.rating = user.favorite_min_rating
+                    photo.save()
+                    updated.append(PhotoSerializer(photo).data)
+                elif not val_favorite and photo.rating >= user.favorite_min_rating:
+                    photo.rating = 0
+                    photo.save()
+                    updated.append(PhotoSerializer(photo).data)
+                else:
+                    not_updated.append(PhotoSerializer(photo).data)
             else:
                 not_updated.append(PhotoSerializer(photo).data)
         cache.clear()
