@@ -74,7 +74,6 @@ CONSTANCE_DATABASE_CACHE_BACKEND = 'default'
 CONSTANCE_CONFIG = {
     'ALLOW_REGISTRATION': (False, 'Publicly allow user registration', bool),
     'IMAGE_DIRS': ("/data", 'Image dirs list (serialized json)', str),
-    'DEFAULT_FAVORITE_MIN_RATING': (4, 'Default minimum image rating that counts as favorite', int)
 }
 
 INTERNAL_IPS = ('127.0.0.1', 'localhost', '192.168.1.100')
@@ -265,6 +264,8 @@ THUMBNAIL_SIZE = 800
 THUMBNAIL_SIZE_BIG = (2048, 2048)
 
 FULLPHOTO_SIZE = (1000, 1000)
+
+DEFAULT_FAVORITE_MIN_RATING = os.environ.get('DEFAULT_FAVORITE_MIN_RATING', 4)
 
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True

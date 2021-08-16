@@ -661,14 +661,11 @@ class SiteSettingsView(APIView):
     def get(self, request, format=None):
         out = {}
         out['allow_registration'] = site_config.ALLOW_REGISTRATION
-        out['default_favorite_min_rating'] = site_config.DEFAULT_FAVORITE_MIN_RATING
         return Response(out)
 
     def post(self, request, format=None):
         if 'allow_registration' in request.data.keys():
             site_config.ALLOW_REGISTRATION = request.data['allow_registration']
-        if 'default_favorite_min_rating' in request.data.keys():
-            site_config.DEFAULT_FAVORITE_MIN_RATING = request.data['default_favorite_min_rating']
 
         return self.get(request, format=format)
 
