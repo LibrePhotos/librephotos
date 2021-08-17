@@ -173,9 +173,11 @@ def walk_directory(directory, callback):
             else:
                 callback.append(fpath)
 
-def photo_scanner(user, path, job_id):
+def photo_scanner(user, lastScan, full_scan, path, job_id):
         if Photo.objects.filter(image_paths__contains=path).exists():
-            rescan_image(user, path, job_id)
+            time = os.path.getmtime(path)
+            if full_scan or not lastScan or datetime.datetime.fromtimestamp(time).replace(tzinfo=pytz.utc) > lastScan.finished_at:
+                rescan_image(user, path, job_id)
         else:
             handle_new_image(user, path, job_id)
         with db.connection.cursor() as cursor:
@@ -186,9 +188,8 @@ def photo_scanner(user, path, job_id):
                 ) where job_id = %(job_id)s""",
                 {'job_id': str(job_id)})
 
-# job is currently not used, because the model.eval() doesn't execute when it is running as a job
 @job
-def scan_photos(user, job_id):
+def scan_photos(user, full_scan, job_id):
     if(not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT, "thumbnails_big"))):
         os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "square_thumbnails_small"))
         os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "square_thumbnails"))
@@ -211,10 +212,10 @@ def scan_photos(user, job_id):
         photoList = []
         walk_directory(user.scan_directory, photoList)
         files_found = len(photoList)
-
+        lastScan = LongRunningJob.objects.filter(finished=True).filter(job_type=1).filter(started_by=user).order_by('-finished_at').first()
         all = []
         for path in photoList:
-             all.append((user, path, job_id))
+             all.append((user, lastScan, full_scan, path, job_id))
 
         lrj.result = {"progress": {"current": 0, "target": files_found}}
         lrj.save()

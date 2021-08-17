@@ -1131,15 +1131,24 @@ class SearchSimilarPhotosView(APIView):
 
 # long running jobs
 class ScanPhotosView(APIView):
-    def get(self, request, format=None):
+    def get(self, request,format=None):
         try:
             job_id = uuid.uuid4()
-            scan_photos.delay(request.user, job_id)
+            scan_photos.delay(request.user, False, job_id)
             return Response({'status': True, 'job_id': job_id})
         except BaseException:
             logger.exception("An Error occured")
             return Response({'status': False})
 
+class FullScanPhotosView(APIView):
+    def get(self, request,format=None):
+        try:
+            job_id = uuid.uuid4()
+            scan_photos.delay(request.user, True, job_id)
+            return Response({'status': True, 'job_id': job_id})
+        except BaseException:
+            logger.exception("An Error occured")
+            return Response({'status': False})
 class ScanFacesView(APIView):
     def get(self, request, format=None):
         try:
