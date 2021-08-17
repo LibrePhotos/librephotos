@@ -12,7 +12,7 @@ import {
   Table,
   Popup,
   Divider,
-  Confirm
+  Confirm,
 } from "semantic-ui-react";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
@@ -27,10 +27,14 @@ import {
   manageUpdateUser,
   fetchNextcloudDirectoryTree,
   fetchJobList,
-  deleteMissingPhotos
+  deleteMissingPhotos,
 } from "../../actions/utilActions";
 import { rescanFaces, trainFaces } from "../../actions/facesActions";
-import { scanPhotos, scanNextcloudPhotos } from "../../actions/photosActions";
+import {
+  scanPhotos,
+  scanAllPhotos,
+  scanNextcloudPhotos,
+} from "../../actions/photosActions";
 import { fetchUserSelfDetails } from "../../actions/userActions";
 import { CountStats } from "../../components/statistics";
 import Dropzone from "react-dropzone";
@@ -38,7 +42,7 @@ import AvatarEditor from "react-avatar-editor";
 import MaterialIcon from "material-icons-react";
 import SortableTree from "react-sortable-tree";
 import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
-import { serverAddress } from '../../api_client/apiClient'
+import { serverAddress } from "../../api_client/apiClient";
 
 export class Settings extends Component {
   state = {
@@ -51,10 +55,10 @@ export class Settings extends Component {
     userSelfDetails: {},
     modalNextcloudScanDirectoryOpen: false,
   };
-  open = () => this.setState({ open: true })
-  close = () => this.setState({ open: false })
+  open = () => this.setState({ open: true });
+  close = () => this.setState({ open: false });
 
-  setEditorRef = (editor) => this.editor = editor
+  setEditorRef = (editor) => (this.editor = editor);
 
   constructor(props) {
     super(props);
@@ -63,6 +67,10 @@ export class Settings extends Component {
 
   onPhotoScanButtonClick = (e) => {
     this.props.dispatch(scanPhotos());
+  };
+
+  onPhotoFullScanButtonClick = (e) => {
+    this.props.dispatch(scanAllPhotos());
   };
 
   onGenerateEventAlbumsButtonClick = (e) => {
@@ -74,15 +82,16 @@ export class Settings extends Component {
     this.close();
   };
 
-  urltoFile=(url, filename, mimeType)=>{
-    mimeType = mimeType || (url.match(/^data:([^;]+);/)||'')[1];
-    return (fetch(url)
-        .then(function(res){return res.arrayBuffer();})
-        .then(function(buf){
-          return new File([buf], filename, {type:mimeType});
-        })
-    );
-  }
+  urltoFile = (url, filename, mimeType) => {
+    mimeType = mimeType || (url.match(/^data:([^;]+);/) || "")[1];
+    return fetch(url)
+      .then(function (res) {
+        return res.arrayBuffer();
+      })
+      .then(function (buf) {
+        return new File([buf], filename, { type: mimeType });
+      });
+  };
 
   componentDidMount() {
     this.props.dispatch(fetchCountStats());
@@ -92,7 +101,6 @@ export class Settings extends Component {
     if (this.props.auth.access.is_admin) {
       this.props.dispatch(fetchJobList());
     }
-
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
@@ -106,10 +114,10 @@ export class Settings extends Component {
   render() {
     let buttonsDisabled = !this.props.workerAvailability;
     buttonsDisabled = false;
-    if(this.state.avatarImgSrc === "/unknown_user.jpg"){
+    if (this.state.avatarImgSrc === "/unknown_user.jpg") {
       if (this.props.userSelfDetails.avatar_url) {
         this.setState({
-          avatarImgSrc: serverAddress + this.props.userSelfDetails.avatar_url
+          avatarImgSrc: serverAddress + this.props.userSelfDetails.avatar_url,
         });
       }
     }
@@ -177,18 +185,26 @@ export class Settings extends Component {
                     <Icon name="image" />
                     Choose image
                   </Button>
-                  <Button   
-                      size="small" 
-                      color="green"
-                      onClick={() => {
-                        let form_data = new FormData();
-                        this.urltoFile(this.editor.getImageScaledToCanvas().toDataURL(), this.state.userSelfDetails.first_name + "avatar.png")
-                        .then((file)=> { 
-                          form_data.append('avatar', file, this.state.userSelfDetails.first_name + "avatar.png");
-                          this.props.dispatch(updateAvatar(this.state.userSelfDetails,form_data));
-                          });
-                      }}                    
-                    >
+                  <Button
+                    size="small"
+                    color="green"
+                    onClick={() => {
+                      let form_data = new FormData();
+                      this.urltoFile(
+                        this.editor.getImageScaledToCanvas().toDataURL(),
+                        this.state.userSelfDetails.first_name + "avatar.png"
+                      ).then((file) => {
+                        form_data.append(
+                          "avatar",
+                          file,
+                          this.state.userSelfDetails.first_name + "avatar.png"
+                        );
+                        this.props.dispatch(
+                          updateAvatar(this.state.userSelfDetails, form_data)
+                        );
+                      });
+                    }}
+                  >
                     <Icon name="upload" />
                     Upload
                   </Button>
@@ -433,11 +449,9 @@ export class Settings extends Component {
                 disabled
                 value={this.props.userSelfDetails.nextcloud_scan_directory}
               >
-                  <input
-                      value={
-                        this.state.userSelfDetails.nextcloud_scan_directory
-                      }
-                    />
+                <input
+                  value={this.state.userSelfDetails.nextcloud_scan_directory}
+                />
                 <Button
                   disabled={!this.props.fetchedNextcloudDirectoryTree}
                   onClick={() => {
@@ -485,6 +499,7 @@ export class Settings extends Component {
                       `(${this.props.statusPhotoScan.added}/${this.props.statusPhotoScan.to_add})`
                     : "Scan photos (file system)"}
                 </Button>
+
                 <Button
                   attached="bottom"
                   fluid
@@ -505,17 +520,19 @@ export class Settings extends Component {
                 <Divider hidden />
                 <List bulleted>
                   <List.Item>
-                    Make a list of all jpg files in subdirectories. For each jpg
+                    Make a list of all files in subdirectories. For each media
                     file:
                   </List.Item>
                   <List.Item>
-                    If the filepath exists in the database, we skip.
+                    If the filepath exists, check if the file has been modified.
+                    If it was modified, rescan the image. If not, we skip.
                   </List.Item>
                   <List.Item>
                     Calculate a unique ID of the image file (md5)
                   </List.Item>
                   <List.Item>
-                    If this image file is already in the database, we skip.
+                    If this media file is already in the database, we add the
+                    path to the existing media file.
                   </List.Item>
                   <List.Item>Generate a number of thumbnails </List.Item>
                   <List.Item>Generate image captions </List.Item>
@@ -525,12 +542,32 @@ export class Settings extends Component {
                   </List.Item>
                   <List.Item>Extract faces. </List.Item>
                   <List.Item>Add photo to thing and place albums. </List.Item>
-                  <List.Item>Check if photos are missing or have been moved. </List.Item>
+                  <List.Item>
+                    Check if photos are missing or have been moved.{" "}
+                  </List.Item>
                 </List>
+                <Button
+                  fluid
+                  color="green"
+                  onClick={this.onPhotoFullScanButtonClick}
+                  disabled={buttonsDisabled}
+                >
+                  <Icon
+                    name="refresh"
+                    loading={
+                      this.props.statusPhotoScan.status &&
+                      this.props.statusPhotoScan.added
+                    }
+                  />
+                  {this.props.statusPhotoScan.added
+                    ? "Rescan all photos (file system)" +
+                      `(${this.props.statusPhotoScan.added}/${this.props.statusPhotoScan.to_add})`
+                    : "Rescan all photos (file system)"}
+                </Button>
               </Segment>
             </Grid.Column>
             <Grid.Column>
-            <Segment>
+              <Segment>
                 <Header textAlign="center">
                   {this.props.util.countStats.num_missing_photos} Missing Photos
                 </Header>
@@ -552,8 +589,9 @@ export class Settings extends Component {
                 />
                 <Divider hidden />
                 <p>
-                  On every scan LibrePhotos will check if the files are still in the same location or if they have been moved.
-                  If they are missing, then they get marked as such.
+                  On every scan LibrePhotos will check if the files are still in
+                  the same location or if they have been moved. If they are
+                  missing, then they get marked as such.
                 </p>
                 <Divider />
               </Segment>
@@ -670,12 +708,13 @@ export class Settings extends Component {
                 <Button
                   fluid
                   color="green"
-                  onClick={() => {this.props.dispatch(rescanFaces());}}
+                  onClick={() => {
+                    this.props.dispatch(rescanFaces());
+                  }}
                 >
                   <Icon name="lightning" />
                   Rescan Faces
                 </Button>
-
               </Segment>
             </Grid.Column>
           </Grid.Row>
@@ -692,12 +731,17 @@ export class Settings extends Component {
               <select
                 value={this.state.userSelfDetails.confidence}
                 onChange={(event) => {
-                  this.setState({
-                    userSelfDetails: {
-                      ...this.state.userSelfDetails,
-                      confidence: event.target.value,
+                  this.setState(
+                    {
+                      userSelfDetails: {
+                        ...this.state.userSelfDetails,
+                        confidence: event.target.value,
+                      },
                     },
-                  }, () => {console.log(this.state.userSelfDetails)});
+                    () => {
+                      console.log(this.state.userSelfDetails);
+                    }
+                  );
                 }}
               >
                 <option value="" disabled selected>
@@ -708,7 +752,7 @@ export class Settings extends Component {
                 <option value="0.05">Low</option>
                 <option value="0">None</option>
               </select>
-              </Grid.Column>
+            </Grid.Column>
           </Grid.Row>
           <Grid.Row>
             <Grid.Column width={4} textAlign="left">
@@ -718,12 +762,17 @@ export class Settings extends Component {
               <select
                 value={this.state.userSelfDetails.semantic_search_topk}
                 onChange={(event) => {
-                  this.setState({
-                    userSelfDetails: {
-                      ...this.state.userSelfDetails,
-                      semantic_search_topk: event.target.value,
+                  this.setState(
+                    {
+                      userSelfDetails: {
+                        ...this.state.userSelfDetails,
+                        semantic_search_topk: event.target.value,
+                      },
                     },
-                  }, () => {console.log(this.state.userSelfDetails)});
+                    () => {
+                      console.log(this.state.userSelfDetails);
+                    }
+                  );
                 }}
               >
                 <option value="" disabled selected>
@@ -734,10 +783,10 @@ export class Settings extends Component {
                 <option value="10">Top 10</option>
                 <option value="0">Disabled</option>
               </select>
-              </Grid.Column>
+            </Grid.Column>
           </Grid.Row>
           <Grid.Row>
-              <Grid.Column width={12}>
+            <Grid.Column width={12}>
               <Button
                 type="submit"
                 color="green"
@@ -747,17 +796,18 @@ export class Settings extends Component {
                   delete newUserData["scan_directory"];
                   delete newUserData["avatar"];
                   this.props.dispatch(manageUpdateUser(newUserData));
-                  if (typeof this.props.onRequestClose == 'function')
+                  if (typeof this.props.onRequestClose == "function")
                     this.props.onRequestClose();
                 }}
               >
                 Update
               </Button>
-              </Grid.Column>
+            </Grid.Column>
           </Grid.Row>
         </Grid>
 
         <Header as="h3">Favorite options</Header>
+        
         <Grid>
           <Grid.Row>
             <Grid.Column width={4} textAlign="left">
@@ -767,12 +817,17 @@ export class Settings extends Component {
               <select
                 value={this.state.userSelfDetails.favorite_min_rating}
                 onChange={(event) => {
-                  this.setState({
-                    userSelfDetails: {
-                      ...this.state.userSelfDetails,
-                      favorite_min_rating: parseInt(event.target.value),
+                  this.setState(
+                    {
+                      userSelfDetails: {
+                        ...this.state.userSelfDetails,
+                        favorite_min_rating: parseInt(event.target.value),
+                      },
                     },
-                  }, () => { console.log(this.state.userSelfDetails) });
+                    () => {
+                      console.log(this.state.userSelfDetails);
+                    }
+                  );
                 }}
               >
                 <option value="" disabled selected>
@@ -797,7 +852,7 @@ export class Settings extends Component {
                   delete newUserData["scan_directory"];
                   delete newUserData["avatar"];
                   this.props.dispatch(manageUpdateUser(newUserData));
-                  if (typeof this.props.onRequestClose == 'function')
+                  if (typeof this.props.onRequestClose == "function")
                     this.props.onRequestClose();
                 }}
               >

@@ -299,6 +299,31 @@ export function scanPhotos() {
   };
 }
 
+export function scanAllPhotos() {
+  return function(dispatch) {
+    dispatch({ type: "SCAN_PHOTOS" });
+    dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
+
+    Server.get(`fullscanphotos/`)
+      .then(response => {
+        dispatch(
+          notify({
+            message: "Scan Photos started",
+            title: "Scan Photos",
+            status: "success",
+            dismissible: true,
+            dismissAfter: 3000,
+            position: "br"
+          })
+        );
+        dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: response.data });
+      })
+      .catch(err => {
+        dispatch({ type: "SCAN_PHOTOS_REJECTED", payload: err });
+      });
+  };
+}
+
 
 export function scanNextcloudPhotos() {
   return function(dispatch) {
