@@ -9,15 +9,15 @@ class AlbumUser(models.Model):
     photos = models.ManyToManyField(Photo)
     favorited = models.BooleanField(default=False, db_index=True)
     owner = models.ForeignKey(
-        User, on_delete=models.SET(get_deleted_user), default=None)
+        User, on_delete=models.SET(get_deleted_user), default=None
+    )
 
-    shared_to = models.ManyToManyField(
-        User, related_name='album_user_shared_to')
+    shared_to = models.ManyToManyField(User, related_name="album_user_shared_to")
 
     public = models.BooleanField(default=False, db_index=True)
 
     class Meta:
-        unique_together = ('title', 'owner')
+        unique_together = ("title", "owner")
 
     @property
     def cover_photos(self):

@@ -5,8 +5,10 @@ from api.util import logger
 import uuid
 import django_rq
 
+
 class Command(BaseCommand):
-    help = 'scan directory for all users'
+    help = "scan directory for all users"
+
     def handle(self, *args, **kwargs):
         for user in User.objects.all():
-            scan_photos(user,uuid.uuid4())
+            scan_photos(user, uuid.uuid4())

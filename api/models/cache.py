@@ -13,12 +13,19 @@ from django.db.models.signals import post_delete, post_save
 
 
 def change_api_updated_at(sender=None, instance=None, *args, **kwargs):
-    cache.set('api_updated_at_timestamp', datetime.utcnow())
+    cache.set("api_updated_at_timestamp", datetime.utcnow())
+
 
 # for cache invalidation. invalidates all cache on modelviewsets on delete and save on any model
 for model in [
-        Photo, Person, Face, AlbumDate, AlbumAuto, AlbumUser, AlbumPlace,
-        AlbumThing
+    Photo,
+    Person,
+    Face,
+    AlbumDate,
+    AlbumAuto,
+    AlbumUser,
+    AlbumPlace,
+    AlbumThing,
 ]:
     post_save.connect(receiver=change_api_updated_at, sender=model)
     post_delete.connect(receiver=change_api_updated_at, sender=model)

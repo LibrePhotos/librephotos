@@ -4,12 +4,22 @@ import numpy as np
 import pytz
 from django_rq import job
 from django.db.models import Q
-from api.models import AlbumAuto, AlbumDate, AlbumPlace, AlbumUser, AlbumThing, Face, LongRunningJob, Photo
+from api.models import (
+    AlbumAuto,
+    AlbumDate,
+    AlbumPlace,
+    AlbumUser,
+    AlbumThing,
+    Face,
+    LongRunningJob,
+    Photo,
+)
 from api.util import logger
 from django.core.cache import cache
 
+
 @job
-def regenerate_event_titles(user,job_id):
+def regenerate_event_titles(user, job_id):
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.now().replace(tzinfo=pytz.utc)
@@ -20,32 +30,28 @@ def regenerate_event_titles(user,job_id):
             job_id=job_id,
             queued_at=datetime.now().replace(tzinfo=pytz.utc),
             started_at=datetime.now().replace(tzinfo=pytz.utc),
-            job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUM_TITLES)
+            job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUM_TITLES,
+        )
         lrj.save()
     try:
-        aus = AlbumAuto.objects.filter(owner=user).prefetch_related('photos')
+        aus = AlbumAuto.objects.filter(owner=user).prefetch_related("photos")
         target_count = len(aus)
-        for idx,au in enumerate(aus):
-            logger.info('job {}: {}'.format(job_id,idx))
+        for idx, au in enumerate(aus):
+            logger.info("job {}: {}".format(job_id, idx))
             au._autotitle()
             au.save()
 
-            lrj.result = {
-                'progress': {
-                    "current": idx + 1,
-                    "target": target_count
-                }
-            }
+            lrj.result = {"progress": {"current": idx + 1, "target": target_count}}
             lrj.save()
 
         status = True
-        message = 'success'
-        res = {'status': status, 'message': message}
+        message = "success"
+        res = {"status": status, "message": message}
 
         lrj.finished = True
         lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
         lrj.save()
-        logger.info('job {}: updated lrj entry to db'.format(job_id))
+        logger.info("job {}: updated lrj entry to db".format(job_id))
 
     except:
         logger.exception("An error occured")
@@ -69,21 +75,21 @@ def generate_event_albums(user, job_id):
             job_id=job_id,
             queued_at=datetime.now().replace(tzinfo=pytz.utc),
             started_at=datetime.now().replace(tzinfo=pytz.utc),
-            job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUMS)
+            job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUMS,
+        )
         lrj.save()
 
-
     try:
-        photos = Photo.objects.filter(owner=user).only('exif_timestamp')
+        photos = Photo.objects.filter(owner=user).only("exif_timestamp")
 
-        photos_with_timestamp = [(photo.exif_timestamp, photo)
-                                 for photo in photos if photo.exif_timestamp]
+        photos_with_timestamp = [
+            (photo.exif_timestamp, photo) for photo in photos if photo.exif_timestamp
+        ]
 
         def group(photos_with_timestamp, dt=timedelta(hours=6)):
-            photos_with_timestamp = sorted(
-                photos_with_timestamp, key=lambda x: x[0])
+            photos_with_timestamp = sorted(photos_with_timestamp, key=lambda x: x[0])
             groups = []
-            for idx,photo in enumerate(photos_with_timestamp):
+            for idx, photo in enumerate(photos_with_timestamp):
                 if len(groups) == 0:
                     groups.append([])
                     groups[-1].append(photo[1])
@@ -93,25 +99,31 @@ def generate_event_albums(user, job_id):
                     else:
                         groups.append([])
                         groups[-1].append(photo[1])
-                logger.info('job {}: {}'.format(job_id,idx))
+                logger.info("job {}: {}".format(job_id, idx))
             return groups
 
         groups = group(photos_with_timestamp, dt=timedelta(days=1, hours=12))
-        logger.info('job {}: made groups'.format(job_id))
+        logger.info("job {}: made groups".format(job_id))
 
         album_locations = []
-        
+
         target_count = len(groups)
 
         date_format = "%Y:%m:%d %H:%M:%S"
         for idx, group in enumerate(groups):
             key = group[0].exif_timestamp
-            logger.info('job {}: processing auto album with date: '.format(job_id) + key.strftime(date_format))
+            logger.info(
+                "job {}: processing auto album with date: ".format(job_id)
+                + key.strftime(date_format)
+            )
             items = group
             if len(group) >= 2:
                 qs = AlbumAuto.objects.filter(timestamp=key).filter(owner=user)
                 if qs.count() == 0:
-                    album = AlbumAuto(created_on=datetime.utcnow().replace(tzinfo=pytz.utc), owner=user)
+                    album = AlbumAuto(
+                        created_on=datetime.utcnow().replace(tzinfo=pytz.utc),
+                        owner=user,
+                    )
                     album.timestamp = key
                     album.save()
 
@@ -130,19 +142,16 @@ def generate_event_albums(user, job_id):
                         album_locations.append([])
                     album._autotitle()
                     album.save()
-                    logger.info('job {}: generated auto album {}'.format(job_id,album.id))
+                    logger.info(
+                        "job {}: generated auto album {}".format(job_id, album.id)
+                    )
 
-            lrj.result = {
-                'progress': {
-                    "current": idx + 1,
-                    "target": target_count
-                }
-            }
+            lrj.result = {"progress": {"current": idx + 1, "target": target_count}}
             lrj.save()
 
         status = True
-        message = 'success'
-        res = {'status': status, 'message': message}
+        message = "success"
+        res = {"status": status, "message": message}
 
         lrj.finished = True
         lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
@@ -157,8 +166,9 @@ def generate_event_albums(user, job_id):
 
     return 1
 
+
 @job
-def delete_missing_photos(user,job_id):
+def delete_missing_photos(user, job_id):
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.now().replace(tzinfo=pytz.utc)
@@ -169,7 +179,8 @@ def delete_missing_photos(user,job_id):
             job_id=job_id,
             queued_at=datetime.now().replace(tzinfo=pytz.utc),
             started_at=datetime.now().replace(tzinfo=pytz.utc),
-            job_type=LongRunningJob.JOB_DELETE_MISSING_PHOTOS)
+            job_type=LongRunningJob.JOB_DELETE_MISSING_PHOTOS,
+        )
         lrj.save()
     try:
         missing_photos = Photo.objects.filter(Q(owner=user) & Q(image_paths=[]))
@@ -192,8 +203,8 @@ def delete_missing_photos(user,job_id):
         cache.clear()
 
         status = True
-        message = 'success'
-        res = {'status': status, 'message': message}
+        message = "success"
+        res = {"status": status, "message": message}
 
         lrj.finished = True
         lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)

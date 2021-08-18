@@ -5,9 +5,11 @@ import os
 import torch
 import numpy as np
 import ownphotos
+
 dir_clip_ViT_B_32_model = ownphotos.settings.CLIP_ROOT
 
-class SemanticSearch():
+
+class SemanticSearch:
     model_is_loaded = False
 
     def load(self):
