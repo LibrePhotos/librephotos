@@ -1,0 +1,4 @@
+[tool.black]
+line-length = 88
+target-version = ['py37']
+include = '\.pyi?$' # all files that end with .py or .pyi
