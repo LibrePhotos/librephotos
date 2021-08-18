@@ -9,13 +9,17 @@ class AlbumThing(models.Model):
     thing_type = models.CharField(max_length=512, db_index=True, null=True)
     favorited = models.BooleanField(default=False, db_index=True)
     owner = models.ForeignKey(
-        User, on_delete=models.SET(get_deleted_user), default=None)
+        User, on_delete=models.SET(get_deleted_user), default=None
+    )
 
-    shared_to = models.ManyToManyField(
-        User, related_name='album_thing_shared_to')
+    shared_to = models.ManyToManyField(User, related_name="album_thing_shared_to")
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=['title', 'thing_type' , 'owner'],name='unique AlbumThing')]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["title", "thing_type", "owner"], name="unique AlbumThing"
+            )
+        ]
 
     @property
     def cover_photos(self):
@@ -24,10 +28,12 @@ class AlbumThing(models.Model):
     def __str__(self):
         return "%d: %s" % (self.id, self.title)
 
+
 def get_album_thing(title, owner):
     return AlbumThing.objects.get_or_create(title=title, owner=owner)[0]
 
-#List all existing (thing / thing type / user)
+
+# List all existing (thing / thing type / user)
 view_api_album_thing_sql = """
     api_albumthing_sql as (
        select title, 'places365_attribute' thing_type, false favorited, owner_id
@@ -39,7 +45,7 @@ view_api_album_thing_sql = """
        group by title, thing_type, favorited, owner_id
     )"""
 
-#List all photos per albumThing
+# List all photos per albumThing
 view_api_album_thing_photos_sql = """
     api_albumthing_photos_sql as (
        select api_albumthing.id albumthing_id, photo_id
@@ -54,6 +60,7 @@ view_api_album_thing_photos_sql = """
     )
 """
 
+
 def create_new_album_thing(cursor):
     """This function create albums from all detected thing on photos"""
     SQL = """
@@ -63,8 +70,11 @@ def create_new_album_thing(cursor):
         from api_albumthing_sql
         left join api_albumthing using (title, thing_type, owner_id)
         where  api_albumthing is null;
-    """.replace("{}",view_api_album_thing_sql)
+    """.replace(
+        "{}", view_api_album_thing_sql
+    )
     cursor.execute(SQL)
+
 
 def create_new_album_thing_photo(cursor):
     """This function create link between albums thing and photo from all detected thing on photos"""
@@ -75,8 +85,11 @@ def create_new_album_thing_photo(cursor):
         from api_albumthing_photos_sql
         left join api_albumthing_photos using (albumthing_id, photo_id)
         where  api_albumthing_photos is null;
-    """.replace("{}",view_api_album_thing_photos_sql)
+    """.replace(
+        "{}", view_api_album_thing_photos_sql
+    )
     cursor.execute(SQL)
+
 
 def delete_album_thing_photo(cursor):
     """This function delete photos form albums thing where thing disapears"""
@@ -84,8 +97,11 @@ def delete_album_thing_photo(cursor):
         with {}
         delete from api_albumthing_photos
         where (albumthing_id,photo_id) not in ( select albumthing_id, photo_id from api_albumthing_photos_sql)
-    """.replace("{}",view_api_album_thing_photos_sql)
+    """.replace(
+        "{}", view_api_album_thing_photos_sql
+    )
     cursor.execute(SQL)
+
 
 def delete_album_thing(cursor):
     """This function delete albums thing without photos"""
@@ -93,12 +109,15 @@ def delete_album_thing(cursor):
         with {}
         delete from api_albumthing
         where (title, thing_type, owner_id) not in ( select title, thing_type, owner_id from api_albumthing_sql );
-    """.replace("{}",view_api_album_thing_sql)
+    """.replace(
+        "{}", view_api_album_thing_sql
+    )
     cursor.execute(SQL)
+
 
 def update():
     with connection.cursor() as cursor:
-         create_new_album_thing(cursor)
-         create_new_album_thing_photo(cursor)
-         delete_album_thing_photo(cursor)
-         delete_album_thing(cursor)
+        create_new_album_thing(cursor)
+        create_new_album_thing_photo(cursor)
+        delete_album_thing_photo(cursor)
+        delete_album_thing(cursor)

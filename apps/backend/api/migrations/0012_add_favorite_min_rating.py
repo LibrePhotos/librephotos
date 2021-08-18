@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0011_c_remove_favorited'),
+        ("api", "0011_c_remove_favorited"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='user',
-            name='favorite_min_rating',
+            model_name="user",
+            name="favorite_min_rating",
             field=models.IntegerField(db_index=True, default=4),
         ),
     ]

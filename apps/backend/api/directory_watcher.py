@@ -17,22 +17,27 @@ from multiprocessing import Pool
 import api.models.album_thing
 import pyvips
 
+
 def is_video(image_path):
     mime = magic.Magic(mime=True)
     filename = mime.from_file(image_path)
-    return filename.find('video') != -1
+    return filename.find("video") != -1
+
 
 def is_valid_media(image_path):
-    if(is_video(image_path)):
+    if is_video(image_path):
         return True
-    if(isRawPicture(image_path)):
+    if isRawPicture(image_path):
         return True
     try:
-        pyvips.Image.thumbnail(image_path, 10000, height=200, size=pyvips.enums.Size.DOWN)
+        pyvips.Image.thumbnail(
+            image_path, 10000, height=200, size=pyvips.enums.Size.DOWN
+        )
         return True
     except Exception as e:
         util.logger.info("Could not handle {}, because {}".format(image_path, str(e)))
         return False
+
 
 def calculate_hash(user, image_path):
     hash_md5 = hashlib.md5()
@@ -41,18 +46,21 @@ def calculate_hash(user, image_path):
             hash_md5.update(chunk)
     return hash_md5.hexdigest() + str(user.id)
 
+
 def should_skip(filepath):
-    if not os.getenv('SKIP_PATTERNS'):
+    if not os.getenv("SKIP_PATTERNS"):
         return False
 
-    skip_patterns = os.getenv('SKIP_PATTERNS')
-    skip_list = skip_patterns.split(',')
+    skip_patterns = os.getenv("SKIP_PATTERNS")
+    skip_list = skip_patterns.split(",")
     skip_list = map(str.strip, skip_list)
 
-    res = [ele for ele in skip_list if(ele in filepath)]
+    res = [ele for ele in skip_list if (ele in filepath)]
     return bool(res)
 
+
 if os.name == "Windows":
+
     def is_hidden(filepath):
         name = os.path.basename(os.path.abspath(filepath))
         return name.startswith(".") or has_hidden_attribute(filepath)
@@ -64,7 +72,10 @@ if os.name == "Windows":
             )
         except:
             return False
+
+
 else:
+
     def is_hidden(filepath):
         return os.path.basename(filepath).startswith(".")
 
@@ -96,10 +107,10 @@ def handle_new_image(user, image_path, job_id):
             if not Photo.objects.filter(Q(image_hash=image_hash)).exists():
                 photo = Photo()
                 photo.image_paths.append(img_abs_path)
-                photo.owner=user
-                photo.image_hash=image_hash
-                photo.added_on=datetime.datetime.now().replace(tzinfo=pytz.utc)
-                photo.geolocation_json={}
+                photo.owner = user
+                photo.image_hash = image_hash
+                photo.added_on = datetime.datetime.now().replace(tzinfo=pytz.utc)
+                photo.geolocation_json = {}
                 photo.video = is_video(img_abs_path)
                 start = datetime.datetime.now()
                 photo._generate_thumbnail(True)
@@ -111,9 +122,11 @@ def handle_new_image(user, image_path, job_id):
                 photo._extract_faces()
 
                 elapsed = (datetime.datetime.now() - start).total_seconds()
-                util.logger.info( "job {}: image processed: {}, elapsed: {}".format(
-                    job_id, img_abs_path, elapsed
-                ))
+                util.logger.info(
+                    "job {}: image processed: {}, elapsed: {}".format(
+                        job_id, img_abs_path, elapsed
+                    )
+                )
 
                 if photo.image_hash == "":
                     util.logger.warning(
@@ -141,6 +154,7 @@ def handle_new_image(user, image_path, job_id):
                     "job {}: could not load image {}".format(job_id, image_path)
                 )
 
+
 def rescan_image(user, image_path, job_id):
     try:
         if is_valid_media(image_path):
@@ -150,8 +164,7 @@ def rescan_image(user, image_path, job_id):
             photo._generate_clip_embeddings(True)
             photo._extract_date_time_from_exif(True)
             photo._geolocate_mapbox(True)
-            
-            
+
     except Exception as e:
         try:
             util.logger.exception(
@@ -164,6 +177,7 @@ def rescan_image(user, image_path, job_id):
                 "job {}: could not load image {}".format(job_id, image_path)
             )
 
+
 def walk_directory(directory, callback):
     for file in os.scandir(directory):
         fpath = os.path.join(directory, file)
@@ -173,24 +187,35 @@ def walk_directory(directory, callback):
             else:
                 callback.append(fpath)
 
+
 def photo_scanner(user, lastScan, full_scan, path, job_id):
-        if Photo.objects.filter(image_paths__contains=path).exists():
-            time = os.path.getmtime(path)
-            if full_scan or not lastScan or datetime.datetime.fromtimestamp(time).replace(tzinfo=pytz.utc) > lastScan.finished_at:
-                rescan_image(user, path, job_id)
-        else:
-            handle_new_image(user, path, job_id)
-        with db.connection.cursor() as cursor:
-            cursor.execute("""
+    if Photo.objects.filter(image_paths__contains=path).exists():
+        time = os.path.getmtime(path)
+        if (
+            full_scan
+            or not lastScan
+            or datetime.datetime.fromtimestamp(time).replace(tzinfo=pytz.utc)
+            > lastScan.finished_at
+        ):
+            rescan_image(user, path, job_id)
+    else:
+        handle_new_image(user, path, job_id)
+    with db.connection.cursor() as cursor:
+        cursor.execute(
+            """
                 update api_longrunningjob
                 set result = jsonb_set(result,'{"progress","current"}',
                       ((jsonb_extract_path(result,'progress','current')::int + 1)::text)::jsonb
                 ) where job_id = %(job_id)s""",
-                {'job_id': str(job_id)})
+            {"job_id": str(job_id)},
+        )
+
 
 @job
 def scan_photos(user, full_scan, job_id):
-    if(not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT, "thumbnails_big"))):
+    if not os.path.exists(
+        os.path.join(ownphotos.settings.MEDIA_ROOT, "thumbnails_big")
+    ):
         os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "square_thumbnails_small"))
         os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "square_thumbnails"))
         os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "thumbnails_big"))
@@ -212,19 +237,27 @@ def scan_photos(user, full_scan, job_id):
         photoList = []
         walk_directory(user.scan_directory, photoList)
         files_found = len(photoList)
-        lastScan = LongRunningJob.objects.filter(finished=True).filter(job_type=1).filter(started_by=user).order_by('-finished_at').first()
+        lastScan = (
+            LongRunningJob.objects.filter(finished=True)
+            .filter(job_type=1)
+            .filter(started_by=user)
+            .order_by("-finished_at")
+            .first()
+        )
         all = []
         for path in photoList:
-             all.append((user, lastScan, full_scan, path, job_id))
+            all.append((user, lastScan, full_scan, path, job_id))
 
         lrj.result = {"progress": {"current": 0, "target": files_found}}
         lrj.save()
         db.connections.close_all()
         with Pool(processes=ownphotos.settings.HEAVYWEIGHT_PROCESS) as pool:
-             pool.starmap(photo_scanner, all)
+            pool.starmap(photo_scanner, all)
 
         place365_instance.unload()
-        util.logger.info("Scanned {} files in : {}".format(files_found, user.scan_directory))
+        util.logger.info(
+            "Scanned {} files in : {}".format(files_found, user.scan_directory)
+        )
         api.models.album_thing.update()
         exisisting_photos = Photo.objects.filter(owner=user.id)
         for existing_photo in exisisting_photos:
@@ -244,15 +277,19 @@ def scan_photos(user, full_scan, job_id):
 
     return {"new_photo_count": added_photo_count, "status": lrj.failed == False}
 
+
 def face_scanner(photo, job_id):
-        photo._extract_faces()
-        with db.connection.cursor() as cursor:
-            cursor.execute("""
+    photo._extract_faces()
+    with db.connection.cursor() as cursor:
+        cursor.execute(
+            """
                 update api_longrunningjob
                 set result = jsonb_set(result,'{"progress","current"}',
                       ((jsonb_extract_path(result,'progress','current')::int + 1)::text)::jsonb
                 ) where job_id = %(job_id)s""",
-                {'job_id': str(job_id)})
+            {"job_id": str(job_id)},
+        )
+
 
 @job
 def scan_faces(user, job_id):
@@ -273,7 +310,7 @@ def scan_faces(user, job_id):
     try:
         existing_photos = Photo.objects.filter(owner=user.id)
         all = [(photo, job_id) for photo in existing_photos]
-       
+
         lrj.result = {"progress": {"current": 0, "target": existing_photos.count()}}
         lrj.save()
         db.connections.close_all()
@@ -289,7 +326,7 @@ def scan_faces(user, job_id):
 
     lrj.finished = True
     lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-    lrj.result["new_face_count"] = added_face_count 
+    lrj.result["new_face_count"] = added_face_count
     lrj.save()
-    
+
     return {"new_face_count": added_face_count, "status": lrj.failed == False}
