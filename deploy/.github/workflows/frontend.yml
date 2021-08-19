@@ -7,7 +7,7 @@ on:
   push:
     # Publish `dev` as Docker `latest` image.
     branches:
-      - dev
+      - main
 
     # Publish `v1.2.3` tags as releases.
     tags:
