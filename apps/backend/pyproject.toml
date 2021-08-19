@@ -1,4 +1,14 @@
 [tool.black]
 line-length = 88
-target-version = ['py37']
+target-version = ['py38']
 include = '\.pyi?$' # all files that end with .py or .pyi
+
+[tool.pylint.master]
+load-plugins = 'pylint_django'
+disable = 'E029,C0111'
+
+[tool.pylint.format]
+max-line-length = 88
+
+[tool.isort]
+profile = "black"
