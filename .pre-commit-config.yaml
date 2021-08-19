@@ -1,6 +1,24 @@
+default_language_version:
+  python: python3
+
 repos:
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.9.3
+    hooks:
+      - id: isort
   - repo: https://github.com/psf/black
-    rev: stable # Replace by any tag/version: https://github.com/psf/black/tags
+    rev: 21.7b0
     hooks:
       - id: black
-        language_version: python3 # Should be a command that runs python3.6+
+  - repo: https://github.com/PyCQA/flake8 
+    rev: 3.9.2
+    hooks:
+      - id: flake8
+        args:
+          - --exclude=.+/migrations/
+          - --max-line-length=88
+  - repo: https://github.com/PyCQA/pylint
+    rev: v2.9.6
+    hooks:
+      - id: pylint
+
