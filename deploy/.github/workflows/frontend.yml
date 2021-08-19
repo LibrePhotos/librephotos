@@ -8,6 +8,8 @@ on:
     # Publish `dev` as Docker `latest` image.
     branches:
       - main
+    paths:
+      - 'frontend/**'
 
     # Publish `v1.2.3` tags as releases.
     tags:
