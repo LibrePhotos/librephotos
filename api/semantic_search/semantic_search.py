@@ -1,9 +1,11 @@
-from sentence_transformers import SentenceTransformer, util
-from PIL import Image
 import gc
 import os
-import torch
+
 import numpy as np
+import torch
+from PIL import Image
+from sentence_transformers import SentenceTransformer, util
+
 import ownphotos
 
 dir_clip_ViT_B_32_model = ownphotos.settings.CLIP_ROOT

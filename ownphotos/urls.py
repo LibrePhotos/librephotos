@@ -13,21 +13,21 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
-from api.views import views, photos, albums
+from django.conf import settings
 from django.conf.urls import include, url
 from django.conf.urls.static import static
-from django.conf import settings
 from django.contrib import admin
-from nextcloud import views as nextcloud_views
-from rest_framework import routers
+from drf_yasg import openapi
+from drf_yasg.views import get_schema_view
+from rest_framework import permissions, routers
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
     TokenRefreshSerializer,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from rest_framework import permissions
-from drf_yasg.views import get_schema_view
-from drf_yasg import openapi
+
+from api.views import albums, photos, views
+from nextcloud import views as nextcloud_views
 
 schema_view = get_schema_view(
     openapi.Info(

@@ -1,9 +1,11 @@
-import pyvips
 import os
+import subprocess
+
+import pyvips
+from wand.image import Image
+
 import ownphotos.settings
 from api.util import logger
-import subprocess
-from wand.image import Image
 
 
 def isRawPicture(path):

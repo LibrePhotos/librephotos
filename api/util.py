@@ -1,13 +1,14 @@
-import ownphotos.settings
-import os.path
 import logging
 import logging.handlers
 import os
+import os.path
 
 import numpy as np
 import requests
 import spacy
 from scipy.spatial import distance
+
+import ownphotos.settings
 
 nlp = spacy.load("en_core_web_sm")
 

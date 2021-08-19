@@ -1,7 +1,8 @@
 from datetime import datetime
 
-from api.models.user import User, get_deleted_user
 from django.db import models
+
+from api.models.user import User, get_deleted_user
 
 
 def get_default_longrunningjob_result():

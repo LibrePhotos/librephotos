@@ -2,20 +2,21 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import pytz
-from django_rq import job
+from django.core.cache import cache
 from django.db.models import Q
+from django_rq import job
+
 from api.models import (
     AlbumAuto,
     AlbumDate,
     AlbumPlace,
-    AlbumUser,
     AlbumThing,
+    AlbumUser,
     Face,
     LongRunningJob,
     Photo,
 )
 from api.util import logger
-from django.core.cache import cache
 
 
 @job

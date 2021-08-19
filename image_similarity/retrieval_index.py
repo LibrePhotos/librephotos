@@ -1,9 +1,9 @@
-import faiss
+import datetime
 import json
+
+import faiss
 import numpy as np
 from utils import logger
-
-import datetime
 
 embedding_size = 512
 

@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
-from api.models import User
+
 from api.image_similarity import build_image_similarity_index
+from api.models import User
 from api.util import logger
 
 

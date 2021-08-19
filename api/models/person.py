@@ -1,9 +1,11 @@
-from api.models.photo import Photo
-from api.models.user import User, get_deleted_user
+import datetime
+
+import pytz
 from django.db import models
 from django.db.models import Prefetch
-import datetime
-import pytz
+
+from api.models.photo import Photo
+from api.models.user import User, get_deleted_user
 
 utc = pytz.UTC
 

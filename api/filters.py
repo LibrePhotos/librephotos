@@ -1,12 +1,13 @@
 import operator
 from functools import reduce
 
-from rest_framework.compat import distinct
-from django.db.models.expressions import RawSQL
 from django.db.models import Q
+from django.db.models.expressions import RawSQL
 from rest_framework import filters
-from api.semantic_search.semantic_search import semantic_search_instance
+from rest_framework.compat import distinct
+
 from api.image_similarity import search_similar_embedding
+from api.semantic_search.semantic_search import semantic_search_instance
 
 
 class SemanticSearchFilter(filters.SearchFilter):

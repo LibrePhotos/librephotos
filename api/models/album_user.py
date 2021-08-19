@@ -1,6 +1,7 @@
+from django.db import models
+
 from api.models.photo import Photo
 from api.models.user import User, get_deleted_user
-from django.db import models
 
 
 class AlbumUser(models.Model):

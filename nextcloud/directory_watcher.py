@@ -1,14 +1,16 @@
-from api.models import Photo, LongRunningJob
-from django_rq import job
-import owncloud as nextcloud
-import pathlib
-import os
-from ownphotos import settings
 import datetime
+import os
+import pathlib
+
+import owncloud as nextcloud
 import pytz
+from django_rq import job
+
 import api.util as util
 from api.directory_watcher import handle_new_image
 from api.image_similarity import build_image_similarity_index
+from api.models import LongRunningJob, Photo
+from ownphotos import settings
 
 
 def isValidNCMedia(file_obj):

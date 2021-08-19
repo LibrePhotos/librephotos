@@ -1,8 +1,9 @@
+import numpy as np
+import requests
+from django.db.models import Q
+
 from api.models import Photo, User
 from api.util import logger
-from django.db.models import Q
-import requests
-import numpy as np
 from ownphotos.settings import IMAGE_SIMILARITY_SERVER
 
 

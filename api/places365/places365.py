@@ -2,15 +2,17 @@
 # by Bolei Zhou, sep 2, 2017
 # last modified date: Dec. 27, 2017, migrating everything to python36 and latest pytorch and torchvision
 import os
-import ownphotos.settings
+
 import numpy as np
 import torch
-import wideresnet
-from api.util import logger
 from PIL import Image
 from torch.autograd import Variable as V
 from torch.nn import functional as F
 from torchvision import transforms as trn
+
+import ownphotos.settings
+import wideresnet
+from api.util import logger
 
 # import warnings
 

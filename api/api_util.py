@@ -1,29 +1,28 @@
-from api.models import (
-    Photo,
-    Face,
-    Person,
-    AlbumAuto,
-    AlbumDate,
-    AlbumUser,
-    LongRunningJob,
-)
-from api.views.serializers import LongRunningJobSerializer
-import numpy as np
-
 import os
+import random
 import stat
 from collections import Counter
-
-from django.db.models.functions import TruncMonth
-from django.db.models import Count, Q
-from django.db import connection
-import random
 from datetime import date, datetime
 from itertools import groupby
 
-import seaborn as sns
+import numpy as np
 import pandas as pd
+import seaborn as sns
+from django.db import connection
+from django.db.models import Count, Q
+from django.db.models.functions import TruncMonth
+
+from api.models import (
+    AlbumAuto,
+    AlbumDate,
+    AlbumUser,
+    Face,
+    LongRunningJob,
+    Person,
+    Photo,
+)
 from api.util import logger
+from api.views.serializers import LongRunningJobSerializer
 
 
 def get_current_job():

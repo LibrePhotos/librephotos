@@ -1,10 +1,10 @@
-from flask import Flask, request, jsonify
-from flask_restful import Resource, Api
 import json
-from gevent.pywsgi import WSGIServer
-import gevent
-from retrieval_index import RetrievalIndex
 
+import gevent
+from flask import Flask, jsonify, request
+from flask_restful import Api, Resource
+from gevent.pywsgi import WSGIServer
+from retrieval_index import RetrievalIndex
 from utils import logger
 
 app = Flask(__name__)

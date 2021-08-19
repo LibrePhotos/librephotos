@@ -1,9 +1,10 @@
-import networkx as nx
-from api.models import Person, Photo
 import itertools
-from django.db.models import Count
-from django.db.models import Q
+
+import networkx as nx
 from django.db import connection
+from django.db.models import Count, Q
+
+from api.models import Person, Photo
 
 
 def build_social_graph(user):

@@ -1,6 +1,7 @@
-from api.models import Photo, AlbumAuto
-from api.util import logger
 from tqdm import tqdm
+
+from api.models import AlbumAuto, Photo
+from api.util import logger
 
 
 def generate_captions(overwrite=False):

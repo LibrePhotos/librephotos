@@ -1,21 +1,23 @@
 import datetime
 import hashlib
-from api.thumbnails import isRawPicture
 import os
 import stat
+from multiprocessing import Pool
+
 import magic
 import pytz
-import ownphotos.settings
+import pyvips
 from django import db
 from django.db.models import Q
 from django_rq import job
-from api.places365.places365 import place365_instance
-import api.util as util
-from api.image_similarity import build_image_similarity_index
-from api.models import LongRunningJob, Photo, Face
-from multiprocessing import Pool
+
 import api.models.album_thing
-import pyvips
+import api.util as util
+import ownphotos.settings
+from api.image_similarity import build_image_similarity_index
+from api.models import Face, LongRunningJob, Photo
+from api.places365.places365 import place365_instance
+from api.thumbnails import isRawPicture
 
 
 def is_video(image_path):
