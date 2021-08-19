@@ -5,8 +5,9 @@ Pygments==2.7.4
 prompt-toolkit==3.0.8
 nose==1.3.7
 pylint==2.6.0
+pylint-django==2.4.4
 flake8==3.8.4
-pre-commit
+pre-commit==2.14.0
 
 # REMOVED
 # yarg==0.1.9

@@ -5,7 +5,8 @@ include = '\.pyi?$' # all files that end with .py or .pyi
 
 [tool.pylint.master]
 load-plugins = 'pylint_django'
-disable = 'E029,C0111'
+django-settings-module = 'ownphotos.settings'
+disable = 'E029,C0111,C0301'
 
 [tool.pylint.format]
 max-line-length = 88

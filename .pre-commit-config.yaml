@@ -1,5 +1,5 @@
 default_language_version:
-  python: python3
+  python: /usr/local/bin/python
 
 repos:
   - repo: https://github.com/PyCQA/isort
@@ -10,15 +10,22 @@ repos:
     rev: 21.7b0
     hooks:
       - id: black
-  - repo: https://github.com/PyCQA/flake8 
-    rev: 3.9.2
+  - repo: local
     hooks:
       - id: flake8
+        name: flake8
+        entry: flake8
         args:
           - --exclude=.+/migrations/
           - --max-line-length=88
-  - repo: https://github.com/PyCQA/pylint
-    rev: v2.9.6
+          - --ignore=E501
+        language: system
+        types: [python]
+  - repo: local
     hooks:
       - id: pylint
+        name: pylint
+        entry: pylint
+        language: system
+        types: [python]
 
