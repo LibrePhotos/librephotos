@@ -1,11 +1,13 @@
 import json
 import os
 from datetime import datetime
-import ownphotos.settings
+
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.db.models import Count, Prefetch, Q
 from rest_framework import serializers
-from django.core.cache import cache
+
+import ownphotos.settings
 from api.batch_jobs import create_batch_job
 from api.image_similarity import search_similar_image
 from api.models import (

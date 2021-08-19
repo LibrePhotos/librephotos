@@ -1,6 +1,5 @@
-from rest_framework import permissions
-
 from constance import config as site_config
+from rest_framework import permissions
 
 
 class IsOwnerOrReadOnly(permissions.BasePermission):

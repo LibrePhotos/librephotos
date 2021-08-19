@@ -1,15 +1,17 @@
-from api.models import Face, Person, LongRunningJob
-from api.util import logger
-from sklearn.decomposition import PCA
-import numpy as np
-from sklearn.neural_network import MLPClassifier
-from django.core.cache import cache
-import seaborn as sns
-from django_rq import job
-import pytz
 import datetime
-from bulk_update.helper import bulk_update
+
+import numpy as np
 import pandas as pd
+import pytz
+import seaborn as sns
+from bulk_update.helper import bulk_update
+from django.core.cache import cache
+from django_rq import job
+from sklearn.decomposition import PCA
+from sklearn.neural_network import MLPClassifier
+
+from api.models import Face, LongRunningJob, Person
+from api.util import logger
 
 
 def cluster_faces(user, inferred=True):

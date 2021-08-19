@@ -1,9 +1,10 @@
 import os
 import sys
 
-from api.models import User
 from django.core.management.base import BaseCommand, CommandError
 from django.core.validators import ValidationError, validate_email
+
+from api.models import User
 
 
 class Command(BaseCommand):

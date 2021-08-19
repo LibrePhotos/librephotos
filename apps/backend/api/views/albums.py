@@ -1,13 +1,20 @@
 import re
+
 import six
 from django.db.models import Count, Prefetch, Q
 from rest_framework import filters, viewsets
 from rest_framework.response import Response
 from rest_framework_extensions.cache.decorators import cache_response
 
-
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 from api.models import AlbumAuto, AlbumPlace, AlbumThing, AlbumUser, Face, Person, Photo
+from api.util import logger
+from api.views.caching import (
+    CACHE_TTL,
+    CustomListKeyConstructor,
+    CustomObjectKeyConstructor,
+)
+from api.views.pagination import StandardResultsSetPagination
 from api.views.serializers import (
     AlbumAutoListSerializer,
     AlbumAutoSerializer,
@@ -24,13 +31,6 @@ from api.views.serializers_serpy import (
     GroupedPersonPhotosSerializer,
     GroupedPlacePhotosSerializer,
 )
-from api.views.pagination import StandardResultsSetPagination
-from api.views.caching import (
-    CustomObjectKeyConstructor,
-    CustomListKeyConstructor,
-    CACHE_TTL,
-)
-from api.util import logger
 
 
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)

@@ -1,16 +1,16 @@
-from django.shortcuts import render
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
-
-from api.models import *
-import owncloud as nextcloud
-from api.api_util import get_current_job
-from nextcloud.directory_watcher import scan_photos
-from api.util import logger
+import datetime
 import uuid
 
-import datetime
+import owncloud as nextcloud
+from django.shortcuts import render
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from api.api_util import get_current_job
+from api.models import *
+from api.util import logger
+from nextcloud.directory_watcher import scan_photos
 
 
 class ListDir(APIView):

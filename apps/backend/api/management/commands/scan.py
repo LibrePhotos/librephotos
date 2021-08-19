@@ -1,9 +1,11 @@
-from django.core.management.base import BaseCommand
-from api.models import User
-from api.directory_watcher import scan_photos
-from api.util import logger
 import uuid
+
 import django_rq
+from django.core.management.base import BaseCommand
+
+from api.directory_watcher import scan_photos
+from api.models import User
+from api.util import logger
 
 
 class Command(BaseCommand):

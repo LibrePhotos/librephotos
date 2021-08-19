@@ -1,5 +1,5 @@
-from django.db import migrations, models
 import exiftool
+from django.db import migrations, models
 
 
 class Migration(migrations.Migration):

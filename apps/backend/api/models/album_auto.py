@@ -1,9 +1,10 @@
 from collections import Counter
 
+from django.db import models
+
 import api.util as util
 from api.models.photo import Photo
 from api.models.user import User, get_deleted_user
-from django.db import models
 
 
 class AlbumAuto(models.Model):

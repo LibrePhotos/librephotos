@@ -1,14 +1,14 @@
-from rest_framework_extensions.key_constructor.constructors import DefaultKeyConstructor
+import datetime
+
+from django.core.cache import cache
+from django.utils.encoding import force_text
 from rest_framework_extensions.key_constructor.bits import (
     KeyBitBase,
     ListSqlQueryKeyBit,
     PaginationKeyBit,
     RetrieveSqlQueryKeyBit,
 )
-from django.core.cache import cache
-import datetime
-from django.utils.encoding import force_text
-
+from rest_framework_extensions.key_constructor.constructors import DefaultKeyConstructor
 
 CACHE_TTL = 60 * 60 * 24  # 1 day
 CACHE_TTL_VIZ = 60 * 60  # 1 hour

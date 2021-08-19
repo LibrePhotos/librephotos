@@ -1,7 +1,7 @@
-import os
-import os.path
 import logging
 import logging.handlers
+import os
+import os.path
 
 BASE_LOGS = os.environ.get("BASE_LOGS", "/logs/")
 

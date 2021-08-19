@@ -1,14 +1,16 @@
 import argparse
-import torch
-import torch.nn as nn
-import numpy as np
 import os
 import pickle
-from api.im2txt.data_loader import get_loader
-from api.im2txt.build_vocab import Vocabulary
-from api.im2txt.model import EncoderCNN, DecoderRNN
+
+import numpy as np
+import torch
+import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
 from torchvision import transforms
+
+from api.im2txt.build_vocab import Vocabulary
+from api.im2txt.data_loader import get_loader
+from api.im2txt.model import DecoderRNN, EncoderCNN
 
 model_path = "api/im2txt/models/"
 crop_size = 224

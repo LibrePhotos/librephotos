@@ -1,32 +1,34 @@
 import hashlib
-from api.thumbnails import (
-    createThumbnail,
-    createAnimatedThumbnail,
-    doesVideoThumbnailExists,
-    doesStaticThumbnailExists,
-    createThumbnailForVideo,
-)
 import os
 from datetime import datetime
 from io import BytesIO
-from api.im2txt.sample import im2txt
+
 import exiftool
-import api.models
-import api.util as util
 import face_recognition
 import numpy as np
 import PIL
 import pytz
+from django.contrib.postgres.fields import ArrayField
 from django.core.cache import cache
+from django.core.files.base import ContentFile
+from django.db import models
+from django.db.models import Q
+from geopy.geocoders import Nominatim
+
+import api.models
+import api.util as util
+from api.im2txt.sample import im2txt
 from api.models.user import User, get_deleted_user
 from api.places365.places365 import place365_instance
 from api.semantic_search.semantic_search import semantic_search_instance
+from api.thumbnails import (
+    createAnimatedThumbnail,
+    createThumbnail,
+    createThumbnailForVideo,
+    doesStaticThumbnailExists,
+    doesVideoThumbnailExists,
+)
 from api.util import logger
-from django.core.files.base import ContentFile
-from django.db import models
-from django.contrib.postgres.fields import ArrayField
-from geopy.geocoders import Nominatim
-from django.db.models import Q
 
 
 class VisiblePhotoManager(models.Manager):

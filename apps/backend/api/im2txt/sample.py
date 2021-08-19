@@ -2,15 +2,15 @@ import argparse
 import os
 import pickle
 
-import ownphotos.settings
-
 # import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from api.im2txt.build_vocab import Vocabulary
-from api.im2txt.model import DecoderRNN, EncoderCNN
 from PIL import Image
 from torchvision import transforms
+
+import ownphotos.settings
+from api.im2txt.build_vocab import Vocabulary
+from api.im2txt.model import DecoderRNN, EncoderCNN
 
 # parser.add_argument('--image', type=str, required=True, help='input image for generating caption')
 # parser.add_argument('--encoder_path', type=str, default='models/encoder-5-3000.pkl', help='path for trained encoder')

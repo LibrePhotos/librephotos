@@ -1,5 +1,5 @@
-from django.db import migrations, models
 from django.contrib.postgres.fields import ArrayField
+from django.db import migrations, models
 
 from api.semantic_search.semantic_search import semantic_search_instance
 

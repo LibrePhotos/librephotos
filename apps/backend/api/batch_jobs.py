@@ -1,14 +1,13 @@
-import torch
 import uuid
-
 from datetime import datetime
+
 import pytz
-
-from api.models.photo import Photo
-from api.models.long_running_job import LongRunningJob
-from api.semantic_search.semantic_search import semantic_search_instance
-
+import torch
 from django_rq import job
+
+from api.models.long_running_job import LongRunningJob
+from api.models.photo import Photo
+from api.semantic_search.semantic_search import semantic_search_instance
 
 
 def create_batch_job(job_type, user):
