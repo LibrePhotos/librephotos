@@ -5,7 +5,8 @@ on:
     # Publish `dev` as Docker `latest` image.
     branches:
       - main
-
+    paths:
+      - 'proxy/**'
     # Publish `v1.2.3` tags as releases.
     tags:
       - v*
