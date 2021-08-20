@@ -43,7 +43,7 @@ git clone https://github.com/LibrePhotos/librephotos-docker.git
 
 ### Configuring the environment
 
-Set the needed variables in .evn (take librephotos.env as model). Make sure you set the `codedir` variable that tells
+Set the needed variables in .env (take librephotos.env as model). Make sure you set the `codedir` variable that tells
 docker where your source folders are. this should be the same path as used to clone your repos.
 
 Run `docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d`
