@@ -1,7 +1,7 @@
 FROM python:3.8-slim-buster
 # system packages installation
 
-RUN apt update && apt install -y ffmpeg swig libimage-exiftool-perl curl nfs-common cifs-utils libopenblas-dev libheif-dev libmagic1 libraw-dev libboost-all-dev libxrender-dev liblapack-dev git bzip2 cmake build-essential libsm6 libglib2.0-dev libgl1-mesa-glx libpq-dev libexpat-dev \
+RUN apt update && apt install -y ffmpeg swig cmake libimage-exiftool-perl curl nfs-common cifs-utils libopenblas-dev libheif-dev libmagic1 libraw-dev libboost-all-dev libxrender-dev liblapack-dev git bzip2 cmake build-essential libsm6 libglib2.0-dev libgl1-mesa-glx libpq-dev libexpat-dev \
 	librsvg2-dev \
 	libpng-dev \
 	libgif-dev \
