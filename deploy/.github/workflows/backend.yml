@@ -3,18 +3,6 @@ name: backend
 on:
   repository_dispatch:
     types: backend-commit-event
-    
-  push:
-    # Publish `dev` as Docker `latest` image.
-    branches:
-      - main
-
-    # Publish `v1.2.3` tags as releases.
-    tags:
-      - v*
-
-  # Run tests for any PRs.
-  pull_request:
 
 env:
   IMAGE_NAME: librephotos
