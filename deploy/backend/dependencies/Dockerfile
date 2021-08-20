@@ -1,5 +1,14 @@
-FROM python:3.8-slim-buster
+FROM ubuntu:hirsute
 # system packages installation
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install python
+RUN apt-get update \
+  && apt-get install -y python3-pip python3-dev \
+  && cd /usr/local/bin \
+  && ln -s /usr/bin/python3 python \
+  && pip3 install --upgrade pip
 
 RUN apt update && apt install -y ffmpeg swig cmake libimage-exiftool-perl curl nfs-common cifs-utils libopenblas-dev libheif-dev libmagic1 libraw-dev libboost-all-dev libxrender-dev liblapack-dev git bzip2 cmake build-essential libsm6 libglib2.0-dev libgl1-mesa-glx libpq-dev libexpat-dev \
 	librsvg2-dev \
