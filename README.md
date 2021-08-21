@@ -32,7 +32,7 @@ Step-by-step installation instructions are available in our [documentation](http
 see : [librephotos-linux](https://github.com/LibrePhotos/librephotos-linux)
 
 ### Contributions
-- Get started in less than 30 minutes by following the [guide here](https://github.com/LibrePhotos/librephotos-docker)
+- Get started contributing in less than 30 minutes by following the [guide here](https://github.com/LibrePhotos/librephotos-docker)
 - Join our discord server, or open a pull request to start contributing
 
 **Currently the project is in very early stages, some bugs may exist. If you find any please log an issue**
