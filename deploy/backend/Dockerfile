@@ -1,7 +1,7 @@
 FROM reallibrephotos/librephotos-dependencies:dev
 
 # install rust
-RUN apt install -y rustc libtinfo5
+RUN apt install -y rustc libtinfo5 unzip
 # unzip faiss to actually installed it...
 RUN unzip /usr/local/lib/python3.9/dist-packages/faiss*.egg -d /usr/local/lib/python3.9/dist-packages/
 # actual project
