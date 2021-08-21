@@ -32,7 +32,7 @@ pytz==2020.1
 PyExifTool==0.4.9
 rq==1.6.1
 six==1.15.0 
-scipy==1.5.3
+scipy==1.6.0
 seaborn==0.11.0
 sentence_transformers==1.2.0
 serpy==0.3.1
