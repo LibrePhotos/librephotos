@@ -44,7 +44,7 @@ see : [librephotos-linux](https://github.com/LibrePhotos/librephotos-linux)
   - Timeline view
   - Scans pictures on the file system
   - Multiuser support
-  - Automatically generate "event" albums like "Thursday in Berlin"
+  - Generate albums based on events like "Thursday in Berlin"
   - Face recognition / Face classification
   - Reverse geocoding
   - Object / Scene detection
