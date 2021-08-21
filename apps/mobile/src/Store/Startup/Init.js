@@ -11,6 +11,7 @@ import FetchAlbumByDate from '@/Store/Album/FetchByDate'
 import FetchPhotosWithoutDate from '@/Store/Album/FetchPhotosWithoutDate'
 import FetchPeople from '@/Store/Album/FetchPeople'
 import FetchThings from '@/Store/Album/FetchThings'
+import FetchMyAlbums from '../Album/FetchMyAlbums'
 
 export default {
   initialState: buildAsyncState(),
@@ -30,6 +31,7 @@ export default {
       await Promise.all([
         dispatch(DefaultTheme.action({ theme: 'default', darkMode: null })),
         dispatch(FetchAlbumByDate.action()),
+        dispatch(FetchMyAlbums.action()),
         dispatch(FetchPhotosWithoutDate.action()),
         dispatch(FetchPeople.action()),
         dispatch(FetchThings.action()),

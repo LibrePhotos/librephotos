@@ -31,6 +31,20 @@ const GalleryContainer = () => {
     state => state.album.albumWithoutDate.results,
   )
 
+  const imageGridMapper = sectionData => {
+    if (typeof sectionData === 'undefined' || sectionData.length < 1) {
+      return []
+    }
+
+    let finalmap = sectionData.map(item => {
+      return {
+        url: item.url,
+      }
+    })
+
+    return finalmap
+  }
+
   const photoMapper = photosResult => {
     if (typeof photosResult === 'undefined' || photosResult.length < 1) {
       return []
@@ -40,7 +54,7 @@ const GalleryContainer = () => {
       return {
         id: item.date,
         title: item.date,
-        data: item.items,
+        data: imageGridMapper(item.items),
       }
     })
 

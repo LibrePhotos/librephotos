@@ -6,19 +6,12 @@ import {
   FlatList,
   TouchableOpacity,
 } from 'react-native'
-import { Pressable, Image, Text, HStack } from 'native-base'
+import { Box, Pressable, Image, Text, HStack } from 'native-base'
 import { useNavigation } from '@react-navigation/native'
 import { Brand } from '@/Components'
 import { useTheme } from '@/Theme'
-import FetchOne from '@/Store/User/FetchOne'
 import { useTranslation } from 'react-i18next'
-import ChangeTheme from '@/Store/Theme/ChangeTheme'
-import LogoutUser from '@/Store/Auth/LogoutUser'
-import FetchAlbumByDate from '@/Store/Album/FetchByDate'
-import TimelineList from '../../Components/TimelineList'
-import { PreviewTile, TopBar } from '../../Components'
-import ImageGrid from '../../Components/ImageGrid'
-import FetchPersonPhotos from '../../Store/Photos/FetchPersonPhotos'
+import { TopBar } from '@/Components'
 
 const AlbumListContainer = ({
   route: {
@@ -26,7 +19,7 @@ const AlbumListContainer = ({
   },
 }) => {
   const { t } = useTranslation()
-  const { Common, Fonts, Gutters, Layout } = useTheme()
+  const { Common, Colors, Gutters, Layout } = useTheme()
   const dispatch = useDispatch()
   const navigation = useNavigation()
   const authToken = useSelector(state => state.auth.access.token)
@@ -49,23 +42,32 @@ const AlbumListContainer = ({
         onPress={() => handleItemPress(item, index, section)}
       >
         <View style={[Layout.center]}>
-          <Image
-            style={{ width: '80%', height: '80%' }}
-            source={{
-              uri: item.url,
-              method: 'GET',
-              headers: {
-                Authorization: 'Bearer ' + authToken,
-              },
-            }}
-            alt="Image"
+          <Box
+            shadow={5}
+            bg={Colors.screenBackground}
             borderRadius={10}
-            // resizeMode={'contain'}
-          />
+            boxSize={'80%'}
+          >
+            <Image
+              // style={{ width: '80%', height: '79%', shadowColor: "black" }}
+              style={[Layout.fullSize]}
+              source={{
+                uri: item.url,
+                method: 'GET',
+                headers: {
+                  Authorization: 'Bearer ' + authToken,
+                },
+              }}
+              alt="Image"
+              borderRadius={10}
+              // resizeMode={'contain'}
+            />
+          </Box>
           <Text
             textAlign="center"
             style={[Gutters.tinyTMargin]}
             fontSize={'sm'}
+            numberOfLines={1}
           >
             {item.title}
           </Text>
@@ -78,7 +80,10 @@ const AlbumListContainer = ({
     <>
       <TopBar title={title} showBack={true} />
       <FlatList
-        style={[Gutters.smallVPadding]}
+        style={[
+          Gutters.smallVPadding,
+          { backgroundColor: Colors.screenBackground },
+        ]}
         // refreshing={false}
         // onRefresh={() => {}}
         data={albums}

@@ -1,6 +1,7 @@
 export { default as IndexExampleContainer } from './Example/Index'
 export { default as IndexStartupContainer } from './Startup/Index'
 export { default as IndexLoginContainer } from './Login/Index'
+export { default as IndexSearchContainer } from './Search/Index'
 export { default as GalleryContainer } from './Gallery/Index'
 export { default as GalleryListContainer } from './Gallery/GalleryListContainer'
 export { default as AlbumContainer } from './Albums/Index'

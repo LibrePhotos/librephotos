@@ -1,10 +1,13 @@
 import React from 'react'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
-import { IndexExampleContainer } from '@/Containers'
-import { GalleryContainer } from '@/Containers'
-import { AlbumContainer } from '@/Containers'
+import {
+  IndexExampleContainer,
+  IndexSearchContainer,
+  GalleryContainer,
+  AlbumContainer,
+  UnderConstructionContainer,
+} from '@/Containers'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
-import { UnderConstructionContainer } from '../Containers'
 
 const Tab = createBottomTabNavigator()
 
@@ -34,7 +37,7 @@ const MainNavigator = () => {
       />
       <Tab.Screen
         name="Search"
-        component={UnderConstructionContainer}
+        component={IndexSearchContainer}
         options={{
           tabBarLabel: 'Search',
           tabBarIcon: ({ color, size }) => (

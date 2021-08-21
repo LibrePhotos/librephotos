@@ -30,6 +30,8 @@ const ImageGrid = ({ data, numColumns = 3, displayError = false }) => {
     setCurrImage({ item, index, section })
   }
 
+  const handleImageLoadFail = () => {}
+
   const renderPhoto = ({ item, index, section, seperators }) => {
     return (
       <Pressable
@@ -49,6 +51,7 @@ const ImageGrid = ({ data, numColumns = 3, displayError = false }) => {
               Authorization: 'Bearer ' + authToken,
             },
           }}
+          onError={handleImageLoadFail}
         />
       </Pressable>
     )
@@ -60,6 +63,7 @@ const ImageGrid = ({ data, numColumns = 3, displayError = false }) => {
         <FlatList
           // refreshing={false}
           // onRefresh={() => {}}
+          keyExtractor={(item, index) => index}
           numColumns={COLUMNS}
           data={data}
           renderItem={renderPhoto}
@@ -68,6 +72,7 @@ const ImageGrid = ({ data, numColumns = 3, displayError = false }) => {
       {(typeof data === 'undefined' || data.length < 1) && displayError && (
         <NoResultsError />
       )}
+
       <Modal
         animationType="fade"
         transparent={false}

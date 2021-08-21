@@ -1,15 +1,20 @@
 import React from 'react'
-import PropTypes from 'prop-types'
 import { FlatList, View, Pressable } from 'react-native'
-import { useDispatch, useSelector } from 'react-redux'
-import { Image, Text, Badge, VStack, HStack } from 'native-base'
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
+import { useSelector } from 'react-redux'
+import { Box, Image, Text, HStack } from 'native-base'
+import Ionicons from 'react-native-vector-icons/Ionicons'
 import { useTheme } from '@/Theme'
-import ImageGrid from './ImageGrid'
 import { useNavigation } from '@react-navigation/native'
 
-const PreviewTile = ({ icon, heading, subHeading, albums, photos }) => {
-  const { Layout, Common, Gutters } = useTheme()
+const PreviewTile = ({
+  icon,
+  heading,
+  subHeading,
+  albums,
+  photos,
+  iconSuffix = '',
+}) => {
+  const { Colors, Layout, Common, Gutters } = useTheme()
   const navigation = useNavigation()
   const authToken = useSelector(state => state.auth.access.token)
 
@@ -28,19 +33,26 @@ const PreviewTile = ({ icon, heading, subHeading, albums, photos }) => {
         onPress={() => handleItemPress(item, index, section)}
       >
         <View style={[Layout.center]}>
-          <Image
-            style={{ width: '85%', height: '80%' }}
-            source={{
-              uri: item.url,
-              method: 'GET',
-              headers: {
-                Authorization: 'Bearer ' + authToken,
-              },
-            }}
-            alt="Image"
-            borderRadius={7}
-            // resizeMode={'contain'}
-          />
+          <Box
+            shadow={5}
+            bg={Colors.screenBackground}
+            borderRadius={10}
+            boxSize={'80%'}
+          >
+            <Image
+              style={{ width: '100%', height: '100%' }}
+              source={{
+                uri: item.url,
+                method: 'GET',
+                headers: {
+                  Authorization: 'Bearer ' + authToken,
+                },
+              }}
+              alt="Image"
+              borderRadius={7}
+              // resizeMode={'contain'}
+            />
+          </Box>
           <Text style={[Gutters.tinyTMargin]} fontSize={'lg'}>
             {item.title}
           </Text>
@@ -63,7 +75,7 @@ const PreviewTile = ({ icon, heading, subHeading, albums, photos }) => {
         <HStack style={[Gutters.regularLPadding]}>
           {icon && (
             <View style={[Layout.center]}>
-              <MaterialCommunityIcons name={icon} size={40} />
+              <Ionicons name={icon + iconSuffix} size={35} />
             </View>
           )}
           <View
@@ -73,11 +85,13 @@ const PreviewTile = ({ icon, heading, subHeading, albums, photos }) => {
               { width: '72%' },
             ]}
           >
-            <Text fontSize={'2xl'}>{heading}</Text>
-            <Text italic>{subHeading}</Text>
+            <Text fontSize={'xl'}>{heading}</Text>
+            <Text italic fontSize={'sm'} color={Colors.textMuted}>
+              {subHeading}
+            </Text>
           </View>
           <View style={[Layout.center]}>
-            <MaterialCommunityIcons name={'chevron-right'} size={40} />
+            <Ionicons name={'chevron-forward'} size={35} />
           </View>
         </HStack>
       </Pressable>

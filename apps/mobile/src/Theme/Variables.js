@@ -15,6 +15,7 @@ export const Colors = {
   inputBackground: '#FFFFFF',
   white: '#ffffff',
   text: '#212529',
+  textMuted: '#7E7E7E',
   textLight: '#94a3b8',
   primaryNB: 'blue',
   primary: '#E14032',

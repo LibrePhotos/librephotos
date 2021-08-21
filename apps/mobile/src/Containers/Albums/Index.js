@@ -1,27 +1,14 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import {
-  View,
-  ActivityIndicator,
-  Text,
-  TextInput,
-  TouchableOpacity,
-} from 'react-native'
-import { Button, Badge, HStack } from 'native-base'
+import { ScrollView } from 'native-base'
 import { useNavigation } from '@react-navigation/native'
-import { Brand } from '@/Components'
 import { useTheme } from '@/Theme'
-import FetchOne from '@/Store/User/FetchOne'
 import { useTranslation } from 'react-i18next'
-import ChangeTheme from '@/Store/Theme/ChangeTheme'
-import LogoutUser from '@/Store/Auth/LogoutUser'
-import FetchAlbumByDate from '@/Store/Album/FetchByDate'
-import TimelineList from '../../Components/TimelineList'
 import { PreviewTile, TopBar } from '../../Components'
-import ImageGrid from '../../Components/ImageGrid'
 import FetchPersonPhotos from '../../Store/Photos/FetchPersonPhotos'
 import PopulatePhotos from '../../Store/GalleryList/PopulatePhotos'
 import { getConfig } from '../../Config'
+import FetchMyAlbumPhotos from '../../Store/Photos/FetchMyAlbumPhotos'
 
 const AlbumContainer = () => {
   const { t } = useTranslation()
@@ -31,6 +18,7 @@ const AlbumContainer = () => {
 
   const albumPeople = useSelector(state => state.album.albumPeople.results)
   const albumThings = useSelector(state => state.album.albumThings.results)
+  const myAlbums = useSelector(state => state.album.myAlbums.results)
   const config = useSelector(state => state.config)
 
   const albumPeopleMapper = albumPeopleResult => {
@@ -49,6 +37,25 @@ const AlbumContainer = () => {
       }
     })
 
+    return finalmap
+  }
+
+  const myAlbumMapper = myAlbumResult => {
+    if (typeof myAlbumResult === 'undefined' || myAlbumResult.length < 1) {
+      return []
+    }
+    console.log(myAlbumResult)
+    let finalmap = myAlbumResult.map(item => {
+      return {
+        id: item.id,
+        title: item.title,
+        url:
+          getConfig(config.baseurl).MEDIA_URL +
+          '/square_thumbnails/' +
+          item.cover_photos[0].image_hash,
+      }
+    })
+    console.log(finalmap)
     return finalmap
   }
 
@@ -85,30 +92,41 @@ const AlbumContainer = () => {
   return (
     <>
       <TopBar />
-      <PreviewTile
-        icon="account-multiple"
-        heading="People"
-        subHeading={`about ${albumPeople?.length} people`}
-        albums={albumPeopleMapper(albumPeople)}
-        photos={item => {
-          dispatch(FetchPersonPhotos.action({ id: item.id }))
-        }}
-      />
-      <PreviewTile
-        icon="map"
-        heading="Places"
-        subHeading={`about ${albumPeople.length} places`}
-        albums={albumPeopleMapper(albumPeople)}
-      />
-      <PreviewTile
-        icon="label-multiple"
-        heading="Things"
-        subHeading={`about ${albumThings?.length} things`}
-        albums={albumThingsMapper(albumThings)}
-        photos={item => {
-          dispatch(PopulatePhotos.action({ gridPhotos: item.photos }))
-        }}
-      />
+      <ScrollView>
+        <PreviewTile
+          icon="people"
+          heading="People"
+          subHeading={`about ${albumPeople?.length} people`}
+          albums={albumPeopleMapper(albumPeople)}
+          photos={item => {
+            dispatch(FetchPersonPhotos.action({ id: item.id }))
+          }}
+        />
+        {/* <PreviewTile
+          icon="map"
+          heading="Places"
+          subHeading={`about ${albumPeople.length} places`}
+          albums={albumPeopleMapper(albumPeople)}
+        /> */}
+        <PreviewTile
+          icon="library"
+          heading="Things"
+          subHeading={`about ${albumThings?.length} things`}
+          albums={albumThingsMapper(albumThings)}
+          photos={item => {
+            dispatch(PopulatePhotos.action({ gridPhotos: item.photos }))
+          }}
+        />
+        <PreviewTile
+          icon="bookmark"
+          heading="My Albums"
+          subHeading={`about ${myAlbums?.length} albums`}
+          albums={myAlbumMapper(myAlbums)}
+          photos={item => {
+            dispatch(FetchMyAlbumPhotos.action({ id: item.id }))
+          }}
+        />
+      </ScrollView>
     </>
   )
 }

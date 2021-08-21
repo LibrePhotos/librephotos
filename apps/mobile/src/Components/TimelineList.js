@@ -14,9 +14,17 @@ const TimelineList = ({ data }) => {
 
   const renderSectionHeader = ({ section: { data, title } }) => {
     return (
-      <View style={[Gutters.regularHMargin, Gutters.smallVMargin]}>
-        <Text fontSize={'2xl'}>{moment(title).format('LL')}</Text>
-        <Text italic>{moment(title).fromNow()}</Text>
+      <View key={title} style={[Gutters.regularHMargin, Gutters.smallVMargin]}>
+        <Text fontSize={'xl'}>
+          {title === 'No timestamp'
+            ? 'No Timestamp'
+            : moment(title).format('LL')}
+        </Text>
+        {title !== 'No timestamp' && (
+          <Text italic fontSize={'sm'} color={Colors.textMuted}>
+            {moment(title).fromNow()}
+          </Text>
+        )}
       </View>
     )
   }
@@ -26,16 +34,24 @@ const TimelineList = ({ data }) => {
       return null
     }
 
-    return <ImageGrid data={section.data} numColumns={3} />
+    return (
+      <ImageGrid
+        data={section.data.slice(index, index + COLUMNS)}
+        // data={item}
+        numColumns={3}
+      />
+    )
   }
 
   return (
     <>
       {data && data.length > 0 && (
         <SectionList
+          removeClippedSubviews={true}
           style={[{ backgroundColor: Colors.screenBackground }]}
           renderItem={renderSectionListItem}
           renderSectionHeader={renderSectionHeader}
+          keyExtractor={(item, index) => index}
           sections={data}
         />
       )}

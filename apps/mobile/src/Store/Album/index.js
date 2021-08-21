@@ -3,9 +3,10 @@ import FetchByDate from './FetchByDate'
 import FetchPhotosWithoutDate from './FetchPhotosWithoutDate'
 import FetchPeople from './FetchPeople'
 import FetchThings from './FetchThings'
+import FetchMyAlbums from './FetchMyAlbums'
 
-// This state is common to all the "user" module, and can be modified by any "user" reducers
 const sliceInitialState = {
+  myAlbums: {},
   albumByDate: {},
   albumWithoutDate: {},
   albumPeople: {},
@@ -14,6 +15,12 @@ const sliceInitialState = {
 
 export default buildSlice(
   'album',
-  [FetchByDate, FetchPhotosWithoutDate, FetchPeople, FetchThings],
+  [
+    FetchByDate,
+    FetchPhotosWithoutDate,
+    FetchPeople,
+    FetchThings,
+    FetchMyAlbums,
+  ],
   sliceInitialState,
 ).reducer

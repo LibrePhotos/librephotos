@@ -23,6 +23,7 @@ import config from './Config'
 import photos from './Photos'
 import gallerylist from './GalleryList'
 import startup from './Startup'
+import search from './Search'
 import user from './User'
 import theme from './Theme'
 
@@ -33,6 +34,7 @@ const reducers = combineReducers({
   photos,
   gallerylist,
   startup,
+  search,
   user,
   theme,
 })
