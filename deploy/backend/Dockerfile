@@ -1,5 +1,7 @@
 FROM reallibrephotos/librephotos-dependencies:dev
 
+# install rust
+RUN apt install -y rustc
 # actual project
 ARG DEBUG
 WORKDIR /code
