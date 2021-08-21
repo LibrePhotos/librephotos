@@ -48,7 +48,6 @@ class Person(models.Model):
                     .only(
                         "image_hash",
                         "exif_timestamp",
-                        "favorited",
                         "owner__id",
                         "public",
                         "hidden",
