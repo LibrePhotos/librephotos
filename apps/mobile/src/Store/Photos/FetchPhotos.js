@@ -15,7 +15,6 @@ export default {
           timeout: 10000,
         })
         .then(response => {
-          console.log('fetchPhotos successful', response.data.results)
           return response.data
         })
     },

@@ -18,7 +18,6 @@ import FetchAlbumByDate from '@/Store/Album/FetchByDate'
 import TimelineList from '../../Components/TimelineList'
 import { PreviewTile, TopBar } from '../../Components'
 import ImageGrid from '../../Components/ImageGrid'
-import { Config } from '../../Config'
 import FetchPersonPhotos from '../../Store/Photos/FetchPersonPhotos'
 
 const AlbumListContainer = ({
@@ -53,7 +52,7 @@ const AlbumListContainer = ({
           <Image
             style={{ width: '80%', height: '80%' }}
             source={{
-              uri: Config.MEDIA_URL + item.url,
+              uri: item.url,
               method: 'GET',
               headers: {
                 Authorization: 'Bearer ' + authToken,

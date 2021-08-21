@@ -1,21 +1,40 @@
 import React, { useEffect, useState } from 'react'
-import { ActivityIndicator, View, Text } from 'react-native'
-import { Alert, Button, Input, Stack, Center } from 'native-base'
+import {
+  ActivityIndicator,
+  View,
+  Platform,
+  KeyboardAvoidingView,
+} from 'react-native'
+import {
+  Alert,
+  Button,
+  Icon,
+  Input,
+  VStack,
+  Stack,
+  ScrollView,
+  FormControl,
+  Center,
+} from 'native-base'
+import Ionicons from 'react-native-vector-icons/Ionicons'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/Theme'
 import LoginUser from '@/Store/Auth/LoginUser'
 import { Brand } from '@/Components'
 import { navigateAndSimpleReset } from '@/Navigators/Root'
+import { CheckServerService } from '../../Services/Config'
 
 const IndexLoginContainer = () => {
-  const { Colors, Layout, Gutters, Fonts } = useTheme()
+  const { Colors, Layout, Gutters } = useTheme()
 
   const { t } = useTranslation()
 
+  const [server, setServer] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
 
+  const [isValidServer, setValidServer] = useState(false)
   const isLoggedin = useSelector(state => state.auth.isLoggedin)
 
   useEffect(() => {
@@ -27,53 +46,133 @@ const IndexLoginContainer = () => {
   const dispatch = useDispatch()
 
   const login = evt => {
-    dispatch(LoginUser.action([username, password]))
+    dispatch(LoginUser.action({ server, username, password }))
   }
 
   const error = useSelector(state => state.auth.error)
 
-  //   useEffect(() => {
-  //     dispatch(InitStartup.action())
-  //   }, [dispatch])
+  useEffect(() => {
+    CheckServerService(server).then(isValid => {
+      setValidServer(isValid)
+    })
+  }, [server])
 
   return (
-    <View style={[Layout.fill, Layout.colCenter]}>
-      <Brand />
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={[Layout.fill]}
+    >
+      <ScrollView style={[Gutters.largeTPadding]}>
+        <View style={[Gutters.largeVMargin, Layout.colCenter]}>
+          <Brand />
+        </View>
 
-      {error && error.data && (
-        <Alert status="danger" w="100%" style={[Gutters.largeTMargin]}>
-          <Alert.Icon />
-          <Alert.Title flexShrink={1}>{error.data.detail}</Alert.Title>
-        </Alert>
-      )}
+        {error && error.data && error.data.detail && (
+          <Alert status="danger" w="100%" style={[Gutters.largeVMargin]}>
+            <Alert.Icon />
+            <Alert.Title flexShrink={1}>
+              {error.data.detail?.toString()}
+            </Alert.Title>
+          </Alert>
+        )}
 
-      <Input
-        onChangeText={setUsername}
-        w="80%"
-        mx={3}
-        placeholder={t('auth.label.username')}
-        style={[Gutters.largeTMargin]}
-        placeholderTextColor={Colors.textLight}
-      />
-      <Input
-        onChangeText={setPassword}
-        w="80%"
-        mx={3}
-        placeholder={t('auth.label.password')}
-        type="password"
-        style={[Gutters.smallTMargin]}
-        placeholderTextColor={Colors.textLight}
-      />
+        <VStack space={4} alignItems="center">
+          <FormControl
+            w="85%"
+            isInvalid={!isValidServer && server.length !== 0}
+          >
+            <Stack mx={4}>
+              <FormControl.Label>Server Name</FormControl.Label>
+              <Input
+                onChangeText={setServer}
+                autoCompleteType={'off'}
+                autoCorrect={false}
+                autoCapitalize={'none'}
+                value={server}
+                placeholder={'http://localhost:3000'}
+                placeholderTextColor={Colors.textLight}
+                InputRightElement={
+                  <>
+                    {server.length !== 0 ? (
+                      isValidServer ? (
+                        <Icon
+                          as={<Ionicons name="checkmark" />}
+                          size="md"
+                          m={2}
+                          color="green"
+                        />
+                      ) : (
+                        <Icon
+                          as={<Ionicons name="alert-circle-outline" />}
+                          size="md"
+                          m={2}
+                          color="red"
+                        />
+                      )
+                    ) : (
+                      <></>
+                    )}
+                  </>
+                }
+              />
+              {/* <FormControl.HelperText>
+              We'll keep this between us.
+            </FormControl.HelperText> */}
+              <FormControl.ErrorMessage>
+                Unable to connect to the server
+              </FormControl.ErrorMessage>
+            </Stack>
+          </FormControl>
 
-      <Button
-        onPress={login}
-        isLoading={useSelector(state => state.auth.loading)}
-        colorScheme={Colors.primaryNB}
-        style={[Gutters.largeTMargin]}
-      >
-        {t('auth.label.submit')}
-      </Button>
-    </View>
+          <FormControl w="85%" isInvalid={error?.data?.username}>
+            <Stack mx={4}>
+              <FormControl.Label>Username</FormControl.Label>
+              <Input
+                onChangeText={setUsername}
+                value={username}
+                autoCapitalize={'none'}
+                placeholder={t('auth.label.username')}
+                placeholderTextColor={Colors.textLight}
+              />
+              {/* <FormControl.HelperText>
+              We'll keep this between us.
+            </FormControl.HelperText> */}
+              <FormControl.ErrorMessage>
+                {error?.data?.username}
+              </FormControl.ErrorMessage>
+            </Stack>
+          </FormControl>
+
+          <FormControl w="85%" isInvalid={error?.data?.password}>
+            <Stack mx={4}>
+              <FormControl.Label>Password</FormControl.Label>
+              <Input
+                onChangeText={setPassword}
+                value={password}
+                placeholder={t('auth.label.password')}
+                type="password"
+                placeholderTextColor={Colors.textLight}
+              />
+              {/* <FormControl.HelperText>
+              We'll keep this between us.
+            </FormControl.HelperText> */}
+              <FormControl.ErrorMessage>
+                {error?.data?.password}
+              </FormControl.ErrorMessage>
+            </Stack>
+          </FormControl>
+
+          <Button
+            onPress={login}
+            isLoading={useSelector(state => state.auth.loading)}
+            colorScheme={Colors.primaryNB}
+            style={[Gutters.largeTMargin]}
+          >
+            {t('auth.label.submit')}
+          </Button>
+        </VStack>
+      </ScrollView>
+    </KeyboardAvoidingView>
   )
 }
 

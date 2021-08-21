@@ -1,7 +1,7 @@
 import axios from 'axios'
 import handleError from '@/Services/utils/handleError'
-import { Config } from '@/Config'
-import { store, persistor } from '@/Store/index'
+import { getConfig } from '@/Config'
+import { store } from '@/Store/index'
 import AuthUser from '@/Store/Auth/AuthUser'
 import { isRefreshTokenExpired } from './Auth/index'
 
@@ -16,10 +16,12 @@ function select(state) {
 //   if (auth.access) {
 //     axios.defaults.headers.common.Authorization = 'Bearer ' + auth.access.token
 //   }
+
+//   instance.defaults.baseURL = getConfig().API_URL
 // }
 
+
 const instance = axios.create({
-  baseURL: Config.API_URL,
   headers: {
     Accept: 'application/json',
     // 'Content-Type': 'application/json',
@@ -44,7 +46,7 @@ instance.interceptors.response.use(
 
       const refreshToken = authState.refresh.token
       return instance
-        .post(Config.API_URL + '/auth/token/refresh/', {
+        .post('/auth/token/refresh/', {
           refresh: refreshToken,
         })
         .then(response => {

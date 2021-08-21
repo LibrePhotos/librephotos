@@ -17,7 +17,6 @@ import LogoutUser from '@/Store/Auth/LogoutUser'
 import TimelineList from '../../Components/TimelineList'
 import { PreviewTile, TopBar } from '../../Components'
 import ImageGrid from '../../Components/ImageGrid'
-import { Config } from '../../Config'
 import FetchPersonPhotos from '../../Store/Photos/FetchPersonPhotos'
 
 const GalleryListContainer = ({
@@ -33,7 +32,6 @@ const GalleryListContainer = ({
 
   // const photosArray = useSelector(state => state.photos.personPhotos)
   const gallerylist = useSelector(state => state.gallerylist)
-  console.log('GalleryList', gallerylist)
 
   return (
     <>

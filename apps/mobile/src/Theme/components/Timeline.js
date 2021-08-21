@@ -16,7 +16,7 @@ export default function ({ Colors, Gutters, Layout }) {
 
   const albumItem = {
     width: 160,
-    height: 160,
+    height: 175,
     margin: 0,
     padding: 0,
   }

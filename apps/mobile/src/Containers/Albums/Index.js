@@ -21,6 +21,7 @@ import { PreviewTile, TopBar } from '../../Components'
 import ImageGrid from '../../Components/ImageGrid'
 import FetchPersonPhotos from '../../Store/Photos/FetchPersonPhotos'
 import PopulatePhotos from '../../Store/GalleryList/PopulatePhotos'
+import { getConfig } from '../../Config'
 
 const AlbumContainer = () => {
   const { t } = useTranslation()
@@ -30,6 +31,7 @@ const AlbumContainer = () => {
 
   const albumPeople = useSelector(state => state.album.albumPeople.results)
   const albumThings = useSelector(state => state.album.albumThings.results)
+  const config = useSelector(state => state.config)
 
   const albumPeopleMapper = albumPeopleResult => {
     if (
@@ -43,7 +45,7 @@ const AlbumContainer = () => {
       return {
         id: item.id,
         title: item.name,
-        url: item.face_photo_url,
+        url: config.baseurl + item.face_photo_url.replace('.webp', ''),
       }
     })
 
@@ -58,7 +60,6 @@ const AlbumContainer = () => {
       return []
     }
 
-
     let finalmap = albumThingsResult.map(item => {
       let photos = item.cover_photos.map((photo, index) => {
         return {
@@ -71,7 +72,10 @@ const AlbumContainer = () => {
         id: item.id,
         title: item.title,
         photos: photos,
-        url: '/square_thumbnails/' + item.cover_photos[0].image_hash,
+        url:
+          getConfig(config.baseurl).MEDIA_URL +
+          '/square_thumbnails/' +
+          item.cover_photos[0].image_hash,
       }
     })
 
@@ -102,7 +106,6 @@ const AlbumContainer = () => {
         subHeading={`about ${albumThings?.length} things`}
         albums={albumThingsMapper(albumThings)}
         photos={item => {
-          console.log('Things', item)
           dispatch(PopulatePhotos.action({ gridPhotos: item.photos }))
         }}
       />

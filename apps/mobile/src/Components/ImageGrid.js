@@ -11,7 +11,7 @@ import {
 import { HStack, IconButton, Icon, Text } from 'native-base'
 import ReactNativeZoomableView from '@dudigital/react-native-zoomable-view/src/ReactNativeZoomableView'
 import { useTheme } from '@/Theme'
-import { Config } from '../Config'
+import { getConfig } from '../Config'
 import NoResultsError from './NoResultsError'
 
 const ImageGrid = ({ data, numColumns = 3, displayError = false }) => {
@@ -21,6 +21,7 @@ const ImageGrid = ({ data, numColumns = 3, displayError = false }) => {
   const [currImage, setCurrImage] = useState({ item: {} })
 
   const authToken = useSelector(state => state.auth.access.token)
+  const config = useSelector(state => state.config)
 
   const COLUMNS = numColumns // Currently only columns=3 supported
 
@@ -39,7 +40,10 @@ const ImageGrid = ({ data, numColumns = 3, displayError = false }) => {
         <Image
           style={{ width: '100%', height: '100%' }}
           source={{
-            uri: Config.MEDIA_URL + '/square_thumbnails/' + item.url,
+            uri:
+              getConfig(config.baseurl).MEDIA_URL +
+              '/square_thumbnails/' +
+              item.url,
             method: 'GET',
             headers: {
               Authorization: 'Bearer ' + authToken,
@@ -93,7 +97,10 @@ const ImageGrid = ({ data, numColumns = 3, displayError = false }) => {
             <Image
               style={{ width: '100%', height: '100%' }}
               source={{
-                uri: Config.MEDIA_URL + '/thumbnails_big/' + currImage.item.url,
+                uri:
+                  getConfig(config.baseurl).MEDIA_URL +
+                  '/thumbnails_big/' +
+                  currImage.item.url,
                 method: 'GET',
                 headers: {
                   Authorization: 'Bearer ' + authToken,

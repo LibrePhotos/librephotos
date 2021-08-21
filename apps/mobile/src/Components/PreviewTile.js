@@ -6,7 +6,6 @@ import { Image, Text, Badge, VStack, HStack } from 'native-base'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '@/Theme'
 import ImageGrid from './ImageGrid'
-import { Config } from '../Config'
 import { useNavigation } from '@react-navigation/native'
 
 const PreviewTile = ({ icon, heading, subHeading, albums, photos }) => {
@@ -30,16 +29,16 @@ const PreviewTile = ({ icon, heading, subHeading, albums, photos }) => {
       >
         <View style={[Layout.center]}>
           <Image
-            style={{ width: '80%', height: '80%' }}
+            style={{ width: '85%', height: '80%' }}
             source={{
-              uri: Config.MEDIA_URL + item.url,
+              uri: item.url,
               method: 'GET',
               headers: {
                 Authorization: 'Bearer ' + authToken,
               },
             }}
             alt="Image"
-            borderRadius={10}
+            borderRadius={7}
             // resizeMode={'contain'}
           />
           <Text style={[Gutters.tinyTMargin]} fontSize={'lg'}>

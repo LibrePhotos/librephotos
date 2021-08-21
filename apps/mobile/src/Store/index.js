@@ -12,10 +12,14 @@ import {
 } from 'redux-persist'
 import thunk from 'redux-thunk'
 import { configureStore } from '@reduxjs/toolkit'
+import { getConfig } from '@/Config'
 import axios from 'axios'
+
+import api from '@/Services/index'
 
 import auth from './Auth'
 import album from './Album'
+import config from './Config'
 import photos from './Photos'
 import gallerylist from './GalleryList'
 import startup from './Startup'
@@ -25,6 +29,7 @@ import theme from './Theme'
 const reducers = combineReducers({
   auth,
   album,
+  config,
   photos,
   gallerylist,
   startup,
@@ -35,7 +40,7 @@ const reducers = combineReducers({
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
-  whitelist: ['auth', 'theme'],
+  whitelist: ['auth', 'config', 'theme'],
 }
 
 const persistedReducer = persistReducer(persistConfig, reducers)
@@ -70,9 +75,11 @@ function select(state) {
 function listener() {
   var authState = select(store.getState())
   if (authState.access) {
-    axios.defaults.headers.common.Authorization =
+    api.defaults.headers.common.Authorization =
       'Bearer ' + authState.access.token
   }
+
+  api.defaults.baseURL = getConfig(store.getState().config.baseurl).API_URL
 }
 
 const persistor = persistStore(store)
