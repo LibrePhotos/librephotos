@@ -86,7 +86,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
         if self.request.user.is_anonymous:
             return Photo.visible.filter(Q(public=True)).order_by('-exif_timestamp')
         else:
-            return Photo.visible.order_by('-exif_timestamp')
+            return Photo.objects.order_by('-exif_timestamp')
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
