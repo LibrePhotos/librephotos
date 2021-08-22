@@ -1,6 +1,5 @@
 import axios from 'axios'
 import handleError from '@/Services/utils/handleError'
-import { getConfig } from '@/Config'
 import { store } from '@/Store/index'
 import AuthUser from '@/Store/Auth/AuthUser'
 import { isRefreshTokenExpired } from './Auth/index'
@@ -19,7 +18,6 @@ function select(state) {
 
 //   instance.defaults.baseURL = getConfig().API_URL
 // }
-
 
 const instance = axios.create({
   headers: {
@@ -73,14 +71,6 @@ instance.interceptors.response.use(
     return Promise.reject(error)
   },
 )
-
-// instance.interceptors.response.use(
-//   response => response,
-//   ({ message, response: { data, status } }) => {
-//     console.log(data)
-//     return handleError({ message, data, status })
-//   },
-// )
 
 instance.interceptors.response.use(
   response => response,

@@ -27,5 +27,8 @@ export default {
       state.gridPhotos = payload.gridPhotos
       state.lastLoaded = 'grid'
     }
+    if (typeof payload.loading !== 'undefined') {
+      state.loading = payload.loading
+    }
   },
 }

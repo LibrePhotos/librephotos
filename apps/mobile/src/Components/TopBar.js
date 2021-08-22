@@ -9,17 +9,17 @@ const TopBar = ({
   showBack = false,
   showMenu = false,
 }) => {
-  const { Layout, Images } = useTheme()
+  const { Colors, Layout, Images } = useTheme()
   const navigation = useNavigation()
 
   return (
     <>
-      <StatusBar backgroundColor="#000000" barStyle="light-content" />
+      <StatusBar backgroundColor={Colors.transparent} barStyle="dark-content" />
 
       {/* <Box safeAreaTop backgroundColor="#6200ee" /> */}
 
       <HStack
-        bg="#ffffff"
+        bg={Colors.screenBackground}
         px={1}
         py={3}
         justifyContent="space-between"

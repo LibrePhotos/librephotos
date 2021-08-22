@@ -1,3 +1,5 @@
+export { default as updateToken } from './UpdateToken'
+
 export function login() {
   return true
 }

@@ -1,17 +1,12 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import {
-  View,
-  ActivityIndicator,
-  FlatList,
-  TouchableOpacity,
-} from 'react-native'
-import { Box, Pressable, Image, Text, HStack } from 'native-base'
+import { View, FlatList } from 'react-native'
+import { Box, Pressable, Image, Text } from 'native-base'
 import { useNavigation } from '@react-navigation/native'
-import { Brand } from '@/Components'
 import { useTheme } from '@/Theme'
 import { useTranslation } from 'react-i18next'
 import { TopBar } from '@/Components'
+import { updateToken } from '@/Services/Auth'
 
 const AlbumListContainer = ({
   route: {
@@ -26,12 +21,9 @@ const AlbumListContainer = ({
 
   const handleItemPress = (item, index, section) => {
     photos(item)
-    // dispatch(FetchPersonPhotos.action({ id: albums[index].id }))
     navigation.push('PhotoList', {
       title: albums[index].title,
     })
-    // setZoomViewVisible(true)
-    // setCurrImage({ item, index, section })
   }
 
   const renderItem = ({ item, index, section, seperators }) => {
@@ -49,7 +41,6 @@ const AlbumListContainer = ({
             boxSize={'80%'}
           >
             <Image
-              // style={{ width: '80%', height: '79%', shadowColor: "black" }}
               style={[Layout.fullSize]}
               source={{
                 uri: item.url,
@@ -60,7 +51,9 @@ const AlbumListContainer = ({
               }}
               alt="Image"
               borderRadius={10}
-              // resizeMode={'contain'}
+              onError={() => {
+                updateToken()
+              }}
             />
           </Box>
           <Text
@@ -84,6 +77,7 @@ const AlbumListContainer = ({
           Gutters.smallVPadding,
           { backgroundColor: Colors.screenBackground },
         ]}
+        removeClippedSubviews={true}
         // refreshing={false}
         // onRefresh={() => {}}
         data={albums}

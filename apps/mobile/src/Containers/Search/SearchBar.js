@@ -19,7 +19,7 @@ import FindPhotos from '../../Store/Search/FindPhotos'
 import UpdateQuery from '../../Store/Search/UpdateQuery'
 
 const SearchBar = ({ showBack = false, showMenu = false }) => {
-  const { Gutters, Layout, Images } = useTheme()
+  const { Colors, Gutters, Layout, Images } = useTheme()
   const navigation = useNavigation()
   const dispatch = useDispatch()
 
@@ -37,12 +37,12 @@ const SearchBar = ({ showBack = false, showMenu = false }) => {
 
   return (
     <>
-      <StatusBar backgroundColor="#000000" barStyle="light-content" />
+      <StatusBar backgroundColor={Colors.transparent} barStyle="dark-content" />
 
       {/* <Box safeAreaTop backgroundColor="#6200ee" /> */}
 
       <HStack
-        bg="#ffffff"
+        bg={Colors.screenBackground}
         px={2}
         py={5}
         justifyContent="space-between"
@@ -65,6 +65,9 @@ const SearchBar = ({ showBack = false, showMenu = false }) => {
         </HStack>
         <Center flexGrow={1}>
           <Input
+            _focus={{
+              borderColor: 'grey',
+            }}
             returnKeyType="search"
             autoFocus={true}
             onChangeText={setSearchQuery}
@@ -74,18 +77,11 @@ const SearchBar = ({ showBack = false, showMenu = false }) => {
             style={[Gutters.smallHMargin]}
             placeholder="Search"
             variant="filled"
-            // width="100%"
-            // // bg="gray.200"
             borderRadius={10}
             py={2}
             px={2}
             InputLeftElement={
-              <Icon
-                size="md"
-                ml={2}
-                // color="gray.400"
-                as={<Ionicons name="ios-search" />}
-              />
+              <Icon size="md" ml={2} as={<Ionicons name="ios-search" />} />
             }
           />
         </Center>

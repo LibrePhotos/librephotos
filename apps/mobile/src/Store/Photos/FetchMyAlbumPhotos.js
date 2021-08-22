@@ -16,6 +16,7 @@ export default {
       dispatch(
         PopulatePhotos.action({
           timelinePhotos: [],
+          loading: true,
         }),
       )
 
@@ -27,6 +28,7 @@ export default {
           dispatch(
             PopulatePhotos.action({
               timelinePhotos: response.data.grouped_photos,
+              loading: false,
             }),
           )
           return response.data.grouped_photos

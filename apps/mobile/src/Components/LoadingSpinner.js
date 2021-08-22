@@ -1,14 +1,13 @@
 import React from 'react'
 import { View } from 'react-native'
 import { Spinner, Text } from 'native-base'
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '@/Theme'
 
 const LoadingSpinner = ({ height, width, mode }) => {
-  const { Colors, Layout, Gutters } = useTheme()
+  const { Common, Colors, Layout, Gutters } = useTheme()
 
   return (
-    <View style={[Layout.fullSize, Layout.center]}>
+    <View style={[Layout.fullSize, Layout.center, Common.backgroundDefault]}>
       <Spinner
         color={Colors.primary}
         size="lg"

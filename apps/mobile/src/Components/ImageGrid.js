@@ -13,6 +13,7 @@ import ReactNativeZoomableView from '@dudigital/react-native-zoomable-view/src/R
 import { useTheme } from '@/Theme'
 import { getConfig } from '../Config'
 import NoResultsError from './NoResultsError'
+import { updateToken } from '../Services/Auth'
 
 const ImageGrid = ({ data, numColumns = 3, displayError = false }) => {
   const { Common, Layout } = useTheme()
@@ -30,7 +31,9 @@ const ImageGrid = ({ data, numColumns = 3, displayError = false }) => {
     setCurrImage({ item, index, section })
   }
 
-  const handleImageLoadFail = () => {}
+  const handleImageLoadFail = () => {
+    updateToken()
+  }
 
   const renderPhoto = ({ item, index, section, seperators }) => {
     return (
@@ -112,6 +115,7 @@ const ImageGrid = ({ data, numColumns = 3, displayError = false }) => {
                 },
               }}
               resizeMode={'contain'}
+              onError={handleImageLoadFail}
             />
             {/* <View style={styles.modalView}>
               <Text>Hsello World!</Text>

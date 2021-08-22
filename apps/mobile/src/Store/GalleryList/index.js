@@ -6,6 +6,7 @@ const sliceInitialState = {
   timelinePhotos: [],
   gridPhotos: [],
   lastLoaded: 'timeline',
+  loading: false,
 }
 
 export default buildSlice('gallerylist', [PopulatePhotos], sliceInitialState)

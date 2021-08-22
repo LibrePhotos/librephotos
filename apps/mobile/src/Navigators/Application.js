@@ -6,7 +6,7 @@ import { NavigationContainer } from '@react-navigation/native'
 import { navigationRef } from '@/Navigators/Root'
 import { AppState, SafeAreaView, StatusBar } from 'react-native'
 import { useTheme } from '@/Theme'
-import { AlbumListContainer, GalleryListContainer } from '../Containers'
+import { AlbumListContainer, PhotoListContainer } from '../Containers'
 
 const Stack = createStackNavigator()
 
@@ -19,12 +19,12 @@ const ApplicationNavigator = () => {
   const [isApplicationLoaded, setIsApplicationLoaded] = useState(false)
   const applicationIsLoading = useSelector(state => state.startup.loading)
 
-  let appStateChangeEvt = useRef()
+  // let appStateChangeEvt = useRef()
 
   useEffect(() => {
-    appStateChangeEvt.current = AppState.addEventListener('change', state => {
-      console.log(state)
-    })
+    // appStateChangeEvt.current = AppState.addEventListener('change', state => {
+    //   console.log(state)
+    // })
 
     if (MainNavigator == null && !applicationIsLoading) {
       MainNavigator = require('@/Navigators/Main').default
@@ -32,12 +32,22 @@ const ApplicationNavigator = () => {
     }
   }, [applicationIsLoading])
 
+  useEffect(() => {
+    let appStateChangeEvt = AppState.addEventListener('change', state => {
+      console.log(state)
+    })
+
+    return () => {
+      appStateChangeEvt.remove()
+    }
+  }, [])
+
   // on destroy needed to be able to reset when app close in background (Android)
   useEffect(
     () => () => {
       setIsApplicationLoaded(false)
       MainNavigator = null
-      appStateChangeEvt.current.remove()
+      // appStateChangeEvt.current.remove()
     },
     [],
   )
@@ -75,7 +85,7 @@ const ApplicationNavigator = () => {
           />
           <Stack.Screen
             name="PhotoList"
-            component={GalleryListContainer}
+            component={PhotoListContainer}
             options={{
               animationEnabled: true,
             }}

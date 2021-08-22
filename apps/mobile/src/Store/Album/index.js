@@ -4,6 +4,8 @@ import FetchPhotosWithoutDate from './FetchPhotosWithoutDate'
 import FetchPeople from './FetchPeople'
 import FetchThings from './FetchThings'
 import FetchMyAlbums from './FetchMyAlbums'
+import ClearAlbumData from './ClearAlbumData'
+import ClearPhotoData from './ClearPhotoData'
 
 const sliceInitialState = {
   myAlbums: {},
@@ -21,6 +23,8 @@ export default buildSlice(
     FetchPeople,
     FetchThings,
     FetchMyAlbums,
+    ClearAlbumData,
+    ClearPhotoData,
   ],
   sliceInitialState,
 ).reducer
