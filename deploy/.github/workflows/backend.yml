@@ -1,6 +1,11 @@
 name: backend
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
   repository_dispatch:
     types: backend-commit-event
 
