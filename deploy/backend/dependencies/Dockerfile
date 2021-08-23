@@ -69,7 +69,7 @@ RUN curl -SL https://github.com/LibrePhotos/librephotos-docker/releases/download
 RUN curl -SL https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/clip-embeddings.tar.gz | tar -zxC /data_models/
 RUN curl -SL https://download.pytorch.org/models/resnet152-b121ed2d.pth -o /root/.cache/torch/hub/checkpoints/resnet152-b121ed2d.pth
 
-RUN pip install torch==1.8.1 torchvision==0.9.1 -f https://download.pytorch.org/whl/torch_stable.html
+RUN pip install torch==1.8.2 torchvision==0.9.2 -f https://download.pytorch.org/whl/torch_stable.html
 
 RUN pip3 install pyvips
 
@@ -90,3 +90,7 @@ RUN cmake -B build . -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=ON -DFAISS_OPT
 RUN make -C build -j faiss
 RUN make -C build -j swigfaiss
 RUN (cd build/faiss/python && python setup.py install)
+# install unzip
+RUN apt install -y unzip
+# unzip faiss to actually installed it...
+RUN unzip /usr/local/lib/python3.9/dist-packages/faiss*.egg -d /usr/local/lib/python3.9/dist-packages/
