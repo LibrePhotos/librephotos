@@ -43,7 +43,7 @@ RUN make install
 WORKDIR /
 RUN mkdir /imagemagick
 RUN curl -SL https://www.imagemagick.org/download/ImageMagick.tar.gz | tar -zxC /imagemagick
-WORKDIR /imagemagick/ImageMagick-7.1.0-4
+WORKDIR /imagemagick/ImageMagick-7.1.0-5
 RUN ./configure --with-modules
 RUN make install
 RUN ldconfig /usr/local/lib
