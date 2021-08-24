@@ -86,7 +86,7 @@ RUN git clone https://github.com/davisking/dlib.git && \
 #Build and install faiss. Needs to be build for ARM 
 WORKDIR /faiss
 RUN git clone https://github.com/facebookresearch/faiss.git /faiss
-RUN cmake -B build . -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=ON -DFAISS_OPT_LEVEL=generic -DCMAKE_BUILD_TYPE=Release
+RUN cmake -B build . -DCMAKE_BUILD_TYPE=Release -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=ON -DFAISS_OPT_LEVEL=generic 
 RUN make -C build -j faiss
 RUN make -C build -j swigfaiss
 RUN (cd build/faiss/python && python setup.py install)
