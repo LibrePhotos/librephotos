@@ -84,13 +84,14 @@ RUN git clone https://github.com/davisking/dlib.git && \
     python setup.py install --no USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA --no USE_SSE4_INSTRUCTIONS  
 
 #Build and install faiss. Needs to be build for ARM 
-WORKDIR /faiss
-RUN git clone https://github.com/facebookresearch/faiss.git /faiss
-RUN cmake -B build . -DCMAKE_BUILD_TYPE=Release -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=ON -DFAISS_OPT_LEVEL=generic 
-RUN make -C build -j faiss
-RUN make -C build -j swigfaiss
-RUN (cd build/faiss/python && python setup.py install)
+#WORKDIR /faiss
+#RUN git clone https://github.com/facebookresearch/faiss.git /faiss
+#RUN cmake -B build . -DCMAKE_BUILD_TYPE=Release -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=ON -DFAISS_OPT_LEVEL=generic 
+#RUN make -C build -j faiss
+#RUN make -C build -j swigfaiss
+#RUN (cd build/faiss/python && python setup.py install)
 # install unzip
-RUN apt install -y unzip
+#RUN apt install -y unzip
 # unzip faiss to actually installed it...
-RUN unzip /usr/local/lib/python3.9/dist-packages/faiss*.egg -d /usr/local/lib/python3.9/dist-packages/
+#RUN unzip /usr/local/lib/python3.9/dist-packages/faiss*.egg -d /usr/local/lib/python3.9/dist-packages/
+RUN pip install faiss-cpu
