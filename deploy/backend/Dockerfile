@@ -1,6 +1,6 @@
 FROM reallibrephotos/librephotos-dependencies:dev
 
-# install rust, a missing requirenment from pytorch
+# install rust and a missing requirenment from pytorch
 RUN apt install -y rustc libtinfo5 
 # actual project
 ARG DEBUG
