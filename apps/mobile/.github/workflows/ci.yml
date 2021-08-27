@@ -1,0 +1,20 @@
+name: Continuous Integration
+
+on:
+  pull_request:
+    branches:
+      - main
+
+    - name: Checkout
+      uses: actions/checkout@v2
+  
+    - uses: actions/setup-node@master
+    - uses: c-hive/gha-yarn-cache@v1
+
+    - name: Install node modules
+      run: |
+        yarn install
+
+    - name: Run test
+      run: |
+        yarn lint
