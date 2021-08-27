@@ -15,7 +15,6 @@ drf-extensions==0.7.0
 drf-yasg==1.20.0 
 ExifRead==2.3.2
 face-recognition==1.2.3
-faiss-cpu==1.7.0
 Flask==1.0
 Flask-Cors==3.0.9
 Flask-RESTful==0.3.6
@@ -32,13 +31,13 @@ pytz==2020.1
 PyExifTool==0.4.9
 rq==1.6.1
 six==1.15.0 
-scipy==1.5.3
+scipy==1.6.0
 seaborn==0.11.0
 sentence_transformers==1.2.0
 serpy==0.3.1
 sklearn==0.0
-spacy==2.3.2
+spacy==2.3.5
 tqdm==4.51.0
-gevent==20.9.0
+gevent==20.12.1
 python-magic==0.4.18
 Wand==0.6.6 
