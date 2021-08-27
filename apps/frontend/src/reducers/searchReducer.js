@@ -1,13 +1,15 @@
-export default function reducer(state={
-    searchPhotosRes: [],
-    searchPhotosResGroupedByDate: [],
-    idx2hash:[],
+import {
+  SEARCH_EMPTY_QUERY_ERROR,
+  SEARCH_PHOTOS,
+  SEARCH_PHOTOS_REJECTED,
+} from "../actions/searchActions";
+
+export default function reducer(
+  state = {
     searchPeopleRes: [],
     searchPlaceAlbumsRes: [],
     searchThingAlbumsRes: [],
 
-    searchingPhotos: false,
-    searchedPhotos: false,
     searchingPeople: false,
     searchedPeople: false,
     searchingThingAlbums: false,
@@ -17,37 +19,21 @@ export default function reducer(state={
 
     error: null,
     query: null,
-  }, action) {
-
+  },
+  action
+) {
   switch (action.type) {
-    case "SEARCH_PHOTOS_EMPTY_QUERY_ERROR": {
-      return {...state, error:"Search query cannot be empty!"}
+    case SEARCH_EMPTY_QUERY_ERROR: {
+      return { ...state, error: "Search query cannot be empty!" };
     }
-  	case "SEARCH_PHOTOS": {
-  		return {...state, searchPhotoRes: [], searchingPhotos: true, query:action.payload}
+    
+    case SEARCH_PHOTOS: {
+      return { ...state, query: action.payload };
   	}
 
-    case "SEARCH_PHOTOS_REJECTED": {
-      return { ...state, searchingPhotos: false, error: action.payload}
+    case SEARCH_PHOTOS_REJECTED: {
+      return { ...state, error: action.payload, query: "" };
     }
-
-    case "SEARCH_RES_GROUP_BY_DATE": {
-      return { ...state, searchPhotosResGroupedByDate: action.payload.results}
-    }
-
-    case "SEARCH_RES_IDX2HASH": {
-      return { ...state, idx2hash: action.payload}
-    }
-
-    case "SEARCH_PHOTOS_FULFILLED": {
-      return {
-        ...state,
-        searchingPhotos: false,
-        searchedPhotos: true,
-        searchPhotosRes: action.payload
-      }
-    }
-
 
     case "SEARCH_PEOPLE": {
   		return {...state, searchPeopleRes: [], searchingPeople: true}

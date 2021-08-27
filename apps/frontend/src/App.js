@@ -28,7 +28,6 @@ import { AlbumPlaceGallery } from "./layouts/albums/AlbumPlaceGallery";
 import { AlbumThing } from "./layouts/albums/AlbumThing";
 import { AlbumUser } from "./layouts/albums/AlbumUser";
 import { AlbumUserGallery } from "./layouts/albums/AlbumUserGallery";
-import { TimelinePhotoView } from "./layouts/albums/TimelinePhotoView";
 import { SideMenuNarrow } from "./components/menubars/SideMenuNarrow";
 import { TopMenu } from "./components/menubars/TopMenu";
 import { NoTimestampPhotosView } from "./layouts/photos/NoTimestampPhotosView";
@@ -45,6 +44,7 @@ import { SharedToMe } from "./layouts/sharing/SharedToMe";
 import { SharedFromMe } from "./layouts/sharing/SharedFromMe";
 import 'semantic-ui-css/semantic.min.css'
 import { AlbumPlace } from "./layouts/albums/AlbumPlace";
+import { TimestampPhotos } from "./layouts/photos/TimestampPhotos";
 class Nav extends React.Component {
   render() {
     return (
@@ -77,7 +77,7 @@ class App extends Component {
           )}
 
           <Switch>
-            <PrivateRoute exact path="/" component={TimelinePhotoView} />
+            <PrivateRoute exact path="/" component={TimestampPhotos} />
 
             <Route path="/login" component={Login} />
 

@@ -12,7 +12,7 @@ import {
   Loader,
 } from "semantic-ui-react";
 import {
-  fetchPeopleAlbums,
+  fetchPersonPhotos,
   fetchPlaceAlbum,
   fetchPlaceAlbumsList,
   fetchThingAlbumsList,
@@ -426,7 +426,7 @@ export class CustomSearch extends Component {
                                   push(`/person/${person.key}`)
                                 );
                                 this.props.dispatch(
-                                  fetchPeopleAlbums(person.key)
+                                  fetchPersonPhotos(person.key)
                                 );
                               }}
                               height={50}
@@ -467,28 +467,10 @@ export class CustomSearch extends Component {
 
 CustomSearch = connect((store) => {
   return {
-    auth: store.auth,
-    jwtToken: store.auth.jwtToken,
     exampleSearchTerms: store.util.exampleSearchTerms,
-    fetchingExampleSearchTerms: store.util.fetchingExampleSearchTerms,
-    fetchedExampleSearchTerms: store.util.fetchedExampleSearchTerms,
-    searchError: store.search.error,
-    searchingPhotos: store.search.searchingPhotos,
-    searchedPhotos: store.search.searchedPhotos,
     people: store.people.people,
-    fetchingPeople: store.people.fetchingPeople,
-    fetchedPeople: store.people.fetchedPeople,
-
     albumsThingList: store.albums.albumsThingList,
-    fetchingAlbumsThingList: store.albums.fetchingAlbumsThingList,
-    fetchedAlbumsThingList: store.albums.fetchedAlbumsThingList,
-
     albumsUserList: store.albums.albumsUserList,
-    fetchingAlbumsUserList: store.albums.fetchingAlbumsUserList,
-    fetchedAlbumsUserList: store.albums.fetchedAlbumsUserList,
-
     albumsPlaceList: store.albums.albumsPlaceList,
-    fetchingAlbumsPlaceList: store.albums.fetchingAlbumsPlaceList,
-    fetchedAlbumsPlaceList: store.albums.fetchedAlbumsPlaceList,
   };
 })(CustomSearch);

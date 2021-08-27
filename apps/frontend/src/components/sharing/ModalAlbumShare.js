@@ -74,7 +74,7 @@ export class ModalAlbumShare extends Component {
     filteredUserList = filteredUserList.filter(
       el => el.id !== this.props.auth.access.user_id
     );
-    const userAlbum = this.props.albumsUser[this.props.match.params.albumID]
+    const albumDetails = this.props.albumDetails;
 
     return (
       <Modal
@@ -149,7 +149,7 @@ export class ModalAlbumShare extends Component {
                     <Image circular src="/unknown_user.jpg" />
                     <Header.Content>
                       {displayName} 
-                      {userAlbum.shared_to.map(e=>e.id).includes(item.id) &&
+                      {albumDetails.shared_to.map(e=>e.id).includes(item.id) &&
                         <Popup 
                           trigger={
                             <Icon 
@@ -168,13 +168,13 @@ export class ModalAlbumShare extends Component {
                     <Checkbox 
                     inline
                     slider 
-                    checked={userAlbum.shared_to.map(e=>e.id).includes(item.id)}
+                    checked={albumDetails.shared_to.map(e=>e.id).includes(item.id)}
                     onChange={(e,d)=>{
                       this.props.dispatch(
                         setUserAlbumShared(
                           parseInt(this.props.match.params.albumID, 10), 
                           item.id, 
-                          !userAlbum.shared_to.map(e=>e.id).includes(item.id)))
+                          !albumDetails.shared_to.map(e=>e.id).includes(item.id)))
                     }}
                     /> 
                   </div>
@@ -191,20 +191,7 @@ export class ModalAlbumShare extends Component {
 ModalAlbumShare = connect(store => {
   return {
     auth: store.auth,
-    people: store.people.people,
-    fetchingPeople: store.people.fetchingPeople,
-    fetchedPeople: store.people.fetchedPeople,
-
-    albumsUser: store.albums.albumsUser,
-
-    inferredFacesList: store.faces.inferredFacesList,
-    labeledFacesList: store.faces.labeledFacesList,
-
-    fetchingLabeledFacesList: store.faces.fetchingLabeledFacesList,
-    fetchedLabeledFacesList: store.faces.fetchedLabeledFacesList,
-    fetchingInferredFacesList: store.faces.fetchingInferredFacesList,
-    fetchedInferredFacesList: store.faces.fetchedInferredFacesList,
-
-    pub: store.pub
+    albumDetails: store.albums.albumDetails,
+    pub: store.pub,
   };
 })(ModalAlbumShare);

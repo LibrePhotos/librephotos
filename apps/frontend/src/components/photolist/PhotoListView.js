@@ -524,16 +524,6 @@ export class PhotoListView extends Component {
 PhotoListView = connect((store) => {
   return {
     showSidebar: store.ui.showSidebar,
-    gridType: store.ui.gridType,
-
-    photos: store.photos.photos,
-    fetchingPhotos: store.photos.fetchingPhotos,
-    fetchedPhotos: store.photos.fetchedPhotos,
-
-    photoDetails: store.photos.photoDetails,
-    fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
-    fetchedPhotoDetail: store.photos.fetchedPhotoDetail,
-
     route: store.routerReducer,
   };
 })(PhotoListView);

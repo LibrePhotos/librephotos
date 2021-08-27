@@ -72,12 +72,7 @@ export class AlbumUser extends Component {
     if (albumUserIndex < this.props.albumsUserList.length) {
       return (
         <div key={key} style={style}>
-          <div
-            onClick={() => {
-                //todo
-            }}
-            style={{ padding: 5 }}
-          >
+          <div style={{ padding: 5 }} >
           <Link to={`/useralbum/${this.props.albumsUserList[albumUserIndex].id}`}>
             <SecuredImageJWT
               style={{ display: "inline-block", objectFit: "cover" }}

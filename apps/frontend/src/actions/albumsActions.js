@@ -2,6 +2,7 @@ import { Server } from "../api_client/apiClient";
 import _ from "lodash";
 import { notify } from "reapop";
 import { push } from "react-router-redux";
+import { adjustDateFormat, getPhotosFlatFromGroupedByDate } from "../util/util";
 
 export function fetchThingAlbumsList() {
   return function(dispatch) {
@@ -51,18 +52,29 @@ export function fetchUserAlbumsList() {
   };
 }
 
+export const FETCH_USER_ALBUM = "FETCH_USER_ALBUM";
+export const FETCH_USER_ALBUM_FULFILLED = "FETCH_USER_ALBUM_FULFILLED";
+export const FETCH_USER_ALBUM_REJECTED = "FETCH_USER_ALBUM_REJECTED";
 export function fetchUserAlbum(album_id) {
-  return function(dispatch) {
-    dispatch({ type: "FETCH_USER_ALBUMS" });
+  return function (dispatch) {
+    dispatch({ type: FETCH_USER_ALBUM });
     Server.get(`albums/user/${album_id}/`)
-      .then(response => {
+      .then((response) => {
+        var photosGroupedByDate = response.data.grouped_photos;
+        adjustDateFormat(photosGroupedByDate);
+        var albumDetails = response.data;
+        delete albumDetails.grouped_photos;
         dispatch({
-          type: "FETCH_USER_ALBUMS_FULFILLED",
-          payload: response.data
+          type: FETCH_USER_ALBUM_FULFILLED,
+          payload: {
+            photosGroupedByDate: photosGroupedByDate,
+            photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
+            albumDetails: albumDetails,
+          },
         });
       })
-      .catch(err => {
-        dispatch({ type: "FETCH_USER_ALBUMS_REJECTED", payload: err });
+      .catch((err) => {
+        dispatch({ type: FETCH_USER_ALBUM_REJECTED, payload: err });
       });
   };
 }
@@ -210,18 +222,29 @@ export function fetchPlaceAlbum(album_id) {
   };
 }
 
-export function fetchPeopleAlbums(person_id) {
-  return function(dispatch) {
-    dispatch({ type: "FETCH_PEOPLE_ALBUMS" });
+export const FETCH_PERSON_PHOTOS = "FETCH_PERSON_PHOTOS";
+export const FETCH_PERSON_PHOTOS_FULFILLED = "FETCH_PERSON_PHOTOS_FULFILLED";
+export const FETCH_PERSON_PHOTOS_REJECTED = "FETCH_PERSON_PHOTOS_REJECTED";
+export function fetchPersonPhotos(person_id) {
+  return function (dispatch) {
+    dispatch({ type: FETCH_PERSON_PHOTOS });
     Server.get(`albums/person/${person_id}/`)
-      .then(response => {
+      .then((response) => {
+        var photosGroupedByDate = response.data.results.grouped_photos;
+        adjustDateFormat(photosGroupedByDate);
+        var personDetails = response.data.results;
+        delete personDetails.grouped_photos;
         dispatch({
-          type: "FETCH_PEOPLE_ALBUMS_FULFILLED",
-          payload: response.data
+          type: FETCH_PERSON_PHOTOS_FULFILLED,
+          payload: {
+            photosGroupedByDate: photosGroupedByDate,
+            photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
+            personDetails: personDetails,
+          }
         });
       })
-      .catch(err => {
-        dispatch({ type: "FETCH_PEOPLE_ALBUMS_REJECTED", payload: err });
+      .catch((err) => {
+        dispatch({ type: FETCH_PERSON_PHOTOS_REJECTED, payload: err });
       });
   };
 }
@@ -289,26 +312,6 @@ export function fetchDateAlbumsList() {
       })
       .catch(err => {
         dispatch({ type: "FETCH_DATE_ALBUMS_LIST_REJECTED", payload: err });
-      });
-  };
-}
-
-export function fetchDateAlbumsPhotoHashList() {
-  return function(dispatch) {
-    dispatch({ type: "FETCH_DATE_ALBUMS_PHOTO_HASH_LIST" });
-    Server.get("albums/date/photohash/list/", { timeout: 100000 })
-      .then(response => {
-        
-        dispatch({
-          type: "FETCH_DATE_ALBUMS_PHOTO_HASH_LIST_FULFILLED",
-          payload: response.data.results
-        });
-      })
-      .catch(err => {
-        dispatch({
-          type: "FETCH_DATE_ALBUMS_PHOTO_HASH_LIST_REJECTED",
-          payload: err
-        });
       });
   };
 }

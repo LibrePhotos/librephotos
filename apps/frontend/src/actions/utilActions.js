@@ -1,10 +1,10 @@
 import { notify } from "reapop";
 import { Server } from "../api_client/apiClient";
 import { logout } from "../actions/authActions";
-import { fetchDateAlbumsPhotoHashList } from "./albumsActions";
 import { fetchInferredFacesList, fetchLabeledFacesList } from "./facesActions";
 import { fetchUserSelfDetails} from './userActions' ;
 import { fetchPeople } from "./peopleActions";
+import { fetchTimestampPhotos } from "./photosActions";
 
 
 export function fetchJobList(page,page_size=10) {
@@ -232,7 +232,7 @@ export function fetchWorkerAvailability(prevRunningJob) {
             dispatch(fetchPeople())
           }
           if (prevRunningJob.job_type_str.toLowerCase() === "scan photos") {
-            dispatch(fetchDateAlbumsPhotoHashList());
+            dispatch(fetchTimestampPhotos());
           }
         }
 

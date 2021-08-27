@@ -1,34 +1,44 @@
 import React, { Component } from "react";
-import * as moment from "moment";
+import moment from "moment";
 import { connect } from "react-redux";
-import { fetchRecentlyAddedPhotos } from '../../actions/photosActions';
-import { PhotoListView } from '../../components/photolist/PhotoListView'
+import { fetchRecentlyAddedPhotos } from "../../actions/photosActions";
+import { PhotoListView } from "../../components/photolist/PhotoListView";
+import { Photoset } from "../../reducers/photosReducer";
 
 export class RecentlyAddedPhotos extends Component {
   componentDidMount() {
-    this.props.dispatch(fetchRecentlyAddedPhotos())
-  }
-    render() {
-        const {fetchingRecentlyAddedPhotos} = this.props
-        return (
-            <PhotoListView 
-                title={"Recently Added"}
-                loading={fetchingRecentlyAddedPhotos}
-                titleIconName={'clock'}
-                isDateView={false}
-                date={moment(this.props.recentlyAddedPhotos.date).format("MMM Do YYYY, dddd") !== "Invalid date" ?  moment(this.props.recentlyAddedPhotos.date).format("MMM Do YYYY, dddd") : this.props.recentlyAddedPhotos.date}
-                photosGroupedByDate={this.props.recentlyAddedPhotos.photos}
-                idx2hash={this.props.recentlyAddedPhotos.photos}
-                dayHeaderPrefix={'Added on ' }
-            />
-        )
+    if (this.props.fetchedPhotoset !== Photoset.RECENTLY_ADDED) {
+      this.props.dispatch(fetchRecentlyAddedPhotos());
     }
+  }
+  render() {
+    return (
+      <PhotoListView
+        title={"Recently Added"}
+        loading={this.props.fetchedPhotoset !== Photoset.RECENTLY_ADDED}
+        titleIconName={"clock"}
+        isDateView={false}
+        date={
+          moment(this.props.recentlyAddedPhotosDate).format(
+            "MMM Do YYYY, dddd"
+          ) !== "Invalid date"
+            ? moment(this.props.recentlyAddedPhotosDate).format(
+                "MMM Do YYYY, dddd"
+              )
+            : this.props.recentlyAddedPhotosDate
+        }
+        photosGroupedByDate={this.props.photosFlat}
+        idx2hash={this.props.photosFlat}
+        dayHeaderPrefix={"Added on "}
+      />
+    );
+  }
 }
 
-RecentlyAddedPhotos = connect(store => {
+RecentlyAddedPhotos = connect((store) => {
   return {
-    fetchingRecentlyAddedPhotos: store.photos.fetchingRecentlyAddedPhotos,
-    fetchedRecentlyAddedPhotos: store.photos.fetchedRecentlyAddedPhotos,
-    recentlyAddedPhotos: store.photos.recentlyAddedPhotos
+    photosFlat: store.photos.photosFlat,
+    recentlyAddedPhotosDate: store.photos.RecentlyAddedPhotosDate,
+    fetchedPhotoset: store.photos.fetchedPhotoset,
   };
 })(RecentlyAddedPhotos);

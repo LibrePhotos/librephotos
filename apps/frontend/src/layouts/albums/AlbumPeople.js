@@ -1,6 +1,5 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import { fetchPeopleAlbums } from "../../actions/albumsActions";
 import {
   Popup,
   Icon,
@@ -74,20 +73,7 @@ export class AlbumPeople extends Component {
     if (albumPersonIndex < this.props.people.length) {
       return (
         <div key={key} style={style}>
-          <div
-            onClick={() => {
-              if (
-                !this.props.albumsPeople.hasOwnProperty(
-                  this.props.people[albumPersonIndex].key
-                )
-              ) {
-                this.props.dispatch(
-                  fetchPeopleAlbums(this.props.people[albumPersonIndex].key)
-                );
-              }
-            }}
-            style={{ padding: 5 }}
-          >
+          <div style={{ padding: 5 }} >
             {this.props.people[albumPersonIndex].face_count > 0 ? (
               this.props.people[albumPersonIndex].text === "unknown" ? (
                 <Image

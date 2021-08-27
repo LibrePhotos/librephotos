@@ -197,13 +197,6 @@ export class LightBox extends Component {
 
 LightBox = connect((store) => {
   return {
-    auth: store.auth,
-    showSidebar: store.ui.showSidebar,
     photoDetails: store.photos.photoDetails,
-    fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
-    fetchedPhotoDetail: store.photos.fetchedPhotoDetail,
-    generatingCaptionIm2txt: store.photos.generatingCaptionIm2txt,
-    generatedCaptionIm2txt: store.photos.generatedCaptionIm2txt,
-    photos: store.photos.photos,
   };
 })(LightBox);

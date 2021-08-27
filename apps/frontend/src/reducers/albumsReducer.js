@@ -1,14 +1,14 @@
+import { FETCH_PERSON_PHOTOS, FETCH_PERSON_PHOTOS_FULFILLED, FETCH_PERSON_PHOTOS_REJECTED, FETCH_USER_ALBUM_FULFILLED, FETCH_USER_ALBUM_REJECTED } from "../actions/albumsActions";
+
 export default function reducer(
   state = {
     albumsUserList: [],
     fetchingAlbumsUserList: false,
     fetchedAlbumsUserList: false,
 
-    albumsUser: {},
-    fetchingAlbumsUser: false,
-    fetchedAlbumsUser: false,
+    albumDetails: {},
+    personDetails: {},
 
-    albumsPeople: [],
     fetchingAlbumsPeople: false,
     fetchedAlbumsPeople: false,
 
@@ -30,11 +30,6 @@ export default function reducer(
     albumsDateList: [],
     fetchingAlbumsDateList: false,
     fetchedAlbumsDateList: false,
-
-    albumsDatePhotoHashList: [],
-    fetchingAlbumsDatePhotoHashList: false,
-    fetchedAlbumsDatePhotoHashList: false,
-    idx2hash: [],
 
     albumsDateGalleries: {},
     fetchingAlbumsDateGalleries: false,
@@ -109,22 +104,18 @@ export default function reducer(
       };
     }
 
-
-
-    case "FETCH_PEOPLE_ALBUMS": {
+    case FETCH_PERSON_PHOTOS: {
       return { ...state, fetchingAlbumsPeople: true };
     }
-    case "FETCH_PEOPLE_ALBUMS_REJECTED": {
+    case FETCH_PERSON_PHOTOS_REJECTED: {
       return { ...state, fetchingAlbumsPeople: false, error: action.payload };
     }
-    case "FETCH_PEOPLE_ALBUMS_FULFILLED": {
-      new_album = { ...state.albumsPeople };
-      new_album[parseInt(action.payload.results.id)] = action.payload.results;
+    case FETCH_PERSON_PHOTOS_FULFILLED: {
       return {
         ...state,
         fetchingAlbumsPeople: false,
         fetchedAlbumsPeople: true,
-        albumsPeople: new_album
+        personDetails: action.payload.personDetails,
       };
     }
 
@@ -205,26 +196,6 @@ export default function reducer(
         fetchingAlbumsDateList: false,
         fetchedAlbumsDateList: true,
         albumsDateList: action.payload
-      };
-    }
-
-    case "FETCH_DATE_ALBUMS_PHOTO_HASH_LIST": {
-      return { ...state, fetchingAlbumsDatePhotoHashList: true };
-    }
-    case "FETCH_DATE_ALBUMS_PHOTO_HASH_LIST_REJECTED": {
-      return {
-        ...state,
-        fetchingAlbumsDatePhotoHashList: false,
-        error: action.payload
-      };
-    }
-    case "FETCH_DATE_ALBUMS_PHOTO_HASH_LIST_FULFILLED": {
-      console.log(action.payload)
-      return {
-        ...state,
-        fetchingAlbumsDatePhotoHashList: false,
-        fetchedAlbumsDatePhotoHashList: true,
-        albumsDatePhotoHashList: action.payload
       };
     }
 
@@ -333,20 +304,14 @@ export default function reducer(
       };
     }
 
-    case "FETCH_USER_ALBUMS": {
-      return { ...state, fetchingAlbumsUser: true };
-    }
-    case "FETCH_USER_ALBUMS_REJECTED": {
-      return { ...state, fetchingAlbumsUser: false, error: action.payload };
-    }
-    case "FETCH_USER_ALBUMS_FULFILLED": { 
-      
+    case FETCH_USER_ALBUM_FULFILLED: {
       return {
         ...state,
-        fetchingAlbumsUser: false,
-        fetchedAlbumsUser: true,
-        albumsUser: { ...state.albumsUser, [action.payload.id]: action.payload }
+        albumDetails: action.payload.albumDetails,
       };
+    }
+    case FETCH_USER_ALBUM_REJECTED: {
+      return { ...state, fetchingAlbumsUser: false, error: action.payload };
     }
 
     case "TOGGLE_ALBUM_AUTO_FAVORITE": {

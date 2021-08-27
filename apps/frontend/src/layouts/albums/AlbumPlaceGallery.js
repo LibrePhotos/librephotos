@@ -44,9 +44,5 @@ AlbumPlaceGallery = connect((store) => {
   return {
     albumsPlace: store.albums.albumsPlace,
     fetchingAlbumsPlace: store.albums.fetchingAlbumsPlace,
-    fetchedAlbumsPlace: store.albums.fetchedAlbumsPlace,
-    photoDetails: store.photos.photoDetails,
-    fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
-    fetchedPhotoDetail: store.photos.fetchedPhotoDetail,
   };
 })(AlbumPlaceGallery);
