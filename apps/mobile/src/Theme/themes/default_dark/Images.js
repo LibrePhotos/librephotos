@@ -5,8 +5,7 @@
 export default function () {
   return {
     logo: {
-      uri:
-        'https://thecodingmachine.github.io/react-native-librephotosmobile/img/TOM-small.png',
+      uri: 'https://thecodingmachine.github.io/react-native-librephotosmobile/img/TOM-small.png',
     },
   }
 }
