@@ -62,7 +62,7 @@ jobs:
       with:
         serviceAccountJsonPlainText: ${{ secrets.ANDROID_SERVICE_ACCOUNT }}
         packageName: com.testedapp
-        releaseFile: a${{steps.sign_app.outputs.signedReleaseFile}}
+        releaseFile: ${{steps.sign_app.outputs.signedReleaseFile}}
         track: beta
         inAppUpdatePriority: 3
         userFraction: 0.5
