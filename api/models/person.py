@@ -37,7 +37,7 @@ class Person(models.Model):
                     'photo',
                     queryset=Photo.objects.exclude(image_hash=None).filter(hidden=False,
                         owner=owner).order_by('-exif_timestamp').only(
-                            'image_hash', 'exif_timestamp',
+                            'image_hash', 'exif_timestamp', 'rating',
                             'owner__id', 'public',
                             'hidden').prefetch_related('owner'))))
 
