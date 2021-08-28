@@ -67,7 +67,7 @@ export class ModalPhotosShare extends Component {
     );
 
     var selectedImageSrcs = this.props.selectedImageHashes.map(image_hash => {
-      return serverAddress + "/media/square_thumbnails/" + image_hash + ".jpg";
+      return serverAddress + "/media/square_thumbnails/" + image_hash;
     });
     return (
       <Modal
@@ -102,7 +102,6 @@ export class ModalPhotosShare extends Component {
                 <SecuredImageJWT
                   key={"selected_image" + image}
                   height={40}
-                  width={40}
                   src={image}
                 />
               ))}
