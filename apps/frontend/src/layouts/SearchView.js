@@ -3,25 +3,20 @@ import "react-virtualized/styles.css"; // only needs to be imported once
 import { connect } from "react-redux";
 import { PhotoListView } from "../components/photolist/PhotoListView";
 import { Photoset } from "../reducers/photosReducer";
+import { Redirect } from "react-router-dom";
 
 export class SearchView extends Component {
   render() {
-    // I don't know when the alternative titles would be shown, since the
-    // title only seems to be shown when `loading` is false.
-    // When it's not loading, and `photosGroupedByDate` is empty,
-    // PhotoListView will just show "No images found".
-    const title = this.props.photosGroupedByDate
-      ? `Searching "${this.props.searchQuery}"...`
-      : this.props.searchQuery === null
-      ? "Search for things, places, people, and time."
-      : `"${this.props.searchQuery}"`;
+    if (!this.props.searchQuery) {
+      // User hasn't searched for anything. Redirect to root.
+      return <Redirect to={"/"} />;
+    }
+
+    const title = `Searching "${this.props.searchQuery}"...`;
     return (
       <PhotoListView
         title={title}
-        loading={
-          this.props.searchQuery &&
-          this.props.fetchedPhotoset !== Photoset.SEARCH
-        }
+        loading={this.props.fetchedPhotoset !== Photoset.SEARCH}
         titleIconName={"search"}
         isDateView={true}
         photosGroupedByDate={this.props.photosGroupedByDate}
