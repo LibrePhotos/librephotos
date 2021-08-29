@@ -311,30 +311,18 @@ export default function reducer(
               }
         );
 
-        /**
-         * I'm not sure what the best behaviour would be when unfavoriting
-         * a photo when in the favorites view.
-         *
-         * Alternatives:
-         * 1. Let the unfavorited photo remain in the view (but turn off the star icon).
-         * 2. Remove the unfavorited photo from the view and close the lightbox.
-         * 3. Remove the unfavorited photo from the view and show the next photo in the lightbox.
-         *
-         * I think alternative 2 is my suggestion, but I haven't been able to figure out a way
-         * to close the lightbox.
-         *
-         * Alternative 1 is the current implementation.
-         *
-         * The following is an implementation of alternative 3 above, but it breaks on the last photo.
-         * if (state.fetchedPhotoset === Photoset.FAVORITES &&
-         *     !action.payload.favorite) {
-         *   // Remove the photo from the photo set. (Ok to mutate, since we've already created a new group.)
-         *   newPhotosGroupedByDate.forEach(group =>
-         *     group.items = group.items.filter(item => item.id !== photoDetails.image_hash));
-         *   newPhotosFlat = newPhotosFlat.filter(item => item.id !== photoDetails.image_hash);
-         * }
-         **/
+        
+        if (state.fetchedPhotoset === Photoset.FAVORITES &&
+            !action.payload.favorite) {
+          // Remove the photo from the photo set. (Ok to mutate, since we've already created a new group.)
+          newPhotosGroupedByDate.forEach(group =>
+            group.items = group.items.filter(item => item.id !== photoDetails.image_hash));
+          newPhotosFlat = newPhotosFlat.filter(item => item.id !== photoDetails.image_hash);
+        }
       });
+
+      // Keep only groups that still contain photos
+      newPhotosGroupedByDate = newPhotosGroupedByDate.filter(group => group.items.length > 0);
 
       return {
         ...state,
