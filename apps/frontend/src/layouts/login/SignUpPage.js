@@ -6,30 +6,28 @@ import {
   Message,
   Segment,
   Button,
-  Form
+  Form,
 } from "semantic-ui-react";
 import { connect } from "react-redux";
-import {signup} from "../../actions/authActions";
-
+import { signup } from "../../actions/authActions";
 
 export class SignupPage extends Component {
   constructor(props) {
     super(props);
     this.onSubmit = this.onSubmit.bind(this);
-    this.handleServerProtocolChange = this.handleServerProtocolChange.bind(
-      this
-    );
+    this.handleServerProtocolChange =
+      this.handleServerProtocolChange.bind(this);
   }
 
   state = {
     username: "",
     password: "",
-    firstname:"",
-    lastname:"",
+    firstname: "",
+    lastname: "",
     passwordConfirm: "",
     serverAddress: "",
     email: "",
-    serverProtocol: "https://"
+    serverProtocol: "https://",
   };
 
   handleChange = (e, { name, value }) => this.setState({ [name]: value });
@@ -49,15 +47,8 @@ export class SignupPage extends Component {
   }
 
   render() {
-
-    const {
-      username,
-      password,
-      firstname,
-      lastname,
-      email,
-      passwordConfirm
-    } = this.state;
+    const { username, password, firstname, lastname, email, passwordConfirm } =
+      this.state;
 
     return (
       <div
@@ -71,7 +62,7 @@ export class SignupPage extends Component {
           overflowY: "auto",
           // background:"url('/login_background.jpg')",
           backgroundColor: "#dddddd",
-          backgroundSize: "cover"
+          backgroundSize: "cover",
         }}
       >
         <div style={{ maxWidth: 500, padding: 20, margin: "0 auto" }}>
@@ -172,31 +163,28 @@ export class SignupPage extends Component {
               </Button>
             </Form>
           </Segment>
-          {this.props.errors &&
-            this.props.errors.non_field_errors && (
-              <Message color="red" secondary attached>
-                {this.props.errors.non_field_errors}
-              </Message>
-            )}
-          {this.props.errors &&
-            this.props.errors.password && (
-              <Message color="red" secondary attached>
-                Password may not be blank!
-              </Message>
-            )}
-          {this.props.errors &&
-            this.props.errors.username && (
-              <Message color="red" secondary attached="bottom">
-                Username may not be blank!
-              </Message>
-            )}
+          {this.props.errors && this.props.errors.non_field_errors && (
+            <Message color="red" secondary attached>
+              {this.props.errors.non_field_errors}
+            </Message>
+          )}
+          {this.props.errors && this.props.errors.password && (
+            <Message color="red" secondary attached>
+              Password may not be blank!
+            </Message>
+          )}
+          {this.props.errors && this.props.errors.username && (
+            <Message color="red" secondary attached="bottom">
+              Username may not be blank!
+            </Message>
+          )}
         </div>
         <div
           style={{
             maxWidth: 400,
             textAlign: "center",
             paddingTop: "10%",
-            margin: "0 auto"
+            margin: "0 auto",
           }}
         />
       </div>
@@ -204,8 +192,8 @@ export class SignupPage extends Component {
   }
 }
 
-SignupPage = connect(store => {
+SignupPage = connect((store) => {
   return {
-    auth: store.auth
+    auth: store.auth,
   };
 })(SignupPage);

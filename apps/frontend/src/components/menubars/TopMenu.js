@@ -1,6 +1,6 @@
 import _ from "lodash";
 import React, { Component } from "react";
-import './TopMenu.css';
+import "./TopMenu.css";
 import { connect } from "react-redux";
 import { push } from "react-router-redux";
 import {
@@ -116,9 +116,8 @@ export class TopMenu extends Component {
               </Button>
             </Menu.Item>
           </Menu.Menu>
-          <Menu.Menu 
-          className="header" style={{ paddingTop: 2 }}>
-              <CustomSearch className="element" />
+          <Menu.Menu className="header" style={{ paddingTop: 2 }}>
+            <CustomSearch className="element" />
           </Menu.Menu>
           <Menu.Menu position="right">
             <Menu.Item>

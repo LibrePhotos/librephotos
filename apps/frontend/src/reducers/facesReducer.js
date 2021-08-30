@@ -35,12 +35,12 @@ export default function reducer(
     clustering: false,
     clustered: false,
 
-    error: null
+    error: null,
   },
   action
 ) {
-  var newInferredFacesList
-  var newLabeledFacesList
+  var newInferredFacesList;
+  var newLabeledFacesList;
   switch (action.type) {
     // all faces
     case "FETCH_FACES": {
@@ -54,7 +54,7 @@ export default function reducer(
         ...state,
         fetching: false,
         fetched: true,
-        faces: action.payload
+        faces: action.payload,
       };
     }
 
@@ -70,7 +70,7 @@ export default function reducer(
         ...state,
         fetchingLabeledFaces: false,
         fetchedLabeledFaces: true,
-        labeledFaces: action.payload
+        labeledFaces: action.payload,
       };
     }
 
@@ -86,7 +86,7 @@ export default function reducer(
         ...state,
         fetchingInferredFaces: false,
         fetchedInferredFaces: true,
-        inferredFaces: action.payload
+        inferredFaces: action.payload,
       };
     }
 
@@ -102,7 +102,7 @@ export default function reducer(
         ...state,
         fetchingFacesList: false,
         fetchedFacesList: true,
-        facesList: action.payload
+        facesList: action.payload,
       };
     }
 
@@ -114,7 +114,7 @@ export default function reducer(
       return {
         ...state,
         fetchingLabeledFacesList: false,
-        error: action.payload
+        error: action.payload,
       };
     }
     case "FETCH_LABELED_FACES_LIST_FULFILLED": {
@@ -122,7 +122,7 @@ export default function reducer(
         ...state,
         fetchingLabeledFacesList: false,
         fetchedLabeledFacesList: true,
-        labeledFacesList: action.payload
+        labeledFacesList: action.payload,
       };
     }
 
@@ -134,7 +134,7 @@ export default function reducer(
       return {
         ...state,
         fetchingInferredFacesList: false,
-        error: action.payload
+        error: action.payload,
       };
     }
     case "FETCH_INFERRED_FACES_LIST_FULFILLED": {
@@ -142,28 +142,28 @@ export default function reducer(
         ...state,
         fetchingInferredFacesList: false,
         fetchedInferredFacesList: true,
-        inferredFacesList: action.payload
+        inferredFacesList: action.payload,
       };
     }
     // mass labeling faces
     case "SET_FACES_PERSON_LABEL_FULFILLED": {
-      const justLabeledFaceIDs = action.payload.map(face => face.id);
+      const justLabeledFaceIDs = action.payload.map((face) => face.id);
 
       newInferredFacesList = state.inferredFacesList.filter(
-        face => !justLabeledFaceIDs.includes(face.id)
+        (face) => !justLabeledFaceIDs.includes(face.id)
       );
       newLabeledFacesList = state.labeledFacesList.filter(
-        face => !justLabeledFaceIDs.includes(face.id)
+        (face) => !justLabeledFaceIDs.includes(face.id)
       );
 
-      action.payload.forEach(justLabeledFace => {
+      action.payload.forEach((justLabeledFace) => {
         newLabeledFacesList.push(justLabeledFace);
       });
 
       return {
         ...state,
         inferredFacesList: newInferredFacesList,
-        labeledFacesList: newLabeledFacesList
+        labeledFacesList: newLabeledFacesList,
       };
     }
 
@@ -171,16 +171,16 @@ export default function reducer(
     case "DELETE_FACES_FULFILLED": {
       const justDeletedFaces = action.payload;
       newInferredFacesList = state.inferredFacesList.filter(
-        face => !justDeletedFaces.includes(face.id)
+        (face) => !justDeletedFaces.includes(face.id)
       );
       newLabeledFacesList = state.labeledFacesList.filter(
-        face => !justDeletedFaces.includes(face.id)
+        (face) => !justDeletedFaces.includes(face.id)
       );
 
       return {
         ...state,
         inferredFacesList: newInferredFacesList,
-        labeledFacesList: newLabeledFacesList
+        labeledFacesList: newLabeledFacesList,
       };
     }
 
@@ -196,7 +196,7 @@ export default function reducer(
         ...state,
         fetchingFaceToLabel: false,
         fetchedFaceToLabel: true,
-        faceToLabel: action.payload
+        faceToLabel: action.payload,
       };
     }
 
@@ -216,7 +216,7 @@ export default function reducer(
         ...state,
         training: false,
         trained: true,
-        facesVis: action.payload
+        facesVis: action.payload,
       };
     }
 
@@ -232,7 +232,7 @@ export default function reducer(
         ...state,
         clustering: false,
         clustered: true,
-        facesVis: action.payload
+        facesVis: action.payload,
       };
     }
 
@@ -240,7 +240,7 @@ export default function reducer(
     case "DELETE_FACE": {
       return {
         ...state,
-        faces: state.faces.filter(element => element.id !== action.payload)
+        faces: state.faces.filter((element) => element.id !== action.payload),
       };
     }
 

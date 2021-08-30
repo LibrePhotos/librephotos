@@ -28,7 +28,7 @@ import {
 } from "../../util/gridUtils";
 import { ScrollSpeed, SCROLL_DEBOUNCE_DURATION } from "../../util/scrollUtils";
 import debounce from "lodash/debounce";
-import {Tile} from "../../components/Tile";
+import { Tile } from "../../components/Tile";
 
 var TOP_MENU_HEIGHT = 45; // don't change this
 const SPEED_THRESHOLD = 300;

@@ -11,12 +11,12 @@ import { Button, Icon } from "semantic-ui-react";
 import { shareAddress } from "../../api_client/apiClient";
 
 export default class Toolbar extends Component {
-  constructor (props){
+  constructor(props) {
     super(props);
   }
-  
+
   render() {
-    console.log(this.props.photosDetail)
+    console.log(this.props.photosDetail);
     return (
       <div>
         {!this.props.photosDetail && (
@@ -75,7 +75,9 @@ export default class Toolbar extends Component {
             disabled={this.props.isPublic}
             onClick={() => {
               const image_hash = this.props.photosDetail.image_hash;
-              const val = !(this.props.photosDetail.rating >= this.props.favorite_min_rating);
+              const val = !(
+                this.props.photosDetail.rating >= this.props.favorite_min_rating
+              );
               this.props.dispatch(setPhotosFavorite([image_hash], val));
             }}
             color="black"
@@ -84,7 +86,11 @@ export default class Toolbar extends Component {
           >
             <Icon
               name="star"
-              color={this.props.photosDetail.rating >= this.props.favorite_min_rating ? "yellow" : "grey"}
+              color={
+                this.props.photosDetail.rating >= this.props.favorite_min_rating
+                  ? "yellow"
+                  : "grey"
+              }
             />
           </Button>
         )}
@@ -121,7 +127,7 @@ export default class Toolbar extends Component {
           <Icon name="info" />
         </Button>
       </div>
-    )
+    );
   }
 }
 

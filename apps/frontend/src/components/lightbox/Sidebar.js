@@ -1,4 +1,4 @@
-import React, { Component} from "react";
+import React, { Component } from "react";
 import "react-virtualized/styles.css"; // only needs to be imported once
 import { generatePhotoIm2txtCaption } from "../../actions/photosActions";
 import {
@@ -19,7 +19,7 @@ import { push } from "react-router-redux";
 import { searchPhotos } from "../../actions/searchActions";
 import * as moment from "moment";
 import { Link } from "react-router-dom";
-import {Tile } from "../Tile"
+import { Tile } from "../Tile";
 
 var LIGHTBOX_SIDEBAR_WIDTH = 360;
 if (window.innerWidth < 600) {
@@ -43,18 +43,17 @@ const colors = [
 ];
 
 export default class Sidebar extends Component {
-  constructor (props){
+  constructor(props) {
     super(props);
   }
   render() {
-    console.log(this.props.photoDetail)
+    console.log(this.props.photoDetail);
     return (
       <Transition
         visible={this.props.lightboxSidebarShow}
         animation="fade left"
         duration={500}
       >
-      
         <div
           style={{
             right: 0,
@@ -70,8 +69,7 @@ export default class Sidebar extends Component {
             zIndex: 250,
           }}
         >
-          {this.props.photoDetail
-           && (
+          {this.props.photoDetail && (
             <div style={{ width: LIGHTBOX_SIDEBAR_WIDTH }}>
               <div
                 style={{
@@ -103,9 +101,7 @@ export default class Sidebar extends Component {
                       </Item.Header>
                       <Item.Description>
                         {moment
-                          .utc(
-                            this.props.photoDetail.exif_timestamp
-                          )
+                          .utc(this.props.photoDetail.exif_timestamp)
                           .format("dddd, MMMM Do YYYY, h:mm a")}
                       </Item.Description>
                     </Item.Content>
@@ -150,9 +146,7 @@ export default class Sidebar extends Component {
                           <Icon name="point" /> Location
                         </Item.Header>
                         <Item.Description>
-                          {
-                            this.props.photoDetail.search_location
-                          }
+                          {this.props.photoDetail.search_location}
                         </Item.Description>
                       </Item.Content>
                     </Item>
@@ -168,9 +162,7 @@ export default class Sidebar extends Component {
                     {this.props.photoDetail.exif_gps_lat && (
                       <LocationMap
                         zoom={16}
-                        photos={[
-                          this.props.photoDetail
-                        ]}
+                        photos={[this.props.photoDetail]}
                       />
                     )}
                   </div>
@@ -190,8 +182,7 @@ export default class Sidebar extends Component {
                               <Label
                                 color={
                                   colors[
-                                    idx %
-                                    this.props.photoDetail.people.length
+                                    idx % this.props.photoDetail.people.length
                                   ]
                                 }
                                 onClick={() => {
@@ -218,8 +209,7 @@ export default class Sidebar extends Component {
                         <Icon name="write" /> Caption
                       </Item.Header>
                       <Item.Description>
-                        {false &&
-                          this.props.photoDetail.captions_json.im2txt}
+                        {false && this.props.photoDetail.captions_json.im2txt}
                         <Form>
                           <Form.TextArea
                             disabled={this.props.isPublic}
@@ -228,9 +218,7 @@ export default class Sidebar extends Component {
                               this.props.photoDetail.captions_json.im2txt
                             }
                           >
-                            {
-                              this.props.photoDetail.captions_json.im2txt
-                            }
+                            {this.props.photoDetail.captions_json.im2txt}
                           </Form.TextArea>
                           <Button
                             disabled={this.props.isPublic}
@@ -350,12 +338,15 @@ export default class Sidebar extends Component {
                           <Image.Group>
                             {this.props.photoDetail.similar_photos
                               .slice(0, 30)
-                              .map((el) =>
-                                <Tile video = {el.type.includes("video")}
-                                  height = {95}
-                                  width = {95}
-                                  image_hash = {el.image_hash} />
-                                  )};
+                              .map((el) => (
+                                <Tile
+                                  video={el.type.includes("video")}
+                                  height={95}
+                                  width={95}
+                                  image_hash={el.image_hash}
+                                />
+                              ))}
+                            ;
                           </Image.Group>
                         </Item.Description>
                       </Item.Content>
@@ -371,7 +362,6 @@ export default class Sidebar extends Component {
     );
   }
 }
-
 
 Sidebar = connect((store) => {
   return {

@@ -8,7 +8,7 @@ export default function reducer(
     fetchingUserSelfDetails: false,
     fetchedUserSelfDetails: false,
 
-    error: null
+    error: null,
   },
   action
 ) {
@@ -21,7 +21,7 @@ export default function reducer(
         ...state,
         fetchingUserSelfDetails: false,
         fetchedUserSelfDetails: true,
-        userSelfDetails: action.payload
+        userSelfDetails: action.payload,
       };
     }
     case "FETCH_USER_SELF_DETAILS_REJECTED": {
@@ -33,7 +33,8 @@ export default function reducer(
         ...state,
       };
       if (action.payload.favorite_min_rating !== undefined) {
-        newState.userSelfDetails.favorite_min_rating = action.payload.favorite_min_rating;
+        newState.userSelfDetails.favorite_min_rating =
+          action.payload.favorite_min_rating;
       }
       return newState;
     }

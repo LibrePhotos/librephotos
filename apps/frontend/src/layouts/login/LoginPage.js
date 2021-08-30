@@ -7,27 +7,25 @@ import {
   Header,
   Image,
   Message,
-  Segment
+  Segment,
 } from "semantic-ui-react";
-
 
 export class LoginPage extends Component {
   constructor(props) {
     super(props);
     this.onSubmit = this.onSubmit.bind(this);
-    this.handleServerProtocolChange = this.handleServerProtocolChange.bind(
-      this
-    );
+    this.handleServerProtocolChange =
+      this.handleServerProtocolChange.bind(this);
   }
 
   state = {
     username: "",
     password: "",
     serverAddress: "",
-    serverProtocol: "https://"
+    serverProtocol: "https://",
   };
   componentDidMount() {
-    this.props.fetchSiteSettings()
+    this.props.fetchSiteSettings();
   }
 
   handleChange = (e, { name, value }) => this.setState({ [name]: value });
@@ -41,7 +39,6 @@ export class LoginPage extends Component {
   }
 
   render() {
-
     const { username, password } = this.state;
 
     const timeNow = new Date().toLocaleTimeString();
@@ -57,19 +54,24 @@ export class LoginPage extends Component {
           height: "100%",
           overflowY: "auto",
           backgroundColor: "#dddddd",
-          backgroundSize: "cover"
+          backgroundSize: "cover",
         }}
       >
         <div style={{ maxWidth: 500, padding: 20, margin: "0 auto" }}>
-        <div
-          style={{
-            maxWidth: 400,
-            textAlign: "center",
-            margin: "0 auto",
-            padding: 20
-          }}
-        ><Image src={"/logo.png"} size="tiny" verticalAlign='middle' /> <span style={{paddingLeft: 5, fontSize: 18}}><b>LibrePhotos</b></span></div>
-        
+          <div
+            style={{
+              maxWidth: 400,
+              textAlign: "center",
+              margin: "0 auto",
+              padding: 20,
+            }}
+          >
+            <Image src={"/logo.png"} size="tiny" verticalAlign="middle" />{" "}
+            <span style={{ paddingLeft: 5, fontSize: 18 }}>
+              <b>LibrePhotos</b>
+            </span>
+          </div>
+
           <Segment attached>
             <Header>Login</Header>
 
@@ -97,38 +99,30 @@ export class LoginPage extends Component {
                 <Divider />
                 <Form.Button fluid color="blue" content="Log in" />
 
-                {
-                  this.props.siteSettings.allow_registration &&
-                    <div>
-                      <Divider />
-                      <Button
-                        disabled={!this.props.siteSettings.allow_registration}
-                        as={Link}
-                        to="/signup"
-                        fluid
-                        color="green"
-                        content="Sign up"
-                      />
-                    </div>
-                }
-
-
+                {this.props.siteSettings.allow_registration && (
+                  <div>
+                    <Divider />
+                    <Button
+                      disabled={!this.props.siteSettings.allow_registration}
+                      as={Link}
+                      to="/signup"
+                      fluid
+                      color="green"
+                      content="Sign up"
+                    />
+                  </div>
+                )}
               </Form.Field>
             </Form>
           </Segment>
           {this.props.errors &&
             this.props.errors.data &&
-              this.props.errors.data.detail && (
+            this.props.errors.data.detail && (
               <Message color="red" secondary attached>
-                <p>
-                  {this.props.errors.data.detail}
-                </p>
-                <p>
-                  {timeNow}
-                </p>
+                <p>{this.props.errors.data.detail}</p>
+                <p>{timeNow}</p>
               </Message>
-            )
-          }
+            )}
           {this.props.errors &&
             this.props.errors.data &&
             !this.props.errors.data.detail && (
@@ -136,43 +130,28 @@ export class LoginPage extends Component {
                 <p>
                   No connection to backend server, try again in a few minutes.
                 </p>
-                <p>
-                  {timeNow}
-                </p>
+                <p>{timeNow}</p>
               </Message>
-            )
-          }
-          {this.props.errors &&
-            this.props.errors.password && (
-              <Message color="red" secondary attached>
-                <p>
-                Password may not be blank!
-                </p>
-                <p>
-                  {timeNow}
-                </p>
-              </Message>
-            )
-          }
-          {this.props.errors &&
-            this.props.errors.username && (
-              <Message color="red" secondary attached="bottom">
-                <p>
-                Username may not be blank!
-                </p>
-                <p>
-                  {timeNow}
-                </p>
-              </Message>
-            )
-          }
+            )}
+          {this.props.errors && this.props.errors.password && (
+            <Message color="red" secondary attached>
+              <p>Password may not be blank!</p>
+              <p>{timeNow}</p>
+            </Message>
+          )}
+          {this.props.errors && this.props.errors.username && (
+            <Message color="red" secondary attached="bottom">
+              <p>Username may not be blank!</p>
+              <p>{timeNow}</p>
+            </Message>
+          )}
         </div>
         <div
           style={{
             maxWidth: 400,
             textAlign: "center",
             paddingTop: "10%",
-            margin: "0 auto"
+            margin: "0 auto",
           }}
         >
           A comfy place for your photos.

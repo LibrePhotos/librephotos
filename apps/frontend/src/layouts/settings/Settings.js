@@ -807,7 +807,7 @@ export class Settings extends Component {
         </Grid>
 
         <Header as="h3">Favorite options</Header>
-        
+
         <Grid>
           <Grid.Row>
             <Grid.Column width={4} textAlign="left">

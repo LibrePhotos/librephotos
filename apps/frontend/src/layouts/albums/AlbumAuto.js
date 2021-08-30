@@ -10,7 +10,6 @@ import { push } from "react-router-redux";
 import store from "../../store";
 import { Link } from "react-router-dom";
 
-
 var topMenuHeight = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
 
@@ -20,7 +19,7 @@ export class AlbumAuto extends Component {
     this.setState({
       width: window.innerWidth,
       height: window.innerHeight,
-      entrySquareSize: 200
+      entrySquareSize: 200,
     });
     this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this);
     this.cellRenderer = this.cellRenderer.bind(this);
@@ -44,7 +43,7 @@ export class AlbumAuto extends Component {
       numEntrySquaresPerRow = 4;
     } else if (window.innerWidth < 1200) {
       numEntrySquaresPerRow = 5;
-    } 
+    }
 
     var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15;
 
@@ -53,7 +52,7 @@ export class AlbumAuto extends Component {
       width: window.innerWidth,
       height: window.innerHeight,
       entrySquareSize: entrySquareSize,
-      numEntrySquaresPerRow: numEntrySquaresPerRow
+      numEntrySquaresPerRow: numEntrySquaresPerRow,
     });
   }
 
@@ -63,22 +62,18 @@ export class AlbumAuto extends Component {
     if (albumAutoIndex < this.props.albumsAutoList.length) {
       return (
         <div key={key} style={style}>
-          <div
-            onClick={() => {
-            }}
-            style={{ padding: 5 }}
-          >
-            <Link to={"/event/" +this.props.albumsAutoList[albumAutoIndex].id}> 
-            <Image
-              style={{objectFit: "cover"}}
-              width={this.state.entrySquareSize - 10}
-              height={this.state.entrySquareSize - 10}
-              src={
-                serverAddress +
-                "/media/square_thumbnails/" +
-                this.props.albumsAutoList[albumAutoIndex].photos[0]
-              }
-            />
+          <div onClick={() => {}} style={{ padding: 5 }}>
+            <Link to={"/event/" + this.props.albumsAutoList[albumAutoIndex].id}>
+              <Image
+                style={{ objectFit: "cover" }}
+                width={this.state.entrySquareSize - 10}
+                height={this.state.entrySquareSize - 10}
+                src={
+                  serverAddress +
+                  "/media/square_thumbnails/" +
+                  this.props.albumsAutoList[albumAutoIndex].photos[0]
+                }
+              />
             </Link>
           </div>
           <div
@@ -143,17 +138,13 @@ export class AlbumAuto extends Component {
 
 export class EntrySquare extends Component {
   render() {
-    var images = this.props.cover_photos.map(function(photo) {
+    var images = this.props.cover_photos.map(function (photo) {
       return (
         <Image
           style={{ display: "inline-block", objectFit: "cover" }}
           width={this.props.size / 2 - 20}
           height={this.props.size / 2 - 20}
-          src={
-            serverAddress +
-            "/media/square_thumbnails/" +
-            photo.image_hash
-          }
+          src={serverAddress + "/media/square_thumbnails/" + photo.image_hash}
         />
       );
     }, this);
@@ -163,7 +154,7 @@ export class EntrySquare extends Component {
           width: this.props.size,
           display: "inline-block",
           paddingLeft: 10,
-          paddingRight: 10
+          paddingRight: 10,
         }}
         onClick={() => {
           store.dispatch(searchPhotos(this.props.title));
@@ -187,11 +178,11 @@ export class EntrySquare extends Component {
   }
 }
 
-AlbumAuto = connect(store => {
+AlbumAuto = connect((store) => {
   return {
     auth: store.auth,
     albumsAutoList: store.albums.albumsAutoList,
     fetchingAlbumsAutoList: store.albums.fetchingAlbumsAutoList,
-    fetchedAlbumsAutoList: store.albums.fetchedAlbumsAutoList
+    fetchedAlbumsAutoList: store.albums.fetchedAlbumsAutoList,
   };
 })(AlbumAuto);

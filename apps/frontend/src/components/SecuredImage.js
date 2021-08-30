@@ -1,34 +1,27 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import {Image} from "semantic-ui-react";
+import { Image } from "semantic-ui-react";
 import { Server } from "../api_client/apiClient";
 
-
 export class SecuredImageJWT extends Component {
-
-
   render() {
-    return (
-      <Image
-        {...this.props}
-      />
-    );
+    return <Image {...this.props} />;
   }
 }
 
 export class SecuredImage extends Component {
   state = {
-    imgData: null
+    imgData: null,
   };
 
   componentWillMount() {
     console.log(this.props.src);
     Server.get(this.props.src)
-      .then(resp => {
+      .then((resp) => {
         console.log("success");
         this.setState({ imgData: resp.data.data });
       })
-      .catch(err => {
+      .catch((err) => {
         console.log("fail");
       });
   }
@@ -43,9 +36,8 @@ export class SecuredImage extends Component {
   }
 }
 
-SecuredImageJWT = connect(store => {
+SecuredImageJWT = connect((store) => {
   return {
-    auth: store.auth
+    auth: store.auth,
   };
 })(SecuredImageJWT);
-

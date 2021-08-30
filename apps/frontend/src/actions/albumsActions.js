@@ -5,48 +5,48 @@ import { push } from "react-router-redux";
 import { adjustDateFormat, getPhotosFlatFromGroupedByDate } from "../util/util";
 
 export function fetchThingAlbumsList() {
-  return function(dispatch) {
+  return function (dispatch) {
     dispatch({ type: "FETCH_THING_ALBUMS_LIST" });
     Server.get("albums/thing/list/")
-      .then(response => {
+      .then((response) => {
         dispatch({
           type: "FETCH_THING_ALBUMS_LIST_FULFILLED",
-          payload: response.data.results
+          payload: response.data.results,
         });
       })
-      .catch(err => {
+      .catch((err) => {
         dispatch({ type: "FETCH_THING_ALBUMS_LIST_REJECTED", payload: err });
       });
   };
 }
 
 export function fetchThingAlbum(album_id) {
-  return function(dispatch) {
+  return function (dispatch) {
     dispatch({ type: "FETCH_THING_ALBUMS" });
     Server.get(`albums/thing/${album_id}/`)
-      .then(response => {
+      .then((response) => {
         dispatch({
           type: "FETCH_THING_ALBUMS_FULFILLED",
-          payload: response.data
+          payload: response.data,
         });
       })
-      .catch(err => {
+      .catch((err) => {
         dispatch({ type: "FETCH_THING_ALBUMS_REJECTED", payload: err });
       });
   };
 }
 
 export function fetchUserAlbumsList() {
-  return function(dispatch) {
+  return function (dispatch) {
     dispatch({ type: "FETCH_USER_ALBUMS_LIST" });
     Server.get("albums/user/list/")
-      .then(response => {
+      .then((response) => {
         dispatch({
           type: "FETCH_USER_ALBUMS_LIST_FULFILLED",
-          payload: response.data.results
+          payload: response.data.results,
         });
       })
-      .catch(err => {
+      .catch((err) => {
         dispatch({ type: "FETCH_USER_ALBUMS_LIST_REJECTED", payload: err });
       });
   };
@@ -80,49 +80,48 @@ export function fetchUserAlbum(album_id) {
 }
 
 export function createNewUserAlbum(title, image_hashes) {
-  return function(dispatch) {
+  return function (dispatch) {
     dispatch({ type: "CREATE_USER_ALBUMS_LIST" });
     Server.post("albums/user/edit/", { title: title, photos: image_hashes })
-      .then(response => {
+      .then((response) => {
         dispatch({
           type: "CREATE_USER_ALBUMS_LIST_FULFILLED",
-          payload: response.data
+          payload: response.data,
         });
         dispatch(fetchUserAlbumsList());
         dispatch(
           notify({
-            message: `${
-              image_hashes.length
-            } photo(s) were successfully added to new album "${title}"`,
+            message: `${image_hashes.length} photo(s) were successfully added to new album "${title}"`,
             title: "Create album",
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
             position: "br",
-            buttons:[{
-              name:'View Album', 
-              primary:true, 
-              onClick: ()=>{
-                dispatch(fetchUserAlbum(response.data.id))
-                dispatch(push(`/useralbum/${response.data.id}/`))
-                console.log(response.data.id)
-              }
-            }]
-
+            buttons: [
+              {
+                name: "View Album",
+                primary: true,
+                onClick: () => {
+                  dispatch(fetchUserAlbum(response.data.id));
+                  dispatch(push(`/useralbum/${response.data.id}/`));
+                  console.log(response.data.id);
+                },
+              },
+            ],
           })
         );
       })
-      .catch(err => {
+      .catch((err) => {
         dispatch({ type: "CREATE_USER_ALBUMS_LIST_REJECTED", payload: err });
       });
   };
 }
 
 export function deleteUserAlbum(albumID, albumTitle) {
-  return function(dispatch) {
+  return function (dispatch) {
     dispatch({ type: "DELTE_USER_ALBUM" });
     Server.delete(`/albums/user/${albumID}`)
-      .then(response => {
+      .then((response) => {
         dispatch({ type: "DELETE_USER_ALBUM_FULFILLED", payload: albumID });
         dispatch(fetchUserAlbumsList());
         dispatch(
@@ -132,91 +131,91 @@ export function deleteUserAlbum(albumID, albumTitle) {
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
-            position: "br"
+            position: "br",
           })
         );
       })
-      .catch(err => {
+      .catch((err) => {
         dispatch({ type: "DELETE_USER_ALBUM_REJECTED", payload: err });
       });
   };
 }
 
 export function editUserAlbum(album_id, title, image_hashes) {
-  return function(dispatch) {
+  return function (dispatch) {
     dispatch({ type: "EDIT_USER_ALBUMS_LIST" });
     Server.patch(`albums/user/edit/${album_id}/`, {
       title: title,
-      photos: image_hashes
+      photos: image_hashes,
     })
-      .then(response => {
+      .then((response) => {
         dispatch({
           type: "EDIT_USER_ALBUMS_LIST_FULFILLED",
-          payload: response.data
+          payload: response.data,
         });
         dispatch(
           notify({
-            message: `${
-              image_hashes.length
-            } photo(s) were successfully added to existing album "${title}"`,
+            message: `${image_hashes.length} photo(s) were successfully added to existing album "${title}"`,
             title: "Add to album",
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
             position: "br",
-            buttons:[{
-              name:'View Album', 
-              primary:true, 
-              onClick: ()=>{
-                dispatch(fetchUserAlbum(album_id))
-                dispatch(push(`/useralbum/${album_id}/`))
-              }
-            }]
+            buttons: [
+              {
+                name: "View Album",
+                primary: true,
+                onClick: () => {
+                  dispatch(fetchUserAlbum(album_id));
+                  dispatch(push(`/useralbum/${album_id}/`));
+                },
+              },
+            ],
           })
         );
         dispatch(fetchUserAlbumsList());
       })
-      .catch(err => {
+      .catch((err) => {
         dispatch({ type: "EDIT_USER_ALBUMS_LIST_REJECTED", payload: err });
       });
   };
 }
 
 export function fetchPlaceAlbumsList() {
-  return function(dispatch) {
+  return function (dispatch) {
     dispatch({ type: "FETCH_PLACE_ALBUMS_LIST" });
     Server.get("albums/place/list/")
-      .then(response => {
+      .then((response) => {
         var byGeolocationLevel = _.groupBy(
           response.data.results,
-          el => el.geolocation_level
+          (el) => el.geolocation_level
         );
         dispatch({
           type: "GROUP_PLACE_ALBUMS_BY_GEOLOCATION_LEVEL",
-          payload: byGeolocationLevel
+          payload: byGeolocationLevel,
         });
         dispatch({
           type: "FETCH_PLACE_ALBUMS_LIST_FULFILLED",
-          payload: response.data.results
+          payload: response.data.results,
         });
       })
-      .catch(err => {
+      .catch((err) => {
         dispatch({ type: "FETCH_PLACE_ALBUMS_LIST_REJECTED", payload: err });
       });
   };
 }
 
 export function fetchPlaceAlbum(album_id) {
-  return function(dispatch) {
+  return function (dispatch) {
     dispatch({ type: "FETCH_PLACE_ALBUMS" });
     Server.get(`albums/place/${album_id}/`)
-      .then(response => {
+      .then((response) => {
         dispatch({
           type: "FETCH_PLACE_ALBUMS_FULFILLED",
-          payload: response.data
+          payload: response.data,
         });
       })
-      .catch(err => {
+      .catch((err) => {
         dispatch({ type: "FETCH_PLACE_ALBUMS_REJECTED", payload: err });
       });
   };
@@ -240,7 +239,7 @@ export function fetchPersonPhotos(person_id) {
             photosGroupedByDate: photosGroupedByDate,
             photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
             personDetails: personDetails,
-          }
+          },
         });
       })
       .catch((err) => {
@@ -250,33 +249,33 @@ export function fetchPersonPhotos(person_id) {
 }
 
 export function generateAutoAlbums() {
-  return function(dispatch) {
+  return function (dispatch) {
     dispatch({ type: "GENERATE_AUTO_ALBUMS" });
     Server.get("autoalbumgen/")
-      .then(response => {
+      .then((response) => {
         dispatch({
           type: "GENERATE_AUTO_ALBUMS_FULFILLED",
-          payload: response.data
+          payload: response.data,
         });
         dispatch(fetchAutoAlbums());
       })
-      .catch(err => {
+      .catch((err) => {
         dispatch({ type: "GENERATE_AUTO_ALBUMS_REJECTED", payload: err });
       });
   };
 }
 
 export function fetchAutoAlbums() {
-  return function(dispatch) {
+  return function (dispatch) {
     dispatch({ type: "FETCH_AUTO_ALBUMS" });
     Server.get("albums/auto/?page_size=50")
-      .then(response => {
+      .then((response) => {
         dispatch({
           type: "FETCH_AUTO_ALBUMS_FULFILLED",
-          payload: response.data.results
+          payload: response.data.results,
         });
       })
-      .catch(err => {
+      .catch((err) => {
         dispatch({ type: "FETCH_AUTO_ALBUMS_REJECTED", payload: err });
       });
   };
@@ -285,32 +284,32 @@ export function fetchAutoAlbums() {
 //actions using new list view in backend
 
 export function fetchAutoAlbumsList() {
-  return function(dispatch) {
+  return function (dispatch) {
     dispatch({ type: "FETCH_AUTO_ALBUMS_LIST" });
     Server.get("albums/auto/list/")
-      .then(response => {
+      .then((response) => {
         dispatch({
           type: "FETCH_AUTO_ALBUMS_LIST_FULFILLED",
-          payload: response.data.results
+          payload: response.data.results,
         });
       })
-      .catch(err => {
+      .catch((err) => {
         dispatch({ type: "FETCH_AUTO_ALBUMS_LIST_REJECTED", payload: err });
       });
   };
 }
 
 export function fetchDateAlbumsList() {
-  return function(dispatch) {
+  return function (dispatch) {
     dispatch({ type: "FETCH_DATE_ALBUMS_LIST" });
     Server.get("albums/date/list/", { timeout: 100000 })
-      .then(response => {
+      .then((response) => {
         dispatch({
           type: "FETCH_DATE_ALBUMS_LIST_FULFILLED",
-          payload: response.data.results
+          payload: response.data.results,
         });
       })
-      .catch(err => {
+      .catch((err) => {
         dispatch({ type: "FETCH_DATE_ALBUMS_LIST_REJECTED", payload: err });
       });
   };
@@ -318,48 +317,48 @@ export function fetchDateAlbumsList() {
 
 //actions using new retrieve view in backend
 export function fetchAlbumsAutoGalleries(album_id) {
-  return function(dispatch) {
+  return function (dispatch) {
     dispatch({ type: "FETCH_AUTO_ALBUMS_RETRIEVE" });
     Server.get(`albums/auto/${album_id}/`)
-      .then(response => {
+      .then((response) => {
         dispatch({
           type: "FETCH_AUTO_ALBUMS_RETRIEVE_FULFILLED",
-          payload: response.data
+          payload: response.data,
         });
       })
-      .catch(err => {
+      .catch((err) => {
         dispatch({ type: "FETCH_AUTO_ALBUMS_RETRIEVE_REJECTED", payload: err });
       });
   };
 }
 
 export function fetchAlbumsDateGalleries(album_id) {
-  return function(dispatch) {
+  return function (dispatch) {
     dispatch({ type: "FETCH_DATE_ALBUMS_RETRIEVE" });
     Server.get(`albums/date/${album_id}/`)
-      .then(response => {
+      .then((response) => {
         dispatch({
           type: "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED",
-          payload: response.data
+          payload: response.data,
         });
       })
-      .catch(err => {
+      .catch((err) => {
         dispatch({ type: "FETCH_DATE_ALBUMS_RETRIEVE_REJECTED", payload: err });
       });
   };
 }
 
 export function toggleAlbumAutoFavorite(album_id, rating) {
-  return function(dispatch) {
+  return function (dispatch) {
     dispatch({ type: "TOGGLE_ALBUM_AUTO_FAVORITE" });
     Server.patch(`albums/auto/list/${album_id}/`, { favorited: rating })
-      .then(response => {
+      .then((response) => {
         dispatch({
           type: "TOGGLE_ALBUM_AUTO_FAVORITE_FULFILLED",
-          payload: response.data
+          payload: response.data,
         });
       })
-      .catch(err => {
+      .catch((err) => {
         dispatch({ type: "TOGGLE_ALBUM_AUTO_FAVORITE_REJECTED", payload: err });
       });
   };
@@ -367,87 +366,90 @@ export function toggleAlbumAutoFavorite(album_id, rating) {
 
 // share user album
 export function setUserAlbumShared(album_id, target_user_id, val_shared) {
-  return function(dispatch) {
+  return function (dispatch) {
     dispatch({ type: "SET_ALBUM_USER_SHARED" });
     Server.post("useralbum/share/", {
       shared: val_shared,
       album_id: album_id,
-      target_user_id: target_user_id
+      target_user_id: target_user_id,
     })
-      .then(response => {
-        dispatch({ type: "SET_ALBUM_USER_SHARED_FULFILLED", payload: response.data });
-        dispatch(fetchUserAlbum(album_id))
+      .then((response) => {
+        dispatch({
+          type: "SET_ALBUM_USER_SHARED_FULFILLED",
+          payload: response.data,
+        });
+        dispatch(fetchUserAlbum(album_id));
 
         if (val_shared) {
-            dispatch(
+          dispatch(
             notify({
-                message: `Album was successfully shared`,
-                title: "Share album",
-                status: "success",
-                dismissible: true,
-                dismissAfter: 3000,
-                position: "br"
+              message: `Album was successfully shared`,
+              title: "Share album",
+              status: "success",
+              dismissible: true,
+              dismissAfter: 3000,
+              position: "br",
             })
-            );
+          );
         } else {
-            dispatch(
+          dispatch(
             notify({
-                message: `Album was successfully unshared`,
-                title: "Unshare album",
-                status: "success",
-                dismissible: true,
-                dismissAfter: 3000,
-                position: "br"
+              message: `Album was successfully unshared`,
+              title: "Unshare album",
+              status: "success",
+              dismissible: true,
+              dismissAfter: 3000,
+              position: "br",
             })
-            );
+          );
         }
-        
       })
-      .catch(err => {
-        dispatch({ type: "SET_ALBUM_USER_SHARED_FULFILLED", payload: err})
-        console.log(err.content)
+      .catch((err) => {
+        dispatch({ type: "SET_ALBUM_USER_SHARED_FULFILLED", payload: err });
+        console.log(err.content);
       });
   };
 }
 
-
-
 //sharing
 export function fetchUserAlbumsSharedToMe() {
-  return function(dispatch) {
+  return function (dispatch) {
     dispatch({ type: "FETCH_ALBUMS_SHARED_TO_ME" });
     Server.get("/albums/user/shared/tome/")
-      .then(response => {
-        const sharedAlbumssGroupedByOwner = _
-        .toPairs(_.groupBy(response.data.results, "owner.id"))
-        .map(el => {
+      .then((response) => {
+        const sharedAlbumssGroupedByOwner = _.toPairs(
+          _.groupBy(response.data.results, "owner.id")
+        ).map((el) => {
           return { user_id: parseInt(el[0], 10), albums: el[1] };
         });
-        console.log(sharedAlbumssGroupedByOwner)
+        console.log(sharedAlbumssGroupedByOwner);
         dispatch({
           type: "FETCH_ALBUMS_SHARED_TO_ME_FULFILLED",
-          payload: sharedAlbumssGroupedByOwner
+          payload: sharedAlbumssGroupedByOwner,
         });
       })
-      .catch(err => {
+      .catch((err) => {
         dispatch({ type: "FETCH_ALBUMS_SHARED_TO_ME_REJECTED", payload: err });
       });
   };
 }
 
 export function fetchUserAlbumsSharedFromMe() {
-  return function(dispatch) {
+  return function (dispatch) {
     dispatch({ type: "FETCH_ALBUMS_SHARED_FROM_ME" });
     Server.get("/albums/user/shared/fromme/")
-      .then(response => {
-        console.log(response.data.results)
+      .then((response) => {
+        console.log(response.data.results);
         dispatch({
           type: "FETCH_ALBUMS_SHARED_FROM_ME_FULFILLED",
-          payload: response.data.results
+          payload: response.data.results,
         });
       })
-      .catch(err => {
-        dispatch({ type: "FETCH_ALBUMS_SHARED_FROM_ME_REJECTED", payload: err });
+      .catch((err) => {
+        dispatch({
+          type: "FETCH_ALBUMS_SHARED_FROM_ME_REJECTED",
+          payload: err,
+        });
       });
   };
 }

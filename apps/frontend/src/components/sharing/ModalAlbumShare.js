@@ -16,7 +16,7 @@ import moment from "moment";
 
 function fuzzy_match(str, pattern) {
   if (pattern.split("").length > 0) {
-    pattern = pattern.split("").reduce(function(a, b) {
+    pattern = pattern.split("").reduce(function (a, b) {
       return a + ".*" + b;
     });
     return new RegExp(pattern).test(str);
@@ -34,7 +34,7 @@ const modalStyles = {
 
     overflow: "hidden",
     padding: 0,
-    backgroundColor: "white"
+    backgroundColor: "white",
   },
   overlay: {
     top: 0,
@@ -45,20 +45,20 @@ const modalStyles = {
     borderRadius: 0,
     border: 0,
     zIndex: 102,
-    backgroundColor: "rgba(200,200,200,0.8)"
-  }
+    backgroundColor: "rgba(200,200,200,0.8)",
+  },
 };
 
 export class ModalAlbumShare extends Component {
-  state = { 
+  state = {
     userNameFilter: "",
     valShare: true,
   };
   render() {
-    var filteredUserList
+    var filteredUserList;
     if (this.state.userNameFilter.length > 0) {
       filteredUserList = this.props.pub.publicUserList.filter(
-        el =>
+        (el) =>
           fuzzy_match(
             el.username.toLowerCase(),
             this.state.userNameFilter.toLowerCase()
@@ -72,7 +72,7 @@ export class ModalAlbumShare extends Component {
       filteredUserList = this.props.pub.publicUserList;
     }
     filteredUserList = filteredUserList.filter(
-      el => el.id !== this.props.auth.access.user_id
+      (el) => el.id !== this.props.auth.access.user_id
     );
     const albumDetails = this.props.albumDetails;
 
@@ -89,7 +89,7 @@ export class ModalAlbumShare extends Component {
         }}
         style={modalStyles}
       >
-        <div style={{ height: 50, width: "100%", padding: 7}}>
+        <div style={{ height: 50, width: "100%", padding: 7 }}>
           <Header>
             {this.state.valShare ? "Share Album" : "Unshare Album"}
             <Header.Subheader>
@@ -104,7 +104,7 @@ export class ModalAlbumShare extends Component {
             paddingTop: 10,
             overflowY: "scroll",
             height: window.innerHeight - 300 - 100,
-            width: "100%"
+            width: "100%",
           }}
         >
           <div style={{ paddingRight: 5 }}>
@@ -119,8 +119,8 @@ export class ModalAlbumShare extends Component {
           </div>
           <Divider />
           {filteredUserList.length > 0 &&
-            filteredUserList.map(item => {
-              var displayName
+            filteredUserList.map((item) => {
+              var displayName;
               if (item.first_name.length > 0 && item.last_name.length > 0) {
                 displayName = item.first_name + " " + item.last_name;
               } else {
@@ -132,7 +132,7 @@ export class ModalAlbumShare extends Component {
                   style={{
                     height: 70,
                     justifyContent: "center",
-                    alignItems: "center"
+                    alignItems: "center",
                   }}
                 >
                   <Header
@@ -140,45 +140,58 @@ export class ModalAlbumShare extends Component {
                     onClick={() => {
                       this.props.dispatch(
                         setUserAlbumShared(
-                          parseInt(this.props.match.params.albumID, 10), 
-                          item.id, 
-                          this.state.valShare))
+                          parseInt(this.props.match.params.albumID, 10),
+                          item.id,
+                          this.state.valShare
+                        )
+                      );
                       this.props.onRequestClose();
                     }}
                   >
                     <Image circular src="/unknown_user.jpg" />
                     <Header.Content>
-                      {displayName} 
-                      {albumDetails.shared_to.map(e=>e.id).includes(item.id) &&
-                        <Popup 
-                          trigger={
-                            <Icon 
-                              flipped='horizontally' 
-                              name='share'/>
-                          } 
-                          inverted 
-                          content="Shared"/>
-                      }
+                      {displayName}
+                      {albumDetails.shared_to
+                        .map((e) => e.id)
+                        .includes(item.id) && (
+                        <Popup
+                          trigger={<Icon flipped="horizontally" name="share" />}
+                          inverted
+                          content="Shared"
+                        />
+                      )}
                       <Header.Subheader>
                         Joined {moment(item.date_joined).format("MMMM YYYY")}
                       </Header.Subheader>
                     </Header.Content>
                   </Header>
-                  <div style={{float:'right',right:10,top:-40,position:'relative'}}>
-                    <Checkbox 
-                    inline
-                    slider 
-                    checked={albumDetails.shared_to.map(e=>e.id).includes(item.id)}
-                    onChange={(e,d)=>{
-                      this.props.dispatch(
-                        setUserAlbumShared(
-                          parseInt(this.props.match.params.albumID, 10), 
-                          item.id, 
-                          !albumDetails.shared_to.map(e=>e.id).includes(item.id)))
+                  <div
+                    style={{
+                      float: "right",
+                      right: 10,
+                      top: -40,
+                      position: "relative",
                     }}
-                    /> 
+                  >
+                    <Checkbox
+                      inline
+                      slider
+                      checked={albumDetails.shared_to
+                        .map((e) => e.id)
+                        .includes(item.id)}
+                      onChange={(e, d) => {
+                        this.props.dispatch(
+                          setUserAlbumShared(
+                            parseInt(this.props.match.params.albumID, 10),
+                            item.id,
+                            !albumDetails.shared_to
+                              .map((e) => e.id)
+                              .includes(item.id)
+                          )
+                        );
+                      }}
+                    />
                   </div>
-
                 </div>
               );
             })}
@@ -188,7 +201,7 @@ export class ModalAlbumShare extends Component {
   }
 }
 
-ModalAlbumShare = connect(store => {
+ModalAlbumShare = connect((store) => {
   return {
     auth: store.auth,
     albumDetails: store.albums.albumDetails,

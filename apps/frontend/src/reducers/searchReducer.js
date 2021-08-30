@@ -26,68 +26,62 @@ export default function reducer(
     case SEARCH_EMPTY_QUERY_ERROR: {
       return { ...state, error: "Search query cannot be empty!" };
     }
-    
+
     case SEARCH_PHOTOS: {
       return { ...state, query: action.payload };
-  	}
+    }
 
     case SEARCH_PHOTOS_REJECTED: {
       return { ...state, error: action.payload, query: "" };
     }
 
     case "SEARCH_PEOPLE": {
-  		return {...state, searchPeopleRes: [], searchingPeople: true}
+      return { ...state, searchPeopleRes: [], searchingPeople: true };
     }
     case "SEARCH_PEOPLE_FULFILLED": {
       return {
         ...state,
         searchingPeople: false,
         searchedPeople: true,
-        searchPeopleRes: action.payload
-      }
+        searchPeopleRes: action.payload,
+      };
     }
     case "SEARCH_PEOPLE_REJECTED": {
-      return { ...state, searchingPeople: false, error: action.payload}
+      return { ...state, searchingPeople: false, error: action.payload };
     }
 
-
-
-
     case "SEARCH_THING_ALBUMS": {
-  		return {...state, searchThingAlbumsRes: [], searchingThingAlbums: true}
+      return { ...state, searchThingAlbumsRes: [], searchingThingAlbums: true };
     }
     case "SEARCH_THING_ALBUMS_FULFILLED": {
       return {
         ...state,
         searchingThingAlbums: false,
         searchedThingAlbums: true,
-        searchThingAlbumsRes: action.payload
-      }
+        searchThingAlbumsRes: action.payload,
+      };
     }
     case "SEARCH_THING_ALBUMS_REJECTED": {
-      return { ...state, searchingPeople: false, error: action.payload}
+      return { ...state, searchingPeople: false, error: action.payload };
     }
 
-
     case "SEARCH_PLACE_ALBUMS": {
-  		return {...state, searchPlaceAlbumsRes: [], searchingPlaceAlbums: true}
+      return { ...state, searchPlaceAlbumsRes: [], searchingPlaceAlbums: true };
     }
     case "SEARCH_PLACE_ALBUMS_FULFILLED": {
       return {
         ...state,
         searchingPlaceAlbums: false,
         searchedPlaceAlbums: true,
-        searchPlaceAlbumsRes: action.payload
-      }
+        searchPlaceAlbumsRes: action.payload,
+      };
     }
     case "SEARCH_PLACE_ALBUMS_REJECTED": {
-      return { ...state, searchingPlaceAlbums: false, error: action.payload}
+      return { ...state, searchingPlaceAlbums: false, error: action.payload };
     }
 
-
-
     default: {
-      return {...state}
+      return { ...state };
     }
   }
 }

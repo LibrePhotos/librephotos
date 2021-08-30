@@ -20,16 +20,15 @@ import {
   LinkRadialCurve,
   LinkHorizontalLine,
   LinkVerticalLine,
-  LinkRadialLine
+  LinkRadialLine,
 } from "@vx/shape";
-
 
 export class LocationLink extends React.Component {
   state = {
     layout: "cartesian",
     orientation: "horizontal",
     linkType: "diagonal",
-    stepPercent: 0.5
+    stepPercent: 0.5,
   };
 
   componentWillMount() {
@@ -46,8 +45,8 @@ export class LocationLink extends React.Component {
         top: 20,
         left: 70,
         right: 70,
-        bottom: 20
-      }
+        bottom: 20,
+      },
     } = this.props;
     const { layout, orientation, linkType, stepPercent } = this.state;
 
@@ -64,7 +63,7 @@ export class LocationLink extends React.Component {
     if (layout === "polar") {
       origin = {
         x: innerWidth / 2,
-        y: innerHeight / 2
+        y: innerHeight / 2,
       };
       sizeWidth = 2 * Math.PI;
       sizeHeight = Math.min(innerWidth, innerHeight) / 2;
@@ -80,7 +79,7 @@ export class LocationLink extends React.Component {
     }
 
     return (
-      <div style={{padding:10}}>
+      <div style={{ padding: 10 }}>
         <div>
           <Form unstackable widths="equal">
             <Form.Group>
@@ -92,7 +91,7 @@ export class LocationLink extends React.Component {
                 onChange={(e, d) => this.setState({ layout: d.value })}
                 options={[
                   { text: "cartesian", value: "cartesian" },
-                  { text: "polar", value: "polar" }
+                  { text: "polar", value: "polar" },
                 ]}
                 defaultValue={layout}
               />
@@ -105,7 +104,7 @@ export class LocationLink extends React.Component {
                 defaultValue={orientation}
                 options={[
                   { text: "vertical", value: "vertical" },
-                  { text: "horizontal", value: "horizontal" }
+                  { text: "horizontal", value: "horizontal" },
                 ]}
                 disabled={layout === "polar"}
               />
@@ -119,7 +118,7 @@ export class LocationLink extends React.Component {
                   { text: "diagonal", value: "diagonal" },
                   { text: "step", value: "step" },
                   { text: "curve", value: "curve" },
-                  { text: "line", value: "line" }
+                  { text: "line", value: "line" },
                 ]}
                 defaultValue={linkType}
               />
@@ -133,9 +132,8 @@ export class LocationLink extends React.Component {
           <Tree
             top={margin.top}
             left={margin.left}
-            root={hierarchy(
-              this.props.locationSunburst,
-              d => (d.isExpanded ? d.children : null)
+            root={hierarchy(this.props.locationSunburst, (d) =>
+              d.isExpanded ? d.children : null
             )}
             size={[sizeWidth, sizeHeight]}
             separation={(a, b) => (a.parent === b.parent ? 1 : 0.5) / a.depth}
@@ -256,8 +254,8 @@ export class LocationLink extends React.Component {
                           node.depth === 0
                             ? "white"
                             : node.children
-                              ? "white"
-                              : "white"
+                            ? "white"
+                            : "white"
                         }
                       >
                         {node.data.name}
@@ -274,10 +272,10 @@ export class LocationLink extends React.Component {
   }
 }
 
-LocationLink = connect(store => {
+LocationLink = connect((store) => {
   return {
     locationSunburst: store.util.locationSunburst,
     fetchingLocationSunburst: store.util.fetchingLocationSunburst,
-    fetchedLocationSunburst: store.util.fetechedLocationSunburst
+    fetchedLocationSunburst: store.util.fetechedLocationSunburst,
   };
 })(LocationLink);

@@ -2,13 +2,12 @@ import React, { Component } from "react";
 import { Header, Image, Icon, Grid, Divider } from "semantic-ui-react";
 import { fetchPublicUserList } from "../../actions/publicActions";
 import { connect } from "react-redux";
-import {TopMenu} from "../../components/menubars/TopMenu";
-import {SideMenuNarrow} from "../../components/menubars/SideMenuNarrow";
-import {TopMenuPublic} from "../../components/menubars/TopMenuPublic";
-import {SideMenuNarrowPublic} from "../../components/menubars/SideMenuNarrowPublic";
+import { TopMenu } from "../../components/menubars/TopMenu";
+import { SideMenuNarrow } from "../../components/menubars/SideMenuNarrow";
+import { TopMenuPublic } from "../../components/menubars/TopMenuPublic";
+import { SideMenuNarrowPublic } from "../../components/menubars/SideMenuNarrowPublic";
 import { Link } from "react-router-dom";
 import { serverAddress } from "../../api_client/apiClient";
-
 
 var TOP_MENU_HEIGHT = 45; // don't change this
 var LEFT_MENU_WIDTH = 85; // don't change this
@@ -18,7 +17,7 @@ export class PublicUserList extends Component {
     this.props.dispatch(fetchPublicUserList());
   }
   render() {
-    var menu
+    var menu;
     if (this.props.auth.access) {
       menu = (
         <div>
@@ -40,7 +39,7 @@ export class PublicUserList extends Component {
         <div
           style={{
             paddingTop: TOP_MENU_HEIGHT,
-            paddingLeft: this.props.ui.showSidebar ? LEFT_MENU_WIDTH + 5 : 5
+            paddingLeft: this.props.ui.showSidebar ? LEFT_MENU_WIDTH + 5 : 5,
           }}
         >
           <div style={{ height: 60, paddingTop: 10 }}>
@@ -56,7 +55,7 @@ export class PublicUserList extends Component {
           </div>
           <div style={{ padding: 10 }}>
             {this.props.pub.publicUserList.map((el, idx) => {
-              var displayName
+              var displayName;
               if (el.first_name.length > 0 && el.last_name.length > 0) {
                 displayName = el.first_name + " " + el.last_name;
               } else {
@@ -64,7 +63,7 @@ export class PublicUserList extends Component {
               }
 
               return (
-                <div style={{padding:10}}>
+                <div style={{ padding: 10 }}>
                   <Header as={Link} to={`/user/${el.username}/`}>
                     <Image circular src="/unknown_user.jpg" />
                     <Header.Content>
@@ -82,7 +81,7 @@ export class PublicUserList extends Component {
                       >
                         {el.public_photo_samples
                           .slice(0, this.props.ui.gridType === "dense" ? 10 : 6)
-                          .map(photo => (
+                          .map((photo) => (
                             <Grid.Column>
                               <Image
                                 src={
@@ -108,10 +107,10 @@ export class PublicUserList extends Component {
   }
 }
 
-PublicUserList = connect(store => {
+PublicUserList = connect((store) => {
   return {
     pub: store.pub,
     ui: store.ui,
-    auth: store.auth
+    auth: store.auth,
   };
 })(PublicUserList);

@@ -495,7 +495,7 @@ export class FaceDashboard extends Component {
                 />
               }
               popperModifiers={{
-                boundariesElement: 'viewport'
+                boundariesElement: "viewport",
               }}
               on="focus"
               flowing

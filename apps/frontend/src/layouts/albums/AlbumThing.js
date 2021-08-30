@@ -78,12 +78,14 @@ export class AlbumThing extends Component {
             {this.props.albumsThingList[albumThingIndex].cover_photos
               .slice(0, 1)
               .map((photo) => {
-                return <Tile 
-                        video = {photo.video === true} 
-                        height = {this.state.entrySquareSize - 10}
-                        width = {this.state.entrySquareSize - 10}
-                        image_hash = {photo.image_hash}
-                        ></Tile> 
+                return (
+                  <Tile
+                    video={photo.video === true}
+                    height={this.state.entrySquareSize - 10}
+                    width={this.state.entrySquareSize - 10}
+                    image_hash={photo.image_hash}
+                  ></Tile>
+                );
               })}
           </div>
           <div style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>

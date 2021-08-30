@@ -311,18 +311,27 @@ export default function reducer(
               }
         );
 
-        
-        if (state.fetchedPhotoset === Photoset.FAVORITES &&
-            !action.payload.favorite) {
+        if (
+          state.fetchedPhotoset === Photoset.FAVORITES &&
+          !action.payload.favorite
+        ) {
           // Remove the photo from the photo set. (Ok to mutate, since we've already created a new group.)
-          newPhotosGroupedByDate.forEach(group =>
-            group.items = group.items.filter(item => item.id !== photoDetails.image_hash));
-          newPhotosFlat = newPhotosFlat.filter(item => item.id !== photoDetails.image_hash);
+          newPhotosGroupedByDate.forEach(
+            (group) =>
+              (group.items = group.items.filter(
+                (item) => item.id !== photoDetails.image_hash
+              ))
+          );
+          newPhotosFlat = newPhotosFlat.filter(
+            (item) => item.id !== photoDetails.image_hash
+          );
         }
       });
 
       // Keep only groups that still contain photos
-      newPhotosGroupedByDate = newPhotosGroupedByDate.filter(group => group.items.length > 0);
+      newPhotosGroupedByDate = newPhotosGroupedByDate.filter(
+        (group) => group.items.length > 0
+      );
 
       return {
         ...state,

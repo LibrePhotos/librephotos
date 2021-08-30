@@ -1,4 +1,10 @@
-import { FETCH_PERSON_PHOTOS, FETCH_PERSON_PHOTOS_FULFILLED, FETCH_PERSON_PHOTOS_REJECTED, FETCH_USER_ALBUM_FULFILLED, FETCH_USER_ALBUM_REJECTED } from "../actions/albumsActions";
+import {
+  FETCH_PERSON_PHOTOS,
+  FETCH_PERSON_PHOTOS_FULFILLED,
+  FETCH_PERSON_PHOTOS_REJECTED,
+  FETCH_USER_ALBUM_FULFILLED,
+  FETCH_USER_ALBUM_REJECTED,
+} from "../actions/albumsActions";
 
 export default function reducer(
   state = {
@@ -56,14 +62,12 @@ export default function reducer(
     fetchingAlbumsSharedFromMe: false,
     fetchedAlbumsSharedFromMe: false,
 
-    error: null
+    error: null,
   },
   action
 ) {
-  var new_album
+  var new_album;
   switch (action.type) {
-
-
     case "FETCH_ALBUMS_SHARED_TO_ME": {
       return { ...state, fetchingAlbumsSharedToMe: true };
     }
@@ -72,35 +76,34 @@ export default function reducer(
         ...state,
         fetchingAlbumsSharedToMe: false,
         fetchedAlbumsSharedToMe: true,
-        albumsSharedToMe: action.payload
+        albumsSharedToMe: action.payload,
       };
     }
     case "FETCH_ALBUMS_SHARED_TO_ME_REJECTED": {
       return {
         ...state,
         fetchingAlbumsSharedToMe: false,
-        fetchedAlbumsSharedToMe: false
+        fetchedAlbumsSharedToMe: false,
       };
     }
-
 
     case "FETCH_ALBUMS_SHARED_FROM_ME": {
       return { ...state, fetchingAlbumsSharedFromMe: true };
     }
     case "FETCH_ALBUMS_SHARED_FROM_ME_FULFILLED": {
-      console.log(action.payload)
+      console.log(action.payload);
       return {
         ...state,
         fetchingAlbumsSharedFromMe: false,
         fetchedAlbumsSharedFromMe: true,
-        albumsSharedFromMe: action.payload
+        albumsSharedFromMe: action.payload,
       };
     }
     case "FETCH_ALBUMS_SHARED_FROM_ME_REJECTED": {
       return {
         ...state,
         fetchingAlbumsSharedFromMe: false,
-        fetchedAlbumsSharedFromMe: false
+        fetchedAlbumsSharedFromMe: false,
       };
     }
 
@@ -130,7 +133,7 @@ export default function reducer(
         ...state,
         fetchingAlbumsAuto: false,
         fetchedAlbumsAuto: true,
-        albumsAuto: action.payload
+        albumsAuto: action.payload,
       };
     }
 
@@ -144,7 +147,7 @@ export default function reducer(
       return {
         ...state,
         generatingAlbumsAuto: false,
-        generatedAlbumsAuto: true
+        generatedAlbumsAuto: true,
       };
     }
 
@@ -159,7 +162,7 @@ export default function reducer(
         ...state,
         fetchingAlbumsAutoList: false,
         fetchedAlbumsAutoList: true,
-        albumsAutoList: action.payload
+        albumsAutoList: action.payload,
       };
     }
 
@@ -170,7 +173,7 @@ export default function reducer(
       return {
         ...state,
         fetchingAlbumsAutoGalleries: false,
-        error: action.payload
+        error: action.payload,
       };
     }
     case "FETCH_AUTO_ALBUMS_RETRIEVE_FULFILLED": {
@@ -180,7 +183,7 @@ export default function reducer(
         ...state,
         fetchingAlbumsAutoGalleries: false,
         fetchedAlbumsAutoGalleries: true,
-        albumsAutoGalleries: new_album
+        albumsAutoGalleries: new_album,
       };
     }
 
@@ -195,14 +198,14 @@ export default function reducer(
         ...state,
         fetchingAlbumsDateList: false,
         fetchedAlbumsDateList: true,
-        albumsDateList: action.payload
+        albumsDateList: action.payload,
       };
     }
 
     case "SET_IDX_TO_IMAGE_HASH": {
       return {
         ...state,
-        idx2hash: action.payload
+        idx2hash: action.payload,
       };
     }
 
@@ -213,7 +216,7 @@ export default function reducer(
       return {
         ...state,
         fetchingAlbumsDateGalleries: false,
-        error: action.payload
+        error: action.payload,
       };
     }
     case "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED": {
@@ -223,7 +226,7 @@ export default function reducer(
         ...state,
         fetchingAlbumsDateGalleries: false,
         fetchedAlbumsDateGalleries: true,
-        albumsDateGalleries: new_album
+        albumsDateGalleries: new_album,
       };
     }
 
@@ -234,7 +237,7 @@ export default function reducer(
       return {
         ...state,
         fetchingAlbumsThingList: false,
-        error: action.payload
+        error: action.payload,
       };
     }
     case "FETCH_THING_ALBUMS_LIST_FULFILLED": {
@@ -242,14 +245,14 @@ export default function reducer(
         ...state,
         fetchingAlbumsThingList: false,
         fetchedAlbumsThingList: true,
-        albumsThingList: action.payload
+        albumsThingList: action.payload,
       };
     }
 
     case "GROUP_PLACE_ALBUMS_BY_GEOLOCATION_LEVEL": {
       return {
         ...state,
-        albumsPlaceListGroupedByGeolocationLevel: action.payload
+        albumsPlaceListGroupedByGeolocationLevel: action.payload,
       };
     }
 
@@ -260,7 +263,7 @@ export default function reducer(
       return {
         ...state,
         fetchingAlbumsPlaceList: false,
-        error: action.payload
+        error: action.payload,
       };
     }
     case "FETCH_PLACE_ALBUMS_LIST_FULFILLED": {
@@ -268,7 +271,7 @@ export default function reducer(
         ...state,
         fetchingAlbumsPlaceList: false,
         fetchedAlbumsPlaceList: true,
-        albumsPlaceList: action.payload
+        albumsPlaceList: action.payload,
       };
     }
 
@@ -285,7 +288,7 @@ export default function reducer(
         ...state,
         fetchingAlbumsPlace: false,
         fetchedAlbumsPlace: true,
-        albumsPlace: new_album
+        albumsPlace: new_album,
       };
     }
 
@@ -300,7 +303,7 @@ export default function reducer(
         ...state,
         fetchingAlbumsUserList: false,
         fetchedAlbumsUserList: true,
-        albumsUserList: action.payload
+        albumsUserList: action.payload,
       };
     }
 
@@ -343,7 +346,7 @@ export default function reducer(
         fetchingAlbumsAutoGalleries: false,
         fetchedAlbumsAutoGalleries: true,
         albumsAutoGalleries: new_album,
-        albumsAutoList: new_album_list
+        albumsAutoList: new_album_list,
       };
     }
 

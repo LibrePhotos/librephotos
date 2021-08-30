@@ -1,16 +1,9 @@
 import _ from "lodash";
-import React, { Component} from "react";
+import React, { Component } from "react";
 import { connect } from "react-redux";
 import { push } from "react-router-redux";
-import './menubars/TopMenu.css';
-import {
-  Icon,
-  Image,
-  Search,
-  Popup,
-  Segment,
-  Loader,
-} from "semantic-ui-react";
+import "./menubars/TopMenu.css";
+import { Icon, Image, Search, Popup, Segment, Loader } from "semantic-ui-react";
 import {
   fetchPersonPhotos,
   fetchPlaceAlbum,
@@ -26,9 +19,7 @@ import {
   searchPlaceAlbums,
   searchThingAlbums,
 } from "../actions/searchActions";
-import {
-  fetchExampleSearchTerms,
-} from "../actions/utilActions";
+import { fetchExampleSearchTerms } from "../actions/utilActions";
 import { serverAddress } from "../api_client/apiClient";
 import { SecuredImageJWT } from "./SecuredImage";
 
@@ -45,7 +36,6 @@ function fuzzy_match(str, pattern) {
     return false;
   }
 }
-
 
 export class CustomSearch extends Component {
   state = {
@@ -149,19 +139,19 @@ export class CustomSearch extends Component {
   }
 
   filterSearchSuggestions() {
-    if(this.props.people.length == 0){
+    if (this.props.people.length == 0) {
       this.props.dispatch(fetchPeople());
     }
-    if(this.props.albumsPlaceList.length == 0){
+    if (this.props.albumsPlaceList.length == 0) {
       this.props.dispatch(fetchPlaceAlbumsList());
     }
-    if(this.props.albumsThingList.length == 0){
+    if (this.props.albumsThingList.length == 0) {
       this.props.dispatch(fetchThingAlbumsList());
-    } 
-    if(this.props.albumsUserList.length == 0){
+    }
+    if (this.props.albumsUserList.length == 0) {
       this.props.dispatch(fetchUserAlbumsList());
     }
-    
+
     if (this.state.searchText.trim().length === 0) {
       var filteredExampleSearchTerms = [];
       var filteredSuggestedPeople = [];
@@ -237,33 +227,34 @@ export class CustomSearch extends Component {
       filteredSuggestedThings,
     } = this.state;
 
-    return (<div className =  "element">
-              <Search
-                className = "header"
-                open={false}
-                input={{ className: "element" }}
-                onFocus={() => {
-                  this.setState({ searchBarFocused: true });
-                }}
-                onBlur={() => {
-                  _.debounce(() => {
-                    this.setState({ searchBarFocused: false });
-                  }, 200)();
-                }}
-                onKeyDown={(event) => {
-                  switch (event.keyCode) {
-                    case ENTER_KEY:
-                      this.props.dispatch(searchPhotos(this.state.searchText));
-                      this.props.dispatch(push("/search"));
-                      this.setState({ searchBarFocused: false });
-                      break;
-                    default:
-                      break;
-                  }
-                }}
-                onSearchChange={this.handleChange}
-                placeholder={this.state.exampleSearchTerm}
-              />
+    return (
+      <div className="element">
+        <Search
+          className="header"
+          open={false}
+          input={{ className: "element" }}
+          onFocus={() => {
+            this.setState({ searchBarFocused: true });
+          }}
+          onBlur={() => {
+            _.debounce(() => {
+              this.setState({ searchBarFocused: false });
+            }, 200)();
+          }}
+          onKeyDown={(event) => {
+            switch (event.keyCode) {
+              case ENTER_KEY:
+                this.props.dispatch(searchPhotos(this.state.searchText));
+                this.props.dispatch(push("/search"));
+                this.setState({ searchBarFocused: false });
+                break;
+              default:
+                break;
+            }
+          }}
+          onSearchChange={this.handleChange}
+          placeholder={this.state.exampleSearchTerm}
+        />
         {this.state.searchBarFocused && (
           <div
             style={{
@@ -442,22 +433,24 @@ export class CustomSearch extends Component {
                 </div>
               </Segment>
             )}
-            {this.props.albumsThingList.length == 0 && this.state.searchText.length > 0 && (
-              <Segment 
-                attached
-                textAlign="left"
-                style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}>
-                <div
-                  style={{
-                    maxHeight: window.innerHeight / 5,
-                    overflowY: "auto",
-                  }}
+            {this.props.albumsThingList.length == 0 &&
+              this.state.searchText.length > 0 && (
+                <Segment
+                  attached
+                  textAlign="left"
+                  style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}
                 >
-                  Loading...
-                  <Loader inline active={true} size="mini" />
+                  <div
+                    style={{
+                      maxHeight: window.innerHeight / 5,
+                      overflowY: "auto",
+                    }}
+                  >
+                    Loading...
+                    <Loader inline active={true} size="mini" />
                   </div>
-              </Segment>
-            )}
+                </Segment>
+              )}
           </div>
         )}
       </div>

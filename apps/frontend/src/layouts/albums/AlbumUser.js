@@ -7,18 +7,20 @@ import {
   Loader,
   Popup,
   Image,
-  Divider
+  Divider,
 } from "semantic-ui-react";
 import { Grid, AutoSizer } from "react-virtualized";
 import { serverAddress } from "../../api_client/apiClient";
 import LazyLoad from "react-lazyload";
-import { fetchUserAlbumsList, deleteUserAlbum } from "../../actions/albumsActions";
+import {
+  fetchUserAlbumsList,
+  deleteUserAlbum,
+} from "../../actions/albumsActions";
 import { searchPhotos } from "../../actions/searchActions";
 import { push } from "react-router-redux";
 import store from "../../store";
 import { Link } from "react-router-dom";
 import { SecuredImageJWT } from "../../components/SecuredImage";
-
 
 var topMenuHeight = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
@@ -29,7 +31,7 @@ export class AlbumUser extends Component {
     this.setState({
       width: window.innerWidth,
       height: window.innerHeight,
-      entrySquareSize: 200
+      entrySquareSize: 200,
     });
     this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this);
     this.cellRenderer = this.cellRenderer.bind(this);
@@ -53,7 +55,7 @@ export class AlbumUser extends Component {
       numEntrySquaresPerRow = 4;
     } else if (window.innerWidth < 1200) {
       numEntrySquaresPerRow = 5;
-    } 
+    }
 
     var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15;
 
@@ -62,7 +64,7 @@ export class AlbumUser extends Component {
       width: window.innerWidth,
       height: window.innerHeight,
       entrySquareSize: entrySquareSize,
-      numEntrySquaresPerRow: numEntrySquaresPerRow
+      numEntrySquaresPerRow: numEntrySquaresPerRow,
     });
   }
 
@@ -72,41 +74,46 @@ export class AlbumUser extends Component {
     if (albumUserIndex < this.props.albumsUserList.length) {
       return (
         <div key={key} style={style}>
-          <div style={{ padding: 5 }} >
-          <Link to={`/useralbum/${this.props.albumsUserList[albumUserIndex].id}`}>
-            <SecuredImageJWT
-              style={{ display: "inline-block", objectFit: "cover" }}
-              width={this.state.entrySquareSize - 10}
-              height={this.state.entrySquareSize - 10}
-              src={
-                serverAddress +
-                "/media/square_thumbnails/" +
-                this.props.albumsUserList[albumUserIndex].cover_photos[0]
-                  .image_hash
-              }
-            />
-          </Link>
+          <div style={{ padding: 5 }}>
+            <Link
+              to={`/useralbum/${this.props.albumsUserList[albumUserIndex].id}`}
+            >
+              <SecuredImageJWT
+                style={{ display: "inline-block", objectFit: "cover" }}
+                width={this.state.entrySquareSize - 10}
+                height={this.state.entrySquareSize - 10}
+                src={
+                  serverAddress +
+                  "/media/square_thumbnails/" +
+                  this.props.albumsUserList[albumUserIndex].cover_photos[0]
+                    .image_hash
+                }
+              />
+            </Link>
           </div>
           <div
             className="personCardName"
             style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}
           >
-            
-            {
-              this.props.albumsUserList[albumUserIndex].shared_to.length>0 && 
-              <Popup 
-                style={{padding:10}}
-                size='tiny'
-                position='center right'
-                header='Shared with:'
-                trigger={<Icon name='users'/>}
-                content={
-                  this.props.albumsUserList[albumUserIndex].shared_to.map(el=>{
-                    return <div><Icon name='user circle'/><b>{el.username}</b></div>
-                  })
-                }/>
-
-            }
+            {this.props.albumsUserList[albumUserIndex].shared_to.length > 0 && (
+              <Popup
+                style={{ padding: 10 }}
+                size="tiny"
+                position="center right"
+                header="Shared with:"
+                trigger={<Icon name="users" />}
+                content={this.props.albumsUserList[
+                  albumUserIndex
+                ].shared_to.map((el) => {
+                  return (
+                    <div>
+                      <Icon name="user circle" />
+                      <b>{el.username}</b>
+                    </div>
+                  );
+                })}
+              />
+            )}
             <b>{this.props.albumsUserList[albumUserIndex].title}</b> <br />
             {this.props.albumsUserList[albumUserIndex].photo_count} Photo(s)
             {true && (
@@ -122,8 +129,10 @@ export class AlbumUser extends Component {
                   content={
                     <div style={{ textAlign: "center" }}>
                       Are you sure you want to delete{" "}
-                      <b>{this.props.albumsUserList[albumUserIndex].title}</b>?<br />
-                      This action cannot be undone!<br />
+                      <b>{this.props.albumsUserList[albumUserIndex].title}</b>?
+                      <br />
+                      This action cannot be undone!
+                      <br />
                       <Divider />
                       <div>
                         <Button
@@ -203,7 +212,7 @@ export class AlbumUser extends Component {
 
 export class EntrySquare extends Component {
   render() {
-    var images = this.props.cover_photos.map(function(photo) {
+    var images = this.props.cover_photos.map(function (photo) {
       return (
         <SecuredImageJWT
           style={{ display: "inline-block" }}
@@ -224,7 +233,7 @@ export class EntrySquare extends Component {
           width: this.props.size,
           display: "inline-block",
           paddingLeft: 10,
-          paddingRight: 10
+          paddingRight: 10,
         }}
         onClick={() => {
           store.dispatch(searchPhotos(this.props.title));
@@ -248,10 +257,10 @@ export class EntrySquare extends Component {
   }
 }
 
-AlbumUser = connect(store => {
+AlbumUser = connect((store) => {
   return {
     albumsUserList: store.albums.albumsUserList,
     fetchingAlbumsUserList: store.albums.fetchingAlbumsUserList,
-    fetchedAlbumsUserList: store.albums.fetchedAlbumsUserList
+    fetchedAlbumsUserList: store.albums.fetchedAlbumsUserList,
   };
 })(AlbumUser);

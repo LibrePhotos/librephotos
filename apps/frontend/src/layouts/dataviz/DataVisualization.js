@@ -27,9 +27,7 @@ export class PhotoMap extends Component {
   render() {
     return (
       <div style={{ marginLeft: -5 }}>
-        <AlbumPlace
-          height={window.innerHeight - 55}
-        />
+        <AlbumPlace height={window.innerHeight - 55} />
       </div>
     );
   }
@@ -55,13 +53,13 @@ export class WordClouds extends Component {
   }
 }
 
-WordClouds = connect(store => {
+WordClouds = connect((store) => {
   return {
     statusPhotoScan: store.util.statusPhotoScan,
     statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
     generatingAlbumsAuto: store.albums.generatingAlbumsAuto,
     scanningPhotos: store.photos.scanningPhotos,
-    fetchedCountStats: store.util.fetchedCountStats
+    fetchedCountStats: store.util.fetchedCountStats,
   };
 })(WordClouds);
 

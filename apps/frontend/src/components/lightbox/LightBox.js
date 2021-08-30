@@ -127,7 +127,9 @@ export class LightBox extends Component {
         <Lightbox
           animationDisabled={true}
           mainSrc={
-            !this.isVideo() ? this.getPictureUrl(this.props.lightboxImageId) : null
+            !this.isVideo()
+              ? this.getPictureUrl(this.props.lightboxImageId)
+              : null
           }
           nextSrc={this.getPictureUrl(this.getNextId())}
           prevSrc={this.getPictureUrl(this.getPreviousId())}
@@ -146,9 +148,7 @@ export class LightBox extends Component {
           imageLoadErrorMessage={""}
           toolbarButtons={[
             <Toolbar
-              photosDetail={
-                this.props.photoDetails[this.props.lightboxImageId]
-              }
+              photosDetail={this.props.photoDetails[this.props.lightboxImageId]}
               lightboxSidebarShow={this.state.lightboxSidebarShow}
               closeSidepanel={this.closeSidepanel}
               isPublic={this.props.isPublic}

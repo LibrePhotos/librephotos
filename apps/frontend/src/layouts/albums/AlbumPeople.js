@@ -73,7 +73,7 @@ export class AlbumPeople extends Component {
     if (albumPersonIndex < this.props.people.length) {
       return (
         <div key={key} style={style}>
-          <div style={{ padding: 5 }} >
+          <div style={{ padding: 5 }}>
             {this.props.people[albumPersonIndex].face_count > 0 ? (
               this.props.people[albumPersonIndex].text === "unknown" ? (
                 <Image

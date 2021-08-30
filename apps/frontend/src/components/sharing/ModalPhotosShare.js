@@ -10,7 +10,7 @@ import moment from "moment";
 
 function fuzzy_match(str, pattern) {
   if (pattern.split("").length > 0) {
-    pattern = pattern.split("").reduce(function(a, b) {
+    pattern = pattern.split("").reduce(function (a, b) {
       return a + ".*" + b;
     });
     return new RegExp(pattern).test(str);
@@ -28,7 +28,7 @@ const modalStyles = {
 
     overflow: "hidden",
     padding: 0,
-    backgroundColor: "white"
+    backgroundColor: "white",
   },
   overlay: {
     top: 0,
@@ -39,17 +39,17 @@ const modalStyles = {
     borderRadius: 0,
     border: 0,
     zIndex: 102,
-    backgroundColor: "rgba(200,200,200,0.8)"
-  }
+    backgroundColor: "rgba(200,200,200,0.8)",
+  },
 };
 
 export class ModalPhotosShare extends Component {
   state = { userNameFilter: "", valShare: true };
   render() {
-    var filteredUserList
+    var filteredUserList;
     if (this.state.userNameFilter.length > 0) {
       filteredUserList = this.props.pub.publicUserList.filter(
-        el =>
+        (el) =>
           fuzzy_match(
             el.username.toLowerCase(),
             this.state.userNameFilter.toLowerCase()
@@ -63,10 +63,10 @@ export class ModalPhotosShare extends Component {
       filteredUserList = this.props.pub.publicUserList;
     }
     filteredUserList = filteredUserList.filter(
-      el => el.id !== this.props.auth.access.user_id
+      (el) => el.id !== this.props.auth.access.user_id
     );
 
-    var selectedImageSrcs = this.props.selectedImageHashes.map(image_hash => {
+    var selectedImageSrcs = this.props.selectedImageHashes.map((image_hash) => {
       return serverAddress + "/media/square_thumbnails/" + image_hash;
     });
     return (
@@ -92,19 +92,15 @@ export class ModalPhotosShare extends Component {
           </Header>
         </div>
         <Divider fitted />
-        <div
-          style={{ padding: 5, height: 50, overflowY: "hidden" }}
-        >
+        <div style={{ padding: 5, height: 50, overflowY: "hidden" }}>
           <Image.Group>
-            {selectedImageSrcs
-              .slice(0, 100)
-              .map(image => (
-                <SecuredImageJWT
-                  key={"selected_image" + image}
-                  height={40}
-                  src={image}
-                />
-              ))}
+            {selectedImageSrcs.slice(0, 100).map((image) => (
+              <SecuredImageJWT
+                key={"selected_image" + image}
+                height={40}
+                src={image}
+              />
+            ))}
           </Image.Group>
         </div>
         <Divider fitted />
@@ -114,7 +110,7 @@ export class ModalPhotosShare extends Component {
             paddingTop: 10,
             overflowY: "scroll",
             height: window.innerHeight - 300 - 100,
-            width: "100%"
+            width: "100%",
           }}
         >
           <div style={{ paddingRight: 5 }}>
@@ -129,7 +125,7 @@ export class ModalPhotosShare extends Component {
           </div>
           <Divider />
           {filteredUserList.length > 0 &&
-            filteredUserList.map(item => {
+            filteredUserList.map((item) => {
               var displayName = item.username;
               if (item.first_name.length > 0 && item.last_name.length > 0) {
                 var displayName = item.first_name + " " + item.last_name;
@@ -140,15 +136,10 @@ export class ModalPhotosShare extends Component {
                   style={{
                     height: 70,
                     justifyContent: "center",
-                    alignItems: "center"
+                    alignItems: "center",
                   }}
                 >
-                  <Header
-                    floated="left"
-                    as="h4"
-                    onClick={() => {
-                    }}
-                  >
+                  <Header floated="left" as="h4" onClick={() => {}}>
                     <Image circular src="/unknown_user.jpg" />
                     <Header.Content>
                       {displayName}
@@ -172,10 +163,10 @@ export class ModalPhotosShare extends Component {
                         positive
                         icon
                       >
-                        <Icon name='linkify'/>
+                        <Icon name="linkify" />
                         Share
                       </Button>
-                      <Button.Or/>
+                      <Button.Or />
                       <Button
                         onClick={() => {
                           this.props.dispatch(
@@ -189,7 +180,7 @@ export class ModalPhotosShare extends Component {
                         negative
                         icon
                       >
-                        <Icon name='linkify'/>
+                        <Icon name="linkify" />
                         Unshare
                       </Button>
                     </Button.Group>
@@ -203,7 +194,7 @@ export class ModalPhotosShare extends Component {
   }
 }
 
-ModalPhotosShare = connect(store => {
+ModalPhotosShare = connect((store) => {
   return {
     auth: store.auth,
     people: store.people.people,
@@ -218,6 +209,6 @@ ModalPhotosShare = connect(store => {
     fetchingInferredFacesList: store.faces.fetchingInferredFacesList,
     fetchedInferredFacesList: store.faces.fetchedInferredFacesList,
 
-    pub: store.pub
+    pub: store.pub,
   };
 })(ModalPhotosShare);

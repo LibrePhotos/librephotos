@@ -8,15 +8,15 @@ import {
   Image,
   Label,
   Button,
-  Icon
+  Icon,
 } from "semantic-ui-react";
 import { connect } from "react-redux";
 // import {Image} from '../components/authenticatedImage'
 import { Link } from "react-router-dom";
 import { fetchAlbumsAutoGalleries } from "../../actions/albumsActions";
 import { Map, TileLayer, Marker } from "react-leaflet";
-import {serverAddress } from "../../api_client/apiClient";
-import {fetchPhotoDetail} from "../../actions/photosActions";
+import { serverAddress } from "../../api_client/apiClient";
+import { fetchPhotoDetail } from "../../actions/photosActions";
 import * as moment from "moment";
 import _ from "lodash";
 import LazyLoad from "react-lazyload";
@@ -39,12 +39,12 @@ const colors = [
   "pink",
   "brown",
   "grey",
-  "black"
+  "black",
 ];
 
 export class AlbumLocationMap extends Component {
   render() {
-    var photosWithGPS = this.props.photos.filter(function(photo) {
+    var photosWithGPS = this.props.photos.filter(function (photo) {
       if (photo.exif_gps_lon !== null && photo.exif_gps_lon) {
         return true;
       } else {
@@ -61,7 +61,7 @@ export class AlbumLocationMap extends Component {
     var avg_lat = sum_lat / photosWithGPS.length;
     var avg_lon = sum_lon / photosWithGPS.length;
 
-    var markers = photosWithGPS.map(function(photo, idx) {
+    var markers = photosWithGPS.map(function (photo, idx) {
       return (
         <Marker
           key={"marker-" + photo.id + "-" + idx}
@@ -74,7 +74,7 @@ export class AlbumLocationMap extends Component {
         <div style={{ padding: 0 }}>
           <Map center={[avg_lat, avg_lon]} zoom={6}>
             <TileLayer
-              attribution="&copy; <a href=&quot;https://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
+              attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.osm.org/{z}/{x}/{y}.png"
             />
             {markers}
@@ -101,7 +101,7 @@ export class AlbumAutoGalleryView extends Component {
     height: window.innerHeight,
     showMap: false,
     entrySquareSize: 200,
-    gridHeight: window.innerHeight - topMenuHeight - 60
+    gridHeight: window.innerHeight - topMenuHeight - 60,
   };
 
   constructor(props) {
@@ -109,7 +109,7 @@ export class AlbumAutoGalleryView extends Component {
     this.onPhotoClick = this.onPhotoClick.bind(this);
   }
 
-  componentWillMount() {    
+  componentWillMount() {
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
     this.props.dispatch(
@@ -136,15 +136,14 @@ export class AlbumAutoGalleryView extends Component {
       width: window.innerWidth,
       height: window.innerHeight,
       entrySquareSize: entrySquareSize,
-      numEntrySquaresPerRow: numEntrySquaresPerRow
+      numEntrySquaresPerRow: numEntrySquaresPerRow,
     });
   }
-
 
   onPhotoClick(image_hash) {
     this.setState({
       lightboxImageIndex: this.state.idx2hash.indexOf(image_hash),
-      lightboxShow: true
+      lightboxShow: true,
     });
   }
 
@@ -155,9 +154,10 @@ export class AlbumAutoGalleryView extends Component {
       this.props.albumsAutoGalleries[this.props.match.params.albumID].photos
         .length
     ) {
-      var image_hash = this.props.albumsAutoGalleries[
-        this.props.match.params.albumID
-      ].photos[photoIndex].image_hash;
+      var image_hash =
+        this.props.albumsAutoGalleries[this.props.match.params.albumID].photos[
+          photoIndex
+        ].image_hash;
       return (
         <div key={key} style={style}>
           <div
@@ -168,12 +168,8 @@ export class AlbumAutoGalleryView extends Component {
             <Image
               height={this.state.entrySquareSize - 5}
               width={this.state.entrySquareSize - 5}
-              style={{objectFit: "cover"}}
-              src={
-                serverAddress +
-                "/media/square_thumbnails/" +
-                image_hash
-              }
+              style={{ objectFit: "cover" }}
+              src={serverAddress + "/media/square_thumbnails/" + image_hash}
             />
           </div>
         </div>
@@ -195,18 +191,17 @@ export class AlbumAutoGalleryView extends Component {
       this.props.albumsAutoGalleries.hasOwnProperty(albumID) &&
       !this.props.fetchingAlbumsAutoGalleries
     ) {
-      var album = this.props.albumsAutoGalleries[
-        this.props.match.params.albumID
-      ];
+      var album =
+        this.props.albumsAutoGalleries[this.props.match.params.albumID];
       var photos = _.sortBy(album.photos, "exif_timestamp").map((el, idx) => {
         return { ...el, idx: idx };
       });
-      var idx2hash = _
-        .sortBy(album.photos, "exif_timestamp")
-        .map((el, idx) => el.image_hash);
+      var idx2hash = _.sortBy(album.photos, "exif_timestamp").map(
+        (el, idx) => el.image_hash
+      );
       var byDate = _.groupBy(
         _.sortBy(photos, "exif_timestamp"),
-        photo => photo.exif_timestamp.split("T")[0]
+        (photo) => photo.exif_timestamp.split("T")[0]
       );
       return (
         <div>
@@ -240,7 +235,7 @@ export class AlbumAutoGalleryView extends Component {
               top: topMenuHeight + 10,
               right: 10,
               float: "right",
-              zIndex: 1000
+              zIndex: 1000,
             }}
           >
             <Button
@@ -250,7 +245,7 @@ export class AlbumAutoGalleryView extends Component {
               labelPosition="right"
               onClick={() => {
                 this.setState({
-                  showMap: !this.state.showMap
+                  showMap: !this.state.showMap,
                 });
               }}
               floated="right"
@@ -292,10 +287,10 @@ export class AlbumAutoGalleryView extends Component {
             <div>
               {_.toPairs(byDate).map((v, i) => {
                 var locations = v[1]
-                  .filter(
-                    photo => (photo.geolocation_json.features ? true : false)
+                  .filter((photo) =>
+                    photo.geolocation_json.features ? true : false
                   )
-                  .map(photo => {
+                  .map((photo) => {
                     if (photo.geolocation_json.features) {
                       return photo.geolocation_json.features[
                         photo.geolocation_json.features.length - 3
@@ -315,7 +310,7 @@ export class AlbumAutoGalleryView extends Component {
                         <Header.Subheader>
                           <Breadcrumb
                             divider={<Icon name="right chevron" />}
-                            sections={_.uniq(locations).map(e => {
+                            sections={_.uniq(locations).map((e) => {
                               return { key: e, content: e };
                             })}
                           />
@@ -323,22 +318,21 @@ export class AlbumAutoGalleryView extends Component {
                       </Header.Content>
                     </Header>
 
-                    {locations.length > 0 &&
-                      this.state.showMap && (
-                        <div
-                          style={{
-                            margin: "auto",
-                            paddingLeft: 3,
-                            paddingRight: 2.5,
-                            paddingTop: 10,
-                            paddingBottom: 5
-                          }}
-                        >
-                          <AlbumLocationMap photos={v[1]} />
-                        </div>
-                      )}
+                    {locations.length > 0 && this.state.showMap && (
+                      <div
+                        style={{
+                          margin: "auto",
+                          paddingLeft: 3,
+                          paddingRight: 2.5,
+                          paddingTop: 10,
+                          paddingBottom: 5,
+                        }}
+                      >
+                        <AlbumLocationMap photos={v[1]} />
+                      </div>
+                    )}
 
-                    {v[1].map(photo => (
+                    {v[1].map((photo) => (
                       <div style={{ display: "inline-block" }}>
                         <LazyLoad
                           height={this.state.entrySquareSize}
@@ -357,13 +351,21 @@ export class AlbumAutoGalleryView extends Component {
                                 lightboxImageIndex: idx2hash.indexOf(
                                   photo.image_hash
                                 ),
-                                lightboxShow: true
+                                lightboxShow: true,
                               })
                             }
-                            style={{ paddingLeft: 2.5, paddingRight: 2.5, objectFit: "cover" }}
+                            style={{
+                              paddingLeft: 2.5,
+                              paddingRight: 2.5,
+                              objectFit: "cover",
+                            }}
                             height={this.state.entrySquareSize}
                             width={this.state.entrySquareSize}
-                            src={serverAddress + "/media/square_thumbnails/" + photo.image_hash}
+                            src={
+                              serverAddress +
+                              "/media/square_thumbnails/" +
+                              photo.image_hash
+                            }
                           />
                         </LazyLoad>
                       </div>
@@ -387,7 +389,7 @@ export class AlbumAutoGalleryView extends Component {
                   (this.state.lightboxImageIndex + idx2hash.length - 1) %
                   idx2hash.length;
                 this.setState({
-                  lightboxImageIndex: nextIndex
+                  lightboxImageIndex: nextIndex,
                 });
                 this.getPhotoDetails(idx2hash[nextIndex]);
               }}
@@ -396,7 +398,7 @@ export class AlbumAutoGalleryView extends Component {
                   (this.state.lightboxImageIndex + idx2hash.length + 1) %
                   idx2hash.length;
                 this.setState({
-                  lightboxImageIndex: nextIndex
+                  lightboxImageIndex: nextIndex,
                 });
                 this.getPhotoDetails(idx2hash[nextIndex]);
               }}
@@ -416,7 +418,7 @@ export class AlbumAutoGalleryView extends Component {
   }
 }
 
-AlbumAutoGalleryView = connect(store => {
+AlbumAutoGalleryView = connect((store) => {
   return {
     fetchingAlbumsAutoGalleries: store.albums.fetchingAlbumsAutoGalleries,
     albumsAutoGalleries: store.albums.albumsAutoGalleries,

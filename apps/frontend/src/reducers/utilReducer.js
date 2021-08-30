@@ -1,6 +1,5 @@
 export default function reducer(
   state = {
-
     siteSettings: {},
     fetchingSiteSettings: false,
     fetchedSiteSettings: false,
@@ -51,29 +50,28 @@ export default function reducer(
     fetchingUserList: false,
     fetchedUserList: false,
 
-    directoryTree:[],
-    fetchingDirectoryTree:false,
-    fetchedDirectoryTree:false,
+    directoryTree: [],
+    fetchingDirectoryTree: false,
+    fetchedDirectoryTree: false,
 
-    nextcloudDirectoryTree:[],
-    fetchingNextcloudDirectoryTree:false,
-    fetchedNextcloudDirectoryTree:false,
+    nextcloudDirectoryTree: [],
+    fetchingNextcloudDirectoryTree: false,
+    fetchedNextcloudDirectoryTree: false,
 
     jobList: [],
     jobCount: 0,
     fetchingJobList: false,
     fetchedJobList: false,
 
-    error: null
+    error: null,
   },
   action
 ) {
   switch (action.type) {
-
     case "FETCH_JOB_LIST": {
       return {
         ...state,
-        fetchingJobList: true
+        fetchingJobList: true,
       };
     }
     case "FETCH_JOB_LIST_FULFILLED": {
@@ -82,30 +80,23 @@ export default function reducer(
         jobList: action.payload.results,
         jobCount: action.payload.count,
         fetchedJobList: true,
-        fetchingJobList: false
-      }
+        fetchingJobList: false,
+      };
     }
     case "FETCH_JOB_LIST_REJECTED": {
       return {
         ...state,
         fetchingJobList: false,
-        fetchedJobList: false
+        fetchedJobList: false,
       };
     }
-
-
-
-
-
 
     case "SET_SITE_SETTINGS_FULFILLED": {
       return {
         ...state,
-        siteSettings: action.payload
+        siteSettings: action.payload,
       };
     }
-
-
 
     case "FETCH_SITE_SETTINGS": {
       return { ...state, fetchingSiteSettings: true };
@@ -115,17 +106,15 @@ export default function reducer(
         ...state,
         fetchingSiteSettings: false,
         fetchedSiteSettings: true,
-        siteSettings: action.payload
+        siteSettings: action.payload,
       };
     }
     case "FETCH_SITE_SETTINGS_REJECTED": {
       return {
         ...state,
-        fetchingSiteSettings:false,
-      }
+        fetchingSiteSettings: false,
+      };
     }
-
-
 
     case "FETCH_USER_LIST": {
       return { ...state, fetchingUserList: true };
@@ -135,14 +124,14 @@ export default function reducer(
         ...state,
         fetchingUserList: false,
         fetchedUserList: true,
-        userList: action.payload
+        userList: action.payload,
       };
     }
     case "FETCH_USER_LIST_REJECTED": {
       return {
         ...state,
-        fetchingUserList:false,
-      }
+        fetchingUserList: false,
+      };
     }
 
     case "FETCH_DIRECTORY_TREE": {
@@ -153,16 +142,16 @@ export default function reducer(
         ...state,
         fetchingDirectoryTree: false,
         fetchedDirectoryTree: true,
-        directoryTree: action.payload
+        directoryTree: action.payload,
       };
     }
     case "FETCH_DIRECTORY_TREE_REJECTED": {
       return {
         ...state,
-        fetchingDirectoryTree:false,
-      }
+        fetchingDirectoryTree: false,
+      };
     }
-                                          
+
     case "FETCH_NEXTCLOUD_DIRECTORY_TREE": {
       return { ...state, fetchingNextcloudDirectoryTree: true };
     }
@@ -171,15 +160,15 @@ export default function reducer(
         ...state,
         fetchingNextcloudDirectoryTree: false,
         fetchedNextcloudDirectoryTree: true,
-        nextcloudDirectoryTree: action.payload
+        nextcloudDirectoryTree: action.payload,
       };
     }
     case "FETCH_NEXTCLOUD_DIRECTORY_TREE_REJECTED": {
       return {
         ...state,
-        fetchingNextcloudDirectoryTree:false,
+        fetchingNextcloudDirectoryTree: false,
         fetchedNextcloudDirectoryTree: false,
-      }
+      };
     }
 
     case "SET_WORKER_AVAILABILITY": {
@@ -198,7 +187,7 @@ export default function reducer(
     case "DELETE_MISSING_PHOTOS_FULFILLED": {
       return {
         ...state,
-        deleteMissingPhotos: false
+        deleteMissingPhotos: false,
       };
     }
 
@@ -211,7 +200,7 @@ export default function reducer(
     case "GENERATE_EVENT_ALBUMS_FULFILLED": {
       return {
         ...state,
-        generatingAutoAlbums: false
+        generatingAutoAlbums: false,
       };
     }
 
@@ -222,7 +211,7 @@ export default function reducer(
       return {
         ...state,
         fetchingLocationTimeline: false,
-        error: action.payload
+        error: action.payload,
       };
     }
     case "FETCH_LOCATION_TIMELINE_FULFILLED": {
@@ -230,7 +219,7 @@ export default function reducer(
         ...state,
         fetchingLocationTimeline: false,
         fetchedLocationTimeline: true,
-        locationTimeline: action.payload
+        locationTimeline: action.payload,
       };
     }
 
@@ -241,7 +230,7 @@ export default function reducer(
       return {
         ...state,
         fetchingLocationSunburst: false,
-        error: action.payload
+        error: action.payload,
       };
     }
     case "FETCH_LOCATION_SUNBURST_FULFILLED": {
@@ -249,7 +238,7 @@ export default function reducer(
         ...state,
         fetchingLocationSunburst: false,
         fetchedLocationSunburst: true,
-        locationSunburst: action.payload
+        locationSunburst: action.payload,
       };
     }
 
@@ -260,7 +249,7 @@ export default function reducer(
       return {
         ...state,
         fetchingExampleSearchTerms: false,
-        error: action.payload
+        error: action.payload,
       };
     }
     case "FETCH_EXAMPLE_SEARCH_TERMS_FULFILLED": {
@@ -268,7 +257,7 @@ export default function reducer(
         ...state,
         fetchingExampleSearchTerms: false,
         fetchedExampleSearchTerms: true,
-        exampleSearchTerms: action.payload
+        exampleSearchTerms: action.payload,
       };
     }
 
@@ -283,7 +272,7 @@ export default function reducer(
         ...state,
         fetchingCountStats: false,
         fetchedCountStats: true,
-        countStats: action.payload
+        countStats: action.payload,
       };
     }
 
@@ -294,7 +283,7 @@ export default function reducer(
       return {
         ...state,
         fetchingLocationClusters: false,
-        error: action.payload
+        error: action.payload,
       };
     }
     case "FETCH_LOCATION_CLUSTERS_FULFILLED": {
@@ -302,7 +291,7 @@ export default function reducer(
         ...state,
         fetchingLocationClusters: false,
         fetchedLocationClusters: true,
-        locationClusters: action.payload
+        locationClusters: action.payload,
       };
     }
 
@@ -313,7 +302,7 @@ export default function reducer(
       return {
         ...state,
         fetchingPhotoCountryCounts: false,
-        error: action.payload
+        error: action.payload,
       };
     }
     case "FETCH_PHOTO_COUNTRY_COUNTS_FULFILLED": {
@@ -321,7 +310,7 @@ export default function reducer(
         ...state,
         fetchingPhotoCountryCounts: false,
         fetchedPhotoCountryCounts: true,
-        photoCountryCounts: action.payload
+        photoCountryCounts: action.payload,
       };
     }
 
@@ -332,7 +321,7 @@ export default function reducer(
       return {
         ...state,
         fetchingPhotoMonthCounts: false,
-        error: action.payload
+        error: action.payload,
       };
     }
     case "FETCH_PHOTO_MONTH_COUNTS_FULFILLED": {
@@ -340,7 +329,7 @@ export default function reducer(
         ...state,
         fetchingPhotoMonthCounts: false,
         fetchedPhotoMonthCounts: true,
-        photoMonthCounts: action.payload
+        photoMonthCounts: action.payload,
       };
     }
 
@@ -355,7 +344,7 @@ export default function reducer(
         ...state,
         fetchingWordCloud: false,
         fetchedWordCloud: true,
-        wordCloud: action.payload
+        wordCloud: action.payload,
       };
     }
 
@@ -366,7 +355,7 @@ export default function reducer(
       return {
         ...state,
         fetchingPhotoScanStatus: false,
-        error: action.payload
+        error: action.payload,
       };
     }
     case "FETCH_PHOTO_SCAN_STATUS_FULFILLED": {
@@ -374,7 +363,7 @@ export default function reducer(
         ...state,
         fetchingPhotoScanStatus: false,
         fetchedPhotoScanStatus: true,
-        statusPhotoScan: action.payload
+        statusPhotoScan: action.payload,
       };
     }
 
@@ -385,7 +374,7 @@ export default function reducer(
       return {
         ...state,
         fetchingAutoAlbumProcessingStatus: false,
-        error: action.payload
+        error: action.payload,
       };
     }
     case "FETCH_AUTO_ALBUM_PROCESSING_STATUS_FULFILLED": {
@@ -393,7 +382,7 @@ export default function reducer(
         ...state,
         fetchingAutoAlbumProcessingStatus: false,
         fetchedAutoAlbumProcessingStatus: true,
-        statusAutoAlbumProcessing: action.payload
+        statusAutoAlbumProcessing: action.payload,
       };
     }
 

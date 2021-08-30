@@ -42,7 +42,7 @@ import { PublicUserList } from "./layouts/public/PublicUserList";
 import { LocationClusterMap } from "./components/maps";
 import { SharedToMe } from "./layouts/sharing/SharedToMe";
 import { SharedFromMe } from "./layouts/sharing/SharedFromMe";
-import 'semantic-ui-css/semantic.min.css'
+import "semantic-ui-css/semantic.min.css";
 import { AlbumPlace } from "./layouts/albums/AlbumPlace";
 import { TimestampPhotos } from "./layouts/photos/TimestampPhotos";
 class Nav extends React.Component {

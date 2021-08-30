@@ -158,15 +158,17 @@ export class PhotoListView extends Component {
   getPhotoDetails(image) {
     this.props.dispatch(fetchPhotoDetail(image));
   }
-  
+
   closeLightboxIfImageIndexIsOutOfSync() {
     console.log(this.state);
     console.log(this.props);
-    if (this.state.lightboxShow && (
-          this.props.idx2hash.length <= this.state.lightboxImageIndex ||
-          this.state.lightboxImageId !== this.props.idx2hash[this.state.lightboxImageIndex].id
-        )) {
-      this.setState({lightboxShow: false});
+    if (
+      this.state.lightboxShow &&
+      (this.props.idx2hash.length <= this.state.lightboxImageIndex ||
+        this.state.lightboxImageId !==
+          this.props.idx2hash[this.state.lightboxImageIndex].id)
+    ) {
+      this.setState({ lightboxShow: false });
     }
   }
 
@@ -233,7 +235,10 @@ export class PhotoListView extends Component {
                   <Header.Content>
                     {this.props.title}{" "}
                     <Header.Subheader>
-                      {this.props.photosGroupedByDate.length != this.props.idx2hash.length ? (this.props.photosGroupedByDate.length +  " days, " ): ""}
+                      {this.props.photosGroupedByDate.length !=
+                      this.props.idx2hash.length
+                        ? this.props.photosGroupedByDate.length + " days, "
+                        : ""}
                       {this.props.idx2hash.length} photos
                       {this.props.additionalSubHeader}
                     </Header.Subheader>
@@ -250,10 +255,10 @@ export class PhotoListView extends Component {
                 >
                   <span style={{ paddingLeft: 5, fontSize: 18 }}>
                     <b>
-                    {this.props.dayHeaderPrefix
-                      ? this.props.dayHeaderPrefix + this.props.date
-                      : this.props.date}
-                    {this.state.fromNow}
+                      {this.props.dayHeaderPrefix
+                        ? this.props.dayHeaderPrefix + this.props.date
+                        : this.props.date}
+                      {this.state.fromNow}
                     </b>
                   </span>
                 </div>
@@ -436,15 +441,14 @@ export class PhotoListView extends Component {
                 }
                 return (
                   serverAddress +
-                  "/media/square_thumbnails/" + 
+                  "/media/square_thumbnails/" +
                   url.split(";")[0]
                 );
               }}
               overlay={FavoritedOverlay}
-            >
-            </Pig>
+            ></Pig>
           </div>
-        ) : ( 
+        ) : (
           <div></div>
         )}
 
