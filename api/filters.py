@@ -1,13 +1,14 @@
-
 import operator
 from functools import reduce
 
-from rest_framework.compat import distinct
-from django.db.models.expressions import RawSQL
 from django.db.models import Q
+from django.db.models.expressions import RawSQL
 from rest_framework import filters
-from api.semantic_search.semantic_search import semantic_search_instance
+from rest_framework.compat import distinct
+
 from api.image_similarity import search_similar_embedding
+from api.semantic_search.semantic_search import semantic_search_instance
+
 
 class SemanticSearchFilter(filters.SearchFilter):
     def filter_queryset(self, request, queryset, view):
@@ -18,24 +19,22 @@ class SemanticSearchFilter(filters.SearchFilter):
             return queryset
 
         orm_lookups = [
-            self.construct_search(str(search_field))
-            for search_field in search_fields
+            self.construct_search(str(search_field)) for search_field in search_fields
         ]
 
         if request.user.semantic_search_topk > 0:
-            query = request.query_params.get('search')
+            query = request.query_params.get("search")
             emb, magnitude = semantic_search_instance.calculate_query_embeddings(query)
             semantic_search_instance.unload()
 
-            image_hashes = search_similar_embedding(request.user.id, emb, request.user.semantic_search_topk, threshold=27)
+            image_hashes = search_similar_embedding(
+                request.user.id, emb, request.user.semantic_search_topk, threshold=27
+            )
 
         base = queryset
         conditions = []
         for search_term in search_terms:
-            queries = [
-                Q(**{orm_lookup: search_term})
-                for orm_lookup in orm_lookups
-            ]
+            queries = [Q(**{orm_lookup: search_term}) for orm_lookup in orm_lookups]
 
             if request.user.semantic_search_topk > 0:
                 queries += [Q(image_hash__in=image_hashes)]
