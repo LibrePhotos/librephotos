@@ -1,10 +1,7 @@
-import itertools
-
 import networkx as nx
 from django.db import connection
-from django.db.models import Count, Q
 
-from api.models import Person, Photo
+from api.models import Person
 
 
 def build_social_graph(user):
@@ -27,7 +24,6 @@ def build_social_graph(user):
             return {"nodes": [], "links": []}
         for link in links:
             G.add_edge(link[0], link[1])
-            nodata = False
     pos = nx.spring_layout(G, k=1 / 2, scale=1000, iterations=20)
     return {
         "nodes": [{"id": node, "x": pos[0], "y": pos[1]} for node, pos in pos.items()],

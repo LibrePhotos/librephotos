@@ -4,7 +4,6 @@ from .models import AlbumAuto, AlbumUser, Face, Person, Photo
 
 # Register your models here.
 
-
 admin.site.register(Photo)
 admin.site.register(Person)
 admin.site.register(Face)

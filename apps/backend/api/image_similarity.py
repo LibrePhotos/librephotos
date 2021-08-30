@@ -2,7 +2,7 @@ import numpy as np
 import requests
 from django.db.models import Q
 
-from api.models import Photo, User
+from api.models import Photo
 from api.util import logger
 from ownphotos.settings import IMAGE_SIMILARITY_SERVER
 
@@ -35,9 +35,9 @@ def search_similar_image(user, photo):
     else:
         user_id = user.id
 
-    if photo.clip_embeddings == None:
+    if photo.clip_embeddings is None:
         photo._generate_clip_embeddings()
-    if photo.clip_embeddings == None:
+    if photo.clip_embeddings is None:
         return []
 
     image_embedding = np.array(photo.clip_embeddings, dtype=np.float32)
