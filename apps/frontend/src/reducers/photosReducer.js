@@ -1,3 +1,54 @@
+import {
+  FETCH_PERSON_PHOTOS_FULFILLED,
+  FETCH_PERSON_PHOTOS_REJECTED,
+  FETCH_USER_ALBUM_FULFILLED,
+  FETCH_USER_ALBUM_REJECTED,
+} from "../actions/albumsActions";
+import {
+  FETCH_FAVORITE_PHOTOS,
+  FETCH_FAVORITE_PHOTOS_FULFILLED,
+  FETCH_FAVORITE_PHOTOS_REJECTED,
+  FETCH_HIDDEN_PHOTOS,
+  FETCH_HIDDEN_PHOTOS_FULFILLED,
+  FETCH_HIDDEN_PHOTOS_REJECTED,
+  FETCH_NO_TIMESTAMP_PHOTOS,
+  FETCH_NO_TIMESTAMP_PHOTOS_FULFILLED,
+  FETCH_NO_TIMESTAMP_PHOTOS_REJECTED,
+  FETCH_RECENTLY_ADDED_PHOTOS,
+  FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED,
+  FETCH_RECENTLY_ADDED_PHOTOS_REJECTED,
+  FETCH_TIMESTAMP_PHOTOS,
+  FETCH_TIMESTAMP_PHOTOS_FULFILLED,
+  FETCH_TIMESTAMP_PHOTOS_REJECTED,
+  SET_PHOTOS_FAVORITE_FULFILLED,
+} from "../actions/photosActions";
+import {
+  SEARCH_PHOTOS_FULFILLED,
+  SEARCH_PHOTOS_REJECTED,
+} from "../actions/searchActions";
+
+export const Photoset = {
+  NONE: "none",
+  TIMESTAMP: "timestamp",
+  NO_TIMESTAMP: "noTimestamp",
+  FAVORITES: "favorites",
+  HIDDEN: "hidden",
+  RECENTLY_ADDED: "recentlyAdded",
+  SEARCH: "search",
+  USER_ALBUM: "userAlbum",
+  PERSON: "person",
+};
+
+function resetPhotos(state, payload) {
+  return {
+    ...state,
+    photosFlat: [],
+    fetchedPhotoset: Photoset.NONE,
+    photosGroupedByDate: [],
+    error: payload,
+  };
+}
+
 export default function reducer(
   state = {
     scanningPhotos: false,
@@ -12,21 +63,9 @@ export default function reducer(
     fetchedPhotos: false,
     fetchingPhotos: false,
 
-    favoritePhotos: [],
-    fetchingFavoritePhotos: false,
-    fetchedFavoritePhotos: false,
-
-    hiddenPhotos: [],
-    fetchingHiddenPhotos: false,
-    fetchedHiddenPhotos: false,
-
-    noTimestampPhotos: [],
-    fetchingNoTimestampPhotos: false,
-    fetchedNoTimestampPhotos: false,
-
-    publicPhotos: [],
-    fetchingPublicPhotos: false,
-    fetchedPublicPhotos: false,
+    photosFlat: [],
+    photosGroupedByDate: [],
+    fetchedPhotoset: Photoset.NONE,
 
     photosSharedToMe: [],
     fetchingPhotosSharedToMe: false,
@@ -36,53 +75,52 @@ export default function reducer(
     fetchingPhotosSharedFromMe: false,
     fetchedPhotosSharedFromMe: false,
 
-    recentlyAddedPhotos: [],
-    fetchingRecentlyAddedPhotos: false,
-    fetchedRecentlyAddedPhotos: false,
+    recentlyAddedPhotosDate: undefined,
 
     generatingCaptionIm2txt: false,
     generatedCaptionIm2txt: false,
   },
   action
 ) {
-  var updatedPhotos;
-  var newPhotos;
-  var updatedPhotosImageHashes;
+  var updatedPhotoDetails;
+  var newPhotosFlat;
+  var newPhotosGroupedByDate;
 
   switch (action.type) {
     case "GENERATE_PHOTO_CAPTION": {
-      return {...state, generatingCaptionIm2txt: true}
+      return { ...state, generatingCaptionIm2txt: true };
     }
 
     case "GENERATE_PHOTO_CAPTION_FULFILLED": {
-      return {...state, generatingCaptionIm2txt: false, generatedCaptionIm2txt: true}
+      return {
+        ...state,
+        generatingCaptionIm2txt: false,
+        generatedCaptionIm2txt: true,
+      };
     }
 
     case "GENERATE_PHOTO_CAPTION_REJECTED": {
-      return {...state, generatingCaptionIm2txt: false, generatedCaptionIm2txt: false}
+      return {
+        ...state,
+        generatingCaptionIm2txt: false,
+        generatedCaptionIm2txt: false,
+      };
     }
 
-    case "FETCH_RECENTLY_ADDED_PHOTOS" : {
-      return {...state, fetchingRecentlyAddedPhotos: true}
-    } 
-
-    case "FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED" : {
-      console.log(action.payload)
+    case FETCH_RECENTLY_ADDED_PHOTOS: {
+      return { ...state };
+    }
+    case FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED: {
       return {
         ...state,
-        fetchingRecentlyAddedPhotos: false,
-        fetchedRecentlyAddedPhotos: true,
-        recentlyAddedPhotos: action.payload.res[0],
-      }
-    } 
-
-    case "FETCH_RECENTLY_ADDED_PHOTOS_REJECTED" : {
-      return {
-        ...state,
-        fetchingRecentlyAddedPhotos: false,
-        fetchedRecentlyAddedPhotos: false
-      }
-    } 
+        photosFlat: action.payload.photosFlat,
+        fetchedPhotoset: Photoset.RECENTLY_ADDED,
+        recentlyAddedPhotosDate: action.payload.date,
+      };
+    }
+    case FETCH_RECENTLY_ADDED_PHOTOS_REJECTED: {
+      return resetPhotos(state, action.payload);
+    }
 
     case "FETCH_PHOTOS_SHARED_TO_ME": {
       return { ...state, fetchingPhotosSharedToMe: true };
@@ -92,14 +130,14 @@ export default function reducer(
         ...state,
         fetchingPhotosSharedToMe: false,
         fetchedPhotosSharedToMe: true,
-        photosSharedToMe: action.payload
+        photosSharedToMe: action.payload,
       };
     }
     case "FETCH_PHOTOS_SHARED_TO_ME_REJECTED": {
       return {
         ...state,
         fetchingPhotosSharedToMe: false,
-        fetchedPhotosSharedToMe: false
+        fetchedPhotosSharedToMe: false,
       };
     }
     case "FETCH_PHOTOS_SHARED_FROM_ME": {
@@ -110,14 +148,14 @@ export default function reducer(
         ...state,
         fetchingPhotosSharedFromMe: false,
         fetchedPhotosSharedFromMe: true,
-        photosSharedFromMe: action.payload
+        photosSharedFromMe: action.payload,
       };
     }
     case "FETCH_PHOTOS_SHARED_FROM_ME_REJECTED": {
       return {
         ...state,
         fetchingPhotosSharedFromMe: false,
-        fetchedPhotosSharedFromMe: false
+        fetchedPhotosSharedFromMe: false,
       };
     }
     case "SCAN_PHOTOS": {
@@ -130,7 +168,7 @@ export default function reducer(
       return {
         ...state,
         scanningPhotos: false,
-        scannedPhotos: true
+        scannedPhotos: true,
       };
     }
 
@@ -145,64 +183,73 @@ export default function reducer(
         ...state,
         fetchingPhotos: false,
         fetchedPhotos: true,
-        photos: action.payload
+        photos: action.payload,
       };
     }
 
-    case "FETCH_FAVORITE_PHOTOS": {
-      return { ...state, fetchingFavoritePhotos: true };
+    case FETCH_TIMESTAMP_PHOTOS: {
+      return { ...state };
     }
-    case "FETCH_FAVORITE_PHOTOS_REJECTED": {
-      return { ...state, fetchingFavoritePhotos: false, error: action.payload };
-    }
-    case "FETCH_FAVORITE_PHOTOS_FULFILLED": {
-      
+    case FETCH_TIMESTAMP_PHOTOS_FULFILLED: {
       return {
         ...state,
-        fetchingFavoritePhotos: false,
-        fetchedFavoritePhotos: true,
-        favoritePhotos: action.payload
+        photosFlat: action.payload.photosFlat,
+        fetchedPhotoset: Photoset.TIMESTAMP,
+        photosGroupedByDate: action.payload.photosGroupedByDate,
       };
+    }
+    case FETCH_TIMESTAMP_PHOTOS_REJECTED: {
+      return resetPhotos(state, action.payload);
     }
 
-    case "FETCH_HIDDEN_PHOTOS": {
-      return { ...state, fetchingHiddenPhotos: true };
+    case FETCH_FAVORITE_PHOTOS: {
+      return { ...state };
     }
-    case "FETCH_HIDDEN_PHOTOS_REJECTED": {
-      return { ...state, fetchingHiddenPhotos: false, error: action.payload };
-    }
-    case "FETCH_HIDDEN_PHOTOS_FULFILLED": {
+    case FETCH_FAVORITE_PHOTOS_FULFILLED: {
       return {
         ...state,
-        fetchingHiddenPhotos: false,
-        fetchedHiddenPhotos: true,
-        hiddenPhotos: action.payload
+        photosFlat: action.payload.photosFlat,
+        fetchedPhotoset: Photoset.FAVORITES,
+        photosGroupedByDate: action.payload.photosGroupedByDate,
       };
+    }
+    case FETCH_FAVORITE_PHOTOS_REJECTED: {
+      return resetPhotos(state, action.payload);
     }
 
-    case "FETCH_NO_TIMESTAMP_PHOTOS": {
-      return { ...state, fetchingNoTimestampPhotos: true };
+    case FETCH_HIDDEN_PHOTOS: {
+      return { ...state };
     }
-    case "FETCH_NO_TIMESTAMP_PHOTOS_REJECTED": {
+    case FETCH_HIDDEN_PHOTOS_FULFILLED: {
       return {
         ...state,
-        fetchingNoTimestampPhotos: false,
-        error: action.payload
+        photosFlat: action.payload.photosFlat,
+        fetchedPhotoset: Photoset.HIDDEN,
+        photosGroupedByDate: action.payload.photosGroupedByDate,
       };
     }
-    case "FETCH_NO_TIMESTAMP_PHOTOS_FULFILLED": {
+    case FETCH_HIDDEN_PHOTOS_REJECTED: {
+      return resetPhotos(state, action.payload);
+    }
+
+    case FETCH_NO_TIMESTAMP_PHOTOS: {
+      return { ...state };
+    }
+    case FETCH_NO_TIMESTAMP_PHOTOS_FULFILLED: {
       return {
         ...state,
-        fetchingNoTimestampPhotos: false,
-        fetchedNoTimestampPhotos: true,
-        noTimestampPhotos: action.payload
+        photosFlat: action.payload.photosFlat,
+        fetchedPhotoset: Photoset.NO_TIMESTAMP,
       };
+    }
+    case FETCH_NO_TIMESTAMP_PHOTOS_REJECTED: {
+      return resetPhotos(state, action.payload);
     }
 
     case "FETCH_PHOTO_DETAIL": {
       return {
         ...state,
-        fetchingPhotoDetail: true
+        fetchingPhotoDetail: true,
       };
     }
     case "FETCH_PHOTO_DETAIL_FULFILLED": {
@@ -212,7 +259,7 @@ export default function reducer(
         ...state,
         fetchingPhotoDetail: false,
         fetchedPhotoDetail: true,
-        photoDetails: newPhotoDetails
+        photoDetails: newPhotoDetails,
       };
     }
     case "FETCH_PHOTO_DETAIL_REJECTED": {
@@ -220,110 +267,120 @@ export default function reducer(
     }
 
     case "SET_PHOTOS_PUBLIC_FULFILLED": {
-      var valPublic = action.payload.public;
-      updatedPhotos = action.payload.updatedPhotos;
-      newPhotos = { ...state.photoDetails };
+      updatedPhotoDetails = action.payload.updatedPhotos;
+      newPhotoDetails = { ...state.photoDetails };
 
-      updatedPhotosImageHashes = updatedPhotos.map(
-        photo => photo.image_hash
-      );
-
-      updatedPhotos.forEach(photo => {
-        newPhotos[[photo.image_hash]] = photo;
+      updatedPhotoDetails.forEach((photoDetails) => {
+        newPhotoDetails[photoDetails.image_hash] = photoDetails;
       });
-
-      var newPublicPhotos = [...state.publicPhotos];
-
-      if (valPublic) {
-        updatedPhotos.forEach(photo => {
-          newPublicPhotos.push(photo);
-        });
-      } else {
-        newPublicPhotos = newPublicPhotos.filter(photo => {
-          if (updatedPhotosImageHashes.includes(photo.image_hash)) {
-            return false;
-          } else {
-            return true;
-          }
-        });
-      }
 
       return {
         ...state,
-        photoDetails: newPhotos,
-        publicPhotos: newPublicPhotos
+        photoDetails: newPhotoDetails,
       };
     }
 
-    case "SET_PHOTOS_FAVORITE_FULFILLED": {
-      var valFavorite = action.payload.favorite;
-      updatedPhotos = action.payload.updatedPhotos;
-      newPhotos = { ...state.photoDetails };
+    case SET_PHOTOS_FAVORITE_FULFILLED: {
+      updatedPhotoDetails = action.payload.updatedPhotos;
+      newPhotoDetails = { ...state.photoDetails };
+      newPhotosGroupedByDate = [...state.photosGroupedByDate];
+      newPhotosFlat = [...state.photosFlat];
 
-      updatedPhotosImageHashes = updatedPhotos.map(
-        photo => photo.image_hash
-      );
+      updatedPhotoDetails.forEach((photoDetails) => {
+        newPhotoDetails[photoDetails.image_hash] = photoDetails;
 
-      updatedPhotos.forEach(photo => {
-        newPhotos[[photo.image_hash]] = photo;
+        newPhotosFlat = newPhotosFlat.map((photo) =>
+          photo.id === photoDetails.image_hash
+            ? { ...photo, rating: photoDetails.rating }
+            : photo
+        );
+        newPhotosGroupedByDate = newPhotosGroupedByDate.map((group) =>
+          // Create a new group object if the photo exists in its items (don't mutate).
+          group.items.find((photo) => photo.id !== photoDetails.image_hash)
+            ? group
+            : {
+                ...group,
+                items: group.items.map((item) =>
+                  item.id !== photoDetails.image_hash
+                    ? item
+                    : {
+                        ...item,
+                        rating: photoDetails.rating,
+                      }
+                ),
+              }
+        );
+
+        
+        if (state.fetchedPhotoset === Photoset.FAVORITES &&
+            !action.payload.favorite) {
+          // Remove the photo from the photo set. (Ok to mutate, since we've already created a new group.)
+          newPhotosGroupedByDate.forEach(group =>
+            group.items = group.items.filter(item => item.id !== photoDetails.image_hash));
+          newPhotosFlat = newPhotosFlat.filter(item => item.id !== photoDetails.image_hash);
+        }
       });
 
-      var newFavoritePhotos = [...state.favoritePhotos];
-
-      if (valFavorite) {
-        updatedPhotos.forEach(photo => {
-          newFavoritePhotos.push(photo);
-        });
-      } else {
-        newFavoritePhotos = newFavoritePhotos.filter(photo => {
-          if (updatedPhotosImageHashes.includes(photo.image_hash)) {
-            return false;
-          } else {
-            return true;
-          }
-        });
-      }
+      // Keep only groups that still contain photos
+      newPhotosGroupedByDate = newPhotosGroupedByDate.filter(group => group.items.length > 0);
 
       return {
         ...state,
-        photoDetails: newPhotos,
-        favoritePhotos: newFavoritePhotos
+        photoDetails: newPhotoDetails,
+        photosFlat: newPhotosFlat,
+        photosGroupedByDate: newPhotosGroupedByDate,
       };
     }
 
     case "SET_PHOTOS_HIDDEN_FULFILLED": {
-      updatedPhotos = action.payload.updatedPhotos;
-      newPhotos = { ...state.photoDetails };
+      updatedPhotoDetails = action.payload.updatedPhotos;
+      newPhotoDetails = { ...state.photoDetails };
 
-      updatedPhotosImageHashes = updatedPhotos.map(
-        photo => photo.image_hash
-      );
-
-      updatedPhotos.forEach(photo => {
-        newPhotos[[photo.image_hash]] = photo;
+      updatedPhotoDetails.forEach((photoDetails) => {
+        newPhotoDetails[photoDetails.image_hash] = photoDetails;
       });
-
-      var newHiddenPhotos = [...state.hiddenPhotos];
-
-      if (valFavorite) {
-        updatedPhotos.forEach(photo => {
-          newHiddenPhotos.push(photo);
-        });
-      } else {
-        newHiddenPhotos = newHiddenPhotos.filter(photo => {
-          if (updatedPhotosImageHashes.includes(photo.image_hash)) {
-            return false;
-          } else {
-            return true;
-          }
-        });
-      }
 
       return {
         ...state,
-        photoDetails: newPhotos,
-        hiddenPhotos: newHiddenPhotos
+        photoDetails: newPhotoDetails,
       };
+    }
+
+    case SEARCH_PHOTOS_FULFILLED: {
+      return {
+        ...state,
+        photosFlat: action.payload.photosFlat,
+        fetchedPhotoset: Photoset.SEARCH,
+        photosGroupedByDate: action.payload.photosGroupedByDate,
+      };
+    }
+
+    case SEARCH_PHOTOS_REJECTED: {
+      return resetPhotos(state, action.payload);
+    }
+
+    case FETCH_USER_ALBUM_FULFILLED: {
+      return {
+        ...state,
+        photosFlat: action.payload.photosFlat,
+        fetchedPhotoset: Photoset.USER_ALBUM,
+        photosGroupedByDate: action.payload.photosGroupedByDate,
+      };
+    }
+    case FETCH_USER_ALBUM_REJECTED: {
+      return resetPhotos(state, action.payload);
+    }
+
+    case FETCH_PERSON_PHOTOS_FULFILLED: {
+      return {
+        ...state,
+        photosFlat: action.payload.photosFlat,
+        fetchedPhotoset: Photoset.PERSON,
+        photosGroupedByDate: action.payload.photosGroupedByDate,
+      };
+    }
+    case FETCH_PERSON_PHOTOS_REJECTED: {
+      return resetPhotos(state, action.payload);
     }
 
     default: {

@@ -127,14 +127,6 @@ export default class Toolbar extends Component {
 
 Toolbar = connect((store) => {
   return {
-    auth: store.auth,
-    showSidebar: store.ui.showSidebar,
-    photoDetails: store.photos.photoDetails,
-    fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
-    fetchedPhotoDetail: store.photos.fetchedPhotoDetail,
-    generatingCaptionIm2txt: store.photos.generatingCaptionIm2txt,
-    generatedCaptionIm2txt: store.photos.generatedCaptionIm2txt,
-    photos: store.photos.photos,
     favorite_min_rating: store.user.userSelfDetails.favorite_min_rating,
   };
 })(Toolbar);

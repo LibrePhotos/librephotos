@@ -419,10 +419,7 @@ export class AlbumAutoGalleryView extends Component {
 AlbumAutoGalleryView = connect(store => {
   return {
     fetchingAlbumsAutoGalleries: store.albums.fetchingAlbumsAutoGalleries,
-    fetchedAlbumsAutoGalleries: store.albums.fetchedAlbumsAutoGalleries,
     albumsAutoGalleries: store.albums.albumsAutoGalleries,
     photoDetails: store.photos.photoDetails,
-    fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
-    fetchedPhotoDetail: store.photos.fetchedPhotoDetail
   };
 })(AlbumAutoGalleryView);

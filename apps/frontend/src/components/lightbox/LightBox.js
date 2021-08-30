@@ -29,39 +29,33 @@ export class LightBox extends Component {
   }
 
   getCurrentPhotodetail() {
-    return this.props.photoDetails[
-      this.props.idx2hash.slice(this.props.lightboxImageIndex)[0].id
-    ];
+    return this.props.photoDetails[this.props.lightboxImageId];
   }
 
   isLoaded() {
-    return !this.props.photoDetails[
-      this.props.idx2hash.slice(this.props.lightboxImageIndex)[0].id
-    ];
+    return !this.props.photoDetails[this.props.lightboxImageId];
   }
 
-  getCurrentHash() {
-    return this.props.idx2hash.slice(this.props.lightboxImageIndex)[0];
-  }
-
-  getLastHash() {
-    return this.props.idx2hash.slice(
+  getPreviousId() {
+    const image = this.props.idx2hash.slice(
       (this.props.lightboxImageIndex - 1) % this.props.idx2hash.length
     )[0];
+    return image ? image.id : undefined;
   }
 
-  getNextHash() {
-    return this.props.idx2hash.slice(
+  getNextId() {
+    const image = this.props.idx2hash.slice(
       (this.props.lightboxImageIndex + 1) % this.props.idx2hash.length
     )[0];
+    return image ? image.id : undefined;
   }
 
-  getPictureUrl(hash) {
-    return serverAddress + "/media/thumbnails_big/" + hash.id;
+  getPictureUrl(id) {
+    return serverAddress + "/media/thumbnails_big/" + id;
   }
 
-  getVideoUrl(hash) {
-    return serverAddress + "/media/video/" + hash.id;
+  getVideoUrl(id) {
+    return serverAddress + "/media/video/" + id;
   }
 
   isVideo() {
@@ -133,10 +127,10 @@ export class LightBox extends Component {
         <Lightbox
           animationDisabled={true}
           mainSrc={
-            !this.isVideo() ? this.getPictureUrl(this.getCurrentHash()) : null
+            !this.isVideo() ? this.getPictureUrl(this.props.lightboxImageId) : null
           }
-          nextSrc={this.getPictureUrl(this.getNextHash())}
-          prevSrc={this.getPictureUrl(this.getLastHash())}
+          nextSrc={this.getPictureUrl(this.getNextId())}
+          prevSrc={this.getPictureUrl(this.getPreviousId())}
           mainCustomContent={
             this.isVideo() ? (
               <ReactPlayer
@@ -144,7 +138,7 @@ export class LightBox extends Component {
                 height="100%"
                 controls={true}
                 playing={true}
-                url={this.getVideoUrl(this.getCurrentHash())}
+                url={this.getVideoUrl(this.props.lightboxImageId)}
                 progressInterval={100}
               ></ReactPlayer>
             ) : null
@@ -153,9 +147,7 @@ export class LightBox extends Component {
           toolbarButtons={[
             <Toolbar
               photosDetail={
-                this.props.photoDetails[
-                  this.props.idx2hash.slice(this.props.lightboxImageIndex)[0].id
-                ]
+                this.props.photoDetails[this.props.lightboxImageId]
               }
               lightboxSidebarShow={this.state.lightboxSidebarShow}
               closeSidepanel={this.closeSidepanel}
@@ -197,13 +189,6 @@ export class LightBox extends Component {
 
 LightBox = connect((store) => {
   return {
-    auth: store.auth,
-    showSidebar: store.ui.showSidebar,
     photoDetails: store.photos.photoDetails,
-    fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
-    fetchedPhotoDetail: store.photos.fetchedPhotoDetail,
-    generatingCaptionIm2txt: store.photos.generatingCaptionIm2txt,
-    generatedCaptionIm2txt: store.photos.generatedCaptionIm2txt,
-    photos: store.photos.photos,
   };
 })(LightBox);

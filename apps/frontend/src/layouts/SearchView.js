@@ -1,38 +1,36 @@
-import React, { Component } from 'react';
-import 'react-virtualized/styles.css'; // only needs to be imported once
+import React, { Component } from "react";
+import "react-virtualized/styles.css"; // only needs to be imported once
 import { connect } from "react-redux";
-import { PhotoListView } from '../components/photolist/PhotoListView'
+import { PhotoListView } from "../components/photolist/PhotoListView";
+import { Photoset } from "../reducers/photosReducer";
+import { Redirect } from "react-router-dom";
+
 export class SearchView extends Component {
-    render() {
-        console.log(this.props.searchPhotosResGroupedByDate)
-        const {searchingPhotos,searchQuery} = this.props
-        return (
-            <PhotoListView 
-                title={searchingPhotos ? `Searching "${searchQuery}"...` : searchQuery===null ? "Search for things, places, people, and time." : `"${searchQuery}"`}
-                loading={searchingPhotos}
-                titleIconName={'search'}
-                isDateView={true}
-                photosGroupedByDate={this.props.searchPhotosResGroupedByDate[0] ? this.props.searchPhotosResGroupedByDate : []}
-                idx2hash={this.props.searchPhotosResGroupedByDate[0] ? this.props.searchPhotosResGroupedByDate.flatMap((el) => el.items) : []}
-            />
-        )
+  render() {
+    if (!this.props.searchQuery) {
+      // User hasn't searched for anything. Redirect to root.
+      return <Redirect to={"/"} />;
     }
+
+    const title = `Searching "${this.props.searchQuery}"...`;
+    return (
+      <PhotoListView
+        title={title}
+        loading={this.props.fetchedPhotoset !== Photoset.SEARCH}
+        titleIconName={"search"}
+        isDateView={true}
+        photosGroupedByDate={this.props.photosGroupedByDate}
+        idx2hash={this.props.photosFlat}
+      />
+    );
+  }
 }
 
-SearchView = connect((store)=>{
+SearchView = connect((store) => {
   return {
-    searchingPhotos: store.search.searchingPhotos,
-    searchedPhotos: store.search.searchedPhotos,
-    searchPhotosRes: store.search.searchPhotosRes,
-    searchPhotosResGroupedByDate: store.search.searchPhotosResGroupedByDate,
+    photosFlat: store.photos.photosFlat,
+    photosGroupedByDate: store.photos.photosGroupedByDate,
+    fetchedPhotoset: store.photos.fetchedPhotoset,
     searchQuery: store.search.query,
-
-    photoDetails: store.photos.photoDetails,
-    fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
-    fetchedPhotoDetail: store.photos.fetchedPhotoDetail,
-    idx2hash: store.search.idx2hash,
-    albumsDatePhotoHashList: store.albums.albumsDatePhotoHashList,
-    fetchingAlbumsDatePhotoHashList: store.albums.fetchingAlbumsDatePhotoHashList,
-    fetchedAlbumsDatePhotoHashList: store.albums.fetchedAlbumsDatePhotoHashList,    
-  }
-})(SearchView)
+  };
+})(SearchView);

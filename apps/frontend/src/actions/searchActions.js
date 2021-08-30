@@ -1,25 +1,30 @@
 import { Server } from '../api_client/apiClient'
 import _ from 'lodash'
-import moment from 'moment'
+import { adjustDateFormat, getPhotosFlatFromGroupedByDate } from '../util/util';
 
-
+export const SEARCH_EMPTY_QUERY_ERROR = "SEARCH_EMPTY_QUERY_ERROR";
+export const SEARCH_PHOTOS = "SEARCH_PHOTOS";
+export const SEARCH_PHOTOS_FULFILLED = "SEARCH_PHOTOS_FULFILLED";
+export const SEARCH_PHOTOS_REJECTED = "SEARCH_PHOTOS_REJECTED";
 export function searchPhotos(query) {
   return function(dispatch) {
     if (query.trim().length === 0) {
-      dispatch({type:"SEARCH_PHOTOS_EMPTY_QUERY_ERROR"})
-      dispatch({type:"SEARCH_EMPTY_QUERY_ERROR"})
+      dispatch({type: SEARCH_EMPTY_QUERY_ERROR})
     } else {
-      dispatch({type:"SEARCH_PHOTOS",payload: query});
+      dispatch({type: SEARCH_PHOTOS, payload: query});
       Server.get(`photos/searchlist/?search=${query}`,{timeout:100000})
         .then((response) => {
-          var idx2hash = response.data.results.map((el)=>el.image_hash)
-
-          dispatch({type:"SEARCH_RES_IDX2HASH",payload: idx2hash})
-          dispatch({type:"SEARCH_RES_GROUP_BY_DATE",payload: response.data})
-          dispatch({type:"SEARCH_PHOTOS_FULFILLED",payload: response.data.results})
+          var photosGroupedByDate = response.data.results;
+          adjustDateFormat(photosGroupedByDate);
+          dispatch({
+            type: SEARCH_PHOTOS_FULFILLED,
+            payload: {
+              photosFlat: getPhotosFlatFromGroupedByDate(response.data.results),
+              photosGroupedByDate: photosGroupedByDate,
+            }})
         }) 
         .catch((err) => {
-          dispatch({type:"SEARCH_PHOTOS_REJECTED",payload: err})        
+          dispatch({type: SEARCH_PHOTOS_REJECTED, payload: err})
         })
     }
   }
@@ -29,8 +34,7 @@ export function searchPhotos(query) {
 export function searchPeople(query) {
     return function(dispatch) {
         if (query.trim().length === 0) {
-            dispatch({type:"SEARCH_PHOTOS_EMPTY_QUERY_ERROR"}) // remove this line later
-            dispatch({type:"SEARCH_EMPTY_QUERY_ERROR"})
+            dispatch({type: SEARCH_EMPTY_QUERY_ERROR})
         } else {
             var url = `persons/?search=${query}`
             dispatch({type:"SEARCH_PEOPLE"})

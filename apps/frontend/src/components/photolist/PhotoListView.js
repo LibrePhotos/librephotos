@@ -38,6 +38,7 @@ export class PhotoListView extends Component {
     this.state = {
       selectedItems: [],
       lightboxImageIndex: 1,
+      lightboxImageId: undefined,
       lightboxShow: false,
       lightboxSidebarShow: false,
       width: window.innerWidth,
@@ -129,11 +130,13 @@ export class PhotoListView extends Component {
       return;
     }
 
+    const lightboxImageIndex = this.props.idx2hash.findIndex(
+      (image) => image.id === item.id
+    );
     this.setState({
-      lightboxImageIndex: this.props.idx2hash.findIndex(
-        (image) => image.id === item.id
-      ),
-      lightboxShow: true,
+      lightboxImageIndex: lightboxImageIndex,
+      lightboxImageId: item.id,
+      lightboxShow: lightboxImageIndex >= 0,
     });
   };
 
@@ -155,8 +158,20 @@ export class PhotoListView extends Component {
   getPhotoDetails(image) {
     this.props.dispatch(fetchPhotoDetail(image));
   }
+  
+  closeLightboxIfImageIndexIsOutOfSync() {
+    console.log(this.state);
+    console.log(this.props);
+    if (this.state.lightboxShow && (
+          this.props.idx2hash.length <= this.state.lightboxImageIndex ||
+          this.state.lightboxImageId !== this.props.idx2hash[this.state.lightboxImageIndex].id
+        )) {
+      this.setState({lightboxShow: false});
+    }
+  }
 
   render() {
+    this.closeLightboxIfImageIndexIsOutOfSync();
     if (
       this.props.loading ||
       !this.props.photosGroupedByDate ||
@@ -450,6 +465,7 @@ export class PhotoListView extends Component {
             showHidden={this.props.showHidden}
             idx2hash={this.props.idx2hash}
             lightboxImageIndex={this.state.lightboxImageIndex}
+            lightboxImageId={this.state.lightboxImageId}
             onCloseRequest={() => this.setState({ lightboxShow: false })}
             onImageLoad={() => {
               console.log("Somebody calles me?");
@@ -465,6 +481,7 @@ export class PhotoListView extends Component {
                 this.props.idx2hash.length;
               this.setState({
                 lightboxImageIndex: prevIndex,
+                lightboxImageId: this.props.idx2hash[prevIndex].id,
               });
               this.getPhotoDetails(this.props.idx2hash[prevIndex].id);
             }}
@@ -476,6 +493,7 @@ export class PhotoListView extends Component {
                 this.props.idx2hash.length;
               this.setState({
                 lightboxImageIndex: nextIndex,
+                lightboxImageId: this.props.idx2hash[nextIndex].id,
               });
               this.getPhotoDetails(this.props.idx2hash[nextIndex].id);
             }}
@@ -524,16 +542,6 @@ export class PhotoListView extends Component {
 PhotoListView = connect((store) => {
   return {
     showSidebar: store.ui.showSidebar,
-    gridType: store.ui.gridType,
-
-    photos: store.photos.photos,
-    fetchingPhotos: store.photos.fetchingPhotos,
-    fetchedPhotos: store.photos.fetchedPhotos,
-
-    photoDetails: store.photos.photoDetails,
-    fetchingPhotoDetail: store.photos.fetchingPhotoDetail,
-    fetchedPhotoDetail: store.photos.fetchedPhotoDetail,
-
     route: store.routerReducer,
   };
 })(PhotoListView);
