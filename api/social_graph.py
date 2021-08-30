@@ -1,9 +1,11 @@
-import networkx as nx
-from api.models import Person, Photo
 import itertools
-from django.db.models import Count
-from django.db.models import Q
+
+import networkx as nx
 from django.db import connection
+from django.db.models import Count, Q
+
+from api.models import Person, Photo
+
 
 def build_social_graph(user):
     query = """
@@ -22,21 +24,26 @@ def build_social_graph(user):
         cursor.execute(query)
         links = cursor.fetchall()
         if len(links) == 0:
-            return {"nodes" : [], "links" : [] }
+            return {"nodes": [], "links": []}
         for link in links:
-            G.add_edge(link[0],link[1])
+            G.add_edge(link[0], link[1])
             nodata = False
-    pos = nx.spring_layout(G, k=1/2, scale=1000, iterations=20)
-    return { "nodes" : [{'id':node,'x':pos[0],'y':pos[1]} for node,pos in pos.items()],
-             "links" : [{'source':pair[0], 'target':pair[1]} for pair in G.edges()] }
+    pos = nx.spring_layout(G, k=1 / 2, scale=1000, iterations=20)
+    return {
+        "nodes": [{"id": node, "x": pos[0], "y": pos[1]} for node, pos in pos.items()],
+        "links": [{"source": pair[0], "target": pair[1]} for pair in G.edges()],
+    }
+
 
 def build_ego_graph(person_id):
     G = nx.Graph()
-    person = Person.objects.prefetch_related('faces__photo__faces__person').filter(id=person_id)[0]
+    person = Person.objects.prefetch_related("faces__photo__faces__person").filter(
+        id=person_id
+    )[0]
     for this_person_face in person.faces.all():
         for other_person_face in this_person_face.photo.faces.all():
-            G.add_edge(person.name,other_person_face.person.name)
-    nodes = [{'id':node} for node in G.nodes()]
-    links = [{'source':pair[0], 'target':pair[1]} for pair in G.edges()]
-    res = {"nodes":nodes, "links":links}
+            G.add_edge(person.name, other_person_face.person.name)
+    nodes = [{"id": node} for node in G.nodes()]
+    links = [{"source": pair[0], "target": pair[1]} for pair in G.edges()]
+    res = {"nodes": nodes, "links": links}
     return res

@@ -1,0 +1,11 @@
+name: Linting (using pre-commit)
+
+on: [push, pull_request]
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run pre-commit check
+        uses: pre-commit/action@v2.0.3

@@ -1,30 +1,33 @@
-from api.models import Photo, AlbumAuto
-from api.util import logger
 from tqdm import tqdm
+
+from api.models import AlbumAuto, Photo
+from api.util import logger
+
 
 def generate_captions(overwrite=False):
     if overwrite:
         photos = Photo.objects.all()
     else:
         photos = Photo.objects.filter(search_captions=None)
-    logger.info('%d photos to be processed for caption generation'%photos.count())
+    logger.info("%d photos to be processed for caption generation" % photos.count())
     for photo in photos:
-        logger.info('generating captions for %s'%photo.image_path)
+        logger.info("generating captions for %s" % photo.image_path)
         photo._generate_captions()
         photo.save()
+
 
 def geolocate(overwrite=False):
     if overwrite:
         photos = Photo.objects.all()
-    else:   
+    else:
         photos = Photo.objects.filter(geolocation_json={})
-    logger.info('%d photos to be geolocated'%photos.count())
+    logger.info("%d photos to be geolocated" % photos.count())
     for photo in photos:
         try:
-            logger.info('geolocating %s'%photo.image_path)
+            logger.info("geolocating %s" % photo.image_path)
             photo._geolocate_mapbox()
         except:
-            logger.exception('could not geolocate photo: ' + photo)
+            logger.exception("could not geolocate photo: " + photo)
 
 
 def regenerate_event_title():
@@ -32,6 +35,7 @@ def regenerate_event_title():
     for event in events:
         event._autotitle()
         event.save()
+
 
 def add_photos_to_album_things():
     photos = Photo.objects.all()
