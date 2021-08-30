@@ -27,16 +27,6 @@ class Person(models.Model):
     def __str__(self):
         return "%d" % self.id
 
-    def _update_average_face_encoding(self):
-        encodings = []
-        faces = self.faces.all()
-        for face in faces:
-            r = base64.b64decode(face.encoding)
-            encoding = np.frombuffer(r, dtype=np.float64)
-            encodings.append(encoding)
-        mean_encoding = np.array(encodings).mean(axis=0)
-        self.mean_face_encoding = base64.encodebytes(mean_encoding.tostring())
-
     def get_photos(self, owner):
         faces = list(
             self.faces.prefetch_related(

@@ -16,6 +16,8 @@ from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_extensions.cache.decorators import cache_response
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import AccessToken
 
 import ownphotos.settings
 from api.api_util import (
@@ -361,15 +363,6 @@ class FaceListViewSet(viewsets.ModelViewSet):
     serializer_class = FaceListSerializer
     pagination_class = StandardResultsSetPagination
 
-    def get_queryset(self):
-        queryset = (
-            Face.objects.filter(
-                Q(photo__hidden=False) & Q(photo__owner=self.request.user)
-            )
-            .select_related("person")
-            .order_by("id")
-        )
-
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(FaceListViewSet, self).retrieve(*args, **kwargs)
@@ -664,29 +657,6 @@ class SharedFromMeAlbumUserListViewSet2(viewsets.ModelViewSet):
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
-        ThroughModel = AlbumUser.shared_to.through
-
-        user_albums = AlbumUser.objects.filter(owner=self.request.user.id).only("id")
-
-        qs = (
-            ThroughModel.objects.filter(albumuser_id__in=user_albums)
-            .prefetch_related(
-                Prefetch(
-                    "user",
-                    queryset=User.objects.only(
-                        "id", "username", "first_name", "last_name"
-                    ),
-                )
-            )
-            .prefetch_related(
-                Prefetch(
-                    "photo",
-                    queryset=AlbumUser.objects.only(
-                        "image_hash", "rating", "hidden", "exif_timestamp", "public"
-                    ),
-                )
-            )
-        )
         return (
             AlbumUser.objects.annotate(shared_to_count=Count("shared_to"))
             .filter(shared_to_count__gt=0)
@@ -1171,69 +1141,6 @@ class SearchTermExamples(APIView):
         return Response({"results": search_term_examples})
 
 
-class FaceToLabelView(APIView):
-    def get(self, request, format=None):
-        # return a single face for labeling
-
-        qs = (
-            Face.objects.filter(person_label_probability__gt=0)
-            .filter(person_label_probability__lt=1)
-            .order_by("person_label_probability")
-        )
-        if qs.count() > 0:
-            face_to_label = qs[0]
-            data = FaceListSerializer(face_to_label).data
-
-            # dirty hack to make the serializer image field to return full url
-            if request.is_secure():
-                protocol = "https://"
-            else:
-                protocol = "http://"
-
-            image = protocol + request.META["HTTP_HOST"] + data["image"]
-            data["image"] = image
-            return Response(data)
-
-        faces_all = Face.objects.all()
-        unlabeled_faces = []
-        labeled_faces = []
-        for face in faces_all:
-            if face.person_label_is_inferred is not False:
-                unlabeled_faces.append(face)
-            if face.person_label_is_inferred is False:
-                labeled_faces.append(face)
-
-        labeled_face_encodings = []
-        for face in labeled_faces:
-            face_encoding = np.frombuffer(bytes.fromhex(face.encoding))
-            labeled_face_encodings.append(face_encoding)
-        labeled_face_encodings = np.array(labeled_face_encodings)
-        labeled_faces_mean = labeled_face_encodings.mean(0)
-
-        distances_to_labeled_faces_mean = []
-        for face in unlabeled_faces:
-            face_encoding = np.frombuffer(bytes.fromhex(face.encoding))
-            distance = np.linalg.norm(labeled_faces_mean - face_encoding)
-            distances_to_labeled_faces_mean.append(distance)
-
-        try:
-            most_unsure_face_idx = np.argmax(distances_to_labeled_faces_mean)
-            face_to_label = unlabeled_faces[most_unsure_face_idx]
-            data = FaceListSerializer(face_to_label).data
-
-            # dirty hack to make the serializer image field to return full url
-            if request.is_secure():
-                protocol = "https://"
-            else:
-                protocol = "http://"
-
-            image = protocol + request.META["HTTP_HOST"] + data["image"]
-            data["image"] = image
-        except:
-            data = {"results": []}
-        return Response(data)
-
-
 class ClusterFaceView(APIView):
     # @cache_response(CACHE_TTL_VIZ)
     def get(self, request, format=None):
@@ -1245,13 +1152,6 @@ class SocialGraphView(APIView):
     # @cache_response(CACHE_TTL_VIZ)
     def get(self, request, format=None):
         res = build_social_graph(request.user)
-        return Response(res)
-
-
-class EgoGraphView(APIView):
-    # @cache_response(CACHE_TTL_VIZ)
-    def get(self, request, format=None):
-        res = build_ego_graph(request.GET["person_id"])
         return Response(res)
 
 
@@ -1289,36 +1189,11 @@ class PhotoMonthCountsView(APIView):
         return Response(res)
 
 
-class PhotoCountryCountsView(APIView):
-    # @cache_response(CACHE_TTL_VIZ)
-    def get(self, request, format=None):
-        res = get_photo_country_counts(request.user)
-        return Response(res)
-
-
 class SearchTermWordCloudView(APIView):
     # @cache_response(CACHE_TTL_VIZ)
     def get(self, request, format=None):
         res = get_searchterms_wordcloud(request.user)
         return Response(res)
-
-
-class SearchSimilarPhotosView(APIView):
-    permission_classes = (IsAuthenticated,)
-
-    def get(self, request, format=None):
-        image_hash = request.query_params["image_hash"]
-        res = search_similar_image(
-            request.user, Photo.objects.get(image_hash=image_hash)
-        )
-        return Response(
-            {
-                "results": [
-                    {"image_hash": e} for e in res["result"] if image_hash is not e
-                ]
-            }
-        )
-
 
 # long running jobs
 class ScanPhotosView(APIView):
@@ -1330,7 +1205,6 @@ class ScanPhotosView(APIView):
         except BaseException:
             logger.exception("An Error occured")
             return Response({"status": False})
-
 
 class FullScanPhotosView(APIView):
     def get(self, request, format=None):
@@ -1397,20 +1271,6 @@ class TrainFaceView(APIView):
             logger.exception()
             return Response({"status": False})
 
-
-# watchers
-class IsPhotosBeingAddedView(APIView):
-    def get(self, request, format=None):
-        res = is_photos_being_added()
-        return Response(res)
-
-
-class IsAutoAlbumsBeingProcessed(APIView):
-    def get(self, request, format=None):
-        res = is_auto_albums_being_processed()
-        return Response(res)
-
-
 class QueueAvailabilityView(APIView):
     def get(self, request, format=None):
         job_detail = None
@@ -1450,8 +1310,7 @@ class RQJobStatView(APIView):
         return Response({"status": True, "finished": is_job_finished})
 
 
-from rest_framework_simplejwt.exceptions import TokenError
-from rest_framework_simplejwt.tokens import AccessToken
+
 
 
 class MediaAccessView(APIView):
@@ -1566,7 +1425,7 @@ class MediaAccessFullsizeOriginalView(APIView):
                 response["Content-Type"] = "image/png"
                 response["X-Accel-Redirect"] = "/protected_media/" + path + "/" + fname
                 return response
-            except:
+            except Exception:
                 return HttpResponse(status=404)
         if path.lower() != "photos":
             jwt = request.COOKIES.get("jwt")
@@ -1655,7 +1514,7 @@ class ZipListPhotosView(APIView):
     def post(self, request, format=None):
         try:
             data = dict(request.data)
-            if not "image_hashes" in data:
+            if "image_hashes" not in data:
                 return
             photos = Photo.objects.filter(owner=self.request.user).in_bulk(
                 data["image_hashes"]

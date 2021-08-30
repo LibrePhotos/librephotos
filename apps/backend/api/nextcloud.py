@@ -1,6 +1,6 @@
 import owncloud as nextcloud
 
-from api.models import *
+import os
 
 
 def login(user):
@@ -15,7 +15,7 @@ def login(user):
                 for x in nc.list(path)
                 if x.is_dir()
             ]
-        except:
+        except Exception:
             pass
 
         return d

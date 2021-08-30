@@ -72,7 +72,7 @@ if os.name == "Windows":
             return bool(
                 os.stat(filepath).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN
             )
-        except:
+        except Exception:
             return False
 
 
@@ -151,7 +151,7 @@ def handle_new_image(user, image_path, job_id):
                         job_id, image_path, str(e)
                     )
                 )
-            except:
+            except Exception:
                 util.logger.exception(
                     "job {}: could not load image {}".format(job_id, image_path)
                 )
@@ -174,7 +174,7 @@ def rescan_image(user, image_path, job_id):
                     job_id, image_path, str(e)
                 )
             )
-        except:
+        except Exception:
             util.logger.exception(
                 "job {}: could not load image {}".format(job_id, image_path)
             )
@@ -277,7 +277,7 @@ def scan_photos(user, full_scan, job_id):
     lrj.result["new_photo_count"] = added_photo_count
     lrj.save()
 
-    return {"new_photo_count": added_photo_count, "status": lrj.failed == False}
+    return {"new_photo_count": added_photo_count, "status": lrj.failed is False}
 
 
 def face_scanner(photo, job_id):
@@ -331,4 +331,4 @@ def scan_faces(user, job_id):
     lrj.result["new_face_count"] = added_face_count
     lrj.save()
 
-    return {"new_face_count": added_face_count, "status": lrj.failed == False}
+    return {"new_face_count": added_face_count, "status": lrj.failed is False}

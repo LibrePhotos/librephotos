@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
             try:
                 obj.image_paths.append(obj.image_path)
                 obj.save()
-            except json.decoder.JSONDecodeError as e:
+            except json.decoder.JSONDecodeError:
                 print("Cannot convert {} object".format(obj.image_path))
 
     operations = [
