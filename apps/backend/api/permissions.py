@@ -1,6 +1,5 @@
-from rest_framework import permissions
-
 from constance import config as site_config
+from rest_framework import permissions
 
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
@@ -45,7 +44,7 @@ class IsPhotoOrAlbumSharedTo(permissions.BasePermission):
         if obj.owner == request.user or request.user in obj.shared_to.all():
             return True
 
-        for album in obj.albumuser_set.only('shared_to'):
+        for album in obj.albumuser_set.only("shared_to"):
             if request.user in album.shared_to.all():
                 return True
 

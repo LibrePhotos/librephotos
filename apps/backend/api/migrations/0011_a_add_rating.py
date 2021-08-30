@@ -6,17 +6,15 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0010_merge_20210725_1547'),
+        ("api", "0010_merge_20210725_1547"),
     ]
 
-    run_before = [
-        ('api', '0011_b_migrate_favorited_to_rating')
-    ]
+    run_before = [("api", "0011_b_migrate_favorited_to_rating")]
 
     operations = [
         migrations.AddField(
-            model_name='photo',
-            name='rating',
+            model_name="photo",
+            name="rating",
             field=models.IntegerField(db_index=True, default=0),
         ),
     ]
