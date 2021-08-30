@@ -1,5 +1,4 @@
 import six
-from constance import config as site_config
 from django.db.models import Q
 from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny

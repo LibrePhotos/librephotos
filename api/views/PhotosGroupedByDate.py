@@ -1,5 +1,3 @@
-import datetime
-
 import pytz
 
 utc = pytz.UTC

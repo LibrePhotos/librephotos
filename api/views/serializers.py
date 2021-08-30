@@ -167,67 +167,67 @@ class PhotoSerializer(serializers.ModelSerializer):
     def get_image_path(self, obj):
         try:
             return obj.image_paths[0]
-        except:
+        except Exception:
             return "Missing"
 
     def get_thumbnail_url(self, obj):
         try:
             return obj.thumbnail.url
-        except:
+        except Exception:
             return None
 
     def get_thumbnail_height(self, obj):
         try:
             return obj.thumbnail.height
-        except:
+        except Exception:
             return None
 
     def get_thumbnail_width(self, obj):
         try:
             return obj.thumbnail.width
-        except:
+        except Exception:
             return None
 
     def get_square_thumbnail_url(self, obj):
         try:
             return obj.square_thumbnail.url
-        except:
+        except Exception:
             return None
 
     def get_small_thumbnail_url(self, obj):
         try:
             return obj.thumbnail_small.url
-        except:
+        except Exception:
             return None
 
     def get_big_square_thumbnail_url(self, obj):
         try:
             return obj.square_thumbnail_big.url
-        except:
+        except Exception:
             return None
 
     def get_small_square_thumbnail_url(self, obj):
         try:
             return obj.square_thumbnail_small.url
-        except:
+        except Exception:
             return None
 
     def get_tiny_square_thumbnail_url(self, obj):
         try:
             return obj.square_thumbnail_tiny.url
-        except:
+        except Exception:
             return None
 
     def get_big_thumbnail_url(self, obj):
         try:
             return obj.thumbnail_big.url
-        except:
+        except Exception:
             return None
 
     def get_image_url(self, obj):
         try:
             return obj.image.url
-        except:
+        except Exception:
             return None
 
     def get_geolocation(self, obj):

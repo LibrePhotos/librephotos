@@ -1,5 +1,4 @@
 import serpy
-from constance import config as site_config
 
 from api.util import logger
 from api.views.PhotosGroupedByDate import get_photos_ordered_by_date
@@ -13,7 +12,7 @@ class DateTimeField(serpy.Field):
                 return value.isoformat()
             else:
                 return None
-        except:
+        except Exception:
             # import pdb; pdb.set_trace()
             logger.warning("DateTimefield error")
 
