@@ -1,0 +1,20 @@
+default_language_version:
+  python: python3
+
+repos:
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.9.3
+    hooks:
+      - id: isort
+  - repo: https://github.com/psf/black
+    rev: 21.7b0
+    hooks:
+      - id: black
+  - repo: https://github.com/pycqa/flake8
+    rev: 3.9.2
+    hooks:
+      - id: flake8
+        args:
+          - --exclude=.+/migrations/
+          - --max-line-length=88
+          - --ignore=E501,W503

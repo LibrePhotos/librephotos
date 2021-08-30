@@ -13,45 +13,50 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
-from api.views import views, photos, albums
+from django.conf import settings
 from django.conf.urls import include, url
 from django.conf.urls.static import static
-from django.conf import settings
 from django.contrib import admin
-from nextcloud import views as nextcloud_views
-from rest_framework import routers
-from rest_framework_simplejwt.serializers import (TokenObtainPairSerializer, TokenRefreshSerializer)
-from rest_framework_simplejwt.views import (TokenObtainPairView, TokenRefreshView)
-from rest_framework import permissions
-from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from drf_yasg.views import get_schema_view
+from rest_framework import permissions, routers
+from rest_framework_simplejwt.serializers import (
+    TokenObtainPairSerializer,
+    TokenRefreshSerializer,
+)
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+from api.views import albums, photos, views
+from nextcloud import views as nextcloud_views
 
 schema_view = get_schema_view(
-   openapi.Info(
-      title="LibrePhotos API",
-      default_version='v1',
-      description="All of the API endpoints in LibrePhotos",
-      terms_of_service="https://www.google.com/policies/terms/",
-      contact=openapi.Contact(email="contact@snippets.local"),
-      license=openapi.License(name="MIT License"),
-   ),
-   public=True,
-   permission_classes=(permissions.AllowAny,),
+    openapi.Info(
+        title="LibrePhotos API",
+        default_version="v1",
+        description="All of the API endpoints in LibrePhotos",
+        terms_of_service="https://www.google.com/policies/terms/",
+        contact=openapi.Contact(email="contact@snippets.local"),
+        license=openapi.License(name="MIT License"),
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
 )
+
+
 class TokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super(TokenObtainPairSerializer, cls).get_token(user)
 
-        token['name'] = user.get_username()
-        token['is_admin'] = user.is_superuser
-        token['first_name'] = user.first_name
-        token['last_name'] = user.last_name
-        token['scan_directory'] = user.scan_directory
-        token['confidence'] = user.confidence
-        token['semantic_search_topk'] = user.semantic_search_topk
-        token['nextcloud_server_address'] = user.nextcloud_server_address
-        token['nextcloud_username'] = user.nextcloud_username
+        token["name"] = user.get_username()
+        token["is_admin"] = user.is_superuser
+        token["first_name"] = user.first_name
+        token["last_name"] = user.last_name
+        token["scan_directory"] = user.scan_directory
+        token["confidence"] = user.confidence
+        token["semantic_search_topk"] = user.semantic_search_topk
+        token["nextcloud_server_address"] = user.nextcloud_server_address
+        token["nextcloud_username"] = user.nextcloud_username
         # ...
 
         return token
@@ -61,11 +66,10 @@ class TokenObtainPairView(TokenObtainPairView):
     serializer_class = TokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
-        response = super(TokenObtainPairView, self).post(
-            request, *args, **kwargs)
-        response.set_cookie('jwt', response.data['access'])
-        response.set_cookie('test', 'obtain')
-        response['Access-Control-Allow-Credentials'] = True
+        response = super(TokenObtainPairView, self).post(request, *args, **kwargs)
+        response.set_cookie("jwt", response.data["access"])
+        response.set_cookie("test", "obtain")
+        response["Access-Control-Allow-Credentials"] = True
         return response
 
 
@@ -74,189 +78,185 @@ class TokenRefreshView(TokenRefreshView):
 
     def post(self, request, *args, **kwargs):
         response = super(TokenRefreshView, self).post(request, *args, **kwargs)
-        response.set_cookie('jwt', response.data['access'])
-        response.set_cookie('test', 'refresh')
-        response['Access-Control-Allow-Credentials'] = True
+        response.set_cookie("jwt", response.data["access"])
+        response.set_cookie("test", "refresh")
+        response["Access-Control-Allow-Credentials"] = True
         return response
 
 
 router = routers.DefaultRouter()
 
-router.register(r'api/user', views.UserViewSet, basename='user')
-router.register(r'api/manage/user', views.ManageUserViewSet)
+router.register(r"api/user", views.UserViewSet, basename="user")
+router.register(r"api/manage/user", views.ManageUserViewSet)
 
 router.register(
-    r'api/albums/auto/list',
-    albums.AlbumAutoListViewSet,
-    basename='album_auto')
+    r"api/albums/auto/list", albums.AlbumAutoListViewSet, basename="album_auto"
+)
 router.register(
-    r'api/albums/date/list',
-    views.AlbumDateListViewSet,
-    basename='album_date')
+    r"api/albums/date/list", views.AlbumDateListViewSet, basename="album_date"
+)
 router.register(
-    r'api/albums/date/photohash/list',
+    r"api/albums/date/photohash/list",
     views.AlbumDateListWithPhotoHashViewSet,
-    basename='album_date')
+    basename="album_date",
+)
 router.register(
-    r'api/albums/person/list',
-    albums.AlbumPersonListViewSet,
-    basename='person')
+    r"api/albums/person/list", albums.AlbumPersonListViewSet, basename="person"
+)
 router.register(
-    r'api/albums/thing/list',
-    albums.AlbumThingListViewSet,
-    basename='album_thing')
+    r"api/albums/thing/list", albums.AlbumThingListViewSet, basename="album_thing"
+)
 router.register(
-    r'api/albums/place/list',
-    albums.AlbumPlaceListViewSet,
-    basename='album_place')
+    r"api/albums/place/list", albums.AlbumPlaceListViewSet, basename="album_place"
+)
 router.register(
-    r'api/albums/user/list',
-    albums.AlbumUserListViewSet,
-    basename='album_user')
+    r"api/albums/user/list", albums.AlbumUserListViewSet, basename="album_user"
+)
 
 router.register(
-    r'api/albums/user/edit',
-    views.AlbumUserEditViewSet,
-    basename='album_user')
+    r"api/albums/user/edit", views.AlbumUserEditViewSet, basename="album_user"
+)
 
 router.register(
-    r'api/albums/user/shared/tome',
+    r"api/albums/user/shared/tome",
     views.SharedToMeAlbumUserListViewSet,
-    basename='album_user')
+    basename="album_user",
+)
 router.register(
-    r'api/albums/user/shared/fromme',
+    r"api/albums/user/shared/fromme",
     views.SharedFromMeAlbumUserListViewSet,
-    basename='album_user')
+    basename="album_user",
+)
+
+router.register(r"api/albums/auto", albums.AlbumAutoViewSet, basename="album_auto")
+router.register(r"api/albums/person", albums.AlbumPersonViewSet, basename="person")
+router.register(r"api/albums/date", views.AlbumDateViewSet)
+router.register(r"api/albums/thing", albums.AlbumThingViewSet, basename="album_thing")
+router.register(r"api/albums/place", albums.AlbumPlaceViewSet, basename="album_place")
+router.register(r"api/albums/user", albums.AlbumUserViewSet, basename="album_user")
+
+router.register(r"api/persons", albums.PersonViewSet, basename="person")
 
 router.register(
-    r'api/albums/auto', albums.AlbumAutoViewSet, basename='album_auto')
-router.register(
-    r'api/albums/person', albums.AlbumPersonViewSet, basename='person')
-router.register(r'api/albums/date', views.AlbumDateViewSet)
-router.register(
-    r'api/albums/thing', albums.AlbumThingViewSet, basename='album_thing')
-router.register(
-    r'api/albums/place', albums.AlbumPlaceViewSet, basename='album_place')
-router.register(
-    r'api/albums/user', albums.AlbumUserViewSet, basename='album_user')
-
-router.register(r'api/persons', albums.PersonViewSet, basename='person')
-
-router.register(
-    r'api/photos/shared/tome',
+    r"api/photos/shared/tome",
     views.SharedToMePhotoSuperSimpleListViewSet,
-    basename='photo')
+    basename="photo",
+)
 router.register(
-    r'api/photos/shared/fromme',
+    r"api/photos/shared/fromme",
     views.SharedFromMePhotoSuperSimpleListViewSet2,
-    basename='photo')
+    basename="photo",
+)
 
 router.register(
-    r'api/photos/notimestamp/list',
+    r"api/photos/notimestamp/list",
     photos.NoTimestampPhotoHashListViewSet,
-    basename='photo')
+    basename="photo",
+)
 
-router.register(r'api/photos/edit', views.PhotoEditViewSet, basename='photo')
-
-router.register(
-    r'api/photos/recentlyadded',
-    photos.RecentlyAddedPhotoListViewSet,
-    basename='photo')
-router.register(
-    r'api/photos/simplelist', views.PhotoSimpleListViewSet, basename='photo')
-router.register(
-    r'api/photos/list', views.PhotoSuperSimpleListViewSet, basename='photo')
-router.register(
-    r'api/photos/favorites', photos.FavoritePhotoListViewset, basename='photo')
-router.register(
-    r'api/photos/hidden', photos.HiddenPhotoListViewset, basename='photo')
-router.register(
-    r'api/photos/searchlist',
-    views.PhotoSuperSimpleSearchListViewSet,
-    basename='photo')
+router.register(r"api/photos/edit", views.PhotoEditViewSet, basename="photo")
 
 router.register(
-    r'api/photos/public', photos.PublicPhotoListViewset, basename='photo')
+    r"api/photos/recentlyadded", photos.RecentlyAddedPhotoListViewSet, basename="photo"
+)
+router.register(
+    r"api/photos/simplelist", views.PhotoSimpleListViewSet, basename="photo"
+)
+router.register(r"api/photos/list", views.PhotoSuperSimpleListViewSet, basename="photo")
+router.register(
+    r"api/photos/favorites", photos.FavoritePhotoListViewset, basename="photo"
+)
+router.register(r"api/photos/hidden", photos.HiddenPhotoListViewset, basename="photo")
+router.register(
+    r"api/photos/searchlist", views.PhotoSuperSimpleSearchListViewSet, basename="photo"
+)
 
-router.register(r'api/photos', views.PhotoViewSet, basename='photo')
+router.register(r"api/photos/public", photos.PublicPhotoListViewset, basename="photo")
+
+router.register(r"api/photos", views.PhotoViewSet, basename="photo")
 
 router.register(
-    r'api/faces/inferred/list',
-    views.FaceInferredListViewSet,
-    basename='face')
+    r"api/faces/inferred/list", views.FaceInferredListViewSet, basename="face"
+)
 
 router.register(
-    r'api/faces/labeled/list', views.FaceLabeledListViewSet, basename='face')
+    r"api/faces/labeled/list", views.FaceLabeledListViewSet, basename="face"
+)
 
-router.register(r'api/faces/list', views.FaceListViewSet, basename='face')
+router.register(r"api/faces/list", views.FaceListViewSet, basename="face")
 
-router.register(
-    r'api/faces/inferred', views.FaceInferredViewSet, basename='face')
-router.register(
-    r'api/faces/labeled', views.FaceLabeledViewSet, basename='face')
-router.register(r'api/faces', views.FaceViewSet)
+router.register(r"api/faces/inferred", views.FaceInferredViewSet, basename="face")
+router.register(r"api/faces/labeled", views.FaceLabeledViewSet, basename="face")
+router.register(r"api/faces", views.FaceViewSet)
 
-router.register(r'api/jobs', views.LongRunningJobViewSet)
+router.register(r"api/jobs", views.LongRunningJobViewSet)
 
 urlpatterns = [
-    url(r'^api/swagger/json', schema_view.without_ui(cache_timeout=0), name='schema-json'),
-    url(r'^api/swagger', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    url(r'^api/redoc', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-    url(r'^', include(router.urls)),
-    url(r'^admin/', admin.site.urls),
-    url(r'^api/sitesettings', views.SiteSettingsView.as_view()),
-    url(r'^api/dirtree', views.RootPathTreeView.as_view()),
-    url(r'^api/labelfaces', views.SetFacePersonLabel.as_view()),
-    url(r'^api/deletefaces', views.DeleteFaces.as_view()),
-    url(r'^api/photosedit/delete', views.DeletePhotos.as_view()),
-    url(r'^api/photosedit/favorite', views.SetPhotosFavorite.as_view()),
-    url(r'^api/photosedit/hide', views.SetPhotosHidden.as_view()),
-    url(r'^api/photosedit/makepublic', views.SetPhotosPublic.as_view()),
-    url(r'^api/photosedit/share', views.SetPhotosShared.as_view()),
-    url(r'^api/photosedit/generateim2txt',
-        views.GeneratePhotoCaption.as_view()),
-    url(r'^api/useralbum/share', views.SetUserAlbumShared.as_view()),
-    url(r'^api/facetolabel', views.FaceToLabelView.as_view()),
-    url(r'^api/trainfaces', views.TrainFaceView.as_view()),
-    url(r'^api/clusterfaces', views.ClusterFaceView.as_view()),
-    url(r'^api/socialgraph', views.SocialGraphView.as_view()),
-    url(r'^api/egograph', views.EgoGraphView.as_view()),
-    url(r'^api/scanphotos', views.ScanPhotosView.as_view()),
-    url(r'^api/fullscanphotos', views.FullScanPhotosView.as_view()),
-    url(r'^api/scanfaces', views.ScanFacesView.as_view()),
-    url(r'^api/deletemissingphotos', views.DeleteMissingPhotosView.as_view()),
-    url(r'^api/autoalbumgen', views.AutoAlbumGenerateView.as_view()),
-    url(r'^api/autoalbumtitlegen', views.RegenerateAutoAlbumTitles.as_view()),
-    url(r'^api/searchtermexamples', views.SearchTermExamples.as_view()),
-    url(r'^api/locationsunburst', views.LocationSunburst.as_view()),
-    url(r'^api/locationtimeline', views.LocationTimeline.as_view()),
-    url(r'^api/stats', views.StatsView.as_view()),
-    url(r'^api/locclust', views.LocationClustersView.as_view()),
-    url(r'^api/photocountrycounts', views.PhotoCountryCountsView.as_view()),
-    url(r'^api/photomonthcounts', views.PhotoMonthCountsView.as_view()),
-    url(r'^api/wordcloud', views.SearchTermWordCloudView.as_view()),
-
-    url(r'^api/similar', views.SearchSimilarPhotosView.as_view()),
-
-    url(r'^api/watcher/photo', views.IsPhotosBeingAddedView.as_view()),
-    url(r'^api/watcher/autoalbum', views.IsAutoAlbumsBeingProcessed.as_view()),
-    url(r'^api/auth/token/obtain/$', TokenObtainPairView.as_view()),
-    url(r'^api/auth/token/refresh/$', TokenRefreshView.as_view()),
-
-    url(r'^media/(?P<path>.*)/(?P<fname>.*)',
+    url(
+        r"^api/swagger/json",
+        schema_view.without_ui(cache_timeout=0),
+        name="schema-json",
+    ),
+    url(
+        r"^api/swagger",
+        schema_view.with_ui("swagger", cache_timeout=0),
+        name="schema-swagger-ui",
+    ),
+    url(
+        r"^api/redoc",
+        schema_view.with_ui("redoc", cache_timeout=0),
+        name="schema-redoc",
+    ),
+    url(r"^", include(router.urls)),
+    url(r"^admin/", admin.site.urls),
+    url(r"^api/sitesettings", views.SiteSettingsView.as_view()),
+    url(r"^api/dirtree", views.RootPathTreeView.as_view()),
+    url(r"^api/labelfaces", views.SetFacePersonLabel.as_view()),
+    url(r"^api/deletefaces", views.DeleteFaces.as_view()),
+    url(r"^api/photosedit/delete", views.DeletePhotos.as_view()),
+    url(r"^api/photosedit/favorite", views.SetPhotosFavorite.as_view()),
+    url(r"^api/photosedit/hide", views.SetPhotosHidden.as_view()),
+    url(r"^api/photosedit/makepublic", views.SetPhotosPublic.as_view()),
+    url(r"^api/photosedit/share", views.SetPhotosShared.as_view()),
+    url(r"^api/photosedit/generateim2txt", views.GeneratePhotoCaption.as_view()),
+    url(r"^api/useralbum/share", views.SetUserAlbumShared.as_view()),
+    url(r"^api/facetolabel", views.FaceToLabelView.as_view()),
+    url(r"^api/trainfaces", views.TrainFaceView.as_view()),
+    url(r"^api/clusterfaces", views.ClusterFaceView.as_view()),
+    url(r"^api/socialgraph", views.SocialGraphView.as_view()),
+    url(r"^api/egograph", views.EgoGraphView.as_view()),
+    url(r"^api/scanphotos", views.ScanPhotosView.as_view()),
+    url(r"^api/fullscanphotos", views.FullScanPhotosView.as_view()),
+    url(r"^api/scanfaces", views.ScanFacesView.as_view()),
+    url(r"^api/deletemissingphotos", views.DeleteMissingPhotosView.as_view()),
+    url(r"^api/autoalbumgen", views.AutoAlbumGenerateView.as_view()),
+    url(r"^api/autoalbumtitlegen", views.RegenerateAutoAlbumTitles.as_view()),
+    url(r"^api/searchtermexamples", views.SearchTermExamples.as_view()),
+    url(r"^api/locationsunburst", views.LocationSunburst.as_view()),
+    url(r"^api/locationtimeline", views.LocationTimeline.as_view()),
+    url(r"^api/stats", views.StatsView.as_view()),
+    url(r"^api/locclust", views.LocationClustersView.as_view()),
+    url(r"^api/photocountrycounts", views.PhotoCountryCountsView.as_view()),
+    url(r"^api/photomonthcounts", views.PhotoMonthCountsView.as_view()),
+    url(r"^api/wordcloud", views.SearchTermWordCloudView.as_view()),
+    url(r"^api/similar", views.SearchSimilarPhotosView.as_view()),
+    url(r"^api/watcher/photo", views.IsPhotosBeingAddedView.as_view()),
+    url(r"^api/watcher/autoalbum", views.IsAutoAlbumsBeingProcessed.as_view()),
+    url(r"^api/auth/token/obtain/$", TokenObtainPairView.as_view()),
+    url(r"^api/auth/token/refresh/$", TokenRefreshView.as_view()),
+    url(
+        r"^media/(?P<path>.*)/(?P<fname>.*)",
         views.MediaAccessFullsizeOriginalView.as_view(),
-        name='media'),
-
-    url(r'^api/rqavailable/$', views.QueueAvailabilityView.as_view()),
-    url(r'^api/rqjobstat/$', views.RQJobStatView.as_view()),
-    url(r'^api/rqjoblist/$', views.ListAllRQJobsView.as_view()),
-
-    url(r'^api/nextcloud/listdir', nextcloud_views.ListDir.as_view()),
-    url(r'^api/nextcloud/scanphotos',
-        nextcloud_views.ScanPhotosView.as_view()),
-    url(r'^api/photos/download', views.ZipListPhotosView.as_view()),
+        name="media",
+    ),
+    url(r"^api/rqavailable/$", views.QueueAvailabilityView.as_view()),
+    url(r"^api/rqjobstat/$", views.RQJobStatView.as_view()),
+    url(r"^api/rqjoblist/$", views.ListAllRQJobsView.as_view()),
+    url(r"^api/nextcloud/listdir", nextcloud_views.ListDir.as_view()),
+    url(r"^api/nextcloud/scanphotos", nextcloud_views.ScanPhotosView.as_view()),
+    url(r"^api/photos/download", views.ZipListPhotosView.as_view()),
 ]
 
-urlpatterns += [url('api/django-rq/', include('django_rq.urls'))]
+urlpatterns += [url("api/django-rq/", include("django_rq.urls"))]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 # urlpatterns += [url(r'^silk/', include('silk.urls', namespace='silk'))]

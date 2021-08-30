@@ -1,8 +1,9 @@
 from django.contrib import admin
 
+from .models import AlbumAuto, AlbumUser, Face, Person, Photo
+
 # Register your models here.
 
-from .models import (Photo, Person, Face, AlbumAuto, AlbumUser)
 
 admin.site.register(Photo)
 admin.site.register(Person)

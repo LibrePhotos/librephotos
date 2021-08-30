@@ -1,11 +1,13 @@
 from datetime import datetime
 
-from api.models.user import User, get_deleted_user
 from django.db import models
+
+from api.models.user import User, get_deleted_user
 
 
 def get_default_longrunningjob_result():
-    return {'progress': {'target': 0, 'current': 0}}
+    return {"progress": {"target": 0, "current": 0}}
+
 
 class LongRunningJob(models.Model):
     JOB_SCAN_PHOTOS = 1
@@ -15,7 +17,7 @@ class LongRunningJob(models.Model):
     JOB_DELETE_MISSING_PHOTOS = 5
     JOB_CALCULATE_CLIP_EMBEDDINGS = 6
     JOB_SCAN_FACES = 7
-    
+
     JOB_TYPES = (
         (JOB_SCAN_PHOTOS, "Scan Photos"),
         (JOB_GENERATE_AUTO_ALBUMS, "Generate Event Albums"),
@@ -23,10 +25,12 @@ class LongRunningJob(models.Model):
         (JOB_TRAIN_FACES, "Train Faces"),
         (JOB_DELETE_MISSING_PHOTOS, "Delete Missing Photos"),
         (JOB_SCAN_FACES, "Scan Faces"),
-        (JOB_CALCULATE_CLIP_EMBEDDINGS, "Calculate Clip Embeddings")
+        (JOB_CALCULATE_CLIP_EMBEDDINGS, "Calculate Clip Embeddings"),
     )
 
-    job_type = models.PositiveIntegerField(choices=JOB_TYPES, )
+    job_type = models.PositiveIntegerField(
+        choices=JOB_TYPES,
+    )
 
     finished = models.BooleanField(default=False, blank=False, null=False)
     failed = models.BooleanField(default=False, blank=False, null=False)
@@ -35,8 +39,8 @@ class LongRunningJob(models.Model):
     started_at = models.DateTimeField(null=True)
     finished_at = models.DateTimeField(null=True)
     result = models.JSONField(
-        default=get_default_longrunningjob_result, blank=False, null=False)
+        default=get_default_longrunningjob_result, blank=False, null=False
+    )
     started_by = models.ForeignKey(
-        User, on_delete=models.SET(get_deleted_user), default=None)
-
-
+        User, on_delete=models.SET(get_deleted_user), default=None
+    )
