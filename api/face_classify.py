@@ -1,7 +1,6 @@
 import datetime
 
 import numpy as np
-import pandas as pd
 import pytz
 import seaborn as sns
 from bulk_update.helper import bulk_update

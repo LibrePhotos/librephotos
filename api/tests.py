@@ -1,11 +1,10 @@
-# import config
 from constance import config as site_config
 from django.test import TestCase
 from django_rq import get_worker
-from rest_framework.test import APIClient  # , APIRequestFactory
-
+from rest_framework.test import APIClient
+import os
 # from api.directory_watcher import scan_photos
-from api.models import *
+from api.models import User
 
 samplephotos_dir = os.path.abspath("samplephotos")
 
@@ -49,7 +48,7 @@ class AdminTestCase(TestCase):
 
 class UserTestCase(TestCase):
     def setUp(self):
-        config.image_dirs = [samplephotos_dir]
+        site_config.image_dirs = [samplephotos_dir]
         self.client_admin = APIClient()
         self.client_user = APIClient()
 
@@ -131,7 +130,7 @@ class UserTestCase(TestCase):
 
 class ScanPhotosTestCase(TestCase):
     def setUp(self):
-        config.image_dirs = [samplephotos_dir]
+        site_config.image_dirs = [samplephotos_dir]
         self.client_admin = APIClient()
 
         self.client_users = [APIClient() for _ in range(6)]
@@ -200,10 +199,6 @@ class ScanPhotosTestCase(TestCase):
         for client in self.client_users:
             res = client.get("/api/photos/")
             self.assertEqual(res.status_code, 200)
-
-        #         for client in self.client_users:
-        #             res = client.get('/api/scanphotos/')
-        #             self.assertEqual(res.status_code, 200)
 
         # scan photos
         scan_photos_res = self.client_users[0].get("/api/scanphotos/")
@@ -274,19 +269,3 @@ class ScanPhotosTestCase(TestCase):
                 "/api/albums/thing/%d/" % album["id"]
             )
             self.assertEqual(thing_album_retrieve_res.status_code, 200)
-
-
-#     def test_get_faces(self):
-#         res = self.client_users[0].get('/api/faces/list/')
-#         self.assertEqual(res.status_code, 200)
-#
-#     def test_get_labeled_faces(self):
-#         res = self.client_users[0].get('/api/faces/labeled/list/')
-#         self.assertEqual(res.status_code, 200)
-#
-#     def test_get_inferred_faces(self):
-#         res = self.client_users[0].get('/api/faces/inferred/list/')
-#         self.assertEqual(res.status_code, 200)
-
-#         #75 photos total in the sample photos directory
-#         self.assertEqual(Photo.objects.count(), 75)
