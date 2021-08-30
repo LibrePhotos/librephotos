@@ -24,10 +24,6 @@ export default function reducer(
     fetchingInferredFacesList: false,
     fetchedInferredFacesList: false,
 
-    faceToLabel: {},
-    fetchingFaceToLabel: false,
-    fetchedFaceToLabel: false,
-
     facesVis: [],
     training: false,
     trained: false,
@@ -182,26 +178,6 @@ export default function reducer(
         inferredFacesList: newInferredFacesList,
         labeledFacesList: newLabeledFacesList,
       };
-    }
-
-    //face to label
-    case "FETCH_FACE_TO_LABEL": {
-      return { ...state, fetchingFaceToLabel: true };
-    }
-    case "FETCH_FACE_TO_LABEL_REJECTED": {
-      return { ...state, fetchingFaceToLabel: false, error: action.payload };
-    }
-    case "FETCH_FACE_TO_LABEL_FULFILLED": {
-      return {
-        ...state,
-        fetchingFaceToLabel: false,
-        fetchedFaceToLabel: true,
-        faceToLabel: action.payload,
-      };
-    }
-
-    case "LOAD_FACE_TO_LABEL": {
-      return { ...state, faceToLabel: action.payload };
     }
 
     //train faces

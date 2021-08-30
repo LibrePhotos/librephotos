@@ -8,10 +8,6 @@ export default function reducer(
     fetchingCountStats: false,
     fetchedCountStats: false,
 
-    photoCountryCounts: {},
-    fetchingPhotoCountryCounts: false,
-    fetchedPhotoCountryCounts: false,
-
     photoMonthCounts: [],
     fetchingPhotoMonthCounts: false,
     fetchedPhotoMonthCounts: false,
@@ -292,25 +288,6 @@ export default function reducer(
         fetchingLocationClusters: false,
         fetchedLocationClusters: true,
         locationClusters: action.payload,
-      };
-    }
-
-    case "FETCH_PHOTO_COUNTRY_COUNTS": {
-      return { ...state, fetchingPhotoCountryCounts: true };
-    }
-    case "FETCH_PHOTO_COUNTRY_COUNTS_REJECTED": {
-      return {
-        ...state,
-        fetchingPhotoCountryCounts: false,
-        error: action.payload,
-      };
-    }
-    case "FETCH_PHOTO_COUNTRY_COUNTS_FULFILLED": {
-      return {
-        ...state,
-        fetchingPhotoCountryCounts: false,
-        fetchedPhotoCountryCounts: true,
-        photoCountryCounts: action.payload,
       };
     }
 

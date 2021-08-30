@@ -114,19 +114,3 @@ export function fetchSocialGraph() {
       });
   };
 }
-
-export function fetchEgoGraph(person_id) {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_EGO_GRAPH" });
-    Server.get(`egograph/?person_id=${person_id}`)
-      .then((response) => {
-        dispatch({
-          type: "FETCH_EGO_GRAPH_FULFILLED",
-          payload: { person_id: person_id, data: response.data },
-        });
-      })
-      .catch((err) => {
-        dispatch({ type: "FETCH_EGO_GRAPH_REJECTED", payload: err });
-      });
-  };
-}

@@ -415,41 +415,6 @@ export function fetchCountStats() {
   };
 }
 
-export function fetchPhotoScanStatus() {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_PHOTO_SCAN_STATUS" });
-    Server.get(`watcher/photo/`)
-      .then((response) => {
-        dispatch({
-          type: "FETCH_PHOTO_SCAN_STATUS_FULFILLED",
-          payload: response.data,
-        });
-      })
-      .catch((err) => {
-        dispatch({ type: "FETCH_PHOTO_SCAN_STATUS_REJECTED", payload: err });
-      });
-  };
-}
-
-export function fetchAutoAlbumProcessingStatus() {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_AUTO_ALBUM_PROCESSING_STATUS" });
-    Server.get(`watcher/autoalbum/`)
-      .then((response) => {
-        dispatch({
-          type: "FETCH_AUTO_ALBUM_PROCESSING_STATUS_FULFILLED",
-          payload: response.data,
-        });
-      })
-      .catch((err) => {
-        dispatch({
-          type: "FETCH_AUTO_ALBUM_PROCESSING_STATUS_REJECTED",
-          payload: err,
-        });
-      });
-  };
-}
-
 export function fetchLocationClusters() {
   return function (dispatch) {
     dispatch({ type: "FETCH_LOCATION_CLUSTERS" });
@@ -462,22 +427,6 @@ export function fetchLocationClusters() {
       })
       .catch((err) => {
         dispatch({ type: "FETCH_LOCATION_CLUSTERS_REJECTED", payload: err });
-      });
-  };
-}
-
-export function fetchPhotoCountryCounts() {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_PHOTO_COUNTRY_COUNTS" });
-    Server.get(`photocountrycounts/`)
-      .then((response) => {
-        dispatch({
-          type: "FETCH_PHOTO_COUNTRY_COUNTS_FULFILLED",
-          payload: response.data,
-        });
-      })
-      .catch((err) => {
-        dispatch({ type: "FETCH_PHOTO_COUNTRY_COUNTS_REJECTED", payload: err });
       });
   };
 }
