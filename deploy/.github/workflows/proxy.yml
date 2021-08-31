@@ -83,4 +83,4 @@ jobs:
           context: ./proxy
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: reallibrephotos/librephotos-proxy:${{ github.event.release.name }}
+          tags: reallibrephotos/librephotos-proxy:${{ github.event.release.tag_name }}
