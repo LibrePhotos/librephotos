@@ -66,6 +66,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: reallibrephotos/librephotos-frontend:dev
+          
   release-job:
     name: Releasing
     if: github.event_name == 'release' && github.event.action == 'created'
