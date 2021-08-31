@@ -1,6 +1,8 @@
 name: backend
 
 on:
+  release:
+    types: [created]
   push:
     branches:
       - main
@@ -11,7 +13,8 @@ on:
 
 env:
   IMAGE_NAME: librephotos
-
+  RELEASE_TAG: github.event.release.name
+  
 jobs:
   # Run tests.
   # See also https://docs.docker.com/docker-hub/builds/automated-testing/
@@ -25,11 +28,13 @@ jobs:
         run: echo "To-Do Add Running Tests"
           
   build:
+    name: Building dev build
     # Ensure test job passes before pushing image.
+    if: github.event_name != 'release'
     needs: test
 
     runs-on: ubuntu-latest
-
+  
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -53,3 +58,34 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: reallibrephotos/librephotos:dev
+          
+  release-job:
+    name: Releasing
+    if: github.event_name == 'release' && github.event.action == 'created'
+    # Ensure test job passes before pushing image.
+    needs: test
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: ./backend
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: reallibrephotos/librephotos:$RELEASE_TAG
