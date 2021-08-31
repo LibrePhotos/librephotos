@@ -22,7 +22,7 @@ export class AlbumUserGallery extends Component {
     const isPublic =
       this.props.albumDetails.owner &&
       this.props.albumDetails.owner.id !== this.props.auth.access.user_id;
-    const additionalSubHeader = "";
+    var additionalSubHeader = "";
     if (isPublic) {
       additionalSubHeader = (
         <span>
