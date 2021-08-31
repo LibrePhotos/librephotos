@@ -22,7 +22,6 @@ on:
 
 env:
   IMAGE_NAME: librephotos-frontend
-  RELEASE_TAG: github.event.release.name
 
 jobs:
   # Run tests.
@@ -97,4 +96,4 @@ jobs:
           context: ./frontend
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: reallibrephotos/librephotos-frontend:$RELEASE_TAG
+          tags: reallibrephotos/librephotos-frontend:${{ github.event.release.name }}
