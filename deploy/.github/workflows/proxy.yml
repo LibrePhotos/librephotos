@@ -1,19 +1,18 @@
 name: proxy
 
-on:    
+on:
+  release:
+    types: [created]
   push:
     # Publish `dev` as Docker `latest` image.
     branches:
       - main
     paths:
       - 'proxy/**'
-    # Publish `v1.2.3` tags as releases.
-    tags:
-      - v*
-
-  # Run tests for any PRs.
-  pull_request:
-
+  
+env:
+  RELEASE_TAG: github.event.release.name
+  
 jobs:
   # Run tests.
   # See also https://docs.docker.com/docker-hub/builds/automated-testing/
@@ -27,6 +26,39 @@ jobs:
         run: echo "To-Do Add Tests"
           
   build:
+    if: github.event_name != 'release'
+    # Ensure test job passes before pushing image.
+    needs: test
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: ./proxy
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: reallibrephotos/librephotos-proxy:dev
+          
+  release-job:
+    name: Releasing
+    if: github.event_name == 'release' && github.event.action == 'created'
     # Ensure test job passes before pushing image.
     needs: test
 
