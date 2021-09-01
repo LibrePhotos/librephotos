@@ -1,10 +1,10 @@
 import os
 
 from django.db import models
+from django.dispatch import receiver
 
 from api.models.person import Person, get_unknown_person
 from api.models.photo import Photo
-from django.dispatch import receiver
 
 
 class Face(models.Model):
