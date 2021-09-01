@@ -444,7 +444,23 @@ class Photo(models.Model):
 
                 image_path = self.image_hash + "_" + str(idx_face) + ".jpg"
 
-                face, created = api.models.face.Face.objects.get_or_create(
+                margin = 2
+                existingFaces = api.models.face.Face.objects.filter(
+                        photo=self,
+                        location_top__lte    = face_location[0]+margin,
+                        location_top__gte    = face_location[0]-margin,
+                        location_right__lte  = face_location[1]+margin,
+                        location_right__gte  = face_location[1]-margin,
+                        location_bottom__lte = face_location[2]+margin,
+                        location_bottom__gte = face_location[2]-margin,
+                        location_left__lte   = face_location[3]+margin,
+                        location_left__gte   = face_location[3]-margin,
+                        )
+
+                if existingFaces.count() != 0:
+                    continue
+
+                face = api.models.face.Face(
                     image_path=image_path,
                     photo=self,
                     location_top=face_location[0],
@@ -452,7 +468,7 @@ class Photo(models.Model):
                     location_bottom=face_location[2],
                     location_left=face_location[3],
                     encoding=face_encoding.tobytes().hex(),
-                    defaults={"person": unknown_person},
+                    person=unknown_person,
                 )
 
                 face_io = BytesIO()

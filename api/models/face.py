@@ -1,7 +1,10 @@
+import os
+
 from django.db import models
 
 from api.models.person import Person, get_unknown_person
 from api.models.photo import Photo
+from django.dispatch import receiver
 
 
 class Face(models.Model):
@@ -26,3 +29,11 @@ class Face(models.Model):
 
     def __str__(self):
         return "%d" % self.id
+
+
+# From: https://stackoverflow.com/questions/16041232/django-delete-filefield
+@receiver(models.signals.post_delete, sender=Face)
+def auto_delete_file_on_delete(sender, instance, **kwargs):
+    if instance.image:
+        if os.path.isfile(instance.image.path):
+            os.remove(instance.image.path)
