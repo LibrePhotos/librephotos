@@ -65,10 +65,6 @@ class Photo(models.Model):
     search_captions = models.TextField(blank=True, null=True, db_index=True)
     search_location = models.TextField(blank=True, null=True, db_index=True)
 
-    # `favorited` has been removed.
-    # Data migrations:
-    #   `favorited = false` => `rating = 0`
-    #   `favorited = true` => `rating = 4`
     rating = models.IntegerField(default=0, db_index=True)
 
     hidden = models.BooleanField(default=False, db_index=True)
@@ -85,6 +81,45 @@ class Photo(models.Model):
 
     objects = models.Manager()
     visible = VisiblePhotoManager()
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+
+        # save original values, when model is loaded from database,
+        # in a separate attribute on the model
+        instance._loaded_values = dict(zip(field_names, values))
+
+        return instance
+
+    def save(
+        self,
+        force_insert=False,
+        force_update=False,
+        using=None,
+        update_fields=None,
+        save_metadata=True,
+    ):
+        modified_fields = [
+            field_name
+            for field_name, value in self._loaded_values.items()
+            if value != getattr(self, field_name)
+        ]
+        if save_metadata:
+            self._save_metadata(modified_fields)
+        return super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
+
+    def _save_metadata(self, modified_fields=None):
+        tags_to_write = []
+        if modified_fields is None or "rating" in modified_fields:
+            tags_to_write.append(f"Rating={self.rating}")
+        if tags_to_write:
+            util.write_metadata(self.image_paths[0], tags_to_write, True)
 
     def _generate_md5(self):
         hash_md5 = hashlib.md5()
@@ -429,11 +464,13 @@ class Photo(models.Model):
         (self.rating,) = get_metadata(
             self.image_paths[0], tags=["Rating"], try_sidecar=True
         )
-        if self.rating is None or self.rating < -1 or self.rating > 5:
+        if self.rating is None or self.rating < -1:
             self.rating = 0
+        if self.rating > 5:
+            self.rating = 5
 
         if commit:
-            self.save()
+            self.save(save_metadata=False)
 
     def _extract_faces(self):
         qs_unknown_person = api.models.person.Person.objects.filter(name="unknown")
