@@ -3,6 +3,7 @@ import logging.handlers
 import os
 import os.path
 
+import exiftool
 import numpy as np
 import requests
 import spacy
@@ -130,3 +131,52 @@ def mapbox_reverse_geocode(lat, lon):
         # logger.info('mapbox returned non 200 response.')
         logger.warning("mapbox returned status {} response.".format(resp.status_code))
         return {}
+
+
+def get_existing_sidecar_file(media_file):
+    sidecar_file_alternatives = [media_file + ext for ext in [".xmp", ".XMP"]]
+    image_basename = os.path.splitext(media_file)[0]
+    sidecar_file_alternatives.extend([image_basename + ext for ext in [".xmp", ".XMP"]])
+    for sidecar_file in sidecar_file_alternatives:
+        if os.path.exists(sidecar_file):
+            return sidecar_file
+    return None
+
+
+exiftool_instance = exiftool.ExifTool()
+
+
+def get_metadata(media_file, tags, try_sidecar=True):
+    """
+    Get values for each metadata tag in *tags* from *media_file*.
+    If *try_sidecar* is `True`, use the value set in any XMP sidecar file
+    stored alongside *media_file*.
+
+    If *exiftool_instance* is running, leave it running when returning
+    from this function. Otherwise, start it and then terminate it before
+    returning.
+
+    Returns a list with the value of each tag in *tags* or `None` if the
+    tag was not found.
+
+    """
+    et = exiftool_instance
+    terminate_et = False
+    if not et.running:
+        et.start()
+        terminate_et = True
+    values = []
+    try:
+        for tag in tags:
+            value = et.get_tag(tag, media_file)
+            if try_sidecar:
+                sidecar_file = get_existing_sidecar_file(media_file)
+                if sidecar_file:
+                    value_sidecar = et.get_tag(tag, sidecar_file)
+                    if value_sidecar is not None:
+                        value = value_sidecar
+            values.append(value)
+    finally:
+        if terminate_et:
+            et.terminate()
+    return values
