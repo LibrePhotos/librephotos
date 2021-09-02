@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 from io import BytesIO
 
-import exiftool
 import face_recognition
 import numpy as np
 import PIL
@@ -27,7 +26,7 @@ from api.thumbnails import (
     doesStaticThumbnailExists,
     doesVideoThumbnailExists,
 )
-from api.util import logger
+from api.util import get_metadata, logger
 
 
 class VisiblePhotoManager(models.Manager):
@@ -286,11 +285,13 @@ class Photo(models.Model):
                 old_album_date = possible_old_album_date
         return old_album_date
 
-    def _calculate_aspect_ratio(self, et, commit=True):
-        with exiftool.ExifTool() as et:
-            height = et.get_tag("ImageHeight", self.thumbnail_big.path)
-            width = et.get_tag("ImageWidth", self.thumbnail_big.path)
-            self.aspect_ratio = round((width / height), 2)
+    def _calculate_aspect_ratio(self, commit=True):
+        height, width = get_metadata(
+            self.thumbnail_big.path,
+            tags=["ImageHeight", "ImageWidth"],
+            try_sidecar=False,
+        )
+        self.aspect_ratio = round(width / height, 2)
 
         if commit:
             self.save()
@@ -298,23 +299,25 @@ class Photo(models.Model):
     def _extract_date_time_from_exif(self, commit=True):
         date_format = "%Y:%m:%d %H:%M:%S"
         timestamp_from_exif = None
-        with exiftool.ExifTool() as et:
-            exif = et.get_tag("EXIF:DateTimeOriginal", self.image_paths[0])
-            exifvideo = et.get_tag("QuickTime:CreateDate", self.image_paths[0])
-            if exif:
-                try:
-                    timestamp_from_exif = datetime.strptime(exif, date_format).replace(
-                        tzinfo=pytz.utc
-                    )
-                except Exception:
-                    timestamp_from_exif = None
-            if exifvideo:
-                try:
-                    timestamp_from_exif = datetime.strptime(
-                        exifvideo, date_format
-                    ).replace(tzinfo=pytz.utc)
-                except Exception:
-                    timestamp_from_exif = None
+        exif, exifvideo = get_metadata(
+            self.image_paths[0],
+            tags=["EXIF:DateTimeOriginal", "QuickTime:CreateDate"],
+            try_sidecar=True,
+        )
+        if exif:
+            try:
+                timestamp_from_exif = datetime.strptime(exif, date_format).replace(
+                    tzinfo=pytz.utc
+                )
+            except Exception:
+                timestamp_from_exif = None
+        if exifvideo:
+            try:
+                timestamp_from_exif = datetime.strptime(exifvideo, date_format).replace(
+                    tzinfo=pytz.utc
+                )
+            except Exception:
+                timestamp_from_exif = None
 
         old_album_date = self._find_album_date()
 
@@ -345,9 +348,11 @@ class Photo(models.Model):
     def _geolocate_mapbox(self, commit=True):
         old_gps_lat = self.exif_gps_lat
         old_gps_lon = self.exif_gps_lon
-        with exiftool.ExifTool() as et:
-            new_gps_lat = et.get_tag("Composite:GPSLatitude", self.image_paths[0])
-            new_gps_lon = et.get_tag("Composite:GPSLongitude", self.image_paths[0])
+        new_gps_lat, new_gps_lon = get_metadata(
+            self.image_paths[0],
+            tags=["Composite:GPSLatitude", "Composite:GPSLongitude"],
+            try_sidecar=True,
+        )
         old_album_places = self._find_album_place()
         # Skip if it hasn't changed or is null
         if not new_gps_lat or not new_gps_lon:
@@ -418,6 +423,17 @@ class Photo(models.Model):
             album_date.location = {"places": [city_name]}
         album_date.save()
         cache.clear()
+
+    def _extract_rating(self, commit=True):
+        logger.info(f"Extracting rating for {self.image_paths[0]}")
+        (self.rating,) = get_metadata(
+            self.image_paths[0], tags=["Rating"], try_sidecar=True
+        )
+        if self.rating is None or self.rating < -1 or self.rating > 5:
+            self.rating = 0
+
+        if commit:
+            self.save()
 
     def _extract_faces(self):
         qs_unknown_person = api.models.person.Person.objects.filter(name="unknown")
