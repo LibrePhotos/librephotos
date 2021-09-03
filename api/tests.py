@@ -1,8 +1,10 @@
+import os
+
 from constance import config as site_config
 from django.test import TestCase
 from django_rq import get_worker
 from rest_framework.test import APIClient
-import os
+
 # from api.directory_watcher import scan_photos
 from api.models import User
 

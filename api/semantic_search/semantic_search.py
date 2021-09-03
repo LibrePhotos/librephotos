@@ -1,10 +1,8 @@
 import gc
-import os
 
 import numpy as np
-import torch
 from PIL import Image
-from sentence_transformers import SentenceTransformer, util
+from sentence_transformers import SentenceTransformer
 
 import ownphotos
 
@@ -16,13 +14,13 @@ class SemanticSearch:
 
     def load(self):
         self.load_model()
-        model_is_loaded = True
+        self.model_is_loaded = True
         pass
 
     def unload(self):
         self.model = None
         gc.collect()
-        model_is_loaded = False
+        self.model_is_loaded = False
         pass
 
     def load_model(self):

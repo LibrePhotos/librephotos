@@ -13,6 +13,7 @@ from rest_framework_extensions.key_constructor.constructors import DefaultKeyCon
 CACHE_TTL = 60 * 60 * 24  # 1 day
 CACHE_TTL_VIZ = 60 * 60  # 1 hour
 
+
 # caching stuff straight out of https://chibisov.github.io/drf-extensions/docs/#caching
 class UpdatedAtKeyBit(KeyBitBase):
     def get_data(self, **kwargs):

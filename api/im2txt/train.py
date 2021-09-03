@@ -1,4 +1,3 @@
-import argparse
 import os
 import pickle
 
@@ -8,7 +7,6 @@ import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
 from torchvision import transforms
 
-from api.im2txt.build_vocab import Vocabulary
 from api.im2txt.data_loader import get_loader
 from api.im2txt.model import DecoderRNN, EncoderCNN
 
