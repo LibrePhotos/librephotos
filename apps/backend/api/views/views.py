@@ -132,7 +132,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
         if self.request.user.is_anonymous:
             return Photo.visible.filter(Q(public=True)).order_by("-exif_timestamp")
         else:
-            return Photo.objects.order_by('-exif_timestamp')
+            return Photo.objects.order_by("-exif_timestamp")
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -1195,6 +1195,7 @@ class SearchTermWordCloudView(APIView):
         res = get_searchterms_wordcloud(request.user)
         return Response(res)
 
+
 # long running jobs
 class ScanPhotosView(APIView):
     def get(self, request, format=None):
@@ -1205,6 +1206,7 @@ class ScanPhotosView(APIView):
         except BaseException:
             logger.exception("An Error occured")
             return Response({"status": False})
+
 
 class FullScanPhotosView(APIView):
     def get(self, request, format=None):
@@ -1223,7 +1225,7 @@ class ScanFacesView(APIView):
             job_id = uuid.uuid4()
             scan_faces.delay(request.user, job_id)
             return Response({"status": True, "job_id": job_id})
-        except BaseException as e:
+        except BaseException:
             logger.exception("An Error occured")
             return Response({"status": False})
 
@@ -1271,6 +1273,7 @@ class TrainFaceView(APIView):
             logger.exception()
             return Response({"status": False})
 
+
 class QueueAvailabilityView(APIView):
     def get(self, request, format=None):
         job_detail = None
@@ -1308,9 +1311,6 @@ class RQJobStatView(APIView):
         # job_id = '1667f947-bf8c-4ca8-a1cc-f16c7f3615de'
         is_job_finished = django_rq.get_queue().fetch_job(job_id).is_finished
         return Response({"status": True, "finished": is_job_finished})
-
-
-
 
 
 class MediaAccessView(APIView):

@@ -8,3 +8,16 @@ from api.models.long_running_job import LongRunningJob
 from api.models.person import Person
 from api.models.photo import Photo
 from api.models.user import User
+
+__all__ = [
+    "AlbumAuto",
+    "AlbumDate",
+    "AlbumPlace",
+    "AlbumThing",
+    "AlbumUser",
+    "Face",
+    "LongRunningJob",
+    "Person",
+    "Photo",
+    "User",
+]

@@ -1,14 +1,9 @@
-import datetime
 import uuid
 
 import owncloud as nextcloud
-from django.shortcuts import render
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.api_util import get_current_job
-from api.models import *
 from api.util import logger
 from nextcloud.directory_watcher import scan_photos
 
@@ -47,6 +42,6 @@ class ScanPhotosView(APIView):
             job_id = uuid.uuid4()
             scan_photos(request.user, job_id)
             return Response({"status": True, "job_id": job_id})
-        except BaseException as e:
+        except BaseException:
             logger.exception("An Error occured")
             return Response({"status": False})

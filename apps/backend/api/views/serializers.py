@@ -264,7 +264,7 @@ class PersonSerializer(serializers.ModelSerializer):
                 Q(person_label_is_inferred=False) & Q(photo__hidden=False)
             ).first()
             return face.image.url
-        except:
+        except Exception:
             return None
 
     def get_face_photo_url(self, obj):
@@ -586,7 +586,7 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
     def get_photo_count(self, obj):
         try:
             return obj.photo_count
-        except:  # for when calling AlbumUserListSerializer(obj).data directly
+        except Exception:  # for when calling AlbumUserListSerializer(obj).data directly
             return obj.photos.count()
 
 
@@ -772,7 +772,7 @@ class UserSerializer(serializers.ModelSerializer):
     def get_avatar_url(self, obj):
         try:
             return obj.avatar.url
-        except:
+        except Exception:
             return None
 
 

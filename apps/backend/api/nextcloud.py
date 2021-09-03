@@ -1,6 +1,6 @@
-import owncloud as nextcloud
-
 import os
+
+import owncloud as nextcloud
 
 
 def login(user):

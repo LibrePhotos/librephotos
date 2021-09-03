@@ -22,7 +22,7 @@ for envvar in (
     "DB_HOST",
     "DB_PORT",
 ):
-    if not envvar in os.environ:
+    if envvar not in os.environ:
         raise NameError("Environnement variable not set :" + envvar)
 
 

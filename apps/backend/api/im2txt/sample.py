@@ -3,13 +3,11 @@ import os
 import pickle
 
 # import matplotlib.pyplot as plt
-import numpy as np
 import torch
 from PIL import Image
 from torchvision import transforms
 
 import ownphotos.settings
-from api.im2txt.build_vocab import Vocabulary
 from api.im2txt.model import DecoderRNN, EncoderCNN
 
 # parser.add_argument('--image', type=str, required=True, help='input image for generating caption')
@@ -91,6 +89,10 @@ def im2txt(image_path):
             break
     sentence = " ".join(sampled_caption)
     return sentence
+
+
+def main(args):
+    raise NotImplementedError()
 
 
 if __name__ == "__main__":

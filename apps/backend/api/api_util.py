@@ -2,7 +2,7 @@ import os
 import random
 import stat
 from collections import Counter
-from datetime import date, datetime
+from datetime import datetime
 from itertools import groupby
 
 import numpy as np
@@ -35,9 +35,9 @@ def get_current_job():
     return job_detail
 
 
-def shuffle(l):
-    random.shuffle(l)
-    return l
+def shuffle(list):
+    random.shuffle(list)
+    return list
 
 
 def is_hidden(filepath):
@@ -48,7 +48,7 @@ def is_hidden(filepath):
 def has_hidden_attribute(filepath):
     try:
         return bool(os.stat(filepath).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
-    except:
+    except Exception:
         return False
 
 
@@ -349,7 +349,7 @@ def get_location_sunburst(user):
             for j, c in enumerate(depth_cursor):
                 if item in c.values():
                     idx = j
-            if idx == None:
+            if idx is None:
                 depth_cursor.append(
                     {"name": item, "children": [], "hex": random.choice(palette)}
                 )
@@ -443,7 +443,7 @@ def get_searchterms_wordcloud(user):
             from api_photo where owner_id = %(userid)s
         ), loctable as (
             select jsonb_array_elements(jsonb_extract_path(arrayloc,'place_type'))::text as "key",
-            replace(jsonb_extract_path(arrayloc,'text')::text,'"','') as "value", image_hash 
+            replace(jsonb_extract_path(arrayloc,'text')::text,'"','') as "value", image_hash
             from arrayloctable
         ), OneWordPerPhoto as (  -- "key" values can be : "place","locality","address","region","postcode","country","poi"
             select "value", image_hash from loctable where "key" not in ('"postcode"','"poi"') group by "value", image_hash
