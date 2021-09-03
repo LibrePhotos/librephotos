@@ -60,7 +60,7 @@ def build_image_similarity_index(user):
     photos = (
         Photo.objects.filter(Q(hidden=False) & Q(owner=user))
         .exclude(clip_embeddings=None)
-        .only("clip_embeddings")
+        .only("clip_embeddings")[:2500]
     )
 
     image_hashes = []
