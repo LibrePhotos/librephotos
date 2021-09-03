@@ -179,10 +179,12 @@ if False:
     spl = plt.subplot(2, 1, 1)
     for i, (cv_type, color) in enumerate(zip(cv_types, color_iter)):
         xpos = np.array(n_components_range) + 0.2 * (i - 2)
+        start = i * len(n_components_range)
+        end = (i + 1) * len(n_components_range)
         bars.append(
             plt.bar(
                 xpos,
-                bic[i * len(n_components_range) : (i + 1) * len(n_components_range)],
+                bic[start:end],
                 width=0.2,
                 color=color,
             )

@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
                         width = et.get_tag("ImageWidth", obj.thumbnail_big.path)
                         obj.aspect_ratio = round((width / height), 2)
                         obj.save()
-                    except:
+                    except Exception:
                         print("Cannot convert {} object".format(obj))
 
     operations = [

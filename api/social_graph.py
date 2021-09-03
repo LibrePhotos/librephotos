@@ -7,9 +7,9 @@ from api.models import Person
 def build_social_graph(user):
     query = """
         with face as (
-        	select photo_id,  person_id, name
-        	from api_face join api_person on api_person.id = person_id
-        	where person_label_is_inferred = false
+            select photo_id,  person_id, name
+            from api_face join api_person on api_person.id = person_id
+            where person_label_is_inferred = false
         )
         select f1.name, f2.name
         from face f1 join face f2 using (photo_id)

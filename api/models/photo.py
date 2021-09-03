@@ -13,7 +13,6 @@ from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.db import models
 from django.db.models import Q
-from geopy.geocoders import Nominatim
 
 import api.models
 import api.util as util
@@ -116,7 +115,7 @@ class Photo(models.Model):
                 % (image_path, caption)
             )
             return True
-        except:
+        except Exception:
             util.logger.warning(
                 "could not generate im2txt captions for image %s" % image_path
             )
@@ -136,7 +135,7 @@ class Photo(models.Model):
                 util.logger.info(
                     "generated clip embeddings for image %s." % (image_path)
                 )
-            except Exception as e:
+            except Exception:
                 util.logger.exception(
                     "could not generate clip embeddings for image %s" % image_path
                 )
@@ -170,7 +169,7 @@ class Photo(models.Model):
             util.logger.info(
                 "generated places365 captions for image %s." % (image_path)
             )
-        except Exception as e:
+        except Exception:
             util.logger.exception(
                 "could not generate places365 captions for image %s" % image_path
             )
@@ -268,7 +267,7 @@ class Photo(models.Model):
                 date=self.exif_timestamp.date(), owner=self.owner
             )
             if (
-                possible_old_album_date != None
+                possible_old_album_date is not None
                 and possible_old_album_date.photos.filter(
                     image_hash=self.image_hash
                 ).exists
@@ -279,7 +278,7 @@ class Photo(models.Model):
                 date=None, owner=self.owner
             )
             if (
-                possible_old_album_date != None
+                possible_old_album_date is not None
                 and possible_old_album_date.photos.filter(
                     image_hash=self.image_hash
                 ).exists
@@ -307,14 +306,14 @@ class Photo(models.Model):
                     timestamp_from_exif = datetime.strptime(exif, date_format).replace(
                         tzinfo=pytz.utc
                     )
-                except:
+                except Exception:
                     timestamp_from_exif = None
             if exifvideo:
                 try:
                     timestamp_from_exif = datetime.strptime(
                         exifvideo, date_format
                     ).replace(tzinfo=pytz.utc)
-                except:
+                except Exception:
                     timestamp_from_exif = None
 
         old_album_date = self._find_album_date()
@@ -371,7 +370,7 @@ class Photo(models.Model):
                 return
             if "features" not in res.keys():
                 return
-        except:
+        except Exception:
             util.logger.exception("something went wrong with geolocating")
             return
 
@@ -390,7 +389,7 @@ class Photo(models.Model):
                 old_album_place.save()
         # Add photo to new album places
         for geolocation_level, feature in enumerate(self.geolocation_json["features"]):
-            if not "text" in feature.keys() or feature["text"].isnumeric():
+            if "text" not in feature.keys() or feature["text"].isnumeric():
                 continue
             album_place = api.models.album_place.get_album_place(
                 feature["text"], owner=self.owner
