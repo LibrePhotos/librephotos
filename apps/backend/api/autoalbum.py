@@ -45,16 +45,12 @@ def regenerate_event_titles(user, job_id):
             lrj.result = {"progress": {"current": idx + 1, "target": target_count}}
             lrj.save()
 
-        status = True
-        message = "success"
-        res = {"status": status, "message": message}
-
         lrj.finished = True
         lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
         lrj.save()
         logger.info("job {}: updated lrj entry to db".format(job_id))
 
-    except:
+    except Exception:
         logger.exception("An error occured")
         lrj.failed = True
         lrj.finished = True
@@ -150,15 +146,11 @@ def generate_event_albums(user, job_id):
             lrj.result = {"progress": {"current": idx + 1, "target": target_count}}
             lrj.save()
 
-        status = True
-        message = "success"
-        res = {"status": status, "message": message}
-
         lrj.finished = True
         lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
         lrj.save()
 
-    except:
+    except Exception:
         logger.exception("An error occured")
         lrj.failed = True
         lrj.finished = True
@@ -203,14 +195,10 @@ def delete_missing_photos(user, job_id):
         missing_photos.delete()
         cache.clear()
 
-        status = True
-        message = "success"
-        res = {"status": status, "message": message}
-
         lrj.finished = True
         lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
         lrj.save()
-    except:
+    except Exception:
         logger.exception("An error occured")
         lrj.failed = True
         lrj.finished = True

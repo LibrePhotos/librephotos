@@ -2,7 +2,6 @@ import operator
 from functools import reduce
 
 from django.db.models import Q
-from django.db.models.expressions import RawSQL
 from rest_framework import filters
 from rest_framework.compat import distinct
 

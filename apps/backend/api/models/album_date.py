@@ -35,7 +35,7 @@ def get_or_create_album_date(date, owner):
 def get_album_date(date, owner):
     try:
         return AlbumDate.objects.get(date=date, owner=owner)
-    except:
+    except Exception:
         return None
 
 

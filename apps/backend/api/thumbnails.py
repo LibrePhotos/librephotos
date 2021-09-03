@@ -5,7 +5,6 @@ import pyvips
 from wand.image import Image
 
 import ownphotos.settings
-from api.util import logger
 
 
 def isRawPicture(path):

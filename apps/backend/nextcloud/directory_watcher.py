@@ -25,7 +25,7 @@ def isValidNCMedia(file_obj):
             or "heic" in filetype
             or "heif" in filetype
         )
-    except:
+    except Exception:
         util.logger.exception("An image throwed an exception")
         return False
 
@@ -85,15 +85,12 @@ def scan_photos(user, job_id):
     try:
         image_paths.sort()
 
-        existing_hashes = [p.image_hash for p in Photo.objects.all()]
-
         image_paths_to_add = []
         for image_path in image_paths:
             if not Photo.objects.filter(image_paths__contains=image_path).exists():
                 image_paths_to_add.append(image_path)
 
         added_photo_count = 0
-        already_existing_photo = 0
         to_add_count = len(image_paths_to_add)
         for idx, image_path in enumerate(image_paths_to_add):
             util.logger.info("begin handling of photo %d/%d" % (idx + 1, to_add_count))
