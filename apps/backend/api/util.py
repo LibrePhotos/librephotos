@@ -133,19 +133,19 @@ def mapbox_reverse_geocode(lat, lon):
         return {}
 
 
-def get_existing_sidecar_file(media_file):
-    for sidecar_file in get_sidecar_file_alternatives(media_file):
-        if os.path.exists(sidecar_file):
-            return sidecar_file
-    return None
+def get_sidecar_files_in_priority_order(media_file):
+    """
+    Returns a list of possible XMP sidecar files for *media_file*, ordered
+    by priority.
 
-
-def get_sidecar_file_alternatives(media_file):
-    sidecar_file_alternatives = []
+    """
     image_basename = os.path.splitext(media_file)[0]
-    sidecar_file_alternatives.extend([image_basename + ext for ext in [".xmp", ".XMP"]])
-    sidecar_file_alternatives.extend([media_file + ext for ext in [".xmp", ".XMP"]])
-    return sidecar_file_alternatives
+    return [
+        image_basename + ".xmp",
+        image_basename + ".XMP",
+        media_file + ".xmp",
+        media_file + ".XMP",
+    ]
 
 
 exiftool_instance = exiftool.ExifTool()
@@ -175,11 +175,13 @@ def get_metadata(media_file, tags, try_sidecar=True):
         for tag in tags:
             value = et.get_tag(tag, media_file)
             if try_sidecar:
-                sidecar_file = get_existing_sidecar_file(media_file)
-                if sidecar_file:
-                    value_sidecar = et.get_tag(tag, sidecar_file)
-                    if value_sidecar is not None:
-                        value = value_sidecar
+                for sidecar_file in reversed(
+                    get_sidecar_files_in_priority_order(media_file)
+                ):
+                    if os.path.exists(sidecar_file):
+                        value_sidecar = et.get_tag(tag, sidecar_file)
+                        if value_sidecar is not None:
+                            value = value_sidecar
             values.append(value)
     finally:
         if terminate_et:
@@ -195,7 +197,7 @@ def write_metadata(media_file, tags, use_sidecar=True):
         terminate_et = True
 
     if use_sidecar:
-        file_path = get_sidecar_file_alternatives(media_file)[0]
+        file_path = get_sidecar_files_in_priority_order(media_file)[0]
     else:
         file_path = media_file
 

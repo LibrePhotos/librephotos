@@ -193,20 +193,25 @@ def walk_directory(directory, callback):
 
 
 def _file_was_modified_after(filepath, time):
-    modified = os.path.getmtime(filepath)
+    try:
+        modified = os.path.getmtime(filepath)
+    except OSError:
+        return False
     return datetime.datetime.fromtimestamp(modified).replace(tzinfo=pytz.utc) > time
 
 
 def photo_scanner(user, lastScan, full_scan, path, job_id):
     if Photo.objects.filter(image_paths__contains=path).exists():
-        sidecar_file = util.get_existing_sidecar_file(path)
+        files_to_check = [path]
+        files_to_check.extend(util.get_sidecar_files_in_priority_order(path))
         if (
             full_scan
             or not lastScan
-            or _file_was_modified_after(path, lastScan.finished_at)
-            or (
-                sidecar_file
-                and _file_was_modified_after(sidecar_file, lastScan.finished_at)
+            or any(
+                [
+                    _file_was_modified_after(p, lastScan.finished_at)
+                    for p in files_to_check
+                ]
             )
         ):
             rescan_image(user, path, job_id)
@@ -237,7 +242,11 @@ def initialize_scan_process(*args, **kwargs):
     from api.util import exiftool_instance
 
     et = exiftool_instance.__enter__()
-    Finalize(et, et.__exit__, exitpriority=16)
+
+    def terminate(et):
+        et.terminate()
+
+    Finalize(et, terminate, args=(et), exitpriority=16)
 
 
 @job
