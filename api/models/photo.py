@@ -38,6 +38,16 @@ class VisiblePhotoManager(models.Manager):
         )
 
 
+class Tags:
+    RATING = "Rating"
+    IMAGE_HEIGHT = "ImageHeight"
+    IMAGE_WIDTH = "ImageWidth"
+    DATE_TIME_ORIGINAL = "EXIF:DateTimeOriginal"
+    QUICKTIME_CREATE_DATE = "QuickTime:CreateDate"
+    LATITUDE = "Composite:GPSLatitude"
+    LONGITUDE = "Composite:GPSLongitude"
+
+
 class Photo(models.Model):
     image_paths = models.JSONField(default=list)
     image_hash = models.CharField(primary_key=True, max_length=64, null=False)
@@ -105,8 +115,12 @@ class Photo(models.Model):
             for field_name, value in self._loaded_values.items()
             if value != getattr(self, field_name)
         ]
-        if save_metadata:
-            self._save_metadata(modified_fields)
+        user = User.objects.get(username=self.owner)
+        if save_metadata and user.save_metadata_to_disk != User.SaveMetadataToDisk.OFF:
+            self._save_metadata(
+                modified_fields,
+                user.save_metadata_to_disk == User.SaveMetadataToDisk.SIDECAR_FILE,
+            )
         return super().save(
             force_insert=force_insert,
             force_update=force_update,
@@ -114,12 +128,14 @@ class Photo(models.Model):
             update_fields=update_fields,
         )
 
-    def _save_metadata(self, modified_fields=None):
-        tags_to_write = []
+    def _save_metadata(self, modified_fields=None, use_sidecar=True):
+        tags_to_write = {}
         if modified_fields is None or "rating" in modified_fields:
-            tags_to_write.append(f"Rating={self.rating}")
+            tags_to_write[Tags.RATING] = self.rating
         if tags_to_write:
-            util.write_metadata(self.image_paths[0], tags_to_write, True)
+            util.write_metadata(
+                self.image_paths[0], tags_to_write, use_sidecar=use_sidecar
+            )
 
     def _generate_md5(self):
         hash_md5 = hashlib.md5()
@@ -323,7 +339,7 @@ class Photo(models.Model):
     def _calculate_aspect_ratio(self, commit=True):
         height, width = get_metadata(
             self.thumbnail_big.path,
-            tags=["ImageHeight", "ImageWidth"],
+            tags=[Tags.IMAGE_HEIGHT, Tags.IMAGE_WIDTH],
             try_sidecar=False,
         )
         self.aspect_ratio = round(width / height, 2)
@@ -336,7 +352,7 @@ class Photo(models.Model):
         timestamp_from_exif = None
         exif, exifvideo = get_metadata(
             self.image_paths[0],
-            tags=["EXIF:DateTimeOriginal", "QuickTime:CreateDate"],
+            tags=[Tags.DATE_TIME_ORIGINAL, Tags.QUICKTIME_CREATE_DATE],
             try_sidecar=True,
         )
         if exif:
@@ -385,7 +401,7 @@ class Photo(models.Model):
         old_gps_lon = self.exif_gps_lon
         new_gps_lat, new_gps_lon = get_metadata(
             self.image_paths[0],
-            tags=["Composite:GPSLatitude", "Composite:GPSLongitude"],
+            tags=[Tags.LATITUDE, Tags.LONGITUDE],
             try_sidecar=True,
         )
         old_album_places = self._find_album_place()
@@ -460,7 +476,9 @@ class Photo(models.Model):
         cache.clear()
 
     def _extract_rating(self, commit=True):
-        (rating,) = get_metadata(self.image_paths[0], tags=["Rating"], try_sidecar=True)
+        (rating,) = get_metadata(
+            self.image_paths[0], tags=[Tags.RATING], try_sidecar=True
+        )
         if rating is not None:
             # Only change rating if the tag was found
             logger.debug(f"Extracted rating for {self.image_paths[0]}: {rating}")
