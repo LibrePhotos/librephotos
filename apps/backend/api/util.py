@@ -151,6 +151,14 @@ def get_sidecar_files_in_priority_order(media_file):
 exiftool_instance = exiftool.ExifTool()
 
 
+def _get_metadata_files_reversed(media_file, include_sidecar_files):
+    if include_sidecar_files:
+        files = get_sidecar_files_in_priority_order(media_file)
+        files.append(media_file)
+        return reversed(files)
+    return [media_file]
+
+
 def get_metadata(media_file, tags, try_sidecar=True):
     """
     Get values for each metadata tag in *tags* from *media_file*.
@@ -170,18 +178,16 @@ def get_metadata(media_file, tags, try_sidecar=True):
     if not et.running:
         et.start()
         terminate_et = True
+
+    files_by_reverse_priority = _get_metadata_files_reversed(media_file, try_sidecar)
+
     values = []
     try:
         for tag in tags:
-            value = et.get_tag(tag, media_file)
-            if try_sidecar:
-                for sidecar_file in reversed(
-                    get_sidecar_files_in_priority_order(media_file)
-                ):
-                    if os.path.exists(sidecar_file):
-                        value_sidecar = et.get_tag(tag, sidecar_file)
-                        if value_sidecar is not None:
-                            value = value_sidecar
+            for file in files_by_reverse_priority:
+                retrieved_value = et.get_tag(tag, file)
+                if retrieved_value is not None:
+                    value = retrieved_value
             values.append(value)
     finally:
         if terminate_et:
