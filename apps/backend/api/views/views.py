@@ -692,6 +692,7 @@ class UserViewSet(viewsets.ModelViewSet):
             "nextcloud_username",
             "nextcloud_scan_directory",
             "favorite_min_rating",
+            "save_metadata_to_disk",
         ).order_by("-last_login")
         return queryset
 
