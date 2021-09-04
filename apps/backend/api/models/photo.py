@@ -460,17 +460,13 @@ class Photo(models.Model):
         cache.clear()
 
     def _extract_rating(self, commit=True):
-        logger.info(f"Extracting rating for {self.image_paths[0]}")
-        (self.rating,) = get_metadata(
-            self.image_paths[0], tags=["Rating"], try_sidecar=True
-        )
-        if self.rating is None or self.rating < -1:
-            self.rating = 0
-        if self.rating > 5:
-            self.rating = 5
-
-        if commit:
-            self.save(save_metadata=False)
+        (rating,) = get_metadata(self.image_paths[0], tags=["Rating"], try_sidecar=True)
+        if rating is not None:
+            # Only change rating if the tag was found
+            logger.debug(f"Extracted rating for {self.image_paths[0]}: {rating}")
+            self.rating = rating
+            if commit:
+                self.save(save_metadata=False)
 
     def _extract_faces(self):
         qs_unknown_person = api.models.person.Person.objects.filter(name="unknown")
