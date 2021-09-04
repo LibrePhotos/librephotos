@@ -513,14 +513,14 @@ class Photo(models.Model):
                 margin = 2
                 existing_faces = api.models.face.Face.objects.filter(
                     photo=self,
-                    location_top__lte    = face_location[0]+margin,
-                    location_top__gte    = face_location[0]-margin,
-                    location_right__lte  = face_location[1]+margin,
-                    location_right__gte  = face_location[1]-margin,
-                    location_bottom__lte = face_location[2]+margin,
-                    location_bottom__gte = face_location[2]-margin,
-                    location_left__lte   = face_location[3]+margin,
-                    location_left__gte   = face_location[3]-margin,
+                    location_top__lte=face_location[0] + margin,
+                    location_top__gte=face_location[0] - margin,
+                    location_right__lte=face_location[1] + margin,
+                    location_right__gte=face_location[1] - margin,
+                    location_bottom__lte=face_location[2] + margin,
+                    location_bottom__gte=face_location[2] - margin,
+                    location_left__lte=face_location[3] + margin,
+                    location_left__gte=face_location[3] - margin,
                 )
 
                 if existing_faces.count() != 0:
