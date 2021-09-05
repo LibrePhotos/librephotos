@@ -54,9 +54,7 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
                     ),
                 )
             )
-            .only(
-                "id", "title", "rating", "timestamp", "created_on", "gps_lat", "gps_lon"
-            )
+            .only("id", "title", "timestamp", "created_on", "gps_lat", "gps_lon")
             .order_by("-timestamp")
         )
 
@@ -101,7 +99,7 @@ class AlbumAutoListViewSet(viewsets.ModelViewSet):
                     ),
                 )
             )
-            .only("id", "title", "timestamp", "rating", "shared_to")
+            .only("id", "title", "timestamp", "shared_to")
             .order_by("-timestamp")
         )
 
