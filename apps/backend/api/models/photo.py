@@ -349,13 +349,14 @@ class Photo(models.Model):
             new_gps_lat = et.get_tag("Composite:GPSLatitude", self.image_paths[0])
             new_gps_lon = et.get_tag("Composite:GPSLongitude", self.image_paths[0])
         old_album_places = self._find_album_place()
-        # Skip if it hasn't changed or is null
+        # Skip if it hasn't changed or is null 
         if not new_gps_lat or not new_gps_lon:
             return
         if (
             old_gps_lat == float(new_gps_lat)
             and old_gps_lon == float(new_gps_lon)
             and old_album_places.count() != 0
+            and self.geolocation_json
         ):
             return
         self.exif_gps_lon = float(new_gps_lon)
@@ -416,6 +417,9 @@ class Photo(models.Model):
                 album_date.location = new_value
         else:
             album_date.location = {"places": [city_name]}
+        # Safe geolocation_json
+        if commit:
+            self.save()
         album_date.save()
         cache.clear()
 
@@ -446,14 +450,14 @@ class Photo(models.Model):
                 margin = 2
                 existing_faces = api.models.face.Face.objects.filter(
                     photo=self,
-                    location_top__lte    = face_location[0]+margin,
-                    location_top__gte    = face_location[0]-margin,
-                    location_right__lte  = face_location[1]+margin,
-                    location_right__gte  = face_location[1]-margin,
-                    location_bottom__lte = face_location[2]+margin,
-                    location_bottom__gte = face_location[2]-margin,
-                    location_left__lte   = face_location[3]+margin,
-                    location_left__gte   = face_location[3]-margin,
+                    location_top__lte=face_location[0] + margin,
+                    location_top__gte=face_location[0] - margin,
+                    location_right__lte=face_location[1] + margin,
+                    location_right__gte=face_location[1] - margin,
+                    location_bottom__lte=face_location[2] + margin,
+                    location_bottom__gte=face_location[2] - margin,
+                    location_left__lte=face_location[3] + margin,
+                    location_left__gte=face_location[3] - margin,
                 )
 
                 if existing_faces.count() != 0:
