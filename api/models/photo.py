@@ -405,13 +405,14 @@ class Photo(models.Model):
             try_sidecar=True,
         )
         old_album_places = self._find_album_place()
-        # Skip if it hasn't changed or is null
+        # Skip if it hasn't changed or is null 
         if not new_gps_lat or not new_gps_lon:
             return
         if (
             old_gps_lat == float(new_gps_lat)
             and old_gps_lon == float(new_gps_lon)
             and old_album_places.count() != 0
+            and self.geolocation_json
         ):
             return
         self.exif_gps_lon = float(new_gps_lon)
@@ -472,6 +473,9 @@ class Photo(models.Model):
                 album_date.location = new_value
         else:
             album_date.location = {"places": [city_name]}
+        # Safe geolocation_json
+        if commit:
+            self.save()
         album_date.save()
         cache.clear()
 
