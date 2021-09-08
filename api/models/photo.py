@@ -405,7 +405,7 @@ class Photo(models.Model):
             try_sidecar=True,
         )
         old_album_places = self._find_album_place()
-        # Skip if it hasn't changed or is null 
+        # Skip if it hasn't changed or is null
         if not new_gps_lat or not new_gps_lon:
             return
         if (
