@@ -693,6 +693,7 @@ class UserViewSet(viewsets.ModelViewSet):
             "nextcloud_username",
             "nextcloud_scan_directory",
             "favorite_min_rating",
+            "image_scale",
         ).order_by("-last_login")
         return queryset
 
@@ -1402,7 +1403,9 @@ class MediaAccessFullsizeOriginalView(APIView):
             filename = mime.from_file(photo.image_paths[0])
             response = HttpResponse()
             response["Content-Type"] = filename
-            response["X-Accel-Redirect"] = iri_to_uri(photo.image_paths[0].replace(ownphotos.settings.DATA_ROOT, "/original"))
+            response["X-Accel-Redirect"] = iri_to_uri(
+                photo.image_paths[0].replace(ownphotos.settings.DATA_ROOT, "/original")
+            )
             return response
         # faces and avatars
         response = HttpResponse()
