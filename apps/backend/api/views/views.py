@@ -10,6 +10,7 @@ import six
 from constance import config as site_config
 from django.core.cache import cache
 from django.db.models import Count, Prefetch, Q
+from django.utils.encoding import iri_to_uri
 from django.http import HttpResponse, HttpResponseForbidden
 from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
@@ -1401,7 +1402,7 @@ class MediaAccessFullsizeOriginalView(APIView):
             filename = mime.from_file(photo.image_paths[0])
             response = HttpResponse()
             response["Content-Type"] = filename
-            response["X-Accel-Redirect"] = photo.image_paths[0]
+            response["X-Accel-Redirect"] = iri_to_uri(photo.image_paths[0].replace(ownphotos.settings.DATA_ROOT, "/original"))
             return response
         # faces and avatars
         response = HttpResponse()
