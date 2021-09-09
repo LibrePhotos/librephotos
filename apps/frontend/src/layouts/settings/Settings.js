@@ -127,7 +127,7 @@ export class Settings extends Component {
           <MaterialIcon icon="settings" color="#000000" size={32} />
           <Header.Content>Settings</Header.Content>
         </Header>
-
+        {console.log(this.state.userSelfDetails)}
         <div>
           <Header as="h3">Account</Header>
 
@@ -314,10 +314,8 @@ export class Settings extends Component {
             </Grid.Row>
           </Grid>
         </div>
-
         <Divider />
         <Header as="h3">Nextcloud</Header>
-
         <Grid>
           <Grid.Row>
             <Grid.Column width={4} textAlign="left">
@@ -465,13 +463,58 @@ export class Settings extends Component {
             </Grid.Column>
           </Grid.Row>
         </Grid>
+        <Divider />
+        <Header as="h3">Appearance</Header>
+        <Grid>
+          <Grid.Row>
+            <Grid.Column width={4} textAlign="left">
+              <b>Thumbnail size</b>
+            </Grid.Column>
 
+            <Grid.Column width={12}>
+              <Form>
+                <Form.Group>
+                  <Form.Field>
+                    <Radio
+                      label="Big"
+                      name="radioGroup"
+                      value="loose"
+                      onClick={() => {
+                        this.setState({
+                          userSelfDetails: {
+                            ...this.state.userSelfDetails,
+                            image_scale: 1,
+                          },
+                        });
+                      }}
+                      checked={this.state.userSelfDetails.image_scale === 1}
+                    />
+                  </Form.Field>
+                  <Form.Field>
+                    <Radio
+                      label="Small"
+                      name="radioGroup"
+                      value="dense"
+                      onClick={() => {
+                        this.setState({
+                          userSelfDetails: {
+                            ...this.state.userSelfDetails,
+                            image_scale: 2,
+                          },
+                        });
+                      }}
+                      checked={this.state.userSelfDetails.image_scale === 2}
+                    />
+                  </Form.Field>
+                </Form.Group>
+              </Form>
+            </Grid.Column>
+          </Grid.Row>
+        </Grid>
         <Divider />
         <Header as="h3">Library</Header>
-
         <CountStats />
         <Divider hidden />
-
         <Grid stackable>
           <Grid.Row columns={4}>
             <Grid.Column>
@@ -720,7 +763,6 @@ export class Settings extends Component {
           </Grid.Row>
         </Grid>
         <Divider />
-
         <Header as="h3">Scan Options</Header>
         <Grid>
           <Grid.Row>
@@ -805,9 +847,7 @@ export class Settings extends Component {
             </Grid.Column>
           </Grid.Row>
         </Grid>
-
         <Header as="h3">Favorite options</Header>
-
         <Grid>
           <Grid.Row>
             <Grid.Column width={4} textAlign="left">
@@ -861,7 +901,6 @@ export class Settings extends Component {
             </Grid.Column>
           </Grid.Row>
         </Grid>
-
         <ModalNextcloudScanDirectoryEdit
           onRequestClose={() => {
             this.setState({ modalNextcloudScanDirectoryOpen: false });

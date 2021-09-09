@@ -23,6 +23,7 @@ import _ from "lodash";
 import getToolbar from "../photolist/Toolbar";
 import FavoritedOverlay from "./FavoritedOverlay";
 import { fetchSiteSettings } from "../../actions/utilActions";
+import { fetchUserSelfDetails } from "../../actions/userActions";
 
 var TOP_MENU_HEIGHT = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
@@ -54,6 +55,7 @@ export class PhotoListView extends Component {
     this.handleResize();
     window.addEventListener("resize", this.handleResize);
     this.props.dispatch(fetchSiteSettings());
+    this.props.dispatch(fetchUserSelfDetails(this.props.auth.access.user_id));
   }
   componentWillUnmount() {
     window.removeEventListener("resize", this.handleResize);
@@ -429,6 +431,7 @@ export class PhotoListView extends Component {
               selectedItems={this.state.selectedItems}
               handleSelection={this.handleSelection}
               handleClick={this.handleClick}
+              scaleOfImages={this.props.userSelfDetails.image_scale}
               groupByDate={this.props.isDateView}
               getUrl={(url, pxHeight) => {
                 console.log(pxHeight);
@@ -545,7 +548,9 @@ export class PhotoListView extends Component {
 
 PhotoListView = connect((store) => {
   return {
+    auth: store.auth,
     showSidebar: store.ui.showSidebar,
     route: store.routerReducer,
+    userSelfDetails: store.user.userSelfDetails,
   };
 })(PhotoListView);
