@@ -92,6 +92,8 @@ class Photo(models.Model):
     objects = models.Manager()
     visible = VisiblePhotoManager()
 
+    _loaded_values = {}
+
     @classmethod
     def from_db(cls, db, field_names, values):
         instance = super().from_db(db, field_names, values)

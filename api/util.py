@@ -190,6 +190,7 @@ def get_metadata(media_file, tags, try_sidecar=True):
     values = []
     try:
         for tag in tags:
+            value = None
             for file in files_by_reverse_priority:
                 retrieved_value = et.get_tag(tag, file)
                 if retrieved_value is not None:
