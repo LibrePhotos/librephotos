@@ -127,7 +127,6 @@ export class Settings extends Component {
           <MaterialIcon icon="settings" color="#000000" size={32} />
           <Header.Content>Settings</Header.Content>
         </Header>
-        {console.log(this.state.userSelfDetails)}
         <div>
           <Header as="h3">Account</Header>
 
@@ -230,7 +229,6 @@ export class Settings extends Component {
                             first_name: d.value,
                           },
                         });
-                        console.log(d.value);
                       }}
                       label="First name"
                       placeholder="First name"
@@ -245,7 +243,6 @@ export class Settings extends Component {
                             last_name: d.value,
                           },
                         });
-                        console.log(d.value);
                       }}
                       label="Last name"
                       placeholder="Last name"
@@ -264,7 +261,6 @@ export class Settings extends Component {
                           email: d.value,
                         },
                       });
-                      console.log(d.value);
                     }}
                   />
                 </Form>{" "}
@@ -275,7 +271,6 @@ export class Settings extends Component {
                     floated="left"
                     onClick={() => {
                       const newUserData = this.state.userSelfDetails;
-                      console.log(newUserData);
                       delete newUserData["scan_directory"];
                       delete newUserData["avatar"];
                       this.props.dispatch(updateUser(newUserData));
@@ -340,7 +335,6 @@ export class Settings extends Component {
                           nextcloud_server_address: d.value,
                         },
                       });
-                      console.log(d.value);
                     }}
                     label="Server address"
                     placeholder="https://..."
@@ -360,7 +354,6 @@ export class Settings extends Component {
                           nextcloud_username: d.value,
                         },
                       });
-                      console.log(d.value);
                     }}
                     label="User name"
                     placeholder="User name"
@@ -378,7 +371,6 @@ export class Settings extends Component {
                           nextcloud_app_password: d.value,
                         },
                       });
-                      console.log(d.value);
                     }}
                     type="password"
                     label="Nextcloud App Password"
@@ -773,17 +765,12 @@ export class Settings extends Component {
               <select
                 value={this.state.userSelfDetails.confidence}
                 onChange={(event) => {
-                  this.setState(
-                    {
-                      userSelfDetails: {
-                        ...this.state.userSelfDetails,
-                        confidence: event.target.value,
-                      },
+                  this.setState({
+                    userSelfDetails: {
+                      ...this.state.userSelfDetails,
+                      confidence: event.target.value,
                     },
-                    () => {
-                      console.log(this.state.userSelfDetails);
-                    }
-                  );
+                  });
                 }}
               >
                 <option value="" disabled selected>
@@ -804,17 +791,12 @@ export class Settings extends Component {
               <select
                 value={this.state.userSelfDetails.semantic_search_topk}
                 onChange={(event) => {
-                  this.setState(
-                    {
-                      userSelfDetails: {
-                        ...this.state.userSelfDetails,
-                        semantic_search_topk: event.target.value,
-                      },
+                  this.setState({
+                    userSelfDetails: {
+                      ...this.state.userSelfDetails,
+                      semantic_search_topk: event.target.value,
                     },
-                    () => {
-                      console.log(this.state.userSelfDetails);
-                    }
-                  );
+                  });
                 }}
               >
                 <option value="" disabled selected>
@@ -834,7 +816,6 @@ export class Settings extends Component {
                 color="green"
                 onClick={() => {
                   const newUserData = this.state.userSelfDetails;
-                  console.log(newUserData);
                   delete newUserData["scan_directory"];
                   delete newUserData["avatar"];
                   this.props.dispatch(manageUpdateUser(newUserData));
@@ -857,17 +838,12 @@ export class Settings extends Component {
               <select
                 value={this.state.userSelfDetails.favorite_min_rating}
                 onChange={(event) => {
-                  this.setState(
-                    {
-                      userSelfDetails: {
-                        ...this.state.userSelfDetails,
-                        favorite_min_rating: parseInt(event.target.value),
-                      },
+                  this.setState({
+                    userSelfDetails: {
+                      ...this.state.userSelfDetails,
+                      favorite_min_rating: parseInt(event.target.value),
                     },
-                    () => {
-                      console.log(this.state.userSelfDetails);
-                    }
-                  );
+                  });
                 }}
               >
                 <option value="" disabled selected>
@@ -888,7 +864,6 @@ export class Settings extends Component {
                 color="green"
                 onClick={() => {
                   const newUserData = this.state.userSelfDetails;
-                  console.log(newUserData);
                   delete newUserData["scan_directory"];
                   delete newUserData["avatar"];
                   this.props.dispatch(manageUpdateUser(newUserData));
@@ -954,7 +929,6 @@ class ModalNextcloudScanDirectoryEdit extends Component {
   }
 
   nodeClicked(event, rowInfo) {
-    console.log(rowInfo);
     this.inputRef.current.inputRef.value = rowInfo.node.absolute_path;
     this.setState({ newScanDirectory: rowInfo.node.absolute_path });
   }
@@ -1002,7 +976,6 @@ class ModalNextcloudScanDirectoryEdit extends Component {
                   ...this.props.userToEdit,
                   nextcloud_scan_directory: this.state.newScanDirectory,
                 };
-                console.log(newUserData);
                 const ud = newUserData;
                 this.props.dispatch(updateUser(ud));
                 this.props.onRequestClose();
