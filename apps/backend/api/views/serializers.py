@@ -708,6 +708,7 @@ class UserSerializer(serializers.ModelSerializer):
             "nextcloud_scan_directory",
             "avatar_url",
             "favorite_min_rating",
+            "image_scale",
         )
 
     def validate_nextcloud_app_password(self, value):
@@ -791,6 +792,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
             "photo_count",
             "id",
             "favorite_min_rating",
+            "image_scale",
         )
         extra_kwargs = {
             "password": {"write_only": True},
@@ -836,6 +838,15 @@ class ManageUserSerializer(serializers.ModelSerializer):
             logger.info(
                 "Updated favorite_min_rating for user {}".format(
                     instance.favorite_min_rating
+                )
+            )
+        if "image_scale" in validated_data:
+            new_image_scale = validated_data.pop("image_scale")
+            instance.image_scale = new_image_scale
+            instance.save()
+            logger.info(
+                "Updated image_scale for user {}".format(
+                    instance.image_scale
                 )
             )
         cache.clear()
