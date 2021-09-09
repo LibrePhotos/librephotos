@@ -349,7 +349,7 @@ class Photo(models.Model):
             new_gps_lat = et.get_tag("Composite:GPSLatitude", self.image_paths[0])
             new_gps_lon = et.get_tag("Composite:GPSLongitude", self.image_paths[0])
         old_album_places = self._find_album_place()
-        # Skip if it hasn't changed or is null 
+        # Skip if it hasn't changed or is null
         if not new_gps_lat or not new_gps_lon:
             return
         if (
