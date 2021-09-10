@@ -246,7 +246,7 @@ def initialize_scan_process(*args, **kwargs):
     def terminate(et):
         et.terminate()
 
-    Finalize(et, terminate, args=(et), exitpriority=16)
+    Finalize(et, terminate, args=(et,), exitpriority=16)
 
 
 @job
