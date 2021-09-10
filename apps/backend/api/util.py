@@ -159,7 +159,7 @@ def _get_existing_metadata_files_reversed(media_file, include_sidecar_files):
             if os.path.exists(file)
         ]
         files.append(media_file)
-        return reversed(files)
+        return list(reversed(files))
     return [media_file]
 
 
