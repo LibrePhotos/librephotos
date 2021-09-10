@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("api", "0012_add_favorite_min_rating"),
+        ("api", "0013_add_image_scale_and_misc"),
     ]
 
     operations = [

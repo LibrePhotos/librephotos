@@ -11,6 +11,7 @@ from constance import config as site_config
 from django.core.cache import cache
 from django.db.models import Count, Prefetch, Q
 from django.http import HttpResponse, HttpResponseForbidden
+from django.utils.encoding import iri_to_uri
 from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -692,6 +693,7 @@ class UserViewSet(viewsets.ModelViewSet):
             "nextcloud_username",
             "nextcloud_scan_directory",
             "favorite_min_rating",
+            "image_scale",
             "save_metadata_to_disk",
         ).order_by("-last_login")
         return queryset
@@ -1402,7 +1404,9 @@ class MediaAccessFullsizeOriginalView(APIView):
             filename = mime.from_file(photo.image_paths[0])
             response = HttpResponse()
             response["Content-Type"] = filename
-            response["X-Accel-Redirect"] = photo.image_paths[0]
+            response["X-Accel-Redirect"] = iri_to_uri(
+                photo.image_paths[0].replace(ownphotos.settings.DATA_ROOT, "/original")
+            )
             return response
         # faces and avatars
         response = HttpResponse()

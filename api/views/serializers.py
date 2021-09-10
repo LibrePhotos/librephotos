@@ -709,6 +709,7 @@ class UserSerializer(serializers.ModelSerializer):
             "nextcloud_scan_directory",
             "avatar_url",
             "favorite_min_rating",
+            "image_scale",
             "save_metadata_to_disk",
         )
 
@@ -793,6 +794,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
             "photo_count",
             "id",
             "favorite_min_rating",
+            "image_scale",
             "save_metadata_to_disk",
         )
         extra_kwargs = {
@@ -832,13 +834,19 @@ class ManageUserSerializer(serializers.ModelSerializer):
                 )
             )
         if "favorite_min_rating" in validated_data:
-            instance.favorite_min_rating = validated_data.pop("favorite_min_rating")
+            new_favorite_min_rating = validated_data.pop("favorite_min_rating")
+            instance.favorite_min_rating = new_favorite_min_rating
             instance.save()
             logger.info(
                 "Updated favorite_min_rating for user {}".format(
                     instance.favorite_min_rating
                 )
             )
+        if "image_scale" in validated_data:
+            new_image_scale = validated_data.pop("image_scale")
+            instance.image_scale = new_image_scale
+            instance.save()
+            logger.info("Updated image_scale for user {}".format(instance.image_scale))
         if "save_metadata_to_disk" in validated_data:
             instance.save_metadata_to_disk = validated_data.pop("save_metadata_to_disk")
             instance.save()
