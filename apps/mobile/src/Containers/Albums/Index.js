@@ -25,9 +25,9 @@ const AlbumContainer = () => {
 
   const [initialLoading, setInitialLoading] = useState(true)
 
-  const albumPeople = useSelector(state => state.album.albumPeople.results)
-  const albumThings = useSelector(state => state.album.albumThings.results)
-  const myAlbums = useSelector(state => state.album.myAlbums.results)
+  const albumPeople = useSelector(state => state.album.albumPeople?.results)
+  const albumThings = useSelector(state => state.album.albumThings?.results)
+  const myAlbums = useSelector(state => state.album.myAlbums?.results)
   const isLoading = useSelector(state => state.album.loading)
 
   const handleRefresh = () => {

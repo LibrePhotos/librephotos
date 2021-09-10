@@ -13,7 +13,11 @@ export default {
         timeout: 10000,
       })
       .then(response => {
+        console.log('Response Albums', response)
         return response.data
+      })
+      .catch(e => {
+        console.log('Request Failed', e)
       })
   }),
   reducers: buildAsyncReducers({ itemKey: 'myAlbums' }), // We do not want to modify some item by default

@@ -1,5 +1,6 @@
 const Colors = {
-  primary: 'lightblue',
+  primary: 'white',
+  screenBackground: '#000000',
   text: 'white',
   textLight: '#f8fafc',
   inputBackground: 'gray',

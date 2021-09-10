@@ -15,7 +15,13 @@ import { getConfig } from '../Config'
 import NoResultsError from './NoResultsError'
 import { updateToken } from '../Services/Auth'
 
-const ImageGrid = ({ data, numColumns = 3, displayError = false }) => {
+const ImageGrid = ({
+  data,
+  numColumns = 3,
+  displayError = false,
+  onRefresh = () => {},
+  refreshing = false,
+}) => {
   const { Common, Layout } = useTheme()
 
   const [zoomViewVisible, setZoomViewVisible] = useState(false)
@@ -64,8 +70,8 @@ const ImageGrid = ({ data, numColumns = 3, displayError = false }) => {
     <>
       {data && data.length > 0 && (
         <FlatList
-          // refreshing={false}
-          // onRefresh={() => {}}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
           keyExtractor={(item, index) => index}
           numColumns={COLUMNS}
           data={data}
@@ -73,7 +79,7 @@ const ImageGrid = ({ data, numColumns = 3, displayError = false }) => {
         />
       )}
       {(typeof data === 'undefined' || data.length < 1) && displayError && (
-        <NoResultsError />
+        <NoResultsError refreshing={refreshing} onRefresh={onRefresh} />
       )}
 
       <Modal

@@ -89,6 +89,7 @@ const IndexLoginContainer = () => {
                 autoCorrect={false}
                 autoCapitalize={'none'}
                 value={server}
+                color={Colors.text}
                 placeholder={'http://localhost:3000'}
                 placeholderTextColor={Colors.textLight}
                 InputRightElement={
@@ -131,6 +132,7 @@ const IndexLoginContainer = () => {
                 onChangeText={setUsername}
                 value={username}
                 autoCapitalize={'none'}
+                color={Colors.text}
                 placeholder={t('auth.label.username')}
                 placeholderTextColor={Colors.textLight}
               />
@@ -150,6 +152,7 @@ const IndexLoginContainer = () => {
                 onChangeText={setPassword}
                 value={password}
                 placeholder={t('auth.label.password')}
+                color={Colors.text}
                 type="password"
                 placeholderTextColor={Colors.textLight}
               />

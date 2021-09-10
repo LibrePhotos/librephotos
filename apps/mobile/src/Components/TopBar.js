@@ -1,4 +1,6 @@
 import React from 'react'
+import { useColorScheme } from 'react-native'
+import { useSelector } from 'react-redux'
 import { View, HStack, IconButton, Icon, Text, StatusBar } from 'native-base'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '@/Theme'
@@ -12,9 +14,20 @@ const TopBar = ({
   const { Colors, Layout, Images } = useTheme()
   const navigation = useNavigation()
 
+  // Get the scheme device
+  const colorScheme = useColorScheme()
+
+  const isDark = useSelector(state => state.theme.darkMode)
+  const darkMode = isDark === null ? colorScheme === 'dark' : isDark
+  const statusBarStyle = darkMode ? 'light-content' : 'dark-content'
+  console.log(statusBarStyle, Colors.screenBackground)
+
   return (
     <>
-      <StatusBar backgroundColor={Colors.transparent} barStyle="dark-content" />
+      <StatusBar
+        backgroundColor={Colors.screenBackground}
+        barStyle={statusBarStyle}
+      />
 
       {/* <Box safeAreaTop backgroundColor="#6200ee" /> */}
 
@@ -32,19 +45,19 @@ const TopBar = ({
                 <Icon
                   size="sm"
                   as={<MaterialCommunityIcons name="chevron-left" />}
-                  color="black"
+                  color={Colors.text}
                 />
               }
               onPress={() => navigation.goBack()}
             />
           ) : (
             <IconButton
-              icon={<Icon size="sm" as={<Text> </Text>} color="black" />}
+              icon={<Icon size="sm" as={<Text> </Text>} color={Colors.text} />}
             />
           )}
         </HStack>
         <HStack space={4} alignItems="center">
-          <Text color="black" fontSize={20} fontWeight="bold">
+          <Text color={Colors.text} fontSize={20} fontWeight="bold">
             {title}
           </Text>
         </HStack>
@@ -55,13 +68,13 @@ const TopBar = ({
                 <Icon
                   as={<MaterialCommunityIcons name="dots-vertical" />}
                   size="sm"
-                  color="black"
+                  color={Colors.text}
                 />
               }
             />
           ) : (
             <IconButton
-              icon={<Icon size="sm" as={<Text> </Text>} color="black" />}
+              icon={<Icon size="sm" as={<Text> </Text>} color={Colors.text} />}
             />
           )}
         </HStack>

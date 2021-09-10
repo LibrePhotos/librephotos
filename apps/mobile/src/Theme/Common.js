@@ -20,7 +20,7 @@ export default function ({ Colors, ...args }) {
         backgroundColor: Colors.primary,
       },
       backgroundDefault: {
-        backgroundColor: 'white',
+        backgroundColor: Colors.screenBackground,
       },
       backgroundReset: {
         backgroundColor: Colors.transparent,

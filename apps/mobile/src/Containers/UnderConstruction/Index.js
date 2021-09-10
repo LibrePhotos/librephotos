@@ -12,9 +12,12 @@ const UnderConstructionContainer = () => {
       <Icon
         size="3xl"
         as={<MaterialCommunityIcons name="hammer-wrench" />}
-        color="black"
+        color={Colors.text}
       />
-      <Text style={[Gutters.smallTMargin]}> Under Construction </Text>
+      <Text style={[Gutters.smallTMargin]} color={Colors.text}>
+        {' '}
+        Under Construction{' '}
+      </Text>
     </View>
   )
 }

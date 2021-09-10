@@ -26,10 +26,10 @@ const GalleryContainer = () => {
   const dispatch = useDispatch()
   const navigation = useNavigation()
 
-  const photosByDate = useSelector(state => state.album.albumByDate.results)
-  const photosWithoutDate = useSelector(
-    state => state.album.albumWithoutDate.results,
-  )
+  const albumByDate = useSelector(state => state.album.albumByDate)
+  const albumWithoutDate = useSelector(state => state.album.albumWithoutDate)
+  const photosByDate = albumByDate.results
+  const photosWithoutDate = albumWithoutDate.results
 
   const imageGridMapper = sectionData => {
     if (typeof sectionData === 'undefined' || sectionData.length < 1) {
@@ -108,6 +108,8 @@ const GalleryContainer = () => {
             data={photosWithoutDate}
             numColumns={3}
             displayError={true}
+            onRefresh={() => {}}
+            refreshing={albumWithoutDate.isLoading}
           />
         )}
       </View>

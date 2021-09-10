@@ -13,7 +13,6 @@ export default {
         timeout: 10000,
       })
       .then(response => {
-        // k.fulfillWithValue(response.data)
         return response.data
       })
   }),

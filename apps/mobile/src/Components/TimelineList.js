@@ -15,7 +15,7 @@ const TimelineList = ({ data }) => {
   const renderSectionHeader = ({ section: { data, title } }) => {
     return (
       <View key={title} style={[Gutters.regularHMargin, Gutters.smallVMargin]}>
-        <Text fontSize={'xl'}>
+        <Text fontSize={'xl'} color={Colors.text}>
           {title === 'No timestamp'
             ? 'No Timestamp'
             : moment(title).format('LL')}

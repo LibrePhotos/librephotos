@@ -56,7 +56,11 @@ const PreviewTile = ({
               }}
             />
           </Box>
-          <Text style={[Gutters.tinyTMargin]} fontSize={'lg'}>
+          <Text
+            style={[Gutters.tinyTMargin]}
+            fontSize={'lg'}
+            color={Colors.text}
+          >
             {item.title}
           </Text>
         </View>
@@ -78,7 +82,11 @@ const PreviewTile = ({
         <HStack style={[Gutters.regularLPadding]}>
           {icon && (
             <View style={[Layout.center]}>
-              <Ionicons name={icon + iconSuffix} size={35} />
+              <Ionicons
+                name={icon + iconSuffix}
+                size={35}
+                color={Colors.text}
+              />
             </View>
           )}
           <View
@@ -88,13 +96,15 @@ const PreviewTile = ({
               { width: '72%' },
             ]}
           >
-            <Text fontSize={'xl'}>{heading}</Text>
+            <Text fontSize={'xl'} color={Colors.text}>
+              {heading}
+            </Text>
             <Text italic fontSize={'sm'} color={Colors.textMuted}>
               {subHeading}
             </Text>
           </View>
           <View style={[Layout.center]}>
-            <Ionicons name={'chevron-forward'} size={35} />
+            <Ionicons name={'chevron-forward'} size={35} color={Colors.text} />
           </View>
         </HStack>
       </Pressable>

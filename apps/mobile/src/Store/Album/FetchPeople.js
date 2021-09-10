@@ -15,6 +15,10 @@ export default {
       .then(response => {
         return response.data
       })
+      .catch(e => {
+        console.log('Request Failed', e)
+        return e
+      })
   }),
   reducers: buildAsyncReducers({ itemKey: 'albumPeople' }), // We do not want to modify some item by default
 }

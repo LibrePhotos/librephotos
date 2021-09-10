@@ -61,6 +61,7 @@ const AlbumListContainer = ({
             style={[Gutters.tinyTMargin]}
             fontSize={'sm'}
             numberOfLines={1}
+            color={Colors.text}
           >
             {item.title}
           </Text>
@@ -91,7 +92,7 @@ const AlbumListContainer = ({
               Gutters.largeBPadding,
             ]}
           >
-            <Text fontSize="sm" italic>
+            <Text fontSize="sm" italic color={Colors.textMuted}>
               Thats all folks!
             </Text>
           </View>

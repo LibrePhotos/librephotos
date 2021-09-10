@@ -13,7 +13,9 @@ const LoadingSpinner = ({ height, width, mode }) => {
         size="lg"
         accessibilityLabel="Loading posts"
       />
-      <Text style={[Gutters.smallTMargin]}> Loading... </Text>
+      <Text style={[Gutters.smallTMargin]} color={Colors.text}>
+        Loading...
+      </Text>
     </View>
   )
 }

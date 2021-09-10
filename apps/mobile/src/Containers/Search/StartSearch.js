@@ -12,9 +12,14 @@ const StartSearch = ({ height, width, mode }) => {
       <Icon
         size="3xl"
         as={<Ionicon name="flashlight-outline" />}
-        color="black"
+        color={Colors.text}
       />
-      <Text textAlign={'center'} italic style={[Gutters.smallTMargin]}>
+      <Text
+        color={Colors.textMuted}
+        textAlign={'center'}
+        italic
+        style={[Gutters.smallTMargin]}
+      >
         Try searching for
         {'\n'}'Sunset in Mountains'
       </Text>
