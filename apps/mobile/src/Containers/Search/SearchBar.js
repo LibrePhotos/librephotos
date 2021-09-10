@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useColorScheme } from 'react-native'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   View,
@@ -23,6 +24,12 @@ const SearchBar = ({ showBack = false, showMenu = false }) => {
   const navigation = useNavigation()
   const dispatch = useDispatch()
 
+  const colorScheme = useColorScheme()
+
+  const isDark = useSelector(state => state.theme.darkMode)
+  const darkMode = isDark === null ? colorScheme === 'dark' : isDark
+  const statusBarStyle = darkMode ? 'light-content' : 'dark-content'
+
   const [searchQuery, setSearchQuery] = useState('')
 
   const handleSearch = ({ nativeEvent: { text, eventCount, target } }) => {
@@ -37,7 +44,10 @@ const SearchBar = ({ showBack = false, showMenu = false }) => {
 
   return (
     <>
-      <StatusBar backgroundColor={Colors.transparent} barStyle="dark-content" />
+      <StatusBar
+        backgroundColor={Colors.screenBackground}
+        barStyle={statusBarStyle}
+      />
 
       {/* <Box safeAreaTop backgroundColor="#6200ee" /> */}
 
@@ -56,7 +66,7 @@ const SearchBar = ({ showBack = false, showMenu = false }) => {
                 <Icon
                   size="sm"
                   as={<Ionicons name="arrow-back" />}
-                  color="black"
+                  color={Colors.text}
                 />
               }
               onPress={handleBack}

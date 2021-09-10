@@ -20,7 +20,6 @@ const TopBar = ({
   const isDark = useSelector(state => state.theme.darkMode)
   const darkMode = isDark === null ? colorScheme === 'dark' : isDark
   const statusBarStyle = darkMode ? 'light-content' : 'dark-content'
-  console.log(statusBarStyle, Colors.screenBackground)
 
   return (
     <>

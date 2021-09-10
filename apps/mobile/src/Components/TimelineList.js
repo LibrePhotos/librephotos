@@ -7,7 +7,7 @@ import { useTheme } from '@/Theme'
 import { NoResultsError } from '.'
 import ImageGrid from './ImageGrid'
 
-const TimelineList = ({ data }) => {
+const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
   const { Colors, Gutters } = useTheme()
 
   const COLUMNS = 3
@@ -47,6 +47,8 @@ const TimelineList = ({ data }) => {
     <>
       {data && data.length > 0 && (
         <SectionList
+          onRefresh={onRefresh}
+          refreshing={refreshing}
           removeClippedSubviews={true}
           style={[{ backgroundColor: Colors.screenBackground }]}
           renderItem={renderSectionListItem}
@@ -55,7 +57,9 @@ const TimelineList = ({ data }) => {
           sections={data}
         />
       )}
-      {data.length < 1 && <NoResultsError />}
+      {data.length < 1 && (
+        <NoResultsError onRefresh={onRefresh} refreshing={refreshing} />
+      )}
     </>
   )
 }
