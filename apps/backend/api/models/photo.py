@@ -86,7 +86,9 @@ class Photo(models.Model):
     shared_to = models.ManyToManyField(User, related_name="photo_shared_to")
 
     public = models.BooleanField(default=False, db_index=True)
-    clip_embeddings = ArrayField(models.FloatField(blank=True, null=True), size=512)
+    clip_embeddings = ArrayField(
+        models.FloatField(blank=True, null=True), size=512, null=True
+    )
     clip_embeddings_magnitude = models.FloatField(blank=True, null=True)
 
     objects = models.Manager()
