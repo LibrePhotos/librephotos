@@ -1,5 +1,5 @@
 export default {
-  welcome: 'Welcome to React Native LibrePhotosMobile by TheCodingMachine',
+  welcome: 'Welcome to LibrePhotos Mobile',
   auth: {
     label: {
       username: 'Username',

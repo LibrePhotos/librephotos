@@ -5,7 +5,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useTheme } from '@/Theme'
 
 const UnderConstructionContainer = () => {
-  const { Colors, Layout, Gutters, Fonts } = useTheme()
+  const { Colors, Layout, Gutters } = useTheme()
 
   return (
     <View style={[Layout.fill, Layout.colCenter]}>

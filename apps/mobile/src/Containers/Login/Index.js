@@ -1,10 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import {
-  ActivityIndicator,
-  View,
-  Platform,
-  KeyboardAvoidingView,
-} from 'react-native'
+import { View, Platform, KeyboardAvoidingView } from 'react-native'
 import {
   Alert,
   Button,
@@ -14,7 +9,6 @@ import {
   Stack,
   ScrollView,
   FormControl,
-  Center,
 } from 'native-base'
 import Ionicons from 'react-native-vector-icons/Ionicons'
 import { useDispatch, useSelector } from 'react-redux'

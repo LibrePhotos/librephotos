@@ -3,7 +3,7 @@ import { View, Text } from 'native-base'
 import { useTheme } from '@/Theme'
 
 export const SettingSubHeader = ({ subHeading }) => {
-  const { Colors, Layout, Gutters, Fonts } = useTheme()
+  const { Colors, Layout, Gutters } = useTheme()
 
   return (
     <View

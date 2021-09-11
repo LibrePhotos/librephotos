@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
 import { IndexStartupContainer, IndexLoginContainer } from '@/Containers'
 import { useSelector } from 'react-redux'

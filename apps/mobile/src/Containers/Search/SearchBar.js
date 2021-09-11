@@ -2,26 +2,21 @@ import React, { useState } from 'react'
 import { useColorScheme } from 'react-native'
 import { useDispatch, useSelector } from 'react-redux'
 import {
-  View,
   Button,
   Input,
   HStack,
   IconButton,
   Icon,
-  Text,
   StatusBar,
   Center,
 } from 'native-base'
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 import Ionicons from 'react-native-vector-icons/Ionicons'
 import { useTheme } from '@/Theme'
-import { useNavigation } from '@react-navigation/native'
 import FindPhotos from '../../Store/Search/FindPhotos'
 import UpdateQuery from '../../Store/Search/UpdateQuery'
 
-const SearchBar = ({ showBack = false, showMenu = false }) => {
-  const { Colors, Gutters, Layout, Images } = useTheme()
-  const navigation = useNavigation()
+const SearchBar = ({ showMenu = false }) => {
+  const { Colors, Gutters } = useTheme()
   const dispatch = useDispatch()
 
   const colorScheme = useColorScheme()
@@ -32,11 +27,11 @@ const SearchBar = ({ showBack = false, showMenu = false }) => {
 
   const [searchQuery, setSearchQuery] = useState('')
 
-  const handleSearch = ({ nativeEvent: { text, eventCount, target } }) => {
+  const handleSearch = ({ nativeEvent: { text } }) => {
     dispatch(FindPhotos.action({ searchQuery: text }))
   }
 
-  const handleBack = e => {
+  const handleBack = () => {
     setSearchQuery('')
     dispatch(UpdateQuery.action({ searchQuery: '' }))
     // navigation.goBack()

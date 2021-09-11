@@ -21,9 +21,14 @@ export default function ({ Colors, Gutters, Layout }) {
     padding: 0,
   }
 
+  const photoContainer = {
+    width: '72%',
+  }
+
   return StyleSheet.create({
     base,
     photoItem,
     albumItem,
+    photoContainer,
   })
 }

@@ -4,7 +4,6 @@ import {
   buildAsyncReducers,
 } from '@thecodingmachine/redux-toolkit-wrapper'
 import api from '@/Services'
-import ClearPersonPhotos from './ClearPersonPhotos'
 import PopulatePhotos from '../GalleryList/PopulatePhotos'
 
 export default {

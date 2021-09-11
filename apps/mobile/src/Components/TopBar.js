@@ -1,7 +1,7 @@
 import React from 'react'
 import { useColorScheme } from 'react-native'
 import { useSelector } from 'react-redux'
-import { View, HStack, IconButton, Icon, Text, StatusBar } from 'native-base'
+import { HStack, IconButton, Icon, Text, StatusBar } from 'native-base'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '@/Theme'
 import { useNavigation } from '@react-navigation/native'
@@ -11,7 +11,7 @@ const TopBar = ({
   showBack = false,
   showMenu = false,
 }) => {
-  const { Colors, Layout, Images } = useTheme()
+  const { Colors } = useTheme()
   const navigation = useNavigation()
 
   // Get the scheme device

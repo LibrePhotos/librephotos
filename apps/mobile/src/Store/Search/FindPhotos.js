@@ -3,7 +3,6 @@ import {
   buildAsyncActions,
   buildAsyncReducers,
 } from '@thecodingmachine/redux-toolkit-wrapper'
-import api from '@/Services'
 import { SearchService } from '@/Services/Photos'
 import UpdateQuery from './UpdateQuery'
 

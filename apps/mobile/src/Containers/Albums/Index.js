@@ -2,8 +2,6 @@ import React, { useEffect, useState } from 'react'
 import { RefreshControl } from 'react-native'
 import { useDispatch, useSelector } from 'react-redux'
 import { ScrollView } from 'native-base'
-import { useTheme } from '@/Theme'
-import { useTranslation } from 'react-i18next'
 import { LoadingSpinner, PreviewTile, TopBar } from '@/Components'
 import FetchPersonPhotos from '@/Store/Photos/FetchPersonPhotos'
 import FetchMyAlbumPhotos from '@/Store/Photos/FetchMyAlbumPhotos'
@@ -19,8 +17,6 @@ import {
 import ClearAlbumData from '../../Store/Album/ClearAlbumData'
 
 const AlbumContainer = () => {
-  const { t } = useTranslation()
-  const { Common, Fonts, Gutters, Layout } = useTheme()
   const dispatch = useDispatch()
 
   const [initialLoading, setInitialLoading] = useState(true)

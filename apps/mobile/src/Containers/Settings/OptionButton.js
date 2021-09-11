@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { useToast, Pressable } from 'native-base'
 import { SettingItem } from './SettingItem'
 

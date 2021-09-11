@@ -2,9 +2,7 @@ import React, { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { View } from 'react-native'
 import { Button, HStack } from 'native-base'
-import { useNavigation } from '@react-navigation/native'
 import { useTheme } from '@/Theme'
-import { useTranslation } from 'react-i18next'
 import FetchAlbumByDate from '@/Store/Album/FetchByDate'
 import FetchPhotosWithoutDate from '@/Store/Album/FetchPhotosWithoutDate'
 import TimelineList from '../../Components/TimelineList'
@@ -12,10 +10,8 @@ import { TopBar } from '../../Components'
 import ImageGrid from '../../Components/ImageGrid'
 
 const GalleryContainer = () => {
-  const { t } = useTranslation()
-  const { Common, Fonts, Gutters, Layout } = useTheme()
+  const { Common, Layout } = useTheme()
   const dispatch = useDispatch()
-  const navigation = useNavigation()
 
   const albums = useSelector(state => state.album)
   const albumByDate = useSelector(state => state.album.albumByDate)

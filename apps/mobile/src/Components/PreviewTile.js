@@ -41,7 +41,7 @@ const PreviewTile = ({
             boxSize={'80%'}
           >
             <Image
-              style={{ width: '100%', height: '100%' }}
+              style={[Layout.fullSize]}
               source={{
                 uri: item.url,
                 method: 'GET',
@@ -93,7 +93,7 @@ const PreviewTile = ({
             style={[
               Gutters.regularLMargin,
               Gutters.smallVMargin,
-              { width: '72%' },
+              Common.timeline.photoContainer,
             ]}
           >
             <Text fontSize={'xl'} color={Colors.text}>

@@ -13,7 +13,6 @@ import {
 import thunk from 'redux-thunk'
 import { configureStore } from '@reduxjs/toolkit'
 import { getConfig } from '@/Config'
-import axios from 'axios'
 
 import api from '@/Services/index'
 

@@ -1,14 +1,6 @@
 import React, { useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import {
-  StyleSheet,
-  Pressable,
-  View,
-  Modal,
-  Image,
-  FlatList,
-} from 'react-native'
-import { HStack, IconButton, Icon, Text } from 'native-base'
+import { useSelector } from 'react-redux'
+import { Pressable, View, Modal, Image, FlatList } from 'react-native'
 import ReactNativeZoomableView from '@dudigital/react-native-zoomable-view/src/ReactNativeZoomableView'
 import { useTheme } from '@/Theme'
 import { getConfig } from '../Config'
@@ -49,7 +41,7 @@ const ImageGrid = ({
         onPress={() => handleImagePress(item, index, section)}
       >
         <Image
-          style={{ width: '100%', height: '100%' }}
+          style={Layout.fullSize}
           source={{
             uri:
               getConfig(config.baseurl).MEDIA_URL +
@@ -102,14 +94,16 @@ const ImageGrid = ({
             bindToBorders={true}
             captureEvent={true}
             doubleTapZoomToCenter={true}
-            style={{
-              height: '100%',
-              width: '100%',
-              backgroundColor: 'black',
-            }}
+            style={[
+              Layout.fullSize,
+              // eslint-disable-next-line react-native/no-inline-styles
+              {
+                backgroundColor: 'black',
+              },
+            ]}
           >
             <Image
-              style={{ width: '100%', height: '100%' }}
+              style={Layout.fullSize}
               source={{
                 uri:
                   getConfig(config.baseurl).MEDIA_URL +
@@ -123,15 +117,6 @@ const ImageGrid = ({
               resizeMode={'contain'}
               onError={handleImageLoadFail}
             />
-            {/* <View style={styles.modalView}>
-              <Text>Hsello World!</Text>
-              <Pressable
-                style={[styles.button, styles.buttonClose]}
-                onPress={() => setZoomViewVisible(!zoomViewVisible)}
-              >
-                <Text style={styles.textStyle}>Hide Modal</Text>
-              </Pressable>
-            </View> */}
           </ReactNativeZoomableView>
         </View>
       </Modal>

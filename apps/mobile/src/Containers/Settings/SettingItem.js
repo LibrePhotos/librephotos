@@ -4,7 +4,7 @@ import { useTheme } from '@/Theme'
 import Ionicons from 'react-native-vector-icons/Ionicons'
 
 export const SettingItem = ({ title, subTitle, icon = null }) => {
-  const { Colors, Layout, Gutters, Fonts } = useTheme()
+  const { Colors, Layout, Gutters } = useTheme()
 
   return (
     <View

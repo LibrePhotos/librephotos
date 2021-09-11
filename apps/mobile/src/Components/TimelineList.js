@@ -1,5 +1,4 @@
 import React from 'react'
-import PropTypes from 'prop-types'
 import { View, SectionList } from 'react-native'
 import { Text } from 'native-base'
 import moment from 'moment'
@@ -12,7 +11,7 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
 
   const COLUMNS = 3
 
-  const renderSectionHeader = ({ section: { data, title } }) => {
+  const renderSectionHeader = ({ section: { title } }) => {
     return (
       <View key={title} style={[Gutters.regularHMargin, Gutters.smallVMargin]}>
         <Text fontSize={'xl'} color={Colors.text}>

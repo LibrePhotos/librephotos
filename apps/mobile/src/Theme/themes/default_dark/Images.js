@@ -4,8 +4,6 @@
 
 export default function () {
   return {
-    logo: {
-      uri: 'https://thecodingmachine.github.io/react-native-librephotosmobile/img/TOM-small.png',
-    },
+    logo: require('@/Assets/Images/lp-dark.png'),
   }
 }

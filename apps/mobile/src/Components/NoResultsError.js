@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, RefreshControl } from 'react-native'
+import { RefreshControl } from 'react-native'
 import { Icon, ScrollView, Text } from 'native-base'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '@/Theme'

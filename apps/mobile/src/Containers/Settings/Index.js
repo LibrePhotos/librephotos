@@ -7,7 +7,6 @@ import { useNavigation } from '@react-navigation/core'
 import { TopBar } from '@/Components'
 import ChangeTheme from '@/Store/Theme/ChangeTheme'
 import { SettingSubHeader } from './SettingSubHeader'
-import { SettingItem } from './SettingItem'
 import { OptionMultiSelect } from './OptionMultiSelect'
 import { OptionButton } from './OptionButton'
 import LogoutUser from '@/Store/Auth/LogoutUser'
@@ -15,7 +14,7 @@ import { version } from '../../../app.json'
 import UpdateToken from '../../Services/Auth/UpdateToken'
 
 const SettingsContainer = () => {
-  const { Colors, Layout, Gutters, Fonts } = useTheme()
+  const { Colors, Layout, Gutters } = useTheme()
   const dispatch = useDispatch()
   const toast = useToast()
   const navigation = useNavigation()
@@ -32,8 +31,8 @@ const SettingsContainer = () => {
     }
   }
 
-  const changeTheme = theme => {
-    switch (theme) {
+  const changeTheme = themeName => {
+    switch (themeName) {
       case 'System Default':
         dispatch(ChangeTheme.action({ darkMode: null }))
         break

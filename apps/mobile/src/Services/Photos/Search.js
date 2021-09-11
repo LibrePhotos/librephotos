@@ -1,4 +1,4 @@
-import api, { handleError } from '@/Services'
+import api from '@/Services'
 
 export default async query => {
   const res = await api

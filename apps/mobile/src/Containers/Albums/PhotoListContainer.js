@@ -1,8 +1,5 @@
 import React from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { useNavigation } from '@react-navigation/native'
-import { useTheme } from '@/Theme'
-import { useTranslation } from 'react-i18next'
+import { useSelector } from 'react-redux'
 import TimelineList from '../../Components/TimelineList'
 import { TopBar } from '../../Components'
 import ImageGrid from '../../Components/ImageGrid'
@@ -13,11 +10,6 @@ const PhotoListContainer = ({
     params: { title = 'Albums' },
   },
 }) => {
-  const { t } = useTranslation()
-  const { Common, Fonts, Gutters, Layout } = useTheme()
-  const dispatch = useDispatch()
-  const navigation = useNavigation()
-
   const gallerylist = useSelector(state => state.gallerylist)
 
   return (

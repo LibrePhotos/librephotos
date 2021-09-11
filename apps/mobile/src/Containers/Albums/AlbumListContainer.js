@@ -1,10 +1,9 @@
 import React from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { View, FlatList } from 'react-native'
 import { Box, Pressable, Image, Text } from 'native-base'
 import { useNavigation } from '@react-navigation/native'
 import { useTheme } from '@/Theme'
-import { useTranslation } from 'react-i18next'
 import { TopBar } from '@/Components'
 import { updateToken } from '@/Services/Auth'
 
@@ -13,20 +12,18 @@ const AlbumListContainer = ({
     params: { title = 'Albums', albums = [], photos = () => null },
   },
 }) => {
-  const { t } = useTranslation()
   const { Common, Colors, Gutters, Layout } = useTheme()
-  const dispatch = useDispatch()
   const navigation = useNavigation()
   const authToken = useSelector(state => state.auth.access.token)
 
-  const handleItemPress = (item, index, section) => {
+  const handleItemPress = (item, index) => {
     photos(item)
     navigation.push('PhotoList', {
       title: albums[index].title,
     })
   }
 
-  const renderItem = ({ item, index, section, seperators }) => {
+  const renderItem = ({ item, index, section }) => {
     return (
       <Pressable
         key={index}
