@@ -22,7 +22,9 @@ const IndexStartupContainer = () => {
     <View style={[Layout.fill, Layout.colCenter]}>
       <Brand />
       <ActivityIndicator size={'large'} style={[Gutters.largeVMargin]} />
-      <Text color={Colors.text} style={Fonts.textCenter}>{t('welcome')}</Text>
+      <Text color={Colors.text} style={Fonts.textCenter}>
+        {t('welcome')}
+      </Text>
     </View>
   )
 }
