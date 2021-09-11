@@ -14,7 +14,9 @@ export const SettingSubHeader = ({ subHeading }) => {
         Gutters.smallBPadding,
       ]}
     >
-      <Text fontWeight="bold" color={Colors.secondary}>{subHeading}</Text>
+      <Text fontWeight="bold" color={Colors.secondary}>
+        {subHeading}
+      </Text>
     </View>
   )
 }
