@@ -38,23 +38,23 @@ jobs:
     - name: Make Gradlew Executable
       run: cd android && chmod +x ./gradlew
 
-    - name: Build Android App Bundle
-      run: |
-        cd android && ./gradlew bundleRelease --no-daemon
+    # - name: Build Android App Bundle
+    #   run: |
+    #     cd android && ./gradlew bundleRelease --no-daemon
 
     - name: Build Android App APK
       run: |
         cd android && ./gradlew assembleRelease --no-daemon
 
-    - name: Sign App Bundle
-      id: sign_app
-      uses: r0adkll/sign-android-release@v1
-      with:
-        releaseDirectory: android/app/build/outputs/bundle/release
-        signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
-        alias: ${{ secrets.ANDROID_SIGNING_ALIAS }}
-        keyStorePassword: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
-        keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+    # - name: Sign App Bundle
+    #   id: sign_app
+    #   uses: r0adkll/sign-android-release@v1
+    #   with:
+    #     releaseDirectory: android/app/build/outputs/bundle/release
+    #     signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
+    #     alias: ${{ secrets.ANDROID_SIGNING_ALIAS }}
+    #     keyStorePassword: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+    #     keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
 
     - name: Sign App APK
       id: sign_apk
@@ -70,7 +70,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: Signed App Bundle
-        path: ${{steps.sign_app.outputs.signedReleaseFile}}
+        path: ${{steps.sign_apk.outputs.signedReleaseFile}}
 
     - name: Create APK Release
       uses: "marvinpinto/action-automatic-releases@latest"
@@ -79,18 +79,18 @@ jobs:
         automatic_release_tag: "latest"
         prerelease: true
         draft: true
-        title: "Release X"
+        title: "Automated Release"
         files: |
           ${{ steps.sign_apk.signedReleaseFile }}
 
-    - name: Deploy to Play Store (BETA)
-      uses: r0adkll/upload-google-play@v1
-      with:
-        serviceAccountJsonPlainText: ${{ secrets.ANDROID_SERVICE_ACCOUNT }}
-        packageName: com.testedapp
-        releaseFile: ${{steps.sign_app.outputs.signedReleaseFile}}
-        track: beta
-        inAppUpdatePriority: 3
-        userFraction: 0.5
-        whatsNewDirectory: android/release-notes/
-        # mappingFile: android/app/build/outputs/mapping/release/mapping.txt
+    # - name: Deploy to Play Store (BETA)
+    #   uses: r0adkll/upload-google-play@v1
+    #   with:
+    #     serviceAccountJsonPlainText: ${{ secrets.ANDROID_SERVICE_ACCOUNT }}
+    #     packageName: com.testedapp
+    #     releaseFile: ${{steps.sign_app.outputs.signedReleaseFile}}
+    #     track: beta
+    #     inAppUpdatePriority: 3
+    #     userFraction: 0.5
+    #     whatsNewDirectory: android/release-notes/
+    #     # mappingFile: android/app/build/outputs/mapping/release/mapping.txt
