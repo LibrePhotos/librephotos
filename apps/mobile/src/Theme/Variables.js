@@ -12,6 +12,7 @@ export const Colors = {
   // Example colors:
   transparent: 'rgba(0,0,0,0)',
   screenBackground: '#FFFFFF',
+  modalBackground: '#FFFFFF',
   inputBackground: '#FFFFFF',
   white: '#ffffff',
   text: '#212529',
@@ -19,6 +20,7 @@ export const Colors = {
   textLight: '#94a3b8',
   primaryNB: 'blue',
   primary: '#212121',
+  secondary: '#212529',
   success: '#28a745',
   error: '#dc3545',
 }

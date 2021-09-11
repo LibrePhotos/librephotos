@@ -1,11 +1,11 @@
 import React from 'react'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import {
-  IndexExampleContainer,
+  UnderConstructionContainer,
   IndexSearchContainer,
   GalleryContainer,
   AlbumContainer,
-  UnderConstructionContainer,
+  SettingsContainer,
 } from '@/Containers'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 
@@ -17,7 +17,7 @@ const MainNavigator = () => {
     <Tab.Navigator>
       <Tab.Screen
         name="Home"
-        component={IndexExampleContainer}
+        component={UnderConstructionContainer}
         options={{
           tabBarLabel: 'Home',
           tabBarIcon: ({ color, size }) => (
@@ -61,7 +61,7 @@ const MainNavigator = () => {
       />
       <Tab.Screen
         name="Settings"
-        component={UnderConstructionContainer}
+        component={SettingsContainer}
         options={{
           tabBarLabel: 'Settings',
           tabBarIcon: ({ color, size }) => (

@@ -10,15 +10,6 @@ function select(state) {
   return state.auth
 }
 
-// export function listener() {
-//   var auth = select(store.getState())
-//   if (auth.access) {
-//     axios.defaults.headers.common.Authorization = 'Bearer ' + auth.access.token
-//   }
-
-//   instance.defaults.baseURL = getConfig().API_URL
-// }
-
 const instance = axios.create({
   headers: {
     Accept: 'application/json',
