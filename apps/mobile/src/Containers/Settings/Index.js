@@ -23,9 +23,13 @@ const SettingsContainer = () => {
   const theme = useSelector(state => state.theme.darkMode)
 
   const mapTheme = darkMode => {
-    if (darkMode == null) return 'System Default'
-    else if (darkMode === false) return 'Light'
-    else return 'Dark'
+    if (darkMode == null) {
+      return 'System Default'
+    } else if (darkMode === false) {
+      return 'Light'
+    } else {
+      return 'Dark'
+    }
   }
 
   const changeTheme = theme => {

@@ -41,6 +41,11 @@ jobs:
     - name: Build Android App Bundle
       run: |
         cd android && ./gradlew bundleRelease --no-daemon
+
+    - name: Build Android App APK
+      run: |
+        cd android && ./gradlew assembleRelease --no-daemon
+
     - name: Sign App Bundle
       id: sign_app
       uses: r0adkll/sign-android-release@v1
@@ -51,11 +56,32 @@ jobs:
         keyStorePassword: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
         keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
 
+    - name: Sign App APK
+      id: sign_apk
+      uses: r0adkll/sign-android-release@v1
+      with:
+        releaseDirectory: android/app/build/outputs/apk/release
+        signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
+        alias: ${{ secrets.ANDROID_SIGNING_ALIAS }}
+        keyStorePassword: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+        keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
       with:
         name: Signed App Bundle
         path: ${{steps.sign_app.outputs.signedReleaseFile}}
+
+    - name: Create APK Release
+      uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "latest"
+        prerelease: true
+        draft: true
+        title: "Release X"
+        files: |
+          ${{ steps.sign_apk.signedReleaseFile }}
 
     - name: Deploy to Play Store (BETA)
       uses: r0adkll/upload-google-play@v1

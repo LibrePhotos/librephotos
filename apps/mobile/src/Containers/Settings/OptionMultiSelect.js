@@ -10,7 +10,7 @@ export const OptionMultiSelect = ({
   onSelect = () => {},
   icon = null,
 }) => {
-  const { Colors, Layout, Gutters, Fonts } = useTheme()
+  const { Colors } = useTheme()
   const [isOpen, openModal] = useState(false)
 
   const renderOptions = () => {
