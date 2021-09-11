@@ -66,11 +66,16 @@ jobs:
         keyStorePassword: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
         keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
 
+    - name: Rename Android App APK
+      run: cp $SIGNED_FILE librephotos-latest-signed.apk
+      env:
+        SIGNED_FILE: ${{ steps.sign_apk.outputs.signedReleaseFile }}
+
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
       with:
-        name: Signed App Bundle
-        path: ${{steps.sign_apk.outputs.signedReleaseFile}}
+        name: Signed Apk Bundle
+        path: librephotos-latest-signed.apk
 
     - name: Create APK Release
       uses: "marvinpinto/action-automatic-releases@latest"
@@ -81,7 +86,7 @@ jobs:
         draft: true
         title: "Automated Release"
         files: |
-          ${{ steps.sign_apk.signedReleaseFile }}
+          librephotos-latest-signed.apk
 
     # - name: Deploy to Play Store (BETA)
     #   uses: r0adkll/upload-google-play@v1

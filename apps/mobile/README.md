@@ -13,6 +13,10 @@ Open-Source Android and iOS Mobile Application for the [LibrePhotos](https://git
 
 ## Get Started
 
+### Compatibility
+- Android 5.0+
+- iOS 9.0+ (Stability on iOS is not tested yet.)
+
 ### Android
 
 1. Download the Latest Build from [Releases](https://github.com/akshay9/librephotos-mobile/releases).
@@ -60,9 +64,3 @@ You can join Librephoto's [Discord](https://discord.gg/xwRvtSDGWb).
     - Share photos/albums
 
 
-
-## How do I run it?
-
-### Compatibility
-- Android 5.0+
-- iOS 9.0+ (Stability on iOS is not tested yet.)
