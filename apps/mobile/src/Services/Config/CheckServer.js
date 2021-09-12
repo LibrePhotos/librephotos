@@ -3,6 +3,10 @@ import axios from 'axios'
 export const preprocessserver = server => {
   let serverName = server.trim().toLowerCase()
 
+  if (!serverName.startsWith('http://') && !serverName.startsWith('https://')) {
+    serverName = 'http://' + serverName
+  }
+
   if (serverName.endsWith('/')) {
     serverName = serverName.substring(0, serverName.length - 1)
   }
@@ -29,6 +33,7 @@ export default async serverName => {
       return true
     })
     .catch(e => {
+      console.log(e.response.request.responseURL)
       return typeof e.response !== 'undefined' && e.response.status === 401
     })
   return res
