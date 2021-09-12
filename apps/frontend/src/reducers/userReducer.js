@@ -36,6 +36,10 @@ export default function reducer(
         newState.userSelfDetails.favorite_min_rating =
           action.payload.favorite_min_rating;
       }
+      if (action.payload.save_metadata_to_disk !== undefined) {
+        newState.userSelfDetails.save_metadata_to_disk =
+          action.payload.save_metadata_to_disk;
+      }
       return newState;
     }
 

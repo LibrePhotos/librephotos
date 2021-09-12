@@ -858,6 +858,34 @@ export class Settings extends Component {
             </Grid.Column>
           </Grid.Row>
           <Grid.Row>
+            <Grid.Column width={4} textAlign="left">
+              <b>Synchronize rating to disk</b>
+            </Grid.Column>
+            <Grid.Column width={12}>
+              <select
+                value={this.state.userSelfDetails.save_metadata_to_disk}
+                onChange={(event) => {
+                  this.setState(
+                    {
+                      userSelfDetails: {
+                        ...this.state.userSelfDetails,
+                        save_metadata_to_disk: event.target.value,
+                      },
+                    },
+                    () => {
+                      console.log(this.state.userSelfDetails);
+                    }
+                  );
+                }}
+              >
+                <option value="" disabled selected />
+                <option value={"OFF"}>Off</option>
+                <option value={"SIDECAR_FILE"}>Save to sidecar</option>
+                <option value={"MEDIA_FILE"}>Save to media file</option>
+              </select>
+            </Grid.Column>
+          </Grid.Row>
+          <Grid.Row>
             <Grid.Column width={12}>
               <Button
                 type="submit"
