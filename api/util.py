@@ -6,12 +6,9 @@ import os.path
 import exiftool
 import numpy as np
 import requests
-import spacy
 from scipy.spatial import distance
 
 import ownphotos.settings
-
-nlp = spacy.load("en_core_web_sm")
 
 logger = logging.getLogger("ownphotos")
 fomatter = logging.Formatter(
