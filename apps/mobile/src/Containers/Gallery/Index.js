@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { View } from 'react-native'
 import { Button, HStack } from 'native-base'
@@ -16,8 +16,14 @@ const GalleryContainer = () => {
   const albums = useSelector(state => state.album)
   const albumByDate = useSelector(state => state.album.albumByDate)
   const albumWithoutDate = useSelector(state => state.album.albumWithoutDate)
-  const photosByDate = albumByDate.results
-  const photosWithoutDate = albumWithoutDate.results
+  const photosByDate = albumByDate?.results
+  const photosWithoutDate = albumWithoutDate?.results
+
+  useEffect(() => {
+    handleAlbumWithoutDateRefresh()
+    handleAlbumWithDateRefresh()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleAlbumWithoutDateRefresh = () => {
     dispatch(FetchPhotosWithoutDate.action())

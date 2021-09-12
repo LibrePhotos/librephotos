@@ -30,15 +30,7 @@ Run the following commands
 3. `yarn install`
 4. `yarn ios`
 
-## Communication
-You can join Librephoto's [Discord](https://discord.gg/xwRvtSDGWb).
-
-### Contributions
-- Join our discord server, or open a pull request to start contributing
-
-**Currently the project is in very early stages, some bugs may exist. If you find any please log an issue**
-
-### Features
+## Features
 
 #### Currently implemented (From Librephotos Website):
   
@@ -63,4 +55,10 @@ You can join Librephoto's [Discord](https://discord.gg/xwRvtSDGWb).
     - Integrate Phone's Gallery
     - Share photos/albums
 
+## Communication
+You can join Librephoto's [Discord](https://discord.gg/xwRvtSDGWb).
 
+### Contributions
+- Join our discord server, or open a pull request to start contributing
+
+**Currently the project is in very early stages, some bugs may exist. If you find any please log an issue**

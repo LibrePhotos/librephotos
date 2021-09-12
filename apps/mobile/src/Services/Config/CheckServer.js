@@ -21,7 +21,7 @@ export default async serverName => {
         password: 'test',
       },
       {
-        timeout: 100,
+        timeout: 500,
       },
     )
     .then(response => {

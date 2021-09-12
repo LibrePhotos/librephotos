@@ -6,6 +6,7 @@ import {
   Icon,
   Input,
   VStack,
+  Spinner,
   Stack,
   ScrollView,
   FormControl,
@@ -29,6 +30,7 @@ const IndexLoginContainer = () => {
   const [password, setPassword] = useState('')
 
   const [isValidServer, setValidServer] = useState(false)
+  const [isValidating, setServerValidation] = useState(false)
   const isLoggedin = useSelector(state => state.auth.isLoggedin)
 
   useEffect(() => {
@@ -46,8 +48,10 @@ const IndexLoginContainer = () => {
   const error = useSelector(state => state.auth.error)
 
   useEffect(() => {
+    setServerValidation(true)
     CheckServerService(server).then(isValid => {
       setValidServer(isValid)
+      setServerValidation(false)
     })
   }, [server])
 
@@ -88,8 +92,10 @@ const IndexLoginContainer = () => {
                 placeholderTextColor={Colors.textLight}
                 InputRightElement={
                   <>
-                    {server.length !== 0 ? (
-                      isValidServer ? (
+                    {server.length !== 0 &&
+                      (isValidating ? (
+                        <Spinner color="blue.500" />
+                      ) : isValidServer ? (
                         <Icon
                           as={<Ionicons name="checkmark" />}
                           size="md"
@@ -103,10 +109,7 @@ const IndexLoginContainer = () => {
                           m={2}
                           color="red"
                         />
-                      )
-                    ) : (
-                      <></>
-                    )}
+                      ))}
                   </>
                 }
               />

@@ -1,6 +1,6 @@
 import React from 'react'
 import { RefreshControl } from 'react-native'
-import { Icon, ScrollView, Text } from 'native-base'
+import { Icon, ScrollView, Text, View } from 'native-base'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '@/Theme'
 
@@ -12,7 +12,7 @@ const NoResultsError = ({ onRefresh = null, refreshing = false }) => {
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
-      contentContainerStyle={[Layout.fullSize, Layout.center]}
+      _contentContainerStyle={{ ...Layout.fullSize, ...Layout.center }}
     >
       <Icon
         size="3xl"

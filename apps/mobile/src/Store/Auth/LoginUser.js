@@ -24,7 +24,7 @@ export default {
             password: password,
           },
           {
-            baseurl: getConfig(baseurl).API_URL,
+            baseURL: getConfig(baseurl).API_URL,
           },
         )
         .then(response => {
