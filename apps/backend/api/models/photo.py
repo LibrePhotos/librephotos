@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 from io import BytesIO
 
-import exiftool
 import face_recognition
 import numpy as np
 import PIL
@@ -27,7 +26,7 @@ from api.thumbnails import (
     doesStaticThumbnailExists,
     doesVideoThumbnailExists,
 )
-from api.util import logger
+from api.util import get_metadata, logger
 
 
 class VisiblePhotoManager(models.Manager):
@@ -37,6 +36,16 @@ class VisiblePhotoManager(models.Manager):
             .get_queryset()
             .filter(Q(hidden=False) & Q(aspect_ratio__isnull=False))
         )
+
+
+class Tags:
+    RATING = "Rating"
+    IMAGE_HEIGHT = "ImageHeight"
+    IMAGE_WIDTH = "ImageWidth"
+    DATE_TIME_ORIGINAL = "EXIF:DateTimeOriginal"
+    QUICKTIME_CREATE_DATE = "QuickTime:CreateDate"
+    LATITUDE = "Composite:GPSLatitude"
+    LONGITUDE = "Composite:GPSLongitude"
 
 
 class Photo(models.Model):
@@ -66,10 +75,6 @@ class Photo(models.Model):
     search_captions = models.TextField(blank=True, null=True, db_index=True)
     search_location = models.TextField(blank=True, null=True, db_index=True)
 
-    # `favorited` has been removed.
-    # Data migrations:
-    #   `favorited = false` => `rating = 0`
-    #   `favorited = true` => `rating = 4`
     rating = models.IntegerField(default=0, db_index=True)
 
     hidden = models.BooleanField(default=False, db_index=True)
@@ -88,6 +93,53 @@ class Photo(models.Model):
 
     objects = models.Manager()
     visible = VisiblePhotoManager()
+
+    _loaded_values = {}
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+
+        # save original values, when model is loaded from database,
+        # in a separate attribute on the model
+        instance._loaded_values = dict(zip(field_names, values))
+
+        return instance
+
+    def save(
+        self,
+        force_insert=False,
+        force_update=False,
+        using=None,
+        update_fields=None,
+        save_metadata=True,
+    ):
+        modified_fields = [
+            field_name
+            for field_name, value in self._loaded_values.items()
+            if value != getattr(self, field_name)
+        ]
+        user = User.objects.get(username=self.owner)
+        if save_metadata and user.save_metadata_to_disk != User.SaveMetadataToDisk.OFF:
+            self._save_metadata(
+                modified_fields,
+                user.save_metadata_to_disk == User.SaveMetadataToDisk.SIDECAR_FILE,
+            )
+        return super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
+
+    def _save_metadata(self, modified_fields=None, use_sidecar=True):
+        tags_to_write = {}
+        if modified_fields is None or "rating" in modified_fields:
+            tags_to_write[Tags.RATING] = self.rating
+        if tags_to_write:
+            util.write_metadata(
+                self.image_paths[0], tags_to_write, use_sidecar=use_sidecar
+            )
 
     def _generate_md5(self):
         hash_md5 = hashlib.md5()
@@ -288,11 +340,13 @@ class Photo(models.Model):
                 old_album_date = possible_old_album_date
         return old_album_date
 
-    def _calculate_aspect_ratio(self, et, commit=True):
-        with exiftool.ExifTool() as et:
-            height = et.get_tag("ImageHeight", self.thumbnail_big.path)
-            width = et.get_tag("ImageWidth", self.thumbnail_big.path)
-            self.aspect_ratio = round((width / height), 2)
+    def _calculate_aspect_ratio(self, commit=True):
+        height, width = get_metadata(
+            self.thumbnail_big.path,
+            tags=[Tags.IMAGE_HEIGHT, Tags.IMAGE_WIDTH],
+            try_sidecar=False,
+        )
+        self.aspect_ratio = round(width / height, 2)
 
         if commit:
             self.save()
@@ -300,23 +354,25 @@ class Photo(models.Model):
     def _extract_date_time_from_exif(self, commit=True):
         date_format = "%Y:%m:%d %H:%M:%S"
         timestamp_from_exif = None
-        with exiftool.ExifTool() as et:
-            exif = et.get_tag("EXIF:DateTimeOriginal", self.image_paths[0])
-            exifvideo = et.get_tag("QuickTime:CreateDate", self.image_paths[0])
-            if exif:
-                try:
-                    timestamp_from_exif = datetime.strptime(exif, date_format).replace(
-                        tzinfo=pytz.utc
-                    )
-                except Exception:
-                    timestamp_from_exif = None
-            if exifvideo:
-                try:
-                    timestamp_from_exif = datetime.strptime(
-                        exifvideo, date_format
-                    ).replace(tzinfo=pytz.utc)
-                except Exception:
-                    timestamp_from_exif = None
+        exif, exifvideo = get_metadata(
+            self.image_paths[0],
+            tags=[Tags.DATE_TIME_ORIGINAL, Tags.QUICKTIME_CREATE_DATE],
+            try_sidecar=True,
+        )
+        if exif:
+            try:
+                timestamp_from_exif = datetime.strptime(exif, date_format).replace(
+                    tzinfo=pytz.utc
+                )
+            except Exception:
+                timestamp_from_exif = None
+        if exifvideo:
+            try:
+                timestamp_from_exif = datetime.strptime(exifvideo, date_format).replace(
+                    tzinfo=pytz.utc
+                )
+            except Exception:
+                timestamp_from_exif = None
 
         old_album_date = self._find_album_date()
 
@@ -347,9 +403,11 @@ class Photo(models.Model):
     def _geolocate_mapbox(self, commit=True):
         old_gps_lat = self.exif_gps_lat
         old_gps_lon = self.exif_gps_lon
-        with exiftool.ExifTool() as et:
-            new_gps_lat = et.get_tag("Composite:GPSLatitude", self.image_paths[0])
-            new_gps_lon = et.get_tag("Composite:GPSLongitude", self.image_paths[0])
+        new_gps_lat, new_gps_lon = get_metadata(
+            self.image_paths[0],
+            tags=[Tags.LATITUDE, Tags.LONGITUDE],
+            try_sidecar=True,
+        )
         old_album_places = self._find_album_place()
         # Skip if it hasn't changed or is null
         if not new_gps_lat or not new_gps_lon:
@@ -424,6 +482,17 @@ class Photo(models.Model):
             self.save()
         album_date.save()
         cache.clear()
+
+    def _extract_rating(self, commit=True):
+        (rating,) = get_metadata(
+            self.image_paths[0], tags=[Tags.RATING], try_sidecar=True
+        )
+        if rating is not None:
+            # Only change rating if the tag was found
+            logger.debug(f"Extracted rating for {self.image_paths[0]}: {rating}")
+            self.rating = rating
+            if commit:
+                self.save(save_metadata=False)
 
     def _extract_faces(self):
         qs_unknown_person = api.models.person.Person.objects.filter(name="unknown")

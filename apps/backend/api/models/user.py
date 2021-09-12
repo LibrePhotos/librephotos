@@ -25,6 +25,13 @@ class User(AbstractUser):
         default=ownphotos.settings.DEFAULT_FAVORITE_MIN_RATING, db_index=True
     )
 
+    SaveMetadataToDisk = models.TextChoices(
+        "SaveMetadataToDisk", "OFF MEDIA_FILE SIDECAR_FILE"
+    )
+    save_metadata_to_disk = models.TextField(
+        choices=SaveMetadataToDisk.choices, default=SaveMetadataToDisk.OFF
+    )
+
 
 def get_admin_user():
     return User.objects.get(is_superuser=True)

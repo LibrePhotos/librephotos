@@ -686,6 +686,7 @@ class UserSerializer(serializers.ModelSerializer):
             "nextcloud_scan_directory": {"required": False},
             "nextcloud_app_password": {"write_only": True},
             "favorite_min_rating": {"required": False},
+            "save_metadata_to_disk": {"required": False},
         }
         fields = (
             "id",
@@ -709,6 +710,7 @@ class UserSerializer(serializers.ModelSerializer):
             "avatar_url",
             "favorite_min_rating",
             "image_scale",
+            "save_metadata_to_disk",
         )
 
     def validate_nextcloud_app_password(self, value):
@@ -793,6 +795,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
             "id",
             "favorite_min_rating",
             "image_scale",
+            "save_metadata_to_disk",
         )
         extra_kwargs = {
             "password": {"write_only": True},
@@ -811,8 +814,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
                     "Updated scan directory for user {}".format(instance.scan_directory)
                 )
         if "confidence" in validated_data:
-            new_confidence = validated_data.pop("confidence")
-            instance.confidence = new_confidence
+            instance.confidence = validated_data.pop("confidence")
             instance.save()
             logger.info("Updated confidence for user {}".format(instance.confidence))
         if "semantic_search_topk" in validated_data:
@@ -844,9 +846,13 @@ class ManageUserSerializer(serializers.ModelSerializer):
             new_image_scale = validated_data.pop("image_scale")
             instance.image_scale = new_image_scale
             instance.save()
+            logger.info("Updated image_scale for user {}".format(instance.image_scale))
+        if "save_metadata_to_disk" in validated_data:
+            instance.save_metadata_to_disk = validated_data.pop("save_metadata_to_disk")
+            instance.save()
             logger.info(
-                "Updated image_scale for user {}".format(
-                    instance.image_scale
+                "Updated save_metadata_to_disk for user {}".format(
+                    instance.save_metadata_to_disk
                 )
             )
         cache.clear()

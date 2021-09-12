@@ -10,8 +10,8 @@ import six
 from constance import config as site_config
 from django.core.cache import cache
 from django.db.models import Count, Prefetch, Q
-from django.utils.encoding import iri_to_uri
 from django.http import HttpResponse, HttpResponseForbidden
+from django.utils.encoding import iri_to_uri
 from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -694,6 +694,7 @@ class UserViewSet(viewsets.ModelViewSet):
             "nextcloud_scan_directory",
             "favorite_min_rating",
             "image_scale",
+            "save_metadata_to_disk",
         ).order_by("-last_login")
         return queryset
 

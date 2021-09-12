@@ -121,6 +121,7 @@ def handle_new_image(user, image_path, job_id):
                 photo._generate_clip_embeddings(True)
                 photo._extract_date_time_from_exif(True)
                 photo._geolocate_mapbox(True)
+                photo._extract_rating(True)
                 photo._extract_faces()
 
                 elapsed = (datetime.datetime.now() - start).total_seconds()
@@ -166,6 +167,7 @@ def rescan_image(user, image_path, job_id):
             photo._generate_clip_embeddings(True)
             photo._extract_date_time_from_exif(True)
             photo._geolocate_mapbox(True)
+            photo._extract_rating(True)
 
     except Exception as e:
         try:
@@ -190,14 +192,27 @@ def walk_directory(directory, callback):
                 callback.append(fpath)
 
 
+def _file_was_modified_after(filepath, time):
+    try:
+        modified = os.path.getmtime(filepath)
+    except OSError:
+        return False
+    return datetime.datetime.fromtimestamp(modified).replace(tzinfo=pytz.utc) > time
+
+
 def photo_scanner(user, lastScan, full_scan, path, job_id):
     if Photo.objects.filter(image_paths__contains=path).exists():
-        time = os.path.getmtime(path)
+        files_to_check = [path]
+        files_to_check.extend(util.get_sidecar_files_in_priority_order(path))
         if (
             full_scan
             or not lastScan
-            or datetime.datetime.fromtimestamp(time).replace(tzinfo=pytz.utc)
-            > lastScan.finished_at
+            or any(
+                [
+                    _file_was_modified_after(p, lastScan.finished_at)
+                    for p in files_to_check
+                ]
+            )
         ):
             rescan_image(user, path, job_id)
     else:
@@ -211,6 +226,27 @@ def photo_scanner(user, lastScan, full_scan, path, job_id):
                 ) where job_id = %(job_id)s""",
             {"job_id": str(job_id)},
         )
+
+
+def initialize_scan_process(*args, **kwargs):
+    """
+    Each process will have its own exiftool instance
+    so we need to start _and_ stop it for each process.
+    multiprocessing.util.Finalize is _undocumented_ and
+    should perhaps not be relied on but I found no other
+    way. (See https://stackoverflow.com/a/24724452)
+
+    """
+    from multiprocessing.util import Finalize
+
+    from api.util import exiftool_instance
+
+    et = exiftool_instance.__enter__()
+
+    def terminate(et):
+        et.terminate()
+
+    Finalize(et, terminate, args=(et,), exitpriority=16)
 
 
 @job
@@ -253,7 +289,11 @@ def scan_photos(user, full_scan, job_id):
         lrj.result = {"progress": {"current": 0, "target": files_found}}
         lrj.save()
         db.connections.close_all()
-        with Pool(processes=ownphotos.settings.HEAVYWEIGHT_PROCESS) as pool:
+
+        with Pool(
+            processes=ownphotos.settings.HEAVYWEIGHT_PROCESS,
+            initializer=initialize_scan_process,
+        ) as pool:
             pool.starmap(photo_scanner, all)
 
         place365_instance.unload()
