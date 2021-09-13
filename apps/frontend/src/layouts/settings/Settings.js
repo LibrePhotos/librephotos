@@ -818,7 +818,7 @@ export class Settings extends Component {
                   const newUserData = this.state.userSelfDetails;
                   delete newUserData["scan_directory"];
                   delete newUserData["avatar"];
-                  this.props.dispatch(manageUpdateUser(newUserData));
+                  this.props.dispatch(updateUser(newUserData));
                   if (typeof this.props.onRequestClose == "function")
                     this.props.onRequestClose();
                 }}
@@ -894,7 +894,7 @@ export class Settings extends Component {
                   const newUserData = this.state.userSelfDetails;
                   delete newUserData["scan_directory"];
                   delete newUserData["avatar"];
-                  this.props.dispatch(manageUpdateUser(newUserData));
+                  this.props.dispatch(updateUser(newUserData));
                   if (typeof this.props.onRequestClose == "function")
                     this.props.onRequestClose();
                 }}
