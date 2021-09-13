@@ -758,6 +758,43 @@ class UserSerializer(serializers.ModelSerializer):
                 "nextcloud_scan_directory"
             )
             instance.save()
+        if "confidence" in validated_data:
+            instance.confidence = validated_data.pop("confidence")
+            instance.save()
+            logger.info("Updated confidence for user {}".format(instance.confidence))
+        if "semantic_search_topk" in validated_data:
+            new_semantic_search_topk = validated_data.pop("semantic_search_topk")
+
+            if instance.semantic_search_topk == 0 and new_semantic_search_topk > 0:
+                create_batch_job(
+                    LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS,
+                    User.objects.get(id=instance.id),
+                )
+
+            instance.semantic_search_topk = new_semantic_search_topk
+            instance.save()
+            logger.info(
+                "Updated semantic_search_topk for user {}".format(
+                    instance.semantic_search_topk
+                )
+            )
+        if "favorite_min_rating" in validated_data:
+            new_favorite_min_rating = validated_data.pop("favorite_min_rating")
+            instance.favorite_min_rating = new_favorite_min_rating
+            instance.save()
+            logger.info(
+                "Updated favorite_min_rating for user {}".format(
+                    instance.favorite_min_rating
+                )
+            )
+        if "save_metadata_to_disk" in validated_data:
+            instance.save_metadata_to_disk = validated_data.pop("save_metadata_to_disk")
+            instance.save()
+            logger.info(
+                "Updated save_metadata_to_disk for user {}".format(
+                    instance.save_metadata_to_disk
+                )
+            )
         cache.clear()
         return instance
 
@@ -813,48 +850,11 @@ class ManageUserSerializer(serializers.ModelSerializer):
                 logger.info(
                     "Updated scan directory for user {}".format(instance.scan_directory)
                 )
-        if "confidence" in validated_data:
-            instance.confidence = validated_data.pop("confidence")
-            instance.save()
-            logger.info("Updated confidence for user {}".format(instance.confidence))
-        if "semantic_search_topk" in validated_data:
-            new_semantic_search_topk = validated_data.pop("semantic_search_topk")
-
-            if instance.semantic_search_topk == 0 and new_semantic_search_topk > 0:
-                create_batch_job(
-                    LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS,
-                    User.objects.get(id=instance.id),
-                )
-
-            instance.semantic_search_topk = new_semantic_search_topk
-            instance.save()
-            logger.info(
-                "Updated semantic_search_topk for user {}".format(
-                    instance.semantic_search_topk
-                )
-            )
-        if "favorite_min_rating" in validated_data:
-            new_favorite_min_rating = validated_data.pop("favorite_min_rating")
-            instance.favorite_min_rating = new_favorite_min_rating
-            instance.save()
-            logger.info(
-                "Updated favorite_min_rating for user {}".format(
-                    instance.favorite_min_rating
-                )
-            )
         if "image_scale" in validated_data:
             new_image_scale = validated_data.pop("image_scale")
             instance.image_scale = new_image_scale
             instance.save()
             logger.info("Updated image_scale for user {}".format(instance.image_scale))
-        if "save_metadata_to_disk" in validated_data:
-            instance.save_metadata_to_disk = validated_data.pop("save_metadata_to_disk")
-            instance.save()
-            logger.info(
-                "Updated save_metadata_to_disk for user {}".format(
-                    instance.save_metadata_to_disk
-                )
-            )
         cache.clear()
         return instance
 
