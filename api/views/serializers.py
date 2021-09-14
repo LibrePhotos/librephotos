@@ -795,6 +795,11 @@ class UserSerializer(serializers.ModelSerializer):
                     instance.save_metadata_to_disk
                 )
             )
+        if "image_scale" in validated_data:
+            new_image_scale = validated_data.pop("image_scale")
+            instance.image_scale = new_image_scale
+            instance.save()
+            logger.info("Updated image_scale for user {}".format(instance.image_scale))
         cache.clear()
         return instance
 
@@ -850,11 +855,6 @@ class ManageUserSerializer(serializers.ModelSerializer):
                 logger.info(
                     "Updated scan directory for user {}".format(instance.scan_directory)
                 )
-        if "image_scale" in validated_data:
-            new_image_scale = validated_data.pop("image_scale")
-            instance.image_scale = new_image_scale
-            instance.save()
-            logger.info("Updated image_scale for user {}".format(instance.image_scale))
         cache.clear()
         return instance
 
