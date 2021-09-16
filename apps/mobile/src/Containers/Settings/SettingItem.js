@@ -1,23 +1,29 @@
 import React from 'react'
-import { View, Text, HStack, VStack } from 'native-base'
+import { View, Text, HStack, VStack, Switch } from 'native-base'
 import { useTheme } from '@/Theme'
 import Ionicons from 'react-native-vector-icons/Ionicons'
 
-export const SettingItem = ({ title, subTitle, icon = null }) => {
+export const SettingItem = ({
+  title,
+  subTitle,
+  toggleValue = null,
+  onToggle = () => {},
+  icon = null,
+}) => {
   const { Colors, Layout, Gutters } = useTheme()
 
   return (
     <View
-      style={[Layout.fullWidth, Gutters.regularLPadding, Gutters.smallVPadding]}
+      style={[Layout.fullWidth, Gutters.regularHPadding, Gutters.smallVPadding]}
     >
       <HStack space={3}>
         {icon && (
-          <View flex={0.15} style={[Gutters.LargeHMargin, Layout.center]}>
+          <View flex={0.15} style={[Gutters.tinyHMargin, Layout.center]}>
             <Ionicons name={icon} size={35} color={Colors.text} />
           </View>
         )}
 
-        <VStack style={[Gutters.LargeHMargin]}>
+        <VStack flex={1} style={[Gutters.tinyHMargin, Layout.selfStretch]}>
           <Text fontSize="lg" color={Colors.text}>
             {title}
           </Text>
@@ -25,6 +31,12 @@ export const SettingItem = ({ title, subTitle, icon = null }) => {
             {subTitle}
           </Text>
         </VStack>
+
+        {toggleValue !== null && (
+          <View flex={0.1} style={[Gutters.tinyHMargin, Layout.center]}>
+            <Switch isChecked={toggleValue} onToggle={onToggle} />
+          </View>
+        )}
       </HStack>
     </View>
   )

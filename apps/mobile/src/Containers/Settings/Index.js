@@ -12,6 +12,8 @@ import { OptionButton } from './OptionButton'
 import LogoutUser from '@/Store/Auth/LogoutUser'
 import { version } from '../../../app.json'
 import UpdateToken from '../../Services/Auth/UpdateToken'
+import ConfigureLogging from '../../Store/Config/ConfigureLogging'
+import { OptionToggle } from './OptionToggle'
 
 const SettingsContainer = () => {
   const { Colors, Layout, Gutters } = useTheme()
@@ -19,6 +21,7 @@ const SettingsContainer = () => {
   const toast = useToast()
   const navigation = useNavigation()
   const baseurl = useSelector(state => state.config.baseurl)
+  const logging = useSelector(state => state.config.logging)
   const theme = useSelector(state => state.theme.darkMode)
 
   const mapTheme = darkMode => {
@@ -49,6 +52,16 @@ const SettingsContainer = () => {
     UpdateToken().then(() => {
       toast.show({ title: 'Token Updated', duration: 1500 })
     })
+  }
+
+  const configureLogging = () => {
+    if (logging) {
+      dispatch(ConfigureLogging.action({ logging: false }))
+      toast.show({ title: 'Logging Disabled.', duration: 1500 })
+    } else {
+      dispatch(ConfigureLogging.action({ logging: true }))
+      toast.show({ title: 'Logging Enabled.', duration: 1500 })
+    }
   }
 
   const logout = () => {
@@ -95,6 +108,14 @@ const SettingsContainer = () => {
               subTitle="Regenerate the Auth JWT Token. Use if you face error loading Images/Screens."
               onPress={() => {
                 refreshToken()
+              }}
+            />
+            <OptionToggle
+              title="Debug Logging"
+              subTitle="Logging to local storage. No data is ever uploaded to the server without your consent."
+              value={logging}
+              onPress={() => {
+                configureLogging()
               }}
             />
             <OptionButton

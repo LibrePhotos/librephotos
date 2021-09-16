@@ -33,7 +33,6 @@ export default async serverName => {
       return true
     })
     .catch(e => {
-      console.log(e.response.request.responseURL)
       return typeof e.response !== 'undefined' && e.response.status === 401
     })
   return res

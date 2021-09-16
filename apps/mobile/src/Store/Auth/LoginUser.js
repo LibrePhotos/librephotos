@@ -20,7 +20,7 @@ export default {
         .post(
           '/auth/token/obtain/',
           {
-            username: username,
+            username: username.trim(),
             password: password,
           },
           {

@@ -7,8 +7,20 @@ import { navigationRef } from '@/Navigators/Root'
 import { AppState, SafeAreaView, StatusBar } from 'react-native'
 import { useTheme } from '@/Theme'
 import { AlbumListContainer, PhotoListContainer } from '../Containers'
+import {
+  getManufacturerSync,
+  getBrand,
+  getDeviceId,
+  getSystemName,
+  getSystemVersion,
+  getVersion,
+} from 'react-native-device-info'
+import { FileLogger } from 'react-native-file-logger'
+import RNShake from 'react-native-shake'
 
 const Stack = createStackNavigator()
+
+const emailTemplate = `Manufacturer: ${getManufacturerSync()}\nBrand: ${getBrand()}\nDevice: ${getDeviceId()}\nSystem: ${getSystemName()} ${getSystemVersion()}\nApp Version:${getVersion()}`
 
 let MainNavigator
 
@@ -18,14 +30,15 @@ const ApplicationNavigator = () => {
   const { colors } = NavigationTheme
   const [isApplicationLoaded, setIsApplicationLoaded] = useState(false)
   const applicationIsLoading = useSelector(state => state.startup.loading)
+  const logging = useSelector(state => state.config.logging)
+  const [appState, setAppState] = useState('active')
 
-  // let appStateChangeEvt = useRef()
+  FileLogger.configure({
+    maximumFileSize: 10 * 1024 * 1024, // 10 MiB
+    maximumNumberOfFiles: 5,
+  })
 
   useEffect(() => {
-    // appStateChangeEvt.current = AppState.addEventListener('change', state => {
-    //   console.log(state)
-    // })
-
     if (MainNavigator == null && !applicationIsLoading) {
       MainNavigator = require('@/Navigators/Main').default
       setIsApplicationLoaded(true)
@@ -33,8 +46,33 @@ const ApplicationNavigator = () => {
   }, [applicationIsLoading])
 
   useEffect(() => {
+    if (logging) {
+      FileLogger.enableConsoleCapture()
+    } else {
+      FileLogger.disableConsoleCapture()
+    }
+
+    if (appState === 'active' && logging) {
+      RNShake.addListener(() => {
+        FileLogger.getLogFilePaths().then(console.log.bind(this, 'Log Files:'))
+        FileLogger.sendLogFilesByEmail({
+          to: 'bugreports@akshay-naik.com',
+          subject: 'Bug Report',
+          body: emailTemplate + '\n\nDescribe your bug: ',
+        })
+      })
+    }
+
+    return () => {
+      FileLogger.disableConsoleCapture()
+      RNShake.removeAllListeners()
+    }
+  }, [appState, logging])
+
+  useEffect(() => {
     let appStateChangeEvt = AppState.addEventListener('change', state => {
-      console.log(state)
+      setAppState(state)
+      console.log('AppState: ', state)
     })
 
     return () => {
@@ -47,7 +85,6 @@ const ApplicationNavigator = () => {
     () => () => {
       setIsApplicationLoaded(false)
       MainNavigator = null
-      // appStateChangeEvt.current.remove()
     },
     [],
   )

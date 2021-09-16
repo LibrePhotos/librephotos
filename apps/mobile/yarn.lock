@@ -6824,6 +6824,16 @@ react-native-codegen@^0.0.6:
     jscodeshift "^0.11.0"
     nullthrows "^1.1.1"
 
+react-native-device-info@^8.3.2:
+  version "8.3.2"
+  resolved "https://registry.yarnpkg.com/react-native-device-info/-/react-native-device-info-8.3.2.tgz#6039746adced97593b5b3b105c90f743bc1ce855"
+  integrity sha512-TgCrA2Pk+DC+IBhN8kH+x1wTFRSFW9q9UC70rAxf1Qe0q0Fwoxx8szYnGs+kD1TK3yn/5MIZnNNvzUl82INhZQ==
+
+react-native-file-logger@^0.2.1:
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/react-native-file-logger/-/react-native-file-logger-0.2.1.tgz#dea99cc343ce03872b704e31d8546d81657a07d9"
+  integrity sha512-raLYGfVHrhEuNKvZA0CWsY+FnswoVKXbnV2dVz+7LWR2NuTPEX8ukYssWfWFGUSK98kfHvM6SM14Nh/RjT+6HA==
+
 react-native-flipper@^0.94.1:
   version "0.94.1"
   resolved "https://registry.yarnpkg.com/react-native-flipper/-/react-native-flipper-0.94.1.tgz#73e7497fdb814b585310eeaf38befa572da594b4"
@@ -6866,6 +6876,11 @@ react-native-screens@^3.4.0:
   integrity sha512-cg+q9MRnVdeOcJyvJtqffoXLur/C2wHA/7IO2+FAipzTlgHbbM1mTuSM7qG+SeiQjoIs4mHOEf7A0ziPKW04sA==
   dependencies:
     warn-once "^0.1.0"
+
+react-native-shake@^4.0.2:
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/react-native-shake/-/react-native-shake-4.0.2.tgz#6ea91049a87709c0917d79d3478f60089dfeb86f"
+  integrity sha512-2niPeI2d5blkbtOwHZ9aoPEue5Uas2IViZKc3jMJ7NIycSQKBw/gRhEYl4mNagCOF6zD6b30lQRBEqhCZvkAoA==
 
 react-native-svg@^12.1.1:
   version "12.1.1"
