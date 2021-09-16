@@ -83,8 +83,8 @@ jobs:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
         automatic_release_tag: "latest"
         prerelease: true
-        draft: true
-        title: "Automated Release"
+        draft: false
+        title: "Latest Release"
         files: |
           librephotos-latest-signed.apk
 

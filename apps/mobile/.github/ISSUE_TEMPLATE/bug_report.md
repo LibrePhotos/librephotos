@@ -21,7 +21,9 @@ When asking general "how to" questions:
 
 ## 🐛 Bug Report
 
-**Easiest Way to report a bug is using the Phone Shake Gesture. Shake the Phone and select Email as share option. Ensure [Logging to File](https://github.com/akshay9/librephotos-mobile/README.md#enable-file-logging) is enabled**
+**Note: Easiest Way to report a bug is using the Phone Shake Gesture. Shake the Phone and select Email as share option. Ensure [Logging to File](https://github.com/akshay9/librephotos-mobile/README.md#enable-file-logging) is enabled**
+
+Make sure you include the following information
 
 * [ ] I have included the Log Files. Refer [here]([documentation](https://github.com/akshay9/librephotos-mobile/README.md#enable-file-logging)) to get the log files
 * [ ] I am including relevant screenshots and steps to reproduce the bug.
