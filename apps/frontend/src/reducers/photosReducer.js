@@ -296,7 +296,7 @@ export default function reducer(
         );
         newPhotosGroupedByDate = newPhotosGroupedByDate.map((group) =>
           // Create a new group object if the photo exists in its items (don't mutate).
-          group.items.find((photo) => photo.id !== photoDetails.image_hash)
+          group.items.findIndex((photo) => photo.id === photoDetails.image_hash) === -1
             ? group
             : {
                 ...group,
