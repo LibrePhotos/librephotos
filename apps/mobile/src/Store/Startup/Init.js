@@ -6,8 +6,6 @@ import {
 import { store } from '@/Store'
 import { navigateAndSimpleReset } from '@/Navigators/Root'
 import DefaultTheme from '@/Store/Theme/DefaultTheme'
-import FetchAlbumByDate from '@/Store/Album/FetchByDate'
-import FetchPhotosWithoutDate from '@/Store/Album/FetchPhotosWithoutDate'
 
 export default {
   initialState: buildAsyncState(),

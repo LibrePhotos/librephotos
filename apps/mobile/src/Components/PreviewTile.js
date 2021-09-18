@@ -111,6 +111,7 @@ const PreviewTile = ({
       <FlatList
         // refreshing={false}
         // onRefresh={() => {}}
+        showsHorizontalScrollIndicator={false}
         data={albums}
         renderItem={renderItem}
         horizontal={true}
