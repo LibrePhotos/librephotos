@@ -8,14 +8,14 @@ import { photoMapper } from '../../Services/DataMapper/PhotosByDate'
 
 export default {
   initialState: buildAsyncState(),
-  action: buildAsyncActions('album/fetchByDate', async (args, k) => {
+  action: buildAsyncActions('album/fetchHidden', async (args, k) => {
     return await api
-      .get('/albums/date/photohash/list/', {
+      .get('/photos/hidden/', {
         timeout: 10000,
       })
       .then(response => {
         return photoMapper(response.data?.results)
       })
   }),
-  reducers: buildAsyncReducers({ itemKey: 'albumByDate' }), // We do not want to modify some item by default
+  reducers: buildAsyncReducers({ itemKey: 'albumHidden' }), // We do not want to modify some item by default
 }

@@ -57,7 +57,6 @@ const ImageGrid = ({
       </Pressable>
     )
   }
-
   return (
     <>
       {data && data.length > 0 && (
@@ -70,9 +69,12 @@ const ImageGrid = ({
           renderItem={renderPhoto}
         />
       )}
-      {(typeof data === 'undefined' || data.length < 1) && displayError && (
-        <NoResultsError refreshing={refreshing} onRefresh={onRefresh} />
-      )}
+      {(typeof data !== 'object' ||
+        typeof data.length === 'undefined' ||
+        data.length < 1) &&
+        displayError && (
+          <NoResultsError refreshing={refreshing} onRefresh={onRefresh} />
+        )}
 
       <Modal
         animationType="fade"

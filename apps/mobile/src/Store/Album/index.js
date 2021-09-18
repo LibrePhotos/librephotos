@@ -6,11 +6,19 @@ import FetchThings from './FetchThings'
 import FetchMyAlbums from './FetchMyAlbums'
 import ClearAlbumData from './ClearAlbumData'
 import ClearPhotoData from './ClearPhotoData'
+import FetchRecentlyAdded from './FetchRecentlyAdded'
+import FetchFavourites from './FetchFavourites'
+import FetchHidden from './FetchHidden'
+import FetchPublic from './FetchPublic'
 
 const sliceInitialState = {
   myAlbums: {},
-  albumByDate: {},
+  albumByDate: [],
   albumWithoutDate: {},
+  albumRecentlyAdded: {},
+  albumFavourites: [],
+  albumHidden: [],
+  albumPublic: [],
   albumPeople: {},
   albumThings: {},
 }
@@ -20,6 +28,10 @@ export default buildSlice(
   [
     FetchByDate,
     FetchPhotosWithoutDate,
+    FetchRecentlyAdded,
+    FetchFavourites,
+    FetchHidden,
+    FetchPublic,
     FetchPeople,
     FetchThings,
     FetchMyAlbums,
