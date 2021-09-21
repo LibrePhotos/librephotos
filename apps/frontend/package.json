@@ -47,7 +47,7 @@
     "react-leaflet": "^1.9.1",
     "react-leaflet-markercluster": "^1.1.8",
     "react-modal": "^3.4.5",
-    "react-pig": "git+https://github.com/derneuere/react-pig.git",
+    "react-pig": "git+https://github.com/LibrePhotos/react-pig.git",
     "react-placeholder": "^3.0.1",
     "react-player": "2.9.0",
     "react-redux": "^5.0.5",
