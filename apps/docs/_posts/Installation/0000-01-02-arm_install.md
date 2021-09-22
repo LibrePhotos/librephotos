@@ -1,6 +1,6 @@
 ---
 title: "Docker Compose on ARM"
-excerpt: "How to install Libre Photos on a Pi."
+excerpt: "How to install Libre Photos on an ARM device (e.g. Raspberry Pi)."
 last_modified_at: 2021-05-31
 category: 1
 ---
@@ -16,9 +16,9 @@ category: 1
 
 ### Architecture
 
-LibrePhotos will only work, when you have a ARM64 installation.
+LibrePhotos will only work on ARM devices (e.g. Raspberry Pis) if they are running an ARM64 operating system.
 Check what version you have by running `dpkg --print-architecture`. If it says `arm64`, you are good to go. Otherwise,
-you need to reinstall your PI with ARM64.
+you need to install an ARM64 operating system on your device.
 
 ### Size
 
@@ -32,7 +32,7 @@ serves, well, the frontend. They are connected via a proxy. The easiest way to d
 
 ## Docker-compose method (Recommended)
 
-Clone the repo: `git clone git@github.com:LibrePhotos/librephotos-docker.git`
+Clone the repo: `git clone https://github.com/LibrePhotos/librephotos-docker.git`
 
 `cp librephotos.env .env`
 

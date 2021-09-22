@@ -32,22 +32,21 @@ servers. The backend serves the restful API, and the frontend serves, well,
 the frontend. They are connected via a proxy.
 The easiest way to do it is using Docker.
 
-## Docker-compose method (Recommended)
+## Docker Compose installation (recommended)
 
-Clone the repo: `git clone git@github.com:LibrePhotos/librephotos-docker.git`
+Clone the repo: `git clone https://github.com/LibrePhotos/librephotos-docker.git`
 
-`cp librephotos.env .env`
+Copy the template variable file (containing options such as the location of your photos): `cp librephotos.env .env`
 
-Open `.env` in your favorite text editor and make the required changes.
+Open `.env` in your favorite text editor and make the required changes. E.g., using nano: `nano .env`
 
 Do not forget to create the directories you specified in the `.env` file if they do not exist.
 
-Run `docker-compose up -d`
+Start LibrePhotos with `docker-compose up -d`
 
-You should have librephotos accessible after a few minutes of boot-up on: [localhost:3000](http://localhost:3000) 
-unless you changed it in the `.env` file.  User is admin, password is admin unless you changed it in the `.env` file.
-It is recommended you change the admin username and password if Libre Photos is going to be publicly accessible via the 
-`.env` file.
+You should have LibrePhotos accessible after a few minutes of boot-up on [localhost:3000](http://localhost:3000) 
+unless you changed this in the `.env` file.  The username is `admin` & the password is `admin` unless you changed them in the `.env` file.
+It is recommended you change the admin username and password if LibrePhotos is going to be publicly accessible. This is done via the `.env` file.
 
 ## First steps after setting up
 

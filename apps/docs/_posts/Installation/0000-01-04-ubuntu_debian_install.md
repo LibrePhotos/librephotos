@@ -1,9 +1,12 @@
 ---
-title: "Local installation"
-excerpt: "Coming Soon"
+title: "Manual installation"
+excerpt: "How to install Libre Photos manually on Debian-based operating systems."
 last_modified_at: 2021-06-21
 category: 1 
 ---
+
+LibrePhotos can be installed manually on Debian-based operating systems, eliminating the need for Docker Compose.
+
 ## Compatibility
   - Debian 11
   - Ubuntu 20.04
