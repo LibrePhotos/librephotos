@@ -9,7 +9,7 @@ permalink: /
 {% assign posts_size = site.posts | size %}
 {% if posts_size > 0 %}
 
-The one-stop-shop for everything LibrePhotos: from installation, to how how to contribute, you'll find it all below.
+The one-stop-shop for everything LibrePhotos: from installation, to how to contribute, you'll find it all below.
 
 ## Table of Contents
 
