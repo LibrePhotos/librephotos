@@ -45,8 +45,7 @@ RUN apt-get update && \
 		python3-dev \
 		python3-pip \
 		swig \
-		unzip \
-		wget && \
+		unzip && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -74,8 +73,7 @@ RUN curl -SL https://www.imagemagick.org/download/releases/ImageMagick-${IMAGEMA
 # Build and install libvips
 WORKDIR /tmp/builds
 ARG VIPSVERSION=8.11.0
-RUN wget https://github.com/libvips/libvips/releases/download/v${VIPSVERSION}/vips-${VIPSVERSION}.tar.gz \ 
-	&& tar xzf vips-${VIPSVERSION}.tar.gz \ 
+RUN curl -SL https://github.com/libvips/libvips/releases/download/v${VIPSVERSION}/vips-${VIPSVERSION}.tar.gz | tar -xz \ 
 	&& cd vips-${VIPSVERSION} \ 
 	&& ./configure \ 
 	&& make V=0 \ 
