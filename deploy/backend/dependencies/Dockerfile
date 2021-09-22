@@ -49,7 +49,7 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install torch==1.9.1 torchvision==0.10.1 pyvips==2.1.15 cmake==3.21.2
+RUN pip3 install torch torchvision pyvips==2.1.15 cmake==3.21.2
 
 
 #Build and install libraw
