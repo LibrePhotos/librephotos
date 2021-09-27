@@ -116,14 +116,55 @@ def handle_new_image(user, image_path, job_id):
                 photo.video = is_video(img_abs_path)
                 start = datetime.datetime.now()
                 photo._generate_thumbnail(True)
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                util.logger.info(
+                    "job {}: generate thumbnails: {}, elapsed: {}".format(
+                        job_id, img_abs_path, elapsed
+                    )
+                )
                 photo._calculate_aspect_ratio(False)
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                util.logger.info(
+                    "job {}: calculate aspect ratio: {}, elapsed: {}".format(
+                        job_id, img_abs_path, elapsed
+                    )
+                )
                 photo._generate_captions(False)
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                util.logger.info(
+                    "job {}: generate caption: {}, elapsed: {}".format(
+                        job_id, img_abs_path, elapsed
+                    )
+                )
                 photo._generate_clip_embeddings(True)
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                util.logger.info(
+                    "job {}: generate clip embessings: {}, elapsed: {}".format(
+                        job_id, img_abs_path, elapsed
+                    )
+                )
                 photo._extract_date_time_from_exif(True)
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                util.logger.info(
+                    "job {}: extract date time: {}, elapsed: {}".format(
+                        job_id, img_abs_path, elapsed
+                    )
+                )
                 photo._geolocate_mapbox(True)
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                util.logger.info(
+                    "job {}: geolocate: {}, elapsed: {}".format(
+                        job_id, img_abs_path, elapsed
+                    )
+                )
                 photo._extract_rating(True)
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                util.logger.info(
+                    "job {}: extract rating: {}, elapsed: {}".format(
+                        job_id, img_abs_path, elapsed
+                    )
+                )
                 photo._extract_faces()
-
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
                     "job {}: image processed: {}, elapsed: {}".format(

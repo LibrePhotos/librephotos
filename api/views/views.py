@@ -1165,7 +1165,6 @@ class StatsView(APIView):
 
 
 class LocationClustersView(APIView):
-    # @cache_response(CACHE_TTL_VIZ)
     def get(self, request, format=None):
         res = get_location_clusters(request.user)
         return Response(res)
