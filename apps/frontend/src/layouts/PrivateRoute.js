@@ -3,9 +3,7 @@ import { connect } from "react-redux";
 import * as reducers from "../reducers";
 // Router and Switch are needed Breaks site if not in import. DW
 import { Route, Redirect } from "react-router-dom";
-
-var topMenuHeight = 45; // don't change this
-var leftMenuWidth = 85; // don't change this
+import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../ui-constants";
 
 const PrivateRoute = ({
   component: Component,
@@ -21,11 +19,11 @@ const PrivateRoute = ({
           <div>
             <div
               style={{
-                paddingLeft: showSidebar ? leftMenuWidth + 5 : 5,
+                paddingLeft: showSidebar ? LEFT_MENU_WIDTH + 5 : 5,
                 paddingRight: 0,
               }}
             >
-              <div style={{ paddingTop: topMenuHeight }}>
+              <div style={{ paddingTop: TOP_MENU_HEIGHT }}>
                 <Component {...props} />
               </div>
             </div>

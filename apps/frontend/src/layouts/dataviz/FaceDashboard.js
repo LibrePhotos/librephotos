@@ -34,8 +34,8 @@ import debounce from "lodash/debounce";
 import { fetchPeople } from "../../actions/peopleActions";
 import { serverAddress } from "../../api_client/apiClient";
 import Modal from "react-modal";
+import { TOP_MENU_HEIGHT } from "../../ui-constants";
 
-var topMenuHeight = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
 
 const SPEED_THRESHOLD = 500;
@@ -611,7 +611,7 @@ export class FaceDashboard extends Component {
         <div
           style={{
             right: 0,
-            top: topMenuHeight,
+            top: TOP_MENU_HEIGHT,
             position: "fixed",
             padding: 5,
           }}

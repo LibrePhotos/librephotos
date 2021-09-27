@@ -22,3 +22,7 @@ export function adjustDateFormat(photosGroupedByDate) {
 export function getPhotosFlatFromGroupedByDate(photosGroupedByDate) {
   return photosGroupedByDate.flatMap((el) => el.items);
 }
+
+export function getPhotosFlatFromGroupedByUser(photosGroupedByUser) {
+  return photosGroupedByUser.flatMap((el) => el.photos);
+}

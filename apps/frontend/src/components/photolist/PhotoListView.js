@@ -6,26 +6,16 @@ import { ModalAlbumEdit } from "../album/ModalAlbumEdit";
 import { fetchPhotoDetail } from "../../actions/photosActions";
 import { ModalPhotosShare } from "../sharing/ModalPhotosShare";
 import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
-import {
-  Dropdown,
-  Header,
-  Loader,
-  Popup,
-  Button,
-  Icon,
-  Grid,
-  GridRow,
-  GridColumn,
-} from "semantic-ui-react";
 import { serverAddress } from "../../api_client/apiClient";
 import { LightBox } from "../lightbox/LightBox";
 import _ from "lodash";
-import getToolbar from "../photolist/Toolbar";
+import getSelectionBar from "../photolist/SelectionBar";
 import FavoritedOverlay from "./FavoritedOverlay";
 import { fetchSiteSettings } from "../../actions/utilActions";
 import { fetchUserSelfDetails } from "../../actions/userActions";
+import getDefaultHeader from "./Headers";
+import { TOP_MENU_HEIGHT } from "../../ui-constants";
 
-var TOP_MENU_HEIGHT = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
 var TIMELINE_SCROLL_WIDTH = 0;
 
@@ -35,6 +25,7 @@ export class PhotoListView extends Component {
     this.handleResize = this.handleResize.bind(this);
     this.getPhotoDetails = this.getPhotoDetails.bind(this);
     this.listRef = React.createRef();
+    this.getHeader = this.props.getHeader ? this.props.getHeader : getDefaultHeader;
 
     this.state = {
       selectedItems: [],
@@ -176,40 +167,6 @@ export class PhotoListView extends Component {
 
   render() {
     this.closeLightboxIfImageIndexIsOutOfSync();
-    if (
-      this.props.loading ||
-      !this.props.photosGroupedByDate ||
-      this.props.photosGroupedByDate.length < 1
-    ) {
-      return (
-        <div>
-          <div style={{ height: 60, paddingTop: 10 }}>
-            <Header as="h4">
-              <Header.Content>
-                {this.props.loading ? "Loading..." : "No images found"}
-                <Loader inline active={this.props.loading} size="mini" />
-              </Header.Content>
-            </Header>
-          </div>
-
-          {this.props.photosGroupedByDate &&
-          this.props.photosGroupedByDate.length < 1 ? (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                height: this.state.height - TOP_MENU_HEIGHT - 60,
-              }}
-            >
-              <Header>{this.props.noResultsMessage}</Header>
-            </div>
-          ) : (
-            <div></div>
-          )}
-        </div>
-      );
-    }
 
     console.log(this.props);
     var isUserAlbum = false;
@@ -221,205 +178,17 @@ export class PhotoListView extends Component {
       <div>
         <div
           style={{
-            position: "sticky",
-            top: TOP_MENU_HEIGHT - 9 /* required */,
             marginTop: 5,
             width: "100%",
             zIndex: 100,
             backgroundColor: "white",
           }}
         >
-          <Grid columns={2}>
-            <GridRow>
-              <GridColumn>
-                <Header as="h2" style={{ paddingRight: 10 }}>
-                  <Icon name={this.props.titleIconName} />
-                  <Header.Content>
-                    {this.props.title}{" "}
-                    <Header.Subheader>
-                      {this.props.photosGroupedByDate.length !=
-                      this.props.idx2hash.length
-                        ? this.props.photosGroupedByDate.length + " days, "
-                        : ""}
-                      {this.props.idx2hash.length} photos
-                      {this.props.additionalSubHeader}
-                    </Header.Subheader>
-                  </Header.Content>
-                </Header>
-              </GridColumn>
-              <GridColumn>
-                <div
-                  style={{
-                    textAlign: "right",
-                    margin: "0 auto",
-                    padding: 20,
-                  }}
-                >
-                  <span style={{ paddingLeft: 5, fontSize: 18 }}>
-                    <b>
-                      {this.props.dayHeaderPrefix
-                        ? this.props.dayHeaderPrefix + this.props.date
-                        : this.props.date}
-                      {this.state.fromNow}
-                    </b>
-                  </span>
-                </div>
-              </GridColumn>
-            </GridRow>
-          </Grid>
+          {this.getHeader(this)}
 
-          {true && !this.props.isPublic && (
-            <div
-              style={{
-                marginLeft: -5,
-                paddingLeft: 5,
-                paddingRight: 5,
-                height: 40,
-                paddingTop: 4,
-                backgroundColor: "#f6f6f6",
-              }}
-            >
-              <Button.Group
-                compact
-                floated="left"
-                style={{ paddingLeft: 2, paddingRight: 2 }}
-              >
-                <Popup
-                  trigger={
-                    <Button
-                      icon="checkmark"
-                      compact
-                      active={this.state.selectMode}
-                      color={this.state.selectMode ? "blue" : "null"}
-                      onClick={() => {
-                        this.setState({ selectMode: !this.state.selectMode });
-                        if (this.state.selectMode) {
-                          this.setState({ selectedItems: [] });
-                        }
-                      }}
-                      label={{
-                        as: "a",
-                        basic: true,
-                        content: `${this.state.selectedItems.length} selected`,
-                      }}
-                      labelPosition="right"
-                    />
-                  }
-                  content="Toggle select mode"
-                  inverted
-                />
-              </Button.Group>
-
-              <Button.Group
-                compact
-                floated="left"
-                style={{ paddingLeft: 2, paddingRight: 2 }}
-              >
-                <Popup
-                  inverted
-                  trigger={
-                    <Button
-                      icon
-                      compact
-                      positive={
-                        this.state.selectedItems.length !==
-                        this.props.idx2hash.length
-                      }
-                      negative={
-                        this.state.selectedItems.length ===
-                        this.props.idx2hash.length
-                      }
-                      onClick={() => {
-                        if (
-                          this.state.selectedItems.length ===
-                          this.props.idx2hash.length
-                        ) {
-                          this.setState({ selectedItems: [] });
-                        } else {
-                          this.setState({
-                            selectMode: true,
-                            selectedItems: this.props.idx2hash,
-                          });
-                        }
-                      }}
-                    >
-                      <Icon
-                        name={
-                          this.state.selectedItems.length ===
-                          this.props.idx2hash.length
-                            ? "check circle outline"
-                            : "check circle"
-                        }
-                      />
-                    </Button>
-                  }
-                  content={
-                    this.state.selectedItems.length ===
-                    this.props.idx2hash.length
-                      ? "Deselect all"
-                      : "Select All"
-                  }
-                />
-              </Button.Group>
-              {getToolbar(this)}
-              <Button.Group
-                style={{ paddingLeft: 2, paddingRight: 2 }}
-                floated="right"
-                compact
-                color="teal"
-              >
-                <Dropdown
-                  disabled={this.state.selectedItems.length === 0}
-                  pointing="top right"
-                  icon="plus"
-                  floating
-                  button
-                  compact
-                  floated="right"
-                  className="icon"
-                >
-                  <Dropdown.Menu>
-                    <Dropdown.Header>
-                      Album ({this.state.selectedItems.length} selected)
-                    </Dropdown.Header>
-                    <Dropdown.Divider />
-                    <Dropdown.Item
-                      onClick={() => {
-                        if (this.state.selectedItems.length > 0) {
-                          this.setState({ modalAddToAlbumOpen: true });
-                        }
-                      }}
-                    >
-                      <Icon name="bookmark" color="red" />
-                      {" Album"}
-                    </Dropdown.Item>
-                  </Dropdown.Menu>
-                </Dropdown>
-              </Button.Group>
-
-              {false && isUserAlbum && (
-                <Popup
-                  inverted
-                  trigger={
-                    <Button.Group
-                      style={{ paddingLeft: 2, paddingRight: 2 }}
-                      floated="right"
-                      compact
-                      icon
-                      onClick={() => {
-                        this.setState({ modalAlbumShareOpen: true });
-                      }}
-                    >
-                      <Button icon="share alternate" />
-                    </Button.Group>
-                  }
-                  content="Share album"
-                />
-              )}
-            </div>
-          )}
+          {!this.props.isPublic && getSelectionBar(this)}
         </div>
-        {this.props.photosGroupedByDate ? (
+        {this.props.photosGroupedByDate && this.props.photosGroupedByDate.length > 0 ? (
           <div style={{ top: TOP_MENU_HEIGHT + 70 }}>
             <Pig
               imageData={
@@ -434,7 +203,6 @@ export class PhotoListView extends Component {
               scaleOfImages={this.props.userSelfDetails.image_scale}
               groupByDate={this.props.isDateView}
               getUrl={(url, pxHeight) => {
-                console.log(pxHeight);
                 if (pxHeight < 250) {
                   return (
                     serverAddress +

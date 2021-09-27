@@ -21,8 +21,8 @@ import { push } from "react-router-redux";
 import store from "../../store";
 import { Link } from "react-router-dom";
 import { SecuredImageJWT } from "../../components/SecuredImage";
+import { TOP_MENU_HEIGHT } from "../../ui-constants";
 
-var topMenuHeight = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
 
 export class AlbumUser extends Component {
@@ -195,7 +195,7 @@ export class AlbumUser extends Component {
               cellRenderer={this.cellRenderer}
               columnWidth={this.state.entrySquareSize}
               columnCount={this.state.numEntrySquaresPerRow}
-              height={this.state.height - topMenuHeight - 60}
+              height={this.state.height - TOP_MENU_HEIGHT - 60}
               rowHeight={this.state.entrySquareSize + 60}
               rowCount={Math.ceil(
                 this.props.albumsUserList.length /

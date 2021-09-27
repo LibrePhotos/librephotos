@@ -24,7 +24,7 @@ import { serverAddress } from "../api_client/apiClient";
 import { SecuredImageJWT } from "./SecuredImage";
 
 var ENTER_KEY = 13;
-var topMenuHeight = 50; // don't change this
+var topMenuHeight = 50; // don't change this. TODO: Should this use TOP_MENU_HEIGHT (=45)?
 
 function fuzzy_match(str, pattern) {
   if (pattern.split("").length > 0) {

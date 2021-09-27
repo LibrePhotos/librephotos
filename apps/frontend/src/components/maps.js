@@ -14,9 +14,6 @@ import { Link } from "react-router-dom";
 import { SecuredImageJWT } from "../components/SecuredImage";
 import _ from "lodash";
 
-var topMenuHeight = 45; // don't change this
-var SIDEBAR_WIDTH = 85;
-
 export class LocationMap extends Component {
   constructor(props) {
     super(props);
