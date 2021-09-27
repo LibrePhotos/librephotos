@@ -2,9 +2,11 @@ import numpy as np
 import requests
 from django.db.models import Q
 
+from datetime import datetime
 from api.models import Photo
 from api.util import logger
 from ownphotos.settings import IMAGE_SIMILARITY_SERVER
+from django.core.paginator import Paginator
 
 
 def search_similar_embedding(user, emb, result_count=100, threshold=27):
@@ -57,24 +59,28 @@ def search_similar_image(user, photo):
 
 def build_image_similarity_index(user):
     logger.info("builing similarity index for user {}".format(user.username))
+    start = datetime.now()
     photos = (
         Photo.objects.filter(Q(hidden=False) & Q(owner=user))
         .exclude(clip_embeddings=None)
-        .only("clip_embeddings")[:2500]
+        .only("clip_embeddings", "image_hash")
+        .all()
     )
+    paginator = Paginator(photos, 5000)
 
-    image_hashes = []
-    image_embeddings = []
+    for page in range(1, paginator.num_pages + 1):
+        image_hashes = []
+        image_embeddings = []
+        for photo in paginator.page(page).object_list:
+            image_hashes.append(photo.image_hash)
+            image_embedding = np.array(photo.clip_embeddings, dtype=np.float32)
+            image_embeddings.append(image_embedding.tolist())
 
-    for photo in photos:
-        image_hashes.append(photo.image_hash)
-        image_embedding = np.array(photo.clip_embeddings, dtype=np.float32)
-        image_embeddings.append(image_embedding.tolist())
-
-    post_data = {
-        "user_id": user.id,
-        "image_hashes": image_hashes,
-        "image_embeddings": image_embeddings,
-    }
-    res = requests.post(IMAGE_SIMILARITY_SERVER + "/build/", json=post_data)
-    return res.json()
+        post_data = {
+            "user_id": user.id,
+            "image_hashes": image_hashes,
+            "image_embeddings": image_embeddings,
+        }
+        requests.post(IMAGE_SIMILARITY_SERVER + "/build/", json=post_data)
+    elapsed = (datetime.now() - start).total_seconds()
+    logger.info("builing similarity index took %.2f seconds" % elapsed)

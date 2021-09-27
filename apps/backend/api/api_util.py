@@ -11,7 +11,7 @@ import seaborn as sns
 from django.db import connection
 from django.db.models import Count, Q
 from django.db.models.functions import TruncMonth
-
+from django.core.paginator import Paginator
 from api.models import (
     AlbumAuto,
     AlbumDate,
@@ -267,15 +267,20 @@ def get_count_stats(user):
 
 def get_location_clusters(user):
     start = datetime.now()
-    photos = Photo.objects.filter(owner=user).exclude(geolocation_json={})
+    photos = (
+        Photo.objects.filter(owner=user)
+        .exclude(geolocation_json={})
+        .only("geolocation_json")
+        .all()
+    )
 
     coord_names = []
-    names = []
-    for p in photos:
-        for feature in p.geolocation_json["features"]:
-            names.append(feature["text"])
-            if not feature["text"].isdigit():
-                coord_names.append([feature["text"], feature["center"]])
+    paginator = Paginator(photos, 5000)
+    for page in range(1, paginator.num_pages + 1):
+        for p in paginator.page(page).object_list:
+            for feature in p.geolocation_json["features"]:
+                if not feature["text"].isdigit():
+                    coord_names.append([feature["text"], feature["center"]])
 
     groups = []
     uniquekeys = []
