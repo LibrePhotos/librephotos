@@ -318,8 +318,11 @@ def get_location_sunburst(user):
 
     if photos_with_gps.count() == 0:
         return {"children": []}
-
-    geolocations = [p.geolocation_json for p in photos_with_gps]
+    geolocations = []
+    paginator = Paginator(photos_with_gps, 5000)
+    for page in range(1, paginator.num_pages + 1):
+        for p in paginator.page(page).object_list:
+            geolocations.append(p.geolocation_json)
 
     four_levels = []
     for gl in geolocations:
