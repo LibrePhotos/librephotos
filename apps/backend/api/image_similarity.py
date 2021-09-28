@@ -31,20 +31,22 @@ def search_similar_embedding(user, emb, result_count=100, threshold=27):
         return []
 
 
-def search_similar_image(user, photo):
+def search_similar_image(user, photo, threshold=27):
     if type(user) == int:
         user_id = user
     else:
         user_id = user.id
 
     if photo.clip_embeddings is None:
-        photo._generate_clip_embeddings()
-    if photo.clip_embeddings is None:
         return []
 
     image_embedding = np.array(photo.clip_embeddings, dtype=np.float32)
 
-    post_data = {"user_id": user_id, "image_embedding": image_embedding.tolist()}
+    post_data = {
+        "user_id": user_id,
+        "image_embedding": image_embedding.tolist(),
+        "threshold": threshold,
+    }
     res = requests.post(IMAGE_SIMILARITY_SERVER + "/search/", json=post_data)
     if res.status_code == 200:
         return res.json()

@@ -8,6 +8,7 @@ import magic
 import pytz
 import pyvips
 from django import db
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django_rq import job
 
@@ -342,9 +343,13 @@ def scan_photos(user, full_scan, job_id):
             "Scanned {} files in : {}".format(files_found, user.scan_directory)
         )
         api.models.album_thing.update()
+        util.logger.info("Finished updating album things")
         exisisting_photos = Photo.objects.filter(owner=user.id)
-        for existing_photo in exisisting_photos:
-            existing_photo._check_image_paths()
+        paginator = Paginator(exisisting_photos, 5000)
+        for page in range(1, paginator.num_pages + 1):
+            for existing_photo in paginator.page(page).object_list:
+                existing_photo._check_image_paths()
+        util.logger.info("Finished checking paths")
         build_image_similarity_index(user)
     except Exception:
         util.logger.exception("An error occured: ")
