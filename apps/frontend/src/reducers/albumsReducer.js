@@ -54,6 +54,10 @@ export default function reducer(
     fetchingAlbumsPlace: false,
     fetchedAlbumsPlace: false,
 
+    albumsThing: {},
+    fetchingAlbumsThing: false,
+    fetchedAlbumsThing: false,
+
     albumsSharedToMe: [],
     fetchingAlbumsSharedToMe: false,
     fetchedAlbumsSharedToMe: false,
@@ -289,6 +293,23 @@ export default function reducer(
         fetchingAlbumsPlace: false,
         fetchedAlbumsPlace: true,
         albumsPlace: new_album,
+      };
+    }
+
+    case "FETCH_THING_ALBUMS": {
+      return { ...state, fetchingAlbumsThing: true };
+    }
+    case "FETCH_THING_ALBUMS_REJECTED": {
+      return { ...state, fetchingAlbumsThing: false, error: action.payload };
+    }
+    case "FETCH_THING_ALBUMS_FULFILLED": {
+      new_album = { ...state.albumsThing };
+      new_album[parseInt(action.payload.results.id)] = action.payload.results;
+      return {
+        ...state,
+        fetchingAlbumsThing: false,
+        fetchedAlbumsThing: true,
+        albumsThing: new_album,
       };
     }
 

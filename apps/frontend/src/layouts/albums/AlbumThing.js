@@ -1,14 +1,10 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import { Icon, Header, Loader, Image } from "semantic-ui-react";
+import { Icon, Header, Loader } from "semantic-ui-react";
 import { Grid, AutoSizer } from "react-virtualized";
-import { serverAddress } from "../../api_client/apiClient";
-import LazyLoad from "react-lazyload";
 import { fetchThingAlbumsList } from "../../actions/albumsActions";
-import { searchPhotos } from "../../actions/searchActions";
-import { push } from "react-router-redux";
-import store from "../../store";
 import { Tile } from "../../components/Tile";
+import { Link } from "react-router-dom";
 
 var topMenuHeight = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
@@ -66,28 +62,22 @@ export class AlbumThing extends Component {
     if (albumThingIndex < this.props.albumsThingList.length) {
       return (
         <div key={key} style={style}>
-          <div
-            onClick={() => {
-              store.dispatch(
-                searchPhotos(this.props.albumsThingList[albumThingIndex].title)
-              );
-              store.dispatch(push("/search"));
-            }}
-            style={{ padding: 5 }}
-          >
-            {this.props.albumsThingList[albumThingIndex].cover_photos
-              .slice(0, 1)
-              .map((photo) => {
-                return (
+          {this.props.albumsThingList[albumThingIndex].cover_photos
+            .slice(0, 1)
+            .map((photo) => {
+              return (
+                <Link
+                  to={`/thing/${this.props.albumsThingList[albumThingIndex].id}/`}
+                >
                   <Tile
                     video={photo.video === true}
                     height={this.state.entrySquareSize - 10}
                     width={this.state.entrySquareSize - 10}
                     image_hash={photo.image_hash}
                   ></Tile>
-                );
-              })}
-          </div>
+                </Link>
+              );
+            })}
           <div style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
             <b>{this.props.albumsThingList[albumThingIndex].title}</b>
             <br />

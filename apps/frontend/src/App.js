@@ -25,6 +25,7 @@ import { AlbumAuto } from "./layouts/albums/AlbumAuto";
 import { AlbumPeople } from "./layouts/albums/AlbumPeople";
 import { AlbumPersonGallery } from "./layouts/albums/AlbumPersonGallery";
 import { AlbumPlaceGallery } from "./layouts/albums/AlbumPlaceGallery";
+import { AlbumThingGallery } from "./layouts/albums/AlbumThingGallery";
 import { AlbumThing } from "./layouts/albums/AlbumThing";
 import { AlbumUser } from "./layouts/albums/AlbumUser";
 import { AlbumUserGallery } from "./layouts/albums/AlbumUserGallery";
@@ -126,6 +127,11 @@ class App extends Component {
             <PrivateRoute
               path="/place/:albumID"
               component={AlbumPlaceGallery}
+            />
+
+            <PrivateRoute
+              path="/thing/:albumID"
+              component={AlbumThingGallery}
             />
 
             <PrivateRoute
