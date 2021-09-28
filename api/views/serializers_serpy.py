@@ -93,6 +93,15 @@ class GroupedPersonPhotosSerializer(serpy.Serializer):
         res = GroupedPhotosSerializer(grouped_photos, many=True).data
         return res
 
+class GroupedThingPhotosSerializer(serpy.Serializer):
+    id = serpy.StrField()
+    title = serpy.StrField()
+    grouped_photos = serpy.MethodField("get_photos")
+
+    def get_photos(self, obj):
+        grouped_photos = get_photos_ordered_by_date(obj.photos.all())
+        res = GroupedPhotosSerializer(grouped_photos, many=True).data
+        return res
 
 class GroupedPlacePhotosSerializer(serpy.Serializer):
     id = serpy.StrField()
