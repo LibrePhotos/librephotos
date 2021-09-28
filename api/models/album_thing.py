@@ -1,5 +1,6 @@
 from django.db import connection, models
 
+import api.util as util
 from api.models.photo import Photo
 from api.models.user import User, get_deleted_user
 
@@ -96,8 +97,15 @@ def delete_album_thing_photo(cursor):
     """This function delete photos form albums thing where thing disapears"""
     SQL = """
         with {}
-        delete from api_albumthing_photos
-        where (albumthing_id,photo_id) not in ( select albumthing_id, photo_id from api_albumthing_photos_sql)
+        delete 
+        from api_albumthing_photos as p
+        where not exists (
+            select 1
+            from api_albumthing_photos_sql
+            where albumthing_id = p.albumthing_id
+                and photo_id = p.photo_id
+            limit 1
+        )
     """.replace(
         "{}", view_api_album_thing_photos_sql
     )

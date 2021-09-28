@@ -139,7 +139,7 @@ class PhotoSerializer(serializers.ModelSerializer):
         )
 
     def get_similar_photos(self, obj):
-        res = search_similar_image(obj.owner, obj)
+        res = search_similar_image(obj.owner, obj, threshold=90)
         arr = []
         if len(res) > 0:
             [arr.append(e) for e in res["result"]]
