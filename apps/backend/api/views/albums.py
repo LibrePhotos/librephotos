@@ -30,6 +30,7 @@ from api.views.serializers_serpy import (
     AlbumUserSerializerSerpy,
     GroupedPersonPhotosSerializer,
     GroupedPlacePhotosSerializer,
+    GroupedThingPhotosSerializer,
 )
 
 
@@ -218,16 +219,31 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
             )
             .annotate(photo_count=Count("photos"))
             .filter(Q(photo_count__gt=0))
-            .order_by("title")
+            .prefetch_related(
+                Prefetch(
+                    "photos",
+                    queryset=Photo.objects.filter(hidden=False)
+                    .only("image_hash", "public", "rating", "hidden", "exif_timestamp")
+                    .order_by("-exif_timestamp"),
+                )
+            )
         )
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
-        return super(AlbumThingViewSet, self).retrieve(*args, **kwargs)
+        queryset = self.get_queryset()
+        logger.warning(args[0].__str__())
+        albumid = re.findall(r"\'(.+?)\'", args[0].__str__())[0].split("/")[-2]
+        serializer = GroupedThingPhotosSerializer(queryset.filter(id=albumid).first())
+        serializer.context = {"request": self.request}
+        return Response({"results": serializer.data})
 
     @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
-        return super(AlbumThingViewSet, self).list(*args, **kwargs)
+        queryset = self.get_queryset()
+        serializer = GroupedThingPhotosSerializer(queryset, many=True)
+        serializer.context = {"request": self.request}
+        return Response({"results": serializer.data})
 
 
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
