@@ -16,10 +16,7 @@ import {
 import { logout } from "../../actions/authActions";
 import { toggleSidebar } from "../../actions/uiActions";
 import { CustomSearch } from "../CustomSearch";
-import {
-  fetchCountStats,
-  fetchWorkerAvailability,
-} from "../../actions/utilActions";
+import { fetchWorkerAvailability } from "../../actions/utilActions";
 import { serverAddress } from "../../api_client/apiClient";
 import { fetchUserSelfDetails } from "../../actions/userActions";
 
@@ -39,9 +36,7 @@ export class TopMenu extends Component {
   }
 
   componentDidMount() {
-    this.props.dispatch(fetchCountStats());
     this.props.dispatch(fetchUserSelfDetails(this.props.auth.access.user_id));
-
     var _dispatch = this.props.dispatch;
     this.setState({ dispatch: _dispatch });
     var intervalId = setInterval(() => {

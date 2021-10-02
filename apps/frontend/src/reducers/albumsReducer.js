@@ -191,46 +191,10 @@ export default function reducer(
       };
     }
 
-    case "FETCH_DATE_ALBUMS_LIST": {
-      return { ...state, fetchingAlbumsDateList: true };
-    }
-    case "FETCH_DATE_ALBUMS_LIST_REJECTED": {
-      return { ...state, fetchingAlbumsDateList: false, error: action.payload };
-    }
-    case "FETCH_DATE_ALBUMS_LIST_FULFILLED": {
-      return {
-        ...state,
-        fetchingAlbumsDateList: false,
-        fetchedAlbumsDateList: true,
-        albumsDateList: action.payload,
-      };
-    }
-
     case "SET_IDX_TO_IMAGE_HASH": {
       return {
         ...state,
         idx2hash: action.payload,
-      };
-    }
-
-    case "FETCH_DATE_ALBUMS_RETRIEVE": {
-      return { ...state, fetchingAlbumsDateGalleries: true };
-    }
-    case "FETCH_DATE_ALBUMS_RETRIEVE_REJECTED": {
-      return {
-        ...state,
-        fetchingAlbumsDateGalleries: false,
-        error: action.payload,
-      };
-    }
-    case "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED": {
-      new_album = { ...state.albumsDateGalleries };
-      new_album[action.payload.id] = action.payload;
-      return {
-        ...state,
-        fetchingAlbumsDateGalleries: false,
-        fetchedAlbumsDateGalleries: true,
-        albumsDateGalleries: new_album,
       };
     }
 

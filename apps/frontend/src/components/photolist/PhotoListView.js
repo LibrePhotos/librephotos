@@ -22,8 +22,6 @@ import { LightBox } from "../lightbox/LightBox";
 import _ from "lodash";
 import getToolbar from "../photolist/Toolbar";
 import FavoritedOverlay from "./FavoritedOverlay";
-import { fetchSiteSettings } from "../../actions/utilActions";
-import { fetchUserSelfDetails } from "../../actions/userActions";
 
 var TOP_MENU_HEIGHT = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
@@ -54,8 +52,6 @@ export class PhotoListView extends Component {
   componentDidMount() {
     this.handleResize();
     window.addEventListener("resize", this.handleResize);
-    this.props.dispatch(fetchSiteSettings());
-    this.props.dispatch(fetchUserSelfDetails(this.props.auth.access.user_id));
   }
   componentWillUnmount() {
     window.removeEventListener("resize", this.handleResize);
@@ -143,18 +139,7 @@ export class PhotoListView extends Component {
   };
 
   handleResize() {
-    var columnWidth = window.innerWidth - 5 - 5 - 10;
-    if (this.props.showSidebar) {
-      columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10;
-    }
-
-    this.setState({
-      width: window.innerWidth,
-      height: window.innerHeight,
-    });
-    if (this.listRef.current) {
-      this.listRef.current.recomputeGridSize();
-    }
+    //
   }
 
   getPhotoDetails(image) {
@@ -434,7 +419,6 @@ export class PhotoListView extends Component {
               scaleOfImages={this.props.userSelfDetails.image_scale}
               groupByDate={this.props.isDateView}
               getUrl={(url, pxHeight) => {
-                console.log(pxHeight);
                 if (pxHeight < 250) {
                   return (
                     serverAddress +
@@ -449,6 +433,17 @@ export class PhotoListView extends Component {
                 );
               }}
               overlay={FavoritedOverlay}
+              numberOfItems={
+                this.props.numberOfItems
+                  ? this.props.numberOfItems
+                  : this.props.idx2hash.length
+              }
+              updateItems={
+                this.props.updateItems ? this.props.updateItems : () => {}
+              }
+              updateGroups={
+                this.props.updateGroups ? this.props.updateGroups : () => {}
+              }
             ></Pig>
           </div>
         ) : (

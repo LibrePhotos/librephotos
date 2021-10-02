@@ -2,14 +2,27 @@ import React, { Component } from "react";
 import { connect } from "react-redux";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { fetchTimestampPhotos } from "../../actions/photosActions";
+import {
+  fetchDateAlbumsList,
+  fetchAlbumsDateGalleries,
+} from "../../actions/albumsActions";
 import { Photoset } from "../../reducers/photosReducer";
-
+import throttle from "lodash";
 export class TimestampPhotos extends Component {
   componentDidMount() {
     if (this.props.fetchedPhotoset !== Photoset.TIMESTAMP) {
-      this.props.dispatch(fetchTimestampPhotos());
+      this.props.dispatch(fetchDateAlbumsList());
     }
   }
+
+  getAlbums = (visibleGroups) => {
+    visibleGroups.forEach((group) => {
+      if (group.incomplete === true) {
+        this.props.dispatch(fetchAlbumsDateGalleries(group.id));
+      }
+    });
+    console.log(visibleGroups);
+  };
 
   render() {
     return (
@@ -20,6 +33,9 @@ export class TimestampPhotos extends Component {
         isDateView={true}
         photosGroupedByDate={this.props.photosGroupedByDate}
         idx2hash={this.props.photosFlat}
+        updateGroups={(visibleGroups) =>
+          throttle(this.getAlbums(visibleGroups), 500)
+        }
       />
     );
   }

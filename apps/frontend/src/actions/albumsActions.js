@@ -2,7 +2,13 @@ import { Server } from "../api_client/apiClient";
 import _ from "lodash";
 import { notify } from "reapop";
 import { push } from "react-router-redux";
-import { adjustDateFormat, getPhotosFlatFromGroupedByDate } from "../util/util";
+import {
+  adjustDateFormat,
+  adjustDateFormatForSingleGroup,
+  getPhotosFlatFromGroupedByDate,
+  getPhotosFlatFromSingleGroup,
+  addTempElementsToGroups,
+} from "../util/util";
 
 export function fetchThingAlbumsList() {
   return function (dispatch) {
@@ -304,9 +310,15 @@ export function fetchDateAlbumsList() {
     dispatch({ type: "FETCH_DATE_ALBUMS_LIST" });
     Server.get("albums/date/list/", { timeout: 100000 })
       .then((response) => {
+        var photosGroupedByDate = response.data.results;
+        adjustDateFormat(photosGroupedByDate);
+        addTempElementsToGroups(photosGroupedByDate);
         dispatch({
           type: "FETCH_DATE_ALBUMS_LIST_FULFILLED",
-          payload: response.data.results,
+          payload: {
+            photosGroupedByDate: photosGroupedByDate,
+            photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
+          },
         });
       })
       .catch((err) => {
@@ -334,15 +346,26 @@ export function fetchAlbumsAutoGalleries(album_id) {
 
 export function fetchAlbumsDateGalleries(album_id) {
   return function (dispatch) {
-    dispatch({ type: "FETCH_DATE_ALBUMS_RETRIEVE" });
+    dispatch({
+      type: "FETCH_DATE_ALBUMS_RETRIEVE",
+      payload: {
+        album_id: album_id,
+      },
+    });
     Server.get(`albums/date/${album_id}/`)
       .then((response) => {
+        var photosGroupedByDate = response.data;
+        adjustDateFormatForSingleGroup(photosGroupedByDate);
         dispatch({
           type: "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED",
-          payload: response.data,
+          payload: {
+            photosGroupedByDate: photosGroupedByDate,
+            photosFlat: getPhotosFlatFromSingleGroup(photosGroupedByDate),
+          },
         });
       })
       .catch((err) => {
+        console.log(err);
         dispatch({ type: "FETCH_DATE_ALBUMS_RETRIEVE_REJECTED", payload: err });
       });
   };

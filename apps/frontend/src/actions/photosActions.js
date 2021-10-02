@@ -503,6 +503,63 @@ export function fetchNoTimestampPhotoList() {
   };
 }
 
+export const FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED =
+  "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED";
+export const FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED =
+  "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED";
+export const FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED =
+  "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED";
+export function fetchNoTimestampPhotoPaginated(page) {
+  return function (dispatch) {
+    dispatch({ type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED });
+    Server.get(`photos/notimestamp/?page=${page}`, { timeout: 100000 })
+      .then((response) => {
+        var photosFlat = response.data.results;
+        dispatch({
+          type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED,
+          payload: {
+            photosFlat: photosFlat,
+            fetchedPage: page,
+          },
+        });
+      })
+      .catch((err) => {
+        dispatch({
+          type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED,
+          payload: err,
+        });
+      });
+  };
+}
+
+export const FETCH_NO_TIMESTAMP_PHOTOS_COUNT =
+  "FETCH_NO_TIMESTAMP_PHOTOS_COUNT";
+export const FETCH_NO_TIMESTAMP_PHOTOS_COUNT_FULFILLED =
+  "FETCH_NO_TIMESTAMP_PHOTOS_COUNT_FULFILLED";
+export const FETCH_NO_TIMESTAMP_PHOTOS_COUNT_REJECTED =
+  "FETCH_NO_TIMESTAMP_PHOTOS_COUNT_REJECTED";
+export function fetchNoTimestampPhotoCount() {
+  return function (dispatch) {
+    dispatch({ type: FETCH_NO_TIMESTAMP_PHOTOS_COUNT });
+    Server.get(`photos/notimestamp/count`, { timeout: 100000 })
+      .then((response) => {
+        var photosCount = response.data.photosCount;
+        dispatch({
+          type: FETCH_NO_TIMESTAMP_PHOTOS_COUNT_FULFILLED,
+          payload: {
+            photosCount: photosCount,
+          },
+        });
+      })
+      .catch((err) => {
+        dispatch({
+          type: FETCH_NO_TIMESTAMP_PHOTOS_COUNT_REJECTED,
+          payload: err,
+        });
+      });
+  };
+}
+
 export function generatePhotoIm2txtCaption(image_hash) {
   return function (dispatch) {
     dispatch({ type: "GENERATE_PHOTO_CAPTION" });

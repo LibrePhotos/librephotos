@@ -12,7 +12,13 @@ import {
   FETCH_HIDDEN_PHOTOS_FULFILLED,
   FETCH_HIDDEN_PHOTOS_REJECTED,
   FETCH_NO_TIMESTAMP_PHOTOS,
+  FETCH_NO_TIMESTAMP_PHOTOS_COUNT,
   FETCH_NO_TIMESTAMP_PHOTOS_FULFILLED,
+  FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED,
+  FETCH_NO_TIMESTAMP_PHOTOS_COUNT_FULFILLED,
+  FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED,
+  FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED,
+  FETCH_NO_TIMESTAMP_PHOTOS_COUNT_REJECTED,
   FETCH_NO_TIMESTAMP_PHOTOS_REJECTED,
   FETCH_RECENTLY_ADDED_PHOTOS,
   FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED,
@@ -26,7 +32,10 @@ import {
   SEARCH_PHOTOS_FULFILLED,
   SEARCH_PHOTOS_REJECTED,
 } from "../actions/searchActions";
-
+import {
+  addTempElementsToFlatList,
+  getPhotosFlatFromGroupedByDate,
+} from "../util/util";
 export const Photoset = {
   NONE: "none",
   TIMESTAMP: "timestamp",
@@ -66,6 +75,7 @@ export default function reducer(
     photosFlat: [],
     photosGroupedByDate: [],
     fetchedPhotoset: Photoset.NONE,
+    numberOfPhotos: 0,
 
     photosSharedToMe: [],
     fetchingPhotosSharedToMe: false,
@@ -186,6 +196,48 @@ export default function reducer(
         photos: action.payload,
       };
     }
+    case "FETCH_DATE_ALBUMS_RETRIEVE": {
+      var newPhotosGroupedByDate = [...state.photosGroupedByDate];
+      var indexToReplace = newPhotosGroupedByDate.findIndex(
+        (group) => group.id === action.payload.album_id
+      );
+      newPhotosGroupedByDate[indexToReplace].incomplete = false;
+      return {
+        ...state,
+        photosGroupedByDate: newPhotosGroupedByDate,
+      };
+    }
+    case "FETCH_DATE_ALBUMS_RETRIEVE_REJECTED": {
+      return resetPhotos(state, action.payload);
+    }
+    case "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED": {
+      var newPhotosGroupedByDate = [...state.photosGroupedByDate];
+      var indexToReplace = newPhotosGroupedByDate.findIndex(
+        (group) => group.id === action.payload.photosGroupedByDate.id
+      );
+      newPhotosGroupedByDate[indexToReplace] =
+        action.payload.photosGroupedByDate;
+      newPhotosFlat = getPhotosFlatFromGroupedByDate(newPhotosGroupedByDate);
+      return {
+        ...state,
+        photosFlat: newPhotosFlat,
+        photosGroupedByDate: newPhotosGroupedByDate,
+      };
+    }
+    case "FETCH_DATE_ALBUMS_LIST": {
+      return { ...state };
+    }
+    case "FETCH_DATE_ALBUMS_LIST_REJECTED": {
+      return resetPhotos(state, action.payload);
+    }
+    case "FETCH_DATE_ALBUMS_LIST_FULFILLED": {
+      return {
+        ...state,
+        photosFlat: action.payload.photosFlat,
+        fetchedPhotoset: Photoset.TIMESTAMP,
+        photosGroupedByDate: action.payload.photosGroupedByDate,
+      };
+    }
 
     case FETCH_TIMESTAMP_PHOTOS: {
       return { ...state };
@@ -229,6 +281,40 @@ export default function reducer(
       };
     }
     case FETCH_HIDDEN_PHOTOS_REJECTED: {
+      return resetPhotos(state, action.payload);
+    }
+
+    case FETCH_NO_TIMESTAMP_PHOTOS_COUNT: {
+      return { ...state };
+    }
+    case FETCH_NO_TIMESTAMP_PHOTOS_COUNT_FULFILLED: {
+      return {
+        ...state,
+        numberOfPhotos: action.payload.photosCount,
+        photosFlat: addTempElementsToFlatList(action.payload.photosCount),
+        fetchedPhotoset: Photoset.NO_TIMESTAMP,
+      };
+    }
+    case FETCH_NO_TIMESTAMP_PHOTOS_COUNT_REJECTED: {
+      return resetPhotos(state, action.payload);
+    }
+
+    case FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED: {
+      return { ...state };
+    }
+    case FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED: {
+      var fetched_page = action.payload.fetchedPage;
+      var newPhotosFlat = state.photosFlat
+        .slice(0, (fetched_page - 1) * 100)
+        .concat(action.payload.photosFlat)
+        .concat(state.photosFlat.slice(fetched_page * 100));
+      return {
+        ...state,
+        photosFlat: newPhotosFlat,
+        fetchedPhotoset: Photoset.NO_TIMESTAMP,
+      };
+    }
+    case FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED: {
       return resetPhotos(state, action.payload);
     }
 
@@ -296,7 +382,9 @@ export default function reducer(
         );
         newPhotosGroupedByDate = newPhotosGroupedByDate.map((group) =>
           // Create a new group object if the photo exists in its items (don't mutate).
-          group.items.findIndex((photo) => photo.id === photoDetails.image_hash) === -1
+          group.items.findIndex(
+            (photo) => photo.id === photoDetails.image_hash
+          ) === -1
             ? group
             : {
                 ...group,
