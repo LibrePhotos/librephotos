@@ -505,12 +505,16 @@ class Photo(models.Model):
             unknown_person = qs_unknown_person[0]
         image = np.array(PIL.Image.open(self.thumbnail_big.path))
 
-        face_locations = face_recognition.face_locations(image)
-        face_encodings = face_recognition.face_encodings(
-            image, known_face_locations=face_locations
-        )
+        face_locations = []
+        try:
+            face_locations = face_recognition.face_locations(image)
+        except:
+            logger.debug(f"Can't extract face information on photo: {self.image_paths[0]}")
 
         if len(face_locations) > 0:
+            face_encodings = face_recognition.face_encodings(
+                image, known_face_locations=face_locations
+            )
             for idx_face, face in enumerate(zip(face_encodings, face_locations)):
                 face_encoding = face[0]
                 face_location = face[1]
