@@ -168,6 +168,13 @@ def handle_new_image(user, image_path, job_id):
                 photo._extract_faces()
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
+                    "job {}: extract faces: {}, elapsed: {}".format(
+                        job_id, img_abs_path, elapsed
+                    )
+                )
+                photo._get_dominant_color()
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                util.logger.info(
                     "job {}: image processed: {}, elapsed: {}".format(
                         job_id, img_abs_path, elapsed
                     )
@@ -210,6 +217,7 @@ def rescan_image(user, image_path, job_id):
             photo._extract_date_time_from_exif(True)
             photo._geolocate_mapbox(True)
             photo._extract_rating(True)
+            photo._get_dominant_color()
 
     except Exception as e:
         try:

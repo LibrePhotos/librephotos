@@ -130,7 +130,7 @@ router.register(
 
 router.register(r"api/albums/auto", albums.AlbumAutoViewSet, basename="album_auto")
 router.register(r"api/albums/person", albums.AlbumPersonViewSet, basename="person")
-router.register(r"api/albums/date", views.AlbumDateViewSet)
+router.register(r"api/albums/date", views.AlbumDateViewSet, basename="album_date")
 router.register(r"api/albums/thing", albums.AlbumThingViewSet, basename="album_thing")
 router.register(r"api/albums/place", albums.AlbumPlaceViewSet, basename="album_place")
 router.register(r"api/albums/user", albums.AlbumUserViewSet, basename="album_user")
@@ -145,6 +145,12 @@ router.register(
 router.register(
     r"api/photos/shared/fromme",
     views.SharedFromMePhotoSuperSimpleListViewSet2,
+    basename="photo",
+)
+
+router.register(
+    r"api/photos/notimestamp",
+    photos.NoTimestampPhotoViewSet,
     basename="photo",
 )
 
@@ -209,6 +215,7 @@ urlpatterns = [
     ),
     url(r"^", include(router.urls)),
     url(r"^admin/", admin.site.urls),
+    url(r"^api/photos/notimestamp/count", photos.NoTimestampPhotoCount.as_view()),
     url(r"^api/sitesettings", views.SiteSettingsView.as_view()),
     url(r"^api/dirtree", views.RootPathTreeView.as_view()),
     url(r"^api/labelfaces", views.SetFacePersonLabel.as_view()),

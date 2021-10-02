@@ -91,6 +91,7 @@ from api.views.serializers import (
 from api.views.serializers_serpy import GroupedPhotosSerializer
 from api.views.serializers_serpy import (
     PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy,
+    PigIncompleteAlbumDateSerializer,
 )
 from api.views.serializers_serpy import PigAlbumDateSerializer
 from api.views.serializers_serpy import (
@@ -126,7 +127,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
         if self.action == "list" or self.action == "retrieve":
             permission_classes = [IsPhotoOrAlbumSharedTo]
         else:
-            permission_classes = [IsAdminUser | IsOwnerOrReadOnly]
+            permission_classes = [IsAdminUser or IsOwnerOrReadOnly]
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):
@@ -529,9 +530,28 @@ class SharedFromMeAlbumAutoListViewSet(viewsets.ModelViewSet):
 
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumDateViewSet(viewsets.ModelViewSet):
-    queryset = AlbumDate.objects.all().order_by("-date")
-    serializer_class = AlbumDateSerializer
+    serializer_class = PigAlbumDateSerializer
     pagination_class = StandardResultsSetPagination
+
+    def get_queryset(self):
+        qs = (
+            AlbumDate.objects.filter(
+                Q(owner=self.request.user) & Q(photos__hidden=False)
+            )
+            .exclude(date=None)
+            .annotate(photo_count=Count("photos"))
+            .filter(Q(photo_count__gt=0))
+            .order_by("-date")
+            .prefetch_related(
+                Prefetch(
+                    "photos",
+                    queryset=Photo.visible.filter(Q(owner=self.request.user))
+                    .order_by("-exif_timestamp")
+                    .only("image_hash", "public", "exif_timestamp", "rating", "hidden"),
+                )
+            )
+        )
+        return qs
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
@@ -544,14 +564,7 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
 
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumDateListViewSet(viewsets.ModelViewSet):
-    queryset = (
-        AlbumDate.objects.annotate(
-            photo_count=Count("photos", filter=Q(photos__hidden=False), distinct=True)
-        )
-        .filter(Q(photo_count__gt=0))
-        .order_by("-date")
-    )
-    serializer_class = AlbumDateListSerializer
+    serializer_class = PigIncompleteAlbumDateSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = [
@@ -560,13 +573,28 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
         "photos__faces__person__name",
     ]
 
+    def get_queryset(self):
+        return (
+            AlbumDate.objects.filter(
+                Q(owner=self.request.user) & Q(photos__hidden=False)
+            )
+            .exclude(date=None)
+            .annotate(photo_count=Count("photos"))
+            .filter(Q(photo_count__gt=0))
+            .order_by("-date")
+        )
+
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(AlbumDateListViewSet, self).retrieve(*args, **kwargs)
 
     @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
-        return super(AlbumDateListViewSet, self).list(*args, **kwargs)
+        start = datetime.datetime.now()
+        res = super(AlbumDateListViewSet, self).list(*args, **kwargs)
+        elapsed = (datetime.datetime.now() - start).total_seconds()
+        logger.info("querying & serializing took %.2f seconds" % elapsed)
+        return res
 
 
 class AlbumDateListWithPhotoHashViewSet(viewsets.ReadOnlyModelViewSet):

@@ -2,7 +2,9 @@ import six
 from django.db.models import Q
 from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny
+from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework_extensions.cache.decorators import cache_response
 
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
@@ -12,7 +14,7 @@ from api.views.caching import (
     CustomListKeyConstructor,
     CustomObjectKeyConstructor,
 )
-from api.views.pagination import HugeResultsSetPagination
+from api.views.pagination import HugeResultsSetPagination, RegularResultsSetPagination
 from api.views.PhotosGroupedByDate import get_photos_ordered_by_date
 from api.views.serializers_serpy import GroupedPhotosSerializer, PigPhotoSerilizer
 
@@ -161,3 +163,43 @@ class NoTimestampPhotoHashListViewSet(viewsets.ModelViewSet):
     @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(NoTimestampPhotoHashListViewSet, self).list(*args, **kwargs)
+
+
+class NoTimestampPhotoCount(APIView):
+    """
+    A view that returns the count of the number of non timestamped photos in JSON.
+    """
+
+    renderer_classes = (JSONRenderer,)
+
+    def get(self, request, format=None):
+        return Response(
+            {
+                "photosCount": Photo.visible.filter(
+                    Q(exif_timestamp=None) & Q(owner=request.user)
+                )
+                .order_by("added_on")
+                .count()
+            }
+        )
+
+
+@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
+class NoTimestampPhotoViewSet(viewsets.ModelViewSet):
+    serializer_class = PigPhotoSerilizer
+    pagination_class = RegularResultsSetPagination
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ["search_captions", "search_location", "faces__person__name"]
+
+    def get_queryset(self):
+        return Photo.visible.filter(
+            Q(exif_timestamp=None) & Q(owner=self.request.user)
+        ).order_by("added_on")
+
+    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
+    def retrieve(self, *args, **kwargs):
+        return super(NoTimestampPhotoViewSet, self).retrieve(*args, **kwargs)
+
+    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
+    def list(self, *args, **kwargs):
+        return super(NoTimestampPhotoViewSet, self).list(*args, **kwargs)

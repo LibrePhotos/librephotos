@@ -57,7 +57,7 @@ class PhotoSuperSimpleSerializerWithAddedOn(serpy.Serializer):
 
 class PigPhotoSerilizer(serpy.Serializer):
     id = serpy.StrField(attr="image_hash")
-    dominantColor = serpy.StrField(attr="image_hash")  # To-Do
+    dominantColor = serpy.MethodField("get_dominant_color")
     url = serpy.StrField(attr="image_hash")
     location = serpy.StrField(attr="search_location")
     date = DateTimeField(attr="exif_timestamp")
@@ -65,6 +65,13 @@ class PigPhotoSerilizer(serpy.Serializer):
     aspectRatio = serpy.FloatField(attr="aspect_ratio")
     type = serpy.MethodField("get_type")
     rating = serpy.IntField("rating")
+
+    def get_dominant_color(self, obj):
+        if obj.dominant_color:
+            dominant_color = obj.dominant_color[1:-1]
+            return "#%02x%02x%02x" % tuple(map(int, dominant_color.split(", ")))
+        else:
+            return ""
 
     def get_type(self, obj):
         if obj.video:
@@ -93,6 +100,7 @@ class GroupedPersonPhotosSerializer(serpy.Serializer):
         res = GroupedPhotosSerializer(grouped_photos, many=True).data
         return res
 
+
 class GroupedThingPhotosSerializer(serpy.Serializer):
     id = serpy.StrField()
     title = serpy.StrField()
@@ -102,6 +110,7 @@ class GroupedThingPhotosSerializer(serpy.Serializer):
         grouped_photos = get_photos_ordered_by_date(obj.photos.all())
         res = GroupedPhotosSerializer(grouped_photos, many=True).data
         return res
+
 
 class GroupedPlacePhotosSerializer(serpy.Serializer):
     id = serpy.StrField()
@@ -114,10 +123,49 @@ class GroupedPlacePhotosSerializer(serpy.Serializer):
         return res
 
 
-class PigAlbumDateSerializer(serpy.Serializer):
+class PigIncompleteAlbumDateSerializer(serpy.Serializer):
+    id = serpy.StrField()
     date = DateTimeField()
     location = serpy.MethodField("get_location")
+    incomplete = serpy.MethodField("get_incomplete")
+    numberOfItems = serpy.MethodField("get_number_of_items")
+    items = serpy.MethodField("get_items")
+
+    def get_items(self, obj):
+        return []
+
+    def get_incomplete(self, obj):
+        return True
+
+    def get_number_of_items(self, obj):
+        if obj and obj.photo_count:
+            return obj.photo_count
+        else:
+            return 0
+
+    def get_location(self, obj):
+        if obj and obj.location:
+            return obj.location["places"][0]
+        else:
+            return ""
+
+
+class PigAlbumDateSerializer(serpy.Serializer):
+    id = serpy.StrField()
+    date = DateTimeField()
+    location = serpy.MethodField("get_location")
+    numberOfItems = serpy.MethodField("get_number_of_items")
+    incomplete = serpy.MethodField("get_incomplete")
     items = PigPhotoSerilizer(many=True, call=True, attr="photos.all")
+
+    def get_incomplete(self, obj):
+        return False
+
+    def get_number_of_items(self, obj):
+        if obj and obj.photo_count:
+            return obj.photo_count
+        else:
+            return 0
 
     def get_location(self, obj):
         if obj and obj.location:

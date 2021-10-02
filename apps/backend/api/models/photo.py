@@ -72,6 +72,8 @@ class Photo(models.Model):
     geolocation_json = models.JSONField(blank=True, null=True, db_index=True)
     captions_json = models.JSONField(blank=True, null=True, db_index=True)
 
+    dominant_color = models.TextField(blank=True, null=True)
+
     search_captions = models.TextField(blank=True, null=True, db_index=True)
     search_location = models.TextField(blank=True, null=True, db_index=True)
 
@@ -590,6 +592,28 @@ class Photo(models.Model):
                 exisiting_image_paths.append(image_path)
         self.image_paths = exisiting_image_paths
         self.save()
+
+    def _get_dominant_color(self, palette_size=16):
+        # Skip if it's already calculated
+        if self.dominant_color:
+            return
+        try:
+            # Resize image to speed up processing
+            img = PIL.Image.open(self.thumbnail_big.path)
+            img.thumbnail((100, 100))
+
+            # Reduce colors (uses k-means internally)
+            paletted = img.convert("P", palette=PIL.Image.ADAPTIVE, colors=palette_size)
+
+            # Find the color that occurs most often
+            palette = paletted.getpalette()
+            color_counts = sorted(paletted.getcolors(), reverse=True)
+            palette_index = color_counts[0][1]
+            dominant_color = palette[palette_index * 3 : palette_index * 3 + 3]
+            self.dominant_color = dominant_color
+            self.save()
+        except Exception:
+            print("Cannot calculate dominant color {} object".format(self))
 
     def __str__(self):
         return "%s" % self.image_hash
