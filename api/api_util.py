@@ -144,11 +144,16 @@ def get_search_term_examples(user):
         .exclude(geolocation_json={})
         .exclude(exif_timestamp=None)
         .exclude(captions_json={})
-        .prefetch_related("faces__person")
     )
-
+    possible_ids = list(pp.values_list("image_hash", flat=True))
+    possible_ids = random.choices(possible_ids, k=100)
     try:
-        samples = random.sample(list(pp.all()), 100)
+        samples = (
+            pp.filter(image_hash__in=possible_ids)
+            .prefetch_related("faces")
+            .prefetch_related("faces__person")
+            .all()
+        )
     except ValueError:
         return [
             "for people",
@@ -186,6 +191,7 @@ def get_search_term_examples(user):
             search_terms.append(term_loc)
 
             term_time = random.choice(datum["time"])
+            term_thing = ""
             search_terms.append(term_time)
             if datum["things"]:
                 term_thing = random.choice(datum["things"])
