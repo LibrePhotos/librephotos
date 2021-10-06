@@ -36,6 +36,8 @@ The easiest way to do it is using Docker.
 
 Clone the repo: `git clone https://github.com/LibrePhotos/librephotos-docker.git`
 
+Navigate to the librephotos-docker folder: `cd librephotos-docker`
+
 Copy the template variable file (containing options such as the location of your photos): `cp librephotos.env .env`
 
 Open `.env` in your favorite text editor and make the required changes. E.g., using nano: `nano .env`
