@@ -18,8 +18,8 @@ directory in your logged in Nextcloud account. Once this has been configured, yo
 The basic idea is this:
 
 - For scanning photos that reside in the local file system
-  - Only the admin user can change the "scan directory" of the users, including the admin itself.
-  - Normal users cannot change his/her own "scan directory"
-  - Only the admin can find the page to control this under the "user icon (top right) - admin area"
+  - Only the admin user can change the "scan directory" of the users, including that of the admin themselves.
+  - Normal users cannot change their own "scan directory"
+  - Only the admin can find the page to control this - under the user icon (top right) > `Admin Area`
 - For scanning photos that reside in external Nextcloud instances
-  - Any user can change his/her own Nextcloud endpoint, and choose a top level directory in the Nextcloud account.
+  - Any user can change their own Nextcloud endpoint, and choose a top level directory in the Nextcloud account.
