@@ -1,10 +1,12 @@
 - id: 1
   name: "Installation"
 - id: 2
-  name: "Frequently Asked Questions"
+  name: "User Guide"
 - id: 3
-  name: "Data Collection"
+  name: "Frequently Asked Questions"
 - id: 4
-  name: "Contribution"
+  name: "Data Collection"
 - id: 5
+  name: "Contribution"
+- id: 6
   name: "Dev Resources"

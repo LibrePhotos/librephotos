@@ -1,11 +1,9 @@
 ---
 title: "Proxmox - Scan always fails after importing few images"
 excerpt: "Scan always fails after importing few images"
-last_modified_at: 2021-05-31
-category: 2
+last_modified_at: 2021-10-07
+category: 3
 ---
-
-## Proxmox 6.4
 
 ### Symptom
 

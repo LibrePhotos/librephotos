@@ -2,7 +2,7 @@
 title: "Data Collection"
 excerpt: "What data does Libre Photos collect."
 last_modified_at: 2021-05-31
-category: 3
+category: 4
 ---
 
 ## Overview

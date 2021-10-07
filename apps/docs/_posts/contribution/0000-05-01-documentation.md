@@ -2,7 +2,7 @@
 title: "Documentation"
 excerpt: "How to contribute to the LibrePhotos documentation."
 last_modified_at: 2021-05-31
-category: 4
+category: 5
 
 gallery:
   - url: /assets/images/logo-round.png
