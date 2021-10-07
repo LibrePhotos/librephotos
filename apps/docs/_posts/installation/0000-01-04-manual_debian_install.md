@@ -139,3 +139,7 @@ username=thomas
 password=mypassword
 domain=my.domain.com
 ~~~
+
+## Next Steps
+
+Next, take a look at the [first steps after setup]({% post_url user_guide/0000-02-01-first_steps %}).

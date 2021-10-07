@@ -23,3 +23,5 @@ The basic idea is this:
   - Only the admin can find the page to control this - under the user icon (top right) > `Admin Area`
 - For scanning photos that reside in external Nextcloud instances
   - Any user can change their own Nextcloud endpoint, and choose a top level directory in the Nextcloud account.
+
+You can also enable automatic scanning of folders. You can read more [here]({% post_url user_guide/0000-02-02-auto_scan %}).
