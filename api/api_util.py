@@ -251,14 +251,40 @@ def get_count_stats(user):
         Q(person_label_is_inferred=False)
         & ~Q(person__name__exact="unknown")
         & Q(photo__owner=user)
+        & Q(photo__hidden=False)
     ).count()
     num_inferred_faces = Face.objects.filter(
-        Q(person_label_is_inferred=True) & Q(photo__owner=user)
+        Q(person_label_is_inferred=True) & Q(photo__owner=user) & Q(photo__hidden=False)
     ).count()
-    num_people = Person.objects.count()
-    num_albumauto = AlbumAuto.objects.filter(owner=user).count()
-    num_albumdate = AlbumDate.objects.filter(owner=user).count()
-    num_albumuser = AlbumUser.objects.filter(owner=user).count()
+    num_people = (
+        Person.objects.filter(
+            Q(faces__photo__hidden=False)
+            & Q(faces__photo__owner=user)
+            & Q(faces__person_label_is_inferred=False)
+        )
+        .distinct()
+        .annotate(viewable_face_count=Count("faces"))
+        .filter(Q(viewable_face_count__gt=0))
+        .count()
+    )
+    num_albumauto = (
+        AlbumAuto.objects.filter(owner=user)
+        .annotate(photo_count=Count("photos"))
+        .filter(Q(photo_count__gt=0))
+        .count()
+    )
+    num_albumdate = (
+        AlbumDate.objects.filter(owner=user)
+        .annotate(photo_count=Count("photos"))
+        .filter(Q(photo_count__gt=0))
+        .count()
+    )
+    num_albumuser = (
+        AlbumUser.objects.filter(owner=user)
+        .annotate(photo_count=Count("photos"))
+        .filter(Q(photo_count__gt=0))
+        .count()
+    )
 
     res = {
         "num_photos": num_photos,
