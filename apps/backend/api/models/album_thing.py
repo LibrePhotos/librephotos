@@ -96,7 +96,7 @@ def delete_album_thing_photo(cursor):
     """This function delete photos form albums thing where thing disapears"""
     SQL = """
         with {}
-        delete 
+        delete
         from api_albumthing_photos as p
         where not exists (
             select 1
