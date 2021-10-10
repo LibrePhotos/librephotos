@@ -7,15 +7,19 @@ from api.models import Person
 def build_social_graph(user):
     query = """
         with face as (
-            select photo_id,  person_id, name
+            select photo_id, person_id, name, owner_id
             from api_face join api_person on api_person.id = person_id
+                          join api_photo on api_photo.image_hash = photo_id
             where person_label_is_inferred = false
+                and owner_id = {}
         )
         select f1.name, f2.name
         from face f1 join face f2 using (photo_id)
         where f1.person_id != f2.person_id
         group by f1.name, f2.name
-    """
+    """.replace(
+        "{}", str(user.id)
+    )
     G = nx.Graph()
     with connection.cursor() as cursor:
         cursor.execute(query)
