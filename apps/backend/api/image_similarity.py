@@ -1,12 +1,13 @@
+from datetime import datetime
+
 import numpy as np
 import requests
+from django.core.paginator import Paginator
 from django.db.models import Q
 
-from datetime import datetime
 from api.models import Photo
 from api.util import logger
 from ownphotos.settings import IMAGE_SIMILARITY_SERVER
-from django.core.paginator import Paginator
 
 
 def search_similar_embedding(user, emb, result_count=100, threshold=27):

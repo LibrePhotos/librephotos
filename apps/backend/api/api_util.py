@@ -8,10 +8,11 @@ from itertools import groupby
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from django.core.paginator import Paginator
 from django.db import connection
 from django.db.models import Count, Q
 from django.db.models.functions import TruncMonth
-from django.core.paginator import Paginator
+
 from api.models import (
     AlbumAuto,
     AlbumDate,

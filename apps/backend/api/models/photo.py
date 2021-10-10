@@ -509,7 +509,9 @@ class Photo(models.Model):
         try:
             face_locations = face_recognition.face_locations(image)
         except:
-            logger.debug(f"Can't extract face information on photo: {self.image_paths[0]}")
+            logger.debug(
+                f"Can't extract face information on photo: {self.image_paths[0]}"
+            )
 
         if len(face_locations) > 0:
             face_encodings = face_recognition.face_encodings(
