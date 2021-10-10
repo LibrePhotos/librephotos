@@ -288,7 +288,14 @@ class AlbumPlaceViewSet(viewsets.ModelViewSet):
                 )
             )
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
-            .order_by("title")
+            .prefetch_related(
+                Prefetch(
+                    "photos",
+                    queryset=Photo.objects.filter(hidden=False)
+                    .only("image_hash", "public", "rating", "hidden", "exif_timestamp")
+                    .order_by("-exif_timestamp"),
+                )
+            )
         )
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
