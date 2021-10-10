@@ -91,9 +91,11 @@ from api.views.serializers import (
 from api.views.serializers_serpy import GroupedPhotosSerializer
 from api.views.serializers_serpy import (
     PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy,
+)
+from api.views.serializers_serpy import (
+    PigAlbumDateSerializer,
     PigIncompleteAlbumDateSerializer,
 )
-from api.views.serializers_serpy import PigAlbumDateSerializer
 from api.views.serializers_serpy import (
     SharedPhotoSuperSimpleSerializer as SharedPhotoSuperSimpleSerializerSerpy,
 )
