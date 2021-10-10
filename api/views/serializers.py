@@ -719,7 +719,9 @@ class UserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         if "scan_directory" in validated_data.keys():
             validated_data.pop("scan_directory")
-
+        # make sure username is always lowercase
+        if "username" in validated_data.keys():
+            validated_data["username"] = validated_data["username"].lower()
         user = User.objects.create_user(**validated_data)
         logger.info("Created user {}".format(user.id))
         cache.clear()
