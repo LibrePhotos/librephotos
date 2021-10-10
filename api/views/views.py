@@ -71,8 +71,6 @@ from api.views.pagination import (
 from api.views.PhotosGroupedByDate import get_photos_ordered_by_date
 from api.views.serializers import (
     AlbumAutoListSerializer,
-    AlbumDateListSerializer,
-    AlbumDateSerializer,
     AlbumUserEditSerializer,
     AlbumUserListSerializer,
     FaceListSerializer,
