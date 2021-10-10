@@ -85,10 +85,14 @@ def get_location_timeline(user):
         .filter(owner=user)
         .order_by("exif_timestamp")
     )
-    photos = qs_photos.all()
-    timestamp_loc = [
-        (p.exif_timestamp, p.geolocation_json["features"][-1]["text"]) for p in photos
-    ]
+    timestamp_loc = []
+    paginator = Paginator(qs_photos, 5000)
+    for page in range(1, paginator.num_pages + 1):
+        current_page = [
+            (p.exif_timestamp, p.geolocation_json["features"][-1]["text"])
+            for p in paginator.page(page).object_list
+        ]
+        timestamp_loc = timestamp_loc + current_page
 
     groups = []
     uniquekeys = []
