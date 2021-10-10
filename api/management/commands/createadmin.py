@@ -44,9 +44,9 @@ class Command(BaseCommand):
         if not options["admin_password"]:
             raise CommandError("Admin password cannot be empty")
 
-        if not User.objects.filter(username=options["admin_username"]).exists():
+        if not User.objects.filter(username=options["admin_username"].lower()).exists():
             User.objects.create_superuser(
-                options["admin_username"],
+                options["admin_username"].lower(),
                 options["admin_email"],
                 options["admin_password"],
             )
@@ -55,7 +55,7 @@ class Command(BaseCommand):
                 "Warning: ignoring provided email " + options["admin_email"],
                 file=sys.stderr,
             )
-            admin_user = User.objects.get(username=options["admin_username"])
+            admin_user = User.objects.get(username=options["admin_username"].lower())
             admin_user.set_password(options["admin_password"])
             admin_user.save()
         else:
