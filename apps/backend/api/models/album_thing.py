@@ -1,6 +1,5 @@
 from django.db import connection, models
 
-import api.util as util
 from api.models.photo import Photo
 from api.models.user import User, get_deleted_user
 
