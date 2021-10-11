@@ -1,19 +1,20 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { fetchPhotosSharedToMe } from "../../actions/photosActions";
 import { Photoset } from "../../reducers/photosReducer";
 import { Header, Icon, Loader, Menu } from "semantic-ui-react";
 import { Link } from "react-router-dom";
 import { fetchPublicUserList } from "../../actions/publicActions";
-
-var DAY_HEADER_HEIGHT = 70;
+import { AlbumsSharedToMe } from "./AlbumsSharedToMe";
+import { PhotosSharedToMe } from "./PhotosSharedToMe";
+import { fetchUserAlbumsSharedToMe } from "../../actions/albumsActions";
 
 export class SharedToMe extends Component {
   componentDidMount() {
     if (this.props.fetchedPhotoset !== Photoset.SHARED_TO_ME) {
       this.props.dispatch(fetchPublicUserList());
       this.props.dispatch(fetchPhotosSharedToMe());
+      this.props.dispatch(fetchUserAlbumsSharedToMe());
     }
   }
 
@@ -28,11 +29,11 @@ export class SharedToMe extends Component {
     } else {
       return (
         <Header.Subheader>
-          {this.props.photosGroupedByUser.length} user(s) shared{" "}
-          {this.props.photosFlat.length > 0 &&
+          {this.props.albums.albumsSharedToMe.length} user(s) shared{" "}
+          {this.props.albums.albumsSharedToMe.length > 0 &&
             this.props.albums.albumsSharedToMe
               .map((el) => el.albums.length)
-              .reduce((a, b) => a + b)}{" "}
+              .reduce((a, b) => a + b, 0)}{" "}
           album(s) with you
         </Header.Subheader>
       );
@@ -85,37 +86,6 @@ export class SharedToMe extends Component {
     );
   }
 
-  getGroupHeader(group) {
-    const owner = this.props.pub.publicUserList.filter(
-      (e) => e.id === group.user_id
-    )[0];
-    var displayName = group.user_id;
-    if (owner && owner.last_name.length + owner.first_name.length > 0) {
-      displayName = owner.first_name + " " + owner.last_name;
-    } else if (owner) {
-      displayName = owner.username;
-    }
-    return (
-      <div
-        style={{
-          paddingTop: 15,
-          paddingBottom: 15,
-        }}
-      >
-        <Header as="h3">
-          <Icon name="user circle outline" />
-          <Header.Content>
-            {displayName}
-            <Header.Subheader>
-              <Icon name="photo" />
-              shared {group.photos.length} photos with you
-            </Header.Subheader>
-          </Header.Content>
-        </Header>
-      </div>
-    );
-  }
-
   render() {
     const activeItem = this.props.match.params.which;
 
@@ -123,21 +93,8 @@ export class SharedToMe extends Component {
       <div>
         {this.getHeader(activeItem)}
         {this.getMenu(activeItem)}
-        {this.props.photosGroupedByUser.map((group) => {
-          return (
-            <PhotoListView
-              title={"Photos"}
-              additionalSubHeader={" shared by user with id " + group.user_id}
-              loading={this.props.fetchedPhotoset !== Photoset.SHARED_TO_ME}
-              titleIconName={"images"}
-              isDateView={false}
-              photosGroupedByDate={group.photos}
-              idx2hash={group.photos}
-              isPublic={true}
-              getHeader={(photoList) => this.getGroupHeader(group)}
-            />
-          );
-        })}
+        {activeItem === "photos" && <PhotosSharedToMe />}
+        {activeItem === "albums" && <AlbumsSharedToMe />}
       </div>
     );
   }
@@ -148,6 +105,7 @@ SharedToMe = connect((store) => {
     photosFlat: store.photos.photosFlat,
     photosGroupedByUser: store.photos.photosGroupedByUser,
     fetchedPhotoset: store.photos.fetchedPhotoset,
+    albums: store.albums,
     pub: store.pub,
   };
 })(SharedToMe);

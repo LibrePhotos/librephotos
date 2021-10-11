@@ -9,12 +9,13 @@ import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
 import { serverAddress } from "../../api_client/apiClient";
 import { LightBox } from "../lightbox/LightBox";
 import _ from "lodash";
-import getSelectionBar from "../photolist/SelectionBar";
+import { SelectionBar } from "../photolist/SelectionBar";
 import FavoritedOverlay from "./FavoritedOverlay";
 import { fetchSiteSettings } from "../../actions/utilActions";
 import { fetchUserSelfDetails } from "../../actions/userActions";
 import getDefaultHeader from "./Headers";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { SelectedActions as SelectionActions } from "./SelectionActions";
 
 var SIDEBAR_WIDTH = 85;
 var TIMELINE_SCROLL_WIDTH = 0;
@@ -25,21 +26,27 @@ export class PhotoListView extends Component {
     this.handleResize = this.handleResize.bind(this);
     this.getPhotoDetails = this.getPhotoDetails.bind(this);
     this.listRef = React.createRef();
-    this.getHeader = this.props.getHeader ? this.props.getHeader : getDefaultHeader;
+    this.getHeader = this.props.getHeader
+      ? this.props.getHeader
+      : getDefaultHeader;
 
     this.state = {
-      selectedItems: [],
       lightboxImageIndex: 1,
       lightboxImageId: undefined,
       lightboxShow: false,
       lightboxSidebarShow: false,
       width: window.innerWidth,
       height: window.innerHeight,
-      selectMode: false,
       modalAddToAlbumOpen: false,
       modalSharePhotosOpen: false,
       modalAlbumShareOpen: false,
+      selectionState: {
+        selectedItems: [],
+        selectMode: false,
+      },
     };
+
+    this.updateSelectionState = this.updateSelectionState.bind(this);
   }
 
   componentDidMount() {
@@ -52,8 +59,14 @@ export class PhotoListView extends Component {
     window.removeEventListener("resize", this.handleResize);
   }
 
+  updateSelectionState(newState) {
+    this.setState({
+      selectionState: { ...this.state.selectionState, ...newState },
+    });
+  }
+
   handleSelection = (item) => {
-    var newSelectedItems = this.state.selectedItems;
+    var newSelectedItems = this.state.selectionState.selectedItems;
     if (newSelectedItems.find((selectedItem) => selectedItem.id === item.id)) {
       newSelectedItems = newSelectedItems.filter(
         (value) => value.id !== item.id
@@ -61,12 +74,15 @@ export class PhotoListView extends Component {
     } else {
       newSelectedItems = newSelectedItems.concat(item);
     }
-    this.setState({ selectedItems: newSelectedItems });
-    this.setState({ selectMode: !newSelectedItems.length === 0 });
+
+    this.updateSelectionState({
+      selectedItems: newSelectedItems,
+      selectMode: newSelectedItems.length > 0,
+    });
   };
 
   handleSelections = (items) => {
-    var newSelectedItems = this.state.selectedItems;
+    var newSelectedItems = this.state.selectionState.selectedItems;
     items.forEach((item) => {
       console.log(item);
       if (
@@ -79,14 +95,17 @@ export class PhotoListView extends Component {
         newSelectedItems = newSelectedItems.concat(item);
       }
     });
-    this.setState({ selectedItems: newSelectedItems });
-    this.setState({ selectMode: !newSelectedItems.length === 0 });
+    this.updateSelectionState({
+      selectedItems: newSelectedItems,
+      selectMode: newSelectedItems.length > 0,
+    });
   };
 
   handleClick = (event, item) => {
     //if an image is selectabel, then handle shift click
-    if (event.shiftKey) {
-      var lastSelectedElement = this.state.selectedItems.slice(-1)[0];
+    if (this.props.selectable && event.shiftKey) {
+      var lastSelectedElement =
+        this.state.selectionState.selectedItems.slice(-1)[0];
       if (lastSelectedElement === undefined) {
         this.handleSelection(item);
         return;
@@ -117,8 +136,7 @@ export class PhotoListView extends Component {
         return;
       }
     }
-    // if an image is already selected, then we are in selection mode
-    if (this.state.selectedItems.length > 0) {
+    if (this.state.selectionState.selectMode) {
       this.handleSelection(item);
       return;
     }
@@ -185,10 +203,40 @@ export class PhotoListView extends Component {
           }}
         >
           {this.getHeader(this)}
-
-          {!this.props.isPublic && getSelectionBar(this)}
+          {!this.props.isPublic && (
+            <div
+              style={{
+                marginLeft: -5,
+                paddingLeft: 5,
+                paddingRight: 5,
+                height: 40,
+                paddingTop: 4,
+                backgroundColor: "#f6f6f6",
+              }}
+            >
+              <SelectionBar
+                selectMode={this.state.selectionState.selectMode}
+                selectedItems={this.state.selectionState.selectedItems}
+                idx2hash={this.props.idx2hash}
+                updateSelectionState={this.updateSelectionState}
+              />
+              <SelectionActions
+                selectedItems={this.state.selectionState.selectedItems}
+                onSharePhotos={() =>
+                  this.setState({ modalSharePhotosOpen: true })
+                }
+                onShareAlbum={() =>
+                  this.setState({ modalAlbumShareOpen: true })
+                }
+                onAddToAlbum={() =>
+                  this.setState({ modalAddToAlbumOpen: true })
+                }
+              />
+            </div>
+          )}
         </div>
-        {this.props.photosGroupedByDate && this.props.photosGroupedByDate.length > 0 ? (
+        {this.props.photosGroupedByDate &&
+        this.props.photosGroupedByDate.length > 0 ? (
           <div style={{ top: TOP_MENU_HEIGHT + 70 }}>
             <Pig
               imageData={
@@ -196,8 +244,8 @@ export class PhotoListView extends Component {
                   ? [this.props.photosGroupedByDate]
                   : this.props.photosGroupedByDate
               }
-              selectable={true}
-              selectedItems={this.state.selectedItems}
+              selectable={this.props.selectable === undefined || this.props.selectable}
+              selectedItems={this.state.selectionState.selectedItems}
               handleSelection={this.handleSelection}
               handleClick={this.handleClick}
               scaleOfImages={this.props.userSelfDetails.image_scale}
@@ -283,7 +331,9 @@ export class PhotoListView extends Component {
                 modalAddToAlbumOpen: false,
               });
             }}
-            selectedImageHashes={this.state.selectedItems.map((i) => i.id)}
+            selectedImageHashes={this.state.selectionState.selectedItems.map(
+              (i) => i.id
+            )}
           />
         )}
         {!this.props.isPublic && (
@@ -294,7 +344,9 @@ export class PhotoListView extends Component {
                 modalSharePhotosOpen: false,
               });
             }}
-            selectedImageHashes={this.state.selectedItems.map((i) => i.id)}
+            selectedImageHashes={this.state.selectionState.selectedItems.map(
+              (i) => i.id
+            )}
           />
         )}
         {!this.props.isPublic && isUserAlbum && (
@@ -306,7 +358,9 @@ export class PhotoListView extends Component {
               });
             }}
             match={this.props.match}
-            selectedImageHashes={this.state.selectedItems.map((i) => i.id)}
+            selectedImageHashes={this.state.selectionState.selectedItems.map(
+              (i) => i.id
+            )}
           />
         )}
       </div>
