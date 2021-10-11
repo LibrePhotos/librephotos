@@ -49,7 +49,7 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
     
-RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then pip3 install torch torchvision -f https://torch.kmtea.eu/whl/stable.html; else pip3 install torch torchvision;
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then pip3 install torch torchvision -f https://torch.kmtea.eu/whl/stable.html; else pip3 install torch torchvision; fi
 
 RUN pip3 install pyvips==2.1.15 cmake==3.21.2
 
