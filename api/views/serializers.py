@@ -5,6 +5,7 @@ from datetime import datetime
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db.models import Count, Prefetch, Q
+from api.views.serializers_serpy import PigPhotoSerilizer
 from rest_framework import serializers
 
 import ownphotos.settings
@@ -945,9 +946,12 @@ class SharedPhotoSuperSimpleSerializer(serializers.ModelSerializer):
 
 
 class SharedFromMePhotoThroughSerializer(serializers.ModelSerializer):
-    photo = PhotoSuperSimpleSerializer(many=False, read_only=True)
+    photo = serializers.SerializerMethodField()
     user = SimpleUserSerializer(many=False, read_only=True)
 
     class Meta:
         model = Photo.shared_to.through
         fields = ("user_id", "user", "photo")
+
+    def get_photo(self, obj):
+        return PigPhotoSerilizer(obj.photo).data
