@@ -28,6 +28,7 @@ import {
   addTempElementsToFlatList,
   getPhotosFlatFromGroupedByDate,
 } from "../util/util";
+
 export const PhotosetType = {
   NONE: "none",
   TIMESTAMP: "timestamp",
@@ -124,24 +125,6 @@ export default function reducer(
       return resetPhotos(state, action.payload);
     }
 
-    case "FETCH_PHOTOS_SHARED_FROM_ME": {
-      return { ...state, fetchingPhotosSharedFromMe: true };
-    }
-    case "FETCH_PHOTOS_SHARED_FROM_ME_FULFILLED": {
-      return {
-        ...state,
-        fetchingPhotosSharedFromMe: false,
-        fetchedPhotosSharedFromMe: true,
-        photosSharedFromMe: action.payload,
-      };
-    }
-    case "FETCH_PHOTOS_SHARED_FROM_ME_REJECTED": {
-      return {
-        ...state,
-        fetchingPhotosSharedFromMe: false,
-        fetchedPhotosSharedFromMe: false,
-      };
-    }
     case "SCAN_PHOTOS": {
       return { ...state, scanningPhotos: true };
     }
@@ -245,10 +228,6 @@ export default function reducer(
     }
     case FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED: {
       return resetPhotos(state, action.payload);
-    }
-
-    case FETCH_NO_TIMESTAMP_PHOTOS: {
-      return { ...state };
     }
     case FETCH_PHOTOSET: {
       return { ...state, fetchedPhotosetType: PhotosetType.NONE };

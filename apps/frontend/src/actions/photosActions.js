@@ -134,7 +134,7 @@ export function fetchPhotosSharedToMe() {
 
 export function fetchPhotosSharedFromMe() {
   return function (dispatch) {
-    dispatch({ type: "FETCH_PHOTOS_SHARED_FROM_ME" });
+    dispatch({ type: FETCH_PHOTOSET });
     Server.get("photos/shared/fromme/")
       .then((response) => {
         const sharedPhotosGroupedBySharedTo = _.toPairs(
@@ -151,13 +151,17 @@ export function fetchPhotosSharedFromMe() {
         console.log(sharedPhotosGroupedBySharedTo);
 
         dispatch({
-          type: "FETCH_PHOTOS_SHARED_FROM_ME_FULFILLED",
-          payload: sharedPhotosGroupedBySharedTo,
-        });
+          type: FETCH_PHOTOSET_FULFILLED,
+          payload: {
+            photosFlat: getPhotosFlatFromGroupedByUser(sharedPhotosGroupedBySharedTo),
+            photosGroupedByUser: sharedPhotosGroupedBySharedTo,
+            photosetType: PhotosetType.SHARED_BY_ME,
+          }
+        })
       })
       .catch((err) => {
         dispatch({
-          type: "FETCH_PHOTOS_SHARED_FROM_ME_REJECTED",
+          type: FETCH_PHOTOSET_REJECTED,
           payload: err,
         });
       });
