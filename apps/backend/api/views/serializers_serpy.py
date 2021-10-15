@@ -65,6 +65,8 @@ class PigPhotoSerilizer(serpy.Serializer):
     aspectRatio = serpy.FloatField(attr="aspect_ratio")
     type = serpy.MethodField("get_type")
     rating = serpy.IntField("rating")
+    owner = SimpleUserSerializer()
+    shared_to = SimpleUserSerializer(many=True, call=True, attr="shared_to.all")
 
     def get_dominant_color(self, obj):
         if obj.dominant_color:
