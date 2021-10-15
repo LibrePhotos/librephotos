@@ -5,8 +5,8 @@ import { TOP_MENU_HEIGHT } from "../../ui-constants";
 function getDefaultHeader(photoList) {
   if (
     photoList.props.loading ||
-    !photoList.props.photosGroupedByDate ||
-    photoList.props.photosGroupedByDate.length < 1
+    !photoList.props.photoset ||
+    photoList.props.photoset.length < 1
   ) {
     return (
       <div>
@@ -19,8 +19,8 @@ function getDefaultHeader(photoList) {
           </Header>
         </div>
 
-        {photoList.props.photosGroupedByDate &&
-        photoList.props.photosGroupedByDate.length < 1 ? (
+        {photoList.props.photoset &&
+        photoList.props.photoset.length < 1 ? (
           <div
             style={{
               display: "flex",
@@ -47,9 +47,9 @@ function getDefaultHeader(photoList) {
             <Header.Content>
               {photoList.props.title}{" "}
               <Header.Subheader>
-                {photoList.props.photosGroupedByDate.length !=
+                {photoList.props.photoset.length !=
                 photoList.props.idx2hash.length
-                  ? photoList.props.photosGroupedByDate.length + " days, "
+                  ? photoList.props.photoset.length + " days, "
                   : ""}
                 {photoList.props.idx2hash.length} photos
                 {photoList.props.additionalSubHeader}

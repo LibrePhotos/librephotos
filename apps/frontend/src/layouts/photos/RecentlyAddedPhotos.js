@@ -3,11 +3,11 @@ import moment from "moment";
 import { connect } from "react-redux";
 import { fetchRecentlyAddedPhotos } from "../../actions/photosActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { Photoset } from "../../reducers/photosReducer";
+import { PhotosetType } from "../../reducers/photosReducer";
 
 export class RecentlyAddedPhotos extends Component {
   componentDidMount() {
-    if (this.props.fetchedPhotoset !== Photoset.RECENTLY_ADDED) {
+    if (this.props.fetchedPhotosetType !== PhotosetType.RECENTLY_ADDED) {
       this.props.dispatch(fetchRecentlyAddedPhotos());
     }
   }
@@ -15,7 +15,7 @@ export class RecentlyAddedPhotos extends Component {
     return (
       <PhotoListView
         title={"Recently Added"}
-        loading={this.props.fetchedPhotoset !== Photoset.RECENTLY_ADDED}
+        loading={this.props.fetchedPhotosetType !== PhotosetType.RECENTLY_ADDED}
         titleIconName={"clock"}
         isDateView={false}
         date={
@@ -27,7 +27,7 @@ export class RecentlyAddedPhotos extends Component {
               )
             : this.props.recentlyAddedPhotosDate
         }
-        photosGroupedByDate={this.props.photosFlat}
+        photoset={this.props.photosFlat}
         idx2hash={this.props.photosFlat}
         dayHeaderPrefix={"Added on "}
       />
@@ -39,6 +39,6 @@ RecentlyAddedPhotos = connect((store) => {
   return {
     photosFlat: store.photos.photosFlat,
     recentlyAddedPhotosDate: store.photos.RecentlyAddedPhotosDate,
-    fetchedPhotoset: store.photos.fetchedPhotoset,
+    fetchedPhotosetType: store.photos.fetchedPhotosetType,
   };
 })(RecentlyAddedPhotos);

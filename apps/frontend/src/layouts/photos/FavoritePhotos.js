@@ -3,11 +3,11 @@ import { connect } from "react-redux";
 import { fetchFavoritePhotos } from "../../actions/photosActions";
 import _ from "lodash";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { Photoset } from "../../reducers/photosReducer";
+import { PhotosetType } from "../../reducers/photosReducer";
 
 export class FavoritePhotos extends Component {
   componentDidMount() {
-    if (this.props.fetchedPhotoset !== Photoset.FAVORITES) {
+    if (this.props.fetchedPhotosetType !== PhotosetType.FAVORITES) {
       this.props.dispatch(fetchFavoritePhotos());
     }
   }
@@ -17,10 +17,10 @@ export class FavoritePhotos extends Component {
       <PhotoListView
         showHidden={false}
         title={"Favorite Photos"}
-        loading={this.props.fetchedPhotoset !== Photoset.FAVORITES}
+        loading={this.props.fetchedPhotosetType !== PhotosetType.FAVORITES}
         titleIconName={"star"}
         isDateView={true}
-        photosGroupedByDate={this.props.photosGroupedByDate}
+        photoset={this.props.photosGroupedByDate}
         idx2hash={this.props.photosFlat}
       />
     );
@@ -31,6 +31,6 @@ FavoritePhotos = connect((store) => {
   return {
     photosFlat: store.photos.photosFlat,
     photosGroupedByDate: store.photos.photosGroupedByDate,
-    fetchedPhotoset: store.photos.fetchedPhotoset,
+    fetchedPhotosetType: store.photos.fetchedPhotosetType,
   };
 })(FavoritePhotos);

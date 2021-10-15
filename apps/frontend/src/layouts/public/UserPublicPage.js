@@ -70,7 +70,7 @@ export class UserPublicPage extends Component {
               }
               loading={this.props.pub.fetchingUserPublicPhotos}
               titleIconName={"globe"}
-              photosGroupedByDate={groupedPhotos ? groupedPhotos : []}
+              photoset={groupedPhotos ? groupedPhotos : []}
               isDateView={true}
               idx2hash={
                 groupedPhotos ? groupedPhotos.flatMap((el) => el.items) : []

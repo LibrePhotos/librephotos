@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import { connect } from "react-redux";
 import { Header, Icon, Loader } from "semantic-ui-react";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { Photoset } from "../../reducers/photosReducer";
+import { PhotosetType } from "../../reducers/photosReducer";
 
 export class PhotosSharedToMe extends Component {
   getGroupHeader(group) {
@@ -39,17 +39,17 @@ export class PhotosSharedToMe extends Component {
   render() {
     return (
       <div>
-        {this.props.fetchedPhotoset !== Photoset.SHARED_TO_ME
+        {this.props.fetchedPhotosetType !== PhotosetType.SHARED_TO_ME
           ? <Loader active>Loading photos shared with you...</Loader>
           : this.props.photosGroupedByUser.map((group) => {
             return (
               <PhotoListView
                 title={"Photos"}
                 additionalSubHeader={" shared by user with id " + group.user_id}
-                loading={this.props.fetchedPhotoset !== Photoset.SHARED_TO_ME}
+                loading={this.props.fetchedPhotosetType !== PhotosetType.SHARED_TO_ME}
                 titleIconName={"images"}
                 isDateView={false}
-                photosGroupedByDate={group.photos}
+                photoset={group.photos}
                 idx2hash={group.photos}
                 isPublic={true}
                 getHeader={(photoList) => this.getGroupHeader(group)}
@@ -65,7 +65,7 @@ export class PhotosSharedToMe extends Component {
 PhotosSharedToMe = connect((store) => {
   return {
     photosGroupedByUser: store.photos.photosGroupedByUser,
-    fetchedPhotoset: store.photos.fetchedPhotoset,
+    fetchedPhotosetType: store.photos.fetchedPhotosetType,
     pub: store.pub,
   };
 })(PhotosSharedToMe);

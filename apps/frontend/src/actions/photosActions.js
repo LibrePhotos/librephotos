@@ -2,7 +2,7 @@ import { Server } from "../api_client/apiClient";
 import _ from "lodash";
 import { notify } from "reapop";
 import { adjustDateFormat, getPhotosFlatFromGroupedByDate, getPhotosFlatFromGroupedByUser } from "../util/util";
-import { Photoset } from "../reducers/photosReducer";
+import { PhotosetType } from "../reducers/photosReducer";
 
 export const FETCH_PHOTOSET = "FETCH_PHOTOSET";
 export const FETCH_PHOTOSET_FULFILLED = "FETCH_PHOTOSET_FULFILLED";
@@ -119,7 +119,7 @@ export function fetchPhotosSharedToMe() {
           payload: {
             photosFlat: getPhotosFlatFromGroupedByUser(sharedPhotosGroupedByOwner),
             photosGroupedByUser: sharedPhotosGroupedByOwner,
-            photoset: Photoset.SHARED_TO_ME,
+            photosetType: PhotosetType.SHARED_TO_ME,
           }
         });
       })
@@ -390,7 +390,7 @@ export function fetchFavoritePhotos() {
           payload: {
             photosGroupedByDate: photosGroupedByDate,
             photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
-            photoset: Photoset.FAVORITES,
+            photosetType: PhotosetType.FAVORITES,
           },
         });
       })
@@ -412,7 +412,7 @@ export function fetchHiddenPhotos() {
           payload: {
             photosGroupedByDate: photosGroupedByDate,
             photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
-            photoset: Photoset.HIDDEN,
+            photosetType: PhotosetType.HIDDEN,
           },
         });
       })
@@ -466,7 +466,7 @@ export function fetchTimestampPhotos() {
           payload: {
             photosGroupedByDate: photosGroupedByDate,
             photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
-            photoset: Photoset.TIMESTAMP,
+            photosetType: PhotosetType.TIMESTAMP,
           },
         });
       })
@@ -489,7 +489,7 @@ export function fetchNoTimestampPhotoList() {
           type: FETCH_PHOTOSET_FULFILLED,
           payload: {
             photosFlat: photosFlat,
-            photoset: Photoset.NO_TIMESTAMP,
+            photosetType: PhotosetType.NO_TIMESTAMP,
           },
         });
       })

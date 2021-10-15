@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
 import { fetchPhotosSharedToMe } from "../../actions/photosActions";
-import { Photoset } from "../../reducers/photosReducer";
+import { PhotosetType } from "../../reducers/photosReducer";
 import { Header, Icon, Loader, Menu } from "semantic-ui-react";
 import { Link } from "react-router-dom";
 import { fetchPublicUserList } from "../../actions/publicActions";
@@ -11,7 +11,7 @@ import { fetchUserAlbumsSharedToMe } from "../../actions/albumsActions";
 
 export class SharedToMe extends Component {
   componentDidMount() {
-    if (this.props.fetchedPhotoset !== Photoset.SHARED_TO_ME) {
+    if (this.props.fetchedPhotosetType !== PhotosetType.SHARED_TO_ME) {
       this.props.dispatch(fetchPublicUserList());
       this.props.dispatch(fetchPhotosSharedToMe());
       this.props.dispatch(fetchUserAlbumsSharedToMe());
@@ -104,7 +104,7 @@ SharedToMe = connect((store) => {
   return {
     photosFlat: store.photos.photosFlat,
     photosGroupedByUser: store.photos.photosGroupedByUser,
-    fetchedPhotoset: store.photos.fetchedPhotoset,
+    fetchedPhotosetType: store.photos.fetchedPhotosetType,
     albums: store.albums,
     pub: store.pub,
   };

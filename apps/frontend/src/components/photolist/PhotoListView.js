@@ -219,14 +219,14 @@ export class PhotoListView extends Component {
             </div>
           )}
         </div>
-        {this.props.photosGroupedByDate &&
-        this.props.photosGroupedByDate.length > 0 ? (
+        {this.props.photoset &&
+        this.props.photoset.length > 0 ? (
           <div style={{ top: TOP_MENU_HEIGHT + 70 }}>
             <Pig
               imageData={
-                !Array.isArray(this.props.photosGroupedByDate)
-                  ? [this.props.photosGroupedByDate]
-                  : this.props.photosGroupedByDate
+                !Array.isArray(this.props.photoset)
+                  ? [this.props.photoset]
+                  : this.props.photoset
               }
               selectable={this.props.selectable === undefined || this.props.selectable}
               selectedItems={this.state.selectionState.selectedItems}
