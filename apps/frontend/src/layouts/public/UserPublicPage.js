@@ -8,9 +8,7 @@ import { TopMenu } from "../../components/menubars/TopMenu";
 import { SideMenuNarrow } from "../../components/menubars/SideMenuNarrow";
 import { TopMenuPublic } from "../../components/menubars/TopMenuPublic";
 import { SideMenuNarrowPublic } from "../../components/menubars/SideMenuNarrowPublic";
-
-var TOP_MENU_HEIGHT = 45; // don't change this
-var LEFT_MENU_WIDTH = 85; // don't change this
+import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
 
 export class UserPublicPage extends Component {
   state = {

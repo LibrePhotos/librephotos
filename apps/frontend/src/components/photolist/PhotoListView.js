@@ -6,25 +6,15 @@ import { ModalAlbumEdit } from "../album/ModalAlbumEdit";
 import { fetchPhotoDetail } from "../../actions/photosActions";
 import { ModalPhotosShare } from "../sharing/ModalPhotosShare";
 import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
-import {
-  Dropdown,
-  Header,
-  Loader,
-  Popup,
-  Button,
-  Icon,
-  Grid,
-  GridRow,
-  GridColumn,
-} from "semantic-ui-react";
 import { serverAddress } from "../../api_client/apiClient";
 import { LightBox } from "../lightbox/LightBox";
 import _ from "lodash";
-import getToolbar from "../photolist/Toolbar";
+import { SelectionBar } from "../photolist/SelectionBar";
 import FavoritedOverlay from "./FavoritedOverlay";
+import getDefaultHeader from "./Headers";
+import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { SelectedActions as SelectionActions } from "./SelectionActions";
 
-var TOP_MENU_HEIGHT = 45; // don't change this
-var SIDEBAR_WIDTH = 85;
 var TIMELINE_SCROLL_WIDTH = 0;
 
 export class PhotoListView extends Component {
@@ -33,20 +23,27 @@ export class PhotoListView extends Component {
     this.handleResize = this.handleResize.bind(this);
     this.getPhotoDetails = this.getPhotoDetails.bind(this);
     this.listRef = React.createRef();
+    this.getHeader = this.props.getHeader
+      ? this.props.getHeader
+      : getDefaultHeader;
 
     this.state = {
-      selectedItems: [],
       lightboxImageIndex: 1,
       lightboxImageId: undefined,
       lightboxShow: false,
       lightboxSidebarShow: false,
       width: window.innerWidth,
       height: window.innerHeight,
-      selectMode: false,
       modalAddToAlbumOpen: false,
       modalSharePhotosOpen: false,
       modalAlbumShareOpen: false,
+      selectionState: {
+        selectedItems: [],
+        selectMode: false,
+      },
     };
+
+    this.updateSelectionState = this.updateSelectionState.bind(this);
   }
 
   componentDidMount() {
@@ -57,8 +54,14 @@ export class PhotoListView extends Component {
     window.removeEventListener("resize", this.handleResize);
   }
 
+  updateSelectionState(newState) {
+    this.setState({
+      selectionState: { ...this.state.selectionState, ...newState },
+    });
+  }
+
   handleSelection = (item) => {
-    var newSelectedItems = this.state.selectedItems;
+    var newSelectedItems = this.state.selectionState.selectedItems;
     if (newSelectedItems.find((selectedItem) => selectedItem.id === item.id)) {
       newSelectedItems = newSelectedItems.filter(
         (value) => value.id !== item.id
@@ -66,12 +69,15 @@ export class PhotoListView extends Component {
     } else {
       newSelectedItems = newSelectedItems.concat(item);
     }
-    this.setState({ selectedItems: newSelectedItems });
-    this.setState({ selectMode: !newSelectedItems.length === 0 });
+
+    this.updateSelectionState({
+      selectedItems: newSelectedItems,
+      selectMode: newSelectedItems.length > 0,
+    });
   };
 
   handleSelections = (items) => {
-    var newSelectedItems = this.state.selectedItems;
+    var newSelectedItems = this.state.selectionState.selectedItems;
     items.forEach((item) => {
       console.log(item);
       if (
@@ -84,14 +90,17 @@ export class PhotoListView extends Component {
         newSelectedItems = newSelectedItems.concat(item);
       }
     });
-    this.setState({ selectedItems: newSelectedItems });
-    this.setState({ selectMode: !newSelectedItems.length === 0 });
+    this.updateSelectionState({
+      selectedItems: newSelectedItems,
+      selectMode: newSelectedItems.length > 0,
+    });
   };
 
   handleClick = (event, item) => {
     //if an image is selectabel, then handle shift click
-    if (event.shiftKey) {
-      var lastSelectedElement = this.state.selectedItems.slice(-1)[0];
+    if (this.props.selectable && event.shiftKey) {
+      var lastSelectedElement =
+        this.state.selectionState.selectedItems.slice(-1)[0];
       if (lastSelectedElement === undefined) {
         this.handleSelection(item);
         return;
@@ -122,8 +131,7 @@ export class PhotoListView extends Component {
         return;
       }
     }
-    // if an image is already selected, then we are in selection mode
-    if (this.state.selectedItems.length > 0) {
+    if (this.state.selectionState.selectMode) {
       this.handleSelection(item);
       return;
     }
@@ -161,40 +169,6 @@ export class PhotoListView extends Component {
 
   render() {
     this.closeLightboxIfImageIndexIsOutOfSync();
-    if (
-      this.props.loading ||
-      !this.props.photosGroupedByDate ||
-      this.props.photosGroupedByDate.length < 1
-    ) {
-      return (
-        <div>
-          <div style={{ height: 60, paddingTop: 10 }}>
-            <Header as="h4">
-              <Header.Content>
-                {this.props.loading ? "Loading..." : "No images found"}
-                <Loader inline active={this.props.loading} size="mini" />
-              </Header.Content>
-            </Header>
-          </div>
-
-          {this.props.photosGroupedByDate &&
-          this.props.photosGroupedByDate.length < 1 ? (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                height: this.state.height - TOP_MENU_HEIGHT - 60,
-              }}
-            >
-              <Header>{this.props.noResultsMessage}</Header>
-            </div>
-          ) : (
-            <div></div>
-          )}
-        </div>
-      );
-    }
 
     console.log(this.props);
     var isUserAlbum = false;
@@ -206,54 +180,14 @@ export class PhotoListView extends Component {
       <div>
         <div
           style={{
-            position: "sticky",
-            top: TOP_MENU_HEIGHT - 9 /* required */,
             marginTop: 5,
             width: "100%",
             zIndex: 100,
             backgroundColor: "white",
           }}
         >
-          <Grid columns={2}>
-            <GridRow>
-              <GridColumn>
-                <Header as="h2" style={{ paddingRight: 10 }}>
-                  <Icon name={this.props.titleIconName} />
-                  <Header.Content>
-                    {this.props.title}{" "}
-                    <Header.Subheader>
-                      {this.props.photosGroupedByDate.length !=
-                      this.props.idx2hash.length
-                        ? this.props.photosGroupedByDate.length + " days, "
-                        : ""}
-                      {this.props.idx2hash.length} photos
-                      {this.props.additionalSubHeader}
-                    </Header.Subheader>
-                  </Header.Content>
-                </Header>
-              </GridColumn>
-              <GridColumn>
-                <div
-                  style={{
-                    textAlign: "right",
-                    margin: "0 auto",
-                    padding: 20,
-                  }}
-                >
-                  <span style={{ paddingLeft: 5, fontSize: 18 }}>
-                    <b>
-                      {this.props.dayHeaderPrefix
-                        ? this.props.dayHeaderPrefix + this.props.date
-                        : this.props.date}
-                      {this.state.fromNow}
-                    </b>
-                  </span>
-                </div>
-              </GridColumn>
-            </GridRow>
-          </Grid>
-
-          {true && !this.props.isPublic && (
+          {this.getHeader(this)}
+          {!this.props.isPublic && (
             <div
               style={{
                 marginLeft: -5,
@@ -264,147 +198,29 @@ export class PhotoListView extends Component {
                 backgroundColor: "#f6f6f6",
               }}
             >
-              <Button.Group
-                compact
-                floated="left"
-                style={{ paddingLeft: 2, paddingRight: 2 }}
-              >
-                <Popup
-                  trigger={
-                    <Button
-                      icon="checkmark"
-                      compact
-                      active={this.state.selectMode}
-                      color={this.state.selectMode ? "blue" : "null"}
-                      onClick={() => {
-                        this.setState({ selectMode: !this.state.selectMode });
-                        if (this.state.selectMode) {
-                          this.setState({ selectedItems: [] });
-                        }
-                      }}
-                      label={{
-                        as: "a",
-                        basic: true,
-                        content: `${this.state.selectedItems.length} selected`,
-                      }}
-                      labelPosition="right"
-                    />
-                  }
-                  content="Toggle select mode"
-                  inverted
-                />
-              </Button.Group>
-
-              <Button.Group
-                compact
-                floated="left"
-                style={{ paddingLeft: 2, paddingRight: 2 }}
-              >
-                <Popup
-                  inverted
-                  trigger={
-                    <Button
-                      icon
-                      compact
-                      positive={
-                        this.state.selectedItems.length !==
-                        this.props.idx2hash.length
-                      }
-                      negative={
-                        this.state.selectedItems.length ===
-                        this.props.idx2hash.length
-                      }
-                      onClick={() => {
-                        if (
-                          this.state.selectedItems.length ===
-                          this.props.idx2hash.length
-                        ) {
-                          this.setState({ selectedItems: [] });
-                        } else {
-                          this.setState({
-                            selectMode: true,
-                            selectedItems: this.props.idx2hash,
-                          });
-                        }
-                      }}
-                    >
-                      <Icon
-                        name={
-                          this.state.selectedItems.length ===
-                          this.props.idx2hash.length
-                            ? "check circle outline"
-                            : "check circle"
-                        }
-                      />
-                    </Button>
-                  }
-                  content={
-                    this.state.selectedItems.length ===
-                    this.props.idx2hash.length
-                      ? "Deselect all"
-                      : "Select All"
-                  }
-                />
-              </Button.Group>
-              {getToolbar(this)}
-              <Button.Group
-                style={{ paddingLeft: 2, paddingRight: 2 }}
-                floated="right"
-                compact
-                color="teal"
-              >
-                <Dropdown
-                  disabled={this.state.selectedItems.length === 0}
-                  pointing="top right"
-                  icon="plus"
-                  floating
-                  button
-                  compact
-                  floated="right"
-                  className="icon"
-                >
-                  <Dropdown.Menu>
-                    <Dropdown.Header>
-                      Album ({this.state.selectedItems.length} selected)
-                    </Dropdown.Header>
-                    <Dropdown.Divider />
-                    <Dropdown.Item
-                      onClick={() => {
-                        if (this.state.selectedItems.length > 0) {
-                          this.setState({ modalAddToAlbumOpen: true });
-                        }
-                      }}
-                    >
-                      <Icon name="bookmark" color="red" />
-                      {" Album"}
-                    </Dropdown.Item>
-                  </Dropdown.Menu>
-                </Dropdown>
-              </Button.Group>
-
-              {false && isUserAlbum && (
-                <Popup
-                  inverted
-                  trigger={
-                    <Button.Group
-                      style={{ paddingLeft: 2, paddingRight: 2 }}
-                      floated="right"
-                      compact
-                      icon
-                      onClick={() => {
-                        this.setState({ modalAlbumShareOpen: true });
-                      }}
-                    >
-                      <Button icon="share alternate" />
-                    </Button.Group>
-                  }
-                  content="Share album"
-                />
-              )}
+              <SelectionBar
+                selectMode={this.state.selectionState.selectMode}
+                selectedItems={this.state.selectionState.selectedItems}
+                idx2hash={this.props.idx2hash}
+                updateSelectionState={this.updateSelectionState}
+              />
+              <SelectionActions
+                selectedItems={this.state.selectionState.selectedItems}
+                onSharePhotos={() =>
+                  this.setState({ modalSharePhotosOpen: true })
+                }
+                onShareAlbum={() =>
+                  this.setState({ modalAlbumShareOpen: true })
+                }
+                onAddToAlbum={() =>
+                  this.setState({ modalAddToAlbumOpen: true })
+                }
+              />
             </div>
           )}
         </div>
-        {this.props.photosGroupedByDate ? (
+        {this.props.photosGroupedByDate &&
+        this.props.photosGroupedByDate.length > 0 ? (
           <div style={{ top: TOP_MENU_HEIGHT + 70 }}>
             <Pig
               imageData={
@@ -412,8 +228,8 @@ export class PhotoListView extends Component {
                   ? [this.props.photosGroupedByDate]
                   : this.props.photosGroupedByDate
               }
-              selectable={true}
-              selectedItems={this.state.selectedItems}
+              selectable={this.props.selectable === undefined || this.props.selectable}
+              selectedItems={this.state.selectionState.selectedItems}
               handleSelection={this.handleSelection}
               handleClick={this.handleClick}
               scaleOfImages={this.props.userSelfDetails.image_scale}
@@ -510,7 +326,9 @@ export class PhotoListView extends Component {
                 modalAddToAlbumOpen: false,
               });
             }}
-            selectedImageHashes={this.state.selectedItems.map((i) => i.id)}
+            selectedImageHashes={this.state.selectionState.selectedItems.map(
+              (i) => i.id
+            )}
           />
         )}
         {!this.props.isPublic && (
@@ -521,7 +339,9 @@ export class PhotoListView extends Component {
                 modalSharePhotosOpen: false,
               });
             }}
-            selectedImageHashes={this.state.selectedItems.map((i) => i.id)}
+            selectedImageHashes={this.state.selectionState.selectedItems.map(
+              (i) => i.id
+            )}
           />
         )}
         {!this.props.isPublic && isUserAlbum && (
@@ -533,7 +353,9 @@ export class PhotoListView extends Component {
               });
             }}
             match={this.props.match}
-            selectedImageHashes={this.state.selectedItems.map((i) => i.id)}
+            selectedImageHashes={this.state.selectionState.selectedItems.map(
+              (i) => i.id
+            )}
           />
         )}
       </div>

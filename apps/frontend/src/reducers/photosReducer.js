@@ -5,27 +5,19 @@ import {
   FETCH_USER_ALBUM_REJECTED,
 } from "../actions/albumsActions";
 import {
-  FETCH_FAVORITE_PHOTOS,
-  FETCH_FAVORITE_PHOTOS_FULFILLED,
-  FETCH_FAVORITE_PHOTOS_REJECTED,
-  FETCH_HIDDEN_PHOTOS,
-  FETCH_HIDDEN_PHOTOS_FULFILLED,
-  FETCH_HIDDEN_PHOTOS_REJECTED,
   FETCH_NO_TIMESTAMP_PHOTOS,
   FETCH_NO_TIMESTAMP_PHOTOS_COUNT,
-  FETCH_NO_TIMESTAMP_PHOTOS_FULFILLED,
   FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED,
   FETCH_NO_TIMESTAMP_PHOTOS_COUNT_FULFILLED,
   FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED,
   FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED,
   FETCH_NO_TIMESTAMP_PHOTOS_COUNT_REJECTED,
-  FETCH_NO_TIMESTAMP_PHOTOS_REJECTED,
+  FETCH_PHOTOSET,
+  FETCH_PHOTOSET_FULFILLED,
+  FETCH_PHOTOSET_REJECTED,
   FETCH_RECENTLY_ADDED_PHOTOS,
   FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED,
   FETCH_RECENTLY_ADDED_PHOTOS_REJECTED,
-  FETCH_TIMESTAMP_PHOTOS,
-  FETCH_TIMESTAMP_PHOTOS_FULFILLED,
-  FETCH_TIMESTAMP_PHOTOS_REJECTED,
   SET_PHOTOS_FAVORITE_FULFILLED,
 } from "../actions/photosActions";
 import {
@@ -46,6 +38,8 @@ export const Photoset = {
   SEARCH: "search",
   USER_ALBUM: "userAlbum",
   PERSON: "person",
+  SHARED_TO_ME: "sharedToMe",
+  SHARED_BY_ME: "sharedByMe",
 };
 
 function resetPhotos(state, payload) {
@@ -54,6 +48,7 @@ function resetPhotos(state, payload) {
     photosFlat: [],
     fetchedPhotoset: Photoset.NONE,
     photosGroupedByDate: [],
+    photosGroupedByUser: [],
     error: payload,
   };
 }
@@ -74,12 +69,9 @@ export default function reducer(
 
     photosFlat: [],
     photosGroupedByDate: [],
+    photosGroupedByUser: [],
     fetchedPhotoset: Photoset.NONE,
     numberOfPhotos: 0,
-
-    photosSharedToMe: [],
-    fetchingPhotosSharedToMe: false,
-    fetchedPhotosSharedToMe: false,
 
     photosSharedFromMe: [],
     fetchingPhotosSharedFromMe: false,
@@ -118,7 +110,7 @@ export default function reducer(
     }
 
     case FETCH_RECENTLY_ADDED_PHOTOS: {
-      return { ...state };
+      return { ...state, fetchedPhotoset: Photoset.NONE };
     }
     case FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED: {
       return {
@@ -132,24 +124,6 @@ export default function reducer(
       return resetPhotos(state, action.payload);
     }
 
-    case "FETCH_PHOTOS_SHARED_TO_ME": {
-      return { ...state, fetchingPhotosSharedToMe: true };
-    }
-    case "FETCH_PHOTOS_SHARED_TO_ME_FULFILLED": {
-      return {
-        ...state,
-        fetchingPhotosSharedToMe: false,
-        fetchedPhotosSharedToMe: true,
-        photosSharedToMe: action.payload,
-      };
-    }
-    case "FETCH_PHOTOS_SHARED_TO_ME_REJECTED": {
-      return {
-        ...state,
-        fetchingPhotosSharedToMe: false,
-        fetchedPhotosSharedToMe: false,
-      };
-    }
     case "FETCH_PHOTOS_SHARED_FROM_ME": {
       return { ...state, fetchingPhotosSharedFromMe: true };
     }
@@ -239,51 +213,6 @@ export default function reducer(
       };
     }
 
-    case FETCH_TIMESTAMP_PHOTOS: {
-      return { ...state };
-    }
-    case FETCH_TIMESTAMP_PHOTOS_FULFILLED: {
-      return {
-        ...state,
-        photosFlat: action.payload.photosFlat,
-        fetchedPhotoset: Photoset.TIMESTAMP,
-        photosGroupedByDate: action.payload.photosGroupedByDate,
-      };
-    }
-    case FETCH_TIMESTAMP_PHOTOS_REJECTED: {
-      return resetPhotos(state, action.payload);
-    }
-
-    case FETCH_FAVORITE_PHOTOS: {
-      return { ...state };
-    }
-    case FETCH_FAVORITE_PHOTOS_FULFILLED: {
-      return {
-        ...state,
-        photosFlat: action.payload.photosFlat,
-        fetchedPhotoset: Photoset.FAVORITES,
-        photosGroupedByDate: action.payload.photosGroupedByDate,
-      };
-    }
-    case FETCH_FAVORITE_PHOTOS_REJECTED: {
-      return resetPhotos(state, action.payload);
-    }
-
-    case FETCH_HIDDEN_PHOTOS: {
-      return { ...state };
-    }
-    case FETCH_HIDDEN_PHOTOS_FULFILLED: {
-      return {
-        ...state,
-        photosFlat: action.payload.photosFlat,
-        fetchedPhotoset: Photoset.HIDDEN,
-        photosGroupedByDate: action.payload.photosGroupedByDate,
-      };
-    }
-    case FETCH_HIDDEN_PHOTOS_REJECTED: {
-      return resetPhotos(state, action.payload);
-    }
-
     case FETCH_NO_TIMESTAMP_PHOTOS_COUNT: {
       return { ...state };
     }
@@ -321,14 +250,19 @@ export default function reducer(
     case FETCH_NO_TIMESTAMP_PHOTOS: {
       return { ...state };
     }
-    case FETCH_NO_TIMESTAMP_PHOTOS_FULFILLED: {
+    case FETCH_PHOTOSET: {
+      return { ...state, fetchedPhotoset: Photoset.NONE };
+    }
+    case FETCH_PHOTOSET_FULFILLED: {
       return {
         ...state,
         photosFlat: action.payload.photosFlat,
-        fetchedPhotoset: Photoset.NO_TIMESTAMP,
+        fetchedPhotoset: action.payload.photoset,
+        photosGroupedByDate: action.payload.photosGroupedByDate ? action.payload.photosGroupedByDate : [],
+        photosGroupedByUser: action.payload.photosGroupedByUser ? action.payload.photosGroupedByUser : [],
       };
     }
-    case FETCH_NO_TIMESTAMP_PHOTOS_REJECTED: {
+    case FETCH_PHOTOSET_REJECTED: {
       return resetPhotos(state, action.payload);
     }
 

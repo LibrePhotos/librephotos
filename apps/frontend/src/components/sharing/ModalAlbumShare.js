@@ -151,7 +151,7 @@ export class ModalAlbumShare extends Component {
                     <Image circular src="/unknown_user.jpg" />
                     <Header.Content>
                       {displayName}
-                      {albumDetails.shared_to
+                      {albumDetails.shared_to && albumDetails.shared_to
                         .map((e) => e.id)
                         .includes(item.id) && (
                         <Popup
@@ -176,7 +176,7 @@ export class ModalAlbumShare extends Component {
                     <Checkbox
                       inline
                       slider
-                      checked={albumDetails.shared_to
+                      checked={albumDetails.shared_to && albumDetails.shared_to
                         .map((e) => e.id)
                         .includes(item.id)}
                       onChange={(e, d) => {

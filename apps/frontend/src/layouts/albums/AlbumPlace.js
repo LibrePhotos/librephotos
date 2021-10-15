@@ -11,8 +11,8 @@ import { countryNames } from "../../util/countryNames";
 import { Link } from "react-router-dom";
 import { SecuredImageJWT } from "../../components/SecuredImage";
 import _ from "lodash";
+import { TOP_MENU_HEIGHT } from "../../ui-constants";
 
-var topMenuHeight = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
 
 export class AlbumPlace extends Component {
@@ -23,7 +23,7 @@ export class AlbumPlace extends Component {
     width: window.innerWidth,
     height: window.innerHeight,
     entrySquareSize: 200,
-    gridHeight: window.innerHeight - topMenuHeight - 300,
+    gridHeight: window.innerHeight - TOP_MENU_HEIGHT - 300,
     headerHeight: 60,
     numEntrySquaresPerRow: 3,
   };

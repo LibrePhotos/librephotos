@@ -29,8 +29,8 @@ import {
 import { ScrollSpeed, SCROLL_DEBOUNCE_DURATION } from "../../util/scrollUtils";
 import debounce from "lodash/debounce";
 import { Tile } from "../../components/Tile";
+import { TOP_MENU_HEIGHT } from "../../ui-constants";
 
-var TOP_MENU_HEIGHT = 45; // don't change this
 const SPEED_THRESHOLD = 300;
 var SIDEBAR_WIDTH = 85;
 var DAY_HEADER_HEIGHT = 70;

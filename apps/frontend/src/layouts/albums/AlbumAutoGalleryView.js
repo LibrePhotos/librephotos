@@ -20,8 +20,8 @@ import _ from "lodash";
 import { SecuredImageJWT } from "../../components/SecuredImage";
 import { LightBox } from "../../components/lightbox/LightBox";
 import { Tile } from "../../components/Tile";
+import { TOP_MENU_HEIGHT } from "../../ui-constants";
 
-var topMenuHeight = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
 
 const colors = [
@@ -98,7 +98,7 @@ export class AlbumAutoGalleryView extends Component {
     height: window.innerHeight,
     showMap: false,
     entrySquareSize: 200,
-    gridHeight: window.innerHeight - topMenuHeight - 60,
+    gridHeight: window.innerHeight - TOP_MENU_HEIGHT - 60,
   };
 
   constructor(props) {

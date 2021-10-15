@@ -8,9 +8,7 @@ import { TopMenuPublic } from "../../components/menubars/TopMenuPublic";
 import { SideMenuNarrowPublic } from "../../components/menubars/SideMenuNarrowPublic";
 import { Link } from "react-router-dom";
 import { serverAddress } from "../../api_client/apiClient";
-
-var TOP_MENU_HEIGHT = 45; // don't change this
-var LEFT_MENU_WIDTH = 85; // don't change this
+import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
 
 export class PublicUserList extends Component {
   componentDidMount() {
