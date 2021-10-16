@@ -8,6 +8,15 @@ export const FETCH_PHOTOSET = "FETCH_PHOTOSET";
 export const FETCH_PHOTOSET_FULFILLED = "FETCH_PHOTOSET_FULFILLED";
 export const FETCH_PHOTOSET_REJECTED = "FETCH_PHOTOSET_REJECTED";
 
+const getFetchPhotosetErrorHandler = (dispatch) => {
+  return (err) => {
+    dispatch({
+      type: FETCH_PHOTOSET_REJECTED,
+      payload: err,
+    });
+  }
+}
+
 export function downloadPhotos(image_hashes) {
   return function (dispatch) {
     Server.post(
@@ -123,12 +132,7 @@ export function fetchPhotosSharedToMe() {
           }
         });
       })
-      .catch((err) => {
-        dispatch({
-          type: FETCH_PHOTOSET_REJECTED,
-          payload: err,
-        });
-      });
+      .catch(getFetchPhotosetErrorHandler(dispatch));
   };
 }
 
@@ -159,12 +163,7 @@ export function fetchPhotosSharedFromMe() {
           }
         })
       })
-      .catch((err) => {
-        dispatch({
-          type: FETCH_PHOTOSET_REJECTED,
-          payload: err,
-        });
-      });
+      .catch(getFetchPhotosetErrorHandler(dispatch));
   };
 }
 
@@ -376,9 +375,7 @@ export function fetchPhotos() {
         const res = _.keyBy(response.data.results, "image_hash");
         dispatch({ type: "FETCH_PHOTOS_FULFILLED", payload: res });
       })
-      .catch((err) => {
-        dispatch({ type: "FETCH_PHOTOS_REJECTED", payload: err });
-      });
+      .catch(getFetchPhotosetErrorHandler(dispatch));
   };
 }
 
@@ -398,9 +395,7 @@ export function fetchFavoritePhotos() {
           },
         });
       })
-      .catch((err) => {
-        dispatch({ type: FETCH_PHOTOSET_REJECTED, payload: err });
-      });
+      .catch(getFetchPhotosetErrorHandler(dispatch));
   };
 }
 
@@ -420,9 +415,7 @@ export function fetchHiddenPhotos() {
           },
         });
       })
-      .catch((err) => {
-        dispatch({ type: FETCH_PHOTOSET_REJECTED, payload: err });
-      });
+      .catch(getFetchPhotosetErrorHandler(dispatch));
   };
 }
 
@@ -474,12 +467,7 @@ export function fetchTimestampPhotos() {
           },
         });
       })
-      .catch((err) => {
-        dispatch({
-          type: FETCH_PHOTOSET_REJECTED,
-          payload: err,
-        });
-      });
+      .catch(getFetchPhotosetErrorHandler(dispatch));
   };
 }
 
@@ -497,9 +485,7 @@ export function fetchNoTimestampPhotoList() {
           },
         });
       })
-      .catch((err) => {
-        dispatch({ type: FETCH_PHOTOSET_REJECTED, payload: err });
-      });
+      .catch(getFetchPhotosetErrorHandler(dispatch));
   };
 }
 
