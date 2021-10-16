@@ -9,6 +9,7 @@ import { searchPhotos } from "../../actions/searchActions";
 import { push } from "react-router-redux";
 import store from "../../store";
 import { Link } from "react-router-dom";
+import { Tile } from "../../components/Tile";
 
 var topMenuHeight = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
@@ -64,16 +65,17 @@ export class AlbumAuto extends Component {
         <div key={key} style={style}>
           <div onClick={() => {}} style={{ padding: 5 }}>
             <Link to={"/event/" + this.props.albumsAutoList[albumAutoIndex].id}>
-              <Image
-                style={{ objectFit: "cover" }}
-                width={this.state.entrySquareSize - 10}
-                height={this.state.entrySquareSize - 10}
-                src={
-                  serverAddress +
-                  "/media/square_thumbnails/" +
-                  this.props.albumsAutoList[albumAutoIndex].photos[0]
+              <Tile
+                video={
+                  this.props.albumsAutoList[albumAutoIndex].photos[0].video ===
+                  true
                 }
-              />
+                height={this.state.entrySquareSize - 10}
+                width={this.state.entrySquareSize - 10}
+                image_hash={
+                  this.props.albumsAutoList[albumAutoIndex].photos[0].image_hash
+                }
+              ></Tile>
             </Link>
           </div>
           <div

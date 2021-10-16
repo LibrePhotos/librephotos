@@ -5,13 +5,11 @@ import {
   Loader,
   Dimmer,
   Breadcrumb,
-  Image,
   Label,
   Button,
   Icon,
 } from "semantic-ui-react";
 import { connect } from "react-redux";
-// import {Image} from '../components/authenticatedImage'
 import { Link } from "react-router-dom";
 import { fetchAlbumsAutoGalleries } from "../../actions/albumsActions";
 import { Map, TileLayer, Marker } from "react-leaflet";
@@ -19,9 +17,9 @@ import { serverAddress } from "../../api_client/apiClient";
 import { fetchPhotoDetail } from "../../actions/photosActions";
 import * as moment from "moment";
 import _ from "lodash";
-import LazyLoad from "react-lazyload";
 import { SecuredImageJWT } from "../../components/SecuredImage";
 import { LightBox } from "../../components/lightbox/LightBox";
+import { Tile } from "../../components/Tile";
 
 var topMenuHeight = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
@@ -93,7 +91,6 @@ AUTO GENERATED EVENT ALBUM
 
 export class AlbumAutoGalleryView extends Component {
   state = {
-    idx2hash: [],
     lightboxImageIndex: 0,
     lightboxShow: false,
     headerHeight: 80,
@@ -142,7 +139,10 @@ export class AlbumAutoGalleryView extends Component {
 
   onPhotoClick(image_hash) {
     this.setState({
-      lightboxImageIndex: this.state.idx2hash.indexOf(image_hash),
+      lightboxImageIndex:
+        this.props.albumsAutoGalleries[
+          this.props.match.params.albumID
+        ].photos.indexOf(image_hash),
       lightboxShow: true,
     });
   }
@@ -154,6 +154,10 @@ export class AlbumAutoGalleryView extends Component {
       this.props.albumsAutoGalleries[this.props.match.params.albumID].photos
         .length
     ) {
+      var video =
+        this.props.albumsAutoGalleries[this.props.match.params.albumID].photos[
+          photoIndex
+        ].video;
       var image_hash =
         this.props.albumsAutoGalleries[this.props.match.params.albumID].photos[
           photoIndex
@@ -165,12 +169,12 @@ export class AlbumAutoGalleryView extends Component {
               this.onPhotoClick(photoIndex);
             }}
           >
-            <Image
+            <Tile
+              video={video === true}
               height={this.state.entrySquareSize - 5}
               width={this.state.entrySquareSize - 5}
-              style={{ objectFit: "cover" }}
-              src={serverAddress + "/media/square_thumbnails/" + image_hash}
-            />
+              image_hash={image_hash}
+            ></Tile>
           </div>
         </div>
       );
@@ -180,9 +184,7 @@ export class AlbumAutoGalleryView extends Component {
   };
 
   getPhotoDetails(image_hash) {
-    if (!this.props.photoDetails.hasOwnProperty(image_hash)) {
-      this.props.dispatch(fetchPhotoDetail(image_hash));
-    }
+    this.props.dispatch(fetchPhotoDetail(image_hash));
   }
 
   render() {
@@ -333,41 +335,33 @@ export class AlbumAutoGalleryView extends Component {
                     )}
 
                     {v[1].map((photo) => (
-                      <div style={{ display: "inline-block" }}>
-                        <LazyLoad
+                      <div
+                        onClick={() => {
+                          var indexOf = this.props.albumsAutoGalleries[
+                            this.props.match.params.albumID
+                          ].photos
+                            .map((i) => i.image_hash)
+                            .indexOf(photo.image_hash);
+                          console.log(indexOf);
+                          this.setState({
+                            lightboxImageIndex: indexOf,
+                            lightboxShow: true,
+                          });
+                        }}
+                        style={{
+                          display: "inline-block",
+                          paddingTop: 2.5,
+                          paddingBottom: 2.5,
+                          paddingLeft: 2.5,
+                          paddingRight: 2.5,
+                        }}
+                      >
+                        <Tile
+                          video={photo.video === true}
                           height={this.state.entrySquareSize}
-                          placeholder={
-                            <Image
-                              style={{ paddingLeft: 2.5, paddingRight: 2.5 }}
-                              height={this.state.entrySquareSize}
-                              width={this.state.entrySquareSize}
-                              src={"/thumbnail_placeholder.png"}
-                            />
-                          }
-                        >
-                          <Image
-                            onClick={() =>
-                              this.setState({
-                                lightboxImageIndex: idx2hash.indexOf(
-                                  photo.image_hash
-                                ),
-                                lightboxShow: true,
-                              })
-                            }
-                            style={{
-                              paddingLeft: 2.5,
-                              paddingRight: 2.5,
-                              objectFit: "cover",
-                            }}
-                            height={this.state.entrySquareSize}
-                            width={this.state.entrySquareSize}
-                            src={
-                              serverAddress +
-                              "/media/square_thumbnails/" +
-                              photo.image_hash
-                            }
-                          />
-                        </LazyLoad>
+                          width={this.state.entrySquareSize}
+                          image_hash={photo.image_hash}
+                        ></Tile>
                       </div>
                     ))}
                   </div>
@@ -378,29 +372,60 @@ export class AlbumAutoGalleryView extends Component {
 
           {this.state.lightboxShow && (
             <LightBox
-              idx2hash={idx2hash}
+              idx2hash={this.props.albumsAutoGalleries[
+                this.props.match.params.albumID
+              ].photos.map((i) => i.image_hash)}
               lightboxImageIndex={this.state.lightboxImageIndex}
+              lightboxImageId={
+                this.props.albumsAutoGalleries[this.props.match.params.albumID]
+                  .photos[this.state.lightboxImageIndex].image_hash
+              }
               onCloseRequest={() => this.setState({ lightboxShow: false })}
               onImageLoad={() => {
-                this.getPhotoDetails(idx2hash[this.state.lightboxImageIndex]);
+                this.getPhotoDetails(
+                  this.props.albumsAutoGalleries[
+                    this.props.match.params.albumID
+                  ].photos[this.state.lightboxImageIndex].image_hash
+                );
               }}
               onMovePrevRequest={() => {
                 var nextIndex =
-                  (this.state.lightboxImageIndex + idx2hash.length - 1) %
-                  idx2hash.length;
+                  ((this.state.lightboxImageIndex +
+                    this.props.albumsAutoGalleries[
+                      this.props.match.params.albumID
+                    ].photos.length -
+                    1) %
+                    this.state.lightboxImageIndex) +
+                  this.props.albumsAutoGalleries[
+                    this.props.match.params.albumID
+                  ].photos.length;
                 this.setState({
                   lightboxImageIndex: nextIndex,
                 });
-                this.getPhotoDetails(idx2hash[nextIndex]);
+                this.getPhotoDetails(
+                  this.props.albumsAutoGalleries[
+                    this.props.match.params.albumID
+                  ].photos[nextIndex].image_hash
+                );
               }}
               onMoveNextRequest={() => {
                 var nextIndex =
-                  (this.state.lightboxImageIndex + idx2hash.length + 1) %
-                  idx2hash.length;
+                  (this.state.lightboxImageIndex +
+                    this.props.albumsAutoGalleries[
+                      this.props.match.params.albumID
+                    ].photos.length +
+                    1) %
+                  this.props.albumsAutoGalleries[
+                    this.props.match.params.albumID
+                  ].photos.length;
                 this.setState({
                   lightboxImageIndex: nextIndex,
                 });
-                this.getPhotoDetails(idx2hash[nextIndex]);
+                this.getPhotoDetails(
+                  this.props.albumsAutoGalleries[
+                    this.props.match.params.albumID
+                  ].photos[nextIndex].image_hash
+                );
               }}
             />
           )}
