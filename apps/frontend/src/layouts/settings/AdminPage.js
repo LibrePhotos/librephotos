@@ -121,11 +121,12 @@ export class AdminPage extends Component {
 
 const modalStyles = {
   content: {
-    top: 150,
-    left: 40,
-    right: 40,
-    height: window.innerHeight - 300,
-
+    top: "12vh",
+    left: "8vh",
+    right: "8vh",
+    height: "65vh",
+    display: "flex",
+    flexFlow: "column",
     overflow: "hidden",
     padding: 0,
     backgroundColor: "white",
@@ -317,7 +318,11 @@ class JobList extends Component {
 class ModalScanDirectoryEdit extends Component {
   constructor(props) {
     super(props);
-    this.state = { newScanDirectory: "", treeData: [], newConfidence: "" };
+    this.state = {
+      newScanDirectory: "",
+      treeData: [],
+      newConfidence: "",
+    };
     this.nodeClicked = this.nodeClicked.bind(this);
     this.inputRef = React.createRef();
   }
@@ -348,100 +353,91 @@ class ModalScanDirectoryEdit extends Component {
         style={modalStyles}
       >
         <div style={{ padding: 10 }}>
-          <Header as="h3">
-            Set the scan directory for user "
-            {this.props.userToEdit ? this.props.userToEdit.username : "..."}"
-            <Header.Subheader>
-              When the user "
+          <Header>
+            <Header.Content>
+              Set the scan directory for user "
               {this.props.userToEdit ? this.props.userToEdit.username : "..."}"
-              clicks on the 'scan photos' button, photos in the directory that
-              you specify here will be imported under the user's account.
-            </Header.Subheader>
+              <Header.Subheader>
+                When the user "
+                {this.props.userToEdit ? this.props.userToEdit.username : "..."}
+                " clicks on the 'scan photos' button, photos in the directory
+                that you specify here will be imported under the user's account.
+              </Header.Subheader>
+            </Header.Content>
           </Header>
         </div>
-        <Grid>
-          <Grid.Row>
-            <Grid.Column>
-              <div style={{ padding: 10 }}>
-                <Header as="h5">
-                  User's current directory and minimum confidence
-                </Header>
-              </div>
-              <div style={{ padding: 7 }}>
-                <Input
-                  ref={this.inputRef}
-                  type="text"
-                  placeholder={
-                    this.props.userToEdit
-                      ? this.props.userToEdit.scan_directory === ""
-                        ? "not set"
-                        : this.props.userToEdit.scan_directory
-                      : "..."
-                  }
-                  action
-                  fluid
-                >
-                  <input />
-                  <Button
-                    type="submit"
-                    color="green"
-                    onClick={() => {
-                      if (this.state.newScanDirectory === "") {
-                        this.setState({
-                          newScanDirectory:
-                            this.props.userToEdit.scan_directory,
-                        });
-                      }
-                      const newUserData = {
-                        ...this.props.userToEdit,
-                        scan_directory: this.state.newScanDirectory,
-                      };
-                      console.log(newUserData);
-                      this.props.dispatch(manageUpdateUser(newUserData));
-                      this.props.onRequestClose();
-                    }}
-                  >
-                    Update
-                  </Button>
-                </Input>
-              </div>
-            </Grid.Column>
-          </Grid.Row>
-          <Grid.Row>
-            <Grid.Column>
-              <div style={{ padding: 10 }}>
-                <Header as="h5">Choose a directory from below</Header>
-              </div>
-              <div
-                style={{
-                  height: 300,
-                  width: "100%",
-                  paddingLeft: 7,
-                  paddingTop: 7,
-                  paddingBottom: 7,
-                }}
-              >
-                <SortableTree
-                  innerStyle={{ outline: "none" }}
-                  canDrag={() => false}
-                  canDrop={() => false}
-                  treeData={this.state.treeData}
-                  onChange={(treeData) => this.setState({ treeData })}
-                  theme={FileExplorerTheme}
-                  generateNodeProps={(rowInfo) => {
-                    let nodeProps = {
-                      onClick: (event) => this.nodeClicked(event, rowInfo),
-                    };
-                    if (this.state.selectedNodeId === rowInfo.node.id) {
-                      nodeProps.className = "selected-node";
-                    }
-                    return nodeProps;
-                  }}
-                />
-              </div>
-            </Grid.Column>
-          </Grid.Row>
-        </Grid>
+        <div style={{ padding: 10 }}>
+          <Header as="h5">User's current directory</Header>
+        </div>
+        <div style={{ padding: 7 }}>
+          <Input
+            ref={this.inputRef}
+            type="text"
+            placeholder={
+              this.state.newScanDirectory === ""
+                ? this.props.userToEdit
+                  ? this.props.userToEdit.scan_directory === ""
+                    ? "not set"
+                    : this.props.userToEdit.scan_directory
+                  : "not set"
+                : this.state.newScanDirectory
+            }
+            action
+            fluid
+          >
+            <input />
+            <Button
+              type="submit"
+              color="green"
+              onClick={() => {
+                if (this.state.newScanDirectory === "") {
+                  this.setState({
+                    newScanDirectory: this.props.userToEdit.scan_directory,
+                  });
+                }
+                const newUserData = {
+                  ...this.props.userToEdit,
+                  scan_directory: this.state.newScanDirectory,
+                };
+                console.log(newUserData);
+                this.props.dispatch(manageUpdateUser(newUserData));
+                this.props.onRequestClose();
+              }}
+            >
+              Update
+            </Button>
+          </Input>
+        </div>
+        <div style={{ padding: 10 }}>
+          <Header as="h5">Choose a directory from below</Header>
+        </div>
+        <div
+          style={{
+            height: "100%",
+            width: "100%",
+            paddingLeft: 7,
+            paddingTop: 7,
+            paddingBottom: 7,
+          }}
+        >
+          <SortableTree
+            innerStyle={{ outline: "none" }}
+            canDrag={() => false}
+            canDrop={() => false}
+            treeData={this.state.treeData}
+            onChange={(treeData) => this.setState({ treeData })}
+            theme={FileExplorerTheme}
+            generateNodeProps={(rowInfo) => {
+              let nodeProps = {
+                onClick: (event) => this.nodeClicked(event, rowInfo),
+              };
+              if (this.state.selectedNodeId === rowInfo.node.id) {
+                nodeProps.className = "selected-node";
+              }
+              return nodeProps;
+            }}
+          />
+        </div>
       </Modal>
     );
   }
