@@ -22,9 +22,9 @@ import {
 import { fetchExampleSearchTerms } from "../actions/utilActions";
 import { serverAddress } from "../api_client/apiClient";
 import { SecuredImageJWT } from "./SecuredImage";
+import { TOP_MENU_HEIGHT } from "../ui-constants";
 
 var ENTER_KEY = 13;
-var topMenuHeight = 50; // don't change this. TODO: Should this use TOP_MENU_HEIGHT (=45)?
 
 function fuzzy_match(str, pattern) {
   if (pattern.split("").length > 0) {
@@ -261,7 +261,7 @@ export class CustomSearch extends Component {
               width: searchBarWidth,
               textAlign: "left",
               zIndex: 120,
-              top: topMenuHeight,
+              top: TOP_MENU_HEIGHT,
               left: (this.state.width - searchBarWidth) / 2,
               position: "absolute",
             }}

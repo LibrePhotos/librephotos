@@ -722,7 +722,7 @@ export class FaceDashboard extends Component {
                 cellRenderer={this.cellRenderer}
                 columnWidth={this.state.entrySquareSize}
                 columnCount={this.state.numEntrySquaresPerRow}
-                height={this.state.height - topMenuHeight - 40 - 40}
+                height={this.state.height - TOP_MENU_HEIGHT - 40 - 40}
                 rowHeight={this.state.entrySquareSize}
                 rowCount={
                   activeItem === "labeled"
