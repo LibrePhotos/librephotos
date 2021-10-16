@@ -11,8 +11,9 @@ import { Dropdown, Popup, Button, Icon } from "semantic-ui-react";
 import { serverAddress } from "../../api_client/apiClient";
 import _ from "lodash";
 import { connect } from "react-redux";
+import { removeFromUserAlbum } from "../../actions/albumsActions";
 
-export class SelectedActions extends Component {
+export class SelectionActions extends Component {
   render() {
     return (
       <div>
@@ -188,6 +189,33 @@ export class SelectedActions extends Component {
                 }
                 content="Open sharing panel for the current album"
               />
+              <Popup
+                inverted
+                position="left center"
+                trigger={
+                  <Dropdown.Item
+                    disabled={
+                      !this.props.route.location.pathname.startsWith(
+                        "/useralbum/" || this.props.selectedItems.length == 0
+                      )
+                    }
+                    onClick={() => {
+                      var id = this.props.albumID;
+                      this.props.dispatch(
+                        removeFromUserAlbum(
+                          id,
+                          this.props.title,
+                          this.props.selectedItems.map((i) => i.id)
+                        )
+                      );
+                    }}
+                  >
+                    <Icon name="trash" />
+                    {"  Remove Photos"}
+                  </Dropdown.Item>
+                }
+                content="Remove the selected photos from the current album"
+              />
             </Dropdown.Menu>
           </Dropdown>
         </Button.Group>
@@ -231,8 +259,8 @@ export class SelectedActions extends Component {
   }
 }
 
-SelectedActions = connect((store) => {
+SelectionActions = connect((store) => {
   return {
     route: store.routerReducer,
   };
-})(SelectedActions);
+})(SelectionActions);

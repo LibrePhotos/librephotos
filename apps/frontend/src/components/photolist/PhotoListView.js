@@ -13,7 +13,7 @@ import { SelectionBar } from "../photolist/SelectionBar";
 import FavoritedOverlay from "./FavoritedOverlay";
 import getDefaultHeader from "./Headers";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
-import { SelectedActions as SelectionActions } from "./SelectionActions";
+import { SelectionActions } from "./SelectionActions";
 
 var TIMELINE_SCROLL_WIDTH = 0;
 
@@ -187,7 +187,7 @@ export class PhotoListView extends Component {
           }}
         >
           {this.getHeader(this)}
-          {!this.props.isPublic && (
+          {!this.props.loading && !this.props.isPublic && (
             <div
               style={{
                 marginLeft: -5,
@@ -206,6 +206,8 @@ export class PhotoListView extends Component {
               />
               <SelectionActions
                 selectedItems={this.state.selectionState.selectedItems}
+                albumID={this.props.match ? this.props.match.params.albumID : undefined}
+                title={this.props.title}
                 onSharePhotos={() =>
                   this.setState({ modalSharePhotosOpen: true })
                 }
@@ -219,7 +221,7 @@ export class PhotoListView extends Component {
             </div>
           )}
         </div>
-        {this.props.photoset &&
+        {!this.props.loading && this.props.photoset &&
         this.props.photoset.length > 0 ? (
           <div style={{ top: TOP_MENU_HEIGHT + 70 }}>
             <Pig

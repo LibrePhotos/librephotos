@@ -234,7 +234,7 @@ export class AlbumAutoGalleryView extends Component {
           <div
             style={{
               position: "fixed",
-              top: topMenuHeight + 10,
+              top: TOP_MENU_HEIGHT + 10,
               right: 10,
               float: "right",
               zIndex: 1000,
