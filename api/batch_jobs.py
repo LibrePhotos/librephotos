@@ -5,6 +5,8 @@ import pytz
 import torch
 from django_rq import job
 
+import api.util as util
+from api.image_similarity import build_image_similarity_index
 from api.models.long_running_job import LongRunningJob
 from api.models.photo import Photo
 from api.semantic_search.semantic_search import semantic_search_instance
@@ -20,13 +22,13 @@ def create_batch_job(job_type, user):
     )
 
     if job_type == LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS:
-        batch_calculate_clip_embedding.delay(job_id)
+        batch_calculate_clip_embedding.delay(job_id, user)
 
     lrj.save()
 
 
 @job
-def batch_calculate_clip_embedding(job_id):
+def batch_calculate_clip_embedding(job_id, user):
     lrj = LongRunningJob.objects.get(job_id=job_id)
     lrj.started_at = datetime.now().replace(tzinfo=pytz.utc)
 
@@ -35,14 +37,13 @@ def batch_calculate_clip_embedding(job_id):
     lrj.save()
 
     BATCH_SIZE = 64
-    print(f"Using threads: {str(torch.get_num_threads())}")
+    util.logger.info("Using threads: {}".format(torch.get_num_threads()))
 
     try:
         done_count = 0
         while done_count < count:
             objs = list(Photo.objects.filter(clip_embeddings__isnull=True)[:BATCH_SIZE])
-            imgs = list(map(lambda obj: obj.image_paths[0], objs))
-
+            imgs = list(map(lambda obj: obj.thumbnail_big.path, objs))
             if len(objs) == 0:
                 break
 
@@ -60,7 +61,7 @@ def batch_calculate_clip_embedding(job_id):
             lrj.save()
 
         semantic_search_instance.unload()
-
+        build_image_similarity_index(user)
         lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
         lrj.finished = True
         lrj.save()
