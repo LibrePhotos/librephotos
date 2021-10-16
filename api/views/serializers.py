@@ -5,7 +5,6 @@ from datetime import datetime
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db.models import Count, Prefetch, Q
-from api.views.serializers_serpy import PigPhotoSerilizer
 from rest_framework import serializers
 
 import ownphotos.settings
@@ -24,6 +23,7 @@ from api.models import (
     User,
 )
 from api.util import logger
+from api.views.serializers_serpy import PigPhotoSerilizer
 
 
 class SimpleUserSerializer(serializers.ModelSerializer):
@@ -512,7 +512,9 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         many=True, read_only=False, queryset=Photo.objects.all()
     )
     removedPhotos = serializers.ListField(
-        child=serializers.CharField(max_length=100, default=""), write_only=True, required=False
+        child=serializers.CharField(max_length=100, default=""),
+        write_only=True,
+        required=False,
     )
 
     class Meta:
