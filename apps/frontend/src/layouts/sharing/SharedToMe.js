@@ -5,9 +5,9 @@ import { PhotosetType } from "../../reducers/photosReducer";
 import { Header, Icon, Loader, Menu } from "semantic-ui-react";
 import { Link } from "react-router-dom";
 import { fetchPublicUserList } from "../../actions/publicActions";
-import { AlbumsSharedToMe } from "./AlbumsSharedToMe";
-import { PhotosSharedToMe } from "./PhotosSharedToMe";
 import { fetchUserAlbumsSharedToMe } from "../../actions/albumsActions";
+import { AlbumsSharedToMe } from "./AlbumsSharedToMe";
+import { PhotosShared } from "./PhotosShared";
 
 export class SharedToMe extends Component {
   componentDidMount() {
@@ -93,7 +93,7 @@ export class SharedToMe extends Component {
       <div>
         {this.getHeader(activeItem)}
         {this.getMenu(activeItem)}
-        {activeItem === "photos" && <PhotosSharedToMe />}
+        {activeItem === "photos" && <PhotosShared photosetType={PhotosetType.SHARED_TO_ME} />}
         {activeItem === "albums" && <AlbumsSharedToMe />}
       </div>
     );

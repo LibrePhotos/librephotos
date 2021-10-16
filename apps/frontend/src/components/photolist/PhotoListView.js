@@ -11,7 +11,7 @@ import { LightBox } from "../lightbox/LightBox";
 import _ from "lodash";
 import { SelectionBar } from "../photolist/SelectionBar";
 import FavoritedOverlay from "./FavoritedOverlay";
-import getDefaultHeader from "./Headers";
+import { DefaultHeader } from "./DefaultHeader";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { SelectionActions } from "./SelectionActions";
 
@@ -23,9 +23,6 @@ export class PhotoListView extends Component {
     this.handleResize = this.handleResize.bind(this);
     this.getPhotoDetails = this.getPhotoDetails.bind(this);
     this.listRef = React.createRef();
-    this.getHeader = this.props.getHeader
-      ? this.props.getHeader
-      : getDefaultHeader;
 
     this.state = {
       lightboxImageIndex: 1,
@@ -161,7 +158,7 @@ export class PhotoListView extends Component {
       this.state.lightboxShow &&
       (this.props.idx2hash.length <= this.state.lightboxImageIndex ||
         this.state.lightboxImageId !==
-          this.props.idx2hash[this.state.lightboxImageIndex].id)
+        this.props.idx2hash[this.state.lightboxImageIndex].id)
     ) {
       this.setState({ lightboxShow: false });
     }
@@ -186,7 +183,20 @@ export class PhotoListView extends Component {
             backgroundColor: "white",
           }}
         >
-          {this.getHeader(this)}
+          {this.props.header
+            ? this.props.header
+            : <DefaultHeader
+              photoList={this}
+              loading={this.props.loading}
+              numPhotosetItems={this.props.photoset ? this.props.photoset.length : 0}
+              numPhotos={this.props.idx2hash ? this.props.idx2hash.length : 0}
+              noResultsMessage={this.props.noResultsMessage}
+              titleIconName={this.props.titleIconName}
+              title={this.props.title}
+              dayHeaderPrefix={this.props.dayHeaderPrefix}
+              date={this.props.date}
+              additionalSubHeader={this.props.additionalSubHeader}
+            />}
           {!this.props.loading && !this.props.isPublic && (
             <div
               style={{
@@ -222,7 +232,7 @@ export class PhotoListView extends Component {
           )}
         </div>
         {!this.props.loading && this.props.photoset &&
-        this.props.photoset.length > 0 ? (
+          this.props.photoset.length > 0 ? (
           <div style={{ top: TOP_MENU_HEIGHT + 70 }}>
             <Pig
               imageData={
@@ -257,10 +267,10 @@ export class PhotoListView extends Component {
                   : this.props.idx2hash.length
               }
               updateItems={
-                this.props.updateItems ? this.props.updateItems : () => {}
+                this.props.updateItems ? this.props.updateItems : () => { }
               }
               updateGroups={
-                this.props.updateGroups ? this.props.updateGroups : () => {}
+                this.props.updateGroups ? this.props.updateGroups : () => { }
               }
             ></Pig>
           </div>

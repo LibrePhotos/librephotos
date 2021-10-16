@@ -4,12 +4,12 @@ import { Header, Icon, Loader } from "semantic-ui-react";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType } from "../../reducers/photosReducer";
 
-export class PhotosSharedFromMe extends Component {
-  getGroupHeader(group) {
+class GroupHeader extends Component {
+  render() {
     const owner = this.props.pub.publicUserList.filter(
-      (e) => e.id === group.user_id
+      (e) => e.id === this.props.group.user_id
     )[0];
-    var displayName = group.user_id;
+    var displayName = this.props.group.user_id;
     if (owner && owner.last_name.length + owner.first_name.length > 0) {
       displayName = owner.first_name + " " + owner.last_name;
     } else if (owner) {
@@ -28,31 +28,43 @@ export class PhotosSharedFromMe extends Component {
             {displayName}
             <Header.Subheader>
               <Icon name="photo" />
-              you shared {group.photos.length} photos
+              {this.props.photosetType === PhotosetType.SHARED_BY_ME
+                ? `you shared ${this.props.group.photos.length} photos`
+                : `shared ${this.props.group.photos.length} photos with you`}
             </Header.Subheader>
           </Header.Content>
         </Header>
       </div>
     );
   }
+}
 
+GroupHeader = connect((store) => {
+  return {
+    pub: store.pub,
+  }
+})(GroupHeader);
+
+export class PhotosShared extends Component {
   render() {
+    const loadingText = this.props.photosetType === PhotosetType.SHARED_BY_ME
+      ? "Loading photos shared by you..."
+      : "Loading photos shared with you..."
     return (
       <div>
-        {this.props.fetchedPhotosetType !== PhotosetType.SHARED_BY_ME
-          ? <Loader active>Loading photos shared by you...</Loader>
+        {this.props.fetchedPhotosetType !== this.props.photosetType
+          ? <Loader active>{loadingText}</Loader>
           : this.props.photosGroupedByUser.map((group) => {
             return (
               <PhotoListView
                 title={"Photos"}
-                additionalSubHeader={" shared by user with id " + group.user_id}
-                loading={this.props.fetchedPhotosetType !== PhotosetType.SHARED_BY_ME}
+                loading={this.props.fetchedPhotosetType !== this.props.photosetType}
                 titleIconName={"images"}
                 isDateView={false}
                 photoset={group.photos}
                 idx2hash={group.photos}
                 isPublic={true}
-                getHeader={(photoList) => this.getGroupHeader(group)}
+                header={<GroupHeader group={group} photosetType={this.props.photosetType} />}
                 selectable={false}
               />
             );
@@ -62,10 +74,9 @@ export class PhotosSharedFromMe extends Component {
   }
 }
 
-PhotosSharedFromMe = connect((store) => {
+PhotosShared = connect((store) => {
   return {
     photosGroupedByUser: store.photos.photosGroupedByUser,
     fetchedPhotosetType: store.photos.fetchedPhotosetType,
-    pub: store.pub,
   };
-})(PhotosSharedFromMe);
+})(PhotosShared);
