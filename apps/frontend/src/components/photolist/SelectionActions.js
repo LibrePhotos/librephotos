@@ -9,7 +9,6 @@ import {
 import { copyToClipboard } from "../../util/util";
 import { Dropdown, Popup, Button, Icon } from "semantic-ui-react";
 import { serverAddress } from "../../api_client/apiClient";
-import _ from "lodash";
 import { connect } from "react-redux";
 import { removeFromUserAlbum } from "../../actions/albumsActions";
 

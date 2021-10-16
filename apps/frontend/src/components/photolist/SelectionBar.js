@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { Button, Dropdown, Icon, Popup } from "semantic-ui-react";
+import { Button, Icon, Popup } from "semantic-ui-react";
 
 export class SelectionBar extends Component {
   render() {

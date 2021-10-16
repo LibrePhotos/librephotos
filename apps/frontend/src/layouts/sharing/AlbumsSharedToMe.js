@@ -4,8 +4,6 @@ import {
   Icon,
   Loader,
 } from "semantic-ui-react";
-import { fetchPublicUserList } from "../../actions/publicActions";
-import { fetchUserAlbumsSharedToMe } from "../../actions/albumsActions";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
 import { serverAddress } from "../../api_client/apiClient";
