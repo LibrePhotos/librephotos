@@ -591,7 +591,7 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
 
 
 class AlbumAutoSerializer(serializers.ModelSerializer):
-    photos = PhotoSerializer(many=True, read_only=False)
+    photos = PhotoSimpleSerializer(many=True, read_only=False)
     people = serializers.SerializerMethodField()
 
     class Meta:
@@ -629,7 +629,7 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
 
 
 class AlbumAutoListSerializer(serializers.ModelSerializer):
-    photos = PhotoSuperSimpleSerializer
+    photos = PhotoHashListSerializer(many=True, read_only=True)
 
     class Meta:
         model = AlbumAuto

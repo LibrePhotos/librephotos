@@ -68,7 +68,6 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
         return super(AlbumAutoViewSet, self).list(*args, **kwargs)
 
 
-@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumAutoListViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumAutoListSerializer
     pagination_class = StandardResultsSetPagination
@@ -87,28 +86,12 @@ class AlbumAutoListViewSet(viewsets.ModelViewSet):
                 )
             )
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
-            .prefetch_related(
-                Prefetch(
-                    "photos",
-                    queryset=Photo.objects.filter(hidden=False).only(
-                        "image_hash",
-                        "shared_to",
-                        "public",
-                        "exif_timestamp",
-                        "rating",
-                        "hidden",
-                    ),
-                )
-            )
-            .only("id", "title", "timestamp", "shared_to")
             .order_by("-timestamp")
         )
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(AlbumAutoListViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(AlbumAutoListViewSet, self).list(*args, **kwargs)
 
