@@ -15,10 +15,10 @@ from django_rq import job
 import api.models.album_thing
 import api.util as util
 import ownphotos.settings
-from api.image_similarity import build_image_similarity_index
 from api.models import Face, LongRunningJob, Photo
 from api.places365.places365 import place365_instance
 from api.thumbnails import isRawPicture
+from api.batch_jobs import create_batch_job
 
 
 def is_video(image_path):
@@ -137,13 +137,6 @@ def handle_new_image(user, image_path, job_id):
                         job_id, img_abs_path, elapsed
                     )
                 )
-                photo._generate_clip_embeddings(True)
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                util.logger.info(
-                    "job {}: generate clip embessings: {}, elapsed: {}".format(
-                        job_id, img_abs_path, elapsed
-                    )
-                )
                 photo._extract_date_time_from_exif(True)
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
@@ -213,7 +206,6 @@ def rescan_image(user, image_path, job_id):
             photo = Photo.objects.filter(Q(image_paths__contains=image_path)).get()
             photo._generate_thumbnail(True)
             photo._calculate_aspect_ratio(False)
-            photo._generate_clip_embeddings(True)
             photo._extract_date_time_from_exif(True)
             photo._geolocate_mapbox(True)
             photo._extract_rating(True)
@@ -358,7 +350,7 @@ def scan_photos(user, full_scan, job_id):
             for existing_photo in paginator.page(page).object_list:
                 existing_photo._check_image_paths()
         util.logger.info("Finished checking paths")
-        build_image_similarity_index(user)
+        create_batch_job(LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS, user)
     except Exception:
         util.logger.exception("An error occured: ")
         lrj.failed = True

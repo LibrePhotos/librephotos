@@ -512,7 +512,7 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         many=True, read_only=False, queryset=Photo.objects.all()
     )
     removedPhotos = serializers.ListField(
-        child=serializers.CharField(max_length=100, default=""), write_only=True
+        child=serializers.CharField(max_length=100, default=""), write_only=True, required=False
     )
 
     class Meta:
@@ -569,7 +569,7 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
             photos = Photo.objects.in_bulk(image_hashes)
             photos_already_in_album = instance.photos.all()
             cnt = 0
-            for obj in photos.items():
+            for pk, obj in photos.items():
                 if obj not in photos_already_in_album:
                     cnt += 1
                     instance.photos.add(obj)
