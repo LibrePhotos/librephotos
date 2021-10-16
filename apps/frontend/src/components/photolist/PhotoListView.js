@@ -164,6 +164,24 @@ export class PhotoListView extends Component {
     }
   }
 
+  getNumPhotosetItems() {
+    return this.props.photoset
+      ? this.props.photoset.length
+      : 0;
+  }
+
+  getNumPhotos() {
+    return this.props.idx2hash
+      ? this.props.idx2hash.length
+      : 0;
+  }
+
+  getPigImageData() {
+    return Array.isArray(this.props.photoset)
+      ? this.props.photoset
+      : [this.props.photoset];
+  }
+
   render() {
     this.closeLightboxIfImageIndexIsOutOfSync();
 
@@ -188,8 +206,8 @@ export class PhotoListView extends Component {
             : <DefaultHeader
               photoList={this}
               loading={this.props.loading}
-              numPhotosetItems={this.props.photoset ? this.props.photoset.length : 0}
-              numPhotos={this.props.idx2hash ? this.props.idx2hash.length : 0}
+              numPhotosetItems={this.getNumPhotosetItems()}
+              numPhotos={this.getNumPhotos()}
               noResultsMessage={this.props.noResultsMessage}
               titleIconName={this.props.titleIconName}
               title={this.props.title}
@@ -235,11 +253,7 @@ export class PhotoListView extends Component {
           this.props.photoset.length > 0 ? (
           <div style={{ top: TOP_MENU_HEIGHT + 70 }}>
             <Pig
-              imageData={
-                !Array.isArray(this.props.photoset)
-                  ? [this.props.photoset]
-                  : this.props.photoset
-              }
+              imageData={this.getPigImageData()}
               selectable={this.props.selectable === undefined || this.props.selectable}
               selectedItems={this.state.selectionState.selectedItems}
               handleSelection={this.handleSelection}
