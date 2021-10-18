@@ -3,7 +3,7 @@ import "react-virtualized/styles.css"; // only needs to be imported once
 import { connect } from "react-redux";
 import {
   fetchUserAlbumsList,
-  editUserAlbum,
+  addToUserAlbum,
   createNewUserAlbum,
 } from "../../actions/albumsActions";
 import {
@@ -179,7 +179,7 @@ export class ModalAlbumEdit extends Component {
                   <Header
                     onClick={() => {
                       this.props.dispatch(
-                        editUserAlbum(
+                        addToUserAlbum(
                           item.id,
                           item.title,
                           this.props.selectedImageHashes

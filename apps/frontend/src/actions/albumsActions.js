@@ -173,7 +173,36 @@ export function deleteUserAlbum(albumID, albumTitle) {
   };
 }
 
-export function editUserAlbum(album_id, title, image_hashes) {
+export function removeFromUserAlbum(album_id, title, image_hashes) {
+  return function (dispatch) {
+    dispatch({ type: "REMOVE_USER_ALBUMS_LIST" });
+    Server.patch(`albums/user/edit/${album_id}/`, {
+      removedPhotos: image_hashes,
+    })
+      .then((response) => {
+        dispatch({
+          type: "REMOVE_USER_ALBUMS_LIST_FULFILLED",
+          payload: response.data,
+        });
+        dispatch(
+          notify({
+            message: `${image_hashes.length} photo(s) were successfully removed to existing album "${title}"`,
+            title: "Removed from album",
+            status: "success",
+            dismissible: true,
+            dismissAfter: 3000,
+            position: "br",
+          })
+        );
+        dispatch(fetchUserAlbumsList());
+      })
+      .catch((err) => {
+        dispatch({ type: "REMOVE_USER_ALBUMS_LIST_REJECTED", payload: err });
+      });
+  };
+}
+
+export function addToUserAlbum(album_id, title, image_hashes) {
   return function (dispatch) {
     dispatch({ type: "EDIT_USER_ALBUMS_LIST" });
     Server.patch(`albums/user/edit/${album_id}/`, {

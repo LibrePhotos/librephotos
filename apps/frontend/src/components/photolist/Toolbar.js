@@ -6,6 +6,8 @@ import {
   setPhotosPublic,
   downloadPhotos,
 } from "../../actions/photosActions";
+
+import { removeFromUserAlbum } from "../../actions/albumsActions";
 import { copyToClipboard } from "../../util/util";
 import { Dropdown, Popup, Button, Icon } from "semantic-ui-react";
 import { serverAddress } from "../../api_client/apiClient";
@@ -186,6 +188,35 @@ export default function getToolbar(photoList) {
               </Dropdown.Item>
             }
             content="Open sharing panel for the current album"
+          />
+          <Popup
+            inverted
+            position="left center"
+            trigger={
+              <Dropdown.Item
+                disabled={
+                  !photoList.props.route.location.pathname.startsWith(
+                    "/useralbum/" || photoList.state.selectedItems.length == 0
+                  )
+                }
+                onClick={() => {
+                  var id = photoList.props.route.location.pathname.substring(
+                    photoList.props.route.location.pathname.lastIndexOf("/") + 1
+                  );
+                  photoList.props.dispatch(
+                    removeFromUserAlbum(
+                      id,
+                      photoList.props.title,
+                      photoList.state.selectedItems.map((i) => i.id)
+                    )
+                  );
+                }}
+              >
+                <Icon name="trash" />
+                {"  Remove Photos"}
+              </Dropdown.Item>
+            }
+            content="Remove the selected photos from the current album"
           />
         </Dropdown.Menu>
       </Dropdown>
