@@ -498,10 +498,13 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
     photos = serializers.PrimaryKeyRelatedField(
         many=True, read_only=False, queryset=Photo.objects.all()
     )
+    removedPhotos = serializers.ListField(
+        child=serializers.CharField(max_length=100, default=""), write_only=True
+    )
 
     class Meta:
         model = AlbumUser
-        fields = ("id", "title", "photos", "created_on", "favorited")
+        fields = ("id", "title", "photos", "created_on", "favorited", "removedPhotos")
 
     def validate_photos(self, value):
         return [v.image_hash for v in value]
@@ -537,15 +540,27 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
             instance.title = title
             logger.info("Renamed user album to {}".format(title))
 
+        if "removedPhotos" in validated_data.keys():
+            image_hashes = validated_data["removedPhotos"]
+            photos_already_in_album = instance.photos.all()
+            cnt = 0
+            for obj in photos_already_in_album:
+                if obj.image_hash in image_hashes:
+                    cnt += 1
+                    instance.photos.remove(obj)
+
+            logger.info("Removed {} photos to user album {}".format(cnt, instance.id))
+
         if "photos" in validated_data.keys():
             image_hashes = validated_data["photos"]
             photos = Photo.objects.in_bulk(image_hashes)
             photos_already_in_album = instance.photos.all()
             cnt = 0
-            for pk, obj in photos.items():
+            for obj in photos.items():
                 if obj not in photos_already_in_album:
                     cnt += 1
                     instance.photos.add(obj)
+
             logger.info("Added {} photos to user album {}".format(cnt, instance.id))
 
         cache.clear()
