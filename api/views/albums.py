@@ -311,7 +311,7 @@ class AlbumPlaceListViewSet(viewsets.ModelViewSet):
                 )
             )
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
-            .order_by("-title")
+            .order_by("title")
             .prefetch_related(
                 Prefetch("photos", queryset=Photo.visible.only("image_hash"))
             )
@@ -362,7 +362,7 @@ class AlbumUserListViewSet(viewsets.ModelViewSet):
                 )
             )
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
-            .order_by("-created_on")
+            .order_by("title")
             .prefetch_related(
                 Prefetch("photos", queryset=Photo.visible.only("image_hash"))
             )
