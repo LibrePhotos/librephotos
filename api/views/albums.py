@@ -340,16 +340,13 @@ class AlbumUserViewSet(viewsets.ModelViewSet):
         )
         return qs
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(AlbumUserViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(AlbumUserViewSet, self).list(*args, **kwargs)
 
 
-@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumUserListViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumUserListSerializer
     pagination_class = StandardResultsSetPagination
@@ -371,10 +368,8 @@ class AlbumUserListViewSet(viewsets.ModelViewSet):
             )
         )
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(AlbumUserListViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(AlbumUserListViewSet, self).list(*args, **kwargs)

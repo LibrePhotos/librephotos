@@ -531,18 +531,25 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         return instance
 
     def update(self, instance, validated_data):
-        image_hashes = validated_data["photos"]
 
-        photos = Photo.objects.in_bulk(image_hashes)
-        photos_already_in_album = instance.photos.all()
-        cnt = 0
-        for pk, obj in photos.items():
-            if obj not in photos_already_in_album:
-                cnt += 1
-                instance.photos.add(obj)
-        instance.save()
+        if "title" in validated_data.keys():
+            title = validated_data["title"]
+            instance.title = title
+            logger.info("Renamed user album to {}".format(title))
+
+        if "photos" in validated_data.keys():
+            image_hashes = validated_data["photos"]
+            photos = Photo.objects.in_bulk(image_hashes)
+            photos_already_in_album = instance.photos.all()
+            cnt = 0
+            for pk, obj in photos.items():
+                if obj not in photos_already_in_album:
+                    cnt += 1
+                    instance.photos.add(obj)
+            logger.info("Added {} photos to user album {}".format(cnt, instance.id))
+
         cache.clear()
-        logger.info("Added {} photos to user album {}".format(cnt, instance.id))
+        instance.save()
         return instance
 
 
