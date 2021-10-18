@@ -123,6 +123,32 @@ export function createNewUserAlbum(title, image_hashes) {
   };
 }
 
+export function renameUserAlbum(albumID, albumTitle, newAlbumTitle) {
+  return function (dispatch) {
+    dispatch({ type: "RENAME_USER_ALBUM" });
+    Server.patch(`/albums/user/edit/${albumID}/`, {
+      title: newAlbumTitle,
+    })
+      .then((response) => {
+        dispatch({ type: "RENAME_USER_ALBUM_FULFILLED", payload: albumID });
+        dispatch(fetchUserAlbumsList());
+        dispatch(
+          notify({
+            message: `${albumTitle} was successfully renamed to ${newAlbumTitle}.`,
+            title: "Rename album",
+            status: "success",
+            dismissible: true,
+            dismissAfter: 3000,
+            position: "br",
+          })
+        );
+      })
+      .catch((err) => {
+        dispatch({ type: "RENAME_USER_ALBUM_REJECTED", payload: err });
+      });
+  };
+}
+
 export function deleteUserAlbum(albumID, albumTitle) {
   return function (dispatch) {
     dispatch({ type: "DELTE_USER_ALBUM" });
