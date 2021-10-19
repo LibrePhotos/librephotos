@@ -67,13 +67,13 @@ export class AlbumAuto extends Component {
             <Link to={"/event/" + this.props.albumsAutoList[albumAutoIndex].id}>
               <Tile
                 video={
-                  this.props.albumsAutoList[albumAutoIndex].photos[0].video ===
+                  this.props.albumsAutoList[albumAutoIndex].photos.video ===
                   true
                 }
                 height={this.state.entrySquareSize - 10}
                 width={this.state.entrySquareSize - 10}
                 image_hash={
-                  this.props.albumsAutoList[albumAutoIndex].photos[0].image_hash
+                  this.props.albumsAutoList[albumAutoIndex].photos.image_hash
                 }
               ></Tile>
             </Link>
@@ -83,7 +83,7 @@ export class AlbumAuto extends Component {
             style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}
           >
             <b>{this.props.albumsAutoList[albumAutoIndex].title}</b> <br />
-            {this.props.albumsAutoList[albumAutoIndex].photos.length} Photo(s)
+            {this.props.albumsAutoList[albumAutoIndex].photo_count} Photo(s)
           </div>
         </div>
       );

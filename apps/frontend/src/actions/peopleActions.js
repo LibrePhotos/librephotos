@@ -1,4 +1,5 @@
 import { Server } from "../api_client/apiClient";
+import { notify } from "reapop";
 
 export function fetchPeople() {
   return function (dispatch) {
@@ -45,6 +46,32 @@ export function addPerson(person_name) {
       })
       .catch((err) => {
         dispatch({ type: "ADD_PERSON_REJECTED", payload: err });
+      });
+  };
+}
+
+export function renamePerson(personId, personName, newPersonName) {
+  return function (dispatch) {
+    dispatch({ type: "RENAME_PERSON" });
+    Server.patch(`persons/${personId}/`, {
+      newPersonName: newPersonName,
+    })
+      .then((response) => {
+        dispatch({ type: "RENAME_PERSON_FULFILLED", payload: personId });
+        dispatch(fetchPeople());
+        dispatch(
+          notify({
+            message: `${personName} was successfully renamed to ${newPersonName}.`,
+            title: "Rename person",
+            status: "success",
+            dismissible: true,
+            dismissAfter: 3000,
+            position: "br",
+          })
+        );
+      })
+      .catch((err) => {
+        dispatch({ type: "RENAME_PERSON_REJECTED", payload: err });
       });
   };
 }

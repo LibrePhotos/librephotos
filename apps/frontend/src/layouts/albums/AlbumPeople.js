@@ -3,17 +3,24 @@ import { connect } from "react-redux";
 import {
   Popup,
   Icon,
-  Divider,
+  Modal,
+  Input,
+  Confirm,
   Header,
   Image,
   Loader,
   Button,
+  Dropdown,
+  Label,
 } from "semantic-ui-react";
-import { fetchPeople, deletePerson } from "../../actions/peopleActions";
+import {
+  fetchPeople,
+  deletePerson,
+  renamePerson,
+} from "../../actions/peopleActions";
 import { serverAddress } from "../../api_client/apiClient";
 import { Grid, AutoSizer } from "react-virtualized";
 import { Link } from "react-router-dom";
-import { SecuredImageJWT } from "../../components/SecuredImage";
 
 var topMenuHeight = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
@@ -30,7 +37,27 @@ export class AlbumPeople extends Component {
     width: window.innerWidth,
     height: window.innerHeight,
     entrySquareSize: 200,
+    openDeleteDialog: false,
+    openRenameDialog: false,
+    personID: "",
+    personName: "",
+    newPersonName: "",
   };
+
+  openDeleteDialog = (personID, personName) =>
+    this.setState({
+      openDeleteDialog: true,
+      personID: personID,
+      personName: personName,
+    });
+  openRenameDialog = (personID, personName) =>
+    this.setState({
+      openRenameDialog: true,
+      personID: personID,
+      personName: personName,
+    });
+  closeDeleteDialog = () => this.setState({ openDeleteDialog: false });
+  closeRenameDialog = () => this.setState({ openRenameDialog: false });
 
   componentWillMount() {
     this.calculateEntrySquareSize();
@@ -105,6 +132,38 @@ export class AlbumPeople extends Component {
                 src={"/unknown_user.jpg"}
               />
             )}
+            <Label
+              style={{ backgroundColor: "transparent" }}
+              attached="top right"
+            >
+              <Dropdown
+                item
+                icon={<Icon color="black" name="ellipsis vertical"></Icon>}
+              >
+                <Dropdown.Menu>
+                  <Dropdown.Item
+                    icon="edit"
+                    onClick={() =>
+                      this.openRenameDialog(
+                        this.props.people[albumPersonIndex].key,
+                        this.props.people[albumPersonIndex].text
+                      )
+                    }
+                    text="Rename"
+                  />
+                  <Dropdown.Item
+                    icon="delete"
+                    onClick={() => {
+                      this.openDeleteDialog(
+                        this.props.people[albumPersonIndex].key,
+                        this.props.people[albumPersonIndex].text
+                      );
+                    }}
+                    text="Delete"
+                  />
+                </Dropdown.Menu>
+              </Dropdown>
+            </Label>
           </div>
           <div
             className="personCardName"
@@ -112,47 +171,6 @@ export class AlbumPeople extends Component {
           >
             <b>{this.props.people[albumPersonIndex].text}</b> <br />
             {this.props.people[albumPersonIndex].face_count} Photos
-            {this.props.people[albumPersonIndex].text.toLowerCase() !==
-              "unknown" && (
-              <div
-                className="personRemoveButton"
-                style={{ right: 0, position: "absolute" }}
-              >
-                <Popup
-                  wide="very"
-                  hoverable
-                  flowing
-                  trigger={<Icon color="grey" name="remove" />}
-                  content={
-                    <div style={{ textAlign: "center" }}>
-                      Are you sure you want to delete{" "}
-                      <b>{this.props.people[albumPersonIndex].text}</b>?<br />
-                      This action cannot be undone!
-                      <br />
-                      All the faces associated with this person will be tagged{" "}
-                      <i>unknown</i>.
-                      <Divider />
-                      <div>
-                        <Button
-                          onClick={() =>
-                            this.props.dispatch(
-                              deletePerson(
-                                this.props.people[albumPersonIndex].key
-                              )
-                            )
-                          }
-                          negative
-                        >
-                          Yes
-                        </Button>
-                      </div>
-                    </div>
-                  }
-                  on="click"
-                  position="bottom center"
-                />
-              </div>
-            )}
           </div>
         </div>
       );
@@ -176,7 +194,70 @@ export class AlbumPeople extends Component {
             </Header.Content>
           </Header>
         </div>
-
+        <Modal
+          size={"mini"}
+          onClose={() => this.closeRenameDialog()}
+          onOpen={() => this.openRenameDialog()}
+          open={this.state.openRenameDialog}
+        >
+          <div style={{ padding: 20 }}>
+            <Header as="h4">Rename person</Header>
+            <Popup
+              inverted
+              content={
+                'Person "' +
+                this.state.newPersonName.trim() +
+                '" already exists.'
+              }
+              position="bottom center"
+              open={this.props.people
+                .map((el) => el.text.toLowerCase().trim())
+                .includes(this.state.newPersonName.toLowerCase().trim())}
+              trigger={
+                <Input
+                  fluid
+                  error={this.props.people
+                    .map((el) => el.text.toLowerCase().trim())
+                    .includes(this.state.newPersonName.toLowerCase().trim())}
+                  onChange={(e, v) => {
+                    this.setState({ newPersonName: v.value });
+                  }}
+                  placeholder="Name"
+                  action
+                >
+                  <input />
+                  <Button
+                    positive
+                    onClick={() => {
+                      this.props.dispatch(
+                        renamePerson(
+                          this.state.personID,
+                          this.state.personName,
+                          this.state.newPersonName
+                        )
+                      );
+                      this.closeRenameDialog();
+                    }}
+                    disabled={this.props.people
+                      .map((el) => el.text.toLowerCase().trim())
+                      .includes(this.state.newPersonName.toLowerCase().trim())}
+                    type="submit"
+                  >
+                    Rename
+                  </Button>
+                </Input>
+              }
+            />
+          </div>
+        </Modal>
+        <Confirm
+          open={this.state.openDeleteDialog}
+          onCancel={this.closeDeleteDialog}
+          onConfirm={() => {
+            this.props.dispatch(deletePerson(this.state.personID));
+            this.closeDeleteDialog();
+          }}
+        />
         <AutoSizer
           disableHeight
           style={{ outline: "none", padding: 0, margin: 0 }}

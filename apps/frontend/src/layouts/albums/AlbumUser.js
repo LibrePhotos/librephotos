@@ -115,7 +115,10 @@ export class AlbumUser extends Component {
               style={{ backgroundColor: "transparent" }}
               attached="top right"
             >
-              <Dropdown item icon="dropdown">
+              <Dropdown
+                item
+                icon={<Icon color="black" name="ellipsis vertical"></Icon>}
+              >
                 <Dropdown.Menu>
                   <Dropdown.Item
                     icon="edit"
