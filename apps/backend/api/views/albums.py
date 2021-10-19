@@ -87,6 +87,9 @@ class AlbumAutoListViewSet(viewsets.ModelViewSet):
             )
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
             .order_by("-timestamp")
+            .prefetch_related(
+                Prefetch("photos", queryset=Photo.visible.only("image_hash", "video"))
+            )
         )
 
     def retrieve(self, *args, **kwargs):
@@ -114,7 +117,6 @@ class AlbumPersonListViewSet(viewsets.ModelViewSet):
         return super(AlbumPersonListViewSet, self).list(*args, **kwargs)
 
 
-@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumPersonViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return (
@@ -143,7 +145,6 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
             )
         )
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         queryset = self.get_queryset()
         logger.warning(args[0].__str__())
@@ -152,7 +153,6 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
         serializer.context = {"request": self.request}
         return Response({"results": serializer.data})
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = GroupedPersonPhotosSerializer(queryset, many=True)
@@ -160,7 +160,6 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
         return Response({"results": serializer.data})
 
 
-@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class PersonViewSet(viewsets.ModelViewSet):
     serializer_class = PersonSerializer
     pagination_class = StandardResultsSetPagination
@@ -181,11 +180,9 @@ class PersonViewSet(viewsets.ModelViewSet):
         )
         return qs
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(PersonViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(PersonViewSet, self).list(*args, **kwargs)
 
