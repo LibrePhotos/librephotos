@@ -244,6 +244,7 @@ class PersonSerializer(serializers.ModelSerializer):
     face_url = serializers.SerializerMethodField()
     face_count = serializers.SerializerMethodField()
     face_photo_url = serializers.SerializerMethodField()
+    newPersonName = serializers.CharField(max_length=100, default="", write_only=True)
 
     class Meta:
         model = Person
@@ -253,6 +254,7 @@ class PersonSerializer(serializers.ModelSerializer):
             "face_count",
             "face_photo_url",
             "id",
+            "newPersonName",
         )
 
     def get_face_count(self, obj):
@@ -290,6 +292,16 @@ class PersonSerializer(serializers.ModelSerializer):
             logger.info("created person {}" % new_person.id)
             cache.clear()
             return new_person
+
+    def update(self, instance, validated_data):
+        new_person_name = validated_data.pop("newPersonName")
+        instance.name = new_person_name
+        instance.save()
+        return instance
+
+    def delete(self, validated_data, id):
+        person = Person.objects.filter(id=id).get()
+        person.delete()
 
 
 class FaceListSerializer(serializers.ModelSerializer):
@@ -651,7 +663,8 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
 
 
 class AlbumAutoListSerializer(serializers.ModelSerializer):
-    photos = PhotoHashListSerializer(many=True, read_only=True)
+    photos = serializers.SerializerMethodField()
+    photo_count = serializers.SerializerMethodField()
 
     class Meta:
         model = AlbumAuto
@@ -660,8 +673,21 @@ class AlbumAutoListSerializer(serializers.ModelSerializer):
             "title",
             "timestamp",
             "photos",
+            "photo_count",
             "favorited",
         )
+
+    def get_photo_count(self, obj):
+        try:
+            return obj.photo_count
+        except Exception:
+            return obj.photos.count()
+
+    def get_photos(self, obj):
+        try:
+            return PhotoHashListSerializer(obj.photos.first()).data
+        except Exception:
+            return ""
 
 
 class LongRunningJobSerializer(serializers.ModelSerializer):
