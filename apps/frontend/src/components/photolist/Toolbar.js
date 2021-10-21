@@ -200,9 +200,8 @@ export default function getToolbar(photoList) {
                   )
                 }
                 onClick={() => {
-                  var id = photoList.props.route.location.pathname.substring(
-                    photoList.props.route.location.pathname.lastIndexOf("/") + 1
-                  );
+                  var id = photoList.props.match.params.albumID;
+                  console.log("albumID:" + id);
                   photoList.props.dispatch(
                     removeFromUserAlbum(
                       id,
