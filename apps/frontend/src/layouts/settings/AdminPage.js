@@ -1,9 +1,6 @@
 import React, { Component } from "react";
 import {
-  Form,
-  Radio,
   Progress,
-  Grid,
   Icon,
   Header,
   Input,

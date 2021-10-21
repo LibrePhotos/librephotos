@@ -32,11 +32,12 @@ function fuzzy_match(str, pattern) {
 
 const customStyles = {
   content: {
-    top: 150,
-    left: 40,
-    right: 40,
-    height: window.innerHeight - 300,
-
+    top: "12vh",
+    left: "8vh",
+    right: "8vh",
+    height: "65vh",
+    display: "flex",
+    flexFlow: "column",
     overflow: "hidden",
     padding: 0,
     backgroundColor: "white",

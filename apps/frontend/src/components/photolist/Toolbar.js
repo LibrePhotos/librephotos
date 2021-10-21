@@ -201,7 +201,6 @@ export default function getToolbar(photoList) {
                 }
                 onClick={() => {
                   var id = photoList.props.match.params.albumID;
-                  console.log("albumID:" + id);
                   photoList.props.dispatch(
                     removeFromUserAlbum(
                       id,
