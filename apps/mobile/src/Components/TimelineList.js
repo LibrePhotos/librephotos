@@ -9,7 +9,7 @@ import ImageGrid from './ImageGrid'
 const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
   const { Colors, Gutters } = useTheme()
 
-  const COLUMNS = 3
+  const COLUMNS = 90
 
   const renderSectionHeader = ({ section: { title } }) => {
     return (
