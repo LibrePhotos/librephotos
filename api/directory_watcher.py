@@ -15,10 +15,10 @@ from django_rq import job
 import api.models.album_thing
 import api.util as util
 import ownphotos.settings
+from api.batch_jobs import create_batch_job
 from api.models import Face, LongRunningJob, Photo
 from api.places365.places365 import place365_instance
 from api.thumbnails import isRawPicture
-from api.batch_jobs import create_batch_job
 
 
 def is_video(image_path):
