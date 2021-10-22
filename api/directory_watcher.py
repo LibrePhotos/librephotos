@@ -242,16 +242,16 @@ def _file_was_modified_after(filepath, time):
     return datetime.datetime.fromtimestamp(modified).replace(tzinfo=pytz.utc) > time
 
 
-def photo_scanner(user, lastScan, full_scan, path, job_id):
+def photo_scanner(user, last_scan, full_scan, path, job_id):
     if Photo.objects.filter(image_paths__contains=path).exists():
         files_to_check = [path]
         files_to_check.extend(util.get_sidecar_files_in_priority_order(path))
         if (
             full_scan
-            or not lastScan
+            or not last_scan
             or any(
                 [
-                    _file_was_modified_after(p, lastScan.finished_at)
+                    _file_was_modified_after(p, last_scan.finished_at)
                     for p in files_to_check
                 ]
             )
@@ -314,10 +314,10 @@ def scan_photos(user, full_scan, job_id):
     photo_count_before = Photo.objects.count()
 
     try:
-        photoList = []
-        walk_directory(user.scan_directory, photoList)
-        files_found = len(photoList)
-        lastScan = (
+        photo_list = []
+        walk_directory(user.scan_directory, photo_list)
+        files_found = len(photo_list)
+        last_scan = (
             LongRunningJob.objects.filter(finished=True)
             .filter(job_type=1)
             .filter(started_by=user)
@@ -325,8 +325,8 @@ def scan_photos(user, full_scan, job_id):
             .first()
         )
         all = []
-        for path in photoList:
-            all.append((user, lastScan, full_scan, path, job_id))
+        for path in photo_list:
+            all.append((user, last_scan, full_scan, path, job_id))
 
         lrj.result = {"progress": {"current": 0, "target": files_found}}
         lrj.save()
