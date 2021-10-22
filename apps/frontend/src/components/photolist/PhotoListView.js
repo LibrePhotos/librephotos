@@ -67,7 +67,7 @@ export class PhotoListView extends Component {
       newSelectedItems = newSelectedItems.concat(item);
     }
     this.setState({ selectedItems: newSelectedItems });
-    this.setState({ selectMode: !newSelectedItems.length === 0 });
+    this.setState({ selectMode: !newSelectedItems.length == 0 });
   };
 
   handleSelections = (items) => {
@@ -85,7 +85,7 @@ export class PhotoListView extends Component {
       }
     });
     this.setState({ selectedItems: newSelectedItems });
-    this.setState({ selectMode: !newSelectedItems.length === 0 });
+    this.setState({ selectMode: !newSelectedItems.length == 0 });
   };
 
   handleClick = (event, item) => {
