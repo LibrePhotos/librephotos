@@ -23,6 +23,7 @@ from api.models import (
     User,
 )
 from api.util import logger
+from api.views.serializers_serpy import PigPhotoSerilizer
 
 
 class SimpleUserSerializer(serializers.ModelSerializer):
@@ -947,9 +948,12 @@ class SharedPhotoSuperSimpleSerializer(serializers.ModelSerializer):
 
 
 class SharedFromMePhotoThroughSerializer(serializers.ModelSerializer):
-    photo = PhotoSuperSimpleSerializer(many=False, read_only=True)
+    photo = serializers.SerializerMethodField()
     user = SimpleUserSerializer(many=False, read_only=True)
 
     class Meta:
         model = Photo.shared_to.through
         fields = ("user_id", "user", "photo")
+
+    def get_photo(self, obj):
+        return PigPhotoSerilizer(obj.photo).data

@@ -83,7 +83,6 @@ from api.views.serializers import (
     PhotoSimpleSerializer,
     PhotoSuperSimpleSerializer,
     SharedFromMePhotoThroughSerializer,
-    SharedToMePhotoSuperSimpleSerializer,
     UserSerializer,
 )
 from api.views.serializers_serpy import GroupedPhotosSerializer
@@ -93,6 +92,7 @@ from api.views.serializers_serpy import (
 from api.views.serializers_serpy import (
     PigAlbumDateSerializer,
     PigIncompleteAlbumDateSerializer,
+    PigPhotoSerilizer,
 )
 from api.views.serializers_serpy import (
     SharedPhotoSuperSimpleSerializer as SharedPhotoSuperSimpleSerializerSerpy,
@@ -272,7 +272,7 @@ class PhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
 
 class SharedToMePhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
 
-    serializer_class = SharedToMePhotoSuperSimpleSerializer
+    serializer_class = PigPhotoSerilizer
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
