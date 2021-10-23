@@ -6,11 +6,11 @@ import {
   fetchDateAlbumsList,
   fetchAlbumsDateGalleries,
 } from "../../actions/albumsActions";
-import { Photoset } from "../../reducers/photosReducer";
+import { PhotosetType } from "../../reducers/photosReducer";
 import throttle from "lodash";
 export class TimestampPhotos extends Component {
   componentDidMount() {
-    if (this.props.fetchedPhotoset !== Photoset.TIMESTAMP) {
+    if (this.props.fetchedPhotosetType !== PhotosetType.TIMESTAMP) {
       this.props.dispatch(fetchDateAlbumsList());
     }
   }
@@ -28,10 +28,10 @@ export class TimestampPhotos extends Component {
     return (
       <PhotoListView
         title={"Photos"}
-        loading={this.props.fetchedPhotoset !== Photoset.TIMESTAMP}
+        loading={this.props.fetchedPhotosetType !== PhotosetType.TIMESTAMP}
         titleIconName={"images"}
         isDateView={true}
-        photosGroupedByDate={this.props.photosGroupedByDate}
+        photoset={this.props.photosGroupedByDate}
         idx2hash={this.props.photosFlat}
         updateGroups={(visibleGroups) =>
           throttle(this.getAlbums(visibleGroups), 500)
@@ -45,6 +45,6 @@ TimestampPhotos = connect((store) => {
   return {
     photosFlat: store.photos.photosFlat,
     photosGroupedByDate: store.photos.photosGroupedByDate,
-    fetchedPhotoset: store.photos.fetchedPhotoset,
+    fetchedPhotosetType: store.photos.fetchedPhotosetType,
   };
 })(TimestampPhotos);

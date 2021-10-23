@@ -21,8 +21,8 @@ import {
 import { serverAddress } from "../../api_client/apiClient";
 import { Grid, AutoSizer } from "react-virtualized";
 import { Link } from "react-router-dom";
+import { TOP_MENU_HEIGHT } from "../../ui-constants";
 
-var topMenuHeight = 45; // don't change this
 var SIDEBAR_WIDTH = 85;
 
 export class AlbumPeople extends Component {
@@ -270,7 +270,7 @@ export class AlbumPeople extends Component {
               cellRenderer={this.cellRenderer}
               columnWidth={this.state.entrySquareSize}
               columnCount={this.state.numEntrySquaresPerRow}
-              height={this.state.height - topMenuHeight - 60}
+              height={this.state.height - TOP_MENU_HEIGHT - 60}
               rowHeight={this.state.entrySquareSize + 60}
               rowCount={Math.ceil(
                 this.props.people.length /

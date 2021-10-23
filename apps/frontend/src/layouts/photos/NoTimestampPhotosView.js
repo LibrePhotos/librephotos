@@ -6,11 +6,11 @@ import {
 } from "../../actions/photosActions";
 import throttle from "lodash";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { Photoset } from "../../reducers/photosReducer";
+import { PhotosetType } from "../../reducers/photosReducer";
 
 export class NoTimestampPhotosView extends Component {
   componentDidMount() {
-    if (this.props.fetchedPhotoset !== Photoset.NO_TIMESTAMP) {
+    if (this.props.fetchedPhotosetType !== PhotosetType.NO_TIMESTAMP) {
       this.props.dispatch(fetchNoTimestampPhotoCount());
       this.props.dispatch(fetchNoTimestampPhotoPaginated(1));
     }
@@ -35,10 +35,10 @@ export class NoTimestampPhotosView extends Component {
     return (
       <PhotoListView
         title={"Photos without Timestamps"}
-        loading={this.props.fetchedPhotoset !== Photoset.NO_TIMESTAMP}
+        loading={this.props.fetchedPhotosetType !== PhotosetType.NO_TIMESTAMP}
         titleIconName={"images outline"}
         isDateView={false}
-        photosGroupedByDate={this.props.photosFlat}
+        photoset={this.props.photosFlat}
         idx2hash={this.props.photosFlat}
         numberOfItems={this.props.numberOfPhotos}
         updateItems={(visibleItems) => {
@@ -54,6 +54,6 @@ NoTimestampPhotosView = connect((store) => {
   return {
     numberOfPhotos: store.photos.numberOfPhotos,
     photosFlat: store.photos.photosFlat,
-    fetchedPhotoset: store.photos.fetchedPhotoset,
+    fetchedPhotosetType: store.photos.fetchedPhotosetType,
   };
 })(NoTimestampPhotosView);

@@ -49,3 +49,7 @@ export function addTempElementsToFlatList(photosCount) {
   }
   return newPhotosFlat;
 }
+
+export function getPhotosFlatFromGroupedByUser(photosGroupedByUser) {
+  return photosGroupedByUser.flatMap((el) => el.photos);
+}

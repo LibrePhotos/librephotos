@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import "react-virtualized/styles.css"; // only needs to be imported once
 import { connect } from "react-redux";
 import { PhotoListView } from "../components/photolist/PhotoListView";
-import { Photoset } from "../reducers/photosReducer";
+import { PhotosetType } from "../reducers/photosReducer";
 import { Redirect } from "react-router-dom";
 
 export class SearchView extends Component {
@@ -16,10 +16,10 @@ export class SearchView extends Component {
     return (
       <PhotoListView
         title={title}
-        loading={this.props.fetchedPhotoset !== Photoset.SEARCH}
+        loading={this.props.fetchedPhotosetType !== PhotosetType.SEARCH}
         titleIconName={"search"}
         isDateView={true}
-        photosGroupedByDate={this.props.photosGroupedByDate}
+        photoset={this.props.photosGroupedByDate}
         idx2hash={this.props.photosFlat}
       />
     );
@@ -30,7 +30,7 @@ SearchView = connect((store) => {
   return {
     photosFlat: store.photos.photosFlat,
     photosGroupedByDate: store.photos.photosGroupedByDate,
-    fetchedPhotoset: store.photos.fetchedPhotoset,
+    fetchedPhotosetType: store.photos.fetchedPhotosetType,
     searchQuery: store.search.query,
   };
 })(SearchView);

@@ -29,7 +29,7 @@ export class AlbumPlaceGallery extends Component {
         loading={fetchingAlbumsPlace}
         titleIconName={"map outline"}
         isDateView={true}
-        photosGroupedByDate={groupedPhotos ? groupedPhotos.grouped_photos : []}
+        photoset={groupedPhotos ? groupedPhotos.grouped_photos : []}
         idx2hash={
           groupedPhotos
             ? groupedPhotos.grouped_photos.flatMap((el) => el.items)

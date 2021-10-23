@@ -1,7 +1,21 @@
 import { Server } from "../api_client/apiClient";
 import _ from "lodash";
 import { notify } from "reapop";
-import { adjustDateFormat, getPhotosFlatFromGroupedByDate } from "../util/util";
+import { adjustDateFormat, getPhotosFlatFromGroupedByDate, getPhotosFlatFromGroupedByUser } from "../util/util";
+import { PhotosetType } from "../reducers/photosReducer";
+
+export const FETCH_PHOTOSET = "FETCH_PHOTOSET";
+export const FETCH_PHOTOSET_FULFILLED = "FETCH_PHOTOSET_FULFILLED";
+export const FETCH_PHOTOSET_REJECTED = "FETCH_PHOTOSET_REJECTED";
+
+const getFetchPhotosetErrorHandler = (dispatch) => {
+  return (err) => {
+    dispatch({
+      type: FETCH_PHOTOSET_REJECTED,
+      payload: err,
+    });
+  }
+}
 
 export function downloadPhotos(image_hashes) {
   return function (dispatch) {
@@ -100,7 +114,7 @@ export function fetchRecentlyAddedPhotos() {
 
 export function fetchPhotosSharedToMe() {
   return function (dispatch) {
-    dispatch({ type: "FETCH_PHOTOS_SHARED_TO_ME" });
+    dispatch({ type: FETCH_PHOTOSET });
     Server.get("photos/shared/tome/")
       .then((response) => {
         const sharedPhotosGroupedByOwner = _.toPairs(
@@ -110,22 +124,21 @@ export function fetchPhotosSharedToMe() {
         });
 
         dispatch({
-          type: "FETCH_PHOTOS_SHARED_TO_ME_FULFILLED",
-          payload: sharedPhotosGroupedByOwner,
+          type: FETCH_PHOTOSET_FULFILLED,
+          payload: {
+            photosFlat: getPhotosFlatFromGroupedByUser(sharedPhotosGroupedByOwner),
+            photosGroupedByUser: sharedPhotosGroupedByOwner,
+            photosetType: PhotosetType.SHARED_TO_ME,
+          }
         });
       })
-      .catch((err) => {
-        dispatch({
-          type: "FETCH_PHOTOS_SHARED_TO_ME_REJECTED",
-          payload: err,
-        });
-      });
+      .catch(getFetchPhotosetErrorHandler(dispatch));
   };
 }
 
 export function fetchPhotosSharedFromMe() {
   return function (dispatch) {
-    dispatch({ type: "FETCH_PHOTOS_SHARED_FROM_ME" });
+    dispatch({ type: FETCH_PHOTOSET });
     Server.get("photos/shared/fromme/")
       .then((response) => {
         const sharedPhotosGroupedBySharedTo = _.toPairs(
@@ -142,16 +155,15 @@ export function fetchPhotosSharedFromMe() {
         console.log(sharedPhotosGroupedBySharedTo);
 
         dispatch({
-          type: "FETCH_PHOTOS_SHARED_FROM_ME_FULFILLED",
-          payload: sharedPhotosGroupedBySharedTo,
-        });
+          type: FETCH_PHOTOSET_FULFILLED,
+          payload: {
+            photosFlat: getPhotosFlatFromGroupedByUser(sharedPhotosGroupedBySharedTo),
+            photosGroupedByUser: sharedPhotosGroupedBySharedTo,
+            photosetType: PhotosetType.SHARED_BY_ME,
+          }
+        })
       })
-      .catch((err) => {
-        dispatch({
-          type: "FETCH_PHOTOS_SHARED_FROM_ME_REJECTED",
-          payload: err,
-        });
-      });
+      .catch(getFetchPhotosetErrorHandler(dispatch));
   };
 }
 
@@ -363,58 +375,47 @@ export function fetchPhotos() {
         const res = _.keyBy(response.data.results, "image_hash");
         dispatch({ type: "FETCH_PHOTOS_FULFILLED", payload: res });
       })
-      .catch((err) => {
-        dispatch({ type: "FETCH_PHOTOS_REJECTED", payload: err });
-      });
+      .catch(getFetchPhotosetErrorHandler(dispatch));
   };
 }
 
-export const FETCH_FAVORITE_PHOTOS = "FETCH_FAVORITE_PHOTOS";
-export const FETCH_FAVORITE_PHOTOS_FULFILLED =
-  "FETCH_FAVORITE_PHOTOS_FULFILLED";
-export const FETCH_FAVORITE_PHOTOS_REJECTED = "FETCH_FAVORITE_PHOTOS_REJECTED";
 export function fetchFavoritePhotos() {
   return function (dispatch) {
-    dispatch({ type: FETCH_FAVORITE_PHOTOS });
+    dispatch({ type: FETCH_PHOTOSET });
     Server.get("photos/favorites/", { timeout: 100000 })
       .then((response) => {
         var photosGroupedByDate = response.data.results;
         adjustDateFormat(photosGroupedByDate);
         dispatch({
-          type: FETCH_FAVORITE_PHOTOS_FULFILLED,
+          type: FETCH_PHOTOSET_FULFILLED,
           payload: {
             photosGroupedByDate: photosGroupedByDate,
             photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
+            photosetType: PhotosetType.FAVORITES,
           },
         });
       })
-      .catch((err) => {
-        dispatch({ type: FETCH_FAVORITE_PHOTOS_REJECTED, payload: err });
-      });
+      .catch(getFetchPhotosetErrorHandler(dispatch));
   };
 }
 
-export const FETCH_HIDDEN_PHOTOS = "FETCH_HIDDEN_PHOTOS";
-export const FETCH_HIDDEN_PHOTOS_FULFILLED = "FETCH_HIDDEN_PHOTOS_FULFILLED";
-export const FETCH_HIDDEN_PHOTOS_REJECTED = "FETCH_HIDDEN_PHOTOS_REJECTED";
 export function fetchHiddenPhotos() {
   return function (dispatch) {
-    dispatch({ type: FETCH_HIDDEN_PHOTOS });
+    dispatch({ type: FETCH_PHOTOSET });
     Server.get("photos/hidden/", { timeout: 100000 })
       .then((response) => {
         var photosGroupedByDate = response.data.results;
         adjustDateFormat(photosGroupedByDate);
         dispatch({
-          type: FETCH_HIDDEN_PHOTOS_FULFILLED,
+          type: FETCH_PHOTOSET_FULFILLED,
           payload: {
             photosGroupedByDate: photosGroupedByDate,
             photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
+            photosetType: PhotosetType.HIDDEN,
           },
         });
       })
-      .catch((err) => {
-        dispatch({ type: FETCH_HIDDEN_PHOTOS_REJECTED, payload: err });
-      });
+      .catch(getFetchPhotosetErrorHandler(dispatch));
   };
 }
 
@@ -450,56 +451,41 @@ export function simpleFetchPhotos() {
   };
 }
 
-export const FETCH_TIMESTAMP_PHOTOS = "FETCH_TIMESTAMP_PHOTOS";
-export const FETCH_TIMESTAMP_PHOTOS_FULFILLED =
-  "FETCH_TIMESTAMP_PHOTOS_FULFILLED";
-export const FETCH_TIMESTAMP_PHOTOS_REJECTED =
-  "FETCH_TIMESTAMP_PHOTOS_REJECTED";
 export function fetchTimestampPhotos() {
   return function (dispatch) {
-    dispatch({ type: FETCH_TIMESTAMP_PHOTOS });
+    dispatch({ type: FETCH_PHOTOSET });
     Server.get("albums/date/photohash/list/", { timeout: 100000 })
       .then((response) => {
         var photosGroupedByDate = response.data.results;
         adjustDateFormat(photosGroupedByDate);
         dispatch({
-          type: FETCH_TIMESTAMP_PHOTOS_FULFILLED,
+          type: FETCH_PHOTOSET_FULFILLED,
           payload: {
             photosGroupedByDate: photosGroupedByDate,
             photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
+            photosetType: PhotosetType.TIMESTAMP,
           },
         });
       })
-      .catch((err) => {
-        dispatch({
-          type: FETCH_TIMESTAMP_PHOTOS_REJECTED,
-          payload: err,
-        });
-      });
+      .catch(getFetchPhotosetErrorHandler(dispatch));
   };
 }
 
-export const FETCH_NO_TIMESTAMP_PHOTOS = "FETCH_NO_TIMESTAMP_PHOTOS";
-export const FETCH_NO_TIMESTAMP_PHOTOS_FULFILLED =
-  "FETCH_NO_TIMESTAMP_PHOTOS_FULFILLED";
-export const FETCH_NO_TIMESTAMP_PHOTOS_REJECTED =
-  "FETCH_NO_TIMESTAMP_PHOTOS_REJECTED";
 export function fetchNoTimestampPhotoList() {
   return function (dispatch) {
-    dispatch({ type: FETCH_NO_TIMESTAMP_PHOTOS });
+    dispatch({ type: FETCH_PHOTOSET });
     Server.get("photos/notimestamp/list/", { timeout: 100000 })
       .then((response) => {
         var photosFlat = response.data.results;
         dispatch({
-          type: FETCH_NO_TIMESTAMP_PHOTOS_FULFILLED,
+          type: FETCH_PHOTOSET_FULFILLED,
           payload: {
             photosFlat: photosFlat,
+            photosetType: PhotosetType.NO_TIMESTAMP,
           },
         });
       })
-      .catch((err) => {
-        dispatch({ type: FETCH_NO_TIMESTAMP_PHOTOS_REJECTED, payload: err });
-      });
+      .catch(getFetchPhotosetErrorHandler(dispatch));
   };
 }
 

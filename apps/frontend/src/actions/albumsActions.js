@@ -186,7 +186,7 @@ export function removeFromUserAlbum(album_id, title, image_hashes) {
         });
         dispatch(
           notify({
-            message: `${image_hashes.length} photo(s) were successfully removed to existing album "${title}"`,
+            message: `${image_hashes.length} photo(s) were successfully removed from album "${title}"`,
             title: "Removed from album",
             status: "success",
             dismissible: true,
@@ -195,6 +195,7 @@ export function removeFromUserAlbum(album_id, title, image_hashes) {
           })
         );
         dispatch(fetchUserAlbumsList());
+        dispatch(fetchUserAlbum(album_id));
       })
       .catch((err) => {
         dispatch({ type: "REMOVE_USER_ALBUMS_LIST_REJECTED", payload: err });

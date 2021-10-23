@@ -2,12 +2,12 @@ import React, { Component } from "react";
 import { connect } from "react-redux";
 import { fetchUserAlbum } from "../../actions/albumsActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { Photoset } from "../../reducers/photosReducer";
+import { PhotosetType } from "../../reducers/photosReducer";
 
 export class AlbumUserGallery extends Component {
   isLoaded() {
     return (
-      this.props.fetchedPhotoset === Photoset.USER_ALBUM &&
+      this.props.fetchedPhotosetType === PhotosetType.USER_ALBUM &&
       this.props.albumDetails.id === this.props.match.params.albumID
     );
   }
@@ -46,7 +46,7 @@ export class AlbumUserGallery extends Component {
         loading={!this.isLoaded()}
         titleIconName={"bookmark"}
         isDateView={true}
-        photosGroupedByDate={this.props.photosGroupedByDate}
+        photoset={this.props.photosGroupedByDate}
         idx2hash={this.props.photosFlat}
         match={this.props.match}
         isPublic={isPublic}
@@ -61,6 +61,6 @@ AlbumUserGallery = connect((store) => {
     albumDetails: store.albums.albumDetails,
     photosGroupedByDate: store.photos.photosGroupedByDate,
     photosFlat: store.photos.photosFlat,
-    fetchedPhotoset: store.photos.fetchedPhotoset,
+    fetchedPhotosetType: store.photos.fetchedPhotosetType,
   };
 })(AlbumUserGallery);

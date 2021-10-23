@@ -3,11 +3,11 @@ import { connect } from "react-redux";
 import { fetchHiddenPhotos } from "../../actions/photosActions";
 import _ from "lodash";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { Photoset } from "../../reducers/photosReducer";
+import { PhotosetType } from "../../reducers/photosReducer";
 
 export class HiddenPhotos extends Component {
   componentDidMount() {
-    if (this.props.fetchedPhotoset !== Photoset.HIDDEN) {
+    if (this.props.fetchedPhotosetType !== PhotosetType.HIDDEN) {
       this.props.dispatch(fetchHiddenPhotos());
     }
   }
@@ -17,10 +17,10 @@ export class HiddenPhotos extends Component {
       <PhotoListView
         showHidden={true}
         title={"Hidden Photos"}
-        loading={this.props.fetchedPhotoset !== Photoset.HIDDEN}
+        loading={this.props.fetchedPhotosetType !== PhotosetType.HIDDEN}
         titleIconName={"hide"}
         isDateView={true}
-        photosGroupedByDate={this.props.photosGroupedByDate}
+        photoset={this.props.photosGroupedByDate}
         idx2hash={this.props.photosFlat}
       />
     );
@@ -31,6 +31,6 @@ HiddenPhotos = connect((store) => {
   return {
     photosFlat: store.photos.photosFlat,
     photosGroupedByDate: store.photos.photosGroupedByDate,
-    fetchedPhotoset: store.photos.fetchedPhotoset,
+    fetchedPhotosetType: store.photos.fetchedPhotosetType,
   };
 })(HiddenPhotos);
