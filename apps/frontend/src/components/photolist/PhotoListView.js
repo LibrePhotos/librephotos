@@ -95,7 +95,7 @@ export class PhotoListView extends Component {
 
   handleClick = (event, item) => {
     //if an image is selectabel, then handle shift click
-    if (this.props.selectable && event.shiftKey) {
+    if (event.shiftKey) {
       var lastSelectedElement =
         this.state.selectionState.selectedItems.slice(-1)[0];
       if (lastSelectedElement === undefined) {
