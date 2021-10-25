@@ -28,9 +28,9 @@ class GroupHeader extends Component {
             {displayName}
             <Header.Subheader>
               <Icon name="photo" />
-              {this.props.photosetType === PhotosetType.SHARED_BY_ME
-                ? `you shared ${this.props.group.photos.length} photos`
-                : `shared ${this.props.group.photos.length} photos with you`}
+              {this.props.isSharedToMe
+                ? `shared ${this.props.group.photos.length} photos with you`
+                : `you shared ${this.props.group.photos.length} photos`}
             </Header.Subheader>
           </Header.Content>
         </Header>
@@ -47,24 +47,25 @@ GroupHeader = connect((store) => {
 
 export class PhotosShared extends Component {
   render() {
-    const loadingText = this.props.photosetType === PhotosetType.SHARED_BY_ME
-      ? "Loading photos shared by you..."
-      : "Loading photos shared with you..."
+    const photosetType = this.props.isSharedToMe ? PhotosetType.SHARED_TO_ME : PhotosetType.SHARED_BY_ME;
+    const loadingText = this.props.isSharedToMe
+      ? "Loading photos shared with you..."
+      : "Loading photos shared by you...";
     return (
       <div>
-        {this.props.fetchedPhotosetType !== this.props.photosetType
+        {this.props.fetchedPhotosetType !== photosetType
           ? <Loader active>{loadingText}</Loader>
           : this.props.photosGroupedByUser.map((group) => {
             return (
               <PhotoListView
                 title={"Photos"}
-                loading={this.props.fetchedPhotosetType !== this.props.photosetType}
+                loading={this.props.fetchedPhotosetType !== photosetType}
                 titleIconName={"images"}
                 isDateView={false}
                 photoset={group.photos}
                 idx2hash={group.photos}
                 isPublic={true}
-                header={<GroupHeader group={group} photosetType={this.props.photosetType} />}
+                header={<GroupHeader group={group} isSharedToMe={this.props.isSharedToMe} />}
                 selectable={false}
               />
             );
