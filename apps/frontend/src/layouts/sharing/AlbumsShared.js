@@ -12,6 +12,7 @@ import { Grid, AutoSizer } from "react-virtualized";
 import {
   calculateGridCellSize,
   calculateSharedAlbumGridCells,
+  calculateSharedPhotoGridCells,
 } from "../../util/gridUtils";
 import { ScrollSpeed, SCROLL_DEBOUNCE_DURATION } from "../../util/scrollUtils";
 import debounce from "lodash/debounce";
@@ -20,7 +21,7 @@ const SPEED_THRESHOLD = 300;
 var SIDEBAR_WIDTH = 85;
 var DAY_HEADER_HEIGHT = 70;
 
-export class AlbumsSharedToMe extends Component {
+export class AlbumsShared extends Component {
   state = {
     entrySquareSize: 200,
     numEntrySquaresPerRow: 10,
@@ -28,6 +29,7 @@ export class AlbumsSharedToMe extends Component {
     albumGridContents: null,
     isScrollingFast: false,
     topRowOwner: null,
+    isSharedToMe: this.props.isSharedToMe,
   };
 
   constructor(props) {
@@ -70,10 +72,19 @@ export class AlbumsSharedToMe extends Component {
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
-    const albumGridContents = calculateSharedAlbumGridCells(
-      nextProps.albums.albumsSharedToMe,
-      prevState.numEntrySquaresPerRow
-    ).cellContents;
+    var albumGridContents;
+    if (prevState.isSharedToMe) {
+      albumGridContents = calculateSharedAlbumGridCells(
+        nextProps.albums.albumsSharedToMe,
+        prevState.numEntrySquaresPerRow
+      ).cellContents;
+    }
+    else {
+      albumGridContents = calculateSharedPhotoGridCells(
+        nextProps.albums.albumsSharedToMe,
+        prevState.numEntrySquaresPerRow
+      ).cellContents;
+    }
 
     return {
       albumGridContents: albumGridContents,
@@ -195,6 +206,11 @@ export class AlbumsSharedToMe extends Component {
           !this.props.albums.fetchedAlbumsSharedToMe && (
             <Loader active>Loading albums shared with you...</Loader>
           )}
+        {
+          this.props.albums.fetchingAlbumsSharedFromMe &&
+          !this.props.albums.fetchedAlbumsSharedFromMe && (
+            <Loader active>Loading albums shared by you...</Loader>
+          )}
 
         {
           this.state.albumGridContents.length === 0 &&
@@ -203,7 +219,13 @@ export class AlbumsSharedToMe extends Component {
           )}
 
         {
-          this.props.albums.fetchedAlbumsSharedToMe &&
+          this.state.albumGridContents.length === 0 &&
+          this.props.albums.fetchedAlbumsSharedFromMe && (
+            <div>You have not shared any albums yet.</div>
+          )}
+
+        {
+          (this.props.albums.fetchedAlbumsSharedToMe || this.props.albums.fetchedAlbumsSharedFromMe) &&
           this.state.albumGridContents.length > 0 && (
             <div>
               <AutoSizer
@@ -251,15 +273,12 @@ export class AlbumsSharedToMe extends Component {
               </AutoSizer>
             </div>
           )}
-
-
-
       </div>
     );
   }
 }
 
-AlbumsSharedToMe = connect((store) => {
+AlbumsShared = connect((store) => {
   return {
     showSidebar: store.ui.showSidebar,
     pub: store.pub,
@@ -268,4 +287,4 @@ AlbumsSharedToMe = connect((store) => {
     photos: store.photos,
     albums: store.albums,
   };
-})(AlbumsSharedToMe);
+})(AlbumsShared);

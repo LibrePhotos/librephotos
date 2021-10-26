@@ -6,8 +6,8 @@ import { Header, Icon, Loader, Menu } from "semantic-ui-react";
 import { Link } from "react-router-dom";
 import { fetchPublicUserList } from "../../actions/publicActions";
 import { fetchUserAlbumsSharedToMe } from "../../actions/albumsActions";
-import { AlbumsSharedToMe } from "./AlbumsSharedToMe";
 import { PhotosShared } from "./PhotosShared";
+import { AlbumsShared } from "./AlbumsShared";
 
 export class SharedToMe extends Component {
   componentDidMount() {
@@ -93,8 +93,8 @@ export class SharedToMe extends Component {
       <div>
         {this.getHeader(activeItem)}
         {this.getMenu(activeItem)}
-        {activeItem === "photos" && <PhotosShared photosetType={PhotosetType.SHARED_TO_ME} />}
-        {activeItem === "albums" && <AlbumsSharedToMe />}
+        {activeItem === "photos" && <PhotosShared isSharedToMe={true} />}
+        {activeItem === "albums" && <AlbumsShared isSharedToMe={true} />}
       </div>
     );
   }
