@@ -745,6 +745,7 @@ class UserSerializer(serializers.ModelSerializer):
             "email",
             "scan_directory",
             "confidence",
+            "transcode_videos",
             "semantic_search_topk",
             "first_name",
             "public_photo_samples",
@@ -792,7 +793,9 @@ class UserSerializer(serializers.ModelSerializer):
         if "last_name" in validated_data:
             instance.last_name = validated_data.pop("last_name")
             instance.save()
-
+        if "transcode_videos" in validated_data:
+            instance.transcode_videos = validated_data.pop("transcode_videos")
+            instance.save()
         if "nextcloud_server_address" in validated_data:
             instance.nextcloud_server_address = validated_data.pop(
                 "nextcloud_server_address"
