@@ -904,6 +904,48 @@ export class Settings extends Component {
             </Grid.Column>
           </Grid.Row>
         </Grid>
+        <Header as="h3">Experimental options</Header>
+        <Grid>
+          <Grid.Row>
+            <Grid.Column width={4} textAlign="left">
+              <b>Always trancode videos</b>
+            </Grid.Column>
+            <Grid.Column width={12}>
+              <select
+                value={this.state.userSelfDetails.transcode_videos}
+                onChange={(event) => {
+                  this.setState({
+                    userSelfDetails: {
+                      ...this.state.userSelfDetails,
+                      transcode_videos: event.target.value,
+                    },
+                  });
+                }}
+              >
+                <option value={false}>off</option>
+                <option value={true}>on</option>
+              </select>
+            </Grid.Column>
+          </Grid.Row>
+          <Grid.Row>
+            <Grid.Column width={12}>
+              <Button
+                type="submit"
+                color="green"
+                onClick={() => {
+                  const newUserData = this.state.userSelfDetails;
+                  delete newUserData["scan_directory"];
+                  delete newUserData["avatar"];
+                  this.props.dispatch(updateUser(newUserData));
+                  if (typeof this.props.onRequestClose == "function")
+                    this.props.onRequestClose();
+                }}
+              >
+                Update
+              </Button>
+            </Grid.Column>
+          </Grid.Row>
+        </Grid>
         <ModalNextcloudScanDirectoryEdit
           onRequestClose={() => {
             this.setState({ modalNextcloudScanDirectoryOpen: false });
