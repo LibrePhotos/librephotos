@@ -1,6 +1,7 @@
 import datetime
 import io
 import os
+import subprocess
 import uuid
 import zipfile
 
@@ -10,7 +11,7 @@ import six
 from constance import config as site_config
 from django.core.cache import cache
 from django.db.models import Count, Prefetch, Q
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
 from django.utils.encoding import iri_to_uri
 from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
@@ -711,6 +712,7 @@ class UserViewSet(viewsets.ModelViewSet):
             "username",
             "email",
             "scan_directory",
+            "transcode_videos",
             "confidence",
             "semantic_search_topk",
             "first_name",
@@ -1401,7 +1403,34 @@ class MediaAccessFullsizeOriginalView(APIView):
     def _get_protected_media_url(self, path, fname):
         return "/protected_media{}/{}".format(path, fname)
 
-    def _generate_response(self, photo, path, fname):
+    def _transcode_video(self, path):
+        ffmpeg_command = [
+            "ffmpeg",
+            "-i",
+            path,
+            "-vcodec",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            "-movflags",
+            "frag_keyframe+empty_moov",
+            "-filter:v",
+            ("scale=-2:" + str(720)),
+            "-f",
+            "mp4",
+            "-",
+        ]
+        response = subprocess.Popen(
+            ffmpeg_command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        response_iterator = iter(response.stdout.readline, b"")
+
+        for resp in response_iterator:
+            yield resp
+
+    def _generate_response(self, photo, path, fname, transcode_videos):
         if "thumbnail" in path:
             response = HttpResponse()
             filename = os.path.splitext(photo.square_thumbnail.path)[1]
@@ -1429,12 +1458,21 @@ class MediaAccessFullsizeOriginalView(APIView):
             # This is probably very slow -> Save the mime type when scanning
             mime = magic.Magic(mime=True)
             filename = mime.from_file(photo.image_paths[0])
-            response = HttpResponse()
-            response["Content-Type"] = filename
-            response["X-Accel-Redirect"] = iri_to_uri(
-                photo.image_paths[0].replace(ownphotos.settings.DATA_ROOT, "/original")
-            )
-            return response
+            if transcode_videos:
+                response = StreamingHttpResponse(
+                    self._transcode_video(photo.image_paths[0]),
+                    content_type="video/mp4",
+                )
+                return response
+            else:
+                response = HttpResponse()
+                response["Content-Type"] = filename
+                response["X-Accel-Redirect"] = iri_to_uri(
+                    photo.image_paths[0].replace(
+                        ownphotos.settings.DATA_ROOT, "/original"
+                    )
+                )
+                return response
         # faces and avatars
         response = HttpResponse()
         response["Content-Type"] = "image/jpg"
@@ -1469,7 +1507,7 @@ class MediaAccessFullsizeOriginalView(APIView):
 
             # grant access if the requested photo is public
             if photo.public:
-                return self._generate_response(photo, path, fname)
+                return self._generate_response(photo, path, fname, False)
 
             # forbid access if trouble with jwt
             if jwt is not None:
@@ -1483,13 +1521,21 @@ class MediaAccessFullsizeOriginalView(APIView):
             # grant access if the user is owner of the requested photo
             # or the photo is shared with the user
             image_hash = fname.split(".")[0].split("_")[0]  # janky alert
-            user = User.objects.filter(id=token["user_id"]).only("id").first()
+            user = (
+                User.objects.filter(id=token["user_id"])
+                .only("id", "transcode_videos")
+                .first()
+            )
             if photo.owner == user or user in photo.shared_to.all():
-                return self._generate_response(photo, path, fname)
+                return self._generate_response(
+                    photo, path, fname, user.transcode_videos
+                )
             else:
                 for album in photo.albumuser_set.only("shared_to"):
                     if user in album.shared_to.all():
-                        return self._generate_response(photo, path, fname)
+                        return self._generate_response(
+                            photo, path, fname, user.transcode_videos
+                        )
             return HttpResponse(status=404)
         else:
             jwt = request.COOKIES.get("jwt")
