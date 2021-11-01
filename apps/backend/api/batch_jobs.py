@@ -1,3 +1,4 @@
+import os
 import uuid
 from datetime import datetime
 
@@ -43,15 +44,19 @@ def batch_calculate_clip_embedding(job_id, user):
         done_count = 0
         while done_count < count:
             objs = list(Photo.objects.filter(clip_embeddings__isnull=True)[:BATCH_SIZE])
-            imgs = list(map(lambda obj: obj.thumbnail_big.path, objs))
-            if len(objs) == 0:
+            valid_objs = []
+            for obj in objs:
+                if os.path.exists(obj.thumbnail_big.path):
+                    valid_objs.append(obj)
+            imgs = list(map(lambda obj: obj.thumbnail_big.path, valid_objs))
+            if len(valid_objs) == 0:
                 break
 
             imgs_emb, magnitudes = semantic_search_instance.calculate_clip_embeddings(
                 imgs
             )
 
-            for obj, img_emb, magnitude in zip(objs, imgs_emb, magnitudes):
+            for obj, img_emb, magnitude in zip(valid_objs, imgs_emb, magnitudes):
                 obj.clip_embeddings = img_emb.tolist()
                 obj.clip_embeddings_magnitude = magnitude
                 obj.save()
