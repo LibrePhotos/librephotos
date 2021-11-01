@@ -36,6 +36,7 @@ export class TimestampPhotos extends Component {
         updateGroups={(visibleGroups) =>
           throttle(this.getAlbums(visibleGroups), 500)
         }
+        selectable={true}
       />
     );
   }

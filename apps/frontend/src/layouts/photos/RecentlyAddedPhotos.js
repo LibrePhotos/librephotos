@@ -30,6 +30,7 @@ export class RecentlyAddedPhotos extends Component {
         photoset={this.props.photosFlat}
         idx2hash={this.props.photosFlat}
         dayHeaderPrefix={"Added on "}
+        selectable={true}
       />
     );
   }

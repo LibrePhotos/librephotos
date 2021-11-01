@@ -79,6 +79,7 @@ export class UserPublicPage extends Component {
                 this.props.auth.access === undefined ||
                 this.props.auth.access.name !== this.props.match.params.username
               }
+              selectable={true}
             />
           </div>
         </div>

@@ -50,6 +50,7 @@ export class AlbumUserGallery extends Component {
         idx2hash={this.props.photosFlat}
         match={this.props.match}
         isPublic={isPublic}
+        selectable={true}
       />
     );
   }

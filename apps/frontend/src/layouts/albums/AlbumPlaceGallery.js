@@ -35,6 +35,7 @@ export class AlbumPlaceGallery extends Component {
             ? groupedPhotos.grouped_photos.flatMap((el) => el.items)
             : []
         }
+        selectable={true}
       />
     );
   }
