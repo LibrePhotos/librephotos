@@ -22,6 +22,7 @@ export class FavoritePhotos extends Component {
         isDateView={true}
         photoset={this.props.photosGroupedByDate}
         idx2hash={this.props.photosFlat}
+        selectable={true}
       />
     );
   }

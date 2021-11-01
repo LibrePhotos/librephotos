@@ -35,6 +35,7 @@ export class AlbumThingGallery extends Component {
             ? groupedPhotos.grouped_photos.flatMap((el) => el.items)
             : []
         }
+        selectable={true}
       />
     );
   }
