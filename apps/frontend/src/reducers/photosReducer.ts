@@ -1,4 +1,3 @@
-import { any } from "prop-types";
 import { AnyAction } from "redux";
 import {
   FETCH_PERSON_PHOTOS_FULFILLED,
@@ -20,6 +19,8 @@ import {
   FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED,
   FETCH_RECENTLY_ADDED_PHOTOS_REJECTED,
   SET_PHOTOS_FAVORITE_FULFILLED,
+  SET_PHOTOS_PUBLIC_FULFILLED,
+  SET_PHOTOS_HIDDEN_FULFILLED,
 } from "../actions/photosActions";
 import {
   SEARCH_PHOTOS_FULFILLED,
@@ -44,7 +45,7 @@ export enum PhotosetType {
   PERSON = "person",
   SHARED_TO_ME = "sharedToMe",
   SHARED_BY_ME = "sharedByMe",
-};
+}
 
 type Photos = any;
 
@@ -102,6 +103,20 @@ function resetPhotos(state: PhotosState, error: string) {
   };
 }
 
+function updatePhotoDetails(state: PhotosState, action: AnyAction) {
+  var updatedPhotoDetails = action.payload.updatedPhotos as PhotoSerializer[];
+  var newPhotoDetails = { ...state.photoDetails };
+
+  updatedPhotoDetails.forEach((photoDetails) => {
+    newPhotoDetails[photoDetails.image_hash] = photoDetails;
+  });
+
+  return {
+    ...state,
+    photoDetails: newPhotoDetails,
+  };
+}
+
 export default function photosReducer(
   state = initialPhotosState,
   action: AnyAction
@@ -109,6 +124,7 @@ export default function photosReducer(
   var updatedPhotoDetails;
   var newPhotosFlat: PigPhotoSerializer[];
   var newPhotosGroupedByDate: PigAlbumDateSerializer[];
+  var indexToReplace: number;
 
   switch (action.type) {
     case "GENERATE_PHOTO_CAPTION": {
@@ -176,7 +192,7 @@ export default function photosReducer(
     }
     case "FETCH_DATE_ALBUMS_RETRIEVE": {
       newPhotosGroupedByDate = [...state.photosGroupedByDate];
-      var indexToReplace = newPhotosGroupedByDate.findIndex(
+      indexToReplace = newPhotosGroupedByDate.findIndex(
         (group) => group.id === action.payload.album_id
       );
       newPhotosGroupedByDate[indexToReplace].incomplete = false;
@@ -190,7 +206,7 @@ export default function photosReducer(
     }
     case "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED": {
       newPhotosGroupedByDate = [...state.photosGroupedByDate];
-      var indexToReplace = newPhotosGroupedByDate.findIndex(
+      indexToReplace = newPhotosGroupedByDate.findIndex(
         (group) => group.id === action.payload.photosGroupedByDate.id
       );
       newPhotosGroupedByDate[indexToReplace] =
@@ -285,18 +301,8 @@ export default function photosReducer(
       return { ...state, fetchingPhotoDetail: false, error: action.payload };
     }
 
-    case "SET_PHOTOS_PUBLIC_FULFILLED": {
-      updatedPhotoDetails = action.payload.updatedPhotos as PhotoSerializer[];
-      newPhotoDetails = { ...state.photoDetails };
-
-      updatedPhotoDetails.forEach((photoDetails) => {
-        newPhotoDetails[photoDetails.image_hash] = photoDetails;
-      });
-
-      return {
-        ...state,
-        photoDetails: newPhotoDetails,
-      };
+    case SET_PHOTOS_PUBLIC_FULFILLED: {
+      return updatePhotoDetails(state, action);
     }
 
     case SET_PHOTOS_FAVORITE_FULFILLED: {
@@ -304,10 +310,6 @@ export default function photosReducer(
       newPhotoDetails = { ...state.photoDetails };
       newPhotosGroupedByDate = [...state.photosGroupedByDate];
       newPhotosFlat = [...state.photosFlat];
-
-      var list = [ 1, 2 ];
-      var list2 = [ ...list, 3 ];
-      var list3 = [...list2];
 
       updatedPhotoDetails.forEach((photoDetails) => {
         newPhotoDetails[photoDetails.image_hash] = photoDetails;
@@ -366,18 +368,8 @@ export default function photosReducer(
       };
     }
 
-    case "SET_PHOTOS_HIDDEN_FULFILLED": {
-      updatedPhotoDetails = action.payload.updatedPhotos as PhotoSerializer[];
-      newPhotoDetails = { ...state.photoDetails };
-
-      updatedPhotoDetails.forEach((photoDetails) => {
-        newPhotoDetails[photoDetails.image_hash] = photoDetails;
-      });
-
-      return {
-        ...state,
-        photoDetails: newPhotoDetails,
-      };
+    case SET_PHOTOS_HIDDEN_FULFILLED: {
+      return updatePhotoDetails(state, action);
     }
 
     case SEARCH_PHOTOS_FULFILLED: {

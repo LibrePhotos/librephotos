@@ -167,6 +167,7 @@ export function fetchPhotosSharedFromMe() {
   };
 }
 
+export const SET_PHOTOS_PUBLIC_FULFILLED = "SET_PHOTOS_PUBLIC_FULFILLED";
 export function setPhotosPublic(image_hashes, val_public) {
   return function (dispatch) {
     dispatch({ type: "SET_PHOTOS_PUBLIC" });
@@ -176,7 +177,7 @@ export function setPhotosPublic(image_hashes, val_public) {
     })
       .then((response) => {
         dispatch({
-          type: "SET_PHOTOS_PUBLIC_FULFILLED",
+          type: SET_PHOTOS_PUBLIC_FULFILLED,
           payload: {
             image_hashes: image_hashes,
             val_public: val_public,
@@ -251,6 +252,7 @@ export function setPhotosFavorite(image_hashes, favorite) {
   };
 }
 
+export const SET_PHOTOS_HIDDEN_FULFILLED = "SET_PHOTOS_HIDDEN_FULFILLED";
 export function setPhotosHidden(image_hashes, hidden) {
   return function (dispatch) {
     dispatch({ type: "SET_PHOTOS_HIDDEN" });
@@ -260,7 +262,7 @@ export function setPhotosHidden(image_hashes, hidden) {
     })
       .then((response) => {
         dispatch({
-          type: "SET_PHOTOS_HIDDEN_FULFILLED",
+          type: SET_PHOTOS_HIDDEN_FULFILLED,
           payload: {
             image_hashes: image_hashes,
             hidden: hidden,

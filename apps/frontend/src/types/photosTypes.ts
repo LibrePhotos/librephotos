@@ -35,6 +35,11 @@ export interface SimpleUserSerializer {
   lastName: string;
 }
 
+export enum MediaType {
+  IMAGE = "image",
+  VIDEO = "video",
+}
+
 export interface PigPhotoSerializer {
   id: string;
   dominantColor: string;
@@ -43,7 +48,7 @@ export interface PigPhotoSerializer {
   date: Date;
   birthTime: string;
   aspectRatio: number;
-  type: "image" | "video";
+  type: MediaType;
   rating: number;
   owner: SimpleUserSerializer;
   shared_to: SimpleUserSerializer[];
