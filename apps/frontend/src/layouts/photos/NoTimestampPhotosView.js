@@ -45,6 +45,7 @@ export class NoTimestampPhotosView extends Component {
           console.log(visibleItems);
           throttle(this.getImages(visibleItems), 500);
         }}
+        selectable={true}
       />
     );
   }
