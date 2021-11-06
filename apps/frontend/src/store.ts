@@ -4,7 +4,7 @@ import storage from "redux-persist/es/storage";
 import { createFilter } from "redux-persist-transform-filter";
 import { persistReducer, persistStore } from "redux-persist";
 import rootReducer from "./reducers";
-import history from "./history";
+import appHistory from "./history";
 import { routerMiddleware } from "react-router-redux";
 import { History } from "history";
 
@@ -41,4 +41,4 @@ const configureStore = (history: History) => {
   return store;
 };
 
-export default configureStore(history);
+export default configureStore(appHistory);

@@ -7,7 +7,6 @@ import {
   adjustDateFormat,
   adjustDateFormatForSingleGroup,
   getPhotosFlatFromGroupedByDate,
-  getPhotosFlatFromSingleGroup,
   addTempElementsToGroups,
 } from "../util/util";
 import { Dispatch } from "react";

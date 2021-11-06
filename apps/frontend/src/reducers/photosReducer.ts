@@ -21,12 +21,12 @@ import {
   SET_PHOTOS_FAVORITE_FULFILLED,
   SET_PHOTOS_PUBLIC_FULFILLED,
   SET_PHOTOS_HIDDEN_FULFILLED,
+  UserPhotosGroup,
 } from "../actions/photosActions";
 import {
   SEARCH_PHOTOS_FULFILLED,
   SEARCH_PHOTOS_REJECTED,
 } from "../actions/searchActions";
-import { UserPhotosGroup } from "../actions/photosActions";
 import {
   addTempElementsToFlatList,
   getPhotosFlatFromGroupedByDate,
@@ -290,8 +290,8 @@ export default function photosReducer(
     }
     case "FETCH_PHOTO_DETAIL_FULFILLED": {
       var newPhotoDetails = { ...state.photoDetails };
-      var photo = action.payload as Photo;
-      newPhotoDetails[photo.image_hash] = photo;
+      const photoDetails = action.payload as Photo;
+      newPhotoDetails[photoDetails.image_hash] = photoDetails;
       return {
         ...state,
         fetchingPhotoDetail: false,

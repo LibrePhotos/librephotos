@@ -6,7 +6,7 @@ import { adjustDateFormat, getPhotosFlatFromGroupedByDate, getPhotosFlatFromGrou
 import { PhotosetType } from "../reducers/photosReducer";
 import { Dispatch } from "react";
 import { AxiosResponse } from "axios";
-import { DatePhotosGroup, DatePhotosGroupSchema, Photo, PhotoSchema, PhotoSuperSimple, PhotoSuperSimpleSchema, PigPhoto, PigPhotoSchema, SharedFromMePhotoSchema, SimpleUser, SimpleUserSchema } from "./photosActions.types";
+import { DatePhotosGroup, DatePhotosGroupSchema, Photo, PhotoSchema, PhotoSuperSimple, PhotoSuperSimpleSchema, PigPhoto, PigPhotoSchema, SharedFromMePhotoSchema, SimpleUser } from "./photosActions.types";
 import * as Yup from "yup";
 
 export interface UserPhotosGroup {
@@ -356,8 +356,8 @@ export function scanAllPhotos() {
         const jobResponse = JobResponseSchema.validateSync(response.data);
         dispatch(
           notify({
-            message: "Scan Photos started",
-            title: "Scan Photos",
+            message: "Scan Photos (full) started",
+            title: "Scan Photos (full)",
             status: "success",
             dismissible: true,
             dismissAfter: 3000,

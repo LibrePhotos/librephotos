@@ -3,12 +3,16 @@ import { UserPhotosGroup } from "../actions/photosActions";
 import { DatePhotosGroup, IncompleteDatePhotosGroup, PigPhoto } from "../actions/photosActions.types";
 
 export const copyToClipboard = (str: string) => {
-  const el = document.createElement("textarea");
-  el.value = str;
-  document.body.appendChild(el);
-  el.select();
-  document.execCommand("copy");
-  document.body.removeChild(el);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(str);
+  } else {
+    const el = document.createElement("textarea");
+    el.value = str;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand("copy");
+    document.body.removeChild(el);
+  }
 };
 
 export function adjustDateFormatForSingleGroup(group: DatePhotosGroup) {
@@ -46,7 +50,7 @@ export function addTempElementsToFlatList(photosCount: number) {
   var newPhotosFlat: PigPhoto[] = [];
   for (var i = 0; i < photosCount; i++) {
     newPhotosFlat.push({
-      id:i.toString(),
+      id: i.toString(),
       aspectRatio: 1,
       isTemp: true
     } as PigPhoto);
