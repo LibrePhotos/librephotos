@@ -31,7 +31,8 @@ import {
   addTempElementsToFlatList,
   getPhotosFlatFromGroupedByDate,
 } from "../util/util";
-import { IncompleteDatePhotosGroup, Photo, PigPhoto } from "../actions/photosActions.types";
+import { IncompleteDatePhotosGroup, Photo, PhotoSuperSimple, PigPhoto } from "../actions/photosActions.types";
+import { Dictionary } from "lodash";
 
 
 export enum PhotosetType {
@@ -48,8 +49,6 @@ export enum PhotosetType {
   SHARED_BY_ME = "sharedByMe",
 }
 
-type Photos = any;
-
 interface PhotosState {
   scanningPhotos: boolean,
   scannedPhotos: boolean,
@@ -59,7 +58,7 @@ interface PhotosState {
   fetchingPhotoDetail: boolean,
   fetchedPhotoDetail: boolean,
 
-  photos?: Photos,
+  photos?: Dictionary<PhotoSuperSimple>,  // TODO: This is only populated by fetchPhotos, which never seems to be called.
   fetchedPhotos: boolean,
   fetchingPhotos: boolean,
 
