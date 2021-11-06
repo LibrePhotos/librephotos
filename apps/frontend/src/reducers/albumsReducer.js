@@ -268,7 +268,7 @@ export default function reducer(
     }
     case "FETCH_THING_ALBUMS_FULFILLED": {
       new_album = { ...state.albumsThing };
-      new_album[parseInt(action.payload.results.id)] = action.payload.results;
+      new_album[parseInt(action.payload.id)] = action.payload;
       return {
         ...state,
         fetchingAlbumsThing: false,

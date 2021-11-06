@@ -159,8 +159,8 @@ export class EntrySquare extends Component {
           paddingRight: 10,
         }}
         onClick={() => {
-          store.dispatch(searchPhotos(this.props.title));
-          store.dispatch(push("/search"));
+          this.props.dispatch(searchPhotos(this.props.title));
+          this.props.dispatch(push("/search"));
         }}
       >
         <div style={{ height: this.props.size }}>

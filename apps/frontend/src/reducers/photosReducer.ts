@@ -26,11 +26,12 @@ import {
   SEARCH_PHOTOS_FULFILLED,
   SEARCH_PHOTOS_REJECTED,
 } from "../actions/searchActions";
-import { PhotoSerializer, PhotosGroupedByUser, PigAlbumDateSerializer, PigPhotoSerializer } from "../types/photosTypes";
+import { UserPhotosGroup } from "../actions/photosActions";
 import {
   addTempElementsToFlatList,
   getPhotosFlatFromGroupedByDate,
 } from "../util/util";
+import { IncompleteDatePhotosGroup, Photo, PigPhoto } from "../actions/photosActions.types";
 
 
 export enum PhotosetType {
@@ -54,7 +55,7 @@ interface PhotosState {
   scannedPhotos: boolean,
   error: string | null,
 
-  photoDetails: { [key: string]: PhotoSerializer},
+  photoDetails: { [key: string]: Photo},
   fetchingPhotoDetail: boolean,
   fetchedPhotoDetail: boolean,
 
@@ -62,9 +63,9 @@ interface PhotosState {
   fetchedPhotos: boolean,
   fetchingPhotos: boolean,
 
-  photosFlat: PigPhotoSerializer[],
-  photosGroupedByDate: PigAlbumDateSerializer[], //  | GroupedPhotosSerializer[]
-  photosGroupedByUser: PhotosGroupedByUser[],
+  photosFlat: PigPhoto[],
+  photosGroupedByDate: IncompleteDatePhotosGroup[], //  | GroupedPhotosSerializer[]
+  photosGroupedByUser: UserPhotosGroup[],
   fetchedPhotosetType: PhotosetType,
   numberOfPhotos: number,
 
@@ -104,7 +105,7 @@ function resetPhotos(state: PhotosState, error: string) {
 }
 
 function updatePhotoDetails(state: PhotosState, action: AnyAction) {
-  var updatedPhotoDetails = action.payload.updatedPhotos as PhotoSerializer[];
+  var updatedPhotoDetails = action.payload.updatedPhotos as Photo[];
   var newPhotoDetails = { ...state.photoDetails };
 
   updatedPhotoDetails.forEach((photoDetails) => {
@@ -120,10 +121,10 @@ function updatePhotoDetails(state: PhotosState, action: AnyAction) {
 export default function photosReducer(
   state = initialPhotosState,
   action: AnyAction
-) {
+) : PhotosState {
   var updatedPhotoDetails;
-  var newPhotosFlat: PigPhotoSerializer[];
-  var newPhotosGroupedByDate: PigAlbumDateSerializer[];
+  var newPhotosFlat: PigPhoto[];
+  var newPhotosGroupedByDate: IncompleteDatePhotosGroup[];
   var indexToReplace: number;
 
   switch (action.type) {
@@ -207,10 +208,10 @@ export default function photosReducer(
     case "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED": {
       newPhotosGroupedByDate = [...state.photosGroupedByDate];
       indexToReplace = newPhotosGroupedByDate.findIndex(
-        (group) => group.id === action.payload.photosGroupedByDate.id
+        (group) => group.id === action.payload.datePhotosGroup.id
       );
       newPhotosGroupedByDate[indexToReplace] =
-        action.payload.photosGroupedByDate;
+        action.payload.datePhotosGroup;
       return {
         ...state,
         photosFlat: getPhotosFlatFromGroupedByDate(newPhotosGroupedByDate),
@@ -289,7 +290,8 @@ export default function photosReducer(
     }
     case "FETCH_PHOTO_DETAIL_FULFILLED": {
       var newPhotoDetails = { ...state.photoDetails };
-      newPhotoDetails[action.payload.image_hash] = action.payload;
+      var photo = action.payload as Photo;
+      newPhotoDetails[photo.image_hash] = photo;
       return {
         ...state,
         fetchingPhotoDetail: false,
@@ -306,7 +308,7 @@ export default function photosReducer(
     }
 
     case SET_PHOTOS_FAVORITE_FULFILLED: {
-      updatedPhotoDetails = action.payload.updatedPhotos as PhotoSerializer[];
+      updatedPhotoDetails = action.payload.updatedPhotos as Photo[];
       newPhotoDetails = { ...state.photoDetails };
       newPhotosGroupedByDate = [...state.photosGroupedByDate];
       newPhotosFlat = [...state.photosFlat];

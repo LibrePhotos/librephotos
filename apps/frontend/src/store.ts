@@ -6,8 +6,16 @@ import { persistReducer, persistStore } from "redux-persist";
 import rootReducer from "./reducers";
 import history from "./history";
 import { routerMiddleware } from "react-router-redux";
+import { History } from "history";
 
-const configureStore = (history) => {
+declare global {
+  interface Window {
+    __REDUX_DEVTOOLS_EXTENSION_COMPOSE__: any;
+  }
+}
+window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || {};
+
+const configureStore = (history: History) => {
   const persistedFilter = createFilter("auth", ["access", "refresh"]);
 
   const reducer = persistReducer(
@@ -21,7 +29,7 @@ const configureStore = (history) => {
   );
 
   const composeEnhancers =
-    window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
+    (process.env.NODE_ENV === 'development' ? window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ : null) || compose;
   const store = createStore(
     reducer,
     {},

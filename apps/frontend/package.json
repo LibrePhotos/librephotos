@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@popperjs/core": "2.9.2",
+    "@types/lodash": "^4.14.176",
     "@types/react": "^17.0.33",
     "@types/react-dom": "^17.0.10",
     "@vx/gradient": "0.0.161",
@@ -74,7 +75,8 @@
     "redux-thunk": "^2.3.0",
     "rumble-charts": "^2.0.0",
     "semantic-ui-css": "npm:fomantic-ui-css@^2.8.8",
-    "semantic-ui-react": "^2.0.3"
+    "semantic-ui-react": "^2.0.3",
+    "yup": "^0.32.11"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -84,7 +86,10 @@
   },
   "proxy": "http://192.168.1.100:8000/",
   "devDependencies": {
+    "@types/node": "^16.11.6",
     "@types/react-redux": "^7.1.20",
+    "@types/react-router-redux": "^5.0.20",
+    "@types/reapop": "^3.0.0",
     "eslint-plugin-react": "^7.10.0",
     "source-map-loader": "^3.0.0",
     "ts-loader": "^9.2.6",
