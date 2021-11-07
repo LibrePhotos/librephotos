@@ -1,102 +1,102 @@
-import * as Yup from "yup";
+import { z } from "zod";
 
-export const SimpleUserSchema = Yup.object({
-  id: Yup.number().required(),
-  username: Yup.string().required(),
-  first_name: Yup.string().defined(),
-  last_name: Yup.string().defined(),
+export const SimpleUserSchema = z.object({
+  id: z.number(),
+  username: z.string(),
+  first_name: z.string(),
+  last_name: z.string(),
 })
-export interface SimpleUser extends Yup.Asserts<typeof SimpleUserSchema> { }
+export type SimpleUser = z.infer<typeof SimpleUserSchema>
 
 enum MediaType {
   IMAGE = "image",
   VIDEO = "video",
 }
 
-export const PigPhotoSchema = Yup.object({
-  id: Yup.string().required(),
-  dominantColor: Yup.string().default(undefined),
-  url: Yup.string().default(undefined),
-  location: Yup.string().default(undefined),
-  date: Yup.string().default(undefined).nullable(),
-  birthTime: Yup.string().default(undefined),
-  aspectRatio: Yup.number().required(),
-  type: Yup.mixed<MediaType>().oneOf(Object.values(MediaType)).default(MediaType.IMAGE),
-  rating: Yup.number().default(0),
-  owner: SimpleUserSchema.default(undefined),
-  shared_to: Yup.array().of(SimpleUserSchema).default([]),
-  isTemp: Yup.boolean().default(false),
+export const PigPhotoSchema = z.object({
+  id: z.string(),
+  dominantColor: z.string().optional(),
+  url: z.string().optional(),
+  location: z.string().optional(),
+  date: z.string().optional().nullable(),
+  birthTime: z.string().optional(),
+  aspectRatio: z.number(),
+  type: z.nativeEnum(MediaType).default(MediaType.IMAGE),
+  rating: z.number().default(0),
+  owner: SimpleUserSchema.optional(),
+  shared_to: SimpleUserSchema.array().default([]),
+  isTemp: z.boolean().default(false),
 })
-export interface PigPhoto extends Yup.Asserts<typeof PigPhotoSchema> { }
+export type PigPhoto = z.infer<typeof PigPhotoSchema>
 
-export const SharedFromMePhotoSchema = Yup.object({
-  user_id: Yup.number().required(),
-  user: SimpleUserSchema.required(),
-  photo: PigPhotoSchema.required(),
-})
-
-export const PhotoHashSchema = Yup.object({
-  image_hash: Yup.string().required(),
-  video: Yup.boolean(),
+export const SharedFromMePhotoSchema = z.object({
+  user_id: z.number(),
+  user: SimpleUserSchema,
+  photo: PigPhotoSchema,
 })
 
-export const PersonInfoSchema = Yup.object({
-  id: Yup.string().required(),
-  name: Yup.string().required(),
+export const PhotoHashSchema = z.object({
+  image_hash: z.string(),
+  video: z.boolean(),
 })
-export interface PersonInfo extends Yup.Asserts<typeof PersonInfoSchema> { }
 
-export const PhotoSchema = Yup.object({
-  exif_gps_lat: Yup.number().transform((value) => (isNaN(value) ? undefined : value)),
-  exif_gps_lon: Yup.number().transform((value) => (isNaN(value) ? undefined : value)),
-  exif_timestamp: Yup.string(),
-  search_captions: Yup.string(),
-  search_location: Yup.string().nullable(),
-  captions_json: Yup.object().nullable(),
-  thumbnail_url: Yup.string().nullable(),
-  thumbnail_height: Yup.number().transform((value) => (isNaN(value) ? undefined : value)),
-  thumbnail_width: Yup.number().transform((value) => (isNaN(value) ? undefined : value)),
-  small_thumbnail_url: Yup.string().nullable(),
-  big_thumbnail_url: Yup.string().nullable(),
-  square_thumbnail_url: Yup.string().nullable(),
-  big_square_thumbnail_url: Yup.string().nullable(),
-  small_square_thumbnail_url: Yup.string().nullable(),
-  tiny_square_thumbnail_url: Yup.string().nullable(),
-  geolocation_json: Yup.object().nullable(),
-  exif_json: Yup.object().nullable(),
-  people: Yup.array().of(Yup.string()),
-  image_url: Yup.string().nullable(),
-  image_hash: Yup.string().required(),
-  image_path: Yup.string(),
-  rating: Yup.number().required(),
-  hidden: Yup.boolean(),
-  public: Yup.boolean(),
-  shared_to: Yup.array().of(SimpleUserSchema.nullable()),  // TODO: There are sometimes items in the array with value null. Why?!?
-  similar_photos: Yup.array().of(PhotoHashSchema),
-  video: Yup.boolean(),
+export const PersonInfoSchema = z.object({
+  id: z.string(),
+  name: z.string(),
 })
-export interface Photo extends Yup.Asserts<typeof PhotoSchema> { }
+export type PersonInfo = z.infer<typeof PersonInfoSchema>
 
-export const PhotoSuperSimpleSchema = Yup.object({
-  image_hash: Yup.string().required(),
-  rating: Yup.number().required(),
-  hidden: Yup.boolean().required(),
-  exif_timestamp: Yup.date().required(),
-  public: Yup.boolean().required(),
-  video: Yup.boolean().required(),
+export const PhotoSchema = z.object({
+  exif_gps_lat: z.number().nullable(),
+  exif_gps_lon: z.number().nullable(),
+  exif_timestamp: z.string(),
+  search_captions: z.string(),
+  search_location: z.string().nullable(),
+  captions_json: z.any().nullable(),
+  thumbnail_url: z.string().nullable(),
+  thumbnail_height: z.number().nullable(),
+  thumbnail_width: z.number().nullable(),
+  small_thumbnail_url: z.string().nullable(),
+  big_thumbnail_url: z.string().nullable(),
+  square_thumbnail_url: z.string().nullable(),
+  big_square_thumbnail_url: z.string().nullable(),
+  small_square_thumbnail_url: z.string().nullable(),
+  tiny_square_thumbnail_url: z.string().nullable(),
+  geolocation_json: z.any().nullable(),
+  exif_json: z.any().nullable(),
+  people: z.string().array(),
+  image_url: z.string().nullable(),
+  image_hash: z.string(),
+  image_path: z.string(),
+  rating: z.number(),
+  hidden: z.boolean(),
+  public: z.boolean(),
+  shared_to: z.number().nullable().array(),  // TODO: There are sometimes items in the array with value null. Why?!?
+  similar_photos: z.object({ image_hash: z.string(), type: z.nativeEnum(MediaType) }).array(),
+  video: z.boolean(),
 })
-export interface PhotoSuperSimple extends Yup.Asserts<typeof PhotoSuperSimpleSchema> { }
+export type Photo = z.infer<typeof PhotoSchema>
 
-export const DatePhotosGroupSchema = Yup.object({
-  date: Yup.string().required(),
-  location: Yup.string().nullable(),
-  items: Yup.array().of(PigPhotoSchema).required(),
+export const PhotoSuperSimpleSchema = z.object({
+  image_hash: z.string(),
+  rating: z.number(),
+  hidden: z.boolean(),
+  exif_timestamp: z.date(),
+  public: z.boolean(),
+  video: z.boolean(),
 })
-export interface DatePhotosGroup extends Yup.Asserts<typeof DatePhotosGroupSchema> { }
+export type PhotoSuperSimple = z.infer<typeof PhotoSuperSimpleSchema>
 
-export const IncompleteDatePhotosGroupSchema = DatePhotosGroupSchema.shape({
-  id: Yup.string().required(),
-  incomplete: Yup.boolean().required(),
-  numberOfItems: Yup.number().required(),
+export const DatePhotosGroupSchema = z.object({
+  date: z.string(),
+  location: z.string().nullable(),
+  items: PigPhotoSchema.array(),
 })
-export interface IncompleteDatePhotosGroup extends Yup.Asserts<typeof IncompleteDatePhotosGroupSchema> { }
+export type DatePhotosGroup = z.infer<typeof DatePhotosGroupSchema>
+
+export const IncompleteDatePhotosGroupSchema = DatePhotosGroupSchema.extend({
+  id: z.string(),
+  incomplete: z.boolean(),
+  numberOfItems: z.number(),
+})
+export type IncompleteDatePhotosGroup = z.infer<typeof IncompleteDatePhotosGroupSchema>

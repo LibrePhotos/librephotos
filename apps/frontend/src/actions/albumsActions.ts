@@ -10,55 +10,54 @@ import {
   addTempElementsToGroups,
 } from "../util/util";
 import { Dispatch } from "react";
-import { AxiosResponse } from "axios";
 import { DatePhotosGroup, DatePhotosGroupSchema, IncompleteDatePhotosGroup, IncompleteDatePhotosGroupSchema, PersonInfo, PersonInfoSchema, PhotoHashSchema, SimpleUserSchema } from "./photosActions.types";
-import * as Yup from "yup";
+import { z } from "zod";
 
-const AlbumInfoSchema = Yup.object({
-  id: Yup.number().required(),
-  title: Yup.string(),
-  cover_photos: Yup.array().of(PhotoHashSchema).required(),
-  photo_count: Yup.number().required(),
+const AlbumInfoSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  cover_photos: PhotoHashSchema.array(),
+  photo_count: z.number(),
 })
-interface AlbumInfo extends Yup.Asserts<typeof AlbumInfoSchema> { }
+type AlbumInfo = z.infer<typeof AlbumInfoSchema>
 
-const ThingAlbumSchema = Yup.object({
-  id: Yup.number().required(),
-  title: Yup.string().required(),
-  grouped_photos: Yup.array().of(DatePhotosGroupSchema).required(),
+const ThingAlbumSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  grouped_photos: DatePhotosGroupSchema.array(),
 })
-interface ThingAlbum extends Yup.Asserts<typeof ThingAlbumSchema> {}
+type ThingAlbum = z.infer<typeof ThingAlbumSchema>
 
-const UserAlbumInfoSchema = AlbumInfoSchema.shape({ // UserAlbumInfo extends AlbumInfo
-  owner: SimpleUserSchema.required(),
-  shared_to: Yup.array().of(SimpleUserSchema).required(),
-  created_on: Yup.string().required(),
-  favorited: Yup.boolean().required(),
+const UserAlbumInfoSchema = AlbumInfoSchema.extend({
+  owner: SimpleUserSchema,
+  shared_to: SimpleUserSchema.array(),
+  created_on: z.string(),
+  favorited: z.boolean(),
 })
-interface UserAlbumInfo extends Yup.Asserts<typeof UserAlbumInfoSchema> { }
+type UserAlbumInfo = z.infer<typeof UserAlbumInfoSchema>
 
-const UserAlbumDetailsSchema = Yup.object({
-  id: Yup.string().required(),
-  title: Yup.string(),
-  owner: SimpleUserSchema.required(),
-  shared_to: Yup.array().of(SimpleUserSchema).required(),
+const UserAlbumDetailsSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  owner: SimpleUserSchema,
+  shared_to: SimpleUserSchema.array(),
 
-  date: Yup.string().required(),
-  location: Yup.string().nullable(),
+  date: z.string(),
+  location: z.string().nullable(),
 })
-interface UserAlbumDetails extends Yup.Asserts<typeof UserAlbumDetailsSchema> { }
+type UserAlbumDetails = z.infer<typeof UserAlbumDetailsSchema>
 
-const UserAlbumSchema = UserAlbumDetailsSchema.shape({
-  grouped_photos: Yup.array().of(DatePhotosGroupSchema).required(),
+const UserAlbumSchema = UserAlbumDetailsSchema.extend({
+  grouped_photos: DatePhotosGroupSchema.array(),
 })
 
-const _FetchThingAlbumsListResponseSchema = Yup.object({ results: Yup.array().of(AlbumInfoSchema).required() })
+const _FetchThingAlbumsListResponseSchema = z.object({ results: AlbumInfoSchema.array() })
 export function fetchThingAlbumsList() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_THING_ALBUMS_LIST" });
     Server.get("albums/thing/list/")
       .then((response) => {
-        const data = _FetchThingAlbumsListResponseSchema.validateSync(response.data);
+        const data = _FetchThingAlbumsListResponseSchema.parse(response.data);
         const albumInfoList: AlbumInfo[] = data.results;
         dispatch({
           type: "FETCH_THING_ALBUMS_LIST_FULFILLED",
@@ -71,13 +70,13 @@ export function fetchThingAlbumsList() {
   };
 }
 
-const _FetchThingAlbumResponseSchema = Yup.object({ results: ThingAlbumSchema.required() })
+const _FetchThingAlbumResponseSchema = z.object({ results: ThingAlbumSchema })
 export function fetchThingAlbum(album_id: string) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_THING_ALBUMS" });
     Server.get(`albums/thing/${album_id}/`)
       .then((response) => {
-        const data = _FetchThingAlbumResponseSchema.validateSync(response.data);
+        const data = _FetchThingAlbumResponseSchema.parse(response.data);
         const thingAlbum: ThingAlbum = data.results;
         dispatch({
           type: "FETCH_THING_ALBUMS_FULFILLED",
@@ -90,13 +89,13 @@ export function fetchThingAlbum(album_id: string) {
   };
 }
 
-const _FetchUserAlbumsListResponseSchema = Yup.object({ results: Yup.array().of(UserAlbumInfoSchema).required() })
+const _FetchUserAlbumsListResponseSchema = z.object({ results: UserAlbumInfoSchema.array() })
 export function fetchUserAlbumsList() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_USER_ALBUMS_LIST" });
     Server.get("albums/user/list/")
       .then((response) => {
-        const data = _FetchUserAlbumsListResponseSchema.validateSync(response.data);
+        const data = _FetchUserAlbumsListResponseSchema.parse(response.data);
         const userAlbumInfoList: UserAlbumInfo[] = data.results;
         dispatch({
           type: "FETCH_USER_ALBUMS_LIST_FULFILLED",
@@ -117,7 +116,7 @@ export function fetchUserAlbum(album_id: string) {
     dispatch({ type: FETCH_USER_ALBUM });
     Server.get(`albums/user/${album_id}/`)
       .then((response) => {
-        const data = UserAlbumSchema.validateSync(response.data);
+        const data = UserAlbumSchema.parse(response.data);
         var photosGroupedByDate: DatePhotosGroup[] = data.grouped_photos;
         adjustDateFormat(photosGroupedByDate);
         var albumDetails = data as UserAlbumDetails;
@@ -136,20 +135,20 @@ export function fetchUserAlbum(album_id: string) {
   };
 }
 
-const _UserAlbumEditResponseSchema = Yup.object({
-  id: Yup.string().required(),
-  title: Yup.string().nullable(),
-  photos: Yup.array().of(Yup.string()).required(),
-  created_on: Yup.string().required(),
-  favorited: Yup.boolean().required(),
-  removedPhotos: Yup.array().of(Yup.string()),
+const _UserAlbumEditResponseSchema = z.object({
+  id: z.string(),
+  title: z.string().nullable(),
+  photos: z.string().array(),
+  created_on: z.string(),
+  favorited: z.boolean(),
+  removedPhotos: z.string().array(),
 })
 export function createNewUserAlbum(title: string, image_hashes: string[]) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "CREATE_USER_ALBUMS_LIST" });
     Server.post("albums/user/edit/", { title: title, photos: image_hashes })
       .then((response) => {
-        const data = _UserAlbumEditResponseSchema.validateSync(response.data);
+        const data = _UserAlbumEditResponseSchema.parse(response.data);
         dispatch({
           type: "CREATE_USER_ALBUMS_LIST_FULFILLED",
           payload: data,
@@ -239,7 +238,7 @@ export function removeFromUserAlbum(album_id: string, title: string, image_hashe
       removedPhotos: image_hashes,
     })
       .then((response) => {
-        const data = _UserAlbumEditResponseSchema.validateSync(response.data);
+        const data = _UserAlbumEditResponseSchema.parse(response.data);
         dispatch({
           type: "REMOVE_USER_ALBUMS_LIST_FULFILLED",
           payload: data,
@@ -271,7 +270,7 @@ export function addToUserAlbum(album_id: string, title: string, image_hashes: st
       photos: image_hashes,
     })
       .then((response) => {
-        const data = _UserAlbumEditResponseSchema.validateSync(response.data);
+        const data = _UserAlbumEditResponseSchema.parse(response.data);
         dispatch({
           type: "EDIT_USER_ALBUMS_LIST_FULFILLED",
           payload: data,
@@ -304,17 +303,17 @@ export function addToUserAlbum(album_id: string, title: string, image_hashes: st
   };
 }
 
-const PlaceAlbumInfoSchema = AlbumInfoSchema.shape({
-  geolocation_level: Yup.number().required(),
+const PlaceAlbumInfoSchema = AlbumInfoSchema.extend({
+  geolocation_level: z.number(),
 })
-interface PlaceAlbumInfo extends Yup.Asserts<typeof PlaceAlbumInfoSchema> { }
-const _FetchPlaceAlbumsListResponseSchema = Yup.object({ results: Yup.array().of(PlaceAlbumInfoSchema).required() })
+type PlaceAlbumInfo = z.infer<typeof PlaceAlbumInfoSchema>
+const _FetchPlaceAlbumsListResponseSchema = z.object({ results: PlaceAlbumInfoSchema.array() })
 export function fetchPlaceAlbumsList() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_PLACE_ALBUMS_LIST" });
     Server.get("albums/place/list/")
       .then((response) => {
-        const data = _FetchPlaceAlbumsListResponseSchema.validateSync(response.data);
+        const data = _FetchPlaceAlbumsListResponseSchema.parse(response.data);
         const placeAlbumInfoList: PlaceAlbumInfo[] = data.results;
         var byGeolocationLevel = _.groupBy(
           placeAlbumInfoList,
@@ -340,7 +339,7 @@ export function fetchPlaceAlbum(album_id: string) {
     dispatch({ type: "FETCH_PLACE_ALBUMS" });
     Server.get(`albums/place/${album_id}/`)
       .then((response) => {
-        const data = PlaceAlbumInfoSchema.validateSync(response.data)
+        const data = PlaceAlbumInfoSchema.parse(response.data)
         dispatch({
           type: "FETCH_PLACE_ALBUMS_FULFILLED",
           payload: data,
@@ -352,10 +351,10 @@ export function fetchPlaceAlbum(album_id: string) {
   };
 }
 
-const PersonPhotosSchema = PersonInfoSchema.shape({
-  grouped_photos: Yup.array().of(DatePhotosGroupSchema).required(),
+const PersonPhotosSchema = PersonInfoSchema.extend({
+  grouped_photos: DatePhotosGroupSchema.array(),
 })
-const _FetchPersonPhotosResponseSchema = Yup.object({ results: PersonPhotosSchema.required() })
+const _FetchPersonPhotosResponseSchema = z.object({ results: PersonPhotosSchema })
 export const FETCH_PERSON_PHOTOS = "FETCH_PERSON_PHOTOS";
 export const FETCH_PERSON_PHOTOS_FULFILLED = "FETCH_PERSON_PHOTOS_FULFILLED";
 export const FETCH_PERSON_PHOTOS_REJECTED = "FETCH_PERSON_PHOTOS_REJECTED";
@@ -364,7 +363,7 @@ export function fetchPersonPhotos(person_id: string) {
     dispatch({ type: FETCH_PERSON_PHOTOS });
     Server.get(`albums/person/${person_id}/`)
       .then((response) => {
-        const data = _FetchPersonPhotosResponseSchema.validateSync(response.data)
+        const data = _FetchPersonPhotosResponseSchema.parse(response.data)
         var photosGroupedByDate: DatePhotosGroup[] = data.results.grouped_photos;
         adjustDateFormat(photosGroupedByDate);
         var personDetails = data.results as PersonInfo;
@@ -383,49 +382,59 @@ export function fetchPersonPhotos(person_id: string) {
   };
 }
 
-const PersonSchema = Yup.object({
-  name: Yup.string().required(),
-  face_url: Yup.string(),
-  face_count: Yup.number().required(),
-  face_photo_url: Yup.string(),
-  id: Yup.string().required(),
-  newPersonName: Yup.string(),
+const PersonSchema = z.object({
+  name: z.string(),
+  face_url: z.string(),
+  face_count: z.number(),
+  face_photo_url: z.string(),
+  id: z.number(),
+  newPersonName: z.string().optional(),
 })
-const PhotoSimpleSchema = Yup.object({
-  square_thumbnail: Yup.string(),
-  image: Yup.string(),
-  image_hash: Yup.string().required(),
-  exif_timestamp: Yup.string(),
-  exif_gps_lat: Yup.number(),
-  exif_gps_lon: Yup.number(),
-  rating: Yup.number(),
-  geolocation_json: Yup.string(),
-  public: Yup.boolean(),
-  video: Yup.boolean(),
+const PhotoSimpleSchema = z.object({
+  square_thumbnail: z.string(),
+  image: z.string().nullable(),
+  image_hash: z.string(),
+  exif_timestamp: z.string(),
+  exif_gps_lat: z.number().nullable(),
+  exif_gps_lon: z.number().nullable(),
+  rating: z.number(),
+  geolocation_json: z.any(),
+  public: z.boolean(),
+  video: z.boolean(),
 })
-const AutoAlbumSchema = Yup.object({
-  id: Yup.string(),
-  title: Yup.string(),
-  favorited: Yup.boolean(),
-  timestamp: Yup.string(),
-  created_on: Yup.string(),
-  gps_lat: Yup.number(),
-  people: Yup.array().of(PersonSchema),
-  gps_lon: Yup.number(),
-  photos: Yup.array().of(PhotoSimpleSchema),
+const AutoAlbumSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  favorited: z.boolean(),
+  timestamp: z.string(),
+  created_on: z.string(),
+  gps_lat: z.number().nullable(),
+  people: PersonSchema.array(),
+  gps_lon: z.number().nullable(),
+  photos: PhotoSimpleSchema.array(),
 })
-interface AutoAlbum extends Yup.Asserts<typeof AutoAlbumSchema> { }
+type AutoAlbum = z.infer<typeof AutoAlbumSchema>
+
+const AutoAlbumInfoSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  timestamp: z.string(),
+  photos: PhotoHashSchema,  // TODO: This is a single photo, so the property name should be corrected. Perhaps cover_photo?
+  photo_count: z.number(),
+  favorited: z.boolean(),
+})
+type AutoAlbumInfo = z.infer<typeof AutoAlbumInfoSchema>
 
 //actions using new list view in backend
 
-const _FetchAutoAlbumsListResponseSchema = Yup.object({results: Yup.array().of(AutoAlbumSchema).required()})
+const _FetchAutoAlbumsListResponseSchema = z.object({ results: AutoAlbumInfoSchema.array() })
 export function fetchAutoAlbumsList() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_AUTO_ALBUMS_LIST" });
     Server.get("albums/auto/list/")
       .then((response) => {
-        const data = _FetchAutoAlbumsListResponseSchema.validateSync(response.data);
-        const autoAlbumsList: AutoAlbum[] = data.results;
+        const data = _FetchAutoAlbumsListResponseSchema.parse(response.data);
+        const autoAlbumsList: AutoAlbumInfo[] = data.results;
         dispatch({
           type: "FETCH_AUTO_ALBUMS_LIST_FULFILLED",
           payload: autoAlbumsList,
@@ -437,13 +446,13 @@ export function fetchAutoAlbumsList() {
   };
 }
 
-const _FetchDateAlbumsListResponseSchema = Yup.object({ results: Yup.array().of(IncompleteDatePhotosGroupSchema).required() })
+const _FetchDateAlbumsListResponseSchema = z.object({ results: IncompleteDatePhotosGroupSchema.array() })
 export function fetchDateAlbumsList() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_DATE_ALBUMS_LIST" });
     Server.get("albums/date/list/", { timeout: 100000 })
       .then((response) => {
-        const data = _FetchDateAlbumsListResponseSchema.validateSync(response.data);
+        const data = _FetchDateAlbumsListResponseSchema.parse(response.data);
         const photosGroupedByDate: IncompleteDatePhotosGroup[] = data.results;
         adjustDateFormat(photosGroupedByDate);
         addTempElementsToGroups(photosGroupedByDate);
@@ -466,8 +475,8 @@ export function fetchAlbumsAutoGalleries(album_id: string) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_AUTO_ALBUMS_RETRIEVE" });
     Server.get(`albums/auto/${album_id}/`)
-      .then((response: AxiosResponse<AutoAlbum>) => {
-        const autoAlbum: AutoAlbum = AutoAlbumSchema.validateSync(response.data);
+      .then((response) => {
+        const autoAlbum: AutoAlbum = AutoAlbumSchema.parse(response.data);
         dispatch({
           type: "FETCH_AUTO_ALBUMS_RETRIEVE_FULFILLED",
           payload: autoAlbum,
@@ -489,7 +498,7 @@ export function fetchAlbumsDateGalleries(album_id: string) {
     });
     Server.get(`albums/date/${album_id}/`)
       .then((response) => {
-        const datePhotosGroup: IncompleteDatePhotosGroup = IncompleteDatePhotosGroupSchema.validateSync(response.data);
+        const datePhotosGroup: IncompleteDatePhotosGroup = IncompleteDatePhotosGroupSchema.parse(response.data);
         adjustDateFormatForSingleGroup(datePhotosGroup);
         dispatch({
           type: "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED",
@@ -515,7 +524,7 @@ export function setUserAlbumShared(album_id: string, target_user_id: string, val
       target_user_id: target_user_id,
     })
       .then((response) => {
-        const userAlbumInfo: UserAlbumInfo = UserAlbumInfoSchema.validateSync(response.data);
+        const userAlbumInfo: UserAlbumInfo = UserAlbumInfoSchema.parse(response.data);
         dispatch({
           type: "SET_ALBUM_USER_SHARED_FULFILLED",
           payload: userAlbumInfo,
@@ -554,13 +563,13 @@ export function setUserAlbumShared(album_id: string, target_user_id: string, val
 }
 
 //sharing
-const _FetchUserAlbumsSharedResponseSchema = Yup.object({results: Yup.array().of(UserAlbumInfoSchema).required()})
+const _FetchUserAlbumsSharedResponseSchema = z.object({ results: UserAlbumInfoSchema.array() })
 export function fetchUserAlbumsSharedToMe() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_ALBUMS_SHARED_TO_ME" });
     Server.get("/albums/user/shared/tome/")
       .then((response) => {
-        const data = _FetchUserAlbumsSharedResponseSchema.validateSync(response.data);
+        const data = _FetchUserAlbumsSharedResponseSchema.parse(response.data);
         const userAlbumInfoList: UserAlbumInfo[] = data.results;
         const sharedAlbumsGroupedByOwner = _.toPairs(
           _.groupBy(userAlbumInfoList, "owner.id")
@@ -583,7 +592,7 @@ export function fetchUserAlbumsSharedFromMe() {
     dispatch({ type: "FETCH_ALBUMS_SHARED_FROM_ME" });
     Server.get("/albums/user/shared/fromme/")
       .then((response) => {
-        const data = _FetchUserAlbumsSharedResponseSchema.validateSync(response.data);
+        const data = _FetchUserAlbumsSharedResponseSchema.parse(response.data);
         const userAlbumInfoList: UserAlbumInfo[] = data.results;
         dispatch({
           type: "FETCH_ALBUMS_SHARED_FROM_ME_FULFILLED",

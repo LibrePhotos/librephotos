@@ -76,7 +76,7 @@
     "rumble-charts": "^2.0.0",
     "semantic-ui-css": "npm:fomantic-ui-css@^2.8.8",
     "semantic-ui-react": "^2.0.3",
-    "yup": "^0.32.11"
+    "zod": "^3.11.6"
   },
   "scripts": {
     "start": "react-scripts start",

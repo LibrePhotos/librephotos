@@ -5,20 +5,18 @@ const notify = reapop.notify;
 import { adjustDateFormat, getPhotosFlatFromGroupedByDate, getPhotosFlatFromGroupedByUser } from "../util/util";
 import { PhotosetType } from "../reducers/photosReducer";
 import { Dispatch } from "react";
-import { AxiosResponse } from "axios";
 import { DatePhotosGroup, DatePhotosGroupSchema, Photo, PhotoSchema, PhotoSuperSimple, PhotoSuperSimpleSchema, PigPhoto, PigPhotoSchema, SharedFromMePhotoSchema, SimpleUser } from "./photosActions.types";
-import * as Yup from "yup";
+import { z } from "zod";
 
-export interface UserPhotosGroup {
+export type UserPhotosGroup = {
   userId: number;
   photos: PigPhoto[];
 }
 
-export const JobResponseSchema = Yup.object({
-  status: Yup.boolean().required(),
-  job_id: Yup.string().required(),
+const JobResponseSchema = z.object({
+  status: z.boolean(),
+  job_id: z.string(),
 })
-export interface JobResponse extends Yup.Asserts<typeof JobResponseSchema> { }
 
 export const FETCH_PHOTOSET = "FETCH_PHOTOSET";
 export const FETCH_PHOTOSET_FULFILLED = "FETCH_PHOTOSET_FULFILLED";
@@ -91,9 +89,9 @@ export function setPhotosShared(image_hashes: string[], val_shared: boolean, tar
   };
 }
 
-const _RecentlyAddedResponseDataSchema = Yup.object({
-  results: Yup.array().of(PigPhotoSchema).required(),
-  date: Yup.date().required(),
+const _RecentlyAddedResponseDataSchema = z.object({
+  results: PigPhotoSchema.array(),
+  date: z.string(),
 })
 export const FETCH_RECENTLY_ADDED_PHOTOS = "FETCH_RECENTLY_ADDED_PHOTOS";
 export const FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED =
@@ -105,7 +103,7 @@ export function fetchRecentlyAddedPhotos() {
     dispatch({ type: FETCH_RECENTLY_ADDED_PHOTOS });
     Server.get("photos/recentlyadded/")
       .then((response) => {
-        const data = _RecentlyAddedResponseDataSchema.validateSync(response.data);
+        const data = _RecentlyAddedResponseDataSchema.parse(response.data);
         const photosFlat: PigPhoto[] = data.results;
         dispatch({
           type: FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED,
@@ -124,13 +122,13 @@ export function fetchRecentlyAddedPhotos() {
   };
 }
 
-const _PigPhotoListResponseSchema = Yup.object({ results: Yup.array().of(PigPhotoSchema).required() })
+const _PigPhotoListResponseSchema = z.object({ results: PigPhotoSchema.array() })
 export function fetchPhotosSharedToMe() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: FETCH_PHOTOSET });
     Server.get("photos/shared/tome/")
       .then((response) => {
-        const data = _PigPhotoListResponseSchema.validateSync(response.data);
+        const data = _PigPhotoListResponseSchema.parse(response.data);
         const sharedPhotosGroupedByOwner: UserPhotosGroup[] = _.toPairs(
           _.groupBy(data.results, "owner.id")
         ).map((el) => {
@@ -150,13 +148,13 @@ export function fetchPhotosSharedToMe() {
   };
 }
 
-const _PhotosSharedFromMeResponseSchema = Yup.object({ results: Yup.array().of(SharedFromMePhotoSchema).required() })
+const _PhotosSharedFromMeResponseSchema = z.object({ results: SharedFromMePhotoSchema.array() })
 export function fetchPhotosSharedFromMe() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: FETCH_PHOTOSET });
     Server.get("photos/shared/fromme/")
       .then((response) => {
-        const data = _PhotosSharedFromMeResponseSchema.validateSync(response.data);
+        const data = _PhotosSharedFromMeResponseSchema.parse(response.data);
         const sharedPhotosGroupedBySharedTo: UserPhotosGroup[] = _.toPairs(
           _.groupBy(data.results, "user_id")
         ).map((el) => {
@@ -181,11 +179,11 @@ export function fetchPhotosSharedFromMe() {
   };
 }
 
-const _PhotosUpdatedResponseSchema = Yup.object({
-  status: Yup.boolean().required(),
-  results: Yup.array().of(PhotoSchema).required(),
-  updated: Yup.array().of(PhotoSchema).required(),
-  not_updated: Yup.array().of(PhotoSchema),
+const _PhotosUpdatedResponseSchema = z.object({
+  status: z.boolean(),
+  results: PhotoSchema.array(),
+  updated: PhotoSchema.array(),
+  not_updated: PhotoSchema.array(),
 })
 export const SET_PHOTOS_PUBLIC_FULFILLED = "SET_PHOTOS_PUBLIC_FULFILLED";
 export function setPhotosPublic(image_hashes: string[], val_public: boolean) {
@@ -196,7 +194,7 @@ export function setPhotosPublic(image_hashes: string[], val_public: boolean) {
       val_public: val_public,
     })
       .then((response) => {
-        const data = _PhotosUpdatedResponseSchema.validateSync(response.data);
+        const data = _PhotosUpdatedResponseSchema.parse(response.data);
         const updatedPhotos: Photo[] = data.updated;
         dispatch({
           type: SET_PHOTOS_PUBLIC_FULFILLED,
@@ -244,7 +242,7 @@ export function setPhotosFavorite(image_hashes: string[], favorite: boolean) {
       favorite: favorite,
     })
       .then((response) => {
-        const data = _PhotosUpdatedResponseSchema.validateSync(response.data);
+        const data = _PhotosUpdatedResponseSchema.parse(response.data);
         const updatedPhotos: Photo[] = data.updated;
         dispatch({
           type: SET_PHOTOS_FAVORITE_FULFILLED,
@@ -285,7 +283,7 @@ export function setPhotosHidden(image_hashes: string[], hidden: boolean) {
       hidden: hidden,
     })
       .then((response) => {
-        const data = _PhotosUpdatedResponseSchema.validateSync(response.data);
+        const data = _PhotosUpdatedResponseSchema.parse(response.data);
         const updatedPhotos: Photo[] = data.updated;
         dispatch({
           type: SET_PHOTOS_HIDDEN_FULFILLED,
@@ -327,7 +325,7 @@ export function scanPhotos() {
 
     Server.get(`scanphotos/`)
       .then((response) => {
-        const jobResponse = JobResponseSchema.validateSync(response.data);
+        const jobResponse = JobResponseSchema.parse(response.data);
         dispatch(
           notify({
             message: "Scan Photos started",
@@ -353,7 +351,7 @@ export function scanAllPhotos() {
 
     Server.get(`fullscanphotos/`)
       .then((response) => {
-        const jobResponse = JobResponseSchema.validateSync(response.data);
+        const jobResponse = JobResponseSchema.parse(response.data);
         dispatch(
           notify({
             message: "Scan Photos (full) started",
@@ -379,7 +377,7 @@ export function scanNextcloudPhotos() {
 
     Server.get(`nextcloud/scanphotos/`)
       .then((response) => {
-        const jobResponse = JobResponseSchema.validateSync(response.data);
+        const jobResponse = JobResponseSchema.parse(response.data);
         dispatch(
           notify({
             message: "Scan Nextcloud Photos started",
@@ -398,13 +396,13 @@ export function scanNextcloudPhotos() {
   };
 }
 
-const _FetchPhotosResponseSchema = Yup.object({ results: Yup.array().of(PhotoSuperSimpleSchema).required() })
-export function fetchPhotos() {
+const _FetchPhotosResponseSchema = z.object({ results: PhotoSuperSimpleSchema.array() })
+export function fetchPhotos() {  // TODO: This function is only called from AllPhotosMap, which is never instantiated.
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_PHOTOS" });
     Server.get("photos/list/", { timeout: 100000 })
       .then((response) => {
-        const data = _FetchPhotosResponseSchema.validateSync(response.data);
+        const data = _FetchPhotosResponseSchema.parse(response.data);
         const photos: PhotoSuperSimple[] = data.results;
         const res = _.keyBy(photos, "image_hash");
         dispatch({ type: "FETCH_PHOTOS_FULFILLED", payload: res });
@@ -413,13 +411,13 @@ export function fetchPhotos() {
   };
 }
 
-const _FetchPhotosByDateSchema = Yup.object({ results: Yup.array().of(DatePhotosGroupSchema).required() })
+const _FetchPhotosByDateSchema = z.object({ results: DatePhotosGroupSchema.array() })
 export function fetchFavoritePhotos() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: FETCH_PHOTOSET });
     Server.get("photos/favorites/", { timeout: 100000 })
       .then((response) => {
-        const data = _FetchPhotosByDateSchema.validateSync(response.data);
+        const data = _FetchPhotosByDateSchema.parse(response.data);
         const photosGroupedByDate: DatePhotosGroup[] = data.results;
         adjustDateFormat(photosGroupedByDate);
         dispatch({
@@ -440,7 +438,7 @@ export function fetchHiddenPhotos() {
     dispatch({ type: FETCH_PHOTOSET });
     Server.get("photos/hidden/", { timeout: 100000 })
       .then((response) => {
-        const data = _FetchPhotosByDateSchema.validateSync(response.data);
+        const data = _FetchPhotosByDateSchema.parse(response.data);
         const photosGroupedByDate: DatePhotosGroup[] = data.results;
         adjustDateFormat(photosGroupedByDate);
         dispatch({
@@ -460,8 +458,8 @@ export function fetchPhotoDetail(image_hash: string) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_PHOTO_DETAIL", payload: image_hash });
     Server.get(`photos/${image_hash}/`, { timeout: 100000 })
-      .then((response: AxiosResponse<Photo>) => {
-        const photo = PhotoSchema.validateSync(response.data);
+      .then((response) => {
+        const photo = PhotoSchema.parse(response.data);
         dispatch({
           type: "FETCH_PHOTO_DETAIL_FULFILLED",
           payload: photo,
@@ -473,11 +471,11 @@ export function fetchPhotoDetail(image_hash: string) {
   };
 }
 
-const _PaginatedPigPhotosSchema = Yup.object({
-  count: Yup.number().required(),
-  next: Yup.number().nullable(),
-  previous: Yup.number().nullable(),
-  results: Yup.array().of(PigPhotoSchema).required(),
+const _PaginatedPigPhotosSchema = z.object({
+  count: z.number(),
+  next: z.number().nullable(),
+  previous: z.number().nullable(),
+  results: PigPhotoSchema.array(),
 })
 export const FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED =
   "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED";
@@ -490,7 +488,7 @@ export function fetchNoTimestampPhotoPaginated(page: number) {
     dispatch({ type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED });
     Server.get(`photos/notimestamp/?page=${page}`, { timeout: 100000 })
       .then((response) => {
-        const data = _PaginatedPigPhotosSchema.validateSync(response.data);
+        const data = _PaginatedPigPhotosSchema.parse(response.data);
         const photosFlat: PigPhoto[] = data.results;
         dispatch({
           type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED,
@@ -509,7 +507,7 @@ export function fetchNoTimestampPhotoPaginated(page: number) {
   };
 }
 
-const _PhotosCountResponseSchema = Yup.object({ photosCount: Yup.number().required() })
+const _PhotosCountResponseSchema = z.object({ photosCount: z.number() })
 export const FETCH_NO_TIMESTAMP_PHOTOS_COUNT =
   "FETCH_NO_TIMESTAMP_PHOTOS_COUNT";
 export const FETCH_NO_TIMESTAMP_PHOTOS_COUNT_FULFILLED =
@@ -521,7 +519,7 @@ export function fetchNoTimestampPhotoCount() {
     dispatch({ type: FETCH_NO_TIMESTAMP_PHOTOS_COUNT });
     Server.get(`photos/notimestamp/count`, { timeout: 100000 })
       .then((response) => {
-        const data = _PhotosCountResponseSchema.validateSync(response.data);
+        const data = _PhotosCountResponseSchema.parse(response.data);
         const photosCount = data.photosCount;
         dispatch({
           type: FETCH_NO_TIMESTAMP_PHOTOS_COUNT_FULFILLED,
