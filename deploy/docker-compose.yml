@@ -7,7 +7,7 @@
 #   build cmd: COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose build
 #   run cmd: docker-compose up -d
 
-version: '3.8'
+version: "3.8"
 services:
   proxy:
     image: reallibrephotos/librephotos-proxy:${tag}
@@ -62,7 +62,6 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - MAPBOX_API_KEY=${mapApiKey}
-      - TIME_ZONE=${timeZone}
       - WEB_CONCURRENCY=${gunniWorkers}
       - SKIP_PATTERNS=${skipPatterns}
       - DEBUG=0
