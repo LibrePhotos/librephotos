@@ -57,7 +57,7 @@ services:
       - DB_NAME=${dbName}
       - DB_USER=${dbUser}
       - DB_PASS=${dbPass}
-      - DB_HOST=db
+      - DB_HOST=${dbHost}
       - DB_PORT=5432
       - REDIS_HOST=redis
       - REDIS_PORT=6379
