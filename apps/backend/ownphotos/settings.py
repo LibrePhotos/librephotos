@@ -219,7 +219,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = os.environ["TIME_ZONE"]
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
