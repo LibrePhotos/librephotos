@@ -80,3 +80,7 @@ environment, will be shared by all devs. This includes tools like [isort](https:
 Alternatively, you can run the `Remote-Containers: Open Folder in Container` command from the Command Palette. Note 
 in order to open this container, you must have the required dependencies installed. More details can be found
 [here](https://code.visualstudio.com/docs/remote/containers).
+
+## Next Steps
+
+Next, take a look at the [first steps after setup]({% post_url user_guide/0000-02-01-first_steps %}).

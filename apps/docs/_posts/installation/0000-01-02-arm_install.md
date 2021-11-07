@@ -45,3 +45,7 @@ You should have librephotos accessible after a few minutes of boot-up on: [local
 you changed it in the .env file. User is admin, password is admin unless you changed it in the .env file. It is
 recommended you change the admin username and password if Libre Photos is going to be publicly accessible via the `.env`
 file.
+
+## Next Steps
+
+Next, take a look at the [first steps after setup]({% post_url user_guide/0000-02-01-first_steps %}).
