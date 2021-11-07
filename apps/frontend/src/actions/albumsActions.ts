@@ -119,7 +119,7 @@ export function fetchUserAlbum(album_id: string) {
         const data = UserAlbumSchema.parse(response.data);
         var photosGroupedByDate: DatePhotosGroup[] = data.grouped_photos;
         adjustDateFormat(photosGroupedByDate);
-        var albumDetails = data as UserAlbumDetails;
+        var albumDetails: UserAlbumDetails = data;
         dispatch({
           type: FETCH_USER_ALBUM_FULFILLED,
           payload: {
@@ -366,7 +366,7 @@ export function fetchPersonPhotos(person_id: string) {
         const data = _FetchPersonPhotosResponseSchema.parse(response.data)
         var photosGroupedByDate: DatePhotosGroup[] = data.results.grouped_photos;
         adjustDateFormat(photosGroupedByDate);
-        var personDetails = data.results as PersonInfo;
+        var personDetails: PersonInfo = data.results;
         dispatch({
           type: FETCH_PERSON_PHOTOS_FULFILLED,
           payload: {

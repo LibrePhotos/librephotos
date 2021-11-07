@@ -289,7 +289,7 @@ export default function photosReducer(
     }
     case "FETCH_PHOTO_DETAIL_FULFILLED": {
       var newPhotoDetails = { ...state.photoDetails };
-      const photoDetails = action.payload as Photo;
+      const photoDetails: Photo = action.payload;
       newPhotoDetails[photoDetails.image_hash] = photoDetails;
       return {
         ...state,
