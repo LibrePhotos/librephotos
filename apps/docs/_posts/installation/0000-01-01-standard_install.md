@@ -1,5 +1,5 @@
 ---
-title: "Docker Compose"
+title: "Docker Compose (x64)"
 excerpt: "How to install Libre Photos using Docker Compose."
 last_modified_at: 2021-10-07
 category: 1

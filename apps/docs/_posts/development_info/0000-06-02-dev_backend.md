@@ -9,6 +9,24 @@ We developed our backend with the following technologies:
 - Django
 - Serpy
 
+## Debugging the backend
+
+The following works for debugging the backend:
+
+Add the following in the python code where you want a breakpoint:
+```
+import pdb; pdb.set_trace()
+```
+
+Attach to the backend service:
+```
+docker attach $(docker ps --filter name=backend -q)
+```
+
+Debug as normal in pdb! 
+
+When you're done debugging, continue execution (c) and press Ctrl-P followed by Ctrl-Q to detach from the container without stopping it.
+
 ## Structure
 Most of the application code is within the api folder. In the following I will explain where you can find what.
 

@@ -1,5 +1,5 @@
 ---
-title: "Docker Compose on ARM"
+title: "Docker Compose (ARM64)"
 excerpt: "How to install Libre Photos on an ARM device (e.g. Raspberry Pi)."
 last_modified_at: 2021-10-07
 category: 1

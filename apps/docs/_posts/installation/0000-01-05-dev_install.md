@@ -1,5 +1,5 @@
 ---
-title: "LibrePhotos for Developers"
+title: "Development"
 excerpt: "How to install LibrePhotos for Developers"
 last_modified_at: 2021-05-31
 category: 1 

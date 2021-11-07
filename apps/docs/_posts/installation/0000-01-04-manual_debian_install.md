@@ -1,5 +1,5 @@
 ---
-title: "Manual installation"
+title: "Local"
 excerpt: "How to install Libre Photos manually on Debian-based operating systems."
 last_modified_at: 2021-06-21
 category: 1 
