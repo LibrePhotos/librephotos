@@ -111,7 +111,7 @@ export function fetchUserAlbumsList() {
 export const FETCH_USER_ALBUM = "FETCH_USER_ALBUM";
 export const FETCH_USER_ALBUM_FULFILLED = "FETCH_USER_ALBUM_FULFILLED";
 export const FETCH_USER_ALBUM_REJECTED = "FETCH_USER_ALBUM_REJECTED";
-export function fetchUserAlbum(album_id: string) {
+export function fetchUserAlbum(album_id: number) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: FETCH_USER_ALBUM });
     Server.get(`albums/user/${album_id}/`)
@@ -136,12 +136,12 @@ export function fetchUserAlbum(album_id: string) {
 }
 
 const _UserAlbumEditResponseSchema = z.object({
-  id: z.string(),
+  id: z.number(),
   title: z.string().nullable(),
   photos: z.string().array(),
   created_on: z.string(),
   favorited: z.boolean(),
-  removedPhotos: z.string().array(),
+  removedPhotos: z.string().array().optional(),
 })
 export function createNewUserAlbum(title: string, image_hashes: string[]) {
   return function (dispatch: Dispatch<any>) {
@@ -231,7 +231,7 @@ export function deleteUserAlbum(albumID: string, albumTitle: string) {
   };
 }
 
-export function removeFromUserAlbum(album_id: string, title: string, image_hashes: string[]) {
+export function removeFromUserAlbum(album_id: number, title: string, image_hashes: string[]) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "REMOVE_USER_ALBUMS_LIST" });
     Server.patch(`albums/user/edit/${album_id}/`, {
@@ -262,7 +262,7 @@ export function removeFromUserAlbum(album_id: string, title: string, image_hashe
   };
 }
 
-export function addToUserAlbum(album_id: string, title: string, image_hashes: string[]) {
+export function addToUserAlbum(album_id: number, title: string, image_hashes: string[]) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "EDIT_USER_ALBUMS_LIST" });
     Server.patch(`albums/user/edit/${album_id}/`, {
@@ -515,7 +515,7 @@ export function fetchAlbumsDateGalleries(album_id: string) {
 }
 
 // share user album
-export function setUserAlbumShared(album_id: string, target_user_id: string, val_shared: boolean) {
+export function setUserAlbumShared(album_id: number, target_user_id: string, val_shared: boolean) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "SET_ALBUM_USER_SHARED" });
     Server.post("useralbum/share/", {
