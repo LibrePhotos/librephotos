@@ -10,10 +10,11 @@ import { History } from "history";
 
 declare global {
   interface Window {
-    __REDUX_DEVTOOLS_EXTENSION_COMPOSE__: any;
+    __REDUX_DEVTOOLS_EXTENSION_COMPOSE__?: typeof compose;
   }
 }
-window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || {};
+
+const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
 
 const configureStore = (history: History) => {
   const persistedFilter = createFilter("auth", ["access", "refresh"]);
@@ -28,8 +29,6 @@ const configureStore = (history: History) => {
     rootReducer
   );
 
-  const composeEnhancers =
-    (process.env.NODE_ENV === 'development' ? window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ : null) || compose;
   const store = createStore(
     reducer,
     {},
