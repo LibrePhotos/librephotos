@@ -205,28 +205,6 @@ export class EventMap extends Component {
   }
 }
 
-export class AllPhotosMap extends Component {
-  componentDidMount() {
-    this.props.dispatch(fetchPhotos());
-  }
-
-  render() {
-    var map = <div />;
-    if (this.props.fetchedPhotos) {
-      map = <LocationMap photos={this.props.photos} />;
-    }
-    return <div>{map}</div>;
-  }
-}
-
-AllPhotosMap = connect((store) => {
-  return {
-    photos: store.photos.photos,
-    fetchingPhotos: store.photos.fetchingPhotos,
-    fetchedPhotos: store.photos.fetchedPhotos,
-  };
-})(AllPhotosMap);
-
 EventMap = connect((store) => {
   return {
     albumsAutoList: store.albums.albumsAutoList,

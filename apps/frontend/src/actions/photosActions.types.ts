@@ -77,16 +77,6 @@ export const PhotoSchema = z.object({
 })
 export type Photo = z.infer<typeof PhotoSchema>
 
-export const PhotoSuperSimpleSchema = z.object({
-  image_hash: z.string(),
-  rating: z.number(),
-  hidden: z.boolean(),
-  exif_timestamp: z.date(),
-  public: z.boolean(),
-  video: z.boolean(),
-})
-export type PhotoSuperSimple = z.infer<typeof PhotoSuperSimpleSchema>
-
 export const DatePhotosGroupSchema = z.object({
   date: z.string(),
   location: z.string().nullable(),

@@ -5,7 +5,7 @@ const notify = reapop.notify;
 import { adjustDateFormat, getPhotosFlatFromGroupedByDate, getPhotosFlatFromGroupedByUser } from "../util/util";
 import { PhotosetType } from "../reducers/photosReducer";
 import { Dispatch } from "react";
-import { DatePhotosGroup, DatePhotosGroupSchema, Photo, PhotoSchema, PhotoSuperSimple, PhotoSuperSimpleSchema, PigPhoto, PigPhotoSchema, SharedFromMePhotoSchema, SimpleUser } from "./photosActions.types";
+import { DatePhotosGroup, DatePhotosGroupSchema, Photo, PhotoSchema, PigPhoto, PigPhotoSchema, SharedFromMePhotoSchema, SimpleUser } from "./photosActions.types";
 import { z } from "zod";
 
 export type UserPhotosGroup = {
@@ -393,21 +393,6 @@ export function scanNextcloudPhotos() {
       .catch((err) => {
         dispatch({ type: "SCAN_PHOTOS_REJECTED", payload: err });
       });
-  };
-}
-
-const _FetchPhotosResponseSchema = z.object({ results: PhotoSuperSimpleSchema.array() })
-export function fetchPhotos() {  // TODO: This function is only called from AllPhotosMap, which is never instantiated.
-  return function (dispatch: Dispatch<any>) {
-    dispatch({ type: "FETCH_PHOTOS" });
-    Server.get("photos/list/", { timeout: 100000 })
-      .then((response) => {
-        const data = _FetchPhotosResponseSchema.parse(response.data);
-        const photos: PhotoSuperSimple[] = data.results;
-        const res = _.keyBy(photos, "image_hash");
-        dispatch({ type: "FETCH_PHOTOS_FULFILLED", payload: res });
-      })
-      .catch((err) => { dispatch(fetchPhotosetRejected(err)) });
   };
 }
 

@@ -31,9 +31,7 @@ import {
   addTempElementsToFlatList,
   getPhotosFlatFromGroupedByDate,
 } from "../util/util";
-import { IncompleteDatePhotosGroup, Photo, PhotoSuperSimple, PigPhoto } from "../actions/photosActions.types";
-import { Dictionary } from "lodash";
-
+import { IncompleteDatePhotosGroup, Photo, PigPhoto } from "../actions/photosActions.types";
 
 export enum PhotosetType {
   NONE = "none",
@@ -58,7 +56,6 @@ interface PhotosState {
   fetchingPhotoDetail: boolean,
   fetchedPhotoDetail: boolean,
 
-  photos?: Dictionary<PhotoSuperSimple>,  // TODO: This is only populated by fetchPhotos, which never seems to be called.
   fetchedPhotos: boolean,
   fetchingPhotos: boolean,
 
@@ -176,20 +173,6 @@ export default function photosReducer(
       };
     }
 
-    case "FETCH_PHOTOS": {
-      return { ...state, fetchingPhotos: true };
-    }
-    case "FETCH_PHOTOS_REJECTED": {
-      return { ...state, fetchingPhotos: false, error: action.payload };
-    }
-    case "FETCH_PHOTOS_FULFILLED": {
-      return {
-        ...state,
-        fetchingPhotos: false,
-        fetchedPhotos: true,
-        photos: action.payload,
-      };
-    }
     case "FETCH_DATE_ALBUMS_RETRIEVE": {
       newPhotosGroupedByDate = [...state.photosGroupedByDate];
       indexToReplace = newPhotosGroupedByDate.findIndex(
