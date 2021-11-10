@@ -49,8 +49,8 @@ export type PersonInfo = z.infer<typeof PersonInfoSchema>
 export const PhotoSchema = z.object({
   exif_gps_lat: z.number().nullable(),
   exif_gps_lon: z.number().nullable(),
-  exif_timestamp: z.string(),
-  search_captions: z.string(),
+  exif_timestamp: z.string().nullable(),
+  search_captions: z.string().nullable(),
   search_location: z.string().nullable(),
   captions_json: z.any().nullable(),
   thumbnail_url: z.string().nullable(),

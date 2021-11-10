@@ -458,8 +458,8 @@ export function fetchPhotoDetail(image_hash: string) {
 
 const _PaginatedPigPhotosSchema = z.object({
   count: z.number(),
-  next: z.number().nullable(),
-  previous: z.number().nullable(),
+  next: z.string().nullable(),
+  previous: z.string().nullable(),
   results: PigPhotoSchema.array(),
 })
 export const FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED =
