@@ -22,7 +22,7 @@ const AlbumInfoSchema = z.object({
 type AlbumInfo = z.infer<typeof AlbumInfoSchema>
 
 const ThingAlbumSchema = z.object({
-  id: z.number(),
+  id: z.string(),
   title: z.string(),
   grouped_photos: DatePhotosGroupSchema.array(),
 })
