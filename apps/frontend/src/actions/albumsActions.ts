@@ -334,12 +334,18 @@ export function fetchPlaceAlbumsList() {
   };
 }
 
+const PlaceAlbumSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  grouped_photos: DatePhotosGroupSchema.array()
+})
+const PlaceAlbumResponseSchema = z.object({ results: PlaceAlbumSchema})
 export function fetchPlaceAlbum(album_id: string) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_PLACE_ALBUMS" });
     Server.get(`albums/place/${album_id}/`)
       .then((response) => {
-        const data = PlaceAlbumInfoSchema.parse(response.data)
+        const data = PlaceAlbumResponseSchema.parse(response.data)
         dispatch({
           type: "FETCH_PLACE_ALBUMS_FULFILLED",
           payload: data,
