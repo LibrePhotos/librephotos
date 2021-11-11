@@ -7,7 +7,6 @@ import { serverAddress } from "../../api_client/apiClient";
 import LazyLoad from "react-lazyload";
 import { searchPhotos } from "../../actions/searchActions";
 import { push } from "react-router-redux";
-import store from "../../store";
 import { Link } from "react-router-dom";
 import { Tile } from "../../components/Tile";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
@@ -159,8 +158,8 @@ export class EntrySquare extends Component {
           paddingRight: 10,
         }}
         onClick={() => {
-          store.dispatch(searchPhotos(this.props.title));
-          store.dispatch(push("/search"));
+          this.props.dispatch(searchPhotos(this.props.title));
+          this.props.dispatch(push("/search"));
         }}
       >
         <div style={{ height: this.props.size }}>

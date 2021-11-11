@@ -4,7 +4,7 @@ import { logout } from "../actions/authActions";
 import { fetchInferredFacesList, fetchLabeledFacesList } from "./facesActions";
 import { fetchUserSelfDetails } from "./userActions";
 import { fetchPeople } from "./peopleActions";
-import { fetchTimestampPhotos } from "./photosActions";
+import { fetchDateAlbumsList } from "./albumsActions";
 
 export function fetchJobList(page, page_size = 10) {
   return function (dispatch) {
@@ -227,7 +227,7 @@ export function fetchWorkerAvailability(prevRunningJob) {
             dispatch(fetchPeople());
           }
           if (prevRunningJob.job_type_str.toLowerCase() === "scan photos") {
-            dispatch(fetchTimestampPhotos());
+            dispatch(fetchDateAlbumsList());
           }
         }
 

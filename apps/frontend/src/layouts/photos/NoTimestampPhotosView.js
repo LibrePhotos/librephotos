@@ -21,10 +21,10 @@ export class NoTimestampPhotosView extends Component {
       visibleItems.filter((i) => i.isTemp && i.isTemp != undefined).length > 0
     ) {
       var firstTempObject = visibleItems.filter((i) => i.isTemp)[0];
-      if (Math.ceil((firstTempObject.id + 1) / 100) != 0) {
+      if (Math.ceil((parseInt(firstTempObject.id) + 1) / 100) != 0) {
         this.props.dispatch(
           fetchNoTimestampPhotoPaginated(
-            Math.ceil((firstTempObject.id + 1) / 100)
+            Math.ceil((parseInt(firstTempObject.id) + 1) / 100)
           )
         );
       }

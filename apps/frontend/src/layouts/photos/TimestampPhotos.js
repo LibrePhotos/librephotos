@@ -1,7 +1,6 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { fetchTimestampPhotos } from "../../actions/photosActions";
 import {
   fetchDateAlbumsList,
   fetchAlbumsDateGalleries,

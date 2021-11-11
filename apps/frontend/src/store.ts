@@ -4,10 +4,19 @@ import storage from "redux-persist/es/storage";
 import { createFilter } from "redux-persist-transform-filter";
 import { persistReducer, persistStore } from "redux-persist";
 import rootReducer from "./reducers";
-import history from "./history";
+import appHistory from "./history";
 import { routerMiddleware } from "react-router-redux";
+import { History } from "history";
 
-const configureStore = (history) => {
+declare global {
+  interface Window {
+    __REDUX_DEVTOOLS_EXTENSION_COMPOSE__?: typeof compose;
+  }
+}
+
+const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
+
+const configureStore = (history: History) => {
   const persistedFilter = createFilter("auth", ["access", "refresh"]);
 
   const reducer = persistReducer(
@@ -20,8 +29,6 @@ const configureStore = (history) => {
     rootReducer
   );
 
-  const composeEnhancers =
-    window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
   const store = createStore(
     reducer,
     {},
@@ -33,4 +40,4 @@ const configureStore = (history) => {
   return store;
 };
 
-export default configureStore(history);
+export default configureStore(appHistory);

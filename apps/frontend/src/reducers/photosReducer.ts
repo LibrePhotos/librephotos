@@ -1,3 +1,4 @@
+import { AnyAction } from "redux";
 import {
   FETCH_PERSON_PHOTOS_FULFILLED,
   FETCH_PERSON_PHOTOS_REJECTED,
@@ -18,6 +19,9 @@ import {
   FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED,
   FETCH_RECENTLY_ADDED_PHOTOS_REJECTED,
   SET_PHOTOS_FAVORITE_FULFILLED,
+  SET_PHOTOS_PUBLIC_FULFILLED,
+  SET_PHOTOS_HIDDEN_FULFILLED,
+  UserPhotosGroup,
 } from "../actions/photosActions";
 import {
   SEARCH_PHOTOS_FULFILLED,
@@ -27,66 +31,97 @@ import {
   addTempElementsToFlatList,
   getPhotosFlatFromGroupedByDate,
 } from "../util/util";
+import { IncompleteDatePhotosGroup, Photo, PigPhoto } from "../actions/photosActions.types";
 
-export const PhotosetType = {
-  NONE: "none",
-  TIMESTAMP: "timestamp",
-  NO_TIMESTAMP: "noTimestamp",
-  FAVORITES: "favorites",
-  HIDDEN: "hidden",
-  RECENTLY_ADDED: "recentlyAdded",
-  SEARCH: "search",
-  USER_ALBUM: "userAlbum",
-  PERSON: "person",
-  SHARED_TO_ME: "sharedToMe",
-  SHARED_BY_ME: "sharedByMe",
-};
+export enum PhotosetType {
+  NONE = "none",
+  TIMESTAMP = "timestamp",
+  NO_TIMESTAMP = "noTimestamp",
+  FAVORITES = "favorites",
+  HIDDEN = "hidden",
+  RECENTLY_ADDED = "recentlyAdded",
+  SEARCH = "search",
+  USER_ALBUM = "userAlbum",
+  PERSON = "person",
+  SHARED_TO_ME = "sharedToMe",
+  SHARED_BY_ME = "sharedByMe",
+}
 
-function resetPhotos(state, payload) {
+interface PhotosState {
+  scanningPhotos: boolean,
+  scannedPhotos: boolean,
+  error: string | null,
+
+  photoDetails: { [key: string]: Photo},
+  fetchingPhotoDetail: boolean,
+  fetchedPhotoDetail: boolean,
+
+  fetchedPhotos: boolean,
+  fetchingPhotos: boolean,
+
+  photosFlat: PigPhoto[],
+  photosGroupedByDate: IncompleteDatePhotosGroup[], //  | GroupedPhotosSerializer[]
+  photosGroupedByUser: UserPhotosGroup[],
+  fetchedPhotosetType: PhotosetType,
+  numberOfPhotos: number,
+
+  recentlyAddedPhotosDate?: Date,
+
+  generatingCaptionIm2txt: boolean,
+  generatedCaptionIm2txt: boolean,
+}
+
+const initialPhotosState: PhotosState = {
+  error: null,
+  fetchedPhotoDetail: false,
+  fetchedPhotos: false,
+  fetchedPhotosetType: PhotosetType.NONE,
+  fetchingPhotoDetail: false,
+  fetchingPhotos: false,
+  generatedCaptionIm2txt: false,
+  generatingCaptionIm2txt: false,
+  numberOfPhotos: 0,
+  photoDetails: {},
+  photosFlat: [],
+  photosGroupedByDate: [],
+  photosGroupedByUser: [],
+  scannedPhotos: false,
+  scanningPhotos: false,
+}
+
+function resetPhotos(state: PhotosState, error: string) {
   return {
     ...state,
     photosFlat: [],
     fetchedPhotosetType: PhotosetType.NONE,
     photosGroupedByDate: [],
     photosGroupedByUser: [],
-    error: payload,
+    error: error,
   };
 }
 
-export default function reducer(
-  state = {
-    scanningPhotos: false,
-    scannedPhotos: false,
-    error: null,
+function updatePhotoDetails(state: PhotosState, action: AnyAction) {
+  var updatedPhotoDetails = action.payload.updatedPhotos as Photo[];
+  var newPhotoDetails = { ...state.photoDetails };
 
-    photoDetails: {},
-    fetchingPhotoDetail: false,
-    fetchedPhotoDetail: false,
+  updatedPhotoDetails.forEach((photoDetails) => {
+    newPhotoDetails[photoDetails.image_hash] = photoDetails;
+  });
 
-    photos: {},
-    fetchedPhotos: false,
-    fetchingPhotos: false,
+  return {
+    ...state,
+    photoDetails: newPhotoDetails,
+  };
+}
 
-    photosFlat: [],
-    photosGroupedByDate: [],
-    photosGroupedByUser: [],
-    fetchedPhotosetType: PhotosetType.NONE,
-    numberOfPhotos: 0,
-
-    photosSharedFromMe: [],
-    fetchingPhotosSharedFromMe: false,
-    fetchedPhotosSharedFromMe: false,
-
-    recentlyAddedPhotosDate: undefined,
-
-    generatingCaptionIm2txt: false,
-    generatedCaptionIm2txt: false,
-  },
-  action
-) {
+export default function photosReducer(
+  state = initialPhotosState,
+  action: AnyAction
+) : PhotosState {
   var updatedPhotoDetails;
-  var newPhotosFlat;
-  var newPhotosGroupedByDate;
+  var newPhotosFlat: PigPhoto[];
+  var newPhotosGroupedByDate: IncompleteDatePhotosGroup[];
+  var indexToReplace: number;
 
   switch (action.type) {
     case "GENERATE_PHOTO_CAPTION": {
@@ -138,23 +173,9 @@ export default function reducer(
       };
     }
 
-    case "FETCH_PHOTOS": {
-      return { ...state, fetchingPhotos: true };
-    }
-    case "FETCH_PHOTOS_REJECTED": {
-      return { ...state, fetchingPhotos: false, error: action.payload };
-    }
-    case "FETCH_PHOTOS_FULFILLED": {
-      return {
-        ...state,
-        fetchingPhotos: false,
-        fetchedPhotos: true,
-        photos: action.payload,
-      };
-    }
     case "FETCH_DATE_ALBUMS_RETRIEVE": {
-      var newPhotosGroupedByDate = [...state.photosGroupedByDate];
-      var indexToReplace = newPhotosGroupedByDate.findIndex(
+      newPhotosGroupedByDate = [...state.photosGroupedByDate];
+      indexToReplace = newPhotosGroupedByDate.findIndex(
         (group) => group.id === action.payload.album_id
       );
       newPhotosGroupedByDate[indexToReplace].incomplete = false;
@@ -167,16 +188,15 @@ export default function reducer(
       return resetPhotos(state, action.payload);
     }
     case "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED": {
-      var newPhotosGroupedByDate = [...state.photosGroupedByDate];
-      var indexToReplace = newPhotosGroupedByDate.findIndex(
-        (group) => group.id === action.payload.photosGroupedByDate.id
+      newPhotosGroupedByDate = [...state.photosGroupedByDate];
+      indexToReplace = newPhotosGroupedByDate.findIndex(
+        (group) => group.id === action.payload.datePhotosGroup.id
       );
       newPhotosGroupedByDate[indexToReplace] =
-        action.payload.photosGroupedByDate;
-      newPhotosFlat = getPhotosFlatFromGroupedByDate(newPhotosGroupedByDate);
+        action.payload.datePhotosGroup;
       return {
         ...state,
-        photosFlat: newPhotosFlat,
+        photosFlat: getPhotosFlatFromGroupedByDate(newPhotosGroupedByDate),
         photosGroupedByDate: newPhotosGroupedByDate,
       };
     }
@@ -215,7 +235,7 @@ export default function reducer(
     }
     case FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED: {
       var fetched_page = action.payload.fetchedPage;
-      var newPhotosFlat = state.photosFlat
+      newPhotosFlat = state.photosFlat
         .slice(0, (fetched_page - 1) * 100)
         .concat(action.payload.photosFlat)
         .concat(state.photosFlat.slice(fetched_page * 100));
@@ -252,7 +272,8 @@ export default function reducer(
     }
     case "FETCH_PHOTO_DETAIL_FULFILLED": {
       var newPhotoDetails = { ...state.photoDetails };
-      newPhotoDetails[action.payload.image_hash] = action.payload;
+      const photoDetails: Photo = action.payload;
+      newPhotoDetails[photoDetails.image_hash] = photoDetails;
       return {
         ...state,
         fetchingPhotoDetail: false,
@@ -264,22 +285,12 @@ export default function reducer(
       return { ...state, fetchingPhotoDetail: false, error: action.payload };
     }
 
-    case "SET_PHOTOS_PUBLIC_FULFILLED": {
-      updatedPhotoDetails = action.payload.updatedPhotos;
-      newPhotoDetails = { ...state.photoDetails };
-
-      updatedPhotoDetails.forEach((photoDetails) => {
-        newPhotoDetails[photoDetails.image_hash] = photoDetails;
-      });
-
-      return {
-        ...state,
-        photoDetails: newPhotoDetails,
-      };
+    case SET_PHOTOS_PUBLIC_FULFILLED: {
+      return updatePhotoDetails(state, action);
     }
 
     case SET_PHOTOS_FAVORITE_FULFILLED: {
-      updatedPhotoDetails = action.payload.updatedPhotos;
+      updatedPhotoDetails = action.payload.updatedPhotos as Photo[];
       newPhotoDetails = { ...state.photoDetails };
       newPhotosGroupedByDate = [...state.photosGroupedByDate];
       newPhotosFlat = [...state.photosFlat];
@@ -341,18 +352,8 @@ export default function reducer(
       };
     }
 
-    case "SET_PHOTOS_HIDDEN_FULFILLED": {
-      updatedPhotoDetails = action.payload.updatedPhotos;
-      newPhotoDetails = { ...state.photoDetails };
-
-      updatedPhotoDetails.forEach((photoDetails) => {
-        newPhotoDetails[photoDetails.image_hash] = photoDetails;
-      });
-
-      return {
-        ...state,
-        photoDetails: newPhotoDetails,
-      };
+    case SET_PHOTOS_HIDDEN_FULFILLED: {
+      return updatePhotoDetails(state, action);
     }
 
     case SEARCH_PHOTOS_FULFILLED: {
