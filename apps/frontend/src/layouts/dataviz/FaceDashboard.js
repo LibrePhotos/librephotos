@@ -11,7 +11,6 @@ import {
   Button,
   Label,
   Loader,
-  HeaderSubheader,
 } from "semantic-ui-react";
 
 import { SecuredImageJWT } from "../../components/SecuredImage";
@@ -249,6 +248,7 @@ export class FaceDashboard extends Component {
     activeItem: "labeled",
     entrySquareSize: 200,
     numEntrySquaresPerRow: 10,
+    height: 0,
     selectMode: false,
     selectedFaces: [],
     modalPersonEditOpen: false,
@@ -494,9 +494,6 @@ export class FaceDashboard extends Component {
                   name="image"
                 />
               }
-              popperModifiers={{
-                boundariesElement: "viewport",
-              }}
               on="focus"
               flowing
               hideOnScroll
@@ -717,7 +714,6 @@ export class FaceDashboard extends Component {
                           .person_name,
                     });
                   }
-                  // console.log(this.state.labeledCellContents[rowStartIndex][0].person_name)
                 }}
                 cellRenderer={this.cellRenderer}
                 columnWidth={this.state.entrySquareSize}

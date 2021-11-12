@@ -159,7 +159,7 @@ export class SideMenuNarrow extends Component {
             </Dropdown.Item>
 
             <Dropdown.Item as={Link} to="/facescatter">
-              <Icon name="users circle" />
+              <Icon name="user circle" />
               {"  Face Clusters"}
             </Dropdown.Item>
           </Dropdown.Menu>

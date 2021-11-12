@@ -16,21 +16,22 @@ var SIDEBAR_WIDTH = 85;
 export class AlbumAuto extends Component {
   constructor() {
     super();
-    this.setState({
+    this.state = {
       width: window.innerWidth,
       height: window.innerHeight,
       entrySquareSize: 200,
-    });
-    this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this);
-    this.cellRenderer = this.cellRenderer.bind(this);
+      numEntrySquaresPerRow: 0,
+    };
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize);
     if (this.props.albumsAutoList.length === 0) {
       this.props.dispatch(fetchAutoAlbumsList());
     }
+    this.cellRenderer = this.cellRenderer.bind(this);
+    this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this);
   }
 
   calculateEntrySquareSize() {

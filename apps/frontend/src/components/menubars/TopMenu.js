@@ -9,7 +9,6 @@ import {
   Dropdown,
   Icon,
   Image,
-  Input,
   Popup,
   Progress,
 } from "semantic-ui-react";
@@ -23,7 +22,6 @@ import { fetchUserSelfDetails } from "../../actions/userActions";
 export class TopMenu extends Component {
   state = {
     width: window.innerWidth,
-    avatarImgSrc: "/unknown_user.jpg",
   };
 
   constructor(props) {
@@ -44,22 +42,13 @@ export class TopMenu extends Component {
     }, 2000);
     this.setState({ intervalId: intervalId });
   }
+
   componentWillUnmount() {
     window.removeEventListener("resize", this.handleResize.bind(this));
     clearInterval(this.state.intervalId);
   }
 
   render() {
-    if (this.state.avatarImgSrc === "/unknown_user.jpg") {
-      console.log(this.state.avatarImgSrc);
-      if (this.props.userSelfDetails && this.props.userSelfDetails.avatar_url) {
-        console.log(serverAddress + this.props.userSelfDetails.avatar_url);
-        this.setState({
-          avatarImgSrc: serverAddress + this.props.userSelfDetails.avatar_url,
-        });
-      }
-    }
-
     let runningJobPopupProgress = null;
     if (
       this.props.workerRunningJob &&
@@ -138,7 +127,16 @@ export class TopMenu extends Component {
               <Dropdown
                 trigger={
                   <span>
-                    <Image avatar src={this.state.avatarImgSrc} />
+                    <Image
+                      avatar
+                      src={
+                        this.props.userSelfDetails &&
+                        this.props.userSelfDetails.avatar_url
+                          ? serverAddress +
+                            this.props.userSelfDetails.avatar_url
+                          : "/unknown_user.jpg"
+                      }
+                    />
                     <Icon name="caret down" />
                   </span>
                 }

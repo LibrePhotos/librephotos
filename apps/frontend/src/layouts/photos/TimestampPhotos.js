@@ -20,7 +20,6 @@ export class TimestampPhotos extends Component {
         this.props.dispatch(fetchAlbumsDateGalleries(group.id));
       }
     });
-    console.log(visibleGroups);
   };
 
   render() {

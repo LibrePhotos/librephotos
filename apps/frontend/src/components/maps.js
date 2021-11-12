@@ -21,8 +21,6 @@ export class LocationMap extends Component {
   }
 
   componentDidMount() {
-    console.log("Map was just set visible.");
-
     var resizeDone = false;
 
     // attempt resize 8 times; mapRef.current might be undefined
@@ -33,7 +31,6 @@ export class LocationMap extends Component {
             const map = this.mapRef.current.leafletElement;
             map.invalidateSize(true);
             resizeDone = true;
-            console.log("Map resized.");
           }
         }
       }, 1000 * (i + 1));

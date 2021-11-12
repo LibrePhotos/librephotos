@@ -37,6 +37,7 @@ export class AlbumPeople extends Component {
     width: window.innerWidth,
     height: window.innerHeight,
     entrySquareSize: 200,
+    numEntrySquaresPerRow: 0,
     openDeleteDialog: false,
     openRenameDialog: false,
     personID: "",
@@ -59,7 +60,7 @@ export class AlbumPeople extends Component {
   closeDeleteDialog = () => this.setState({ openDeleteDialog: false });
   closeRenameDialog = () => this.setState({ openRenameDialog: false });
 
-  componentWillMount() {
+  componentDidMount() {
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize);
     if (this.props.people.length === 0) {

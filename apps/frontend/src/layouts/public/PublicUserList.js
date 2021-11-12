@@ -42,7 +42,7 @@ export class PublicUserList extends Component {
         >
           <div style={{ height: 60, paddingTop: 10 }}>
             <Header as="h2">
-              <Icon name="users circle" />
+              <Icon name="user circle" />
               <Header.Content>
                 Users{" "}
                 <Header.Subheader>

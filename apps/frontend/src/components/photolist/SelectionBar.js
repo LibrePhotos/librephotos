@@ -16,7 +16,7 @@ export class SelectionBar extends Component {
                 icon="checkmark"
                 compact
                 active={this.props.selectMode}
-                color={this.props.selectMode ? "blue" : "null"}
+                color={this.props.selectMode ? "blue" : "grey"}
                 onClick={() => {
                   this.props.updateSelectionState({
                     selectMode: !this.props.selectMode,

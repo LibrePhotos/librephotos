@@ -16,7 +16,6 @@ export default class Toolbar extends Component {
   }
 
   render() {
-    console.log(this.props.photosDetail);
     return (
       <div>
         {!this.props.photosDetail && (

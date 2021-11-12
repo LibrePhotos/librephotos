@@ -149,7 +149,6 @@ export function updateAvatar(user, form_data) {
 export function updateUser(user) {
   return function (dispatch) {
     dispatch({ type: "UPDATE_USER" });
-    console.log(user);
     Server.patch(`user/${user.id}/`, user)
       .then((response) => {
         dispatch({

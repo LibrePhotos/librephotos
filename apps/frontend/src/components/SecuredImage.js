@@ -14,11 +14,9 @@ export class SecuredImage extends Component {
     imgData: null,
   };
 
-  componentWillMount() {
-    console.log(this.props.src);
+  componentDidMount() {
     Server.get(this.props.src)
       .then((resp) => {
-        console.log("success");
         this.setState({ imgData: resp.data.data });
       })
       .catch((err) => {
@@ -28,7 +26,6 @@ export class SecuredImage extends Component {
   render() {
     const { imgData } = this.state;
     var newProps = this.props;
-    delete newProps.dispatch;
     if (imgData) {
       return <Image {...newProps} src={"data:image/jpeg;base64," + imgData} />;
     }

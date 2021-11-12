@@ -106,7 +106,7 @@ export class AlbumAutoGalleryView extends Component {
     this.onPhotoClick = this.onPhotoClick.bind(this);
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
     this.props.dispatch(

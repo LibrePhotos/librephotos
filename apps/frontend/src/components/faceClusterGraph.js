@@ -19,7 +19,7 @@ export class FaceClusterScatter extends Component {
     hintValue: null,
   };
 
-  componentWillMount() {
+  componentDidMount() {
     this.props.dispatch(clusterFaces());
   }
   render() {

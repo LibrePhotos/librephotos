@@ -8,14 +8,12 @@ import { authErrors, isRefreshTokenExpired } from "../reducers";
 
 const Login = (props) => {
   if (props.isAuthenticated) {
-    console.log(props);
     if (props.location.state) {
       return <Redirect to={props.location.state.from.pathname} />;
     } else {
       return <Redirect to="/" />;
     }
   } else {
-    console.log(props);
     return (
       <div className="login-page">
         <LoginPage {...props} />

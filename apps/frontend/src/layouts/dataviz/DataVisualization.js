@@ -34,7 +34,7 @@ export class PhotoMap extends Component {
 }
 
 export class WordClouds extends Component {
-  componentWillMount() {
+  componentDidMount() {
     this.props.dispatch(fetchWordCloud());
   }
 

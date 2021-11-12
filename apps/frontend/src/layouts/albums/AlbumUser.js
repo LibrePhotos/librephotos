@@ -56,7 +56,7 @@ export class AlbumUser extends Component {
     });
   closeDeleteDialog = () => this.setState({ openDeleteDialog: false });
   closeRenameDialog = () => this.setState({ openRenameDialog: false });
-  componentWillMount() {
+  componentDidMount() {
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
     if (this.props.albumsUserList.length === 0) {

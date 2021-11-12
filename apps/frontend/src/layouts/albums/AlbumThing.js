@@ -12,21 +12,22 @@ var SIDEBAR_WIDTH = 85;
 export class AlbumThing extends Component {
   constructor() {
     super();
-    this.setState({
+    this.state = {
       width: window.innerWidth,
       height: window.innerHeight,
       entrySquareSize: 200,
-    });
-    this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this);
-    this.cellRenderer = this.cellRenderer.bind(this);
+      numEntrySquaresPerRow: 0,
+    };
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize);
     if (this.props.albumsThingList.length === 0) {
       this.props.dispatch(fetchThingAlbumsList());
     }
+    this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this);
+    this.cellRenderer = this.cellRenderer.bind(this);
   }
 
   componentWillUnount() {
@@ -67,6 +68,7 @@ export class AlbumThing extends Component {
             .map((photo) => {
               return (
                 <Link
+                  key={this.props.albumsThingList[albumThingIndex].id}
                   to={`/thing/${this.props.albumsThingList[albumThingIndex].id}/`}
                 >
                   <Tile

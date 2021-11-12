@@ -4,7 +4,7 @@ import { connect } from "react-redux";
 import { fetchCountStats } from "../actions/utilActions";
 
 export class CountStats extends Component {
-  componentWillMount() {
+  componentDidMount() {
     this.props.dispatch(fetchCountStats());
   }
 

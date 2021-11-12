@@ -31,7 +31,7 @@ export class LocationLink extends React.Component {
     stepPercent: 0.5,
   };
 
-  componentWillMount() {
+  componentDidMount() {
     if (!this.props.locationSunburst.children) {
       this.props.dispatch(fetchLocationSunburst());
     }

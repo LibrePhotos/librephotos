@@ -152,28 +152,22 @@ export class PhotoListView extends Component {
   }
 
   closeLightboxIfImageIndexIsOutOfSync() {
-    console.log(this.state);
-    console.log(this.props);
     if (
       this.state.lightboxShow &&
       (this.props.idx2hash.length <= this.state.lightboxImageIndex ||
         this.state.lightboxImageId !==
-        this.props.idx2hash[this.state.lightboxImageIndex].id)
+          this.props.idx2hash[this.state.lightboxImageIndex].id)
     ) {
       this.setState({ lightboxShow: false });
     }
   }
 
   getNumPhotosetItems() {
-    return this.props.photoset
-      ? this.props.photoset.length
-      : 0;
+    return this.props.photoset ? this.props.photoset.length : 0;
   }
 
   getNumPhotos() {
-    return this.props.idx2hash
-      ? this.props.idx2hash.length
-      : 0;
+    return this.props.idx2hash ? this.props.idx2hash.length : 0;
   }
 
   getPigImageData() {
@@ -185,7 +179,6 @@ export class PhotoListView extends Component {
   render() {
     this.closeLightboxIfImageIndexIsOutOfSync();
 
-    console.log(this.props);
     var isUserAlbum = false;
     if (this.props.route.location.pathname.startsWith("/useralbum/")) {
       isUserAlbum = true;
@@ -201,9 +194,10 @@ export class PhotoListView extends Component {
             backgroundColor: "white",
           }}
         >
-          {this.props.header
-            ? this.props.header
-            : <DefaultHeader
+          {this.props.header ? (
+            this.props.header
+          ) : (
+            <DefaultHeader
               photoList={this}
               loading={this.props.loading}
               numPhotosetItems={this.getNumPhotosetItems()}
@@ -214,7 +208,8 @@ export class PhotoListView extends Component {
               dayHeaderPrefix={this.props.dayHeaderPrefix}
               date={this.props.date}
               additionalSubHeader={this.props.additionalSubHeader}
-            />}
+            />
+          )}
           {!this.props.loading && !this.props.isPublic && (
             <div
               style={{
@@ -234,7 +229,9 @@ export class PhotoListView extends Component {
               />
               <SelectionActions
                 selectedItems={this.state.selectionState.selectedItems}
-                albumID={this.props.match ? this.props.match.params.albumID : undefined}
+                albumID={
+                  this.props.match ? this.props.match.params.albumID : undefined
+                }
                 title={this.props.title}
                 onSharePhotos={() =>
                   this.setState({ modalSharePhotosOpen: true })
@@ -249,12 +246,15 @@ export class PhotoListView extends Component {
             </div>
           )}
         </div>
-        {!this.props.loading && this.props.photoset &&
-          this.props.photoset.length > 0 ? (
+        {!this.props.loading &&
+        this.props.photoset &&
+        this.props.photoset.length > 0 ? (
           <div style={{ top: TOP_MENU_HEIGHT + 70 }}>
             <Pig
               imageData={this.getPigImageData()}
-              selectable={this.props.selectable === undefined || this.props.selectable}
+              selectable={
+                this.props.selectable === undefined || this.props.selectable
+              }
               selectedItems={this.state.selectionState.selectedItems}
               handleSelection={this.handleSelection}
               handleClick={this.handleClick}
@@ -281,10 +281,10 @@ export class PhotoListView extends Component {
                   : this.props.idx2hash.length
               }
               updateItems={
-                this.props.updateItems ? this.props.updateItems : () => { }
+                this.props.updateItems ? this.props.updateItems : () => {}
               }
               updateGroups={
-                this.props.updateGroups ? this.props.updateGroups : () => { }
+                this.props.updateGroups ? this.props.updateGroups : () => {}
               }
             ></Pig>
           </div>
@@ -312,7 +312,6 @@ export class PhotoListView extends Component {
             lightboxImageId={this.state.lightboxImageId}
             onCloseRequest={() => this.setState({ lightboxShow: false })}
             onImageLoad={() => {
-              console.log("Somebody calles me?");
               this.getPhotoDetails(
                 this.props.idx2hash[this.state.lightboxImageIndex].id
               );

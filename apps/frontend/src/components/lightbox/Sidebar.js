@@ -47,7 +47,6 @@ export default class Sidebar extends Component {
     super(props);
   }
   render() {
-    console.log(this.props.photoDetail);
     return (
       <Transition
         visible={this.props.lightboxSidebarShow}

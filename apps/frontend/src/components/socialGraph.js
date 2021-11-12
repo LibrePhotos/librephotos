@@ -6,7 +6,7 @@ import { Graph } from "react-d3-graph";
 import { fetchSocialGraph } from "../actions/peopleActions";
 
 export class SocialGraph extends Component {
-  componentWillMount() {
+  componentDidMount() {
     if (!this.props.fetched) {
       this.props.dispatch(fetchSocialGraph());
     }
@@ -14,8 +14,6 @@ export class SocialGraph extends Component {
 
   render() {
     var width = this.props.containerWidth;
-
-    console.log("social graph width", width);
     var myConfig = {
       automaticRearrangeAfterDropNode: false,
       staticGraph: true,
@@ -38,7 +36,6 @@ export class SocialGraph extends Component {
     };
     var graph;
     if (this.props.fetched && this.props.socialGraph.nodes.length > 0) {
-      console.log(this.props.socialGraph);
       graph = (
         <Graph
           id="social-graph"
@@ -49,8 +46,6 @@ export class SocialGraph extends Component {
     } else {
       graph = <Loader active>Fetching Social Graph</Loader>;
     }
-
-    console.log(this.props);
     return <div>{graph}</div>;
   }
 }

@@ -6,19 +6,10 @@ import { fetchLocationTimeline } from "../actions/utilActions";
 import moment from "moment";
 import { Hint, XYPlot, XAxis, HorizontalBarSeries } from "react-vis";
 
-/*
-{
-  x: el.value.x,
-  y: el.value.y,
-  size: el.value.size,
-  name: el.person_name,
-}
-*/
-
 export class LocationDurationStackedBar extends Component {
   state = { hintValue: null };
 
-  componentWillMount() {
+  componentDidMount() {
     if (!this.props.fetchedLocationTimeline) {
       this.props.dispatch(fetchLocationTimeline());
     }

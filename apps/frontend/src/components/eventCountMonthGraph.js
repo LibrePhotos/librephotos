@@ -6,7 +6,7 @@ import { fetchPhotoMonthCounts } from "../actions/utilActions";
 import { Chart, Bars, Ticks, Layer } from "rumble-charts";
 
 export class EventCountMonthGraph extends Component {
-  componentWillMount() {
+  componentDidMount() {
     if (!this.props.fetchedPhotoMonthCounts) {
       this.props.dispatch(fetchPhotoMonthCounts());
     }
@@ -21,7 +21,6 @@ export class EventCountMonthGraph extends Component {
       var xticks = countDict.map(function (el) {
         return el.month;
       });
-      console.log(xticks);
     } else {
       return (
         <div style={{ height: 280 }}>
