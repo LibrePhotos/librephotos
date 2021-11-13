@@ -2,7 +2,7 @@ import _ from "lodash";
 import React, { Component } from "react";
 import "./TopMenu.css";
 import { connect } from "react-redux";
-import { push } from "react-router-redux";
+import { push } from "connected-react-router";
 import {
   Menu,
   Button,

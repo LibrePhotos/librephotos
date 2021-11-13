@@ -243,7 +243,7 @@ export class SelectionActions extends Component {
               <Dropdown.Item
                 onClick={() => {
                   if (this.props.selectedItems.length > 0) {
-                    this.props.onAddToAlbum()
+                    this.props.onAddToAlbum();
                   }
                 }}
               >
@@ -260,6 +260,6 @@ export class SelectionActions extends Component {
 
 SelectionActions = connect((store) => {
   return {
-    route: store.routerReducer,
+    route: store.router,
   };
 })(SelectionActions);

@@ -2,7 +2,7 @@ import { Server } from "../api_client/apiClient";
 import _ from "lodash";
 const reapop = require("reapop");
 const notify = reapop.notify;
-import { push } from "react-router-redux";
+import { push } from "connected-react-router";
 import {
   adjustDateFormat,
   adjustDateFormatForSingleGroup,

@@ -392,7 +392,7 @@ PhotoListView = connect((store) => {
   return {
     auth: store.auth,
     showSidebar: store.ui.showSidebar,
-    route: store.routerReducer,
+    route: store.router,
     userSelfDetails: store.user.userSelfDetails,
   };
 })(PhotoListView);

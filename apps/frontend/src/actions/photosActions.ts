@@ -4,7 +4,7 @@ const reapop = require("reapop");
 const notify = reapop.notify;
 import { adjustDateFormat, getPhotosFlatFromGroupedByDate, getPhotosFlatFromGroupedByUser } from "../util/util";
 import { PhotosetType } from "../reducers/photosReducer";
-import { Dispatch } from "react";
+import { Dispatch } from "redux";
 import { DatePhotosGroup, DatePhotosGroupSchema, Photo, PhotoSchema, PigPhoto, PigPhotoSchema, SharedFromMePhotoSchema, SimpleUser } from "./photosActions.types";
 import { z } from "zod";
 

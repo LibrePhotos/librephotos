@@ -1,6 +1,6 @@
 import React from "react";
 import { connect } from "react-redux";
-import * as reducers from "../reducers";
+import { isAuthenticated } from "../reducers";
 // Router and Switch are needed Breaks site if not in import. DW
 import { Route, Redirect } from "react-router-dom";
 import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../ui-constants";
@@ -42,7 +42,7 @@ const PrivateRoute = ({
 };
 
 const mapStateToProps = (state) => ({
-  isAuthenticated: !reducers.isRefreshTokenExpired(state),
+  isAuthenticated: isAuthenticated,
   showSidebar: state.ui.showSidebar,
 });
 

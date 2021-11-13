@@ -14,16 +14,18 @@ export class HiddenPhotos extends Component {
 
   render() {
     return (
-      <PhotoListView
-        showHidden={true}
-        title={"Hidden Photos"}
-        loading={this.props.fetchedPhotosetType !== PhotosetType.HIDDEN}
-        titleIconName={"hide"}
-        isDateView={true}
-        photoset={this.props.photosGroupedByDate}
-        idx2hash={this.props.photosFlat}
-        selectable={true}
-      />
+      <div>
+        <PhotoListView
+          showHidden={true}
+          title={"Hidden Photos"}
+          loading={this.props.fetchedPhotosetType !== PhotosetType.HIDDEN}
+          titleIconName={"hide"}
+          isDateView={true}
+          photoset={this.props.photosGroupedByDate}
+          idx2hash={this.props.photosFlat}
+          selectable={true}
+        />
+      </div>
     );
   }
 }

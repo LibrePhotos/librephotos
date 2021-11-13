@@ -1,39 +1,35 @@
 import { combineReducers } from "redux";
-import { routerReducer } from "react-router-redux";
+import { connectRouter } from "connected-react-router";
 import { reducer as notificationsReducer } from "reapop";
 import people from "./peopleReducer";
 import faces from "./facesReducer";
 import albums from "./albumsReducer";
 import util from "./utilReducer";
 import photos from "./photosReducer";
-//import auth from './authReducer'
 import auth, * as fromAuth from "./authReducer";
 import search from "./searchReducer";
 import ui from "./uiReducer";
 import pub from "./publicReducer";
 import user from "./userReducer";
 
-const appReducer = combineReducers({
-  people,
-  faces,
-  albums,
-  util,
-  photos,
-  auth,
-  search,
-  routerReducer,
-  ui,
-  pub,
-  user,
-  notifications: notificationsReducer(),
-});
+const appReducer = (history) =>
+  combineReducers({
+    router: connectRouter(history),
+    people,
+    faces,
+    albums,
+    util,
+    photos,
+    auth,
+    search,
+    ui,
+    pub,
+    user,
+    notifications: notificationsReducer(),
+  });
 
-export default (state, action) => {
-  if (action.type === "LOGOUT") {
-    state = {};
-  }
-
-  return appReducer(state, action);
+export default (history) => {
+  return appReducer(history);
 };
 
 export const isAuthenticated = (state) => fromAuth.isAuthenticated(state.auth);

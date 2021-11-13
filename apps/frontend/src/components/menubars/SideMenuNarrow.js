@@ -235,6 +235,6 @@ SideMenuNarrow = connect((store) => {
   return {
     auth: store.auth,
     jwtToken: store.auth.jwtToken,
-    location: store.routerReducer.location,
+    location: store.router.location,
   };
 })(SideMenuNarrow);
