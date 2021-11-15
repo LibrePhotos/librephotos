@@ -32,10 +32,9 @@ services:
     - DEBUG=1
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     volumes:
       - ${codedir}/librephotos-frontend:/usr/src/app
-      - ./frontend/entrypoint.sh:/entrypoint.sh
 
   backend:
     tty: true
