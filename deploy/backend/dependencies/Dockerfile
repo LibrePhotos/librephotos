@@ -7,7 +7,6 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
 		build-essential \
 		bzip2 \
-		cifs-utils \
 		curl \
 		ffmpeg \
 		git \
@@ -40,7 +39,6 @@ RUN apt-get update && \
 		libtool-bin \
 		libwebp-dev \
 		libxrender-dev \
-		nfs-common \
 		pkg-config \ 
 		python3-dev \
 		python3-pip \
