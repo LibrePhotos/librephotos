@@ -7,6 +7,7 @@ import { PhotosetType } from "../reducers/photosReducer";
 import { Dispatch } from "redux";
 import { DatePhotosGroup, DatePhotosGroupSchema, Photo, PhotoSchema, PigPhoto, PigPhotoSchema, SharedFromMePhotoSchema, SimpleUser } from "./photosActions.types";
 import { z } from "zod";
+import { AppDispatch } from "../store";
 
 export type UserPhotosGroup = {
   userId: number;
@@ -397,25 +398,23 @@ export function scanNextcloudPhotos() {
 }
 
 const _FetchPhotosByDateSchema = z.object({ results: DatePhotosGroupSchema.array() })
-export function fetchFavoritePhotos() {
-  return function (dispatch: Dispatch<any>) {
-    dispatch({ type: FETCH_PHOTOSET });
-    Server.get("photos/favorites/", { timeout: 100000 })
-      .then((response) => {
-        const data = _FetchPhotosByDateSchema.parse(response.data);
-        const photosGroupedByDate: DatePhotosGroup[] = data.results;
-        adjustDateFormat(photosGroupedByDate);
-        dispatch({
-          type: FETCH_PHOTOSET_FULFILLED,
-          payload: {
-            photosGroupedByDate: photosGroupedByDate,
-            photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
-            photosetType: PhotosetType.FAVORITES,
-          },
-        });
-      })
-      .catch((err) => { dispatch(fetchPhotosetRejected(err)) });
-  };
+export function fetchFavoritePhotos(dispatch: AppDispatch) {
+  dispatch({ type: FETCH_PHOTOSET });
+  Server.get("photos/favorites/", { timeout: 100000 })
+    .then((response) => {
+      const data = _FetchPhotosByDateSchema.parse(response.data);
+      const photosGroupedByDate: DatePhotosGroup[] = data.results;
+      adjustDateFormat(photosGroupedByDate);
+      dispatch({
+        type: FETCH_PHOTOSET_FULFILLED,
+        payload: {
+          photosGroupedByDate: photosGroupedByDate,
+          photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
+          photosetType: PhotosetType.FAVORITES,
+        },
+      });
+    })
+    .catch((err) => { dispatch(fetchPhotosetRejected(err)) });
 }
 
 export function fetchHiddenPhotos() {
