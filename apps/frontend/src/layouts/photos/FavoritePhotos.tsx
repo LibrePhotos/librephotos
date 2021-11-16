@@ -1,54 +1,31 @@
-import React, { Component } from "react";
-import { connect } from "react-redux";
-import {Dispatch, bindActionCreators} from "redux";
+import React, { useEffect } from "react";
+import { useDispatch } from "react-redux";
 import { fetchFavoritePhotos } from "../../actions/photosActions";
 import _ from "lodash";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { PhotosetType } from "../../reducers/photosReducer";
-import { RootState} from "../../store"
-import { IncompleteDatePhotosGroup, PigPhoto } from "../../actions/photosActions.types";
+import { PhotosetType, PhotosState } from "../../reducers/photosReducer";
+import { useAppSelector } from "../../hooks";
 
-type FavoriteProps = {
-  fetchedPhotosetType: PhotosetType,
-  photosGroupedByDate: IncompleteDatePhotosGroup[],
-  photosFlat: PigPhoto[],
-  dispatch: any
-} 
+export const FavoritePhotosComp = () => {
+  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector((state) => state.photos as PhotosState);
+  const dispatch = useDispatch();
 
-export class FavoritePhotos extends Component<FavoriteProps> {
-
-  constructor(props: FavoriteProps) {
-    super(props);
-}
-
-  componentDidMount() {
-    if (this.props.fetchedPhotosetType !== PhotosetType.FAVORITES) {
-      console.log(this.props)
-      this.props.dispatch(fetchFavoritePhotos());
+  useEffect(() => {
+    if (fetchedPhotosetType !== PhotosetType.FAVORITES) {
+      dispatch(fetchFavoritePhotos());
     }
-  }
+  })
 
-  render() {
-    return (
-      <PhotoListView
-        showHidden={false}
-        title={"Favorite Photos"}
-        loading={this.props.fetchedPhotosetType !== PhotosetType.FAVORITES}
-        titleIconName={"star"}
-        isDateView={true}
-        photoset={this.props.photosGroupedByDate}
-        idx2hash={this.props.photosFlat}
-        selectable={true}
-      />
-    );
-  }
+  return (
+    <PhotoListView
+      showHidden={false}
+      title={"Favorite Photos"}
+      loading={fetchedPhotosetType !== PhotosetType.FAVORITES}
+      titleIconName={"star"}
+      isDateView={true}
+      photoset={photosGroupedByDate}
+      idx2hash={photosFlat}
+      selectable={true}
+    />
+  );
 }
-
-export default connect((store: RootState) => {
-  return {
-    photosFlat: store.photos.photosFlat,
-    photosGroupedByDate: store.photos.photosGroupedByDate,
-    fetchedPhotosetType: store.photos.fetchedPhotosetType
-  };
-}
-)(FavoritePhotos);
