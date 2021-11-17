@@ -417,8 +417,7 @@ export function fetchFavoritePhotos(dispatch: AppDispatch) {
     .catch((err) => { dispatch(fetchPhotosetRejected(err)) });
 }
 
-export function fetchHiddenPhotos() {
-  return function (dispatch: Dispatch<any>) {
+export function fetchHiddenPhotos(dispatch: AppDispatch) {
     dispatch({ type: FETCH_PHOTOSET });
     Server.get("photos/hidden/", { timeout: 100000 })
       .then((response) => {
@@ -435,8 +434,8 @@ export function fetchHiddenPhotos() {
         });
       })
       .catch((err) => { dispatch(fetchPhotosetRejected(err)) });
-  };
-}
+  }
+
 
 export function fetchPhotoDetail(image_hash: string) {
   return function (dispatch: Dispatch<any>) {
