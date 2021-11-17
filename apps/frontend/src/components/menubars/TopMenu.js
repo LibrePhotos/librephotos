@@ -33,14 +33,16 @@ export class TopMenu extends Component {
     this.setState({ width: window.innerWidth });
   }
 
-  componentDidMount() {
-    this.props.dispatch(fetchUserSelfDetails(this.props.auth.access.user_id));
-    var _dispatch = this.props.dispatch;
-    this.setState({ dispatch: _dispatch });
-    var intervalId = setInterval(() => {
-      _dispatch(fetchWorkerAvailability(this.props.workerRunningJob));
-    }, 2000);
-    this.setState({ intervalId: intervalId });
+  componentWillReceiveProps(nextProps) {
+    if (!this.props.auth.access && nextProps.auth.access) {
+      this.props.dispatch(fetchUserSelfDetails(nextProps.auth.access.user_id));
+      var _dispatch = this.props.dispatch;
+      this.setState({ dispatch: _dispatch });
+      var intervalId = setInterval(() => {
+        _dispatch(fetchWorkerAvailability(nextProps.workerRunningJob));
+      }, 2000);
+      this.setState({ intervalId: intervalId });
+    }
   }
 
   componentWillUnmount() {
@@ -144,7 +146,8 @@ export class TopMenu extends Component {
               >
                 <Dropdown.Menu>
                   <Dropdown.Header>
-                    Logged in as {this.props.auth.access.name}
+                    Logged in as{" "}
+                    {this.props.auth.access ? this.props.auth.access.name : ""}
                   </Dropdown.Header>
                   <Dropdown.Item onClick={() => this.props.dispatch(logout())}>
                     <Icon name="sign out" />
@@ -156,9 +159,10 @@ export class TopMenu extends Component {
                     <Icon name="settings" />
                     <b>Settings</b>
                   </Dropdown.Item>
-                  {this.props.auth.access.is_admin && <Dropdown.Divider />}
+                  {this.props.auth.access &&
+                    this.props.auth.access.is_admin && <Dropdown.Divider />}
 
-                  {this.props.auth.access.is_admin && (
+                  {this.props.auth.access && this.props.auth.access.is_admin && (
                     <Dropdown.Item
                       onClick={() => this.props.dispatch(push("/admin"))}
                     >
