@@ -47,7 +47,7 @@ export enum PhotosetType {
   SHARED_BY_ME = "sharedByMe",
 }
 
-interface PhotosState {
+export interface PhotosState {
   scanningPhotos: boolean,
   scannedPhotos: boolean,
   error: string | null,

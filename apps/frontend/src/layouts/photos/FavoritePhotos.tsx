@@ -4,17 +4,17 @@ import { fetchFavoritePhotos } from "../../actions/photosActions";
 import _ from "lodash";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType, PhotosState } from "../../reducers/photosReducer";
-import { useAppSelector } from "../../hooks";
+import { useAppDispatch, useAppSelector } from "../../hooks";
 
-export const FavoritePhotosComp = () => {
+export const FavoritePhotos = () => {
   const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector((state) => state.photos as PhotosState);
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     if (fetchedPhotosetType !== PhotosetType.FAVORITES) {
-      dispatch(fetchFavoritePhotos());
+      fetchFavoritePhotos(dispatch);
     }
-  })
+  }, [dispatch]); // Only run on first render
 
   return (
     <PhotoListView
