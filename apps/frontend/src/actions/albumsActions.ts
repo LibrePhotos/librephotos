@@ -12,6 +12,7 @@ import {
 import { Dispatch } from "react";
 import { DatePhotosGroup, DatePhotosGroupSchema, IncompleteDatePhotosGroup, IncompleteDatePhotosGroupSchema, PersonInfo, PersonInfoSchema, PhotoHashSchema, SimpleUserSchema } from "./photosActions.types";
 import { z } from "zod";
+import { AppDispatch } from "../store";
 
 const AlbumInfoSchema = z.object({
   id: z.number(),
@@ -453,8 +454,7 @@ export function fetchAutoAlbumsList() {
 }
 
 const _FetchDateAlbumsListResponseSchema = z.object({ results: IncompleteDatePhotosGroupSchema.array() })
-export function fetchDateAlbumsList() {
-  return function (dispatch: Dispatch<any>) {
+export function fetchDateAlbumsList(dispatch: AppDispatch) {
     dispatch({ type: "FETCH_DATE_ALBUMS_LIST" });
     Server.get("albums/date/list/", { timeout: 100000 })
       .then((response) => {
@@ -473,12 +473,10 @@ export function fetchDateAlbumsList() {
       .catch((err) => {
         dispatch({ type: "FETCH_DATE_ALBUMS_LIST_REJECTED", payload: err });
       });
-  };
 }
 
 //actions using new retrieve view in backend
-export function fetchAlbumsAutoGalleries(album_id: string) {
-  return function (dispatch: Dispatch<any>) {
+export function fetchAlbumsAutoGalleries(dispatch: AppDispatch, album_id: string) {
     dispatch({ type: "FETCH_AUTO_ALBUMS_RETRIEVE" });
     Server.get(`albums/auto/${album_id}/`)
       .then((response) => {
@@ -491,11 +489,9 @@ export function fetchAlbumsAutoGalleries(album_id: string) {
       .catch((err) => {
         dispatch({ type: "FETCH_AUTO_ALBUMS_RETRIEVE_REJECTED", payload: err });
       });
-  };
 }
 
-export function fetchAlbumsDateGalleries(album_id: string) {
-  return function (dispatch: Dispatch<any>) {
+export function fetchAlbumsDateGalleries(dispatch: AppDispatch, album_id: string) {
     dispatch({
       type: "FETCH_DATE_ALBUMS_RETRIEVE",
       payload: {
@@ -517,7 +513,6 @@ export function fetchAlbumsDateGalleries(album_id: string) {
         console.log(err);
         dispatch({ type: "FETCH_DATE_ALBUMS_RETRIEVE_REJECTED", payload: err });
       });
-  };
 }
 
 // share user album

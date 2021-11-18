@@ -99,28 +99,26 @@ export const FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED =
   "FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED";
 export const FETCH_RECENTLY_ADDED_PHOTOS_REJECTED =
   "FETCH_RECENTLY_ADDED_PHOTOS_REJECTED";
-export function fetchRecentlyAddedPhotos() {
-  return function (dispatch: Dispatch<any>) {
-    dispatch({ type: FETCH_RECENTLY_ADDED_PHOTOS });
-    Server.get("photos/recentlyadded/")
-      .then((response) => {
-        const data = _RecentlyAddedResponseDataSchema.parse(response.data);
-        const photosFlat: PigPhoto[] = data.results;
-        dispatch({
-          type: FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED,
-          payload: {
-            photosFlat: photosFlat,
-            date: response.data.date,
-          },
-        });
-      })
-      .catch((error) => {
-        dispatch({
-          type: FETCH_RECENTLY_ADDED_PHOTOS_REJECTED,
-          payload: error,
-        });
+export function fetchRecentlyAddedPhotos(dispatch: AppDispatch) {
+  dispatch({ type: FETCH_RECENTLY_ADDED_PHOTOS });
+  Server.get("photos/recentlyadded/")
+    .then((response) => {
+      const data = _RecentlyAddedResponseDataSchema.parse(response.data);
+      const photosFlat: PigPhoto[] = data.results;
+      dispatch({
+        type: FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED,
+        payload: {
+          photosFlat: photosFlat,
+          date: response.data.date,
+        },
       });
-  };
+    })
+    .catch((error) => {
+      dispatch({
+        type: FETCH_RECENTLY_ADDED_PHOTOS_REJECTED,
+        payload: error,
+      });
+    });
 }
 
 const _PigPhotoListResponseSchema = z.object({ results: PigPhotoSchema.array() })
@@ -466,8 +464,7 @@ export const FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED =
   "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED";
 export const FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED =
   "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED";
-export function fetchNoTimestampPhotoPaginated(page: number) {
-  return function (dispatch: Dispatch<any>) {
+export function fetchNoTimestampPhotoPaginated(dispatch: AppDispatch, page: number) {
     dispatch({ type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED });
     Server.get(`photos/notimestamp/?page=${page}`, { timeout: 100000 })
       .then((response) => {
@@ -487,7 +484,6 @@ export function fetchNoTimestampPhotoPaginated(page: number) {
           payload: err,
         });
       });
-  };
 }
 
 const _PhotosCountResponseSchema = z.object({ photosCount: z.number() })
@@ -497,8 +493,7 @@ export const FETCH_NO_TIMESTAMP_PHOTOS_COUNT_FULFILLED =
   "FETCH_NO_TIMESTAMP_PHOTOS_COUNT_FULFILLED";
 export const FETCH_NO_TIMESTAMP_PHOTOS_COUNT_REJECTED =
   "FETCH_NO_TIMESTAMP_PHOTOS_COUNT_REJECTED";
-export function fetchNoTimestampPhotoCount() {
-  return function (dispatch: Dispatch<any>) {
+export function fetchNoTimestampPhotoCount(dispatch: AppDispatch) {
     dispatch({ type: FETCH_NO_TIMESTAMP_PHOTOS_COUNT });
     Server.get(`photos/notimestamp/count`, { timeout: 100000 })
       .then((response) => {
@@ -517,7 +512,6 @@ export function fetchNoTimestampPhotoCount() {
           payload: err,
         });
       });
-  };
 }
 
 export function generatePhotoIm2txtCaption(image_hash: string) {
