@@ -7,6 +7,7 @@ import face_recognition
 import numpy as np
 import PIL
 import pytz
+from timezonefinder import TimezoneFinder
 from django.contrib.postgres.fields import ArrayField
 from django.core.cache import cache
 from django.core.files.base import ContentFile
@@ -353,6 +354,15 @@ class Photo(models.Model):
         if commit:
             self.save()
 
+    def _try_getting_timezone_from_geolocation(self, timestamp):
+        if self.exif_gps_lon and self.exif_gps_lat:
+            tzfinder = TimezoneFinder()
+            tz_name = tzfinder.timezone_at(lng=self.exif_gps_lon, lat=self.exif_gps_lat)
+            util.logger.info(f"{self.image_paths[0]} marked as timezone {tz_name} based on lat/lon {self.exif_gps_lat}/{self.exif_gps_lon}")
+            if tz_name:
+                return timestamp.astimezone(pytz.timezone(tz_name))
+        return timestamp
+
     def _extract_date_time_from_exif(self, commit=True):
         date_format = "%Y:%m:%d %H:%M:%S"
         timestamp_from_exif = None
@@ -371,6 +381,11 @@ class Photo(models.Model):
         if exifvideo:
             try:
                 timestamp_from_exif = datetime.strptime(exifvideo, date_format).replace(
+                    tzinfo=pytz.utc
+                )
+                # Try to get actual timezone using geolocation before stripping it off to get correct local time for video
+                # Video timestamp expected to be in UTC (as per standard)
+                timestamp_from_exif = self._try_getting_timezone_from_geolocation(timestamp_from_exif).replace(
                     tzinfo=pytz.utc
                 )
             except Exception:
