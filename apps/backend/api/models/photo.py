@@ -478,7 +478,14 @@ class Photo(models.Model):
                 )
             album_place.photos.add(self)
             album_place.save()
-        # Add location to album dates
+
+        if commit:
+            self.save()
+
+
+    def _add_location_to_album_dates(self):
+        if not self.geolocation_json:
+            return
         album_date = self._find_album_date()
         city_name = [
             f["text"]
@@ -495,8 +502,6 @@ class Photo(models.Model):
         else:
             album_date.location = {"places": [city_name]}
         # Safe geolocation_json
-        if commit:
-            self.save()
         album_date.save()
         cache.clear()
 

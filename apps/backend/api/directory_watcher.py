@@ -151,6 +151,13 @@ def handle_new_image(user, image_path, job_id):
                         job_id, img_abs_path, elapsed
                     )
                 )
+                photo._add_location_to_album_dates()
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                util.logger.info(
+                    "job {}: add location to album dates: {}, elapsed: {}".format(
+                        job_id, img_abs_path, elapsed
+                    )
+                )
                 photo._extract_rating(True)
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
@@ -208,6 +215,7 @@ def rescan_image(user, image_path, job_id):
             photo._calculate_aspect_ratio(False)
             photo._geolocate_mapbox(True)
             photo._extract_date_time_from_exif(True)
+            photo._add_location_to_album_dates()
             photo._extract_rating(True)
             photo._get_dominant_color()
 
