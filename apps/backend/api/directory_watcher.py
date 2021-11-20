@@ -137,6 +137,13 @@ def handle_new_image(user, image_path, job_id):
                         job_id, img_abs_path, elapsed
                     )
                 )
+                photo._geolocate_mapbox(True)
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                util.logger.info(
+                    "job {}: geolocate: {}, elapsed: {}".format(
+                        job_id, img_abs_path, elapsed
+                    )
+                )
                 photo._extract_date_time_from_exif(True)
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
@@ -144,10 +151,10 @@ def handle_new_image(user, image_path, job_id):
                         job_id, img_abs_path, elapsed
                     )
                 )
-                photo._geolocate_mapbox(True)
+                photo._add_location_to_album_dates()
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
-                    "job {}: geolocate: {}, elapsed: {}".format(
+                    "job {}: add location to album dates: {}, elapsed: {}".format(
                         job_id, img_abs_path, elapsed
                     )
                 )
@@ -206,8 +213,9 @@ def rescan_image(user, image_path, job_id):
             photo = Photo.objects.filter(Q(image_paths__contains=image_path)).get()
             photo._generate_thumbnail(True)
             photo._calculate_aspect_ratio(False)
-            photo._extract_date_time_from_exif(True)
             photo._geolocate_mapbox(True)
+            photo._extract_date_time_from_exif(True)
+            photo._add_location_to_album_dates()
             photo._extract_rating(True)
             photo._get_dominant_color()
 
