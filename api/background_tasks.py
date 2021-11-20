@@ -26,6 +26,7 @@ def geolocate(overwrite=False):
         try:
             logger.info("geolocating %s" % photo.image_path)
             photo._geolocate_mapbox()
+            photo._add_location_to_album_dates()
         except Exception:
             logger.exception("could not geolocate photo: " + photo)
 
