@@ -2,11 +2,13 @@ import datetime
 import hashlib
 import os
 import stat
+import multiprocessing
 from multiprocessing import Pool
 
 import magic
 import pytz
 import pyvips
+import torch
 from django import db
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -17,6 +19,7 @@ import api.util as util
 import ownphotos.settings
 from api.batch_jobs import create_batch_job
 from api.models import Face, LongRunningJob, Photo
+from api.directory_watcher_initializer import initialize_scan_process
 from api.places365.places365 import place365_instance
 from api.thumbnails import isRawPicture
 
@@ -278,27 +281,6 @@ def photo_scanner(user, last_scan, full_scan, path, job_id):
         )
 
 
-def initialize_scan_process(*args, **kwargs):
-    """
-    Each process will have its own exiftool instance
-    so we need to start _and_ stop it for each process.
-    multiprocessing.util.Finalize is _undocumented_ and
-    should perhaps not be relied on but I found no other
-    way. (See https://stackoverflow.com/a/24724452)
-
-    """
-    from multiprocessing.util import Finalize
-
-    from api.util import exiftool_instance
-
-    et = exiftool_instance.__enter__()
-
-    def terminate(et):
-        et.terminate()
-
-    Finalize(et, terminate, args=(et,), exitpriority=16)
-
-
 @job
 def scan_photos(user, full_scan, job_id):
     if not os.path.exists(
@@ -340,9 +322,19 @@ def scan_photos(user, full_scan, job_id):
         lrj.save()
         db.connections.close_all()
 
-        with Pool(
+        if ownphotos.settings.HEAVYWEIGHT_PROCESS > 1:
+            num_threads = max(1, torch.get_num_threads() // ownphotos.settings.HEAVYWEIGHT_PROCESS)
+            mp = multiprocessing.get_context("spawn")
+            method = "spawn"
+        else:
+            num_threads = None
+            mp = multiprocessing
+            method = multiprocessing.get_all_start_methods()[0]
+
+        with mp.Pool(
             processes=ownphotos.settings.HEAVYWEIGHT_PROCESS,
             initializer=initialize_scan_process,
+            initargs=(num_threads, method)
         ) as pool:
             pool.starmap(photo_scanner, all)
 
