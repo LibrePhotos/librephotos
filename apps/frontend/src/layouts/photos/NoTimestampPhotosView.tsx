@@ -1,8 +1,7 @@
 import {
   fetchNoTimestampPhotoPaginated,
 } from "../../actions/photosActions";
-import throttle from "lodash";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import _ from "lodash";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType, PhotosState } from "../../reducers/photosReducer";
@@ -19,18 +18,20 @@ export const NoTimestampPhotosView = () => {
       fetchNoTimestampPhotoPaginated(dispatch, 1);
     }
   }, [dispatch]); // Only run on first render
-
-
+  
+  
   const getImages = (visibleItems: any) => {
     if (visibleItems.filter((i: any) => i.isTemp && i.isTemp != undefined).length > 0) {
       var firstTempObject = visibleItems.filter((i: any) => i.isTemp)[0];
       var page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
       if (page > 1 && !pages.includes(page)) {
-          setPages([...pages, page]);
-          fetchNoTimestampPhotoPaginated(dispatch, page);
+        setPages([...pages, page]);
+        fetchNoTimestampPhotoPaginated(dispatch, page);
       }
     };
   }
+  
+  const throttledGetImages = useRef(_.throttle(visibleItems => getImages(visibleItems), 500)).current;
 
   return (
       <PhotoListView
@@ -42,10 +43,9 @@ export const NoTimestampPhotosView = () => {
         idx2hash={photosFlat}
         numberOfItems={numberOfPhotos}
         updateItems={(visibleItems: any) => 
-          throttle((getImages(visibleItems), 500))
+          throttledGetImages(visibleItems)
         }
         selectable={true}
       />
-  
   );
 }
