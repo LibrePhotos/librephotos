@@ -1,8 +1,8 @@
 import React from "react";
 import { connect } from "react-redux";
-import { isAuthenticated } from "../reducers";
+import { isRefreshTokenExpired } from "../reducers";
 // Router and Switch are needed Breaks site if not in import. DW
-import { Route, Redirect } from "react-router-dom";
+import { Switch, Route, Redirect } from "react-router-dom";
 import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../ui-constants";
 
 const PrivateRoute = ({
@@ -11,38 +11,31 @@ const PrivateRoute = ({
   showSidebar,
   ...rest
 }) => {
-  return (
+  return isAuthenticated ? (
     <Route
       {...rest}
-      render={(props) =>
-        isAuthenticated ? (
-          <div>
-            <div
-              style={{
-                paddingLeft: showSidebar ? LEFT_MENU_WIDTH + 5 : 5,
-                paddingRight: 0,
-              }}
-            >
-              <div style={{ paddingTop: TOP_MENU_HEIGHT }}>
-                <Component {...props} />
-              </div>
+      render={(props) => (
+        <div>
+          <div
+            style={{
+              paddingLeft: showSidebar ? LEFT_MENU_WIDTH + 5 : 5,
+              paddingRight: 0,
+            }}
+          >
+            <div style={{ paddingTop: TOP_MENU_HEIGHT }}>
+              <Component {...props} />
             </div>
           </div>
-        ) : (
-          <Redirect
-            to={{
-              pathname: "/login",
-              state: { from: props.location },
-            }}
-          />
-        )
-      }
+        </div>
+      )}
     />
+  ) : (
+    <Redirect to="/login" />
   );
 };
 
 const mapStateToProps = (state) => ({
-  isAuthenticated: isAuthenticated,
+  isAuthenticated: !isRefreshTokenExpired(state),
   showSidebar: state.ui.showSidebar,
 });
 
