@@ -217,7 +217,7 @@ export default function photosReducer(
     case FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED: {
       var fetched_page = action.payload.fetchedPage;
       var photos_count = action.payload.photosCount;
-      var current_photos = action.payload.photosFlat;
+      var current_photos = state.photosFlat;
       if(fetched_page == 1){
         current_photos = addTempElementsToFlatList(photos_count)
       }
