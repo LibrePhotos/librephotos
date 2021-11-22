@@ -23,6 +23,9 @@ export class TopMenu extends Component {
   state = {
     width: window.innerWidth,
   };
+  throttledFetchUserSelfDetails = _.throttle(user_id => {
+    return this.props.dispatch(fetchUserSelfDetails(user_id));
+  }, 500, {leading: true, trailing: false});
 
   constructor(props) {
     super(props);
@@ -34,15 +37,19 @@ export class TopMenu extends Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    if (!this.props.auth.access && nextProps.auth.access) {
-      this.props.dispatch(fetchUserSelfDetails(nextProps.auth.access.user_id));
-      var _dispatch = this.props.dispatch;
-      this.setState({ dispatch: _dispatch });
-      var intervalId = setInterval(() => {
-        _dispatch(fetchWorkerAvailability(nextProps.workerRunningJob));
-      }, 2000);
-      this.setState({ intervalId: intervalId });
-    }
+    if (!nextProps.auth.access)
+      return;
+    if (this.props.userSelfDetails && (this.props.userSelfDetails.id === nextProps.auth.access.user_id))
+      return;
+    
+    this.throttledFetchUserSelfDetails(nextProps.auth.access.user_id);
+  }
+
+  componentDidMount() {
+    var intervalId = setInterval(() => {
+      this.props.dispatch(fetchWorkerAvailability(this.props.workerRunningJob));
+    }, 2000);
+    this.setState({ intervalId: intervalId });
   }
 
   componentWillUnmount() {
@@ -121,8 +128,8 @@ export class TopMenu extends Component {
                     ? "Worker available! You can start scanning more photos, infer face labels, auto create event albums, or regenerate auto event album titles."
                     : !this.props.workerAvailability &&
                       this.props.workerRunningJob
-                    ? runningJobPopupProgress
-                    : "Busy..."
+                      ? runningJobPopupProgress
+                      : "Busy..."
                 }
               />
 
@@ -133,9 +140,9 @@ export class TopMenu extends Component {
                       avatar
                       src={
                         this.props.userSelfDetails &&
-                        this.props.userSelfDetails.avatar_url
+                          this.props.userSelfDetails.avatar_url
                           ? serverAddress +
-                            this.props.userSelfDetails.avatar_url
+                          this.props.userSelfDetails.avatar_url
                           : "/unknown_user.jpg"
                       }
                     />
