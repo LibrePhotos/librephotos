@@ -7,7 +7,6 @@ import rootReducer from "./reducers";
 import appHistory from "./history";
 import { routerMiddleware } from "connected-react-router";
 
-import { useDispatch } from 'react-redux'
 declare global {
   interface Window {
     __REDUX_DEVTOOLS_EXTENSION_COMPOSE__?: typeof compose;
@@ -25,7 +24,7 @@ const configureStore = () => {
       whitelist: ["auth"],
       transforms: [persistedFilter],
     },
-    rootReducer(appHistory)
+    rootReducer
   );
 
   const store = createStore(
@@ -40,7 +39,6 @@ const configureStore = () => {
 };
 
 const store = configureStore()
-console.log(store)
 export type RootState = ReturnType<typeof store.getState>
 export type AppDispatch = typeof store.dispatch
 export default store;

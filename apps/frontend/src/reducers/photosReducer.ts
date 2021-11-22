@@ -379,7 +379,9 @@ export default function photosReducer(
     case FETCH_PERSON_PHOTOS_REJECTED: {
       return resetPhotos(state, action.payload);
     }
-
+    case "LOGOUT":{
+      return resetPhotos(state, action.payload);
+    }
     default: {
       return { ...state };
     }
