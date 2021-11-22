@@ -36,7 +36,7 @@ export const TimestampPhotos = () => {
         isDateView={true}
         photoset={photosGroupedByDate}
         idx2hash={photosFlat}
-        updateGroups={(visibleGroups: any) => throttledGetAlbums(visibleGroups)}
+        updateGroups={throttledGetAlbums}
         selectable={true}
       />
   );
