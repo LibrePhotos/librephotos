@@ -168,7 +168,6 @@ class App extends Component {
 }
 
 App = connect((store) => {
-  console.log(store);
   return {
     showSidebar: store.ui.showSidebar,
     location: store.router.location,

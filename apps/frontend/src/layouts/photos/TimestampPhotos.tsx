@@ -1,9 +1,9 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import {
   fetchDateAlbumsList,
   fetchAlbumsDateGalleries,
 } from "../../actions/albumsActions";
-import throttle from "lodash";
+import _ from "lodash";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType, PhotosState } from "../../reducers/photosReducer";
 import { useAppDispatch, useAppSelector } from "../../hooks";
@@ -26,6 +26,8 @@ export const TimestampPhotos = () => {
     });
   };
 
+  const throttledGetAlbums = useCallback(_.throttle(visibleItems => getAlbums(visibleItems), 500),[]);
+
   return (
     <PhotoListView
         title={"Photos"}
@@ -34,9 +36,7 @@ export const TimestampPhotos = () => {
         isDateView={true}
         photoset={photosGroupedByDate}
         idx2hash={photosFlat}
-        updateGroups={(visibleGroups: any) =>
-          throttle((getAlbums(visibleGroups), 500))
-        }
+        updateGroups={(visibleGroups: any) => throttledGetAlbums(visibleGroups)}
         selectable={true}
       />
   );

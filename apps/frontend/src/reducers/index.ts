@@ -33,9 +33,8 @@ const appReducer =
   });
   
 export default (state: ReturnType<typeof appReducer> | undefined, action: AnyAction) => {
-  /* if you are using RTK, you can import your action and use it's type property instead of the literal definition of the action  */
     if (action.type === "LOGOUT") {
-      return appReducer(undefined, { type: undefined });
+      state = undefined;
     }
   
     return appReducer(state, action);

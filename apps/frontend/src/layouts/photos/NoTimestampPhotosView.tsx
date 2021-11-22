@@ -1,7 +1,7 @@
 import {
   fetchNoTimestampPhotoPaginated,
 } from "../../actions/photosActions";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import _ from "lodash";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType, PhotosState } from "../../reducers/photosReducer";
@@ -31,7 +31,7 @@ export const NoTimestampPhotosView = () => {
     };
   }
   
-  const throttledGetImages = useRef(_.throttle(visibleItems => getImages(visibleItems), 500)).current;
+  const throttledGetImages = useCallback(_.throttle(visibleItems => getImages(visibleItems), 500),[]);
 
   return (
       <PhotoListView
