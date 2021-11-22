@@ -11,26 +11,33 @@ const PrivateRoute = ({
   showSidebar,
   ...rest
 }) => {
-  return isAuthenticated ? (
+  return (
     <Route
       {...rest}
-      render={(props) => (
-        <div>
-          <div
-            style={{
-              paddingLeft: showSidebar ? LEFT_MENU_WIDTH + 5 : 5,
-              paddingRight: 0,
-            }}
-          >
-            <div style={{ paddingTop: TOP_MENU_HEIGHT }}>
-              <Component {...props} />
+      render={(props) =>
+        isAuthenticated ? (
+          <div>
+            <div
+              style={{
+                paddingLeft: showSidebar ? LEFT_MENU_WIDTH + 5 : 5,
+                paddingRight: 0,
+              }}
+            >
+              <div style={{ paddingTop: TOP_MENU_HEIGHT }}>
+                <Component {...props} />
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <Redirect
+            to={{
+              pathname: "/login",
+              state: { from: props.location },
+            }}
+          />
+        )
+      }
     />
-  ) : (
-    <Redirect to="/login" />
   );
 };
 
