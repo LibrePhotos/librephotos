@@ -1,7 +1,7 @@
 import _ from "lodash";
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import { push } from "react-router-redux";
+import { push } from "connected-react-router";
 import "./menubars/TopMenu.css";
 import { Icon, Image, Search, Popup, Segment, Loader } from "semantic-ui-react";
 import {

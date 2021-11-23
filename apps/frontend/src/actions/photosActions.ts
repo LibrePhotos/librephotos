@@ -4,9 +4,10 @@ const reapop = require("reapop");
 const notify = reapop.notify;
 import { adjustDateFormat, getPhotosFlatFromGroupedByDate, getPhotosFlatFromGroupedByUser } from "../util/util";
 import { PhotosetType } from "../reducers/photosReducer";
-import { Dispatch } from "react";
+import { Dispatch } from "redux";
 import { DatePhotosGroup, DatePhotosGroupSchema, Photo, PhotoSchema, PigPhoto, PigPhotoSchema, SharedFromMePhotoSchema, SimpleUser } from "./photosActions.types";
 import { z } from "zod";
+import { AppDispatch } from "../store";
 
 export type UserPhotosGroup = {
   userId: number;
@@ -98,28 +99,26 @@ export const FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED =
   "FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED";
 export const FETCH_RECENTLY_ADDED_PHOTOS_REJECTED =
   "FETCH_RECENTLY_ADDED_PHOTOS_REJECTED";
-export function fetchRecentlyAddedPhotos() {
-  return function (dispatch: Dispatch<any>) {
-    dispatch({ type: FETCH_RECENTLY_ADDED_PHOTOS });
-    Server.get("photos/recentlyadded/")
-      .then((response) => {
-        const data = _RecentlyAddedResponseDataSchema.parse(response.data);
-        const photosFlat: PigPhoto[] = data.results;
-        dispatch({
-          type: FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED,
-          payload: {
-            photosFlat: photosFlat,
-            date: response.data.date,
-          },
-        });
-      })
-      .catch((error) => {
-        dispatch({
-          type: FETCH_RECENTLY_ADDED_PHOTOS_REJECTED,
-          payload: error,
-        });
+export function fetchRecentlyAddedPhotos(dispatch: AppDispatch) {
+  dispatch({ type: FETCH_RECENTLY_ADDED_PHOTOS });
+  Server.get("photos/recentlyadded/")
+    .then((response) => {
+      const data = _RecentlyAddedResponseDataSchema.parse(response.data);
+      const photosFlat: PigPhoto[] = data.results;
+      dispatch({
+        type: FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED,
+        payload: {
+          photosFlat: photosFlat,
+          date: response.data.date,
+        },
       });
-  };
+    })
+    .catch((error) => {
+      dispatch({
+        type: FETCH_RECENTLY_ADDED_PHOTOS_REJECTED,
+        payload: error,
+      });
+    });
 }
 
 const _PigPhotoListResponseSchema = z.object({ results: PigPhotoSchema.array() })
@@ -397,29 +396,26 @@ export function scanNextcloudPhotos() {
 }
 
 const _FetchPhotosByDateSchema = z.object({ results: DatePhotosGroupSchema.array() })
-export function fetchFavoritePhotos() {
-  return function (dispatch: Dispatch<any>) {
-    dispatch({ type: FETCH_PHOTOSET });
-    Server.get("photos/favorites/", { timeout: 100000 })
-      .then((response) => {
-        const data = _FetchPhotosByDateSchema.parse(response.data);
-        const photosGroupedByDate: DatePhotosGroup[] = data.results;
-        adjustDateFormat(photosGroupedByDate);
-        dispatch({
-          type: FETCH_PHOTOSET_FULFILLED,
-          payload: {
-            photosGroupedByDate: photosGroupedByDate,
-            photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
-            photosetType: PhotosetType.FAVORITES,
-          },
-        });
-      })
-      .catch((err) => { dispatch(fetchPhotosetRejected(err)) });
-  };
+export function fetchFavoritePhotos(dispatch: AppDispatch) {
+  dispatch({ type: FETCH_PHOTOSET });
+  Server.get("photos/favorites/", { timeout: 100000 })
+    .then((response) => {
+      const data = _FetchPhotosByDateSchema.parse(response.data);
+      const photosGroupedByDate: DatePhotosGroup[] = data.results;
+      adjustDateFormat(photosGroupedByDate);
+      dispatch({
+        type: FETCH_PHOTOSET_FULFILLED,
+        payload: {
+          photosGroupedByDate: photosGroupedByDate,
+          photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
+          photosetType: PhotosetType.FAVORITES,
+        },
+      });
+    })
+    .catch((err) => { dispatch(fetchPhotosetRejected(err)) });
 }
 
-export function fetchHiddenPhotos() {
-  return function (dispatch: Dispatch<any>) {
+export function fetchHiddenPhotos(dispatch: AppDispatch) {
     dispatch({ type: FETCH_PHOTOSET });
     Server.get("photos/hidden/", { timeout: 100000 })
       .then((response) => {
@@ -436,8 +432,8 @@ export function fetchHiddenPhotos() {
         });
       })
       .catch((err) => { dispatch(fetchPhotosetRejected(err)) });
-  };
-}
+  }
+
 
 export function fetchPhotoDetail(image_hash: string) {
   return function (dispatch: Dispatch<any>) {
@@ -468,18 +464,19 @@ export const FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED =
   "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED";
 export const FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED =
   "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED";
-export function fetchNoTimestampPhotoPaginated(page: number) {
-  return function (dispatch: Dispatch<any>) {
+export function fetchNoTimestampPhotoPaginated(dispatch: AppDispatch, page: number) {
     dispatch({ type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED });
     Server.get(`photos/notimestamp/?page=${page}`, { timeout: 100000 })
       .then((response) => {
         const data = _PaginatedPigPhotosSchema.parse(response.data);
         const photosFlat: PigPhoto[] = data.results;
+        const photosCount = data.count;
         dispatch({
           type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED,
           payload: {
             photosFlat: photosFlat,
             fetchedPage: page,
+            photosCount: photosCount
           },
         });
       })
@@ -489,37 +486,6 @@ export function fetchNoTimestampPhotoPaginated(page: number) {
           payload: err,
         });
       });
-  };
-}
-
-const _PhotosCountResponseSchema = z.object({ photosCount: z.number() })
-export const FETCH_NO_TIMESTAMP_PHOTOS_COUNT =
-  "FETCH_NO_TIMESTAMP_PHOTOS_COUNT";
-export const FETCH_NO_TIMESTAMP_PHOTOS_COUNT_FULFILLED =
-  "FETCH_NO_TIMESTAMP_PHOTOS_COUNT_FULFILLED";
-export const FETCH_NO_TIMESTAMP_PHOTOS_COUNT_REJECTED =
-  "FETCH_NO_TIMESTAMP_PHOTOS_COUNT_REJECTED";
-export function fetchNoTimestampPhotoCount() {
-  return function (dispatch: Dispatch<any>) {
-    dispatch({ type: FETCH_NO_TIMESTAMP_PHOTOS_COUNT });
-    Server.get(`photos/notimestamp/count`, { timeout: 100000 })
-      .then((response) => {
-        const data = _PhotosCountResponseSchema.parse(response.data);
-        const photosCount = data.photosCount;
-        dispatch({
-          type: FETCH_NO_TIMESTAMP_PHOTOS_COUNT_FULFILLED,
-          payload: {
-            photosCount: photosCount,
-          },
-        });
-      })
-      .catch((err) => {
-        dispatch({
-          type: FETCH_NO_TIMESTAMP_PHOTOS_COUNT_REJECTED,
-          payload: err,
-        });
-      });
-  };
 }
 
 export function generatePhotoIm2txtCaption(image_hash: string) {

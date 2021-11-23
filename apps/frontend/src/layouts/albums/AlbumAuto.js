@@ -6,7 +6,7 @@ import { Grid, AutoSizer } from "react-virtualized";
 import { serverAddress } from "../../api_client/apiClient";
 import LazyLoad from "react-lazyload";
 import { searchPhotos } from "../../actions/searchActions";
-import { push } from "react-router-redux";
+import { push } from "connected-react-router";
 import { Link } from "react-router-dom";
 import { Tile } from "../../components/Tile";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";

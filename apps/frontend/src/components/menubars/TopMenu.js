@@ -2,7 +2,7 @@ import _ from "lodash";
 import React, { Component } from "react";
 import "./TopMenu.css";
 import { connect } from "react-redux";
-import { push } from "react-router-redux";
+import { push } from "connected-react-router";
 import {
   Menu,
   Button,
@@ -23,6 +23,9 @@ export class TopMenu extends Component {
   state = {
     width: window.innerWidth,
   };
+  throttledFetchUserSelfDetails = _.throttle(user_id => {
+    return this.props.dispatch(fetchUserSelfDetails(user_id));
+  }, 500, {leading: true, trailing: false});
 
   constructor(props) {
     super(props);
@@ -33,12 +36,18 @@ export class TopMenu extends Component {
     this.setState({ width: window.innerWidth });
   }
 
+  componentWillReceiveProps(nextProps) {
+    if (!nextProps.auth.access)
+      return;
+    if (this.props.userSelfDetails && (this.props.userSelfDetails.id === nextProps.auth.access.user_id))
+      return;
+    
+    this.throttledFetchUserSelfDetails(nextProps.auth.access.user_id);
+  }
+
   componentDidMount() {
-    this.props.dispatch(fetchUserSelfDetails(this.props.auth.access.user_id));
-    var _dispatch = this.props.dispatch;
-    this.setState({ dispatch: _dispatch });
     var intervalId = setInterval(() => {
-      _dispatch(fetchWorkerAvailability(this.props.workerRunningJob));
+      this.props.dispatch(fetchWorkerAvailability(this.props.workerRunningJob));
     }, 2000);
     this.setState({ intervalId: intervalId });
   }
@@ -119,8 +128,8 @@ export class TopMenu extends Component {
                     ? "Worker available! You can start scanning more photos, infer face labels, auto create event albums, or regenerate auto event album titles."
                     : !this.props.workerAvailability &&
                       this.props.workerRunningJob
-                    ? runningJobPopupProgress
-                    : "Busy..."
+                      ? runningJobPopupProgress
+                      : "Busy..."
                 }
               />
 
@@ -131,9 +140,9 @@ export class TopMenu extends Component {
                       avatar
                       src={
                         this.props.userSelfDetails &&
-                        this.props.userSelfDetails.avatar_url
+                          this.props.userSelfDetails.avatar_url
                           ? serverAddress +
-                            this.props.userSelfDetails.avatar_url
+                          this.props.userSelfDetails.avatar_url
                           : "/unknown_user.jpg"
                       }
                     />
@@ -144,7 +153,8 @@ export class TopMenu extends Component {
               >
                 <Dropdown.Menu>
                   <Dropdown.Header>
-                    Logged in as {this.props.auth.access.name}
+                    Logged in as{" "}
+                    {this.props.auth.access ? this.props.auth.access.name : ""}
                   </Dropdown.Header>
                   <Dropdown.Item onClick={() => this.props.dispatch(logout())}>
                     <Icon name="sign out" />
@@ -156,9 +166,10 @@ export class TopMenu extends Component {
                     <Icon name="settings" />
                     <b>Settings</b>
                   </Dropdown.Item>
-                  {this.props.auth.access.is_admin && <Dropdown.Divider />}
+                  {this.props.auth.access &&
+                    this.props.auth.access.is_admin && <Dropdown.Divider />}
 
-                  {this.props.auth.access.is_admin && (
+                  {this.props.auth.access && this.props.auth.access.is_admin && (
                     <Dropdown.Item
                       onClick={() => this.props.dispatch(push("/admin"))}
                     >

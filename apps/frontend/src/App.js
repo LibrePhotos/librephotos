@@ -1,13 +1,11 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
 import { Route, Switch } from "react-router-dom";
-import { ConnectedRouter } from "react-router-redux";
 import NotificationSystem from "reapop";
 import theme from "reapop-theme-wybo";
 import "./App.css";
 import { CountStats } from "./components/statistics";
 import Login from "./containers/login";
-import history from "./history";
 import {
   FaceScatter,
   Graph,
@@ -40,12 +38,15 @@ import { AdminPage } from "./layouts/settings/AdminPage";
 import { Statistics } from "./layouts/dataviz/Statistics";
 import { UserPublicPage } from "./layouts/public/UserPublicPage";
 import { PublicUserList } from "./layouts/public/PublicUserList";
-import { LocationClusterMap } from "./components/maps";
 import { SharedToMe } from "./layouts/sharing/SharedToMe";
 import { SharedFromMe } from "./layouts/sharing/SharedFromMe";
 import "semantic-ui-css/semantic.min.css";
 import { AlbumPlace } from "./layouts/albums/AlbumPlace";
 import { TimestampPhotos } from "./layouts/photos/TimestampPhotos";
+
+import appHistory from "./history";
+
+import { ConnectedRouter } from "connected-react-router";
 class Nav extends React.Component {
   render() {
     return (
@@ -62,10 +63,10 @@ const noMenubarPaths = ["/signup", "/login"];
 class App extends Component {
   render() {
     return (
-      <ConnectedRouter history={history}>
-        <div>
+      <div>
+        <ConnectedRouter history={appHistory}>
           <NotificationSystem theme={theme} />
-          {this.props.location &&
+          {this.props.location.pathname &&
           !noMenubarPaths.includes(this.props.location.pathname) &&
           !(
             this.props.location.pathname.startsWith("/public") ||
@@ -78,7 +79,7 @@ class App extends Component {
           )}
 
           <Switch>
-            <PrivateRoute exact path="/" component={TimestampPhotos} />
+            <PrivateRoute path="/" component={TimestampPhotos} exact />
 
             <Route path="/login" component={Login} />
 
@@ -160,8 +161,8 @@ class App extends Component {
             <PrivateRoute path="/facescatter" component={FaceScatter} />
             <PrivateRoute path="/countstats" component={CountStats} />
           </Switch>
-        </div>
-      </ConnectedRouter>
+        </ConnectedRouter>
+      </div>
     );
   }
 }
@@ -169,7 +170,7 @@ class App extends Component {
 App = connect((store) => {
   return {
     showSidebar: store.ui.showSidebar,
-    location: store.routerReducer.location,
+    location: store.router.location,
   };
 })(App);
 

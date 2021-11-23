@@ -6,12 +6,9 @@ import {
   FETCH_USER_ALBUM_REJECTED,
 } from "../actions/albumsActions";
 import {
-  FETCH_NO_TIMESTAMP_PHOTOS_COUNT,
   FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED,
-  FETCH_NO_TIMESTAMP_PHOTOS_COUNT_FULFILLED,
   FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED,
   FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED,
-  FETCH_NO_TIMESTAMP_PHOTOS_COUNT_REJECTED,
   FETCH_PHOTOSET,
   FETCH_PHOTOSET_FULFILLED,
   FETCH_PHOTOSET_REJECTED,
@@ -47,7 +44,7 @@ export enum PhotosetType {
   SHARED_BY_ME = "sharedByMe",
 }
 
-interface PhotosState {
+export interface PhotosState {
   scanningPhotos: boolean,
   scannedPhotos: boolean,
   error: string | null,
@@ -214,35 +211,25 @@ export default function photosReducer(
         photosGroupedByDate: action.payload.photosGroupedByDate,
       };
     }
-
-    case FETCH_NO_TIMESTAMP_PHOTOS_COUNT: {
-      return { ...state };
-    }
-    case FETCH_NO_TIMESTAMP_PHOTOS_COUNT_FULFILLED: {
-      return {
-        ...state,
-        numberOfPhotos: action.payload.photosCount,
-        photosFlat: addTempElementsToFlatList(action.payload.photosCount),
-        fetchedPhotosetType: PhotosetType.NO_TIMESTAMP,
-      };
-    }
-    case FETCH_NO_TIMESTAMP_PHOTOS_COUNT_REJECTED: {
-      return resetPhotos(state, action.payload);
-    }
-
     case FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED: {
-      return { ...state };
+      return { ...state, };
     }
     case FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED: {
       var fetched_page = action.payload.fetchedPage;
-      newPhotosFlat = state.photosFlat
+      var photos_count = action.payload.photosCount;
+      var current_photos = [...state.photosFlat];
+      if(fetched_page == 1){
+        current_photos = addTempElementsToFlatList(photos_count)
+      }
+      newPhotosFlat = current_photos
         .slice(0, (fetched_page - 1) * 100)
         .concat(action.payload.photosFlat)
-        .concat(state.photosFlat.slice(fetched_page * 100));
+        .concat(current_photos.slice(fetched_page * 100));
       return {
         ...state,
         photosFlat: newPhotosFlat,
         fetchedPhotosetType: PhotosetType.NO_TIMESTAMP,
+        numberOfPhotos: photos_count,
       };
     }
     case FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED: {
@@ -392,7 +379,9 @@ export default function photosReducer(
     case FETCH_PERSON_PHOTOS_REJECTED: {
       return resetPhotos(state, action.payload);
     }
-
+    case "LOGOUT":{
+      return resetPhotos(state, action.payload);
+    }
     default: {
       return { ...state };
     }

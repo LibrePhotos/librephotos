@@ -9,6 +9,12 @@ const initialState = {
 
 export default (state = initialState, action) => {
   switch (action.type) {
+    case "LOGOUT":
+      return {
+        access: undefined,
+        refresh: undefined,
+        errors: {},
+      };
     case "LOGIN_FULFILLED":
       return {
         access: {
