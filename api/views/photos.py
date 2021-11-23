@@ -165,25 +165,6 @@ class NoTimestampPhotoHashListViewSet(viewsets.ModelViewSet):
         return super(NoTimestampPhotoHashListViewSet, self).list(*args, **kwargs)
 
 
-class NoTimestampPhotoCount(APIView):
-    """
-    A view that returns the count of the number of non timestamped photos in JSON.
-    """
-
-    renderer_classes = (JSONRenderer,)
-
-    def get(self, request, format=None):
-        return Response(
-            {
-                "photosCount": Photo.visible.filter(
-                    Q(exif_timestamp=None) & Q(owner=request.user)
-                )
-                .order_by("added_on")
-                .count()
-            }
-        )
-
-
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class NoTimestampPhotoViewSet(viewsets.ModelViewSet):
     serializer_class = PigPhotoSerilizer
