@@ -109,8 +109,9 @@ export class AlbumAutoGalleryView extends Component {
   componentDidMount() {
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
-    this.props.dispatch(
-      fetchAlbumsAutoGalleries(this.props.match.params.albumID)
+    fetchAlbumsAutoGalleries(
+      this.props.dispatch,
+      this.props.match.params.albumID
     );
   }
 
