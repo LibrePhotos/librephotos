@@ -3,16 +3,15 @@ import os
 from datetime import datetime
 from io import BytesIO
 
-import face_recognition
 import numpy as np
 import PIL
 import pytz
-from timezonefinder import TimezoneFinder
 from django.contrib.postgres.fields import ArrayField
 from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.db import models
 from django.db.models import Q
+from timezonefinder import TimezoneFinder
 
 import api.models
 import api.util as util
@@ -358,7 +357,9 @@ class Photo(models.Model):
         if self.exif_gps_lon and self.exif_gps_lat:
             tzfinder = TimezoneFinder()
             tz_name = tzfinder.timezone_at(lng=self.exif_gps_lon, lat=self.exif_gps_lat)
-            util.logger.info(f"{self.image_paths[0]} marked as timezone {tz_name} based on lat/lon {self.exif_gps_lat}/{self.exif_gps_lon}")
+            util.logger.info(
+                f"{self.image_paths[0]} marked as timezone {tz_name} based on lat/lon {self.exif_gps_lat}/{self.exif_gps_lon}"
+            )
             if tz_name:
                 return timestamp.astimezone(pytz.timezone(tz_name))
         return timestamp
@@ -385,9 +386,9 @@ class Photo(models.Model):
                 )
                 # Try to get actual timezone using geolocation before stripping it off to get correct local time for video
                 # Video timestamp expected to be in UTC (as per standard)
-                timestamp_from_exif = self._try_getting_timezone_from_geolocation(timestamp_from_exif).replace(
-                    tzinfo=pytz.utc
-                )
+                timestamp_from_exif = self._try_getting_timezone_from_geolocation(
+                    timestamp_from_exif
+                ).replace(tzinfo=pytz.utc)
             except Exception:
                 timestamp_from_exif = None
 
@@ -482,7 +483,6 @@ class Photo(models.Model):
         if commit:
             self.save()
 
-
     def _add_location_to_album_dates(self):
         if not self.geolocation_json:
             return
@@ -517,6 +517,8 @@ class Photo(models.Model):
                 self.save(save_metadata=False)
 
     def _extract_faces(self):
+        import face_recognition
+
         qs_unknown_person = api.models.person.Person.objects.filter(name="unknown")
         if qs_unknown_person.count() == 0:
             unknown_person = api.models.person.Person(name="unknown")
