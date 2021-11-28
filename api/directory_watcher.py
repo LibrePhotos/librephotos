@@ -340,6 +340,19 @@ def scan_photos(user, full_scan, job_id):
         lrj.save()
         db.connections.close_all()
 
+        if ownphotos.settings.HEAVYWEIGHT_PROCESS > 1:
+            import torch
+
+            num_threads = max(
+                1, torch.get_num_threads() // ownphotos.settings.HEAVYWEIGHT_PROCESS
+            )
+            torch.set_num_threads(num_threads)
+            os.environ["OMP_NUM_THREADS"] = str(num_threads)
+            # important timing - we need to have no import in the models' modules so that
+            # we can import here: after setting OMP_NUM_THREADS (so that there is no work congestion,
+            # but before forking so that we can save on shared data loaded at module import.
+            import face_recognition  # noqa: F401
+
         with Pool(
             processes=ownphotos.settings.HEAVYWEIGHT_PROCESS,
             initializer=initialize_scan_process,
@@ -410,6 +423,10 @@ def scan_faces(user, job_id):
         lrj.result = {"progress": {"current": 0, "target": existing_photos.count()}}
         lrj.save()
         db.connections.close_all()
+
+        # Import before forking so that we can save on shared data loaded at module import.
+        import face_recognition  # noqa: F401
+
         with Pool(processes=ownphotos.settings.HEAVYWEIGHT_PROCESS) as pool:
             pool.starmap(face_scanner, all)
 
