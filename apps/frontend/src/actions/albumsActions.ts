@@ -391,9 +391,9 @@ export function fetchPersonPhotos(person_id: string) {
 
 const PersonSchema = z.object({
   name: z.string(),
-  face_url: z.string(),
+  face_url: z.string().nullable(),
   face_count: z.number(),
-  face_photo_url: z.string(),
+  face_photo_url: z.string().nullable(),
   id: z.number(),
   newPersonName: z.string().optional(),
 })
@@ -409,6 +409,7 @@ const PhotoSimpleSchema = z.object({
   public: z.boolean(),
   video: z.boolean(),
 })
+
 const AutoAlbumSchema = z.object({
   id: z.number(),
   title: z.string(),

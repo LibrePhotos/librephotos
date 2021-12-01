@@ -109,8 +109,9 @@ export class AlbumAutoGalleryView extends Component {
   componentDidMount() {
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
-    this.props.dispatch(
-      fetchAlbumsAutoGalleries(this.props.match.params.albumID)
+    fetchAlbumsAutoGalleries(
+      this.props.dispatch,
+      this.props.match.params.albumID
     );
   }
 
@@ -198,9 +199,6 @@ export class AlbumAutoGalleryView extends Component {
       var photos = _.sortBy(album.photos, "exif_timestamp").map((el, idx) => {
         return { ...el, idx: idx };
       });
-      var idx2hash = _.sortBy(album.photos, "exif_timestamp").map(
-        (el, idx) => el.image_hash
-      );
       var byDate = _.groupBy(
         _.sortBy(photos, "exif_timestamp"),
         (photo) => photo.exif_timestamp.split("T")[0]
@@ -433,10 +431,19 @@ export class AlbumAutoGalleryView extends Component {
       );
     } else {
       return (
-        <div>
-          <Dimmer active>
-            <Loader active />
-          </Dimmer>
+        <div style={{ height: 60, paddingTop: 10 }}>
+          <Header as="h4">
+            <Header.Content>
+              {this.props.fetchingAlbumsAutoGalleries
+                ? "Loading..."
+                : "No images found"}
+              <Loader
+                inline
+                active={this.props.fetchingAlbumsAutoGalleries}
+                size="mini"
+              />
+            </Header.Content>
+          </Header>
         </div>
       );
     }

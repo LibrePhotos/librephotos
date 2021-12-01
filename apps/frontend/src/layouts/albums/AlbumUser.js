@@ -34,6 +34,7 @@ export class AlbumUser extends Component {
       entrySquareSize: 200,
       openDeleteDialog: false,
       openRenameDialog: false,
+      numEntrySquaresPerRow: 1,
       albumID: "",
       albumTitle: "",
       newAlbumTitle: "",
@@ -276,8 +277,8 @@ export class AlbumUser extends Component {
               rowHeight={this.state.entrySquareSize + 60}
               rowCount={Math.ceil(
                 this.props.albumsUserList.length /
-                  this.state.numEntrySquaresPerRow.toFixed(1)
-              )}
+                  this.state.numEntrySquaresPerRow
+              ).toFixed(1)}
               width={width}
             />
           )}

@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
 import { fetchAutoAlbumsList } from "../../actions/albumsActions";
-import { Icon, Header, Loader, Image, Label } from "semantic-ui-react";
+import { Icon, Header, Loader, Image } from "semantic-ui-react";
 import { Grid, AutoSizer } from "react-virtualized";
 import { serverAddress } from "../../api_client/apiClient";
 import LazyLoad from "react-lazyload";
@@ -25,13 +25,13 @@ export class AlbumAuto extends Component {
   }
 
   componentDidMount() {
+    this.cellRenderer = this.cellRenderer.bind(this);
+    this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this);
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize);
     if (this.props.albumsAutoList.length === 0) {
       this.props.dispatch(fetchAutoAlbumsList());
     }
-    this.cellRenderer = this.cellRenderer.bind(this);
-    this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this);
   }
 
   calculateEntrySquareSize() {
