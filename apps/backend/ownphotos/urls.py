@@ -26,7 +26,7 @@ from rest_framework_simplejwt.serializers import (
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from api.views import albums, photos, views
+from api.views import album_auto, albums, photos, views
 from nextcloud import views as nextcloud_views
 
 schema_view = get_schema_view(
@@ -90,7 +90,7 @@ router.register(r"api/user", views.UserViewSet, basename="user")
 router.register(r"api/manage/user", views.ManageUserViewSet)
 
 router.register(
-    r"api/albums/auto/list", albums.AlbumAutoListViewSet, basename="album_auto"
+    r"api/albums/auto/list", album_auto.AlbumAutoListViewSet, basename="album_auto"
 )
 router.register(
     r"api/albums/date/list", views.AlbumDateListViewSet, basename="album_date"
@@ -128,7 +128,7 @@ router.register(
     basename="album_user",
 )
 
-router.register(r"api/albums/auto", albums.AlbumAutoViewSet, basename="album_auto")
+router.register(r"api/albums/auto", album_auto.AlbumAutoViewSet, basename="album_auto")
 router.register(r"api/albums/person", albums.AlbumPersonViewSet, basename="person")
 router.register(r"api/albums/date", views.AlbumDateViewSet, basename="album_date")
 router.register(r"api/albums/thing", albums.AlbumThingViewSet, basename="album_thing")
@@ -233,8 +233,8 @@ urlpatterns = [
     url(r"^api/fullscanphotos", views.FullScanPhotosView.as_view()),
     url(r"^api/scanfaces", views.ScanFacesView.as_view()),
     url(r"^api/deletemissingphotos", views.DeleteMissingPhotosView.as_view()),
-    url(r"^api/autoalbumgen", views.AutoAlbumGenerateView.as_view()),
-    url(r"^api/autoalbumtitlegen", views.RegenerateAutoAlbumTitles.as_view()),
+    url(r"^api/autoalbumgen", album_auto.AutoAlbumGenerateView.as_view()),
+    url(r"^api/autoalbumtitlegen", album_auto.RegenerateAutoAlbumTitles.as_view()),
     url(r"^api/searchtermexamples", views.SearchTermExamples.as_view()),
     url(r"^api/locationsunburst", views.LocationSunburst.as_view()),
     url(r"^api/locationtimeline", views.LocationTimeline.as_view()),

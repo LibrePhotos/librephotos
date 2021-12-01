@@ -32,11 +32,7 @@ from api.api_util import (
     get_searchterms_wordcloud,
     path_to_dict,
 )
-from api.autoalbum import (
-    delete_missing_photos,
-    generate_event_albums,
-    regenerate_event_titles,
-)
+from api.autoalbum import delete_missing_photos
 from api.directory_watcher import scan_faces, scan_photos
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 from api.face_classify import cluster_faces, train_faces
@@ -1273,26 +1269,6 @@ class DeleteMissingPhotosView(APIView):
             return Response({"status": False})
 
 
-class RegenerateAutoAlbumTitles(APIView):
-    def get(self, request, format=None):
-        try:
-            job_id = uuid.uuid4()
-            regenerate_event_titles(user=request.user, job_id=job_id)
-            return Response({"status": True, "job_id": job_id})
-        except BaseException as e:
-            logger.error(str(e))
-            return Response({"status": False})
-
-
-class AutoAlbumGenerateView(APIView):
-    def get(self, request, format=None):
-        try:
-            job_id = uuid.uuid4()
-            generate_event_albums(user=request.user, job_id=job_id)
-            return Response({"status": True, "job_id": job_id})
-        except BaseException as e:
-            logger.error(str(e))
-            return Response({"status": False})
 
 
 class TrainFaceView(APIView):
