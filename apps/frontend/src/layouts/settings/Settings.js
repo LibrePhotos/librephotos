@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import { compose } from "redux";
 import {
   Form,
   Radio,
@@ -13,6 +14,7 @@ import {
   Popup,
   Divider,
   Confirm,
+  Dropdown,
 } from "semantic-ui-react";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
@@ -43,6 +45,7 @@ import MaterialIcon from "material-icons-react";
 import SortableTree from "react-sortable-tree";
 import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
 import { serverAddress } from "../../api_client/apiClient";
+import { withTranslation, Trans } from "react-i18next";
 
 export class Settings extends Component {
   state = {
@@ -104,7 +107,11 @@ export class Settings extends Component {
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
-    if (!prevState.userSelfDetails.id && nextProps.userSelfDetails.id) {
+    if (
+      !prevState.userSelfDetails.id &&
+      nextProps.userSelfDetails &&
+      nextProps.userSelfDetails.id
+    ) {
       return { ...prevState, userSelfDetails: nextProps.userSelfDetails };
     }
 
@@ -125,15 +132,21 @@ export class Settings extends Component {
       <div style={{ padding: 10 }}>
         <Header as="h2">
           <MaterialIcon icon="settings" color="#000000" size={32} />
-          <Header.Content>Settings</Header.Content>
+          <Header.Content>
+            <Trans i18nKey="settings.header">Settings</Trans>
+          </Header.Content>
         </Header>
         <div>
-          <Header as="h3">Account</Header>
+          <Header as="h3">
+            <Trans i18nKey="settings.account">Account</Trans>
+          </Header>
 
           <Grid>
             <Grid.Row>
               <Grid.Column width={4} textAlign="left">
-                <b>Public Avatar</b>
+                <b>
+                  <Trans i18nKey="settings.avatar">Public Avatar</Trans>
+                </b>
               </Grid.Column>
 
               <Grid.Column width={12}>
@@ -173,7 +186,11 @@ export class Settings extends Component {
                   }}
                 >
                   <p>
-                    <b>Upload new avatar</b>
+                    <b>
+                      <Trans i18nKey="settings.uploadheader">
+                        Upload new avatar
+                      </Trans>
+                    </b>
                   </p>
                   <Button
                     size="small"
@@ -182,7 +199,7 @@ export class Settings extends Component {
                     }}
                   >
                     <Icon name="image" />
-                    Choose image
+                    <Trans i18nKey="settings.image">Choose image</Trans>
                   </Button>
                   <Button
                     size="small"
@@ -205,16 +222,24 @@ export class Settings extends Component {
                     }}
                   >
                     <Icon name="upload" />
-                    Upload
+                    <Trans i18nKey="settings.upload">Upload</Trans>
                   </Button>
-                  <p>The maximum file size allowed is 200KB.</p>
+                  <p>
+                    <Trans i18nKey="settings.filesize">
+                      The maximum file size allowed is 200KB.
+                    </Trans>
+                  </p>
                 </div>
               </Grid.Column>
             </Grid.Row>
 
             <Grid.Row>
               <Grid.Column width={4} textAlign="left">
-                <b>Account Information</b>
+                <b>
+                  <Trans i18nKey="settings.accountinformation">
+                    Account Information
+                  </Trans>
+                </b>
               </Grid.Column>
 
               <Grid.Column width={12}>
@@ -230,8 +255,10 @@ export class Settings extends Component {
                           },
                         });
                       }}
-                      label="First name"
-                      placeholder="First name"
+                      label={this.props.t("settings.firstname")}
+                      placeholder={this.props.t(
+                        "settings.firstnameplaceholder"
+                      )}
                       value={this.state.userSelfDetails.first_name}
                     />
                     <Form.Input
@@ -244,15 +271,15 @@ export class Settings extends Component {
                           },
                         });
                       }}
-                      label="Last name"
-                      placeholder="Last name"
+                      label={this.props.t("settings.lastname")}
+                      placeholder={this.props.t("settings.lastnameplaceholder")}
                       value={this.state.userSelfDetails.last_name}
                     />
                   </Form.Group>
                   <Form.Input
                     fluid
-                    label="E-mail"
-                    placeholder="email"
+                    label={this.props.t("settings.email")}
+                    placeholder={this.props.t("settings.emailplaceholder")}
                     value={this.state.userSelfDetails.email}
                     onChange={(e, d) => {
                       this.setState({
@@ -262,6 +289,30 @@ export class Settings extends Component {
                         },
                       });
                     }}
+                  />
+                  <Dropdown
+                    placeholder={this.props.t("settings.language")}
+                    onChange={(e, { value }) =>
+                      this.props.i18n.changeLanguage(value)
+                    }
+                    fluid
+                    search
+                    selection
+                    value={window.localStorage.i18nextLng}
+                    options={[
+                      {
+                        key: "gb",
+                        value: "gb",
+                        flag: "gb",
+                        text: this.props.t("settings.english"),
+                      },
+                      {
+                        key: "de",
+                        value: "de",
+                        flag: "de",
+                        text: this.props.t("settings.german"),
+                      },
+                    ]}
                   />
                 </Form>{" "}
                 <div style={{ paddingTop: 10 }}>
@@ -276,10 +327,12 @@ export class Settings extends Component {
                       this.props.dispatch(updateUser(newUserData));
                     }}
                   >
-                    Update profile settings
+                    <Trans i18nKey="settings.updateaccountinformation">
+                      Update profile settings
+                    </Trans>
                   </Button>
                   <Button size="small" basic floated="right">
-                    Cancel
+                    <Trans i18nKey="settings.cancel">Cancel</Trans>
                   </Button>
                 </div>
               </Grid.Column>
@@ -287,7 +340,9 @@ export class Settings extends Component {
 
             <Grid.Row>
               <Grid.Column width={4} textAlign="left">
-                <b>Scan Directory</b>
+                <b>
+                  <Trans i18nKey="settings.scandirectory">Scan Directory</Trans>
+                </b>
               </Grid.Column>
 
               <Grid.Column width={12}>
@@ -301,7 +356,11 @@ export class Settings extends Component {
                   <input />
                   <Popup
                     inverted
-                    trigger={<Button type="submit">Change</Button>}
+                    trigger={
+                      <Button type="submit">
+                        <Trans i18nKey="settings.change">Change</Trans>
+                      </Button>
+                    }
                     content="Only admin can change this."
                   />
                 </Input>
@@ -1112,19 +1171,22 @@ ModalNextcloudScanDirectoryEdit = connect((store) => {
   };
 })(ModalNextcloudScanDirectoryEdit);
 
-Settings = connect((store) => {
-  return {
-    auth: store.auth,
-    util: store.util,
-    gridType: store.ui.gridType,
-    siteSettings: store.util.siteSettings,
-    statusPhotoScan: store.util.statusPhotoScan,
-    statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
-    generatingAutoAlbums: store.util.generatingAutoAlbums,
-    scanningPhotos: store.photos.scanningPhotos,
-    fetchedCountStats: store.util.fetchedCountStats,
-    workerAvailability: store.util.workerAvailability,
-    fetchedNextcloudDirectoryTree: store.util.fetchedNextcloudDirectoryTree,
-    userSelfDetails: store.user.userSelfDetails,
-  };
-})(Settings);
+Settings = compose(
+  connect((store) => {
+    return {
+      auth: store.auth,
+      util: store.util,
+      gridType: store.ui.gridType,
+      siteSettings: store.util.siteSettings,
+      statusPhotoScan: store.util.statusPhotoScan,
+      statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
+      generatingAutoAlbums: store.util.generatingAutoAlbums,
+      scanningPhotos: store.photos.scanningPhotos,
+      fetchedCountStats: store.util.fetchedCountStats,
+      workerAvailability: store.util.workerAvailability,
+      fetchedNextcloudDirectoryTree: store.util.fetchedNextcloudDirectoryTree,
+      userSelfDetails: store.user.userSelfDetails,
+    };
+  }),
+  withTranslation()
+)(Settings);

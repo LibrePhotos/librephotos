@@ -1,0 +1,25 @@
+{
+  "settings": {
+    "header": "Einstellungen",
+    "account": "Nutzerkonto",
+    "avatar": "Profilbild",
+    "uploadheader": "Lade ein neues Profilbild hoch",
+    "image": "Wähle ein Bild aus",
+    "upload": "Lade hoch",
+    "filesize": "Die Datei darf maximale 200kb groß sein.",
+    "accountinformation": "Kontoinformationen",
+    "firstname": "Vorname",
+    "firstnameplaceholder": "Vorname",
+    "lastname": "Nachname",
+    "lastnameplaceholder": "Nachname",
+    "email": "E-Mail",
+    "emailplaceholder": "E-Mail",
+    "language": "Wähle eine Sprache aus",
+    "german": "Deutsch",
+    "english": "Englisch",
+    "updateaccountinformation": "Aktualisere die Profileinstellungen",
+    "cancel": "Abbrechen",
+    "scandirectory": "Scan Ordner",
+    "change": "Ändern"
+  }
+}
