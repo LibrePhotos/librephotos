@@ -1,0 +1,25 @@
+{
+  "settings": {
+    "header": "Settings",
+    "account": "Account",
+    "avatar": "Public Avatar",
+    "uploadheader": "Upload new avatar",
+    "image": "Choose image",
+    "upload": "Upload",
+    "filesize": "The maximum file size allowed is 200KB.",
+    "accountinformation": "Account information",
+    "firstname": "First name",
+    "firstnameplaceholder": "First name",
+    "lastname": "Last name",
+    "lastnameplaceholder": "Last name",
+    "email": "E-Mail",
+    "emailplaceholder": "E-Mail",
+    "language": "Select a language",
+    "german": "German",
+    "english": "English",
+    "updateaccountinformation": "Update profile settings",
+    "cancel": "Cancel",
+    "scandirectory": "Scan Directory",
+    "change": "Change"
+  }
+}

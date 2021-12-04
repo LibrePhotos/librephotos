@@ -45,7 +45,7 @@ import { AlbumPlace } from "./layouts/albums/AlbumPlace";
 import { TimestampPhotos } from "./layouts/photos/TimestampPhotos";
 
 import appHistory from "./history";
-
+import "./i18n";
 import { ConnectedRouter } from "connected-react-router";
 class Nav extends React.Component {
   render() {
