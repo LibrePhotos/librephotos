@@ -6,6 +6,8 @@ import { Divider, Icon, Menu, Dropdown } from "semantic-ui-react";
 
 import { toggleSidebar } from "../../actions/uiActions";
 import { logout } from "../../actions/authActions";
+import { compose } from "redux";
+import { withTranslation, Trans } from "react-i18next";
 
 export class SideMenuNarrow extends Component {
   state = { activeItem: "all photos" };
@@ -33,7 +35,9 @@ export class SideMenuNarrow extends Component {
           <Menu.Item name="logo">
             <img height={40} alt="Logo of LibrePhotos" src="/logo.png" />
             <p>
-              <small>LibrePhotos</small>
+              <small>
+                <Trans i18nKey="sidemenu.name">LibrePhotos</Trans>
+              </small>
             </p>
           </Menu.Item>
         )}
@@ -44,30 +48,32 @@ export class SideMenuNarrow extends Component {
           icon={<Icon size="big" name="image outline" />}
         >
           <Dropdown.Menu>
-            <Dropdown.Header>Photos</Dropdown.Header>
+            <Dropdown.Header>
+              <Trans i18nKey="sidemenu.photos">Photos</Trans>
+            </Dropdown.Header>
             <Dropdown.Item as={Link} to="/">
               <Icon color="green" name="calendar check outline" />
-              {"  With Timestamp"}
+              {"  " + this.props.t("sidemenu.withtimestamp")}
             </Dropdown.Item>
             <Dropdown.Item as={Link} to="/notimestamp">
               <Icon color="red" name="calendar times outline" />
-              {"  Without Timestamp"}
+              {"  " + this.props.t("sidemenu.withouttimestamp")}
             </Dropdown.Item>
             <Dropdown.Divider />
 
             <Dropdown.Item as={Link} to="/recent">
               <Icon name="clock" />
-              {"  Recently Added"}
+              {"  " + this.props.t("sidemenu.recentlyadded")}
             </Dropdown.Item>
             <Dropdown.Divider />
 
             <Dropdown.Item as={Link} to="/hidden">
               <Icon color="red" name="hide" />
-              {"  Hidden"}
+              {"  " + this.props.t("sidemenu.hidden")}
             </Dropdown.Item>
             <Dropdown.Item as={Link} to="/favorites">
               <Icon name="star" color="yellow" />
-              {"  Favorites"}
+              {"  " + this.props.t("sidemenu.favorites")}
             </Dropdown.Item>
             <Dropdown.Item
               disabled={!this.props.auth.access}
@@ -79,12 +85,12 @@ export class SideMenuNarrow extends Component {
               }
             >
               <Icon color="green" name="globe" />
-              {"  My Public Photos"}
+              {"  " + this.props.t("sidemenu.mypublicphotos")}
             </Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown>
         <div style={{ marginTop: -17 }}>
-          <small>Photos</small>
+          <small>{this.props.t("sidemenu.photos")}</small>
         </div>
 
         <Divider hidden />
@@ -102,32 +108,32 @@ export class SideMenuNarrow extends Component {
           }
         >
           <Dropdown.Menu>
-            <Dropdown.Header>Albums</Dropdown.Header>
+            <Dropdown.Header>{this.props.t("sidemenu.albums")}</Dropdown.Header>
             <Dropdown.Item as={Link} to="/people">
               <Icon name="users" />
-              {"  People"}
+              {"  " + this.props.t("sidemenu.people")}
             </Dropdown.Item>
             <Dropdown.Item as={Link} to="/places">
               <Icon name="map" />
-              {"  Places"}
+              {"  " + this.props.t("sidemenu.places")}
             </Dropdown.Item>
             <Dropdown.Item as={Link} to="/things">
               <Icon name="tags" />
-              {"  Things"}
+              {"  " + this.props.t("sidemenu.things")}
             </Dropdown.Item>
             <Dropdown.Divider />
             <Dropdown.Item as={Link} to="/useralbums">
               <Icon name="bookmark" />
-              {"  My Albums"}
+              {"  " + this.props.t("sidemenu.myalbums")}
             </Dropdown.Item>
             <Dropdown.Item as={Link} to="/events">
               <Icon name="wizard" />
-              {"  Auto Created Albums"}
+              {"  " + this.props.t("sidemenu.autoalbums")}
             </Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown>
         <div style={{ marginTop: -17 }}>
-          <small>Albums</small>
+          <small>{this.props.t("sidemenu.albums")}</small>
         </div>
 
         <Divider hidden />
@@ -137,35 +143,37 @@ export class SideMenuNarrow extends Component {
           icon={<Icon size="big" name="bar chart" />}
         >
           <Dropdown.Menu>
-            <Dropdown.Header>Data Visualization</Dropdown.Header>
+            <Dropdown.Header>
+              {this.props.t("sidemenu.dataviz")}
+            </Dropdown.Header>
             <Dropdown.Item as={Link} to="/placetree">
               <Icon name="sitemap" />
-              {"  Place Tree"}
+              {"  " + this.props.t("sidemenu.placetree")}
             </Dropdown.Item>
 
             <Dropdown.Item as={Link} to="/wordclouds">
               <Icon name="cloud" />
-              {"  Word Clouds"}
+              {"  " + this.props.t("sidemenu.wordclouds")}
             </Dropdown.Item>
 
             <Dropdown.Item as={Link} to="/timeline">
               <Icon name="bar chart" />
-              {"  Timeline"}
+              {"  " + this.props.t("sidemenu.timeline")}
             </Dropdown.Item>
 
             <Dropdown.Item as={Link} to="/socialgraph">
               <Icon name="share alternate" />
-              {"  Social Graph"}
+              {"  " + this.props.t("sidemenu.socialgraph")}
             </Dropdown.Item>
 
             <Dropdown.Item as={Link} to="/facescatter">
               <Icon name="user circle" />
-              {"  Face Clusters"}
+              {"  " + this.props.t("sidemenu.facecluster")}
             </Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown>
         <div style={{ marginTop: -17 }}>
-          <small>Data Viz</small>
+          <small>{this.props.t("sidemenu.datavizsmall")}</small>
         </div>
 
         <Divider hidden />
@@ -175,19 +183,21 @@ export class SideMenuNarrow extends Component {
           icon={<Icon size="big" name="dashboard" />}
         >
           <Dropdown.Menu>
-            <Dropdown.Header>Dashboards</Dropdown.Header>
+            <Dropdown.Header>
+              {this.props.t("sidemenu.dashboards")}
+            </Dropdown.Header>
             <Dropdown.Item as={Link} to="/faces">
               <Icon name="user circle outline" />
-              {"  Face Recognition"}
+              {"  " + this.props.t("sidemenu.facerecognition")}
             </Dropdown.Item>
             <Dropdown.Item as={Link} to="/settings">
               <Icon name="database" />
-              {"  Library"}
+              {"  " + this.props.t("sidemenu.library")}
             </Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown>
         <div style={{ marginTop: -17 }}>
-          <small>Dashboards</small>
+          <small>{this.props.t("sidemenu.dashboards")}</small>
         </div>
 
         {this.props.auth && (
@@ -199,7 +209,9 @@ export class SideMenuNarrow extends Component {
               icon={<Icon size="big" name="users" />}
             >
               <Dropdown.Menu>
-                <Dropdown.Header>Sharing</Dropdown.Header>
+                <Dropdown.Header>
+                  {this.props.t("sidemenu.sharing")}
+                </Dropdown.Header>
 
                 <Dropdown.Item
                   disabled={!this.props.auth.access}
@@ -207,22 +219,22 @@ export class SideMenuNarrow extends Component {
                   to={`/users/`}
                 >
                   <Icon name="globe" />
-                  {"  Public photos"}
+                  {"  " + this.props.t("sidemenu.publicphotos")}
                 </Dropdown.Item>
 
                 <Dropdown.Item as={Link} to="/shared/fromme/photos/">
                   <Icon name="share" color="red" />
-                  {"  You shared"}
+                  {"  " + this.props.t("sidemenu.youshared")}
                 </Dropdown.Item>
 
                 <Dropdown.Item as={Link} to="/shared/tome/photos/">
                   <Icon name="share" color="green" />
-                  {"  Shared with you"}
+                  {"  " + this.props.t("sidemenu.sharedwithyou")}
                 </Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
             <div style={{ marginTop: -17 }}>
-              <small>Sharing</small>
+              <small>{this.props.t("sidemenu.sharing")}</small>
             </div>
           </div>
         )}
@@ -231,10 +243,13 @@ export class SideMenuNarrow extends Component {
   }
 }
 
-SideMenuNarrow = connect((store) => {
-  return {
-    auth: store.auth,
-    jwtToken: store.auth.jwtToken,
-    location: store.router.location,
-  };
-})(SideMenuNarrow);
+SideMenuNarrow = compose(
+  connect((store) => {
+    return {
+      auth: store.auth,
+      jwtToken: store.auth.jwtToken,
+      location: store.router.location,
+    };
+  }),
+  withTranslation()
+)(SideMenuNarrow);

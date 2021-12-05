@@ -18,14 +18,19 @@ import { CustomSearch } from "../CustomSearch";
 import { fetchWorkerAvailability } from "../../actions/utilActions";
 import { serverAddress } from "../../api_client/apiClient";
 import { fetchUserSelfDetails } from "../../actions/userActions";
-
+import { compose } from "redux";
+import { withTranslation, Trans } from "react-i18next";
 export class TopMenu extends Component {
   state = {
     width: window.innerWidth,
   };
-  throttledFetchUserSelfDetails = _.throttle(user_id => {
-    return this.props.dispatch(fetchUserSelfDetails(user_id));
-  }, 500, {leading: true, trailing: false});
+  throttledFetchUserSelfDetails = _.throttle(
+    (user_id) => {
+      return this.props.dispatch(fetchUserSelfDetails(user_id));
+    },
+    500,
+    { leading: true, trailing: false }
+  );
 
   constructor(props) {
     super(props);
@@ -37,11 +42,13 @@ export class TopMenu extends Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    if (!nextProps.auth.access)
+    if (!nextProps.auth.access) return;
+    if (
+      this.props.userSelfDetails &&
+      this.props.userSelfDetails.id === nextProps.auth.access.user_id
+    )
       return;
-    if (this.props.userSelfDetails && (this.props.userSelfDetails.id === nextProps.auth.access.user_id))
-      return;
-    
+
     this.throttledFetchUserSelfDetails(nextProps.auth.access.user_id);
   }
 
@@ -75,7 +82,8 @@ export class TopMenu extends Component {
               100
             ).toFixed(0)}
           >
-            Running {this.props.workerRunningJob.job_type_str} ...
+            <Trans i18nKey="topmenu.running">Running</Trans>{" "}
+            {this.props.workerRunningJob.job_type_str} ...
           </Progress>
         </div>
       );
@@ -125,11 +133,11 @@ export class TopMenu extends Component {
                 offset={[13, 0]}
                 content={
                   this.props.workerAvailability
-                    ? "Worker available! You can start scanning more photos, infer face labels, auto create event albums, or regenerate auto event album titles."
+                    ? this.props.t("topmenu.available")
                     : !this.props.workerAvailability &&
                       this.props.workerRunningJob
-                      ? runningJobPopupProgress
-                      : "Busy..."
+                    ? runningJobPopupProgress
+                    : this.props.t("topmenu.busy")
                 }
               />
 
@@ -140,9 +148,9 @@ export class TopMenu extends Component {
                       avatar
                       src={
                         this.props.userSelfDetails &&
-                          this.props.userSelfDetails.avatar_url
+                        this.props.userSelfDetails.avatar_url
                           ? serverAddress +
-                          this.props.userSelfDetails.avatar_url
+                            this.props.userSelfDetails.avatar_url
                           : "/unknown_user.jpg"
                       }
                     />
@@ -153,18 +161,22 @@ export class TopMenu extends Component {
               >
                 <Dropdown.Menu>
                   <Dropdown.Header>
-                    Logged in as{" "}
+                    <Trans i18nKey="topmenu.loggedin">Logged in as</Trans>{" "}
                     {this.props.auth.access ? this.props.auth.access.name : ""}
                   </Dropdown.Header>
                   <Dropdown.Item onClick={() => this.props.dispatch(logout())}>
                     <Icon name="sign out" />
-                    <b>Logout</b>
+                    <b>
+                      <Trans i18nKey="topmenu.logout">Logout</Trans>
+                    </b>
                   </Dropdown.Item>
                   <Dropdown.Item
                     onClick={() => this.props.dispatch(push("/settings"))}
                   >
                     <Icon name="settings" />
-                    <b>Settings</b>
+                    <b>
+                      <Trans i18nKey="topmenu.settings">Settings</Trans>
+                    </b>
                   </Dropdown.Item>
                   {this.props.auth.access &&
                     this.props.auth.access.is_admin && <Dropdown.Divider />}
@@ -174,7 +186,9 @@ export class TopMenu extends Component {
                       onClick={() => this.props.dispatch(push("/admin"))}
                     >
                       <Icon name="wrench" />
-                      <b>Admin Area</b>
+                      <b>
+                        <Trans i18nKey="topmenu.adminarea">Admin Area</Trans>
+                      </b>
                     </Dropdown.Item>
                   )}
                 </Dropdown.Menu>
@@ -187,37 +201,40 @@ export class TopMenu extends Component {
   }
 }
 
-TopMenu = connect((store) => {
-  return {
-    showSidebar: store.ui.showSidebar,
-    gridType: store.ui.gridType,
+TopMenu = compose(
+  connect((store) => {
+    return {
+      showSidebar: store.ui.showSidebar,
+      gridType: store.ui.gridType,
 
-    workerAvailability: store.util.workerAvailability,
-    workerRunningJob: store.util.workerRunningJob,
+      workerAvailability: store.util.workerAvailability,
+      workerRunningJob: store.util.workerRunningJob,
 
-    auth: store.auth,
-    jwtToken: store.auth.jwtToken,
-    exampleSearchTerms: store.util.exampleSearchTerms,
-    fetchingExampleSearchTerms: store.util.fetchingExampleSearchTerms,
-    fetchedExampleSearchTerms: store.util.fetchedExampleSearchTerms,
-    searchError: store.search.error,
-    searchingPhotos: store.search.searchingPhotos,
-    searchedPhotos: store.search.searchedPhotos,
-    people: store.people.people,
-    fetchingPeople: store.people.fetchingPeople,
-    fetchedPeople: store.people.fetchedPeople,
+      auth: store.auth,
+      jwtToken: store.auth.jwtToken,
+      exampleSearchTerms: store.util.exampleSearchTerms,
+      fetchingExampleSearchTerms: store.util.fetchingExampleSearchTerms,
+      fetchedExampleSearchTerms: store.util.fetchedExampleSearchTerms,
+      searchError: store.search.error,
+      searchingPhotos: store.search.searchingPhotos,
+      searchedPhotos: store.search.searchedPhotos,
+      people: store.people.people,
+      fetchingPeople: store.people.fetchingPeople,
+      fetchedPeople: store.people.fetchedPeople,
 
-    albumsThingList: store.albums.albumsThingList,
-    fetchingAlbumsThingList: store.albums.fetchingAlbumsThingList,
-    fetchedAlbumsThingList: store.albums.fetchedAlbumsThingList,
+      albumsThingList: store.albums.albumsThingList,
+      fetchingAlbumsThingList: store.albums.fetchingAlbumsThingList,
+      fetchedAlbumsThingList: store.albums.fetchedAlbumsThingList,
 
-    albumsUserList: store.albums.albumsUserList,
-    fetchingAlbumsUserList: store.albums.fetchingAlbumsUserList,
-    fetchedAlbumsUserList: store.albums.fetchedAlbumsUserList,
+      albumsUserList: store.albums.albumsUserList,
+      fetchingAlbumsUserList: store.albums.fetchingAlbumsUserList,
+      fetchedAlbumsUserList: store.albums.fetchedAlbumsUserList,
 
-    albumsPlaceList: store.albums.albumsPlaceList,
-    fetchingAlbumsPlaceList: store.albums.fetchingAlbumsPlaceList,
-    fetchedAlbumsPlaceList: store.albums.fetchedAlbumsPlaceList,
-    userSelfDetails: store.user.userSelfDetails,
-  };
-})(TopMenu);
+      albumsPlaceList: store.albums.albumsPlaceList,
+      fetchingAlbumsPlaceList: store.albums.fetchingAlbumsPlaceList,
+      fetchedAlbumsPlaceList: store.albums.fetchedAlbumsPlaceList,
+      userSelfDetails: store.user.userSelfDetails,
+    };
+  }),
+  withTranslation()
+)(TopMenu);
