@@ -369,16 +369,20 @@ export class Settings extends Component {
           </Grid>
         </div>
         <Divider />
-        <Header as="h3">Nextcloud</Header>
+        <Header as="h3">
+          <Trans i18nKey="settings.nextcloudheader">Nextcloud</Trans>
+        </Header>
         <Grid>
           <Grid.Row>
             <Grid.Column width={4} textAlign="left">
-              <b>Credentials</b>
+              <b>
+                <Trans i18nKey="settings.credentials">Credentials</Trans>
+              </b>
               <Popup
                 position="right center"
                 inverted
                 trigger={<Icon size="small" name="question" />}
-                content="Use application password"
+                content={this.props.t("settings.credentialspopup")}
               />
             </Grid.Column>
 
@@ -395,8 +399,10 @@ export class Settings extends Component {
                         },
                       });
                     }}
-                    label="Server address"
-                    placeholder="https://..."
+                    label={this.props.t("settings.credentialspopup")}
+                    placeholder={this.props.t(
+                      "settings.serveradressplaceholder"
+                    )}
                   >
                     <input
                       value={
@@ -414,8 +420,10 @@ export class Settings extends Component {
                         },
                       });
                     }}
-                    label="User name"
-                    placeholder="User name"
+                    label={this.props.t("settings.nextcloudusername")}
+                    placeholder={this.props.t(
+                      "settings.nextcloudusernameplaceholder"
+                    )}
                   >
                     <input
                       value={this.state.userSelfDetails.nextcloud_username}
@@ -432,8 +440,10 @@ export class Settings extends Component {
                       });
                     }}
                     type="password"
-                    label="Nextcloud App Password"
-                    placeholder="Nextcloud App Password"
+                    label={this.props.t("settings.nextcloudpassword")}
+                    placeholder={this.props.t(
+                      "settings.nextcloudpasswordplaceholder"
+                    )}
                   />
                 </Form.Group>
               </Form>{" "}
@@ -450,7 +460,9 @@ export class Settings extends Component {
                   color="blue"
                   floated="left"
                 >
-                  Update Nextcloud credentials
+                  <Trans i18nKey="settings.nextcloudupdate">
+                    Update Nextcloud credentials
+                  </Trans>
                 </Button>
                 <Button
                   onClick={() => {
@@ -462,14 +474,18 @@ export class Settings extends Component {
                   basic
                   floated="right"
                 >
-                  Cancel
+                  <Trans i18nKey="settings.nextcloudcancel">Cancel</Trans>
                 </Button>
               </div>
             </Grid.Column>
           </Grid.Row>
           <Grid.Row>
             <Grid.Column width={4} textAlign="left">
-              <b>Nextcloud Scan Directory</b>
+              <b>
+                <Trans i18nKey="settings.nextcloudscandirectory">
+                  Nextcloud Scan Directory
+                </Trans>
+              </b>
               <Popup
                 trigger={
                   <Icon
@@ -484,8 +500,8 @@ export class Settings extends Component {
                 position="right center"
                 content={
                   this.props.fetchedNextcloudDirectoryTree
-                    ? "Logged into Nextcloud"
-                    : "Not logged into Nextcloud"
+                    ? this.props.t("settings.nextcloudloggedin")
+                    : this.props.t("settings.nextcloudnotloggedin")
                 }
               />
             </Grid.Column>
@@ -508,18 +524,22 @@ export class Settings extends Component {
                   }}
                   type="submit"
                 >
-                  Change
+                  <Trans i18nKey="settings.nextcloudchange">Change</Trans>
                 </Button>
               </Input>
             </Grid.Column>
           </Grid.Row>
         </Grid>
         <Divider />
-        <Header as="h3">Appearance</Header>
+        <Header as="h3">
+          <Trans i18nKey="settings.appearance">Appearance</Trans>
+        </Header>
         <Grid>
           <Grid.Row>
             <Grid.Column width={4} textAlign="left">
-              <b>Thumbnail size</b>
+              <b>
+                <Trans i18nKey="settings.thumbnailsize">Thumbnail size</Trans>
+              </b>
             </Grid.Column>
 
             <Grid.Column width={12}>
@@ -527,7 +547,7 @@ export class Settings extends Component {
                 <Form.Group>
                   <Form.Field>
                     <Radio
-                      label="Big"
+                      label={this.props.t("settings.big")}
                       name="radioGroup"
                       value="loose"
                       onClick={() => {
@@ -543,7 +563,7 @@ export class Settings extends Component {
                   </Form.Field>
                   <Form.Field>
                     <Radio
-                      label="Small"
+                      label={this.props.t("settings.small")}
                       name="radioGroup"
                       value="dense"
                       onClick={() => {
@@ -563,7 +583,9 @@ export class Settings extends Component {
           </Grid.Row>
         </Grid>
         <Divider />
-        <Header as="h3">Library</Header>
+        <Header as="h3">
+          <Trans i18nKey="settings.library">Library</Trans>
+        </Header>
         <CountStats />
         <Divider hidden />
         <Grid stackable>
@@ -571,7 +593,8 @@ export class Settings extends Component {
             <Grid.Column>
               <Segment>
                 <Header textAlign="center">
-                  {this.props.util.countStats.num_photos} Photos
+                  {this.props.util.countStats.num_photos}{" "}
+                  <Trans i18nKey="settings.photos">Photos</Trans>
                 </Header>
                 <Divider />
                 <Button
@@ -589,9 +612,9 @@ export class Settings extends Component {
                     }
                   />
                   {this.props.statusPhotoScan.added
-                    ? "Scanning photos (file system)" +
+                    ? this.props.t("settings.statusscanphotostrue") +
                       `(${this.props.statusPhotoScan.added}/${this.props.statusPhotoScan.to_add})`
-                    : "Scan photos (file system)"}
+                    : this.props.t("settings.statusscanphotosfalse")}
                 </Button>
 
                 <Button
@@ -608,36 +631,72 @@ export class Settings extends Component {
                   color="blue"
                 >
                   <Icon name="refresh" />
-                  Scan photos (Nextcloud)
+                  <Trans i18nKey="settings.scannextcloudphotos">
+                    Scan photos (Nextcloud)
+                  </Trans>
                 </Button>
 
                 <Divider hidden />
                 <List bulleted>
                   <List.Item>
-                    Make a list of all files in subdirectories. For each media
-                    file:
+                    <Trans i18nKey="settings.scannextclouddescription.item1">
+                      Make a list of all files in subdirectories. For each media
+                      file:
+                    </Trans>
                   </List.Item>
                   <List.Item>
-                    If the filepath exists, check if the file has been modified.
-                    If it was modified, rescan the image. If not, we skip.
+                    <Trans i18nKey="settings.scannextclouddescription.item2">
+                      If the filepath exists, check if the file has been
+                      modified. If it was modified, rescan the image. If not, we
+                      skip.
+                    </Trans>
                   </List.Item>
                   <List.Item>
-                    Calculate a unique ID of the image file (md5)
+                    <Trans i18nKey="settings.scannextclouddescription.item3">
+                      Calculate a unique ID of the image file (md5)
+                    </Trans>
                   </List.Item>
                   <List.Item>
-                    If this media file is already in the database, we add the
-                    path to the existing media file.
+                    <Trans i18nKey="settings.scannextclouddescription.item4">
+                      If this media file is already in the database, we add the
+                      path to the existing media file.
+                    </Trans>
                   </List.Item>
-                  <List.Item>Generate a number of thumbnails </List.Item>
-                  <List.Item>Generate image captions </List.Item>
-                  <List.Item>Extract Exif information </List.Item>
                   <List.Item>
-                    Reverse geolocate to get location names from GPS coordinates{" "}
+                    <Trans i18nKey="settings.scannextclouddescription.item5">
+                      Generate a number of thumbnails
+                    </Trans>{" "}
                   </List.Item>
-                  <List.Item>Extract faces. </List.Item>
-                  <List.Item>Add photo to thing and place albums. </List.Item>
                   <List.Item>
-                    Check if photos are missing or have been moved.{" "}
+                    <Trans i18nKey="settings.scannextclouddescription.item6">
+                      Generate image captions
+                    </Trans>{" "}
+                  </List.Item>
+                  <List.Item>
+                    <Trans i18nKey="settings.scannextclouddescription.item7">
+                      Extract Exif information
+                    </Trans>{" "}
+                  </List.Item>
+                  <List.Item>
+                    <Trans i18nKey="settings.scannextclouddescription.item8">
+                      Reverse geolocate to get location names from GPS
+                      coordinates{" "}
+                    </Trans>
+                  </List.Item>
+                  <List.Item>
+                    <Trans i18nKey="settings.scannextclouddescription.item9">
+                      Extract faces.{" "}
+                    </Trans>{" "}
+                  </List.Item>
+                  <List.Item>
+                    <Trans i18nKey="settings.scannextclouddescription.item10">
+                      Add photo to thing and place albums.
+                    </Trans>{" "}
+                  </List.Item>
+                  <List.Item>
+                    <Trans i18nKey="settings.scannextclouddescription.item11">
+                      Check if photos are missing or have been moved.
+                    </Trans>
                   </List.Item>
                 </List>
                 <Button
@@ -654,16 +713,17 @@ export class Settings extends Component {
                     }
                   />
                   {this.props.statusPhotoScan.added
-                    ? "Rescan all photos (file system)" +
+                    ? this.props.t("settings.statusrescanphotostrue") +
                       `(${this.props.statusPhotoScan.added}/${this.props.statusPhotoScan.to_add})`
-                    : "Rescan all photos (file system)"}
+                    : this.props.t("settings.statusrescanphotosfalse")}
                 </Button>
               </Segment>
             </Grid.Column>
             <Grid.Column>
               <Segment>
                 <Header textAlign="center">
-                  {this.props.util.countStats.num_missing_photos} Missing Photos
+                  {this.props.util.countStats.num_missing_photos}{" "}
+                  <Trans i18nKey="settings.missingphotos">Missing Photos</Trans>
                 </Header>
                 <Divider />
                 <Button
@@ -674,7 +734,9 @@ export class Settings extends Component {
                   color="red"
                 >
                   <Icon name="trash" />
-                  Remove missing photos
+                  <Trans i18nKey="settings.missingphotosbutton">
+                    Remove missing photos
+                  </Trans>
                 </Button>
                 <Confirm
                   open={this.state.open}
@@ -683,9 +745,11 @@ export class Settings extends Component {
                 />
                 <Divider hidden />
                 <p>
-                  On every scan LibrePhotos will check if the files are still in
-                  the same location or if they have been moved. If they are
-                  missing, then they get marked as such.
+                  <Trans i18nKey="settings.missingphotosdescription">
+                    On every scan LibrePhotos will check if the files are still
+                    in the same location or if they have been moved. If they are
+                    missing, then they get marked as such.
+                  </Trans>
                 </p>
                 <Divider />
               </Segment>
@@ -693,7 +757,8 @@ export class Settings extends Component {
             <Grid.Column>
               <Segment>
                 <Header textAlign="center">
-                  {this.props.util.countStats.num_albumauto} Event Albums
+                  {this.props.util.countStats.num_albumauto}{" "}
+                  <Trans i18nKey="settings.eventsalbums">Event Albums</Trans>
                 </Header>
                 <Divider />
                 <Button
@@ -704,15 +769,19 @@ export class Settings extends Component {
                   color="green"
                 >
                   <Icon name="wizard" />
-                  Generate Event Albums
+                  <Trans i18nKey="settings.eventalbumsgenerate">
+                    Generate Event Albums
+                  </Trans>
                 </Button>
                 <Divider hidden />
                 <p>
-                  The backend server will first group photos by time taken. If
-                  two consecutive photos are taken within 12 hours of each
-                  other, the two photos are considered to be from the same
-                  event. After groups are put together in this way, it
-                  automatically generates a title for this album.
+                  <Trans i18nKey="settings.eventsalbumsdescription">
+                    The backend server will first group photos by time taken. If
+                    two consecutive photos are taken within 12 hours of each
+                    other, the two photos are considered to be from the same
+                    event. After groups are put together in this way, it
+                    automatically generates a title for this album.
+                  </Trans>
                 </p>
                 <Divider />
                 <Button
@@ -726,23 +795,29 @@ export class Settings extends Component {
                   fluid
                 >
                   <Icon name="wizard" />
-                  Regenerate Event Titles
+                  <Trans i18nKey="settings.eventalbumsregenerate">
+                    Regenerate Event Titles
+                  </Trans>
                 </Button>
                 <Divider hidden />
                 <p>
-                  Automatically generated albums have names of people in the
-                  titles. If you trained your face classifier after making event
-                  albums, you can generate new titles for already existing event
-                  albums to reflect the new names associated with the faces in
-                  photos.
+                  <Trans i18nKey="settings.eventalbumsregeneratedescription">
+                    Automatically generated albums have names of people in the
+                    titles. If you trained your face classifier after making
+                    event albums, you can generate new titles for already
+                    existing event albums to reflect the new names associated
+                    with the faces in photos.
+                  </Trans>
                 </p>
               </Segment>
             </Grid.Column>
             <Grid.Column>
               <Segment>
                 <Header textAlign="center">
-                  {this.props.util.countStats.num_faces} Faces,{" "}
-                  {this.props.util.countStats.num_people} People
+                  {this.props.util.countStats.num_faces}{" "}
+                  <Trans i18nKey="settings.faces">Faces</Trans>,{" "}
+                  {this.props.util.countStats.num_people}{" "}
+                  <Trans i18nKey="settings.people">People</Trans>
                 </Header>
                 <Divider />
                 <Button
@@ -752,7 +827,8 @@ export class Settings extends Component {
                   fluid
                   color="green"
                 >
-                  <Icon name="lightning" /> Train Faces
+                  <Icon name="lightning" />{" "}
+                  <Trans i18nKey="settings.facesbutton">Train Faces</Trans>
                 </Button>
                 <Divider hidden />
 
@@ -762,33 +838,36 @@ export class Settings extends Component {
                       <Table.Cell>
                         <b>
                           <Icon name="lightning" />
-                          Inferred
+                          <Trans i18nKey="settings.inferred">Inferred</Trans>
                         </b>
                       </Table.Cell>
                       <Table.Cell textAlign="center">
-                        {this.props.util.countStats.num_inferred_faces} faces
+                        {this.props.util.countStats.num_inferred_faces}{" "}
+                        <Trans i18nKey="settings.facessmall">faces</Trans>
                       </Table.Cell>
                     </Table.Row>
                     <Table.Row>
                       <Table.Cell>
                         <b>
                           <Icon name="tag" />
-                          Labeled
+                          <Trans i18nKey="settings.labeled">Labeled</Trans>
                         </b>
                       </Table.Cell>
                       <Table.Cell textAlign="center">
-                        {this.props.util.countStats.num_labeled_faces} faces
+                        {this.props.util.countStats.num_labeled_faces}{" "}
+                        <Trans i18nKey="settings.facessmall">faces</Trans>
                       </Table.Cell>
                     </Table.Row>
                     <Table.Row>
                       <Table.Cell>
                         <b>
                           <Icon name="question" />
-                          Unknown
+                          <Trans i18nKey="settings.unknown">Unknown</Trans>
                         </b>
                       </Table.Cell>
                       <Table.Cell textAlign="center">
-                        {this.props.util.countStats.num_unknown_faces} faces
+                        {this.props.util.countStats.num_unknown_faces}{" "}
+                        <Trans i18nKey="settings.facessmall">faces</Trans>
                       </Table.Cell>
                     </Table.Row>
                   </Table.Body>
@@ -796,7 +875,7 @@ export class Settings extends Component {
                 <Divider hidden />
                 <Button fluid as={Link} to="/faces">
                   <Icon name="share" />
-                  Face Dashboard
+                  <Trans i18nKey="settings.facedashboard">Face Dashboard</Trans>
                 </Button>
                 <Divider hidden />
                 <Button
@@ -807,18 +886,24 @@ export class Settings extends Component {
                   }}
                 >
                   <Icon name="lightning" />
-                  Rescan Faces
+                  <Trans i18nKey="settings.rescanfaces">Rescan Faces</Trans>
                 </Button>
               </Segment>
             </Grid.Column>
           </Grid.Row>
         </Grid>
         <Divider />
-        <Header as="h3">Scan Options</Header>
+        <Header as="h3">
+          <Trans i18nKey="settings.scanoptions">Scan Options</Trans>
+        </Header>
         <Grid>
           <Grid.Row>
             <Grid.Column width={4} textAlign="left">
-              <b>Scene Confidence</b>
+              <b>
+                <Trans i18nKey="settings.sceneconfidence">
+                  Scene Confidence
+                </Trans>
+              </b>
             </Grid.Column>
             <Grid.Column width={12}>
               <select
@@ -833,18 +918,31 @@ export class Settings extends Component {
                 }}
               >
                 <option value="" disabled selected>
-                  Confidence Level
+                  {this.props.t("settings.confidencelevel")}
                 </option>
-                <option value="0.5">High</option>
-                <option value="0.1">Standard</option>
-                <option value="0.05">Low</option>
-                <option value="0">None</option>
+                <option value="0.5">
+                  {this.props.t("settings.confidence.high")}
+                </option>
+                <option value="0.1">
+                  {this.props.t("settings.confidence.standard")}
+                </option>
+                <option value="0.05">
+                  {this.props.t("settings.confidence.low")}
+                </option>
+                <option value="0">
+                  {this.props.t("settings.confidence.none")}
+                </option>
               </select>
             </Grid.Column>
           </Grid.Row>
           <Grid.Row>
             <Grid.Column width={4} textAlign="left">
-              <b>Semantic Search Max Results</b>
+              <b>
+                {" "}
+                <Trans i18nKey="settings.semanticsearchheader">
+                  Semantic Search Max Results
+                </Trans>
+              </b>
             </Grid.Column>
             <Grid.Column width={12}>
               <select
@@ -859,12 +957,20 @@ export class Settings extends Component {
                 }}
               >
                 <option value="" disabled selected>
-                  Semantic Search Results
+                  {this.props.t("settings.semanticsearch.placeholder")}
                 </option>
-                <option value="100">Top 100</option>
-                <option value="50">Top 50</option>
-                <option value="10">Top 10</option>
-                <option value="0">Disabled</option>
+                <option value="100">
+                  {this.props.t("settings.semanticsearch.top100")}
+                </option>
+                <option value="50">
+                  {this.props.t("settings.semanticsearch.top50")}
+                </option>
+                <option value="10">
+                  {this.props.t("settings.semanticsearch.top10")}
+                </option>
+                <option value="0">
+                  {this.props.t("settings.semanticsearch.top0")}
+                </option>
               </select>
             </Grid.Column>
           </Grid.Row>
@@ -882,16 +988,22 @@ export class Settings extends Component {
                     this.props.onRequestClose();
                 }}
               >
-                Update
+                <Trans i18nKey="settings.semanticsearchupdate">Update</Trans>
               </Button>
             </Grid.Column>
           </Grid.Row>
         </Grid>
-        <Header as="h3">Favorite options</Header>
+        <Header as="h3">
+          <Trans i18nKey="settings.favorite">Favorite options</Trans>
+        </Header>
         <Grid>
           <Grid.Row>
             <Grid.Column width={4} textAlign="left">
-              <b>Minimum image rating to interpret as favorite</b>
+              <b>
+                <Trans i18nKey="settings.favoriteminimum">
+                  Minimum image rating to interpret as favorite
+                </Trans>
+              </b>
             </Grid.Column>
             <Grid.Column width={12}>
               <select
@@ -906,7 +1018,7 @@ export class Settings extends Component {
                 }}
               >
                 <option value="" disabled selected>
-                  Minimum rating
+                  {this.props.t("settings.favoriteoption.placeholder")}
                 </option>
                 <option value={1}>1</option>
                 <option value={2}>2</option>
@@ -918,7 +1030,11 @@ export class Settings extends Component {
           </Grid.Row>
           <Grid.Row>
             <Grid.Column width={4} textAlign="left">
-              <b>Synchronize rating to disk</b>
+              <b>
+                <Trans i18nKey="settings.favoritesync">
+                  Synchronize rating to disk
+                </Trans>
+              </b>
             </Grid.Column>
             <Grid.Column width={12}>
               <select
@@ -938,9 +1054,15 @@ export class Settings extends Component {
                 }}
               >
                 <option value="" disabled selected />
-                <option value={"OFF"}>Off</option>
-                <option value={"SIDECAR_FILE"}>Save to sidecar</option>
-                <option value={"MEDIA_FILE"}>Save to media file</option>
+                <option value={"OFF"}>
+                  {this.props.t("settings.favoritesyncoptions.off")}
+                </option>
+                <option value={"SIDECAR_FILE"}>
+                  {this.props.t("settings.favoritesyncoptions.sidecar")}
+                </option>
+                <option value={"MEDIA_FILE"}>
+                  {this.props.t("settings.favoritesyncoptions.mediafile")}
+                </option>
               </select>
             </Grid.Column>
           </Grid.Row>
@@ -958,16 +1080,24 @@ export class Settings extends Component {
                     this.props.onRequestClose();
                 }}
               >
-                Update
+                <Trans i18nKey="settings.favoriteupdate">Update</Trans>
               </Button>
             </Grid.Column>
           </Grid.Row>
         </Grid>
-        <Header as="h3">Experimental options</Header>
+        <Header as="h3">
+          <Trans i18nKey="settings.experiementaloptions">
+            Experimental options
+          </Trans>
+        </Header>
         <Grid>
           <Grid.Row>
             <Grid.Column width={4} textAlign="left">
-              <b>Always trancode videos</b>
+              <b>
+                <Trans i18nKey="settings.transcodevideo">
+                  Always trancode videos
+                </Trans>
+              </b>
             </Grid.Column>
             <Grid.Column width={12}>
               <select
@@ -981,8 +1111,12 @@ export class Settings extends Component {
                   });
                 }}
               >
-                <option value={false}>off</option>
-                <option value={true}>on</option>
+                <option value={false}>
+                  <Trans i18nKey="settings.off">off</Trans>
+                </option>
+                <option value={true}>
+                  <Trans i18nKey="settings.on">on</Trans>
+                </option>
               </select>
             </Grid.Column>
           </Grid.Row>
@@ -1000,7 +1134,7 @@ export class Settings extends Component {
                     this.props.onRequestClose();
                 }}
               >
-                Update
+                <Trans i18nKey="settings.experiementalupdate">Update</Trans>
               </Button>
             </Grid.Column>
           </Grid.Row>
@@ -1077,10 +1211,18 @@ class ModalNextcloudScanDirectoryEdit extends Component {
         }}
       >
         <div style={{ padding: 10 }}>
-          <Header as="h3">Set your Nextcloud scan directory</Header>
+          <Header as="h3">
+            <Trans i18nKey="modalnextcloud.setdirectory">
+              Set your Nextcloud scan directory
+            </Trans>
+          </Header>
         </div>
         <div style={{ padding: 10 }}>
-          <Header as="h5">Current Nextcloud scan directory</Header>
+          <Header as="h5">
+            <Trans i18nKey="modalnextcloud.currentdirectory">
+              Current Nextcloud scan directory
+            </Trans>
+          </Header>
         </div>
         <div style={{ padding: 7 }}>
           <Input
@@ -1089,7 +1231,7 @@ class ModalNextcloudScanDirectoryEdit extends Component {
             placeholder={
               this.props.userToEdit
                 ? this.props.userToEdit.nextcloud_scan_directory === ""
-                  ? "not set"
+                  ? this.props.t("modalnextcloud.notset")
                   : this.props.userToEdit.nextcloud_scan_directory
                 : "..."
             }
@@ -1110,20 +1252,24 @@ class ModalNextcloudScanDirectoryEdit extends Component {
                 this.props.onRequestClose();
               }}
             >
-              Update
+              <Trans i18nKey="modalnextcloud.update">Update</Trans>
             </Button>
             <Button
               onClick={() => {
                 this.props.onRequestClose();
               }}
             >
-              Cancel
+              <Trans i18nKey="modalnextcloud.cancel">Cancel</Trans>
             </Button>
           </Input>
         </div>
         <Divider />
         <div style={{ paddingLeft: 10 }}>
-          <Header as="h5">Choose a directory from below</Header>
+          <Header as="h5">
+            <Trans i18nKey="modalnextcloud.choosedirectory">
+              Choose a directory from below
+            </Trans>
+          </Header>
         </div>
         <div
           style={{
@@ -1157,19 +1303,22 @@ class ModalNextcloudScanDirectoryEdit extends Component {
   }
 }
 
-ModalNextcloudScanDirectoryEdit = connect((store) => {
-  return {
-    auth: store.auth,
+ModalNextcloudScanDirectoryEdit = compose(
+  connect((store) => {
+    return {
+      auth: store.auth,
 
-    nextcloudDirectoryTree: store.util.nextcloudDirectoryTree,
-    fetchingNextcloudDirectoryTree: store.util.fetchingNextcloudDirectoryTree,
-    fetchedNextcloudDirectoryTree: store.util.fetchedNextcloudDirectoryTree,
+      nextcloudDirectoryTree: store.util.nextcloudDirectoryTree,
+      fetchingNextcloudDirectoryTree: store.util.fetchingNextcloudDirectoryTree,
+      fetchedNextcloudDirectoryTree: store.util.fetchedNextcloudDirectoryTree,
 
-    userList: store.util.userList,
-    fetchingUSerList: store.util.fetchingUserList,
-    fetchedUserList: store.util.fetchedUserList,
-  };
-})(ModalNextcloudScanDirectoryEdit);
+      userList: store.util.userList,
+      fetchingUSerList: store.util.fetchingUserList,
+      fetchedUserList: store.util.fetchedUserList,
+    };
+  }),
+  withTranslation()
+)(ModalNextcloudScanDirectoryEdit);
 
 Settings = compose(
   connect((store) => {
