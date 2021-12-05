@@ -1111,12 +1111,8 @@ export class Settings extends Component {
                   });
                 }}
               >
-                <option value={false}>
-                  <Trans i18nKey="settings.off">off</Trans>
-                </option>
-                <option value={true}>
-                  <Trans i18nKey="settings.on">on</Trans>
-                </option>
+                <option value={false}>{this.props.t("settings.off")}</option>
+                <option value={true}>{this.props.t("settings.on")}</option>
               </select>
             </Grid.Column>
           </Grid.Row>
