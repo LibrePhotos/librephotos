@@ -4,10 +4,12 @@ import _ from "lodash";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType, PhotosState } from "../../reducers/photosReducer";
 import { useAppDispatch, useAppSelector } from "../../hooks";
+import { useTranslation } from "react-i18next";
 
 export const HiddenPhotos = () => {
   const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector((state) => state.photos as PhotosState);
   const dispatch = useAppDispatch();
+  const {t} = useTranslation();
 
   useEffect(() => {
     if (fetchedPhotosetType !== PhotosetType.HIDDEN) {
@@ -18,7 +20,7 @@ export const HiddenPhotos = () => {
   return (
     <PhotoListView
           showHidden={true}
-          title={"Hidden Photos"}
+          title={t("photos.hidden")}
           loading={fetchedPhotosetType !== PhotosetType.HIDDEN}
           titleIconName={"hide"}
           isDateView={true}

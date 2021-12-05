@@ -206,5 +206,31 @@
       "categories": "Kategorie",
       "similarphotos": "Ähnliche Bilder"
     }
+  },
+  "photos": {
+    "recentlyadded": "Kürzlich hinzugefügt",
+    "addedon": "Hinzugefügt am ",
+    "photos": "Bilder",
+    "notimestamp": "Bilder ohne Zeitstempel",
+    "hidden": "Versteckte Bilder",
+    "favorite": "Favorisierte Bilder"
+  },
+  "login": {
+    "name": "LibrePhotos",
+    "login": "Login",
+    "username": "Nutzername",
+    "usernameplaceholder": "Nutzername",
+    "password": "Passwort",
+    "passwordplaceholder": "Passwort",
+    "signup": "Konto erstellen",
+    "errorbackend": "Es gibt keien Verbindung zum Backend Server. Probiere es in ein paar Minuten nochmal.",
+    "errorpassword": "Das Passwortfeld darf nicht leer sein!",
+    "errorusername": "Das Nutzernamenfeld darf nicht leer sein!",
+    "tagline": "Ein gemütlicher Platz für deine Bilder"
+  },
+  "search": {
+    "search": "Suche nach",
+    "default": "Suche...",
+    "loading": "Lade..."
   }
 }

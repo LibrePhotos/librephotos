@@ -23,7 +23,8 @@ import { fetchExampleSearchTerms } from "../actions/utilActions";
 import { serverAddress } from "../api_client/apiClient";
 import { SecuredImageJWT } from "./SecuredImage";
 import { TOP_MENU_HEIGHT } from "../ui-constants";
-
+import { withTranslation, Trans } from "react-i18next";
+import { compose } from "redux";
 var ENTER_KEY = 13;
 
 function fuzzy_match(str, pattern) {
@@ -43,7 +44,7 @@ export class CustomSearch extends Component {
     warningPopupOpen: false,
     showEmptyQueryWarning: false,
     width: window.innerWidth,
-    exampleSearchTerm: "Search...",
+    exampleSearchTerm: this.props.t("search.default"),
     searchBarFocused: false,
     filteredExampleSearchTerms: [],
     filteredSuggestedPeople: [],
@@ -68,7 +69,8 @@ export class CustomSearch extends Component {
     this.exampleSearchTermCylcer = setInterval(() => {
       this.setState({
         exampleSearchTerm:
-          "Search " +
+          this.props.t("search.search") +
+          " " +
           this.props.exampleSearchTerms[
             Math.floor(Math.random() * this.props.exampleSearchTerms.length)
           ],
@@ -446,7 +448,7 @@ export class CustomSearch extends Component {
                       overflowY: "auto",
                     }}
                   >
-                    Loading...
+                    {this.props.t("search.loading")}
                     <Loader inline active={true} size="mini" />
                   </div>
                 </Segment>
@@ -458,12 +460,15 @@ export class CustomSearch extends Component {
   }
 }
 
-CustomSearch = connect((store) => {
-  return {
-    exampleSearchTerms: store.util.exampleSearchTerms,
-    people: store.people.people,
-    albumsThingList: store.albums.albumsThingList,
-    albumsUserList: store.albums.albumsUserList,
-    albumsPlaceList: store.albums.albumsPlaceList,
-  };
-})(CustomSearch);
+CustomSearch = compose(
+  connect((store) => {
+    return {
+      exampleSearchTerms: store.util.exampleSearchTerms,
+      people: store.people.people,
+      albumsThingList: store.albums.albumsThingList,
+      albumsUserList: store.albums.albumsUserList,
+      albumsPlaceList: store.albums.albumsPlaceList,
+    };
+  }),
+  withTranslation()
+)(CustomSearch);

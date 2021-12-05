@@ -6,11 +6,13 @@ import _ from "lodash";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType, PhotosState } from "../../reducers/photosReducer";
 import { useAppDispatch, useAppSelector } from "../../hooks";
+import { useTranslation } from "react-i18next";
 
 export const NoTimestampPhotosView = () => {
   const { fetchedPhotosetType, numberOfPhotos, photosFlat } = useAppSelector((state) => state.photos as PhotosState);
   const dispatch = useAppDispatch();
-  
+  const {t} = useTranslation();
+
   useEffect(() => {
     if (fetchedPhotosetType !== PhotosetType.NO_TIMESTAMP) {
       fetchNoTimestampPhotoPaginated(dispatch, 1);
@@ -26,13 +28,13 @@ export const NoTimestampPhotosView = () => {
         fetchNoTimestampPhotoPaginated(dispatch, page);
       }
     };
-  }
+  }  
   
   const throttledGetImages = useCallback(_.throttle(visibleItems => getImages(visibleItems), 500),[]);
 
   return (
       <PhotoListView
-        title={"Photos without Timestamps"}
+        title={t("photos.notimestamp")}
         loading={fetchedPhotosetType !== PhotosetType.NO_TIMESTAMP}
         titleIconName={"images outline"}
         isDateView={false}

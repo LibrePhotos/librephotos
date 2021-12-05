@@ -206,5 +206,31 @@
       "categories": "Categories",
       "similarphotos": "Similar Photos"
     }
+  },
+  "photos": {
+    "recentlyadded": "Recently Added",
+    "addedon": "Added on ",
+    "photos": "Photos",
+    "notimestamp": "Photos without Timestamps",
+    "hidden": "Hidden Photos",
+    "favorite": "Favorite Photos"
+  },
+  "login": {
+    "name": "LibrePhotos",
+    "login": "Login",
+    "username": "User Name",
+    "usernameplaceholder": "Username",
+    "password": "Password",
+    "passwordplaceholder": "Password",
+    "signup": "Sign up",
+    "errorbackend": "No connection to backend server, try again in a few minutes.",
+    "errorpassword": "Password may not be blank!",
+    "errorusername": "Username may not be blank!",
+    "tagline": "A comfy place for your photos."
+  },
+  "search": {
+    "search": "Search",
+    "default": "Search...",
+    "loading": "Loading..."
   }
 }

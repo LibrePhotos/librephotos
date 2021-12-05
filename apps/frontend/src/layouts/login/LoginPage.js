@@ -9,7 +9,7 @@ import {
   Message,
   Segment,
 } from "semantic-ui-react";
-
+import { withTranslation } from "react-i18next";
 export class LoginPage extends Component {
   constructor(props) {
     super(props);
@@ -68,30 +68,30 @@ export class LoginPage extends Component {
           >
             <Image src={"/logo.png"} size="tiny" verticalAlign="middle" />{" "}
             <span style={{ paddingLeft: 5, fontSize: 18 }}>
-              <b>LibrePhotos</b>
+              <b>{this.props.t("login.name")}</b>
             </span>
           </div>
 
           <Segment attached>
-            <Header>Login</Header>
+            <Header>{this.props.t("login.login")}</Header>
 
             <Form onSubmit={this.onSubmit}>
               <Form.Field>
-                <label>User Name</label>
+                <label>{this.props.t("login.username")}</label>
                 <Form.Input
                   icon="user"
-                  placeholder="Username"
+                  placeholder={this.props.t("login.usernameplaceholder")}
                   name="username"
                   value={username}
                   onChange={this.handleChange}
                 />
               </Form.Field>
               <Form.Field>
-                <label>Password</label>
+                <label>{this.props.t("login.password")}</label>
                 <Form.Input
                   icon="lock"
                   type="password"
-                  placeholder="Password"
+                  placeholder={this.props.t("login.passwordplaceholder")}
                   name="password"
                   value={password}
                   onChange={this.handleChange}
@@ -108,7 +108,7 @@ export class LoginPage extends Component {
                       to="/signup"
                       fluid
                       color="green"
-                      content="Sign up"
+                      content={this.props.t("login.signup")}
                     />
                   </div>
                 )}
@@ -127,21 +127,19 @@ export class LoginPage extends Component {
             this.props.errors.data &&
             !this.props.errors.data.detail && (
               <Message color="red" secondary attached>
-                <p>
-                  No connection to backend server, try again in a few minutes.
-                </p>
+                <p>{this.props.t("login.errorbackend")}</p>
                 <p>{timeNow}</p>
               </Message>
             )}
           {this.props.errors && this.props.errors.password && (
             <Message color="red" secondary attached>
-              <p>Password may not be blank!</p>
+              <p>{this.props.t("login.errorpassword")}</p>
               <p>{timeNow}</p>
             </Message>
           )}
           {this.props.errors && this.props.errors.username && (
             <Message color="red" secondary attached="bottom">
-              <p>Username may not be blank!</p>
+              <p>{this.props.t("login.errorusername")}</p>
               <p>{timeNow}</p>
             </Message>
           )}
@@ -154,9 +152,11 @@ export class LoginPage extends Component {
             margin: "0 auto",
           }}
         >
-          A comfy place for your photos.
+          {this.props.t("login.tagline")}
         </div>
       </div>
     );
   }
 }
+
+LoginPage = withTranslation()(LoginPage);
