@@ -1,19 +1,26 @@
 import React, { Component } from "react";
-import { Grid, GridColumn, GridRow, Header, Icon, Loader } from "semantic-ui-react";
+import {
+  Grid,
+  GridColumn,
+  GridRow,
+  Header,
+  Icon,
+  Loader,
+} from "semantic-ui-react";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { withTranslation, Trans } from "react-i18next";
 
 export class DefaultHeader extends Component {
   render() {
-    if (
-      this.props.loading ||
-      this.props.numPhotosetItems < 1
-    ) {
+    if (this.props.loading || this.props.numPhotosetItems < 1) {
       return (
         <div>
           <div style={{ height: 60, paddingTop: 10 }}>
             <Header as="h4">
               <Header.Content>
-                {this.props.loading ? "Loading..." : "No images found"}
+                {this.props.loading
+                  ? this.props.t("defaultheader.loading")
+                  : this.props.t("defaultheader.noimages")}
                 <Loader inline active={this.props.loading} size="mini" />
               </Header.Content>
             </Header>
@@ -46,11 +53,13 @@ export class DefaultHeader extends Component {
               <Header.Content>
                 {this.props.title}{" "}
                 <Header.Subheader>
-                  {this.props.numPhotosetItems !=
-                    this.props.numPhotos
-                    ? this.props.numPhotosetItems + " days, "
+                  {this.props.numPhotosetItems != this.props.numPhotos
+                    ? this.props.numPhotosetItems +
+                      " " +
+                      this.props.t("defaultheader.days") +
+                      ", "
                     : ""}
-                  {this.props.numPhotos} photos
+                  {this.props.numPhotos} {this.props.t("defaultheader.photos")}
                   {this.props.additionalSubHeader}
                 </Header.Subheader>
               </Header.Content>
@@ -78,3 +87,5 @@ export class DefaultHeader extends Component {
     );
   }
 }
+
+DefaultHeader = withTranslation()(DefaultHeader);

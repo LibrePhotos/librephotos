@@ -11,7 +11,8 @@ import { Dropdown, Popup, Button, Icon } from "semantic-ui-react";
 import { serverAddress } from "../../api_client/apiClient";
 import { connect } from "react-redux";
 import { removeFromUserAlbum } from "../../actions/albumsActions";
-
+import { withTranslation, Trans } from "react-i18next";
+import { compose } from "redux";
 export class SelectionActions extends Component {
   render() {
     return (
@@ -35,7 +36,9 @@ export class SelectionActions extends Component {
             <Dropdown.Menu>
               <Dropdown.Header>
                 <Icon name="image" />
-                Photo Actions ({this.props.selectedItems.length} selected)
+                {this.props.t("selectionactions.photoactions")} (
+                {this.props.selectedItems.length}{" "}
+                {this.props.t("selectionactions.selected")} )
               </Dropdown.Header>
 
               <Dropdown.Divider />
@@ -51,7 +54,7 @@ export class SelectionActions extends Component {
                 }}
               >
                 <Icon name="star" color="yellow" />
-                {"  Favorite"}
+                {"  " + this.props.t("selectionactions.favorite")}
               </Dropdown.Item>
               <Dropdown.Item
                 disabled={this.props.selectedItems.length === 0}
@@ -65,7 +68,7 @@ export class SelectionActions extends Component {
                 }}
               >
                 <Icon name="star outline" color="yellow" />
-                {"  Unfavorite"}
+                {"  " + this.props.t("selectionactions.unfavorite")}
               </Dropdown.Item>
 
               <Dropdown.Divider />
@@ -81,7 +84,7 @@ export class SelectionActions extends Component {
                 }}
               >
                 <Icon name="hide" color="red" />
-                {"  Hide"}
+                {"  " + this.props.t("selectionactions.hide")}
               </Dropdown.Item>
               <Dropdown.Item
                 disabled={this.props.selectedItems.length === 0}
@@ -95,7 +98,7 @@ export class SelectionActions extends Component {
                 }}
               >
                 <Icon name="unhide" color="black" />
-                {"  Unhide"}
+                {"  " + this.props.t("selectionactions.unhide")}
               </Dropdown.Item>
 
               <Dropdown.Divider />
@@ -116,7 +119,7 @@ export class SelectionActions extends Component {
                 }}
               >
                 <Icon name="globe" />
-                {"  Make Public"}
+                {"  " + this.props.t("selectionactions.makepublic")}
               </Dropdown.Item>
               <Dropdown.Item
                 disabled={this.props.selectedItems.length === 0}
@@ -130,7 +133,7 @@ export class SelectionActions extends Component {
                 }}
               >
                 <Icon name="key" />
-                {"  Make Private"}
+                {"  " + this.props.t("selectionactions.makeprivate")}
               </Dropdown.Item>
 
               <Dropdown.Divider />
@@ -143,7 +146,7 @@ export class SelectionActions extends Component {
                 }}
               >
                 <Icon name="download" />
-                {"  Download"}
+                {"  " + this.props.t("selectionactions.download")}
               </Dropdown.Item>
 
               <Dropdown.Divider />
@@ -160,15 +163,15 @@ export class SelectionActions extends Component {
                     }}
                   >
                     <Icon name="share" />
-                    {"  Sharing"}
+                    {"  " + this.props.t("selectionactions.sharing")}
                   </Dropdown.Item>
                 }
-                content="Open sharing panel for selected photos"
+                content={this.props.t("selectionactions.sharingdescription")}
               />
               <Dropdown.Divider />
               <Dropdown.Header>
                 <Icon name="images" />
-                Album Actions
+                {this.props.t("selectionactions.albumactions")}
               </Dropdown.Header>
               <Popup
                 inverted
@@ -183,10 +186,12 @@ export class SelectionActions extends Component {
                     onClick={this.props.onShareAlbum}
                   >
                     <Icon name="share" />
-                    {"  Sharing"}
+                    {"  " + this.props.t("selectionactions.sharing")}
                   </Dropdown.Item>
                 }
-                content="Open sharing panel for the current album"
+                content={this.props.t(
+                  "selectionactions.albumsharingdescription"
+                )}
               />
               <Popup
                 inverted
@@ -210,10 +215,12 @@ export class SelectionActions extends Component {
                     }}
                   >
                     <Icon name="trash" />
-                    {"  Remove Photos"}
+                    {"  " + this.props.t("selectionactions.removephotos")}
                   </Dropdown.Item>
                 }
-                content="Remove the selected photos from the current album"
+                content={this.props.t(
+                  "selectionactions.removephotosdescription"
+                )}
               />
             </Dropdown.Menu>
           </Dropdown>
@@ -237,7 +244,9 @@ export class SelectionActions extends Component {
           >
             <Dropdown.Menu>
               <Dropdown.Header>
-                Album ({this.props.selectedItems.length} selected)
+                {this.props.t("selectionactions.album")} (
+                {this.props.selectedItems.length}{" "}
+                {this.props.t("selectionactions.selected")} )
               </Dropdown.Header>
               <Dropdown.Divider />
               <Dropdown.Item
@@ -258,8 +267,11 @@ export class SelectionActions extends Component {
   }
 }
 
-SelectionActions = connect((store) => {
-  return {
-    route: store.router,
-  };
-})(SelectionActions);
+SelectionActions = compose(
+  connect((store) => {
+    return {
+      route: store.router,
+    };
+  }),
+  withTranslation()
+)(SelectionActions);

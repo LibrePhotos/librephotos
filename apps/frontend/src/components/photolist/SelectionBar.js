@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import { Button, Icon, Popup } from "semantic-ui-react";
-
+import { withTranslation, Trans } from "react-i18next";
 export class SelectionBar extends Component {
   render() {
     return (
@@ -28,12 +28,14 @@ export class SelectionBar extends Component {
                 label={{
                   as: "a",
                   basic: true,
-                  content: `${this.props.selectedItems.length} selected`,
+                  content: `${this.props.selectedItems.length} ${this.props.t(
+                    "selectionbar.selected"
+                  )}`,
                 }}
                 labelPosition="right"
               />
             }
-            content="Toggle select mode"
+            content={this.props.t("selectionbar.toggle")}
             inverted
           />
         </Button.Group>
@@ -84,8 +86,8 @@ export class SelectionBar extends Component {
             }
             content={
               this.props.selectedItems.length === this.props.idx2hash.length
-                ? "Deselect all"
-                : "Select All"
+                ? this.props.t("selectionbar.deselect")
+                : this.props.t("selectionbar.select")
             }
           />
         </Button.Group>
@@ -93,3 +95,5 @@ export class SelectionBar extends Component {
     );
   }
 }
+
+SelectionBar = withTranslation()(SelectionBar);

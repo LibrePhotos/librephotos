@@ -159,5 +159,52 @@
     "publicphotos": "Öffentliche Bilde",
     "youshared": "Geteilt von dir",
     "sharedwithyou": "Mit dir geteilt"
+  },
+  "selectionbar": {
+    "selected": "ausgewählt",
+    "toggle": "Schalte Auswählmodus um",
+    "deselect": "Entwähle alle",
+    "select": "Wähle alle aus"
+  },
+  "defaultheader": {
+    "loading": "Lade...",
+    "noimages": "Keine Bilder gefunden",
+    "days": "Tage",
+    "photos": "Bilder"
+  },
+  "selectionactions": {
+    "photoactions": "Bilderaktionen",
+    "selected": "ausgewählt",
+    "favorite": "Favorisieren",
+    "unfavorite": "Entfavorisieren",
+    "hide": "Verstecken",
+    "unhide": "Aufdecken",
+    "makepublic": "Öffentlich machen",
+    "makeprivate": "Privat stellen",
+    "download": "Download",
+    "sharing": "Teilen",
+    "sharingdescription": "Öffne das Teilen Panel für die ausgewählten Bilder",
+    "albumactions": "Albenaktionen",
+    "albumsharingdescription": "Öffne das Teilen Panel für das momentane Album",
+    "removephotos": "Entferne Bild",
+    "removephotosdescription": "Entferne das Bild aus dem ausgewählten Album",
+    "album": "Alben"
+  },
+  "lightbox": {
+    "sidebar": {
+      "details": "Details",
+      "timetaken": "Zeitpunkt der Aufnahme",
+      "filepath": "Dateiort",
+      "location": "Ort",
+      "caption": "Beschreibung",
+      "people": "Personen",
+      "submit": "Speichern",
+      "generate": "Generiere",
+      "cancel": "Abbrechen",
+      "scene": "Szene",
+      "attributes": "Attribute",
+      "categories": "Kategorie",
+      "similarphotos": "Ähnliche Bilder"
+    }
   }
 }

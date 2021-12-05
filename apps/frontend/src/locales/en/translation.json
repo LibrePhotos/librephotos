@@ -159,5 +159,52 @@
     "publicphotos": "Public photos",
     "youshared": "You shared",
     "sharedwithyou": "Shared with you"
+  },
+  "selectionbar": {
+    "selected": "selected",
+    "toggle": "Toggle select mode",
+    "deselect": "Deselect all",
+    "select": "Select all"
+  },
+  "defaultheader": {
+    "loading": "Loading...",
+    "noimages": "No images found",
+    "days": "days",
+    "photos": "photos"
+  },
+  "selectionactions": {
+    "photoactions": "Photo Actions",
+    "selected": "selected",
+    "favorite": "Favorite",
+    "unfavorite": "Unfavorite",
+    "hide": "Hide",
+    "unhide": "Unhide",
+    "makepublic": "Make Public",
+    "makeprivate": "Make Private",
+    "download": "Download",
+    "sharing": "Sharing",
+    "sharingdescription": "Open sharing panel for selected photos",
+    "albumactions": "Album Actions",
+    "albumsharingdescription": "Open sharing panel for the current album",
+    "removephotos": "Remove Photos",
+    "removephotosdescription": "Remove the selected photos from the current album",
+    "album": "Album"
+  },
+  "lightbox": {
+    "sidebar": {
+      "details": "Details",
+      "timetaken": "Time Taken",
+      "filepath": "File Path",
+      "location": "Location",
+      "caption": "Caption",
+      "people": "People",
+      "submit": "Submit",
+      "generate": "Generate",
+      "cancel": "Cancel",
+      "scene": "Scene",
+      "attributes": "Attributes",
+      "categories": "Categories",
+      "similarphotos": "Similar Photos"
+    }
   }
 }

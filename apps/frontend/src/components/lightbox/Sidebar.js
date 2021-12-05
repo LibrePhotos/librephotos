@@ -20,7 +20,8 @@ import { searchPhotos } from "../../actions/searchActions";
 import * as moment from "moment";
 import { Link } from "react-router-dom";
 import { Tile } from "../Tile";
-
+import { withTranslation, Trans } from "react-i18next";
+import { compose } from "redux";
 var LIGHTBOX_SIDEBAR_WIDTH = 360;
 if (window.innerWidth < 600) {
   LIGHTBOX_SIDEBAR_WIDTH = window.innerWidth;
@@ -96,7 +97,8 @@ export default class Sidebar extends Component {
                   <Item>
                     <Item.Content verticalAlign="middle">
                       <Item.Header>
-                        <Icon name="calendar" /> Time Taken
+                        <Icon name="calendar" />{" "}
+                        {this.props.t("lightbox.sidebar.timetaken")}
                       </Item.Header>
                       <Item.Description>
                         {moment
@@ -112,7 +114,8 @@ export default class Sidebar extends Component {
                   <Item>
                     <Item.Content verticalAlign="middle">
                       <Item.Header>
-                        <Icon name="file" /> File Path
+                        <Icon name="file" />{" "}
+                        {this.props.t("lightbox.sidebar.filepath")}
                       </Item.Header>
                       <Item.Description>
                         <Breadcrumb
@@ -142,7 +145,8 @@ export default class Sidebar extends Component {
                     <Item>
                       <Item.Content verticalAlign="middle">
                         <Item.Header>
-                          <Icon name="point" /> Location
+                          <Icon name="point" />{" "}
+                          {this.props.t("lightbox.sidebar.location")}
                         </Item.Header>
                         <Item.Description>
                           {this.props.photoDetail.search_location}
@@ -173,7 +177,8 @@ export default class Sidebar extends Component {
                     <Item>
                       <Item.Content verticalAlign="middle">
                         <Item.Header>
-                          <Icon name="users" /> People
+                          <Icon name="users" />{" "}
+                          {this.props.t("lightbox.sidebar.people")}
                         </Item.Header>
                         <Item.Description>
                           <Label.Group>
@@ -205,7 +210,8 @@ export default class Sidebar extends Component {
                   <Item>
                     <Item.Content verticalAlign="middle">
                       <Item.Header>
-                        <Icon name="write" /> Caption
+                        <Icon name="write" />{" "}
+                        {this.props.t("lightbox.sidebar.caption")}
                       </Item.Header>
                       <Item.Description>
                         {false && this.props.photoDetail.captions_json.im2txt}
@@ -225,7 +231,7 @@ export default class Sidebar extends Component {
                             size="small"
                             color="green"
                           >
-                            Submit
+                            {this.props.t("lightbox.sidebar.submit")}
                           </Button>
                           <Button
                             loading={this.props.generatingCaptionIm2txt}
@@ -245,7 +251,7 @@ export default class Sidebar extends Component {
                             size="small"
                             color="blue"
                           >
-                            Generate
+                            {this.props.t("lightbox.sidebar.generate")}
                           </Button>
                           <Button
                             disabled={this.props.isPublic}
@@ -253,7 +259,7 @@ export default class Sidebar extends Component {
                             size="small"
                             basic
                           >
-                            Cancel
+                            {this.props.t("lightbox.sidebar.cancel")}
                           </Button>
                         </Form>
                       </Item.Description>
@@ -266,11 +272,12 @@ export default class Sidebar extends Component {
                     <Item>
                       <Item.Content verticalAlign="middle">
                         <Item.Header>
-                          <Icon name="tags" /> Scene
+                          <Icon name="tags" />{" "}
+                          {this.props.t("lightbox.sidebar.scene")}
                         </Item.Header>
                         <Item.Description>
                           <p>
-                            <b>Attributes</b>
+                            <b>{this.props.t("lightbox.sidebar.attributes")}</b>
                           </p>
                           <Label.Group>
                             {this.props.photoDetail.captions_json.places365.attributes.map(
@@ -296,7 +303,7 @@ export default class Sidebar extends Component {
                           </Label.Group>
 
                           <p>
-                            <b>Categories</b>
+                            <b>{this.props.t("lightbox.sidebar.categories")}</b>
                           </p>
                           <Label.Group>
                             {this.props.photoDetail.captions_json.places365.categories.map(
@@ -331,7 +338,7 @@ export default class Sidebar extends Component {
                       <Item.Content verticalAlign="middle">
                         <Item.Header>
                           <Icon name="images" />
-                          Similar Photos
+                          {this.props.t("lightbox.sidebar.similarphotos")}
                         </Item.Header>
                         <Item.Description>
                           <Image.Group>
@@ -362,8 +369,11 @@ export default class Sidebar extends Component {
   }
 }
 
-Sidebar = connect((store) => {
-  return {
-    generatingCaptionIm2txt: store.photos.generatingCaptionIm2txt,
-  };
-})(Sidebar);
+Sidebar = compose(
+  connect((store) => {
+    return {
+      generatingCaptionIm2txt: store.photos.generatingCaptionIm2txt,
+    };
+  }),
+  withTranslation()
+)(Sidebar);
