@@ -312,6 +312,12 @@ export class Settings extends Component {
                         flag: "de",
                         text: this.props.t("settings.german"),
                       },
+                      {
+                        key: "es",
+                        value: "es",
+                        flag: "es",
+                        text: this.props.t("settings.spanish"),
+                      },
                     ]}
                   />
                 </Form>{" "}
