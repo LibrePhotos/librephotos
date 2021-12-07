@@ -4,11 +4,10 @@ import { connect } from "react-redux";
 import { Link } from "react-router-dom";
 import { Divider, Icon, Menu, Dropdown } from "semantic-ui-react";
 
-import { toggleSidebar } from "../../actions/uiActions";
 import { logout } from "../../actions/authActions";
 import { compose } from "redux";
 import { withTranslation, Trans } from "react-i18next";
-
+import { LEFT_MENU_WIDTH } from "../../ui-constants";
 export class SideMenuNarrow extends Component {
   state = { activeItem: "all photos" };
 
@@ -18,6 +17,12 @@ export class SideMenuNarrow extends Component {
   render() {
     return (
       <Menu
+        style={{
+          width: LEFT_MENU_WIDTH,
+          overflowWrap: "break-word",
+          wordWrap: "break-word",
+          wordBreak: "break-word",
+        }}
         borderless
         icon="labeled"
         vertical
@@ -144,7 +149,9 @@ export class SideMenuNarrow extends Component {
         >
           <Dropdown.Menu>
             <Dropdown.Header>
-              {this.props.t("sidemenu.dataviz")}
+              <div style={{ overflow: "visible" }}>
+                {this.props.t("sidemenu.dataviz")}
+              </div>
             </Dropdown.Header>
             <Dropdown.Item as={Link} to="/placetree">
               <Icon name="sitemap" />
