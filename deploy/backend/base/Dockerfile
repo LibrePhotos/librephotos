@@ -1,8 +1,8 @@
 FROM ubuntu:20.04
-# system packages installation
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 
+# system packages installation
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
 		build-essential \
