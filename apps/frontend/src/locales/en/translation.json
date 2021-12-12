@@ -109,11 +109,11 @@
       "mediafile": "Save to media file"
     },
     "favoriteupdate": "Update",
-    "experiementaloptions": "Experimental options",
-    "transcodevideo": "Always trancode videos",
+    "experimentaloptions": "Experimental options",
+    "transcodevideo": "Always transcode videos",
     "on": "On",
     "off": "Off",
-    "experiementalupdate": "Update"
+    "experimentalupdate": "Update"
   },
   "modalnextcloud": {
     "setdirectory": "Set your Nextcloud scan directory",

@@ -109,11 +109,11 @@
       "mediafile": "Guardar en archivo multimedia"
     },
     "favoriteupdate": "Actualizar",
-    "experiementaloptions": "Opciones experimentales",
+    "experimentaloptions": "Opciones experimentales",
     "transcodevideo": "Siempre transcodifica los videos",
     "on": "Sí",
     "off": "No",
-    "experiementalupdate": "Actualizar"
+    "experimentalupdate": "Actualizar"
   },
   "modalnextcloud": {
     "setdirectory": "Establezca su directorio de escaneo de Nextcloud",

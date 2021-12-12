@@ -109,11 +109,11 @@
       "mediafile": "Speichere in der Mediendatei"
     },
     "favoriteupdate": "Aktualisiere",
-    "experiementaloptions": "Experimentele Optionen",
+    "experimentaloptions": "Experimentele Optionen",
     "transcodevideo": "Transkodiere immer Videos",
     "on": "An",
     "off": "Aus",
-    "experiementalupdate": "Aktualisiere"
+    "experimentalupdate": "Aktualisiere"
   },
   "modalnextcloud": {
     "setdirectory": "Setze dein Nextcloud Scan Ordner",

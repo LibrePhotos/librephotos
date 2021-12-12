@@ -1098,7 +1098,7 @@ export class Settings extends Component {
           </Grid.Row>
         </Grid>
         <Header as="h3">
-          <Trans i18nKey="settings.experiementaloptions">
+          <Trans i18nKey="settings.experimentaloptions">
             Experimental options
           </Trans>
         </Header>
@@ -1142,7 +1142,7 @@ export class Settings extends Component {
                     this.props.onRequestClose();
                 }}
               >
-                <Trans i18nKey="settings.experiementalupdate">Update</Trans>
+                <Trans i18nKey="settings.experimentalupdate">Update</Trans>
               </Button>
             </Grid.Column>
           </Grid.Row>
