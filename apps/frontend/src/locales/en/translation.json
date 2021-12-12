@@ -234,5 +234,40 @@
     "search": "Search",
     "default": "Search...",
     "loading": "Loading..."
+  },
+  "adminarea": {
+    "header": "Admin Area",
+    "sitesettings": "Site settings",
+    "users": "Users",
+    "username": "Username",
+    "scandirectory": "Scan Directory",
+    "minimumconfidence": "Minimum Confidence",
+    "photocount": "Photo Count",
+    "joined": "Joined",
+    "notset": "Not set"
+  },
+  "joblist": {
+    "workerlogs": "Worker Logs",
+    "reload": "Reload",
+    "status": "Status",
+    "jobtype": "Job Type",
+    "progress": "Progress",
+    "queued": "Queued",
+    "started": "Started",
+    "duration": "Duration",
+    "startedby": "Started By",
+    "delete": "Delete",
+    "itemsprocessed": "Item(s) processed",
+    "running": "running",
+    "removeexplanation": "Does not actually stop the job, only removes this entry from DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc."
+  },
+  "modalscandirectoryedit": {
+    "header": "Set the scan directory for user",
+    "explanation1": "When the user",
+    "explanation2": "clicks on the 'scan photos' button, photos in the directory that you specify here will be imported under the user's account",
+    "currentdirectory": "User's current directory",
+    "notset": "not set",
+    "update": "Update",
+    "explanation3": "Choose a directory from below"
   }
 }

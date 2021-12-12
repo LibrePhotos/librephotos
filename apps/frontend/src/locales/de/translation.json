@@ -234,5 +234,40 @@
     "search": "Suche nach",
     "default": "Suche...",
     "loading": "Lade..."
+  },
+  "adminarea": {
+    "header": "Adminbereich",
+    "sitesettings": "Seiteneinstellung",
+    "users": "Nutzer",
+    "username": "Nutzername",
+    "scandirectory": "Scanordner",
+    "minimumconfidence": "Minimale Sicherheit",
+    "photocount": "Anzahl der Bilder",
+    "joined": "Beigetreten",
+    "notset": "Nicht gesetzt"
+  },
+  "joblist": {
+    "workerlogs": "Arbeiterlogs",
+    "reload": "Neu laden",
+    "status": "Status",
+    "jobtype": "Jobtyp",
+    "progress": "Fortschritt",
+    "queued": "In Warteschlange",
+    "started": "Gestartet",
+    "duration": "Dauer",
+    "startedby": "Gestartet von",
+    "delete": "Löschen",
+    "itemsprocessed": "Bilder verarbeitet",
+    "running": "läuft",
+    "removeexplanation": "Stoppt nicht den eigentlichen Job, sondern entfernt nur den Eintrag. Das sollte man machen in Fällen bei denen der Job nicht sauber abgeschlossen wurde."
+  },
+  "modalscandirectoryedit": {
+    "header": "Setze den Ordner für den NutzerSet the scan directory for user",
+    "explanation1": "Wenn der Nutzer",
+    "explanation2": "auf den 'Scanne Bilder' Knopf drückt, dann werden die Bilder in dem Verzeichnis importiert für den ausgewählten Nutzer",
+    "currentdirectory": "Das aktuelle Verzeichnis des Nutzers",
+    "notset": "nicht gesetzt",
+    "update": "Aktualsieren",
+    "explanation3": "Wählen ein Verzeichnis von unten aus"
   }
 }

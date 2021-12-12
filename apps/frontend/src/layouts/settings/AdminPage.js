@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import { compose } from "redux";
 import {
   Progress,
   Icon,
@@ -25,6 +26,7 @@ import {
 import SortableTree from "react-sortable-tree";
 import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
 import SiteSettings from "./SiteSettings";
+import { withTranslation, Trans } from "react-i18next";
 
 export class AdminPage extends Component {
   state = { modalOpen: false, userToEdit: null };
@@ -47,11 +49,11 @@ export class AdminPage extends Component {
       <div style={{ padding: 10 }}>
         <Header as="h2">
           <Icon name="wrench" />
-          <Header.Content>Admin Area</Header.Content>
+          <Header.Content>{this.props.t("adminarea.header")}</Header.Content>
         </Header>
 
         <Divider />
-        <Header as="h3">Site settings</Header>
+        <Header as="h3">{this.props.t("adminarea.sitesettings")}</Header>
         <SiteSettings
           allow_registration={this.props.siteSettings.allow_registration}
           dispatch={this.props.dispatch}
@@ -59,17 +61,27 @@ export class AdminPage extends Component {
 
         <Divider />
         <Header as="h3">
-          Users
+          {this.props.t("adminarea.users")}
           <Loader size="mini" active={this.props.fetchingUserList} inline />
         </Header>
         <Table compact celled>
           <Table.Header>
             <Table.Row>
-              <Table.HeaderCell>Username</Table.HeaderCell>
-              <Table.HeaderCell>Scan Directory</Table.HeaderCell>
-              <Table.HeaderCell>Minimum Confidence</Table.HeaderCell>
-              <Table.HeaderCell>Photo Count</Table.HeaderCell>
-              <Table.HeaderCell>Joined</Table.HeaderCell>
+              <Table.HeaderCell>
+                {this.props.t("adminarea.username")}
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                {this.props.t("adminarea.scandirectory")}
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                {this.props.t("adminarea.minimumconfidence")}
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                {this.props.t("adminarea.photocount")}
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                {this.props.t("adminarea.joined")}
+              </Table.HeaderCell>
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -87,10 +99,14 @@ export class AdminPage extends Component {
                         });
                       }}
                     />
-                    {user.scan_directory ? user.scan_directory : "Not set"}
+                    {user.scan_directory
+                      ? user.scan_directory
+                      : this.props.t("adminarea.notset")}
                   </Table.Cell>
                   <Table.Cell>
-                    {user.confidence ? user.confidence : "Not set"}
+                    {user.confidence
+                      ? user.confidence
+                      : this.props.t("adminarea.notset")}
                   </Table.Cell>
                   <Table.Cell>{user.photo_count}</Table.Cell>
                   <Table.Cell>{moment(user.date_joined).fromNow()}</Table.Cell>
@@ -156,7 +172,7 @@ class JobList extends Component {
     return (
       <div>
         <Header as="h3">
-          Worker Logs{" "}
+          {this.props.t("joblist.workerlogs")}{" "}
           <Loader size="mini" active={this.props.fetchingJobList} inline />
         </Header>
         <Button
@@ -167,19 +183,43 @@ class JobList extends Component {
             );
           }}
         >
-          Reload
+          {this.props.t("joblist.reload")}
         </Button>
         <Table compact attached="top" celled>
           <Table.Header>
             <Table.Row>
-              <Table.HeaderCell>Status</Table.HeaderCell>
-              <Table.HeaderCell>Job Type</Table.HeaderCell>
-              <Table.HeaderCell width={5}>Progress</Table.HeaderCell>
-              <Table.HeaderCell>Queued</Table.HeaderCell>
-              <Table.HeaderCell>Started</Table.HeaderCell>
-              <Table.HeaderCell>Duration</Table.HeaderCell>
-              <Table.HeaderCell>Started By</Table.HeaderCell>
-              <Table.HeaderCell>Delete</Table.HeaderCell>
+              <Table.HeaderCell>
+                {" "}
+                {this.props.t("joblist.status")}
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                {" "}
+                {this.props.t("joblist.jobtype")}
+              </Table.HeaderCell>
+              <Table.HeaderCell width={5}>
+                {" "}
+                {this.props.t("joblist.progress")}
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                {" "}
+                {this.props.t("joblist.queued")}
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                {" "}
+                {this.props.t("joblist.started")}
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                {" "}
+                {this.props.t("joblist.duration")}
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                {" "}
+                {this.props.t("joblist.startedby")}
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                {" "}
+                {this.props.t("joblist.delete")}
+              </Table.HeaderCell>
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -237,7 +277,8 @@ class JobList extends Component {
                         error={job.failed}
                         percent={100}
                       >
-                        {job.result.progress.current} Item(s) processed{" "}
+                        {job.result.progress.current}{" "}
+                        {this.props.t("joblist.itemsprocessed")}{" "}
                       </Progress>
                     ) : null}
                   </Table.Cell>
@@ -254,7 +295,7 @@ class JobList extends Component {
                           )
                           .humanize()
                       : job.started_at
-                      ? "running"
+                      ? this.props.t("joblist.running")
                       : ""}
                   </Table.Cell>
                   <Table.Cell>{job.started_by.username}</Table.Cell>
@@ -277,7 +318,7 @@ class JobList extends Component {
                           Remove
                         </Button>
                       }
-                      content="Does not actually stop the job, only removes this entry from DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc."
+                      content={this.props.t("joblist.removeexplanation")}
                     />
                   </Table.Cell>
                 </Table.Row>
@@ -352,19 +393,20 @@ class ModalScanDirectoryEdit extends Component {
         <div style={{ padding: 10 }}>
           <Header>
             <Header.Content>
-              Set the scan directory for user "
+              {this.props.t("modalscandirectoryedit.header")} "
               {this.props.userToEdit ? this.props.userToEdit.username : "..."}"
               <Header.Subheader>
-                When the user "
+                {this.props.t("modalscandirectoryedit.explanation1")} "
                 {this.props.userToEdit ? this.props.userToEdit.username : "..."}
-                " clicks on the 'scan photos' button, photos in the directory
-                that you specify here will be imported under the user's account.
+                " {this.props.t("modalscandirectoryedit.explanation2")}
               </Header.Subheader>
             </Header.Content>
           </Header>
         </div>
         <div style={{ padding: 10 }}>
-          <Header as="h5">User's current directory</Header>
+          <Header as="h5">
+            {this.props.t("modalscandirectoryedit.currentdirectory")}
+          </Header>
         </div>
         <div style={{ padding: 7 }}>
           <Input
@@ -374,9 +416,9 @@ class ModalScanDirectoryEdit extends Component {
               this.state.newScanDirectory === ""
                 ? this.props.userToEdit
                   ? this.props.userToEdit.scan_directory === ""
-                    ? "not set"
+                    ? this.props.t("modalscandirectoryedit.notset")
                     : this.props.userToEdit.scan_directory
-                  : "not set"
+                  : this.props.t("modalscandirectoryedit.notset")
                 : this.state.newScanDirectory
             }
             action
@@ -401,12 +443,14 @@ class ModalScanDirectoryEdit extends Component {
                 this.props.onRequestClose();
               }}
             >
-              Update
+              {this.props.t("modalscandirectoryedit.update")}
             </Button>
           </Input>
         </div>
         <div style={{ padding: 10 }}>
-          <Header as="h5">Choose a directory from below</Header>
+          <Header as="h5">
+            {this.props.t("modalscandirectoryedit.explanation3")}
+          </Header>
         </div>
         <div
           style={{
@@ -440,48 +484,57 @@ class ModalScanDirectoryEdit extends Component {
   }
 }
 
-JobList = connect((store) => {
-  return {
-    auth: store.auth,
-    jobList: store.util.jobList,
-    jobCount: store.util.jobCount,
-    fetchingJobList: store.util.fetchingJobList,
-    fetchedJobList: store.util.fetchedJobList,
-  };
-})(JobList);
+JobList = compose(
+  connect((store) => {
+    return {
+      auth: store.auth,
+      jobList: store.util.jobList,
+      jobCount: store.util.jobCount,
+      fetchingJobList: store.util.fetchingJobList,
+      fetchedJobList: store.util.fetchedJobList,
+    };
+  }),
+  withTranslation()
+)(JobList);
 
-ModalScanDirectoryEdit = connect((store) => {
-  return {
-    auth: store.auth,
+ModalScanDirectoryEdit = compose(
+  connect((store) => {
+    return {
+      auth: store.auth,
 
-    directoryTree: store.util.directoryTree,
-    fetchingDirectoryTree: store.util.fetchingDirectoryTree,
-    fetchedDirectoryTree: store.util.fetchedDirectoryTree,
+      directoryTree: store.util.directoryTree,
+      fetchingDirectoryTree: store.util.fetchingDirectoryTree,
+      fetchedDirectoryTree: store.util.fetchedDirectoryTree,
 
-    userList: store.util.userList,
-    fetchingUSerList: store.util.fetchingUserList,
-    fetchedUserList: store.util.fetchedUserList,
-  };
-})(ModalScanDirectoryEdit);
+      userList: store.util.userList,
+      fetchingUSerList: store.util.fetchingUserList,
+      fetchedUserList: store.util.fetchedUserList,
+    };
+  }),
+  withTranslation()
+)(ModalScanDirectoryEdit);
 
-AdminPage = connect((store) => {
-  return {
-    auth: store.auth,
-    util: store.util,
-    gridType: store.ui.gridType,
-    siteSettings: store.util.siteSettings,
-    statusPhotoScan: store.util.statusPhotoScan,
-    statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
-    generatingAutoAlbums: store.util.generatingAutoAlbums,
-    scanningPhotos: store.photos.scanningPhotos,
-    fetchedCountStats: store.util.fetchedCountStats,
-    workerAvailability: store.util.workerAvailability,
-    fetchedNextcloudDirectoryTree: store.util.fetchedNextcloudDirectoryTree,
-    userSelfDetails: store.user.userSelfDetails,
-    fetchingJobList: store.util.fetchingJobList,
-    fetchedJobList: store.util.fetchedJobList,
-    userList: store.util.userList,
-    fetchingUserList: store.util.fetchingUserList,
-    fetchedUserList: store.util.fetchedUserList,
-  };
-})(AdminPage);
+AdminPage = compose(
+  connect((store) => {
+    return {
+      auth: store.auth,
+      util: store.util,
+      gridType: store.ui.gridType,
+      siteSettings: store.util.siteSettings,
+      statusPhotoScan: store.util.statusPhotoScan,
+      statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
+      generatingAutoAlbums: store.util.generatingAutoAlbums,
+      scanningPhotos: store.photos.scanningPhotos,
+      fetchedCountStats: store.util.fetchedCountStats,
+      workerAvailability: store.util.workerAvailability,
+      fetchedNextcloudDirectoryTree: store.util.fetchedNextcloudDirectoryTree,
+      userSelfDetails: store.user.userSelfDetails,
+      fetchingJobList: store.util.fetchingJobList,
+      fetchedJobList: store.util.fetchedJobList,
+      userList: store.util.userList,
+      fetchingUserList: store.util.fetchingUserList,
+      fetchedUserList: store.util.fetchedUserList,
+    };
+  }),
+  withTranslation()
+)(AdminPage);
