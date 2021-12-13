@@ -19,7 +19,7 @@ RUN git clone --depth 1 --branch 'v1.7.1' https://github.com/facebookresearch/fa
 	make -C build -j4 swigfaiss && \
 	cd build/faiss/python && \
 	python3 setup.py install && \
-	unzip /usr/local/lib/python3.8/dist-packages/faiss*.egg -d /usr/local/lib/python3.8/dist-packages/
+	unzip /usr/local/lib/python3.9/dist-packages/faiss*.egg -d /usr/local/lib/python3.9/dist-packages/
 
 # pre trained models download
 WORKDIR /data_models
