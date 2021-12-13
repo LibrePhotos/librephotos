@@ -43,6 +43,7 @@ class Tags:
     IMAGE_HEIGHT = "ImageHeight"
     IMAGE_WIDTH = "ImageWidth"
     DATE_TIME_ORIGINAL = "EXIF:DateTimeOriginal"
+    GPS_DATE_TIME = "EXIF:GPSDateTime"
     QUICKTIME_CREATE_DATE = "QuickTime:CreateDate"
     LATITUDE = "Composite:GPSLatitude"
     LONGITUDE = "Composite:GPSLongitude"
@@ -367,9 +368,9 @@ class Photo(models.Model):
     def _extract_date_time_from_exif(self, commit=True):
         date_format = "%Y:%m:%d %H:%M:%S"
         timestamp_from_exif = None
-        exif, exifvideo = get_metadata(
+        exif, exifvideo, gps_time = get_metadata(
             self.image_paths[0],
-            tags=[Tags.DATE_TIME_ORIGINAL, Tags.QUICKTIME_CREATE_DATE],
+            tags=[Tags.DATE_TIME_ORIGINAL, Tags.QUICKTIME_CREATE_DATE, Tags.GPS_DATE_TIME],
             try_sidecar=True,
         )
         if exif:
@@ -391,6 +392,15 @@ class Photo(models.Model):
                 ).replace(tzinfo=pytz.utc)
             except Exception:
                 timestamp_from_exif = None
+
+        if gps_time:
+            try:
+                timestamp_from_exif = datetime.strptime(exifvideo, date_format).replace(
+                    tzinfo=pytz.utc
+                )
+            except Exception:
+                timestamp_from_exif = None
+
 
         old_album_date = self._find_album_date()
 
