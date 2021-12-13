@@ -395,7 +395,7 @@ class Photo(models.Model):
 
         if gps_time:
             try:
-                timestamp_from_exif = datetime.strptime(exifvideo, date_format).replace(
+                timestamp_from_exif = datetime.strptime(gps_time, date_format).replace(
                     tzinfo=pytz.utc
                 )
             except Exception:
