@@ -370,7 +370,11 @@ class Photo(models.Model):
         timestamp_from_exif = None
         exif, exifvideo, gps_time = get_metadata(
             self.image_paths[0],
-            tags=[Tags.DATE_TIME_ORIGINAL, Tags.QUICKTIME_CREATE_DATE, Tags.GPS_DATE_TIME],
+            tags=[
+                Tags.DATE_TIME_ORIGINAL,
+                Tags.QUICKTIME_CREATE_DATE,
+                Tags.GPS_DATE_TIME,
+            ],
             try_sidecar=True,
         )
         if exif:
