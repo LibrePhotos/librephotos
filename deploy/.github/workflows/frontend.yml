@@ -96,6 +96,4 @@ jobs:
           context: ./frontend
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: 
-            reallibrephotos/librephotos-frontend:${{ github.event.release.tag_name }}
-            reallibrephotos/librephotos-frontend:latest
+          tags: reallibrephotos/librephotos-frontend:${{ github.event.release.tag_name }},reallibrephotos/librephotos-frontend:latest
