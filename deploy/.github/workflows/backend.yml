@@ -87,4 +87,6 @@ jobs:
           context: ./backend
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: reallibrephotos/librephotos:${{ github.event.release.tag_name }}
+          tags: 
+            reallibrephotos/librephotos:${{ github.event.release.tag_name }}
+            reallibrephotos/librephotos:latest
