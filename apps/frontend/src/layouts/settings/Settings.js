@@ -411,7 +411,7 @@ export class Settings extends Component {
                         },
                       });
                     }}
-                    label={this.props.t("settings.credentialspopup")}
+                    label={this.props.t("settings.serveradress")}
                     placeholder={this.props.t(
                       "settings.serveradressplaceholder"
                     )}
