@@ -263,7 +263,7 @@
 	  },
 	  "modalscandirectoryedit": {
 	    "header": "Spécifie le répertoire de scan pour l'utilisateur",
-	    "explanation1": "En cliquant sur la flèche, vous ouvrez la racine du répertoire de scan (/scan), puis vous sélectionnez un répertoire ou sous-répertoire "
+	    "explanation1": "En cliquant sur la flèche, vous ouvrez la racine du répertoire de scan (/scan), puis vous sélectionnez un répertoire ou sous-répertoire ",
 	    "explanation2": "qui servira de répertoire de scan à l'utilisateur quand celui-ci cliquera sur le lancement du scan",
 	    "currentdirectory": "Répertoire actuel de scan de l'utilisateur",
 	    "notset": "non spécifié !",
