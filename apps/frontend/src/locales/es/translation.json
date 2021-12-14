@@ -234,5 +234,40 @@
     "search": "Buscar",
     "default": "Buscar...",
     "loading": "Cargando..."
+  },
+  "adminarea": {
+    "header": "Área administrativa",
+    "sitesettings": "Configuración del sitio",
+    "users": "Usuarios",
+    "username": "Nombre de usuario",
+    "scandirectory": "Directorio de escaneo",
+    "minimumconfidence": "Confianza mínima",
+    "photocount": "Número de fotos",
+    "joined": "Ingresado",
+    "notset": "No configurado"
+  },
+  "joblist": {
+    "workerlogs": "Worker Logs",
+    "reload": "Recargar",
+    "status": "Estado",
+    "jobtype": "Tipo de trabajo",
+    "progress": "Progreso",
+    "queued": "Cola",
+    "started": "Empezado",
+    "duration": "Duración",
+    "startedby": "Empezado por",
+    "delete": "Borrar",
+    "itemsprocessed": "Artículo(s) procesados",
+    "running": "Ejecutándose",
+    "removeexplanation": "En realidad, no detiene el trabajo, solo elimina esta entrada de la base de datos. Úselo solo en los casos en que sepa que un trabajo falló sin gracia, al inspeccionar los registros, etc."
+  },
+  "modalscandirectoryedit": {
+    "header": "Establecer el directorio de escaneo para el usuario",
+    "explanation1": "Cuando el usuario",
+    "explanation2": "hace clic en el botón 'escanear fotos', las fotos en el directorio que especifique aquí se importarán en la cuenta del usuario",
+    "currentdirectory": "Directorio actual del usuario",
+    "notset": "no establecido",
+    "update": "Actualizar",
+    "explanation3": "Elija un directorio de abajo"
   }
 }
