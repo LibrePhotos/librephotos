@@ -296,7 +296,7 @@
     "maploading": "Map loading..."
   },
   "thingalbum": {
-    "showingthings": "Showing top {number} things"
+    "showingthings": "Showing top {{number}} things"
   },
   "useralbum": {
     "numberof": "Showing {{number}} user created albums",
