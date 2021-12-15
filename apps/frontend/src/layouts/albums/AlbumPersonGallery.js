@@ -3,7 +3,8 @@ import { connect } from "react-redux";
 import { fetchPersonPhotos } from "../../actions/albumsActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType } from "../../reducers/photosReducer";
-
+import { compose } from "redux";
+import { withTranslation, Trans } from "react-i18next";
 export class AlbumPersonGallery extends Component {
   isLoaded() {
     return (
@@ -24,7 +25,7 @@ export class AlbumPersonGallery extends Component {
         title={
           this.props.personDetails.name
             ? this.props.personDetails.name
-            : "Loading... "
+            : this.props.t("loading")
         }
         loading={!this.isLoaded()}
         titleIconName={"user"}
@@ -37,11 +38,14 @@ export class AlbumPersonGallery extends Component {
   }
 }
 
-AlbumPersonGallery = connect((store) => {
-  return {
-    photosGroupedByDate: store.photos.photosGroupedByDate,
-    photosFlat: store.photos.photosFlat,
-    personDetails: store.albums.personDetails,
-    fetchedPhotosetType: store.photos.fetchedPhotosetType,
-  };
-})(AlbumPersonGallery);
+AlbumPersonGallery = compose(
+  connect((store) => {
+    return {
+      photosGroupedByDate: store.photos.photosGroupedByDate,
+      photosFlat: store.photos.photosFlat,
+      personDetails: store.albums.personDetails,
+      fetchedPhotosetType: store.photos.fetchedPhotosetType,
+    };
+  }),
+  withTranslation()
+)(AlbumPersonGallery);

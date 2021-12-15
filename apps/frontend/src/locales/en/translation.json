@@ -269,5 +269,50 @@
     "notset": "not set",
     "update": "Update",
     "explanation3": "Choose a directory from below"
-  }
+  },
+  "sitesettings": {
+    "header": "Allow user registration",
+    "allow": "Allow",
+    "noallow": "Do not allow"
+  },
+  "countstats": {
+    "photos": "Photos"
+  },
+  "autoalbum": {
+    "subtitle": "Showing {{ autoalbumlength }} Auto created albums"
+  },
+  "autoalbumgallery": {
+    "showmap": "Show Map",
+    "hidemap": "Hide Map"
+  },
+  "personalbum": {
+    "numberofpeople": "{{peoplelength}} People",
+    "renameperson": "Rename Person",
+    "personalreadyexists": "Person {{name}} already exists.",
+    "nameplaceholder": "Name"
+  },
+  "placealbum": {
+    "showingplaces": "Showing {{number}} places on the map",
+    "maploading": "Map loading..."
+  },
+  "thingalbum": {
+    "showingthings": "Showing top {number} things"
+  },
+  "useralbum": {
+    "numberof": "Showing {{number}} user created albums",
+    "renamealbum": "Rename Album",
+    "albumalreadyexists": "Album {{name}} already exists.",
+    "albumplaceholder": "Album title"
+  },
+  "faces": "Faces",
+  "days": "Days",
+  "events": "Events",
+  "people": "People",
+  "rename": "Rename",
+  "delete": "Delete",
+  "numberofphotos": "{{number}} Photos",
+  "myalbums": "My Albums",
+  "things": "Things",
+  "places": "Places",
+  "loading": "Loading..."
 }

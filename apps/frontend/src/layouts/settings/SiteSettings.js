@@ -1,21 +1,21 @@
 import React, { Component } from "react";
 import { Form, Grid, Radio, Input } from "semantic-ui-react";
 import { setSiteSettings } from "../../actions/utilActions";
-
+import { withTranslation, Trans } from "react-i18next";
 export default class SiteSettings extends Component {
   render() {
     return (
       <Grid>
         <Grid.Row>
           <Grid.Column width={4} textAlign="left">
-            <b>Allow user registration</b>
+            <b>{this.props.p("sitesettings.header")}</b>
           </Grid.Column>
           <Grid.Column width={12}>
             <Form>
               <Form.Group>
                 <Form.Field>
                   <Radio
-                    label="Allow"
+                    label={this.props.p("sitesettings.allow")}
                     name="radioGroup"
                     onChange={() =>
                       this.props.dispatch(
@@ -27,7 +27,7 @@ export default class SiteSettings extends Component {
                 </Form.Field>
                 <Form.Field>
                   <Radio
-                    label="Do not allow"
+                    label={this.props.p("sitesettings.noallow")}
                     name="radioGroup"
                     onChange={() =>
                       this.props.dispatch(
@@ -45,3 +45,5 @@ export default class SiteSettings extends Component {
     );
   }
 }
+
+SiteSettings = withTranslation()(SiteSettings);

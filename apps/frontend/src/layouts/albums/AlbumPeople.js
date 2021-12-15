@@ -22,6 +22,8 @@ import { serverAddress } from "../../api_client/apiClient";
 import { Grid, AutoSizer } from "react-virtualized";
 import { Link } from "react-router-dom";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { compose } from "redux";
+import { withTranslation, Trans } from "react-i18next";
 
 var SIDEBAR_WIDTH = 85;
 
@@ -150,7 +152,7 @@ export class AlbumPeople extends Component {
                         this.props.people[albumPersonIndex].text
                       )
                     }
-                    text="Rename"
+                    text={this.props.t("rename")}
                   />
                   <Dropdown.Item
                     icon="delete"
@@ -160,7 +162,7 @@ export class AlbumPeople extends Component {
                         this.props.people[albumPersonIndex].text
                       );
                     }}
-                    text="Delete"
+                    text={this.props.t("delete")}
                   />
                 </Dropdown.Menu>
               </Dropdown>
@@ -171,7 +173,9 @@ export class AlbumPeople extends Component {
             style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}
           >
             <b>{this.props.people[albumPersonIndex].text}</b> <br />
-            {this.props.people[albumPersonIndex].face_count} Photos
+            {this.props.t("numberofphotos", {
+              number: this.props.people[albumPersonIndex].face_count,
+            })}
           </div>
         </div>
       );
@@ -187,10 +191,12 @@ export class AlbumPeople extends Component {
           <Header as="h2">
             <Icon name="users" />
             <Header.Content>
-              People{" "}
+              {this.props.t("people")}{" "}
               <Loader size="tiny" inline active={this.props.fetchingPeople} />
               <Header.Subheader>
-                {this.props.people.length} People
+                {this.props.t("personalbum.numberofpeople", {
+                  peoplelength: this.props.people.length,
+                })}
               </Header.Subheader>
             </Header.Content>
           </Header>
@@ -202,14 +208,12 @@ export class AlbumPeople extends Component {
           open={this.state.openRenameDialog}
         >
           <div style={{ padding: 20 }}>
-            <Header as="h4">Rename person</Header>
+            <Header as="h4">{this.props.t("personalbum.renameperson")}</Header>
             <Popup
               inverted
-              content={
-                'Person "' +
-                this.state.newPersonName.trim() +
-                '" already exists.'
-              }
+              content={this.props.t("personalbum.personalreadyexists", {
+                name: this.state.newPersonName.trim(),
+              })}
               position="bottom center"
               open={this.props.people
                 .map((el) => el.text.toLowerCase().trim())
@@ -223,7 +227,7 @@ export class AlbumPeople extends Component {
                   onChange={(e, v) => {
                     this.setState({ newPersonName: v.value });
                   }}
-                  placeholder="Name"
+                  placeholder={this.props.t("personalbum.nameplaceholder")}
                   action
                 >
                   <input />
@@ -244,7 +248,7 @@ export class AlbumPeople extends Component {
                       .includes(this.state.newPersonName.toLowerCase().trim())}
                     type="submit"
                   >
-                    Rename
+                    {this.props.t("rename")}
                   </Button>
                 </Input>
               }
@@ -286,13 +290,16 @@ export class AlbumPeople extends Component {
   }
 }
 
-AlbumPeople = connect((store) => {
-  return {
-    albumsPeople: store.albums.albumsPeople,
-    fetchingAlbumsPeople: store.albums.fetchingAlbumsPeople,
-    fetchedAlbumsPeople: store.albums.fetchedAlbumsPeople,
-    people: store.people.people,
-    fetchedPeople: store.people.fetched,
-    fetchingPeople: store.people.fetching,
-  };
-})(AlbumPeople);
+AlbumPeople = compose(
+  connect((store) => {
+    return {
+      albumsPeople: store.albums.albumsPeople,
+      fetchingAlbumsPeople: store.albums.fetchingAlbumsPeople,
+      fetchedAlbumsPeople: store.albums.fetchedAlbumsPeople,
+      people: store.people.people,
+      fetchedPeople: store.people.fetched,
+      fetchingPeople: store.people.fetching,
+    };
+  }),
+  withTranslation()
+)(AlbumPeople);

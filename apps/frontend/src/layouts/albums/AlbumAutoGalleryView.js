@@ -3,7 +3,6 @@ import {
   Header,
   Divider,
   Loader,
-  Dimmer,
   Breadcrumb,
   Label,
   Button,
@@ -21,6 +20,8 @@ import { SecuredImageJWT } from "../../components/SecuredImage";
 import { LightBox } from "../../components/lightbox/LightBox";
 import { Tile } from "../../components/Tile";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { compose } from "redux";
+import { withTranslation, Trans } from "react-i18next";
 
 var SIDEBAR_WIDTH = 85;
 
@@ -211,7 +212,11 @@ export class AlbumAutoGalleryView extends Component {
               <Header.Content>
                 {album.title}
                 <Header.Subheader>
-                  <Icon name="photo" /> {album.photos.length} Photos <br />
+                  <Icon name="photo" />
+                  {this.props.t("numberofphotos", {
+                    number: album.photos.length,
+                  })}
+                  <br />
                   <Icon name="calendar outline" />{" "}
                   <b>
                     {moment(album.photos[0].exif_timestamp).format(
@@ -251,7 +256,9 @@ export class AlbumAutoGalleryView extends Component {
               floated="right"
             >
               <Icon name="map" inverted />
-              {this.state.showMap ? "Hide Maps" : "Show Maps"}
+              {this.state.showMap
+                ? this.props.t("autoalbumgallery.hidemap")
+                : this.props.t("autoalbumgallery.showmap")}
             </Button>
           </div>
 
@@ -261,7 +268,7 @@ export class AlbumAutoGalleryView extends Component {
             {album.people.length > 0 && (
               <div>
                 <Header as="h3">
-                  <Icon name="users" /> People
+                  <Icon name="users" /> {this.props.t("people")}
                 </Header>
 
                 <Label.Group circular>
@@ -450,10 +457,13 @@ export class AlbumAutoGalleryView extends Component {
   }
 }
 
-AlbumAutoGalleryView = connect((store) => {
-  return {
-    fetchingAlbumsAutoGalleries: store.albums.fetchingAlbumsAutoGalleries,
-    albumsAutoGalleries: store.albums.albumsAutoGalleries,
-    photoDetails: store.photos.photoDetails,
-  };
-})(AlbumAutoGalleryView);
+AlbumAutoGalleryView = compose(
+  connect((store) => {
+    return {
+      fetchingAlbumsAutoGalleries: store.albums.fetchingAlbumsAutoGalleries,
+      albumsAutoGalleries: store.albums.albumsAutoGalleries,
+      photoDetails: store.photos.photoDetails,
+    };
+  }),
+  withTranslation()
+)(AlbumAutoGalleryView);

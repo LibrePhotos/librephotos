@@ -10,6 +10,8 @@ import { push } from "connected-react-router";
 import { Link } from "react-router-dom";
 import { Tile } from "../../components/Tile";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { compose } from "redux";
+import { withTranslation, Trans } from "react-i18next";
 
 var SIDEBAR_WIDTH = 85;
 
@@ -83,7 +85,9 @@ export class AlbumAuto extends Component {
             style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}
           >
             <b>{this.props.albumsAutoList[albumAutoIndex].title}</b> <br />
-            {this.props.albumsAutoList[albumAutoIndex].photo_count} Photo(s)
+            {this.props.t("numberofphotos", {
+              number: this.props.albumsAutoList[albumAutoIndex].photo_count,
+            })}
           </div>
         </div>
       );
@@ -99,14 +103,17 @@ export class AlbumAuto extends Component {
           <Header as="h2">
             <Icon name="wizard" />
             <Header.Content>
-              Events{" "}
+              {this.props.t("events")}{" "}
               <Loader
                 size="tiny"
                 inline
                 active={this.props.fetchingAlbumsAutoList}
               />
               <Header.Subheader>
-                Showing {this.props.albumsAutoList.length} Auto created albums
+                <Trans
+                  i18nKey="autoalbum.subtitle"
+                  values={{ autoalbumlength: this.props.albumsAutoList.length }}
+                />
               </Header.Subheader>
             </Header.Content>
           </Header>
@@ -180,11 +187,14 @@ export class EntrySquare extends Component {
   }
 }
 
-AlbumAuto = connect((store) => {
-  return {
-    auth: store.auth,
-    albumsAutoList: store.albums.albumsAutoList,
-    fetchingAlbumsAutoList: store.albums.fetchingAlbumsAutoList,
-    fetchedAlbumsAutoList: store.albums.fetchedAlbumsAutoList,
-  };
-})(AlbumAuto);
+AlbumAuto = compose(
+  connect((store) => {
+    return {
+      auth: store.auth,
+      albumsAutoList: store.albums.albumsAutoList,
+      fetchingAlbumsAutoList: store.albums.fetchingAlbumsAutoList,
+      fetchedAlbumsAutoList: store.albums.fetchedAlbumsAutoList,
+    };
+  }),
+  withTranslation()
+)(AlbumAuto);

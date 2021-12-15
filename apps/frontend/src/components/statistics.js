@@ -2,6 +2,8 @@ import React, { Component } from "react";
 import { Statistic, Icon } from "semantic-ui-react";
 import { connect } from "react-redux";
 import { fetchCountStats } from "../actions/utilActions";
+import { compose } from "redux";
+import { withTranslation } from "react-i18next";
 
 export class CountStats extends Component {
   componentDidMount() {
@@ -20,7 +22,7 @@ export class CountStats extends Component {
               </Statistic.Value>
               <Statistic.Label>
                 <Icon name="image" />
-                Photos
+                {this.props.t("countstats.photos")}
               </Statistic.Label>
             </Statistic>
             <Statistic>
@@ -29,7 +31,7 @@ export class CountStats extends Component {
               </Statistic.Value>
               <Statistic.Label>
                 <Icon name="users" />
-                People
+                {this.props.t("people")}
               </Statistic.Label>
             </Statistic>
             <Statistic>
@@ -38,7 +40,7 @@ export class CountStats extends Component {
               </Statistic.Value>
               <Statistic.Label>
                 <Icon name="user circle outline" />
-                Faces
+                {this.props.t("faces")}
               </Statistic.Label>
             </Statistic>
             <Statistic>
@@ -47,7 +49,7 @@ export class CountStats extends Component {
               </Statistic.Value>
               <Statistic.Label>
                 <Icon name="wizard" />
-                Events
+                {this.props.t("events")}
               </Statistic.Label>
             </Statistic>
             <Statistic>
@@ -56,7 +58,7 @@ export class CountStats extends Component {
               </Statistic.Value>
               <Statistic.Label>
                 <Icon name="calendar" />
-                Days
+                {this.props.t("days")}
               </Statistic.Label>
             </Statistic>
           </Statistic.Group>
@@ -70,35 +72,35 @@ export class CountStats extends Component {
               <Statistic.Value>-</Statistic.Value>
               <Statistic.Label>
                 <Icon name="image" />
-                Photos
+                {this.props.t("countstats.photos")}
               </Statistic.Label>
             </Statistic>
             <Statistic>
               <Statistic.Value>-</Statistic.Value>
               <Statistic.Label>
                 <Icon name="users" />
-                People
+                {this.props.t("countstats.people")}
               </Statistic.Label>
             </Statistic>
             <Statistic>
               <Statistic.Value>-</Statistic.Value>
               <Statistic.Label>
                 <Icon name="user circle outline" />
-                Faces
+                {this.props.t("countstats.faces")}
               </Statistic.Label>
             </Statistic>
             <Statistic>
               <Statistic.Value>-</Statistic.Value>
               <Statistic.Label>
                 <Icon name="wizard" />
-                Events
+                {this.props.t("countstats.events")}
               </Statistic.Label>
             </Statistic>
             <Statistic>
               <Statistic.Value>-</Statistic.Value>
               <Statistic.Label>
                 <Icon name="calendar" />
-                Days
+                {this.props.t("countstats.days")}
               </Statistic.Label>
             </Statistic>
           </Statistic.Group>
@@ -110,10 +112,13 @@ export class CountStats extends Component {
   }
 }
 
-CountStats = connect((store) => {
-  return {
-    countStats: store.util.countStats,
-    fetchingCountStats: store.util.fetchingCountStats,
-    fetchedCountStats: store.util.fetchedCountStats,
-  };
-})(CountStats);
+CountStats = compose(
+  connect((store) => {
+    return {
+      countStats: store.util.countStats,
+      fetchingCountStats: store.util.fetchingCountStats,
+      fetchedCountStats: store.util.fetchedCountStats,
+    };
+  }),
+  withTranslation()
+)(CountStats);

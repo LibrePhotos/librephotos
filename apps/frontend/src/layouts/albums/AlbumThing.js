@@ -6,6 +6,8 @@ import { fetchThingAlbumsList } from "../../actions/albumsActions";
 import { Tile } from "../../components/Tile";
 import { Link } from "react-router-dom";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { compose } from "redux";
+import { withTranslation } from "react-i18next";
 
 var SIDEBAR_WIDTH = 85;
 
@@ -83,7 +85,9 @@ export class AlbumThing extends Component {
           <div style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
             <b>{this.props.albumsThingList[albumThingIndex].title}</b>
             <br />
-            {this.props.albumsThingList[albumThingIndex].photo_count} Photos
+            {this.props.t("numberofphotos", {
+              number: this.props.albumsThingList[albumThingIndex].photo_count,
+            })}
           </div>
         </div>
       );
@@ -99,14 +103,16 @@ export class AlbumThing extends Component {
           <Header as="h2">
             <Icon name="tags" />
             <Header.Content>
-              Things{" "}
+              {this.props.t("things")}{" "}
               <Loader
                 size="tiny"
                 inline
                 active={this.props.fetchingAlbumsThingList}
               />
               <Header.Subheader>
-                Showing top {this.props.albumsThingList.length} things
+                {this.props.t("thingalbum.showingthings", {
+                  number: this.props.albumsThingList.length,
+                })}
               </Header.Subheader>
             </Header.Content>
           </Header>
@@ -138,10 +144,13 @@ export class AlbumThing extends Component {
   }
 }
 
-AlbumThing = connect((store) => {
-  return {
-    albumsThingList: store.albums.albumsThingList,
-    fetchingAlbumsThingList: store.albums.fetchingAlbumsThingList,
-    fetchedAlbumsThingList: store.albums.fetchedAlbumsThingList,
-  };
-})(AlbumThing);
+AlbumThing = compose(
+  connect((store) => {
+    return {
+      albumsThingList: store.albums.albumsThingList,
+      fetchingAlbumsThingList: store.albums.fetchingAlbumsThingList,
+      fetchedAlbumsThingList: store.albums.fetchedAlbumsThingList,
+    };
+  }),
+  withTranslation()
+)(AlbumThing);

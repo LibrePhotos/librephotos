@@ -4,7 +4,8 @@ import { fetchThingAlbum } from "../../actions/albumsActions";
 import _ from "lodash";
 import moment from "moment";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-
+import { compose } from "redux";
+import { withTranslation } from "react-i18next";
 export class AlbumThingGallery extends Component {
   componentDidMount() {
     this.props.dispatch(fetchThingAlbum(this.props.match.params.albumID));
@@ -25,7 +26,7 @@ export class AlbumThingGallery extends Component {
     }
     return (
       <PhotoListView
-        title={groupedPhotos ? groupedPhotos.title : "Loading... "}
+        title={groupedPhotos ? groupedPhotos.title : this.props.t("loading")}
         loading={fetchingAlbumsThing}
         titleIconName={"tags"}
         isDateView={true}
@@ -41,9 +42,12 @@ export class AlbumThingGallery extends Component {
   }
 }
 
-AlbumThingGallery = connect((store) => {
-  return {
-    albumsThing: store.albums.albumsThing,
-    fetchingAlbumsThing: store.albums.fetchingAlbumsThing,
-  };
-})(AlbumThingGallery);
+AlbumThingGallery = compose(
+  connect((store) => {
+    return {
+      albumsThing: store.albums.albumsThing,
+      fetchingAlbumsThing: store.albums.fetchingAlbumsThing,
+    };
+  }),
+  withTranslation()
+)(AlbumThingGallery);

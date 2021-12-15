@@ -269,5 +269,50 @@
     "notset": "nicht gesetzt",
     "update": "Aktualsieren",
     "explanation3": "Wählen ein Verzeichnis von unten aus"
-  }
+  },
+  "sitesettings": {
+    "header": "Erlaube Nutzerregistrierung",
+    "allow": "Erlaubt",
+    "noallow": "Nicht Erlaubt"
+  },
+  "countstats": {
+    "photos": "Bilder"
+  },
+  "autoalbum": {
+    "subtitle": "Zeige {{ autoalbumlength }} automatisch erzeugte Alben"
+  },
+  "autoalbumgallery": {
+    "showmap": "Zeige Karte",
+    "hidemap": "Verstecke Karte"
+  },
+  "personalbum": {
+    "numberofpeople": "{{peoplelength}} Personen",
+    "renameperson": "Benenne Person um",
+    "personalreadyexists": "Person {{name}} existiert bereits.",
+    "nameplaceholder": "Name"
+  },
+  "placealbum": {
+    "showingplaces": "Zeige {{number}} Orte auf der Karte",
+    "maploading": "Lade Karte..."
+  },
+  "thingalbum": {
+    "showingthings": "Zeige {{number}} Dinge"
+  },
+  "useralbum": {
+    "numberof": "Zeige {{number}} nutzererstellte Alben",
+    "renamealbum": "Benenne Album um",
+    "albumalreadyexists": "Album {{name}} exisitiert bereits.",
+    "albumplaceholder": "Album Titel"
+  },
+  "faces": "Gesichter",
+  "events": "Events",
+  "days": "Tage",
+  "people": "Personen",
+  "rename": "Umbenennen",
+  "delete": "Löschen",
+  "numberofphotos": "{{number}} Bilder",
+  "myalbums": "Meine Alben",
+  "things": "Dinge",
+  "places": "Orte",
+  "loading": "Lade..."
 }

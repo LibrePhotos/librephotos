@@ -12,6 +12,8 @@ import { Link } from "react-router-dom";
 import { SecuredImageJWT } from "../../components/SecuredImage";
 import _ from "lodash";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { compose } from "redux";
+import { withTranslation } from "react-i18next";
 
 var SIDEBAR_WIDTH = 85;
 
@@ -215,7 +217,10 @@ export class AlbumPlace extends Component {
               ""
             )}
             <b>{place[albumPlaceIndex].title}</b>
-            <br /> {place[albumPlaceIndex].photo_count} Photos
+            <br />{" "}
+            {this.props.t("numberofphotos", {
+              number: place[albumPlaceIndex].photo_count,
+            })}
           </div>
         </div>
       );
@@ -241,15 +246,16 @@ export class AlbumPlace extends Component {
             <Header as="h2">
               <Icon name="map outline" />
               <Header.Content>
-                Places{" "}
+                {this.props.t("places")}{" "}
                 <Loader
                   size="tiny"
                   inline
                   active={this.props.fetchingAlbumsPlaceList}
                 />
                 <Header.Subheader>
-                  Showing {this.state.visiblePlaceAlbums.length} places on the
-                  map
+                  {this.props.t("placealbum.showingplaces", {
+                    number: this.state.visiblePlaceAlbums.length,
+                  })}
                 </Header.Subheader>
               </Header.Content>
             </Header>
@@ -298,18 +304,21 @@ export class AlbumPlace extends Component {
     } else {
       return (
         <div style={{ height: this.props.height }}>
-          <Loader active>Map loading...</Loader>
+          <Loader active>{this.props.t("placealbum.maploading")}</Loader>
         </div>
       );
     }
   }
 }
 
-AlbumPlace = connect((store) => {
-  return {
-    albumsPlaceList: store.albums.albumsPlaceList,
-    locationClusters: store.util.locationClusters,
-    fetchingLocationClusters: store.util.fetchingLocationClusters,
-    fetchedLocationClusters: store.util.fetchedLocationClusters,
-  };
-})(AlbumPlace);
+AlbumPlace = compose(
+  connect((store) => {
+    return {
+      albumsPlaceList: store.albums.albumsPlaceList,
+      locationClusters: store.util.locationClusters,
+      fetchingLocationClusters: store.util.fetchingLocationClusters,
+      fetchedLocationClusters: store.util.fetchedLocationClusters,
+    };
+  }),
+  withTranslation()
+)(AlbumPlace);

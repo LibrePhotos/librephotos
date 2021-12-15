@@ -4,6 +4,8 @@ import { fetchPlaceAlbum } from "../../actions/albumsActions";
 import _ from "lodash";
 import moment from "moment";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
+import { compose } from "redux";
+import { withTranslation } from "react-i18next";
 
 export class AlbumPlaceGallery extends Component {
   componentDidMount() {
@@ -25,7 +27,7 @@ export class AlbumPlaceGallery extends Component {
     }
     return (
       <PhotoListView
-        title={groupedPhotos ? groupedPhotos.title : "Loading... "}
+        title={groupedPhotos ? groupedPhotos.title : this.props.t("loading")}
         loading={fetchingAlbumsPlace}
         titleIconName={"map outline"}
         isDateView={true}
@@ -41,9 +43,12 @@ export class AlbumPlaceGallery extends Component {
   }
 }
 
-AlbumPlaceGallery = connect((store) => {
-  return {
-    albumsPlace: store.albums.albumsPlace,
-    fetchingAlbumsPlace: store.albums.fetchingAlbumsPlace,
-  };
-})(AlbumPlaceGallery);
+AlbumPlaceGallery = compose(
+  connect((store) => {
+    return {
+      albumsPlace: store.albums.albumsPlace,
+      fetchingAlbumsPlace: store.albums.fetchingAlbumsPlace,
+    };
+  }),
+  withTranslation()
+)(AlbumPlaceGallery);

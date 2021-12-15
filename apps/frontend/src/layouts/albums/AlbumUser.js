@@ -21,6 +21,8 @@ import {
 import { Link } from "react-router-dom";
 import { Tile } from "../../components/Tile";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { compose } from "redux";
+import { withTranslation } from "react-i18next";
 
 var SIDEBAR_WIDTH = 85;
 
@@ -128,7 +130,7 @@ export class AlbumUser extends Component {
                         this.props.albumsUserList[albumUserIndex].title
                       )
                     }
-                    text="Rename"
+                    text={this.props.t("rename")}
                   />
                   <Dropdown.Item
                     icon="delete"
@@ -138,7 +140,7 @@ export class AlbumUser extends Component {
                         this.props.albumsUserList[albumUserIndex].title
                       );
                     }}
-                    text="Delete"
+                    text={this.props.t("delete")}
                   />
                 </Dropdown.Menu>
               </Dropdown>
@@ -168,7 +170,9 @@ export class AlbumUser extends Component {
               />
             )}
             <b>{this.props.albumsUserList[albumUserIndex].title}</b> <br />
-            {this.props.albumsUserList[albumUserIndex].photo_count} Photo(s)
+            {this.props.t("numberofphotos", {
+              number: this.props.albumsUserList[albumUserIndex].photo_count,
+            })}
           </div>
         </div>
       );
@@ -184,14 +188,16 @@ export class AlbumUser extends Component {
           <Header as="h2">
             <Icon name="bookmark" />
             <Header.Content>
-              My Albums{" "}
+              {this.props.t("myalbums")}{" "}
               <Loader
                 size="tiny"
                 inline
                 active={this.props.fetchingAlbumsUserList}
               />
               <Header.Subheader>
-                Showing {this.props.albumsUserList.length} user created albums
+                {this.props.t("useralbum.numberof", {
+                  number: this.props.albumsUserList.length,
+                })}
               </Header.Subheader>
             </Header.Content>
           </Header>
@@ -203,13 +209,12 @@ export class AlbumUser extends Component {
           open={this.state.openRenameDialog}
         >
           <div style={{ padding: 20 }}>
-            <Header as="h4">Rename album</Header>
+            <Header as="h4">{this.props.t("useralbum.renamealbum")}</Header>
             <Popup
               inverted
               content={
-                'Album "' +
-                this.state.newAlbumTitle.trim() +
-                '" already exists.'
+                (this.props.t("useralbum.albumalreadyexists"),
+                { name: this.state.newAlbumTitle.trim() })
               }
               position="bottom center"
               open={this.props.albumsUserList
@@ -224,7 +229,7 @@ export class AlbumUser extends Component {
                   onChange={(e, v) => {
                     this.setState({ newAlbumTitle: v.value });
                   }}
-                  placeholder="Album title"
+                  placeholder={this.props.t("useralbum.albumplaceholder")}
                   action
                 >
                   <input />
@@ -245,7 +250,7 @@ export class AlbumUser extends Component {
                       .includes(this.state.newAlbumTitle.toLowerCase().trim())}
                     type="submit"
                   >
-                    Rename
+                    {this.props.t("rename")}
                   </Button>
                 </Input>
               }
@@ -288,10 +293,13 @@ export class AlbumUser extends Component {
   }
 }
 
-AlbumUser = connect((store) => {
-  return {
-    albumsUserList: store.albums.albumsUserList,
-    fetchingAlbumsUserList: store.albums.fetchingAlbumsUserList,
-    fetchedAlbumsUserList: store.albums.fetchedAlbumsUserList,
-  };
-})(AlbumUser);
+AlbumUser = compose(
+  connect((store) => {
+    return {
+      albumsUserList: store.albums.albumsUserList,
+      fetchingAlbumsUserList: store.albums.fetchingAlbumsUserList,
+      fetchedAlbumsUserList: store.albums.fetchedAlbumsUserList,
+    };
+  }),
+  withTranslation()
+)(AlbumUser);
