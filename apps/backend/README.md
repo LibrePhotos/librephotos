@@ -27,6 +27,9 @@ You can join our [Discord](https://discord.gg/xwRvtSDGWb).
 - A self-hosted open source photo management service, with a slight focus on cool graphs
 - Django backend and React frontend
 
+**Currently the project is in very early stages, some bugs may exist. If you find any please log an issue**
+
+
 ### Installation
 Step-by-step installation instructions are available in our [documentation](https://docs.librephotos.com/1/standard_install/)
 
@@ -37,7 +40,9 @@ see : [librephotos-linux](https://github.com/LibrePhotos/librephotos-linux)
 - Get started contributing in less than 30 minutes by following the [guide here](https://github.com/LibrePhotos/librephotos-docker)
 - Join our discord server, or open a pull request to start contributing
 
-**Currently the project is in very early stages, some bugs may exist. If you find any please log an issue**
+### Translation
+LibrePhotos uses [Weblate](https://weblate.org/) for its translations. Feel free to contribute or view existing translations at [weblate](https://hosted.weblate.org/engage/librephotos/).
+
 
 ### Features
 
