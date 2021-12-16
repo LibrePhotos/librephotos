@@ -6,7 +6,7 @@
         "uploadheader": "Lade ein neues Profilbild hoch",
         "image": "Wähle ein Bild aus",
         "upload": "Lade hoch",
-        "filesize": "Die Datei darf maximale 200kb groß sein.",
+        "filesize": "Die maximal zulässige Dateigröße beträgt 200 kB.",
         "accountinformation": "Kontoinformationen",
         "firstname": "Vorname",
         "firstnameplaceholder": "Vorname",
@@ -25,14 +25,14 @@
         "change": "Ändern",
         "nextcloudheader": "Nextcloud",
         "credentials": "Zugangsdaten",
-        "credentialspopup": "Nutze das Applikationspasswort",
-        "serveradress": "Serveraddresse",
-        "serveradressplaceholder": "https://...",
+        "credentialspopup": "Nutze das Anwendungspasswort",
+        "serveradress": "Serveradresse",
+        "serveradressplaceholder": "https://…",
         "nextcloudusername": "Nutzername",
         "nextcloudusernameplaceholder": "Nutzername",
-        "nextcloudpassword": "Nextcloud Passwort",
-        "nextcloudpasswordplaceholder": "Nextcloud Passwort",
-        "nextcloudupdate": "Aktualisiere Nextcloud Zugangsdaten",
+        "nextcloudpassword": "Nextcloud-Passwort",
+        "nextcloudpasswordplaceholder": "Nextcloud-Passwort",
+        "nextcloudupdate": "Aktualisiere Nextcloud-Zugangsdaten",
         "nextcloudcancel": "Abbrechen",
         "nextcloudscandirectory": "Nextcloud Scan Ordner",
         "nextcloudloggedin": "Eingelogged in Nextcloud",
@@ -55,7 +55,7 @@
             "item5": "Erstelle eine Anzahl von Vorschaubildern",
             "item6": "Erstelle Beschreibungen über die Bilder",
             "item7": "Extrahiere Exif informationen",
-            "item8": "Nutze Reverse geolocate mit den GPS Koordinaten um die Namen der Orte zu finden.",
+            "item8": "Nutze Reverse geolocate mit den GPS Koordinaten um die Namen der Orte zu finden",
             "item9": "Extrahiere die Gesichter.",
             "item10": "Füge das Bild zu den Alben für Dinge und Orte hinzu.",
             "item11": "Überprüfe ob das Bild fehlt oder ob es verschoben wurde."
@@ -65,11 +65,11 @@
         "missingphotos": "Fehlende Bilder",
         "missingphotosbutton": "Entferne fehlende Bilder",
         "missingphotosdescription": "Nach jedem Scan checkt LibrePhotos ob die Dateien an dem gleichen Ort sind oder ob Sie verschoben wurden. Falls Sie fehlen werden Sie als fehlend markiert.",
-        "eventsalbums": "Event Alben",
-        "eventalbumsgenerate": "Erzeuge Event Alben",
-        "eventsalbumsdescription": "Der Server gruppiert die Bilder nach der Zeit. Wenn zwei oder mehr Bilder in einem Zeitraum von 12 Stunden aufgenommen wurden, dann wird angenommen, dass Sie zum gleichen Event gehören. Nachdem die Bilder gruppiert wurden, wird automatisch ein Titel erstellt.",
-        "eventalbumsregenerate": "Erzeuge Event Titel erneut",
-        "eventalbumsregeneratedescription": "Generiere automatisch Namen für die Alben anhand der Namen der Personen im Bild. Falls die Gesichtdaten nach dem Erstellen der Event Alben angelegt wurden, ist es mit diesem Button möglich neue Titel zu generieren um die Personen in den Bildern im Titel wiederzuspiegeln.",
+        "eventsalbums": "Ereignis-Alben",
+        "eventalbumsgenerate": "Erzeuge Ereignis-Alben",
+        "eventsalbumsdescription": "Der Server gruppiert die Bilder nach der Zeit. Wenn zwei oder mehr Bilder in einem Zeitraum von 12 Stunden aufgenommen wurden, dann wird angenommen, dass Sie zum gleichen Ereignis gehören. Nachdem die Bilder gruppiert wurden, wird automatisch ein Titel erstellt.",
+        "eventalbumsregenerate": "Erzeuge Ereignis-Titel erneut",
+        "eventalbumsregeneratedescription": "Generiere automatisch Namen für die Alben anhand der Namen der Personen im Bild. Falls die Gesichtdaten nach dem Erstellen der Ereignis-Alben angelegt wurden, ist es mit diesem Button möglich neue Titel zu generieren um die Personen in den Bildern im Titel wiederzuspiegeln.",
         "faces": "Gesichter",
         "people": "Personen",
         "facesbutton": "Trainiere Gesichter",
@@ -121,14 +121,14 @@
         "notset": "Nicht gesetzt",
         "update": "Aktualisiere",
         "cancel": "Abbrechen",
-        "choosedirectory": "Wähle eine Ornder von unten aus."
+        "choosedirectory": "Wähle eine Ornder von unten aus"
     },
     "topmenu": {
         "running": "Läuft",
-        "available": "Arbeiter verfügbar! Du kannst mehr Bilder scannen, Gesichter herleiten, Event Alben erstellen oder Titel für Event Alben neu generieren.",
-        "busy": "Beschäftigt...",
-        "loggedin": "Logged in als",
-        "logout": "Logout",
+        "available": "Arbeiter verfügbar! Du kannst mehr Bilder scannen, Gesichter herleiten, Ereignis-Alben erstellen oder Titel für Ereignis-Alben neu generieren.",
+        "busy": "Beschäftigt …",
+        "loggedin": "Angemeldet als",
+        "logout": "Abmelden",
         "settings": "Einstellungen",
         "adminarea": "Adminbereich"
     },
@@ -146,7 +146,7 @@
         "places": "Orte",
         "things": "Dinge",
         "myalbums": "Meine Alben",
-        "autoalbums": "Event Alben",
+        "autoalbums": "Automatisch erstellte Alben",
         "dataviz": "Datenauswertung",
         "placetree": "Baum für Orte",
         "wordclouds": "Wortwolke",
@@ -169,7 +169,7 @@
         "select": "Wähle alle aus"
     },
     "defaultheader": {
-        "loading": "Lade...",
+        "loading": "Wird geladen …",
         "noimages": "Keine Bilder gefunden",
         "days": "Tage",
         "photos": "Bilder"
@@ -219,7 +219,7 @@
     },
     "login": {
         "name": "LibrePhotos",
-        "login": "Login",
+        "login": "Anmelden",
         "username": "Nutzername",
         "usernameplaceholder": "Nutzername",
         "password": "Passwort",
@@ -228,12 +228,12 @@
         "errorbackend": "Es gibt keien Verbindung zum Backend Server. Probiere es in ein paar Minuten nochmal.",
         "errorpassword": "Das Passwortfeld darf nicht leer sein!",
         "errorusername": "Das Nutzernamenfeld darf nicht leer sein!",
-        "tagline": "Ein gemütlicher Platz für deine Bilder"
+        "tagline": "Ein gemütlicher Platz für deine Bilder."
     },
     "search": {
         "search": "Suche nach",
-        "default": "Suche...",
-        "loading": "Lade..."
+        "default": "Suche …",
+        "loading": "Wird geladen …"
     },
     "adminarea": {
         "header": "Adminbereich",
@@ -247,7 +247,7 @@
         "notset": "Nicht gesetzt"
     },
     "joblist": {
-        "workerlogs": "Arbeiterlogs",
+        "workerlogs": "Arbeiterprotokolle",
         "reload": "Neu laden",
         "status": "Status",
         "jobtype": "Jobtyp",
@@ -293,7 +293,7 @@
     },
     "placealbum": {
         "showingplaces": "Zeige {{number}} Orte auf der Karte",
-        "maploading": "Lade Karte..."
+        "maploading": "Karte wird geladen …"
     },
     "thingalbum": {
         "showingthings": "Zeige {{number}} Dinge"
@@ -302,10 +302,10 @@
         "numberof": "Zeige {{number}} nutzererstellte Alben",
         "renamealbum": "Benenne Album um",
         "albumalreadyexists": "Album {{name}} exisitiert bereits.",
-        "albumplaceholder": "Album Titel"
+        "albumplaceholder": "Titel des Albums"
     },
     "faces": "Gesichter",
-    "events": "Events",
+    "events": "Ereignisse",
     "days": "Tage",
     "people": "Personen",
     "rename": "Umbenennen",
@@ -314,5 +314,5 @@
     "myalbums": "Meine Alben",
     "things": "Dinge",
     "places": "Orte",
-    "loading": "Lade..."
+    "loading": "Wird geladen …"
 }
