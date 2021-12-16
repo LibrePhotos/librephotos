@@ -8,14 +8,14 @@ export default class SiteSettings extends Component {
       <Grid>
         <Grid.Row>
           <Grid.Column width={4} textAlign="left">
-            <b>{this.props.p("sitesettings.header")}</b>
+            <b>{this.props.t("sitesettings.header")}</b>
           </Grid.Column>
           <Grid.Column width={12}>
             <Form>
               <Form.Group>
                 <Form.Field>
                   <Radio
-                    label={this.props.p("sitesettings.allow")}
+                    label={this.props.t("sitesettings.allow")}
                     name="radioGroup"
                     onChange={() =>
                       this.props.dispatch(
@@ -27,7 +27,7 @@ export default class SiteSettings extends Component {
                 </Form.Field>
                 <Form.Field>
                   <Radio
-                    label={this.props.p("sitesettings.noallow")}
+                    label={this.props.t("sitesettings.noallow")}
                     name="radioGroup"
                     onChange={() =>
                       this.props.dispatch(
