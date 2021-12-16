@@ -1,1 +1,71 @@
-{}
+{
+    "settings": {
+        "firstname": "Nome",
+        "firstnameplaceholder": "Nome",
+        "avatar": "Avatar pubblico",
+        "uploadheader": "Carica un nuovo avatar",
+        "image": "Scegli un’immagine",
+        "upload": "Carica",
+        "accountinformation": "Informazioni sull’account",
+        "account": "Account",
+        "filesize": "La dimensione massima del file consentita è di 200 kB.",
+        "lastname": "Cognome",
+        "french": "francese",
+        "email": "E-mail",
+        "emailplaceholder": "E-mail",
+        "language": "Seleziona una lingua",
+        "german": "tedesco",
+        "english": "inglese",
+        "spanish": "spagnolo",
+        "updateaccountinformation": "Aggiorna le impostazioni del profilo",
+        "cancel": "Annulla",
+        "scandirectory": "Scansiona il directory",
+        "change": "Cambia",
+        "nextcloudheader": "Nextcloud",
+        "credentials": "Credenziali",
+        "serveradressplaceholder": "https://...",
+        "nextcloudusername": "Nome utente",
+        "nextcloudusernameplaceholder": "Nome utente",
+        "nextcloudcancel": "Annulla",
+        "appearance": "Aspetto",
+        "thumbnailsize": "Dimensione delle miniature",
+        "big": "Grande",
+        "library": "Raccolta",
+        "photos": "Foto",
+        "statusscanphotostrue": "Scansione di foto (sistema di file)",
+        "header": "Impostazioni",
+        "lastnameplaceholder": "Cognome",
+        "small": "Piccola"
+    },
+    "joblist": {
+        "queued": "In coda",
+        "started": "Avviato",
+        "duration": "Durata",
+        "startedby": "Iniziato da",
+        "delete": "Elimina"
+    },
+    "sitesettings": {
+        "allow": "Autorizza",
+        "noallow": "Non autorizzare"
+    },
+    "modalscandirectoryedit": {
+        "explanation1": "Quando l’utente"
+    },
+    "countstats": {
+        "photos": "Foto"
+    },
+    "useralbum": {
+        "albumplaceholder": "Titolo dell’album"
+    },
+    "faces": "Visi",
+    "days": "Giorni",
+    "events": "Eventi",
+    "people": "Persone",
+    "rename": "Rinomina",
+    "delete": "Elimina",
+    "numberofphotos": "{{number}} foto",
+    "myalbums": "I miei album",
+    "things": "Cose",
+    "places": "Luoghi",
+    "loading": "Caricamento…"
+}
