@@ -55,7 +55,7 @@
             "item5": "Genere varias miniaturas",
             "item6": "Generar títulos de imagen",
             "item7": "Extraer información Exif",
-            "item8": "Obtener la información del GPS mediante una geolocalización inversa.",
+            "item8": "Obtener la información del GPS mediante una geolocalización inversa",
             "item9": "Extraer rostros.",
             "item10": "Añadir una foto a un objeto y colocar álbumes.",
             "item11": "Compruebe si faltan fotos o se han movido."
@@ -98,7 +98,7 @@
         },
         "semanticsearchupdate": "Actualizar",
         "favorite": "Opciones favoritas",
-        "favoriteminimum": "Calificación mínima de imagen para interpretar como favorita.",
+        "favoriteminimum": "Calificación mínima de imagen para interpretar como favorita",
         "favoriteoption": {
             "placeholder": "Calificación mínima"
         },
@@ -247,7 +247,7 @@
         "notset": "No configurado"
     },
     "joblist": {
-        "workerlogs": "Worker Logs",
+        "workerlogs": "Registros de trabajadores",
         "reload": "Recargar",
         "status": "Estado",
         "jobtype": "Tipo de trabajo",
@@ -312,7 +312,7 @@
     "delete": "Borrar",
     "numberofphotos": "{{number}} Fotos",
     "myalbums": "Mis álbumes",
-    "things": "Things",
+    "things": "Cosas",
     "places": "Lugares",
     "loading": "Cargando..."
 }
