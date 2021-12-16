@@ -1,6 +1,8 @@
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=LibrePhotos_ownphotos&metric=alert_status)](https://sonarcloud.io/dashboard?id=LibrePhotos_ownphotos) ![Discord](https://img.shields.io/discord/784619049208250388?style=plastic) ![Website](https://img.shields.io/website?down_color=lightgrey&down_message=offline&style=plastic&up_color=blue&up_message=online&url=https%3A%2F%2Flibrephotos.com)
 [![Read the docs](https://img.shields.io/static/v1?label=Read&message=the%20docs&color=blue&style=plastic)](https://docs.librephotos.com/) ![GitHub contributors](https://img.shields.io/github/contributors/librephotos/librephotos?style=plastic)
-
+<a href="https://hosted.weblate.org/engage/librephotos/">
+<img src="https://hosted.weblate.org/widgets/librephotos/-/librephotos-frontend/svg-badge.svg" alt="Translation status" />
+</a>
 
 # LibrePhotos
 
@@ -25,6 +27,9 @@ You can join our [Discord](https://discord.gg/xwRvtSDGWb).
 - A self-hosted open source photo management service, with a slight focus on cool graphs
 - Django backend and React frontend
 
+**Currently the project is in very early stages, some bugs may exist. If you find any please log an issue**
+
+
 ### Installation
 Step-by-step installation instructions are available in our [documentation](https://docs.librephotos.com/1/standard_install/)
 
@@ -35,7 +40,9 @@ see : [librephotos-linux](https://github.com/LibrePhotos/librephotos-linux)
 - Get started contributing in less than 30 minutes by following the [guide here](https://github.com/LibrePhotos/librephotos-docker)
 - Join our discord server, or open a pull request to start contributing
 
-**Currently the project is in very early stages, some bugs may exist. If you find any please log an issue**
+### Translation
+LibrePhotos uses [Weblate](https://weblate.org/) for its translations. Feel free to contribute or view existing translations at [weblate](https://hosted.weblate.org/engage/librephotos/).
+
 
 ### Features
 
