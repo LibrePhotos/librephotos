@@ -26,7 +26,7 @@ from rest_framework_simplejwt.serializers import (
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from api.views import album_auto, albums, photos, views
+from api.views import album_auto, albums, photos, search, views
 from nextcloud import views as nextcloud_views
 
 schema_view = get_schema_view(
@@ -173,9 +173,7 @@ router.register(
     r"api/photos/favorites", photos.FavoritePhotoListViewset, basename="photo"
 )
 router.register(r"api/photos/hidden", photos.HiddenPhotoListViewset, basename="photo")
-router.register(
-    r"api/photos/searchlist", views.PhotoSuperSimpleSearchListViewSet, basename="photo"
-)
+router.register(r"api/photos/searchlist", search.SearchListViewSet, basename="photo")
 
 router.register(r"api/photos/public", photos.PublicPhotoListViewset, basename="photo")
 
