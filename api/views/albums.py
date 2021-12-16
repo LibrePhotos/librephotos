@@ -174,9 +174,6 @@ class AlbumThingListViewSet(viewsets.ModelViewSet):
             .annotate(photo_count=Count("photos"))
             .filter(Q(photo_count__gt=0))
             .order_by("-title")
-            .prefetch_related(
-                Prefetch("photos", queryset=Photo.visible.only("image_hash", "video"))
-            )
         )
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
@@ -242,9 +239,6 @@ class AlbumPlaceListViewSet(viewsets.ModelViewSet):
             )
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
             .order_by("title")
-            .prefetch_related(
-                Prefetch("photos", queryset=Photo.visible.only("image_hash"))
-            )
         )
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
@@ -293,9 +287,6 @@ class AlbumUserListViewSet(viewsets.ModelViewSet):
             )
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
             .order_by("title")
-            .prefetch_related(
-                Prefetch("photos", queryset=Photo.visible.only("image_hash"))
-            )
         )
 
     def retrieve(self, *args, **kwargs):
