@@ -36,7 +36,6 @@ from api.autoalbum import delete_missing_photos
 from api.directory_watcher import scan_faces, scan_photos
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 from api.face_classify import cluster_faces, train_faces
-from api.filters import SemanticSearchFilter
 from api.models import (
     AlbumAuto,
     AlbumDate,
@@ -65,7 +64,6 @@ from api.views.pagination import (
     StandardResultsSetPagination,
     TinyResultsSetPagination,
 )
-from api.views.PhotosGroupedByDate import get_photos_ordered_by_date
 from api.views.serializers import (
     AlbumAutoListSerializer,
     AlbumUserEditSerializer,
@@ -82,7 +80,6 @@ from api.views.serializers import (
     SharedFromMePhotoThroughSerializer,
     UserSerializer,
 )
-from api.views.serializers_serpy import GroupedPhotosSerializer
 from api.views.serializers_serpy import (
     PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy,
 )
@@ -209,35 +206,6 @@ class PhotoSimpleListViewSet(viewsets.ModelViewSet):
     @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(PhotoSimpleListViewSet, self).list(*args, **kwargs)
-
-
-class PhotoSuperSimpleSearchListViewSet(viewsets.ModelViewSet):
-    serializer_class = GroupedPhotosSerializer
-    pagination_class = HugeResultsSetPagination
-    filter_backends = (SemanticSearchFilter,)
-    search_fields = [
-        "search_captions",
-        "search_location",
-        "faces__person__name",
-        "exif_timestamp",
-        "image_paths",
-    ]
-
-    def get_queryset(self):
-        return Photo.visible.filter(Q(owner=self.request.user)).order_by(
-            "-exif_timestamp"
-        )
-
-    def retrieve(self, *args, **kwargs):
-        return super(PhotoSuperSimpleSearchListViewSet, self).retrieve(*args, **kwargs)
-
-    def list(self, request):
-        queryset = self.filter_queryset(
-            Photo.visible.filter(Q(owner=self.request.user)).order_by("-exif_timestamp")
-        )
-        grouped_photos = get_photos_ordered_by_date(queryset)
-        serializer = GroupedPhotosSerializer(grouped_photos, many=True)
-        return Response({"results": serializer.data})
 
 
 class PhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
@@ -1267,8 +1235,6 @@ class DeleteMissingPhotosView(APIView):
         except BaseException:
             logger.exception("An Error occured")
             return Response({"status": False})
-
-
 
 
 class TrainFaceView(APIView):

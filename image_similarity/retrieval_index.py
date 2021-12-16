@@ -34,13 +34,17 @@ class RetrievalIndex(object):
         )
 
     def search_similar(self, user_id, in_embedding, n=100, thres=27.0):
+        start = datetime.datetime.now()
         dist, res_indices = self.indices[user_id].search(
             np.array([in_embedding], dtype=np.float32), n
         )
-
         res = []
-        for distance, idx in zip(dist[0], res_indices[0]):
+        for distance, idx in sorted(zip(dist[0], res_indices[0]), reverse=True):
             if distance >= thres:
                 res.append(self.image_hashes[user_id][idx])
-        logger.info("searched {} images for user {}".format(n, user_id))
+        elapsed = (datetime.datetime.now() - start).total_seconds()
+        logger.info(
+            "searched for %d images for user %d - took %.2f seconds"
+            % (n, user_id, elapsed)
+        )
         return res

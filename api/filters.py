@@ -1,3 +1,4 @@
+import datetime
 import operator
 from functools import reduce
 
@@ -5,6 +6,7 @@ from django.db.models import Q
 from rest_framework import filters
 from rest_framework.compat import distinct
 
+import api.util as util
 from api.image_similarity import search_similar_embedding
 from api.semantic_search.semantic_search import semantic_search_instance
 
@@ -23,13 +25,18 @@ class SemanticSearchFilter(filters.SearchFilter):
 
         if request.user.semantic_search_topk > 0:
             query = request.query_params.get("search")
+            start = datetime.datetime.now()
             emb, magnitude = semantic_search_instance.calculate_query_embeddings(query)
-            semantic_search_instance.unload()
-
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info(
+                "finished calculating query embedding - took %.2f seconds" % (elapsed)
+            )
+            start = datetime.datetime.now()
             image_hashes = search_similar_embedding(
                 request.user.id, emb, request.user.semantic_search_topk, threshold=27
             )
-
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info("search similar embedding - took %.2f seconds" % (elapsed))
         base = queryset
         conditions = []
         for search_term in search_terms:
