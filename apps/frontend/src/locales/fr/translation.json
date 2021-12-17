@@ -6,7 +6,7 @@
         "uploadheader": "Téléverser un nouvel avatar",
         "image": "Choisir une image",
         "upload": "Téléverser",
-        "filesize": "La taille maximale du fichier est de 200 ko.",
+        "filesize": "La taille maximale du fichier est de 200 ko",
         "accountinformation": "Informations sur le compte",
         "firstname": "Prénom",
         "firstnameplaceholder": "Prénom",
@@ -64,12 +64,12 @@
         "statusrescanphotosfalse": "Rescan complet (depuis la racine)",
         "missingphotos": "Photos manquantes",
         "missingphotosbutton": "Supprimer les photos manquantes",
-        "missingphotosdescription": "À chaque scan LibrePhotos vérifie si les photos sont toujours au même endroit ou si elle ont été déplacés ; toute photo manquante sera marquée comme photo manquante.",
+        "missingphotosdescription": "À chaque scan LibrePhotos vérifie si les photos sont toujours au même endroit ou si elle ont été déplacés ; toute photo manquante sera marquée comme photo manquante",
         "eventsalbums": "Albums Évènement",
         "eventalbumsgenerate": "Générer les albums Évènement",
         "eventsalbumsdescription": "Les photos sont tout d’abord groupées par date de prise de vue. Si deux photos ont été pris dans les mêmes 12 h, alors les deux photos sont considérées comme faisant partie du même évènement ; une fois tous les albums Évènement créés, un nom est créé automatiquement.",
         "eventalbumsregenerate": "Régénérer les titres",
-        "eventalbumsregeneratedescription": "Les noms automatiquement créés contiennent des traces de nom de personnes ; si vous traitez les visages après avoir généré les albums, vous pouvez forcer le recalcul des noms des albums Évènements.",
+        "eventalbumsregeneratedescription": "Les noms automatiquement créés contiennent des traces de nom de personnes ; si vous traitez les visages après avoir généré les albums, vous pouvez forcer le recalcul des noms des albums Évènements",
         "faces": "Visages",
         "people": "Personnes",
         "facesbutton": "Traiter les visages",
@@ -272,7 +272,7 @@
     },
     "personalbum": {
         "renameperson": "Renommer la personne",
-        "personalreadyexists": "La personne {{name}} existe déjà.",
+        "personalreadyexists": "La personne {{name}} existe déjà",
         "numberofpeople": "{{peoplelength}} personnes",
         "nameplaceholder": "Nom"
     },
@@ -298,7 +298,7 @@
     "days": "Jours",
     "myalbums": "Mes albums",
     "useralbum": {
-        "albumalreadyexists": "L’album {{name}} existe déjà.",
+        "albumalreadyexists": "L’album {{name}} existe déjà",
         "numberof": "Affichage des {{number}} albums créés par les utilisateurs",
         "renamealbum": "Renommer l’album",
         "albumplaceholder": "Titre de l’album"
