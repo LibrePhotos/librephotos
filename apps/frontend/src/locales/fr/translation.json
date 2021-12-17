@@ -6,7 +6,7 @@
         "uploadheader": "Téléverser un nouvel avatar",
         "image": "Choisir une image",
         "upload": "Téléverser",
-        "filesize": "La taille maximale du fichier est de 200 ko",
+        "filesize": "La taille maximale du fichier est de 200 ko",
         "accountinformation": "Informations sur le compte",
         "firstname": "Prénom",
         "firstnameplaceholder": "Prénom",
@@ -19,7 +19,7 @@
         "english": "anglais",
         "spanish": "espagnol",
         "french": "français",
-        "updateaccountinformation": "Mise à jour du profil",
+        "updateaccountinformation": "Mettre à jour le profil",
         "cancel": "Annuler",
         "scandirectory": "Répertoire pour le scan",
         "change": "Modifier",
@@ -49,25 +49,25 @@
         "scannextcloudphotos": "Scanner les photos (Nextcloud)",
         "scannextclouddescription": {
             "item1": "Lister les fichiers de tous les sous-répertoires de scan ; pour chaque photo (ou vidéo) approprié :",
-            "item2": "Si le chemin du fichier existe, vérifiez si la photo a été modifiée. Si oui, rescannez, sinon on passe.",
+            "item2": "Si le chemin du fichier existe, vérifiez si la photo a été modifiée ; Si oui, rescanner, sinon on passe",
             "item3": "Calculer une identification unique de l’objet (md5)",
-            "item4": "Si la photo est déjà dans la base de données, ajout du lien vers la photo.",
+            "item4": "Si la photo est déjà dans la base de données, ajout du lien vers la photo",
             "item5": "Générer les vignettes associées à la photo",
             "item6": "Générer des légendes d’images",
             "item7": "Extraire les données Exif",
             "item8": "Calculer la localisation géographique à partir des coordonnées GPS",
-            "item9": "Extraire les visages.",
-            "item10": "Ajouter la photo aux albums de choses et de localisations.",
-            "item11": "Vérifier si la photo n’est pas déjà présente ou a été déplacée."
+            "item9": "Extraire les visages",
+            "item10": "Ajouter la photo aux albums de choses et de localisations",
+            "item11": "Vérifier si la photo n’est pas déjà présente ou a été déplacée"
         },
         "statusrescanphotostrue": "Rescan complet (depuis la racine)",
         "statusrescanphotosfalse": "Rescan complet (depuis la racine)",
         "missingphotos": "Photos manquantes",
         "missingphotosbutton": "Supprimer les photos manquantes",
-        "missingphotosdescription": "À chaque scan LibrePhotos vérifie si les photos sont toujours au même endroit ou si elle ont été déplacés ; toute photo manquante sera marquée comme photo manquante",
+        "missingphotosdescription": "À chaque scan, LibrePhotos vérifie si les photos sont toujours au même endroit ou si elle ont été déplacées ; toute photo manquante sera marquée comme 'photo manquante'",
         "eventsalbums": "Albums Évènement",
         "eventalbumsgenerate": "Générer les albums Évènement",
-        "eventsalbumsdescription": "Les photos sont tout d’abord groupées par date de prise de vue. Si deux photos ont été pris dans les mêmes 12 h, alors les deux photos sont considérées comme faisant partie du même évènement ; une fois tous les albums Évènement créés, un nom est créé automatiquement.",
+        "eventsalbumsdescription": "Les photos sont tout d’abord groupées par date de prise de vue ; Si deux photos ont été pris dans les mêmes 12h, alors les deux photos sont considérées comme faisant partie du même évènement ; une fois tous les albums Évènement créés, un nom est créé automatiquement",
         "eventalbumsregenerate": "Régénérer les titres",
         "eventalbumsregeneratedescription": "Les noms automatiquement créés contiennent des traces de nom de personnes ; si vous traitez les visages après avoir généré les albums, vous pouvez forcer le recalcul des noms des albums Évènements",
         "faces": "Visages",
@@ -222,13 +222,15 @@
         "login": "Se connecter",
         "username": "Utilisateur",
         "usernameplaceholder": "Utilisateur",
-        "password": "Mot de pase",
+        "password": "Mot de passe",
         "passwordplaceholder": "Mot de passe",
         "signup": "S’inscrire",
-        "errorbackend": "Aucune connexion avec le serveur, réessayer dans quelques minutes.",
+        "errorbackend": "Aucune connexion avec le serveur, réessayer dans quelques minutes...",
         "errorpassword": "Saisir un mot de passe !",
         "errorusername": "Le nom d’utilisateur ne peut pas être vide !",
-        "tagline": "LibrePhotos prend soin de vos photos."
+        "tagline": "LibrePhotos prend soin de vos photos...",
+        "confirmpassword": "Confirmer le mot de passe",
+        "confirmpasswordplaceholder": "Confirmer le mot de passe"
     },
     "search": {
         "search": "Recherche",
@@ -236,7 +238,7 @@
         "loading": "Chargement…"
     },
     "adminarea": {
-        "header": "Zone d’administration",
+        "header": "Zone administrateur",
         "sitesettings": "Paramètres de site",
         "users": "Utilisateurs",
         "username": "Nom",
@@ -259,12 +261,12 @@
         "delete": "Supprimer",
         "itemsprocessed": "Élément(s) traité(s)",
         "running": "en cours",
-        "removeexplanation": "Ne stoppe pas le job en cours mais se limite à le supprimer de la base de données.."
+        "removeexplanation": "Ne stoppe pas le job en cours mais se limite à le supprimer de la base de données"
     },
     "modalscandirectoryedit": {
         "header": "Définir le répertoire de scan pour l’utilisateur",
         "explanation1": "Quand l’utilisateur",
-        "explanation2": "qui servira de répertoire de scan à l’utilisateur quand celui-ci cliquera sur le lancement du scan",
+        "explanation2": "cliquera sur le bouton 'scan' de la page 'Paramètres' le répertoire sélectionné ici sera utilisé",
         "currentdirectory": "Répertoire actuel de scan de l’utilisateur",
         "notset": "non défini",
         "update": "Mettre à jour",
@@ -308,11 +310,32 @@
     "things": "Choses",
     "placealbum": {
         "maploading": "Chargement de la carte…",
-        "showingplaces": "Afficher les localisations {{number}} sur la carte"
+        "showingplaces": "Afficher les {{number}} localisations sur la carte"
     },
     "thingalbum": {
         "showingthings": "Afficher les {{number}} premières choses"
     },
     "rename": "Renommer",
-    "places": "Localisations"
+    "places": "Localisations",
+    "personedit": {
+        "labelfaces": "Mettre un nom sur un visage",
+        "numberselected": "Associer les {number} visages sélectionnés à...",
+        "newperson": "Nouvelle personne",
+        "personname": "Nom de la personne",
+        "addperson": "Ajouter"
+    },
+    "facesdashboard": {
+        "selectedfaces": "{{number}} sélectionnée(s)",
+        "explanationadding": "Ajouter à une personne existante ou créer une nouvelle personne",
+        "explanationtraining": "Lancer le traitement d'association des visages",
+        "numberoffaces": "{{number}} visages",
+        "explanationdeleting": "Supprimer le visage et ses vignettes"
+    },
+    "socialgraph": "Schéma social",
+    "facecluster": "Groupes de visages",
+    "dataviz": "Synthèse",
+    "placetree": "Arbre de localisation",
+    "wordclouds": "Vue nuagique",
+    "timeline": "Calendrier",
+    "faceclusterexplanation": "Les personnes avec des visages similaires devraient être groupées près de ce point (cliquer sur un point pour voir le nom)"
 }
