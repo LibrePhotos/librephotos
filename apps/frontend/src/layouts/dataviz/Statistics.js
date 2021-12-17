@@ -9,7 +9,8 @@ import EventCountMonthGraph from "../../components/eventCountMonthGraph";
 import LocationDurationStackedBar from "../../components/locationDurationStackedBar";
 import FaceClusterScatter from "../../components/faceClusterGraph";
 import SocialGraph from "../../components/socialGraph";
-
+import { withTranslation } from "react-i18next";
+import { compose } from "redux";
 export class Statistics extends Component {
   state = { activeItem: "location tree" };
 
@@ -27,7 +28,7 @@ export class Statistics extends Component {
             <Popup
               inverted
               position="bottom center"
-              content="Location tree"
+              content={this.props.t("placetree")}
               trigger={
                 <Menu.Item
                   icon="sitemap"
@@ -41,7 +42,7 @@ export class Statistics extends Component {
             <Popup
               inverted
               position="bottom center"
-              content="Wordclouds"
+              content={this.props.t("wordclouds")}
               trigger={
                 <Menu.Item
                   icon="cloud"
@@ -55,7 +56,7 @@ export class Statistics extends Component {
             <Popup
               inverted
               position="bottom center"
-              content="Timeline"
+              content={this.props.t("timeline")}
               trigger={
                 <Menu.Item
                   icon="area chart"
@@ -69,7 +70,7 @@ export class Statistics extends Component {
             <Popup
               inverted
               position="bottom center"
-              content="Social graph"
+              content={this.props.t("socialgraph")}
               trigger={
                 <Menu.Item
                   icon="share alternate"
@@ -83,7 +84,7 @@ export class Statistics extends Component {
             <Popup
               inverted
               position="bottom center"
-              content="Face clusters"
+              content={this.props.t("facecluster")}
               trigger={
                 <Menu.Item
                   icon="user circle outline"
@@ -151,12 +152,15 @@ export class Statistics extends Component {
   }
 }
 
-Statistics = connect((store) => {
-  return {
-    statusPhotoScan: store.util.statusPhotoScan,
-    statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
-    generatingAlbumsAuto: store.albums.generatingAlbumsAuto,
-    scanningPhotos: store.photos.scanningPhotos,
-    fetchedCountStats: store.util.fetchedCountStats,
-  };
-})(Statistics);
+Statistics = compose(
+  connect((store) => {
+    return {
+      statusPhotoScan: store.util.statusPhotoScan,
+      statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
+      generatingAlbumsAuto: store.albums.generatingAlbumsAuto,
+      scanningPhotos: store.photos.scanningPhotos,
+      fetchedCountStats: store.util.fetchedCountStats,
+    };
+  }),
+  withTranslation()
+)(Statistics);

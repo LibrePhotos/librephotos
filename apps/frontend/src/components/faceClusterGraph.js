@@ -12,7 +12,8 @@ import { connect } from "react-redux";
 import { serverAddress } from "../api_client/apiClient";
 import { clusterFaces } from "../actions/facesActions";
 import { SecuredImageJWT } from "./SecuredImage";
-
+import { withTranslation } from "react-i18next";
+import { compose } from "redux";
 export class FaceClusterScatter extends Component {
   state = {
     crosshairValues: [],
@@ -62,14 +63,14 @@ export class FaceClusterScatter extends Component {
     if (this.props.clustered) {
       return (
         <div style={{ padding: 10 }}>
-          <Header as="h3">
-            Face Embeddings
-            <Header.Subheader>
-              People with similar looking faces should be grouped closer
-              together in this plot (Click on a point to see the label).
-            </Header.Subheader>
+          <Header>
+            <Header.Content>
+              {this.props.t("facecluster")}{" "}
+              <Header.Subheader>
+                {this.props.t("faceclusterexplanation")}
+              </Header.Subheader>
+            </Header.Content>
           </Header>
-
           <XYPlot
             width={this.props.containerWidth - 30}
             height={this.props.height}
@@ -105,14 +106,16 @@ export class FaceClusterScatter extends Component {
   }
 }
 
-FaceClusterScatter = connect((store) => {
-  return {
-    facesVis: store.faces.facesVis,
-    training: store.faces.training,
-    trained: store.faces.trained,
-    clustering: store.faces.clustering,
-    clustered: store.faces.clustered,
-  };
-})(FaceClusterScatter);
-
-export default Dimensions()(FaceClusterScatter);
+export default compose(
+  connect((store) => {
+    return {
+      facesVis: store.faces.facesVis,
+      training: store.faces.training,
+      trained: store.faces.trained,
+      clustering: store.faces.clustering,
+      clustered: store.faces.clustered,
+    };
+  }),
+  Dimensions(),
+  withTranslation()
+)(FaceClusterScatter);

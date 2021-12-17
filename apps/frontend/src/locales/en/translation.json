@@ -224,6 +224,8 @@
     "usernameplaceholder": "Username",
     "password": "Password",
     "passwordplaceholder": "Password",
+    "confirmpassword": "Confirm Password",
+    "confirmpasswordplaceholder": "Confirm Password",
     "signup": "Sign up",
     "errorbackend": "No connection to backend server, try again in a few minutes.",
     "errorpassword": "Password may not be blank!",
@@ -304,6 +306,27 @@
     "albumalreadyexists": "Album {{name}} already exists.",
     "albumplaceholder": "Album title"
   },
+  "personedit": {
+    "labelfaces": "Label faces",
+    "numberselected": "Label selected {number} face(s) as...",
+    "newperson": "New person",
+    "personname": "Person Name",
+    "addperson": "Add Person"
+  },
+  "facesdashboard": {
+    "numberoffaces": "{{number}} Faces",
+    "selectedfaces": "{{number}} selected",
+    "explanationadding": "Add to an existing face ID or create a new face ID",
+    "explanationdeleting": "Delete the face and it's thumbnails",
+    "explanationtraining": "Train a classifier and automatically label faces"
+  },
+  "socialgraph": "Social Graph",
+  "facecluster": "Face Clusters",
+  "faceclusterexplanation": "People with similar looking faces should be grouped closer together in this plot (Click on a point to see the label).",
+  "dataviz": "Data Visualization",
+  "placetree": "Place Tree",
+  "wordclouds": "Word Clouds",
+  "timeline": "Timeline",
   "faces": "Faces",
   "days": "Days",
   "events": "Events",

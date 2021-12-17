@@ -4,7 +4,8 @@ import Dimensions from "react-dimensions";
 import { connect } from "react-redux";
 import { fetchWordCloud } from "../../actions/utilActions";
 import { Chart, Transform, Cloud } from "rumble-charts";
-
+import { withTranslation } from "react-i18next";
+import { compose } from "redux";
 export class WordCloud extends Component {
   componentDidMount() {
     if (!this.props.fetchedWordCloud) {
@@ -13,12 +14,12 @@ export class WordCloud extends Component {
   }
 
   render() {
-    var title = "People";
+    var title = this.props.t("people");
     if (this.props.type === "captions") {
-      title = "Things";
+      title = this.props.t("things");
     }
     if (this.props.type === "location") {
-      title = "Locations";
+      title = this.props.t("places");
     }
     var chart;
     if (this.props.fetchedWordCloud) {
@@ -59,12 +60,15 @@ export class WordCloud extends Component {
   }
 }
 
-WordCloud = connect((store) => {
-  return {
-    wordCloud: store.util.wordCloud,
-    fetchingWordCloud: store.util.fetchingWordCloud,
-    fetchedWordCloud: store.util.fetchedWordCloud,
-  };
-})(WordCloud);
+WordCloud = compose(
+  connect((store) => {
+    return {
+      wordCloud: store.util.wordCloud,
+      fetchingWordCloud: store.util.fetchingWordCloud,
+      fetchedWordCloud: store.util.fetchedWordCloud,
+    };
+  }),
+  withTranslation()
+)(WordCloud);
 
 export default Dimensions()(WordCloud);

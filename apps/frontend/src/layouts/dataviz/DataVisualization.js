@@ -9,7 +9,6 @@ import EventCountMonthGraph from "../../components/eventCountMonthGraph";
 import LocationDurationStackedBar from "../../components/locationDurationStackedBar";
 import FaceClusterScatter from "../../components/faceClusterGraph";
 import SocialGraph from "../../components/socialGraph";
-
 export class LocationTree extends Component {
   render() {
     return (

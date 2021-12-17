@@ -33,6 +33,9 @@ import debounce from "lodash/debounce";
 import { fetchPeople } from "../../actions/peopleActions";
 import { serverAddress } from "../../api_client/apiClient";
 import Modal from "react-modal";
+
+import { withTranslation } from "react-i18next";
+import { compose } from "redux";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 
 var SIDEBAR_WIDTH = 85;
@@ -118,9 +121,12 @@ class ModalPersonEdit extends Component {
         <div style={{ height: 50, width: "100%", padding: 7 }}>
           <Header>
             <Header.Content>
-              Label faces
+              {this.props.t("personedit.labelfaces")}
               <Header.Subheader>
-                Label selected {this.props.selectedFaces.length} face(s) as...
+                {
+                  (this.props.t("personedit.numberselected"),
+                  { number: this.props.selectedFaces.length })
+                }
               </Header.Subheader>
             </Header.Content>
           </Header>
@@ -149,14 +155,12 @@ class ModalPersonEdit extends Component {
           }}
         >
           <div style={{ paddingRight: 5 }}>
-            <Header as="h4">New person</Header>
+            <Header as="h4">{this.props.t("personedit.newperson")}</Header>
             <Popup
               inverted
-              content={
-                'Album "' +
-                this.state.newPersonName.trim() +
-                '" already exists.'
-              }
+              content={this.props.t("personalbum.personalreadyexists", {
+                name: this.state.newPersonName.trim(),
+              })}
               position="bottom center"
               open={this.props.people
                 .map((el) => el.text.toLowerCase().trim())
@@ -170,7 +174,7 @@ class ModalPersonEdit extends Component {
                   onChange={(e, v) => {
                     this.setState({ newPersonName: v.value });
                   }}
-                  placeholder="Person name"
+                  placeholder={this.props.t("personedit.personname")}
                   action
                 >
                   <input />
@@ -191,7 +195,7 @@ class ModalPersonEdit extends Component {
                       .includes(this.state.newPersonName.toLowerCase().trim())}
                     type="submit"
                   >
-                    Add Person
+                    {this.props.t("personedit.addperson")}
                   </Button>
                 </Input>
               }
@@ -229,7 +233,9 @@ class ModalPersonEdit extends Component {
                     <Header.Content>
                       {item.text}
                       <Header.Subheader>
-                        {item.face_count} Photo(s)
+                        {this.props.t("numberofphotos", {
+                          number: item.face_count,
+                        })}
                       </Header.Subheader>
                     </Header.Content>
                   </Header>
@@ -446,7 +452,11 @@ export class FaceDashboard extends Component {
             <Header size="huge">
               <Header.Content>
                 {cell.person_name}
-                <Header.Subheader>{cell.faces.length} Faces</Header.Subheader>
+                <Header.Subheader>
+                  {this.props.t("facesdashboard.numberoffaces", {
+                    number: cell.faces.length,
+                  })}
+                </Header.Subheader>
               </Header.Content>
             </Header>
             <Divider />
@@ -584,7 +594,7 @@ export class FaceDashboard extends Component {
               active={activeItem === "labeled"}
               onClick={this.handleItemClick}
             >
-              {"Labeled "}{" "}
+              {this.props.t("settings.labeled")}{" "}
               <Loader
                 size="mini"
                 inline
@@ -596,7 +606,7 @@ export class FaceDashboard extends Component {
               active={activeItem === "inferred"}
               onClick={this.handleItemClick}
             >
-              {"Inferred "}{" "}
+              {this.props.t("settings.inferred")}{" "}
               <Loader
                 size="mini"
                 inline
@@ -627,7 +637,9 @@ export class FaceDashboard extends Component {
           }}
         >
           <Checkbox
-            label={`${this.state.selectedFaces.length} selected`}
+            label={this.props.t("facesdashboard.selectedfaces", {
+              number: this.state.selectedFaces.length,
+            })}
             style={{ padding: 5 }}
             toggle
             checked={this.state.selectMode}
@@ -651,7 +663,7 @@ export class FaceDashboard extends Component {
                   icon="plus"
                 />
               }
-              content="Add to an existing face ID or create a new face ID"
+              content={this.props.t("facesdashboard.explanationadding")}
             />
             <Popup
               inverted
@@ -666,7 +678,7 @@ export class FaceDashboard extends Component {
                   icon="trash"
                 />
               }
-              content="delete faces"
+              content={this.props.t("facesdashboard.explanationdeleting")}
             />
 
             <Popup
@@ -685,7 +697,7 @@ export class FaceDashboard extends Component {
                   icon="lightning"
                 />
               }
-              content="Train a classifier and automatically label faces"
+              content={this.props.t("facesdashboard.explanationtraining")}
             />
           </Button.Group>
         </div>
@@ -746,41 +758,47 @@ export class FaceDashboard extends Component {
   }
 }
 
-FaceDashboard = connect((store) => {
-  return {
-    workerAvailability: store.util.workerAvailability,
-    workerRunningJob: store.util.workerRunningJob,
+FaceDashboard = compose(
+  connect((store) => {
+    return {
+      workerAvailability: store.util.workerAvailability,
+      workerRunningJob: store.util.workerRunningJob,
 
-    showSidebar: store.ui.showSidebar,
+      showSidebar: store.ui.showSidebar,
 
-    facesList: store.faces.facesList,
-    inferredFacesList: store.faces.inferredFacesList,
-    labeledFacesList: store.faces.labeledFacesList,
+      facesList: store.faces.facesList,
+      inferredFacesList: store.faces.inferredFacesList,
+      labeledFacesList: store.faces.labeledFacesList,
 
-    people: store.people.people,
+      people: store.people.people,
 
-    facesVis: store.faces.facesVis,
-    training: store.faces.training,
-    trained: store.faces.trained,
-    fetchingLabeledFacesList: store.faces.fetchingLabeledFacesList,
-    fetchedLabeledFacesList: store.faces.fetchedLabeledFacesList,
-    fetchingInferredFacesList: store.faces.fetchingInferredFacesList,
-    fetchedInferredFacesList: store.faces.fetchedInferredFacesList,
-  };
-})(FaceDashboard);
+      facesVis: store.faces.facesVis,
+      training: store.faces.training,
+      trained: store.faces.trained,
+      fetchingLabeledFacesList: store.faces.fetchingLabeledFacesList,
+      fetchedLabeledFacesList: store.faces.fetchedLabeledFacesList,
+      fetchingInferredFacesList: store.faces.fetchingInferredFacesList,
+      fetchedInferredFacesList: store.faces.fetchedInferredFacesList,
+    };
+  }),
+  withTranslation()
+)(FaceDashboard);
 
-ModalPersonEdit = connect((store) => {
-  return {
-    people: store.people.people,
-    fetchingPeople: store.people.fetchingPeople,
-    fetchedPeople: store.people.fetchedPeople,
+ModalPersonEdit = compose(
+  connect((store) => {
+    return {
+      people: store.people.people,
+      fetchingPeople: store.people.fetchingPeople,
+      fetchedPeople: store.people.fetchedPeople,
 
-    inferredFacesList: store.faces.inferredFacesList,
-    labeledFacesList: store.faces.labeledFacesList,
+      inferredFacesList: store.faces.inferredFacesList,
+      labeledFacesList: store.faces.labeledFacesList,
 
-    fetchingLabeledFacesList: store.faces.fetchingLabeledFacesList,
-    fetchedLabeledFacesList: store.faces.fetchedLabeledFacesList,
-    fetchingInferredFacesList: store.faces.fetchingInferredFacesList,
-    fetchedInferredFacesList: store.faces.fetchedInferredFacesList,
-  };
-})(ModalPersonEdit);
+      fetchingLabeledFacesList: store.faces.fetchingLabeledFacesList,
+      fetchedLabeledFacesList: store.faces.fetchedLabeledFacesList,
+      fetchingInferredFacesList: store.faces.fetchingInferredFacesList,
+      fetchedInferredFacesList: store.faces.fetchedInferredFacesList,
+    };
+  }),
+  withTranslation()
+)(ModalPersonEdit);

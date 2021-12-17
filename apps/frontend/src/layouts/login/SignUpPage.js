@@ -10,7 +10,8 @@ import {
 } from "semantic-ui-react";
 import { connect } from "react-redux";
 import { signup } from "../../actions/authActions";
-
+import { withTranslation } from "react-i18next";
+import { compose } from "redux";
 export class SignupPage extends Component {
   constructor(props) {
     super(props);
@@ -71,48 +72,48 @@ export class SignupPage extends Component {
             <Header.Content>LibrePhotos</Header.Content>
           </Header>
           <Segment attached>
-            <Header>Signup</Header>
+            <Header>{this.props.t("login.signup")}</Header>
             <Form>
               <Form.Field>
-                <label>User Name</label>
+                <label>{this.props.t("login.username")}</label>
                 <Form.Input
                   icon="user"
-                  placeholder="Username"
+                  placeholder={this.props.t("login.usernameplaceholder")}
                   name="username"
                   value={username}
                   onChange={this.handleChange}
                 />
               </Form.Field>
               <Form.Field>
-                <label>Email</label>
+                <label>{this.props.t("settings.email")}</label>
                 <Form.Input
                   icon="mail"
-                  placeholder="Email"
+                  placeholder={this.props.t("settings.emailplaceholder")}
                   name="email"
                   value={email}
                   onChange={this.handleChange}
                 />
               </Form.Field>
               <Form.Field>
-                <label>First name</label>
+                <label>{this.props.t("settings.firstname")}</label>
                 <Form.Input
-                  placeholder="First name"
+                  placeholder={this.props.t("settings.firstnameplaceholder")}
                   name="firstname"
                   value={firstname}
                   onChange={this.handleChange}
                 />
               </Form.Field>
               <Form.Field>
-                <label>Last name</label>
+                <label>{this.props.t("settings.lastname")}</label>
                 <Form.Input
-                  placeholder="Last name"
+                  placeholder={this.props.t("settings.lastnameplaceholder")}
                   name="lastname"
                   value={lastname}
                   onChange={this.handleChange}
                 />
               </Form.Field>
               <Form.Field>
-                <label>Password</label>
+                <label>{this.props.t("login.password")}</label>
                 <Form.Input
                   error={
                     this.state.passwordConfirm.length > 0 &&
@@ -120,12 +121,12 @@ export class SignupPage extends Component {
                   }
                   icon="lock"
                   type="password"
-                  placeholder="Password"
+                  placeholder={this.props.t("login.passwordplaceholder")}
                   name="password"
                   value={password}
                   onChange={this.handleChange}
                 />
-                <label>Confirm Password</label>
+                <label>{this.props.t("login.confirmpassword")}</label>
                 <Form.Input
                   error={
                     this.state.passwordConfirm.length > 0 &&
@@ -133,7 +134,7 @@ export class SignupPage extends Component {
                   }
                   icon="lock"
                   type="password"
-                  placeholder="Confirm password"
+                  placeholder={this.props.t("login.confirmpasswordplaceholder")}
                   name="passwordConfirm"
                   value={passwordConfirm}
                   onChange={this.handleChange}
@@ -159,7 +160,7 @@ export class SignupPage extends Component {
                 fluid
                 color="blue"
               >
-                Sign Up
+                {this.props.t("login.signup")}
               </Button>
             </Form>
           </Segment>
@@ -170,12 +171,12 @@ export class SignupPage extends Component {
           )}
           {this.props.errors && this.props.errors.password && (
             <Message color="red" secondary attached>
-              Password may not be blank!
+              {this.props.t("login.errorpassword")}
             </Message>
           )}
           {this.props.errors && this.props.errors.username && (
             <Message color="red" secondary attached="bottom">
-              Username may not be blank!
+              {this.props.t("login.errorusername")}
             </Message>
           )}
         </div>
@@ -192,8 +193,11 @@ export class SignupPage extends Component {
   }
 }
 
-SignupPage = connect((store) => {
-  return {
-    auth: store.auth,
-  };
-})(SignupPage);
+SignupPage = compose(
+  connect((store) => {
+    return {
+      auth: store.auth,
+    };
+  }),
+  withTranslation()
+)(SignupPage);
