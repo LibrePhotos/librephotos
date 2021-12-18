@@ -6,7 +6,7 @@
         "uploadheader": "Téléverser un nouvel avatar",
         "image": "Choisir une image",
         "upload": "Téléverser",
-        "filesize": "La taille maximale du fichier est de 200 ko",
+        "filesize": "La taille maximale du fichier est de 200 ko.",
         "accountinformation": "Informations sur le compte",
         "firstname": "Prénom",
         "firstnameplaceholder": "Prénom",
@@ -49,27 +49,27 @@
         "scannextcloudphotos": "Scanner les photos (Nextcloud)",
         "scannextclouddescription": {
             "item1": "Lister les fichiers de tous les sous-répertoires de scan ; pour chaque photo (ou vidéo) approprié :",
-            "item2": "Si le chemin du fichier existe, vérifiez si la photo a été modifiée ; Si oui, rescanner, sinon on passe",
+            "item2": "Si le chemin du fichier existe, vérifiez si la photo a été modifiée ; si oui, rescanner, sinon on passe.",
             "item3": "Calculer une identification unique de l’objet (md5)",
-            "item4": "Si la photo est déjà dans la base de données, ajout du lien vers la photo",
+            "item4": "Si la photo est déjà dans la base de données, ajout du lien vers la photo.",
             "item5": "Générer les vignettes associées à la photo",
             "item6": "Générer des légendes d’images",
             "item7": "Extraire les données Exif",
             "item8": "Calculer la localisation géographique à partir des coordonnées GPS",
-            "item9": "Extraire les visages",
-            "item10": "Ajouter la photo aux albums de choses et de localisations",
-            "item11": "Vérifier si la photo n’est pas déjà présente ou a été déplacée"
+            "item9": "Extraire les visages.",
+            "item10": "Ajouter la photo aux albums de choses et de localisations.",
+            "item11": "Vérifiez si la photo n’est pas déjà présente ou a été déplacée."
         },
         "statusrescanphotostrue": "Rescan complet (depuis la racine)",
         "statusrescanphotosfalse": "Rescan complet (depuis la racine)",
         "missingphotos": "Photos manquantes",
         "missingphotosbutton": "Supprimer les photos manquantes",
-        "missingphotosdescription": "À chaque scan, LibrePhotos vérifie si les photos sont toujours au même endroit ou si elle ont été déplacées ; toute photo manquante sera marquée comme 'photo manquante'",
+        "missingphotosdescription": "À chaque scan, LibrePhotos vérifie si les photos sont toujours au même endroit ou si elle ont été déplacées ; toute photo manquante sera marquée comme photo manquante.",
         "eventsalbums": "Albums Évènement",
         "eventalbumsgenerate": "Générer les albums Évènement",
-        "eventsalbumsdescription": "Les photos sont tout d’abord groupées par date de prise de vue ; Si deux photos ont été pris dans les mêmes 12h, alors les deux photos sont considérées comme faisant partie du même évènement ; une fois tous les albums Évènement créés, un nom est créé automatiquement",
+        "eventsalbumsdescription": "Les photos sont tout d’abord groupées par date de prise de vue ; si deux photos ont été pris dans les mêmes 12 h, alors les deux photos sont considérées comme faisant partie du même évènement ; une fois tous les albums Évènement créés, un nom est créé automatiquement.",
         "eventalbumsregenerate": "Régénérer les titres",
-        "eventalbumsregeneratedescription": "Les noms automatiquement créés contiennent des traces de nom de personnes ; si vous traitez les visages après avoir généré les albums, vous pouvez forcer le recalcul des noms des albums Évènements",
+        "eventalbumsregeneratedescription": "Les noms automatiquement créés contiennent des traces de nom de personnes ; si vous traitez les visages après avoir généré les albums, vous pouvez forcer le recalcul des noms des albums Évènements.",
         "faces": "Visages",
         "people": "Personnes",
         "facesbutton": "Traiter les visages",
@@ -261,7 +261,7 @@
         "delete": "Supprimer",
         "itemsprocessed": "Élément(s) traité(s)",
         "running": "en cours",
-        "removeexplanation": "Ne stoppe pas le job en cours mais se limite à le supprimer de la base de données"
+        "removeexplanation": "N'arrête pas réellement le travail, mais supprime seulement cette entrée de la base de données. À n'utiliser que dans les cas où vous savez qu'un travail a échoué de manière non gracieuse, en inspectant les journaux, etc."
     },
     "modalscandirectoryedit": {
         "header": "Définir le répertoire de scan pour l’utilisateur",
@@ -274,7 +274,7 @@
     },
     "personalbum": {
         "renameperson": "Renommer la personne",
-        "personalreadyexists": "La personne {{name}} existe déjà",
+        "personalreadyexists": "La personne {{name}} existe déjà.",
         "numberofpeople": "{{peoplelength}} personnes",
         "nameplaceholder": "Nom"
     },
@@ -300,7 +300,7 @@
     "days": "Jours",
     "myalbums": "Mes albums",
     "useralbum": {
-        "albumalreadyexists": "L’album {{name}} existe déjà",
+        "albumalreadyexists": "L’album {{name}} existe déjà.",
         "numberof": "Affichage des {{number}} albums créés par les utilisateurs",
         "renamealbum": "Renommer l’album",
         "albumplaceholder": "Titre de l’album"
@@ -337,5 +337,5 @@
     "placetree": "Arbre de localisation",
     "wordclouds": "Vue nuagique",
     "timeline": "Calendrier",
-    "faceclusterexplanation": "Les personnes avec des visages similaires devraient être groupées près de ce point (cliquer sur un point pour voir le nom)"
+    "faceclusterexplanation": "Les personnes avec des visages similaires devraient être groupées près de ce point (cliquer sur un point pour voir le nom)."
 }
