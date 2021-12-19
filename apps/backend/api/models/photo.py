@@ -5,16 +5,16 @@ from io import BytesIO
 
 import numpy as np
 import PIL
-import pytz
 from django.contrib.postgres.fields import ArrayField
 from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.db import models
 from django.db.models import Q
-from timezonefinder import TimezoneFinder
 
+import api.date_time_extractor as date_time_extractor
 import api.models
 import api.util as util
+from api.exif_tags import Tags
 from api.im2txt.sample import im2txt
 from api.models.user import User, get_deleted_user
 from api.places365.places365 import place365_instance
@@ -36,16 +36,6 @@ class VisiblePhotoManager(models.Manager):
             .get_queryset()
             .filter(Q(hidden=False) & Q(aspect_ratio__isnull=False))
         )
-
-
-class Tags:
-    RATING = "Rating"
-    IMAGE_HEIGHT = "ImageHeight"
-    IMAGE_WIDTH = "ImageWidth"
-    DATE_TIME_ORIGINAL = "EXIF:DateTimeOriginal"
-    QUICKTIME_CREATE_DATE = "QuickTime:CreateDate"
-    LATITUDE = "Composite:GPSLatitude"
-    LONGITUDE = "Composite:GPSLongitude"
 
 
 class Photo(models.Model):
@@ -353,49 +343,23 @@ class Photo(models.Model):
         if commit:
             self.save()
 
-    def _try_getting_timezone_from_geolocation(self, timestamp):
-        if self.exif_gps_lon and self.exif_gps_lat:
-            tzfinder = TimezoneFinder()
-            tz_name = tzfinder.timezone_at(lng=self.exif_gps_lon, lat=self.exif_gps_lat)
-            util.logger.info(
-                f"{self.image_paths[0]} marked as timezone {tz_name} based on lat/lon {self.exif_gps_lat}/{self.exif_gps_lon}"
-            )
-            if tz_name:
-                return timestamp.astimezone(pytz.timezone(tz_name))
-        return timestamp
-
     def _extract_date_time_from_exif(self, commit=True):
-        date_format = "%Y:%m:%d %H:%M:%S"
-        timestamp_from_exif = None
-        exif, exifvideo = get_metadata(
-            self.image_paths[0],
-            tags=[Tags.DATE_TIME_ORIGINAL, Tags.QUICKTIME_CREATE_DATE],
-            try_sidecar=True,
+        exif_getter = lambda tags: get_metadata(
+            self.image_paths[0], tags=tags, try_sidecar=True
         )
-        if exif:
-            try:
-                timestamp_from_exif = datetime.strptime(exif, date_format).replace(
-                    tzinfo=pytz.utc
-                )
-            except Exception:
-                timestamp_from_exif = None
-        if exifvideo:
-            try:
-                timestamp_from_exif = datetime.strptime(exifvideo, date_format).replace(
-                    tzinfo=pytz.utc
-                )
-                # Try to get actual timezone using geolocation before stripping it off to get correct local time for video
-                # Video timestamp expected to be in UTC (as per standard)
-                timestamp_from_exif = self._try_getting_timezone_from_geolocation(
-                    timestamp_from_exif
-                ).replace(tzinfo=pytz.utc)
-            except Exception:
-                timestamp_from_exif = None
+        extracted_local_time = date_time_extractor.extract_local_date_time(
+            self.image_paths[0],
+            # Instead of DEFAULT_RULES should pass per use configuration
+            date_time_extractor.DEFAULT_RULES,
+            exif_getter,
+            self.exif_gps_lat,
+            self.exif_gps_lon,
+        )
 
         old_album_date = self._find_album_date()
 
-        if self.exif_timestamp != timestamp_from_exif:
-            self.exif_timestamp = timestamp_from_exif
+        if self.exif_timestamp != extracted_local_time:
+            self.exif_timestamp = extracted_local_time
 
         if old_album_date is not None:
             old_album_date.photos.remove(self)
