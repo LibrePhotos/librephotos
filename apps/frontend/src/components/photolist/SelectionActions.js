@@ -16,9 +16,9 @@ import { compose } from "redux";
 export class SelectionActions extends Component {
   render() {
     return (
-      <div>
+      <div >
         <Button.Group
-          style={{ paddingLeft: 2, paddingRight: 2 }}
+          style={{ paddingLeft: 2, paddingRight: 2}}
           compact
           floated="right"
           color="orange"

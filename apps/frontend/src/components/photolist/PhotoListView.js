@@ -188,10 +188,14 @@ export class PhotoListView extends Component {
       <div>
         <div
           style={{
-            marginTop: 5,
             width: "100%",
             zIndex: 100,
+            boxSizing: "border-box",
             backgroundColor: "white",
+            position: "sticky",
+            paddingTop: 6,
+            top: 44,
+            animation: "500ms ease-in-out 0s normal none 1 running fadeInDown",
           }}
         >
           {this.props.header ? (
@@ -210,7 +214,7 @@ export class PhotoListView extends Component {
               additionalSubHeader={this.props.additionalSubHeader}
             />
           )}
-          {!this.props.loading && !this.props.isPublic && (
+          {!this.props.loading && !this.props.isPublic && this.getNumPhotos() > 0 && (
             <div
               style={{
                 marginLeft: -5,
@@ -249,7 +253,7 @@ export class PhotoListView extends Component {
         {!this.props.loading &&
         this.props.photoset &&
         this.props.photoset.length > 0 ? (
-          <div style={{ top: TOP_MENU_HEIGHT + 70 }}>
+          <div >
             <Pig
               imageData={this.getPigImageData()}
               selectable={
