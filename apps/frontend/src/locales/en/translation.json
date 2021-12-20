@@ -169,6 +169,8 @@
     "select": "Select all"
   },
   "defaultheader": {
+    "setup": "Looks like you still have to set up LibrePhotos.",
+    "gettingstarted": "Getting started",
     "loading": "Loading...",
     "noimages": "No images found",
     "days": "days",
@@ -320,6 +322,8 @@
     "explanationdeleting": "Delete the face and it's thumbnails",
     "explanationtraining": "Train a classifier and automatically label faces"
   },
+  
+  "scan": "Scan",
   "socialgraph": "Social Graph",
   "facecluster": "Face Clusters",
   "faceclusterexplanation": "People with similar looking faces should be grouped closer together in this plot (Click on a point to see the label).",

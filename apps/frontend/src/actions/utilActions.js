@@ -5,6 +5,7 @@ import { fetchInferredFacesList, fetchLabeledFacesList } from "./facesActions";
 import { fetchUserSelfDetails } from "./userActions";
 import { fetchPeople } from "./peopleActions";
 import { fetchDateAlbumsList } from "./albumsActions";
+import { scanPhotos } from "../actions/photosActions";
 
 export function fetchJobList(page, page_size = 10) {
   return function (dispatch) {
@@ -168,6 +169,37 @@ export function updateUser(user) {
           })
         );
         dispatch(fetchUserSelfDetails(user.id));
+      })
+      .catch((error) => {
+        dispatch({ type: "UPDATE_USER_REJECTED", payload: error });
+      });
+  };
+}
+
+export function updateUserAndScan(user) {
+  return function (dispatch) {
+    dispatch({ type: "UPDATE_USER" });
+    console.log(user);
+
+    Server.patch(`manage/user/${user.id}/`, user)
+      .then((response) => {
+        dispatch({
+          type: "UPDATE_USER_FULFILLED",
+          payload: response.data,
+        });
+        dispatch(fetchUserList());
+        dispatch(
+          notify({
+            message: `${user.username}'s information was successfully updated`,
+            title: "Update user",
+            status: "success",
+            dismissible: true,
+            dismissAfter: 3000,
+            position: "br",
+          })
+        );
+        dispatch(fetchUserSelfDetails(user.id));
+        dispatch(scanPhotos());
       })
       .catch((error) => {
         dispatch({ type: "UPDATE_USER_REJECTED", payload: error });

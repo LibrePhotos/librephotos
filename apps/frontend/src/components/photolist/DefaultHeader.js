@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import {
+  Button,
   Grid,
   GridColumn,
   GridRow,
@@ -8,9 +9,14 @@ import {
   Loader,
 } from "semantic-ui-react";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
-import { withTranslation, Trans } from "react-i18next";
+import { withTranslation } from "react-i18next";
+import { connect } from "react-redux";
+import { compose } from "redux";
+import { ModalScanDirectoryEdit } from "../modals/ModalScanDirectoryEdit";
 
 export class DefaultHeader extends Component {
+  state = { modalOpen: false };
+
   render() {
     if (this.props.loading || this.props.numPhotosetItems < 1) {
       return (
@@ -18,9 +24,28 @@ export class DefaultHeader extends Component {
           <div style={{ height: 60, paddingTop: 10 }}>
             <Header as="h4">
               <Header.Content>
-                {this.props.loading
-                  ? this.props.t("defaultheader.loading")
-                  : this.props.t("defaultheader.noimages")}
+                {!this.props.loading && this.props.auth.access.is_admin &&
+                !this.props.user.scan_directory &&
+                this.props.numPhotosetItems < 1 ? (
+                  <div>
+                    <p>{this.props.t("defaultheader.setup")}</p>
+                    <Button
+                      color="green"
+                      onClick={() => {
+                        this.setState({
+                          userToEdit: this.props.user,
+                          modalOpen: true,
+                        });
+                      }}
+                    >
+                      {this.props.t("defaultheader.gettingstarted")}
+                    </Button>
+                  </div>
+                ) : this.props.loading ? (
+                  this.props.t("defaultheader.loading")
+                ) : (
+                  this.props.t("defaultheader.noimages")
+                )}
                 <Loader inline active={this.props.loading} size="mini" />
               </Header.Content>
             </Header>
@@ -40,6 +65,14 @@ export class DefaultHeader extends Component {
           ) : (
             <div></div>
           )}
+          <ModalScanDirectoryEdit
+            onRequestClose={() => {
+              this.setState({ modalOpen: false });
+            }}
+            userToEdit={this.state.userToEdit}
+            isOpen={this.state.modalOpen}
+            updateAndScan={true}
+          />
         </div>
       );
     }
@@ -88,4 +121,12 @@ export class DefaultHeader extends Component {
   }
 }
 
-DefaultHeader = withTranslation()(DefaultHeader);
+DefaultHeader = compose(
+  connect((store) => {
+    return {
+      auth: store.auth,
+      user: store.user.userSelfDetails,
+    };
+  }),
+  withTranslation()
+)(DefaultHeader);
