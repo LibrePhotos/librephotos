@@ -109,6 +109,7 @@
       "mediafile": "Save to media file"
     },
     "favoriteupdate": "Update",
+    "configdatetime": "Configurable date time extractor",
     "experimentaloptions": "Experimental options",
     "transcodevideo": "Always transcode videos",
     "on": "On",
