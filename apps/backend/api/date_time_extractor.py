@@ -36,7 +36,7 @@ REGEXP_NO_TZ = re.compile(
 
 
 def _extract_no_tz_datetime_from_str(x, regexp=REGEXP_NO_TZ):
-    match = re.match(regexp, x)
+    match = re.search(regexp, x)
     if not match:
         return None
     g = match.groups()
