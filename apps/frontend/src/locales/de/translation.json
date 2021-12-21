@@ -172,7 +172,8 @@
         "loading": "Wird geladen …",
         "noimages": "Keine Bilder gefunden",
         "days": "Tage",
-        "photos": "Bilder"
+        "photos": "Bilder",
+        "setup": "Es sieht so aus als musst du LibrePhotos noch aufsetzen."
     },
     "selectionactions": {
         "photoactions": "Bilderaktionen",
@@ -295,7 +296,7 @@
     },
     "placealbum": {
         "showingplaces": "Zeige {{number}} Orte auf der Karte",
-        "maploading": "Karte wird geladen …"
+        "maploading": "Karte wird geladen…"
     },
     "thingalbum": {
         "showingthings": "Zeige {{number}} Dinge"
@@ -316,5 +317,15 @@
     "myalbums": "Meine Alben",
     "things": "Dinge",
     "places": "Orte",
-    "loading": "Wird geladen …"
+    "loading": "Wird geladen …",
+    "facesdashboard": {
+        "selectedfaces": "{{number}} ausgewählt",
+        "explanationdeleting": "Lösche das Gesicht und das Anzeigebild",
+        "numberoffaces": "{{number}} Gesichter"
+    },
+    "personedit": {
+        "addperson": "Füge Person hinzu",
+        "newperson": "Neue Person",
+        "personname": "Name der Person"
+    }
 }
