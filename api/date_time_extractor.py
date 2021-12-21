@@ -88,6 +88,16 @@ class TimeExtractionRule:
       - "name:<timezone_name>" - the timezone with the name <timezone_name>
     If either "source_tz" or "report_tz" could not be obtained the rule is considered to be not applicable.
 
+    Additionally each rule can have condition specifications that limits the rule application
+    to only the photos/videos that meet the condition's requirement. Supported conditions:
+      - "condition_path": "<regexp>" - rule only applied to files with full path (as seen by backend)
+                                       matching the regexp
+      - "condition_filename": "<regexp>" - rule only applied to files with filename matching the regexp
+      - "condition_exif": "<tag_name>//<regexp>" - first "//" is considered end of tag name and the rule is only
+                                          applied if value of tag <tag_name> exists and matches the regexp.
+
+    If multiple conditions are provided the rule is considered applicable only if all of them are met.
+
     Examples of the rules:
       - Take local time from exif tag "EXIF:DateTimeOriginal" if it is available:
 
@@ -117,7 +127,8 @@ class TimeExtractionRule:
             }
 
       - Take UTC time time using tag "QuickTime:CreateDate" and convert it from UTC
-        to a fixed timezone "Europe/Moscow" to get local time:
+        to a fixed timezone "Europe/Moscow" to get local time. Only apply to files
+        which path contains "Moscow_Visit" or "FromMoscow":
 
             {
                 "rule_type": "exif",
@@ -125,10 +136,12 @@ class TimeExtractionRule:
                 "transform_tz": 1,
                 "source_tz": "utc",
                 "report_tz": "name:Europe/Moscow",
+                "condition_path": "(Moscow_Visit|FromMoscow)",
             }
 
       - Take modified time of the file and get local time using timezone associated
-        with the GPS location:
+        with the GPS location. Only apply to files with "EXIF:Model" exif tag
+        containing "FooBar":
 
             {
                 "rule_type": "filesystem",
@@ -136,6 +149,7 @@ class TimeExtractionRule:
                 "transform_tz": 1,
                 "source_tz": "utc",
                 "report_tz": "gps_timezonefinder",
+                "condition_exif": "EXIF:Model//FooBar"
             }
     """
 
@@ -143,10 +157,14 @@ class TimeExtractionRule:
         self.rule_type = params["rule_type"]
         self.params = params
 
-    def get_required_exif_tags_list(self):
+    def get_required_exif_tags(self):
+        condition_tag, pattern = self._get_condition_exif()
+        res = set()
+        if condition_tag is not None:
+            res.add(condition_tag)
         if self.rule_type == RuleTypes.EXIF:
-            return [self.params["exif_tag"]]
-        return []
+            res.add(self.params["exif_tag"])
+        return res
 
     def _get_no_tz_dt_from_tag(self, tag_name, exif_tags):
         tag_val = exif_tags.get(tag_name)
@@ -155,7 +173,53 @@ class TimeExtractionRule:
         dt = _extract_no_tz_datetime_from_str(tag_val)
         return dt
 
+    def _check_condition_path(self, path):
+        if "condition_path" in self.params:
+            return re.search(self.params["condition_path"], path) is not None
+        else:
+            return True
+
+    def _check_condition_filename(self, path):
+        if "condition_filename" in self.params:
+            return (
+                re.search(self.params["condition_filename"], pathlib.Path(path).name)
+                is not None
+            )
+        else:
+            return True
+
+    def _get_condition_exif(self):
+        val = self.params.get("condition_exif")
+        if val is None:
+            return None, None
+        tag_and_pattern = val.split("//", maxsplit=1)
+        if len(tag_and_pattern) != 2:
+            raise ValueError(
+                f"Value of condition_exif must contain '//' delimiter between tag name and patter: '{val}'"
+            )
+        tag, pattern = tag_and_pattern
+        return tag, pattern
+
+    def _check_condition_exif(self, exif_tags):
+        tag, pattern = self._get_condition_exif()
+        if tag:
+            tag_value = exif_tags.get(tag)
+            if not tag_value:
+                return False
+            return re.search(pattern, tag_value) is not None
+        else:
+            return True
+
+    def _check_conditions(self, path, exif_tags, gps_lat, gps_lon):
+        return (
+            self._check_condition_exif(exif_tags)
+            and self._check_condition_path(path)
+            and self._check_condition_filename(path)
+        )
+
     def apply(self, path, exif_tags, gps_lat, gps_lon):
+        if not self._check_conditions(path, exif_tags, gps_lat, gps_lon):
+            return None
         if self.rule_type == RuleTypes.EXIF:
             return self._apply_exif(exif_tags, gps_lat, gps_lon)
         elif self.rule_type == RuleTypes.PATH:
@@ -263,7 +327,7 @@ DEFAULT_RULES = list(map(TimeExtractionRule, DEFAULT_RULES_PARAMS))
 def extract_local_date_time(path, rules, exif_getter, gps_lat, gps_lon):
     required_tags = set()
     for rule in rules:
-        required_tags.update(rule.get_required_exif_tags_list())
+        required_tags.update(rule.get_required_exif_tags())
     required_tags = list(required_tags)
     exif_values = exif_getter(required_tags)
     exif_tags = {k: v for k, v in zip(required_tags, exif_values)}
