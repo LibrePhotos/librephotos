@@ -172,7 +172,9 @@
         "loading": "Chargement…",
         "noimages": "Aucune image trouvée",
         "days": "jours",
-        "photos": "photos"
+        "photos": "photos",
+        "setup": "On dirait que vous devez encore configurer LibrePhotos.",
+        "gettingstarted": "Pour commencer"
     },
     "selectionactions": {
         "photoactions": "Actions sur les photos",
@@ -337,5 +339,6 @@
     "placetree": "Arbre de localisation",
     "wordclouds": "Vue nuagique",
     "timeline": "Calendrier",
-    "faceclusterexplanation": "Les personnes avec des visages similaires devraient être groupées près de ce point (cliquer sur un point pour voir le nom)."
+    "faceclusterexplanation": "Les personnes avec des visages similaires devraient être groupées près de ce point (cliquer sur un point pour voir le nom).",
+    "scan": "Scanner"
 }
