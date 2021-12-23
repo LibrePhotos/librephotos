@@ -1,7 +1,7 @@
 import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Item, Card, Label, Icon } from "semantic-ui-react";
+import { Item, Card, Label, Icon, Button } from "semantic-ui-react";
 
 export function SortableItem(props) {
   const { attributes, listeners, setNodeRef, transform, transition } =
@@ -39,9 +39,27 @@ export function SortableItem(props) {
             )}
           </Card.Description>
         </Card.Content>
-        <Label style={{ backgroundColor: "transparent" }} attached="top right">
-          <Icon name="delete" />
-        </Label>
+        {!props.addItem && (
+          <Label
+            style={{ backgroundColor: "transparent" }}
+            attached="top right"
+            onClick={() => {
+              props.removeItemFunction(props.item);
+            }}
+          >
+            <Icon name="delete" />
+          </Label>
+        )}
+        {props.addItem && (
+          <Card.Content extra>
+            <Button
+              color="green"
+              onClick={() => props.addItemFunction(props.item)}
+            >
+              Add
+            </Button>
+          </Card.Content>
+        )}
       </Card>
     </div>
   );

@@ -18,8 +18,10 @@ import {
 import { SortableItem } from "./SortableItem";
 import { useTranslation } from "react-i18next";
 import { Header, Button } from "semantic-ui-react";
+import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
 
 export function ConfigDatetime() {
+  const [showModal, setShowModal] = useState(false);
   const [items, setItems] = useState([
     {
       id: "1",
@@ -50,7 +52,12 @@ export function ConfigDatetime() {
     },
   ]);
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        delay: 100,
+        tolerance: 5,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -60,7 +67,11 @@ export function ConfigDatetime() {
   return (
     <div style={{ marginTop: 10 }}>
       <Header as="h3">{t("settings.configdatetime")}</Header>
-      <Button color="green" style={{ marginBottom: 10 }}>
+      <Button
+        color="green"
+        onClick={() => setShowModal(true)}
+        style={{ marginBottom: 10 }}
+      >
         Add Rule{" "}
       </Button>
       <DndContext
@@ -70,10 +81,29 @@ export function ConfigDatetime() {
       >
         <SortableContext items={items} strategy={verticalListSortingStrategy}>
           {items.map((item) => (
-            <SortableItem key={item.id} id={item.id} item={item}></SortableItem>
+            <SortableItem
+              key={item.id}
+              id={item.id}
+              item={item}
+              removeItemFunction={(itemToRemove) => {
+                const newItems = items.filter((i) => i.id !== itemToRemove.id);
+                setItems(newItems);
+              }}
+            ></SortableItem>
           ))}
         </SortableContext>
       </DndContext>
+
+      <ModalConfigDatetime
+        isOpen={showModal}
+        onRequestClose={() => setShowModal(false)}
+        addItemFunction={(item) => {
+          if (items.filter((i) => i.id === item.id).length === 0) {
+            setItems([...items, item]);
+            setShowModal(false);
+          }
+        }}
+      ></ModalConfigDatetime>
     </div>
   );
 
