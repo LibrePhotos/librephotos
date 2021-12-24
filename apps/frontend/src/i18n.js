@@ -6,6 +6,9 @@ import translationEn from "./locales/en/translation.json";
 import translationDe from "./locales/de/translation.json";
 import translationEs from "./locales/es/translation.json";
 import translationFr from "./locales/fr/translation.json";
+import translationIt from "./locales/it/translation.json";
+import translationNb_NO from "./locales/nb_NO/translation.json";
+import translationZh_Hans from "./locales/zh_Hans/translation.json";
 
 const resources = {
   en: {
@@ -19,6 +22,15 @@ const resources = {
   },
   fr: {
     translation: translationFr,
+  },
+  it: {
+    translation: translationIt,
+  },
+  nb_NO: {
+    translation: translationNb_NO,
+  },
+  zh_Hans: {
+    translation: translationZh_Hans,
   },
 };
 i18n
