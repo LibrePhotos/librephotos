@@ -113,7 +113,9 @@
         "transcodevideo": "Siempre transcodifica los videos",
         "on": "Sí",
         "off": "No",
-        "experimentalupdate": "Actualizar"
+        "experimentalupdate": "Actualizar",
+        "italian": "Italiano",
+        "simplifiedchinese": "Chino (simplificado)"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de escaneo de Nextcloud",
@@ -172,7 +174,9 @@
         "loading": "Cargando...",
         "noimages": "No se encontraron imágenes",
         "days": "dias",
-        "photos": "fotos"
+        "photos": "fotos",
+        "setup": "Parece que todavía tienes que configurar LibrePhotos.",
+        "gettingstarted": "Empezando"
     },
     "selectionactions": {
         "photoactions": "Acciones de fotos",
@@ -228,7 +232,9 @@
         "errorbackend": "No hay conexión con el servidor backend, inténtalo de nuevo en unos minutos.",
         "errorpassword": "La contraseña no puede estar en blanco!",
         "errorusername": "El nombre de usuario no puede estar en blanco!",
-        "tagline": "Un lugar cómodo para tus fotos."
+        "tagline": "Un lugar cómodo para tus fotos.",
+        "confirmpassword": "Confirmar contraseña",
+        "confirmpasswordplaceholder": "Confirmar contraseña"
     },
     "search": {
         "search": "Buscar",
@@ -314,5 +320,27 @@
     "myalbums": "Mis álbumes",
     "things": "Cosas",
     "places": "Lugares",
-    "loading": "Cargando..."
+    "loading": "Cargando...",
+    "facesdashboard": {
+        "selectedfaces": "{{number}} seleccionada",
+        "explanationadding": "Agregar a una persona existente o crear una nueva persona",
+        "explanationdeleting": "Eliminar la cara y sus miniaturas",
+        "explanationtraining": "Entrene a un clasificador y etiquete caras automáticamente",
+        "numberoffaces": "{{number}} Caras"
+    },
+    "scan": "Escanear",
+    "socialgraph": "Gráfico social",
+    "personedit": {
+        "labelfaces": "Etiquetar caras",
+        "newperson": "Nueva persona",
+        "personname": "Nombre de la persona",
+        "addperson": "Agregar persona",
+        "numberselected": "Etiquetar el {{number}} rostro(s) seleccionado(s) como ..."
+    },
+    "facecluster": "Grupos de caras",
+    "faceclusterexplanation": "Las personas con caras similares deben agruparse más juntas en este gráfico (haga clic en un punto para ver la etiqueta).",
+    "dataviz": "Visualización de datos",
+    "placetree": "Lugares visitados",
+    "wordclouds": "Nubes de palabras",
+    "timeline": "Cronología"
 }
