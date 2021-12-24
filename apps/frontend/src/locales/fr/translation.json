@@ -113,7 +113,10 @@
         "transcodevideo": "Toujours transcoder les videos",
         "on": "Oui",
         "off": "Non",
-        "experimentalupdate": "Mettre à jour"
+        "experimentalupdate": "Mettre à jour",
+        "italian": "italien",
+        "norwegianbokmal": "norvégien bokmål",
+        "simplifiedchinese": "chinois (simplifié)"
     },
     "modalnextcloud": {
         "setdirectory": "Définir votre répertoire de scan Nextcloud",
