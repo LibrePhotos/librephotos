@@ -222,7 +222,9 @@
         "tagline": "Et beleilig sted for dine bilder.",
         "signup": "Registrering",
         "passwordplaceholder": "Passord",
-        "usernameplaceholder": "Brukernavn"
+        "usernameplaceholder": "Brukernavn",
+        "confirmpassword": "Bekreft passord",
+        "confirmpasswordplaceholder": "Bekreft passord"
     },
     "search": {
         "search": "Søk",
@@ -299,7 +301,9 @@
         "noimages": "Fant ingen bilder",
         "days": "dager",
         "loading": "Laster …",
-        "photos": "bilder"
+        "photos": "bilder",
+        "setup": "Det ser ut til at du må sette opp LibrePhotos.",
+        "gettingstarted": "Begynn"
     },
     "autoalbumgallery": {
         "hidemap": "Skjul kart",
@@ -314,5 +318,27 @@
         "photos": "Bilder"
     },
     "things": "Ting",
-    "places": "Steder"
+    "places": "Steder",
+    "personedit": {
+        "labelfaces": "Etikettmerk fjes",
+        "numberselected": "Etikettmerk {number} valgte fjes som …",
+        "newperson": "Ny person",
+        "personname": "Navnet på personen",
+        "addperson": "Legg til person"
+    },
+    "facesdashboard": {
+        "numberoffaces": "{{number}} fjes",
+        "selectedfaces": "{{number}} valgt",
+        "explanationadding": "Legg til for eksisterende fjes-ID, eller opprett en ny",
+        "explanationdeleting": "Slett fjeset og dets miniatyrbilder",
+        "explanationtraining": "Tren en klassifiserer til å automatisk gjenkjenne fjes"
+    },
+    "scan": "Skann",
+    "socialgraph": "Sosial graf",
+    "timeline": "Tidslinje",
+    "facecluster": "Fjesklynger",
+    "dataviz": "Datavisualisering",
+    "placetree": "Stedstre",
+    "wordclouds": "Ordskyer",
+    "faceclusterexplanation": "Folk med lignende ansikter bør grupperes sammen i denne oversikten. (Klikk på et punkt for å vise dets etikett.)"
 }
