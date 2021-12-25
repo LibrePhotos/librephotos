@@ -34,9 +34,9 @@
         "nextcloudpasswordplaceholder": "Nextcloud-Passwort",
         "nextcloudupdate": "Aktualisiere Nextcloud-Zugangsdaten",
         "nextcloudcancel": "Abbrechen",
-        "nextcloudscandirectory": "Nextcloud Scan Ordner",
-        "nextcloudloggedin": "Eingelogged in Nextcloud",
-        "nextcloudnotloggedin": "Nicht eingelogged in Nextcloud",
+        "nextcloudscandirectory": "Nextcloud-Scan-Ordner",
+        "nextcloudloggedin": "In Nextcloud angemeldet",
+        "nextcloudnotloggedin": "Nicht in Nextcloud angemeldet",
         "nextcloudchange": "Ändern",
         "appearance": "Aussehen",
         "thumbnailsize": "Größe der Vorschaubilder",
@@ -113,7 +113,10 @@
         "transcodevideo": "Transkodiere immer Videos",
         "on": "An",
         "off": "Aus",
-        "experimentalupdate": "Aktualisiere"
+        "experimentalupdate": "Aktualisiere",
+        "italian": "Italienisch",
+        "norwegianbokmal": "Norwegisch (Bokmål)",
+        "simplifiedchinese": "Chinesisch (vereinfacht)"
     },
     "modalnextcloud": {
         "setdirectory": "Setze dein Nextcloud Scan Ordner",
@@ -173,7 +176,8 @@
         "noimages": "Keine Bilder gefunden",
         "days": "Tage",
         "photos": "Bilder",
-        "setup": "Es sieht so aus als musst du LibrePhotos noch aufsetzen."
+        "setup": "Es sieht so aus als musst du LibrePhotos noch aufsetzen.",
+        "gettingstarted": "Erste Schritte"
     },
     "selectionactions": {
         "photoactions": "Bilderaktionen",
@@ -321,11 +325,23 @@
     "facesdashboard": {
         "selectedfaces": "{{number}} ausgewählt",
         "explanationdeleting": "Lösche das Gesicht und das Anzeigebild",
-        "numberoffaces": "{{number}} Gesichter"
+        "numberoffaces": "{{number}} Gesichter",
+        "explanationadding": "Zu einer bestehenden Gesichts-ID hinzufügen oder eine neue Gesichts-ID erstellen",
+        "explanationtraining": "Einen Klassifikator trainieren und Gesichter automatisch kennzeichnen"
     },
     "personedit": {
         "addperson": "Füge Person hinzu",
         "newperson": "Neue Person",
-        "personname": "Name der Person"
-    }
+        "personname": "Name der Person",
+        "labelfaces": "Gesichter kennzeichnen",
+        "numberselected": "Ausgewählte(s) {number} Gesicht(er) kennzeichnen als …"
+    },
+    "dataviz": "Datenvisualisierung",
+    "placetree": "Ortsbaum",
+    "faceclusterexplanation": "Personen mit ähnlich aussehenden Gesichtern sollten in diesem Diagramm näher beieinander liegen (Klicken Sie auf einen Punkt, um die Beschriftung zu sehen).",
+    "scan": "Scannen",
+    "wordclouds": "Wortwolken",
+    "timeline": "Zeitleiste",
+    "socialgraph": "Sozialer Graph",
+    "facecluster": "Gesichtsgruppen"
 }
