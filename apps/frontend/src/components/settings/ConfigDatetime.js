@@ -24,7 +24,7 @@ export function ConfigDatetime() {
   const [showModal, setShowModal] = useState(false);
   const [items, setItems] = useState([
     {
-      id: "1",
+      id: "abcd",
       name: "DateTimeOriginal",
       rule_type: "exif",
       exif_tag: "EXIF:DateTimeOriginal",
@@ -33,7 +33,7 @@ export function ConfigDatetime() {
       report_tz: "gps_timezonefinder",
     },
     {
-      id: "2",
+      id: "1111",
       name: "QuickTime:CreateDate",
       rule_type: "exif",
       exif_tag: "QuickTime:CreateDate",
@@ -42,7 +42,7 @@ export function ConfigDatetime() {
       report_tz: "name:Europe/Moscow",
     },
     {
-      id: "3",
+      id: "qwer",
       name: "Guess Filename",
       rule_type: "filesystem",
       file_property: "mtime",
@@ -54,8 +54,7 @@ export function ConfigDatetime() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        delay: 100,
-        tolerance: 5,
+        distance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
