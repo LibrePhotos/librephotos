@@ -323,7 +323,12 @@
     "explanationdeleting": "Delete the face and it's thumbnails",
     "explanationtraining": "Train a classifier and automatically label faces"
   },
-  
+  "rules":{
+    "exif_tag": "Use Exiftag  {{rule}}",
+    "file_property": "Use file property {{rule}}",
+    "source_tz": "Transform from {{rule}}",
+    "report_tz": "Transform to {{rule}}"
+  },
   "scan": "Scan",
   "socialgraph": "Social Graph",
   "facecluster": "Face Clusters",
