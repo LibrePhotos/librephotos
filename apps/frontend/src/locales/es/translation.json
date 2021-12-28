@@ -115,7 +115,8 @@
         "off": "No",
         "experimentalupdate": "Actualizar",
         "italian": "Italiano",
-        "simplifiedchinese": "Chino (simplificado)"
+        "simplifiedchinese": "Chino (simplificado)",
+        "norwegianbokmal": "Noruego Bokmål"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de escaneo de Nextcloud",
