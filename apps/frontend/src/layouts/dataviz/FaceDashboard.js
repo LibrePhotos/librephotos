@@ -123,10 +123,9 @@ class ModalPersonEdit extends Component {
             <Header.Content>
               {this.props.t("personedit.labelfaces")}
               <Header.Subheader>
-                {
-                  (this.props.t("personedit.numberselected"),
-                  { number: this.props.selectedFaces.length })
-                }
+                {this.props.t("personedit.numberselected", {
+                  number: this.props.selectedFaces.length,
+                })}
               </Header.Subheader>
             </Header.Content>
           </Header>

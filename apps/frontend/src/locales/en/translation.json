@@ -313,7 +313,7 @@
   },
   "personedit": {
     "labelfaces": "Label faces",
-    "numberselected": "Label selected {number} face(s) as...",
+    "numberselected": "Label selected {{number}} face(s) as...",
     "newperson": "New person",
     "personname": "Person Name",
     "addperson": "Add Person"
