@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   closestCenter,
   DndContext,
-  DragOverlay,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -84,7 +83,7 @@ export function ConfigDatetime() {
               key={item.id}
               id={item.id}
               item={item}
-              removeItemFunction={(itemToRemove) => {
+              removeItemFunction={(itemToRemove: any) => {
                 const newItems = items.filter((i) => i.id !== itemToRemove.id);
                 setItems(newItems);
               }}
@@ -106,7 +105,7 @@ export function ConfigDatetime() {
     </div>
   );
 
-  function handleDragEnd(event) {
+  function handleDragEnd(event: any) {
     const { active, over } = event;
 
     if (active.id !== over.id) {

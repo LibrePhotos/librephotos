@@ -1,10 +1,18 @@
 import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Item, Card, Label, Icon, Button } from "semantic-ui-react";
+import { Card, Label, Icon, Button } from "semantic-ui-react";
 import { useTranslation } from "react-i18next";
 
-export function SortableItem(props) {
+type Props = {
+  item: any;
+  id: string;
+  addItem?: boolean;
+  removeItemFunction?: (id: string) => void;
+  addItemFunction?: (item: any) => void;
+};
+
+export function SortableItem(props: Props) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: props.id });
   const { t } = useTranslation();
@@ -45,7 +53,9 @@ export function SortableItem(props) {
             style={{ backgroundColor: "transparent" }}
             attached="top right"
             onClick={() => {
-              props.removeItemFunction(props.item);
+              if (props.removeItemFunction) {
+                props.removeItemFunction(props.item);
+              }
             }}
           >
             <Icon name="delete" />
@@ -55,7 +65,11 @@ export function SortableItem(props) {
           <Card.Content extra>
             <Button
               color="green"
-              onClick={() => props.addItemFunction(props.item)}
+              onClick={() => {
+                if (props.addItemFunction) {
+                  props.addItemFunction(props.item);
+                }
+              }}
             >
               Add
             </Button>

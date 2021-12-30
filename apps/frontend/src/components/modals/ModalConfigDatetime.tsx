@@ -112,7 +112,7 @@ export const ModalConfigDatetime = (props: Props) => {
   );
 };
 
-// Complains that position is a string and not a position, but I can't import the position interface. Copy and pasting fixed it
+//To-Do: Complains that position is a string and not a position, but I can't import the position interface. Copy and pasting fixed it
 const modalStyles = {
   content: {
     top: "12vh",
