@@ -324,7 +324,7 @@
     "places": "Localisations",
     "personedit": {
         "labelfaces": "Mettre un nom sur un visage",
-        "numberselected": "Associer les {number} visages sélectionnés à...",
+        "numberselected": "Associer les {{number}} visages sélectionnés à…",
         "newperson": "Nouvelle personne",
         "personname": "Nom de la personne",
         "addperson": "Ajouter"
