@@ -5,8 +5,8 @@ from datetime import datetime
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db.models import Count, Prefetch, Q
-from rest_framework import serializers
-
+from rest_framework import serializers, status
+from rest_framework.exceptions import ValidationError
 import ownphotos.settings
 from api.batch_jobs import create_batch_job
 from api.image_similarity import search_similar_image
@@ -911,6 +911,8 @@ class ManageUserSerializer(serializers.ModelSerializer):
                 logger.info(
                     "Updated scan directory for user {}".format(instance.scan_directory)
                 )
+            else:
+                raise ValidationError("Scan directory does not exist")
         cache.clear()
         return instance
 
