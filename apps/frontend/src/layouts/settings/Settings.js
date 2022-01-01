@@ -337,8 +337,8 @@ export class Settings extends Component {
                         text: this.props.t("settings.norwegianbokmal"),
                       },
                       {
-                        key: "hans_CN",
-                        value: "hans_CN",
+                        key: "zh_Hans",
+                        value: "zh_Hans",
                         flag: "cn",
                         text: this.props.t("settings.simplifiedchinese"),
                       },
