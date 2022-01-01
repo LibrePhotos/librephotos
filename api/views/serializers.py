@@ -59,20 +59,6 @@ class PhotoSuperSimpleSerializer(serializers.ModelSerializer):
         fields = ("image_hash", "rating", "hidden", "exif_timestamp", "public", "video")
 
 
-class PhotoSuperSimpleSerializerWithAddedOn(serializers.ModelSerializer):
-    class Meta:
-        model = Photo
-        fields = (
-            "image_hash",
-            "rating",
-            "hidden",
-            "exif_timestamp",
-            "public",
-            "added_on",
-            "video",
-        )
-
-
 class PhotoSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Photo
@@ -414,68 +400,6 @@ class AlbumDateSerializer(serializers.ModelSerializer):
         fields = ("id", "title", "date", "favorited", "photos")
 
 
-class AlbumDateListSerializer(serializers.ModelSerializer):
-    people = serializers.SerializerMethodField()
-    cover_photo_url = serializers.SerializerMethodField()
-    photo_count = serializers.SerializerMethodField()
-
-    class Meta:
-        model = AlbumDate
-        fields = (
-            "id",
-            "people",
-            "cover_photo_url",
-            "title",
-            "favorited",
-            "photo_count",
-            "date",
-        )
-
-    def get_photo_count(self, obj):
-        return obj.photos.count()
-
-    def get_cover_photo_url(self, obj):
-        first_photo = obj.photos.first()
-        return first_photo.square_thumbnail.url
-
-    def get_people(self, obj):
-        photos = obj.photos.all()
-        res = []
-        for photo in photos:
-            faces = photo.faces.all()
-            for face in faces:
-                serialized_person = PersonSerializer(face.person).data
-                if serialized_person not in res:
-                    res.append(serialized_person)
-        return res
-
-
-class AlbumPersonSerializer(serializers.ModelSerializer):
-    photos = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Person
-        fields = (
-            "name",
-            "photos",
-            "id",
-        )
-
-    def get_photos(self, obj):
-        start = datetime.now()
-
-        user = None
-        request = self.context.get("request")
-        if request and hasattr(request, "user"):
-            user = request.user
-
-        res = PhotoSuperSimpleSerializer(obj.get_photos(user), many=True).data
-
-        elapsed = (datetime.now() - start).total_seconds()
-        logger.info("serializing photos of faces took %.2f seconds" % elapsed)
-        return res
-
-
 class AlbumPersonListSerializer(serializers.ModelSerializer):
     photo_count = serializers.SerializerMethodField()
     cover_photo_url = serializers.SerializerMethodField()
@@ -581,24 +505,6 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         cache.clear()
         instance.save()
         return instance
-
-
-class AlbumUserSerializer(serializers.ModelSerializer):
-    photos = PhotoSuperSimpleSerializer(many=True, read_only=True)
-    shared_to = SimpleUserSerializer(many=True, read_only=True)
-    owner = SimpleUserSerializer(many=False, read_only=True)
-
-    class Meta:
-        model = AlbumUser
-        fields = (
-            "id",
-            "title",
-            "photos",
-            "created_on",
-            "favorited",
-            "owner",
-            "shared_to",
-        )
 
 
 class AlbumUserListSerializer(serializers.ModelSerializer):
@@ -915,41 +821,6 @@ class ManageUserSerializer(serializers.ModelSerializer):
                 raise ValidationError("Scan directory does not exist")
         cache.clear()
         return instance
-
-
-class SharedToMePhotoSuperSimpleSerializer(serializers.ModelSerializer):
-    owner = SimpleUserSerializer(many=False, read_only=True)
-
-    class Meta:
-        model = Photo
-        fields = (
-            "image_hash",
-            "rating",
-            "hidden",
-            "exif_timestamp",
-            "public",
-            "owner",
-            "video",
-        )
-
-
-class SharedPhotoSuperSimpleSerializer(serializers.ModelSerializer):
-    owner = SimpleUserSerializer(many=False, read_only=True)
-
-    shared_to = SimpleUserSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = Photo
-        fields = (
-            "image_hash",
-            "rating",
-            "hidden",
-            "exif_timestamp",
-            "public",
-            "owner",
-            "shared_to",
-            "video",
-        )
 
 
 class SharedFromMePhotoThroughSerializer(serializers.ModelSerializer):

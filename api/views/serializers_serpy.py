@@ -45,16 +45,6 @@ class PhotoSuperSimpleSerializer(serpy.Serializer):
     allow_null = False
 
 
-class PhotoSuperSimpleSerializerWithAddedOn(serpy.Serializer):
-    image_hash = serpy.StrField()
-    rating = serpy.IntField()
-    public = serpy.BoolField()
-    hidden = serpy.BoolField()
-    video = serpy.BoolField()
-    exif_timestamp = DateTimeField()
-    added_on = DateTimeField()
-
-
 class PigPhotoSerilizer(serpy.Serializer):
     id = serpy.StrField(attr="image_hash")
     dominantColor = serpy.MethodField("get_dominant_color")
@@ -212,10 +202,3 @@ class AlbumDateListWithPhotoHashSerializer(serpy.Serializer):
     id = serpy.IntField()
     date = DateTimeField()
     allow_null = False
-
-
-# todo
-class AlbumPersonSerializer(serpy.Serializer):
-    name = serpy.StrField()
-    id = serpy.IntField()
-    # photos = PhotoSuperSimpleSerializer(many=True, call=True, attr='photos.all')
