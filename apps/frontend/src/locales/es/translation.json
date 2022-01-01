@@ -336,7 +336,7 @@
         "newperson": "Nueva persona",
         "personname": "Nombre de la persona",
         "addperson": "Agregar persona",
-        "numberselected": "Etiquetar el {{number}} rostro(s) seleccionado(s) como ..."
+        "numberselected": "Etiqueta {{number}} cara(s) seleccionadas como..."
     },
     "facecluster": "Grupos de caras",
     "faceclusterexplanation": "Las personas con caras similares deben agruparse más juntas en este gráfico (haga clic en un punto para ver la etiqueta).",
