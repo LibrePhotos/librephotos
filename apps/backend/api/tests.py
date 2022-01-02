@@ -1,12 +1,14 @@
 import os
 
+import pytz
+from datetime import datetime
 from constance import config as site_config
 from django.test import TestCase
 from django_rq import get_worker
 from rest_framework.test import APIClient
 
 # from api.directory_watcher import scan_photos
-from api.models import User
+from api.models import User, AlbumAuto
 
 # To-Do: Fix setting IMAGE_DIRS and try scanning something
 samplephotos_dir = os.path.abspath("samplephotos")
@@ -125,6 +127,25 @@ class UserTestCase(TestCase):
     def test_get_albums_date_list(self):
         res = self.client_user.get("/api/albums/date/photohash/list/")
         self.assertEqual(res.status_code, 200)
+
+
+class RegenerateTitlesTestCase(TestCase):
+    def test_regenerate_titles(self):
+        admin = User.objects.create_superuser(
+            "test_admin", "test_admin@test.com", "test_password"
+        )
+        # create a album auto
+        album_auto = AlbumAuto.objects.create(
+            timestamp=datetime.strptime("2022-01-02", "%Y-%m-%d").replace(
+                tzinfo=pytz.utc
+            ),
+            created_on=datetime.strptime("2022-01-02", "%Y-%m-%d").replace(
+                tzinfo=pytz.utc
+            ),
+            owner=admin,
+        )
+        album_auto._autotitle()
+        self.assertEqual(album_auto.title, "Sunday")
 
 
 class SetupDirectoryTestCase(TestCase):
