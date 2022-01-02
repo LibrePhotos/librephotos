@@ -77,17 +77,17 @@ class AlbumAuto(models.Model):
             ).keys()
             if len(names) > 0:
                 pep = "with " + " and ".join(names)
+        if len(timestamps) > 0:
+            if (max(timestamps) - min(timestamps)).days >= 3:
+                when = "%d days" % ((max(timestamps) - min(timestamps)).days)
 
-        if (max(timestamps) - min(timestamps)).days >= 3:
-            when = "%d days" % ((max(timestamps) - min(timestamps)).days)
-
-        weekend = [5, 6]
-        if (
-            max(timestamps).weekday() in weekend
-            and min(timestamps).weekday() in weekend
-            and not (max(timestamps).weekday() == min(timestamps).weekday())
-        ):
-            when = "Weekend"
+            weekend = [5, 6]
+            if (
+                max(timestamps).weekday() in weekend
+                and min(timestamps).weekday() in weekend
+                and not (max(timestamps).weekday() == min(timestamps).weekday())
+            ):
+                when = "Weekend"
 
         title = " ".join([when, pep, loc]).strip()
         self.title = title
