@@ -144,14 +144,19 @@ def get_location_timeline(user):
 
 
 def get_search_term_examples(user):
-    pp = (
-        Photo.objects.filter(owner=user)
-        .exclude(geolocation_json={})
-        .exclude(exif_timestamp=None)
-        .exclude(captions_json={})
-    )
+    default_search_terms = [
+        "for people",
+        "for places",
+        "for things",
+        "for time",
+        "for file path or file name",
+    ]
+
+    pp = Photo.objects.filter(owner=user).exclude(captions_json={})
     possible_ids = list(pp.values_list("image_hash", flat=True))
-    possible_ids = random.choices(possible_ids, k=100)
+    if len(possible_ids) > 99:
+        possible_ids = random.choices(possible_ids, k=100)
+    logger.info(f"{len(possible_ids)} possible ids")
     try:
         samples = (
             pp.filter(image_hash__in=possible_ids)
@@ -160,26 +165,30 @@ def get_search_term_examples(user):
             .all()
         )
     except ValueError:
-        return [
-            "for people",
-            "for places",
-            "for things",
-            "for time",
-            "for file path or file name",
-        ]
+        return default_search_terms
 
     search_data = []
+    search_terms = default_search_terms
+    logger.info("Getting search terms for user %s", user.id)
+    logger.info("Found %s photos", len(samples))
     for p in samples:
         faces = p.faces.all()
-
-        terms_loc = [
-            f["text"]
-            for f in p.geolocation_json["features"][-5:]
-            if not f["text"].isdigit()
-        ]
-        terms_time = [str(p.exif_timestamp.year)]
-        terms_people = [f.person.name.split(" ")[0] for f in faces]
-        terms_things = p.captions_json["places365"]["categories"]
+        terms_loc = ""
+        if p.geolocation_json != {}:
+            terms_loc = [
+                f["text"]
+                for f in p.geolocation_json["features"][-5:]
+                if not f["text"].isdigit()
+            ]
+        terms_time = ""
+        if p.exif_timestamp:
+            terms_time = [str(p.exif_timestamp.year)]
+        terms_people = []
+        if p.faces.count() > 0:
+            terms_people = [f.person.name.split(" ")[0] for f in faces]
+        terms_things = ""
+        if p.captions_json and p.captions_json["places365"] != None:
+            terms_things = p.captions_json["places365"]["categories"]
 
         terms = {
             "loc": terms_loc,
@@ -189,42 +198,42 @@ def get_search_term_examples(user):
         }
 
         search_data.append(terms)
-
         search_terms = []
         for datum in search_data:
-            term_loc = random.choice(datum["loc"])
-            search_terms.append(term_loc)
-
-            term_time = random.choice(datum["time"])
+            term_time = ""
             term_thing = ""
-            search_terms.append(term_time)
+            term_loc = ""
+            term_people = ""
+            if datum["loc"]:
+                term_loc = random.choice(datum["loc"])
+                search_terms.append(term_loc)
+            if datum["time"]:
+                term_time = random.choice(datum["time"])
+                search_terms.append(term_time)
             if datum["things"]:
                 term_thing = random.choice(datum["things"])
-
-            if len(datum["people"]) > 0:
+                search_terms.append(term_thing)
+            if datum["people"]:
                 term_people = random.choice(datum["people"])
                 search_terms.append(term_people)
 
-                search_term_loc_people = " ".join(shuffle([term_loc, term_people]))
-                if random.random() > 0.3:
-                    search_terms.append(search_term_loc_people)
+            search_term_loc_people = " ".join(shuffle([term_loc, term_people]))
+            if random.random() > 0.3:
+                search_terms.append(search_term_loc_people)
 
-                search_term_time_people = " ".join(shuffle([term_time, term_people]))
-                if random.random() > 0.3:
-                    search_terms.append(search_term_time_people)
+            search_term_time_people = " ".join(shuffle([term_time, term_people]))
+            if random.random() > 0.3:
+                search_terms.append(search_term_time_people)
 
-                search_term_people_thing = " ".join(shuffle([term_people, term_thing]))
-                if random.random() > 0.9:
-                    search_terms.append(search_term_people_thing)
+            search_term_people_thing = " ".join(shuffle([term_people, term_thing]))
+            if random.random() > 0.9:
+                search_terms.append(search_term_people_thing)
 
-                search_term_all = " ".join(
-                    shuffle([term_loc, term_people, term_time, term_thing])
-                )
-                if random.random() > 0.95:
-                    search_terms.append(search_term_all)
-
-            else:
-                term_people = ""
+            search_term_all = " ".join(
+                shuffle([term_loc, term_people, term_time, term_thing])
+            )
+            if random.random() > 0.95:
+                search_terms.append(search_term_all)
 
             search_term_loc_time = " ".join(shuffle([term_loc, term_time]))
             if random.random() > 0.3:
