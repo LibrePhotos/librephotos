@@ -23,12 +23,12 @@ export class AlbumThing extends Component {
   }
 
   componentDidMount() {
+    this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this);
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize);
     if (this.props.albumsThingList.length === 0) {
       this.props.dispatch(fetchThingAlbumsList());
     }
-    this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this);
     this.cellRenderer = this.cellRenderer.bind(this);
   }
 
