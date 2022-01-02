@@ -68,12 +68,13 @@ export class CustomSearch extends Component {
     window.addEventListener("resize", this.handleResize.bind(this));
     this.exampleSearchTermCylcer = setInterval(() => {
       this.setState({
-        exampleSearchTerm:
-          this.props.t("search.search") +
-          " " +
-          this.props.exampleSearchTerms[
-            Math.floor(Math.random() * this.props.exampleSearchTerms.length)
-          ],
+        exampleSearchTerm: this.props.exampleSearchTerms
+          ? this.props.t("search.search") +
+            " " +
+            this.props.exampleSearchTerms[
+              Math.floor(Math.random() * this.props.exampleSearchTerms.length)
+            ]
+          : this.props.t("search.default"),
       });
     }, 5000);
   }
