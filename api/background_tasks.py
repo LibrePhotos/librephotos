@@ -31,13 +31,6 @@ def geolocate(overwrite=False):
             logger.exception("could not geolocate photo: " + photo)
 
 
-def regenerate_event_title():
-    events = AlbumAuto.objects.all()
-    for event in events:
-        event._autotitle()
-        event.save()
-
-
 def add_photos_to_album_things():
     photos = Photo.objects.all()
     for photo in tqdm(photos):

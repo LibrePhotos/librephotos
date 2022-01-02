@@ -24,7 +24,7 @@ class AlbumAuto(models.Model):
     class Meta:
         unique_together = ("timestamp", "owner")
 
-    def _autotitle(self):
+    def _generate_title(self):
         weekday = ""
         time = ""
         loc = ""

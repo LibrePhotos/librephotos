@@ -144,7 +144,7 @@ class RegenerateTitlesTestCase(TestCase):
             ),
             owner=admin,
         )
-        album_auto._autotitle()
+        album_auto._generate_title()
         self.assertEqual(album_auto.title, "Sunday")
 
 
