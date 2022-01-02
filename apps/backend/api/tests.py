@@ -6,6 +6,7 @@ from constance import config as site_config
 from django.test import TestCase
 from django_rq import get_worker
 from rest_framework.test import APIClient
+from api.api_util import get_search_term_examples
 
 # from api.directory_watcher import scan_photos
 from api.models import User, AlbumAuto
@@ -127,6 +128,15 @@ class UserTestCase(TestCase):
     def test_get_albums_date_list(self):
         res = self.client_user.get("/api/albums/date/photohash/list/")
         self.assertEqual(res.status_code, 200)
+
+
+class GetSearchTermExamples(TestCase):
+    def test_get_search_term_examples(self):
+        admin = User.objects.create_superuser(
+            "test_admin", "test_admin@test.com", "test_password"
+        )
+        array = get_search_term_examples(admin)
+        self.assertEqual(len(array), 5)
 
 
 class RegenerateTitlesTestCase(TestCase):
