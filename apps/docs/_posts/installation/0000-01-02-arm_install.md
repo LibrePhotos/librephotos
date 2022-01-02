@@ -33,13 +33,11 @@ Clone the repo: `git clone https://github.com/LibrePhotos/librephotos-docker.git
 
 `cp librephotos.env .env`
 
-Open `.env` in your favorite text editor and make the required changes.
+**Open `.env` in your favorite text editor and make the required changes.**
 
 Do not forget to create the directories you specified in the `.env` file if they do not exist.
 
-Run `docker-compose -f docker-compose.arm.yml up -d`
-
-**If you do not follow the above command and use just `docker-compose up -d` you are going to have a bad time**
+Run `docker-compose up -d`
 
 You should have librephotos accessible after a few minutes of boot-up on: [localhost:3000](http://localhost:3000) unless
 you changed it in the .env file. User is admin, password is admin unless you changed it in the .env file. It is
