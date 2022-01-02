@@ -39,7 +39,7 @@ def regenerate_event_titles(user, job_id):
         target_count = len(aus)
         for idx, au in enumerate(aus):
             logger.info("job {}: {}".format(job_id, idx))
-            au._autotitle()
+            au._generate_title()
             au.save()
 
             lrj.result = {"progress": {"current": idx + 1, "target": target_count}}
@@ -137,7 +137,7 @@ def generate_event_albums(user, job_id):
                         album.gps_lon = album_location[1]
                     else:
                         album_locations.append([])
-                    album._autotitle()
+                    album._generate_title()
                     album.save()
                     logger.info(
                         "job {}: generated auto album {}".format(job_id, album.id)
