@@ -192,6 +192,8 @@
     "sharing": "Sharing",
     "sharingdescription": "Open sharing panel for selected photos",
     "albumactions": "Album Actions",
+    "albumcover": "Set album cover",
+    "albumcoverdescription": "Set the album cover for the current album",
     "albumsharingdescription": "Open sharing panel for the current album",
     "removephotos": "Remove Photos",
     "removephotosdescription": "Remove the selected photos from the current album",

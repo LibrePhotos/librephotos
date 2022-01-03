@@ -30,6 +30,7 @@ export class AlbumPersonGallery extends Component {
         loading={!this.isLoaded()}
         titleIconName={"user"}
         isDateView={true}
+        match={this.props.match}
         photoset={this.props.photosGroupedByDate}
         idx2hash={this.props.photosFlat}
         selectable={true}

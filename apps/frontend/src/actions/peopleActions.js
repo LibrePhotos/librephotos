@@ -90,6 +90,32 @@ export function deletePerson(person_id) {
   };
 }
 
+export function setAlbumCoverForPerson(person_id, photo_hash) {
+  return function (dispatch) {
+    dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON" });
+    Server.patch(`persons/${person_id}/`, {
+      cover_photo: photo_hash,
+    })
+      .then((response) => {
+        dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON_FULFILLED" });
+        dispatch(
+          notify({
+            message: `Cover photo was changed.`,
+            title: "Cover photo change",
+            status: "success",
+            dismissible: true,
+            dismissAfter: 3000,
+            position: "br",
+          })
+        );
+        dispatch(fetchPeople());
+      })
+      .catch((err) => {
+        dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON_REJECTED", payload: err });
+      });
+  };
+}
+
 export function addPersonAndSetLabelToFace(person_name, face_id) {
   return function (dispatch) {
     dispatch({ type: "ADD_PERSON_AND_SET_FACE_LABEL" });
