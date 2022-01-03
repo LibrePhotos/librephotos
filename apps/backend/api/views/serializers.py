@@ -231,6 +231,7 @@ class PersonSerializer(serializers.ModelSerializer):
     face_url = serializers.SerializerMethodField()
     face_count = serializers.SerializerMethodField()
     face_photo_url = serializers.SerializerMethodField()
+    video = serializers.SerializerMethodField()
     newPersonName = serializers.CharField(max_length=100, default="", write_only=True)
 
     class Meta:
@@ -240,6 +241,7 @@ class PersonSerializer(serializers.ModelSerializer):
             "face_url",
             "face_count",
             "face_photo_url",
+            "video",
             "id",
             "newPersonName",
         )
@@ -261,9 +263,16 @@ class PersonSerializer(serializers.ModelSerializer):
             Q(person_label_is_inferred=False) & Q(photo__hidden=False)
         ).first()
         if first_face:
-            return os.path.join(
-                ownphotos.settings.MEDIA_URL, first_face.photo.square_thumbnail.name
-            )
+            return first_face.photo.image_hash
+        else:
+            return None
+
+    def get_video(self, obj):
+        first_face = obj.faces.filter(
+            Q(person_label_is_inferred=False) & Q(photo__hidden=False)
+        ).first()
+        if first_face:
+            return first_face.photo.video
         else:
             return None
 
