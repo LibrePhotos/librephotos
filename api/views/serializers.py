@@ -233,6 +233,7 @@ class PersonSerializer(serializers.ModelSerializer):
     face_photo_url = serializers.SerializerMethodField()
     video = serializers.SerializerMethodField()
     newPersonName = serializers.CharField(max_length=100, default="", write_only=True)
+    cover_photo = serializers.CharField(max_length=100, default="", write_only=True)
 
     class Meta:
         model = Person
@@ -244,6 +245,7 @@ class PersonSerializer(serializers.ModelSerializer):
             "video",
             "id",
             "newPersonName",
+            "cover_photo",
         )
 
     def get_face_count(self, obj):
@@ -259,6 +261,8 @@ class PersonSerializer(serializers.ModelSerializer):
             return None
 
     def get_face_photo_url(self, obj):
+        if obj.cover_photo:
+            return obj.cover_photo.image_hash
         first_face = obj.faces.filter(
             Q(person_label_is_inferred=False) & Q(photo__hidden=False)
         ).first()
@@ -268,6 +272,8 @@ class PersonSerializer(serializers.ModelSerializer):
             return None
 
     def get_video(self, obj):
+        if obj.cover_photo:
+            return obj.cover_photo.video
         first_face = obj.faces.filter(
             Q(person_label_is_inferred=False) & Q(photo__hidden=False)
         ).first()
@@ -290,9 +296,19 @@ class PersonSerializer(serializers.ModelSerializer):
             return new_person
 
     def update(self, instance, validated_data):
-        new_person_name = validated_data.pop("newPersonName")
-        instance.name = new_person_name
-        instance.save()
+        if "newPersonName" in validated_data.keys():
+            new_name = validated_data.pop("newPersonName")
+            instance.name = new_name
+            instance.save()
+            cache.clear()
+            return instance
+        if "cover_photo" in validated_data.keys():
+            image_hash = validated_data.pop("cover_photo")
+            photo = Photo.objects.filter(image_hash=image_hash).first()
+            instance.cover_photo = photo
+            instance.save()
+            cache.clear()
+            return instance
         return instance
 
     def delete(self, validated_data, id):
