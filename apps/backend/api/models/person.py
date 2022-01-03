@@ -23,6 +23,9 @@ class Person(models.Model):
     account = models.OneToOneField(
         User, on_delete=models.SET(get_deleted_user), default=None, null=True
     )
+    cover_photo = models.ForeignKey(
+        Photo, related_name="person", on_delete=models.PROTECT, blank=False, null=True
+    )
 
     def __str__(self):
         return "%d" % self.id
