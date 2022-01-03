@@ -61,7 +61,7 @@
             "item11": "Überprüfe ob das Bild fehlt oder ob es verschoben wurde."
         },
         "statusrescanphotostrue": "Scann alle Bilder erneut (Dateisystem)",
-        "statusrescanphotosfalse": "Scann alle Bilder erneut (Dateisystem)",
+        "statusrescanphotosfalse": "Scanne alle Bilder erneut (Dateisystem)",
         "missingphotos": "Fehlende Bilder",
         "missingphotosbutton": "Entferne fehlende Bilder",
         "missingphotosdescription": "Nach jedem Scan checkt LibrePhotos ob die Dateien an dem gleichen Ort sind oder ob Sie verschoben wurden. Falls Sie fehlen werden Sie als fehlend markiert.",
@@ -80,7 +80,7 @@
         "facedashboard": "Dashboard für Gesichter",
         "rescanfaces": "Scanne Gesichter erneut",
         "scanoptions": "Scanoptionen",
-        "sceneconfidence": "Szenen Vertrauenswert",
+        "sceneconfidence": "Szenen-Vertrauenswert",
         "confidencelevel": "Vertrauenswert",
         "confidence": {
             "high": "Hoch",
@@ -334,7 +334,7 @@
         "newperson": "Neue Person",
         "personname": "Name der Person",
         "labelfaces": "Gesichter kennzeichnen",
-        "numberselected": "Ausgewählte(s) {number} Gesicht(er) kennzeichnen als …"
+        "numberselected": "Ausgewählte(s) {{number}} Gesicht(er) kennzeichnen als …"
     },
     "dataviz": "Datenvisualisierung",
     "placetree": "Ortsbaum",
