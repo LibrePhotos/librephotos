@@ -18,7 +18,7 @@ import {
   deletePerson,
   renamePerson,
 } from "../../actions/peopleActions";
-import { serverAddress } from "../../api_client/apiClient";
+import { Tile } from "../../components/Tile";
 import { Grid, AutoSizer } from "react-virtualized";
 import { Link } from "react-router-dom";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
@@ -115,17 +115,14 @@ export class AlbumPeople extends Component {
                 />
               ) : (
                 <Link to={`/person/${this.props.people[albumPersonIndex].key}`}>
-                  <Image
-                    style={{ display: "inline-block", objectFit: "cover" }}
+                  <Tile
+                    video={this.props.people[albumPersonIndex].video === true}
                     height={this.state.entrySquareSize - 10}
                     width={this.state.entrySquareSize - 10}
-                    src={
-                      serverAddress +
+                    image_hash={
                       this.props.people[albumPersonIndex].face_photo_url
-                        .replace(".jpg", "")
-                        .replace(".webp", "")
                     }
-                  />
+                  ></Tile>
                 </Link>
               )
             ) : (
