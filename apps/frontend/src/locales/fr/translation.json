@@ -49,7 +49,7 @@
         "scannextcloudphotos": "Scanner les photos (Nextcloud)",
         "scannextclouddescription": {
             "item1": "Lister les fichiers de tous les sous-répertoires de scan ; pour chaque photo (ou vidéo) approprié :",
-            "item2": "Si le chemin du fichier existe, vérifiez si la photo a été modifiée ; si oui, rescanner, sinon on passe.",
+            "item2": "Si le chemin du fichier existe, vérifier si la photo a été modifiée ; si oui, rescanner, sinon on passe.",
             "item3": "Calculer une identification unique de l’objet (md5)",
             "item4": "Si la photo est déjà dans la base de données, ajout du lien vers la photo.",
             "item5": "Générer les vignettes associées à la photo",
@@ -58,7 +58,7 @@
             "item8": "Calculer la localisation géographique à partir des coordonnées GPS",
             "item9": "Extraire les visages.",
             "item10": "Ajouter la photo aux albums de choses et de localisations.",
-            "item11": "Vérifiez si la photo n’est pas déjà présente ou a été déplacée."
+            "item11": "Vérifier si la photo n’est pas déjà présente ou a été déplacée."
         },
         "statusrescanphotostrue": "Rescan complet (depuis la racine)",
         "statusrescanphotosfalse": "Rescan complet (depuis la racine)",
@@ -73,9 +73,9 @@
         "faces": "Visages",
         "people": "Personnes",
         "facesbutton": "Traiter les visages",
-        "inferred": "Présumé",
+        "inferred": "Visages présumés",
         "facessmall": "Visages",
-        "labeled": "Connu",
+        "labeled": "Visages connus",
         "unknown": "Inconnu",
         "facedashboard": "Tableau de bord ‘visages’",
         "rescanfaces": "Rescan des visages",
@@ -195,7 +195,9 @@
         "albumsharingdescription": "Ouvrir le panneau de partage pour l’album courant",
         "removephotos": "Suppression Photos",
         "removephotosdescription": "Supprimer les photos sélectionnées de l’album courant",
-        "album": "Album"
+        "album": "Album",
+        "albumcoverdescription": "Définir la couverture de l'album courant",
+        "albumcover": "Couverture de l'album"
     },
     "lightbox": {
         "sidebar": {
