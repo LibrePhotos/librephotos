@@ -195,7 +195,9 @@
         "albumsharingdescription": "Abrir el panel para compartir del álbum actual",
         "removephotos": "Eliminar Fotos",
         "removephotosdescription": "Eliminar las fotos seleccionadas del álbum actual",
-        "album": "Álbum"
+        "album": "Álbum",
+        "albumcover": "Establecer portada del álbum",
+        "albumcoverdescription": "Configurar la portada del álbum actual"
     },
     "lightbox": {
         "sidebar": {
