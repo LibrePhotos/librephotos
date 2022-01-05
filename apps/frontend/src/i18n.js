@@ -1,6 +1,7 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
+import { DateTime } from "luxon";
 
 import translationEn from "./locales/en/translation.json";
 import translationDe from "./locales/de/translation.json";
@@ -45,6 +46,16 @@ i18n
     resources,
     debug: true,
     fallbackLng: "en",
+    interpolation: {
+      format: (value, format, lng) => {
+        if (value instanceof Date) {
+          return DateTime.fromJSDate(value)
+            .setLocale(lng)
+            .toLocaleString(DateTime[format]);
+        }
+        return value;
+      },
+    },
   });
 
 export default i18n;

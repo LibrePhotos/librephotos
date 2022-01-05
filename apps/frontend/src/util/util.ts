@@ -1,7 +1,7 @@
-import moment from "moment";
+import {DateTime} from "luxon";
 import { UserPhotosGroup } from "../actions/photosActions";
 import { DatePhotosGroup, IncompleteDatePhotosGroup, PigPhoto } from "../actions/photosActions.types";
-
+import i18n from "../i18n";
 export const copyToClipboard = (str: string) => {
   if (navigator.clipboard) {
     navigator.clipboard.writeText(str);
@@ -15,10 +15,10 @@ export const copyToClipboard = (str: string) => {
   }
 };
 
+//To-Do: Add ordinal suffix to day of month when implemented in luxon
 export function adjustDateFormatForSingleGroup(group: DatePhotosGroup) {
-  group.date =
-    moment(group.date).format("MMM Do YYYY, dddd") !== "Invalid date"
-      ? moment(group.date).format("MMM Do YYYY, dddd")
+  group.date = DateTime.fromISO(group.date).toLocaleString(DateTime.DATETIME_MED) !== "Invalid date"
+      ? DateTime.fromISO(group.date).setLocale(i18n.resolvedLanguage).toFormat("MMMM d yyyy, cccc")
       : group.date;
 }
 
