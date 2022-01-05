@@ -156,7 +156,7 @@
         "timeline": "Zeitlinie",
         "socialgraph": "Sozialer Graph",
         "facecluster": "Cluster für Gesichter",
-        "datavizsmall": "Datenaus-\nwertung",
+        "datavizsmall": "Datenauswertung",
         "facerecognition": "Gesichtserkennung",
         "library": "Bibliothek",
         "dashboards": "Dashboards",
@@ -195,7 +195,9 @@
         "albumsharingdescription": "Öffne das Teilen Panel für das momentane Album",
         "removephotos": "Entferne Bild",
         "removephotosdescription": "Entferne das Bild aus dem ausgewählten Album",
-        "album": "Alben"
+        "album": "Alben",
+        "albumcover": "Album-Cover festlegen",
+        "albumcoverdescription": "Album-Cover für aktuelles Album festlegen"
     },
     "lightbox": {
         "sidebar": {
@@ -230,7 +232,7 @@
         "password": "Passwort",
         "passwordplaceholder": "Passwort",
         "signup": "Konto erstellen",
-        "errorbackend": "Es gibt keien Verbindung zum Backend Server. Probiere es in ein paar Minuten nochmal.",
+        "errorbackend": "Es gibt keine Verbindung zum Backend Server. Probiere es in ein paar Minuten nochmal.",
         "errorpassword": "Das Passwortfeld darf nicht leer sein!",
         "errorusername": "Das Nutzernamenfeld darf nicht leer sein!",
         "tagline": "Ein gemütlicher Platz für deine Bilder.",
