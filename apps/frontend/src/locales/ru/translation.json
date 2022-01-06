@@ -1,1 +1,30 @@
-{}
+{
+    "settings": {
+        "account": "Аккаунт",
+        "upload": "Загрузить",
+        "change": "Изменить",
+        "photos": "Фотографии",
+        "header": "Настройки",
+        "accountinformation": "Информация о аккаунте",
+        "firstname": "Имя",
+        "english": "Английский",
+        "firstnameplaceholder": "Имя",
+        "lastname": "Фамилия",
+        "lastnameplaceholder": "Фамилия",
+        "language": "Выберите язык",
+        "german": "Немецкий",
+        "spanish": "Испанский",
+        "nextcloudusername": "Имя пользователя",
+        "french": "Французский",
+        "nextcloudheader": "Nextcloud",
+        "italian": "Итальянский",
+        "norwegianbokmal": "Норвежский букмол",
+        "cancel": "Отмена",
+        "nextcloudchange": "Изменить",
+        "serveradress": "Адрес сервера",
+        "serveradressplaceholder": "https://...",
+        "nextcloudcancel": "Отмена",
+        "nextcloudusernameplaceholder": "Имя пользователя",
+        "library": "Библиотека"
+    }
+}
