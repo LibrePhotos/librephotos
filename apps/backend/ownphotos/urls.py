@@ -93,7 +93,7 @@ router.register(
     r"api/albums/auto/list", album_auto.AlbumAutoListViewSet, basename="album_auto"
 )
 router.register(
-    r"api/albums/date/list", views.AlbumDateListViewSet, basename="album_date"
+    r"api/albums/date/list", albums.AlbumDateListViewSet, basename="album_date"
 )
 router.register(
     r"api/albums/date/photohash/list",
@@ -130,7 +130,7 @@ router.register(
 
 router.register(r"api/albums/auto", album_auto.AlbumAutoViewSet, basename="album_auto")
 router.register(r"api/albums/person", albums.AlbumPersonViewSet, basename="person")
-router.register(r"api/albums/date", views.AlbumDateViewSet, basename="album_date")
+router.register(r"api/albums/date", albums.AlbumDateViewSet, basename="album_date")
 router.register(r"api/albums/thing", albums.AlbumThingViewSet, basename="album_thing")
 router.register(r"api/albums/place", albums.AlbumPlaceViewSet, basename="album_place")
 router.register(r"api/albums/user", albums.AlbumUserViewSet, basename="album_user")
