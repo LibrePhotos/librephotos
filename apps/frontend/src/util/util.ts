@@ -17,7 +17,7 @@ export const copyToClipboard = (str: string) => {
 
 //To-Do: Add ordinal suffix to day of month when implemented in luxon
 export function adjustDateFormatForSingleGroup(group: DatePhotosGroup) {
-  group.date = DateTime.fromISO(group.date).toLocaleString(DateTime.DATETIME_MED) !== "Invalid date"
+  group.date = DateTime.fromISO(group.date).toLocaleString(DateTime.DATETIME_MED) !== "Invalid DateTime"
       ? DateTime.fromISO(group.date).setLocale(i18n.resolvedLanguage).toFormat("MMMM d yyyy, cccc")
       : group.date;
 }
