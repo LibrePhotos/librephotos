@@ -4,7 +4,7 @@
         "uploadheader": "上传头像",
         "image": "选择图片",
         "upload": "上传",
-        "filesize": "最大文件尺寸200KB.",
+        "filesize": "限定最大文件尺寸200KB。",
         "accountinformation": "账户信息",
         "firstname": "名",
         "lastname": "姓",
@@ -67,10 +67,10 @@
         "faces": "人脸",
         "people": "人物",
         "facesbutton": "训练人脸识别",
-        "inferred": "已检测",
+        "inferred": "已推测",
         "facessmall": "张人脸",
-        "labeled": "已标记",
-        "unknown": "未标记",
+        "labeled": "已确认",
+        "unknown": "未确认",
         "facedashboard": "人脸专辑",
         "rescanfaces": "重新扫描人脸",
         "confidencelevel": "置信度水平",
@@ -90,7 +90,7 @@
         },
         "semanticsearchupdate": "保存",
         "favorite": "喜爱选项",
-        "favoriteminimum": "设置为最喜欢图片的最低等级",
+        "favoriteminimum": "标记为最喜欢图片的最低等级",
         "favoriteoption": {
             "placeholder": "最低等级"
         },
@@ -195,7 +195,9 @@
         "removephotosdescription": "从当前专辑中移除已选择的照片",
         "makepublic": "标记为公开",
         "unhide": "取消隐藏",
-        "album": "专辑"
+        "album": "专辑",
+        "albumcover": "设置相册封面",
+        "albumcoverdescription": "为本相册设置封面图片"
     },
     "lightbox": {
         "sidebar": {
@@ -313,7 +315,7 @@
     },
     "personedit": {
         "labelfaces": "标记人脸",
-        "numberselected": "标记已选择的 {number} 个人脸为...",
+        "numberselected": "标记已选择的 {{number}} 个人脸为...",
         "newperson": "新人物",
         "personname": "人物姓名",
         "addperson": "新增人物"
