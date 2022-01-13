@@ -1,0 +1,11 @@
+.numeric {
+  font-weight: normal; }
+
+.unit {
+  font-weight: normal; }
+
+.numeric .unit {
+  font-size: 12px; }
+
+.numeric {
+  font-size: 20px; }

@@ -1,0 +1,18 @@
+#error-div {
+  margin: 10px; }
+
+#query-div {
+  margin: auto;
+  width: 960px;
+  text-align: center; }
+
+#code {
+  text-align: left; }
+
+.name-div {
+  margin-top: 20px;
+  margin-bottom: 15px;
+  font-weight: bold; }
+
+.description {
+  text-align: left; }
