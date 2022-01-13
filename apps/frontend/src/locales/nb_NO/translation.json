@@ -113,7 +113,10 @@
         "language": "Velg et språk",
         "german": "Tysk",
         "email": "E-post",
-        "eventalbumsregeneratedescription": "Automatisk genererte albumnavn har navn på folk i navnene. Hvis du trente fjesgjenkjenneren etter å ha laget hendelsesalbum, kan du generere nye navn for allerede eksisterende handelsesalbum for å reflektere de nye navnene tilknyttet fjes i bildene."
+        "eventalbumsregeneratedescription": "Automatisk genererte albumnavn har navn på folk i navnene. Hvis du trente fjesgjenkjenneren etter å ha laget hendelsesalbum, kan du generere nye navn for allerede eksisterende handelsesalbum for å reflektere de nye navnene tilknyttet fjes i bildene.",
+        "simplifiedchinese": "Kinesisk (forenklet)",
+        "italian": "Italiensk",
+        "norwegianbokmal": "Norsk bokmål"
     },
     "modalnextcloud": {
         "setdirectory": "Sett din Nextcloud-skanningsmappe",
@@ -184,7 +187,9 @@
         "makepublic": "Gjør offentlig",
         "makeprivate": "Gjør privat",
         "download": "Last ned",
-        "albumactions": "Albumshandlinger"
+        "albumactions": "Albumshandlinger",
+        "albumcover": "Sett albumsomslag",
+        "albumcoverdescription": "Velger omslag for nåværende album"
     },
     "lightbox": {
         "sidebar": {
