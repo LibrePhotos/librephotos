@@ -314,19 +314,25 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
     pagination_class = RegularResultsSetPagination
 
     def get_queryset(self):
+
+        photo_qs = Photo.visible.filter(Q(owner=self.request.user))
+
+        qs = AlbumDate.objects.filter(Q(owner=self.request.user)).filter(
+            Q(photos__hidden=False)
+        )
+
+        if self.request.query_params.get("favorite"):
+            min_rating = self.request.user.favorite_min_rating
+            qs = qs.filter(Q(photos__rating__gte=min_rating))
+            photo_qs = photo_qs.filter(Q(rating__gte=min_rating))
         qs = (
-            AlbumDate.objects.filter(
-                Q(owner=self.request.user) & Q(photos__hidden=False)
-            )
-            .annotate(photo_count=Count("photos"))
+            qs.annotate(photo_count=Count("photos"))
             .filter(Q(photo_count__gt=0))
             .order_by("-date")
             .prefetch_related(
                 Prefetch(
                     "photos",
-                    queryset=Photo.visible.filter(Q(owner=self.request.user))
-                    .order_by("-exif_timestamp")
-                    .only(
+                    queryset=photo_qs.order_by("-exif_timestamp").only(
                         "image_hash",
                         "aspect_ratio",
                         "video",
@@ -360,7 +366,6 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         return super(AlbumDateViewSet, self).list(*args, **kwargs)
 
 
-@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumDateListViewSet(viewsets.ModelViewSet):
     serializer_class = PigIncompleteAlbumDateSerializer
     pagination_class = StandardResultsSetPagination
@@ -372,20 +377,28 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
     ]
 
     def get_queryset(self):
-        return (
-            AlbumDate.objects.filter(
-                Q(owner=self.request.user) & Q(photos__hidden=False)
+        logger.info(self.request.query_params)
+        qs = AlbumDate.objects.filter(
+            Q(owner=self.request.user) & Q(photos__hidden=False)
+        )
+        if self.request.query_params.get("favorite"):
+            min_rating = self.request.user.favorite_min_rating
+            qs = AlbumDate.objects.filter(
+                Q(owner=self.request.user)
+                & Q(photos__hidden=False)
+                & Q(photos__rating__gte=min_rating)
             )
-            .annotate(photo_count=Count("photos"))
+        qs = (
+            qs.annotate(photo_count=Count("photos"))
             .filter(Q(photo_count__gt=0))
             .order_by(F("date").desc(nulls_last=True))
         )
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
+        return qs
+
     def retrieve(self, *args, **kwargs):
         return super(AlbumDateListViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         start = datetime.datetime.now()
         res = super(AlbumDateListViewSet, self).list(*args, **kwargs)
