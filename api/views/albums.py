@@ -1,20 +1,31 @@
 import re
-import datetime
 import six
-from django.db.models import Count, Prefetch, Q
+import datetime
+from django.db.models import Count, Prefetch, Q, F
 from rest_framework import filters, viewsets
 from rest_framework.response import Response
 from rest_framework_extensions.cache.decorators import cache_response
-
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
-from api.models import AlbumPlace, AlbumThing, AlbumDate, AlbumUser, Face, Person, Photo
+from api.models import (
+    AlbumPlace,
+    AlbumThing,
+    AlbumDate,
+    AlbumUser,
+    Face,
+    Person,
+    Photo,
+    User,
+)
 from api.util import logger
 from api.views.caching import (
     CACHE_TTL,
     CustomListKeyConstructor,
     CustomObjectKeyConstructor,
 )
-from api.views.pagination import StandardResultsSetPagination
+from api.views.pagination import (
+    StandardResultsSetPagination,
+    RegularResultsSetPagination,
+)
 from api.views.serializers import (
     AlbumPersonListSerializer,
     AlbumPlaceListSerializer,
@@ -298,17 +309,15 @@ class AlbumUserListViewSet(viewsets.ModelViewSet):
         return super(AlbumUserListViewSet, self).list(*args, **kwargs)
 
 
-@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumDateViewSet(viewsets.ModelViewSet):
     serializer_class = PigAlbumDateSerializer
-    pagination_class = StandardResultsSetPagination
+    pagination_class = RegularResultsSetPagination
 
     def get_queryset(self):
         qs = (
             AlbumDate.objects.filter(
                 Q(owner=self.request.user) & Q(photos__hidden=False)
             )
-            .exclude(date=None)
             .annotate(photo_count=Count("photos"))
             .filter(Q(photo_count__gt=0))
             .order_by("-date")
@@ -317,17 +326,36 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                     "photos",
                     queryset=Photo.visible.filter(Q(owner=self.request.user))
                     .order_by("-exif_timestamp")
-                    .only("image_hash", "public", "exif_timestamp", "rating", "hidden"),
-                )
+                    .only(
+                        "image_hash",
+                        "aspect_ratio",
+                        "video",
+                        "search_location",
+                        "dominant_color",
+                        "public",
+                        "rating",
+                        "hidden",
+                        "exif_timestamp",
+                        "owner",
+                    ),
+                ),
+                Prefetch(
+                    "photos__owner",
+                    queryset=User.objects.only(
+                        "id", "username", "first_name", "last_name"
+                    ),
+                ),
             )
         )
         return qs
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
-        return super(AlbumDateViewSet, self).retrieve(*args, **kwargs)
+        queryset = self.get_queryset()
+        albumid = re.findall(r"\'(.+?)\'", args[0].__str__())[0].split("/")[-2]
+        serializer = PigAlbumDateSerializer(queryset.filter(id=albumid).first())
+        serializer.context = {"request": self.request}
+        return Response({"results": serializer.data})
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(AlbumDateViewSet, self).list(*args, **kwargs)
 
@@ -348,10 +376,9 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
             AlbumDate.objects.filter(
                 Q(owner=self.request.user) & Q(photos__hidden=False)
             )
-            .exclude(date=None)
             .annotate(photo_count=Count("photos"))
             .filter(Q(photo_count__gt=0))
-            .order_by("-date")
+            .order_by(F("date").desc(nulls_last=True))
         )
 
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
