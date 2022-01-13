@@ -1,5 +1,4 @@
 from django.db import migrations, models
-from api.models import Photo
 
 
 class Migration(migrations.Migration):
@@ -12,7 +11,7 @@ class Migration(migrations.Migration):
             model_name="Person",
             name="cover_photo",
             field=models.ForeignKey(
-                Photo,
+                to="api.Photo",
                 related_name="person",
                 on_delete=models.PROTECT,
                 blank=False,
