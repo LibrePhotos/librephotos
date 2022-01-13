@@ -202,7 +202,7 @@ export default function photosReducer(
       };
     }
     case "FETCH_DATE_ALBUMS_LIST": {
-      return { ...state };
+      return { ...state, fetchedPhotosetType: PhotosetType.NONE };
     }
     case "FETCH_DATE_ALBUMS_LIST_REJECTED": {
       return resetPhotos(state, action.payload);
@@ -211,7 +211,7 @@ export default function photosReducer(
       return {
         ...state,
         photosFlat: action.payload.photosFlat,
-        fetchedPhotosetType: PhotosetType.TIMESTAMP,
+        fetchedPhotosetType: action.payload.photosetType,
         photosGroupedByDate: action.payload.photosGroupedByDate,
       };
     }

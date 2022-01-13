@@ -17,7 +17,7 @@ export const TimestampPhotos = () => {
 
   useEffect(() => {
     if (fetchedPhotosetType !== PhotosetType.TIMESTAMP) {
-      fetchDateAlbumsList(dispatch);
+      fetchDateAlbumsList(dispatch, PhotosetType.TIMESTAMP);
     }
   }, [dispatch]); // Only run on first render
 
