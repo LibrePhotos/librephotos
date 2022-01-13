@@ -66,7 +66,6 @@ INSTALLED_APPS = [
     "django_rq",
     "constance",
     "constance.backends.database",
-    "drf_yasg",
 ]
 
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
@@ -125,6 +124,11 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "api.middleware.FingerPrintMiddleware",
 ]
+
+if DEBUG:
+    MIDDLEWARE += ["silk.middleware.SilkyMiddleware"]
+    INSTALLED_APPS += ["silk"]
+    INSTALLED_APPS += ["drf_yasg"]
 
 ROOT_URLCONF = "ownphotos.urls"
 
@@ -235,7 +239,7 @@ USE_TZ = True
 BASE_DATA = os.environ.get("BASE_DATA", "/")
 BASE_LOGS = os.environ.get("BASE_LOGS", "/logs/")
 
-STATIC_URL = "/static/"
+STATIC_URL = "api/static/"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DATA, "protected_media")
 STATIC_ROOT = os.path.join(BASE_DIR, "static")

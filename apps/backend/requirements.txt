@@ -9,6 +9,7 @@ django-picklefield==3.0.1
 django-redis==4.12.1
 django-rq==2.4.0
 django-bulk-update
+django-silk==4.2.0
 djangorestframework==3.12.4
 djangorestframework-simplejwt==4.6.0
 drf-extensions==0.7.0
