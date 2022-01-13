@@ -10,7 +10,16 @@ import {
   addTempElementsToGroups,
 } from "../util/util";
 import { Dispatch } from "react";
-import { DatePhotosGroup, DatePhotosGroupSchema, IncompleteDatePhotosGroup, IncompleteDatePhotosGroupSchema, PersonInfo, PersonInfoSchema, PhotoHashSchema, SimpleUserSchema } from "./photosActions.types";
+import {
+  DatePhotosGroup,
+  DatePhotosGroupSchema,
+  IncompleteDatePhotosGroup,
+  IncompleteDatePhotosGroupSchema,
+  PersonInfo,
+  PersonInfoSchema,
+  PhotoHashSchema,
+  SimpleUserSchema,
+} from "./photosActions.types";
 import { z } from "zod";
 import { AppDispatch } from "../store";
 
@@ -19,23 +28,23 @@ const AlbumInfoSchema = z.object({
   title: z.string(),
   cover_photos: PhotoHashSchema.array(),
   photo_count: z.number(),
-})
-type AlbumInfo = z.infer<typeof AlbumInfoSchema>
+});
+type AlbumInfo = z.infer<typeof AlbumInfoSchema>;
 
 const ThingAlbumSchema = z.object({
   id: z.string(),
   title: z.string(),
   grouped_photos: DatePhotosGroupSchema.array(),
-})
-type ThingAlbum = z.infer<typeof ThingAlbumSchema>
+});
+type ThingAlbum = z.infer<typeof ThingAlbumSchema>;
 
 const UserAlbumInfoSchema = AlbumInfoSchema.extend({
   owner: SimpleUserSchema,
   shared_to: SimpleUserSchema.array(),
   created_on: z.string(),
   favorited: z.boolean(),
-})
-type UserAlbumInfo = z.infer<typeof UserAlbumInfoSchema>
+});
+type UserAlbumInfo = z.infer<typeof UserAlbumInfoSchema>;
 
 const UserAlbumDetailsSchema = z.object({
   id: z.string(),
@@ -45,14 +54,16 @@ const UserAlbumDetailsSchema = z.object({
 
   date: z.string(),
   location: z.string().nullable(),
-})
-type UserAlbumDetails = z.infer<typeof UserAlbumDetailsSchema>
+});
+type UserAlbumDetails = z.infer<typeof UserAlbumDetailsSchema>;
 
 const UserAlbumSchema = UserAlbumDetailsSchema.extend({
   grouped_photos: DatePhotosGroupSchema.array(),
-})
+});
 
-const _FetchThingAlbumsListResponseSchema = z.object({ results: AlbumInfoSchema.array() })
+const _FetchThingAlbumsListResponseSchema = z.object({
+  results: AlbumInfoSchema.array(),
+});
 export function fetchThingAlbumsList() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_THING_ALBUMS_LIST" });
@@ -71,7 +82,7 @@ export function fetchThingAlbumsList() {
   };
 }
 
-const _FetchThingAlbumResponseSchema = z.object({ results: ThingAlbumSchema })
+const _FetchThingAlbumResponseSchema = z.object({ results: ThingAlbumSchema });
 export function fetchThingAlbum(album_id: string) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_THING_ALBUMS" });
@@ -90,7 +101,9 @@ export function fetchThingAlbum(album_id: string) {
   };
 }
 
-const _FetchUserAlbumsListResponseSchema = z.object({ results: UserAlbumInfoSchema.array() })
+const _FetchUserAlbumsListResponseSchema = z.object({
+  results: UserAlbumInfoSchema.array(),
+});
 export function fetchUserAlbumsList() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_USER_ALBUMS_LIST" });
@@ -143,7 +156,7 @@ const _UserAlbumEditResponseSchema = z.object({
   created_on: z.string(),
   favorited: z.boolean(),
   removedPhotos: z.string().array().optional(),
-})
+});
 export function createNewUserAlbum(title: string, image_hashes: string[]) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "CREATE_USER_ALBUMS_LIST" });
@@ -182,7 +195,11 @@ export function createNewUserAlbum(title: string, image_hashes: string[]) {
   };
 }
 
-export function renameUserAlbum(albumID: string, albumTitle: string, newAlbumTitle: string) {
+export function renameUserAlbum(
+  albumID: string,
+  albumTitle: string,
+  newAlbumTitle: string
+) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "RENAME_USER_ALBUM" });
     Server.patch(`/albums/user/edit/${albumID}/`, {
@@ -232,7 +249,11 @@ export function deleteUserAlbum(albumID: string, albumTitle: string) {
   };
 }
 
-export function removeFromUserAlbum(album_id: number, title: string, image_hashes: string[]) {
+export function removeFromUserAlbum(
+  album_id: number,
+  title: string,
+  image_hashes: string[]
+) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "REMOVE_USER_ALBUMS_LIST" });
     Server.patch(`albums/user/edit/${album_id}/`, {
@@ -263,7 +284,11 @@ export function removeFromUserAlbum(album_id: number, title: string, image_hashe
   };
 }
 
-export function addToUserAlbum(album_id: number, title: string, image_hashes: string[]) {
+export function addToUserAlbum(
+  album_id: number,
+  title: string,
+  image_hashes: string[]
+) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "EDIT_USER_ALBUMS_LIST" });
     Server.patch(`albums/user/edit/${album_id}/`, {
@@ -306,9 +331,11 @@ export function addToUserAlbum(album_id: number, title: string, image_hashes: st
 
 const PlaceAlbumInfoSchema = AlbumInfoSchema.extend({
   geolocation_level: z.number(),
-})
-type PlaceAlbumInfo = z.infer<typeof PlaceAlbumInfoSchema>
-const _FetchPlaceAlbumsListResponseSchema = z.object({ results: PlaceAlbumInfoSchema.array() })
+});
+type PlaceAlbumInfo = z.infer<typeof PlaceAlbumInfoSchema>;
+const _FetchPlaceAlbumsListResponseSchema = z.object({
+  results: PlaceAlbumInfoSchema.array(),
+});
 export function fetchPlaceAlbumsList() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_PLACE_ALBUMS_LIST" });
@@ -338,15 +365,15 @@ export function fetchPlaceAlbumsList() {
 const PlaceAlbumSchema = z.object({
   id: z.string(),
   title: z.string(),
-  grouped_photos: DatePhotosGroupSchema.array()
-})
-const PlaceAlbumResponseSchema = z.object({ results: PlaceAlbumSchema})
+  grouped_photos: DatePhotosGroupSchema.array(),
+});
+const PlaceAlbumResponseSchema = z.object({ results: PlaceAlbumSchema });
 export function fetchPlaceAlbum(album_id: string) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_PLACE_ALBUMS" });
     Server.get(`albums/place/${album_id}/`)
       .then((response) => {
-        const data = PlaceAlbumResponseSchema.parse(response.data)
+        const data = PlaceAlbumResponseSchema.parse(response.data);
         dispatch({
           type: "FETCH_PLACE_ALBUMS_FULFILLED",
           payload: data,
@@ -360,8 +387,10 @@ export function fetchPlaceAlbum(album_id: string) {
 
 const PersonPhotosSchema = PersonInfoSchema.extend({
   grouped_photos: DatePhotosGroupSchema.array(),
-})
-const _FetchPersonPhotosResponseSchema = z.object({ results: PersonPhotosSchema })
+});
+const _FetchPersonPhotosResponseSchema = z.object({
+  results: PersonPhotosSchema,
+});
 export const FETCH_PERSON_PHOTOS = "FETCH_PERSON_PHOTOS";
 export const FETCH_PERSON_PHOTOS_FULFILLED = "FETCH_PERSON_PHOTOS_FULFILLED";
 export const FETCH_PERSON_PHOTOS_REJECTED = "FETCH_PERSON_PHOTOS_REJECTED";
@@ -370,8 +399,9 @@ export function fetchPersonPhotos(person_id: string) {
     dispatch({ type: FETCH_PERSON_PHOTOS });
     Server.get(`albums/person/${person_id}/`)
       .then((response) => {
-        const data = _FetchPersonPhotosResponseSchema.parse(response.data)
-        var photosGroupedByDate: DatePhotosGroup[] = data.results.grouped_photos;
+        const data = _FetchPersonPhotosResponseSchema.parse(response.data);
+        var photosGroupedByDate: DatePhotosGroup[] =
+          data.results.grouped_photos;
         adjustDateFormat(photosGroupedByDate);
         var personDetails: PersonInfo = data.results;
         dispatch({
@@ -396,7 +426,7 @@ const PersonSchema = z.object({
   face_photo_url: z.string().nullable(),
   id: z.number(),
   newPersonName: z.string().optional(),
-})
+});
 const PhotoSimpleSchema = z.object({
   square_thumbnail: z.string(),
   image: z.string().nullable(),
@@ -408,7 +438,7 @@ const PhotoSimpleSchema = z.object({
   geolocation_json: z.any(),
   public: z.boolean(),
   video: z.boolean(),
-})
+});
 
 const AutoAlbumSchema = z.object({
   id: z.number(),
@@ -420,22 +450,24 @@ const AutoAlbumSchema = z.object({
   people: PersonSchema.array(),
   gps_lon: z.number().nullable(),
   photos: PhotoSimpleSchema.array(),
-})
-type AutoAlbum = z.infer<typeof AutoAlbumSchema>
+});
+type AutoAlbum = z.infer<typeof AutoAlbumSchema>;
 
 const AutoAlbumInfoSchema = z.object({
   id: z.number(),
   title: z.string(),
   timestamp: z.string(),
-  photos: PhotoHashSchema,  // TODO: This is a single photo, so the property name should be corrected. Perhaps cover_photo?
+  photos: PhotoHashSchema, // TODO: This is a single photo, so the property name should be corrected. Perhaps cover_photo?
   photo_count: z.number(),
   favorited: z.boolean(),
-})
-type AutoAlbumInfo = z.infer<typeof AutoAlbumInfoSchema>
+});
+type AutoAlbumInfo = z.infer<typeof AutoAlbumInfoSchema>;
 
 //actions using new list view in backend
 
-const _FetchAutoAlbumsListResponseSchema = z.object({ results: AutoAlbumInfoSchema.array() })
+const _FetchAutoAlbumsListResponseSchema = z.object({
+  results: AutoAlbumInfoSchema.array(),
+});
 export function fetchAutoAlbumsList() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_AUTO_ALBUMS_LIST" });
@@ -454,70 +486,86 @@ export function fetchAutoAlbumsList() {
   };
 }
 
-const _FetchDateAlbumsListResponseSchema = z.object({ results: IncompleteDatePhotosGroupSchema.array() })
+const _FetchDateAlbumsListResponseSchema = z.object({
+  results: IncompleteDatePhotosGroupSchema.array(),
+});
 export function fetchDateAlbumsList(dispatch: AppDispatch) {
-    dispatch({ type: "FETCH_DATE_ALBUMS_LIST" });
-    Server.get("albums/date/list/", { timeout: 100000 })
-      .then((response) => {
-        const data = _FetchDateAlbumsListResponseSchema.parse(response.data);
-        const photosGroupedByDate: IncompleteDatePhotosGroup[] = data.results;
-        adjustDateFormat(photosGroupedByDate);
-        addTempElementsToGroups(photosGroupedByDate);
-        dispatch({
-          type: "FETCH_DATE_ALBUMS_LIST_FULFILLED",
-          payload: {
-            photosGroupedByDate: photosGroupedByDate,
-            photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
-          },
-        });
-      })
-      .catch((err) => {
-        dispatch({ type: "FETCH_DATE_ALBUMS_LIST_REJECTED", payload: err });
+  dispatch({ type: "FETCH_DATE_ALBUMS_LIST" });
+  Server.get("albums/date/list/", { timeout: 100000 })
+    .then((response) => {
+      const data = _FetchDateAlbumsListResponseSchema.parse(response.data);
+      const photosGroupedByDate: IncompleteDatePhotosGroup[] = data.results;
+      adjustDateFormat(photosGroupedByDate);
+      addTempElementsToGroups(photosGroupedByDate);
+      dispatch({
+        type: "FETCH_DATE_ALBUMS_LIST_FULFILLED",
+        payload: {
+          photosGroupedByDate: photosGroupedByDate,
+          photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
+        },
       });
+    })
+    .catch((err) => {
+      dispatch({ type: "FETCH_DATE_ALBUMS_LIST_REJECTED", payload: err });
+    });
 }
 
 //actions using new retrieve view in backend
-export function fetchAlbumsAutoGalleries(dispatch: AppDispatch, album_id: string) {
-    dispatch({ type: "FETCH_AUTO_ALBUMS_RETRIEVE" });
-    Server.get(`albums/auto/${album_id}/`)
-      .then((response) => {
-        const autoAlbum: AutoAlbum = AutoAlbumSchema.parse(response.data);
-        dispatch({
-          type: "FETCH_AUTO_ALBUMS_RETRIEVE_FULFILLED",
-          payload: autoAlbum,
-        });
-      })
-      .catch((err) => {
-        dispatch({ type: "FETCH_AUTO_ALBUMS_RETRIEVE_REJECTED", payload: err });
+export function fetchAlbumsAutoGalleries(
+  dispatch: AppDispatch,
+  album_id: string
+) {
+  dispatch({ type: "FETCH_AUTO_ALBUMS_RETRIEVE" });
+  Server.get(`albums/auto/${album_id}/`)
+    .then((response) => {
+      const autoAlbum: AutoAlbum = AutoAlbumSchema.parse(response.data);
+      dispatch({
+        type: "FETCH_AUTO_ALBUMS_RETRIEVE_FULFILLED",
+        payload: autoAlbum,
       });
+    })
+    .catch((err) => {
+      dispatch({ type: "FETCH_AUTO_ALBUMS_RETRIEVE_REJECTED", payload: err });
+    });
 }
 
-export function fetchAlbumsDateGalleries(dispatch: AppDispatch, album_id: string) {
-    dispatch({
-      type: "FETCH_DATE_ALBUMS_RETRIEVE",
-      payload: {
-        album_id: album_id,
-      },
-    });
-    Server.get(`albums/date/${album_id}/`)
-      .then((response) => {
-        const datePhotosGroup: IncompleteDatePhotosGroup = IncompleteDatePhotosGroupSchema.parse(response.data);
-        adjustDateFormatForSingleGroup(datePhotosGroup);
-        dispatch({
-          type: "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED",
-          payload: {
-            datePhotosGroup: datePhotosGroup,
-          },
-        });
-      })
-      .catch((err) => {
-        console.log(err);
-        dispatch({ type: "FETCH_DATE_ALBUMS_RETRIEVE_REJECTED", payload: err });
+export function fetchAlbumsDateGalleries(
+  dispatch: AppDispatch,
+  album_id: string,
+  page: number
+) {
+  dispatch({
+    type: "FETCH_DATE_ALBUMS_RETRIEVE",
+    payload: {
+      album_id: album_id,
+    },
+  });
+  Server.get(`albums/date/${album_id}/?page=${page}`)
+    .then((response) => {
+      console.log(response.data);
+      const datePhotosGroup: IncompleteDatePhotosGroup =
+        IncompleteDatePhotosGroupSchema.parse(response.data.results);
+      adjustDateFormatForSingleGroup(datePhotosGroup);
+      dispatch({
+        type: "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED",
+        payload: {
+          datePhotosGroup: datePhotosGroup,
+          page: page,
+        },
       });
+    })
+    .catch((err) => {
+      console.log(err);
+      dispatch({ type: "FETCH_DATE_ALBUMS_RETRIEVE_REJECTED", payload: err });
+    });
 }
 
 // share user album
-export function setUserAlbumShared(album_id: number, target_user_id: string, val_shared: boolean) {
+export function setUserAlbumShared(
+  album_id: number,
+  target_user_id: string,
+  val_shared: boolean
+) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "SET_ALBUM_USER_SHARED" });
     Server.post("useralbum/share/", {
@@ -526,7 +574,9 @@ export function setUserAlbumShared(album_id: number, target_user_id: string, val
       target_user_id: target_user_id,
     })
       .then((response) => {
-        const userAlbumInfo: UserAlbumInfo = UserAlbumInfoSchema.parse(response.data);
+        const userAlbumInfo: UserAlbumInfo = UserAlbumInfoSchema.parse(
+          response.data
+        );
         dispatch({
           type: "SET_ALBUM_USER_SHARED_FULFILLED",
           payload: userAlbumInfo,
@@ -565,7 +615,9 @@ export function setUserAlbumShared(album_id: number, target_user_id: string, val
 }
 
 //sharing
-const _FetchUserAlbumsSharedResponseSchema = z.object({ results: UserAlbumInfoSchema.array() })
+const _FetchUserAlbumsSharedResponseSchema = z.object({
+  results: UserAlbumInfoSchema.array(),
+});
 export function fetchUserAlbumsSharedToMe() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_ALBUMS_SHARED_TO_ME" });

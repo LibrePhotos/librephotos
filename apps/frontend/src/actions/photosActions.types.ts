@@ -78,7 +78,7 @@ export const PhotoSchema = z.object({
 export type Photo = z.infer<typeof PhotoSchema>
 
 export const DatePhotosGroupSchema = z.object({
-  date: z.string(),
+  date: z.string().nullable(),
   location: z.string().nullable(),
   items: PigPhotoSchema.array(),
 })

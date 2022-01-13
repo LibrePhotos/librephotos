@@ -1,6 +1,10 @@
-import {DateTime} from "luxon";
+import { DateTime } from "luxon";
 import { UserPhotosGroup } from "../actions/photosActions";
-import { DatePhotosGroup, IncompleteDatePhotosGroup, PigPhoto } from "../actions/photosActions.types";
+import {
+  DatePhotosGroup,
+  IncompleteDatePhotosGroup,
+  PigPhoto,
+} from "../actions/photosActions.types";
 import i18n from "../i18n";
 export const copyToClipboard = (str: string) => {
   if (navigator.clipboard) {
@@ -17,9 +21,17 @@ export const copyToClipboard = (str: string) => {
 
 //To-Do: Add ordinal suffix to day of month when implemented in luxon
 export function adjustDateFormatForSingleGroup(group: DatePhotosGroup) {
-  group.date = DateTime.fromISO(group.date).toLocaleString(DateTime.DATETIME_MED) !== "Invalid DateTime"
-      ? DateTime.fromISO(group.date).setLocale(i18n.resolvedLanguage).toFormat("MMMM d yyyy, cccc")
-      : group.date;
+  if (group.date != null) {
+    group.date =
+      DateTime.fromISO(group.date).toLocaleString(DateTime.DATETIME_MED) !==
+      "Invalid DateTime"
+        ? DateTime.fromISO(group.date)
+            .setLocale(i18n.resolvedLanguage)
+            .toFormat("MMMM d yyyy, cccc")
+        : group.date;
+  } else {
+    group.date = "No Timestamp";
+  }
 }
 
 export function adjustDateFormat(photosGroupedByDate: DatePhotosGroup[]) {
@@ -30,11 +42,15 @@ export function getPhotosFlatFromSingleGroup(group: DatePhotosGroup) {
   return group.items;
 }
 
-export function getPhotosFlatFromGroupedByDate(photosGroupedByDate: DatePhotosGroup[]) {
+export function getPhotosFlatFromGroupedByDate(
+  photosGroupedByDate: DatePhotosGroup[]
+) {
   return photosGroupedByDate.flatMap(getPhotosFlatFromSingleGroup);
 }
 
-export function addTempElementsToGroups(photosGroupedByDate: IncompleteDatePhotosGroup[]) {
+export function addTempElementsToGroups(
+  photosGroupedByDate: IncompleteDatePhotosGroup[]
+) {
   photosGroupedByDate.forEach((group) => {
     for (var i = 0; i < group.numberOfItems; i++) {
       group.items.push({
@@ -52,12 +68,14 @@ export function addTempElementsToFlatList(photosCount: number) {
     newPhotosFlat.push({
       id: i.toString(),
       aspectRatio: 1,
-      isTemp: true
+      isTemp: true,
     } as PigPhoto);
   }
   return newPhotosFlat;
 }
 
-export function getPhotosFlatFromGroupedByUser(photosGroupedByUser: UserPhotosGroup[]) {
+export function getPhotosFlatFromGroupedByUser(
+  photosGroupedByUser: UserPhotosGroup[]
+) {
   return photosGroupedByUser.flatMap((el) => el.photos);
 }
