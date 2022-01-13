@@ -1,9 +1,11 @@
 import re
 import six
 import datetime
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, Prefetch, Q, F
 from rest_framework import filters, viewsets
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_extensions.cache.decorators import cache_response
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 from api.models import (
@@ -314,17 +316,28 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
     pagination_class = RegularResultsSetPagination
 
     def get_queryset(self):
-
-        photo_qs = Photo.visible.filter(Q(owner=self.request.user))
-
-        qs = AlbumDate.objects.filter(Q(owner=self.request.user)).filter(
-            Q(photos__hidden=False)
-        )
+        if not self.request.user.is_anonymous:
+            photo_qs = Photo.visible.filter(Q(owner=self.request.user))
+            qs = AlbumDate.objects.filter(Q(owner=self.request.user)).filter(
+                Q(photos__hidden=False)
+            )
 
         if self.request.query_params.get("favorite"):
             min_rating = self.request.user.favorite_min_rating
             qs = qs.filter(Q(photos__rating__gte=min_rating))
             photo_qs = photo_qs.filter(Q(rating__gte=min_rating))
+
+        if self.request.query_params.get("public"):
+            username = self.request.query_params.get("username")
+            qs = AlbumDate.objects.filter(
+                Q(owner__username=username)
+                & Q(photos__hidden=False)
+                & Q(photos__public=True)
+            )
+            photo_qs = Photo.visible.filter(
+                Q(owner__username=username) & Q(public=True)
+            )
+
         qs = (
             qs.annotate(photo_count=Count("photos"))
             .filter(Q(photo_count__gt=0))
@@ -355,6 +368,13 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         )
         return qs
 
+    def get_permissions(self):
+        if self.request.query_params.get("public"):
+            permission_classes = [AllowAny]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
     def retrieve(self, *args, **kwargs):
         queryset = self.get_queryset()
         albumid = re.findall(r"\'(.+?)\'", args[0].__str__())[0].split("/")[-2]
@@ -377,16 +397,23 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
     ]
 
     def get_queryset(self):
-        logger.info(self.request.query_params)
-        qs = AlbumDate.objects.filter(
-            Q(owner=self.request.user) & Q(photos__hidden=False)
-        )
+        if not self.request.user.is_anonymous:
+            qs = AlbumDate.objects.filter(
+                Q(owner=self.request.user) & Q(photos__hidden=False)
+            )
         if self.request.query_params.get("favorite"):
             min_rating = self.request.user.favorite_min_rating
             qs = AlbumDate.objects.filter(
                 Q(owner=self.request.user)
                 & Q(photos__hidden=False)
                 & Q(photos__rating__gte=min_rating)
+            )
+        if self.request.query_params.get("public"):
+            username = self.request.query_params.get("username")
+            qs = AlbumDate.objects.filter(
+                Q(owner__username=username)
+                & Q(photos__hidden=False)
+                & Q(photos__public=True)
             )
         qs = (
             qs.annotate(photo_count=Count("photos"))
@@ -395,6 +422,13 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
         )
 
         return qs
+
+    def get_permissions(self):
+        if self.request.query_params.get("public"):
+            permission_classes = [AllowAny]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
     def retrieve(self, *args, **kwargs):
         return super(AlbumDateListViewSet, self).retrieve(*args, **kwargs)
