@@ -24,7 +24,9 @@ export class DefaultHeader extends Component {
           <div style={{ height: 60, paddingTop: 10 }}>
             <Header as="h4">
               <Header.Content>
-                {!this.props.loading && this.props.auth.access.is_admin &&
+                {!this.props.loading &&
+                this.props.auth.access &&
+                this.props.auth.access.is_admin &&
                 !this.props.user.scan_directory &&
                 this.props.numPhotosetItems < 1 ? (
                   <div>

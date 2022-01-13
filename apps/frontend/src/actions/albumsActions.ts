@@ -490,17 +490,22 @@ export function fetchAutoAlbumsList() {
 const _FetchDateAlbumsListResponseSchema = z.object({
   results: IncompleteDatePhotosGroupSchema.array(),
 });
-export function fetchDateAlbumsList(
+export function fetchAlbumDateList(
   dispatch: AppDispatch,
   photosetType: PhotosetType,
-  favorite?: boolean
+  username?: string
 ) {
   dispatch({
     type: "FETCH_DATE_ALBUMS_LIST",
   });
 
-  var favorites = favorite ? `?favorite=true` : "";
-  Server.get("albums/date/list/" + favorites, { timeout: 100000 })
+  var favorites =
+    photosetType === PhotosetType.FAVORITES ? `?favorite=true` : "";
+  var publicParam = photosetType === PhotosetType.PUBLIC ? `?public=true` : "";
+  var usernameParam = username ? `&username=${username.toLowerCase()}` : "";
+  Server.get("albums/date/list/" + favorites + publicParam + usernameParam, {
+    timeout: 100000,
+  })
     .then((response) => {
       const data = _FetchDateAlbumsListResponseSchema.parse(response.data);
       const photosGroupedByDate: IncompleteDatePhotosGroup[] = data.results;
@@ -540,11 +545,12 @@ export function fetchAlbumsAutoGalleries(
     });
 }
 
-export function fetchAlbumsDateGalleries(
+export function fetchAlbumDate(
   dispatch: AppDispatch,
   album_id: string,
   page: number,
-  favorite?: boolean
+  photosetType: PhotosetType,
+  username?: string
 ) {
   dispatch({
     type: "FETCH_DATE_ALBUMS_RETRIEVE",
@@ -552,8 +558,16 @@ export function fetchAlbumsDateGalleries(
       album_id: album_id,
     },
   });
-  var favorites = favorite ? `&favorite=true` : "";
-  Server.get(`albums/date/${album_id}/?page=${page}` + favorites)
+  var favorites =
+    photosetType === PhotosetType.FAVORITES ? `&favorite=true` : "";
+  var publicParam = photosetType === PhotosetType.PUBLIC ? `&public=true` : "";
+  var usernameParam = username ? `&username=${username.toLowerCase()}` : "";
+  Server.get(
+    `albums/date/${album_id}/?page=${page}` +
+      favorites +
+      publicParam +
+      usernameParam
+  )
     .then((response) => {
       console.log(response.data);
       const datePhotosGroup: IncompleteDatePhotosGroup =

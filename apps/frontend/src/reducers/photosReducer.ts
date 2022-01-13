@@ -44,6 +44,7 @@ export enum PhotosetType {
   SEARCH = "search",
   USER_ALBUM = "userAlbum",
   PERSON = "person",
+  PUBLIC = "public",
   SHARED_TO_ME = "sharedToMe",
   SHARED_BY_ME = "sharedByMe",
 }
@@ -187,6 +188,11 @@ export default function photosReducer(
         (group) => group.id === action.payload.datePhotosGroup.id
       );
       var groupToChange = newPhotosGroupedByDate[indexToReplace];
+      if (!groupToChange) {
+        return {
+          ...state,
+        };
+      }
       var items = groupToChange.items;
       var loadedItems = action.payload.datePhotosGroup.items;
       var updatedItems = items

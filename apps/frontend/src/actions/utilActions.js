@@ -4,7 +4,7 @@ import { logout } from "../actions/authActions";
 import { fetchInferredFacesList, fetchLabeledFacesList } from "./facesActions";
 import { fetchUserSelfDetails } from "./userActions";
 import { fetchPeople } from "./peopleActions";
-import { fetchDateAlbumsList } from "./albumsActions";
+import { fetchAlbumDateList } from "./albumsActions";
 import { scanPhotos } from "../actions/photosActions";
 
 export function fetchJobList(page, page_size = 10) {
@@ -258,7 +258,7 @@ export function fetchWorkerAvailability(prevRunningJob) {
             dispatch(fetchPeople());
           }
           if (prevRunningJob.job_type_str.toLowerCase() === "scan photos") {
-            dispatch(fetchDateAlbumsList());
+            dispatch(fetchAlbumDateList());
           }
         }
 

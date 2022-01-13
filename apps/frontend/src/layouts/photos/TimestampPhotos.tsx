@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback } from "react";
 import {
-  fetchDateAlbumsList,
-  fetchAlbumsDateGalleries,
+  fetchAlbumDateList,
+  fetchAlbumDate,
 } from "../../actions/albumsActions";
 import _ from "lodash";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
@@ -17,7 +17,7 @@ export const TimestampPhotos = () => {
 
   useEffect(() => {
     if (fetchedPhotosetType !== PhotosetType.TIMESTAMP) {
-      fetchDateAlbumsList(dispatch, PhotosetType.TIMESTAMP);
+      fetchAlbumDateList(dispatch, PhotosetType.TIMESTAMP);
     }
   }, [dispatch]); // Only run on first render
 
@@ -31,7 +31,7 @@ export const TimestampPhotos = () => {
       ) {
         var firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
         var page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
-        fetchAlbumsDateGalleries(dispatch, group.id, page);
+        fetchAlbumDate(dispatch, group.id, page, PhotosetType.TIMESTAMP);
       }
     });
   };

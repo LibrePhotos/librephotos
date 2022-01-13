@@ -35,35 +35,6 @@ export class TopMenuPublic extends Component {
             </Menu.Item>
           </Menu.Menu>
 
-          <Menu.Item>
-            <Button
-              attached="left"
-              onClick={() => {
-                this.props.dispatch({
-                  type: "SET_GRID_TYPE",
-                  payload: "dense",
-                });
-              }}
-              icon
-              active={this.props.gridType === "dense"}
-            >
-              <Icon name="grid layout" />
-            </Button>
-            <Button
-              attached="right"
-              onClick={() => {
-                this.props.dispatch({
-                  type: "SET_GRID_TYPE",
-                  payload: "loose",
-                });
-              }}
-              icon
-              active={this.props.gridType === "loose"}
-            >
-              <Icon name="block layout" />
-            </Button>
-          </Menu.Item>
-
           <Menu.Item position="right">
             <Button as={Link} to="/login">
               Login

@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback } from "react";
 import {
-  fetchDateAlbumsList,
-  fetchAlbumsDateGalleries,
+  fetchAlbumDate,
+  fetchAlbumDateList,
 } from "../../actions/albumsActions";
 import _ from "lodash";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
@@ -19,7 +19,7 @@ export const FavoritePhotos = () => {
   useEffect(() => {
     console.log(userSelfDetails.favorite_min_rating);
     if (fetchedPhotosetType !== PhotosetType.FAVORITES) {
-      fetchDateAlbumsList(dispatch, PhotosetType.FAVORITES, true);
+      fetchAlbumDateList(dispatch, PhotosetType.FAVORITES);
     }
   }, [dispatch]); // Only run on first render
 
@@ -33,7 +33,7 @@ export const FavoritePhotos = () => {
       ) {
         var firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
         var page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
-        fetchAlbumsDateGalleries(dispatch, group.id, page, true);
+        fetchAlbumDate(dispatch, group.id, page, PhotosetType.FAVORITES);
       }
     });
   };
