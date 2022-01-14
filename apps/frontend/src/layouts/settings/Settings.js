@@ -98,7 +98,7 @@ export class Settings extends Component {
 
   componentDidMount() {
     this.props.dispatch(fetchCountStats());
-    this.props.dispatch(fetchSiteSettings());
+    fetchSiteSettings(this.props.dispatch);
     this.props.dispatch(fetchUserSelfDetails(this.props.auth.access.user_id));
     this.props.dispatch(fetchNextcloudDirectoryTree("/"));
     if (this.props.auth.access.is_admin) {

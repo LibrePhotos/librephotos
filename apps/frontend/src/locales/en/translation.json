@@ -237,6 +237,8 @@
     "errorbackend": "No connection to backend server, try again in a few minutes.",
     "errorpassword": "Password may not be blank!",
     "errorusername": "Username may not be blank!",
+    "errorusernameexists": "A user with that username already exists.'",
+    "erroremail": "Enter a valid email address.",
     "tagline": "A comfy place for your photos."
   },
   "search": {

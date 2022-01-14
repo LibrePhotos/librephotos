@@ -12,6 +12,7 @@
     "@vx/group": "0.0.161",
     "@vx/hierarchy": "0.0.161",
     "@vx/shape": "0.0.162",
+    "@types/react-router-dom": "5.3.2",
     "axios": "^0.18.0",
     "bootstrap": "^4.1.1",
     "calendar-months": "^1.0.1",

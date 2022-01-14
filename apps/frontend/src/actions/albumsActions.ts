@@ -13,58 +13,35 @@ import {
 import { Dispatch } from "react";
 import {
   DatePhotosGroup,
-  DatePhotosGroupSchema,
   IncompleteDatePhotosGroup,
   IncompleteDatePhotosGroupSchema,
   PersonInfo,
-  PersonInfoSchema,
-  PhotoHashSchema,
-  SimpleUserSchema,
 } from "./photosActions.types";
+import {
+  _FetchThingAlbumsListResponseSchema,
+  AlbumInfo,
+  _FetchThingAlbumResponseSchema,
+  ThingAlbum,
+  _FetchUserAlbumsListResponseSchema,
+  UserAlbumInfo,
+  UserAlbumSchema,
+  UserAlbumDetails,
+  _UserAlbumEditResponseSchema,
+  _FetchPlaceAlbumsListResponseSchema,
+  PlaceAlbumInfo,
+  PlaceAlbumSchema,
+  AutoAlbumInfo,
+  _FetchAutoAlbumsListResponseSchema,
+  _FetchUserAlbumsSharedResponseSchema,
+  _FetchPersonPhotosResponseSchema,
+  _FetchDateAlbumsListResponseSchema,
+  AutoAlbumSchema,
+  UserAlbumInfoSchema,
+  AutoAlbum,
+} from "./albumActions.types";
 import { z } from "zod";
 import { AppDispatch } from "../store";
 
-const AlbumInfoSchema = z.object({
-  id: z.number(),
-  title: z.string(),
-  cover_photos: PhotoHashSchema.array(),
-  photo_count: z.number(),
-});
-type AlbumInfo = z.infer<typeof AlbumInfoSchema>;
-
-const ThingAlbumSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  grouped_photos: DatePhotosGroupSchema.array(),
-});
-type ThingAlbum = z.infer<typeof ThingAlbumSchema>;
-
-const UserAlbumInfoSchema = AlbumInfoSchema.extend({
-  owner: SimpleUserSchema,
-  shared_to: SimpleUserSchema.array(),
-  created_on: z.string(),
-  favorited: z.boolean(),
-});
-type UserAlbumInfo = z.infer<typeof UserAlbumInfoSchema>;
-
-const UserAlbumDetailsSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  owner: SimpleUserSchema,
-  shared_to: SimpleUserSchema.array(),
-
-  date: z.string(),
-  location: z.string().nullable(),
-});
-type UserAlbumDetails = z.infer<typeof UserAlbumDetailsSchema>;
-
-const UserAlbumSchema = UserAlbumDetailsSchema.extend({
-  grouped_photos: DatePhotosGroupSchema.array(),
-});
-
-const _FetchThingAlbumsListResponseSchema = z.object({
-  results: AlbumInfoSchema.array(),
-});
 export function fetchThingAlbumsList() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_THING_ALBUMS_LIST" });
@@ -83,7 +60,6 @@ export function fetchThingAlbumsList() {
   };
 }
 
-const _FetchThingAlbumResponseSchema = z.object({ results: ThingAlbumSchema });
 export function fetchThingAlbum(album_id: string) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_THING_ALBUMS" });
@@ -102,9 +78,6 @@ export function fetchThingAlbum(album_id: string) {
   };
 }
 
-const _FetchUserAlbumsListResponseSchema = z.object({
-  results: UserAlbumInfoSchema.array(),
-});
 export function fetchUserAlbumsList() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_USER_ALBUMS_LIST" });
@@ -150,14 +123,6 @@ export function fetchUserAlbum(album_id: number) {
   };
 }
 
-const _UserAlbumEditResponseSchema = z.object({
-  id: z.number(),
-  title: z.string().nullable(),
-  photos: z.string().array(),
-  created_on: z.string(),
-  favorited: z.boolean(),
-  removedPhotos: z.string().array().optional(),
-});
 export function createNewUserAlbum(title: string, image_hashes: string[]) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "CREATE_USER_ALBUMS_LIST" });
@@ -330,13 +295,6 @@ export function addToUserAlbum(
   };
 }
 
-const PlaceAlbumInfoSchema = AlbumInfoSchema.extend({
-  geolocation_level: z.number(),
-});
-type PlaceAlbumInfo = z.infer<typeof PlaceAlbumInfoSchema>;
-const _FetchPlaceAlbumsListResponseSchema = z.object({
-  results: PlaceAlbumInfoSchema.array(),
-});
 export function fetchPlaceAlbumsList() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_PLACE_ALBUMS_LIST" });
@@ -363,11 +321,6 @@ export function fetchPlaceAlbumsList() {
   };
 }
 
-const PlaceAlbumSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  grouped_photos: DatePhotosGroupSchema.array(),
-});
 const PlaceAlbumResponseSchema = z.object({ results: PlaceAlbumSchema });
 export function fetchPlaceAlbum(album_id: string) {
   return function (dispatch: Dispatch<any>) {
@@ -386,12 +339,6 @@ export function fetchPlaceAlbum(album_id: string) {
   };
 }
 
-const PersonPhotosSchema = PersonInfoSchema.extend({
-  grouped_photos: DatePhotosGroupSchema.array(),
-});
-const _FetchPersonPhotosResponseSchema = z.object({
-  results: PersonPhotosSchema,
-});
 export const FETCH_PERSON_PHOTOS = "FETCH_PERSON_PHOTOS";
 export const FETCH_PERSON_PHOTOS_FULFILLED = "FETCH_PERSON_PHOTOS_FULFILLED";
 export const FETCH_PERSON_PHOTOS_REJECTED = "FETCH_PERSON_PHOTOS_REJECTED";
@@ -420,55 +367,6 @@ export function fetchPersonPhotos(person_id: string) {
   };
 }
 
-const PersonSchema = z.object({
-  name: z.string(),
-  face_url: z.string().nullable(),
-  face_count: z.number(),
-  face_photo_url: z.string().nullable(),
-  id: z.number(),
-  newPersonName: z.string().optional(),
-});
-const PhotoSimpleSchema = z.object({
-  square_thumbnail: z.string(),
-  image: z.string().nullable(),
-  image_hash: z.string(),
-  exif_timestamp: z.string(),
-  exif_gps_lat: z.number().nullable(),
-  exif_gps_lon: z.number().nullable(),
-  rating: z.number(),
-  geolocation_json: z.any(),
-  public: z.boolean(),
-  video: z.boolean(),
-});
-
-const AutoAlbumSchema = z.object({
-  id: z.number(),
-  title: z.string(),
-  favorited: z.boolean(),
-  timestamp: z.string(),
-  created_on: z.string(),
-  gps_lat: z.number().nullable(),
-  people: PersonSchema.array(),
-  gps_lon: z.number().nullable(),
-  photos: PhotoSimpleSchema.array(),
-});
-type AutoAlbum = z.infer<typeof AutoAlbumSchema>;
-
-const AutoAlbumInfoSchema = z.object({
-  id: z.number(),
-  title: z.string(),
-  timestamp: z.string(),
-  photos: PhotoHashSchema, // TODO: This is a single photo, so the property name should be corrected. Perhaps cover_photo?
-  photo_count: z.number(),
-  favorited: z.boolean(),
-});
-type AutoAlbumInfo = z.infer<typeof AutoAlbumInfoSchema>;
-
-//actions using new list view in backend
-
-const _FetchAutoAlbumsListResponseSchema = z.object({
-  results: AutoAlbumInfoSchema.array(),
-});
 export function fetchAutoAlbumsList() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_AUTO_ALBUMS_LIST" });
@@ -487,9 +385,6 @@ export function fetchAutoAlbumsList() {
   };
 }
 
-const _FetchDateAlbumsListResponseSchema = z.object({
-  results: IncompleteDatePhotosGroupSchema.array(),
-});
 export function fetchAlbumDateList(
   dispatch: AppDispatch,
   photosetType: PhotosetType,
@@ -641,10 +536,6 @@ export function setUserAlbumShared(
   };
 }
 
-//sharing
-const _FetchUserAlbumsSharedResponseSchema = z.object({
-  results: UserAlbumInfoSchema.array(),
-});
 export function fetchUserAlbumsSharedToMe() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_ALBUMS_SHARED_TO_ME" });

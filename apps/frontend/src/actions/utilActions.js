@@ -50,20 +50,18 @@ export function setSiteSettings(siteSettings) {
   };
 }
 
-export function fetchSiteSettings() {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_SITE_SETTINGS" });
-    Server.get("sitesettings/")
-      .then((response) => {
-        dispatch({
-          type: "FETCH_SITE_SETTINGS_FULFILLED",
-          payload: response.data,
-        });
-      })
-      .catch((error) => {
-        dispatch({ type: "FETCH_SITE_SETTINGS_REJECTED", payload: error });
+export function fetchSiteSettings(dispatch) {
+  dispatch({ type: "FETCH_SITE_SETTINGS" });
+  Server.get("sitesettings/")
+    .then((response) => {
+      dispatch({
+        type: "FETCH_SITE_SETTINGS_FULFILLED",
+        payload: response.data,
       });
-  };
+    })
+    .catch((error) => {
+      dispatch({ type: "FETCH_SITE_SETTINGS_REJECTED", payload: error });
+    });
 }
 
 // Todo: put this under userActions.js
