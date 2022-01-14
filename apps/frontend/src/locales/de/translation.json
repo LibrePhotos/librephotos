@@ -237,7 +237,9 @@
         "errorusername": "Das Nutzernamenfeld darf nicht leer sein!",
         "tagline": "Ein gemütlicher Platz für deine Bilder.",
         "confirmpasswordplaceholder": "Passwort bestätigen",
-        "confirmpassword": "Passwort bestätigen"
+        "confirmpassword": "Passwort bestätigen",
+        "errorusernameexists": "Ein Nutzer mit diesem Benutzernamen existiert bereits.",
+        "erroremail": "Bitte gültige E-Mail-Adresse eingeben."
     },
     "search": {
         "search": "Suche nach",
