@@ -237,7 +237,9 @@
         "errorusername": "El nombre de usuario no puede estar en blanco!",
         "tagline": "Un lugar cómodo para tus fotos.",
         "confirmpassword": "Confirmar contraseña",
-        "confirmpasswordplaceholder": "Confirmar contraseña"
+        "confirmpasswordplaceholder": "Confirmar contraseña",
+        "errorusernameexists": "Un usuario con ese nombre ya existe.'",
+        "erroremail": "Introduzca una dirección de correo electrónico válida."
     },
     "search": {
         "search": "Buscar",
