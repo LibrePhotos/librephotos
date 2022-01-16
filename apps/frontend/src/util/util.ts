@@ -6,6 +6,7 @@ import {
   PigPhoto,
 } from "../actions/photosActions.types";
 import i18n from "../i18n";
+
 export const copyToClipboard = (str: string) => {
   if (navigator.clipboard) {
     navigator.clipboard.writeText(str);
@@ -30,7 +31,7 @@ export function adjustDateFormatForSingleGroup(group: DatePhotosGroup) {
             .toFormat("MMMM d yyyy, cccc")
         : group.date;
   } else {
-    group.date = "No Timestamp";
+    group.date = i18n.t("sidemenu.withouttimestamp");
   }
 }
 
