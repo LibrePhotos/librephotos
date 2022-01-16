@@ -237,7 +237,9 @@
         "errorusername": "Le nom d’utilisateur ne peut pas être vide !",
         "tagline": "LibrePhotos prend soin de vos photos...",
         "confirmpassword": "Confirmer le mot de passe",
-        "confirmpasswordplaceholder": "Confirmer le mot de passe"
+        "confirmpasswordplaceholder": "Confirmer le mot de passe",
+        "errorusernameexists": "Un utilisateur avec ce nom d'utilisateur existe déjà.",
+        "erroremail": "Saisissez une adresse courriel valide."
     },
     "search": {
         "search": "Recherche",
