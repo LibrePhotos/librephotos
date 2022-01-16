@@ -1,7 +1,5 @@
 import { AnyAction } from "redux";
 import {
-  FETCH_PERSON_PHOTOS_FULFILLED,
-  FETCH_PERSON_PHOTOS_REJECTED,
   FETCH_USER_ALBUM_FULFILLED,
   FETCH_USER_ALBUM_REJECTED,
 } from "../actions/albumsActions";
@@ -379,18 +377,6 @@ export default function photosReducer(
       };
     }
     case FETCH_USER_ALBUM_REJECTED: {
-      return resetPhotos(state, action.payload);
-    }
-
-    case FETCH_PERSON_PHOTOS_FULFILLED: {
-      return {
-        ...state,
-        photosFlat: action.payload.photosFlat,
-        fetchedPhotosetType: PhotosetType.PERSON,
-        photosGroupedByDate: action.payload.photosGroupedByDate,
-      };
-    }
-    case FETCH_PERSON_PHOTOS_REJECTED: {
       return resetPhotos(state, action.payload);
     }
     case "LOGOUT": {
