@@ -10,6 +10,9 @@ import translationFr from "./locales/fr/translation.json";
 import translationIt from "./locales/it/translation.json";
 import translationNb_NO from "./locales/nb_NO/translation.json";
 import translationZh_Hans from "./locales/zh_Hans/translation.json";
+import translationRu from "./locales/ru/translation.json";
+import translationJa from "./locales/ja/translation.json";
+import translationSv from "./locales/sv/translation.json";
 
 const resources = {
   en: {
@@ -32,6 +35,15 @@ const resources = {
   },
   zh_Hans: {
     translation: translationZh_Hans,
+  },
+  ru: {
+    translation: translationRu,
+  },
+  ja: {
+    translation: translationJa,
+  },
+  sv: {
+    translation: translationSv,
   },
 };
 i18n

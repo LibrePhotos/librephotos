@@ -342,6 +342,24 @@ export class Settings extends Component {
                         flag: "cn",
                         text: this.props.t("settings.simplifiedchinese"),
                       },
+                      {
+                        key: "ru",
+                        value: "ru",
+                        flag: "ru",
+                        text: this.props.t("settings.russian"),
+                      },
+                      {
+                        key: "ja",
+                        value: "ja",
+                        flag: "jp",
+                        text: this.props.t("settings.japanese"),
+                      },
+                      {
+                        key: "sv",
+                        value: "sv",
+                        flag: "se",
+                        text: this.props.t("settings.swedish"),
+                      },
                     ]}
                   />
                 </Form>{" "}
