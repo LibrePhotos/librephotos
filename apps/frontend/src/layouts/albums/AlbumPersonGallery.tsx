@@ -82,6 +82,7 @@ export const AlbumPersonGallery = (props: Props) => {
       idx2hash={photosFlat}
       updateGroups={throttledGetAlbums}
       selectable={true}
+      match={props.match}
     />
   );
 };
