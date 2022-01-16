@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import {
   fetchAlbumDate,
   fetchAlbumDateList,
@@ -18,21 +18,35 @@ type Props = {
   match: any;
 };
 
+type fetchedGroup = {
+  id: string;
+  page: number;
+};
+
 export const UserPublicPage = (props: Props) => {
   const { fetchedPhotosetType, photosFlat, photosGroupedByDate } =
     useAppSelector((state) => state.photos as PhotosState);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  const { auth, pub, ui } = useAppSelector((state) => state);
+  const { auth, ui } = useAppSelector((state) => state);
+  const [group, setGroup] = useState({} as fetchedGroup);
 
   useEffect(() => {
-    if (fetchedPhotosetType !== PhotosetType.PUBLIC) {
-      fetchAlbumDateList(
-        dispatch,
-        PhotosetType.PUBLIC,
-        props.match.params.username
-      );
+    if (group.id && group.page) {
+      fetchAlbumDate(dispatch, {
+        album_date_id: group.id,
+        page: group.page,
+        photosetType: PhotosetType.PUBLIC,
+        username: props.match.params.username,
+      });
     }
+  }, [group.id, group.page]);
+
+  useEffect(() => {
+    fetchAlbumDateList(dispatch, {
+      photosetType: PhotosetType.PUBLIC,
+      username: props.match.params.username,
+    });
   }, [dispatch]); // Only run on first render
 
   const getAlbums = (visibleGroups: any) => {
@@ -45,13 +59,7 @@ export const UserPublicPage = (props: Props) => {
       ) {
         var firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
         var page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
-        fetchAlbumDate(
-          dispatch,
-          group.id,
-          page,
-          PhotosetType.PUBLIC,
-          props.match.params.username
-        );
+        setGroup({ id: group.id, page: page });
       }
     });
   };

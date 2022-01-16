@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   fetchAlbumDateList,
   fetchAlbumDate,
@@ -9,20 +9,35 @@ import { PhotosetType, PhotosState } from "../../reducers/photosReducer";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { useTranslation } from "react-i18next";
 
+type fetchedGroup = {
+  id: string;
+  page: number;
+};
+
 export const TimestampPhotos = () => {
   const { fetchedPhotosetType, photosFlat, photosGroupedByDate } =
     useAppSelector((state) => state.photos as PhotosState);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
+  const [group, setGroup] = useState({} as fetchedGroup);
+
+  useEffect(() => {
+    if (group.id && group.page) {
+      fetchAlbumDate(dispatch, {
+        album_date_id: group.id,
+        page: group.page,
+        photosetType: PhotosetType.TIMESTAMP,
+      });
+    }
+  }, [group.id, group.page]);
 
   useEffect(() => {
     if (fetchedPhotosetType !== PhotosetType.TIMESTAMP) {
-      fetchAlbumDateList(dispatch, PhotosetType.TIMESTAMP);
+      fetchAlbumDateList(dispatch, { photosetType: PhotosetType.TIMESTAMP });
     }
   }, [dispatch]); // Only run on first render
 
   const getAlbums = (visibleGroups: any) => {
-    console.log("visibleGroups", visibleGroups);
     visibleGroups.forEach((group: any) => {
       var visibleImages = group.items;
       if (
@@ -31,7 +46,7 @@ export const TimestampPhotos = () => {
       ) {
         var firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
         var page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
-        fetchAlbumDate(dispatch, group.id, page, PhotosetType.TIMESTAMP);
+        setGroup({ id: group.id, page: page });
       }
     });
   };

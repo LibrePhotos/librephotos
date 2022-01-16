@@ -385,22 +385,38 @@ export function fetchAutoAlbumsList() {
   };
 }
 
+type AlbumDateListOptions = {
+  photosetType: PhotosetType;
+  person_id?: number;
+  username?: string;
+};
+
 export function fetchAlbumDateList(
   dispatch: AppDispatch,
-  photosetType: PhotosetType,
-  username?: string
+  options: AlbumDateListOptions
 ) {
   dispatch({
     type: "FETCH_DATE_ALBUMS_LIST",
   });
 
   var favorites =
-    photosetType === PhotosetType.FAVORITES ? `?favorite=true` : "";
-  var publicParam = photosetType === PhotosetType.PUBLIC ? `?public=true` : "";
-  var usernameParam = username ? `&username=${username.toLowerCase()}` : "";
-  Server.get("albums/date/list/" + favorites + publicParam + usernameParam, {
-    timeout: 100000,
-  })
+    options.photosetType === PhotosetType.FAVORITES ? `?favorite=true` : "";
+  var publicParam =
+    options.photosetType === PhotosetType.PUBLIC ? `?public=true` : "";
+  var usernameParam = options.username
+    ? `&username=${options.username.toLowerCase()}`
+    : "";
+  var personidParam = options.person_id ? `?person=${options.person_id}` : "";
+  Server.get(
+    "albums/date/list/" +
+      favorites +
+      publicParam +
+      usernameParam +
+      personidParam,
+    {
+      timeout: 100000,
+    }
+  )
     .then((response) => {
       const data = _FetchDateAlbumsListResponseSchema.parse(response.data);
       const photosGroupedByDate: IncompleteDatePhotosGroup[] = data.results;
@@ -411,13 +427,65 @@ export function fetchAlbumDateList(
         payload: {
           photosGroupedByDate: photosGroupedByDate,
           photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
-          photosetType: photosetType,
+          photosetType: options.photosetType,
         },
       });
     })
     .catch((err) => {
       console.log(err);
       dispatch({ type: "FETCH_DATE_ALBUMS_LIST_REJECTED", payload: err });
+    });
+}
+
+type AlbumDateOption = {
+  photosetType: PhotosetType;
+  album_date_id: string;
+  page: number;
+  username?: string;
+  person_id?: number;
+};
+
+export function fetchAlbumDate(
+  dispatch: AppDispatch,
+  options: AlbumDateOption
+) {
+  dispatch({
+    type: "FETCH_DATE_ALBUMS_RETRIEVE",
+    payload: {
+      album_id: options.album_date_id,
+    },
+  });
+  var favorites =
+    options.photosetType === PhotosetType.FAVORITES ? `&favorite=true` : "";
+  var publicParam =
+    options.photosetType === PhotosetType.PUBLIC ? `&public=true` : "";
+  var usernameParam = options.username
+    ? `&username=${options.username.toLowerCase()}`
+    : "";
+  var personidParam = options.person_id ? `&person=${options.person_id}` : "";
+  Server.get(
+    `albums/date/${options.album_date_id}/?page=${options.page}` +
+      favorites +
+      publicParam +
+      usernameParam +
+      personidParam
+  )
+    .then((response) => {
+      console.log(response.data);
+      const datePhotosGroup: IncompleteDatePhotosGroup =
+        IncompleteDatePhotosGroupSchema.parse(response.data.results);
+      adjustDateFormatForSingleGroup(datePhotosGroup);
+      dispatch({
+        type: "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED",
+        payload: {
+          datePhotosGroup: datePhotosGroup,
+          page: options.page,
+        },
+      });
+    })
+    .catch((err) => {
+      console.log(err);
+      dispatch({ type: "FETCH_DATE_ALBUMS_RETRIEVE_REJECTED", payload: err });
     });
 }
 
@@ -437,48 +505,6 @@ export function fetchAlbumsAutoGalleries(
     })
     .catch((err) => {
       dispatch({ type: "FETCH_AUTO_ALBUMS_RETRIEVE_REJECTED", payload: err });
-    });
-}
-
-export function fetchAlbumDate(
-  dispatch: AppDispatch,
-  album_id: string,
-  page: number,
-  photosetType: PhotosetType,
-  username?: string
-) {
-  dispatch({
-    type: "FETCH_DATE_ALBUMS_RETRIEVE",
-    payload: {
-      album_id: album_id,
-    },
-  });
-  var favorites =
-    photosetType === PhotosetType.FAVORITES ? `&favorite=true` : "";
-  var publicParam = photosetType === PhotosetType.PUBLIC ? `&public=true` : "";
-  var usernameParam = username ? `&username=${username.toLowerCase()}` : "";
-  Server.get(
-    `albums/date/${album_id}/?page=${page}` +
-      favorites +
-      publicParam +
-      usernameParam
-  )
-    .then((response) => {
-      console.log(response.data);
-      const datePhotosGroup: IncompleteDatePhotosGroup =
-        IncompleteDatePhotosGroupSchema.parse(response.data.results);
-      adjustDateFormatForSingleGroup(datePhotosGroup);
-      dispatch({
-        type: "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED",
-        payload: {
-          datePhotosGroup: datePhotosGroup,
-          page: page,
-        },
-      });
-    })
-    .catch((err) => {
-      console.log(err);
-      dispatch({ type: "FETCH_DATE_ALBUMS_RETRIEVE_REJECTED", payload: err });
     });
 }
 
