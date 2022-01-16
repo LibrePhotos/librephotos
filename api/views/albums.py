@@ -338,6 +338,16 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                 Q(owner__username=username) & Q(public=True)
             )
 
+        if self.request.query_params.get("person"):
+            qs = AlbumDate.objects.filter(
+                Q(owner=self.request.user)
+                & Q(photos__hidden=False)
+                & Q(photos__faces__person__id=self.request.query_params.get("person"))
+            )
+            photo_qs = photo_qs.filter(
+                Q(faces__person__id=self.request.query_params.get("person"))
+            )
+
         qs = (
             qs.annotate(photo_count=Count("photos"))
             .filter(Q(photo_count__gt=0))
@@ -414,6 +424,12 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
                 Q(owner__username=username)
                 & Q(photos__hidden=False)
                 & Q(photos__public=True)
+            )
+        if self.request.query_params.get("person"):
+            qs = AlbumDate.objects.filter(
+                Q(owner=self.request.user)
+                & Q(photos__hidden=False)
+                & Q(photos__faces__person__id=self.request.query_params.get("person"))
             )
         qs = (
             qs.annotate(photo_count=Count("photos"))
