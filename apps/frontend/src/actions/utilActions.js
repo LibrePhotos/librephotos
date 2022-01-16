@@ -253,7 +253,7 @@ export function fetchWorkerAvailability(prevRunningJob) {
           if (prevRunningJob.job_type_str.toLowerCase() === "train faces") {
             dispatch(fetchLabeledFacesList());
             dispatch(fetchInferredFacesList());
-            dispatch(fetchPeople());
+            fetchPeople(dispatch);
           }
           if (prevRunningJob.job_type_str.toLowerCase() === "scan photos") {
             dispatch(fetchAlbumDateList());

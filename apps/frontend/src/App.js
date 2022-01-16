@@ -128,7 +128,7 @@ class App extends Component {
 
             <PrivateRoute
               path="/person/:albumID"
-              component={AlbumPersonGallery}
+              component={(props) => <AlbumPersonGallery {...props} />}
             />
 
             <PrivateRoute

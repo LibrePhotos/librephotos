@@ -5,7 +5,6 @@ import { push } from "connected-react-router";
 import "./menubars/TopMenu.css";
 import { Icon, Image, Search, Popup, Segment, Loader } from "semantic-ui-react";
 import {
-  fetchPersonPhotos,
   fetchPlaceAlbum,
   fetchPlaceAlbumsList,
   fetchThingAlbumsList,
@@ -23,7 +22,7 @@ import { fetchExampleSearchTerms } from "../actions/utilActions";
 import { serverAddress } from "../api_client/apiClient";
 import { SecuredImageJWT } from "./SecuredImage";
 import { TOP_MENU_HEIGHT } from "../ui-constants";
-import { withTranslation, Trans } from "react-i18next";
+import { withTranslation } from "react-i18next";
 import { compose } from "redux";
 var ENTER_KEY = 13;
 
@@ -143,7 +142,7 @@ export class CustomSearch extends Component {
 
   filterSearchSuggestions() {
     if (this.props.people.length == 0) {
-      this.props.dispatch(fetchPeople());
+      fetchPeople(this.props.dispatch);
     }
     if (this.props.albumsPlaceList.length == 0) {
       this.props.dispatch(fetchPlaceAlbumsList());
@@ -418,9 +417,6 @@ export class CustomSearch extends Component {
                               onClick={() => {
                                 this.props.dispatch(
                                   push(`/person/${person.key}`)
-                                );
-                                this.props.dispatch(
-                                  fetchPersonPhotos(person.key)
                                 );
                               }}
                               height={50}

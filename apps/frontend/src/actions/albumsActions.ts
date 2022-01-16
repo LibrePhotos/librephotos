@@ -33,7 +33,6 @@ import {
   AutoAlbumInfo,
   _FetchAutoAlbumsListResponseSchema,
   _FetchUserAlbumsSharedResponseSchema,
-  _FetchPersonPhotosResponseSchema,
   _FetchDateAlbumsListResponseSchema,
   AutoAlbumSchema,
   UserAlbumInfoSchema,
@@ -335,34 +334,6 @@ export function fetchPlaceAlbum(album_id: string) {
       })
       .catch((err) => {
         dispatch({ type: "FETCH_PLACE_ALBUMS_REJECTED", payload: err });
-      });
-  };
-}
-
-export const FETCH_PERSON_PHOTOS = "FETCH_PERSON_PHOTOS";
-export const FETCH_PERSON_PHOTOS_FULFILLED = "FETCH_PERSON_PHOTOS_FULFILLED";
-export const FETCH_PERSON_PHOTOS_REJECTED = "FETCH_PERSON_PHOTOS_REJECTED";
-export function fetchPersonPhotos(person_id: string) {
-  return function (dispatch: Dispatch<any>) {
-    dispatch({ type: FETCH_PERSON_PHOTOS });
-    Server.get(`albums/person/${person_id}/`)
-      .then((response) => {
-        const data = _FetchPersonPhotosResponseSchema.parse(response.data);
-        var photosGroupedByDate: DatePhotosGroup[] =
-          data.results.grouped_photos;
-        adjustDateFormat(photosGroupedByDate);
-        var personDetails: PersonInfo = data.results;
-        dispatch({
-          type: FETCH_PERSON_PHOTOS_FULFILLED,
-          payload: {
-            photosGroupedByDate: photosGroupedByDate,
-            photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
-            personDetails: personDetails,
-          },
-        });
-      })
-      .catch((err) => {
-        dispatch({ type: FETCH_PERSON_PHOTOS_REJECTED, payload: err });
       });
   };
 }

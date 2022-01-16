@@ -1,32 +1,30 @@
 import { Server } from "../api_client/apiClient";
 import { notify } from "reapop";
 
-export function fetchPeople() {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_PEOPLE" });
-    Server.get("persons/?page_size=1000")
-      .then((response) => {
-        var mappedPeopleDropdownOptions = response.data.results.map(function (
-          person
-        ) {
-          return {
-            key: person.id,
-            value: person.name,
-            text: person.name,
-            face_url: person.face_url,
-            face_count: person.face_count,
-            face_photo_url: person.face_photo_url,
-          };
-        });
-        dispatch({
-          type: "FETCH_PEOPLE_FULFILLED",
-          payload: mappedPeopleDropdownOptions,
-        });
-      })
-      .catch((err) => {
-        dispatch({ type: "FETCH_PEOPLE_REJECTED", payload: err });
+export function fetchPeople(dispatch) {
+  dispatch({ type: "FETCH_PEOPLE" });
+  Server.get("persons/?page_size=1000")
+    .then((response) => {
+      var mappedPeopleDropdownOptions = response.data.results.map(function (
+        person
+      ) {
+        return {
+          key: person.id,
+          value: person.name,
+          text: person.name,
+          face_url: person.face_url,
+          face_count: person.face_count,
+          face_photo_url: person.face_photo_url,
+        };
       });
-  };
+      dispatch({
+        type: "FETCH_PEOPLE_FULFILLED",
+        payload: mappedPeopleDropdownOptions,
+      });
+    })
+    .catch((err) => {
+      dispatch({ type: "FETCH_PEOPLE_REJECTED", payload: err });
+    });
 }
 
 export function addPerson(person_name) {
@@ -58,7 +56,7 @@ export function renamePerson(personId, personName, newPersonName) {
     })
       .then((response) => {
         dispatch({ type: "RENAME_PERSON_FULFILLED", payload: personId });
-        dispatch(fetchPeople());
+        fetchPeople(dispatch);
         dispatch(
           notify({
             message: `${personName} was successfully renamed to ${newPersonName}.`,
@@ -81,7 +79,7 @@ export function deletePerson(person_id) {
     dispatch({ type: "DELETE_PERSON" });
     Server.delete(`persons/${person_id}/`)
       .then((response) => {
-        dispatch(fetchPeople());
+        fetchPeople(dispatch);
         dispatch({ type: "DELETE_PERSON_FULFILLED" });
       })
       .catch((err) => {
@@ -108,7 +106,7 @@ export function setAlbumCoverForPerson(person_id, photo_hash) {
             position: "br",
           })
         );
-        dispatch(fetchPeople());
+        fetchPeople(dispatch);
       })
       .catch((err) => {
         dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON_REJECTED", payload: err });

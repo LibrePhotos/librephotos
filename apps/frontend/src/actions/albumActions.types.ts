@@ -84,13 +84,6 @@ export const PlaceAlbumSchema = z.object({
   grouped_photos: DatePhotosGroupSchema.array(),
 });
 
-export const PersonPhotosSchema = PersonInfoSchema.extend({
-  grouped_photos: DatePhotosGroupSchema.array(),
-});
-export const _FetchPersonPhotosResponseSchema = z.object({
-  results: PersonPhotosSchema,
-});
-
 export const PersonSchema = z.object({
   name: z.string(),
   face_url: z.string().nullable(),
