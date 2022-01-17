@@ -116,7 +116,10 @@
         "experimentalupdate": "Mettre à jour",
         "italian": "italien",
         "norwegianbokmal": "norvégien bokmål",
-        "simplifiedchinese": "chinois (simplifié)"
+        "simplifiedchinese": "chinois (simplifié)",
+        "japanese": "Japonais",
+        "swedish": "suédois",
+        "russian": "russe"
     },
     "modalnextcloud": {
         "setdirectory": "Définir votre répertoire de scan Nextcloud",
