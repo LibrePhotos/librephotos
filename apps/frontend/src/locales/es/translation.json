@@ -116,7 +116,10 @@
         "experimentalupdate": "Actualizar",
         "italian": "Italiano",
         "simplifiedchinese": "Chino (simplificado)",
-        "norwegianbokmal": "Noruego Bokmål"
+        "norwegianbokmal": "Noruego Bokmål",
+        "japanese": "Japonés",
+        "russian": "Ruso",
+        "swedish": "Sueco"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de escaneo de Nextcloud",
