@@ -116,7 +116,10 @@
         "scanoptions": "扫描选项",
         "simplifiedchinese": "简体中文",
         "norwegianbokmal": "挪威语",
-        "italian": "意大利语"
+        "italian": "意大利语",
+        "swedish": "Svenska",
+        "japanese": "日本語",
+        "russian": "Русский"
     },
     "modalnextcloud": {
         "setdirectory": "设置Nextcloud扫描目录",
@@ -237,7 +240,9 @@
         "errorusername": "不可使用空用户名！",
         "tagline": "A comfy place for your photos.",
         "usernameplaceholder": "用户名",
-        "username": "用户名"
+        "username": "用户名",
+        "errorusernameexists": "此用户名已存在。",
+        "erroremail": "输入有效的电子邮件地址。"
     },
     "search": {
         "search": "搜索",
