@@ -82,6 +82,137 @@
         "italian": "Italienska",
         "emailplaceholder": "E-postadress",
         "missingphotos": "Saknade bilder",
-        "eventsalbumsdescription": "Backendservern klustrar först foton efter tidpunkten de togs. Om två foton tagits inom 12 timmar från varandra anses de tillhöra samma händelse. Efter att klustren skapats genereras ett automatiskt namn på händelsealbumet."
+        "eventsalbumsdescription": "Backendservern klustrar först foton efter tidpunkten de togs. Om två foton tagits inom 12 timmar från varandra anses de tillhöra samma händelse. Efter att klustren skapats genereras ett automatiskt namn på händelsealbumet.",
+        "favoritesyncoptions": {
+            "sidecar": "Spara till sidecar",
+            "mediafile": "Spara som mediafil",
+            "off": "Av"
+        },
+        "favoriteupdate": "Uppdatera",
+        "experimentalupdate": "Uppdatera",
+        "russian": "Ryska",
+        "japanese": "Japanska",
+        "swedish": "Svenska",
+        "experimentaloptions": "Experimentella inställningar",
+        "favoriteminimum": "Lägsta bildbetyg för att ange som favorit",
+        "transcodevideo": "Transkoda alltid videor",
+        "favoritesync": "Spara betyg till lagring",
+        "favoriteoption": {
+            "placeholder": "Lägsta betyg"
+        },
+        "on": "På",
+        "off": "Av",
+        "sceneconfidence": "Säkerhetsnivå scen",
+        "confidencelevel": "Säkerhetsnivå",
+        "confidence": {
+            "high": "Hög",
+            "standard": "Standard",
+            "low": "Låg",
+            "none": "Ingen"
+        },
+        "semanticsearchheader": "Max antal resultat, semantisk sökning",
+        "semanticsearch": {
+            "placeholder": "Semantiska sökresultat",
+            "top100": "Top 100",
+            "top50": "Top 50",
+            "top10": "Top 10",
+            "top0": "Inaktiverad"
+        },
+        "semanticsearchupdate": "Uppdatera",
+        "favorite": "Inställningar för favoriter"
+    },
+    "modalnextcloud": {
+        "setdirectory": "Ange lagringsplats i Nextcloud",
+        "cancel": "Avbryt",
+        "choosedirectory": "Välj en mapp nedanför",
+        "currentdirectory": "Nuvarande lagringsplats i Nextcloud",
+        "update": "Uppdatera",
+        "notset": "inte angiven"
+    },
+    "topmenu": {
+        "available": "Arbetare tillgänglig! Du kan börja söka efter fler bilder, tyda fler ansikten, generera händelsealbum eller generera namn på händelsealbum.",
+        "adminarea": "Administratörsområde",
+        "busy": "Upptagen...",
+        "running": "Kör",
+        "loggedin": "Inloggad som",
+        "logout": "Logga ut",
+        "settings": "Inställningar"
+    },
+    "sidemenu": {
+        "name": "LibrePhotos",
+        "withtimestamp": "Med tidsstämpel",
+        "recentlyadded": "Nyligen tillagda",
+        "hidden": "Dolda",
+        "photos": "Bilder",
+        "myalbums": "Mina Album",
+        "autoalbums": "Autogenererade album",
+        "dataviz": "Datavisualisering",
+        "placetree": "Platsträd",
+        "wordclouds": "Ordmoln",
+        "timeline": "Tidslinje",
+        "socialgraph": "Social graf",
+        "facecluster": "Ansiktsgrupper",
+        "dashboards": "Översikter",
+        "publicphotos": "Offentliga bilder",
+        "sharedwithyou": "Delade med dig",
+        "youshared": "Du delar",
+        "mypublicphotos": "Mina offentliga bilder",
+        "library": "Bibliotek",
+        "withouttimestamp": "Utan tidsstämpel",
+        "albums": "Album",
+        "favorites": "Favoriter",
+        "people": "Personer",
+        "places": "Platser",
+        "things": "Saker",
+        "datavizsmall": "Datavisualisering",
+        "facerecognition": "Ansiktsigenkänning",
+        "sharing": "Delade"
+    },
+    "selectionbar": {
+        "selected": "valda",
+        "toggle": "Växla väljläge",
+        "deselect": "Avmarkera alla",
+        "select": "Välj alla"
+    },
+    "defaultheader": {
+        "setup": "Det verkar som att du behöver konfigurera LibrePhotos.",
+        "gettingstarted": "Kom igång",
+        "loading": "Laddar...",
+        "noimages": "Inga bilder hittade",
+        "days": "dagar",
+        "photos": "bilder"
+    },
+    "selectionactions": {
+        "selected": "valda",
+        "favorite": "Markera som favorit",
+        "hide": "Dölj",
+        "sharing": "Dela",
+        "makepublic": "Gör offentlig",
+        "download": "Ladda ner",
+        "unfavorite": "Avmarkera som favorit",
+        "sharingdescription": "Öppna delningspanel för valda bilder",
+        "unhide": "Ta fram dold bild",
+        "photoactions": "Val för bild",
+        "makeprivate": "Gör privat",
+        "albumcoverdescription": "Ange omslag för aktuellt album",
+        "albumactions": "Val för album",
+        "albumcover": "Ange som albumets omslag",
+        "removephotosdescription": "Ta bort de valda bilderna från det aktuella albumet",
+        "albumsharingdescription": "Öppna delningspanelen för det aktuella albumet",
+        "removephotos": "Ta bort bilder",
+        "album": "Album"
+    },
+    "lightbox": {
+        "sidebar": {
+            "filepath": "Sökväg",
+            "timetaken": "Tidsåtgång",
+            "location": "Plats",
+            "details": "Detaljer",
+            "caption": "Bildtext",
+            "people": "Personer",
+            "submit": "Sätt",
+            "cancel": "Avbryt",
+            "generate": "Generera"
+        }
     }
 }
