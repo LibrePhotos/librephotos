@@ -108,17 +108,15 @@ export function rescanFaces() {
   };
 }
 
-export function clusterFaces() {
-  return function (dispatch) {
-    dispatch({ type: "CLUSTER_FACES" });
-    Server.get("clusterfaces/")
-      .then((response) => {
-        dispatch({ type: "CLUSTER_FACES_FULFILLED", payload: response.data });
-      })
-      .catch((err) => {
-        dispatch({ type: "CLUSTER_FACES_REJECTED", payload: err });
-      });
-  };
+export function clusterFaces(dispatch) {
+  dispatch({ type: "CLUSTER_FACES" });
+  Server.get("clusterfaces/")
+    .then((response) => {
+      dispatch({ type: "CLUSTER_FACES_FULFILLED", payload: response.data });
+    })
+    .catch((err) => {
+      dispatch({ type: "CLUSTER_FACES_REJECTED", payload: err });
+    });
 }
 
 export function fetchInferredFaces() {

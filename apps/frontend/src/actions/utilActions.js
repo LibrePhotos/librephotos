@@ -412,20 +412,18 @@ export function fetchLocationSunburst() {
   };
 }
 
-export function fetchLocationTimeline() {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_LOCATION_TIMELINE" });
-    Server.get(`locationtimeline/`)
-      .then((response) => {
-        dispatch({
-          type: "FETCH_LOCATION_TIMELINE_FULFILLED",
-          payload: response.data,
-        });
-      })
-      .catch((err) => {
-        dispatch({ type: "FETCH_LOCATION_TIMELINE_REJECTED", payload: err });
+export function fetchLocationTimeline(dispatch) {
+  dispatch({ type: "FETCH_LOCATION_TIMELINE" });
+  Server.get(`locationtimeline/`)
+    .then((response) => {
+      dispatch({
+        type: "FETCH_LOCATION_TIMELINE_FULFILLED",
+        payload: response.data,
       });
-  };
+    })
+    .catch((err) => {
+      dispatch({ type: "FETCH_LOCATION_TIMELINE_REJECTED", payload: err });
+    });
 }
 
 export function fetchCountStats() {
@@ -460,31 +458,27 @@ export function fetchLocationClusters() {
   };
 }
 
-export function fetchPhotoMonthCounts() {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_PHOTO_MONTH_COUNTS" });
-    Server.get(`photomonthcounts/`)
-      .then((response) => {
-        dispatch({
-          type: "FETCH_PHOTO_MONTH_COUNTS_FULFILLED",
-          payload: response.data,
-        });
-      })
-      .catch((err) => {
-        dispatch({ type: "FETCH_PHOTO_MONTH_COUNTS_REJECTED", payload: err });
+export function fetchPhotoMonthCounts(dispatch) {
+  dispatch({ type: "FETCH_PHOTO_MONTH_COUNTS" });
+  Server.get(`photomonthcounts/`)
+    .then((response) => {
+      dispatch({
+        type: "FETCH_PHOTO_MONTH_COUNTS_FULFILLED",
+        payload: response.data,
       });
-  };
+    })
+    .catch((err) => {
+      dispatch({ type: "FETCH_PHOTO_MONTH_COUNTS_REJECTED", payload: err });
+    });
 }
 
-export function fetchWordCloud() {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_WORDCLOUD" });
-    Server.get(`wordcloud/`)
-      .then((response) => {
-        dispatch({ type: "FETCH_WORDCLOUD_FULFILLED", payload: response.data });
-      })
-      .catch((err) => {
-        dispatch({ type: "FETCH_WORDCLOUD_REJECTED", payload: err });
-      });
-  };
+export function fetchWordCloud(dispatch) {
+  dispatch({ type: "FETCH_WORDCLOUD" });
+  Server.get(`wordcloud/`)
+    .then((response) => {
+      dispatch({ type: "FETCH_WORDCLOUD_FULFILLED", payload: response.data });
+    })
+    .catch((err) => {
+      dispatch({ type: "FETCH_WORDCLOUD_REJECTED", payload: err });
+    });
 }

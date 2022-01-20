@@ -150,18 +150,16 @@ export function addPersonAndSetLabelToFace(person_name, face_id) {
   };
 }
 
-export function fetchSocialGraph() {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_SOCIAL_GRAPH" });
-    Server.get("socialgraph")
-      .then((response) => {
-        dispatch({
-          type: "FETCH_SOCIAL_GRAPH_FULFILLED",
-          payload: response.data,
-        });
-      })
-      .catch((err) => {
-        dispatch({ type: "FETCH_SOCIAL_GRAPH_REJECTED", payload: err });
+export function fetchSocialGraph(dispatch) {
+  dispatch({ type: "FETCH_SOCIAL_GRAPH" });
+  Server.get("socialgraph")
+    .then((response) => {
+      dispatch({
+        type: "FETCH_SOCIAL_GRAPH_FULFILLED",
+        payload: response.data,
       });
-  };
+    })
+    .catch((err) => {
+      dispatch({ type: "FETCH_SOCIAL_GRAPH_REJECTED", payload: err });
+    });
 }
