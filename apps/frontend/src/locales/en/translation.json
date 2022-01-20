@@ -350,5 +350,22 @@
     "myalbums": "My Albums",
     "things": "Things",
     "places": "Places",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "toasts": { 
+        "createnewalbum":  "{{numberOfPhotos}} photo(s) were successfully added to new album {{title}}",
+        "createalbumtitle": "Create album",
+        "viewalbum": "View Album",
+        "renamealbum": "{{albumTitle}} was successfully renamed to {{newAlbumTitle}}.",
+        "renamealbumtitle": "Rename Album",
+        "deletealbum": "{{albumTitle}} was successfully deleted.",
+        "deletealbumtitle":"Delete album",
+        "removefromalbum": "{{numberOfPhotos}} photo(s) were successfully removed from album {{title}}",
+        "removefromalbumtitle": "Remove from album",
+        "addtoalbum":  "{{numberOfPhotos}} photo(s) were successfully added to existing album {{title}}",
+        "addtoalbumtitle": "Add to album",
+        "sharingalbum": "Album was successfully shared",
+        "sharingalbumtitle": "Share album",
+        "unsharingalbum": "Album was successfully unshared",
+        "unsharingalbumtitle": "Unshare album"
+    }
 }

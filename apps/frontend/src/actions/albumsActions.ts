@@ -40,6 +40,7 @@ import {
 } from "./albumActions.types";
 import { z } from "zod";
 import { AppDispatch } from "../store";
+import i18n from "../i18n";
 
 export function fetchThingAlbumsList() {
   return function (dispatch: Dispatch<any>) {
@@ -135,15 +136,18 @@ export function createNewUserAlbum(title: string, image_hashes: string[]) {
         dispatch(fetchUserAlbumsList());
         dispatch(
           notify({
-            message: `${image_hashes.length} photo(s) were successfully added to new album "${title}"`,
-            title: "Create album",
+            message: i18n.t("toasts.createnewalbum", {
+              numberOfPhotos: image_hashes.length,
+              title: title,
+            }),
+            title: i18n.t("toasts.createalbumtitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
             position: "br",
             buttons: [
               {
-                name: "View Album",
+                name: i18n.t("toasts.viewalbum"),
                 primary: true,
                 onClick: () => {
                   dispatch(fetchUserAlbum(data.id));
@@ -175,8 +179,11 @@ export function renameUserAlbum(
         dispatch(fetchUserAlbumsList());
         dispatch(
           notify({
-            message: `${albumTitle} was successfully renamed to ${newAlbumTitle}.`,
-            title: "Rename album",
+            message: i18n.t("toasts.renamealbum", {
+              albumTitle: albumTitle,
+              newAlbumTitle: newAlbumTitle,
+            }),
+            title: i18n.t("toasts.renamealbumtitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -199,8 +206,10 @@ export function deleteUserAlbum(albumID: string, albumTitle: string) {
         dispatch(fetchUserAlbumsList());
         dispatch(
           notify({
-            message: `${albumTitle} was successfully deleted.`,
-            title: "Delete album",
+            message: i18n.t("toasts.deletealbum", {
+              albumTitle: albumTitle,
+            }),
+            title: i18n.t("toasts.deletealbumtitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -232,8 +241,11 @@ export function removeFromUserAlbum(
         });
         dispatch(
           notify({
-            message: `${image_hashes.length} photo(s) were successfully removed from album "${title}"`,
-            title: "Removed from album",
+            message: i18n.t("toasts.removefromalbum", {
+              numberOfPhotos: image_hashes.length,
+              title: title,
+            }),
+            title: i18n.t("toasts.removefromalbumtitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -268,8 +280,11 @@ export function addToUserAlbum(
         });
         dispatch(
           notify({
-            message: `${image_hashes.length} photo(s) were successfully added to existing album "${title}"`,
-            title: "Add to album",
+            message: i18n.t("toasts.addtoalbum", {
+              numberOfPhotos: image_hashes.length,
+              title: title,
+            }),
+            title: i18n.t("toasts.addtoalbumtitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -504,8 +519,8 @@ export function setUserAlbumShared(
         if (val_shared) {
           dispatch(
             notify({
-              message: `Album was successfully shared`,
-              title: "Share album",
+              message: i18n.t("toasts.sharingalbum"),
+              title: i18n.t("toasts.sharingalbumtitle"),
               status: "success",
               dismissible: true,
               dismissAfter: 3000,
@@ -515,8 +530,8 @@ export function setUserAlbumShared(
         } else {
           dispatch(
             notify({
-              message: `Album was successfully unshared`,
-              title: "Unshare album",
+              message: i18n.t("toasts.unsharingalbum"),
+              title: i18n.t("toasts.unsharingalbumtitle"),
               status: "success",
               dismissible: true,
               dismissAfter: 3000,
