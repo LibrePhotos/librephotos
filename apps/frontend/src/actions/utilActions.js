@@ -234,53 +234,51 @@ export function manageUpdateUser(user) {
   };
 }
 
-export function fetchWorkerAvailability(prevRunningJob) {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_WORKER_AVAILABILITY" });
-    Server.get("rqavailable/")
-      .then((response) => {
-        if (prevRunningJob !== null && response.data.job_detail === null) {
-          dispatch(
-            notify({
-              message: prevRunningJob.job_type_str + " finished.",
-              title: prevRunningJob.job_type_str,
-              status: "success",
-              dismissible: true,
-              dismissAfter: 3000,
-              position: "br",
-            })
-          );
-          if (prevRunningJob.job_type_str.toLowerCase() === "train faces") {
-            dispatch(fetchLabeledFacesList());
-            dispatch(fetchInferredFacesList());
-            fetchPeople(dispatch);
-          }
-          if (prevRunningJob.job_type_str.toLowerCase() === "scan photos") {
-            dispatch(fetchAlbumDateList());
-          }
+export function fetchWorkerAvailability(prevRunningJob, dispatch) {
+  dispatch({ type: "FETCH_WORKER_AVAILABILITY" });
+  Server.get("rqavailable/")
+    .then((response) => {
+      if (prevRunningJob !== null && response.data.job_detail === null) {
+        dispatch(
+          notify({
+            message: prevRunningJob.job_type_str + " finished.",
+            title: prevRunningJob.job_type_str,
+            status: "success",
+            dismissible: true,
+            dismissAfter: 3000,
+            position: "br",
+          })
+        );
+        if (prevRunningJob.job_type_str.toLowerCase() === "train faces") {
+          dispatch(fetchLabeledFacesList());
+          dispatch(fetchInferredFacesList());
+          fetchPeople(dispatch);
         }
+        if (prevRunningJob.job_type_str.toLowerCase() === "scan photos") {
+          dispatch(fetchAlbumDateList());
+        }
+      }
 
-        if (response.data.job_detail) {
-          dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
-        } else {
-          dispatch({ type: "SET_WORKER_AVAILABILITY", payload: true });
-        }
-        dispatch({
-          type: "SET_WORKER_RUNNING_JOB",
-          payload: response.data.job_detail,
-        });
-      })
-      .catch((error) => {
+      if (response.data.job_detail) {
         dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
-        console.log(error.message);
-
-        if (error.message.indexOf("502") !== -1) {
-          // Backend is offline; HTTP error status code 502
-          console.log("Backend is offline");
-          dispatch(logout());
-        }
+      } else {
+        dispatch({ type: "SET_WORKER_AVAILABILITY", payload: true });
+      }
+      dispatch({
+        type: "SET_WORKER_RUNNING_JOB",
+        payload: response.data.job_detail,
       });
-  };
+    })
+    .catch((error) => {
+      dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
+      console.log(error.message);
+
+      if (error.message.indexOf("502") !== -1) {
+        // Backend is offline; HTTP error status code 502
+        console.log("Backend is offline");
+        dispatch(logout());
+      }
+    });
 }
 
 export function deleteMissingPhotos() {

@@ -77,7 +77,6 @@ export class PhotoListView extends Component {
   handleSelections = (items) => {
     var newSelectedItems = this.state.selectionState.selectedItems;
     items.forEach((item) => {
-      console.log(item);
       if (
         newSelectedItems.find((selectedItem) => selectedItem.id === item.id)
       ) {

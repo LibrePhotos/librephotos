@@ -54,7 +54,7 @@ export class TopMenu extends Component {
 
   componentDidMount() {
     var intervalId = setInterval(() => {
-      this.props.dispatch(fetchWorkerAvailability(this.props.workerRunningJob));
+      fetchWorkerAvailability(this.props.workerRunningJob, this.props.dispatch);
     }, 2000);
     this.setState({ intervalId: intervalId });
   }

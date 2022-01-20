@@ -34,7 +34,6 @@ export const FavoritePhotos = () => {
   }, [group.id, group.page]);
 
   useEffect(() => {
-    console.log(userSelfDetails.favorite_min_rating);
     if (fetchedPhotosetType !== PhotosetType.FAVORITES) {
       fetchAlbumDateList(dispatch, { photosetType: PhotosetType.FAVORITES });
     }

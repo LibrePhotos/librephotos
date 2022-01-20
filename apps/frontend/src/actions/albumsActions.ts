@@ -442,7 +442,6 @@ export function fetchAlbumDate(
       personidParam
   )
     .then((response) => {
-      console.log(response.data);
       const datePhotosGroup: IncompleteDatePhotosGroup =
         IncompleteDatePhotosGroupSchema.parse(response.data.results);
       adjustDateFormatForSingleGroup(datePhotosGroup);
