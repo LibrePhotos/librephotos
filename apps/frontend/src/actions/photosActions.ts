@@ -21,6 +21,7 @@ import {
 } from "./photosActions.types";
 import { z } from "zod";
 import { AppDispatch } from "../store";
+import i18n from "../i18n";
 
 export type UserPhotosGroup = {
   userId: number;
@@ -81,16 +82,21 @@ export function setPhotosShared(
       target_user_id: target_user.id,
     })
       .then((response) => {
-        var notificationMessage =
-          "were successfully unshared with " + target_user.username;
+        var notificationMessage = i18n.t("toasts.unsharephoto", {
+          username: target_user.username,
+          numberOfPhotos: image_hashes.length,
+        });
+        "were successfully unshared with " + target_user.username;
         if (val_shared) {
-          notificationMessage =
-            "were successfully shared with " + target_user.username;
+          notificationMessage = i18n.t("toasts.sharephoto", {
+            username: target_user.username,
+            numberOfPhotos: image_hashes.length,
+          });
         }
         dispatch(
           notify({
-            message: `${image_hashes.length} photo(s) ` + notificationMessage,
-            title: "Shared photos",
+            message: notificationMessage,
+            title: i18n.t("toasts.sharephototitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -232,16 +238,18 @@ export function setPhotosPublic(image_hashes: string[], val_public: boolean) {
             updatedPhotos: updatedPhotos,
           },
         });
-        var notificationMessage =
-          "were successfully removed from your public photos";
+        var notificationMessage = i18n.t("toasts.setphotopublic", {
+          numberOfPhotos: image_hashes.length,
+        });
         if (val_public) {
-          notificationMessage =
-            "were successfully added to your public photos. Links to the photos were copied to the clipboard.";
+          notificationMessage = i18n.t("toasts.removephotopublic", {
+            numberOfPhotos: image_hashes.length,
+          });
         }
         dispatch(
           notify({
-            message: `${data.updated.length} photo(s) ` + notificationMessage,
-            title: "Set photos public",
+            message: notificationMessage,
+            title: i18n.t("toasts.setpublicphotostitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -279,14 +287,18 @@ export function setPhotosFavorite(image_hashes: string[], favorite: boolean) {
             updatedPhotos: updatedPhotos,
           },
         });
-        var notificationMessage = "were successfully removed from favorites";
+        var notificationMessage = i18n.t("toasts.unfavoritephoto", {
+          numberOfPhotos: image_hashes.length,
+        });
         if (favorite) {
-          notificationMessage = "were successfully added to favorites";
+          notificationMessage = i18n.t("toasts.favoritephoto", {
+            numberOfPhotos: image_hashes.length,
+          });
         }
         dispatch(
           notify({
-            message: `${data.updated.length} photo(s) ` + notificationMessage,
-            title: "Favorite photos",
+            message: notificationMessage,
+            title: i18n.t("toasts.setfavoritestitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -319,14 +331,18 @@ export function setPhotosHidden(image_hashes: string[], hidden: boolean) {
             updatedPhotos: updatedPhotos,
           },
         });
-        var notificationMessage = "were successfully unhidden";
+        var notificationMessage = i18n.t("toasts.unhidephoto", {
+          numberOfPhotos: image_hashes.length,
+        });
         if (hidden) {
-          notificationMessage = "were successfully hidden";
+          notificationMessage = i18n.t("toasts.hidephoto", {
+            numberOfPhotos: image_hashes.length,
+          });
         }
         dispatch(
           notify({
-            message: `${data.updated.length} photo(s) ` + notificationMessage,
-            title: "Hide photos",
+            message: notificationMessage,
+            title: i18n.t("toasts.sethidetitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -353,8 +369,8 @@ export function scanPhotos() {
         const jobResponse = JobResponseSchema.parse(response.data);
         dispatch(
           notify({
-            message: "Scan Photos started",
-            title: "Scan Photos",
+            message: i18n.t("toasts.scanphotos"),
+            title: i18n.t("toasts.scanphotostitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -379,8 +395,8 @@ export function scanAllPhotos() {
         const jobResponse = JobResponseSchema.parse(response.data);
         dispatch(
           notify({
-            message: "Scan Photos (full) started",
-            title: "Scan Photos (full)",
+            message: i18n.t("toasts.fullscanphotos"),
+            title: i18n.t("toasts.fullscanphotostitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -405,8 +421,8 @@ export function scanNextcloudPhotos() {
         const jobResponse = JobResponseSchema.parse(response.data);
         dispatch(
           notify({
-            message: "Scan Nextcloud Photos started",
-            title: "Scan Photos",
+            message: i18n.t("toasts.scannextcloudphotos"),
+            title: i18n.t("toasts.scannextcloudphotostitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,

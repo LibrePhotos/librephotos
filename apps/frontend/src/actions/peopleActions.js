@@ -1,5 +1,6 @@
 import { Server } from "../api_client/apiClient";
 import { notify } from "reapop";
+import i18n from "../i18n";
 
 export function fetchPeople(dispatch) {
   dispatch({ type: "FETCH_PEOPLE" });
@@ -59,8 +60,11 @@ export function renamePerson(personId, personName, newPersonName) {
         fetchPeople(dispatch);
         dispatch(
           notify({
-            message: `${personName} was successfully renamed to ${newPersonName}.`,
-            title: "Rename person",
+            message: i18n.t("toasts.renameperson", {
+              personName: personName,
+              newPersonName: newPersonName,
+            }),
+            title: i18n.t("toasts.renamepersontitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -80,6 +84,17 @@ export function deletePerson(person_id) {
     Server.delete(`persons/${person_id}/`)
       .then((response) => {
         fetchPeople(dispatch);
+        dispatch(
+          notify({
+            message: i18n.t("toasts.deleteperson"),
+            title: i18n.t("toasts.deletepersontitle"),
+            status: "success",
+            dismissible: true,
+            dismissAfter: 3000,
+            position: "br",
+          })
+        );
+
         dispatch({ type: "DELETE_PERSON_FULFILLED" });
       })
       .catch((err) => {
@@ -98,8 +113,8 @@ export function setAlbumCoverForPerson(person_id, photo_hash) {
         dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON_FULFILLED" });
         dispatch(
           notify({
-            message: `Cover photo was changed.`,
-            title: "Cover photo change",
+            message: i18n.t("toasts.setcoverphoto"),
+            title: i18n.t("toasts.setcoverphototitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
