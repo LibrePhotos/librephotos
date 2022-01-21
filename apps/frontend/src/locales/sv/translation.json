@@ -212,7 +212,107 @@
             "people": "Personer",
             "submit": "Sätt",
             "cancel": "Avbryt",
-            "generate": "Generera"
+            "generate": "Generera",
+            "scene": "Vy",
+            "attributes": "Attribut",
+            "categories": "Kategorier",
+            "similarphotos": "Liknande bilder"
         }
+    },
+    "joblist": {
+        "duration": "Varaktighet",
+        "workerlogs": "Arbetarloggar",
+        "progress": "Bearbetat",
+        "queued": "I kö",
+        "started": "Startade",
+        "startedby": "Startad av",
+        "delete": "Ta bort",
+        "jobtype": "Arbetstyp",
+        "removeexplanation": "Stoppar inte jobbet, tar bara bort den här posten från databasen. Använd endast i de fall då du vet att ett jobb misslyckades, genom att inspektera loggarna etc.",
+        "status": "Status",
+        "reload": "Ladda om",
+        "itemsprocessed": "Objekt behandlade",
+        "running": "kör"
+    },
+    "sitesettings": {
+        "header": "Tillåt användarregistrering",
+        "noallow": "Tillåt inte",
+        "allow": "Tillåt"
+    },
+    "photos": {
+        "recentlyadded": "Nyligen tillagda",
+        "addedon": "Tillagd ",
+        "photos": "Bilder",
+        "notimestamp": "Bilder utan tidsstämpel",
+        "hidden": "Dolda bilder",
+        "favorite": "Favoritbilder"
+    },
+    "login": {
+        "password": "Lösenord",
+        "errorusernameexists": "Det finns redan en användare med det användarnamnet.",
+        "erroremail": "Ange en giltig e-postadress.",
+        "name": "LibrePhotos",
+        "login": "Logga in",
+        "passwordplaceholder": "Lösenord",
+        "confirmpasswordplaceholder": "Bekräfta lösenordet",
+        "tagline": "En bekväm plats för dina bilder.",
+        "username": "Användarnamn",
+        "usernameplaceholder": "Användarnamn",
+        "confirmpassword": "Bekräfta lösenordet",
+        "signup": "Registrera dig",
+        "errorbackend": "Ingen anslutning till backend-servern, försök igen om några minuter.",
+        "errorpassword": "Lösenordet får inte vara tomt!",
+        "errorusername": "Användarnamnet får inte vara tomt!"
+    },
+    "adminarea": {
+        "header": "Administratörsområde",
+        "sitesettings": "Inställningar för webbplatsen",
+        "users": "Användare",
+        "scandirectory": "Lagringsplats",
+        "minimumconfidence": "Lägsta säkerhetsnivå",
+        "photocount": "Antal bilder",
+        "joined": "Anslöt sig",
+        "notset": "Inte angivet",
+        "username": "Användarnamn"
+    },
+    "modalscandirectoryedit": {
+        "explanation2": "klickar på knappen \"Genomsök bilder\", kommer bilder i katalogen som du anger här att importeras till användarens konto",
+        "currentdirectory": "Användarens nuvarande lagringsplats",
+        "notset": "inte inställd",
+        "header": "Ange lagringsplats för användaren",
+        "explanation1": "När användaren",
+        "update": "Uppdatera",
+        "explanation3": "Välj en katalog nedan"
+    },
+    "autoalbumgallery": {
+        "showmap": "Visa karta",
+        "hidemap": "Dölj karta"
+    },
+    "personalbum": {
+        "personalreadyexists": "Person {{name}} finns redan.",
+        "nameplaceholder": "Namn",
+        "numberofpeople": "{{peoplelength}} Personer",
+        "renameperson": "Döp om person"
+    },
+    "placealbum": {
+        "showingplaces": "Visar {{number}} platser på kartan",
+        "maploading": "Kartan laddas..."
+    },
+    "thingalbum": {
+        "showingthings": "Visar de bästa {{number}} sakerna"
+    },
+    "search": {
+        "default": "Sök...",
+        "loading": "Laddar...",
+        "search": "Sök"
+    },
+    "countstats": {
+        "photos": "Bilder"
+    },
+    "autoalbum": {
+        "subtitle": "Visar {{ autoalbumlength }} Automatiskt skapade album"
+    },
+    "useralbum": {
+        "numberof": "Visar {{number}} användarskapade album"
     }
 }
