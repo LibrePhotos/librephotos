@@ -398,6 +398,15 @@
         "unsharephoto": "{{numberOfPhotos}} photos partagées avec l'utilisateur {{username}}",
         "setcoverphoto": "Photo de couverture modifiée",
         "sethidestitle": "Cacher",
-        "scannextcloudphotostitle": "Scanner les photos Nextcloud"
+        "scannextcloudphotostitle": "Scanner les photos Nextcloud",
+        "updateusertitle": "Mettre à jour l'utilisateur",
+        "jobfinished": "{{job}} terminé.",
+        "deletemissingphotostitle": "Supprimer les photos manquantes",
+        "generateeventalbumstitle": "Générer des albums d'évènements",
+        "regenerateeventstitle": "Régénérer les titres des événements",
+        "regenerateevents": "La régénération des titres d'évènement a commencé",
+        "updateuser": "Les informations de {{username}} ont été mises à jour avec succès",
+        "deletemissingphotos": "Démarrage de la suppression des photos manquantes",
+        "generateeventalbums": "Démarrage de la génération des albums d'évènements"
     }
 }
