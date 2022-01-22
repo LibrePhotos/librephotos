@@ -6,6 +6,7 @@ import { fetchUserSelfDetails } from "./userActions";
 import { fetchPeople } from "./peopleActions";
 import { fetchAlbumDateList } from "./albumsActions";
 import { scanPhotos } from "../actions/photosActions";
+import i18n from "../i18n";
 
 export function fetchJobList(page, page_size = 10) {
   return function (dispatch) {
@@ -129,8 +130,8 @@ export function updateAvatar(user, form_data) {
         dispatch(fetchNextcloudDirectoryTree("/"));
         dispatch(
           notify({
-            message: `${user.username}'s information was successfully updated`,
-            title: "Update user",
+            message: i18n.t("toasts.updateuser", { username: user.username }),
+            title: i18n.t("toasts.updateusertitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -158,8 +159,8 @@ export function updateUser(user) {
         dispatch(fetchNextcloudDirectoryTree("/"));
         dispatch(
           notify({
-            message: `${user.username}'s information was successfully updated`,
-            title: "Update user",
+            message: i18n.t("toasts.updateuser", { username: user.username }),
+            title: i18n.t("toasts.updateusertitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -188,8 +189,8 @@ export function updateUserAndScan(user) {
         dispatch(fetchUserList());
         dispatch(
           notify({
-            message: `${user.username}'s information was successfully updated`,
-            title: "Update user",
+            message: i18n.t("toasts.updateuser", { username: user.username }),
+            title: i18n.t("toasts.updateusertitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -219,8 +220,8 @@ export function manageUpdateUser(user) {
         dispatch(fetchUserList());
         dispatch(
           notify({
-            message: `${user.username}'s information was successfully updated`,
-            title: "Update user",
+            message: i18n.t("toasts.updateuser", { username: user.username }),
+            title: i18n.t("toasts.updateusertitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -241,7 +242,9 @@ export function fetchWorkerAvailability(prevRunningJob, dispatch) {
       if (prevRunningJob !== null && response.data.job_detail === null) {
         dispatch(
           notify({
-            message: prevRunningJob.job_type_str + " finished.",
+            message: i18n.t("toasts.jobfinished", {
+              job: prevRunningJob.job_type_str,
+            }),
             title: prevRunningJob.job_type_str,
             status: "success",
             dismissible: true,
@@ -293,8 +296,8 @@ export function deleteMissingPhotos() {
       .then((response) => {
         dispatch(
           notify({
-            message: "Delete Missing Photos started",
-            title: "Delete Missing Photos",
+            message: i18n.t("toasts.deletemissingphotos"),
+            title: i18n.t("toasts.deletemissingphotostitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -324,8 +327,8 @@ export function generateEventAlbums() {
       .then((response) => {
         dispatch(
           notify({
-            message: "Generate Event Albums started",
-            title: "Generate Event Albums",
+            message: i18n.t("toasts.generateeventalbums"),
+            title: i18n.t("toasts.generateeventalbumstitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -356,8 +359,8 @@ export function generateEventAlbumTitles() {
       .then((response) => {
         dispatch(
           notify({
-            message: "Regenerate Event Titles started",
-            title: "Regenerate Event Titles",
+            message: i18n.t("toasts.regenerateevents"),
+            title: i18n.t("toasts.regenerateeventstitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
