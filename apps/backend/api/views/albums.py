@@ -2,7 +2,6 @@ import datetime
 import re
 
 import six
-from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, F, Prefetch, Q
 from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -71,7 +70,9 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return (
             Person.objects.annotate(
-                photo_count=Count("faces", filter=Q(faces__photo__hidden=False), distinct=True)
+                photo_count=Count(
+                    "faces", filter=Q(faces__photo__hidden=False), distinct=True
+                )
             )
             .filter(Q(photo_count__gt=0))
             .prefetch_related(
@@ -142,7 +143,9 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return (
-            AlbumThing.objects.filter(Q(owner=self.request.user) & Q(photos__hidden=False))
+            AlbumThing.objects.filter(
+                Q(owner=self.request.user) & Q(photos__hidden=False)
+            )
             .annotate(photo_count=Count("photos"))
             .filter(Q(photo_count__gt=0))
             .prefetch_related(
@@ -181,7 +184,9 @@ class AlbumThingListViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return (
-            AlbumThing.objects.filter(Q(owner=self.request.user) & Q(photos__hidden=False))
+            AlbumThing.objects.filter(
+                Q(owner=self.request.user) & Q(photos__hidden=False)
+            )
             .annotate(photo_count=Count("photos"))
             .filter(Q(photo_count__gt=0))
             .order_by("-title")
@@ -204,7 +209,9 @@ class AlbumPlaceViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return (
             AlbumPlace.objects.annotate(
-                photo_count=Count("photos", filter=Q(photos__hidden=False), distinct=True)
+                photo_count=Count(
+                    "photos", filter=Q(photos__hidden=False), distinct=True
+                )
             )
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
             .prefetch_related(
@@ -241,7 +248,11 @@ class AlbumPlaceListViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return (
             AlbumPlace.objects.filter(owner=self.request.user)
-            .annotate(photo_count=Count("photos", filter=Q(photos__hidden=False), distinct=True))
+            .annotate(
+                photo_count=Count(
+                    "photos", filter=Q(photos__hidden=False), distinct=True
+                )
+            )
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
             .order_by("title")
         )
@@ -285,7 +296,11 @@ class AlbumUserListViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return (
             AlbumUser.objects.filter(owner=self.request.user)
-            .annotate(photo_count=Count("photos", filter=Q(photos__hidden=False), distinct=True))
+            .annotate(
+                photo_count=Count(
+                    "photos", filter=Q(photos__hidden=False), distinct=True
+                )
+            )
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
             .order_by("title")
         )
@@ -316,9 +331,13 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         if self.request.query_params.get("public"):
             username = self.request.query_params.get("username")
             qs = AlbumDate.objects.filter(
-                Q(owner__username=username) & Q(photos__hidden=False) & Q(photos__public=True)
+                Q(owner__username=username)
+                & Q(photos__hidden=False)
+                & Q(photos__public=True)
             )
-            photo_qs = Photo.visible.filter(Q(owner__username=username) & Q(public=True))
+            photo_qs = Photo.visible.filter(
+                Q(owner__username=username) & Q(public=True)
+            )
 
         if self.request.query_params.get("person"):
             qs = AlbumDate.objects.filter(
@@ -352,7 +371,9 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                 ),
                 Prefetch(
                     "photos__owner",
-                    queryset=User.objects.only("id", "username", "first_name", "last_name"),
+                    queryset=User.objects.only(
+                        "id", "username", "first_name", "last_name"
+                    ),
                 ),
             )
         )
@@ -388,7 +409,9 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if not self.request.user.is_anonymous:
-            qs = AlbumDate.objects.filter(Q(owner=self.request.user) & Q(photos__hidden=False))
+            qs = AlbumDate.objects.filter(
+                Q(owner=self.request.user) & Q(photos__hidden=False)
+            )
         if self.request.query_params.get("favorite"):
             min_rating = self.request.user.favorite_min_rating
             qs = AlbumDate.objects.filter(
@@ -399,7 +422,9 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
         if self.request.query_params.get("public"):
             username = self.request.query_params.get("username")
             qs = AlbumDate.objects.filter(
-                Q(owner__username=username) & Q(photos__hidden=False) & Q(photos__public=True)
+                Q(owner__username=username)
+                & Q(photos__hidden=False)
+                & Q(photos__public=True)
             )
         if self.request.query_params.get("person"):
             qs = AlbumDate.objects.filter(

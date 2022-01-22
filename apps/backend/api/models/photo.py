@@ -32,7 +32,11 @@ from api.util import get_metadata, logger
 
 class VisiblePhotoManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().filter(Q(hidden=False) & Q(aspect_ratio__isnull=False))
+        return (
+            super()
+            .get_queryset()
+            .filter(Q(hidden=False) & Q(aspect_ratio__isnull=False))
+        )
 
 
 class Tags:
@@ -78,12 +82,16 @@ class Photo(models.Model):
 
     hidden = models.BooleanField(default=False, db_index=True)
     video = models.BooleanField(default=False)
-    owner = models.ForeignKey(User, on_delete=models.SET(get_deleted_user), default=None)
+    owner = models.ForeignKey(
+        User, on_delete=models.SET(get_deleted_user), default=None
+    )
 
     shared_to = models.ManyToManyField(User, related_name="photo_shared_to")
 
     public = models.BooleanField(default=False, db_index=True)
-    clip_embeddings = ArrayField(models.FloatField(blank=True, null=True), size=512, null=True)
+    clip_embeddings = ArrayField(
+        models.FloatField(blank=True, null=True), size=512, null=True
+    )
     clip_embeddings_magnitude = models.FloatField(blank=True, null=True)
 
     objects = models.Manager()
@@ -132,7 +140,9 @@ class Photo(models.Model):
         if modified_fields is None or "rating" in modified_fields:
             tags_to_write[Tags.RATING] = self.rating
         if tags_to_write:
-            util.write_metadata(self.image_paths[0], tags_to_write, use_sidecar=use_sidecar)
+            util.write_metadata(
+                self.image_paths[0], tags_to_write, use_sidecar=use_sidecar
+            )
 
     def _generate_md5(self):
         hash_md5 = hashlib.md5()
@@ -148,7 +158,9 @@ class Photo(models.Model):
         search_captions = self.search_captions
         try:
             caption = im2txt(image_path)
-            caption = caption.replace("<start>", "").replace("<end>", "").strip().lower()
+            caption = (
+                caption.replace("<start>", "").replace("<end>", "").strip().lower()
+            )
             captions["im2txt"] = caption
             self.captions_json = captions
             # todo: handle duplicate captions
@@ -156,23 +168,30 @@ class Photo(models.Model):
             if commit:
                 self.save()
             util.logger.info(
-                "generated im2txt captions for image %s. caption: %s" % (image_path, caption)
+                "generated im2txt captions for image %s. caption: %s"
+                % (image_path, caption)
             )
             return True
         except Exception:
-            util.logger.warning("could not generate im2txt captions for image %s" % image_path)
+            util.logger.warning(
+                "could not generate im2txt captions for image %s" % image_path
+            )
             return False
 
     def _generate_clip_embeddings(self, commit=True):
         image_path = self.thumbnail_big.path
         if not self.clip_embeddings:
             try:
-                img_emb, magnitude = semantic_search_instance.calculate_clip_embeddings(image_path)
+                img_emb, magnitude = semantic_search_instance.calculate_clip_embeddings(
+                    image_path
+                )
                 self.clip_embeddings = img_emb
                 self.clip_embeddings_magnitude = magnitude
                 if commit:
                     self.save()
-                util.logger.info("generated clip embeddings for image %s." % (image_path))
+                util.logger.info(
+                    "generated clip embeddings for image %s." % (image_path)
+                )
             except Exception:
                 util.logger.exception(
                     "could not generate clip embeddings for image %s" % image_path
@@ -185,14 +204,18 @@ class Photo(models.Model):
         # places365
         try:
             confidence = self.owner.confidence
-            res_places365 = place365_instance.inference_places365(image_path, confidence)
+            res_places365 = place365_instance.inference_places365(
+                image_path, confidence
+            )
             captions["places365"] = res_places365
             self.captions_json = captions
             if self.search_captions:
                 self.search_captions = (
                     self.search_captions
                     + " , "
-                    + " , ".join(res_places365["categories"] + [res_places365["environment"]])
+                    + " , ".join(
+                        res_places365["categories"] + [res_places365["environment"]]
+                    )
                 )
             else:
                 self.search_captions = " , ".join(
@@ -200,7 +223,9 @@ class Photo(models.Model):
                 )
             if commit:
                 self.save()
-            util.logger.info("generated places365 captions for image %s." % (image_path))
+            util.logger.info(
+                "generated places365 captions for image %s." % (image_path)
+            )
         except Exception:
             util.logger.exception(
                 "could not generate places365 captions for image %s" % image_path
@@ -224,7 +249,9 @@ class Photo(models.Model):
                     fileType=".webp",
                 )
 
-        if not self.video and not doesStaticThumbnailExists("square_thumbnails", self.image_hash):
+        if not self.video and not doesStaticThumbnailExists(
+            "square_thumbnails", self.image_hash
+        ):
             createThumbnail(
                 inputPath=self.image_paths[0],
                 outputHeight=500,
@@ -232,7 +259,9 @@ class Photo(models.Model):
                 hash=self.image_hash,
                 fileType=".webp",
             )
-        if self.video and not doesVideoThumbnailExists("square_thumbnails", self.image_hash):
+        if self.video and not doesVideoThumbnailExists(
+            "square_thumbnails", self.image_hash
+        ):
             createAnimatedThumbnail(
                 inputPath=self.image_paths[0],
                 outputHeight=500,
@@ -251,7 +280,9 @@ class Photo(models.Model):
                 hash=self.image_hash,
                 fileType=".webp",
             )
-        if self.video and not doesVideoThumbnailExists("square_thumbnails_small", self.image_hash):
+        if self.video and not doesVideoThumbnailExists(
+            "square_thumbnails_small", self.image_hash
+        ):
             createAnimatedThumbnail(
                 inputPath=self.image_paths[0],
                 outputHeight=250,
@@ -262,7 +293,9 @@ class Photo(models.Model):
         filetype = ".webp"
         if self.video:
             filetype = ".mp4"
-        self.thumbnail_big.name = os.path.join("thumbnails_big", self.image_hash + ".webp").strip()
+        self.thumbnail_big.name = os.path.join(
+            "thumbnails_big", self.image_hash + ".webp"
+        ).strip()
         self.square_thumbnail.name = os.path.join(
             "square_thumbnails", self.image_hash + filetype
         ).strip()
@@ -280,7 +313,9 @@ class Photo(models.Model):
         image_io.close()
 
     def _find_album_place(self):
-        return api.models.album_place.AlbumPlace.objects.filter(Q(photos__in=[self])).all()
+        return api.models.album_place.AlbumPlace.objects.filter(
+            Q(photos__in=[self])
+        ).all()
 
     def _find_album_date(self):
         old_album_date = None
@@ -290,7 +325,9 @@ class Photo(models.Model):
             )
             if (
                 possible_old_album_date is not None
-                and possible_old_album_date.photos.filter(image_hash=self.image_hash).exists
+                and possible_old_album_date.photos.filter(
+                    image_hash=self.image_hash
+                ).exists
             ):
                 old_album_date = possible_old_album_date
         else:
@@ -299,7 +336,9 @@ class Photo(models.Model):
             )
             if (
                 possible_old_album_date is not None
-                and possible_old_album_date.photos.filter(image_hash=self.image_hash).exists
+                and possible_old_album_date.photos.filter(
+                    image_hash=self.image_hash
+                ).exists
             ):
                 old_album_date = possible_old_album_date
         return old_album_date
@@ -336,7 +375,9 @@ class Photo(models.Model):
         )
         if exif:
             try:
-                timestamp_from_exif = datetime.strptime(exif, date_format).replace(tzinfo=pytz.utc)
+                timestamp_from_exif = datetime.strptime(exif, date_format).replace(
+                    tzinfo=pytz.utc
+                )
             except Exception:
                 timestamp_from_exif = None
         if exifvideo:
@@ -430,7 +471,9 @@ class Photo(models.Model):
         for geolocation_level, feature in enumerate(self.geolocation_json["features"]):
             if "text" not in feature.keys() or feature["text"].isnumeric():
                 continue
-            album_place = api.models.album_place.get_album_place(feature["text"], owner=self.owner)
+            album_place = api.models.album_place.get_album_place(
+                feature["text"], owner=self.owner
+            )
             if album_place.photos.filter(image_hash=self.image_hash).count() == 0:
                 album_place.geolocation_level = (
                     len(self.geolocation_json["features"]) - geolocation_level
@@ -446,7 +489,9 @@ class Photo(models.Model):
             return
         album_date = self._find_album_date()
         city_name = [
-            f["text"] for f in self.geolocation_json["features"][1:-1] if not f["text"].isdigit()
+            f["text"]
+            for f in self.geolocation_json["features"][1:-1]
+            if not f["text"].isdigit()
         ][0]
         if album_date.location and len(album_date.location) > 0:
             prev_value = album_date.location
@@ -462,7 +507,9 @@ class Photo(models.Model):
         cache.clear()
 
     def _extract_rating(self, commit=True):
-        (rating,) = get_metadata(self.image_paths[0], tags=[Tags.RATING], try_sidecar=True)
+        (rating,) = get_metadata(
+            self.image_paths[0], tags=[Tags.RATING], try_sidecar=True
+        )
         if rating is not None:
             # Only change rating if the tag was found
             logger.debug(f"Extracted rating for {self.image_paths[0]}: {rating}")
@@ -486,7 +533,9 @@ class Photo(models.Model):
             try:
                 face_locations = face_recognition.face_locations(image)
             except Exception:
-                logger.debug(f"Can't extract face information on photo: {self.image_paths[0]}")
+                logger.debug(
+                    f"Can't extract face information on photo: {self.image_paths[0]}"
+                )
 
             if len(face_locations) > 0:
                 face_encodings = face_recognition.face_encodings(
@@ -534,7 +583,9 @@ class Photo(models.Model):
                     face_io.close()
                     face.save()
                 logger.info(
-                    "image {}: {} face(s) saved".format(self.image_hash, len(face_locations))
+                    "image {}: {} face(s) saved".format(
+                        self.image_hash, len(face_locations)
+                    )
                 )
             cache.clear()
         except IntegrityError:
@@ -546,12 +597,17 @@ class Photo(models.Model):
                 self._extract_faces(True)
             else:
                 if self.image_paths != []:
-                    logger.error("image {}: rescan face failed".format(self.image_paths[0]))
+                    logger.error(
+                        "image {}: rescan face failed".format(self.image_paths[0])
+                    )
                 else:
                     logger.error("image {}: rescan face failed".format(self))
 
     def _add_to_album_thing(self):
-        if type(self.captions_json) is dict and "places365" in self.captions_json.keys():
+        if (
+            type(self.captions_json) is dict
+            and "places365" in self.captions_json.keys()
+        ):
             for attribute in self.captions_json["places365"]["attributes"]:
                 album_thing = api.models.album_thing.get_album_thing(
                     title=attribute, owner=self.owner
