@@ -398,6 +398,15 @@
         "trainingstarted": "Comenzó el entrenamiento",
         "addpublicphoto": "{{numberOfPhotos}} de foto(s) se agregaron con éxito a sus fotos públicas. Los enlaces a las fotos se copiaron en el portapapeles.",
         "hidephoto": "{{numberOfPhotos}} de las fotos se ocultaron con éxito.",
-        "scannextcloudphotos": "Escanear fotos de Nextcloud iniciada"
+        "scannextcloudphotos": "Escanear fotos de Nextcloud iniciada",
+        "updateusertitle": "Actualizar usuario",
+        "jobfinished": "{{job}} terminado.",
+        "deletemissingphotostitle": "Eliminar fotos faltantes",
+        "generateeventalbumstitle": "Generar álbumes de eventos",
+        "regenerateeventstitle": "Regenerar títulos de eventos",
+        "regenerateevents": "Regeneración de títulos de eventos iniciados",
+        "deletemissingphotos": "Se inició la eliminación de fotos que faltan",
+        "updateuser": "La información de {{username}} fue actualizada con éxito",
+        "generateeventalbums": "Generar álbumes de eventos iniciado"
     }
 }
