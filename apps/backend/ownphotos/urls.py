@@ -18,7 +18,6 @@ from django.conf.urls import include, url
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include
-
 from rest_framework import permissions, routers
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
@@ -76,33 +75,19 @@ router = routers.DefaultRouter()
 router.register(r"api/user", views.UserViewSet, basename="user")
 router.register(r"api/manage/user", views.ManageUserViewSet)
 
-router.register(
-    r"api/albums/auto/list", album_auto.AlbumAutoListViewSet, basename="album_auto"
-)
-router.register(
-    r"api/albums/date/list", albums.AlbumDateListViewSet, basename="album_date"
-)
+router.register(r"api/albums/auto/list", album_auto.AlbumAutoListViewSet, basename="album_auto")
+router.register(r"api/albums/date/list", albums.AlbumDateListViewSet, basename="album_date")
 router.register(
     r"api/albums/date/photohash/list",
     views.AlbumDateListWithPhotoHashViewSet,
     basename="album_date",
 )
-router.register(
-    r"api/albums/person/list", albums.AlbumPersonListViewSet, basename="person"
-)
-router.register(
-    r"api/albums/thing/list", albums.AlbumThingListViewSet, basename="album_thing"
-)
-router.register(
-    r"api/albums/place/list", albums.AlbumPlaceListViewSet, basename="album_place"
-)
-router.register(
-    r"api/albums/user/list", albums.AlbumUserListViewSet, basename="album_user"
-)
+router.register(r"api/albums/person/list", albums.AlbumPersonListViewSet, basename="person")
+router.register(r"api/albums/thing/list", albums.AlbumThingListViewSet, basename="album_thing")
+router.register(r"api/albums/place/list", albums.AlbumPlaceListViewSet, basename="album_place")
+router.register(r"api/albums/user/list", albums.AlbumUserListViewSet, basename="album_user")
 
-router.register(
-    r"api/albums/user/edit", views.AlbumUserEditViewSet, basename="album_user"
-)
+router.register(r"api/albums/user/edit", views.AlbumUserEditViewSet, basename="album_user")
 
 router.register(
     r"api/albums/user/shared/tome",
@@ -152,13 +137,9 @@ router.register(r"api/photos/edit", views.PhotoEditViewSet, basename="photo")
 router.register(
     r"api/photos/recentlyadded", photos.RecentlyAddedPhotoListViewSet, basename="photo"
 )
-router.register(
-    r"api/photos/simplelist", views.PhotoSimpleListViewSet, basename="photo"
-)
+router.register(r"api/photos/simplelist", views.PhotoSimpleListViewSet, basename="photo")
 router.register(r"api/photos/list", views.PhotoSuperSimpleListViewSet, basename="photo")
-router.register(
-    r"api/photos/favorites", photos.FavoritePhotoListViewset, basename="photo"
-)
+router.register(r"api/photos/favorites", photos.FavoritePhotoListViewset, basename="photo")
 router.register(r"api/photos/hidden", photos.HiddenPhotoListViewset, basename="photo")
 router.register(r"api/photos/searchlist", search.SearchListViewSet, basename="photo")
 
@@ -166,13 +147,9 @@ router.register(r"api/photos/public", photos.PublicPhotoListViewset, basename="p
 
 router.register(r"api/photos", views.PhotoViewSet, basename="photo")
 
-router.register(
-    r"api/faces/inferred/list", views.FaceInferredListViewSet, basename="face"
-)
+router.register(r"api/faces/inferred/list", views.FaceInferredListViewSet, basename="face")
 
-router.register(
-    r"api/faces/labeled/list", views.FaceLabeledListViewSet, basename="face"
-)
+router.register(r"api/faces/labeled/list", views.FaceLabeledListViewSet, basename="face")
 
 router.register(r"api/faces/list", views.FaceListViewSet, basename="face")
 
@@ -231,7 +208,6 @@ urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if settings.DEBUG:
     import silk
-
     from drf_yasg import openapi
     from drf_yasg.views import get_schema_view
 
