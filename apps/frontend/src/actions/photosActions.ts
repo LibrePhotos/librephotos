@@ -86,7 +86,6 @@ export function setPhotosShared(
           username: target_user.username,
           numberOfPhotos: image_hashes.length,
         });
-        "were successfully unshared with " + target_user.username;
         if (val_shared) {
           notificationMessage = i18n.t("toasts.sharephoto", {
             username: target_user.username,
