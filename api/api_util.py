@@ -187,7 +187,7 @@ def get_search_term_examples(user):
         if p.faces.count() > 0:
             terms_people = [f.person.name.split(" ")[0] for f in faces]
         terms_things = ""
-        if p.captions_json and p.captions_json["places365"] != None:
+        if p.captions_json and p.captions_json["places365"] is not None:
             terms_things = p.captions_json["places365"]["categories"]
 
         terms = {

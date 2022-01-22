@@ -1,6 +1,6 @@
 from tqdm import tqdm
 
-from api.models import AlbumAuto, Photo
+from api.models import Photo
 from api.util import logger
 
 

@@ -2,7 +2,6 @@ import os
 from datetime import datetime
 
 import pytz
-from constance import config as site_config
 from django.test import TestCase
 from django_rq import get_worker
 from rest_framework.test import APIClient
@@ -19,13 +18,17 @@ samplephotos_dir = os.path.abspath("samplephotos")
 # Create your tests here.
 class AdminTestCase(TestCase):
     def setUp(self):
-        User.objects.create_superuser("test_admin", "test_admin@test.com", "test_password")
+        User.objects.create_superuser(
+            "test_admin", "test_admin@test.com", "test_password"
+        )
         self.client = APIClient()
         auth_res = self.client.post(
             "/api/auth/token/obtain/",
             {"username": "test_admin", "password": "test_password"},
         )
-        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + auth_res.json()["access"])
+        self.client.credentials(
+            HTTP_AUTHORIZATION="Bearer " + auth_res.json()["access"]
+        )
 
     def test_admin_exists(self):
         test_admin = User.objects.get(username="test_admin")
@@ -53,7 +56,9 @@ class UserTestCase(TestCase):
         self.client_admin = APIClient()
         self.client_user = APIClient()
 
-        User.objects.create_superuser("test_admin", "test_admin@test.com", "test_password")
+        User.objects.create_superuser(
+            "test_admin", "test_admin@test.com", "test_password"
+        )
         admin_auth_res = self.client_admin.post(
             "/api/auth/token/obtain/",
             {"username": "test_admin", "password": "test_password"},
@@ -92,7 +97,9 @@ class UserTestCase(TestCase):
         self.assertFalse("password" in create_user_res.json().keys())
 
         # make sure setting his own scan_directory didn't work
-        self.assertTrue(create_user_res.json()["scan_directory"] != forced_scan_directory)
+        self.assertTrue(
+            create_user_res.json()["scan_directory"] != forced_scan_directory
+        )
 
         test_user_pk = create_user_res.json()["id"]
 
@@ -101,7 +108,9 @@ class UserTestCase(TestCase):
             "/api/auth/token/obtain/",
             {"username": "test_user", "password": "test_password"},
         )
-        self.client_user.credentials(HTTP_AUTHORIZATION="Bearer " + user_auth_res.json()["access"])
+        self.client_user.credentials(
+            HTTP_AUTHORIZATION="Bearer " + user_auth_res.json()["access"]
+        )
 
         # make sure the logged in user cannot update his own scan_directory path
         patch_res = self.client_user.patch(
@@ -123,18 +132,26 @@ class UserTestCase(TestCase):
 
 class GetSearchTermExamples(TestCase):
     def test_get_search_term_examples(self):
-        admin = User.objects.create_superuser("test_admin", "test_admin@test.com", "test_password")
+        admin = User.objects.create_superuser(
+            "test_admin", "test_admin@test.com", "test_password"
+        )
         array = get_search_term_examples(admin)
         self.assertEqual(len(array), 5)
 
 
 class RegenerateTitlesTestCase(TestCase):
     def test_regenerate_titles(self):
-        admin = User.objects.create_superuser("test_admin", "test_admin@test.com", "test_password")
+        admin = User.objects.create_superuser(
+            "test_admin", "test_admin@test.com", "test_password"
+        )
         # create a album auto
         album_auto = AlbumAuto.objects.create(
-            timestamp=datetime.strptime("2022-01-02", "%Y-%m-%d").replace(tzinfo=pytz.utc),
-            created_on=datetime.strptime("2022-01-02", "%Y-%m-%d").replace(tzinfo=pytz.utc),
+            timestamp=datetime.strptime("2022-01-02", "%Y-%m-%d").replace(
+                tzinfo=pytz.utc
+            ),
+            created_on=datetime.strptime("2022-01-02", "%Y-%m-%d").replace(
+                tzinfo=pytz.utc
+            ),
             owner=admin,
         )
         album_auto._generate_title()
@@ -147,7 +164,9 @@ class SetupDirectoryTestCase(TestCase):
     def setUp(self):
         self.client_admin = APIClient()
 
-        user = User.objects.create_superuser("test_admin", "test_admin@test.com", "test_password")
+        user = User.objects.create_superuser(
+            "test_admin", "test_admin@test.com", "test_password"
+        )
 
         self.userid = user.id
         admin_auth_res = self.client_admin.post(
@@ -182,7 +201,9 @@ class ScanPhotosTestCase(TestCase):
 
         self.client_users = [APIClient() for _ in range(2)]
 
-        User.objects.create_superuser("test_admin", "test_admin@test.com", "test_password")
+        User.objects.create_superuser(
+            "test_admin", "test_admin@test.com", "test_password"
+        )
         admin_auth_res = self.client_admin.post(
             "/api/auth/token/obtain/",
             {
@@ -228,7 +249,9 @@ class ScanPhotosTestCase(TestCase):
             )
             self.assertEqual(login_user_res.status_code, 200)
 
-            client.credentials(HTTP_AUTHORIZATION="Bearer " + login_user_res.json()["access"])
+            client.credentials(
+                HTTP_AUTHORIZATION="Bearer " + login_user_res.json()["access"]
+            )
             logged_in_clients.append(client)
         self.client_users = logged_in_clients
 
