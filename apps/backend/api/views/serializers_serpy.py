@@ -1,4 +1,5 @@
 import serpy
+from django.core.paginator import Paginator
 
 from api.util import logger
 from api.views.PhotosGroupedByDate import get_photos_ordered_by_date
@@ -45,16 +46,6 @@ class PhotoSuperSimpleSerializer(serpy.Serializer):
     allow_null = False
 
 
-class PhotoSuperSimpleSerializerWithAddedOn(serpy.Serializer):
-    image_hash = serpy.StrField()
-    rating = serpy.IntField()
-    public = serpy.BoolField()
-    hidden = serpy.BoolField()
-    video = serpy.BoolField()
-    exif_timestamp = DateTimeField()
-    added_on = DateTimeField()
-
-
 class PigPhotoSerilizer(serpy.Serializer):
     id = serpy.StrField(attr="image_hash")
     dominantColor = serpy.MethodField("get_dominant_color")
@@ -66,7 +57,6 @@ class PigPhotoSerilizer(serpy.Serializer):
     type = serpy.MethodField("get_type")
     rating = serpy.IntField("rating")
     owner = SimpleUserSerializer()
-    shared_to = SimpleUserSerializer(many=True, call=True, attr="shared_to.all")
 
     def get_dominant_color(self, obj):
         if obj.dominant_color:
@@ -158,7 +148,15 @@ class PigAlbumDateSerializer(serpy.Serializer):
     location = serpy.MethodField("get_location")
     numberOfItems = serpy.MethodField("get_number_of_items")
     incomplete = serpy.MethodField("get_incomplete")
-    items = PigPhotoSerilizer(many=True, call=True, attr="photos.all")
+    items = serpy.MethodField("get_items")
+
+    def get_items(self, obj):
+        page_size = self.context["request"].query_params.get("size") or 100
+        paginator = Paginator(obj.photos.all(), page_size)
+        page_number = self.context["request"].query_params.get("page") or 1
+        photos = paginator.page(page_number)
+        serializer = PigPhotoSerilizer(photos, many=True)
+        return serializer.data
 
     def get_incomplete(self, obj):
         return False
@@ -212,10 +210,3 @@ class AlbumDateListWithPhotoHashSerializer(serpy.Serializer):
     id = serpy.IntField()
     date = DateTimeField()
     allow_null = False
-
-
-# todo
-class AlbumPersonSerializer(serpy.Serializer):
-    name = serpy.StrField()
-    id = serpy.IntField()
-    # photos = PhotoSuperSimpleSerializer(many=True, call=True, attr='photos.all')

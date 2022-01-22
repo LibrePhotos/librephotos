@@ -10,6 +10,7 @@ from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.db import models
 from django.db.models import Q
+from django.db.utils import IntegrityError
 
 import api.date_time_extractor as date_time_extractor
 import api.models
@@ -480,76 +481,91 @@ class Photo(models.Model):
             if commit:
                 self.save(save_metadata=False)
 
-    def _extract_faces(self):
+    def _extract_faces(self, second_try=False):
         import face_recognition
 
-        qs_unknown_person = api.models.person.Person.objects.filter(name="unknown")
-        if qs_unknown_person.count() == 0:
-            unknown_person = api.models.person.Person(name="unknown")
-            unknown_person.save()
-        else:
-            unknown_person = qs_unknown_person[0]
-        image = np.array(PIL.Image.open(self.thumbnail_big.path))
-
-        face_locations = []
         try:
-            face_locations = face_recognition.face_locations(image)
-        except Exception:
-            logger.debug(
-                f"Can't extract face information on photo: {self.image_paths[0]}"
-            )
+            qs_unknown_person = api.models.person.Person.objects.filter(name="unknown")
+            if qs_unknown_person.count() == 0:
+                unknown_person = api.models.person.Person(name="unknown")
+                unknown_person.save()
+            else:
+                unknown_person = qs_unknown_person[0]
+            image = np.array(PIL.Image.open(self.thumbnail_big.path))
 
-        if len(face_locations) > 0:
-            face_encodings = face_recognition.face_encodings(
-                image, known_face_locations=face_locations
-            )
-            for idx_face, face in enumerate(zip(face_encodings, face_locations)):
-                face_encoding = face[0]
-                face_location = face[1]
-                top, right, bottom, left = face_location
-                face_image = image[top:bottom, left:right]
-                face_image = PIL.Image.fromarray(face_image)
-
-                image_path = self.image_hash + "_" + str(idx_face) + ".jpg"
-
-                margin = 2
-                existing_faces = api.models.face.Face.objects.filter(
-                    photo=self,
-                    location_top__lte=face_location[0] + margin,
-                    location_top__gte=face_location[0] - margin,
-                    location_right__lte=face_location[1] + margin,
-                    location_right__gte=face_location[1] - margin,
-                    location_bottom__lte=face_location[2] + margin,
-                    location_bottom__gte=face_location[2] - margin,
-                    location_left__lte=face_location[3] + margin,
-                    location_left__gte=face_location[3] - margin,
+            face_locations = []
+            try:
+                face_locations = face_recognition.face_locations(image)
+            except Exception:
+                logger.debug(
+                    f"Can't extract face information on photo: {self.image_paths[0]}"
                 )
 
-                if existing_faces.count() != 0:
-                    continue
-
-                face = api.models.face.Face(
-                    image_path=image_path,
-                    photo=self,
-                    location_top=face_location[0],
-                    location_right=face_location[1],
-                    location_bottom=face_location[2],
-                    location_left=face_location[3],
-                    encoding=face_encoding.tobytes().hex(),
-                    person=unknown_person,
+            if len(face_locations) > 0:
+                face_encodings = face_recognition.face_encodings(
+                    image, known_face_locations=face_locations
                 )
+                for idx_face, face in enumerate(zip(face_encodings, face_locations)):
+                    face_encoding = face[0]
+                    face_location = face[1]
+                    top, right, bottom, left = face_location
+                    face_image = image[top:bottom, left:right]
+                    face_image = PIL.Image.fromarray(face_image)
 
-                face_io = BytesIO()
-                face_image.save(face_io, format="JPEG")
-                face.image.save(face.image_path, ContentFile(face_io.getvalue()))
-                face_io.close()
-                face.save()
-            logger.info(
-                "image {}: {} face(s) saved".format(
-                    self.image_hash, len(face_locations)
+                    image_path = self.image_hash + "_" + str(idx_face) + ".jpg"
+
+                    margin = 2
+                    existing_faces = api.models.face.Face.objects.filter(
+                        photo=self,
+                        location_top__lte=face_location[0] + margin,
+                        location_top__gte=face_location[0] - margin,
+                        location_right__lte=face_location[1] + margin,
+                        location_right__gte=face_location[1] - margin,
+                        location_bottom__lte=face_location[2] + margin,
+                        location_bottom__gte=face_location[2] - margin,
+                        location_left__lte=face_location[3] + margin,
+                        location_left__gte=face_location[3] - margin,
+                    )
+
+                    if existing_faces.count() != 0:
+                        continue
+
+                    face = api.models.face.Face(
+                        image_path=image_path,
+                        photo=self,
+                        location_top=face_location[0],
+                        location_right=face_location[1],
+                        location_bottom=face_location[2],
+                        location_left=face_location[3],
+                        encoding=face_encoding.tobytes().hex(),
+                        person=unknown_person,
+                    )
+
+                    face_io = BytesIO()
+                    face_image.save(face_io, format="JPEG")
+                    face.image.save(face.image_path, ContentFile(face_io.getvalue()))
+                    face_io.close()
+                    face.save()
+                logger.info(
+                    "image {}: {} face(s) saved".format(
+                        self.image_hash, len(face_locations)
+                    )
                 )
-            )
-        cache.clear()
+            cache.clear()
+        except IntegrityError:
+            # When using multiple processes, then we can save at the same time, which leads to this error
+            if self.image_paths != []:
+                # print out the location of the image only if we have a path
+                logger.info("image {}: rescan face failed".format(self.image_paths[0]))
+            if not second_try:
+                self._extract_faces(True)
+            else:
+                if self.image_paths != []:
+                    logger.error(
+                        "image {}: rescan face failed".format(self.image_paths[0])
+                    )
+                else:
+                    logger.error("image {}: rescan face failed".format(self))
 
     def _add_to_album_thing(self):
         if (

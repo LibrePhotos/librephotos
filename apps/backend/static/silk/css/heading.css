@@ -1,0 +1,12 @@
+.heading {
+  width: 100%;
+  background-color: transparent;
+  height: 30px;
+  display: table;
+  font-weight: bold;
+  margin-top: 20px; }
+  .heading .inner-heading {
+    display: table-cell;
+    text-align: left;
+    padding: 0;
+    vertical-align: middle; }
