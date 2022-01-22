@@ -350,5 +350,22 @@
     "wordclouds": "Wortwolken",
     "timeline": "Zeitleiste",
     "socialgraph": "Sozialer Graph",
-    "facecluster": "Gesichtsgruppen"
+    "facecluster": "Gesichtsgruppen",
+    "toasts": {
+        "createnewalbum": "{{numberOfPhotos}} Bilder wurden erfolgreich zu dem Album {{title}} hinzugefügt",
+        "createalbumtitle": "Erstelle Album",
+        "viewalbum": "Gehe zu Album",
+        "renamealbum": "{{albumTitle}} wurde erfolgreich zu {{newAlbumTitle}} benannt.",
+        "renamealbumtitle": "Benenne Album um",
+        "deletealbum": "{{albumTitle}} wurde erfolgreich gelöscht.",
+        "deletealbumtitle": "Lösche Album",
+        "removefromalbum": "{{numberOfPhotos}} Bilder wurde erfolgreich von Album {{title}} entfernt",
+        "removefromalbumtitle": "Entferne von Album",
+        "addtoalbum": "{{numberOfPhotos}} Bilder wurden erfolgreich zu dem Album {{title}} hinzugefügt",
+        "addtoalbumtitle": "Füge zu Album hinzu",
+        "sharingalbum": "Album wurde erfolgreich geteilt",
+        "sharingalbumtitle": "Teile Album",
+        "unsharingalbumtitle": "Teile Album nicht mehr",
+        "unsharingalbum": "Album wurde erfolgreich nicht mehr geteilt"
+    }
 }
