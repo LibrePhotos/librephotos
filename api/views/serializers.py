@@ -7,6 +7,7 @@ from django.core.cache import cache
 from django.db.models import Count, Prefetch, Q
 from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
+
 import ownphotos.settings
 from api.batch_jobs import create_batch_job
 from api.image_similarity import search_similar_image
@@ -369,9 +370,7 @@ class FaceSerializer(serializers.ModelSerializer):
         else:
             instance.person_label_is_inferred = False
             instance.person_label_probability = 1.0
-        logger.info(
-            "updated label for face %d to %s" % (instance.id, instance.person.name)
-        )
+        logger.info("updated label for face %d to %s" % (instance.id, instance.person.name))
         cache.clear()
         instance.save()
         return instance
@@ -492,9 +491,7 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
             instance.photos.add(obj)
         instance.save()
         cache.clear()
-        logger.info(
-            "Created user album {} with {} photos".format(instance.id, len(photos))
-        )
+        logger.info("Created user album {} with {} photos".format(instance.id, len(photos)))
         return instance
 
     def update(self, instance, validated_data):
@@ -580,9 +577,7 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
         photos = obj.photos.all().prefetch_related(
             Prefetch(
                 "faces__person",
-                queryset=Person.objects.all().annotate(
-                    viewable_face_count=Count("faces")
-                ),
+                queryset=Person.objects.all().annotate(viewable_face_count=Count("faces")),
             )
         )
 
@@ -728,22 +723,16 @@ class UserSerializer(serializers.ModelSerializer):
             instance.transcode_videos = validated_data.pop("transcode_videos")
             instance.save()
         if "nextcloud_server_address" in validated_data:
-            instance.nextcloud_server_address = validated_data.pop(
-                "nextcloud_server_address"
-            )
+            instance.nextcloud_server_address = validated_data.pop("nextcloud_server_address")
             instance.save()
         if "nextcloud_username" in validated_data:
             instance.nextcloud_username = validated_data.pop("nextcloud_username")
             instance.save()
         if "nextcloud_app_password" in validated_data:
-            instance.nextcloud_app_password = validated_data.pop(
-                "nextcloud_app_password"
-            )
+            instance.nextcloud_app_password = validated_data.pop("nextcloud_app_password")
             instance.save()
         if "nextcloud_scan_directory" in validated_data:
-            instance.nextcloud_scan_directory = validated_data.pop(
-                "nextcloud_scan_directory"
-            )
+            instance.nextcloud_scan_directory = validated_data.pop("nextcloud_scan_directory")
             instance.save()
         if "confidence" in validated_data:
             instance.confidence = validated_data.pop("confidence")
@@ -761,26 +750,20 @@ class UserSerializer(serializers.ModelSerializer):
             instance.semantic_search_topk = new_semantic_search_topk
             instance.save()
             logger.info(
-                "Updated semantic_search_topk for user {}".format(
-                    instance.semantic_search_topk
-                )
+                "Updated semantic_search_topk for user {}".format(instance.semantic_search_topk)
             )
         if "favorite_min_rating" in validated_data:
             new_favorite_min_rating = validated_data.pop("favorite_min_rating")
             instance.favorite_min_rating = new_favorite_min_rating
             instance.save()
             logger.info(
-                "Updated favorite_min_rating for user {}".format(
-                    instance.favorite_min_rating
-                )
+                "Updated favorite_min_rating for user {}".format(instance.favorite_min_rating)
             )
         if "save_metadata_to_disk" in validated_data:
             instance.save_metadata_to_disk = validated_data.pop("save_metadata_to_disk")
             instance.save()
             logger.info(
-                "Updated save_metadata_to_disk for user {}".format(
-                    instance.save_metadata_to_disk
-                )
+                "Updated save_metadata_to_disk for user {}".format(instance.save_metadata_to_disk)
             )
         if "image_scale" in validated_data:
             new_image_scale = validated_data.pop("image_scale")
@@ -839,9 +822,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
             if os.path.exists(new_scan_directory):
                 instance.scan_directory = new_scan_directory
                 instance.save()
-                logger.info(
-                    "Updated scan directory for user {}".format(instance.scan_directory)
-                )
+                logger.info("Updated scan directory for user {}".format(instance.scan_directory))
             else:
                 raise ValidationError("Scan directory does not exist")
         cache.clear()

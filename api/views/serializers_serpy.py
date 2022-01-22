@@ -1,5 +1,6 @@
 import serpy
 from django.core.paginator import Paginator
+
 from api.util import logger
 from api.views.PhotosGroupedByDate import get_photos_ordered_by_date
 
@@ -183,9 +184,7 @@ class AlbumUserSerializerSerpy(serpy.Serializer):
     grouped_photos = serpy.MethodField("get_photos")
 
     def get_photos(self, obj):
-        grouped_photos = get_photos_ordered_by_date(
-            obj.photos.all().order_by("-exif_timestamp")
-        )
+        grouped_photos = get_photos_ordered_by_date(obj.photos.all().order_by("-exif_timestamp"))
         res = GroupedPhotosSerializer(grouped_photos, many=True).data
         return res
 
