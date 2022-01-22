@@ -279,7 +279,7 @@ export function fetchWorkerAvailability(prevRunningJob, dispatch) {
       if (error.message.indexOf("502") !== -1) {
         // Backend is offline; HTTP error status code 502
         console.log("Backend is offline");
-        dispatch(logout());
+        logout(dispatch);
       }
     });
 }

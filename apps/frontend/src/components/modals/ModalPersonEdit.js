@@ -86,7 +86,7 @@ export class ModalPersonEdit extends Component {
       <Modal
         ariaHideApp={false}
         onAfterOpen={() => {
-          this.props.dispatch(fetchPeople());
+          fetchPeople(this.props.dispatch);
         }}
         isOpen={this.props.isOpen}
         onRequestClose={() => {
