@@ -8,43 +8,22 @@
 
 ![](https://github.com/LibrePhotos/librephotos/blob/dev/screenshots/mockups_main_fhd.png?raw=true)
 <sub>Mockup designed by rawpixel.com / Freepik</sub>
-## Screenshots
 
-![](https://github.com/librephotos/librephotos/blob/dev/screenshots/photo_manage.png?raw=true)
-![](https://github.com/librephotos/librephotos/blob/dev/screenshots/photo_info_fhd.png?raw=true)
-![](https://github.com/librephotos/librephotos/blob/dev/screenshots/more_to_discover.png?raw=true)
+- The [demo is available here](https://demo2.librephotos.com/). User is ```demo```, password is ```demo1234```.
+- You can watch development videos on [Niaz Faridani-Rad's channel](https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w)
+- You can join our [Discord](https://discord.gg/xwRvtSDGWb).
 
-## Live demo
-Live [demo available here](https://demo2.librephotos.com/).
-User is demo, password is demo1234.
+## Installation
 
-## Communication
-You can join our [Discord](https://discord.gg/xwRvtSDGWb).
+Step-by-step installation instructions are available in our [documentation](https://docs.librephotos.com/1/)
 
-## What is it?
+## Contributions
+- Development: Get started contributing in less than 30 minutes by following the [guide here](https://docs.librephotos.com/1/dev_install/)
+- Documentation: Contributing to it is as simple as submitting a pull request to the [documentation repository](https://github.com/LibrePhotos/librephotos.docs)
+- Testing: If you want to help find bugs, use the ```dev``` tag and update it regulary. If you find one, open an issue.
+- Translation: LibrePhotos uses [Weblate](https://weblate.org/) for its translations. Feel free to contribute or view existing translations at [weblate](https://hosted.weblate.org/engage/librephotos/).
 
-- LibrePhotos is a fork of Ownphotos
-- A self-hosted open source photo management service, with a slight focus on cool graphs
-- Django backend and React frontend
-
-**Currently the project is in very early stages, some bugs may exist. If you find any please log an issue**
-
-
-### Installation
-Step-by-step installation instructions are available in our [documentation](https://docs.librephotos.com/1/standard_install/)
-
-### Alternative Linux installation scripts
-see : [librephotos-linux](https://github.com/LibrePhotos/librephotos-linux)
-
-### Contributions
-- Get started contributing in less than 30 minutes by following the [guide here](https://github.com/LibrePhotos/librephotos-docker)
-- Join our discord server, or open a pull request to start contributing
-
-### Translation
-LibrePhotos uses [Weblate](https://weblate.org/) for its translations. Feel free to contribute or view existing translations at [weblate](https://hosted.weblate.org/engage/librephotos/).
-
-
-### Features
+## Features
 
   - Support for all types of photos including raw photos
   - Support for videos

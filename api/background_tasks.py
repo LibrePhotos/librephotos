@@ -1,6 +1,6 @@
 from tqdm import tqdm
 
-from api.models import AlbumAuto, Photo
+from api.models import Photo
 from api.util import logger
 
 
@@ -29,13 +29,6 @@ def geolocate(overwrite=False):
             photo._add_location_to_album_dates()
         except Exception:
             logger.exception("could not geolocate photo: " + photo)
-
-
-def regenerate_event_title():
-    events = AlbumAuto.objects.all()
-    for event in events:
-        event._autotitle()
-        event.save()
 
 
 def add_photos_to_album_things():

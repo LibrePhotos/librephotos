@@ -1,20 +1,23 @@
 import os
+from datetime import datetime
 
-from constance import config as site_config
+import pytz
 from django.test import TestCase
 from django_rq import get_worker
 from rest_framework.test import APIClient
 
-# from api.directory_watcher import scan_photos
-from api.models import User
+from api.api_util import get_search_term_examples
 
+# from api.directory_watcher import scan_photos
+from api.models import AlbumAuto, User
+
+# To-Do: Fix setting IMAGE_DIRS and try scanning something
 samplephotos_dir = os.path.abspath("samplephotos")
 
 
 # Create your tests here.
 class AdminTestCase(TestCase):
     def setUp(self):
-        site_config.IMAGE_DIRS = [samplephotos_dir]
         User.objects.create_superuser(
             "test_admin", "test_admin@test.com", "test_password"
         )
@@ -50,7 +53,6 @@ class AdminTestCase(TestCase):
 
 class UserTestCase(TestCase):
     def setUp(self):
-        site_config.image_dirs = [samplephotos_dir]
         self.client_admin = APIClient()
         self.client_user = APIClient()
 
@@ -69,11 +71,11 @@ class UserTestCase(TestCase):
         create_user_res = self.client_user.post(
             "/api/user/", {"username": "test_admin", "password": "test_password"}
         )
-        self.assertEqual(create_user_res.status_code, 400)
+        self.assertEqual(create_user_res.status_code, 401)
 
         # enable signup as admin
         change_settings_res = self.client_admin.post(
-            "/api/sitesettings/", {"allow_registraion": True}
+            "/api/sitesettings/", {"allow_registration": True}
         )
         self.assertEqual(change_settings_res.status_code, 200)
 
@@ -87,9 +89,7 @@ class UserTestCase(TestCase):
                 "username": "test_user",
                 "email": "test_user@test.com",
                 "password": "test_password",
-                "scan_directory": forced_scan_directory
-                # 'first_name': 'First',
-                # 'last_name': 'Last'
+                "scan_directory": forced_scan_directory,
             },
         )
 
@@ -130,19 +130,86 @@ class UserTestCase(TestCase):
         self.assertEqual(res.status_code, 200)
 
 
-class ScanPhotosTestCase(TestCase):
+class GetSearchTermExamples(TestCase):
+    def test_get_search_term_examples(self):
+        admin = User.objects.create_superuser(
+            "test_admin", "test_admin@test.com", "test_password"
+        )
+        array = get_search_term_examples(admin)
+        self.assertEqual(len(array), 5)
+
+
+class RegenerateTitlesTestCase(TestCase):
+    def test_regenerate_titles(self):
+        admin = User.objects.create_superuser(
+            "test_admin", "test_admin@test.com", "test_password"
+        )
+        # create a album auto
+        album_auto = AlbumAuto.objects.create(
+            timestamp=datetime.strptime("2022-01-02", "%Y-%m-%d").replace(
+                tzinfo=pytz.utc
+            ),
+            created_on=datetime.strptime("2022-01-02", "%Y-%m-%d").replace(
+                tzinfo=pytz.utc
+            ),
+            owner=admin,
+        )
+        album_auto._generate_title()
+        self.assertEqual(album_auto.title, "Sunday")
+
+
+class SetupDirectoryTestCase(TestCase):
+    userid = 0
+
     def setUp(self):
-        site_config.image_dirs = [samplephotos_dir]
         self.client_admin = APIClient()
 
-        self.client_users = [APIClient() for _ in range(6)]
+        user = User.objects.create_superuser(
+            "test_admin", "test_admin@test.com", "test_password"
+        )
+
+        self.userid = user.id
+        admin_auth_res = self.client_admin.post(
+            "/api/auth/token/obtain/",
+            {
+                "username": "test_admin",
+                "password": "test_password",
+            },
+        )
+        self.client_admin.credentials(
+            HTTP_AUTHORIZATION="Bearer " + admin_auth_res.json()["access"]
+        )
+
+    def test_setup_directory(self):
+        patch_res = self.client_admin.patch(
+            "/api/manage/user/{}/".format(self.userid),
+            {"scan_directory": "/code"},
+        )
+        self.assertEqual(patch_res.status_code, 200)
+
+    def test_setup_not_existing_directory(self):
+        patch_res = self.client_admin.patch(
+            "/api/manage/user/{}/".format(self.userid),
+            {"scan_directory": "/code/not/existing"},
+        )
+        self.assertEqual(patch_res.status_code, 400)
+
+
+class ScanPhotosTestCase(TestCase):
+    def setUp(self):
+        self.client_admin = APIClient()
+
+        self.client_users = [APIClient() for _ in range(2)]
 
         User.objects.create_superuser(
             "test_admin", "test_admin@test.com", "test_password"
         )
         admin_auth_res = self.client_admin.post(
             "/api/auth/token/obtain/",
-            {"username": "test_admin", "password": "test_password"},
+            {
+                "username": "test_admin",
+                "password": "test_password",
+            },
         )
         self.client_admin.credentials(
             HTTP_AUTHORIZATION="Bearer " + admin_auth_res.json()["access"]
@@ -150,8 +217,9 @@ class ScanPhotosTestCase(TestCase):
 
         # enable signup as admin
         change_settings_res = self.client_admin.post(
-            "/api/sitesettings/", {"allow_registraion": True}
+            "/api/sitesettings/", {"allow_registration": True}
         )
+        self.assertEqual(change_settings_res.json()["allow_registration"], "True")
         self.assertEqual(change_settings_res.status_code, 200)
 
         logged_in_clients = []
@@ -163,11 +231,12 @@ class ScanPhotosTestCase(TestCase):
             create_user_res = client.post(
                 "/api/user/",
                 {
-                    "username": "test_user_{}".format(idx),
                     "email": "test_user_{}@test.com".format(idx),
+                    "username": "test_user_{}".format(idx),
                     "password": "test_password",
                 },
             )
+
             self.assertEqual(create_user_res.status_code, 201)
             user_ids.append(create_user_res.json()["id"])
 
@@ -190,10 +259,12 @@ class ScanPhotosTestCase(TestCase):
         for idx, (user_id, client) in enumerate(zip(user_ids, self.client_users)):
 
             user_scan_directory = os.path.join(samplephotos_dir, "test{}".format(idx))
+            self.assertNotEqual(user_scan_directory, "")
             patch_res = self.client_admin.patch(
                 "/api/manage/user/{}/".format(user_id),
                 {"scan_directory": user_scan_directory},
             )
+            self.assertEqual(patch_res.json(), {})
             self.assertEqual(patch_res.status_code, 200)
             self.assertEqual(patch_res.json()["scan_directory"], user_scan_directory)
 
