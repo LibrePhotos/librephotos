@@ -11,9 +11,9 @@ title                    : "LibrePhotos"
 title_separator          : "|"
 subtitle                 : "Documentation"
 name                     : &name "LibrePhotos" # &name is a YAML anchor which can be *referenced later
-description              : &description "A self-hosted Google Photos clone, with a slight focus on cool graphs."
+description              : &description "A self-hosted open source photo management service."
 teaser                   : # path of fallback teaser image, e.g. "/assets/images/500x300.png"
-logo                     : # path of logo image to display in the masthead, e.g. "/assets/images/88x88.png"
+logo                     : "/assets/images/site-logo.png"
 masthead_title           : # overrides the website title displayed in the masthead, use " " for no title
 # breadcrumbs            : false # true, false (default)
 words_per_minute         : 200
@@ -49,34 +49,37 @@ social:
 
 # Site Author
 author:
-  name             : *name # *name is a YAML reference pointing to the &anchor earlier
-  avatar           : "/assets/images/site-logo.png"
-  bio              : *description
   location         : 
   links:
-    - label: "LibrePhotos Website"
-      icon: "fas fa-fw fa-link"
-      url: "https://librephotos.com"
     - label: "Demo"
       icon: "fas fa-fw fa-link"
       url: "https://demo2.librephotos.com"
     - label: "GitHub"
       icon: "fab fa-fw fa-github"
       url: "https://github.com/LibrePhotos"
+    - label: "Development videos"
+      icon: "fas fa-fw fa-link"
+      url: "https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w"
+    - label: "Discord"
+      icon: "fas fa-fw fa-link"
+      url: "https://discord.gg/xwRvtSDGWb"
 
 
 # Site Footer
 footer:
   links:
-    - label: "LibrePhotos Website"
-      icon: "fas fa-fw fa-link"
-      url: "https://librephotos.com"
     - label: "Demo"
       icon: "fas fa-fw fa-link"
       url: "https://demo2.librephotos.com"
     - label: "GitHub"
       icon: "fab fa-fw fa-github"
       url: "https://github.com/LibrePhotos"
+    - label: "Development videos"
+      icon: "fas fa-fw fa-link"
+      url: "https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w"
+    - label: "Discord"
+      icon: "fas fa-fw fa-link"
+      url: "https://discord.gg/xwRvtSDGWb"
 
 
 # Reading Files

@@ -2,7 +2,7 @@
 title: "Backend"
 excerpt: "Development Information regarding LibrePhotos Backend."
 last_modified_at: 2020-08-04
-category: 6
+category: 5
 ---
 We developed our backend with the following technologies:
 - Python

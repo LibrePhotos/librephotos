@@ -1,46 +1,35 @@
 ---
-title: "Documentation"
-excerpt: "The one-stop-shop for everything LibrePhotos: from installation, to how how to contribute, you'll find it all here."
-sidebar: ""
+title: "Introduction"
+excerpt: "A self-hosted open source photo management service."
 author_profile: true
 permalink: /
 ---
+![](/assets/images/mockups_main_fhd.png)
+<sub>Mockup designed by rawpixel.com / Freepik</sub>
 
-{% assign posts_size = site.posts | size %}
-{% if posts_size > 0 %}
+Unlike commercial service that store your photos in the cloud and scan/index them to train their machine learning models and collect ad targeting data on you, LibrePhotos keeps all your photos and metadata on your local machine. Your data is never sent to or stored on a 3rd party server. Get the same power as those commercial services without giving up your personal data and privacy.
 
-The one-stop-shop for everything LibrePhotos: from installation, to how to contribute, you'll find it all below.
+## Features
 
-## Table of Contents
+  - Support for all types of photos including raw photos
+  - Support for videos
+  - Timeline view
+  - Scans pictures on the file system
+  - Multiuser support
+  - Generate albums based on events like "Thursday in Berlin"
+  - Face recognition / Face classification
+  - Reverse geocoding
+  - Object / Scene detection
+  - Semantic image search
+  - Search by metadata
 
-<ul>
-	{% for category in site.categories %}
-	{% capture category_id %}{{ category | first }}{% endcapture %}
-	{% assign category_articles = site.categories[category_id] | reverse %}
-	{% if category_articles != null %}
-	{% capture category_name %}
-	{% for data_category in site.data.categories %}
-	{% assign data_category_id = data_category.id | escape %}
-	{% if data_category_id == category_id %}
-	{{ data_category.name }}
-	{% break %}
-	{% endif %}
-	{% endfor %}
-	{% endcapture %}
-	<li><a href="/{{ category_id }}">{{ category_name }}</a></li>
-	<ul>
-	{% for article in category_articles %}
-	<li><a href="{{ article.url | relative_url }}">{{ article.title }}</a></li>
-	{% endfor %}
-	</ul>
-	{% endif %}
-	{% endfor %}
-</ul>
+## What does it use?
 
-{% else %}
-
-## Under Construction
-
-Our documentation is currently being written - check back soon!
-
-{% endif %}
+- **Image Conversion:** [ImageMagick](https://github.com/ImageMagick/ImageMagick) 
+- **Video Conversion:** [FFmpeg](https://github.com/FFmpeg/FFmpeg)
+- **Exif Support:** [ExifTool](https://github.com/exiftool/exiftool)
+- **Face detection:** [face_recognition](https://github.com/ageitgey/face_recognition) 
+- **Face classification/clusterization:** scikit-learn
+- **Image captioning:** [im2txt](https://github.com/HughKu/Im2txt), 
+- **Scene classification** [places365](http://places.csail.mit.edu/)
+- **Reverse geocoding:** [Mapbox](https://www.mapbox.com/): You need to have an API key. First 50,000 geocode lookups are free every month.
