@@ -229,7 +229,7 @@
     },
     "login": {
         "name": "LibrePhotos",
-        "login": "登陆",
+        "login": "登录",
         "password": "密码",
         "passwordplaceholder": "密码",
         "confirmpassword": "再次输入密码",
