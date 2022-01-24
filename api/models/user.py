@@ -3,6 +3,7 @@ from django.db import models
 from django_cryptography.fields import encrypt
 
 import ownphotos.settings
+from api.date_time_extractor import DEFAULT_RULES_PARAMS
 
 
 class User(AbstractUser):
@@ -31,6 +32,7 @@ class User(AbstractUser):
     save_metadata_to_disk = models.TextField(
         choices=SaveMetadataToDisk.choices, default=SaveMetadataToDisk.OFF
     )
+    config_datetime_rules = models.JSONField(default=json.dumps(DEFAULT_RULES_PARAMS))
 
 
 def get_admin_user():
