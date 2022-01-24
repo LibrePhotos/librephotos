@@ -352,7 +352,7 @@
     "faceclusterexplanation": "Les personnes avec des visages similaires devraient être groupées près de ce point (cliquer sur un point pour voir le nom).",
     "scan": "Scanner",
     "toasts": {
-        "createnewalbum": "{{numberOfPhotos}} photo(s) ajoutées au nouvel album {{title}}",
+        "createnewalbum": "{{numberOfPhotos}} photo(s) ont été ajoutées au nouvel {{title}} album",
         "viewalbum": "Voir un album",
         "renamealbum": "{{albumTitle}} renommé en {{newAlbumTitle}}.",
         "renamealbumtitle": "Renommer l'album",
