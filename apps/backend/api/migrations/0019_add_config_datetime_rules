@@ -1,0 +1,18 @@
+import json
+
+from django.db import migrations, models
+
+from api.date_time_extractor import DEFAULT_RULES_PARAMS
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ("api", "0017_add_cover_photo"),
+    ]
+    operations = [
+        migrations.AddField(
+            model_name="User",
+            name="config_datetime_rules",
+            field=models.JSONField(default=json.dumps(DEFAULT_RULES_PARAMS)))
+    ]
