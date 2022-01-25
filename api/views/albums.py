@@ -367,7 +367,8 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                         "hidden",
                         "exif_timestamp",
                         "owner",
-                    ),
+                    )
+            .distinct(),
                 ),
                 Prefetch(
                     "photos__owner",
@@ -433,7 +434,7 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
                 & Q(photos__faces__person__id=self.request.query_params.get("person"))
             )
         qs = (
-            qs.annotate(photo_count=Count("photos"))
+            qs.annotate(photo_count=Count("photos", distinct=True))
             .filter(Q(photo_count__gt=0))
             .order_by(F("date").desc(nulls_last=True))
         )
