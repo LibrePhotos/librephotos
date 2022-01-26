@@ -99,7 +99,7 @@ export class Settings extends Component {
 
   componentDidMount() {
     this.props.dispatch(fetchCountStats());
-    this.props.dispatch(fetchSiteSettings());
+    fetchSiteSettings(this.props.dispatch);
     this.props.dispatch(fetchUserSelfDetails(this.props.auth.access.user_id));
     this.props.dispatch(fetchNextcloudDirectoryTree("/"));
     if (this.props.auth.access.is_admin) {
@@ -324,6 +324,42 @@ export class Settings extends Component {
                         value: "fr",
                         flag: "fr",
                         text: this.props.t("settings.french"),
+                      },
+                      {
+                        key: "it",
+                        value: "it",
+                        flag: "it",
+                        text: this.props.t("settings.italian"),
+                      },
+                      {
+                        key: "nb_NO",
+                        value: "nb_NO",
+                        flag: "no",
+                        text: this.props.t("settings.norwegianbokmal"),
+                      },
+                      {
+                        key: "zh_Hans",
+                        value: "zh_Hans",
+                        flag: "cn",
+                        text: this.props.t("settings.simplifiedchinese"),
+                      },
+                      {
+                        key: "ru",
+                        value: "ru",
+                        flag: "ru",
+                        text: this.props.t("settings.russian"),
+                      },
+                      {
+                        key: "ja",
+                        value: "ja",
+                        flag: "jp",
+                        text: this.props.t("settings.japanese"),
+                      },
+                      {
+                        key: "sv",
+                        value: "sv",
+                        flag: "se",
+                        text: this.props.t("settings.swedish"),
                       },
                     ]}
                   />

@@ -2,13 +2,14 @@ import React, { Component } from "react";
 import { Divider } from "semantic-ui-react";
 import { connect } from "react-redux";
 import { fetchWordCloud } from "../../actions/utilActions";
-import WordCloud from "../../components/charts/wordCloud";
+import { WordCloud } from "../../components/charts/WordCloud";
 import { LocationLink } from "../../components/locationLink";
 import { AlbumPlace } from "../albums/AlbumPlace";
-import EventCountMonthGraph from "../../components/eventCountMonthGraph";
-import LocationDurationStackedBar from "../../components/locationDurationStackedBar";
-import FaceClusterScatter from "../../components/faceClusterGraph";
-import SocialGraph from "../../components/socialGraph";
+import { EventCountMonthGraph } from "../../components/charts/EventCountMonthGraph";
+import { LocationDurationStackedBar } from "../../components/charts/LocationDurationStackedBar";
+import FaceClusterScatter from "../../components/charts/FaceClusterGraph";
+import SocialGraph from "../../components/charts/SocialGraph";
+
 export class LocationTree extends Component {
   render() {
     return (
@@ -34,7 +35,7 @@ export class PhotoMap extends Component {
 
 export class WordClouds extends Component {
   componentDidMount() {
-    this.props.dispatch(fetchWordCloud());
+    fetchWordCloud(this.props.dispatch);
   }
 
   render() {

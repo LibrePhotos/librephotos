@@ -16,9 +16,9 @@ import { compose } from "redux";
 export class SelectionActions extends Component {
   render() {
     return (
-      <div >
+      <div>
         <Button.Group
-          style={{ paddingLeft: 2, paddingRight: 2}}
+          style={{ paddingLeft: 2, paddingRight: 2 }}
           compact
           floated="right"
           color="orange"
@@ -173,6 +173,24 @@ export class SelectionActions extends Component {
                 <Icon name="images" />
                 {this.props.t("selectionactions.albumactions")}
               </Dropdown.Header>
+              <Popup
+                inverted
+                position="left center"
+                trigger={
+                  <Dropdown.Item
+                    disabled={
+                      !this.props.route.location.pathname.startsWith(
+                        "/person/"
+                      ) || this.props.selectedItems.length !== 1
+                    }
+                    onClick={this.props.setAlbumCover}
+                  >
+                    <Icon name="photo" />
+                    {"  " + this.props.t("selectionactions.albumcover")}
+                  </Dropdown.Item>
+                }
+                content={this.props.t("selectionactions.albumcoverdescription")}
+              />
               <Popup
                 inverted
                 position="left center"

@@ -4,8 +4,9 @@ import { logout } from "../actions/authActions";
 import { fetchInferredFacesList, fetchLabeledFacesList } from "./facesActions";
 import { fetchUserSelfDetails } from "./userActions";
 import { fetchPeople } from "./peopleActions";
-import { fetchDateAlbumsList } from "./albumsActions";
+import { fetchAlbumDateList } from "./albumsActions";
 import { scanPhotos } from "../actions/photosActions";
+import i18n from "../i18n";
 
 export function fetchJobList(page, page_size = 10) {
   return function (dispatch) {
@@ -50,20 +51,18 @@ export function setSiteSettings(siteSettings) {
   };
 }
 
-export function fetchSiteSettings() {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_SITE_SETTINGS" });
-    Server.get("sitesettings/")
-      .then((response) => {
-        dispatch({
-          type: "FETCH_SITE_SETTINGS_FULFILLED",
-          payload: response.data,
-        });
-      })
-      .catch((error) => {
-        dispatch({ type: "FETCH_SITE_SETTINGS_REJECTED", payload: error });
+export function fetchSiteSettings(dispatch) {
+  dispatch({ type: "FETCH_SITE_SETTINGS" });
+  Server.get("sitesettings/")
+    .then((response) => {
+      dispatch({
+        type: "FETCH_SITE_SETTINGS_FULFILLED",
+        payload: response.data,
       });
-  };
+    })
+    .catch((error) => {
+      dispatch({ type: "FETCH_SITE_SETTINGS_REJECTED", payload: error });
+    });
 }
 
 // Todo: put this under userActions.js
@@ -131,8 +130,8 @@ export function updateAvatar(user, form_data) {
         dispatch(fetchNextcloudDirectoryTree("/"));
         dispatch(
           notify({
-            message: `${user.username}'s information was successfully updated`,
-            title: "Update user",
+            message: i18n.t("toasts.updateuser", { username: user.username }),
+            title: i18n.t("toasts.updateusertitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -160,8 +159,8 @@ export function updateUser(user) {
         dispatch(fetchNextcloudDirectoryTree("/"));
         dispatch(
           notify({
-            message: `${user.username}'s information was successfully updated`,
-            title: "Update user",
+            message: i18n.t("toasts.updateuser", { username: user.username }),
+            title: i18n.t("toasts.updateusertitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -190,8 +189,8 @@ export function updateUserAndScan(user) {
         dispatch(fetchUserList());
         dispatch(
           notify({
-            message: `${user.username}'s information was successfully updated`,
-            title: "Update user",
+            message: i18n.t("toasts.updateuser", { username: user.username }),
+            title: i18n.t("toasts.updateusertitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -221,8 +220,8 @@ export function manageUpdateUser(user) {
         dispatch(fetchUserList());
         dispatch(
           notify({
-            message: `${user.username}'s information was successfully updated`,
-            title: "Update user",
+            message: i18n.t("toasts.updateuser", { username: user.username }),
+            title: i18n.t("toasts.updateusertitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -236,53 +235,53 @@ export function manageUpdateUser(user) {
   };
 }
 
-export function fetchWorkerAvailability(prevRunningJob) {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_WORKER_AVAILABILITY" });
-    Server.get("rqavailable/")
-      .then((response) => {
-        if (prevRunningJob !== null && response.data.job_detail === null) {
-          dispatch(
-            notify({
-              message: prevRunningJob.job_type_str + " finished.",
-              title: prevRunningJob.job_type_str,
-              status: "success",
-              dismissible: true,
-              dismissAfter: 3000,
-              position: "br",
-            })
-          );
-          if (prevRunningJob.job_type_str.toLowerCase() === "train faces") {
-            dispatch(fetchLabeledFacesList());
-            dispatch(fetchInferredFacesList());
-            dispatch(fetchPeople());
-          }
-          if (prevRunningJob.job_type_str.toLowerCase() === "scan photos") {
-            dispatch(fetchDateAlbumsList());
-          }
+export function fetchWorkerAvailability(prevRunningJob, dispatch) {
+  dispatch({ type: "FETCH_WORKER_AVAILABILITY" });
+  Server.get("rqavailable/")
+    .then((response) => {
+      if (prevRunningJob !== null && response.data.job_detail === null) {
+        dispatch(
+          notify({
+            message: i18n.t("toasts.jobfinished", {
+              job: prevRunningJob.job_type_str,
+            }),
+            title: prevRunningJob.job_type_str,
+            status: "success",
+            dismissible: true,
+            dismissAfter: 3000,
+            position: "br",
+          })
+        );
+        if (prevRunningJob.job_type_str.toLowerCase() === "train faces") {
+          dispatch(fetchLabeledFacesList());
+          dispatch(fetchInferredFacesList());
+          fetchPeople(dispatch);
         }
+        if (prevRunningJob.job_type_str.toLowerCase() === "scan photos") {
+          dispatch(fetchAlbumDateList());
+        }
+      }
 
-        if (response.data.job_detail) {
-          dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
-        } else {
-          dispatch({ type: "SET_WORKER_AVAILABILITY", payload: true });
-        }
-        dispatch({
-          type: "SET_WORKER_RUNNING_JOB",
-          payload: response.data.job_detail,
-        });
-      })
-      .catch((error) => {
+      if (response.data.job_detail) {
         dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
-        console.log(error.message);
-
-        if (error.message.indexOf("502") !== -1) {
-          // Backend is offline; HTTP error status code 502
-          console.log("Backend is offline");
-          dispatch(logout());
-        }
+      } else {
+        dispatch({ type: "SET_WORKER_AVAILABILITY", payload: true });
+      }
+      dispatch({
+        type: "SET_WORKER_RUNNING_JOB",
+        payload: response.data.job_detail,
       });
-  };
+    })
+    .catch((error) => {
+      dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
+      console.log(error.message);
+
+      if (error.message.indexOf("502") !== -1) {
+        // Backend is offline; HTTP error status code 502
+        console.log("Backend is offline");
+        logout(dispatch);
+      }
+    });
 }
 
 export function deleteMissingPhotos() {
@@ -297,8 +296,8 @@ export function deleteMissingPhotos() {
       .then((response) => {
         dispatch(
           notify({
-            message: "Delete Missing Photos started",
-            title: "Delete Missing Photos",
+            message: i18n.t("toasts.deletemissingphotos"),
+            title: i18n.t("toasts.deletemissingphotostitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -328,8 +327,8 @@ export function generateEventAlbums() {
       .then((response) => {
         dispatch(
           notify({
-            message: "Generate Event Albums started",
-            title: "Generate Event Albums",
+            message: i18n.t("toasts.generateeventalbums"),
+            title: i18n.t("toasts.generateeventalbumstitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -360,8 +359,8 @@ export function generateEventAlbumTitles() {
       .then((response) => {
         dispatch(
           notify({
-            message: "Regenerate Event Titles started",
-            title: "Regenerate Event Titles",
+            message: i18n.t("toasts.regenerateevents"),
+            title: i18n.t("toasts.regenerateeventstitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -414,20 +413,18 @@ export function fetchLocationSunburst() {
   };
 }
 
-export function fetchLocationTimeline() {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_LOCATION_TIMELINE" });
-    Server.get(`locationtimeline/`)
-      .then((response) => {
-        dispatch({
-          type: "FETCH_LOCATION_TIMELINE_FULFILLED",
-          payload: response.data,
-        });
-      })
-      .catch((err) => {
-        dispatch({ type: "FETCH_LOCATION_TIMELINE_REJECTED", payload: err });
+export function fetchLocationTimeline(dispatch) {
+  dispatch({ type: "FETCH_LOCATION_TIMELINE" });
+  Server.get(`locationtimeline/`)
+    .then((response) => {
+      dispatch({
+        type: "FETCH_LOCATION_TIMELINE_FULFILLED",
+        payload: response.data,
       });
-  };
+    })
+    .catch((err) => {
+      dispatch({ type: "FETCH_LOCATION_TIMELINE_REJECTED", payload: err });
+    });
 }
 
 export function fetchCountStats() {
@@ -462,31 +459,27 @@ export function fetchLocationClusters() {
   };
 }
 
-export function fetchPhotoMonthCounts() {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_PHOTO_MONTH_COUNTS" });
-    Server.get(`photomonthcounts/`)
-      .then((response) => {
-        dispatch({
-          type: "FETCH_PHOTO_MONTH_COUNTS_FULFILLED",
-          payload: response.data,
-        });
-      })
-      .catch((err) => {
-        dispatch({ type: "FETCH_PHOTO_MONTH_COUNTS_REJECTED", payload: err });
+export function fetchPhotoMonthCounts(dispatch) {
+  dispatch({ type: "FETCH_PHOTO_MONTH_COUNTS" });
+  Server.get(`photomonthcounts/`)
+    .then((response) => {
+      dispatch({
+        type: "FETCH_PHOTO_MONTH_COUNTS_FULFILLED",
+        payload: response.data,
       });
-  };
+    })
+    .catch((err) => {
+      dispatch({ type: "FETCH_PHOTO_MONTH_COUNTS_REJECTED", payload: err });
+    });
 }
 
-export function fetchWordCloud() {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_WORDCLOUD" });
-    Server.get(`wordcloud/`)
-      .then((response) => {
-        dispatch({ type: "FETCH_WORDCLOUD_FULFILLED", payload: response.data });
-      })
-      .catch((err) => {
-        dispatch({ type: "FETCH_WORDCLOUD_REJECTED", payload: err });
-      });
-  };
+export function fetchWordCloud(dispatch) {
+  dispatch({ type: "FETCH_WORDCLOUD" });
+  Server.get(`wordcloud/`)
+    .then((response) => {
+      dispatch({ type: "FETCH_WORDCLOUD_FULFILLED", payload: response.data });
+    })
+    .catch((err) => {
+      dispatch({ type: "FETCH_WORDCLOUD_REJECTED", payload: err });
+    });
 }

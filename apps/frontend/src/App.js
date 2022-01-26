@@ -85,11 +85,17 @@ class App extends Component {
 
             <Route path="/signup" component={SignupPage} />
 
-            <Route path="/public" component={UserPublicPage} />
+            <Route
+              path="/public/:username"
+              component={(props) => <UserPublicPage {...props} />}
+            />
 
             <Route path="/users" component={PublicUserList} />
 
-            <Route path="/user/:username" component={UserPublicPage} />
+            <Route
+              path="/user/:username"
+              component={(props) => <UserPublicPage {...props} />}
+            />
 
             <PrivateRoute path="/things" component={AlbumThing} />
 
@@ -122,7 +128,7 @@ class App extends Component {
 
             <PrivateRoute
               path="/person/:albumID"
-              component={AlbumPersonGallery}
+              component={(props) => <AlbumPersonGallery {...props} />}
             />
 
             <PrivateRoute

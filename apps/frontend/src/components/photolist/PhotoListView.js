@@ -14,6 +14,7 @@ import FavoritedOverlay from "./FavoritedOverlay";
 import { DefaultHeader } from "./DefaultHeader";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { SelectionActions } from "./SelectionActions";
+import { setAlbumCoverForPerson } from "../../actions/peopleActions";
 
 var TIMELINE_SCROLL_WIDTH = 0;
 
@@ -76,7 +77,6 @@ export class PhotoListView extends Component {
   handleSelections = (items) => {
     var newSelectedItems = this.state.selectionState.selectedItems;
     items.forEach((item) => {
-      console.log(item);
       if (
         newSelectedItems.find((selectedItem) => selectedItem.id === item.id)
       ) {
@@ -214,46 +214,58 @@ export class PhotoListView extends Component {
               additionalSubHeader={this.props.additionalSubHeader}
             />
           )}
-          {!this.props.loading && !this.props.isPublic && this.getNumPhotos() > 0 && (
-            <div
-              style={{
-                marginLeft: -5,
-                paddingLeft: 5,
-                paddingRight: 5,
-                height: 40,
-                paddingTop: 4,
-                backgroundColor: "#f6f6f6",
-              }}
-            >
-              <SelectionBar
-                selectMode={this.state.selectionState.selectMode}
-                selectedItems={this.state.selectionState.selectedItems}
-                idx2hash={this.props.idx2hash}
-                updateSelectionState={this.updateSelectionState}
-              />
-              <SelectionActions
-                selectedItems={this.state.selectionState.selectedItems}
-                albumID={
-                  this.props.match ? this.props.match.params.albumID : undefined
-                }
-                title={this.props.title}
-                onSharePhotos={() =>
-                  this.setState({ modalSharePhotosOpen: true })
-                }
-                onShareAlbum={() =>
-                  this.setState({ modalAlbumShareOpen: true })
-                }
-                onAddToAlbum={() =>
-                  this.setState({ modalAddToAlbumOpen: true })
-                }
-              />
-            </div>
-          )}
+          {!this.props.loading &&
+            !this.props.isPublic &&
+            this.getNumPhotos() > 0 && (
+              <div
+                style={{
+                  marginLeft: -5,
+                  paddingLeft: 5,
+                  paddingRight: 5,
+                  height: 40,
+                  paddingTop: 4,
+                  backgroundColor: "#f6f6f6",
+                }}
+              >
+                <SelectionBar
+                  selectMode={this.state.selectionState.selectMode}
+                  selectedItems={this.state.selectionState.selectedItems}
+                  idx2hash={this.props.idx2hash}
+                  updateSelectionState={this.updateSelectionState}
+                />
+                <SelectionActions
+                  selectedItems={this.state.selectionState.selectedItems}
+                  albumID={
+                    this.props.match
+                      ? this.props.match.params.albumID
+                      : undefined
+                  }
+                  title={this.props.title}
+                  setAlbumCover={() => {
+                    this.props.dispatch(
+                      setAlbumCoverForPerson(
+                        this.props.match.params.albumID,
+                        this.state.selectionState.selectedItems[0].id
+                      )
+                    );
+                  }}
+                  onSharePhotos={() =>
+                    this.setState({ modalSharePhotosOpen: true })
+                  }
+                  onShareAlbum={() =>
+                    this.setState({ modalAlbumShareOpen: true })
+                  }
+                  onAddToAlbum={() =>
+                    this.setState({ modalAddToAlbumOpen: true })
+                  }
+                />
+              </div>
+            )}
         </div>
         {!this.props.loading &&
         this.props.photoset &&
         this.props.photoset.length > 0 ? (
-          <div >
+          <div>
             <Pig
               imageData={this.getPigImageData()}
               selectable={

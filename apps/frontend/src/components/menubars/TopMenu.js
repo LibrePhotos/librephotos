@@ -54,7 +54,7 @@ export class TopMenu extends Component {
 
   componentDidMount() {
     var intervalId = setInterval(() => {
-      this.props.dispatch(fetchWorkerAvailability(this.props.workerRunningJob));
+      fetchWorkerAvailability(this.props.workerRunningJob, this.props.dispatch);
     }, 2000);
     this.setState({ intervalId: intervalId });
   }
@@ -164,7 +164,7 @@ export class TopMenu extends Component {
                     <Trans i18nKey="topmenu.loggedin">Logged in as</Trans>{" "}
                     {this.props.auth.access ? this.props.auth.access.name : ""}
                   </Dropdown.Header>
-                  <Dropdown.Item onClick={() => this.props.dispatch(logout())}>
+                  <Dropdown.Item onClick={() => logout(this.props.dispatch)}>
                     <Icon name="sign out" />
                     <b>
                       <Trans i18nKey="topmenu.logout">Logout</Trans>

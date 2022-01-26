@@ -14,7 +14,7 @@
         "lastnameplaceholder": "Nachname",
         "email": "E-Mail",
         "emailplaceholder": "E-Mail",
-        "language": "Wähle eine Sprache aus",
+        "language": "Sprache auswählen",
         "german": "Deutsch",
         "english": "Englisch",
         "spanish": "Spanisch",
@@ -34,9 +34,9 @@
         "nextcloudpasswordplaceholder": "Nextcloud-Passwort",
         "nextcloudupdate": "Aktualisiere Nextcloud-Zugangsdaten",
         "nextcloudcancel": "Abbrechen",
-        "nextcloudscandirectory": "Nextcloud Scan Ordner",
-        "nextcloudloggedin": "Eingelogged in Nextcloud",
-        "nextcloudnotloggedin": "Nicht eingelogged in Nextcloud",
+        "nextcloudscandirectory": "Nextcloud-Scan-Ordner",
+        "nextcloudloggedin": "In Nextcloud angemeldet",
+        "nextcloudnotloggedin": "Nicht in Nextcloud angemeldet",
         "nextcloudchange": "Ändern",
         "appearance": "Aussehen",
         "thumbnailsize": "Größe der Vorschaubilder",
@@ -49,27 +49,27 @@
         "scannextcloudphotos": "Scanne Bilder (Nextcloud)",
         "scannextclouddescription": {
             "item1": "Erstelle eine Liste aller Unterordner. Mache folgendes für jede Mediendatei:",
-            "item2": "Schaue ob der Dateipfad existiert und überprüfe ob die Datei modifiziert wurde. Wenn es modifiziert wurde, dann scanne das Bild erneut. Wenn nicht, dann überspringe es.",
+            "item2": "Prüfe, ob der Dateipfad existiert und ob die Datei modifiziert wurde. Falls ja, scanne das Bild erneut. Falls nicht, überspringe es.",
             "item3": "Berechne die einzigartige ID des Bildes (md5)",
             "item4": "Wenn die Mediendatei bereits in der Datenbank ist, dann füge den Pfad zu der bereits vorhandenen Mediendatei hinzu.",
             "item5": "Erstelle eine Anzahl von Vorschaubildern",
             "item6": "Erstelle Beschreibungen über die Bilder",
-            "item7": "Extrahiere Exif informationen",
-            "item8": "Nutze Reverse geolocate mit den GPS Koordinaten um die Namen der Orte zu finden",
+            "item7": "Extrahiere Exif-Informationen",
+            "item8": "Nutze Reverse geolocate mit den GPS Koordinaten, um die Namen der Orte zu finden",
             "item9": "Extrahiere die Gesichter.",
             "item10": "Füge das Bild zu den Alben für Dinge und Orte hinzu.",
-            "item11": "Überprüfe ob das Bild fehlt oder ob es verschoben wurde."
+            "item11": "Überprüfe, ob das Bild fehlt oder ob es verschoben wurde."
         },
-        "statusrescanphotostrue": "Scann alle Bilder erneut (Dateisystem)",
-        "statusrescanphotosfalse": "Scann alle Bilder erneut (Dateisystem)",
+        "statusrescanphotostrue": "Scanne alle Bilder erneut (Dateisystem)",
+        "statusrescanphotosfalse": "Scanne alle Bilder erneut (Dateisystem)",
         "missingphotos": "Fehlende Bilder",
         "missingphotosbutton": "Entferne fehlende Bilder",
-        "missingphotosdescription": "Nach jedem Scan checkt LibrePhotos ob die Dateien an dem gleichen Ort sind oder ob Sie verschoben wurden. Falls Sie fehlen werden Sie als fehlend markiert.",
+        "missingphotosdescription": "Nach jedem Scan prüft LibrePhotos, ob die Dateien am gleichen Ort sind oder ob Sie verschoben wurden. Falls Sie fehlen, werden Sie als fehlend markiert.",
         "eventsalbums": "Ereignis-Alben",
         "eventalbumsgenerate": "Erzeuge Ereignis-Alben",
-        "eventsalbumsdescription": "Der Server gruppiert die Bilder nach der Zeit. Wenn zwei oder mehr Bilder in einem Zeitraum von 12 Stunden aufgenommen wurden, dann wird angenommen, dass Sie zum gleichen Ereignis gehören. Nachdem die Bilder gruppiert wurden, wird automatisch ein Titel erstellt.",
+        "eventsalbumsdescription": "Der Server gruppiert die Bilder nach der Zeit, zu der sie aufgenommen wurden. Wenn zwei oder mehr Bilder in einem Zeitraum von 12 Stunden aufgenommen wurden, dann wird angenommen, dass Sie zum gleichen Ereignis gehören. Nachdem die Bilder gruppiert wurden, wird automatisch ein Titel erstellt.",
         "eventalbumsregenerate": "Erzeuge Ereignis-Titel erneut",
-        "eventalbumsregeneratedescription": "Generiere automatisch Namen für die Alben anhand der Namen der Personen im Bild. Falls die Gesichtdaten nach dem Erstellen der Ereignis-Alben angelegt wurden, ist es mit diesem Button möglich neue Titel zu generieren um die Personen in den Bildern im Titel wiederzuspiegeln.",
+        "eventalbumsregeneratedescription": "Generiere automatisch Namen für die Alben anhand der Namen der Personen im Bild. Falls die Gesichtdaten nach dem Erstellen der Ereignis-Alben angelegt wurden, ist es mit diesem Button möglich, neue Titel zu generieren, um die Personen in den Bildern im Titel widerzuspiegeln.",
         "faces": "Gesichter",
         "people": "Personen",
         "facesbutton": "Trainiere Gesichter",
@@ -80,7 +80,7 @@
         "facedashboard": "Dashboard für Gesichter",
         "rescanfaces": "Scanne Gesichter erneut",
         "scanoptions": "Scanoptionen",
-        "sceneconfidence": "Szenen Vertrauenswert",
+        "sceneconfidence": "Szenen-Vertrauenswert",
         "confidencelevel": "Vertrauenswert",
         "confidence": {
             "high": "Hoch",
@@ -98,7 +98,7 @@
         },
         "semanticsearchupdate": "Aktualisiere",
         "favorite": "Optionen für Favoriten",
-        "favoriteminimum": "Minimale Bewertung um als Favorit interpretiert zu werden",
+        "favoriteminimum": "Minimale Bewertung, um als Favorit interpretiert zu werden",
         "favoriteoption": {
             "placeholder": "Minimale Bewertung"
         },
@@ -113,7 +113,13 @@
         "transcodevideo": "Transkodiere immer Videos",
         "on": "An",
         "off": "Aus",
-        "experimentalupdate": "Aktualisiere"
+        "experimentalupdate": "Aktualisiere",
+        "italian": "Italienisch",
+        "norwegianbokmal": "Norwegisch (Bokmål)",
+        "simplifiedchinese": "Chinesisch (vereinfacht)",
+        "japanese": "Japanisch",
+        "russian": "Russisch",
+        "swedish": "Schwedisch"
     },
     "modalnextcloud": {
         "setdirectory": "Setze dein Nextcloud Scan Ordner",
@@ -153,7 +159,7 @@
         "timeline": "Zeitlinie",
         "socialgraph": "Sozialer Graph",
         "facecluster": "Cluster für Gesichter",
-        "datavizsmall": "Datenaus-\nwertung",
+        "datavizsmall": "Datenauswertung",
         "facerecognition": "Gesichtserkennung",
         "library": "Bibliothek",
         "dashboards": "Dashboards",
@@ -172,7 +178,9 @@
         "loading": "Wird geladen …",
         "noimages": "Keine Bilder gefunden",
         "days": "Tage",
-        "photos": "Bilder"
+        "photos": "Bilder",
+        "setup": "Es sieht so aus als musst du LibrePhotos noch aufsetzen.",
+        "gettingstarted": "Erste Schritte"
     },
     "selectionactions": {
         "photoactions": "Bilderaktionen",
@@ -190,7 +198,9 @@
         "albumsharingdescription": "Öffne das Teilen Panel für das momentane Album",
         "removephotos": "Entferne Bild",
         "removephotosdescription": "Entferne das Bild aus dem ausgewählten Album",
-        "album": "Alben"
+        "album": "Alben",
+        "albumcover": "Album-Cover festlegen",
+        "albumcoverdescription": "Album-Cover für aktuelles Album festlegen"
     },
     "lightbox": {
         "sidebar": {
@@ -225,12 +235,14 @@
         "password": "Passwort",
         "passwordplaceholder": "Passwort",
         "signup": "Konto erstellen",
-        "errorbackend": "Es gibt keien Verbindung zum Backend Server. Probiere es in ein paar Minuten nochmal.",
+        "errorbackend": "Es gibt keine Verbindung zum Backend Server. Probiere es in ein paar Minuten nochmal.",
         "errorpassword": "Das Passwortfeld darf nicht leer sein!",
         "errorusername": "Das Nutzernamenfeld darf nicht leer sein!",
         "tagline": "Ein gemütlicher Platz für deine Bilder.",
         "confirmpasswordplaceholder": "Passwort bestätigen",
-        "confirmpassword": "Passwort bestätigen"
+        "confirmpassword": "Passwort bestätigen",
+        "errorusernameexists": "Ein Nutzer mit diesem Benutzernamen existiert bereits.",
+        "erroremail": "Bitte gültige E-Mail-Adresse eingeben."
     },
     "search": {
         "search": "Suche nach",
@@ -295,7 +307,7 @@
     },
     "placealbum": {
         "showingplaces": "Zeige {{number}} Orte auf der Karte",
-        "maploading": "Karte wird geladen …"
+        "maploading": "Karte wird geladen…"
     },
     "thingalbum": {
         "showingthings": "Zeige {{number}} Dinge"
@@ -316,5 +328,44 @@
     "myalbums": "Meine Alben",
     "things": "Dinge",
     "places": "Orte",
-    "loading": "Wird geladen …"
+    "loading": "Wird geladen …",
+    "facesdashboard": {
+        "selectedfaces": "{{number}} ausgewählt",
+        "explanationdeleting": "Lösche das Gesicht und das Anzeigebild",
+        "numberoffaces": "{{number}} Gesichter",
+        "explanationadding": "Zu einer bestehenden Gesichts-ID hinzufügen oder eine neue Gesichts-ID erstellen",
+        "explanationtraining": "Einen Klassifikator trainieren und Gesichter automatisch kennzeichnen"
+    },
+    "personedit": {
+        "addperson": "Füge Person hinzu",
+        "newperson": "Neue Person",
+        "personname": "Name der Person",
+        "labelfaces": "Gesichter kennzeichnen",
+        "numberselected": "Ausgewählte(s) {{number}} Gesicht(er) kennzeichnen als …"
+    },
+    "dataviz": "Datenvisualisierung",
+    "placetree": "Ortsbaum",
+    "faceclusterexplanation": "Personen mit ähnlich aussehenden Gesichtern sollten in diesem Diagramm näher beieinander liegen (Klicken Sie auf einen Punkt, um die Beschriftung zu sehen).",
+    "scan": "Scannen",
+    "wordclouds": "Wortwolken",
+    "timeline": "Zeitleiste",
+    "socialgraph": "Sozialer Graph",
+    "facecluster": "Gesichtsgruppen",
+    "toasts": {
+        "createnewalbum": "{{numberOfPhotos}} Bilder wurden erfolgreich zu dem Album {{title}} hinzugefügt",
+        "createalbumtitle": "Erstelle Album",
+        "viewalbum": "Gehe zu Album",
+        "renamealbum": "{{albumTitle}} wurde erfolgreich zu {{newAlbumTitle}} benannt.",
+        "renamealbumtitle": "Benenne Album um",
+        "deletealbum": "{{albumTitle}} wurde erfolgreich gelöscht.",
+        "deletealbumtitle": "Lösche Album",
+        "removefromalbum": "{{numberOfPhotos}} Bilder wurde erfolgreich von Album {{title}} entfernt",
+        "removefromalbumtitle": "Entferne von Album",
+        "addtoalbum": "{{numberOfPhotos}} Bilder wurden erfolgreich zu dem Album {{title}} hinzugefügt",
+        "addtoalbumtitle": "Füge zu Album hinzu",
+        "sharingalbum": "Album wurde erfolgreich geteilt",
+        "sharingalbumtitle": "Teile Album",
+        "unsharingalbumtitle": "Teile Album nicht mehr",
+        "unsharingalbum": "Album wurde erfolgreich nicht mehr geteilt"
+    }
 }

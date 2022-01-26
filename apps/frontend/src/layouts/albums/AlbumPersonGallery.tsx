@@ -3,38 +3,53 @@ import {
   fetchAlbumDateList,
   fetchAlbumDate,
 } from "../../actions/albumsActions";
-import _ from "lodash";
+import { fetchPeople } from "../../actions/peopleActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType, PhotosState } from "../../reducers/photosReducer";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { useTranslation } from "react-i18next";
+import _ from "lodash";
 
 type fetchedGroup = {
   id: string;
   page: number;
 };
 
-export const TimestampPhotos = () => {
+type Props = {
+  match: any;
+};
+
+export const AlbumPersonGallery = (props: Props) => {
   const { fetchedPhotosetType, photosFlat, photosGroupedByDate } =
     useAppSelector((state) => state.photos as PhotosState);
+  const { people } = useAppSelector((state) => state.people);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const [group, setGroup] = useState({} as fetchedGroup);
+  const person = people.filter(
+    (i: any) => i.key == props.match.params.albumID
+  )[0];
+  const personname = person ? person.value : undefined;
 
   useEffect(() => {
     if (group.id && group.page) {
       fetchAlbumDate(dispatch, {
         album_date_id: group.id,
         page: group.page,
-        photosetType: PhotosetType.TIMESTAMP,
+        photosetType: PhotosetType.PERSON,
+        person_id: props.match.params.albumID,
       });
     }
   }, [group.id, group.page]);
 
   useEffect(() => {
-    if (fetchedPhotosetType !== PhotosetType.TIMESTAMP) {
-      fetchAlbumDateList(dispatch, { photosetType: PhotosetType.TIMESTAMP });
+    if (people.length == 0) {
+      fetchPeople(dispatch);
     }
+    fetchAlbumDateList(dispatch, {
+      photosetType: PhotosetType.PERSON,
+      person_id: props.match.params.albumID,
+    });
   }, [dispatch]); // Only run on first render
 
   const getAlbums = (visibleGroups: any) => {
@@ -56,16 +71,18 @@ export const TimestampPhotos = () => {
     []
   );
 
+  // get person details
   return (
     <PhotoListView
-      title={t("photos.photos")}
-      loading={fetchedPhotosetType !== PhotosetType.TIMESTAMP}
-      titleIconName={"images"}
+      title={personname ? personname : t("loading")}
+      loading={fetchedPhotosetType !== PhotosetType.PERSON}
+      titleIconName={"user"}
       isDateView={true}
       photoset={photosGroupedByDate}
       idx2hash={photosFlat}
       updateGroups={throttledGetAlbums}
       selectable={true}
+      match={props.match}
     />
   );
 };

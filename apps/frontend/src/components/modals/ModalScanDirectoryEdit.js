@@ -25,7 +25,7 @@ export class ModalScanDirectoryEdit extends Component {
     if (this.props.updateAndScan) {
       this.setState({ updateAndScan: this.props.updateAndScan });
     }
-    if (this.props.auth.access.is_admin) {
+    if (this.props.auth.access && this.props.auth.access.is_admin) {
       this.props.dispatch(fetchDirectoryTree());
     }
   }

@@ -1,5 +1,6 @@
 import { notify } from "reapop";
 import { Server } from "../api_client/apiClient";
+import i18n from "../i18n";
 
 export function setFacesPersonLabel(faceIDs, personName) {
   return function (dispatch) {
@@ -12,8 +13,11 @@ export function setFacesPersonLabel(faceIDs, personName) {
         });
         dispatch(
           notify({
-            message: `${faceIDs.length} face(s) were successfully labeled as person "${personName}"`,
-            title: "Face label",
+            message: i18n.t("toasts.addfacestoperson", {
+              numberOfFaces: faceIDs.length,
+              personName: personName,
+            }),
+            title: i18n.t("toasts.addfacestopersontitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -36,8 +40,10 @@ export function deleteFaces(faceIDs) {
         });
         dispatch(
           notify({
-            message: `${response.data.results.length} face(s) were successfully deleted`,
-            title: "Face delete",
+            message: i18n.t("toasts.deletefaces", {
+              numberOfFaces: faceIDs.length,
+            }),
+            title: i18n.t("toasts.deletefacestitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -60,8 +66,8 @@ export function trainFaces() {
 
     dispatch(
       notify({
-        message: `Training started`,
-        title: "Face training",
+        message: i18n.t("toasts.trainingstarted"),
+        title: i18n.t("toasts.trainingstartedtitle"),
         status: "success",
         dismissible: true,
         dismissAfter: 3000,
@@ -90,8 +96,8 @@ export function rescanFaces() {
 
     dispatch(
       notify({
-        message: `Scanning started`,
-        title: "Face scanning",
+        message: i18n.t("toasts.rescanfaces"),
+        title: i18n.t("toasts.rescanfacestitle"),
         status: "success",
         dismissible: true,
         dismissAfter: 3000,
@@ -108,17 +114,15 @@ export function rescanFaces() {
   };
 }
 
-export function clusterFaces() {
-  return function (dispatch) {
-    dispatch({ type: "CLUSTER_FACES" });
-    Server.get("clusterfaces/")
-      .then((response) => {
-        dispatch({ type: "CLUSTER_FACES_FULFILLED", payload: response.data });
-      })
-      .catch((err) => {
-        dispatch({ type: "CLUSTER_FACES_REJECTED", payload: err });
-      });
-  };
+export function clusterFaces(dispatch) {
+  dispatch({ type: "CLUSTER_FACES" });
+  Server.get("clusterfaces/")
+    .then((response) => {
+      dispatch({ type: "CLUSTER_FACES_FULFILLED", payload: response.data });
+    })
+    .catch((err) => {
+      dispatch({ type: "CLUSTER_FACES_REJECTED", payload: err });
+    });
 }
 
 export function fetchInferredFaces() {

@@ -113,7 +113,13 @@
         "transcodevideo": "Siempre transcodifica los videos",
         "on": "Sí",
         "off": "No",
-        "experimentalupdate": "Actualizar"
+        "experimentalupdate": "Actualizar",
+        "italian": "Italiano",
+        "simplifiedchinese": "Chino (simplificado)",
+        "norwegianbokmal": "Noruego Bokmål",
+        "japanese": "Japonés",
+        "russian": "Ruso",
+        "swedish": "Sueco"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de escaneo de Nextcloud",
@@ -172,7 +178,9 @@
         "loading": "Cargando...",
         "noimages": "No se encontraron imágenes",
         "days": "dias",
-        "photos": "fotos"
+        "photos": "fotos",
+        "setup": "Parece que todavía tienes que configurar LibrePhotos.",
+        "gettingstarted": "Empezando"
     },
     "selectionactions": {
         "photoactions": "Acciones de fotos",
@@ -190,7 +198,9 @@
         "albumsharingdescription": "Abrir el panel para compartir del álbum actual",
         "removephotos": "Eliminar Fotos",
         "removephotosdescription": "Eliminar las fotos seleccionadas del álbum actual",
-        "album": "Álbum"
+        "album": "Álbum",
+        "albumcover": "Establecer portada del álbum",
+        "albumcoverdescription": "Configurar la portada del álbum actual"
     },
     "lightbox": {
         "sidebar": {
@@ -228,7 +238,11 @@
         "errorbackend": "No hay conexión con el servidor backend, inténtalo de nuevo en unos minutos.",
         "errorpassword": "La contraseña no puede estar en blanco!",
         "errorusername": "El nombre de usuario no puede estar en blanco!",
-        "tagline": "Un lugar cómodo para tus fotos."
+        "tagline": "Un lugar cómodo para tus fotos.",
+        "confirmpassword": "Confirmar contraseña",
+        "confirmpasswordplaceholder": "Confirmar contraseña",
+        "errorusernameexists": "Un usuario con ese nombre ya existe.",
+        "erroremail": "Introduzca una dirección de correo electrónico válida."
     },
     "search": {
         "search": "Buscar",
@@ -314,5 +328,85 @@
     "myalbums": "Mis álbumes",
     "things": "Cosas",
     "places": "Lugares",
-    "loading": "Cargando..."
+    "loading": "Cargando...",
+    "facesdashboard": {
+        "selectedfaces": "{{number}} seleccionada",
+        "explanationadding": "Agregar a una persona existente o crear una nueva persona",
+        "explanationdeleting": "Eliminar la cara y sus miniaturas",
+        "explanationtraining": "Entrene a un clasificador y etiquete caras automáticamente",
+        "numberoffaces": "{{number}} Caras"
+    },
+    "scan": "Escanear",
+    "socialgraph": "Gráfico social",
+    "personedit": {
+        "labelfaces": "Etiquetar caras",
+        "newperson": "Nueva persona",
+        "personname": "Nombre de la persona",
+        "addperson": "Agregar persona",
+        "numberselected": "Etiqueta {{number}} cara(s) seleccionadas como..."
+    },
+    "facecluster": "Grupos de caras",
+    "faceclusterexplanation": "Las personas con caras similares deben agruparse más juntas en este gráfico (haga clic en un punto para ver la etiqueta).",
+    "dataviz": "Visualización de datos",
+    "placetree": "Lugares visitados",
+    "wordclouds": "Nubes de palabras",
+    "timeline": "Cronología",
+    "toasts": {
+        "createnewalbum": "{{numberOfPhotos}} la(s) foto(s) se agregaron con éxito al nuevo álbum {{title}}",
+        "createalbumtitle": "Crear albúm",
+        "viewalbum": "Ver álbum",
+        "renamealbum": "{{albumTitle}} fue renombrado con éxito a {{newAlbumTitle}}.",
+        "renamealbumtitle": "Renombrar álbum",
+        "deletealbum": "{{albumTitle}} fue eliminado con éxito.",
+        "deletealbumtitle": "Eliminar álbum",
+        "removefromalbum": "{{numberOfPhotos}} las fotos se eliminaron correctamente del álbum {{title}}",
+        "removefromalbumtitle": "Quitar del álbum",
+        "addtoalbum": "{{numberOfPhotos}} las fotos se agregaron con éxito al álbum existente {{title}}",
+        "addtoalbumtitle": "Agregar al álbum",
+        "sharingalbum": "El álbum se compartió con éxito",
+        "sharingalbumtitle": "Compartir álbum",
+        "unsharingalbum": "El álbum se dejó de compartir correctamente",
+        "unsharingalbumtitle": "Dejar de compartir álbum",
+        "addfacestoperson": "{{numberOfFaces}} la(s) cara(s) se etiquetaron con éxito como persona {{personName}}",
+        "addfacestopersontitle": "Agregar caras a la persona",
+        "deletefaces": "{{numberOfFaces}} la(s) cara(s) se eliminaron con éxito",
+        "deletefacestitle": "Eliminar caras",
+        "trainingstartedtitle": "Entrenamiento de Caras",
+        "rescanfacestitle": "Reescaneado de rostros",
+        "renameperson": "Persona {{personName}} fue renombrado con éxito a {{newPersonName}}",
+        "renamepersontitle": "Renombrar persona",
+        "deleteperson": "La persona fue eliminada con éxito",
+        "deletepersontitle": "Eliminar persona",
+        "setcoverphoto": "La foto de portada se ha configurado correctamente",
+        "setcoverphototitle": "Establecer foto de portada",
+        "sharephoto": "{{numberOfPhotos}} de las fotos se compartieron correctamente con {{username}}",
+        "unsharephoto": "{{numberOfPhotos}} de las fotos se compartieron correctamente con {{username}}",
+        "sharephototitle": "Compartir foto",
+        "removepublicphoto": "{{numberOfPhotos}} de las fotos se eliminaron correctamente de tus fotos públicas.",
+        "setpublicphotostitle": "Establecer fotos públicas",
+        "favoritephoto": "{{numberOfPhotos}} de la(s) foto(s) se agregaron con éxito a sus favoritos.",
+        "unfavoritephoto": "{{numberOfPhotos}} de las fotos se eliminaron correctamente de sus favoritos.",
+        "setfavoritestitle": "Establecer favoritos",
+        "unhidephoto": "{{numberOfPhotos}} de la(s) foto(s) se revelaron con éxito.",
+        "sethidestitle": "Ocultar",
+        "scanphotos": "Escaneo iniciado",
+        "scanphotostitle": "Escanear fotos",
+        "fullscanphotos": "Escaneo de fotos (completo) iniciado",
+        "fullscanphotostitle": "Escanear fotos (completas)",
+        "scannextcloudphotostitle": "Escanear fotos de Nextcloud",
+        "rescanfaces": "Escaneo iniciado",
+        "trainingstarted": "Comenzó el entrenamiento",
+        "addpublicphoto": "{{numberOfPhotos}} de foto(s) se agregaron con éxito a sus fotos públicas. Los enlaces a las fotos se copiaron en el portapapeles.",
+        "hidephoto": "{{numberOfPhotos}} de las fotos se ocultaron con éxito.",
+        "scannextcloudphotos": "Escanear fotos de Nextcloud iniciada",
+        "updateusertitle": "Actualizar usuario",
+        "jobfinished": "{{job}} terminado.",
+        "deletemissingphotostitle": "Eliminar fotos faltantes",
+        "generateeventalbumstitle": "Generar álbumes de eventos",
+        "regenerateeventstitle": "Regenerar títulos de eventos",
+        "regenerateevents": "Regeneración de títulos de eventos iniciados",
+        "deletemissingphotos": "Se inició la eliminación de fotos que faltan",
+        "updateuser": "La información de {{username}} fue actualizada con éxito",
+        "generateeventalbums": "Generar álbumes de eventos iniciado"
+    }
 }

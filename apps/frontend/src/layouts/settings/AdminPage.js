@@ -22,14 +22,14 @@ import {
 } from "../../actions/utilActions";
 import SiteSettings from "./SiteSettings";
 import { withTranslation } from "react-i18next";
-import { ModalScanDirectoryEdit} from "../../components/modals/ModalScanDirectoryEdit"
+import { ModalScanDirectoryEdit } from "../../components/modals/ModalScanDirectoryEdit";
 
 export class AdminPage extends Component {
   state = { modalOpen: false, userToEdit: null };
 
   componentDidMount() {
     if (this.props.auth.access.is_admin) {
-      this.props.dispatch(fetchSiteSettings());
+      fetchSiteSettings(this.props.dispatch);
       this.props.dispatch(fetchJobList());
       this.props.dispatch(fetchUserList());
     }
@@ -322,8 +322,6 @@ class JobList extends Component {
     );
   }
 }
-
-
 
 JobList = compose(
   connect((store) => {

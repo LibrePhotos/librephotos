@@ -1,7 +1,4 @@
 import {
-  FETCH_PERSON_PHOTOS,
-  FETCH_PERSON_PHOTOS_FULFILLED,
-  FETCH_PERSON_PHOTOS_REJECTED,
   FETCH_USER_ALBUM_FULFILLED,
   FETCH_USER_ALBUM_REJECTED,
 } from "../actions/albumsActions";
@@ -13,7 +10,6 @@ export default function reducer(
     fetchedAlbumsUserList: false,
 
     albumDetails: {},
-    personDetails: {},
 
     fetchingAlbumsPeople: false,
     fetchedAlbumsPeople: false,
@@ -110,22 +106,6 @@ export default function reducer(
         fetchedAlbumsSharedFromMe: false,
       };
     }
-
-    case FETCH_PERSON_PHOTOS: {
-      return { ...state, fetchingAlbumsPeople: true };
-    }
-    case FETCH_PERSON_PHOTOS_REJECTED: {
-      return { ...state, fetchingAlbumsPeople: false, error: action.payload };
-    }
-    case FETCH_PERSON_PHOTOS_FULFILLED: {
-      return {
-        ...state,
-        fetchingAlbumsPeople: false,
-        fetchedAlbumsPeople: true,
-        personDetails: action.payload.personDetails,
-      };
-    }
-
     case "FETCH_AUTO_ALBUMS": {
       return { ...state, fetchingAlbumsAuto: true };
     }

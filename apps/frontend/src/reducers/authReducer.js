@@ -32,6 +32,16 @@ export default (state = initialState, action) => {
         ...state,
         errors: action.payload.response,
       };
+    case "SIGNUP_FULFILLED":
+      return {
+        ...state,
+        errors: {},
+      };
+    case "SIGNUP_REJECTED":
+      return {
+        ...state,
+        errors: action.payload.response,
+      };
     case "REFRESH_ACCESS_TOKEN_FULFILLED":
       return {
         ...state,

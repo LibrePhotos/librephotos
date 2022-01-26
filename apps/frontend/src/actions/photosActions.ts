@@ -2,22 +2,36 @@ import { Server } from "../api_client/apiClient";
 import _ from "lodash";
 const reapop = require("reapop");
 const notify = reapop.notify;
-import { adjustDateFormat, getPhotosFlatFromGroupedByDate, getPhotosFlatFromGroupedByUser } from "../util/util";
+import {
+  adjustDateFormat,
+  getPhotosFlatFromGroupedByDate,
+  getPhotosFlatFromGroupedByUser,
+} from "../util/util";
 import { PhotosetType } from "../reducers/photosReducer";
 import { Dispatch } from "redux";
-import { DatePhotosGroup, DatePhotosGroupSchema, Photo, PhotoSchema, PigPhoto, PigPhotoSchema, SharedFromMePhotoSchema, SimpleUser } from "./photosActions.types";
+import {
+  DatePhotosGroup,
+  DatePhotosGroupSchema,
+  Photo,
+  PhotoSchema,
+  PigPhoto,
+  PigPhotoSchema,
+  SharedFromMePhotoSchema,
+  SimpleUser,
+} from "./photosActions.types";
 import { z } from "zod";
 import { AppDispatch } from "../store";
+import i18n from "../i18n";
 
 export type UserPhotosGroup = {
   userId: number;
   photos: PigPhoto[];
-}
+};
 
 const JobResponseSchema = z.object({
   status: z.boolean(),
   job_id: z.string(),
-})
+});
 
 export const FETCH_PHOTOSET = "FETCH_PHOTOSET";
 export const FETCH_PHOTOSET_FULFILLED = "FETCH_PHOTOSET_FULFILLED";
@@ -27,8 +41,8 @@ const fetchPhotosetRejected = (err: string) => {
   return {
     type: FETCH_PHOTOSET_REJECTED,
     payload: err,
-  }
-}
+  };
+};
 
 export function downloadPhotos(image_hashes: string[]) {
   return function (dispatch: Dispatch<any>) {
@@ -55,7 +69,11 @@ export function downloadPhotos(image_hashes: string[]) {
 }
 
 export const SET_PHOTOS_SHARED_FULFILLED = "SET_PHOTOS_SHARED_FULFILLED";
-export function setPhotosShared(image_hashes: string[], val_shared: boolean, target_user: SimpleUser) {
+export function setPhotosShared(
+  image_hashes: string[],
+  val_shared: boolean,
+  target_user: SimpleUser
+) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "SET_PHOTOS_SHARED" });
     Server.post(`photosedit/share/`, {
@@ -64,16 +82,20 @@ export function setPhotosShared(image_hashes: string[], val_shared: boolean, tar
       target_user_id: target_user.id,
     })
       .then((response) => {
-        var notificationMessage =
-          "were successfully unshared with " + target_user.username;
+        var notificationMessage = i18n.t("toasts.unsharephoto", {
+          username: target_user.username,
+          numberOfPhotos: image_hashes.length,
+        });
         if (val_shared) {
-          notificationMessage =
-            "were successfully shared with " + target_user.username;
+          notificationMessage = i18n.t("toasts.sharephoto", {
+            username: target_user.username,
+            numberOfPhotos: image_hashes.length,
+          });
         }
         dispatch(
           notify({
-            message: `${image_hashes.length} photo(s) ` + notificationMessage,
-            title: "Shared photos",
+            message: notificationMessage,
+            title: i18n.t("toasts.sharephototitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -93,7 +115,7 @@ export function setPhotosShared(image_hashes: string[], val_shared: boolean, tar
 const _RecentlyAddedResponseDataSchema = z.object({
   results: PigPhotoSchema.array(),
   date: z.string(),
-})
+});
 export const FETCH_RECENTLY_ADDED_PHOTOS = "FETCH_RECENTLY_ADDED_PHOTOS";
 export const FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED =
   "FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED";
@@ -121,7 +143,9 @@ export function fetchRecentlyAddedPhotos(dispatch: AppDispatch) {
     });
 }
 
-const _PigPhotoListResponseSchema = z.object({ results: PigPhotoSchema.array() })
+const _PigPhotoListResponseSchema = z.object({
+  results: PigPhotoSchema.array(),
+});
 export function fetchPhotosSharedToMe() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: FETCH_PHOTOSET });
@@ -137,17 +161,23 @@ export function fetchPhotosSharedToMe() {
         dispatch({
           type: FETCH_PHOTOSET_FULFILLED,
           payload: {
-            photosFlat: getPhotosFlatFromGroupedByUser(sharedPhotosGroupedByOwner),
+            photosFlat: getPhotosFlatFromGroupedByUser(
+              sharedPhotosGroupedByOwner
+            ),
             photosGroupedByUser: sharedPhotosGroupedByOwner,
             photosetType: PhotosetType.SHARED_TO_ME,
-          }
+          },
         });
       })
-      .catch((err) => { dispatch(fetchPhotosetRejected(err)) });
+      .catch((err) => {
+        dispatch(fetchPhotosetRejected(err));
+      });
   };
 }
 
-const _PhotosSharedFromMeResponseSchema = z.object({ results: SharedFromMePhotoSchema.array() })
+const _PhotosSharedFromMeResponseSchema = z.object({
+  results: SharedFromMePhotoSchema.array(),
+});
 export function fetchPhotosSharedFromMe() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: FETCH_PHOTOSET });
@@ -168,13 +198,17 @@ export function fetchPhotosSharedFromMe() {
         dispatch({
           type: FETCH_PHOTOSET_FULFILLED,
           payload: {
-            photosFlat: getPhotosFlatFromGroupedByUser(sharedPhotosGroupedBySharedTo),
+            photosFlat: getPhotosFlatFromGroupedByUser(
+              sharedPhotosGroupedBySharedTo
+            ),
             photosGroupedByUser: sharedPhotosGroupedBySharedTo,
             photosetType: PhotosetType.SHARED_BY_ME,
-          }
-        })
+          },
+        });
       })
-      .catch((err) => { dispatch(fetchPhotosetRejected(err)) });
+      .catch((err) => {
+        dispatch(fetchPhotosetRejected(err));
+      });
   };
 }
 
@@ -183,7 +217,7 @@ const _PhotosUpdatedResponseSchema = z.object({
   results: PhotoSchema.array(),
   updated: PhotoSchema.array(),
   not_updated: PhotoSchema.array(),
-})
+});
 export const SET_PHOTOS_PUBLIC_FULFILLED = "SET_PHOTOS_PUBLIC_FULFILLED";
 export function setPhotosPublic(image_hashes: string[], val_public: boolean) {
   return function (dispatch: Dispatch<any>) {
@@ -203,17 +237,18 @@ export function setPhotosPublic(image_hashes: string[], val_public: boolean) {
             updatedPhotos: updatedPhotos,
           },
         });
-        var notificationMessage =
-          "were successfully removed from your public photos";
+        var notificationMessage = i18n.t("toasts.setphotopublic", {
+          numberOfPhotos: image_hashes.length,
+        });
         if (val_public) {
-          notificationMessage =
-            "were successfully added to your public photos. Links to the photos were copied to the clipboard.";
+          notificationMessage = i18n.t("toasts.removephotopublic", {
+            numberOfPhotos: image_hashes.length,
+          });
         }
         dispatch(
           notify({
-            message:
-              `${data.updated.length} photo(s) ` + notificationMessage,
-            title: "Set photos public",
+            message: notificationMessage,
+            title: i18n.t("toasts.setpublicphotostitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -251,15 +286,18 @@ export function setPhotosFavorite(image_hashes: string[], favorite: boolean) {
             updatedPhotos: updatedPhotos,
           },
         });
-        var notificationMessage = "were successfully removed from favorites";
+        var notificationMessage = i18n.t("toasts.unfavoritephoto", {
+          numberOfPhotos: image_hashes.length,
+        });
         if (favorite) {
-          notificationMessage = "were successfully added to favorites";
+          notificationMessage = i18n.t("toasts.favoritephoto", {
+            numberOfPhotos: image_hashes.length,
+          });
         }
         dispatch(
           notify({
-            message:
-              `${data.updated.length} photo(s) ` + notificationMessage,
-            title: "Favorite photos",
+            message: notificationMessage,
+            title: i18n.t("toasts.setfavoritestitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -292,15 +330,18 @@ export function setPhotosHidden(image_hashes: string[], hidden: boolean) {
             updatedPhotos: updatedPhotos,
           },
         });
-        var notificationMessage = "were successfully unhidden";
+        var notificationMessage = i18n.t("toasts.unhidephoto", {
+          numberOfPhotos: image_hashes.length,
+        });
         if (hidden) {
-          notificationMessage = "were successfully hidden";
+          notificationMessage = i18n.t("toasts.hidephoto", {
+            numberOfPhotos: image_hashes.length,
+          });
         }
         dispatch(
           notify({
-            message:
-              `${data.updated.length} photo(s) ` + notificationMessage,
-            title: "Hide photos",
+            message: notificationMessage,
+            title: i18n.t("toasts.sethidetitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -327,8 +368,8 @@ export function scanPhotos() {
         const jobResponse = JobResponseSchema.parse(response.data);
         dispatch(
           notify({
-            message: "Scan Photos started",
-            title: "Scan Photos",
+            message: i18n.t("toasts.scanphotos"),
+            title: i18n.t("toasts.scanphotostitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -353,8 +394,8 @@ export function scanAllPhotos() {
         const jobResponse = JobResponseSchema.parse(response.data);
         dispatch(
           notify({
-            message: "Scan Photos (full) started",
-            title: "Scan Photos (full)",
+            message: i18n.t("toasts.fullscanphotos"),
+            title: i18n.t("toasts.fullscanphotostitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -379,8 +420,8 @@ export function scanNextcloudPhotos() {
         const jobResponse = JobResponseSchema.parse(response.data);
         dispatch(
           notify({
-            message: "Scan Nextcloud Photos started",
-            title: "Scan Photos",
+            message: i18n.t("toasts.scannextcloudphotos"),
+            title: i18n.t("toasts.scannextcloudphotostitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
@@ -395,10 +436,13 @@ export function scanNextcloudPhotos() {
   };
 }
 
-const _FetchPhotosByDateSchema = z.object({ results: DatePhotosGroupSchema.array() })
-export function fetchFavoritePhotos(dispatch: AppDispatch) {
+const _FetchPhotosByDateSchema = z.object({
+  results: DatePhotosGroupSchema.array(),
+});
+
+export function fetchHiddenPhotos(dispatch: AppDispatch) {
   dispatch({ type: FETCH_PHOTOSET });
-  Server.get("photos/favorites/", { timeout: 100000 })
+  Server.get("photos/hidden/", { timeout: 100000 })
     .then((response) => {
       const data = _FetchPhotosByDateSchema.parse(response.data);
       const photosGroupedByDate: DatePhotosGroup[] = data.results;
@@ -408,32 +452,14 @@ export function fetchFavoritePhotos(dispatch: AppDispatch) {
         payload: {
           photosGroupedByDate: photosGroupedByDate,
           photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
-          photosetType: PhotosetType.FAVORITES,
+          photosetType: PhotosetType.HIDDEN,
         },
       });
     })
-    .catch((err) => { dispatch(fetchPhotosetRejected(err)) });
+    .catch((err) => {
+      dispatch(fetchPhotosetRejected(err));
+    });
 }
-
-export function fetchHiddenPhotos(dispatch: AppDispatch) {
-    dispatch({ type: FETCH_PHOTOSET });
-    Server.get("photos/hidden/", { timeout: 100000 })
-      .then((response) => {
-        const data = _FetchPhotosByDateSchema.parse(response.data);
-        const photosGroupedByDate: DatePhotosGroup[] = data.results;
-        adjustDateFormat(photosGroupedByDate);
-        dispatch({
-          type: FETCH_PHOTOSET_FULFILLED,
-          payload: {
-            photosGroupedByDate: photosGroupedByDate,
-            photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
-            photosetType: PhotosetType.HIDDEN,
-          },
-        });
-      })
-      .catch((err) => { dispatch(fetchPhotosetRejected(err)) });
-  }
-
 
 export function fetchPhotoDetail(image_hash: string) {
   return function (dispatch: Dispatch<any>) {
@@ -457,35 +483,38 @@ const _PaginatedPigPhotosSchema = z.object({
   next: z.string().nullable(),
   previous: z.string().nullable(),
   results: PigPhotoSchema.array(),
-})
+});
 export const FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED =
   "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED";
 export const FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED =
   "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED";
 export const FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED =
   "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED";
-export function fetchNoTimestampPhotoPaginated(dispatch: AppDispatch, page: number) {
-    dispatch({ type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED });
-    Server.get(`photos/notimestamp/?page=${page}`, { timeout: 100000 })
-      .then((response) => {
-        const data = _PaginatedPigPhotosSchema.parse(response.data);
-        const photosFlat: PigPhoto[] = data.results;
-        const photosCount = data.count;
-        dispatch({
-          type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED,
-          payload: {
-            photosFlat: photosFlat,
-            fetchedPage: page,
-            photosCount: photosCount
-          },
-        });
-      })
-      .catch((err) => {
-        dispatch({
-          type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED,
-          payload: err,
-        });
+export function fetchNoTimestampPhotoPaginated(
+  dispatch: AppDispatch,
+  page: number
+) {
+  dispatch({ type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED });
+  Server.get(`photos/notimestamp/?page=${page}`, { timeout: 100000 })
+    .then((response) => {
+      const data = _PaginatedPigPhotosSchema.parse(response.data);
+      const photosFlat: PigPhoto[] = data.results;
+      const photosCount = data.count;
+      dispatch({
+        type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED,
+        payload: {
+          photosFlat: photosFlat,
+          fetchedPage: page,
+          photosCount: photosCount,
+        },
       });
+    })
+    .catch((err) => {
+      dispatch({
+        type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED,
+        payload: err,
+      });
+    });
 }
 
 export function generatePhotoIm2txtCaption(image_hash: string) {

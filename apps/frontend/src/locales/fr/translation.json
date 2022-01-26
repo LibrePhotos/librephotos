@@ -49,7 +49,7 @@
         "scannextcloudphotos": "Scanner les photos (Nextcloud)",
         "scannextclouddescription": {
             "item1": "Lister les fichiers de tous les sous-répertoires de scan ; pour chaque photo (ou vidéo) approprié :",
-            "item2": "Si le chemin du fichier existe, vérifiez si la photo a été modifiée ; si oui, rescanner, sinon on passe.",
+            "item2": "Si le chemin du fichier existe, vérifier si la photo a été modifiée ; si oui, rescanner, sinon on passe.",
             "item3": "Calculer une identification unique de l’objet (md5)",
             "item4": "Si la photo est déjà dans la base de données, ajout du lien vers la photo.",
             "item5": "Générer les vignettes associées à la photo",
@@ -58,7 +58,7 @@
             "item8": "Calculer la localisation géographique à partir des coordonnées GPS",
             "item9": "Extraire les visages.",
             "item10": "Ajouter la photo aux albums de choses et de localisations.",
-            "item11": "Vérifiez si la photo n’est pas déjà présente ou a été déplacée."
+            "item11": "Vérifier si la photo n’est pas déjà présente ou a été déplacée."
         },
         "statusrescanphotostrue": "Rescan complet (depuis la racine)",
         "statusrescanphotosfalse": "Rescan complet (depuis la racine)",
@@ -73,10 +73,10 @@
         "faces": "Visages",
         "people": "Personnes",
         "facesbutton": "Traiter les visages",
-        "inferred": "Présumé",
+        "inferred": "Visages présumés",
         "facessmall": "Visages",
-        "labeled": "Connu",
-        "unknown": "Inconnu",
+        "labeled": "Visages connus",
+        "unknown": "Visages inconnus",
         "facedashboard": "Tableau de bord ‘visages’",
         "rescanfaces": "Rescan des visages",
         "scanoptions": "Options de scan",
@@ -113,7 +113,13 @@
         "transcodevideo": "Toujours transcoder les videos",
         "on": "Oui",
         "off": "Non",
-        "experimentalupdate": "Mettre à jour"
+        "experimentalupdate": "Mettre à jour",
+        "italian": "italien",
+        "norwegianbokmal": "norvégien bokmål",
+        "simplifiedchinese": "chinois (simplifié)",
+        "japanese": "Japonais",
+        "swedish": "suédois",
+        "russian": "russe"
     },
     "modalnextcloud": {
         "setdirectory": "Définir votre répertoire de scan Nextcloud",
@@ -172,7 +178,9 @@
         "loading": "Chargement…",
         "noimages": "Aucune image trouvée",
         "days": "jours",
-        "photos": "photos"
+        "photos": "photos",
+        "setup": "On dirait que vous devez encore configurer LibrePhotos.",
+        "gettingstarted": "Pour commencer"
     },
     "selectionactions": {
         "photoactions": "Actions sur les photos",
@@ -190,7 +198,9 @@
         "albumsharingdescription": "Ouvrir le panneau de partage pour l’album courant",
         "removephotos": "Suppression Photos",
         "removephotosdescription": "Supprimer les photos sélectionnées de l’album courant",
-        "album": "Album"
+        "album": "Album",
+        "albumcoverdescription": "Définir la couverture de l'album courant",
+        "albumcover": "Couverture de l'album"
     },
     "lightbox": {
         "sidebar": {
@@ -230,7 +240,9 @@
         "errorusername": "Le nom d’utilisateur ne peut pas être vide !",
         "tagline": "LibrePhotos prend soin de vos photos...",
         "confirmpassword": "Confirmer le mot de passe",
-        "confirmpasswordplaceholder": "Confirmer le mot de passe"
+        "confirmpasswordplaceholder": "Confirmer le mot de passe",
+        "errorusernameexists": "Un utilisateur avec ce nom d'utilisateur existe déjà.",
+        "erroremail": "Saisissez une adresse courriel valide."
     },
     "search": {
         "search": "Recherche",
@@ -319,7 +331,7 @@
     "places": "Localisations",
     "personedit": {
         "labelfaces": "Mettre un nom sur un visage",
-        "numberselected": "Associer les {number} visages sélectionnés à...",
+        "numberselected": "Associer les {{number}} visages sélectionnés à…",
         "newperson": "Nouvelle personne",
         "personname": "Nom de la personne",
         "addperson": "Ajouter"
@@ -337,5 +349,64 @@
     "placetree": "Arbre de localisation",
     "wordclouds": "Vue nuagique",
     "timeline": "Calendrier",
-    "faceclusterexplanation": "Les personnes avec des visages similaires devraient être groupées près de ce point (cliquer sur un point pour voir le nom)."
+    "faceclusterexplanation": "Les personnes avec des visages similaires devraient être groupées près de ce point (cliquer sur un point pour voir le nom).",
+    "scan": "Scanner",
+    "toasts": {
+        "createnewalbum": "{{numberOfPhotos}} photo(s) ajoutées au nouvel album {{title}}",
+        "viewalbum": "Voir un album",
+        "renamealbum": "{{albumTitle}} renommé en {{newAlbumTitle}}.",
+        "renamealbumtitle": "Renommer l'album",
+        "deletealbum": "{{albumTitle}} supprimé.",
+        "removefromalbumtitle": "Supprimer de l'album",
+        "addtoalbum": "{{numberOfPhotos}} photo(s) ajoutées à l'album {{title}}",
+        "addtoalbumtitle": "Ajouter à l'album",
+        "sharingalbum": "L'album est partagé",
+        "sharingalbumtitle": "Partager l'album",
+        "unsharingalbum": "L'album n'est plus partagé",
+        "unsharingalbumtitle": "Arrêter le partage de l'album",
+        "favoritephoto": "{{numberOfPhotos}} photos ajoutées à vos favoris.",
+        "unfavoritephoto": "{{numberOfPhotos}} photos retirées de vos favoris.",
+        "createalbumtitle": "Créer un album",
+        "sharephoto": "{{numberOfPhotos}} photos partagées avec l'utilisateur {{username}}",
+        "deletefaces": "{{numberOfFaces}} face(s) supprimées",
+        "deletefacestitle": "Supprimer des visages",
+        "trainingstarted": "Tentative d'association démarrée",
+        "renameperson": "Personne {{personName}} renommée en {{newPersonName}}",
+        "renamepersontitle": "Renommer une personne",
+        "deleteperson": "Personne supprimée",
+        "deletepersontitle": "Supprimer une personne",
+        "sharephototitle": "Partager les photos",
+        "addpublicphoto": "{{numberOfPhotos}} photos ajoutées à vos photos publiques. Lien vers ces photos copié dans le presse-papier.",
+        "setpublicphotostitle": "Définir comme photo publique",
+        "setfavoritestitle": "Définir comme favori",
+        "hidephoto": "{{numberOfPhotos}} photos cachées.",
+        "unhidephoto": "{{numberOfPhotos}} photos dé-cachées.",
+        "fullscanphotostitle": "Scan des photos",
+        "scannextcloudphotos": "Scan des photos Nextcloud démarré",
+        "removefromalbum": "{{numberOfPhotos}} photo(s) supprimées de l'album {{title}}",
+        "addfacestopersontitle": "Associer des visages à une personne",
+        "deletealbumtitle": "Supprimer l'album",
+        "scanphotos": "Scan démarré",
+        "scanphotostitle": "Scanner les photos",
+        "fullscanphotos": "Scan des photos démarré",
+        "trainingstartedtitle": "Tentative d'association de visages",
+        "removepublicphoto": "{{numberOfPhotos}} photos supprimées de vos photos publiques.",
+        "addfacestoperson": "{{numberOfFaces}} visages(s) associés à la personne {{personName}}",
+        "rescanfaces": "Scan démarré",
+        "rescanfacestitle": "rescan de visages",
+        "setcoverphototitle": "Modifier la photo de couverture",
+        "unsharephoto": "{{numberOfPhotos}} photos partagées avec l'utilisateur {{username}}",
+        "setcoverphoto": "Photo de couverture modifiée",
+        "sethidestitle": "Cacher",
+        "scannextcloudphotostitle": "Scanner les photos Nextcloud",
+        "updateusertitle": "Mettre à jour l'utilisateur",
+        "jobfinished": "{{job}} terminé.",
+        "deletemissingphotostitle": "Supprimer les photos manquantes",
+        "generateeventalbumstitle": "Générer des albums d'évènements",
+        "regenerateeventstitle": "Régénérer les titres des événements",
+        "regenerateevents": "La régénération des titres d'évènement a commencé",
+        "updateuser": "Les informations de {{username}} ont été mises à jour avec succès",
+        "deletemissingphotos": "Démarrage de la suppression des photos manquantes",
+        "generateeventalbums": "Démarrage de la génération des albums d'évènements"
+    }
 }
