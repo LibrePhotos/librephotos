@@ -7,7 +7,7 @@
         "uploadheader": "Last opp ny avatar",
         "image": "Velg bilde",
         "upload": "Last opp",
-        "filesize": "Maksimal filstørrelse er 200 KB.",
+        "filesize": "Maksimal filstørrelse er 200 kB.",
         "firstnameplaceholder": "Etternavn",
         "lastname": "Etternavn",
         "lastnameplaceholder": "Etternavn",
@@ -352,7 +352,7 @@
     "wordclouds": "Ordskyer",
     "faceclusterexplanation": "Folk med lignende ansikter bør grupperes sammen i denne oversikten. (Klikk på et punkt for å vise dets etikett.)",
     "toasts": {
-        "createnewalbum": "{{numberOfPhotos}} bilde(r) ble lagt til i {{title}}-albumet",
+        "createnewalbum": "{{numberOfPhotos}} bilde(r) ble lagt til i det nye {{title}}-albumet",
         "createalbumtitle": "Opprett album",
         "viewalbum": "Vis album",
         "renamealbum": "Navn på {{albumTitle}} ble endret til {{newAlbumTitle}}.",
@@ -365,7 +365,7 @@
         "addtoalbumtitle": "Legg til i album",
         "sharingalbum": "Album delt",
         "sharingalbumtitle": "Del album",
-        "unsharingalbum": "Deling av album ble opphevet",
+        "unsharingalbum": "Deling av album opphevet",
         "unsharingalbumtitle": "Opphev deling av album",
         "trainingstartedtitle": "Fjestrening",
         "rescanfaces": "Skanning startet",
@@ -408,5 +408,11 @@
         "sharephoto": "{{numberOfPhotos}} bilde(r) ble delt med {{username}}",
         "hidephoto": "{{numberOfPhotos}} bilde(r) ble skjult.",
         "unsharephoto": "{{numberOfPhotos}} bilde(r) ble delt med {{username}}"
+    },
+    "rules": {
+        "file_property": "Bruk filegenskap {{rule}}",
+        "source_tz": "Overfør fra {{rule}}",
+        "exif_tag": "Bruk Exiftag {{rule}}",
+        "report_tz": "Overfør til {{rule}}"
     }
 }
