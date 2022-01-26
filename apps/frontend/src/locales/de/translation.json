@@ -6,7 +6,7 @@
         "uploadheader": "Lade ein neues Profilbild hoch",
         "image": "Wähle ein Bild aus",
         "upload": "Hochladen",
-        "filesize": "Die maximal zulässige Dateigröße beträgt 200 KB.",
+        "filesize": "Die maximal zulässige Dateigröße beträgt 200 kB.",
         "accountinformation": "Kontoinformationen",
         "firstname": "Vorname",
         "firstnameplaceholder": "Vorname",
@@ -50,7 +50,7 @@
         "scannextclouddescription": {
             "item1": "Erstelle eine Liste aller Unterordner. Mache folgendes für jede Mediendatei:",
             "item2": "Prüfe, ob der Dateipfad existiert und ob die Datei modifiziert wurde. Falls ja, scanne das Bild erneut. Falls nicht, überspringe es.",
-            "item3": "Berechne die einzigartige ID des Bildes (md5)",
+            "item3": "Berechne die einzigartige ID des Bildes (MD5)",
             "item4": "Wenn die Mediendatei bereits in der Datenbank ist, dann füge den Pfad zu der bereits vorhandenen Mediendatei hinzu.",
             "item5": "Erstelle eine Anzahl von Vorschaubildern",
             "item6": "Erstelle Beschreibungen über die Bilder",
