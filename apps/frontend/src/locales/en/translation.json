@@ -6,14 +6,14 @@
         "uploadheader": "Upload new avatar",
         "image": "Choose image",
         "upload": "Upload",
-        "filesize": "The maximum file size allowed is 200KB.",
-        "accountinformation": "Account information",
+        "filesize": "The maximum file size allowed is 200 kB.",
+        "accountinformation": "Account info",
         "firstname": "First name",
         "firstnameplaceholder": "First name",
         "lastname": "Last name",
         "lastnameplaceholder": "Last name",
-        "email": "E-Mail",
-        "emailplaceholder": "E-Mail",
+        "email": "E-mail",
+        "emailplaceholder": "E-mail",
         "language": "Select a language",
         "german": "German",
         "english": "English",
@@ -50,13 +50,13 @@
         "small": "Small",
         "library": "Library",
         "photos": "Photos",
-        "statusscanphotostrue": "Scanning photos (file system)",
-        "statusscanphotosfalse": "Scan photos (file system)",
+        "statusscanphotostrue": "Scanning photos (filesystem)",
+        "statusscanphotosfalse": "Scan photos (filesystem)",
         "scannextcloudphotos": "Scan photos (Nextcloud)",
         "scannextclouddescription": {
             "item1": "Make a list of all files in subdirectories. For each media file:",
             "item2": "If the filepath exists, check if the file has been modified. If it was modified, rescan the image. If not, we skip.",
-            "item3": "Calculate a unique ID of the image file (md5)",
+            "item3": "Calculate a unique ID of the image file (MD5)",
             "item4": "If this media file is already in the database, we add the path to the existing media file.",
             "item5": "Generate a number of thumbnails",
             "item6": "Generate image captions",
@@ -134,7 +134,7 @@
         "available": "Worker available! You can start scanning more photos, infer face labels, auto create event albums, or regenerate auto event album titles.",
         "busy": "Busy...",
         "loggedin": "Logged in as",
-        "logout": "Logout",
+        "logout": "Log out",
         "settings": "Settings",
         "adminarea": "Admin Area"
     },
@@ -409,10 +409,10 @@
         "regenerateevents": "Regenerating event titles…",
         "regenerateeventstitle": "Regenerate Event Titles"
     },
-  "rules":{
-    "exif_tag": "Use Exiftag  {{rule}}",
-    "file_property": "Use file property {{rule}}",
-    "source_tz": "Transform from {{rule}}",
-    "report_tz": "Transform to {{rule}}"
-  }
+    "rules": {
+        "exif_tag": "Use Exiftag {{rule}}",
+        "file_property": "Use file property {{rule}}",
+        "source_tz": "Transform from {{rule}}",
+        "report_tz": "Transform to {{rule}}"
+    }
 }
