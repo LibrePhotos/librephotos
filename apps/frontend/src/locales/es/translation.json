@@ -6,14 +6,14 @@
         "uploadheader": "Subir nuevo avatar",
         "image": "Elige una imagen",
         "upload": "Subir",
-        "filesize": "El tamaño máximo de archivo permitido es 200 KB.",
+        "filesize": "El tamaño máximo de archivo permitido es 200 kB.",
         "accountinformation": "Información de la cuenta",
         "firstname": "Nombres",
         "firstnameplaceholder": "Nombres",
         "lastname": "Apellidos",
         "lastnameplaceholder": "Apellidos",
-        "email": "E-Mail",
-        "emailplaceholder": "E-Mail",
+        "email": "Correo electrónico",
+        "emailplaceholder": "Correo electrónico",
         "language": "Seleccione un idioma",
         "german": "Alemán",
         "english": "Inglés",
@@ -50,7 +50,7 @@
         "scannextclouddescription": {
             "item1": "Haga una lista de todos los archivos de los subdirectorios. Para cada archivo multimedia:",
             "item2": "Si existe la ruta de archivo, compruebe si el archivo se ha modificado. Si se modificó, vuelva a escanear la imagen. Si no es así, lo saltamos.",
-            "item3": "Calcule una identificación única del archivo de imagen (md5)",
+            "item3": "Calcule una identificación única del archivo de imagen (MD5)",
             "item4": "Si este archivo multimedia ya está en la base de datos, agregamos la ruta al archivo multimedia existente.",
             "item5": "Genere varias miniaturas",
             "item6": "Generar títulos de imagen",
@@ -413,6 +413,6 @@
         "report_tz": "Transformar a{{rule}}",
         "file_property": "Usar propiedad de archivo {{rule}}",
         "source_tz": "Transformar de {{rule}}",
-        "exif_tag": "Usar Exiftag  {{rule}}"
+        "exif_tag": "Usar Exiftag {{rule}}"
     }
 }
