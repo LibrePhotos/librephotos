@@ -5,11 +5,11 @@ from django.db import models
 from django_cryptography.fields import encrypt
 
 import ownphotos.settings
-from api.date_time_extractor import DEFAULT_RULES
+from api.date_time_extractor import DEFAULT_RULES_PARAMS
 
 
 def get_default_config_datetime_rules():  # This is a callable
-    return json.dumps(DEFAULT_RULES, default=lambda x: x.__dict__) 
+    return json.dumps(DEFAULT_RULES_PARAMS, default=lambda x: x.__dict__) 
 
 class User(AbstractUser):
     scan_directory = models.CharField(max_length=512, db_index=True)
@@ -38,7 +38,7 @@ class User(AbstractUser):
         choices=SaveMetadataToDisk.choices, default=SaveMetadataToDisk.OFF
     )
 
-    config_datetime_rules = models.JSONField(default=get_default_config_datetime_rules)
+    datetime_rules = models.JSONField(default=get_default_config_datetime_rules)
 
 
 def get_admin_user():
