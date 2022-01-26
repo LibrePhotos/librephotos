@@ -18,38 +18,22 @@ import { SortableItem } from "./SortableItem";
 import { useTranslation } from "react-i18next";
 import { Header, Button } from "semantic-ui-react";
 import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
+import { useAppDispatch, useAppSelector } from "../../hooks";
 
 export function ConfigDatetime() {
   const [showModal, setShowModal] = useState(false);
-  const [items, setItems] = useState([
-    {
-      id: "abcd",
-      name: "DateTimeOriginal",
-      rule_type: "exif",
-      exif_tag: "EXIF:DateTimeOriginal",
-      transform_tz: 1,
-      source_tz: "utc",
-      report_tz: "gps_timezonefinder",
-    },
-    {
-      id: "1111",
-      name: "QuickTime:CreateDate",
-      rule_type: "exif",
-      exif_tag: "QuickTime:CreateDate",
-      transform_tz: 1,
-      source_tz: "utc",
-      report_tz: "name:Europe/Moscow",
-    },
-    {
-      id: "qwer",
-      name: "Guess Filename",
-      rule_type: "filesystem",
-      file_property: "mtime",
-      transform_tz: 1,
-      source_tz: "utc",
-      report_tz: "gps_timezonefinder",
-    },
-  ]);
+  const { datetime_rules } = useAppSelector(
+    (state) => state.user.userSelfDetails
+  );
+  const rules = JSON.parse(datetime_rules ? datetime_rules : "[]");
+  //make sure rules have ids
+  rules.forEach((rule: any, index: any) => {
+    if (!rule.id) {
+      rule.id = index;
+    }
+  });
+
+  const dispatch = useAppDispatch();
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -77,15 +61,20 @@ export function ConfigDatetime() {
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <SortableContext items={items} strategy={verticalListSortingStrategy}>
-          {items.map((item) => (
+        <SortableContext items={rules} strategy={verticalListSortingStrategy}>
+          {rules.map((rule: any) => (
             <SortableItem
-              key={item.id}
-              id={item.id}
-              item={item}
+              key={rule.id}
+              id={rule.id}
+              item={rule}
               removeItemFunction={(itemToRemove: any) => {
-                const newItems = items.filter((i) => i.id !== itemToRemove.id);
-                setItems(newItems);
+                const newItems = rules.filter(
+                  (i: any) => i.id !== itemToRemove.id
+                );
+                dispatch({
+                  type: "SET_RULES",
+                  payload: newItems,
+                });
               }}
             ></SortableItem>
           ))}
@@ -96,9 +85,13 @@ export function ConfigDatetime() {
         isOpen={showModal}
         onRequestClose={() => setShowModal(false)}
         addItemFunction={(item) => {
-          if (items.filter((i) => i.id === item.id).length === 0) {
-            setItems([...items, item]);
+          if (rules.filter((i: any) => i.id === item.id).length === 0) {
+            //dispatch(setRules(newItems));
             setShowModal(false);
+            dispatch({
+              type: "SET_RULES",
+              payload: [...rules, item],
+            });
           }
         }}
       ></ModalConfigDatetime>
@@ -109,11 +102,15 @@ export function ConfigDatetime() {
     const { active, over } = event;
 
     if (active.id !== over.id) {
-      setItems((items) => {
-        const oldIndex = items.map((i) => i.id).indexOf(active.id);
-        const newIndex = items.map((i) => i.id).indexOf(over.id);
+      const rules = (items: any) => {
+        const oldIndex = items.map((i: any) => i.id).indexOf(active.id);
+        const newIndex = items.map((i: any) => i.id).indexOf(over.id);
 
         return arrayMove(items, oldIndex, newIndex);
+      };
+      dispatch({
+        type: "SET_RULES",
+        payload: rules,
       });
     }
   }
