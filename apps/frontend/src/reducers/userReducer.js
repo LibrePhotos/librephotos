@@ -3,7 +3,7 @@ export default function reducer(
     userDetails: {},
     fetchingUserDetails: false,
     fetchedUserDetails: false,
-
+    defaultRules: undefined,
     userSelfDetails: {},
     fetchingUserSelfDetails: false,
     fetchedUserSelfDetails: false,
@@ -41,6 +41,13 @@ export default function reducer(
           action.payload.save_metadata_to_disk;
       }
       return newState;
+    }
+
+    case "FETCH_DEFAULT_RULES_FULFILLED": {
+      return {
+        ...state,
+        defaultRules: JSON.parse(action.payload ? action.payload : "[]"),
+      };
     }
 
     default: {
