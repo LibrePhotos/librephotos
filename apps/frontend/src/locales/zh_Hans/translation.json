@@ -4,7 +4,7 @@
         "uploadheader": "上传头像",
         "image": "选择图片",
         "upload": "上传",
-        "filesize": "限定最大文件尺寸200KB。",
+        "filesize": "限定最大文件尺寸200 kB。",
         "accountinformation": "账户信息",
         "firstname": "名",
         "lastname": "姓",
@@ -42,7 +42,7 @@
         "scannextcloudphotos": "扫描文件（Nextcloud）",
         "scannextclouddescription": {
             "item2": "如果文件存在，检查文件是否被修改。 如有修改，将重新扫描图片库， 否则跳过。",
-            "item3": "计算图片的唯一ID （md5）",
+            "item3": "计算图片的唯一ID （MD5）",
             "item5": "生成图片缩略图",
             "item6": "生成图片描述",
             "item7": "提取Exif信息",
