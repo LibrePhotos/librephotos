@@ -408,5 +408,11 @@
         "deletemissingphotos": "Borrando fotos que faltan…",
         "updateuser": "La información de {{username}} fue actualizada con éxito",
         "generateeventalbums": "Generando álbumes de eventos…"
+    },
+    "rules": {
+        "report_tz": "Transformar a{{rule}}",
+        "file_property": "Usar propiedad de archivo {{rule}}",
+        "source_tz": "Transformar de {{rule}}",
+        "exif_tag": "Usar Exiftag  {{rule}}"
     }
 }
