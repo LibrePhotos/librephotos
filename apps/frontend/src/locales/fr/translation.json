@@ -50,7 +50,7 @@
         "scannextclouddescription": {
             "item1": "Lister les fichiers de tous les sous-répertoires de scan ; pour chaque photo (ou vidéo) approprié :",
             "item2": "Si le chemin du fichier existe, vérifier si la photo a été modifiée ; si oui, rescanner, sinon on passe.",
-            "item3": "Calculer une identification unique de l’objet (md5)",
+            "item3": "Calculer une identification unique de l’objet (MD5)",
             "item4": "Si la photo est déjà dans la base de données, ajout du lien vers la photo.",
             "item5": "Générer les vignettes associées à la photo",
             "item6": "Générer des légendes d’images",
