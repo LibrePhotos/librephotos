@@ -299,11 +299,15 @@ def _check_gps_ok(lat, lon):
 DEFAULT_RULES_PARAMS = [
     # Local time from DATE_TIME_ORIGINAL exif tag
     {
+        "id": 1,
+        "name": "Local time from DATE_TIME_ORIGINAL exif tag",
         "rule_type": RuleTypes.EXIF,
         "exif_tag": Tags.DATE_TIME_ORIGINAL,
     },
     # Get Video creation tag in UTC + figure out timezone using GPS coordinates
     {
+        "id": 2,
+        "name": "Get Video creation tag in UTC + figure out timezone using GPS coordinates",
         "rule_type": RuleTypes.EXIF,
         "exif_tag": Tags.QUICKTIME_CREATE_DATE,
         "transform_tz": 1,
@@ -312,10 +316,14 @@ DEFAULT_RULES_PARAMS = [
     },
     # Using filename assuming time is local
     {
+        "id": 3,
+        "name": "Using filename assuming time is local",
         "rule_type": RuleTypes.PATH,
     },
     # Video UTC - report local time in UTC (since we can't find out actual timezone)
     {
+        "id": 4,
+        "name": "Video UTC - report local time in UTC (since we can't find out actual timezone)",
         "rule_type": RuleTypes.EXIF,
         "exif_tag": Tags.QUICKTIME_CREATE_DATE,
     },

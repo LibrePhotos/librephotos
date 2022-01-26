@@ -693,7 +693,7 @@ class UserSerializer(serializers.ModelSerializer):
             "favorite_min_rating",
             "image_scale",
             "save_metadata_to_disk",
-            "config_datetime_rules"
+            "datetime_rules"
         )
 
     def validate_nextcloud_app_password(self, value):
