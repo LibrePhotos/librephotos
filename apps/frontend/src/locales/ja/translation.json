@@ -40,7 +40,7 @@
         "statusscanphotostrue": "写真をスキャン中(file system)",
         "scannextclouddescription": {
             "item1": "サブディレクトリのすべてのファイルのリストを作成する。各メディアファイルについて：",
-            "item3": "画像ファイルのユニークIDを計算する(md5)",
+            "item3": "画像ファイルのユニークIDを計算する(MD5)",
             "item4": "メディアファイルが既にデータベースに存在する場合、そのメディアファイルにパスを追加する。",
             "item5": "サムネイルの数を生成する",
             "item6": "画像のキャプションを生成する",
@@ -93,7 +93,7 @@
         "favoriteupdate": "更新",
         "experimentaloptions": "実験的なオプション",
         "experimentalupdate": "更新",
-        "filesize": "最大ファイルサイズは200KBです。",
+        "filesize": "最大ファイルサイズは200 kBです。",
         "english": "英語",
         "nextcloudusernameplaceholder": "ユーザー名",
         "uploadheader": "新しいアバターをアップロード",
