@@ -408,5 +408,11 @@
         "generateeventalbumstitle": "Generate Event Albums",
         "regenerateevents": "Regenerating event titles…",
         "regenerateeventstitle": "Regenerate Event Titles"
-    }
+    },
+  "rules":{
+    "exif_tag": "Use Exiftag  {{rule}}",
+    "file_property": "Use file property {{rule}}",
+    "source_tz": "Transform from {{rule}}",
+    "report_tz": "Transform to {{rule}}"
+  }
 }

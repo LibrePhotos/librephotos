@@ -46,6 +46,7 @@ import SortableTree from "react-sortable-tree";
 import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
 import { serverAddress } from "../../api_client/apiClient";
 import { withTranslation, Trans } from "react-i18next";
+import { ConfigDatetime } from "../../components/settings/ConfigDatetime";
 
 export class Settings extends Component {
   state = {
@@ -1133,6 +1134,7 @@ export class Settings extends Component {
             </Grid.Column>
           </Grid.Row>
         </Grid>
+        <ConfigDatetime></ConfigDatetime>
         <Header as="h3">
           <Trans i18nKey="settings.experimentaloptions">
             Experimental options
