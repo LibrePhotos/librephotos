@@ -44,6 +44,7 @@ from api.models import (
     LongRunningJob,
     Photo,
     User,
+    user,
 )
 from api.models.person import get_or_create_person
 from api.permissions import (
@@ -1046,6 +1047,10 @@ class DeleteFaces(APIView):
 
 # Utility views
 
+class DefaulRulesView(APIView):
+    def get(self, request, format=None):
+        res = user.get_default_config_datetime_rules()
+        return Response(res)
 
 class RootPathTreeView(APIView):
     permission_classes = (IsAdminUser,)
