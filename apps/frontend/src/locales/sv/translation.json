@@ -1,6 +1,6 @@
 {
     "settings": {
-        "filesize": "Största tillåtna filstorlek är 200KB.",
+        "filesize": "Största tillåtna filstorlek är 200 kB.",
         "language": "Välj språk",
         "german": "Tyska",
         "english": "Engelska",
@@ -40,7 +40,7 @@
         "statusscanphotosfalse": "Genomsök bilder (filsystem)",
         "scannextcloudphotos": "Genomsök bilder (Nextcloud)",
         "scannextclouddescription": {
-            "item3": "Generera ett unikt ID för bildfilen (md5)",
+            "item3": "Generera ett unikt ID för bildfilen (MD5)",
             "item4": "Om mediafilen redan finns i databasen adderas dess sökväg till originalfilen.",
             "item6": "Generera bildtexter",
             "item7": "Hämta Exif-information",
