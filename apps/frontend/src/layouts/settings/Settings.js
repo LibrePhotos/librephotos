@@ -373,7 +373,7 @@ export class Settings extends Component {
                       const newUserData = this.state.userSelfDetails;
                       delete newUserData["scan_directory"];
                       delete newUserData["avatar"];
-                      this.props.dispatch(updateUser(newUserData));
+                      updateUser(newUserData, this.props.dispatch);
                     }}
                   >
                     <Trans i18nKey="settings.updateaccountinformation">
@@ -503,7 +503,7 @@ export class Settings extends Component {
                     const ud = this.state.userSelfDetails;
                     delete ud["scan_directory"];
                     delete ud["avatar"];
-                    this.props.dispatch(updateUser(ud));
+                    updateUser(ud, this.props.dispatch);
                   }}
                   size="small"
                   color="blue"
@@ -1032,7 +1032,7 @@ export class Settings extends Component {
                   const newUserData = this.state.userSelfDetails;
                   delete newUserData["scan_directory"];
                   delete newUserData["avatar"];
-                  this.props.dispatch(updateUser(newUserData));
+                  updateUser(newUserData, this.props.dispatch);
                   if (typeof this.props.onRequestClose == "function")
                     this.props.onRequestClose();
                 }}
@@ -1124,7 +1124,7 @@ export class Settings extends Component {
                   const newUserData = this.state.userSelfDetails;
                   delete newUserData["scan_directory"];
                   delete newUserData["avatar"];
-                  this.props.dispatch(updateUser(newUserData));
+                  updateUser(newUserData, this.props.dispatch);
                   if (typeof this.props.onRequestClose == "function")
                     this.props.onRequestClose();
                 }}
@@ -1175,7 +1175,7 @@ export class Settings extends Component {
                   const newUserData = this.state.userSelfDetails;
                   delete newUserData["scan_directory"];
                   delete newUserData["avatar"];
-                  this.props.dispatch(updateUser(newUserData));
+                  updateUser(newUserData, this.props.dispatch);
                   if (typeof this.props.onRequestClose == "function")
                     this.props.onRequestClose();
                 }}
@@ -1294,7 +1294,7 @@ class ModalNextcloudScanDirectoryEdit extends Component {
                   nextcloud_scan_directory: this.state.newScanDirectory,
                 };
                 const ud = newUserData;
-                this.props.dispatch(updateUser(ud));
+                updateUser(ud, this.props.dispatch);
                 this.props.onRequestClose();
               }}
             >

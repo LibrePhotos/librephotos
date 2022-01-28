@@ -146,33 +146,31 @@ export function updateAvatar(user, form_data) {
   };
 }
 
-export function updateUser(user) {
-  return function (dispatch) {
-    dispatch({ type: "UPDATE_USER" });
-    Server.patch(`user/${user.id}/`, user)
-      .then((response) => {
-        dispatch({
-          type: "UPDATE_USER_FULFILLED",
-          payload: response.data,
-        });
-        dispatch(fetchUserList());
-        dispatch(fetchNextcloudDirectoryTree("/"));
-        dispatch(
-          notify({
-            message: i18n.t("toasts.updateuser", { username: user.username }),
-            title: i18n.t("toasts.updateusertitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "br",
-          })
-        );
-        dispatch(fetchUserSelfDetails(user.id));
-      })
-      .catch((error) => {
-        dispatch({ type: "UPDATE_USER_REJECTED", payload: error });
+export function updateUser(user, dispatch) {
+  dispatch({ type: "UPDATE_USER" });
+  Server.patch(`user/${user.id}/`, user)
+    .then((response) => {
+      dispatch({
+        type: "UPDATE_USER_FULFILLED",
+        payload: response.data,
       });
-  };
+      dispatch(fetchUserList());
+      dispatch(fetchNextcloudDirectoryTree("/"));
+      dispatch(
+        notify({
+          message: i18n.t("toasts.updateuser", { username: user.username }),
+          title: i18n.t("toasts.updateusertitle"),
+          status: "success",
+          dismissible: true,
+          dismissAfter: 3000,
+          position: "br",
+        })
+      );
+      dispatch(fetchUserSelfDetails(user.id));
+    })
+    .catch((error) => {
+      dispatch({ type: "UPDATE_USER_REJECTED", payload: error });
+    });
 }
 
 export function updateUserAndScan(user) {
