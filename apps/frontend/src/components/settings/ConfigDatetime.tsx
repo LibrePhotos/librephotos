@@ -19,12 +19,14 @@ import { useTranslation } from "react-i18next";
 import { Header, Button } from "semantic-ui-react";
 import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
 import { useAppDispatch, useAppSelector } from "../../hooks";
+import { updateUser } from "../../actions/utilActions";
 
 export function ConfigDatetime() {
   const [showModal, setShowModal] = useState(false);
   const { datetime_rules } = useAppSelector(
     (state) => state.user.userSelfDetails
   );
+  const { userSelfDetails } = useAppSelector((state) => state.user);
   const rules = JSON.parse(datetime_rules ? datetime_rules : "[]");
   //make sure rules have ids
   rules.forEach((rule: any, index: any) => {
@@ -73,7 +75,7 @@ export function ConfigDatetime() {
                 );
                 dispatch({
                   type: "SET_RULES",
-                  payload: newItems,
+                  payload: JSON.stringify(newItems),
                 });
               }}
             ></SortableItem>
@@ -90,11 +92,24 @@ export function ConfigDatetime() {
             setShowModal(false);
             dispatch({
               type: "SET_RULES",
-              payload: [...rules, item],
+              payload: JSON.stringify([...rules, item]),
             });
           }
         }}
       ></ModalConfigDatetime>
+      <Button
+        size="small"
+        color="green"
+        floated="left"
+        onClick={() => {
+          const newUserData = userSelfDetails;
+          delete newUserData["scan_directory"];
+          delete newUserData["avatar"];
+          updateUser(newUserData, dispatch);
+        }}
+      >
+        {t("settings.experimentalupdate")}
+      </Button>
     </div>
   );
 
@@ -102,7 +117,7 @@ export function ConfigDatetime() {
     const { active, over } = event;
 
     if (active.id !== over.id) {
-      const rules = (items: any) => {
+      const sortItems = (items: any) => {
         const oldIndex = items.map((i: any) => i.id).indexOf(active.id);
         const newIndex = items.map((i: any) => i.id).indexOf(over.id);
 
@@ -110,7 +125,7 @@ export function ConfigDatetime() {
       };
       dispatch({
         type: "SET_RULES",
-        payload: rules,
+        payload: JSON.stringify(sortItems(rules)),
       });
     }
   }

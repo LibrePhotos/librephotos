@@ -27,6 +27,15 @@ export default function reducer(
     case "FETCH_USER_SELF_DETAILS_REJECTED": {
       return { ...state, fetchingUserDetails: false, error: action.payload };
     }
+    case "SET_RULES": {
+      return {
+        ...state,
+        userSelfDetails: {
+          ...state.userSelfDetails,
+          datetime_rules: action.payload,
+        },
+      };
+    }
 
     case "UPDATE_USER_FULFILLED": {
       let newState = {
