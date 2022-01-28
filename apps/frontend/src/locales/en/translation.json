@@ -411,6 +411,11 @@
         "regenerateeventstitle": "Regenerate Event Titles"
     },
     "rules": {
+        "1":"Local time from DATE_TIME_ORIGINAL exif tag",
+        "2": "Get Video creation tag in UTC + figure out timezone using GPS coordinates",
+        "3": "Using filename assuming time is local",
+        "4": "Video UTC - report local time in UTC (since we can't find out actual timezone)",
+        "rule_type": "Rule Type: {{rule}}",
         "exif_tag": "Use Exiftag {{rule}}",
         "file_property": "Use file property {{rule}}",
         "source_tz": "Transform from {{rule}}",

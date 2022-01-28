@@ -26,13 +26,20 @@ export function SortableItem(props: Props) {
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <Card style={{ width: 400 }}>
         <Card.Content>
-          <Card.Header>{props.item.name}</Card.Header>
-          <Card.Meta>Rule Type: {props.item.rule_type}</Card.Meta>
+          <Card.Header>
+            {t("rules." + props.item.id) !== "rules." + props.item.id
+              ? t("rules." + props.item.id)
+              : props.item.name}
+          </Card.Header>
+          <Card.Meta>
+            {t("rules.rule_type", { rule: props.item.rule_type })}
+          </Card.Meta>
           <Card.Description>
             {Object.entries(props.item)
               .filter(
                 (i) =>
                   i[0] !== "name" &&
+                  i[0] !== "id" &&
                   i[0] !== "rule_type" &&
                   i[0] !== "transform_tz"
               )
