@@ -24,7 +24,7 @@ export function SortableItem(props: Props) {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <Card style={{ width: 325 }}>
+      <Card style={{ width: 400 }}>
         <Card.Content>
           <Card.Header>{props.item.name}</Card.Header>
           <Card.Meta>Rule Type: {props.item.rule_type}</Card.Meta>
