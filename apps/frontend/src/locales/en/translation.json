@@ -119,7 +119,8 @@
         "transcodevideo": "Always transcode videos",
         "on": "On",
         "off": "Off",
-        "experimentalupdate": "Update"
+        "experimentalupdate": "Update",
+        "configdatetime": " Set datetime parsing rules"
     },
     "modalnextcloud": {
         "setdirectory": "Set your Nextcloud scan directory",
