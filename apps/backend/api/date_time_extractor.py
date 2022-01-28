@@ -334,6 +334,10 @@ DEFAULT_RULES_PARAMS = [
 DEFAULT_RULES = list(map(TimeExtractionRule, DEFAULT_RULES_PARAMS))
 
 
+
+def as_rules(configs):
+    return list(map(TimeExtractionRule, configs))
+
 def extract_local_date_time(path, rules, exif_getter, gps_lat, gps_lon):
     required_tags = set()
     for rule in rules:
