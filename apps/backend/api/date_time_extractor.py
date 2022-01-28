@@ -19,9 +19,11 @@ _REGEXP_GROUP_DAY = _regexp_group_range(1, 32)
 _REGEXP_GROUP_HOUR = _regexp_group_range(0, 24)
 _REGEXP_GROUP_MIN = r"([0-5]\d)"
 _REGEXP_GROUP_SEC = r"([0-5]\d)"
-_REGEXP_DELIM = r"[-:_ ]*"
+_REGEXP_DELIM = r"[-:_\., ]*"
+_NOT_A_NUMBER = r"(?<!\d)"
 
 REGEXP_NO_TZ = re.compile(
+    _NOT_A_NUMBER +
     _REGEXP_DELIM.join(
         [
             _REGEXP_GROUP_YEAR,
