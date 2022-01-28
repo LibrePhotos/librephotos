@@ -787,6 +787,11 @@ class UserSerializer(serializers.ModelSerializer):
             instance.image_scale = new_image_scale
             instance.save()
             logger.info("Updated image_scale for user {}".format(instance.image_scale))
+        if "datetime_rules" in validated_data:
+            new_datetime_rules = validated_data.pop("datetime_rules")
+            instance.datetime_rules = new_datetime_rules
+            instance.save()
+            logger.info("Updated datetime_rules for user {}".format(instance.datetime_rules))
         cache.clear()
         return instance
 
