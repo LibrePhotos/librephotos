@@ -7,7 +7,7 @@
         "image": "Elige una imagen",
         "upload": "Subir",
         "filesize": "El tamaño máximo de archivo permitido es 200 kB.",
-        "accountinformation": "Información de la cuenta",
+        "accountinformation": "Información de cuenta",
         "firstname": "Nombres",
         "firstnameplaceholder": "Nombres",
         "lastname": "Apellidos",
@@ -44,7 +44,7 @@
         "small": "Pequeña",
         "library": "Biblioteca",
         "photos": "Fotos",
-        "statusscanphotostrue": "Escaneando fotos (sistema de archivos)",
+        "statusscanphotostrue": "Escaneo de fotos (sistema de archivos)",
         "statusscanphotosfalse": "Escanear fotos (sistema de archivos)",
         "scannextcloudphotos": "Escanear fotos (Nextcloud)",
         "scannextclouddescription": {
@@ -119,7 +119,8 @@
         "norwegianbokmal": "Noruego Bokmål",
         "japanese": "Japonés",
         "russian": "Ruso",
-        "swedish": "Sueco"
+        "swedish": "Sueco",
+        "configdatetime": " Establecer reglas de análisis de fecha y hora"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de escaneo de Nextcloud",
@@ -413,6 +414,11 @@
         "report_tz": "Transformar a{{rule}}",
         "file_property": "Usar propiedad de archivo {{rule}}",
         "source_tz": "Transformar de {{rule}}",
-        "exif_tag": "Usar Exiftag {{rule}}"
+        "exif_tag": "Usar Exiftag: {{rule}}",
+        "2": "Obtenga la etiqueta de creación de video en UTC + descubra la zona horaria usando las coordenadas GPS",
+        "rule_type": "Tipo de regla: {{rule}}",
+        "1": "Hora local desde la etiqueta exif DATE_TIME_ORIGINAL",
+        "3": "Usando el nombre de archivo asumiendo que el tiempo es local",
+        "4": "Video UTC: informa la hora local en UTC (ya que no podemos averiguar la zona horaria real)"
     }
 }
