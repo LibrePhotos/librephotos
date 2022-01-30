@@ -400,6 +400,7 @@
         "unsharephoto": "{{numberOfPhotos}} Foto(s) nicht mehr mit {{username}} geteilt",
         "addpublicphoto": "{{numberOfPhotos}} Foto(s) wurde(n) zu öffentlichen Fotos hinzugefügt. Links zu Fotos wurden in Zwischenablage kopiert.",
         "scanphotostitle": "Fotos scannen",
-        "scannextcloudphotostitle": "Scan Nextcloud-Fotos"
+        "scannextcloudphotostitle": "Scan Nextcloud-Fotos",
+        "regenerateeventstitle": "Event-Titel erneut generieren"
     }
 }
