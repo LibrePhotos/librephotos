@@ -7,7 +7,7 @@
         "image": "Wähle ein Bild aus",
         "upload": "Hochladen",
         "filesize": "Die maximal zulässige Dateigröße beträgt 200 kB.",
-        "accountinformation": "Kontoinformationen",
+        "accountinformation": "Kontoinfos",
         "firstname": "Vorname",
         "firstnameplaceholder": "Vorname",
         "lastname": "Nachname",
@@ -44,8 +44,8 @@
         "small": "Klein",
         "library": "Bibliothek",
         "photos": "Bilder",
-        "statusscanphotostrue": "Scanne Bilder (Dateisystem)",
-        "statusscanphotosfalse": "Scanne Bilder (Dateisystem)",
+        "statusscanphotostrue": "Bilder werden gescannt (Dateisystem)",
+        "statusscanphotosfalse": "Bilder werden gescannt (Dateisystem)",
         "scannextcloudphotos": "Scanne Bilder (Nextcloud)",
         "scannextclouddescription": {
             "item1": "Erstelle eine Liste aller Unterordner. Mache folgendes für jede Mediendatei:",
@@ -119,7 +119,8 @@
         "simplifiedchinese": "Chinesisch (vereinfacht)",
         "japanese": "Japanisch",
         "russian": "Russisch",
-        "swedish": "Schwedisch"
+        "swedish": "Schwedisch",
+        "configdatetime": " Analysregeln von Datumsangaben festlegen"
     },
     "modalnextcloud": {
         "setdirectory": "Setze dein Nextcloud Scan Ordner",
@@ -401,6 +402,6 @@
         "addpublicphoto": "{{numberOfPhotos}} Foto(s) wurde(n) zu öffentlichen Fotos hinzugefügt. Links zu Fotos wurden in Zwischenablage kopiert.",
         "scanphotostitle": "Fotos scannen",
         "scannextcloudphotostitle": "Scan Nextcloud-Fotos",
-        "regenerateeventstitle": "Event-Titel erneut generieren"
+        "regenerateeventstitle": "Ereignis-Titel erneut generieren"
     }
 }
