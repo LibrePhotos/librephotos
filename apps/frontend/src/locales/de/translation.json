@@ -407,7 +407,11 @@
         "setcoverphoto": "Cover-Foto gesetzt",
         "setfavoritestitle": "Favoriten festlegen",
         "sethidestitle": "Verborgen festlegen",
-        "updateuser": "{{username}}'s Infos aktualisiert",
+        "updateuser": "Infos von {{username}} aktualisiert",
         "unfavoritephoto": "{{numberOfPhotos}} Foto(s) aus Favoriten entfernt."
+    },
+    "rules": {
+        "file_property": "Dateieigenschaft verwenden {{rule}}",
+        "1": "Ortszeit aus DATE_TIME_ORIGINAL-Exif-Tag"
     }
 }
