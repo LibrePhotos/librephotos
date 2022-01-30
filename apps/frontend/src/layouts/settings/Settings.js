@@ -26,7 +26,6 @@ import {
   fetchSiteSettings,
   updateAvatar,
   updateUser,
-  manageUpdateUser,
   fetchNextcloudDirectoryTree,
   fetchJobList,
   deleteMissingPhotos,
