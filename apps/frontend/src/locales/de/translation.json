@@ -402,6 +402,12 @@
         "addpublicphoto": "{{numberOfPhotos}} Foto(s) wurde(n) zu öffentlichen Fotos hinzugefügt. Links zu Fotos wurden in Zwischenablage kopiert.",
         "scanphotostitle": "Fotos scannen",
         "scannextcloudphotostitle": "Scan Nextcloud-Fotos",
-        "regenerateeventstitle": "Ereignis-Titel erneut generieren"
+        "regenerateeventstitle": "Ereignis-Titel erneut generieren",
+        "setpublicphotostitle": "Öffentliche Fotos einstellen",
+        "setcoverphoto": "Cover-Foto gesetzt",
+        "setfavoritestitle": "Favoriten festlegen",
+        "sethidestitle": "Verborgen festlegen",
+        "updateuser": "{{username}}'s Infos aktualisiert",
+        "unfavoritephoto": "{{numberOfPhotos}} Foto(s) aus Favoriten entfernt."
     }
 }
