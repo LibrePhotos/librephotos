@@ -1,4 +1,5 @@
 import json
+import pytz
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -39,6 +40,9 @@ class User(AbstractUser):
     )
 
     datetime_rules = models.JSONField(default=get_default_config_datetime_rules)
+    default_timezone = models.TextField(
+        choices=[(x, x) for x in pytz.all_timezones], default="UTC",
+    )
 
 
 def get_admin_user():
