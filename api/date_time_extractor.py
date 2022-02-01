@@ -122,6 +122,7 @@ class TimeExtractionRule:
       - "utc" - UTC timezone
       - "gps_timezonefinder" - the timezone of the GPS location associated with the photo/video
       - "server_local" - the timezone of the librephotos server - not very useful since we run docker containers in UTC timezone.
+      - "user_default" - user default timezone
       - "name:<timezone_name>" - the timezone with the name <timezone_name>
     If either "source_tz" or "report_tz" could not be obtained the rule is considered to be not applicable.
 
@@ -254,19 +255,19 @@ class TimeExtractionRule:
             and self._check_condition_filename(path)
         )
 
-    def apply(self, path, exif_tags, gps_lat, gps_lon):
+    def apply(self, path, exif_tags, gps_lat, gps_lon, user_default_tz):
         if not self._check_conditions(path, exif_tags, gps_lat, gps_lon):
             return None
         if self.rule_type == RuleTypes.EXIF:
-            return self._apply_exif(exif_tags, gps_lat, gps_lon)
+            return self._apply_exif(exif_tags, gps_lat, gps_lon, user_default_tz)
         elif self.rule_type == RuleTypes.PATH:
-            return self._apply_path(path, gps_lat, gps_lon)
+            return self._apply_path(path, gps_lat, gps_lon, user_default_tz)
         elif self.rule_type == RuleTypes.FILESYSTEM:
-            return self._apply_filesystem(path, gps_lat, gps_lon)
+            return self._apply_filesystem(path, gps_lat, gps_lon, user_default_tz)
         else:
             raise ValueError(f"Unknown rule type {self.rule_type}")
 
-    def _get_tz(self, description, gps_lat, gps_lon):
+    def _get_tz(self, description, gps_lat, gps_lon, user_default_tz):
         """
         None is a valid timezone returned here (meaning that we want to use server local time).
         This is why this function returns a tuple with the first element specifying sucesss of
@@ -280,6 +281,8 @@ class TimeExtractionRule:
             tzfinder = TimezoneFinder()
             tz_name = tzfinder.timezone_at(lng=gps_lon, lat=gps_lat)
             return (True, pytz.timezone(tz_name)) if tz_name else (False, None)
+        elif description == "user_default":
+            return (True, pytz.timezone(user_default_tz))
         elif description == "server_local":
             return (True, None)
         elif description.lower() == "utc":
@@ -289,14 +292,14 @@ class TimeExtractionRule:
         else:
             raise ValueError(f"Unkonwn tz description {description}")
 
-    def _transform_tz(self, dt, gps_lat, gps_lon):
+    def _transform_tz(self, dt, gps_lat, gps_lon, user_default_tz):
         if not dt:
             return None
         if self.params.get("transform_tz"):
-            has_source_tz, source_tz = self._get_tz(self.params["source_tz"], gps_lat, gps_lon)
+            has_source_tz, source_tz = self._get_tz(self.params["source_tz"], gps_lat, gps_lon, user_default_tz)
             if not has_source_tz:
                 return None
-            has_report_tz, report_tz = self._get_tz(self.params["report_tz"], gps_lat, gps_lon)
+            has_report_tz, report_tz = self._get_tz(self.params["report_tz"], gps_lat, gps_lon, user_default_tz)
             if not has_report_tz:
                 return None
             # Either of source_tz or report_tz might be None - meaning that we want to use
@@ -306,11 +309,11 @@ class TimeExtractionRule:
                     report_tz)
         return dt.replace(tzinfo=pytz.utc)
 
-    def _apply_exif(self, exif_tags, gps_lat, gps_lon):
+    def _apply_exif(self, exif_tags, gps_lat, gps_lon, user_default_tz):
         dt = self._get_no_tz_dt_from_tag(self.params["exif_tag"], exif_tags)
-        return self._transform_tz(dt, gps_lat, gps_lon)
+        return self._transform_tz(dt, gps_lat, gps_lon, user_default_tz)
 
-    def _apply_path(self, path, gps_lat, gps_lon):
+    def _apply_path(self, path, gps_lat, gps_lon, user_default_tz):
         path_part = self.params.get("path_part")
         if path_part is None or path_part == "filename":
             source = pathlib.Path(path).name
@@ -327,9 +330,9 @@ class TimeExtractionRule:
                 raise ValueError(f"Unknown predefined regexp type {predefined_regexp_type}")
             regexp, group_mapping = PREDEFINED_REGEXPS[predefined_regexp_type]
         dt = _extract_no_tz_datetime_from_str(source, regexp, group_mapping)
-        return self._transform_tz(dt, gps_lat, gps_lon)
+        return self._transform_tz(dt, gps_lat, gps_lon, user_default_tz)
 
-    def _apply_filesystem(self, path, gps_lat, gps_lon):
+    def _apply_filesystem(self, path, gps_lat, gps_lon, user_default_tz):
         file_property = self.params.get("file_property")
         if file_property == "mtime":
             dt = datetime.fromtimestamp(os.path.getmtime(path), pytz.utc)
@@ -337,7 +340,7 @@ class TimeExtractionRule:
             dt = datetime.fromtimestamp(os.path.getctime(path), pytz.utc)
         else:
             raise ValueError(f"Unknown file_property {file_property}")
-        return self._transform_tz(dt, gps_lat, gps_lon)
+        return self._transform_tz(dt, gps_lat, gps_lon, user_default_tz)
 
 
 def _check_gps_ok(lat, lon):
@@ -373,12 +376,12 @@ DEFAULT_RULES_PARAMS = [
     },
     {
         "id": 4,
-        "name": "Video creation datetime in server timezone (can't find out actual timezone)",
+        "name": "Video creation datetime in user default timezone (can't find out actual timezone)",
         "rule_type": RuleTypes.EXIF,
         "exif_tag": Tags.QUICKTIME_CREATE_DATE,
         "transform_tz": 1,
         "source_tz": "utc",
-        "report_tz": "server_local",
+        "report_tz": "user_default",
     },
     {
         "id": 5,
@@ -397,12 +400,12 @@ PREDEFINED_RULES_PARAMS = DEFAULT_RULES_PARAMS + [
     },
     {
         "id": 7,
-        "name": "File modified time in server timezone",
+        "name": "File modified time in user default timezone",
         "rule_type": RuleTypes.FILESYSTEM,
         "file_property": "mtime",
         "transform_tz": 1,
         "source_tz": "utc",
-        "report_tz": "server_local",
+        "report_tz": "user_default",
     },
     {
         "id": 8,
@@ -422,7 +425,7 @@ PREDEFINED_RULES_JSON = _as_json(PREDEFINED_RULES_PARAMS)
 def as_rules(configs):
     return list(map(TimeExtractionRule, configs))
 
-def extract_local_date_time(path, rules, exif_getter, gps_lat, gps_lon):
+def extract_local_date_time(path, rules, exif_getter, gps_lat, gps_lon, user_default_tz):
     required_tags = set()
     for rule in rules:
         required_tags.update(rule.get_required_exif_tags())
@@ -430,7 +433,7 @@ def extract_local_date_time(path, rules, exif_getter, gps_lat, gps_lon):
     exif_values = exif_getter(required_tags)
     exif_tags = {k: v for k, v in zip(required_tags, exif_values)}
     for rule in rules:
-        res = rule.apply(path, exif_tags, gps_lat, gps_lon)
+        res = rule.apply(path, exif_tags, gps_lat, gps_lon, user_default_tz)
         if res:
             return res
     return None

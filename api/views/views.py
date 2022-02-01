@@ -618,6 +618,7 @@ class UserViewSet(viewsets.ModelViewSet):
             "favorite_min_rating",
             "image_scale",
             "save_metadata_to_disk",
+            "default_timezone",
         ).order_by("-last_login")
         return queryset
 
