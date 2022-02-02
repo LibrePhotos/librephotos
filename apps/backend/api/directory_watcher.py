@@ -1,3 +1,4 @@
+import base64
 import datetime
 import hashlib
 import os
@@ -45,6 +46,13 @@ def is_valid_media(image_path):
 def calculate_hash(user, image_path):
     hash_md5 = hashlib.md5()
     with open(image_path, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest() + str(user.id)
+
+def calculate_hash_b64(user, image):
+    hash_md5 = hashlib.md5()
+    with open(base64.b64decode(image.content), "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest() + str(user.id)
