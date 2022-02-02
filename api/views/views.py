@@ -1,3 +1,4 @@
+import base64
 import datetime
 import io
 import os
@@ -14,6 +15,7 @@ from django.db.models import Count, Prefetch, Q
 from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
 from django.utils.encoding import iri_to_uri
 from rest_framework import filters, viewsets
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -33,7 +35,12 @@ from api.api_util import (
     path_to_dict,
 )
 from api.autoalbum import delete_missing_photos
-from api.directory_watcher import scan_faces, scan_photos
+from api.directory_watcher import (
+    calculate_hash_b64,
+    handle_new_image,
+    scan_faces,
+    scan_photos,
+)
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 from api.face_classify import cluster_faces, train_faces
 from api.models import (
@@ -866,6 +873,45 @@ class SetPhotosPublic(APIView):
             }
         )
 
+class UploadPhotos(APIView):
+    parser_classes = [FormParser, MultiPartParser]
+
+    def post(self, request, format=None):
+        # request contains a list of new photos
+        photos = request.data['photos']
+        # calculate the hash to check if we already have the photos
+        new_photos = []
+        for photo in photos:
+            image_hash = calculate_hash_b64(request.user, photo)
+            # check if we already have the photos
+            if not Photo.objects.filter(image_hash=image_hash).exists():
+                new_photos.append(photo)
+             # if we do, skip
+        # check if the folder /uploads/user exist, if not create it
+        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads")):
+            os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads"))
+        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(request.user.id))):
+            os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(request.user.id)))
+
+        # Save the new photos to /uploads/userid/
+        for photo in new_photos:
+            image_hash = calculate_hash_b64(request.user, photo)
+            if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(request.user.id), photo.name)):
+                photo_path = os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(request.user.id), photo.name)
+            else:
+                photo_path = os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(request.user.id), image_hash)
+            with open(photo_path, "wb") as f:
+                f.write(base64.b64decode(photo.content))
+            handle_new_image()
+
+        # start a scan of the /uploads/userid folder
+
+
+        return Response(
+            {
+                "status": True,
+            }
+        )
 
 class DeletePhotos(APIView):
     def delete(self, request):
