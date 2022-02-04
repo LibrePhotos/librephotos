@@ -1050,15 +1050,18 @@ class DeleteFaces(APIView):
 
 # Utility views
 
+
 class DefaultRulesView(APIView):
     def get(self, request, format=None):
         res = DEFAULT_RULES_JSON
         return Response(res)
 
+
 class PredefinedRulesView(APIView):
     def get(self, request, format=None):
         res = PREDEFINED_RULES_JSON
         return Response(res)
+
 
 class RootPathTreeView(APIView):
     permission_classes = (IsAdminUser,)

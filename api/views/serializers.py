@@ -792,12 +792,16 @@ class UserSerializer(serializers.ModelSerializer):
             new_datetime_rules = validated_data.pop("datetime_rules")
             instance.datetime_rules = new_datetime_rules
             instance.save()
-            logger.info("Updated datetime_rules for user {}".format(instance.datetime_rules))
+            logger.info(
+                "Updated datetime_rules for user {}".format(instance.datetime_rules)
+            )
         if "default_timezone" in validated_data:
             new_default_timezone = validated_data.pop("default_timezone")
             instance.default_timezone = new_default_timezone
             instance.save()
-            logger.info("Updated default_timezone for user {}".format(instance.default_timezone))
+            logger.info(
+                "Updated default_timezone for user {}".format(instance.default_timezone)
+            )
         cache.clear()
         return instance
 
