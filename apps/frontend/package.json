@@ -50,7 +50,7 @@
     "react-dnd": "^14.0.2",
     "react-dom": "^16.4.1",
     "react-draggable": "^3.0.5",
-    "react-dropzone": "^4.2.12",
+    "react-dropzone": "^11.5.3",
     "react-grid-gallery": "^0.4.11",
     "react-grid-layout": "^0.16.6",
     "react-i18next": "^11.14.3",
