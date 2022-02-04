@@ -45,7 +45,6 @@ from api.models import (
     LongRunningJob,
     Photo,
     User,
-    user,
 )
 from api.models.person import get_or_create_person
 from api.permissions import (

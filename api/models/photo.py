@@ -1,7 +1,6 @@
 import hashlib
 import json
 import os
-from datetime import datetime
 from io import BytesIO
 
 import numpy as np
@@ -346,9 +345,9 @@ class Photo(models.Model):
             self.save()
 
     def _extract_date_time_from_exif(self, commit=True):
-        exif_getter = lambda tags: get_metadata(
-            self.image_paths[0], tags=tags, try_sidecar=True
-        )
+        def exif_getter(tags):
+            return get_metadata(self.image_paths[0], tags=tags, try_sidecar=True)
+
         datetime_config = json.loads(self.owner.datetime_rules)
         extracted_local_time = date_time_extractor.extract_local_date_time(
             self.image_paths[0],
