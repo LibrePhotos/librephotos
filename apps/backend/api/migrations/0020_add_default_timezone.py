@@ -3,8 +3,6 @@
 import pytz
 from django.db import migrations, models
 
-import api.models.user
-
 
 class Migration(migrations.Migration):
 
