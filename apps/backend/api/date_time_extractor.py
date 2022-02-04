@@ -24,8 +24,8 @@ _REGEXP_DELIM = r"[-:_\., ]*"
 _NOT_A_NUMBER = r"(?<!\d)"
 
 REGEXP_NO_TZ = re.compile(
-    _NOT_A_NUMBER +
-    _REGEXP_DELIM.join(
+    _NOT_A_NUMBER
+    + _REGEXP_DELIM.join(
         [
             _REGEXP_GROUP_YEAR,
             _REGEXP_GROUP_MONTH,
@@ -59,6 +59,7 @@ REGEXP_GROUP_MAPPINGS = {
     "microsecond": 6,
 }
 
+
 def _extract_no_tz_datetime_from_str(x, regexp=REGEXP_NO_TZ, group_mapping=None):
     match = re.search(regexp, x)
     if not match:
@@ -68,11 +69,23 @@ def _extract_no_tz_datetime_from_str(x, regexp=REGEXP_NO_TZ, group_mapping=None)
         datetime_args = map(int, g)
     else:
         if len(g) > len(group_mapping):
-            raise ValueError(f"Can't have more groups than group mapping values: {x}, regexp: {regexp}, mapping: {group_mapping}")
-        datetime_args = [None, None, None, 0, 0, 0, 0] # year, month, day, hour, minute, second, microsecond
+            raise ValueError(
+                f"Can't have more groups than group mapping values: {x}, regexp: {regexp}, mapping: {group_mapping}"
+            )
+        datetime_args = [
+            None,
+            None,
+            None,
+            0,
+            0,
+            0,
+            0,
+        ]  # year, month, day, hour, minute, second, microsecond
         for value, how_to_use in zip(g, group_mapping):
             if how_to_use not in REGEXP_GROUP_MAPPINGS:
-                raise ValueError(f"Group mapping {how_to_use} is unknown - must be one of {list(REGEXP_GROUP_MAPPINGS.keys())}")
+                raise ValueError(
+                    f"Group mapping {how_to_use} is unknown - must be one of {list(REGEXP_GROUP_MAPPINGS.keys())}"
+                )
             ind = REGEXP_GROUP_MAPPINGS[how_to_use]
             datetime_args[ind] = int(value)
 
@@ -296,17 +309,21 @@ class TimeExtractionRule:
         if not dt:
             return None
         if self.params.get("transform_tz"):
-            has_source_tz, source_tz = self._get_tz(self.params["source_tz"], gps_lat, gps_lon, user_default_tz)
+            has_source_tz, source_tz = self._get_tz(
+                self.params["source_tz"], gps_lat, gps_lon, user_default_tz
+            )
             if not has_source_tz:
                 return None
-            has_report_tz, report_tz = self._get_tz(self.params["report_tz"], gps_lat, gps_lon, user_default_tz)
+            has_report_tz, report_tz = self._get_tz(
+                self.params["report_tz"], gps_lat, gps_lon, user_default_tz
+            )
             if not has_report_tz:
                 return None
             # Either of source_tz or report_tz might be None - meaning that we want to use
             # server local timezone
             dt = datetime.fromtimestamp(
-                    dt.replace(tzinfo=source_tz).timestamp(),
-                    report_tz)
+                dt.replace(tzinfo=source_tz).timestamp(), report_tz
+            )
         return dt.replace(tzinfo=pytz.utc)
 
     def _apply_exif(self, exif_tags, gps_lat, gps_lon, user_default_tz):
@@ -327,7 +344,9 @@ class TimeExtractionRule:
         if not regexp:
             predefined_regexp_type = self.params.get("predefined_regexp", "default")
             if predefined_regexp_type not in PREDEFINED_REGEXPS:
-                raise ValueError(f"Unknown predefined regexp type {predefined_regexp_type}")
+                raise ValueError(
+                    f"Unknown predefined regexp type {predefined_regexp_type}"
+                )
             regexp, group_mapping = PREDEFINED_REGEXPS[predefined_regexp_type]
         dt = _extract_no_tz_datetime_from_str(source, regexp, group_mapping)
         return self._transform_tz(dt, gps_lat, gps_lon, user_default_tz)
@@ -419,13 +438,18 @@ PREDEFINED_RULES_PARAMS = DEFAULT_RULES_PARAMS + [
 def _as_json(configs):
     return json.dumps(configs, default=lambda x: x.__dict__)
 
+
 DEFAULT_RULES_JSON = _as_json(DEFAULT_RULES_PARAMS)
 PREDEFINED_RULES_JSON = _as_json(PREDEFINED_RULES_PARAMS)
+
 
 def as_rules(configs):
     return list(map(TimeExtractionRule, configs))
 
-def extract_local_date_time(path, rules, exif_getter, gps_lat, gps_lon, user_default_tz):
+
+def extract_local_date_time(
+    path, rules, exif_getter, gps_lat, gps_lon, user_default_tz
+):
     required_tags = set()
     for rule in rules:
         required_tags.update(rule.get_required_exif_tags())

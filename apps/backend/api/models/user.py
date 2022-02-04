@@ -1,6 +1,6 @@
 import json
-import pytz
 
+import pytz
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django_cryptography.fields import encrypt
@@ -11,6 +11,7 @@ from api.date_time_extractor import DEFAULT_RULES_JSON
 
 def get_default_config_datetime_rules():  # This is a callable
     return DEFAULT_RULES_JSON
+
 
 class User(AbstractUser):
     scan_directory = models.CharField(max_length=512, db_index=True)
@@ -41,13 +42,13 @@ class User(AbstractUser):
 
     datetime_rules = models.JSONField(default=get_default_config_datetime_rules)
     default_timezone = models.TextField(
-        choices=[(x, x) for x in pytz.all_timezones], default="UTC",
+        choices=[(x, x) for x in pytz.all_timezones],
+        default="UTC",
     )
 
 
 def get_admin_user():
     return User.objects.get(is_superuser=True)
-
 
 
 def get_deleted_user():
