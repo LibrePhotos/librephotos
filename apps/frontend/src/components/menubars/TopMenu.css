@@ -1,19 +1,21 @@
 .header {
-    width: 100%;
-    display: flex;
-    flex-wrap: nowrap;
+  width: 100%;
+  display: flex;
+  flex-wrap: nowrap;
 }
 
 .element {
-    width: 80%;
-    margin: auto;
-    background: "#eeeeee"
+  width: 80%;
+  margin: auto;
+  background: "#eeeeee";
+
+  display: flex;
 }
 
 .ui.focus.search.header {
-    margin: auto;
+  margin: auto;
 }
 
 .ui.search.header {
-    margin: auto;
+  margin: auto;
 }

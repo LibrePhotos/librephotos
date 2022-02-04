@@ -24,6 +24,7 @@ import { SecuredImageJWT } from "./SecuredImage";
 import { TOP_MENU_HEIGHT } from "../ui-constants";
 import { withTranslation } from "react-i18next";
 import { compose } from "redux";
+import { UploadButton } from "./UploadButton";
 var ENTER_KEY = 13;
 
 function fuzzy_match(str, pattern) {
@@ -219,7 +220,7 @@ export class CustomSearch extends Component {
   }
 
   render() {
-    var searchBarWidth = this.state.width - this.state.width / 2.7;
+    var searchBarWidth = this.state.width - this.state.width / 2.2;
 
     const {
       filteredSuggestedUserAlbums,
@@ -264,7 +265,7 @@ export class CustomSearch extends Component {
               textAlign: "left",
               zIndex: 120,
               top: TOP_MENU_HEIGHT,
-              left: (this.state.width - searchBarWidth) / 2,
+              left: (this.state.width - searchBarWidth) / 2.1,
               position: "absolute",
             }}
           >
@@ -452,6 +453,7 @@ export class CustomSearch extends Component {
               )}
           </div>
         )}
+        <UploadButton></UploadButton>
       </div>
     );
   }
