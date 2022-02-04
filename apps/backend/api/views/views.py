@@ -878,11 +878,12 @@ class UploadPhotos(APIView):
 
     def post(self, request, format=None):
         # request contains a list of new photos
-        photos = request.data['photos']
+        photos = request.data.lists()
         # calculate the hash to check if we already have the photos
         new_photos = []
         for photo in photos:
-            image_hash = calculate_hash_b64(request.user, photo)
+            photo[1][0].seek(0)
+            image_hash = calculate_hash_b64(request.user, io.BytesIO(photo[1][0].read()))
             # check if we already have the photos
             if not Photo.objects.filter(image_hash=image_hash).exists():
                 new_photos.append(photo)
@@ -895,14 +896,16 @@ class UploadPhotos(APIView):
 
         # Save the new photos to /uploads/userid/
         for photo in new_photos:
-            image_hash = calculate_hash_b64(request.user, photo)
-            if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(request.user.id), photo.name)):
-                photo_path = os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(request.user.id), photo.name)
+            photo[1][0].seek(0)
+            image_hash = calculate_hash_b64(request.user, io.BytesIO(photo[1][0].read()))
+            if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(request.user.id), photo[0])):
+                photo_path = os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(request.user.id), photo[0])
             else:
                 photo_path = os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(request.user.id), image_hash)
             with open(photo_path, "wb") as f:
-                f.write(base64.b64decode(photo.content))
-            handle_new_image()
+                photo[1][0].seek(0)
+                f.write(photo[1][0].read())
+            handle_new_image(request.user, photo_path, "0")
 
         # start a scan of the /uploads/userid folder
 

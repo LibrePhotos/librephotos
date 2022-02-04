@@ -1,4 +1,3 @@
-import base64
 import datetime
 import hashlib
 import os
@@ -50,9 +49,9 @@ def calculate_hash(user, image_path):
             hash_md5.update(chunk)
     return hash_md5.hexdigest() + str(user.id)
 
-def calculate_hash_b64(user, image):
+def calculate_hash_b64(user, content):
     hash_md5 = hashlib.md5()
-    with open(base64.b64decode(image.content), "rb") as f:
+    with content as f:
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest() + str(user.id)
