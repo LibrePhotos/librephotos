@@ -33,6 +33,7 @@ from api.api_util import (
     path_to_dict,
 )
 from api.autoalbum import delete_missing_photos
+from api.date_time_extractor import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
 from api.directory_watcher import scan_faces, scan_photos
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 from api.face_classify import cluster_faces, train_faces
@@ -44,7 +45,6 @@ from api.models import (
     LongRunningJob,
     Photo,
     User,
-    user,
 )
 from api.models.person import get_or_create_person
 from api.permissions import (
@@ -617,6 +617,8 @@ class UserViewSet(viewsets.ModelViewSet):
             "favorite_min_rating",
             "image_scale",
             "save_metadata_to_disk",
+            "datetime_rules",
+            "default_timezone",
         ).order_by("-last_login")
         return queryset
 
@@ -1047,10 +1049,18 @@ class DeleteFaces(APIView):
 
 # Utility views
 
-class DefaulRulesView(APIView):
+
+class DefaultRulesView(APIView):
     def get(self, request, format=None):
-        res = user.get_default_config_datetime_rules()
+        res = DEFAULT_RULES_JSON
         return Response(res)
+
+
+class PredefinedRulesView(APIView):
+    def get(self, request, format=None):
+        res = PREDEFINED_RULES_JSON
+        return Response(res)
+
 
 class RootPathTreeView(APIView):
     permission_classes = (IsAdminUser,)
