@@ -16,13 +16,24 @@ export function fetchUserSelfDetails(user_id) {
   };
 }
 
-// get the default rules from the backend
 export function fetchDefaultRules(dispatch) {
-  console.log("fetchDefaultRules");
   dispatch({ type: "FETCH_DEFAULT_RULES" });
   Server.get("/defaultrules/")
     .then((response) => {
-      console.log(response);
+      dispatch({
+        type: "FETCH_DEFAULT_RULES_FULFILLED",
+        payload: response.data,
+      });
+    })
+    .catch((error) => {
+      dispatch({ type: "FETCH_DEFAULT_RULES_REJECTED", payload: error });
+    });
+}
+
+export function fetchPredefinedRules(dispatch) {
+  dispatch({ type: "FETCH_DEFAULT_RULES" });
+  Server.get("/predefinedrules/")
+    .then((response) => {
       dispatch({
         type: "FETCH_DEFAULT_RULES_FULFILLED",
         payload: response.data,

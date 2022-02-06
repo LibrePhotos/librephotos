@@ -4,7 +4,7 @@ import Modal from "react-modal";
 import { SortableItem } from "../settings/SortableItem";
 import { useTranslation } from "react-i18next";
 import { useAppDispatch, useAppSelector } from "../../hooks";
-import { fetchDefaultRules } from "../../actions/userActions";
+import { fetchPredefinedRules } from "../../actions/userActions";
 
 type Props = {
   isOpen: boolean;
@@ -21,7 +21,7 @@ export const ModalConfigDatetime = (props: Props) => {
 
   useEffect(() => {
     if (!defaultRules) {
-      fetchDefaultRules(dispatch);
+      fetchPredefinedRules(dispatch);
     }
   }, []); // Only run on first render
 
