@@ -1,3 +1,4 @@
+import json
 import math
 import os
 import pathlib
@@ -23,8 +24,8 @@ _REGEXP_DELIM = r"[-:_\., ]*"
 _NOT_A_NUMBER = r"(?<!\d)"
 
 REGEXP_NO_TZ = re.compile(
-    _NOT_A_NUMBER +
-    _REGEXP_DELIM.join(
+    _NOT_A_NUMBER
+    + _REGEXP_DELIM.join(
         [
             _REGEXP_GROUP_YEAR,
             _REGEXP_GROUP_MONTH,
@@ -36,13 +37,59 @@ REGEXP_NO_TZ = re.compile(
     )
 )
 
+# WhatsApp style filename - like IMG-20220101-WA0007.jpg
+# Here we get year, month, day from the filename and use the number as microsecond so that
+# media is ordered by that number but all of these images are grouped together separated from
+# other media on that date.
+REGEXP_WHATSAPP = re.compile(r"^(?:IMG|VID)-(\d{4})(\d{2})(\d{2})-WA(\d+)")
+REGEXP_WHATSAPP_GROUP_MAPPING = ["year", "month", "day", "microsecond"]
 
-def _extract_no_tz_datetime_from_str(x, regexp=REGEXP_NO_TZ):
+PREDEFINED_REGEXPS = {
+    "default": (REGEXP_NO_TZ, None),
+    "whatsapp": (REGEXP_WHATSAPP, REGEXP_WHATSAPP_GROUP_MAPPING),
+}
+
+REGEXP_GROUP_MAPPINGS = {
+    "year": 0,
+    "month": 1,
+    "day": 2,
+    "hour": 3,
+    "minute": 4,
+    "second": 5,
+    "microsecond": 6,
+}
+
+
+def _extract_no_tz_datetime_from_str(x, regexp=REGEXP_NO_TZ, group_mapping=None):
     match = re.search(regexp, x)
     if not match:
         return None
     g = match.groups()
-    return datetime(*map(int, g))
+    if group_mapping is None:
+        datetime_args = map(int, g)
+    else:
+        if len(g) > len(group_mapping):
+            raise ValueError(
+                f"Can't have more groups than group mapping values: {x}, regexp: {regexp}, mapping: {group_mapping}"
+            )
+        datetime_args = [
+            None,
+            None,
+            None,
+            0,
+            0,
+            0,
+            0,
+        ]  # year, month, day, hour, minute, second, microsecond
+        for value, how_to_use in zip(g, group_mapping):
+            if how_to_use not in REGEXP_GROUP_MAPPINGS:
+                raise ValueError(
+                    f"Group mapping {how_to_use} is unknown - must be one of {list(REGEXP_GROUP_MAPPINGS.keys())}"
+                )
+            ind = REGEXP_GROUP_MAPPINGS[how_to_use]
+            datetime_args[ind] = int(value)
+
+    return datetime(*datetime_args)
 
 
 class RuleTypes:
@@ -87,6 +134,8 @@ class TimeExtractionRule:
     should be one of the follwing:
       - "utc" - UTC timezone
       - "gps_timezonefinder" - the timezone of the GPS location associated with the photo/video
+      - "server_local" - the timezone of the librephotos server - not very useful since we run docker containers in UTC timezone.
+      - "user_default" - user default timezone
       - "name:<timezone_name>" - the timezone with the name <timezone_name>
     If either "source_tz" or "report_tz" could not be obtained the rule is considered to be not applicable.
 
@@ -219,52 +268,69 @@ class TimeExtractionRule:
             and self._check_condition_filename(path)
         )
 
-    def apply(self, path, exif_tags, gps_lat, gps_lon):
+    def apply(self, path, exif_tags, gps_lat, gps_lon, user_default_tz):
         if not self._check_conditions(path, exif_tags, gps_lat, gps_lon):
             return None
         if self.rule_type == RuleTypes.EXIF:
-            return self._apply_exif(exif_tags, gps_lat, gps_lon)
+            return self._apply_exif(exif_tags, gps_lat, gps_lon, user_default_tz)
         elif self.rule_type == RuleTypes.PATH:
-            return self._apply_path(path, gps_lat, gps_lon)
+            return self._apply_path(path, gps_lat, gps_lon, user_default_tz)
         elif self.rule_type == RuleTypes.FILESYSTEM:
-            return self._apply_filesystem(path, gps_lat, gps_lon)
+            return self._apply_filesystem(path, gps_lat, gps_lon, user_default_tz)
         else:
             raise ValueError(f"Unknown rule type {self.rule_type}")
 
-    def _get_tz(self, description, gps_lat, gps_lon):
+    def _get_tz(self, description, gps_lat, gps_lon, user_default_tz):
+        """
+        None is a valid timezone returned here (meaning that we want to use server local time).
+        This is why this function returns a tuple with the first element specifying sucesss of
+        determining the timezone, and the second element - the timezone itself.
+        """
         if description == "gps_timezonefinder":
             if not _check_gps_ok(gps_lat, gps_lon):
-                return None
+                return (False, None)
             from timezonefinder import TimezoneFinder
 
             tzfinder = TimezoneFinder()
             tz_name = tzfinder.timezone_at(lng=gps_lon, lat=gps_lat)
-            return pytz.timezone(tz_name) if tz_name else None
+            return (True, pytz.timezone(tz_name)) if tz_name else (False, None)
+        elif description == "user_default":
+            return (True, pytz.timezone(user_default_tz))
+        elif description == "server_local":
+            return (True, None)
         elif description.lower() == "utc":
-            return pytz.utc
+            return (True, pytz.utc)
         elif description.startswith("name:"):
-            return pytz.timezone(description[5:])
+            return (True, pytz.timezone(description[5:]))
         else:
             raise ValueError(f"Unkonwn tz description {description}")
 
-    def _transform_tz(self, dt, gps_lat, gps_lon):
+    def _transform_tz(self, dt, gps_lat, gps_lon, user_default_tz):
         if not dt:
             return None
         if self.params.get("transform_tz"):
-            source_tz = self._get_tz(self.params["source_tz"], gps_lat, gps_lon)
-            if not source_tz:
+            has_source_tz, source_tz = self._get_tz(
+                self.params["source_tz"], gps_lat, gps_lon, user_default_tz
+            )
+            if not has_source_tz:
                 return None
-            report_tz = self._get_tz(self.params["report_tz"], gps_lat, gps_lon)
-            if not report_tz:
+            has_report_tz, report_tz = self._get_tz(
+                self.params["report_tz"], gps_lat, gps_lon, user_default_tz
+            )
+            if not has_report_tz:
                 return None
-            dt = dt.replace(tzinfo=source_tz).astimezone(report_tz)
+            # Either of source_tz or report_tz might be None - meaning that we want to use
+            # server local timezone
+            dt = datetime.fromtimestamp(
+                dt.replace(tzinfo=source_tz).timestamp(), report_tz
+            )
         return dt.replace(tzinfo=pytz.utc)
 
-    def _apply_exif(self, exif_tags, gps_lat, gps_lon):
+    def _apply_exif(self, exif_tags, gps_lat, gps_lon, user_default_tz):
         dt = self._get_no_tz_dt_from_tag(self.params["exif_tag"], exif_tags)
-        return self._transform_tz(dt, gps_lat, gps_lon)
+        return self._transform_tz(dt, gps_lat, gps_lon, user_default_tz)
 
-    def _apply_path(self, path, gps_lat, gps_lon):
+    def _apply_path(self, path, gps_lat, gps_lon, user_default_tz):
         path_part = self.params.get("path_part")
         if path_part is None or path_part == "filename":
             source = pathlib.Path(path).name
@@ -273,19 +339,27 @@ class TimeExtractionRule:
         else:
             raise ValueError(f"Unknown path_part {path_part}")
 
-        regexp = self.params.get("custom_regexp") or REGEXP_NO_TZ
-        dt = _extract_no_tz_datetime_from_str(source, regexp)
-        return self._transform_tz(dt, gps_lat, gps_lon)
+        group_mapping = None
+        regexp = self.params.get("custom_regexp")
+        if not regexp:
+            predefined_regexp_type = self.params.get("predefined_regexp", "default")
+            if predefined_regexp_type not in PREDEFINED_REGEXPS:
+                raise ValueError(
+                    f"Unknown predefined regexp type {predefined_regexp_type}"
+                )
+            regexp, group_mapping = PREDEFINED_REGEXPS[predefined_regexp_type]
+        dt = _extract_no_tz_datetime_from_str(source, regexp, group_mapping)
+        return self._transform_tz(dt, gps_lat, gps_lon, user_default_tz)
 
-    def _apply_filesystem(self, path, gps_lat, gps_lon):
+    def _apply_filesystem(self, path, gps_lat, gps_lon, user_default_tz):
         file_property = self.params.get("file_property")
         if file_property == "mtime":
-            dt = datetime.fromtimestamp(os.path.getmtime(path))
+            dt = datetime.fromtimestamp(os.path.getmtime(path), pytz.utc)
         elif file_property == "ctime":
-            dt = datetime.fromtimestamp(os.path.getctime(path))
+            dt = datetime.fromtimestamp(os.path.getctime(path), pytz.utc)
         else:
             raise ValueError(f"Unknown file_property {file_property}")
-        return self._transform_tz(dt, gps_lat, gps_lon)
+        return self._transform_tz(dt, gps_lat, gps_lon, user_default_tz)
 
 
 def _check_gps_ok(lat, lon):
@@ -299,14 +373,12 @@ def _check_gps_ok(lat, lon):
 
 
 DEFAULT_RULES_PARAMS = [
-    # Local time from DATE_TIME_ORIGINAL exif tag
     {
         "id": 1,
         "name": "Local time from DATE_TIME_ORIGINAL exif tag",
         "rule_type": RuleTypes.EXIF,
         "exif_tag": Tags.DATE_TIME_ORIGINAL,
     },
-    # Get Video creation tag in UTC + figure out timezone using GPS coordinates
     {
         "id": 2,
         "name": "Get Video creation tag in UTC + figure out timezone using GPS coordinates",
@@ -316,29 +388,68 @@ DEFAULT_RULES_PARAMS = [
         "source_tz": "utc",
         "report_tz": "gps_timezonefinder",
     },
-    # Using filename assuming time is local
     {
         "id": 3,
-        "name": "Using filename assuming time is local",
+        "name": "Using filename assuming time is local (most of filenames auto generated by smartphones etc)",
         "rule_type": RuleTypes.PATH,
     },
-    # Video UTC - report local time in UTC (since we can't find out actual timezone)
     {
         "id": 4,
-        "name": "Video UTC - report local time in UTC (since we can't find out actual timezone)",
+        "name": "Video creation datetime in user default timezone (can't find out actual timezone)",
         "rule_type": RuleTypes.EXIF,
         "exif_tag": Tags.QUICKTIME_CREATE_DATE,
+        "transform_tz": 1,
+        "source_tz": "utc",
+        "report_tz": "user_default",
+    },
+    {
+        "id": 5,
+        "name": "Extract date using WhatsApp file name",
+        "rule_type": RuleTypes.PATH,
+        "predefined_regexp": "whatsapp",
     },
 ]
 
-DEFAULT_RULES = list(map(TimeExtractionRule, DEFAULT_RULES_PARAMS))
+PREDEFINED_RULES_PARAMS = DEFAULT_RULES_PARAMS + [
+    {
+        "id": 6,
+        "name": "Video creation datetime in UTC timezone (can't find out actual timezone)",
+        "rule_type": RuleTypes.EXIF,
+        "exif_tag": Tags.QUICKTIME_CREATE_DATE,
+    },
+    {
+        "id": 7,
+        "name": "File modified time in user default timezone",
+        "rule_type": RuleTypes.FILESYSTEM,
+        "file_property": "mtime",
+        "transform_tz": 1,
+        "source_tz": "utc",
+        "report_tz": "user_default",
+    },
+    {
+        "id": 8,
+        "name": "File modified time in UTC timezone",
+        "rule_type": RuleTypes.FILESYSTEM,
+        "file_property": "mtime",
+    },
+]
 
+
+def _as_json(configs):
+    return json.dumps(configs, default=lambda x: x.__dict__)
+
+
+DEFAULT_RULES_JSON = _as_json(DEFAULT_RULES_PARAMS)
+PREDEFINED_RULES_JSON = _as_json(PREDEFINED_RULES_PARAMS)
 
 
 def as_rules(configs):
     return list(map(TimeExtractionRule, configs))
 
-def extract_local_date_time(path, rules, exif_getter, gps_lat, gps_lon):
+
+def extract_local_date_time(
+    path, rules, exif_getter, gps_lat, gps_lon, user_default_tz
+):
     required_tags = set()
     for rule in rules:
         required_tags.update(rule.get_required_exif_tags())
@@ -346,7 +457,7 @@ def extract_local_date_time(path, rules, exif_getter, gps_lat, gps_lon):
     exif_values = exif_getter(required_tags)
     exif_tags = {k: v for k, v in zip(required_tags, exif_values)}
     for rule in rules:
-        res = rule.apply(path, exif_tags, gps_lat, gps_lon)
+        res = rule.apply(path, exif_tags, gps_lat, gps_lon, user_default_tz)
         if res:
             return res
     return None
