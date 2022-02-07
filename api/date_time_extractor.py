@@ -375,7 +375,7 @@ def _check_gps_ok(lat, lon):
 DEFAULT_RULES_PARAMS = [
     {
         "id": 1,
-        "name": "Local time from DATE_TIME_ORIGINAL exif tag",
+        "name": f"Local time from {Tags.DATE_TIME_ORIGINAL} exif tag",
         "rule_type": RuleTypes.EXIF,
         "exif_tag": Tags.DATE_TIME_ORIGINAL,
     },
@@ -384,6 +384,15 @@ DEFAULT_RULES_PARAMS = [
         "name": "Get Video creation tag in UTC + figure out timezone using GPS coordinates",
         "rule_type": RuleTypes.EXIF,
         "exif_tag": Tags.QUICKTIME_CREATE_DATE,
+        "transform_tz": 1,
+        "source_tz": "utc",
+        "report_tz": "gps_timezonefinder",
+    },
+    {
+        "id": 11,
+        "name": f"Use {Tags.GPS_DATE_TIME} tag + figure out timezone using GPS coordinates",
+        "rule_type": RuleTypes.EXIF,
+        "exif_tag": Tags.GPS_DATE_TIME,
         "transform_tz": 1,
         "source_tz": "utc",
         "report_tz": "gps_timezonefinder",
@@ -431,6 +440,36 @@ PREDEFINED_RULES_PARAMS = DEFAULT_RULES_PARAMS + [
         "name": "File modified time in UTC timezone",
         "rule_type": RuleTypes.FILESYSTEM,
         "file_property": "mtime",
+    },
+    {
+        "id": 9,
+        "name": "File created time in user default timezone",
+        "rule_type": RuleTypes.FILESYSTEM,
+        "file_property": "ctime",
+        "transform_tz": 1,
+        "source_tz": "utc",
+        "report_tz": "user_default",
+    },
+    {
+        "id": 10,
+        "name": "File created time in UTC timezone",
+        "rule_type": RuleTypes.FILESYSTEM,
+        "file_property": "ctime",
+    },
+    {
+        "id": 12,
+        "name": f"Use {Tags.GPS_DATE_TIME} tag in user default timezone (can't find out actual timezone)",
+        "rule_type": RuleTypes.EXIF,
+        "exif_tag": Tags.GPS_DATE_TIME,
+        "transform_tz": 1,
+        "source_tz": "utc",
+        "report_tz": "user_default",
+    },
+    {
+        "id": 13,
+        "name": f"Use {Tags.GPS_DATE_TIME} tag in UTC timezone (can't find out actual timezone)",
+        "rule_type": RuleTypes.EXIF,
+        "exif_tag": Tags.GPS_DATE_TIME,
     },
 ]
 
