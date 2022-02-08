@@ -17,7 +17,7 @@ from django.conf import settings
 from django.conf.urls import url
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include
+from django.urls import include, path
 from rest_framework import permissions, routers
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
@@ -180,8 +180,9 @@ router.register(r"api/faces/labeled", views.FaceLabeledViewSet, basename="face")
 router.register(r"api/faces", views.FaceViewSet)
 
 router.register(r"api/jobs", views.LongRunningJobViewSet)
-
 urlpatterns = [
+    url(r'api/upload/complete/', views.UploadPhotosChunkedComplete.as_view()),
+    url(r'api/upload/', views.UploadPhotosChunked.as_view()),
     url(r"^", include(router.urls)),
     url(r"^admin/", admin.site.urls),
     url(r"^api/photos/upload", views.UploadPhotos.as_view()),
