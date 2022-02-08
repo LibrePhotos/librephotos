@@ -15,4 +15,4 @@ class Tags:
     EXIF_MODEL = "EXIF:Model"
     MAKERNOTES_TYPE = "MakerNotes:MakerNoteType"
     MAKERNOTES_VERSION = "MakerNotes:MakerNoteVersion"
-    EXIF_ModifyDate = "EXIF:ModifyDate"
+    EXIF_MODIFY_DATE = "EXIF:ModifyDate"
