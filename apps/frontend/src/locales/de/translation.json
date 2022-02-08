@@ -109,7 +109,7 @@
             "mediafile": "Speichere in der Mediendatei"
         },
         "favoriteupdate": "Aktualisiere",
-        "experimentaloptions": "Experimentele Optionen",
+        "experimentaloptions": "Experimentelle Optionen",
         "transcodevideo": "Transkodiere immer Videos",
         "on": "An",
         "off": "Aus",
@@ -412,6 +412,13 @@
     },
     "rules": {
         "file_property": "Dateieigenschaft verwenden {{rule}}",
-        "1": "Ortszeit aus DATE_TIME_ORIGINAL-Exif-Tag"
+        "1": "Ortszeit aus DATE_TIME_ORIGINAL-Exif-Tag",
+        "source_tz": "Transformiere von {{rule}}",
+        "2": "Erfasse Video-Erstellungsdatum in UTC + bestimme Zeitzone über GPS-Koordinaten",
+        "3": "Verwende Dateiname (lokale Zeit vorausgesetzt)",
+        "4": "Video UTC - verwende lokale Zeit in UTC (da tatsächliche Zeitzone nicht bestimmt werden kann)",
+        "rule_type": "Regeltyp: {{rule}}",
+        "exif_tag": "Verwende Exif-Tag {{rule}}",
+        "report_tz": "Transformiere nach {{rule}}"
     }
 }
