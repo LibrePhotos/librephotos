@@ -24,7 +24,7 @@ import { SecuredImageJWT } from "./SecuredImage";
 import { TOP_MENU_HEIGHT } from "../ui-constants";
 import { withTranslation } from "react-i18next";
 import { compose } from "redux";
-import { UploadButton } from "./UploadButton";
+import { ChunkedUploadButton } from "./ChunkedUploadButton";
 var ENTER_KEY = 13;
 
 function fuzzy_match(str, pattern) {
@@ -453,7 +453,7 @@ export class CustomSearch extends Component {
               )}
           </div>
         )}
-        <UploadButton></UploadButton>
+        <ChunkedUploadButton></ChunkedUploadButton>
       </div>
     );
   }
