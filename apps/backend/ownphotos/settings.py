@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "nextcloud",
     "rest_framework",
     "corsheaders",
+    'chunked_upload',
     "django_extensions",
     "django_rq",
     "constance",
@@ -248,6 +249,9 @@ IM2TXT_ROOT = os.path.join(BASE_DATA, "data_models", "im2txt")
 PLACES365_ROOT = os.path.join(BASE_DATA, "data_models", "places365", "model")
 CLIP_ROOT = os.path.join(BASE_DATA, "data_models", "clip-embeddings")
 LOGS_ROOT = BASE_LOGS
+
+CHUNKED_UPLOAD_PATH = ""
+CHUNKED_UPLOAD_TO = os.path.join( "chunked_uploads")
 
 THUMBNAIL_SIZE_TINY = 100
 THUMBNAIL_SIZE_SMALL = 200
