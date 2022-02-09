@@ -158,24 +158,31 @@ export class Settings extends Component {
                   }}
                 >
                   <Dropzone
-                    disableClick
+                    noClick
                     style={{ width: 150, height: 150, borderRadius: 75 }}
                     ref={(node) => {
                       this.dropzoneRef = node;
                     }}
                     onDrop={(accepted, rejected) => {
                       this.setState({
-                        avatarImgSrc: accepted[0].preview,
+                        avatarImgSrc: URL.createObjectURL(accepted[0]),
                       });
                     }}
                   >
-                    <AvatarEditor
-                      ref={this.setEditorRef}
-                      width={150}
-                      height={150}
-                      border={0}
-                      image={this.state.avatarImgSrc}
-                    />
+                    {({ getRootProps, getInputProps }) => {
+                      return (
+                        <div {...getRootProps()}>
+                          <input {...getInputProps()} />
+                          <AvatarEditor
+                            ref={this.setEditorRef}
+                            width={150}
+                            height={150}
+                            border={0}
+                            image={this.state.avatarImgSrc}
+                          />
+                        </div>
+                      );
+                    }}
                   </Dropzone>
                 </div>
                 <div
