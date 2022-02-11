@@ -923,6 +923,16 @@ class UploadPhotos(APIView):
             }
         )
         
+class UploadPhotoExists(viewsets.ViewSet):
+    
+    def retrieve(self, request, pk): 
+        try:
+            photo = Photo.objects.get(image_hash=pk)
+            return Response({"exists": True})            
+        except Photo.DoesNotExist:
+            return Response({"exists": False})
+
+        
 class UploadPhotosChunked(ChunkedUploadView):
 
     model = ChunkedUpload
