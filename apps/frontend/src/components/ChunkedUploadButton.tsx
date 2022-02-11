@@ -1,9 +1,8 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppDispatch, useAppSelector } from "../hooks";
-import { uploadPhotos } from "../actions/photosActions";
 import { useDropzone } from "react-dropzone";
-import { Button, Icon } from "semantic-ui-react";
+import { Button, Progress } from "semantic-ui-react";
 import { Server } from "../api_client/apiClient";
 import MD5 from "crypto-js/md5";
 import CryptoJS from "crypto-js";
@@ -11,36 +10,61 @@ import CryptoJS from "crypto-js";
 export const ChunkedUploadButton = ({ token }: { token?: string }) => {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-
+  var [totalSize, setTotalSize] = useState(1);
+  var [currentSize, setCurrentSize] = useState(1);
   const { userSelfDetails } = useAppSelector((state) => state.user);
   const chunkSize = 100000; // 100kb chunks
   const { getRootProps, getInputProps, open, acceptedFiles } = useDropzone({
-    //accept: "image/*",
+    accept: ["image/*", "video/*"],
     noClick: true,
     noKeyboard: true,
     onDrop: (acceptedFiles) => {
-      acceptedFiles.forEach(async (file) => {
-        const chunks = calculateChunks(file, chunkSize);
-        var offset = 0;
-        var uploadId = "";
-        for (let i = 0; i < chunks.length; i++) {
-          var response = await uploadChunk(
-            chunks[offset / chunkSize],
-            uploadId,
-            offset
-          );
-          offset = response.offset;
-          uploadId = response.uploadId;
-        }
-        uploadFinished(file, uploadId);
+      var totalSize = 0;
+      acceptedFiles.forEach((file) => {
+        const fileSize = file.size;
+        totalSize += fileSize;
       });
-      // To-Do: Add progress state
-      // To-Do: Visualize uploading with a upload circle
+      setTotalSize(totalSize);
+      var localCurrentSize = 0;
+      acceptedFiles.forEach(async (file) => {
+        // Check if the upload already exists via the hash of the file
+        const hash = (await calculateMD5(file)) + userSelfDetails.id;
+        //const isAlreadyUploaded = await uploadExists(hash);
+        //if (!isAlreadyUploaded) {
+        if (true) {
+          const chunks = calculateChunks(file, chunkSize);
+          var offset = 0;
+          var uploadId = "";
+          for (let i = 0; i < chunks.length; i++) {
+            var response = await uploadChunk(
+              chunks[offset / chunkSize],
+              uploadId,
+              offset
+            );
+            offset = response.offset;
+            uploadId = response.uploadId;
+            if (chunks[offset / chunkSize]) {
+              localCurrentSize += chunks[offset / chunkSize].size;
+            } else {
+              localCurrentSize = file.size;
+            }
+            setCurrentSize(localCurrentSize);
+          }
+          uploadFinished(file, uploadId);
+        }
+      });
       // To-Do: forget accepted files after onDrop...
       // To-Do: Do the uploads one after another and not in parallel
-      // To-Do: Check if the upload already exists via the hash of the file
     },
   });
+
+  useEffect(() => {
+    console.log("total size: " + totalSize);
+  }, [totalSize]);
+
+  useEffect(() => {
+    console.log("current size: " + currentSize);
+  }, [currentSize]);
 
   const calculateMD5 = (file: File) => {
     var temporaryFileReader = new FileReader();
@@ -73,6 +97,13 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
       return md5;
     };
     return "";
+  };
+
+  const uploadExists = async (hash: string) => {
+    const query = "/upload/exists/" + hash;
+    return Server.get(query).then((response) => {
+      return response.data.exists;
+    });
   };
 
   const uploadFinished = async (file: File, uploadId: string) => {
@@ -138,13 +169,32 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
   };
 
   // to handle multiple files, queue them in the client and do them on after another
-  // save upload id after first post
-  // calc md5 hashsum when finished and send to chunkeduploadfinished
   return (
-    <div className="container">
+    <div style={{ width: "50px" }}>
       <div {...getRootProps({ className: "dropzone" })}>
         <input {...getInputProps()} />
-        <Button icon="upload" onClick={open}></Button>
+        {currentSize / totalSize > 0.99 && (
+          <Button
+            icon="upload"
+            loading={currentSize / totalSize < 1}
+            onClick={open}
+          ></Button>
+        )}
+
+        {
+          //To-Do: make layout of progress bar prettier
+          currentSize / totalSize < 1 && (
+            <Progress
+              percent={((currentSize / totalSize) * 100).toFixed(0)}
+              progress
+              style={{
+                width: "100%",
+                margin: "0",
+                marginTop: "5px",
+              }}
+            />
+          )
+        }
       </div>
     </div>
   );
