@@ -179,6 +179,8 @@ router.register(r"api/faces/inferred", views.FaceInferredViewSet, basename="face
 router.register(r"api/faces/labeled", views.FaceLabeledViewSet, basename="face")
 router.register(r"api/faces", views.FaceViewSet)
 
+router.register(r"api/exists", views.UploadPhotoExists, basename="exists")
+
 router.register(r"api/jobs", views.LongRunningJobViewSet)
 urlpatterns = [
     url(r'api/upload/complete/', views.UploadPhotosChunkedComplete.as_view()),
