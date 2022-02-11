@@ -187,7 +187,6 @@ urlpatterns = [
     url(r'api/upload/', views.UploadPhotosChunked.as_view()),
     url(r"^", include(router.urls)),
     url(r"^admin/", admin.site.urls),
-    url(r"^api/photos/upload", views.UploadPhotos.as_view()),
     url(r"^api/sitesettings", views.SiteSettingsView.as_view()),
     url(r"^api/dirtree", views.RootPathTreeView.as_view()),
     url(r"^api/labelfaces", views.SetFacePersonLabel.as_view()),

@@ -879,50 +879,6 @@ class SetPhotosPublic(APIView):
                 "not_updated": not_updated,
             }
         )
-
-class UploadPhotos(APIView):
-    parser_classes = [FormParser, MultiPartParser]
-
-    def post(self, request, format=None):
-        # request contains a list of new photos
-        photos = request.data.lists()
-        # calculate the hash to check if we already have the photos
-        new_photos = []
-        for photo in photos:
-            photo[1][0].seek(0)
-            image_hash = calculate_hash_b64(request.user, io.BytesIO(photo[1][0].read()))
-            # check if we already have the photos
-            if not Photo.objects.filter(image_hash=image_hash).exists():
-                new_photos.append(photo)
-             # if we do, skip
-        # check if the folder /uploads/user exist, if not create it
-        if not os.path.exists(os.path.join(request.user.scan_directory, "uploads")):
-            os.mkdir(os.path.join(request.user.scan_directory, "uploads"))
-        if not os.path.exists(os.path.join(request.user.scan_directory, "uploads", str(request.user.id))):
-            os.mkdir(os.path.join(request.user.scan_directory, "uploads", str(request.user.id)))
-
-        # Save the new photos to /uploads/userid/
-        for photo in new_photos:
-            photo[1][0].seek(0)
-            image_hash = calculate_hash_b64(request.user, io.BytesIO(photo[1][0].read()))
-            if not os.path.exists(os.path.join(request.user.scan_directory, "uploads", str(request.user.id), photo[0])):
-                photo_path = os.path.join(request.user.scan_directory, "uploads", str(request.user.id), photo[0])
-            else: 
-                photo_path = os.path.join(request.user.scan_directory, "uploads", str(request.user.id), image_hash)
-            with open(photo_path, "wb") as f:
-                photo[1][0].seek(0)
-                f.write(photo[1][0].read())
-            handle_new_image(request.user, photo_path, "0")
-
-        # start a scan of the /uploads/userid folder
-
-
-        return Response(
-            {
-                "status": True,
-                "path": os.path.join(request.user.scan_directory, "uploads", str(request.user.id)),
-            }
-        )
         
 class UploadPhotoExists(viewsets.ViewSet):
     
