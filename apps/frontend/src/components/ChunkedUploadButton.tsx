@@ -14,24 +14,24 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
   var [currentSize, setCurrentSize] = useState(1);
   const { userSelfDetails } = useAppSelector((state) => state.user);
   const chunkSize = 100000; // 100kb chunks
+  var currentUploadedFileSize = 0;
   const { getRootProps, getInputProps, open, acceptedFiles } = useDropzone({
     accept: ["image/*", "video/*"],
     noClick: true,
     noKeyboard: true,
-    onDrop: (acceptedFiles) => {
+    onDrop: async (acceptedFiles) => {
       var totalSize = 0;
       acceptedFiles.forEach((file) => {
         const fileSize = file.size;
         totalSize += fileSize;
       });
       setTotalSize(totalSize);
-      var localCurrentSize = 0;
-      acceptedFiles.forEach(async (file) => {
+      var currentUploadedFileSizeStartValue = currentUploadedFileSize;
+      for (const file of acceptedFiles) {
         // Check if the upload already exists via the hash of the file
         const hash = (await calculateMD5(file)) + userSelfDetails.id;
-        //const isAlreadyUploaded = await uploadExists(hash);
-        //if (!isAlreadyUploaded) {
-        if (true) {
+        const isAlreadyUploaded = await uploadExists(hash);
+        if (!isAlreadyUploaded) {
           const chunks = calculateChunks(file, chunkSize);
           var offset = 0;
           var uploadId = "";
@@ -44,17 +44,22 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
             offset = response.offset;
             uploadId = response.uploadId;
             if (chunks[offset / chunkSize]) {
-              localCurrentSize += chunks[offset / chunkSize].size;
+              currentUploadedFileSize += chunks[offset / chunkSize].size;
             } else {
-              localCurrentSize = file.size;
+              currentUploadedFileSize +=
+                file.size -
+                (currentUploadedFileSize - currentUploadedFileSizeStartValue);
             }
-            setCurrentSize(localCurrentSize);
+            setCurrentSize(currentUploadedFileSize);
           }
+
           uploadFinished(file, uploadId);
+        } else {
+          console.log("File already uploaded");
+          currentUploadedFileSize += file.size;
+          setCurrentSize(currentUploadedFileSize);
         }
-      });
-      // To-Do: forget accepted files after onDrop...
-      // To-Do: Do the uploads one after another and not in parallel
+      }
     },
   });
 
@@ -100,8 +105,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
   };
 
   const uploadExists = async (hash: string) => {
-    const query = "/upload/exists/" + hash;
-    return Server.get(query).then((response) => {
+    return Server.get(`/exists/${hash}/`).then((response) => {
       return response.data.exists;
     });
   };
@@ -168,7 +172,6 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
     return chunk;
   };
 
-  // to handle multiple files, queue them in the client and do them on after another
   return (
     <div style={{ width: "50px" }}>
       <div {...getRootProps({ className: "dropzone" })}>
@@ -181,20 +184,17 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
           ></Button>
         )}
 
-        {
-          //To-Do: make layout of progress bar prettier
-          currentSize / totalSize < 1 && (
-            <Progress
-              percent={((currentSize / totalSize) * 100).toFixed(0)}
-              progress
-              style={{
-                width: "100%",
-                margin: "0",
-                marginTop: "5px",
-              }}
-            />
-          )
-        }
+        {currentSize / totalSize < 1 && (
+          <Progress
+            percent={((currentSize / totalSize) * 100).toFixed(0)}
+            progress
+            style={{
+              width: "100%",
+              margin: "0",
+              marginTop: "5px",
+            }}
+          />
+        )}
       </div>
     </div>
   );
