@@ -896,19 +896,19 @@ class UploadPhotos(APIView):
                 new_photos.append(photo)
              # if we do, skip
         # check if the folder /uploads/user exist, if not create it
-        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads")):
-            os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads"))
-        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(request.user.id))):
-            os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(request.user.id)))
+        if not os.path.exists(os.path.join(request.user.scan_directory, "uploads")):
+            os.mkdir(os.path.join(request.user.scan_directory, "uploads"))
+        if not os.path.exists(os.path.join(request.user.scan_directory, "uploads", str(request.user.id))):
+            os.mkdir(os.path.join(request.user.scan_directory, "uploads", str(request.user.id)))
 
         # Save the new photos to /uploads/userid/
         for photo in new_photos:
             photo[1][0].seek(0)
             image_hash = calculate_hash_b64(request.user, io.BytesIO(photo[1][0].read()))
-            if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(request.user.id), photo[0])):
-                photo_path = os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(request.user.id), photo[0])
-            else:
-                photo_path = os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(request.user.id), image_hash)
+            if not os.path.exists(os.path.join(request.user.scan_directory, "uploads", str(request.user.id), photo[0])):
+                photo_path = os.path.join(request.user.scan_directory, "uploads", str(request.user.id), photo[0])
+            else: 
+                photo_path = os.path.join(request.user.scan_directory, "uploads", str(request.user.id), image_hash)
             with open(photo_path, "wb") as f:
                 photo[1][0].seek(0)
                 f.write(photo[1][0].read())
@@ -920,6 +920,7 @@ class UploadPhotos(APIView):
         return Response(
             {
                 "status": True,
+                "path": os.path.join(request.user.scan_directory, "uploads", str(request.user.id)),
             }
         )
         
@@ -973,18 +974,17 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
     def on_completion(self, uploaded_file, request):
         user = User.objects.filter(id=request.POST.get("user")).first()
         filename = request.POST.get("filename")
-        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads")):
-            os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads"))
-        if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(user.id))):
-            os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(user.id)))
-        # uploaded file should be named like the original file
+        if not os.path.exists(os.path.join(user.scan_directory, "uploads")):
+            os.mkdir(os.path.join(user.scan_directory, "uploads"))
+        if not os.path.exists(os.path.join(user.scan_directory, "uploads", str(user.id))):
+            os.mkdir(os.path.join(user.scan_directory, "uploads", str(user.id)))
         photo = uploaded_file
-        image_hash = calculate_hash_b64(request.user, io.BytesIO(photo.read()))
+        image_hash = calculate_hash_b64(user, io.BytesIO(photo.read()))
         if not Photo.objects.filter(image_hash=image_hash).exists():
-            if not os.path.exists(os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(user.id), filename)):
-                photo_path = os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(user.id), filename)
+            if not os.path.exists(os.path.join(user.scan_directory, "uploads", str(user.id), filename)):
+                photo_path = os.path.join(user.scan_directory, "uploads", str(user.id), filename)
             else:
-                photo_path = os.path.join(ownphotos.settings.MEDIA_ROOT, "uploads", str(user.id), image_hash)
+                photo_path = os.path.join(user.scan_directory, "uploads", str(user.id), image_hash)
             with open(photo_path, "wb") as f:
                 photo.seek(0)
                 f.write(photo.read())
