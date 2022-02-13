@@ -12,6 +12,8 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
   const { t } = useTranslation();
   var [totalSize, setTotalSize] = useState(1);
   var [currentSize, setCurrentSize] = useState(1);
+  var [allowUpload, setAllowUpload] = useState(false);
+
   const { userSelfDetails } = useAppSelector((state) => state.user);
   const chunkSize = 100000; // 100kb chunks
   var currentUploadedFileSize = 0;
@@ -35,6 +37,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
           const chunks = calculateChunks(file, chunkSize);
           var offset = 0;
           var uploadId = "";
+          //To-Do: Handle Resume and Pause
           for (let i = 0; i < chunks.length; i++) {
             var response = await uploadChunk(
               chunks[offset / chunkSize],
@@ -64,6 +67,14 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
   });
 
   useEffect(() => {
+    getAllowUpload();
+  }, []);
+
+  useEffect(() => {
+    console.log("allowUpload: " + allowUpload);
+  }, [allowUpload]);
+
+  useEffect(() => {
     console.log("total size: " + totalSize);
   }, [totalSize]);
 
@@ -89,6 +100,12 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
         }
       };
       temporaryFileReader.readAsBinaryString(file);
+    });
+  };
+
+  const getAllowUpload = () => {
+    Server.get("/allowupload").then((response) => {
+      setAllowUpload(response.data.allow_upload);
     });
   };
 
@@ -120,9 +137,9 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
   };
 
   const uploadChunk = (chunk: Blob, uploadId: string, offset: number) => {
+    //only send first chunk without upload id
     if (!uploadId) {
       var form_data = new FormData();
-      //only send first chunk without upload id
       form_data.append("file", chunk);
       form_data.append("md5", calculateMD5Blob(chunk));
       form_data.append("offset", offset.toString());
@@ -171,31 +188,34 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
     }
     return chunk;
   };
+  if (allowUpload) {
+    return (
+      <div style={{ width: "50px" }}>
+        <div {...getRootProps({ className: "dropzone" })}>
+          <input {...getInputProps()} />
+          {currentSize / totalSize > 0.99 && (
+            <Button
+              icon="upload"
+              loading={currentSize / totalSize < 1}
+              onClick={open}
+            ></Button>
+          )}
 
-  return (
-    <div style={{ width: "50px" }}>
-      <div {...getRootProps({ className: "dropzone" })}>
-        <input {...getInputProps()} />
-        {currentSize / totalSize > 0.99 && (
-          <Button
-            icon="upload"
-            loading={currentSize / totalSize < 1}
-            onClick={open}
-          ></Button>
-        )}
-
-        {currentSize / totalSize < 1 && (
-          <Progress
-            percent={((currentSize / totalSize) * 100).toFixed(0)}
-            progress
-            style={{
-              width: "100%",
-              margin: "0",
-              marginTop: "5px",
-            }}
-          />
-        )}
+          {currentSize / totalSize < 1 && (
+            <Progress
+              percent={((currentSize / totalSize) * 100).toFixed(0)}
+              progress
+              style={{
+                width: "100%",
+                margin: "0",
+                marginTop: "5px",
+              }}
+            />
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  } else {
+    return <div></div>;
+  }
 };
