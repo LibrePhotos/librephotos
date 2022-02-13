@@ -48,8 +48,6 @@ class Photo(models.Model):
     square_thumbnail = models.ImageField(upload_to="square_thumbnails")
     square_thumbnail_small = models.ImageField(upload_to="square_thumbnails_small")
 
-    image = models.ImageField(upload_to="photos")
-
     aspect_ratio = models.FloatField(blank=True, null=True)
 
     added_on = models.DateTimeField(null=False, blank=False, db_index=True)
@@ -294,13 +292,6 @@ class Photo(models.Model):
         ).strip()
         if commit:
             self.save()
-
-    def _save_image_to_db(self):
-        image = self.get_pil_image()
-        image_io = BytesIO()
-        image.save(image_io, format="JPEG")
-        self.image.save(self.image_hash + ".jpg", ContentFile(image_io.getvalue()))
-        image_io.close()
 
     def _find_album_place(self):
         return api.models.album_place.AlbumPlace.objects.filter(

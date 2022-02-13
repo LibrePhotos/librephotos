@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "nextcloud",
     "rest_framework",
     "corsheaders",
+    'chunked_upload',
     "django_extensions",
     "django_rq",
     "constance",
@@ -249,6 +250,9 @@ PLACES365_ROOT = os.path.join(BASE_DATA, "data_models", "places365", "model")
 CLIP_ROOT = os.path.join(BASE_DATA, "data_models", "clip-embeddings")
 LOGS_ROOT = BASE_LOGS
 
+CHUNKED_UPLOAD_PATH = ""
+CHUNKED_UPLOAD_TO = os.path.join( "chunked_uploads")
+
 THUMBNAIL_SIZE_TINY = 100
 THUMBNAIL_SIZE_SMALL = 200
 THUMBNAIL_SIZE_MEDIUM = 400
@@ -258,7 +262,7 @@ THUMBNAIL_SIZE_BIG = (2048, 2048)
 FULLPHOTO_SIZE = (1000, 1000)
 
 DEFAULT_FAVORITE_MIN_RATING = os.environ.get("DEFAULT_FAVORITE_MIN_RATING", 4)
-
+ALLOW_UPLOAD = not os.environ.get("ALLOW_UPLOAD", "True") in ('false', 'False', '0', 'f')
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
 

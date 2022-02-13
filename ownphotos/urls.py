@@ -13,11 +13,13 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
+
+
 from django.conf import settings
 from django.conf.urls import url
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include
+from django.urls import include, path
 from rest_framework import permissions, routers
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
@@ -25,6 +27,7 @@ from rest_framework_simplejwt.serializers import (
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+import ownphotos.settings
 from api.views import album_auto, albums, photos, search, views
 from nextcloud import views as nextcloud_views
 
@@ -179,11 +182,13 @@ router.register(r"api/faces/inferred", views.FaceInferredViewSet, basename="face
 router.register(r"api/faces/labeled", views.FaceLabeledViewSet, basename="face")
 router.register(r"api/faces", views.FaceViewSet)
 
-router.register(r"api/jobs", views.LongRunningJobViewSet)
+router.register(r"api/exists", views.UploadPhotoExists, basename="exists")
 
+router.register(r"api/jobs", views.LongRunningJobViewSet)
 urlpatterns = [
     url(r"^", include(router.urls)),
     url(r"^admin/", admin.site.urls),
+    url(r"api/allowupload", views.AllowPhotoUpload.as_view()),
     url(r"^api/sitesettings", views.SiteSettingsView.as_view()),
     url(r"^api/dirtree", views.RootPathTreeView.as_view()),
     url(r"^api/labelfaces", views.SetFacePersonLabel.as_view()),
@@ -191,7 +196,7 @@ urlpatterns = [
     url(r"^api/photosedit/delete", views.DeletePhotos.as_view()),
     url(r"^api/photosedit/favorite", views.SetPhotosFavorite.as_view()),
     url(r"^api/photosedit/hide", views.SetPhotosHidden.as_view()),
-    url(r"^api/photosedit/makepublic", views.SetPhotosPublic.as_view()),
+    url(r"^api/photosedit/makepublic", views.SetPhotosPublic.as_view()), 
     url(r"^api/photosedit/share", views.SetPhotosShared.as_view()),
     url(r"^api/photosedit/generateim2txt", views.GeneratePhotoCaption.as_view()),
     url(r"^api/useralbum/share", views.SetUserAlbumShared.as_view()),
@@ -229,6 +234,11 @@ urlpatterns = [
 ]
 urlpatterns += [url("api/django-rq/", include("django_rq.urls"))]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+if ownphotos.settings.ALLOW_UPLOAD:
+    urlpatterns += [url(r'api/upload/complete/', views.UploadPhotosChunkedComplete.as_view())]
+    urlpatterns += [url(r'api/upload/', views.UploadPhotosChunked.as_view())]
+
 
 if settings.DEBUG:
     from drf_yasg import openapi

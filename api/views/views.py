@@ -1,3 +1,4 @@
+import base64
 import datetime
 import io
 import os
@@ -8,12 +9,20 @@ import zipfile
 import django_rq
 import magic
 import six
+from chunked_upload.constants import http_status
+from chunked_upload.exceptions import ChunkedUploadError
+from chunked_upload.models import ChunkedUpload
+from chunked_upload.views import ChunkedUploadCompleteView, ChunkedUploadView
 from constance import config as site_config
 from django.core.cache import cache
+from django.core.files.base import ContentFile
 from django.db.models import Count, Prefetch, Q
 from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
 from django.utils.encoding import iri_to_uri
+from django.views.decorators.csrf import csrf_protect
 from rest_framework import filters, viewsets
+from rest_framework.decorators import api_view
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -33,8 +42,13 @@ from api.api_util import (
     path_to_dict,
 )
 from api.autoalbum import delete_missing_photos
+from api.directory_watcher import (
+    calculate_hash_b64,
+    handle_new_image,
+    scan_faces,
+    scan_photos,
+)
 from api.date_time_extractor import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
-from api.directory_watcher import scan_faces, scan_photos
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 from api.face_classify import cluster_faces, train_faces
 from api.models import (
@@ -867,6 +881,81 @@ class SetPhotosPublic(APIView):
                 "not_updated": not_updated,
             }
         )
+
+class AllowPhotoUpload(APIView):
+
+    def get(self, request):
+        return Response({"allow_upload": ownphotos.settings.ALLOW_UPLOAD})
+
+
+class UploadPhotoExists(viewsets.ViewSet):
+    
+    def retrieve(self, request, pk): 
+        try:
+            photo = Photo.objects.get(image_hash=pk)
+            return Response({"exists": True})            
+        except Photo.DoesNotExist:
+            return Response({"exists": False})
+
+        
+class UploadPhotosChunked(ChunkedUploadView):
+
+    model = ChunkedUpload
+
+    def check_permissions(self, request):
+        #To-Do: make deactivatable
+        #To-Do: Maybe check jwt token here?
+        #To-Do: Check if file is allowed type
+        user = User.objects.filter(id=request.POST.get("user")).first()
+        if(not user or not user.is_authenticated):
+            raise ChunkedUploadError(
+                status=http_status.HTTP_403_FORBIDDEN,
+                detail='Authentication credentials were not provided'
+            )
+    
+    def create_chunked_upload(self, save=False, **attrs):
+        """
+        Creates new chunked upload instance. Called if no 'upload_id' is
+        found in the POST data.
+        """
+        chunked_upload = self.model(**attrs)
+        # file starts empty
+        chunked_upload.file.save(name='tmp', content=ContentFile(''), save=save)
+        return chunked_upload
+
+   
+class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
+
+    model = ChunkedUpload
+    
+    def check_permissions(self, request):
+        #To-Do: Maybe check jwt token here?
+        user = User.objects.filter(id=request.POST.get("user")).first()
+        if(not user or not user.is_authenticated):
+            raise ChunkedUploadError(
+                status=http_status.HTTP_403_FORBIDDEN,
+                detail='Authentication credentials were not provided'
+            )
+
+    def on_completion(self, uploaded_file, request):
+        user = User.objects.filter(id=request.POST.get("user")).first()
+        filename = request.POST.get("filename")
+        if not os.path.exists(os.path.join(user.scan_directory, "uploads")):
+            os.mkdir(os.path.join(user.scan_directory, "uploads"))
+        if not os.path.exists(os.path.join(user.scan_directory, "uploads", str(user.id))):
+            os.mkdir(os.path.join(user.scan_directory, "uploads", str(user.id)))
+        photo = uploaded_file
+        image_hash = calculate_hash_b64(user, io.BytesIO(photo.read()))
+        if not Photo.objects.filter(image_hash=image_hash).exists():
+            if not os.path.exists(os.path.join(user.scan_directory, "uploads", str(user.id), filename)):
+                photo_path = os.path.join(user.scan_directory, "uploads", str(user.id), filename)
+            else:
+                photo_path = os.path.join(user.scan_directory, "uploads", str(user.id), image_hash)
+            with open(photo_path, "wb") as f:
+                photo.seek(0)
+                f.write(photo.read())
+            #To-Do: delete the chunked upload, probably get path and the os.delete or something
+            handle_new_image(user, photo_path, "0")
 
 
 class DeletePhotos(APIView):
