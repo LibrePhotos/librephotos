@@ -44,6 +44,25 @@ const fetchPhotosetRejected = (err: string) => {
   };
 };
 
+export function uploadPhotos(form_data: any, dispatch: Dispatch<any>) {
+  Server.post("/photos/upload", form_data, {
+    headers: {
+      "content-type": "multipart/form-data",
+    },
+  }).then((response: any) => {
+    dispatch(
+      notify({
+        message: "Upload successful",
+        title: i18n.t("toasts.sharephototitle"),
+        status: "success",
+        dismissible: true,
+        dismissAfter: 3000,
+        position: "br",
+      })
+    );
+  });
+}
+
 export function downloadPhotos(image_hashes: string[]) {
   return function (dispatch: Dispatch<any>) {
     Server.post(
