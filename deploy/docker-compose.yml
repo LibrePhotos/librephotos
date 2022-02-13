@@ -64,6 +64,7 @@ services:
       - MAPBOX_API_KEY=${mapApiKey}
       - WEB_CONCURRENCY=${gunniWorkers}
       - SKIP_PATTERNS=${skipPatterns}
+      - ALLOW_UPLOAD=${allowUpload}
       - DEBUG=0
       - HEAVYWEIGHT_PROCESS=${HEAVYWEIGHT_PROCESS}
 
