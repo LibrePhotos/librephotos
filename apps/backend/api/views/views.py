@@ -879,7 +879,13 @@ class SetPhotosPublic(APIView):
                 "not_updated": not_updated,
             }
         )
-        
+
+class AllowPhotoUpload(APIView):
+
+    def get(self, request):
+        return Response({"allow_upload": ownphotos.settings.ALLOW_UPLOAD})
+
+
 class UploadPhotoExists(viewsets.ViewSet):
     
     def retrieve(self, request, pk): 
@@ -895,7 +901,9 @@ class UploadPhotosChunked(ChunkedUploadView):
     model = ChunkedUpload
 
     def check_permissions(self, request):
+        #To-Do: make deactivatable
         #To-Do: Maybe check jwt token here?
+        #To-Do: Check if file is allowed type
         user = User.objects.filter(id=request.POST.get("user")).first()
         if(not user or not user.is_authenticated):
             raise ChunkedUploadError(
@@ -944,7 +952,7 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
             with open(photo_path, "wb") as f:
                 photo.seek(0)
                 f.write(photo.read())
-            #To-Do: delete the chunked upload
+            #To-Do: delete the chunked upload, probably get path and the os.delete or something
             handle_new_image(user, photo_path, "0")
 
 
