@@ -356,7 +356,8 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
             .prefetch_related(
                 Prefetch(
                     "photos",
-                    queryset=photo_qs.order_by("-exif_timestamp").only(
+                    queryset=photo_qs.order_by("-exif_timestamp")
+                    .only(
                         "image_hash",
                         "aspect_ratio",
                         "video",
@@ -368,7 +369,7 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                         "exif_timestamp",
                         "owner",
                     )
-            .distinct(),
+                    .distinct(),
                 ),
                 Prefetch(
                     "photos__owner",
