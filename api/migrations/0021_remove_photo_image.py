@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0019_change_config_datetime_rules'),
+        ('api', '0020_add_default_timezone'),
     ]
 
     operations = [
