@@ -1,4 +1,3 @@
-import base64
 import datetime
 import io
 import os
@@ -18,11 +17,10 @@ from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.db.models import Count, Prefetch, Q
 from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
+from django.utils.decorators import method_decorator
 from django.utils.encoding import iri_to_uri
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import filters, viewsets
-from rest_framework.decorators import api_view
-from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -42,13 +40,13 @@ from api.api_util import (
     path_to_dict,
 )
 from api.autoalbum import delete_missing_photos
+from api.date_time_extractor import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
 from api.directory_watcher import (
     calculate_hash_b64,
     handle_new_image,
     scan_faces,
     scan_photos,
 )
-from api.date_time_extractor import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 from api.face_classify import cluster_faces, train_faces
 from api.models import (
@@ -882,8 +880,10 @@ class SetPhotosPublic(APIView):
             }
         )
 
-class AllowPhotoUpload(APIView):
 
+class AllowPhotoUpload(APIView):
+    # set the csrf token if allow photo is set to true
+    @method_decorator(ensure_csrf_cookie)
     def get(self, request):
         return Response({"allow_upload": ownphotos.settings.ALLOW_UPLOAD})
 
@@ -897,7 +897,7 @@ class UploadPhotoExists(viewsets.ViewSet):
         except Photo.DoesNotExist:
             return Response({"exists": False})
 
-        
+  
 class UploadPhotosChunked(ChunkedUploadView):
 
     model = ChunkedUpload
