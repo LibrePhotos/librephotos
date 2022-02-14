@@ -94,7 +94,7 @@ CORS_ALLOW_HEADERS = (
     "x-requested-with",
 )
 
-CORS_ORIGIN_WHITELIST = ("http://localhost:3000", "http://192.168.1.100:3000")
+CORS_ALLOWED_ORIGINS = ("http://localhost:3000", "http://192.168.1.100:3000")
 
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
@@ -263,7 +263,7 @@ FULLPHOTO_SIZE = (1000, 1000)
 
 DEFAULT_FAVORITE_MIN_RATING = os.environ.get("DEFAULT_FAVORITE_MIN_RATING", 4)
 ALLOW_UPLOAD = not os.environ.get("ALLOW_UPLOAD", "True") in ('false', 'False', '0', 'f')
-CORS_ORIGIN_ALLOW_ALL = False
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 
 IMAGE_SIMILARITY_SERVER = "http://localhost:8002"

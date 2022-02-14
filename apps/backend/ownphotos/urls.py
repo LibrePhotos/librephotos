@@ -188,7 +188,7 @@ router.register(r"api/jobs", views.LongRunningJobViewSet)
 urlpatterns = [
     url(r"^", include(router.urls)),
     url(r"^admin/", admin.site.urls),
-    url(r"api/allowupload", views.AllowPhotoUpload.as_view()),
+    url(r"^api/allowupload", views.AllowPhotoUpload.as_view()),
     url(r"^api/sitesettings", views.SiteSettingsView.as_view()),
     url(r"^api/dirtree", views.RootPathTreeView.as_view()),
     url(r"^api/labelfaces", views.SetFacePersonLabel.as_view()),
