@@ -258,6 +258,7 @@ export class PhotoListView extends Component {
                   onAddToAlbum={() =>
                     this.setState({ modalAddToAlbumOpen: true })
                   }
+                  updateSelectionState={this.updateSelectionState}
                 />
               </div>
             )}
