@@ -17,6 +17,7 @@ from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.db.models import Count, Prefetch, Q
 from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
+from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.utils.encoding import iri_to_uri
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -939,6 +940,7 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
 
     def on_completion(self, uploaded_file, request):
         user = User.objects.filter(id=request.POST.get("user")).first()
+        #To-Do: Sanatize file name
         filename = request.POST.get("filename")
 
         #To-Do: Get origin device
@@ -958,7 +960,8 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
             with open(photo_path, "wb") as f:
                 photo.seek(0)
                 f.write(photo.read())
-            #To-Do: delete the chunked upload, probably get path and the os.delete or something
+            chunked_upload = get_object_or_404(ChunkedUpload, upload_id=request.POST.get("upload_id"))
+            chunked_upload.delete(delete_file=True)
             handle_new_image(user, photo_path, "0")
 
 
