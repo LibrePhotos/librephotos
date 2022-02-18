@@ -89,7 +89,7 @@ else:
     def is_hidden(filepath):
         return os.path.basename(filepath).startswith(".")
 
-
+@job
 def handle_new_image(user, image_path, job_id):
     if is_valid_media(image_path):
         try:

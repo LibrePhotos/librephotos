@@ -962,7 +962,7 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                 f.write(photo.read())
             chunked_upload = get_object_or_404(ChunkedUpload, upload_id=request.POST.get("upload_id"))
             chunked_upload.delete(delete_file=True)
-            handle_new_image(user, photo_path, "0")
+            handle_new_image.delay(user, photo_path, "0")
 
 
 class DeletePhotos(APIView):
