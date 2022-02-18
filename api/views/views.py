@@ -940,17 +940,21 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
     def on_completion(self, uploaded_file, request):
         user = User.objects.filter(id=request.POST.get("user")).first()
         filename = request.POST.get("filename")
+
+        #To-Do: Get origin device
+        device = "web"
+
         if not os.path.exists(os.path.join(user.scan_directory, "uploads")):
             os.mkdir(os.path.join(user.scan_directory, "uploads"))
-        if not os.path.exists(os.path.join(user.scan_directory, "uploads", str(user.id))):
-            os.mkdir(os.path.join(user.scan_directory, "uploads", str(user.id)))
+        if not os.path.exists(os.path.join(user.scan_directory, "uploads", device)):
+            os.mkdir(os.path.join(user.scan_directory, "uploads", device))
         photo = uploaded_file
         image_hash = calculate_hash_b64(user, io.BytesIO(photo.read()))
         if not Photo.objects.filter(image_hash=image_hash).exists():
-            if not os.path.exists(os.path.join(user.scan_directory, "uploads", str(user.id), filename)):
-                photo_path = os.path.join(user.scan_directory, "uploads", str(user.id), filename)
+            if not os.path.exists(os.path.join(user.scan_directory, "uploads", device, filename)):
+                photo_path = os.path.join(user.scan_directory, "uploads", device, filename)
             else:
-                photo_path = os.path.join(user.scan_directory, "uploads", str(user.id), image_hash)
+                photo_path = os.path.join(user.scan_directory, "uploads", device, image_hash)
             with open(photo_path, "wb") as f:
                 photo.seek(0)
                 f.write(photo.read())
