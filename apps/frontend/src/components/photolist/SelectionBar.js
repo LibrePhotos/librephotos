@@ -18,11 +18,15 @@ export class SelectionBar extends Component {
                 active={this.props.selectMode}
                 color={this.props.selectMode ? "blue" : "grey"}
                 onClick={() => {
+                  console.log(this.props.selectMode);
                   this.props.updateSelectionState({
                     selectMode: !this.props.selectMode,
                   });
                   if (this.props.selectMode) {
-                    this.props.updateSelectionState({ selectedItems: [] });
+                    this.props.updateSelectionState({
+                      selectMode: false,
+                      selectedItems: [],
+                    });
                   }
                 }}
                 label={{

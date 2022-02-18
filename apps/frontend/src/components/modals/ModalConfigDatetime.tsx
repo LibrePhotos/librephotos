@@ -14,6 +14,23 @@ type Props = {
 
 export const ModalConfigDatetime = (props: Props) => {
   const defaultRules: any = useAppSelector((state) => state.user.defaultRules);
+  const { datetime_rules } = useAppSelector(
+    (state) => state.user.userSelfDetails
+  );
+  const rules = JSON.parse(datetime_rules ? datetime_rules : "[]");
+  //make sure rules have ids
+  rules.forEach((rule: any, index: any) => {
+    if (!rule.id) {
+      rule.id = index;
+    }
+  });
+
+  const possibleOptions = defaultRules
+    ? defaultRules.filter(
+        (i: any) => rules.filter((x: any) => x.id == i.id).length == 0
+      )
+    : [];
+
   const dispatch = useAppDispatch();
   //To-Do: use translation
   const { t } = useTranslation();
@@ -72,8 +89,8 @@ export const ModalConfigDatetime = (props: Props) => {
         <Header as="h5">Rules:</Header>
       </div>
       <div style={{ padding: 10, overflowY: "auto", height: "100%" }}>
-        {defaultRules &&
-          defaultRules.map((rule: any) => (
+        {possibleOptions &&
+          possibleOptions.map((rule: any) => (
             <SortableItem
               key={rule.id}
               id={rule.id}

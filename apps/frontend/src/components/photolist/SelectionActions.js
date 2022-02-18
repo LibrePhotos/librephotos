@@ -51,6 +51,10 @@ export class SelectionActions extends Component {
                       true
                     )
                   );
+                  this.props.updateSelectionState({
+                    selectMode: false,
+                    selectedItems: [],
+                  });
                 }}
               >
                 <Icon name="star" color="yellow" />
@@ -65,6 +69,11 @@ export class SelectionActions extends Component {
                       false
                     )
                   );
+
+                  this.props.updateSelectionState({
+                    selectMode: false,
+                    selectedItems: [],
+                  });
                 }}
               >
                 <Icon name="star outline" color="yellow" />
@@ -81,6 +90,11 @@ export class SelectionActions extends Component {
                       true
                     )
                   );
+
+                  this.props.updateSelectionState({
+                    selectMode: false,
+                    selectedItems: [],
+                  });
                 }}
               >
                 <Icon name="hide" color="red" />
@@ -95,6 +109,11 @@ export class SelectionActions extends Component {
                       false
                     )
                   );
+
+                  this.props.updateSelectionState({
+                    selectMode: false,
+                    selectedItems: [],
+                  });
                 }}
               >
                 <Icon name="unhide" color="black" />
@@ -116,6 +135,11 @@ export class SelectionActions extends Component {
                     .map((ih) => serverAddress + "/media/photos/" + ih + ".jpg")
                     .join("\n");
                   copyToClipboard(linksToCopy);
+
+                  this.props.updateSelectionState({
+                    selectMode: false,
+                    selectedItems: [],
+                  });
                 }}
               >
                 <Icon name="globe" />
@@ -130,6 +154,11 @@ export class SelectionActions extends Component {
                       false
                     )
                   );
+
+                  this.props.updateSelectionState({
+                    selectMode: false,
+                    selectedItems: [],
+                  });
                 }}
               >
                 <Icon name="key" />
@@ -143,6 +172,11 @@ export class SelectionActions extends Component {
                   this.props.dispatch(
                     downloadPhotos(this.props.selectedItems.map((i) => i.id))
                   );
+
+                  this.props.updateSelectionState({
+                    selectMode: false,
+                    selectedItems: [],
+                  });
                 }}
               >
                 <Icon name="download" />
@@ -183,7 +217,14 @@ export class SelectionActions extends Component {
                         "/person/"
                       ) || this.props.selectedItems.length !== 1
                     }
-                    onClick={this.props.setAlbumCover}
+                    onClick={() => {
+                      this.props.setAlbumCover();
+
+                      this.props.updateSelectionState({
+                        selectMode: false,
+                        selectedItems: [],
+                      });
+                    }}
                   >
                     <Icon name="photo" />
                     {"  " + this.props.t("selectionactions.albumcover")}
@@ -230,6 +271,11 @@ export class SelectionActions extends Component {
                           this.props.selectedItems.map((i) => i.id)
                         )
                       );
+
+                      this.props.updateSelectionState({
+                        selectMode: false,
+                        selectedItems: [],
+                      });
                     }}
                   >
                     <Icon name="trash" />
