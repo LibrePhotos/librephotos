@@ -1,14 +1,5 @@
 import React, { Component } from "react";
-import {
-  Checkbox,
-  Popup,
-  Menu,
-  Header,
-  Divider,
-  Button,
-  Label,
-  Loader,
-} from "semantic-ui-react";
+import { Label } from "semantic-ui-react";
 
 import { connect } from "react-redux";
 import {
@@ -25,10 +16,6 @@ import {
 } from "../../util/gridUtils";
 import { ScrollSpeed, SCROLL_DEBOUNCE_DURATION } from "../../util/scrollUtils";
 import debounce from "lodash/debounce";
-import { serverAddress } from "../../api_client/apiClient";
-
-import { withTranslation } from "react-i18next";
-import { compose } from "redux";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
 import { FaceComponent } from "../../components/facedashboard/FaceComponent";
@@ -364,28 +351,16 @@ export class FaceDashboard extends Component {
   }
 }
 
-FaceDashboard = compose(
-  connect((store) => {
-    return {
-      workerAvailability: store.util.workerAvailability,
-      workerRunningJob: store.util.workerRunningJob,
-
-      showSidebar: store.ui.showSidebar,
-
-      facesList: store.faces.facesList,
-      inferredFacesList: store.faces.inferredFacesList,
-      labeledFacesList: store.faces.labeledFacesList,
-
-      people: store.people.people,
-
-      facesVis: store.faces.facesVis,
-      training: store.faces.training,
-      trained: store.faces.trained,
-      fetchingLabeledFacesList: store.faces.fetchingLabeledFacesList,
-      fetchedLabeledFacesList: store.faces.fetchedLabeledFacesList,
-      fetchingInferredFacesList: store.faces.fetchingInferredFacesList,
-      fetchedInferredFacesList: store.faces.fetchedInferredFacesList,
-    };
-  }),
-  withTranslation()
-)(FaceDashboard);
+FaceDashboard = connect((store) => {
+  return {
+    workerAvailability: store.util.workerAvailability,
+    workerRunningJob: store.util.workerRunningJob,
+    showSidebar: store.ui.showSidebar,
+    inferredFacesList: store.faces.inferredFacesList,
+    labeledFacesList: store.faces.labeledFacesList,
+    fetchingLabeledFacesList: store.faces.fetchingLabeledFacesList,
+    fetchedLabeledFacesList: store.faces.fetchedLabeledFacesList,
+    fetchingInferredFacesList: store.faces.fetchingInferredFacesList,
+    fetchedInferredFacesList: store.faces.fetchedInferredFacesList,
+  };
+})(FaceDashboard);
