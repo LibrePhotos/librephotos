@@ -2,8 +2,9 @@ import React from "react";
 import { Popup, Icon } from "semantic-ui-react";
 import { SecuredImageJWT } from "../../components/SecuredImage";
 
+import { serverAddress } from "../../api_client/apiClient";
+
 type Props = {
-  serverAddress: string;
   photo: string;
 };
 
@@ -26,7 +27,7 @@ export const PhotoIcon = (props: Props) => {
         content={
           <SecuredImageJWT
             size="large"
-            src={props.serverAddress + "/media/thumbnails_big/" + props.photo}
+            src={serverAddress + "/media/thumbnails_big/" + props.photo}
           />
         }
       />

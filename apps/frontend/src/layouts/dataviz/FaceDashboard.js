@@ -10,7 +10,6 @@ import {
   Loader,
 } from "semantic-ui-react";
 
-import { SecuredImageJWT } from "../../components/SecuredImage";
 import { connect } from "react-redux";
 import {
   deleteFaces,
@@ -32,8 +31,7 @@ import { withTranslation } from "react-i18next";
 import { compose } from "redux";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
-import { ProbabilityIcon } from "../../components/facedashboard/ProbabiltyIcon";
-import { PhotoIcon } from "../../components/facedashboard/PhotoIcon";
+import { FaceComponent } from "../../components/facedashboard/FaceComponent";
 var SIDEBAR_WIDTH = 85;
 
 const SPEED_THRESHOLD = 500;
@@ -87,6 +85,7 @@ export class FaceDashboard extends Component {
     this.props.dispatch(fetchLabeledFacesList());
     this.handleResize();
     window.addEventListener("resize", this.handleResize.bind(this));
+    this.handleClick = this.handleClick.bind(this);
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
@@ -249,71 +248,19 @@ export class FaceDashboard extends Component {
           </div>
         );
       } else {
-        var labelProbabilityIcon = (
-          <ProbabilityIcon probability={cell.person_label_probability} />
+        return (
+          <FaceComponent
+            handleClick={this.handleClick}
+            key={key}
+            cell={cell}
+            selectMode={this.state.selectMode}
+            isSelected={this.state.selectedFaces.includes(cell.id)}
+            isScrollingFast={this.state.isScrollingFast}
+            activeItem={this.state.activeItem}
+            style={style}
+            entrySquareSize={this.state.entrySquareSize}
+          />
         );
-        var showPhotoIcon = (
-          <PhotoIcon photo={cell.photo} serverAddress={serverAddress} />
-        );
-        if (this.state.isScrollingFast) {
-          return (
-            <div key={key} style={{ ...style, padding: 5 }}>
-              <SecuredImageJWT
-                rounded
-                src={"/thumbnail_placeholder.png"}
-                height={this.state.entrySquareSize - 10}
-                width={this.state.entrySquareSize - 10}
-              />
-            </div>
-          );
-        } else {
-          // TODO: janky shit going on in the next line!
-          var faceImageSrc =
-            serverAddress +
-            "/media/faces/" +
-            _.reverse(cell.image.split("/"))[0];
-          if (this.state.selectMode) {
-            const isSelected = this.state.selectedFaces.includes(cell.id);
-            return (
-              <div key={key} style={{ ...style, padding: 5 }}>
-                <div
-                  style={{
-                    padding: 10,
-                    backgroundColor: isSelected ? "#AED6F1" : "#eeeeee",
-                  }}
-                >
-                  <SecuredImageJWT
-                    rounded
-                    onClick={(e) => {
-                      this.handleClick(e, cell);
-                    }}
-                    src={faceImageSrc}
-                    height={this.state.entrySquareSize - 30}
-                    width={this.state.entrySquareSize - 30}
-                  />
-                  {this.state.activeItem === "inferred" && labelProbabilityIcon}
-                  {showPhotoIcon}
-                </div>
-              </div>
-            );
-          } else {
-            return (
-              <div key={key} style={{ ...style, padding: 5 }}>
-                <SecuredImageJWT
-                  rounded
-                  onClick={(e) => {
-                    this.handleClick(e, cell);
-                  }}
-                  src={faceImageSrc}
-                  height={this.state.entrySquareSize - 10}
-                  width={this.state.entrySquareSize - 10}
-                />
-                {this.state.activeItem === "inferred" && labelProbabilityIcon}
-                {showPhotoIcon}
-              </div>
-            );
-          }
-        }
       }
     } else {
       return <div key={key} style={style} />;
