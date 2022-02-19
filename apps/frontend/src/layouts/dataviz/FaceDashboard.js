@@ -3,7 +3,6 @@ import {
   Checkbox,
   Popup,
   Menu,
-  Icon,
   Header,
   Divider,
   Button,
@@ -34,6 +33,7 @@ import { compose } from "redux";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
 import { ProbabilityIcon } from "../../components/facedashboard/ProbabiltyIcon";
+import { PhotoIcon } from "../../components/facedashboard/PhotoIcon";
 var SIDEBAR_WIDTH = 85;
 
 const SPEED_THRESHOLD = 500;
@@ -250,35 +250,11 @@ export class FaceDashboard extends Component {
         );
       } else {
         var labelProbabilityIcon = (
-          <ProbabilityIcon
-            probability={cell.person_label_probability}
-          ></ProbabilityIcon>
+          <ProbabilityIcon probability={cell.person_label_probability} />
         );
         var showPhotoIcon = (
-          <div style={{ left: 6, bottom: 6, position: "absolute" }}>
-            <Popup
-              trigger={
-                <Icon
-                  circular
-                  style={{ backgroundColor: "white" }}
-                  color="black"
-                  name="image"
-                />
-              }
-              on="focus"
-              flowing
-              hideOnScroll
-              inverted
-              content={
-                <SecuredImageJWT
-                  size="large"
-                  src={serverAddress + "/media/thumbnails_big/" + cell.photo}
-                />
-              }
-            />
-          </div>
+          <PhotoIcon photo={cell.photo} serverAddress={serverAddress} />
         );
-
         if (this.state.isScrollingFast) {
           return (
             <div key={key} style={{ ...style, padding: 5 }}>
