@@ -32,6 +32,7 @@ import { compose } from "redux";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
 import { FaceComponent } from "../../components/facedashboard/FaceComponent";
+import { HeaderComponent } from "../../components/facedashboard/HeaderComponent";
 var SIDEBAR_WIDTH = 85;
 
 const SPEED_THRESHOLD = 500;
@@ -223,29 +224,13 @@ export class FaceDashboard extends Component {
     if (cell) {
       if (!cell.image) {
         return (
-          <div
+          <HeaderComponent
             key={key}
-            style={{
-              ...style,
-              paddingTop: this.state.entrySquareSize / 2.0 - 35,
-              width: this.state.width,
-              height: this.state.entrySquareSize,
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <Header size="huge">
-              <Header.Content>
-                {cell.person_name}
-                <Header.Subheader>
-                  {this.props.t("facesdashboard.numberoffaces", {
-                    number: cell.faces.length,
-                  })}
-                </Header.Subheader>
-              </Header.Content>
-            </Header>
-            <Divider />
-          </div>
+            cell={cell}
+            style={style}
+            entrySquareSize={this.state.entrySquareSize}
+            width={this.state.width}
+          />
         );
       } else {
         return (
