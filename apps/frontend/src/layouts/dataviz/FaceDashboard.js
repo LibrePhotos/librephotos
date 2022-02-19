@@ -33,6 +33,7 @@ import { withTranslation } from "react-i18next";
 import { compose } from "redux";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
+import { ProbabilityIcon } from "../../components/facedashboard/ProbabiltyIcon";
 var SIDEBAR_WIDTH = 85;
 
 const SPEED_THRESHOLD = 500;
@@ -50,7 +51,7 @@ export class FaceDashboard extends Component {
     topRowPersonName: null,
   };
 
-  handleItemClick = (e, { name }) => this.setState({ activeItem: name });
+  changeTab = (e, { name }) => this.setState({ activeItem: name });
 
   scrollSpeedHandler = new ScrollSpeed();
 
@@ -189,8 +190,6 @@ export class FaceDashboard extends Component {
       }
       var start = allFacesInCells.indexOf(cell);
       var end = allFacesInCells.indexOf(this.state.lastChecked);
-      console.log(start);
-      console.log(end);
 
       var facesToSelect = allFacesInCells.slice(
         Math.min(start, end),
@@ -211,8 +210,6 @@ export class FaceDashboard extends Component {
       selectedFaces.push(faceID);
     }
     this.setState({ selectedFaces: selectedFaces });
-    console.log(selectedFaces.length);
-    console.log(selectedFaces > 0);
     this.setState({ selectMode: selectedFaces.length > 0 });
   }
 
@@ -252,35 +249,10 @@ export class FaceDashboard extends Component {
           </div>
         );
       } else {
-        const labelProbability = cell.person_label_probability;
-        const labelProbabilityColor =
-          labelProbability > 0.9
-            ? "green"
-            : labelProbability > 0.8
-            ? "yellow"
-            : labelProbability > 0.7
-            ? "orange"
-            : "red";
-
         var labelProbabilityIcon = (
-          <div style={{ right: 6, bottom: 6, position: "absolute" }}>
-            <Popup
-              trigger={
-                <Icon
-                  circular
-                  style={{ backgroundColor: "white" }}
-                  color={labelProbabilityColor}
-                  name="circle"
-                />
-              }
-              on="focus"
-              flowing
-              inverted
-              hideOnScroll
-              position="bottom center"
-              content={`Confidence: ${(labelProbability * 100).toFixed(1)}%`}
-            />
-          </div>
+          <ProbabilityIcon
+            probability={cell.person_label_probability}
+          ></ProbabilityIcon>
         );
         var showPhotoIcon = (
           <div style={{ left: 6, bottom: 6, position: "absolute" }}>
@@ -381,7 +353,7 @@ export class FaceDashboard extends Component {
             <Menu.Item
               name="labeled"
               active={activeItem === "labeled"}
-              onClick={this.handleItemClick}
+              onClick={this.changeTab}
             >
               {this.props.t("settings.labeled")}{" "}
               <Loader
@@ -393,7 +365,7 @@ export class FaceDashboard extends Component {
             <Menu.Item
               name="inferred"
               active={activeItem === "inferred"}
-              onClick={this.handleItemClick}
+              onClick={this.changeTab}
             >
               {this.props.t("settings.inferred")}{" "}
               <Loader
@@ -457,6 +429,7 @@ export class FaceDashboard extends Component {
             <Popup
               inverted
               trigger={
+                //To-Do: Confirmation of delete faces
                 <Button
                   color="red"
                   disabled={this.state.selectedFaces.length === 0}
