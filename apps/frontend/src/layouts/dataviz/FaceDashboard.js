@@ -33,6 +33,8 @@ import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
 import { FaceComponent } from "../../components/facedashboard/FaceComponent";
 import { HeaderComponent } from "../../components/facedashboard/HeaderComponent";
+import { TabComponent } from "../../components/facedashboard/TabComponent";
+import { ButtonHeaderGroup } from "../../components/facedashboard/ButtonHeaderGroup";
 var SIDEBAR_WIDTH = 85;
 
 const SPEED_THRESHOLD = 500;
@@ -87,6 +89,11 @@ export class FaceDashboard extends Component {
     this.handleResize();
     window.addEventListener("resize", this.handleResize.bind(this));
     this.handleClick = this.handleClick.bind(this);
+    this.changeTab = this.changeTab.bind(this);
+    this.deleteFaces = this.deleteFaces.bind(this);
+    this.addFaces = this.addFaces.bind(this);
+    this.changeSelectMode = this.changeSelectMode.bind(this);
+    this.trainFaces = this.trainFaces.bind(this);
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
@@ -213,6 +220,25 @@ export class FaceDashboard extends Component {
     this.setState({ selectMode: selectedFaces.length > 0 });
   }
 
+  changeSelectMode() {
+    this.setState({ selectMode: !this.state.selectMode });
+  }
+
+  addFaces() {
+    if (this.state.selectedFaces.length > 0) {
+      this.setState({ modalPersonEditOpen: true });
+    }
+  }
+
+  deleteFaces() {
+    this.props.dispatch(deleteFaces(this.state.selectedFaces));
+    this.setState({ selectedFaces: [] });
+  }
+
+  trainFaces() {
+    this.props.dispatch(trainFaces());
+  }
+
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
     var cell;
     if (this.state.activeItem === "labeled") {
@@ -256,34 +282,12 @@ export class FaceDashboard extends Component {
     const { activeItem } = this.state;
     return (
       <div>
-        <div style={{ marginLeft: -5, height: 40 }}>
-          <Menu pointing secondary>
-            <Menu.Item
-              name="labeled"
-              active={activeItem === "labeled"}
-              onClick={this.changeTab}
-            >
-              {this.props.t("settings.labeled")}{" "}
-              <Loader
-                size="mini"
-                inline
-                active={this.props.fetchingLabeledFacesList}
-              />
-            </Menu.Item>
-            <Menu.Item
-              name="inferred"
-              active={activeItem === "inferred"}
-              onClick={this.changeTab}
-            >
-              {this.props.t("settings.inferred")}{" "}
-              <Loader
-                size="mini"
-                inline
-                active={this.props.fetchingInferredFacesList}
-              />
-            </Menu.Item>
-          </Menu>
-        </div>
+        <TabComponent
+          activeTab={activeItem}
+          changeTab={this.changeTab}
+          fetchingLabeledFacesList={this.state.fetchingLabeledFacesList}
+          fetchingInferredFacesList={this.state.fetchingInferredFacesList}
+        />
         <div
           style={{
             right: 0,
@@ -294,84 +298,16 @@ export class FaceDashboard extends Component {
         >
           <Label basic>{this.state.topRowPersonName}</Label>
         </div>
-
-        <div
-          style={{
-            marginLeft: -5,
-            paddingLeft: 5,
-            paddingRight: 5,
-            height: 40,
-            paddingTop: 4,
-            backgroundColor: this.state.selectMode ? "#AED6F1" : "#eeeeee",
-          }}
-        >
-          <Checkbox
-            label={this.props.t("facesdashboard.selectedfaces", {
-              number: this.state.selectedFaces.length,
-            })}
-            style={{ padding: 5 }}
-            toggle
-            checked={this.state.selectMode}
-            onClick={() => {
-              this.setState({ selectMode: !this.state.selectMode });
-            }}
-          />
-
-          <Button.Group compact floated="right">
-            <Popup
-              inverted
-              trigger={
-                <Button
-                  color="green"
-                  disabled={this.state.selectedFaces.length === 0}
-                  onClick={() => {
-                    if (this.state.selectedFaces.length > 0) {
-                      this.setState({ modalPersonEditOpen: true });
-                    }
-                  }}
-                  icon="plus"
-                />
-              }
-              content={this.props.t("facesdashboard.explanationadding")}
-            />
-            <Popup
-              inverted
-              trigger={
-                //To-Do: Confirmation of delete faces
-                <Button
-                  color="red"
-                  disabled={this.state.selectedFaces.length === 0}
-                  onClick={() => {
-                    this.props.dispatch(deleteFaces(this.state.selectedFaces));
-                    this.setState({ selectedFaces: [] });
-                  }}
-                  icon="trash"
-                />
-              }
-              content={this.props.t("facesdashboard.explanationdeleting")}
-            />
-
-            <Popup
-              inverted
-              trigger={
-                <Button
-                  disabled={!this.props.workerAvailability}
-                  loading={
-                    this.props.workerRunningJob &&
-                    this.props.workerRunningJob.job_type_str === "Train Faces"
-                  }
-                  color="blue"
-                  onClick={() => {
-                    this.props.dispatch(trainFaces());
-                  }}
-                  icon="lightning"
-                />
-              }
-              content={this.props.t("facesdashboard.explanationtraining")}
-            />
-          </Button.Group>
-        </div>
-
+        <ButtonHeaderGroup
+          selectMode={this.state.selectMode}
+          selectedFaces={this.state.selectedFaces}
+          workerAvailability={this.props.workerAvailability}
+          workerRunningJob={this.props.workerRunningJob}
+          changeSelectMode={this.changeSelectMode}
+          addFaces={this.addFaces}
+          deleteFaces={this.deleteFaces}
+          trainFaces={this.trainFaces}
+        />
         <div>
           <AutoSizer
             disableHeight
