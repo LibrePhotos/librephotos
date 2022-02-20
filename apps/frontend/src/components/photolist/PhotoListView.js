@@ -11,6 +11,7 @@ import { LightBox } from "../lightbox/LightBox";
 import _ from "lodash";
 import { SelectionBar } from "../photolist/SelectionBar";
 import FavoritedOverlay from "./FavoritedOverlay";
+import VideoOverlay from "./VideoOverlay";
 import { DefaultHeader } from "./DefaultHeader";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { SelectionActions } from "./SelectionActions";
@@ -291,7 +292,8 @@ export class PhotoListView extends Component {
                   url.split(";")[0]
                 );
               }}
-              overlay={FavoritedOverlay}
+              toprightoverlay={FavoritedOverlay}
+              bottomleftoverlay={VideoOverlay}
               numberOfItems={
                 this.props.numberOfItems
                   ? this.props.numberOfItems
