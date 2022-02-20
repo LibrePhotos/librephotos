@@ -9,6 +9,7 @@ export default class VideoOverlay extends Component {
           <div style={{ padding: 5, color: "white" }}>
             <Icon name="play" inverted />
             {this.props.item.video_length &&
+              this.props.item.video_length !== "None" &&
               Duration.fromObject({
                 seconds: this.props.item.video_length,
               }).toFormat("mm:ss")}
@@ -18,3 +19,4 @@ export default class VideoOverlay extends Component {
     );
   }
 }
+//
