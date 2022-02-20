@@ -55,6 +55,7 @@ class PigPhotoSerilizer(serpy.Serializer):
     birthTime = serpy.StrField(attr="exif_timestamp")
     aspectRatio = serpy.FloatField(attr="aspect_ratio")
     type = serpy.MethodField("get_type")
+    video_length = serpy.StrField(attr="video_length")
     rating = serpy.IntField("rating")
     owner = SimpleUserSerializer()
 

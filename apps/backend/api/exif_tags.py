@@ -4,6 +4,7 @@ class Tags:
     IMAGE_WIDTH = "ImageWidth"
     DATE_TIME_ORIGINAL = "EXIF:DateTimeOriginal"
     QUICKTIME_CREATE_DATE = "QuickTime:CreateDate"
+    QUICKTIME_DURATION = "QuickTime:Duration"
     LATITUDE = "Composite:GPSLatitude"
     LONGITUDE = "Composite:GPSLongitude"
     GPS_DATE_TIME = "Composite:GPSDateTime"

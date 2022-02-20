@@ -70,6 +70,8 @@ class Photo(models.Model):
 
     hidden = models.BooleanField(default=False, db_index=True)
     video = models.BooleanField(default=False)
+    video_length = models.TextField(blank=True, null=True)
+
     owner = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None
     )
@@ -461,6 +463,17 @@ class Photo(models.Model):
         # Safe geolocation_json
         album_date.save()
         cache.clear()
+    
+    def _extract_video_length(self, commit=True):
+        if not self.video:
+            return
+        (video_length, )= get_metadata(
+            self.image_paths[0], tags=[Tags.QUICKTIME_DURATION], try_sidecar=True
+        )
+        logger.debug(f"Extracted rating for {self.image_paths[0]}: {video_length}")
+        self.video_length = video_length
+        if commit:
+            self.save()
 
     def _extract_rating(self, commit=True):
         (rating,) = get_metadata(
