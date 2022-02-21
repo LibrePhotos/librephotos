@@ -28,7 +28,7 @@
     "prop-types": "^15.7.2",
     "react": "17.0.1",
     "react-i18next": "^11.11.0",
-    "react-native": "0.64.2",
+    "react-native": "0.67.2",
     "react-native-device-info": "^8.3.2",
     "react-native-file-logger": "^0.2.1",
     "react-native-flipper": "^0.94.1",
