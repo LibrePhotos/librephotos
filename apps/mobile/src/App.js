@@ -6,6 +6,9 @@ import { NativeBaseProvider } from 'native-base'
 import { store, persistor } from '@/Store'
 import { ApplicationNavigator } from '@/Navigators'
 import './Translations'
+if(__DEV__) {
+  import('./ReactotronConfig').then(() => console.log('Reactotron Configured'))
+}
 
 const App = () => (
   <Provider store={store}>
@@ -23,5 +26,7 @@ const App = () => (
     </PersistGate>
   </Provider>
 )
+
+
 
 export default App
