@@ -49,6 +49,8 @@ RUN apt-get update && \
 		pkg-config \ 
 		python3-dev \
 		python3-pip \
+		rustc \ 
+		libtinfo5 \
 		swig \
 		unzip && \
     apt-get clean && \
