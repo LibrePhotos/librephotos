@@ -35,6 +35,8 @@ Once the dependencies are setup, you can run the project as follows:
 2. `yarn install`
 3. `yarn <platform>`  # Replace platform with `android` or `ios`
 
+For debugging we use [reactotron](https://github.com/infinitered/reactotron/)
+
 ## 🌟 Features
 
 #### Currently implemented (From Librephotos Website):
