@@ -35,11 +35,11 @@ class SimpleUserSerializer(serializers.ModelSerializer):
             "last_name",
         )
 
-
+#To-Do: Are you even used?!?
 class PhotoEditSerializer(serializers.ModelSerializer):
     class Meta:
         model = Photo
-        fields = ("image_hash", "hidden", "rating", "video")
+        fields = ("image_hash", "hidden", "rating", "deleted", "video")
 
     def update(self, instance, validated_data):
         # import pdb; pdb.set_trace()
