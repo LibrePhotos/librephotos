@@ -14,6 +14,7 @@ import {
   FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED,
   FETCH_RECENTLY_ADDED_PHOTOS_REJECTED,
   SET_PHOTOS_FAVORITE_FULFILLED,
+  SET_PHOTOS_DELETED_FULFILLED,
   SET_PHOTOS_PUBLIC_FULFILLED,
   SET_PHOTOS_HIDDEN_FULFILLED,
   UserPhotosGroup,
@@ -39,6 +40,7 @@ export enum PhotosetType {
   FAVORITES = "favorites",
   HIDDEN = "hidden",
   RECENTLY_ADDED = "recentlyAdded",
+  DELETED = "deleted",
   SEARCH = "search",
   USER_ALBUM = "userAlbum",
   PERSON = "person",
@@ -285,6 +287,10 @@ export default function photosReducer(
     }
 
     case SET_PHOTOS_PUBLIC_FULFILLED: {
+      return updatePhotoDetails(state, action);
+    }
+
+    case SET_PHOTOS_DELETED_FULFILLED: {
       return updatePhotoDetails(state, action);
     }
 
