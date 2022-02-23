@@ -10,7 +10,7 @@ export default {
   initialState: buildAsyncState(),
   action: buildAsyncActions('album/fetchByDate', async (args, k) => {
     return await api
-      .get('/albums/date/photohash/list/', {
+      .get('/albums/date/list/', {
         timeout: 10000,
       })
       .then(response => {
