@@ -2,7 +2,7 @@ import _ from "lodash";
 import React, { Component } from "react";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
-import { Divider, Icon, Menu, Dropdown } from "semantic-ui-react";
+import { Divider, Icon, Menu, Dropdown, Item } from "semantic-ui-react";
 
 import { logout } from "../../actions/authActions";
 import { compose } from "redux";
@@ -245,6 +245,12 @@ export class SideMenuNarrow extends Component {
             </div>
           </div>
         )}
+
+        <Divider hidden />
+        <Menu.Item name="trash" as={Link} to="/deleted">
+          <Icon size="big" name="trash"></Icon>
+          <small>{this.props.t("photos.deleted")}</small>
+        </Menu.Item>
       </Menu>
     );
   }
