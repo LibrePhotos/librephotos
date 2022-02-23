@@ -16,6 +16,7 @@ import { DefaultHeader } from "./DefaultHeader";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { SelectionActions } from "./SelectionActions";
 import { setAlbumCoverForPerson } from "../../actions/peopleActions";
+import { TrashcanActions } from "./TrashcanActions";
 
 var TIMELINE_SCROLL_WIDTH = 0;
 
@@ -234,33 +235,40 @@ export class PhotoListView extends Component {
                   idx2hash={this.props.idx2hash}
                   updateSelectionState={this.updateSelectionState}
                 />
-                <SelectionActions
+                {!this.props.route.location.pathname.startsWith("/deleted") && (
+                  <SelectionActions
+                    selectedItems={this.state.selectionState.selectedItems}
+                    albumID={
+                      this.props.match
+                        ? this.props.match.params.albumID
+                        : undefined
+                    }
+                    title={this.props.title}
+                    setAlbumCover={() => {
+                      this.props.dispatch(
+                        setAlbumCoverForPerson(
+                          this.props.match.params.albumID,
+                          this.state.selectionState.selectedItems[0].id
+                        )
+                      );
+                    }}
+                    onSharePhotos={() =>
+                      this.setState({ modalSharePhotosOpen: true })
+                    }
+                    onShareAlbum={() =>
+                      this.setState({ modalAlbumShareOpen: true })
+                    }
+                    onAddToAlbum={() =>
+                      this.setState({ modalAddToAlbumOpen: true })
+                    }
+                    updateSelectionState={this.updateSelectionState}
+                  />
+                )}
+                <TrashcanActions
                   selectedItems={this.state.selectionState.selectedItems}
-                  albumID={
-                    this.props.match
-                      ? this.props.match.params.albumID
-                      : undefined
-                  }
                   title={this.props.title}
-                  setAlbumCover={() => {
-                    this.props.dispatch(
-                      setAlbumCoverForPerson(
-                        this.props.match.params.albumID,
-                        this.state.selectionState.selectedItems[0].id
-                      )
-                    );
-                  }}
-                  onSharePhotos={() =>
-                    this.setState({ modalSharePhotosOpen: true })
-                  }
-                  onShareAlbum={() =>
-                    this.setState({ modalAlbumShareOpen: true })
-                  }
-                  onAddToAlbum={() =>
-                    this.setState({ modalAddToAlbumOpen: true })
-                  }
                   updateSelectionState={this.updateSelectionState}
-                />
+                ></TrashcanActions>
               </div>
             )}
         </div>
