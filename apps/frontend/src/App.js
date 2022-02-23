@@ -47,6 +47,7 @@ import { TimestampPhotos } from "./layouts/photos/TimestampPhotos";
 import appHistory from "./history";
 import "./i18n";
 import { ConnectedRouter } from "connected-react-router";
+import { DeletedPhotos } from "./layouts/photos/DeletedPhotos";
 class Nav extends React.Component {
   render() {
     return (
@@ -102,6 +103,8 @@ class App extends Component {
             <PrivateRoute path="/recent" component={RecentlyAddedPhotos} />
 
             <PrivateRoute path="/favorites" component={FavoritePhotos} />
+
+            <PrivateRoute path="/deleted" component={DeletedPhotos} />
 
             <PrivateRoute path="/hidden" component={HiddenPhotos} />
 
