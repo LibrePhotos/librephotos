@@ -330,6 +330,93 @@ export function setPhotosFavorite(image_hashes: string[], favorite: boolean) {
   };
 }
 
+export const PHOTOS_FINAL_DELETED = "PHOTOS_FINAL_DELETED";
+export const PHOTOS_FINAL_DELETED_FULFILLED = "PHOTOS_FINAL_DELETED_FULFILLED";
+export const PHOTOS_FINAL_DELETED_REJECTED = "PHOTOS_FINAL_DELETED_REJECTED";
+export function finalPhotosDeleted(image_hashes: string[]) {
+  return function (dispatch: Dispatch<any>) {
+    dispatch({ type: PHOTOS_FINAL_DELETED });
+    Server.delete(`photosedit/delete`, {
+      data: {
+        image_hashes: image_hashes,
+      },
+    })
+      .then((response) => {
+        const data = _PhotosUpdatedResponseSchema.parse(response.data);
+        const updatedPhotos: Photo[] = data.updated;
+        dispatch({
+          type: PHOTOS_FINAL_DELETED_FULFILLED,
+          payload: {
+            image_hashes: image_hashes,
+            updatedPhotos: updatedPhotos,
+          },
+        });
+        var notificationMessage = i18n.t("toasts.finaldeletephoto", {
+          numberOfPhotos: image_hashes.length,
+        });
+        dispatch(
+          notify({
+            message: notificationMessage,
+            title: i18n.t("toasts.finaldeletephototitle"),
+            status: "success",
+            dismissible: true,
+            dismissAfter: 3000,
+            position: "br",
+          })
+        );
+      })
+      .catch((err) => {
+        dispatch({ type: PHOTOS_FINAL_DELETED_REJECTED, payload: err });
+      });
+  };
+}
+
+export const SET_PHOTOS_DELETED = "SET_PHOTOS_DELETED";
+export const SET_PHOTOS_DELETED_FULFILLED = "SET_PHOTOS_DELETED_FULFILLED";
+export const SET_PHOTOS_DELETED_REJECTED = "SET_PHOTOS_DELETED_REJECTED";
+export function setPhotosDeleted(image_hashes: string[], deleted: boolean) {
+  return function (dispatch: Dispatch<any>) {
+    dispatch({ type: SET_PHOTOS_DELETED });
+    Server.post(`photosedit/setdeleted/`, {
+      image_hashes: image_hashes,
+      deleted: deleted,
+    })
+      .then((response) => {
+        const data = _PhotosUpdatedResponseSchema.parse(response.data);
+        const updatedPhotos: Photo[] = data.updated;
+        dispatch({
+          type: SET_PHOTOS_DELETED_FULFILLED,
+          payload: {
+            image_hashes: image_hashes,
+            deleted: deleted,
+            updatedPhotos: updatedPhotos,
+          },
+        });
+        var notificationMessage = i18n.t("toasts.recoverphoto", {
+          numberOfPhotos: image_hashes.length,
+        });
+        if (deleted) {
+          notificationMessage = i18n.t("toasts.deletephoto", {
+            numberOfPhotos: image_hashes.length,
+          });
+        }
+        dispatch(
+          notify({
+            message: notificationMessage,
+            title: i18n.t("toasts.setdeletetitle"),
+            status: "success",
+            dismissible: true,
+            dismissAfter: 3000,
+            position: "br",
+          })
+        );
+      })
+      .catch((err) => {
+        dispatch({ type: SET_PHOTOS_DELETED_REJECTED, payload: err });
+      });
+  };
+}
+
 export const SET_PHOTOS_HIDDEN_FULFILLED = "SET_PHOTOS_HIDDEN_FULFILLED";
 export function setPhotosHidden(image_hashes: string[], hidden: boolean) {
   return function (dispatch: Dispatch<any>) {
