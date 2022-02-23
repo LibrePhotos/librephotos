@@ -35,7 +35,7 @@ class VisiblePhotoManager(models.Manager):
         return (
             super()
             .get_queryset()
-            .filter(Q(hidden=False) & Q(aspect_ratio__isnull=False))
+            .filter(Q(hidden=False) & Q(aspect_ratio__isnull=False) & Q(deleted=False))
         )
 
 
@@ -67,7 +67,7 @@ class Photo(models.Model):
     search_location = models.TextField(blank=True, null=True, db_index=True)
 
     rating = models.IntegerField(default=0, db_index=True)
-
+    deleted = models.BooleanField(default=False, db_index=True)
     hidden = models.BooleanField(default=False, db_index=True)
     video = models.BooleanField(default=False)
     video_length = models.TextField(blank=True, null=True)
