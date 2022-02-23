@@ -15,6 +15,7 @@ services:
     volumes:
       - ${myPhotos}:/data
       - ${proMedia}:/protected_media
+      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
       - ${httpPort}:80
     depends_on:
@@ -57,7 +58,7 @@ services:
       - DB_NAME=${dbName}
       - DB_USER=${dbUser}
       - DB_PASS=${dbPass}
-      - DB_HOST=${dbHost}
+      - DB_HOST=${DB_HOST}
       - DB_PORT=5432
       - REDIS_HOST=__redis_name__
       - REDIS_PORT=6379
