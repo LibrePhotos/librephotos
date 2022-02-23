@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import "react-virtualized/styles.css"; // only needs to be imported once
 import {
   setPhotosFavorite,
+  setPhotosDeleted,
   setPhotosHidden,
   setPhotosPublic,
   downloadPhotos,
@@ -40,7 +41,6 @@ export class SelectionActions extends Component {
                 {this.props.selectedItems.length}{" "}
                 {this.props.t("selectionactions.selected")} )
               </Dropdown.Header>
-
               <Dropdown.Divider />
               <Dropdown.Item
                 disabled={this.props.selectedItems.length === 0}
@@ -79,7 +79,6 @@ export class SelectionActions extends Component {
                 <Icon name="star outline" color="yellow" />
                 {"  " + this.props.t("selectionactions.unfavorite")}
               </Dropdown.Item>
-
               <Dropdown.Divider />
               <Dropdown.Item
                 disabled={this.props.selectedItems.length === 0}
@@ -119,7 +118,6 @@ export class SelectionActions extends Component {
                 <Icon name="unhide" color="black" />
                 {"  " + this.props.t("selectionactions.unhide")}
               </Dropdown.Item>
-
               <Dropdown.Divider />
               <Dropdown.Item
                 disabled={this.props.selectedItems.length === 0}
@@ -164,7 +162,6 @@ export class SelectionActions extends Component {
                 <Icon name="key" />
                 {"  " + this.props.t("selectionactions.makeprivate")}
               </Dropdown.Item>
-
               <Dropdown.Divider />
               <Dropdown.Item
                 disabled={this.props.selectedItems.length === 0}
@@ -181,6 +178,25 @@ export class SelectionActions extends Component {
               >
                 <Icon name="download" />
                 {"  " + this.props.t("selectionactions.download")}
+              </Dropdown.Item>
+              <Dropdown.Divider />
+              <Dropdown.Item
+                disabled={this.props.selectedItems.length === 0}
+                onClick={() => {
+                  this.props.dispatch(
+                    setPhotosDeleted(
+                      this.props.selectedItems.map((i) => i.id),
+                      true
+                    )
+                  );
+                  this.props.updateSelectionState({
+                    selectMode: false,
+                    selectedItems: [],
+                  });
+                }}
+              >
+                <Icon name="trash" />
+                {"  " + this.props.t("selectionactions.deleted")}
               </Dropdown.Item>
 
               <Dropdown.Divider />
