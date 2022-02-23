@@ -973,7 +973,7 @@ class DeletePhotos(APIView):
         deleted = []
         not_deleted = []
         for photo in photos.values():
-            if photo.owner == request.user:
+            if photo.owner == request.user and photo.deleted:
                 deleted.append(photo.image_hash)
                 photo.manual_delete()
             else:
@@ -985,6 +985,52 @@ class DeletePhotos(APIView):
                 "results": deleted,
                 "not_deleted": not_deleted,
                 "deleted": deleted,
+            }
+        )
+
+class SetPhotosDeleted(APIView):
+    def post(self, request, format=None):
+        data = dict(request.data)
+        val_hidden = data["deleted"]
+        image_hashes = data["image_hashes"]
+
+        updated = []
+        not_updated = []
+        for image_hash in image_hashes:
+            try:
+                photo = Photo.objects.get(image_hash=image_hash)
+            except Photo.DoesNotExist:
+                logger.warning(
+                    "Could not set photo {} to hidden. It does not exist.".format(
+                        image_hash
+                    )
+                )
+                continue
+            if photo.owner == request.user and photo.deleted != val_hidden:
+                photo.deleted = val_hidden
+                photo.save()
+                updated.append(PhotoSerializer(photo).data)
+            else:
+                not_updated.append(PhotoSerializer(photo).data)
+        cache.clear()
+        if val_hidden:
+            logger.info(
+                "{} photos were set hidden. {} photos were already deleted.".format(
+                    len(updated), len(not_updated)
+                )
+            )
+        else:
+            logger.info(
+                "{} photos were set unhidden. {} photos were already recovered.".format(
+                    len(updated), len(not_updated)
+                )
+            )
+        return Response(
+            {
+                "status": True,
+                "results": updated,
+                "updated": updated,
+                "not_updated": not_updated,
             }
         )
 
