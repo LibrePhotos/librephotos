@@ -338,6 +338,13 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
             photo_qs = Photo.visible.filter(
                 Q(owner__username=username) & Q(public=True)
             )
+        if self.request.query_params.get("deleted"):
+            qs = AlbumDate.objects.filter(
+                Q(owner=self.request.user)
+                & Q(photos__deleted=True)
+            )
+            photo_qs = Photo.objects.filter(Q(deleted=True))
+
 
         if self.request.query_params.get("person"):
             qs = AlbumDate.objects.filter(
@@ -412,13 +419,15 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if not self.request.user.is_anonymous:
             qs = AlbumDate.objects.filter(
-                Q(owner=self.request.user) & Q(photos__hidden=False)
+                Q(owner=self.request.user) & Q(photos__hidden=False) 
+                & Q(photos__deleted=False)
             )
         if self.request.query_params.get("favorite"):
             min_rating = self.request.user.favorite_min_rating
             qs = AlbumDate.objects.filter(
                 Q(owner=self.request.user)
                 & Q(photos__hidden=False)
+                & Q(photos__deleted=False)
                 & Q(photos__rating__gte=min_rating)
             )
         if self.request.query_params.get("public"):
@@ -426,16 +435,24 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
             qs = AlbumDate.objects.filter(
                 Q(owner__username=username)
                 & Q(photos__hidden=False)
+                & Q(photos__deleted=False)
                 & Q(photos__public=True)
             )
+
+        if self.request.query_params.get("deleted"):
+           qs = AlbumDate.objects.filter(
+                Q(owner=self.request.user)
+                & Q(photos__deleted=True)).annotate(photo_count=Count("photos", distinct=True)).filter(Q(photo_count__gt=0)).order_by(F("date").desc(nulls_last=True))
+           return qs
         if self.request.query_params.get("person"):
             qs = AlbumDate.objects.filter(
                 Q(owner=self.request.user)
                 & Q(photos__hidden=False)
+                & Q(photos__deleted=False)
                 & Q(photos__faces__person__id=self.request.query_params.get("person"))
             )
         qs = (
-            qs.annotate(photo_count=Count("photos", distinct=True))
+            qs.filter(Q(photos__deleted=False)).annotate(photo_count=Count("photos", distinct=True))
             .filter(Q(photo_count__gt=0))
             .order_by(F("date").desc(nulls_last=True))
         )
