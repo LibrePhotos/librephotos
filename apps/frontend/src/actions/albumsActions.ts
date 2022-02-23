@@ -389,6 +389,9 @@ export function fetchAlbumDateList(
     options.photosetType === PhotosetType.FAVORITES ? `?favorite=true` : "";
   var publicParam =
     options.photosetType === PhotosetType.PUBLIC ? `?public=true` : "";
+
+  var deletedParam =
+    options.photosetType === PhotosetType.DELETED ? `?deleted=true` : "";
   var usernameParam = options.username
     ? `&username=${options.username.toLowerCase()}`
     : "";
@@ -397,6 +400,7 @@ export function fetchAlbumDateList(
     "albums/date/list/" +
       favorites +
       publicParam +
+      deletedParam +
       usernameParam +
       personidParam,
     {
@@ -449,12 +453,15 @@ export function fetchAlbumDate(
     ? `&username=${options.username.toLowerCase()}`
     : "";
   var personidParam = options.person_id ? `&person=${options.person_id}` : "";
+  var deletedParam =
+    options.photosetType === PhotosetType.DELETED ? `&deleted=true` : "";
   Server.get(
     `albums/date/${options.album_date_id}/?page=${options.page}` +
       favorites +
       publicParam +
       usernameParam +
-      personidParam
+      personidParam +
+      deletedParam
   )
     .then((response) => {
       const datePhotosGroup: IncompleteDatePhotosGroup =
