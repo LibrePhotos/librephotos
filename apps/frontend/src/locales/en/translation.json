@@ -191,6 +191,7 @@
         "hide": "Hide",
         "unhide": "Unhide",
         "makepublic": "Make Public",
+        "deleted": "Delete",
         "makeprivate": "Make Private",
         "download": "Download",
         "sharing": "Sharing",
@@ -226,7 +227,8 @@
         "photos": "Photos",
         "notimestamp": "Photos without Timestamps",
         "hidden": "Hidden Photos",
-        "favorite": "Favorite Photos"
+        "favorite": "Favorite Photos",
+        "deleted": "Trashcan"
     },
     "login": {
         "name": "LibrePhotos",
@@ -408,7 +410,12 @@
         "generateeventalbums": "Generating event albums…",
         "generateeventalbumstitle": "Generate Event Albums",
         "regenerateevents": "Regenerating event titles…",
-        "regenerateeventstitle": "Regenerate Event Titles"
+        "regenerateeventstitle": "Regenerate Event Titles",
+        "deletephoto": "{{numberOfPhotos}} photo(s) were deleted.",
+        "recoverphoto": "{{numberOfPhotos}} photo(s) were recovered.",
+        "setdeletetitle": "Delete Images",
+        "finaldeletephoto": "{{numberOfPhotos}} photo(s) were permanently deleted.",
+        "finaldeletephototitle": "Delete Images"
     },
     "rules": {
         "1": "Local time from DATE_TIME_ORIGINAL exif tag",
