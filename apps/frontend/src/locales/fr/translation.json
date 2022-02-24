@@ -201,7 +201,8 @@
         "removephotosdescription": "Supprimer les photos sélectionnées de l’album courant",
         "album": "Album",
         "albumcoverdescription": "Définir la couverture de l'album courant",
-        "albumcover": "Couverture de l'album"
+        "albumcover": "Couverture de l'album",
+        "deleted": "Supprimer"
     },
     "lightbox": {
         "sidebar": {
@@ -226,7 +227,8 @@
         "photos": "Photos",
         "notimestamp": "Photos sans horodatage",
         "hidden": "Photos cachées",
-        "favorite": "Photos favorites"
+        "favorite": "Photos favorites",
+        "deleted": "Corbeille"
     },
     "login": {
         "name": "LibrePhotos",
@@ -408,7 +410,12 @@
         "regenerateevents": "Régénération des titres d'évènements…",
         "updateuser": "Les infos de {{username}} ont été mises à jour",
         "deletemissingphotos": "Suppression des photos manquantes…",
-        "generateeventalbums": "Générer des albums d'évènements…"
+        "generateeventalbums": "Générer des albums d'évènements…",
+        "recoverphoto": "{{numberOfPhotos}} photo(s) récupérée(s).",
+        "finaldeletephototitle": "Supprimer les images",
+        "finaldeletephoto": "{{numberOfPhotos}} photo(s) supprimée(s) définitivement.",
+        "deletephoto": "{{numberOfPhotos}} photo(s) supprimée(s).",
+        "setdeletetitle": "Supprimer les images"
     },
     "rules": {
         "file_property": "Utiliser la propriété du fichier {{rule}}",
