@@ -201,7 +201,8 @@
         "removephotosdescription": "Entferne gewähltes Foto aus aktuellem Album",
         "album": "Alben",
         "albumcover": "Album-Cover festlegen",
-        "albumcoverdescription": "Album-Cover für aktuelles Album festlegen"
+        "albumcoverdescription": "Album-Cover für aktuelles Album festlegen",
+        "deleted": "Löschen"
     },
     "lightbox": {
         "sidebar": {
@@ -226,7 +227,8 @@
         "photos": "Fotos",
         "notimestamp": "Fotos ohne Zeitstempel",
         "hidden": "Versteckte Fotos",
-        "favorite": "Favorisierte Fotos"
+        "favorite": "Favorisierte Fotos",
+        "deleted": "Papierkorb"
     },
     "login": {
         "name": "LibrePhotos",
@@ -282,7 +284,7 @@
         "explanation2": "auf den 'Fotos scannen'-Button drückt, werden die Bilder in diesem Verzeichnis für den ausgewählten Nutzer importiert",
         "currentdirectory": "Aktuelles Verzeichnis des Nutzers",
         "notset": "nicht gesetzt",
-        "update": "Aktualsieren",
+        "update": "Aktualisieren",
         "explanation3": "Wähle ein Verzeichnis aus"
     },
     "sitesettings": {
@@ -408,7 +410,12 @@
         "setfavoritestitle": "Favoriten festlegen",
         "sethidestitle": "Verborgen festlegen",
         "updateuser": "Infos von {{username}} aktualisiert",
-        "unfavoritephoto": "{{numberOfPhotos}} Foto(s) aus Favoriten entfernt."
+        "unfavoritephoto": "{{numberOfPhotos}} Foto(s) aus Favoriten entfernt.",
+        "finaldeletephoto": "{{numberOfPhotos}} Foto(s) endgültig gelöscht.",
+        "deletephoto": "{{numberOfPhotos}} Foto(s) gelöscht.",
+        "recoverphoto": "{{numberOfPhotos}} Foto(s) wiederhergestellt.",
+        "finaldeletephototitle": "Bilder löschen",
+        "setdeletetitle": "Bilder löschen"
     },
     "rules": {
         "file_property": "Dateieigenschaft verwenden {{rule}}",
