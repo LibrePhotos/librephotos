@@ -2,7 +2,7 @@
 
 include librephotos.env
 DOCKER_TAG ?= ownphotos-backend
-REPLACE_NAMES=sed 's/__backend_name__/$(BACKEND_HOST)/g; s/__frontend_name__/$(FRONTEND_HOST)/g; s/__proxy_name__/$(PROXY_HOST)/g; s/__redis_name__/$(REDIS_HOST)/g; s/__db_name__/$(DB_HOST)/g; s/__pgadmin_name__/$(PGADMIN_HOST)/g'
+REPLACE_NAMES=sed 's/__backend_name__/$(BACKEND_CONT_NAME)/g; s/__frontend_name__/$(FRONTEND_CONT_NAME)/g; s/__proxy_name__/$(PROXY_CONT_NAME)/g; s/__redis_name__/$(REDIS_CONT_NAME)/g; s/__db_name__/$(DB_CONT_NAME)/g; s/__pgadmin_name__/$(PGADMIN_CONT_NAME)/g'
 
 default: build
 
