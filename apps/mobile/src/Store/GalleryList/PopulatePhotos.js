@@ -7,8 +7,11 @@ const photoMapper = photosResult => {
 
   let finalmap = photosResult.map(item => {
     return {
+      id: item.id,
       title: item.date,
       data: item.items,
+      incomplete: item.incomplete,
+      numberOfItems: item.numberOfItems,
     }
   })
 
