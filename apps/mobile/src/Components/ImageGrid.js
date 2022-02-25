@@ -7,7 +7,10 @@ import { getConfig } from '../Config'
 import NoResultsError from './NoResultsError'
 import { updateToken } from '../Services/Auth'
 import PagerView from 'react-native-pager-view'
+import reactotron from 'reactotron-react-native'
+import FetchPhotosWithoutDate from '../Store/Album/FetchPhotosWithoutDate'
 
+import { useDispatch } from 'react-redux'
 const ImageGrid = ({
   data,
   numColumns = 3,
@@ -23,6 +26,8 @@ const ImageGrid = ({
 
   const authToken = useSelector(state => state.auth.access.token)
   const config = useSelector(state => state.config)
+
+  const dispatch = useDispatch()
 
   const COLUMNS = numColumns // Currently only columns=3 supported
 
@@ -112,6 +117,22 @@ const ImageGrid = ({
     )
   }
 
+  const onCheckViewableItems = ({ viewableItems, changed }) => {
+    getImages(viewableItems)
+  }
+
+  const getImages = visibleItems => {
+    if (
+      visibleItems.filter(i => i.isTemp && i.isTemp != undefined).length > 0
+    ) {
+      var firstTempObject = visibleItems.filter(i => i.isTemp)[0]
+      var page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100)
+      if (page > 1) {
+        dispatch(FetchPhotosWithoutDate(page))
+      }
+    }
+  }
+
   return (
     <>
       {data && data.length > 0 && (
@@ -122,6 +143,11 @@ const ImageGrid = ({
           numColumns={COLUMNS}
           data={data}
           renderItem={renderPhoto}
+          //To-Do: Broken!
+          //onViewableItemsChanged={onCheckViewableItems}
+          viewabilityConfig={{
+            itemVisiblePercentThreshold: 50, //means if 50% of the item is visible
+          }}
         />
       )}
       {(typeof data !== 'object' ||
