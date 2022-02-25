@@ -1,5 +1,6 @@
 import { buildSlice } from '@thecodingmachine/redux-toolkit-wrapper'
 import FetchByDate from './FetchByDate'
+import FetchAlbumDate from './FetchAlbumDate'
 import FetchPhotosWithoutDate from './FetchPhotosWithoutDate'
 import FetchPeople from './FetchPeople'
 import FetchThings from './FetchThings'
@@ -10,6 +11,7 @@ import FetchRecentlyAdded from './FetchRecentlyAdded'
 import FetchFavourites from './FetchFavourites'
 import FetchHidden from './FetchHidden'
 import FetchPublic from './FetchPublic'
+import ReplaceAlbumDate from './ReplaceAlbumDate'
 
 const sliceInitialState = {
   myAlbums: {},
@@ -27,6 +29,8 @@ export default buildSlice(
   'album',
   [
     FetchByDate,
+    FetchAlbumDate,
+    ReplaceAlbumDate,
     FetchPhotosWithoutDate,
     FetchRecentlyAdded,
     FetchFavourites,
