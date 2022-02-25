@@ -36,7 +36,7 @@ const GalleryContainer = () => {
   const albumPublic = useSelector(state => state.album.albumPublic)
   const albumHidden = useSelector(state => state.album.albumHidden)
   const photosByDate = albumByDate
-  const photosWithoutDate = albumWithoutDate?.results
+  const photosWithoutDate = albumWithoutDate
 
   const [category, setCategory] = useState(CategoryType.PhotosByDate)
 
@@ -44,7 +44,7 @@ const GalleryContainer = () => {
     console.log('Fetching Category: ' + category)
     switch (category) {
       case CategoryType.PhotosByDate:
-        dispatch(FetchPhotosWithoutDate.action())
+        dispatch(FetchPhotosWithoutDate.action({ page: 1 }))
         break
       case CategoryType.PhotosWithoutDate:
         dispatch(FetchAlbumByDate.action())
@@ -99,7 +99,9 @@ const GalleryContainer = () => {
             data={photosWithoutDate}
             numColumns={3}
             displayError={true}
-            onRefresh={() => dispatch(FetchPhotosWithoutDate.action())}
+            onRefresh={() =>
+              dispatch(FetchPhotosWithoutDate.action({ page: 1 }))
+            }
             refreshing={albums.loading}
           />
         )
