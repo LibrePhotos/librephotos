@@ -12,11 +12,12 @@ import FetchFavourites from './FetchFavourites'
 import FetchHidden from './FetchHidden'
 import FetchPublic from './FetchPublic'
 import ReplaceAlbumDate from './ReplaceAlbumDate'
+import ReplaceFlatList from './ReplaceFlatList'
 
 const sliceInitialState = {
   myAlbums: {},
   albumByDate: [],
-  albumWithoutDate: {},
+  albumWithoutDate: [],
   albumRecentlyAdded: {},
   albumFavourites: [],
   albumHidden: [],
@@ -31,6 +32,7 @@ export default buildSlice(
     FetchByDate,
     FetchAlbumDate,
     ReplaceAlbumDate,
+    ReplaceFlatList,
     FetchPhotosWithoutDate,
     FetchRecentlyAdded,
     FetchFavourites,
