@@ -1,0 +1,78 @@
+# DO NOT EDIT
+# The .env file has everything you need to edit.
+# Run options:
+# 1. Use prebuilt images (preferred method):
+#   run cmd: docker-compose up -d
+# 2. Build images on your own machine:
+#   build cmd: COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose build
+#   run cmd: docker-compose up -d
+
+version: "3.8"
+services:
+  __proxy_name__:
+    image: reallibrephotos/librephotos-proxy:${tag}
+    restart: always
+    volumes:
+      - ${myPhotos}:/data
+      - ${proMedia}:/protected_media
+      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - ${httpPort}:80
+    depends_on:
+      - __backend_name__
+      - __frontend_name__
+
+  __db_name__:
+    image: postgres:13
+    restart: always
+    environment:
+      - POSTGRES_USER=${dbUser}
+      - POSTGRES_PASSWORD=${dbPass}
+      - POSTGRES_DB=${dbName}
+    volumes:
+      - ${dbLocation}:/var/lib/postgresql/data
+    command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c random_page_cost=1.0
+
+  __frontend_name__:
+    image: reallibrephotos/librephotos-frontend:${tag}
+    restart: always
+    depends_on:
+      - __backend_name__
+
+  __backend_name__:
+    image: reallibrephotos/librephotos:${tag}
+    restart: always
+    volumes:
+      - ${myPhotos}:/data
+      - ${proMedia}:/protected_media
+      - ${logLocation}:/logs
+      - ${cachedir}:/root/.cache
+
+    environment:
+      - SECRET_KEY=${shhhhKey}
+      - BACKEND_HOST=__backend_name__
+      - ADMIN_EMAIL=${adminEmail}
+      - ADMIN_USERNAME=${userName}
+      - ADMIN_PASSWORD=${userPass}
+      - DB_BACKEND=postgresql
+      - DB_NAME=${dbName}
+      - DB_USER=${dbUser}
+      - DB_PASS=${dbPass}
+      - DB_HOST=${dbHost}
+      - DB_PORT=5432
+      - REDIS_HOST=__redis_name__
+      - REDIS_PORT=6379
+      - MAPBOX_API_KEY=${mapApiKey}
+      - WEB_CONCURRENCY=${gunniWorkers}
+      - SKIP_PATTERNS=${skipPatterns}
+      - ALLOW_UPLOAD=${allowUpload}
+      - DEBUG=0
+      - HEAVYWEIGHT_PROCESS=${HEAVYWEIGHT_PROCESS}
+
+    # Wait for Postgres
+    depends_on:
+      - __db_name__
+
+  __redis_name__:
+    image: redis:6
+    restart: always
