@@ -1,15 +1,31 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { View, SectionList } from 'react-native'
+import { useDispatch } from 'react-redux'
 import { Text } from 'native-base'
 import moment from 'moment'
 import { useTheme } from '@/Theme'
 import { NoResultsError } from '.'
 import ImageGrid from './ImageGrid'
+import FetchAlbumDate from '../Store/Album/FetchAlbumDate'
 
 const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
   const { Colors, Gutters } = useTheme()
-
+  const dispatch = useDispatch()
   const COLUMNS = 90
+
+  const [group, setGroup] = useState({})
+
+  useEffect(() => {
+    if (group.id && group.page) {
+      dispatch(
+        FetchAlbumDate.action({
+          album_date_id: group.id,
+          page: group.page,
+          photosetType: 'timestamp',
+        }),
+      )
+    }
+  }, [group.id, group.page, dispatch])
 
   const renderSectionHeader = ({ section: { title } }) => {
     return (
@@ -26,6 +42,25 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
         )}
       </View>
     )
+  }
+
+  const onCheckViewableItems = ({ viewableItems, changed }) => {
+    getAlbums(viewableItems)
+  }
+
+  const getAlbums = visibleGroups => {
+    visibleGroups.forEach(input => {
+      var group = input.item
+      var visibleImages = group.data
+      if (
+        visibleImages &&
+        visibleImages.filter(i => i.isTemp && i.isTemp !== undefined).length > 0
+      ) {
+        var firstTempObject = visibleImages.filter(i => i.isTemp)[0]
+        var page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100)
+        setGroup({ id: group.id, page: page })
+      }
+    })
   }
 
   const renderSectionListItem = ({ item, index, section, seperators }) => {
@@ -54,6 +89,10 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
           renderSectionHeader={renderSectionHeader}
           keyExtractor={(item, index) => index}
           sections={data}
+          onViewableItemsChanged={onCheckViewableItems}
+          viewabilityConfig={{
+            itemVisiblePercentThreshold: 50, //means if 50% of the item is visible
+          }}
         />
       )}
       {data.length < 1 && (
@@ -62,9 +101,6 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
     </>
   )
 }
-
-// TimelineList.propTypes = {
-// }
 
 TimelineList.defaultProps = {
   data: [],
