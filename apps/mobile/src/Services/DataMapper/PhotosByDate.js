@@ -19,9 +19,11 @@ export const photoMapper = photosResult => {
   addTempElementsToGroups(photosResult)
   let finalmap = photosResult.map(item => {
     return {
-      id: item.date,
+      id: item.id,
       title: item.date,
       data: imageGridReducer(item.items),
+      incomplete: item.incomplete,
+      numberOfItems: item.numberOfItems,
     }
   })
 
