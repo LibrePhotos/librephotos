@@ -1,18 +1,14 @@
 import { createAction } from '@reduxjs/toolkit'
-import reactotron from 'reactotron-react-native'
 
 export default {
   initialState: {},
   action: createAction('album/replaceAlbumDate'),
   reducers(state, { payload }) {
-    reactotron.log(state)
-    reactotron.log(payload)
     var page = payload.page
     var newPhotosGroupedByDate = [...state.albumByDate]
     var indexToReplace = newPhotosGroupedByDate.findIndex(
       group => group.id === payload.datePhotosGroup.id,
     )
-    reactotron.log(indexToReplace)
     var groupToChange = newPhotosGroupedByDate[indexToReplace]
 
     if (!groupToChange) {
@@ -28,7 +24,6 @@ export default {
       .concat(items.slice(page * 100))
     groupToChange.data = updatedItems
     newPhotosGroupedByDate[indexToReplace] = groupToChange
-    reactotron.log(newPhotosGroupedByDate)
     state.albumByDate = newPhotosGroupedByDate
   },
 }

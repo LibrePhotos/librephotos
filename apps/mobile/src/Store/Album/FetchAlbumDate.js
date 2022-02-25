@@ -38,7 +38,6 @@ export default {
               page: options.page,
             }),
           )
-          reactotron.log('I am here too!')
         })
         .catch(err => {
           console.log(err)
