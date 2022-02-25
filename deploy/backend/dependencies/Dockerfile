@@ -23,7 +23,6 @@ RUN git clone --depth 1 --branch 'v1.7.1' https://github.com/facebookresearch/fa
 
 # pre trained models download
 WORKDIR /data_models
-
 RUN mkdir -p /root/.cache/torch/hub/checkpoints/ && \
 	curl -SL https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/places365.tar.gz | tar -zxC /data_models/ && \
 	curl -SL https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/im2txt.tar.gz | tar -zxC /data_models/ && \
