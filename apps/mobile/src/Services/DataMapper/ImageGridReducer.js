@@ -5,8 +5,9 @@ export const imageGridReducer = sectionData => {
 
   let finalmap = sectionData.map((item, index) => {
     return {
-      id: index,
+      id: item.id,
       url: item.url,
+      isTemp: item.isTemp,
     }
   })
 
