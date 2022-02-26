@@ -47,8 +47,6 @@ RUN apt-get update && \
 		libwebp-dev \
 		libxrender-dev \
 		pkg-config \ 
-		python3-dev \
-		python3-pip \
 		rustc \ 
 		libtinfo5 \
 		swig \
@@ -56,9 +54,9 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
     
-RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then pip3 install torch torchvision -f https://torch.kmtea.eu/whl/stable.html; else pip3 install torch torchvision; fi
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then pip3 install --no-cache-dir torch torchvision -f https://torch.kmtea.eu/whl/stable.html; else pip3 install --no-cache-dir torch torchvision; fi
 
-RUN pip3 install pyvips==2.1.15 cmake==3.21.2
+RUN pip3 install --no-cache-dir pyvips==2.1.15 cmake==3.21.2
 
 #Build and install libraw
 WORKDIR /tmp/builds
