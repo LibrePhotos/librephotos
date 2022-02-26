@@ -89,7 +89,10 @@ def _extract_no_tz_datetime_from_str(x, regexp=REGEXP_NO_TZ, group_mapping=None)
             ind = REGEXP_GROUP_MAPPINGS[how_to_use]
             datetime_args[ind] = int(value)
 
-    return datetime(*datetime_args)
+    try:
+        return datetime(*datetime_args)
+    except ValueError:
+        return None
 
 
 class RuleTypes:
