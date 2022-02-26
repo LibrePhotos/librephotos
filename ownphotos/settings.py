@@ -103,7 +103,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.BasicAuthentication",
     ),
-    "DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema",
+    "DEFAULT_SCHEMA_CLASS": 'drf_spectacular.openapi.AutoSchema',
     "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 20000,
@@ -129,7 +129,12 @@ MIDDLEWARE = [
 if DEBUG:
     MIDDLEWARE += ["silk.middleware.SilkyMiddleware"]
     INSTALLED_APPS += ["silk"]
-    INSTALLED_APPS += ["drf_yasg"]
+    INSTALLED_APPS += ['drf_spectacular']
+    SPECTACULAR_SETTINGS = {
+    'TITLE': 'LibrePhotos',
+    'DESCRIPTION': 'Your project description',
+    'VERSION': '1.0.0',
+    }
 
 ROOT_URLCONF = "ownphotos.urls"
 

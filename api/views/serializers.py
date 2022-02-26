@@ -63,7 +63,6 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
         model = Photo
         fields = (
             "square_thumbnail",
-            "image",
             "image_hash",
             "exif_timestamp",
             "exif_gps_lat",

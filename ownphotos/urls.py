@@ -242,37 +242,13 @@ if ownphotos.settings.ALLOW_UPLOAD:
 
 
 if settings.DEBUG:
-    from drf_yasg import openapi
-    from drf_yasg.views import get_schema_view
-
-    schema_view = get_schema_view(
-        openapi.Info(
-            title="LibrePhotos API",
-            default_version="v1",
-            description="All of the API endpoints in LibrePhotos",
-            terms_of_service="https://www.google.com/policies/terms/",
-            contact=openapi.Contact(email="contact@snippets.local"),
-            license=openapi.License(name="MIT License"),
-        ),
-        public=True,
-        permission_classes=(permissions.AllowAny,),
+    from drf_spectacular.views import (
+        SpectacularAPIView,
+        SpectacularRedocView,
+        SpectacularSwaggerView,
     )
-
     urlpatterns += [url(r"^api/silk/", include("silk.urls", namespace="silk"))]
-    urlpatterns += [
-        url(
-            r"^api/swagger/json",
-            schema_view.without_ui(cache_timeout=0),
-            name="schema-json",
-        ),
-        url(
-            r"^api/swagger",
-            schema_view.with_ui("swagger", cache_timeout=0),
-            name="schema-swagger-ui",
-        ),
-        url(
-            r"^api/redoc",
-            schema_view.with_ui("redoc", cache_timeout=0),
-            name="schema-redoc",
-        ),
-    ]
+    urlpatterns += [url(r"^api/schema", SpectacularAPIView.as_view(), name='schema'),
+        url(r"^api/swagger", SpectacularSwaggerView.as_view(), name='swagger-ui'),
+        url(r"^api/redoc", SpectacularRedocView.as_view(), name='redoc')
+        ]
