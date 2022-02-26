@@ -10,7 +10,7 @@ RUN git clone --depth 1 --branch 'v19.22' https://github.com/davisking/dlib.git 
     cd /tmp/builds/dlib && \
     python3 setup.py install --no USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA --no USE_SSE4_INSTRUCTIONS  
 
-#Build and install faiss. Needs to be build for ARM 
+# Build and install faiss. Needs to be build for ARM 
 WORKDIR /tmp/builds
 RUN git clone --depth 1 --branch 'v1.7.1' https://github.com/facebookresearch/faiss.git && \
 	cd faiss  && \
@@ -21,7 +21,7 @@ RUN git clone --depth 1 --branch 'v1.7.1' https://github.com/facebookresearch/fa
 	python3 setup.py install && \
 	unzip /usr/local/lib/python3.9/dist-packages/faiss*.egg -d /usr/local/lib/python3.9/dist-packages/
 
-# pre trained models download
+# Download pretrained models 
 WORKDIR /data_models
 RUN mkdir -p /root/.cache/torch/hub/checkpoints/ && \
 	curl -SL https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/places365.tar.gz | tar -zxC /data_models/ && \
