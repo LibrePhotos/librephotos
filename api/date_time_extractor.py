@@ -8,6 +8,7 @@ from datetime import datetime
 import pytz
 
 from api.exif_tags import Tags
+from api.util import logger
 
 
 def _regexp_group_range(a, b):
@@ -66,7 +67,7 @@ def _extract_no_tz_datetime_from_str(x, regexp=REGEXP_NO_TZ, group_mapping=None)
         return None
     g = match.groups()
     if group_mapping is None:
-        datetime_args = map(int, g)
+        datetime_args = list(map(int, g))
     else:
         if len(g) > len(group_mapping):
             raise ValueError(
@@ -92,6 +93,7 @@ def _extract_no_tz_datetime_from_str(x, regexp=REGEXP_NO_TZ, group_mapping=None)
     try:
         return datetime(*datetime_args)
     except ValueError:
+        logger.error(f"Error while trying to create datetime using '{x}': datetime arguments {datetime_args}. Regexp used: '{regexp}'")
         return None
 
 
