@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import { Pressable, View, Modal, Image, FlatList } from 'react-native'
 import ReactNativeZoomableView from '@dudigital/react-native-zoomable-view/src/ReactNativeZoomableView'
@@ -30,6 +30,18 @@ const ImageGrid = ({
   const dispatch = useDispatch()
 
   const COLUMNS = numColumns // Currently only columns=3 supported
+
+  const [group, setGroup] = useState({})
+
+  useEffect(() => {
+    if (group.page) {
+      dispatch(
+        FetchPhotosWithoutDate.action({
+          page: group.page,
+        }),
+      )
+    }
+  }, [group.page, dispatch])
 
   const handleImagePress = (item, index, section) => {
     setZoomViewVisible(true)
@@ -117,21 +129,24 @@ const ImageGrid = ({
     )
   }
 
-  const onCheckViewableItems = ({ viewableItems, changed }) => {
-    getImages(viewableItems)
-  }
-
   const getImages = visibleItems => {
+    reactotron.log(visibleItems)
     if (
-      visibleItems.filter(i => i.isTemp && i.isTemp != undefined).length > 0
+      visibleItems.filter(i => i.item.isTemp && i.item.isTemp != undefined)
+        .length > 0
     ) {
-      var firstTempObject = visibleItems.filter(i => i.isTemp)[0]
-      var page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100)
+      var firstTempObject = visibleItems.filter(i => i.item.isTemp)[0]
+      var page = Math.ceil((parseInt(firstTempObject.item.id) + 1) / 100)
       if (page > 1) {
-        dispatch(FetchPhotosWithoutDate(page))
+        setGroup({ page: page })
       }
     }
   }
+
+  const onViewRef = React.useRef(input => {
+    getImages(input.viewableItems)
+  })
+  const viewConfigRef = React.useRef({ viewAreaCoveragePercentThreshold: 50 })
 
   return (
     <>
@@ -144,10 +159,8 @@ const ImageGrid = ({
           data={data}
           renderItem={renderPhoto}
           //To-Do: Broken!
-          //onViewableItemsChanged={onCheckViewableItems}
-          viewabilityConfig={{
-            itemVisiblePercentThreshold: 50, //means if 50% of the item is visible
-          }}
+          onViewableItemsChanged={onViewRef.current}
+          viewabilityConfig={viewConfigRef.current}
         />
       )}
       {(typeof data !== 'object' ||
