@@ -18,4 +18,10 @@ module.exports = {
       'babel-module': {},
     },
   },
+  'prettier/prettier': [
+    'error',
+    {
+      'endOfLine': 'auto',
+    }
+  ],
 }
