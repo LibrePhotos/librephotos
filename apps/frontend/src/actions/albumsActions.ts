@@ -496,6 +496,7 @@ export function fetchAlbumsAutoGalleries(
       });
     })
     .catch((err) => {
+      console.log(err);
       dispatch({ type: "FETCH_AUTO_ALBUMS_RETRIEVE_REJECTED", payload: err });
     });
 }

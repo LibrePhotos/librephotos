@@ -94,7 +94,6 @@ export const PersonSchema = z.object({
 });
 export const PhotoSimpleSchema = z.object({
   square_thumbnail: z.string(),
-  image: z.string().nullable(),
   image_hash: z.string(),
   exif_timestamp: z.string(),
   exif_gps_lat: z.number().nullable(),
