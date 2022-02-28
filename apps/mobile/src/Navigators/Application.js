@@ -19,11 +19,12 @@ import { FileLogger } from 'react-native-file-logger'
 import RNShake from 'react-native-shake'
 
 const Stack = createStackNavigator()
+let emailTemplate = ''
 if (__DEV__) {
-const emailTemplate = ""}
-else{
-//react-native device info breaks debug mode!
-const emailTemplate = `Manufacturer: ${getManufacturerSync()}\nBrand: ${getBrand()}\nDevice: ${getDeviceId()}\nSystem: ${getSystemName()} ${getSystemVersion()}\nApp Version:${getVersion()}`
+  emailTemplate = ''
+} else {
+  //react-native device info breaks debug mode!
+  emailTemplate = `Manufacturer: ${getManufacturerSync()}\nBrand: ${getBrand()}\nDevice: ${getDeviceId()}\nSystem: ${getSystemName()} ${getSystemVersion()}\nApp Version:${getVersion()}`
 }
 
 let MainNavigator

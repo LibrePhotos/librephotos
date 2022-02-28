@@ -67,20 +67,23 @@ const ImageGrid = ({
         style={[Common.timeline.photoItem]}
         onPress={() => handleImagePress(item, index, section)}
       >
-        <Image
-          style={Layout.fullSize}
-          source={{
-            uri:
-              getConfig(config.baseurl).MEDIA_URL +
-              '/square_thumbnails/' +
-              item.url,
-            method: 'GET',
-            headers: {
-              Authorization: 'Bearer ' + authToken,
-            },
-          }}
-          onError={handleImageLoadFail}
-        />
+        {!item.isTemp && (
+          <Image
+            style={Layout.fullSize}
+            source={{
+              uri:
+                getConfig(config.baseurl).MEDIA_URL +
+                '/square_thumbnails/' +
+                item.url,
+              method: 'GET',
+              headers: {
+                Authorization: 'Bearer ' + authToken,
+              },
+            }}
+            onError={handleImageLoadFail}
+          />
+        )}
+        {item.isTemp && <View style={Layout.fullSize} />}
       </Pressable>
     )
   }
@@ -130,7 +133,6 @@ const ImageGrid = ({
   }
 
   const getImages = visibleItems => {
-    reactotron.log(visibleItems)
     if (
       visibleItems.filter(i => i.item.isTemp && i.item.isTemp != undefined)
         .length > 0

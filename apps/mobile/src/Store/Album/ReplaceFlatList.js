@@ -21,7 +21,7 @@ export default {
     var fetched_page = payload.fetchedPage
     var photos_count = payload.photosCount
     var current_photos = [...state.albumWithoutDate]
-    if (fetched_page == 1) {
+    if (fetched_page === 1) {
       current_photos = addTempElementsToFlatList(photos_count)
     }
     var newPhotosFlat = current_photos
