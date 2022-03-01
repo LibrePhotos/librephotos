@@ -27,7 +27,7 @@
         "credentials": "Credenciales",
         "credentialspopup": "Use la contraseña de la aplicación",
         "serveradress": "Dirección del servidor",
-        "serveradressplaceholder": "https://...",
+        "serveradressplaceholder": "https://…",
         "nextcloudusername": "Usuario",
         "nextcloudusernameplaceholder": "Usuario",
         "nextcloudpassword": "Contraseña de Nextcloud",
@@ -201,7 +201,8 @@
         "removephotosdescription": "Eliminar las fotos seleccionadas del álbum actual",
         "album": "Álbum",
         "albumcover": "Establecer portada del álbum",
-        "albumcoverdescription": "Configurar la portada del álbum actual"
+        "albumcoverdescription": "Configurar la portada del álbum actual",
+        "deleted": "Eliminar"
     },
     "lightbox": {
         "sidebar": {
@@ -226,7 +227,8 @@
         "photos": "Fotos",
         "notimestamp": "Fotos sin marcas de tiempo",
         "hidden": "Fotos Ocultas",
-        "favorite": "Fotos favoritas"
+        "favorite": "Fotos favoritas",
+        "deleted": "Basurero"
     },
     "login": {
         "name": "LibrePhotos",
@@ -344,7 +346,7 @@
         "newperson": "Nueva persona",
         "personname": "Nombre de la persona",
         "addperson": "Agregar persona",
-        "numberselected": "Etiqueta {{number}} cara(s) seleccionadas como..."
+        "numberselected": "Etiqueta {{number}} cara(s) seleccionadas como…"
     },
     "facecluster": "Grupos de caras",
     "faceclusterexplanation": "Las personas con caras similares deben agruparse más juntas en este gráfico (haga clic en un punto para ver la etiqueta).",
@@ -408,7 +410,12 @@
         "regenerateevents": "Regenerando títulos de eventos…",
         "deletemissingphotos": "Borrando fotos que faltan…",
         "updateuser": "La información de {{username}} fue actualizada con éxito",
-        "generateeventalbums": "Generando álbumes de eventos…"
+        "generateeventalbums": "Generando álbumes de eventos…",
+        "deletephoto": "{{numberOfPhotos}} fotos fueron borradas.",
+        "recoverphoto": "{{numberOfPhotos}} foto(s) fueron recuperadas.",
+        "setdeletetitle": "Eliminar Imágenes",
+        "finaldeletephoto": "{{numberOfPhotos}} la(s) foto(s) se eliminaron permanentemente.",
+        "finaldeletephototitle": "Eliminar Imagenes"
     },
     "rules": {
         "report_tz": "Transformar a{{rule}}",
