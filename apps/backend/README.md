@@ -21,6 +21,7 @@ Step-by-step installation instructions are available in our [documentation](http
 - Development: Get started contributing in less than 30 minutes by following the [guide here](https://docs.librephotos.com/1/dev_install/)
 - Documentation: Contributing to it is as simple as submitting a pull request to the [documentation repository](https://github.com/LibrePhotos/librephotos.docs)
 - Testing: If you want to help find bugs, use the ```dev``` tag and update it regulary. If you find one, open an issue.
+- Outreach: Talk about LibrePhotos with other people and help them to get started too!
 - Translation: LibrePhotos uses [Weblate](https://weblate.org/) for its translations. Feel free to contribute or view existing translations at [weblate](https://hosted.weblate.org/engage/librephotos/).
 
 ## Features
