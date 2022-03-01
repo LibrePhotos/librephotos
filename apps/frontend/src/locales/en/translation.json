@@ -33,7 +33,7 @@
         "credentials": "Credentials",
         "credentialspopup": "Use application password",
         "serveradress": "Server address",
-        "serveradressplaceholder": "https://...",
+        "serveradressplaceholder": "https://…",
         "nextcloudusername": "User name",
         "nextcloudusernameplaceholder": "User name",
         "nextcloudpassword": "Nextcloud App Password",
@@ -323,7 +323,7 @@
     },
     "personedit": {
         "labelfaces": "Label faces",
-        "numberselected": "Label selected {{number}} face(s) as...",
+        "numberselected": "Label selected {{number}} face(s) as…",
         "newperson": "New person",
         "personname": "Person Name",
         "addperson": "Add Person"
