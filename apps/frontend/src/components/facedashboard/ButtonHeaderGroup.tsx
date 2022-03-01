@@ -75,7 +75,7 @@ export const ButtonHeaderGroup = (props: Props) => {
                 props.workerRunningJob.job_type_str === "Train Faces"
               }
               color="blue"
-              onClick={trainFaces}
+              onClick={props.trainFaces}
               icon="lightning"
             />
           }
