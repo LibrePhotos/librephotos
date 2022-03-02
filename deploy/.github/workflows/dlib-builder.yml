@@ -41,8 +41,15 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: reallibrephotos/dlib-builder:dev
+  upload:
+    # The type of runner that the job will run on
+    runs-on: reallibrephotos/dlib-builder:dev
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v2.3.1
         with:
           name: dlib
-          path: /tmp/builds
+          path: /tmp/builds/dlib.zip
