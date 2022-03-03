@@ -27,7 +27,9 @@ export const FaceClusterGraph = (props: Props) => {
     },
   });
   const dispatch = useAppDispatch();
-  const { facesVis, clustered } = useAppSelector((state) => state.faces);
+  const { facesVis, clustered, clustering } = useAppSelector(
+    (state) => state.faces
+  );
 
   useEffect(() => {
     clusterFaces(dispatch);
@@ -100,9 +102,22 @@ export const FaceClusterGraph = (props: Props) => {
       </div>
     );
   } else {
+    if (clustering) {
+      return (
+        <div style={{ padding: 10 }}>
+          <Loader active />
+        </div>
+      );
+    }
     return (
       <div style={{ padding: 10 }}>
-        <Loader active />
+        <Header>
+          <Header.Content>
+            {t("facecluster")}{" "}
+            <Header.Subheader>{t("faceclusterexplanation")}</Header.Subheader>
+          </Header.Content>
+        </Header>
+        <div>{t("nofaces")}</div>
       </div>
     );
   }

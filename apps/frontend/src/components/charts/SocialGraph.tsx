@@ -4,6 +4,7 @@ import useDimensions from "react-cool-dimensions";
 const { Graph } = require("react-d3-graph");
 import { fetchSocialGraph } from "../../actions/peopleActions";
 import { useAppSelector, useAppDispatch } from "../../hooks";
+import { useTranslation } from "react-i18next";
 type Props = {
   height: number;
 };
@@ -15,9 +16,10 @@ export const SocialGraph = (props: Props) => {
   });
 
   const dispatch = useAppDispatch();
-  const { socialGraph, fetchedSocialGraph } = useAppSelector(
-    (state) => state.people
-  );
+  const { socialGraph, fetchedSocialGraph, fetchingSocialGraph } =
+    useAppSelector((state) => state.people);
+
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!fetchedSocialGraph) {
@@ -49,7 +51,10 @@ export const SocialGraph = (props: Props) => {
   if (fetchedSocialGraph && socialGraph.nodes.length > 0) {
     graph = <Graph id="social-graph" config={myConfig} data={socialGraph} />;
   } else {
-    graph = <Loader active>Fetching Social Graph</Loader>;
+    if (fetchingSocialGraph) {
+      graph = <Loader active>{t("fetchingsocialgraph")}</Loader>;
+    }
+    graph = <p>{t("nosocialgraph")}</p>;
   }
   return <div ref={observe}>{graph}</div>;
 };

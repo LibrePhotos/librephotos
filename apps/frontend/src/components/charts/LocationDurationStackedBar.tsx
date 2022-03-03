@@ -7,6 +7,7 @@ import { useAppSelector, useAppDispatch } from "../../hooks";
 import moment from "moment";
 const { Hint, XYPlot, XAxis, HorizontalBarSeries } = require("react-vis");
 
+import { useTranslation } from "react-i18next";
 type Hint = {
   y: number;
   x: number;
@@ -31,6 +32,8 @@ export const LocationDurationStackedBar = () => {
     fetchedLocationTimeline,
   } = useAppSelector((state) => state.util);
   const [hintValue, setHintValue] = useState<Hint>({} as Hint);
+
+  const { t } = useTranslation();
   useEffect(() => {
     if (!fetchedLocationTimeline) {
       fetchLocationTimeline(dispatch);
@@ -40,7 +43,7 @@ export const LocationDurationStackedBar = () => {
   if (fetchedLocationTimeline) {
     return (
       <div style={{ height: 280 }}>
-        <Header as="h3">Location Timeline</Header>
+        <Header as="h3">{t("locationtimeline")}</Header>
         <div>
           <XYPlot width={width - 30} height={300} stackBy="x">
             <XAxis
@@ -85,11 +88,21 @@ export const LocationDurationStackedBar = () => {
       </div>
     );
   } else {
+    if (fetchingLocationTimeline) {
+      return (
+        <div style={{ height: 280 }}>
+          <Header as="h3">{t("locationtimeline")}</Header>
+          <Segment style={{ height: 250 }} basic>
+            <Loader active />
+          </Segment>
+        </div>
+      );
+    }
     return (
       <div style={{ height: 280 }}>
-        <Header as="h3">Location Timeline</Header>
+        <Header as="h3">{t("locationtimeline")}</Header>
         <Segment style={{ height: 250 }} basic>
-          <Loader active />
+          <Label>{t("nodata")}</Label>
         </Segment>
       </div>
     );

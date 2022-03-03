@@ -403,12 +403,6 @@ export class AlbumAutoGalleryView extends Component {
                   this.props.albumsAutoGalleries[
                     this.props.match.params.albumID
                   ].photos.length;
-                console.log(
-                  this.props.albumsAutoGalleries[
-                    this.props.match.params.albumID
-                  ]
-                );
-                console.log(nextIndex);
                 this.setState({
                   lightboxImageIndex: nextIndex,
                 });
