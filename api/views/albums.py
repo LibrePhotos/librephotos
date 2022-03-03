@@ -119,6 +119,7 @@ class PersonViewSet(viewsets.ModelViewSet):
         qs = (
             Person.objects.filter(
                 Q(faces__photo__hidden=False)
+                & Q(faces__photo__deleted=False)
                 & Q(faces__photo__owner=self.request.user)
                 & Q(faces__person_label_is_inferred=False)
             )
@@ -351,9 +352,11 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                 Q(owner=self.request.user)
                 & Q(photos__hidden=False)
                 & Q(photos__faces__person__id=self.request.query_params.get("person"))
+                & Q(photos__faces__person_label_is_inferred=False)
             )
-            photo_qs = photo_qs.filter(
+            photo_qs = Photo.visible.filter(
                 Q(faces__person__id=self.request.query_params.get("person"))
+                & Q(faces__person_label_is_inferred=False)
             )
 
         qs = (
@@ -445,12 +448,24 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
                 & Q(photos__deleted=True)).annotate(photo_count=Count("photos", distinct=True)).filter(Q(photo_count__gt=0)).order_by(F("date").desc(nulls_last=True))
            return qs
         if self.request.query_params.get("person"):
-            qs = AlbumDate.objects.filter(
+            return AlbumDate.objects.filter(
                 Q(owner=self.request.user)
                 & Q(photos__hidden=False)
                 & Q(photos__deleted=False)
                 & Q(photos__faces__person__id=self.request.query_params.get("person"))
-            )
+                & Q(photos__faces__person_label_is_inferred=False)
+            ).prefetch_related(
+                Prefetch(
+                    "photos",
+                    queryset=Photo.visible.filter(
+                Q(faces__person__id=self.request.query_params.get("person")) & Q(faces__person_label_is_inferred=False)).order_by("-exif_timestamp")
+                    .only(
+                        "image_hash",
+                    )
+                    .distinct(),
+                ),
+            ).annotate(photo_count=Count("photos", distinct=True)).filter(Q(photo_count__gt=0)).order_by(F("date").desc(nulls_last=True))
+
         qs = (
             qs.filter(Q(photos__deleted=False)).annotate(photo_count=Count("photos", distinct=True))
             .filter(Q(photo_count__gt=0))
