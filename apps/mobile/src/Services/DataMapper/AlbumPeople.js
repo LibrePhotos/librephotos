@@ -15,6 +15,7 @@ export const albumPeopleMapper = albumPeopleResult => {
       title: item.name,
       url:
         extractBaseUrl(store.getState()) +
+        '/media/square_thumbnails/' +
         item.face_photo_url.replace('.webp', ''),
     }
   })

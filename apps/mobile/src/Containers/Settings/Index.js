@@ -23,6 +23,7 @@ const SettingsContainer = () => {
   const baseurl = useSelector(state => state.config.baseurl)
   const logging = useSelector(state => state.config.logging)
   const theme = useSelector(state => state.theme.darkMode)
+  const user = useSelector(state => state.auth.access)
 
   const mapTheme = darkMode => {
     if (darkMode == null) {
@@ -81,7 +82,7 @@ const SettingsContainer = () => {
         <View style={[Layout.fill]}>
           <SettingSubHeader subHeading={'App'} />
           <VStack divider={<Divider bg={Colors.textMuted} />}>
-            <OptionButton title="Account" subTitle="Admin" icon="person" />
+            <OptionButton title="Account" subTitle={user.name} icon="person" />
             <OptionButton title="Server" subTitle={baseurl} />
             <OptionMultiSelect
               title="Dark Mode"
