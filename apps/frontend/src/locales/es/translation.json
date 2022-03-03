@@ -427,5 +427,10 @@
         "1": "Hora local desde la etiqueta exif DATE_TIME_ORIGINAL",
         "3": "Usando el nombre de archivo asumiendo que el tiempo es local",
         "4": "Video UTC: informa la hora local en UTC (ya que no podemos averiguar la zona horaria real)"
-    }
+    },
+    "nodata": "Sin datos",
+    "locationtimeline": "Cronología",
+    "nofaces": "Sin caras",
+    "nosocialgraph": "Sin gráfico social",
+    "fetchingsocialgraph": "Obtener gráfico social…"
 }
