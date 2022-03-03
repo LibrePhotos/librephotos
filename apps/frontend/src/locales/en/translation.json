@@ -341,7 +341,7 @@
     "nofaces": "No faces",
     "nodata": "No data",
     "nosocialgraph": "No social graph",
-    "fetchingsocialgraph": "Fetching social graph...",
+    "fetchingsocialgraph": "Fetching social graph…",
     "faceclusterexplanation": "People with similar looking faces should be grouped closer together in this plot (Click on a point to see the label).",
     "dataviz": "Data Visualization",
     "placetree": "Place Tree",
