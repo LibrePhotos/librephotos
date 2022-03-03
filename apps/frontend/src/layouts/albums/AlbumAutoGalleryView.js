@@ -395,15 +395,20 @@ export class AlbumAutoGalleryView extends Component {
               }}
               onMovePrevRequest={() => {
                 var nextIndex =
-                  ((this.state.lightboxImageIndex +
+                  (this.state.lightboxImageIndex +
                     this.props.albumsAutoGalleries[
                       this.props.match.params.albumID
                     ].photos.length -
                     1) %
-                    this.state.lightboxImageIndex) +
                   this.props.albumsAutoGalleries[
                     this.props.match.params.albumID
                   ].photos.length;
+                console.log(
+                  this.props.albumsAutoGalleries[
+                    this.props.match.params.albumID
+                  ]
+                );
+                console.log(nextIndex);
                 this.setState({
                   lightboxImageIndex: nextIndex,
                 });
