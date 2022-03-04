@@ -53,7 +53,7 @@
             "item1": "列出子目录下的所有文件， 对于每个媒体文件：",
             "item4": "如果此媒体文件已存在于数据库中，将路径添加到已有媒体库中。"
         },
-        "serveradressplaceholder": "https://...",
+        "serveradressplaceholder": "https://…",
         "statusrescanphotostrue": "重新扫描照片（本地文件系统）",
         "statusrescanphotosfalse": "重新扫描照片（本地文件系统）",
         "missingphotos": "丢失的照片",
@@ -180,7 +180,7 @@
         "loading": "加载中...",
         "days": "天",
         "photos": "照片",
-        "setup": "LibrePhotos似乎还没完成设置哟。",
+        "setup": "LibrePhotos 似乎还没有完成设置。",
         "noimages": "未找到图片"
     },
     "selectionactions": {
@@ -201,7 +201,8 @@
         "unhide": "取消隐藏",
         "album": "专辑",
         "albumcover": "设置相册封面",
-        "albumcoverdescription": "为本相册设置封面图片"
+        "albumcoverdescription": "为本相册设置封面图片",
+        "deleted": "删除"
     },
     "lightbox": {
         "sidebar": {
@@ -226,7 +227,8 @@
         "hidden": "隐藏的照片",
         "favorite": "喜爱的照片",
         "addedon": "添加于 ",
-        "photos": "照片"
+        "photos": "照片",
+        "deleted": "回收站"
     },
     "login": {
         "name": "LibrePhotos",
@@ -239,7 +241,7 @@
         "errorbackend": "无法连接到服务器，请过会儿再试。",
         "errorpassword": "不可使用空密码！",
         "errorusername": "不可使用空用户名！",
-        "tagline": "A comfy place for your photos.",
+        "tagline": "为您的照片提供一个舒适的场所。",
         "usernameplaceholder": "用户名",
         "username": "用户名",
         "errorusernameexists": "此用户名已存在。",
@@ -321,7 +323,7 @@
     },
     "personedit": {
         "labelfaces": "标记人脸",
-        "numberselected": "标记已选择的 {{number}} 个人脸为...",
+        "numberselected": "标记已选择的 {{number}} 个人脸为…",
         "newperson": "新人物",
         "personname": "人物姓名",
         "addperson": "新增人物"
@@ -408,7 +410,10 @@
         "updateuser": "已更新{{username}}的用户信息",
         "addpublicphoto": "已将 {{numberOfPhotos}} 张照片添加到公开图片集，链接已复制到粘贴板。",
         "unfavoritephoto": "已将 {{numberOfPhotos}} 张照片从您最爱的照片中移除。",
-        "unhidephoto": "已将 {{numberOfPhotos}} 张照片取消隐藏。"
+        "unhidephoto": "已将 {{numberOfPhotos}} 张照片取消隐藏。",
+        "deletephoto": "{{numberOfPhotos}} 张照片已被删除。",
+        "recoverphoto": "{{numberOfPhotos}} 张照片已被恢复。",
+        "finaldeletephoto": "{{numberOfPhotos}} 张照片已被永久删除。"
     },
     "rules": {
         "1": "提取exif中的DATE_TIME_ORIGINAL作为当地时间",
@@ -420,5 +425,6 @@
         "rule_type": "规则类型：{{rule}}",
         "exif_tag": "使用Exif标签 {{rule}}",
         "file_property": "使用文件属性{{rule}}"
-    }
+    },
+    "fetchingsocialgraph": "正在获取社交图谱…"
 }
