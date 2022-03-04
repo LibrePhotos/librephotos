@@ -427,5 +427,10 @@
         "rule_type": "Type de règle : {{rule}}",
         "1": "Heure locale à partir de la balise exif DATE_TIME_ORIGINAL",
         "3": "Utilisation du nom de fichier en supposant que l'heure est locale"
-    }
+    },
+    "nofaces": "Aucun visage",
+    "fetchingsocialgraph": "Récupération du graphique social…",
+    "locationtimeline": "Chronologie de l'emplacement",
+    "nosocialgraph": "Aucun graphe social",
+    "nodata": "Aucune donnée"
 }
