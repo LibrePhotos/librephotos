@@ -427,5 +427,10 @@
         "rule_type": "Regeltyp: {{rule}}",
         "exif_tag": "Verwende Exif-Tag {{rule}}",
         "report_tz": "Transformiere nach {{rule}}"
-    }
+    },
+    "nofaces": "Keine Gesichter",
+    "locationtimeline": "Ort-Zeitstrahl",
+    "nosocialgraph": "Kein Sozialer Graph",
+    "nodata": "Keine Daten",
+    "fetchingsocialgraph": "Sozialen Graph abrufen…"
 }
