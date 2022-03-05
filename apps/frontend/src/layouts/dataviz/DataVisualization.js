@@ -14,10 +14,7 @@ export class LocationTree extends Component {
   render() {
     return (
       <div>
-        <LocationLink
-          width={window.innerWidth - 120}
-          height={window.innerHeight - 50}
-        />
+        <LocationLink width={window.innerWidth - 120} height={window.innerHeight - 50} />
       </div>
     );
   }

@@ -70,10 +70,7 @@ export class AlbumPlace extends Component {
   }
 
   onViewportChanged = (viewport) => {
-    console.log(
-      "Viewport changed, mapping new photo location: ",
-      viewport.center
-    );
+    console.log("Viewport changed, mapping new photo location: ", viewport.center);
     this.setState({ viewport });
 
     const map = this.mapRef.current.leafletElement;
@@ -113,10 +110,7 @@ export class AlbumPlace extends Component {
     console.log(visibleMarkers);
     this.setState({
       visibleMarkers: visibleMarkers,
-      visiblePlaceAlbums: _.sortBy(visiblePlaceAlbums, [
-        "geolocation_level",
-        "photo_count",
-      ]),
+      visiblePlaceAlbums: _.sortBy(visiblePlaceAlbums, ["geolocation_level", "photo_count"]),
     });
   };
 
@@ -135,10 +129,7 @@ export class AlbumPlace extends Component {
       return {
         visibleMarkers: nextProps.locationClusters,
         locationClusters: nextProps.locationClusters,
-        visiblePlaceAlbums: _.sortBy(visiblePlaceAlbums, [
-          "geolocation_level",
-          "photo_count",
-        ]),
+        visiblePlaceAlbums: _.sortBy(visiblePlaceAlbums, ["geolocation_level", "photo_count"]),
       };
     } else {
       return { ...prevState };
@@ -185,8 +176,7 @@ export class AlbumPlace extends Component {
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
     var place = this.state.visiblePlaceAlbums;
-    var albumPlaceIndex =
-      rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
+    var albumPlaceIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
     if (albumPlaceIndex < place.length) {
       return (
         <div key={key} style={style}>
@@ -198,20 +188,14 @@ export class AlbumPlace extends Component {
                     style={{ display: "inline-block", objectFit: "cover" }}
                     width={this.state.entrySquareSize - 10}
                     height={this.state.entrySquareSize - 10}
-                    src={
-                      serverAddress +
-                      "/media/thumbnails_big/" +
-                      photo.image_hash
-                    }
+                    src={serverAddress + "/media/thumbnails_big/" + photo.image_hash}
                   />
                 </Link>
               );
             })}
           </div>
           <div style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
-            {countryNames.includes(
-              place[albumPlaceIndex].title.toLowerCase()
-            ) ? (
+            {countryNames.includes(place[albumPlaceIndex].title.toLowerCase()) ? (
               <Flag name={place[albumPlaceIndex].title.toLowerCase()} />
             ) : (
               ""
@@ -246,12 +230,7 @@ export class AlbumPlace extends Component {
             <Header as="h2">
               <Icon name="map outline" />
               <Header.Content>
-                {this.props.t("places")}{" "}
-                <Loader
-                  size="tiny"
-                  inline
-                  active={this.props.fetchingAlbumsPlaceList}
-                />
+                {this.props.t("places")} <Loader size="tiny" inline active={this.props.fetchingAlbumsPlaceList} />
                 <Header.Subheader>
                   {this.props.t("placealbum.showingplaces", {
                     number: this.state.visiblePlaceAlbums.length,
@@ -278,10 +257,7 @@ export class AlbumPlace extends Component {
               <MarkerClusterGroup>{markers}</MarkerClusterGroup>
             </Map>
           </div>
-          <AutoSizer
-            disableHeight
-            style={{ outline: "none", padding: 0, margin: 0 }}
-          >
+          <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
             {({ width }) => (
               <Grid
                 style={{ outline: "none" }}
@@ -291,10 +267,7 @@ export class AlbumPlace extends Component {
                 columnCount={this.state.numEntrySquaresPerRow}
                 height={this.state.gridHeight}
                 rowHeight={this.state.entrySquareSize + 60}
-                rowCount={Math.ceil(
-                  this.state.visiblePlaceAlbums.length /
-                    this.state.numEntrySquaresPerRow.toFixed(1)
-                )}
+                rowCount={Math.ceil(this.state.visiblePlaceAlbums.length / this.state.numEntrySquaresPerRow.toFixed(1))}
                 width={width}
               />
             )}

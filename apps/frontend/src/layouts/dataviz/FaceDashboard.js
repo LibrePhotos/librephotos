@@ -2,18 +2,10 @@ import React, { Component } from "react";
 import { Label } from "semantic-ui-react";
 
 import { connect } from "react-redux";
-import {
-  deleteFaces,
-  trainFaces,
-  fetchInferredFacesList,
-  fetchLabeledFacesList,
-} from "../../actions/facesActions";
+import { deleteFaces, trainFaces, fetchInferredFacesList, fetchLabeledFacesList } from "../../actions/facesActions";
 import _ from "lodash";
 import { Grid, AutoSizer } from "react-virtualized";
-import {
-  calculateFaceGridCellSize,
-  calculateFaceGridCells,
-} from "../../util/gridUtils";
+import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
 import { ScrollSpeed, SCROLL_DEBOUNCE_DURATION } from "../../util/scrollUtils";
 import debounce from "lodash/debounce";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
@@ -45,9 +37,7 @@ export class FaceDashboard extends Component {
 
   handleScroll = ({ scrollTop }) => {
     // scrollSpeed represents the number of pixels scrolled since the last scroll event was fired
-    const scrollSpeed = Math.abs(
-      this.scrollSpeedHandler.getScrollSpeed(scrollTop)
-    );
+    const scrollSpeed = Math.abs(this.scrollSpeedHandler.getScrollSpeed(scrollTop));
 
     if (scrollSpeed >= SPEED_THRESHOLD) {
       this.setState({
@@ -84,30 +74,16 @@ export class FaceDashboard extends Component {
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
-    var inferredGroupedByPerson = _.groupBy(
-      nextProps.inferredFacesList,
-      (el) => el.person_name
-    );
-    var inferredGroupedByPersonList = _.sortBy(
-      _.toPairsIn(inferredGroupedByPerson),
-      (el) => el[0]
-    ).map((el) => {
+    var inferredGroupedByPerson = _.groupBy(nextProps.inferredFacesList, (el) => el.person_name);
+    var inferredGroupedByPersonList = _.sortBy(_.toPairsIn(inferredGroupedByPerson), (el) => el[0]).map((el) => {
       return {
         person_name: el[0],
-        faces: _.reverse(
-          _.sortBy(el[1], (el2) => el2.person_label_probability)
-        ),
+        faces: _.reverse(_.sortBy(el[1], (el2) => el2.person_label_probability)),
       };
     });
 
-    var labeledGroupedByPerson = _.groupBy(
-      nextProps.labeledFacesList,
-      (el) => el.person_name
-    );
-    var labeledGroupedByPersonList = _.sortBy(
-      _.toPairsIn(labeledGroupedByPerson),
-      (el) => el[0]
-    ).map((el) => {
+    var labeledGroupedByPerson = _.groupBy(nextProps.labeledFacesList, (el) => el.person_name);
+    var labeledGroupedByPersonList = _.sortBy(_.toPairsIn(labeledGroupedByPerson), (el) => el[0]).map((el) => {
       return { person_name: el[0], faces: el[1] };
     });
     const inferredCellContents = calculateFaceGridCells(
@@ -134,8 +110,7 @@ export class FaceDashboard extends Component {
       columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10;
     }
 
-    const { entrySquareSize, numEntrySquaresPerRow } =
-      calculateFaceGridCellSize(columnWidth);
+    const { entrySquareSize, numEntrySquaresPerRow } = calculateFaceGridCellSize(columnWidth);
 
     this.setState({
       width: window.innerWidth,
@@ -172,9 +147,7 @@ export class FaceDashboard extends Component {
     }
     if (e.shiftKey) {
       var currentCellsInRowFormat =
-        this.state.activeItem === "labeled"
-          ? this.state.labeledCellContents
-          : this.state.inferredCellContents;
+        this.state.activeItem === "labeled" ? this.state.labeledCellContents : this.state.inferredCellContents;
 
       var allFacesInCells = [];
       for (var i = 0; i < currentCellsInRowFormat.length; i++) {
@@ -185,10 +158,7 @@ export class FaceDashboard extends Component {
       var start = allFacesInCells.indexOf(cell);
       var end = allFacesInCells.indexOf(this.state.lastChecked);
 
-      var facesToSelect = allFacesInCells.slice(
-        Math.min(start, end),
-        Math.max(start, end) + 1
-      );
+      var facesToSelect = allFacesInCells.slice(Math.min(start, end), Math.max(start, end) + 1);
       facesToSelect.forEach((face) => this.onFaceSelect(face.id));
       return;
     }
@@ -296,10 +266,7 @@ export class FaceDashboard extends Component {
           trainFaces={this.trainFaces}
         />
         <div>
-          <AutoSizer
-            disableHeight
-            style={{ outline: "none", padding: 0, margin: 0 }}
-          >
+          <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
             {({ width }) => (
               <Grid
                 style={{ outline: "none" }}
@@ -308,15 +275,11 @@ export class FaceDashboard extends Component {
                 onSectionRendered={({ rowStartIndex }) => {
                   if (activeItem === "labeled") {
                     this.setState({
-                      topRowPersonName:
-                        this.state.labeledCellContents[rowStartIndex][0]
-                          .person_name,
+                      topRowPersonName: this.state.labeledCellContents[rowStartIndex][0].person_name,
                     });
                   } else {
                     this.setState({
-                      topRowPersonName:
-                        this.state.inferredCellContents[rowStartIndex][0]
-                          .person_name,
+                      topRowPersonName: this.state.inferredCellContents[rowStartIndex][0].person_name,
                     });
                   }
                 }}

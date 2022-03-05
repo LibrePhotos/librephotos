@@ -11,9 +11,7 @@ export default function reducer(
   switch (action.type) {
     case "TOGGLE_SIDEBAR": {
       const showSidebar = !state.showSidebar;
-      const contentWidth = showSidebar
-        ? window.innerWidth - 85
-        : window.innerWidth;
+      const contentWidth = showSidebar ? window.innerWidth - 85 : window.innerWidth;
 
       return {
         ...state,

@@ -21,8 +21,7 @@ export class AlbumUserGallery extends Component {
 
   render() {
     const isPublic =
-      this.props.albumDetails.owner &&
-      this.props.albumDetails.owner.id !== this.props.auth.access.user_id;
+      this.props.albumDetails.owner && this.props.albumDetails.owner.id !== this.props.auth.access.user_id;
     var additionalSubHeader = "";
     if (isPublic) {
       additionalSubHeader = (
@@ -38,11 +37,7 @@ export class AlbumUserGallery extends Component {
     }
     return (
       <PhotoListView
-        title={
-          this.props.albumDetails
-            ? this.props.albumDetails.title
-            : this.props.t("loading")
-        }
+        title={this.props.albumDetails ? this.props.albumDetails.title : this.props.t("loading")}
         additionalSubHeader={additionalSubHeader}
         loading={!this.isLoaded()}
         titleIconName={"bookmark"}

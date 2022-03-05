@@ -36,12 +36,7 @@ export function signup(
     });
 }
 
-export function login(
-  username: String,
-  password: String,
-  from: any,
-  dispatch: AppDispatch
-) {
+export function login(username: String, password: String, from: any, dispatch: AppDispatch) {
   dispatch({ type: "LOGIN" });
   Server.post("/auth/token/obtain/", {
     username: username,

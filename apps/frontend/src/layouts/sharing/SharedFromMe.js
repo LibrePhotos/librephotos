@@ -26,11 +26,7 @@ export class SharedFromMe extends Component {
         </Header.Subheader>
       );
     } else {
-      return (
-        <Header.Subheader>
-          You shared {this.props.albums.albumsSharedFromMe.length} albums
-        </Header.Subheader>
-      );
+      return <Header.Subheader>You shared {this.props.albums.albumsSharedFromMe.length} albums</Header.Subheader>;
     }
   }
 
@@ -39,16 +35,11 @@ export class SharedFromMe extends Component {
       <div style={{ height: 60, paddingTop: 10 }}>
         <Header as="h2">
           <Icon.Group size="big">
-            <Icon
-              name={
-                activeItem === "photos" ? "image outline" : "images outline"
-              }
-            />
+            <Icon name={activeItem === "photos" ? "image outline" : "images outline"} />
             <Icon corner name="share" color="green" size="mimi" />
           </Icon.Group>
           <Header.Content style={{ paddingLeft: 10 }}>
-            {activeItem === "photos" ? "Photos" : "Albums"} you shared{" "}
-            {this.getSubHeader(activeItem)}
+            {activeItem === "photos" ? "Photos" : "Albums"} you shared {this.getSubHeader(activeItem)}
           </Header.Content>
         </Header>
       </div>
@@ -59,20 +50,10 @@ export class SharedFromMe extends Component {
     return (
       <div style={{ marginLeft: -5, height: 40 }}>
         <Menu pointing secondary>
-          <Menu.Item
-            as={Link}
-            to="/shared/fromme/photos/"
-            name="photos"
-            active={activeItem === "photos"}
-          >
+          <Menu.Item as={Link} to="/shared/fromme/photos/" name="photos" active={activeItem === "photos"}>
             {"Photos "} <Loader size="mini" inline />
           </Menu.Item>
-          <Menu.Item
-            as={Link}
-            to="/shared/fromme/albums/"
-            name="albums"
-            active={activeItem === "albums"}
-          >
+          <Menu.Item as={Link} to="/shared/fromme/albums/" name="albums" active={activeItem === "albums"}>
             {"Albums "} <Loader size="mini" inline />
           </Menu.Item>
         </Menu>

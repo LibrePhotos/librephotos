@@ -1,19 +1,11 @@
-import React, { Component } from "react";
+import React from "react";
 import { connect } from "react-redux";
 import { Route, Switch } from "react-router-dom";
-import NotificationSystem from "reapop";
-import theme from "reapop-theme-wybo";
+import NotificationSystem, { bootstrapTheme, dismissNotification } from "reapop";
 import "./App.css";
 import { CountStats } from "./components/statistics";
 import Login from "./containers/login";
-import {
-  FaceScatter,
-  Graph,
-  LocationTree,
-  PhotoMap,
-  Timeline,
-  WordClouds,
-} from "./layouts/dataviz/DataVisualization";
+import { FaceScatter, Graph, LocationTree, PhotoMap, Timeline, WordClouds } from "./layouts/dataviz/DataVisualization";
 import { FaceDashboard } from "./layouts/dataviz/FaceDashboard";
 import { FavoritePhotos } from "./layouts/photos/FavoritePhotos";
 import { HiddenPhotos } from "./layouts/photos/HiddenPhotos";
@@ -43,30 +35,35 @@ import { SharedFromMe } from "./layouts/sharing/SharedFromMe";
 import "semantic-ui-css/semantic.min.css";
 import { AlbumPlace } from "./layouts/albums/AlbumPlace";
 import { TimestampPhotos } from "./layouts/photos/TimestampPhotos";
-
 import appHistory from "./history";
 import "./i18n";
 import { ConnectedRouter } from "connected-react-router";
 import { DeletedPhotos } from "./layouts/photos/DeletedPhotos";
-class Nav extends React.Component {
-  render() {
-    return (
-      <div>
-        {this.props.showSidebar && <SideMenuNarrow visible={true} />}
-        <TopMenu style={{ zIndex: -1 }} />
-      </div>
-    );
-  }
+
+function Nav(props) {
+  return (
+    <div>
+      {props.showSidebar && <SideMenuNarrow visible={true} />}
+      <TopMenu style={{ zIndex: -1 }} />
+    </div>
+  );
 }
 
 const noMenubarPaths = ["/signup", "/login"];
 
-class App extends Component {
+class App extends React.Component {
   render() {
+    console.info("this.props.dismiss: ", this.props.dismiss);
     return (
       <div>
         <ConnectedRouter history={appHistory}>
-          <NotificationSystem theme={theme} />
+          <NotificationSystem
+            theme={bootstrapTheme}
+            dismissNotification={(id) => {
+              this.props.dismiss(id);
+            }}
+            notifications={this.props.notifications}
+          />
           {this.props.location.pathname &&
           !noMenubarPaths.includes(this.props.location.pathname) &&
           !(
@@ -86,17 +83,11 @@ class App extends Component {
 
             <Route path="/signup" component={SignupPage} />
 
-            <Route
-              path="/public/:username"
-              component={(props) => <UserPublicPage {...props} />}
-            />
+            <Route path="/public/:username" component={(props) => <UserPublicPage {...props} />} />
 
             <Route path="/users" component={PublicUserList} />
 
-            <Route
-              path="/user/:username"
-              component={(props) => <UserPublicPage {...props} />}
-            />
+            <Route path="/user/:username" component={(props) => <UserPublicPage {...props} />} />
 
             <PrivateRoute path="/things" component={AlbumThing} />
 
@@ -108,10 +99,7 @@ class App extends Component {
 
             <PrivateRoute path="/hidden" component={HiddenPhotos} />
 
-            <PrivateRoute
-              path="/notimestamp"
-              component={NoTimestampPhotosView}
-            />
+            <PrivateRoute path="/notimestamp" component={NoTimestampPhotosView} />
 
             <PrivateRoute path="/useralbums" component={AlbumUser} />
 
@@ -129,36 +117,18 @@ class App extends Component {
 
             <PrivateRoute path="/search" component={SearchView} />
 
-            <PrivateRoute
-              path="/person/:albumID"
-              component={(props) => <AlbumPersonGallery {...props} />}
-            />
+            <PrivateRoute path="/person/:albumID" component={(props) => <AlbumPersonGallery {...props} />} />
 
-            <PrivateRoute
-              path="/place/:albumID"
-              component={AlbumPlaceGallery}
-            />
+            <PrivateRoute path="/place/:albumID" component={AlbumPlaceGallery} />
 
-            <PrivateRoute
-              path="/thing/:albumID"
-              component={AlbumThingGallery}
-            />
+            <PrivateRoute path="/thing/:albumID" component={AlbumThingGallery} />
 
-            <PrivateRoute
-              path="/event/:albumID"
-              component={AlbumAutoGalleryView}
-            />
+            <PrivateRoute path="/event/:albumID" component={AlbumAutoGalleryView} />
 
-            <PrivateRoute
-              path="/useralbum/:albumID"
-              component={AlbumUserGallery}
-            />
+            <PrivateRoute path="/useralbum/:albumID" component={AlbumUserGallery} />
 
             <PrivateRoute path="/shared/tome/:which" component={SharedToMe} />
-            <PrivateRoute
-              path="/shared/fromme/:which"
-              component={SharedFromMe}
-            />
+            <PrivateRoute path="/shared/fromme/:which" component={SharedFromMe} />
 
             <PrivateRoute path="/admin" component={AdminPage} />
 
@@ -176,11 +146,18 @@ class App extends Component {
   }
 }
 
-App = connect((store) => {
+const mapStateToProps = (store) => {
   return {
     showSidebar: store.ui.showSidebar,
     location: store.router.location,
+    notifications: store.notifications,
   };
-})(App);
+};
 
-export default App;
+const mapDispatchToProps = (dispatch) => {
+  return { dismiss: (id) => dispatch(dismissNotification(id)) };
+};
+
+const connected = connect(mapStateToProps, mapDispatchToProps)(App);
+
+export default connected;

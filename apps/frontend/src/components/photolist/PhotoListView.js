@@ -63,9 +63,7 @@ export class PhotoListView extends Component {
   handleSelection = (item) => {
     var newSelectedItems = this.state.selectionState.selectedItems;
     if (newSelectedItems.find((selectedItem) => selectedItem.id === item.id)) {
-      newSelectedItems = newSelectedItems.filter(
-        (value) => value.id !== item.id
-      );
+      newSelectedItems = newSelectedItems.filter((value) => value.id !== item.id);
     } else {
       newSelectedItems = newSelectedItems.concat(item);
     }
@@ -79,12 +77,8 @@ export class PhotoListView extends Component {
   handleSelections = (items) => {
     var newSelectedItems = this.state.selectionState.selectedItems;
     items.forEach((item) => {
-      if (
-        newSelectedItems.find((selectedItem) => selectedItem.id === item.id)
-      ) {
-        newSelectedItems = newSelectedItems.filter(
-          (value) => value.id !== item.id
-        );
+      if (newSelectedItems.find((selectedItem) => selectedItem.id === item.id)) {
+        newSelectedItems = newSelectedItems.filter((value) => value.id !== item.id);
       } else {
         newSelectedItems = newSelectedItems.concat(item);
       }
@@ -98,35 +92,20 @@ export class PhotoListView extends Component {
   handleClick = (event, item) => {
     //if an image is selectable, then handle shift click
     if (this.props.selectable && event.shiftKey) {
-      var lastSelectedElement =
-        this.state.selectionState.selectedItems.slice(-1)[0];
+      var lastSelectedElement = this.state.selectionState.selectedItems.slice(-1)[0];
       if (lastSelectedElement === undefined) {
         this.handleSelection(item);
         return;
       }
-      var indexOfCurrentlySelectedItem = this.props.idx2hash.findIndex(
-        (image) => image.id === item.id
-      );
-      var indexOfLastSelectedItem = this.props.idx2hash.findIndex(
-        (image) => image.id === lastSelectedElement.id
-      );
+      var indexOfCurrentlySelectedItem = this.props.idx2hash.findIndex((image) => image.id === item.id);
+      var indexOfLastSelectedItem = this.props.idx2hash.findIndex((image) => image.id === lastSelectedElement.id);
       console.log(indexOfCurrentlySelectedItem);
       console.log(indexOfLastSelectedItem);
       if (indexOfCurrentlySelectedItem > indexOfLastSelectedItem) {
-        this.handleSelections(
-          this.props.idx2hash.slice(
-            indexOfLastSelectedItem + 1,
-            indexOfCurrentlySelectedItem + 1
-          )
-        );
+        this.handleSelections(this.props.idx2hash.slice(indexOfLastSelectedItem + 1, indexOfCurrentlySelectedItem + 1));
         return;
       } else {
-        this.handleSelections(
-          this.props.idx2hash.slice(
-            indexOfCurrentlySelectedItem,
-            indexOfLastSelectedItem
-          )
-        );
+        this.handleSelections(this.props.idx2hash.slice(indexOfCurrentlySelectedItem, indexOfLastSelectedItem));
         return;
       }
     }
@@ -135,9 +114,7 @@ export class PhotoListView extends Component {
       return;
     }
 
-    const lightboxImageIndex = this.props.idx2hash.findIndex(
-      (image) => image.id === item.id
-    );
+    const lightboxImageIndex = this.props.idx2hash.findIndex((image) => image.id === item.id);
     this.setState({
       lightboxImageIndex: lightboxImageIndex,
       lightboxImageId: item.id,
@@ -157,8 +134,7 @@ export class PhotoListView extends Component {
     if (
       this.state.lightboxShow &&
       (this.props.idx2hash.length <= this.state.lightboxImageIndex ||
-        this.state.lightboxImageId !==
-          this.props.idx2hash[this.state.lightboxImageIndex].id)
+        this.state.lightboxImageId !== this.props.idx2hash[this.state.lightboxImageIndex].id)
     ) {
       this.setState({ lightboxShow: false });
     }
@@ -173,9 +149,7 @@ export class PhotoListView extends Component {
   }
 
   getPigImageData() {
-    return Array.isArray(this.props.photoset)
-      ? this.props.photoset
-      : [this.props.photoset];
+    return Array.isArray(this.props.photoset) ? this.props.photoset : [this.props.photoset];
   }
 
   render() {
@@ -216,71 +190,55 @@ export class PhotoListView extends Component {
               additionalSubHeader={this.props.additionalSubHeader}
             />
           )}
-          {!this.props.loading &&
-            !this.props.isPublic &&
-            this.getNumPhotos() > 0 && (
-              <div
-                style={{
-                  marginLeft: -5,
-                  paddingLeft: 5,
-                  paddingRight: 5,
-                  height: 40,
-                  paddingTop: 4,
-                  backgroundColor: "#f6f6f6",
-                }}
-              >
-                <SelectionBar
-                  selectMode={this.state.selectionState.selectMode}
+          {!this.props.loading && !this.props.isPublic && this.getNumPhotos() > 0 && (
+            <div
+              style={{
+                marginLeft: -5,
+                paddingLeft: 5,
+                paddingRight: 5,
+                height: 40,
+                paddingTop: 4,
+                backgroundColor: "#f6f6f6",
+              }}
+            >
+              <SelectionBar
+                selectMode={this.state.selectionState.selectMode}
+                selectedItems={this.state.selectionState.selectedItems}
+                idx2hash={this.props.idx2hash}
+                updateSelectionState={this.updateSelectionState}
+              />
+              {!this.props.route.location.pathname.startsWith("/deleted") && (
+                <SelectionActions
                   selectedItems={this.state.selectionState.selectedItems}
-                  idx2hash={this.props.idx2hash}
+                  albumID={this.props.match ? this.props.match.params.albumID : undefined}
+                  title={this.props.title}
+                  setAlbumCover={() => {
+                    this.props.dispatch(
+                      setAlbumCoverForPerson(
+                        this.props.match.params.albumID,
+                        this.state.selectionState.selectedItems[0].id
+                      )
+                    );
+                  }}
+                  onSharePhotos={() => this.setState({ modalSharePhotosOpen: true })}
+                  onShareAlbum={() => this.setState({ modalAlbumShareOpen: true })}
+                  onAddToAlbum={() => this.setState({ modalAddToAlbumOpen: true })}
                   updateSelectionState={this.updateSelectionState}
                 />
-                {!this.props.route.location.pathname.startsWith("/deleted") && (
-                  <SelectionActions
-                    selectedItems={this.state.selectionState.selectedItems}
-                    albumID={
-                      this.props.match
-                        ? this.props.match.params.albumID
-                        : undefined
-                    }
-                    title={this.props.title}
-                    setAlbumCover={() => {
-                      this.props.dispatch(
-                        setAlbumCoverForPerson(
-                          this.props.match.params.albumID,
-                          this.state.selectionState.selectedItems[0].id
-                        )
-                      );
-                    }}
-                    onSharePhotos={() =>
-                      this.setState({ modalSharePhotosOpen: true })
-                    }
-                    onShareAlbum={() =>
-                      this.setState({ modalAlbumShareOpen: true })
-                    }
-                    onAddToAlbum={() =>
-                      this.setState({ modalAddToAlbumOpen: true })
-                    }
-                    updateSelectionState={this.updateSelectionState}
-                  />
-                )}
-                <TrashcanActions
-                  selectedItems={this.state.selectionState.selectedItems}
-                  title={this.props.title}
-                  updateSelectionState={this.updateSelectionState}
-                ></TrashcanActions>
-              </div>
-            )}
+              )}
+              <TrashcanActions
+                selectedItems={this.state.selectionState.selectedItems}
+                title={this.props.title}
+                updateSelectionState={this.updateSelectionState}
+              ></TrashcanActions>
+            </div>
+          )}
         </div>
-        {!this.props.loading &&
-        this.props.photoset &&
-        this.props.photoset.length > 0 ? (
+        {!this.props.loading && this.props.photoset && this.props.photoset.length > 0 ? (
           <div>
             <Pig
               imageData={this.getPigImageData()}
-              selectable={
-                this.props.selectable === undefined || this.props.selectable
-              }
+              selectable={this.props.selectable === undefined || this.props.selectable}
               selectedItems={this.state.selectionState.selectedItems}
               handleSelection={this.handleSelection}
               handleClick={this.handleClick}
@@ -288,31 +246,15 @@ export class PhotoListView extends Component {
               groupByDate={this.props.isDateView}
               getUrl={(url, pxHeight) => {
                 if (pxHeight < 250) {
-                  return (
-                    serverAddress +
-                    "/media/square_thumbnails_small/" +
-                    url.split(";")[0]
-                  );
+                  return serverAddress + "/media/square_thumbnails_small/" + url.split(";")[0];
                 }
-                return (
-                  serverAddress +
-                  "/media/square_thumbnails/" +
-                  url.split(";")[0]
-                );
+                return serverAddress + "/media/square_thumbnails/" + url.split(";")[0];
               }}
               toprightoverlay={FavoritedOverlay}
               bottomleftoverlay={VideoOverlay}
-              numberOfItems={
-                this.props.numberOfItems
-                  ? this.props.numberOfItems
-                  : this.props.idx2hash.length
-              }
-              updateItems={
-                this.props.updateItems ? this.props.updateItems : () => {}
-              }
-              updateGroups={
-                this.props.updateGroups ? this.props.updateGroups : () => {}
-              }
+              numberOfItems={this.props.numberOfItems ? this.props.numberOfItems : this.props.idx2hash.length}
+              updateItems={this.props.updateItems ? this.props.updateItems : () => {}}
+              updateGroups={this.props.updateGroups ? this.props.updateGroups : () => {}}
             ></Pig>
           </div>
         ) : (
@@ -339,16 +281,11 @@ export class PhotoListView extends Component {
             lightboxImageId={this.state.lightboxImageId}
             onCloseRequest={() => this.setState({ lightboxShow: false })}
             onImageLoad={() => {
-              this.getPhotoDetails(
-                this.props.idx2hash[this.state.lightboxImageIndex].id
-              );
+              this.getPhotoDetails(this.props.idx2hash[this.state.lightboxImageIndex].id);
             }}
             onMovePrevRequest={() => {
               var prevIndex =
-                (this.state.lightboxImageIndex +
-                  this.props.idx2hash.length -
-                  1) %
-                this.props.idx2hash.length;
+                (this.state.lightboxImageIndex + this.props.idx2hash.length - 1) % this.props.idx2hash.length;
               this.setState({
                 lightboxImageIndex: prevIndex,
                 lightboxImageId: this.props.idx2hash[prevIndex].id,
@@ -357,10 +294,7 @@ export class PhotoListView extends Component {
             }}
             onMoveNextRequest={() => {
               var nextIndex =
-                (this.state.lightboxImageIndex +
-                  this.props.idx2hash.length +
-                  1) %
-                this.props.idx2hash.length;
+                (this.state.lightboxImageIndex + this.props.idx2hash.length + 1) % this.props.idx2hash.length;
               this.setState({
                 lightboxImageIndex: nextIndex,
                 lightboxImageId: this.props.idx2hash[nextIndex].id,
@@ -378,9 +312,7 @@ export class PhotoListView extends Component {
                 modalAddToAlbumOpen: false,
               });
             }}
-            selectedImageHashes={this.state.selectionState.selectedItems.map(
-              (i) => i.id
-            )}
+            selectedImageHashes={this.state.selectionState.selectedItems.map((i) => i.id)}
           />
         )}
         {!this.props.isPublic && (
@@ -391,9 +323,7 @@ export class PhotoListView extends Component {
                 modalSharePhotosOpen: false,
               });
             }}
-            selectedImageHashes={this.state.selectionState.selectedItems.map(
-              (i) => i.id
-            )}
+            selectedImageHashes={this.state.selectionState.selectedItems.map((i) => i.id)}
           />
         )}
         {!this.props.isPublic && isUserAlbum && (
@@ -405,9 +335,7 @@ export class PhotoListView extends Component {
               });
             }}
             match={this.props.match}
-            selectedImageHashes={this.state.selectionState.selectedItems.map(
-              (i) => i.id
-            )}
+            selectedImageHashes={this.state.selectionState.selectedItems.map((i) => i.id)}
           />
         )}
       </div>

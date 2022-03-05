@@ -145,12 +145,8 @@ export default function reducer(
     case "SET_FACES_PERSON_LABEL_FULFILLED": {
       const justLabeledFaceIDs = action.payload.map((face) => face.id);
 
-      newInferredFacesList = state.inferredFacesList.filter(
-        (face) => !justLabeledFaceIDs.includes(face.id)
-      );
-      newLabeledFacesList = state.labeledFacesList.filter(
-        (face) => !justLabeledFaceIDs.includes(face.id)
-      );
+      newInferredFacesList = state.inferredFacesList.filter((face) => !justLabeledFaceIDs.includes(face.id));
+      newLabeledFacesList = state.labeledFacesList.filter((face) => !justLabeledFaceIDs.includes(face.id));
 
       action.payload.forEach((justLabeledFace) => {
         newLabeledFacesList.push(justLabeledFace);
@@ -166,12 +162,8 @@ export default function reducer(
     // mass labeling faces
     case "DELETE_FACES_FULFILLED": {
       const justDeletedFaces = action.payload;
-      newInferredFacesList = state.inferredFacesList.filter(
-        (face) => !justDeletedFaces.includes(face.id)
-      );
-      newLabeledFacesList = state.labeledFacesList.filter(
-        (face) => !justDeletedFaces.includes(face.id)
-      );
+      newInferredFacesList = state.inferredFacesList.filter((face) => !justDeletedFaces.includes(face.id));
+      newLabeledFacesList = state.labeledFacesList.filter((face) => !justDeletedFaces.includes(face.id));
 
       return {
         ...state,

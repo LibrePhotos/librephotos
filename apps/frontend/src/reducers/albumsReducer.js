@@ -1,7 +1,4 @@
-import {
-  FETCH_USER_ALBUM_FULFILLED,
-  FETCH_USER_ALBUM_REJECTED,
-} from "../actions/albumsActions";
+import { FETCH_USER_ALBUM_FULFILLED, FETCH_USER_ALBUM_REJECTED } from "../actions/albumsActions";
 
 export default function reducer(
   state = {

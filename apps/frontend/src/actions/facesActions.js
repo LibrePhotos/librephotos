@@ -12,17 +12,19 @@ export function setFacesPersonLabel(faceIDs, personName) {
           payload: response.data.results,
         });
         dispatch(
-          notify({
-            message: i18n.t("toasts.addfacestoperson", {
+          notify(
+            i18n.t("toasts.addfacestoperson", {
               numberOfFaces: faceIDs.length,
               personName: personName,
             }),
-            title: i18n.t("toasts.addfacestopersontitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "br",
-          })
+            {
+              title: i18n.t("toasts.addfacestopersontitle"),
+              status: "success",
+              dismissible: true,
+              dismissAfter: 3000,
+              position: "bottom-right",
+            }
+          )
         );
       })
       .catch((err) => {});
@@ -39,16 +41,18 @@ export function deleteFaces(faceIDs) {
           payload: response.data.results,
         });
         dispatch(
-          notify({
-            message: i18n.t("toasts.deletefaces", {
+          notify(
+            i18n.t("toasts.deletefaces", {
               numberOfFaces: faceIDs.length,
             }),
-            title: i18n.t("toasts.deletefacestitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "br",
-          })
+            {
+              title: i18n.t("toasts.deletefacestitle"),
+              status: "success",
+              dismissible: true,
+              dismissAfter: 3000,
+              position: "bottom-right",
+            }
+          )
         );
       })
       .catch((err) => {});
@@ -65,13 +69,12 @@ export function trainFaces() {
     });
 
     dispatch(
-      notify({
-        message: i18n.t("toasts.trainingstarted"),
+      notify(i18n.t("toasts.trainingstarted"), {
         title: i18n.t("toasts.trainingstartedtitle"),
         status: "success",
         dismissible: true,
         dismissAfter: 3000,
-        position: "br",
+        position: "bottom-right",
       })
     );
     Server.get("trainfaces/", { timeout: 30000 })
@@ -95,13 +98,12 @@ export function rescanFaces() {
     });
 
     dispatch(
-      notify({
-        message: i18n.t("toasts.rescanfaces"),
+      notify(i18n.t("toasts.rescanfaces"), {
         title: i18n.t("toasts.rescanfacestitle"),
         status: "success",
         dismissible: true,
         dismissAfter: 3000,
-        position: "br",
+        position: "bottom-right",
       })
     );
     Server.get("scanfaces/", { timeout: 30000 })

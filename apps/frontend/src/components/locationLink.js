@@ -132,9 +132,7 @@ export class LocationLink extends React.Component {
           <Tree
             top={margin.top}
             left={margin.left}
-            root={hierarchy(this.props.locationSunburst, (d) =>
-              d.isExpanded ? d.children : null
-            )}
+            root={hierarchy(this.props.locationSunburst, (d) => (d.isExpanded ? d.children : null))}
             size={[sizeWidth, sizeHeight]}
             separation={(a, b) => (a.parent === b.parent ? 1 : 0.5) / a.depth}
           >
@@ -250,13 +248,7 @@ export class LocationLink extends React.Component {
                         fontFamily="Arial"
                         textAnchor={"middle"}
                         style={{ pointerEvents: "none" }}
-                        fill={
-                          node.depth === 0
-                            ? "white"
-                            : node.children
-                            ? "white"
-                            : "white"
-                        }
+                        fill={node.depth === 0 ? "white" : node.children ? "white" : "white"}
                       >
                         {node.data.name}
                       </text>

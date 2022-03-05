@@ -40,9 +40,7 @@ export function searchPeople(query) {
       dispatch({ type: "SEARCH_PEOPLE" });
       Server.get(url)
         .then((response) => {
-          var mappedPeopleDropdownOptions = response.data.results.map(function (
-            person
-          ) {
+          var mappedPeopleDropdownOptions = response.data.results.map(function (person) {
             return {
               key: person.id,
               value: person.name,

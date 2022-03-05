@@ -30,11 +30,7 @@ Server.interceptors.response.use(
   },
   function (error) {
     const originalRequest = error.config;
-    if (
-      error.response.status === 401 &&
-      !originalRequest._retry &&
-      !isRefreshTokenExpired(store.getState())
-    ) {
+    if (error.response.status === 401 && !originalRequest._retry && !isRefreshTokenExpired(store.getState())) {
       originalRequest._retry = true;
 
       const auth = store.getState().auth;
@@ -46,10 +42,8 @@ Server.interceptors.response.use(
           type: "REFRESH_ACCESS_TOKEN_FULFILLED",
           payload: response.data,
         });
-        Server.defaults.headers.common["Authorization"] =
-          "Bearer " + response.data.access;
-        originalRequest.headers["Authorization"] =
-          "Bearer " + response.data.access;
+        Server.defaults.headers.common["Authorization"] = "Bearer " + response.data.access;
+        originalRequest.headers["Authorization"] = "Bearer " + response.data.access;
         if (originalRequest.baseURL === originalRequest.url.substring(0, 5)) {
           originalRequest.baseURL = "";
         }

@@ -50,10 +50,7 @@ export class ModalPhotosShare extends Component {
     if (this.state.userNameFilter.length > 0) {
       filteredUserList = this.props.pub.publicUserList.filter(
         (el) =>
-          fuzzy_match(
-            el.username.toLowerCase(),
-            this.state.userNameFilter.toLowerCase()
-          ) ||
+          fuzzy_match(el.username.toLowerCase(), this.state.userNameFilter.toLowerCase()) ||
           fuzzy_match(
             el.first_name.toLowerCase() + " " + el.last_name.toLowerCase(),
             this.state.userNameFilter.toLowerCase()
@@ -62,9 +59,7 @@ export class ModalPhotosShare extends Component {
     } else {
       filteredUserList = this.props.pub.publicUserList;
     }
-    filteredUserList = filteredUserList.filter(
-      (el) => el.id !== this.props.auth.access.user_id
-    );
+    filteredUserList = filteredUserList.filter((el) => el.id !== this.props.auth.access.user_id);
 
     var selectedImageSrcs = this.props.selectedImageHashes.map((image_hash) => {
       return serverAddress + "/media/square_thumbnails/" + image_hash;
@@ -86,8 +81,8 @@ export class ModalPhotosShare extends Component {
           <Header>
             {this.state.valShare ? "Share Photos" : "Unshare Photos"}
             <Header.Subheader>
-              {this.state.valShare ? "Share " : "Unshare "} selected{" "}
-              {this.props.selectedImageHashes.length} photo(s) with...
+              {this.state.valShare ? "Share " : "Unshare "} selected {this.props.selectedImageHashes.length} photo(s)
+              with...
             </Header.Subheader>
           </Header>
         </div>
@@ -95,11 +90,7 @@ export class ModalPhotosShare extends Component {
         <div style={{ padding: 5, height: 50, overflowY: "hidden" }}>
           <Image.Group>
             {selectedImageSrcs.slice(0, 100).map((image) => (
-              <SecuredImageJWT
-                key={"selected_image" + image}
-                height={40}
-                src={image}
-              />
+              <SecuredImageJWT key={"selected_image" + image} height={40} src={image} />
             ))}
           </Image.Group>
         </div>
@@ -143,22 +134,14 @@ export class ModalPhotosShare extends Component {
                     <Image circular src="/unknown_user.jpg" />
                     <Header.Content>
                       {displayName}
-                      <Header.Subheader>
-                        Joined {moment(item.date_joined).format("MMMM YYYY")}
-                      </Header.Subheader>
+                      <Header.Subheader>Joined {moment(item.date_joined).format("MMMM YYYY")}</Header.Subheader>
                     </Header.Content>
                   </Header>
                   <Header floated="right" as="h5">
                     <Button.Group size="mini" compact>
                       <Button
                         onClick={() => {
-                          this.props.dispatch(
-                            setPhotosShared(
-                              this.props.selectedImageHashes,
-                              true,
-                              item
-                            )
-                          );
+                          this.props.dispatch(setPhotosShared(this.props.selectedImageHashes, true, item));
                         }}
                         positive
                         icon
@@ -169,13 +152,7 @@ export class ModalPhotosShare extends Component {
                       <Button.Or />
                       <Button
                         onClick={() => {
-                          this.props.dispatch(
-                            setPhotosShared(
-                              this.props.selectedImageHashes,
-                              false,
-                              item
-                            )
-                          );
+                          this.props.dispatch(setPhotosShared(this.props.selectedImageHashes, false, item));
                         }}
                         negative
                         icon

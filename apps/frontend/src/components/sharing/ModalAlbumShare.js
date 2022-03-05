@@ -1,13 +1,5 @@
 import React, { Component } from "react";
-import {
-  Checkbox,
-  Popup,
-  Input,
-  Image,
-  Icon,
-  Header,
-  Divider,
-} from "semantic-ui-react";
+import { Checkbox, Popup, Input, Image, Icon, Header, Divider } from "semantic-ui-react";
 import { connect } from "react-redux";
 import { fetchPublicUserList } from "../../actions/publicActions";
 import { setUserAlbumShared } from "../../actions/albumsActions";
@@ -59,10 +51,7 @@ export class ModalAlbumShare extends Component {
     if (this.state.userNameFilter.length > 0) {
       filteredUserList = this.props.pub.publicUserList.filter(
         (el) =>
-          fuzzy_match(
-            el.username.toLowerCase(),
-            this.state.userNameFilter.toLowerCase()
-          ) ||
+          fuzzy_match(el.username.toLowerCase(), this.state.userNameFilter.toLowerCase()) ||
           fuzzy_match(
             el.first_name.toLowerCase() + " " + el.last_name.toLowerCase(),
             this.state.userNameFilter.toLowerCase()
@@ -71,9 +60,7 @@ export class ModalAlbumShare extends Component {
     } else {
       filteredUserList = this.props.pub.publicUserList;
     }
-    filteredUserList = filteredUserList.filter(
-      (el) => el.id !== this.props.auth.access.user_id
-    );
+    filteredUserList = filteredUserList.filter((el) => el.id !== this.props.auth.access.user_id);
     const albumDetails = this.props.albumDetails;
 
     return (
@@ -92,9 +79,7 @@ export class ModalAlbumShare extends Component {
         <div style={{ height: 50, width: "100%", padding: 7 }}>
           <Header>
             {this.state.valShare ? "Share Album" : "Unshare Album"}
-            <Header.Subheader>
-              {this.state.valShare ? "Share" : "Unshare"} current album with...
-            </Header.Subheader>
+            <Header.Subheader>{this.state.valShare ? "Share" : "Unshare"} current album with...</Header.Subheader>
           </Header>
         </div>
         <Divider fitted />
@@ -139,11 +124,7 @@ export class ModalAlbumShare extends Component {
                     as="h4"
                     onClick={() => {
                       this.props.dispatch(
-                        setUserAlbumShared(
-                          parseInt(this.props.match.params.albumID, 10),
-                          item.id,
-                          this.state.valShare
-                        )
+                        setUserAlbumShared(parseInt(this.props.match.params.albumID, 10), item.id, this.state.valShare)
                       );
                       this.props.onRequestClose();
                     }}
@@ -151,18 +132,10 @@ export class ModalAlbumShare extends Component {
                     <Image circular src="/unknown_user.jpg" />
                     <Header.Content>
                       {displayName}
-                      {albumDetails.shared_to && albumDetails.shared_to
-                        .map((e) => e.id)
-                        .includes(item.id) && (
-                        <Popup
-                          trigger={<Icon flipped="horizontally" name="share" />}
-                          inverted
-                          content="Shared"
-                        />
+                      {albumDetails.shared_to && albumDetails.shared_to.map((e) => e.id).includes(item.id) && (
+                        <Popup trigger={<Icon flipped="horizontally" name="share" />} inverted content="Shared" />
                       )}
-                      <Header.Subheader>
-                        Joined {moment(item.date_joined).format("MMMM YYYY")}
-                      </Header.Subheader>
+                      <Header.Subheader>Joined {moment(item.date_joined).format("MMMM YYYY")}</Header.Subheader>
                     </Header.Content>
                   </Header>
                   <div
@@ -176,17 +149,13 @@ export class ModalAlbumShare extends Component {
                     <Checkbox
                       inline
                       slider
-                      checked={albumDetails.shared_to && albumDetails.shared_to
-                        .map((e) => e.id)
-                        .includes(item.id)}
+                      checked={albumDetails.shared_to && albumDetails.shared_to.map((e) => e.id).includes(item.id)}
                       onChange={(e, d) => {
                         this.props.dispatch(
                           setUserAlbumShared(
                             parseInt(this.props.match.params.albumID, 10),
                             item.id,
-                            !albumDetails.shared_to
-                              .map((e) => e.id)
-                              .includes(item.id)
+                            !albumDetails.shared_to.map((e) => e.id).includes(item.id)
                           )
                         );
                       }}

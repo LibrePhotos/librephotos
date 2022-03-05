@@ -1,8 +1,5 @@
 import React, { useEffect, useCallback, useState } from "react";
-import {
-  fetchAlbumDate,
-  fetchAlbumDateList,
-} from "../../actions/albumsActions";
+import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import _ from "lodash";
 import { TopMenu } from "../../components/menubars/TopMenu";
@@ -24,8 +21,9 @@ type fetchedGroup = {
 };
 
 export const UserPublicPage = (props: Props) => {
-  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } =
-    useAppSelector((state) => state.photos as PhotosState);
+  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(
+    (state) => state.photos as PhotosState
+  );
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const { auth, ui } = useAppSelector((state) => state);
@@ -53,10 +51,7 @@ export const UserPublicPage = (props: Props) => {
     console.log("visibleGroups", visibleGroups);
     visibleGroups.forEach((group: any) => {
       var visibleImages = group.items;
-      if (
-        visibleImages.filter((i: any) => i.isTemp && i.isTemp != undefined)
-          .length > 0
-      ) {
+      if (visibleImages.filter((i: any) => i.isTemp && i.isTemp != undefined).length > 0) {
         var firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
         var page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
         setGroup({ id: group.id, page: page });
@@ -106,10 +101,7 @@ export const UserPublicPage = (props: Props) => {
             isDateView={true}
             photoset={photosGroupedByDate}
             idx2hash={photosFlat}
-            isPublic={
-              auth.access === undefined ||
-              auth.access.name !== props.match.params.username
-            }
+            isPublic={auth.access === undefined || auth.access.name !== props.match.params.username}
             updateGroups={throttledGetAlbums}
             selectable={true}
           />

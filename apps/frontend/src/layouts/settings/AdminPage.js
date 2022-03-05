@@ -1,16 +1,6 @@
 import React, { Component } from "react";
 import { compose } from "redux";
-import {
-  Progress,
-  Icon,
-  Header,
-  Button,
-  Loader,
-  Table,
-  Popup,
-  Divider,
-  Pagination,
-} from "semantic-ui-react";
+import { Progress, Icon, Header, Button, Loader, Table, Popup, Divider, Pagination } from "semantic-ui-react";
 import { connect } from "react-redux";
 import moment from "moment";
 import {
@@ -49,10 +39,7 @@ export class AdminPage extends Component {
 
         <Divider />
         <Header as="h3">{this.props.t("adminarea.sitesettings")}</Header>
-        <SiteSettings
-          allow_registration={this.props.siteSettings.allow_registration}
-          dispatch={this.props.dispatch}
-        />
+        <SiteSettings allow_registration={this.props.siteSettings.allow_registration} dispatch={this.props.dispatch} />
 
         <Divider />
         <Header as="h3">
@@ -62,21 +49,11 @@ export class AdminPage extends Component {
         <Table compact celled>
           <Table.Header>
             <Table.Row>
-              <Table.HeaderCell>
-                {this.props.t("adminarea.username")}
-              </Table.HeaderCell>
-              <Table.HeaderCell>
-                {this.props.t("adminarea.scandirectory")}
-              </Table.HeaderCell>
-              <Table.HeaderCell>
-                {this.props.t("adminarea.minimumconfidence")}
-              </Table.HeaderCell>
-              <Table.HeaderCell>
-                {this.props.t("adminarea.photocount")}
-              </Table.HeaderCell>
-              <Table.HeaderCell>
-                {this.props.t("adminarea.joined")}
-              </Table.HeaderCell>
+              <Table.HeaderCell>{this.props.t("adminarea.username")}</Table.HeaderCell>
+              <Table.HeaderCell>{this.props.t("adminarea.scandirectory")}</Table.HeaderCell>
+              <Table.HeaderCell>{this.props.t("adminarea.minimumconfidence")}</Table.HeaderCell>
+              <Table.HeaderCell>{this.props.t("adminarea.photocount")}</Table.HeaderCell>
+              <Table.HeaderCell>{this.props.t("adminarea.joined")}</Table.HeaderCell>
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -94,15 +71,9 @@ export class AdminPage extends Component {
                         });
                       }}
                     />
-                    {user.scan_directory
-                      ? user.scan_directory
-                      : this.props.t("adminarea.notset")}
+                    {user.scan_directory ? user.scan_directory : this.props.t("adminarea.notset")}
                   </Table.Cell>
-                  <Table.Cell>
-                    {user.confidence
-                      ? user.confidence
-                      : this.props.t("adminarea.notset")}
-                  </Table.Cell>
+                  <Table.Cell>{user.confidence ? user.confidence : this.props.t("adminarea.notset")}</Table.Cell>
                   <Table.Cell>{user.photo_count}</Table.Cell>
                   <Table.Cell>{moment(user.date_joined).fromNow()}</Table.Cell>
                 </Table.Row>
@@ -132,9 +103,7 @@ class JobList extends Component {
 
   componentDidMount() {
     if (this.props.auth.access.is_admin) {
-      this.props.dispatch(
-        fetchJobList(this.state.activePage, this.state.pageSize)
-      );
+      this.props.dispatch(fetchJobList(this.state.activePage, this.state.pageSize));
     }
   }
 
@@ -142,15 +111,12 @@ class JobList extends Component {
     return (
       <div>
         <Header as="h3">
-          {this.props.t("joblist.workerlogs")}{" "}
-          <Loader size="mini" active={this.props.fetchingJobList} inline />
+          {this.props.t("joblist.workerlogs")} <Loader size="mini" active={this.props.fetchingJobList} inline />
         </Header>
         <Button
           size="mini"
           onClick={() => {
-            this.props.dispatch(
-              fetchJobList(this.state.activePage, this.state.pageSize)
-            );
+            this.props.dispatch(fetchJobList(this.state.activePage, this.state.pageSize));
           }}
         >
           {this.props.t("joblist.reload")}
@@ -158,49 +124,21 @@ class JobList extends Component {
         <Table compact attached="top" celled>
           <Table.Header>
             <Table.Row>
-              <Table.HeaderCell>
-                {" "}
-                {this.props.t("joblist.status")}
-              </Table.HeaderCell>
-              <Table.HeaderCell>
-                {" "}
-                {this.props.t("joblist.jobtype")}
-              </Table.HeaderCell>
-              <Table.HeaderCell width={5}>
-                {" "}
-                {this.props.t("joblist.progress")}
-              </Table.HeaderCell>
-              <Table.HeaderCell>
-                {" "}
-                {this.props.t("joblist.queued")}
-              </Table.HeaderCell>
-              <Table.HeaderCell>
-                {" "}
-                {this.props.t("joblist.started")}
-              </Table.HeaderCell>
-              <Table.HeaderCell>
-                {" "}
-                {this.props.t("joblist.duration")}
-              </Table.HeaderCell>
-              <Table.HeaderCell>
-                {" "}
-                {this.props.t("joblist.startedby")}
-              </Table.HeaderCell>
-              <Table.HeaderCell>
-                {" "}
-                {this.props.t("joblist.delete")}
-              </Table.HeaderCell>
+              <Table.HeaderCell> {this.props.t("joblist.status")}</Table.HeaderCell>
+              <Table.HeaderCell> {this.props.t("joblist.jobtype")}</Table.HeaderCell>
+              <Table.HeaderCell width={5}> {this.props.t("joblist.progress")}</Table.HeaderCell>
+              <Table.HeaderCell> {this.props.t("joblist.queued")}</Table.HeaderCell>
+              <Table.HeaderCell> {this.props.t("joblist.started")}</Table.HeaderCell>
+              <Table.HeaderCell> {this.props.t("joblist.duration")}</Table.HeaderCell>
+              <Table.HeaderCell> {this.props.t("joblist.startedby")}</Table.HeaderCell>
+              <Table.HeaderCell> {this.props.t("joblist.delete")}</Table.HeaderCell>
             </Table.Row>
           </Table.Header>
           <Table.Body>
             {this.props.jobList.map((job) => {
               const jobSuccess = job.finished && !job.failed;
               return (
-                <Table.Row
-                  key={job.job_id}
-                  error={job.failed}
-                  warning={!job.finished_at}
-                >
+                <Table.Row key={job.job_id} error={job.failed} warning={!job.finished_at}>
                   <Table.Cell>
                     {job.finished ? (
                       job.failed ? (
@@ -221,11 +159,7 @@ class JobList extends Component {
                         indicating
                         size="small"
                         progress={
-                          (
-                            (job.result.progress.current.toFixed(2) /
-                              job.result.progress.target) *
-                            100
-                          ).toFixed(2) < 20
+                          ((job.result.progress.current.toFixed(2) / job.result.progress.target) * 100).toFixed(2) < 20
                             ? "value"
                             : "ratio"
                         }
@@ -234,36 +168,20 @@ class JobList extends Component {
                         active={!job.finished}
                         success={jobSuccess}
                       >
-                        {(
-                          (job.result.progress.current.toFixed(2) /
-                            job.result.progress.target) *
-                          100
-                        ).toFixed(2)}
-                        %
+                        {((job.result.progress.current.toFixed(2) / job.result.progress.target) * 100).toFixed(2)}%
                       </Progress>
                     ) : job.finished ? (
-                      <Progress
-                        success={!job.failed}
-                        error={job.failed}
-                        percent={100}
-                      >
-                        {job.result.progress.current}{" "}
-                        {this.props.t("joblist.itemsprocessed")}{" "}
+                      <Progress success={!job.failed} error={job.failed} percent={100}>
+                        {job.result.progress.current} {this.props.t("joblist.itemsprocessed")}{" "}
                       </Progress>
                     ) : null}
                   </Table.Cell>
                   <Table.Cell>{moment(job.queued_at).fromNow()}</Table.Cell>
-                  <Table.Cell>
-                    {job.started_at ? moment(job.started_at).fromNow() : ""}
-                  </Table.Cell>
+                  <Table.Cell>{job.started_at ? moment(job.started_at).fromNow() : ""}</Table.Cell>
 
                   <Table.Cell>
                     {job.finished
-                      ? moment
-                          .duration(
-                            moment(job.finished_at) - moment(job.started_at)
-                          )
-                          .humanize()
+                      ? moment.duration(moment(job.finished_at) - moment(job.started_at)).humanize()
                       : job.started_at
                       ? this.props.t("joblist.running")
                       : ""}
@@ -274,13 +192,7 @@ class JobList extends Component {
                       trigger={
                         <Button
                           onClick={() => {
-                            this.props.dispatch(
-                              deleteJob(
-                                job.id,
-                                this.state.activatePage,
-                                this.state.pageSize
-                              )
-                            );
+                            this.props.dispatch(deleteJob(job.id, this.state.activatePage, this.state.pageSize));
                           }}
                           color="red"
                           size="tiny"
@@ -307,15 +219,11 @@ class JobList extends Component {
           lastItem={{ content: <Icon name="angle double right" />, icon: true }}
           prevItem={{ content: <Icon name="angle left" />, icon: true }}
           nextItem={{ content: <Icon name="angle right" />, icon: true }}
-          totalPages={Math.ceil(
-            this.props.jobCount.toFixed(1) / this.state.pageSize
-          )}
+          totalPages={Math.ceil(this.props.jobCount.toFixed(1) / this.state.pageSize)}
           onPageChange={(e, d) => {
             console.log(d.activePage);
             this.setState({ activePage: d.activePage });
-            this.props.dispatch(
-              fetchJobList(d.activePage, this.state.pageSize)
-            );
+            this.props.dispatch(fetchJobList(d.activePage, this.state.pageSize));
           }}
         />
       </div>

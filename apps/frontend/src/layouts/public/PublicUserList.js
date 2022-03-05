@@ -44,10 +44,7 @@ export class PublicUserList extends Component {
             <Header as="h2">
               <Icon name="user circle" />
               <Header.Content>
-                Users{" "}
-                <Header.Subheader>
-                  Showing {this.props.pub.publicUserList.length} users
-                </Header.Subheader>
+                Users <Header.Subheader>Showing {this.props.pub.publicUserList.length} users</Header.Subheader>
               </Header.Content>
             </Header>
           </div>
@@ -66,32 +63,19 @@ export class PublicUserList extends Component {
                     <Image circular src="/unknown_user.jpg" />
                     <Header.Content>
                       {displayName}
-                      <Header.Subheader>
-                        {el.public_photo_count} public photos
-                      </Header.Subheader>
+                      <Header.Subheader>{el.public_photo_count} public photos</Header.Subheader>
                     </Header.Content>
                   </Header>
                   {false && (
                     <Grid doubling stackable>
                       <Divider />
-                      <Grid.Row
-                        columns={this.props.ui.gridType === "dense" ? 5 : 3}
-                      >
-                        {el.public_photo_samples
-                          .slice(0, this.props.ui.gridType === "dense" ? 10 : 6)
-                          .map((photo) => (
-                            <Grid.Column>
-                              <Image
-                                src={
-                                  serverAddress +
-                                  "/media/square_thumbnails/" +
-                                  photo.image_hash +
-                                  ".jpg"
-                                }
-                              />
-                              <Divider hidden />
-                            </Grid.Column>
-                          ))}
+                      <Grid.Row columns={this.props.ui.gridType === "dense" ? 5 : 3}>
+                        {el.public_photo_samples.slice(0, this.props.ui.gridType === "dense" ? 10 : 6).map((photo) => (
+                          <Grid.Column>
+                            <Image src={serverAddress + "/media/square_thumbnails/" + photo.image_hash + ".jpg"} />
+                            <Divider hidden />
+                          </Grid.Column>
+                        ))}
                       </Grid.Row>
                     </Grid>
                   )}

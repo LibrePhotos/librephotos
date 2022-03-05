@@ -1,8 +1,4 @@
-import {
-  SEARCH_EMPTY_QUERY_ERROR,
-  SEARCH_PHOTOS,
-  SEARCH_PHOTOS_REJECTED,
-} from "../actions/searchActions";
+import { SEARCH_EMPTY_QUERY_ERROR, SEARCH_PHOTOS, SEARCH_PHOTOS_REJECTED } from "../actions/searchActions";
 
 export default function reducer(
   state = {

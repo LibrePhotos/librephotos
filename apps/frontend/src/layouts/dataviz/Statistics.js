@@ -102,10 +102,7 @@ export class Statistics extends Component {
         {activeItem === "location tree" && (
           <div>
             <Divider hidden />
-            <LocationLink
-              width={window.innerWidth - 120}
-              height={window.innerHeight - 50}
-            />
+            <LocationLink width={window.innerWidth - 120} height={window.innerHeight - 50} />
           </div>
         )}
 

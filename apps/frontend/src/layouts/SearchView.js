@@ -21,11 +21,7 @@ export class SearchView extends Component {
         titleIconName={"search"}
         isDateView={this.props.user.semantic_search_topk == 0}
         photoset={this.props.photosGroupedByDate}
-        idx2hash={
-          this.props.user.semantic_search_topk == 0
-            ? this.props.photosFlat
-            : this.props.photosGroupedByDate
-        }
+        idx2hash={this.props.user.semantic_search_topk == 0 ? this.props.photosFlat : this.props.photosGroupedByDate}
         selectable={true}
       />
     );

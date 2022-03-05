@@ -6,9 +6,7 @@ import { PhotosetType } from "../../reducers/photosReducer";
 
 class GroupHeader extends Component {
   render() {
-    const owner = this.props.pub.publicUserList.filter(
-      (e) => e.id === this.props.group.userId
-    )[0];
+    const owner = this.props.pub.publicUserList.filter((e) => e.id === this.props.group.userId)[0];
     var displayName = this.props.group.userId;
     if (owner && owner.last_name.length + owner.first_name.length > 0) {
       displayName = owner.first_name + " " + owner.last_name;
@@ -42,7 +40,7 @@ class GroupHeader extends Component {
 GroupHeader = connect((store) => {
   return {
     pub: store.pub,
-  }
+  };
 })(GroupHeader);
 
 export class PhotosShared extends Component {
@@ -53,9 +51,10 @@ export class PhotosShared extends Component {
       : "Loading photos shared by you...";
     return (
       <div>
-        {this.props.fetchedPhotosetType !== photosetType
-          ? <Loader active>{loadingText}</Loader>
-          : this.props.photosGroupedByUser.map((group) => {
+        {this.props.fetchedPhotosetType !== photosetType ? (
+          <Loader active>{loadingText}</Loader>
+        ) : (
+          this.props.photosGroupedByUser.map((group) => {
             return (
               <PhotoListView
                 title={"Photos"}
@@ -69,7 +68,8 @@ export class PhotosShared extends Component {
                 selectable={false}
               />
             );
-          })}
+          })
+        )}
       </div>
     );
   }

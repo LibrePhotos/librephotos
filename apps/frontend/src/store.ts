@@ -27,18 +27,14 @@ const configureStore = () => {
     rootReducer
   );
 
-  const store = createStore(
-    reducer,
-    {},
-    composeEnhancers(applyMiddleware(thunk, routerMiddleware(appHistory)))
-  );
+  const store = createStore(reducer, {}, composeEnhancers(applyMiddleware(thunk, routerMiddleware(appHistory))));
 
   persistStore(store);
 
   return store;
 };
 
-const store = configureStore()
-export type RootState = ReturnType<typeof store.getState>
-export type AppDispatch = typeof store.dispatch
+const store = configureStore();
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;
 export default store;

@@ -42,12 +42,7 @@ export const ButtonHeaderGroup = (props: Props) => {
         <Popup
           inverted
           trigger={
-            <Button
-              color="green"
-              disabled={props.selectedFaces.length === 0}
-              onClick={props.addFaces}
-              icon="plus"
-            />
+            <Button color="green" disabled={props.selectedFaces.length === 0} onClick={props.addFaces} icon="plus" />
           }
           content={t("facesdashboard.explanationadding")}
         />
@@ -55,12 +50,7 @@ export const ButtonHeaderGroup = (props: Props) => {
           inverted
           trigger={
             //To-Do: Confirmation of delete faces
-            <Button
-              color="red"
-              disabled={props.selectedFaces.length === 0}
-              onClick={props.deleteFaces}
-              icon="trash"
-            />
+            <Button color="red" disabled={props.selectedFaces.length === 0} onClick={props.deleteFaces} icon="trash" />
           }
           content={t("facesdashboard.explanationdeleting")}
         />
@@ -70,10 +60,7 @@ export const ButtonHeaderGroup = (props: Props) => {
           trigger={
             <Button
               disabled={!props.workerAvailability}
-              loading={
-                props.workerRunningJob &&
-                props.workerRunningJob.job_type_str === "Train Faces"
-              }
+              loading={props.workerRunningJob && props.workerRunningJob.job_type_str === "Train Faces"}
               color="blue"
               onClick={props.trainFaces}
               icon="lightning"

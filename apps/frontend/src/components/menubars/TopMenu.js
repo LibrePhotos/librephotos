@@ -3,15 +3,7 @@ import React, { Component } from "react";
 import "./TopMenu.css";
 import { connect } from "react-redux";
 import { push } from "connected-react-router";
-import {
-  Menu,
-  Button,
-  Dropdown,
-  Icon,
-  Image,
-  Popup,
-  Progress,
-} from "semantic-ui-react";
+import { Menu, Button, Dropdown, Icon, Image, Popup, Progress } from "semantic-ui-react";
 import { logout } from "../../actions/authActions";
 import { toggleSidebar } from "../../actions/uiActions";
 import { CustomSearch } from "../CustomSearch";
@@ -43,11 +35,7 @@ export class TopMenu extends Component {
 
   componentWillReceiveProps(nextProps) {
     if (!nextProps.auth.access) return;
-    if (
-      this.props.userSelfDetails &&
-      this.props.userSelfDetails.id === nextProps.auth.access.user_id
-    )
-      return;
+    if (this.props.userSelfDetails && this.props.userSelfDetails.id === nextProps.auth.access.user_id) return;
 
     this.throttledFetchUserSelfDetails(nextProps.auth.access.user_id);
   }
@@ -82,8 +70,7 @@ export class TopMenu extends Component {
               100
             ).toFixed(0)}
           >
-            <Trans i18nKey="topmenu.running">Running</Trans>{" "}
-            {this.props.workerRunningJob.job_type_str} ...
+            <Trans i18nKey="topmenu.running">Running</Trans> {this.props.workerRunningJob.job_type_str} ...
           </Progress>
         </div>
       );
@@ -91,13 +78,7 @@ export class TopMenu extends Component {
 
     return (
       <div>
-        <Menu
-          style={{ contentAlign: "left", backgroundColor: "#eeeeee" }}
-          fixed="top"
-          borderless
-          size="mini"
-          fluid
-        >
+        <Menu style={{ contentAlign: "left", backgroundColor: "#eeeeee" }} fixed="top" borderless size="mini" fluid>
           <Menu.Menu position="left">
             <Menu.Item>
               <Icon
@@ -123,19 +104,13 @@ export class TopMenu extends Component {
           <Menu.Menu position="right">
             <Menu.Item>
               <Popup
-                trigger={
-                  <Icon
-                    name="circle"
-                    color={!this.props.workerAvailability ? "red" : "green"}
-                  />
-                }
+                trigger={<Icon name="circle" color={!this.props.workerAvailability ? "red" : "green"} />}
                 position="bottom right"
                 offset={[13, 0]}
                 content={
                   this.props.workerAvailability
                     ? this.props.t("topmenu.available")
-                    : !this.props.workerAvailability &&
-                      this.props.workerRunningJob
+                    : !this.props.workerAvailability && this.props.workerRunningJob
                     ? runningJobPopupProgress
                     : this.props.t("topmenu.busy")
                 }
@@ -147,10 +122,8 @@ export class TopMenu extends Component {
                     <Image
                       avatar
                       src={
-                        this.props.userSelfDetails &&
-                        this.props.userSelfDetails.avatar_url
-                          ? serverAddress +
-                            this.props.userSelfDetails.avatar_url
+                        this.props.userSelfDetails && this.props.userSelfDetails.avatar_url
+                          ? serverAddress + this.props.userSelfDetails.avatar_url
                           : "/unknown_user.jpg"
                       }
                     />
@@ -170,21 +143,16 @@ export class TopMenu extends Component {
                       <Trans i18nKey="topmenu.logout">Logout</Trans>
                     </b>
                   </Dropdown.Item>
-                  <Dropdown.Item
-                    onClick={() => this.props.dispatch(push("/settings"))}
-                  >
+                  <Dropdown.Item onClick={() => this.props.dispatch(push("/settings"))}>
                     <Icon name="settings" />
                     <b>
                       <Trans i18nKey="topmenu.settings">Settings</Trans>
                     </b>
                   </Dropdown.Item>
-                  {this.props.auth.access &&
-                    this.props.auth.access.is_admin && <Dropdown.Divider />}
+                  {this.props.auth.access && this.props.auth.access.is_admin && <Dropdown.Divider />}
 
                   {this.props.auth.access && this.props.auth.access.is_admin && (
-                    <Dropdown.Item
-                      onClick={() => this.props.dispatch(push("/admin"))}
-                    >
+                    <Dropdown.Item onClick={() => this.props.dispatch(push("/admin"))}>
                       <Icon name="wrench" />
                       <b>
                         <Trans i18nKey="topmenu.adminarea">Admin Area</Trans>

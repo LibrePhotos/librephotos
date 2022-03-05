@@ -14,8 +14,7 @@ export class AlbumPlaceGallery extends Component {
 
   render() {
     const { fetchingAlbumsPlace } = this.props;
-    const groupedPhotos =
-      this.props.albumsPlace[this.props.match.params.albumID];
+    const groupedPhotos = this.props.albumsPlace[this.props.match.params.albumID];
     if (groupedPhotos) {
       groupedPhotos.grouped_photos.forEach(
         (group) =>
@@ -32,11 +31,7 @@ export class AlbumPlaceGallery extends Component {
         titleIconName={"map outline"}
         isDateView={true}
         photoset={groupedPhotos ? groupedPhotos.grouped_photos : []}
-        idx2hash={
-          groupedPhotos
-            ? groupedPhotos.grouped_photos.flatMap((el) => el.items)
-            : []
-        }
+        idx2hash={groupedPhotos ? groupedPhotos.grouped_photos.flatMap((el) => el.items) : []}
         selectable={true}
       />
     );

@@ -5,12 +5,7 @@ import { isRefreshTokenExpired } from "../reducers";
 import { Switch, Route, Redirect } from "react-router-dom";
 import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../ui-constants";
 
-const PrivateRoute = ({
-  component: Component,
-  isAuthenticated,
-  showSidebar,
-  ...rest
-}) => {
+const PrivateRoute = ({ component: Component, isAuthenticated, showSidebar, ...rest }) => {
   return (
     <Route
       {...rest}

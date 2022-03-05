@@ -26,11 +26,7 @@ export const LocationDurationStackedBar = () => {
     polyfill: ResizeObserver, // Use polyfill to make this feature works on more browsers);
   });
   const dispatch = useAppDispatch();
-  const {
-    locationTimeline,
-    fetchingLocationTimeline,
-    fetchedLocationTimeline,
-  } = useAppSelector((state) => state.util);
+  const { locationTimeline, fetchingLocationTimeline, fetchedLocationTimeline } = useAppSelector((state) => state.util);
   const [hintValue, setHintValue] = useState<Hint>({} as Hint);
 
   const { t } = useTranslation();
@@ -48,9 +44,7 @@ export const LocationDurationStackedBar = () => {
           <XYPlot width={width - 30} height={300} stackBy="x">
             <XAxis
               tickFormat={(v: any) => {
-                return moment
-                  .unix(locationTimeline[0].start + v)
-                  .format("YYYY-MM");
+                return moment.unix(locationTimeline[0].start + v).format("YYYY-MM");
               }}
             />
 

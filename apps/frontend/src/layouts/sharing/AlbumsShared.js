@@ -1,9 +1,5 @@
 import React, { Component } from "react";
-import {
-  Header,
-  Icon,
-  Loader,
-} from "semantic-ui-react";
+import { Header, Icon, Loader } from "semantic-ui-react";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
 import { serverAddress } from "../../api_client/apiClient";
@@ -41,9 +37,7 @@ export class AlbumsShared extends Component {
 
   handleScroll = ({ scrollTop }) => {
     // scrollSpeed represents the number of pixels scrolled since the last scroll event was fired
-    const scrollSpeed = Math.abs(
-      this.scrollSpeedHandler.getScrollSpeed(scrollTop)
-    );
+    const scrollSpeed = Math.abs(this.scrollSpeedHandler.getScrollSpeed(scrollTop));
 
     if (scrollSpeed >= SPEED_THRESHOLD) {
       this.setState({
@@ -78,8 +72,7 @@ export class AlbumsShared extends Component {
         nextProps.albums.albumsSharedToMe,
         prevState.numEntrySquaresPerRow
       ).cellContents;
-    }
-    else {
+    } else {
       albumGridContents = calculateSharedPhotoGridCells(
         nextProps.albums.albumsSharedToMe,
         prevState.numEntrySquaresPerRow
@@ -99,8 +92,7 @@ export class AlbumsShared extends Component {
       columnWidth = window.innerWidth - 5 - 5 - 10;
     }
 
-    const { entrySquareSize, numEntrySquaresPerRow } =
-      calculateGridCellSize(columnWidth);
+    const { entrySquareSize, numEntrySquaresPerRow } = calculateGridCellSize(columnWidth);
 
     this.setState({
       width: window.innerWidth,
@@ -119,9 +111,7 @@ export class AlbumsShared extends Component {
       const cell = this.state.albumGridContents[rowIndex][columnIndex];
       if (cell.user_id) {
         // sharer info header
-        const owner = this.props.pub.publicUserList.filter(
-          (e) => e.id === cell.user_id
-        )[0];
+        const owner = this.props.pub.publicUserList.filter((e) => e.id === cell.user_id)[0];
         var displayName = cell.user_id;
         if (owner && owner.last_name.length + owner.first_name.length > 0) {
           displayName = owner.first_name + " " + owner.last_name;
@@ -166,11 +156,7 @@ export class AlbumsShared extends Component {
               to={`/useralbum/${cell.id}/`}
               width={this.state.entrySquareSize - 2}
               height={this.state.entrySquareSize - 2}
-              src={
-                serverAddress +
-                "/media/square_thumbnails/" +
-                cell.cover_photos[0].image_hash
-              }
+              src={serverAddress + "/media/square_thumbnails/" + cell.cover_photos[0].image_hash}
             />
             <div style={{ height: 40, paddingLeft: 10, paddingTop: 5 }}>
               <b>{cell.title}</b>
@@ -201,43 +187,30 @@ export class AlbumsShared extends Component {
 
     return (
       <div>
-        {
-          this.props.albums.fetchingAlbumsSharedToMe &&
-          !this.props.albums.fetchedAlbumsSharedToMe && (
-            <Loader active>Loading albums shared with you...</Loader>
-          )}
-        {
-          this.props.albums.fetchingAlbumsSharedFromMe &&
-          !this.props.albums.fetchedAlbumsSharedFromMe && (
-            <Loader active>Loading albums shared by you...</Loader>
-          )}
+        {this.props.albums.fetchingAlbumsSharedToMe && !this.props.albums.fetchedAlbumsSharedToMe && (
+          <Loader active>Loading albums shared with you...</Loader>
+        )}
+        {this.props.albums.fetchingAlbumsSharedFromMe && !this.props.albums.fetchedAlbumsSharedFromMe && (
+          <Loader active>Loading albums shared by you...</Loader>
+        )}
 
-        {
-          this.state.albumGridContents.length === 0 &&
-          this.props.albums.fetchedAlbumsSharedToMe && (
-            <div>No one has shared any albums with you yet.</div>
-          )}
+        {this.state.albumGridContents.length === 0 && this.props.albums.fetchedAlbumsSharedToMe && (
+          <div>No one has shared any albums with you yet.</div>
+        )}
 
-        {
-          this.state.albumGridContents.length === 0 &&
-          this.props.albums.fetchedAlbumsSharedFromMe && (
-            <div>You have not shared any albums yet.</div>
-          )}
+        {this.state.albumGridContents.length === 0 && this.props.albums.fetchedAlbumsSharedFromMe && (
+          <div>You have not shared any albums yet.</div>
+        )}
 
-        {
-          (this.props.albums.fetchedAlbumsSharedToMe || this.props.albums.fetchedAlbumsSharedFromMe) &&
+        {(this.props.albums.fetchedAlbumsSharedToMe || this.props.albums.fetchedAlbumsSharedFromMe) &&
           this.state.albumGridContents.length > 0 && (
             <div>
-              <AutoSizer
-                disableHeight
-                style={{ outline: "none", padding: 0, margin: 0 }}
-              >
+              <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
                 {({ width }) => (
                   <Grid
                     ref={this.photoGridRef}
                     onSectionRendered={({ rowStartIndex }) => {
-                      const cell =
-                        this.state.albumGridContents[rowStartIndex][0];
+                      const cell = this.state.albumGridContents[rowStartIndex][0];
                       var owner = "";
                       if (cell.user_id) {
                         owner = cell.albums[0].owner.username;
@@ -263,10 +236,7 @@ export class AlbumsShared extends Component {
                         return this.state.entrySquareSize + 40;
                       }
                     }}
-                    estimatedRowSize={
-                      totalListHeight /
-                      this.state.albumGridContents.length.toFixed(1)
-                    }
+                    estimatedRowSize={totalListHeight / this.state.albumGridContents.length.toFixed(1)}
                     width={width}
                   />
                 )}

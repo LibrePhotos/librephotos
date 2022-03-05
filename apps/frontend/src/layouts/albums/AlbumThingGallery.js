@@ -13,8 +13,7 @@ export class AlbumThingGallery extends Component {
 
   render() {
     const { fetchingAlbumsThing } = this.props;
-    const groupedPhotos =
-      this.props.albumsThing[this.props.match.params.albumID];
+    const groupedPhotos = this.props.albumsThing[this.props.match.params.albumID];
     if (groupedPhotos) {
       groupedPhotos.grouped_photos.forEach(
         (group) =>
@@ -31,11 +30,7 @@ export class AlbumThingGallery extends Component {
         titleIconName={"tags"}
         isDateView={true}
         photoset={groupedPhotos ? groupedPhotos.grouped_photos : []}
-        idx2hash={
-          groupedPhotos
-            ? groupedPhotos.grouped_photos.flatMap((el) => el.items)
-            : []
-        }
+        idx2hash={groupedPhotos ? groupedPhotos.grouped_photos.flatMap((el) => el.items) : []}
         selectable={true}
       />
     );

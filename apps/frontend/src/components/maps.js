@@ -38,10 +38,7 @@ export class LocationMap extends Component {
   }
 
   onViewportChanged = (viewport) => {
-    console.log(
-      "Viewport changed, mapping new photo location: ",
-      viewport.center
-    );
+    console.log("Viewport changed, mapping new photo location: ", viewport.center);
     this.setState({ viewport });
 
     const map = this.mapRef.current.leafletElement;
@@ -68,10 +65,7 @@ export class LocationMap extends Component {
 
     var markers = photosWithGPS.map(function (photo) {
       return (
-        <Marker
-          key={photo.image_hash}
-          position={[photo.exif_gps_lat, photo.exif_gps_lon]}
-        >
+        <Marker key={photo.image_hash} position={[photo.exif_gps_lat, photo.exif_gps_lon]}>
           <Popup>
             <div>
               <Image src={photo.square_thumbnail} />
@@ -90,12 +84,7 @@ export class LocationMap extends Component {
       }
       return (
         <Segment style={{ zIndex: 2, height: this.props.height, padding: 0 }}>
-          <Map
-            ref={this.mapRef}
-            style={{ height: this.props.height }}
-            center={[avg_lat, avg_lon]}
-            zoom={zoom}
-          >
+          <Map ref={this.mapRef} style={{ height: this.props.height }} center={[avg_lat, avg_lon]} zoom={zoom}>
             <TileLayer
               attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.osm.org/{z}/{x}/{y}.png"
@@ -144,10 +133,7 @@ export class EventMap extends Component {
   }
 
   onViewportChanged = (viewport) => {
-    console.log(
-      "Viewport changed, mapping new photo location: ",
-      viewport.center
-    );
+    console.log("Viewport changed, mapping new photo location: ", viewport.center);
     this.setState({ viewport });
 
     const map = this.mapRef.current.leafletElement;
