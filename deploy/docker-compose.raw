@@ -11,7 +11,7 @@ version: "3.8"
 services:
   __proxy_name__:
     image: reallibrephotos/librephotos-proxy:${tag}
-    restart: always
+    restart: unless-stopped
     volumes:
       - ${myPhotos}:/data
       - ${proMedia}:/protected_media
@@ -24,7 +24,7 @@ services:
 
   __db_name__:
     image: postgres:13
-    restart: always
+    restart: unless-stopped
     environment:
       - POSTGRES_USER=${dbUser}
       - POSTGRES_PASSWORD=${dbPass}
@@ -35,13 +35,13 @@ services:
 
   __frontend_name__:
     image: reallibrephotos/librephotos-frontend:${tag}
-    restart: always
+    restart: unless-stopped
     depends_on:
       - __backend_name__
 
   __backend_name__:
     image: reallibrephotos/librephotos:${tag}
-    restart: always
+    restart: unless-stopped
     volumes:
       - ${myPhotos}:/data
       - ${proMedia}:/protected_media
@@ -75,4 +75,4 @@ services:
 
   __redis_name__:
     image: redis:6
-    restart: always
+    restart: unless-stopped
