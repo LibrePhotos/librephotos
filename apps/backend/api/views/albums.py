@@ -321,7 +321,7 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         if not self.request.user.is_anonymous:
             photo_qs = Photo.visible.filter(Q(owner=self.request.user))
             qs = AlbumDate.objects.filter(Q(owner=self.request.user)).filter(
-                Q(photos__hidden=False)
+                Q(photos__hidden=False) & Q(photos__deleted=False)
             )
 
         if self.request.query_params.get("favorite"):
@@ -467,7 +467,7 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
             ).annotate(photo_count=Count("photos", distinct=True)).filter(Q(photo_count__gt=0)).order_by(F("date").desc(nulls_last=True))
 
         qs = (
-            qs.filter(Q(photos__deleted=False)).annotate(photo_count=Count("photos", distinct=True))
+            qs.annotate(photo_count=Count("photos", distinct=True))
             .filter(Q(photo_count__gt=0))
             .order_by(F("date").desc(nulls_last=True))
         )
