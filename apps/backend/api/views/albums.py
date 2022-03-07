@@ -341,11 +341,9 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
             )
         if self.request.query_params.get("deleted"):
             qs = AlbumDate.objects.filter(
-                Q(owner=self.request.user)
-                & Q(photos__deleted=True)
+                Q(owner=self.request.user) & Q(photos__deleted=True)
             )
             photo_qs = Photo.objects.filter(Q(deleted=True))
-
 
         if self.request.query_params.get("person"):
             qs = AlbumDate.objects.filter(
@@ -422,7 +420,8 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if not self.request.user.is_anonymous:
             qs = AlbumDate.objects.filter(
-                Q(owner=self.request.user) & Q(photos__hidden=False) 
+                Q(owner=self.request.user)
+                & Q(photos__hidden=False)
                 & Q(photos__deleted=False)
             )
         if self.request.query_params.get("favorite"):
@@ -443,28 +442,46 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
             )
 
         if self.request.query_params.get("deleted"):
-           qs = AlbumDate.objects.filter(
-                Q(owner=self.request.user)
-                & Q(photos__deleted=True)).annotate(photo_count=Count("photos", distinct=True)).filter(Q(photo_count__gt=0)).order_by(F("date").desc(nulls_last=True))
-           return qs
+            qs = (
+                AlbumDate.objects.filter(
+                    Q(owner=self.request.user) & Q(photos__deleted=True)
+                )
+                .annotate(photo_count=Count("photos", distinct=True))
+                .filter(Q(photo_count__gt=0))
+                .order_by(F("date").desc(nulls_last=True))
+            )
+            return qs
         if self.request.query_params.get("person"):
-            return AlbumDate.objects.filter(
-                Q(owner=self.request.user)
-                & Q(photos__hidden=False)
-                & Q(photos__deleted=False)
-                & Q(photos__faces__person__id=self.request.query_params.get("person"))
-                & Q(photos__faces__person_label_is_inferred=False)
-            ).prefetch_related(
-                Prefetch(
-                    "photos",
-                    queryset=Photo.visible.filter(
-                Q(faces__person__id=self.request.query_params.get("person")) & Q(faces__person_label_is_inferred=False)).order_by("-exif_timestamp")
-                    .only(
-                        "image_hash",
+            return (
+                AlbumDate.objects.filter(
+                    Q(owner=self.request.user)
+                    & Q(photos__hidden=False)
+                    & Q(photos__deleted=False)
+                    & Q(
+                        photos__faces__person__id=self.request.query_params.get(
+                            "person"
+                        )
                     )
-                    .distinct(),
-                ),
-            ).annotate(photo_count=Count("photos", distinct=True)).filter(Q(photo_count__gt=0)).order_by(F("date").desc(nulls_last=True))
+                    & Q(photos__faces__person_label_is_inferred=False)
+                )
+                .prefetch_related(
+                    Prefetch(
+                        "photos",
+                        queryset=Photo.visible.filter(
+                            Q(faces__person__id=self.request.query_params.get("person"))
+                            & Q(faces__person_label_is_inferred=False)
+                        )
+                        .order_by("-exif_timestamp")
+                        .only(
+                            "image_hash",
+                        )
+                        .distinct(),
+                    ),
+                )
+                .annotate(photo_count=Count("photos", distinct=True))
+                .filter(Q(photo_count__gt=0))
+                .order_by(F("date").desc(nulls_last=True))
+            )
 
         qs = (
             qs.annotate(photo_count=Count("photos", distinct=True))

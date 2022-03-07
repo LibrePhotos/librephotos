@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0022_photo_video_length'),
+        ("api", "0022_photo_video_length"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='photo',
-            name='deleted',
+            model_name="photo",
+            name="deleted",
             field=models.BooleanField(db_index=True, default=False),
         ),
     ]

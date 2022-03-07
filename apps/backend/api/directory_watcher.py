@@ -49,6 +49,7 @@ def calculate_hash(user, image_path):
             hash_md5.update(chunk)
     return hash_md5.hexdigest() + str(user.id)
 
+
 def calculate_hash_b64(user, content):
     hash_md5 = hashlib.md5()
     with content as f:
@@ -88,6 +89,7 @@ else:
 
     def is_hidden(filepath):
         return os.path.basename(filepath).startswith(".")
+
 
 @job
 def handle_new_image(user, image_path, job_id):

@@ -6,12 +6,12 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0020_add_default_timezone'),
+        ("api", "0020_add_default_timezone"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='photo',
-            name='image',
+            model_name="photo",
+            name="image",
         ),
     ]

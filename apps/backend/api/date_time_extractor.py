@@ -93,7 +93,9 @@ def _extract_no_tz_datetime_from_str(x, regexp=REGEXP_NO_TZ, group_mapping=None)
     try:
         return datetime(*datetime_args)
     except ValueError:
-        logger.error(f"Error while trying to create datetime using '{x}': datetime arguments {datetime_args}. Regexp used: '{regexp}'")
+        logger.error(
+            f"Error while trying to create datetime using '{x}': datetime arguments {datetime_args}. Regexp used: '{regexp}'"
+        )
         return None
 
 
