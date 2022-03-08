@@ -62,16 +62,14 @@ export class ModalScanDirectoryEdit extends Component {
               {this.props.userToEdit ? this.props.userToEdit.username : "..."}"
               <Header.Subheader>
                 {this.props.t("modalscandirectoryedit.explanation1")} "
-                {this.props.userToEdit ? this.props.userToEdit.username : "..."}
-                " {this.props.t("modalscandirectoryedit.explanation2")}
+                {this.props.userToEdit ? this.props.userToEdit.username : "..."}"{" "}
+                {this.props.t("modalscandirectoryedit.explanation2")}
               </Header.Subheader>
             </Header.Content>
           </Header>
         </div>
         <div style={{ padding: 10 }}>
-          <Header as="h5">
-            {this.props.t("modalscandirectoryedit.currentdirectory")}
-          </Header>
+          <Header as="h5">{this.props.t("modalscandirectoryedit.currentdirectory")}</Header>
         </div>
         <div style={{ padding: 7 }}>
           <Input
@@ -136,9 +134,7 @@ export class ModalScanDirectoryEdit extends Component {
           </Input>
         </div>
         <div style={{ padding: 10 }}>
-          <Header as="h5">
-            {this.props.t("modalscandirectoryedit.explanation3")}
-          </Header>
+          <Header as="h5">{this.props.t("modalscandirectoryedit.explanation3")}</Header>
         </div>
         <div
           style={{

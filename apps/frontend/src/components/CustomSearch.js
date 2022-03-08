@@ -12,12 +12,7 @@ import {
   fetchUserAlbumsList,
 } from "../actions/albumsActions";
 import { fetchPeople } from "../actions/peopleActions";
-import {
-  searchPeople,
-  searchPhotos,
-  searchPlaceAlbums,
-  searchThingAlbums,
-} from "../actions/searchActions";
+import { searchPeople, searchPhotos, searchPlaceAlbums, searchThingAlbums } from "../actions/searchActions";
 import { fetchExampleSearchTerms } from "../actions/utilActions";
 import { serverAddress } from "../api_client/apiClient";
 import { SecuredImageJWT } from "./SecuredImage";
@@ -71,9 +66,7 @@ export class CustomSearch extends Component {
         exampleSearchTerm: this.props.exampleSearchTerms
           ? this.props.t("search.search") +
             " " +
-            this.props.exampleSearchTerms[
-              Math.floor(Math.random() * this.props.exampleSearchTerms.length)
-            ]
+            this.props.exampleSearchTerms[Math.floor(Math.random() * this.props.exampleSearchTerms.length)]
           : this.props.t("search.default"),
       });
     }, 5000);
@@ -91,28 +84,16 @@ export class CustomSearch extends Component {
         fuzzy_match(el.toLowerCase(), prevState.searchText.toLowerCase())
       );
       filteredSuggestedPeople = nextProps.people.filter((person) =>
-        fuzzy_match(
-          person.text.toLowerCase(),
-          prevState.searchText.toLowerCase()
-        )
+        fuzzy_match(person.text.toLowerCase(), prevState.searchText.toLowerCase())
       );
       filteredSuggestedPlaces = nextProps.albumsPlaceList.filter((place) =>
-        fuzzy_match(
-          place.title.toLowerCase(),
-          prevState.searchText.toLowerCase()
-        )
+        fuzzy_match(place.title.toLowerCase(), prevState.searchText.toLowerCase())
       );
       filteredSuggestedThings = nextProps.albumsThingList.filter((thing) =>
-        fuzzy_match(
-          thing.title.toLowerCase(),
-          prevState.searchText.toLowerCase()
-        )
+        fuzzy_match(thing.title.toLowerCase(), prevState.searchText.toLowerCase())
       );
       filteredSuggestedUserAlbums = nextProps.albumsUserList.filter((album) =>
-        fuzzy_match(
-          album.title.toLowerCase(),
-          prevState.searchText.toLowerCase()
-        )
+        fuzzy_match(album.title.toLowerCase(), prevState.searchText.toLowerCase())
       );
     }
     return {
@@ -166,28 +147,16 @@ export class CustomSearch extends Component {
         fuzzy_match(el.toLowerCase(), this.state.searchText.toLowerCase())
       );
       filteredSuggestedPeople = this.props.people.filter((person) =>
-        fuzzy_match(
-          person.text.toLowerCase(),
-          this.state.searchText.toLowerCase()
-        )
+        fuzzy_match(person.text.toLowerCase(), this.state.searchText.toLowerCase())
       );
       filteredSuggestedPlaces = this.props.albumsPlaceList.filter((place) =>
-        fuzzy_match(
-          place.title.toLowerCase(),
-          this.state.searchText.toLowerCase()
-        )
+        fuzzy_match(place.title.toLowerCase(), this.state.searchText.toLowerCase())
       );
       filteredSuggestedThings = this.props.albumsThingList.filter((thing) =>
-        fuzzy_match(
-          thing.title.toLowerCase(),
-          this.state.searchText.toLowerCase()
-        )
+        fuzzy_match(thing.title.toLowerCase(), this.state.searchText.toLowerCase())
       );
       filteredSuggestedUserAlbums = this.props.albumsUserList.filter((album) =>
-        fuzzy_match(
-          album.title.toLowerCase(),
-          this.state.searchText.toLowerCase()
-        )
+        fuzzy_match(album.title.toLowerCase(), this.state.searchText.toLowerCase())
       );
     }
     this.setState({
@@ -270,11 +239,7 @@ export class CustomSearch extends Component {
             }}
           >
             {filteredExampleSearchTerms.length > 0 && (
-              <Segment
-                attached
-                textAlign="left"
-                style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}
-              >
+              <Segment attached textAlign="left" style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}>
                 <div
                   style={{
                     maxHeight: window.innerHeight / 5,
@@ -304,11 +269,7 @@ export class CustomSearch extends Component {
               </Segment>
             )}
             {filteredSuggestedUserAlbums.length > 0 && (
-              <Segment
-                attached
-                textAlign="left"
-                style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}
-              >
+              <Segment attached textAlign="left" style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}>
                 <div
                   style={{
                     maxHeight: window.innerHeight / 5,
@@ -335,11 +296,7 @@ export class CustomSearch extends Component {
               </Segment>
             )}
             {filteredSuggestedPlaces.length > 0 && (
-              <Segment
-                attached
-                textAlign="left"
-                style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}
-              >
+              <Segment attached textAlign="left" style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}>
                 <div
                   style={{
                     maxHeight: window.innerHeight / 5,
@@ -366,11 +323,7 @@ export class CustomSearch extends Component {
               </Segment>
             )}
             {filteredSuggestedThings.length > 0 && (
-              <Segment
-                attached
-                textAlign="left"
-                style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}
-              >
+              <Segment attached textAlign="left" style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}>
                 <div
                   style={{
                     maxHeight: window.innerHeight / 5,
@@ -416,9 +369,7 @@ export class CustomSearch extends Component {
                             <SecuredImageJWT
                               key={"suggestion_person_" + person.key}
                               onClick={() => {
-                                this.props.dispatch(
-                                  push(`/person/${person.key}`)
-                                );
+                                this.props.dispatch(push(`/person/${person.key}`));
                               }}
                               height={50}
                               width={50}
@@ -433,24 +384,19 @@ export class CustomSearch extends Component {
                 </div>
               </Segment>
             )}
-            {this.props.albumsThingList.length == 0 &&
-              this.state.searchText.length > 0 && (
-                <Segment
-                  attached
-                  textAlign="left"
-                  style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}
+            {this.props.albumsThingList.length == 0 && this.state.searchText.length > 0 && (
+              <Segment attached textAlign="left" style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}>
+                <div
+                  style={{
+                    maxHeight: window.innerHeight / 5,
+                    overflowY: "auto",
+                  }}
                 >
-                  <div
-                    style={{
-                      maxHeight: window.innerHeight / 5,
-                      overflowY: "auto",
-                    }}
-                  >
-                    {this.props.t("search.loading")}
-                    <Loader inline active={true} size="mini" />
-                  </div>
-                </Segment>
-              )}
+                  {this.props.t("search.loading")}
+                  <Loader inline active={true} size="mini" />
+                </div>
+              </Segment>
+            )}
           </div>
         )}
         <ChunkedUploadButton></ChunkedUploadButton>

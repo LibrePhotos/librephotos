@@ -1,13 +1,5 @@
 import React, { useState } from "react";
-import {
-  Image,
-  Header,
-  Divider,
-  Message,
-  Segment,
-  Button,
-  Form,
-} from "semantic-ui-react";
+import { Image, Header, Divider, Message, Segment, Button, Form } from "semantic-ui-react";
 import { signup } from "../../actions/authActions";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { useTranslation } from "react-i18next";
@@ -97,9 +89,7 @@ export const SignupPage = () => {
             <Form.Field>
               <label>{t("login.password")}</label>
               <Form.Input
-                error={
-                  passwordConfirm.length > 0 && password !== passwordConfirm
-                }
+                error={passwordConfirm.length > 0 && password !== passwordConfirm}
                 icon="lock"
                 type="password"
                 placeholder={t("login.passwordplaceholder")}
@@ -109,9 +99,7 @@ export const SignupPage = () => {
               />
               <label>{t("login.confirmpassword")}</label>
               <Form.Input
-                error={
-                  passwordConfirm.length > 0 && password !== passwordConfirm
-                }
+                error={passwordConfirm.length > 0 && password !== passwordConfirm}
                 icon="lock"
                 type="password"
                 placeholder={t("login.confirmpasswordplaceholder")}
@@ -123,14 +111,7 @@ export const SignupPage = () => {
             </Form.Field>
             <Button
               onClick={() => {
-                signup(
-                  username.toLowerCase(),
-                  password,
-                  email,
-                  firstname,
-                  lastname,
-                  dispatch
-                );
+                signup(username.toLowerCase(), password, email, firstname, lastname, dispatch);
               }}
               disabled={password.length === 0 || password !== passwordConfirm}
               fluid

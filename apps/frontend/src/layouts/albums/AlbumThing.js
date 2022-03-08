@@ -60,28 +60,25 @@ export class AlbumThing extends Component {
   }
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    var albumThingIndex =
-      rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
+    var albumThingIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
     if (albumThingIndex < this.props.albumsThingList.length) {
       return (
         <div key={key} style={style}>
-          {this.props.albumsThingList[albumThingIndex].cover_photos
-            .slice(0, 1)
-            .map((photo) => {
-              return (
-                <Link
-                  key={this.props.albumsThingList[albumThingIndex].id}
-                  to={`/thing/${this.props.albumsThingList[albumThingIndex].id}/`}
-                >
-                  <Tile
-                    video={photo.video === true}
-                    height={this.state.entrySquareSize - 10}
-                    width={this.state.entrySquareSize - 10}
-                    image_hash={photo.image_hash}
-                  ></Tile>
-                </Link>
-              );
-            })}
+          {this.props.albumsThingList[albumThingIndex].cover_photos.slice(0, 1).map((photo) => {
+            return (
+              <Link
+                key={this.props.albumsThingList[albumThingIndex].id}
+                to={`/thing/${this.props.albumsThingList[albumThingIndex].id}/`}
+              >
+                <Tile
+                  video={photo.video === true}
+                  height={this.state.entrySquareSize - 10}
+                  width={this.state.entrySquareSize - 10}
+                  image_hash={photo.image_hash}
+                ></Tile>
+              </Link>
+            );
+          })}
           <div style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
             <b>{this.props.albumsThingList[albumThingIndex].title}</b>
             <br />
@@ -103,12 +100,7 @@ export class AlbumThing extends Component {
           <Header as="h2">
             <Icon name="tags" />
             <Header.Content>
-              {this.props.t("things")}{" "}
-              <Loader
-                size="tiny"
-                inline
-                active={this.props.fetchingAlbumsThingList}
-              />
+              {this.props.t("things")} <Loader size="tiny" inline active={this.props.fetchingAlbumsThingList} />
               <Header.Subheader>
                 {this.props.t("thingalbum.showingthings", {
                   number: this.props.albumsThingList.length,
@@ -118,10 +110,7 @@ export class AlbumThing extends Component {
           </Header>
         </div>
 
-        <AutoSizer
-          disableHeight
-          style={{ outline: "none", padding: 0, margin: 0 }}
-        >
+        <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
           {({ width }) => (
             <Grid
               style={{ outline: "none" }}
@@ -131,10 +120,7 @@ export class AlbumThing extends Component {
               columnCount={this.state.numEntrySquaresPerRow}
               height={this.state.height - TOP_MENU_HEIGHT - 60}
               rowHeight={this.state.entrySquareSize + 60}
-              rowCount={Math.ceil(
-                this.props.albumsThingList.length /
-                  this.state.numEntrySquaresPerRow.toFixed(1)
-              )}
+              rowCount={Math.ceil(this.props.albumsThingList.length / this.state.numEntrySquaresPerRow.toFixed(1))}
               width={width}
             />
           )}

@@ -1,12 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Loader, Header, Label } from "semantic-ui-react";
-const {
-  XYPlot,
-  HorizontalGridLines,
-  Hint,
-  MarkSeries,
-  VerticalGridLines,
-} = require("react-vis");
+const { XYPlot, HorizontalGridLines, Hint, MarkSeries, VerticalGridLines } = require("react-vis");
 import useDimensions from "react-cool-dimensions";
 import { serverAddress } from "../../api_client/apiClient";
 import { clusterFaces } from "../../actions/facesActions";
@@ -27,9 +21,7 @@ export const FaceClusterGraph = (props: Props) => {
     },
   });
   const dispatch = useAppDispatch();
-  const { facesVis, clustered, clustering } = useAppSelector(
-    (state) => state.faces
-  );
+  const { facesVis, clustered, clustering } = useAppSelector((state) => state.faces);
 
   useEffect(() => {
     clusterFaces(dispatch);
@@ -75,8 +67,7 @@ export const FaceClusterGraph = (props: Props) => {
       <div style={{ padding: 10 }} ref={observe}>
         <Header>
           <Header.Content>
-            {t("facecluster")}{" "}
-            <Header.Subheader>{t("faceclusterexplanation")}</Header.Subheader>
+            {t("facecluster")} <Header.Subheader>{t("faceclusterexplanation")}</Header.Subheader>
           </Header.Content>
         </Header>
         <XYPlot width={width - 30} height={props.height}>
@@ -113,8 +104,7 @@ export const FaceClusterGraph = (props: Props) => {
       <div style={{ padding: 10 }}>
         <Header>
           <Header.Content>
-            {t("facecluster")}{" "}
-            <Header.Subheader>{t("faceclusterexplanation")}</Header.Subheader>
+            {t("facecluster")} <Header.Subheader>{t("faceclusterexplanation")}</Header.Subheader>
           </Header.Content>
         </Header>
         <div>{t("nofaces")}</div>

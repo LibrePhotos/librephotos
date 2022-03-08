@@ -14,9 +14,7 @@ type Props = {
 
 export const ModalConfigDatetime = (props: Props) => {
   const defaultRules: any = useAppSelector((state) => state.user.defaultRules);
-  const { datetime_rules } = useAppSelector(
-    (state) => state.user.userSelfDetails
-  );
+  const { datetime_rules } = useAppSelector((state) => state.user.userSelfDetails);
   const rules = JSON.parse(datetime_rules ? datetime_rules : "[]");
   //make sure rules have ids
   rules.forEach((rule: any, index: any) => {
@@ -26,9 +24,7 @@ export const ModalConfigDatetime = (props: Props) => {
   });
 
   const possibleOptions = defaultRules
-    ? defaultRules.filter(
-        (i: any) => rules.filter((x: any) => x.id == i.id).length == 0
-      )
+    ? defaultRules.filter((i: any) => rules.filter((x: any) => x.id == i.id).length == 0)
     : [];
 
   const dispatch = useAppDispatch();
@@ -79,8 +75,7 @@ export const ModalConfigDatetime = (props: Props) => {
           <Header.Content>
             Choose a new rule to add
             <Header.Subheader>
-              Choose a rule, that will parse the date from a certain field or
-              attribute.
+              Choose a rule, that will parse the date from a certain field or attribute.
             </Header.Subheader>
           </Header.Content>
         </Header>

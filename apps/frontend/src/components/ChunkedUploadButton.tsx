@@ -39,19 +39,13 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
           var uploadId = "";
           //To-Do: Handle Resume and Pause
           for (let i = 0; i < chunks.length; i++) {
-            var response = await uploadChunk(
-              chunks[offset / chunkSize],
-              uploadId,
-              offset
-            );
+            var response = await uploadChunk(chunks[offset / chunkSize], uploadId, offset);
             offset = response.offset;
             uploadId = response.uploadId;
             if (chunks[offset / chunkSize]) {
               currentUploadedFileSize += chunks[offset / chunkSize].size;
             } else {
-              currentUploadedFileSize +=
-                file.size -
-                (currentUploadedFileSize - currentUploadedFileSizeStartValue);
+              currentUploadedFileSize += file.size - (currentUploadedFileSize - currentUploadedFileSizeStartValue);
             }
             setCurrentSize(currentUploadedFileSize);
           }
@@ -147,9 +141,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
       return Server.post("upload/", form_data, {
         headers: {
           "Content-Type": "multipart/form-data",
-          "Content-Range": `bytes ${offset}-${offset + chunk.size - 1}/${
-            chunk.size
-          }`,
+          "Content-Range": `bytes ${offset}-${offset + chunk.size - 1}/${chunk.size}`,
         },
       }).then((response) => {
         return {
@@ -167,9 +159,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
     return Server.post("upload/", form_data, {
       headers: {
         "Content-Type": "multipart/form-data",
-        "Content-Range": `bytes ${offset}-${offset + chunk.size - 1}/${
-          chunk.size
-        }`,
+        "Content-Range": `bytes ${offset}-${offset + chunk.size - 1}/${chunk.size}`,
       },
     }).then((response) => {
       return {
@@ -194,11 +184,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
         <div {...getRootProps({ className: "dropzone" })}>
           <input {...getInputProps()} />
           {currentSize / totalSize > 0.99 && (
-            <Button
-              icon="upload"
-              loading={currentSize / totalSize < 1}
-              onClick={open}
-            ></Button>
+            <Button icon="upload" loading={currentSize / totalSize < 1} onClick={open}></Button>
           )}
 
           {currentSize / totalSize < 1 && (

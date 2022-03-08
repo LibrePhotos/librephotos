@@ -1,17 +1,7 @@
 import React, { Component } from "react";
 import "react-virtualized/styles.css"; // only needs to be imported once
 import { generatePhotoIm2txtCaption } from "../../actions/photosActions";
-import {
-  Image,
-  Header,
-  Item,
-  Form,
-  Label,
-  Button,
-  Icon,
-  Transition,
-  Breadcrumb,
-} from "semantic-ui-react";
+import { Image, Header, Item, Form, Label, Button, Icon, Transition, Breadcrumb } from "semantic-ui-react";
 import { connect } from "react-redux";
 import { serverAddress } from "../../api_client/apiClient";
 import { LocationMap } from "../maps";
@@ -49,11 +39,7 @@ export default class Sidebar extends Component {
   }
   render() {
     return (
-      <Transition
-        visible={this.props.lightboxSidebarShow}
-        animation="fade left"
-        duration={500}
-      >
+      <Transition visible={this.props.lightboxSidebarShow} animation="fade left" duration={500}>
         <div
           style={{
             right: 0,
@@ -97,13 +83,10 @@ export default class Sidebar extends Component {
                   <Item>
                     <Item.Content verticalAlign="middle">
                       <Item.Header>
-                        <Icon name="calendar" />{" "}
-                        {this.props.t("lightbox.sidebar.timetaken")}
+                        <Icon name="calendar" /> {this.props.t("lightbox.sidebar.timetaken")}
                       </Item.Header>
                       <Item.Description>
-                        {moment
-                          .utc(this.props.photoDetail.exif_timestamp)
-                          .format("dddd, MMMM Do YYYY, h:mm a")}
+                        {moment.utc(this.props.photoDetail.exif_timestamp).format("dddd, MMMM Do YYYY, h:mm a")}
                       </Item.Description>
                     </Item.Content>
                   </Item>
@@ -114,25 +97,17 @@ export default class Sidebar extends Component {
                   <Item>
                     <Item.Content verticalAlign="middle">
                       <Item.Header>
-                        <Icon name="file" />{" "}
-                        {this.props.t("lightbox.sidebar.filepath")}
+                        <Icon name="file" /> {this.props.t("lightbox.sidebar.filepath")}
                       </Item.Header>
                       <Item.Description>
                         <Breadcrumb
                           as={Link}
-                          to={
-                            serverAddress +
-                            "/media/photos/" +
-                            this.props.photoDetail.image_hash +
-                            ".jpg"
-                          }
+                          to={serverAddress + "/media/photos/" + this.props.photoDetail.image_hash + ".jpg"}
                           target="_blank"
                           divider="/"
-                          sections={this.props.photoDetail.image_path
-                            .split("/")
-                            .map((el) => {
-                              return { key: el, content: el };
-                            })}
+                          sections={this.props.photoDetail.image_path.split("/").map((el) => {
+                            return { key: el, content: el };
+                          })}
                         />
                       </Item.Description>
                     </Item.Content>
@@ -145,12 +120,9 @@ export default class Sidebar extends Component {
                     <Item>
                       <Item.Content verticalAlign="middle">
                         <Item.Header>
-                          <Icon name="point" />{" "}
-                          {this.props.t("lightbox.sidebar.location")}
+                          <Icon name="point" /> {this.props.t("lightbox.sidebar.location")}
                         </Item.Header>
-                        <Item.Description>
-                          {this.props.photoDetail.search_location}
-                        </Item.Description>
+                        <Item.Description>{this.props.photoDetail.search_location}</Item.Description>
                       </Item.Content>
                     </Item>
                   )}
@@ -162,12 +134,7 @@ export default class Sidebar extends Component {
                       lineHeight: "normal",
                     }}
                   >
-                    {this.props.photoDetail.exif_gps_lat && (
-                      <LocationMap
-                        zoom={16}
-                        photos={[this.props.photoDetail]}
-                      />
-                    )}
+                    {this.props.photoDetail.exif_gps_lat && <LocationMap zoom={16} photos={[this.props.photoDetail]} />}
                   </div>
 
                   {/* End Item Location */}
@@ -177,18 +144,13 @@ export default class Sidebar extends Component {
                     <Item>
                       <Item.Content verticalAlign="middle">
                         <Item.Header>
-                          <Icon name="users" />{" "}
-                          {this.props.t("lightbox.sidebar.people")}
+                          <Icon name="users" /> {this.props.t("lightbox.sidebar.people")}
                         </Item.Header>
                         <Item.Description>
                           <Label.Group>
                             {this.props.photoDetail.people.map((nc, idx) => (
                               <Label
-                                color={
-                                  colors[
-                                    idx % this.props.photoDetail.people.length
-                                  ]
-                                }
+                                color={colors[idx % this.props.photoDetail.people.length]}
                                 onClick={() => {
                                   this.props.dispatch(searchPhotos(nc));
                                   this.props.dispatch(push("/search"));
@@ -210,8 +172,7 @@ export default class Sidebar extends Component {
                   <Item>
                     <Item.Content verticalAlign="middle">
                       <Item.Header>
-                        <Icon name="write" />{" "}
-                        {this.props.t("lightbox.sidebar.caption")}
+                        <Icon name="write" /> {this.props.t("lightbox.sidebar.caption")}
                       </Item.Header>
                       <Item.Description>
                         {false && this.props.photoDetail.captions_json.im2txt}
@@ -219,33 +180,21 @@ export default class Sidebar extends Component {
                           <Form.TextArea
                             disabled={this.props.isPublic}
                             fluid
-                            placeholder={
-                              this.props.photoDetail.captions_json.im2txt
-                            }
+                            placeholder={this.props.photoDetail.captions_json.im2txt}
                           >
                             {this.props.photoDetail.captions_json.im2txt}
                           </Form.TextArea>
-                          <Button
-                            disabled={this.props.isPublic}
-                            floated="left"
-                            size="small"
-                            color="green"
-                          >
+                          <Button disabled={this.props.isPublic} floated="left" size="small" color="green">
                             {this.props.t("lightbox.sidebar.submit")}
                           </Button>
                           <Button
                             loading={this.props.generatingCaptionIm2txt}
                             onClick={() => {
-                              this.props.dispatch(
-                                generatePhotoIm2txtCaption(
-                                  this.props.photoDetail.image_hash
-                                )
-                              );
+                              this.props.dispatch(generatePhotoIm2txtCaption(this.props.photoDetail.image_hash));
                             }}
                             disabled={
                               this.props.isPublic |
-                              (this.props.generatingCaptionIm2txt != null &&
-                                this.props.generatingCaptionIm2txt)
+                              (this.props.generatingCaptionIm2txt != null && this.props.generatingCaptionIm2txt)
                             }
                             floated="left"
                             size="small"
@@ -253,12 +202,7 @@ export default class Sidebar extends Component {
                           >
                             {this.props.t("lightbox.sidebar.generate")}
                           </Button>
-                          <Button
-                            disabled={this.props.isPublic}
-                            floated="right"
-                            size="small"
-                            basic
-                          >
+                          <Button disabled={this.props.isPublic} floated="right" size="small" basic>
                             {this.props.t("lightbox.sidebar.cancel")}
                           </Button>
                         </Form>
@@ -272,60 +216,45 @@ export default class Sidebar extends Component {
                     <Item>
                       <Item.Content verticalAlign="middle">
                         <Item.Header>
-                          <Icon name="tags" />{" "}
-                          {this.props.t("lightbox.sidebar.scene")}
+                          <Icon name="tags" /> {this.props.t("lightbox.sidebar.scene")}
                         </Item.Header>
                         <Item.Description>
                           <p>
                             <b>{this.props.t("lightbox.sidebar.attributes")}</b>
                           </p>
                           <Label.Group>
-                            {this.props.photoDetail.captions_json.places365.attributes.map(
-                              (nc, idx) => (
-                                <Label
-                                  key={
-                                    "lightbox_attribute_label_" +
-                                    this.props.photoDetail.image_hash +
-                                    "_" +
-                                    nc
-                                  }
-                                  tag
-                                  color="blue"
-                                  onClick={() => {
-                                    this.props.dispatch(searchPhotos(nc));
-                                    this.props.dispatch(push("/search"));
-                                  }}
-                                >
-                                  {nc}
-                                </Label>
-                              )
-                            )}
+                            {this.props.photoDetail.captions_json.places365.attributes.map((nc, idx) => (
+                              <Label
+                                key={"lightbox_attribute_label_" + this.props.photoDetail.image_hash + "_" + nc}
+                                tag
+                                color="blue"
+                                onClick={() => {
+                                  this.props.dispatch(searchPhotos(nc));
+                                  this.props.dispatch(push("/search"));
+                                }}
+                              >
+                                {nc}
+                              </Label>
+                            ))}
                           </Label.Group>
 
                           <p>
                             <b>{this.props.t("lightbox.sidebar.categories")}</b>
                           </p>
                           <Label.Group>
-                            {this.props.photoDetail.captions_json.places365.categories.map(
-                              (nc, idx) => (
-                                <Label
-                                  key={
-                                    "lightbox_category_label_" +
-                                    this.props.photoDetail.image_hash +
-                                    "_" +
-                                    nc
-                                  }
-                                  tag
-                                  color="teal"
-                                  onClick={() => {
-                                    this.props.dispatch(searchPhotos(nc));
-                                    this.props.dispatch(push("/search"));
-                                  }}
-                                >
-                                  {nc}
-                                </Label>
-                              )
-                            )}
+                            {this.props.photoDetail.captions_json.places365.categories.map((nc, idx) => (
+                              <Label
+                                key={"lightbox_category_label_" + this.props.photoDetail.image_hash + "_" + nc}
+                                tag
+                                color="teal"
+                                onClick={() => {
+                                  this.props.dispatch(searchPhotos(nc));
+                                  this.props.dispatch(push("/search"));
+                                }}
+                              >
+                                {nc}
+                              </Label>
+                            ))}
                           </Label.Group>
                         </Item.Description>
                       </Item.Content>
@@ -342,16 +271,14 @@ export default class Sidebar extends Component {
                         </Item.Header>
                         <Item.Description>
                           <Image.Group>
-                            {this.props.photoDetail.similar_photos
-                              .slice(0, 30)
-                              .map((el) => (
-                                <Tile
-                                  video={el.type.includes("video")}
-                                  height={95}
-                                  width={95}
-                                  image_hash={el.image_hash}
-                                />
-                              ))}
+                            {this.props.photoDetail.similar_photos.slice(0, 30).map((el) => (
+                              <Tile
+                                video={el.type.includes("video")}
+                                height={95}
+                                width={95}
+                                image_hash={el.image_hash}
+                              />
+                            ))}
                             ;
                           </Image.Group>
                         </Item.Description>

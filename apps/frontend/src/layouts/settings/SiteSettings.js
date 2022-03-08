@@ -17,11 +17,7 @@ export default class SiteSettings extends Component {
                   <Radio
                     label={this.props.t("sitesettings.allow")}
                     name="radioGroup"
-                    onChange={() =>
-                      this.props.dispatch(
-                        setSiteSettings({ allow_registration: true })
-                      )
-                    }
+                    onChange={() => this.props.dispatch(setSiteSettings({ allow_registration: true }))}
                     checked={this.props.allow_registration}
                   />
                 </Form.Field>
@@ -29,11 +25,7 @@ export default class SiteSettings extends Component {
                   <Radio
                     label={this.props.t("sitesettings.noallow")}
                     name="radioGroup"
-                    onChange={() =>
-                      this.props.dispatch(
-                        setSiteSettings({ allow_registration: false })
-                      )
-                    }
+                    onChange={() => this.props.dispatch(setSiteSettings({ allow_registration: false }))}
                     checked={!this.props.allow_registration}
                   />
                 </Form.Field>

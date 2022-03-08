@@ -47,11 +47,7 @@ export class SideMenuNarrow extends Component {
           </Menu.Item>
         )}
 
-        <Dropdown
-          pointing="left"
-          item
-          icon={<Icon size="big" name="image outline" />}
-        >
+        <Dropdown pointing="left" item icon={<Icon size="big" name="image outline" />}>
           <Dropdown.Menu>
             <Dropdown.Header>
               <Trans i18nKey="sidemenu.photos">Photos</Trans>
@@ -83,11 +79,7 @@ export class SideMenuNarrow extends Component {
             <Dropdown.Item
               disabled={!this.props.auth.access}
               as={Link}
-              to={
-                this.props.auth.access
-                  ? `/user/${this.props.auth.access.name}`
-                  : "/"
-              }
+              to={this.props.auth.access ? `/user/${this.props.auth.access.name}` : "/"}
             >
               <Icon color="green" name="globe" />
               {"  " + this.props.t("sidemenu.mypublicphotos")}
@@ -142,16 +134,10 @@ export class SideMenuNarrow extends Component {
         </div>
 
         <Divider hidden />
-        <Dropdown
-          pointing="left"
-          item
-          icon={<Icon size="big" name="bar chart" />}
-        >
+        <Dropdown pointing="left" item icon={<Icon size="big" name="bar chart" />}>
           <Dropdown.Menu>
             <Dropdown.Header>
-              <div style={{ overflow: "visible" }}>
-                {this.props.t("sidemenu.dataviz")}
-              </div>
+              <div style={{ overflow: "visible" }}>{this.props.t("sidemenu.dataviz")}</div>
             </Dropdown.Header>
             <Dropdown.Item as={Link} to="/placetree">
               <Icon name="sitemap" />
@@ -184,15 +170,9 @@ export class SideMenuNarrow extends Component {
         </div>
 
         <Divider hidden />
-        <Dropdown
-          pointing="left"
-          item
-          icon={<Icon size="big" name="dashboard" />}
-        >
+        <Dropdown pointing="left" item icon={<Icon size="big" name="dashboard" />}>
           <Dropdown.Menu>
-            <Dropdown.Header>
-              {this.props.t("sidemenu.dashboards")}
-            </Dropdown.Header>
+            <Dropdown.Header>{this.props.t("sidemenu.dashboards")}</Dropdown.Header>
             <Dropdown.Item as={Link} to="/faces">
               <Icon name="user circle outline" />
               {"  " + this.props.t("sidemenu.facerecognition")}
@@ -210,21 +190,11 @@ export class SideMenuNarrow extends Component {
         {this.props.auth && (
           <div>
             <Divider hidden />
-            <Dropdown
-              pointing="left"
-              item
-              icon={<Icon size="big" name="users" />}
-            >
+            <Dropdown pointing="left" item icon={<Icon size="big" name="users" />}>
               <Dropdown.Menu>
-                <Dropdown.Header>
-                  {this.props.t("sidemenu.sharing")}
-                </Dropdown.Header>
+                <Dropdown.Header>{this.props.t("sidemenu.sharing")}</Dropdown.Header>
 
-                <Dropdown.Item
-                  disabled={!this.props.auth.access}
-                  as={Link}
-                  to={`/users/`}
-                >
+                <Dropdown.Item disabled={!this.props.auth.access} as={Link} to={`/users/`}>
                   <Icon name="globe" />
                   {"  " + this.props.t("sidemenu.publicphotos")}
                 </Dropdown.Item>

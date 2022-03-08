@@ -1,9 +1,6 @@
 import React, { Component } from "react";
 import "react-virtualized/styles.css"; // only needs to be imported once
-import {
-  finalPhotosDeleted,
-  setPhotosDeleted,
-} from "../../actions/photosActions";
+import { finalPhotosDeleted, setPhotosDeleted } from "../../actions/photosActions";
 import { Button, Icon, Confirm } from "semantic-ui-react";
 import { connect } from "react-redux";
 import { withTranslation } from "react-i18next";
@@ -60,9 +57,7 @@ export class TrashcanActions extends Component {
           onConfirm={() => {
             console.log("delete");
 
-            this.props.dispatch(
-              finalPhotosDeleted(this.props.selectedItems.map((i) => i.id))
-            );
+            this.props.dispatch(finalPhotosDeleted(this.props.selectedItems.map((i) => i.id)));
 
             this.props.updateSelectionState({
               selectMode: false,

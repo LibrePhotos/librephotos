@@ -1,23 +1,8 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import {
-  Icon,
-  Header,
-  Dropdown,
-  Loader,
-  Popup,
-  Confirm,
-  Label,
-  Modal,
-  Button,
-  Input,
-} from "semantic-ui-react";
+import { Icon, Header, Dropdown, Loader, Popup, Confirm, Label, Modal, Button, Input } from "semantic-ui-react";
 import { Grid, AutoSizer } from "react-virtualized";
-import {
-  fetchUserAlbumsList,
-  renameUserAlbum,
-  deleteUserAlbum,
-} from "../../actions/albumsActions";
+import { fetchUserAlbumsList, renameUserAlbum, deleteUserAlbum } from "../../actions/albumsActions";
 import { Link } from "react-router-dom";
 import { Tile } from "../../components/Tile";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
@@ -91,36 +76,21 @@ export class AlbumUser extends Component {
   }
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    var albumUserIndex =
-      rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
+    var albumUserIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
     if (albumUserIndex < this.props.albumsUserList.length) {
       return (
         <div key={key} style={style}>
           <div style={{ padding: 5 }}>
-            <Link
-              to={`/useralbum/${this.props.albumsUserList[albumUserIndex].id}`}
-            >
+            <Link to={`/useralbum/${this.props.albumsUserList[albumUserIndex].id}`}>
               <Tile
-                video={
-                  this.props.albumsUserList[albumUserIndex].cover_photos[0]
-                    .video === true
-                }
+                video={this.props.albumsUserList[albumUserIndex].cover_photos[0].video === true}
                 height={this.state.entrySquareSize - 10}
                 width={this.state.entrySquareSize - 10}
-                image_hash={
-                  this.props.albumsUserList[albumUserIndex].cover_photos[0]
-                    .image_hash
-                }
+                image_hash={this.props.albumsUserList[albumUserIndex].cover_photos[0].image_hash}
               ></Tile>
             </Link>
-            <Label
-              style={{ backgroundColor: "transparent" }}
-              attached="top right"
-            >
-              <Dropdown
-                item
-                icon={<Icon color="black" name="ellipsis vertical"></Icon>}
-              >
+            <Label style={{ backgroundColor: "transparent" }} attached="top right">
+              <Dropdown item icon={<Icon color="black" name="ellipsis vertical"></Icon>}>
                 <Dropdown.Menu>
                   <Dropdown.Item
                     icon="edit"
@@ -146,10 +116,7 @@ export class AlbumUser extends Component {
               </Dropdown>
             </Label>
           </div>
-          <div
-            className="personCardName"
-            style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}
-          >
+          <div className="personCardName" style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
             {this.props.albumsUserList[albumUserIndex].shared_to.length > 0 && (
               <Popup
                 style={{ padding: 10 }}
@@ -157,9 +124,7 @@ export class AlbumUser extends Component {
                 position="center right"
                 header="Shared with:"
                 trigger={<Icon name="users" />}
-                content={this.props.albumsUserList[
-                  albumUserIndex
-                ].shared_to.map((el) => {
+                content={this.props.albumsUserList[albumUserIndex].shared_to.map((el) => {
                   return (
                     <div>
                       <Icon name="user circle" />
@@ -188,12 +153,7 @@ export class AlbumUser extends Component {
           <Header as="h2">
             <Icon name="bookmark" />
             <Header.Content>
-              {this.props.t("myalbums")}{" "}
-              <Loader
-                size="tiny"
-                inline
-                active={this.props.fetchingAlbumsUserList}
-              />
+              {this.props.t("myalbums")} <Loader size="tiny" inline active={this.props.fetchingAlbumsUserList} />
               <Header.Subheader>
                 {this.props.t("useralbum.numberof", {
                   number: this.props.albumsUserList.length,
@@ -212,10 +172,7 @@ export class AlbumUser extends Component {
             <Header as="h4">{this.props.t("useralbum.renamealbum")}</Header>
             <Popup
               inverted
-              content={
-                (this.props.t("useralbum.albumalreadyexists"),
-                { name: this.state.newAlbumTitle.trim() })
-              }
+              content={(this.props.t("useralbum.albumalreadyexists"), { name: this.state.newAlbumTitle.trim() })}
               position="bottom center"
               open={this.props.albumsUserList
                 .map((el) => el.title.toLowerCase().trim())
@@ -237,11 +194,7 @@ export class AlbumUser extends Component {
                     positive
                     onClick={() => {
                       this.props.dispatch(
-                        renameUserAlbum(
-                          this.state.albumID,
-                          this.state.albumTitle,
-                          this.state.newAlbumTitle
-                        )
+                        renameUserAlbum(this.state.albumID, this.state.albumTitle, this.state.newAlbumTitle)
                       );
                       this.closeRenameDialog();
                     }}
@@ -261,16 +214,11 @@ export class AlbumUser extends Component {
           open={this.state.openDeleteDialog}
           onCancel={this.closeDeleteDialog}
           onConfirm={() => {
-            this.props.dispatch(
-              deleteUserAlbum(this.state.albumID, this.state.albumTitle)
-            );
+            this.props.dispatch(deleteUserAlbum(this.state.albumID, this.state.albumTitle));
             this.closeDeleteDialog();
           }}
         />
-        <AutoSizer
-          disableHeight
-          style={{ outline: "none", padding: 0, margin: 0 }}
-        >
+        <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
           {({ width }) => (
             <Grid
               style={{ outline: "none" }}
@@ -280,10 +228,7 @@ export class AlbumUser extends Component {
               columnCount={this.state.numEntrySquaresPerRow}
               height={this.state.height - TOP_MENU_HEIGHT - 60}
               rowHeight={this.state.entrySquareSize + 60}
-              rowCount={Math.ceil(
-                this.props.albumsUserList.length /
-                  this.state.numEntrySquaresPerRow
-              ).toFixed(1)}
+              rowCount={Math.ceil(this.props.albumsUserList.length / this.state.numEntrySquaresPerRow).toFixed(1)}
               width={width}
             />
           )}

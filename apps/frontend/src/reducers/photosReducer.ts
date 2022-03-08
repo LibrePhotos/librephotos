@@ -1,8 +1,5 @@
 import { AnyAction } from "redux";
-import {
-  FETCH_USER_ALBUM_FULFILLED,
-  FETCH_USER_ALBUM_REJECTED,
-} from "../actions/albumsActions";
+import { FETCH_USER_ALBUM_FULFILLED, FETCH_USER_ALBUM_REJECTED } from "../actions/albumsActions";
 import {
   FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED,
   FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED,
@@ -19,19 +16,9 @@ import {
   SET_PHOTOS_HIDDEN_FULFILLED,
   UserPhotosGroup,
 } from "../actions/photosActions";
-import {
-  SEARCH_PHOTOS_FULFILLED,
-  SEARCH_PHOTOS_REJECTED,
-} from "../actions/searchActions";
-import {
-  addTempElementsToFlatList,
-  getPhotosFlatFromGroupedByDate,
-} from "../util/util";
-import {
-  IncompleteDatePhotosGroup,
-  Photo,
-  PigPhoto,
-} from "../actions/photosActions.types";
+import { SEARCH_PHOTOS_FULFILLED, SEARCH_PHOTOS_REJECTED } from "../actions/searchActions";
+import { addTempElementsToFlatList, getPhotosFlatFromGroupedByDate } from "../util/util";
+import { IncompleteDatePhotosGroup, Photo, PigPhoto } from "../actions/photosActions.types";
 
 export enum PhotosetType {
   NONE = "none",
@@ -116,10 +103,7 @@ function updatePhotoDetails(state: PhotosState, action: AnyAction) {
   };
 }
 
-export default function photosReducer(
-  state = initialPhotosState,
-  action: AnyAction
-): PhotosState {
+export default function photosReducer(state = initialPhotosState, action: AnyAction): PhotosState {
   var updatedPhotoDetails;
   var newPhotosFlat: PigPhoto[];
   var newPhotosGroupedByDate: IncompleteDatePhotosGroup[];
@@ -184,9 +168,7 @@ export default function photosReducer(
     case "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED": {
       var page = action.payload.page;
       newPhotosGroupedByDate = [...state.photosGroupedByDate];
-      indexToReplace = newPhotosGroupedByDate.findIndex(
-        (group) => group.id === action.payload.datePhotosGroup.id
-      );
+      indexToReplace = newPhotosGroupedByDate.findIndex((group) => group.id === action.payload.datePhotosGroup.id);
       var groupToChange = newPhotosGroupedByDate[indexToReplace];
       if (!groupToChange) {
         return {
@@ -253,12 +235,8 @@ export default function photosReducer(
         ...state,
         photosFlat: action.payload.photosFlat,
         fetchedPhotosetType: action.payload.photosetType,
-        photosGroupedByDate: action.payload.photosGroupedByDate
-          ? action.payload.photosGroupedByDate
-          : [],
-        photosGroupedByUser: action.payload.photosGroupedByUser
-          ? action.payload.photosGroupedByUser
-          : [],
+        photosGroupedByDate: action.payload.photosGroupedByDate ? action.payload.photosGroupedByDate : [],
+        photosGroupedByUser: action.payload.photosGroupedByUser ? action.payload.photosGroupedByUser : [],
       };
     }
     case FETCH_PHOTOSET_REJECTED: {
@@ -304,15 +282,11 @@ export default function photosReducer(
         newPhotoDetails[photoDetails.image_hash] = photoDetails;
 
         newPhotosFlat = newPhotosFlat.map((photo) =>
-          photo.id === photoDetails.image_hash
-            ? { ...photo, rating: photoDetails.rating }
-            : photo
+          photo.id === photoDetails.image_hash ? { ...photo, rating: photoDetails.rating } : photo
         );
         newPhotosGroupedByDate = newPhotosGroupedByDate.map((group) =>
           // Create a new group object if the photo exists in its items (don't mutate).
-          group.items.findIndex(
-            (photo) => photo.id === photoDetails.image_hash
-          ) === -1
+          group.items.findIndex((photo) => photo.id === photoDetails.image_hash) === -1
             ? group
             : {
                 ...group,
@@ -327,27 +301,17 @@ export default function photosReducer(
               }
         );
 
-        if (
-          state.fetchedPhotosetType === PhotosetType.FAVORITES &&
-          !action.payload.favorite
-        ) {
+        if (state.fetchedPhotosetType === PhotosetType.FAVORITES && !action.payload.favorite) {
           // Remove the photo from the photo set. (Ok to mutate, since we've already created a new group.)
           newPhotosGroupedByDate.forEach(
-            (group) =>
-              (group.items = group.items.filter(
-                (item) => item.id !== photoDetails.image_hash
-              ))
+            (group) => (group.items = group.items.filter((item) => item.id !== photoDetails.image_hash))
           );
-          newPhotosFlat = newPhotosFlat.filter(
-            (item) => item.id !== photoDetails.image_hash
-          );
+          newPhotosFlat = newPhotosFlat.filter((item) => item.id !== photoDetails.image_hash);
         }
       });
 
       // Keep only groups that still contain photos
-      newPhotosGroupedByDate = newPhotosGroupedByDate.filter(
-        (group) => group.items.length > 0
-      );
+      newPhotosGroupedByDate = newPhotosGroupedByDate.filter((group) => group.items.length > 0);
 
       return {
         ...state,

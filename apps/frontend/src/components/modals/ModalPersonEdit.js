@@ -1,12 +1,5 @@
 import React, { Component } from "react";
-import {
-  Popup,
-  Input,
-  Image,
-  Header,
-  Divider,
-  Button,
-} from "semantic-ui-react";
+import { Popup, Input, Image, Header, Divider, Button } from "semantic-ui-react";
 
 import { SecuredImageJWT } from "../../components/SecuredImage";
 import { connect } from "react-redux";
@@ -63,17 +56,11 @@ export class ModalPersonEdit extends Component {
     var filteredPeopleList = this.props.people;
     if (this.state.newPersonName.length > 0) {
       filteredPeopleList = this.props.people.filter((el) =>
-        fuzzy_match(
-          el.text.toLowerCase(),
-          this.state.newPersonName.toLowerCase()
-        )
+        fuzzy_match(el.text.toLowerCase(), this.state.newPersonName.toLowerCase())
       );
     }
 
-    const allFaces = _.concat(
-      this.props.inferredFacesList,
-      this.props.labeledFacesList
-    );
+    const allFaces = _.concat(this.props.inferredFacesList, this.props.labeledFacesList);
 
     var selectedImageIDs = this.props.selectedFaces.map((faceID) => {
       const res = allFaces.filter((face) => face.id === faceID)[0].image;
@@ -157,12 +144,7 @@ export class ModalPersonEdit extends Component {
                   <Button
                     positive
                     onClick={() => {
-                      this.props.dispatch(
-                        setFacesPersonLabel(
-                          this.props.selectedFaces,
-                          this.state.newPersonName
-                        )
-                      );
+                      this.props.dispatch(setFacesPersonLabel(this.props.selectedFaces, this.state.newPersonName));
                       this.props.onRequestClose();
                       this.setState({ newPersonName: "" });
                     }}
@@ -192,20 +174,13 @@ export class ModalPersonEdit extends Component {
                   <Header
                     as="h4"
                     onClick={() => {
-                      this.props.dispatch(
-                        setFacesPersonLabel(this.props.selectedFaces, item.text)
-                      );
+                      this.props.dispatch(setFacesPersonLabel(this.props.selectedFaces, item.text));
                       this.props.onRequestClose();
                       // console.log('trying to add photos: ',this.props.selectedFaces)
                       // console.log('to user album id: ',item.id)
                     }}
                   >
-                    <SecuredImageJWT
-                      circular
-                      height={60}
-                      width={60}
-                      src={serverAddress + item.face_url}
-                    />
+                    <SecuredImageJWT circular height={60} width={60} src={serverAddress + item.face_url} />
                     <Header.Content>
                       {item.text}
                       <Header.Subheader>

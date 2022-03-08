@@ -35,12 +35,7 @@ export default function reducer(
       return { ...state, adding: false, error: action.payload };
     }
     case "ADD_PERSON_FULFILLED": {
-      const newState = Object.assign(
-        {},
-        state,
-        { adding: false },
-        { added: true }
-      );
+      const newState = Object.assign({}, state, { adding: false }, { added: true });
       newState.people = state.people.concat(action.payload);
       return newState;
     }
@@ -52,12 +47,7 @@ export default function reducer(
       return { ...state, adding: false, error: action.payload };
     }
     case "ADD_PERSON_AND_SET_FACE_LABEL_FULFILLED": {
-      const newState = Object.assign(
-        {},
-        state,
-        { adding: false },
-        { added: true }
-      );
+      const newState = Object.assign({}, state, { adding: false }, { added: true });
       newState.people = state.people.concat(action.payload);
       return newState;
     }

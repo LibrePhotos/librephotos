@@ -7,9 +7,11 @@ import { useAppDispatch, useAppSelector } from "../../hooks";
 import { useTranslation } from "react-i18next";
 
 export const HiddenPhotos = () => {
-  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector((state) => state.photos as PhotosState);
+  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(
+    (state) => state.photos as PhotosState
+  );
   const dispatch = useAppDispatch();
-  const {t} = useTranslation();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (fetchedPhotosetType !== PhotosetType.HIDDEN) {
@@ -19,15 +21,14 @@ export const HiddenPhotos = () => {
 
   return (
     <PhotoListView
-          showHidden={true}
-          title={t("photos.hidden")}
-          loading={fetchedPhotosetType !== PhotosetType.HIDDEN}
-          titleIconName={"hide"}
-          isDateView={true}
-          photoset={photosGroupedByDate}
-          idx2hash={photosFlat}
-          selectable={true}
-        />
+      showHidden={true}
+      title={t("photos.hidden")}
+      loading={fetchedPhotosetType !== PhotosetType.HIDDEN}
+      titleIconName={"hide"}
+      isDateView={true}
+      photoset={photosGroupedByDate}
+      idx2hash={photosFlat}
+      selectable={true}
+    />
   );
-}
-
+};

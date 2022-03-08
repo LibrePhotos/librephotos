@@ -1,23 +1,7 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import {
-  Popup,
-  Icon,
-  Modal,
-  Input,
-  Confirm,
-  Header,
-  Image,
-  Loader,
-  Button,
-  Dropdown,
-  Label,
-} from "semantic-ui-react";
-import {
-  fetchPeople,
-  deletePerson,
-  renamePerson,
-} from "../../actions/peopleActions";
+import { Popup, Icon, Modal, Input, Confirm, Header, Image, Loader, Button, Dropdown, Label } from "semantic-ui-react";
+import { fetchPeople, deletePerson, renamePerson } from "../../actions/peopleActions";
 import { Tile } from "../../components/Tile";
 import { Grid, AutoSizer } from "react-virtualized";
 import { Link } from "react-router-dom";
@@ -98,8 +82,7 @@ export class AlbumPeople extends Component {
   }
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    var albumPersonIndex =
-      rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
+    var albumPersonIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
     if (albumPersonIndex < this.props.people.length) {
       return (
         <div key={key} style={style}>
@@ -119,9 +102,7 @@ export class AlbumPeople extends Component {
                     video={this.props.people[albumPersonIndex].video === true}
                     height={this.state.entrySquareSize - 10}
                     width={this.state.entrySquareSize - 10}
-                    image_hash={
-                      this.props.people[albumPersonIndex].face_photo_url
-                    }
+                    image_hash={this.props.people[albumPersonIndex].face_photo_url}
                   ></Tile>
                 </Link>
               )
@@ -132,14 +113,8 @@ export class AlbumPeople extends Component {
                 src={"/unknown_user.jpg"}
               />
             )}
-            <Label
-              style={{ backgroundColor: "transparent" }}
-              attached="top right"
-            >
-              <Dropdown
-                item
-                icon={<Icon color="black" name="ellipsis vertical"></Icon>}
-              >
+            <Label style={{ backgroundColor: "transparent" }} attached="top right">
+              <Dropdown item icon={<Icon color="black" name="ellipsis vertical"></Icon>}>
                 <Dropdown.Menu>
                   <Dropdown.Item
                     icon="edit"
@@ -165,10 +140,7 @@ export class AlbumPeople extends Component {
               </Dropdown>
             </Label>
           </div>
-          <div
-            className="personCardName"
-            style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}
-          >
+          <div className="personCardName" style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
             <b>{this.props.people[albumPersonIndex].text}</b> <br />
             {this.props.t("numberofphotos", {
               number: this.props.people[albumPersonIndex].face_count,
@@ -188,8 +160,7 @@ export class AlbumPeople extends Component {
           <Header as="h2">
             <Icon name="users" />
             <Header.Content>
-              {this.props.t("people")}{" "}
-              <Loader size="tiny" inline active={this.props.fetchingPeople} />
+              {this.props.t("people")} <Loader size="tiny" inline active={this.props.fetchingPeople} />
               <Header.Subheader>
                 {this.props.t("personalbum.numberofpeople", {
                   peoplelength: this.props.people.length,
@@ -232,11 +203,7 @@ export class AlbumPeople extends Component {
                     positive
                     onClick={() => {
                       this.props.dispatch(
-                        renamePerson(
-                          this.state.personID,
-                          this.state.personName,
-                          this.state.newPersonName
-                        )
+                        renamePerson(this.state.personID, this.state.personName, this.state.newPersonName)
                       );
                       this.closeRenameDialog();
                     }}
@@ -260,10 +227,7 @@ export class AlbumPeople extends Component {
             this.closeDeleteDialog();
           }}
         />
-        <AutoSizer
-          disableHeight
-          style={{ outline: "none", padding: 0, margin: 0 }}
-        >
+        <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
           {({ width }) => (
             <Grid
               style={{ outline: "none" }}
@@ -274,10 +238,7 @@ export class AlbumPeople extends Component {
               columnCount={this.state.numEntrySquaresPerRow}
               height={this.state.height - TOP_MENU_HEIGHT - 60}
               rowHeight={this.state.entrySquareSize + 60}
-              rowCount={Math.ceil(
-                this.props.people.length /
-                  this.state.numEntrySquaresPerRow.toFixed(1)
-              )}
+              rowCount={Math.ceil(this.props.people.length / this.state.numEntrySquaresPerRow.toFixed(1))}
               width={width}
             />
           )}

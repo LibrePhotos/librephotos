@@ -1,8 +1,5 @@
 import React, { useEffect, useCallback, useState } from "react";
-import {
-  fetchAlbumDate,
-  fetchAlbumDateList,
-} from "../../actions/albumsActions";
+import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
 import _ from "lodash";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType, PhotosState } from "../../reducers/photosReducer";
@@ -15,8 +12,9 @@ type fetchedGroup = {
 };
 
 export const DeletedPhotos = () => {
-  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } =
-    useAppSelector((state) => state.photos as PhotosState);
+  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(
+    (state) => state.photos as PhotosState
+  );
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
 
@@ -42,10 +40,7 @@ export const DeletedPhotos = () => {
     console.log("visibleGroups", visibleGroups);
     visibleGroups.forEach((group: any) => {
       var visibleImages = group.items;
-      if (
-        visibleImages.filter((i: any) => i.isTemp && i.isTemp != undefined)
-          .length > 0
-      ) {
+      if (visibleImages.filter((i: any) => i.isTemp && i.isTemp != undefined).length > 0) {
         var firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
         var page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
         setGroup({ id: group.id, page: page });

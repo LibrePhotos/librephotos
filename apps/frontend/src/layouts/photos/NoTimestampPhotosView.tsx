@@ -7,9 +7,7 @@ import { useAppDispatch, useAppSelector } from "../../hooks";
 import { useTranslation } from "react-i18next";
 
 export const NoTimestampPhotosView = () => {
-  const { fetchedPhotosetType, numberOfPhotos, photosFlat } = useAppSelector(
-    (state) => state.photos as PhotosState
-  );
+  const { fetchedPhotosetType, numberOfPhotos, photosFlat } = useAppSelector((state) => state.photos as PhotosState);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
 
@@ -20,10 +18,7 @@ export const NoTimestampPhotosView = () => {
   }, [dispatch]); // Only run on first render
 
   const getImages = (visibleItems: any) => {
-    if (
-      visibleItems.filter((i: any) => i.isTemp && i.isTemp != undefined)
-        .length > 0
-    ) {
+    if (visibleItems.filter((i: any) => i.isTemp && i.isTemp != undefined).length > 0) {
       var firstTempObject = visibleItems.filter((i: any) => i.isTemp)[0];
       var page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
       if (page > 1) {

@@ -1,13 +1,5 @@
 import React, { Component } from "react";
-import {
-  Header,
-  Divider,
-  Loader,
-  Breadcrumb,
-  Label,
-  Button,
-  Icon,
-} from "semantic-ui-react";
+import { Header, Divider, Loader, Breadcrumb, Label, Button, Icon } from "semantic-ui-react";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
 import { fetchAlbumsAutoGalleries } from "../../actions/albumsActions";
@@ -61,12 +53,7 @@ export class AlbumLocationMap extends Component {
     var avg_lon = sum_lon / photosWithGPS.length;
 
     var markers = photosWithGPS.map(function (photo, idx) {
-      return (
-        <Marker
-          key={"marker-" + photo.id + "-" + idx}
-          position={[photo.exif_gps_lat, photo.exif_gps_lon]}
-        />
-      );
+      return <Marker key={"marker-" + photo.id + "-" + idx} position={[photo.exif_gps_lat, photo.exif_gps_lon]} />;
     });
     if (photosWithGPS.length > 0) {
       return (
@@ -110,10 +97,7 @@ export class AlbumAutoGalleryView extends Component {
   componentDidMount() {
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
-    fetchAlbumsAutoGalleries(
-      this.props.dispatch,
-      this.props.match.params.albumID
-    );
+    fetchAlbumsAutoGalleries(this.props.dispatch, this.props.match.params.albumID);
   }
 
   calculateEntrySquareSize() {
@@ -141,29 +125,16 @@ export class AlbumAutoGalleryView extends Component {
 
   onPhotoClick(image_hash) {
     this.setState({
-      lightboxImageIndex:
-        this.props.albumsAutoGalleries[
-          this.props.match.params.albumID
-        ].photos.indexOf(image_hash),
+      lightboxImageIndex: this.props.albumsAutoGalleries[this.props.match.params.albumID].photos.indexOf(image_hash),
       lightboxShow: true,
     });
   }
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
     var photoIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
-    if (
-      photoIndex <
-      this.props.albumsAutoGalleries[this.props.match.params.albumID].photos
-        .length
-    ) {
-      var video =
-        this.props.albumsAutoGalleries[this.props.match.params.albumID].photos[
-          photoIndex
-        ].video;
-      var image_hash =
-        this.props.albumsAutoGalleries[this.props.match.params.albumID].photos[
-          photoIndex
-        ].image_hash;
+    if (photoIndex < this.props.albumsAutoGalleries[this.props.match.params.albumID].photos.length) {
+      var video = this.props.albumsAutoGalleries[this.props.match.params.albumID].photos[photoIndex].video;
+      var image_hash = this.props.albumsAutoGalleries[this.props.match.params.albumID].photos[photoIndex].image_hash;
       return (
         <div key={key} style={style}>
           <div
@@ -191,19 +162,12 @@ export class AlbumAutoGalleryView extends Component {
 
   render() {
     var albumID = this.props.match.params.albumID;
-    if (
-      this.props.albumsAutoGalleries.hasOwnProperty(albumID) &&
-      !this.props.fetchingAlbumsAutoGalleries
-    ) {
-      var album =
-        this.props.albumsAutoGalleries[this.props.match.params.albumID];
+    if (this.props.albumsAutoGalleries.hasOwnProperty(albumID) && !this.props.fetchingAlbumsAutoGalleries) {
+      var album = this.props.albumsAutoGalleries[this.props.match.params.albumID];
       var photos = _.sortBy(album.photos, "exif_timestamp").map((el, idx) => {
         return { ...el, idx: idx };
       });
-      var byDate = _.groupBy(
-        _.sortBy(photos, "exif_timestamp"),
-        (photo) => photo.exif_timestamp.split("T")[0]
-      );
+      var byDate = _.groupBy(_.sortBy(photos, "exif_timestamp"), (photo) => photo.exif_timestamp.split("T")[0]);
       return (
         <div>
           <div style={{ paddingTop: 10, paddingRight: 5 }}>
@@ -218,17 +182,8 @@ export class AlbumAutoGalleryView extends Component {
                   })}
                   <br />
                   <Icon name="calendar outline" />{" "}
-                  <b>
-                    {moment(album.photos[0].exif_timestamp).format(
-                      "MMMM Do YYYY"
-                    )}
-                  </b>{" "}
-                  -
-                  <b>
-                    {moment(
-                      album.photos[album.photos.length - 1].exif_timestamp
-                    ).format(" MMMM Do YYYY")}
-                  </b>
+                  <b>{moment(album.photos[0].exif_timestamp).format("MMMM Do YYYY")}</b> -
+                  <b>{moment(album.photos[album.photos.length - 1].exif_timestamp).format(" MMMM Do YYYY")}</b>
                 </Header.Subheader>
               </Header.Content>
             </Header>
@@ -256,9 +211,7 @@ export class AlbumAutoGalleryView extends Component {
               floated="right"
             >
               <Icon name="map" inverted />
-              {this.state.showMap
-                ? this.props.t("autoalbumgallery.hidemap")
-                : this.props.t("autoalbumgallery.showmap")}
+              {this.state.showMap ? this.props.t("autoalbumgallery.hidemap") : this.props.t("autoalbumgallery.showmap")}
             </Button>
           </div>
 
@@ -279,11 +232,7 @@ export class AlbumAutoGalleryView extends Component {
                       to={`/person/${person.id}`}
                       color={colors[idx % album.people.length]}
                     >
-                      <SecuredImageJWT
-                        avatar
-                        spaced="right"
-                        src={serverAddress + person.face_url}
-                      />
+                      <SecuredImageJWT avatar spaced="right" src={serverAddress + person.face_url} />
                       <b>{person.name}</b>
                     </Label>
                   ))}
@@ -294,14 +243,10 @@ export class AlbumAutoGalleryView extends Component {
             <div>
               {_.toPairs(byDate).map((v, i) => {
                 var locations = v[1]
-                  .filter((photo) =>
-                    photo.geolocation_json.features ? true : false
-                  )
+                  .filter((photo) => (photo.geolocation_json.features ? true : false))
                   .map((photo) => {
                     if (photo.geolocation_json.features) {
-                      return photo.geolocation_json.features[
-                        photo.geolocation_json.features.length - 3
-                      ].text;
+                      return photo.geolocation_json.features[photo.geolocation_json.features.length - 3].text;
                     }
                     return "";
                   });
@@ -312,8 +257,7 @@ export class AlbumAutoGalleryView extends Component {
                     <Header>
                       <Icon name="calendar outline" />
                       <Header.Content>
-                        {`Day ${i + 1} - ` +
-                          moment(v[0]).format("MMMM Do YYYY")}
+                        {`Day ${i + 1} - ` + moment(v[0]).format("MMMM Do YYYY")}
                         <Header.Subheader>
                           <Breadcrumb
                             divider={<Icon name="right chevron" />}
@@ -342,9 +286,7 @@ export class AlbumAutoGalleryView extends Component {
                     {v[1].map((photo) => (
                       <div
                         onClick={() => {
-                          var indexOf = this.props.albumsAutoGalleries[
-                            this.props.match.params.albumID
-                          ].photos
+                          var indexOf = this.props.albumsAutoGalleries[this.props.match.params.albumID].photos
                             .map((i) => i.image_hash)
                             .indexOf(photo.image_hash);
                           console.log(indexOf);
@@ -377,58 +319,43 @@ export class AlbumAutoGalleryView extends Component {
 
           {this.state.lightboxShow && (
             <LightBox
-              idx2hash={this.props.albumsAutoGalleries[
-                this.props.match.params.albumID
-              ].photos.map((i) => i.image_hash)}
+              idx2hash={this.props.albumsAutoGalleries[this.props.match.params.albumID].photos.map((i) => i.image_hash)}
               lightboxImageIndex={this.state.lightboxImageIndex}
               lightboxImageId={
-                this.props.albumsAutoGalleries[this.props.match.params.albumID]
-                  .photos[this.state.lightboxImageIndex].image_hash
+                this.props.albumsAutoGalleries[this.props.match.params.albumID].photos[this.state.lightboxImageIndex]
+                  .image_hash
               }
               onCloseRequest={() => this.setState({ lightboxShow: false })}
               onImageLoad={() => {
                 this.getPhotoDetails(
-                  this.props.albumsAutoGalleries[
-                    this.props.match.params.albumID
-                  ].photos[this.state.lightboxImageIndex].image_hash
+                  this.props.albumsAutoGalleries[this.props.match.params.albumID].photos[this.state.lightboxImageIndex]
+                    .image_hash
                 );
               }}
               onMovePrevRequest={() => {
                 var nextIndex =
                   (this.state.lightboxImageIndex +
-                    this.props.albumsAutoGalleries[
-                      this.props.match.params.albumID
-                    ].photos.length -
+                    this.props.albumsAutoGalleries[this.props.match.params.albumID].photos.length -
                     1) %
-                  this.props.albumsAutoGalleries[
-                    this.props.match.params.albumID
-                  ].photos.length;
+                  this.props.albumsAutoGalleries[this.props.match.params.albumID].photos.length;
                 this.setState({
                   lightboxImageIndex: nextIndex,
                 });
                 this.getPhotoDetails(
-                  this.props.albumsAutoGalleries[
-                    this.props.match.params.albumID
-                  ].photos[nextIndex].image_hash
+                  this.props.albumsAutoGalleries[this.props.match.params.albumID].photos[nextIndex].image_hash
                 );
               }}
               onMoveNextRequest={() => {
                 var nextIndex =
                   (this.state.lightboxImageIndex +
-                    this.props.albumsAutoGalleries[
-                      this.props.match.params.albumID
-                    ].photos.length +
+                    this.props.albumsAutoGalleries[this.props.match.params.albumID].photos.length +
                     1) %
-                  this.props.albumsAutoGalleries[
-                    this.props.match.params.albumID
-                  ].photos.length;
+                  this.props.albumsAutoGalleries[this.props.match.params.albumID].photos.length;
                 this.setState({
                   lightboxImageIndex: nextIndex,
                 });
                 this.getPhotoDetails(
-                  this.props.albumsAutoGalleries[
-                    this.props.match.params.albumID
-                  ].photos[nextIndex].image_hash
+                  this.props.albumsAutoGalleries[this.props.match.params.albumID].photos[nextIndex].image_hash
                 );
               }}
             />
@@ -440,14 +367,8 @@ export class AlbumAutoGalleryView extends Component {
         <div style={{ height: 60, paddingTop: 10 }}>
           <Header as="h4">
             <Header.Content>
-              {this.props.fetchingAlbumsAutoGalleries
-                ? "Loading..."
-                : "No images found"}
-              <Loader
-                inline
-                active={this.props.fetchingAlbumsAutoGalleries}
-                size="mini"
-              />
+              {this.props.fetchingAlbumsAutoGalleries ? "Loading..." : "No images found"}
+              <Loader inline active={this.props.fetchingAlbumsAutoGalleries} size="mini" />
             </Header.Content>
           </Header>
         </div>

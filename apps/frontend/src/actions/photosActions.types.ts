@@ -73,9 +73,7 @@ export const PhotoSchema = z.object({
   hidden: z.boolean(),
   public: z.boolean(),
   shared_to: z.number().nullable().array(), // TODO: There are sometimes items in the array with value null. Why?!?
-  similar_photos: z
-    .object({ image_hash: z.string(), type: z.nativeEnum(MediaType) })
-    .array(),
+  similar_photos: z.object({ image_hash: z.string(), type: z.nativeEnum(MediaType) }).array(),
   video: z.boolean(),
 });
 export type Photo = z.infer<typeof PhotoSchema>;
@@ -92,6 +90,4 @@ export const IncompleteDatePhotosGroupSchema = DatePhotosGroupSchema.extend({
   incomplete: z.boolean(),
   numberOfItems: z.number(),
 });
-export type IncompleteDatePhotosGroup = z.infer<
-  typeof IncompleteDatePhotosGroupSchema
->;
+export type IncompleteDatePhotosGroup = z.infer<typeof IncompleteDatePhotosGroupSchema>;

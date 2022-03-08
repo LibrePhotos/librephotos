@@ -19,13 +19,10 @@ type Props = {
 };
 
 export const FaceComponent = (props: Props) => {
-  const labelProbabilityIcon = (
-    <ProbabilityIcon probability={props.cell.person_label_probability} />
-  );
+  const labelProbabilityIcon = <ProbabilityIcon probability={props.cell.person_label_probability} />;
   const showPhotoIcon = <PhotoIcon photo={props.cell.photo} />;
   // TODO: janky shit going on in the next line!
-  const faceImageSrc =
-    serverAddress + "/media/faces/" + _.reverse(props.cell.image.split("/"))[0];
+  const faceImageSrc = serverAddress + "/media/faces/" + _.reverse(props.cell.image.split("/"))[0];
   if (props.isScrollingFast) {
     return (
       <div key={props.key} style={{ ...props.style, padding: 5 }}>

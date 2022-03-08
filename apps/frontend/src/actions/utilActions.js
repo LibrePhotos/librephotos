@@ -129,13 +129,12 @@ export function updateAvatar(user, form_data) {
         dispatch(fetchUserList());
         dispatch(fetchNextcloudDirectoryTree("/"));
         dispatch(
-          notify({
-            message: i18n.t("toasts.updateuser", { username: user.username }),
+          notify(i18n.t("toasts.updateuser", { username: user.username }), {
             title: i18n.t("toasts.updateusertitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
-            position: "br",
+            position: "bottom-right",
           })
         );
         dispatch(fetchUserSelfDetails(user.id));
@@ -157,13 +156,12 @@ export function updateUser(user, dispatch) {
       dispatch(fetchUserList());
       dispatch(fetchNextcloudDirectoryTree("/"));
       dispatch(
-        notify({
-          message: i18n.t("toasts.updateuser", { username: user.username }),
+        notify(i18n.t("toasts.updateuser", { username: user.username }), {
           title: i18n.t("toasts.updateusertitle"),
           status: "success",
           dismissible: true,
           dismissAfter: 3000,
-          position: "br",
+          position: "bottom-right",
         })
       );
       dispatch(fetchUserSelfDetails(user.id));
@@ -186,13 +184,12 @@ export function updateUserAndScan(user) {
         });
         dispatch(fetchUserList());
         dispatch(
-          notify({
-            message: i18n.t("toasts.updateuser", { username: user.username }),
+          notify(i18n.t("toasts.updateuser", { username: user.username }), {
             title: i18n.t("toasts.updateusertitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
-            position: "br",
+            position: "bottom-right",
           })
         );
         dispatch(fetchUserSelfDetails(user.id));
@@ -217,13 +214,12 @@ export function manageUpdateUser(user) {
         });
         dispatch(fetchUserList());
         dispatch(
-          notify({
-            message: i18n.t("toasts.updateuser", { username: user.username }),
+          notify(i18n.t("toasts.updateuser", { username: user.username }), {
             title: i18n.t("toasts.updateusertitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
-            position: "br",
+            position: "bottom-right",
           })
         );
       })
@@ -239,16 +235,18 @@ export function fetchWorkerAvailability(prevRunningJob, dispatch) {
     .then((response) => {
       if (prevRunningJob !== null && response.data.job_detail === null) {
         dispatch(
-          notify({
-            message: i18n.t("toasts.jobfinished", {
+          notify(
+            i18n.t("toasts.jobfinished", {
               job: prevRunningJob.job_type_str,
             }),
-            title: prevRunningJob.job_type_str,
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "br",
-          })
+            {
+              title: prevRunningJob.job_type_str,
+              status: "success",
+              dismissible: true,
+              dismissAfter: 3000,
+              position: "bottom-right",
+            }
+          )
         );
         if (prevRunningJob.job_type_str.toLowerCase() === "train faces") {
           dispatch(fetchLabeledFacesList());
@@ -293,13 +291,12 @@ export function deleteMissingPhotos() {
     Server.get(`deletemissingphotos`)
       .then((response) => {
         dispatch(
-          notify({
-            message: i18n.t("toasts.deletemissingphotos"),
+          notify(i18n.t("toasts.deletemissingphotos"), {
             title: i18n.t("toasts.deletemissingphotostitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
-            position: "br",
+            position: "bottom-right",
           })
         );
         dispatch({
@@ -324,13 +321,12 @@ export function generateEventAlbums() {
     Server.get(`autoalbumgen/`)
       .then((response) => {
         dispatch(
-          notify({
-            message: i18n.t("toasts.generateeventalbums"),
+          notify(i18n.t("toasts.generateeventalbums"), {
             title: i18n.t("toasts.generateeventalbumstitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
-            position: "br",
+            position: "bottom-right",
           })
         );
         dispatch({
@@ -356,13 +352,12 @@ export function generateEventAlbumTitles() {
     Server.get("autoalbumtitlegen/")
       .then((response) => {
         dispatch(
-          notify({
-            message: i18n.t("toasts.regenerateevents"),
+          notify(i18n.t("toasts.regenerateevents"), {
             title: i18n.t("toasts.regenerateeventstitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
-            position: "br",
+            position: "bottom-right",
           })
         );
         dispatch({

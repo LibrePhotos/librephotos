@@ -16,8 +16,7 @@ export const SocialGraph = (props: Props) => {
   });
 
   const dispatch = useAppDispatch();
-  const { socialGraph, fetchedSocialGraph, fetchingSocialGraph } =
-    useAppSelector((state) => state.people);
+  const { socialGraph, fetchedSocialGraph, fetchingSocialGraph } = useAppSelector((state) => state.people);
 
   const { t } = useTranslation();
 

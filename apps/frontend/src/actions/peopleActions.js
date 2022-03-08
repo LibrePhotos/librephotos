@@ -6,9 +6,7 @@ export function fetchPeople(dispatch) {
   dispatch({ type: "FETCH_PEOPLE" });
   Server.get("persons/?page_size=1000")
     .then((response) => {
-      var mappedPeopleDropdownOptions = response.data.results.map(function (
-        person
-      ) {
+      var mappedPeopleDropdownOptions = response.data.results.map(function (person) {
         return {
           key: person.id,
           value: person.name,
@@ -59,17 +57,19 @@ export function renamePerson(personId, personName, newPersonName) {
         dispatch({ type: "RENAME_PERSON_FULFILLED", payload: personId });
         fetchPeople(dispatch);
         dispatch(
-          notify({
-            message: i18n.t("toasts.renameperson", {
+          notify(
+            i18n.t("toasts.renameperson", {
               personName: personName,
               newPersonName: newPersonName,
             }),
-            title: i18n.t("toasts.renamepersontitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "br",
-          })
+            {
+              title: i18n.t("toasts.renamepersontitle"),
+              status: "success",
+              dismissible: true,
+              dismissAfter: 3000,
+              position: "bottom-right",
+            }
+          )
         );
       })
       .catch((err) => {
@@ -85,13 +85,12 @@ export function deletePerson(person_id) {
       .then((response) => {
         fetchPeople(dispatch);
         dispatch(
-          notify({
-            message: i18n.t("toasts.deleteperson"),
+          notify(i18n.t("toasts.deleteperson"), {
             title: i18n.t("toasts.deletepersontitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
-            position: "br",
+            position: "bottom-right",
           })
         );
 
@@ -112,13 +111,12 @@ export function setAlbumCoverForPerson(person_id, photo_hash) {
       .then((response) => {
         dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON_FULFILLED" });
         dispatch(
-          notify({
-            message: i18n.t("toasts.setcoverphoto"),
+          notify(i18n.t("toasts.setcoverphoto"), {
             title: i18n.t("toasts.setcoverphototitle"),
             status: "success",
             dismissible: true,
             dismissAfter: 3000,
-            position: "br",
+            position: "bottom-right",
           })
         );
         fetchPeople(dispatch);

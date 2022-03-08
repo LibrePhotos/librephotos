@@ -1,8 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import {
-  fetchAlbumDateList,
-  fetchAlbumDate,
-} from "../../actions/albumsActions";
+import { fetchAlbumDateList, fetchAlbumDate } from "../../actions/albumsActions";
 import { fetchPeople } from "../../actions/peopleActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType, PhotosState } from "../../reducers/photosReducer";
@@ -19,16 +16,15 @@ type Props = {
   match: any;
 };
 
-export const AlbumPersonGallery = (props: Props) => {
-  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } =
-    useAppSelector((state) => state.photos as PhotosState);
+export const AlbumPersonGallery = (props: Props): JSX.Element => {
+  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(
+    (state) => state.photos as PhotosState
+  );
   const { people } = useAppSelector((state) => state.people);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const [group, setGroup] = useState({} as fetchedGroup);
-  const person = people.filter(
-    (i: any) => i.key == props.match.params.albumID
-  )[0];
+  const person = people.filter((i: any) => i.key == props.match.params.albumID)[0];
   const personname = person ? person.value : undefined;
 
   useEffect(() => {
@@ -55,10 +51,7 @@ export const AlbumPersonGallery = (props: Props) => {
   const getAlbums = (visibleGroups: any) => {
     visibleGroups.forEach((group: any) => {
       var visibleImages = group.items;
-      if (
-        visibleImages.filter((i: any) => i.isTemp && i.isTemp != undefined)
-          .length > 0
-      ) {
+      if (visibleImages.filter((i: any) => i.isTemp && i.isTemp != undefined).length > 0) {
         var firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
         var page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
         setGroup({ id: group.id, page: page });

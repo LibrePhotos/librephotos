@@ -1,13 +1,5 @@
 import React, { Component } from "react";
-import {
-  Button,
-  Grid,
-  GridColumn,
-  GridRow,
-  Header,
-  Icon,
-  Loader,
-} from "semantic-ui-react";
+import { Button, Grid, GridColumn, GridRow, Header, Icon, Loader } from "semantic-ui-react";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { withTranslation } from "react-i18next";
 import { connect } from "react-redux";
@@ -89,10 +81,7 @@ export class DefaultHeader extends Component {
                 {this.props.title}{" "}
                 <Header.Subheader>
                   {this.props.numPhotosetItems != this.props.numPhotos
-                    ? this.props.numPhotosetItems +
-                      " " +
-                      this.props.t("defaultheader.days") +
-                      ", "
+                    ? this.props.numPhotosetItems + " " + this.props.t("defaultheader.days") + ", "
                     : ""}
                   {this.props.numPhotos} {this.props.t("defaultheader.photos")}
                   {this.props.additionalSubHeader}
@@ -109,11 +98,7 @@ export class DefaultHeader extends Component {
               }}
             >
               <span style={{ paddingLeft: 5, fontSize: 18 }}>
-                <b>
-                  {this.props.dayHeaderPrefix
-                    ? this.props.dayHeaderPrefix + this.props.date
-                    : this.props.date}
-                </b>
+                <b>{this.props.dayHeaderPrefix ? this.props.dayHeaderPrefix + this.props.date : this.props.date}</b>
               </span>
             </div>
           </GridColumn>

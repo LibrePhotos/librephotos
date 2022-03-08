@@ -31,11 +31,7 @@ import {
   deleteMissingPhotos,
 } from "../../actions/utilActions";
 import { rescanFaces, trainFaces } from "../../actions/facesActions";
-import {
-  scanPhotos,
-  scanAllPhotos,
-  scanNextcloudPhotos,
-} from "../../actions/photosActions";
+import { scanPhotos, scanAllPhotos, scanNextcloudPhotos } from "../../actions/photosActions";
 import { fetchUserSelfDetails } from "../../actions/userActions";
 import { CountStats } from "../../components/statistics";
 import Dropzone from "react-dropzone";
@@ -107,11 +103,7 @@ export class Settings extends Component {
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
-    if (
-      !prevState.userSelfDetails.id &&
-      nextProps.userSelfDetails &&
-      nextProps.userSelfDetails.id
-    ) {
+    if (!prevState.userSelfDetails.id && nextProps.userSelfDetails && nextProps.userSelfDetails.id) {
       return { ...prevState, userSelfDetails: nextProps.userSelfDetails };
     }
 
@@ -194,9 +186,7 @@ export class Settings extends Component {
                 >
                   <p>
                     <b>
-                      <Trans i18nKey="settings.uploadheader">
-                        Upload new avatar
-                      </Trans>
+                      <Trans i18nKey="settings.uploadheader">Upload new avatar</Trans>
                     </b>
                   </p>
                   <Button
@@ -217,14 +207,8 @@ export class Settings extends Component {
                         this.editor.getImageScaledToCanvas().toDataURL(),
                         this.state.userSelfDetails.first_name + "avatar.png"
                       ).then((file) => {
-                        form_data.append(
-                          "avatar",
-                          file,
-                          this.state.userSelfDetails.first_name + "avatar.png"
-                        );
-                        this.props.dispatch(
-                          updateAvatar(this.state.userSelfDetails, form_data)
-                        );
+                        form_data.append("avatar", file, this.state.userSelfDetails.first_name + "avatar.png");
+                        this.props.dispatch(updateAvatar(this.state.userSelfDetails, form_data));
                       });
                     }}
                   >
@@ -232,9 +216,7 @@ export class Settings extends Component {
                     <Trans i18nKey="settings.upload">Upload</Trans>
                   </Button>
                   <p>
-                    <Trans i18nKey="settings.filesize">
-                      The maximum file size allowed is 200KB.
-                    </Trans>
+                    <Trans i18nKey="settings.filesize">The maximum file size allowed is 200KB.</Trans>
                   </p>
                 </div>
               </Grid.Column>
@@ -243,9 +225,7 @@ export class Settings extends Component {
             <Grid.Row>
               <Grid.Column width={4} textAlign="left">
                 <b>
-                  <Trans i18nKey="settings.accountinformation">
-                    Account Information
-                  </Trans>
+                  <Trans i18nKey="settings.accountinformation">Account Information</Trans>
                 </b>
               </Grid.Column>
 
@@ -263,9 +243,7 @@ export class Settings extends Component {
                         });
                       }}
                       label={this.props.t("settings.firstname")}
-                      placeholder={this.props.t(
-                        "settings.firstnameplaceholder"
-                      )}
+                      placeholder={this.props.t("settings.firstnameplaceholder")}
                       value={this.state.userSelfDetails.first_name}
                     />
                     <Form.Input
@@ -299,9 +277,7 @@ export class Settings extends Component {
                   />
                   <Dropdown
                     placeholder={this.props.t("settings.language")}
-                    onChange={(e, { value }) =>
-                      this.props.i18n.changeLanguage(value)
-                    }
+                    onChange={(e, { value }) => this.props.i18n.changeLanguage(value)}
                     fluid
                     search
                     selection
@@ -382,9 +358,7 @@ export class Settings extends Component {
                       updateUser(newUserData, this.props.dispatch);
                     }}
                   >
-                    <Trans i18nKey="settings.updateaccountinformation">
-                      Update profile settings
-                    </Trans>
+                    <Trans i18nKey="settings.updateaccountinformation">Update profile settings</Trans>
                   </Button>
                   <Button size="small" basic floated="right">
                     <Trans i18nKey="settings.cancel">Cancel</Trans>
@@ -401,13 +375,7 @@ export class Settings extends Component {
               </Grid.Column>
 
               <Grid.Column width={12}>
-                <Input
-                  type="text"
-                  action
-                  fluid
-                  disabled
-                  placeholder={this.state.userSelfDetails.scan_directory}
-                >
+                <Input type="text" action fluid disabled placeholder={this.state.userSelfDetails.scan_directory}>
                   <input />
                   <Popup
                     inverted
@@ -455,15 +423,9 @@ export class Settings extends Component {
                       });
                     }}
                     label={this.props.t("settings.serveradress")}
-                    placeholder={this.props.t(
-                      "settings.serveradressplaceholder"
-                    )}
+                    placeholder={this.props.t("settings.serveradressplaceholder")}
                   >
-                    <input
-                      value={
-                        this.state.userSelfDetails.nextcloud_server_address
-                      }
-                    />
+                    <input value={this.state.userSelfDetails.nextcloud_server_address} />
                   </Form.Input>
                   <Form.Input
                     fluid
@@ -476,13 +438,9 @@ export class Settings extends Component {
                       });
                     }}
                     label={this.props.t("settings.nextcloudusername")}
-                    placeholder={this.props.t(
-                      "settings.nextcloudusernameplaceholder"
-                    )}
+                    placeholder={this.props.t("settings.nextcloudusernameplaceholder")}
                   >
-                    <input
-                      value={this.state.userSelfDetails.nextcloud_username}
-                    />
+                    <input value={this.state.userSelfDetails.nextcloud_username} />
                   </Form.Input>
                   <Form.Input
                     fluid
@@ -496,9 +454,7 @@ export class Settings extends Component {
                     }}
                     type="password"
                     label={this.props.t("settings.nextcloudpassword")}
-                    placeholder={this.props.t(
-                      "settings.nextcloudpasswordplaceholder"
-                    )}
+                    placeholder={this.props.t("settings.nextcloudpasswordplaceholder")}
                   />
                 </Form.Group>
               </Form>{" "}
@@ -515,9 +471,7 @@ export class Settings extends Component {
                   color="blue"
                   floated="left"
                 >
-                  <Trans i18nKey="settings.nextcloudupdate">
-                    Update Nextcloud credentials
-                  </Trans>
+                  <Trans i18nKey="settings.nextcloudupdate">Update Nextcloud credentials</Trans>
                 </Button>
                 <Button
                   onClick={() => {
@@ -537,19 +491,11 @@ export class Settings extends Component {
           <Grid.Row>
             <Grid.Column width={4} textAlign="left">
               <b>
-                <Trans i18nKey="settings.nextcloudscandirectory">
-                  Nextcloud Scan Directory
-                </Trans>
+                <Trans i18nKey="settings.nextcloudscandirectory">Nextcloud Scan Directory</Trans>
               </b>
               <Popup
                 trigger={
-                  <Icon
-                    size="small"
-                    name="circle"
-                    color={
-                      this.props.fetchedNextcloudDirectoryTree ? "green" : "red"
-                    }
-                  />
+                  <Icon size="small" name="circle" color={this.props.fetchedNextcloudDirectoryTree ? "green" : "red"} />
                 }
                 inverted
                 position="right center"
@@ -562,16 +508,8 @@ export class Settings extends Component {
             </Grid.Column>
 
             <Grid.Column width={12}>
-              <Input
-                type="text"
-                action
-                fluid
-                disabled
-                value={this.props.userSelfDetails.nextcloud_scan_directory}
-              >
-                <input
-                  value={this.state.userSelfDetails.nextcloud_scan_directory}
-                />
+              <Input type="text" action fluid disabled value={this.props.userSelfDetails.nextcloud_scan_directory}>
+                <input value={this.state.userSelfDetails.nextcloud_scan_directory} />
                 <Button
                   disabled={!this.props.fetchedNextcloudDirectoryTree}
                   onClick={() => {
@@ -648,8 +586,7 @@ export class Settings extends Component {
             <Grid.Column>
               <Segment>
                 <Header textAlign="center">
-                  {this.props.util.countStats.num_photos}{" "}
-                  <Trans i18nKey="settings.photos">Photos</Trans>
+                  {this.props.util.countStats.num_photos} <Trans i18nKey="settings.photos">Photos</Trans>
                 </Header>
                 <Divider />
                 <Button
@@ -661,10 +598,7 @@ export class Settings extends Component {
                 >
                   <Icon
                     name="refresh"
-                    loading={
-                      this.props.statusPhotoScan.status &&
-                      this.props.statusPhotoScan.added
-                    }
+                    loading={this.props.statusPhotoScan.status && this.props.statusPhotoScan.added}
                   />
                   {this.props.statusPhotoScan.added
                     ? this.props.t("settings.statusscanphotostrue") +
@@ -686,24 +620,20 @@ export class Settings extends Component {
                   color="blue"
                 >
                   <Icon name="refresh" />
-                  <Trans i18nKey="settings.scannextcloudphotos">
-                    Scan photos (Nextcloud)
-                  </Trans>
+                  <Trans i18nKey="settings.scannextcloudphotos">Scan photos (Nextcloud)</Trans>
                 </Button>
 
                 <Divider hidden />
                 <List bulleted>
                   <List.Item>
                     <Trans i18nKey="settings.scannextclouddescription.item1">
-                      Make a list of all files in subdirectories. For each media
-                      file:
+                      Make a list of all files in subdirectories. For each media file:
                     </Trans>
                   </List.Item>
                   <List.Item>
                     <Trans i18nKey="settings.scannextclouddescription.item2">
-                      If the filepath exists, check if the file has been
-                      modified. If it was modified, rescan the image. If not, we
-                      skip.
+                      If the filepath exists, check if the file has been modified. If it was modified, rescan the image.
+                      If not, we skip.
                     </Trans>
                   </List.Item>
                   <List.Item>
@@ -713,35 +643,25 @@ export class Settings extends Component {
                   </List.Item>
                   <List.Item>
                     <Trans i18nKey="settings.scannextclouddescription.item4">
-                      If this media file is already in the database, we add the
-                      path to the existing media file.
+                      If this media file is already in the database, we add the path to the existing media file.
                     </Trans>
                   </List.Item>
                   <List.Item>
-                    <Trans i18nKey="settings.scannextclouddescription.item5">
-                      Generate a number of thumbnails
-                    </Trans>{" "}
+                    <Trans i18nKey="settings.scannextclouddescription.item5">Generate a number of thumbnails</Trans>{" "}
                   </List.Item>
                   <List.Item>
-                    <Trans i18nKey="settings.scannextclouddescription.item6">
-                      Generate image captions
-                    </Trans>{" "}
+                    <Trans i18nKey="settings.scannextclouddescription.item6">Generate image captions</Trans>{" "}
                   </List.Item>
                   <List.Item>
-                    <Trans i18nKey="settings.scannextclouddescription.item7">
-                      Extract Exif information
-                    </Trans>{" "}
+                    <Trans i18nKey="settings.scannextclouddescription.item7">Extract Exif information</Trans>{" "}
                   </List.Item>
                   <List.Item>
                     <Trans i18nKey="settings.scannextclouddescription.item8">
-                      Reverse geolocate to get location names from GPS
-                      coordinates{" "}
+                      Reverse geolocate to get location names from GPS coordinates{" "}
                     </Trans>
                   </List.Item>
                   <List.Item>
-                    <Trans i18nKey="settings.scannextclouddescription.item9">
-                      Extract faces.{" "}
-                    </Trans>{" "}
+                    <Trans i18nKey="settings.scannextclouddescription.item9">Extract faces. </Trans>{" "}
                   </List.Item>
                   <List.Item>
                     <Trans i18nKey="settings.scannextclouddescription.item10">
@@ -754,18 +674,10 @@ export class Settings extends Component {
                     </Trans>
                   </List.Item>
                 </List>
-                <Button
-                  fluid
-                  color="green"
-                  onClick={this.onPhotoFullScanButtonClick}
-                  disabled={buttonsDisabled}
-                >
+                <Button fluid color="green" onClick={this.onPhotoFullScanButtonClick} disabled={buttonsDisabled}>
                   <Icon
                     name="refresh"
-                    loading={
-                      this.props.statusPhotoScan.status &&
-                      this.props.statusPhotoScan.added
-                    }
+                    loading={this.props.statusPhotoScan.status && this.props.statusPhotoScan.added}
                   />
                   {this.props.statusPhotoScan.added
                     ? this.props.t("settings.statusrescanphotostrue") +
@@ -789,9 +701,7 @@ export class Settings extends Component {
                   color="red"
                 >
                   <Icon name="trash" />
-                  <Trans i18nKey="settings.missingphotosbutton">
-                    Remove missing photos
-                  </Trans>
+                  <Trans i18nKey="settings.missingphotosbutton">Remove missing photos</Trans>
                 </Button>
                 <Confirm
                   open={this.state.open}
@@ -801,9 +711,8 @@ export class Settings extends Component {
                 <Divider hidden />
                 <p>
                   <Trans i18nKey="settings.missingphotosdescription">
-                    On every scan LibrePhotos will check if the files are still
-                    in the same location or if they have been moved. If they are
-                    missing, then they get marked as such.
+                    On every scan LibrePhotos will check if the files are still in the same location or if they have
+                    been moved. If they are missing, then they get marked as such.
                   </Trans>
                 </p>
                 <Divider />
@@ -812,8 +721,7 @@ export class Settings extends Component {
             <Grid.Column>
               <Segment>
                 <Header textAlign="center">
-                  {this.props.util.countStats.num_albumauto}{" "}
-                  <Trans i18nKey="settings.eventsalbums">Event Albums</Trans>
+                  {this.props.util.countStats.num_albumauto} <Trans i18nKey="settings.eventsalbums">Event Albums</Trans>
                 </Header>
                 <Divider />
                 <Button
@@ -824,18 +732,14 @@ export class Settings extends Component {
                   color="green"
                 >
                   <Icon name="wizard" />
-                  <Trans i18nKey="settings.eventalbumsgenerate">
-                    Generate Event Albums
-                  </Trans>
+                  <Trans i18nKey="settings.eventalbumsgenerate">Generate Event Albums</Trans>
                 </Button>
                 <Divider hidden />
                 <p>
                   <Trans i18nKey="settings.eventsalbumsdescription">
-                    The backend server will first group photos by time taken. If
-                    two consecutive photos are taken within 12 hours of each
-                    other, the two photos are considered to be from the same
-                    event. After groups are put together in this way, it
-                    automatically generates a title for this album.
+                    The backend server will first group photos by time taken. If two consecutive photos are taken within
+                    12 hours of each other, the two photos are considered to be from the same event. After groups are
+                    put together in this way, it automatically generates a title for this album.
                   </Trans>
                 </p>
                 <Divider />
@@ -850,18 +754,14 @@ export class Settings extends Component {
                   fluid
                 >
                   <Icon name="wizard" />
-                  <Trans i18nKey="settings.eventalbumsregenerate">
-                    Regenerate Event Titles
-                  </Trans>
+                  <Trans i18nKey="settings.eventalbumsregenerate">Regenerate Event Titles</Trans>
                 </Button>
                 <Divider hidden />
                 <p>
                   <Trans i18nKey="settings.eventalbumsregeneratedescription">
-                    Automatically generated albums have names of people in the
-                    titles. If you trained your face classifier after making
-                    event albums, you can generate new titles for already
-                    existing event albums to reflect the new names associated
-                    with the faces in photos.
+                    Automatically generated albums have names of people in the titles. If you trained your face
+                    classifier after making event albums, you can generate new titles for already existing event albums
+                    to reflect the new names associated with the faces in photos.
                   </Trans>
                 </p>
               </Segment>
@@ -869,10 +769,8 @@ export class Settings extends Component {
             <Grid.Column>
               <Segment>
                 <Header textAlign="center">
-                  {this.props.util.countStats.num_faces}{" "}
-                  <Trans i18nKey="settings.faces">Faces</Trans>,{" "}
-                  {this.props.util.countStats.num_people}{" "}
-                  <Trans i18nKey="settings.people">People</Trans>
+                  {this.props.util.countStats.num_faces} <Trans i18nKey="settings.faces">Faces</Trans>,{" "}
+                  {this.props.util.countStats.num_people} <Trans i18nKey="settings.people">People</Trans>
                 </Header>
                 <Divider />
                 <Button
@@ -882,8 +780,7 @@ export class Settings extends Component {
                   fluid
                   color="green"
                 >
-                  <Icon name="lightning" />{" "}
-                  <Trans i18nKey="settings.facesbutton">Train Faces</Trans>
+                  <Icon name="lightning" /> <Trans i18nKey="settings.facesbutton">Train Faces</Trans>
                 </Button>
                 <Divider hidden />
 
@@ -955,9 +852,7 @@ export class Settings extends Component {
           <Grid.Row>
             <Grid.Column width={4} textAlign="left">
               <b>
-                <Trans i18nKey="settings.sceneconfidence">
-                  Scene Confidence
-                </Trans>
+                <Trans i18nKey="settings.sceneconfidence">Scene Confidence</Trans>
               </b>
             </Grid.Column>
             <Grid.Column width={12}>
@@ -975,18 +870,10 @@ export class Settings extends Component {
                 <option value="" disabled selected>
                   {this.props.t("settings.confidencelevel")}
                 </option>
-                <option value="0.5">
-                  {this.props.t("settings.confidence.high")}
-                </option>
-                <option value="0.1">
-                  {this.props.t("settings.confidence.standard")}
-                </option>
-                <option value="0.05">
-                  {this.props.t("settings.confidence.low")}
-                </option>
-                <option value="0">
-                  {this.props.t("settings.confidence.none")}
-                </option>
+                <option value="0.5">{this.props.t("settings.confidence.high")}</option>
+                <option value="0.1">{this.props.t("settings.confidence.standard")}</option>
+                <option value="0.05">{this.props.t("settings.confidence.low")}</option>
+                <option value="0">{this.props.t("settings.confidence.none")}</option>
               </select>
             </Grid.Column>
           </Grid.Row>
@@ -994,9 +881,7 @@ export class Settings extends Component {
             <Grid.Column width={4} textAlign="left">
               <b>
                 {" "}
-                <Trans i18nKey="settings.semanticsearchheader">
-                  Semantic Search Max Results
-                </Trans>
+                <Trans i18nKey="settings.semanticsearchheader">Semantic Search Max Results</Trans>
               </b>
             </Grid.Column>
             <Grid.Column width={12}>
@@ -1014,18 +899,10 @@ export class Settings extends Component {
                 <option value="" disabled selected>
                   {this.props.t("settings.semanticsearch.placeholder")}
                 </option>
-                <option value="100">
-                  {this.props.t("settings.semanticsearch.top100")}
-                </option>
-                <option value="50">
-                  {this.props.t("settings.semanticsearch.top50")}
-                </option>
-                <option value="10">
-                  {this.props.t("settings.semanticsearch.top10")}
-                </option>
-                <option value="0">
-                  {this.props.t("settings.semanticsearch.top0")}
-                </option>
+                <option value="100">{this.props.t("settings.semanticsearch.top100")}</option>
+                <option value="50">{this.props.t("settings.semanticsearch.top50")}</option>
+                <option value="10">{this.props.t("settings.semanticsearch.top10")}</option>
+                <option value="0">{this.props.t("settings.semanticsearch.top0")}</option>
               </select>
             </Grid.Column>
           </Grid.Row>
@@ -1039,8 +916,7 @@ export class Settings extends Component {
                   delete newUserData["scan_directory"];
                   delete newUserData["avatar"];
                   updateUser(newUserData, this.props.dispatch);
-                  if (typeof this.props.onRequestClose == "function")
-                    this.props.onRequestClose();
+                  if (typeof this.props.onRequestClose == "function") this.props.onRequestClose();
                 }}
               >
                 <Trans i18nKey="settings.semanticsearchupdate">Update</Trans>
@@ -1055,9 +931,7 @@ export class Settings extends Component {
           <Grid.Row>
             <Grid.Column width={4} textAlign="left">
               <b>
-                <Trans i18nKey="settings.favoriteminimum">
-                  Minimum image rating to interpret as favorite
-                </Trans>
+                <Trans i18nKey="settings.favoriteminimum">Minimum image rating to interpret as favorite</Trans>
               </b>
             </Grid.Column>
             <Grid.Column width={12}>
@@ -1086,9 +960,7 @@ export class Settings extends Component {
           <Grid.Row>
             <Grid.Column width={4} textAlign="left">
               <b>
-                <Trans i18nKey="settings.favoritesync">
-                  Synchronize rating to disk
-                </Trans>
+                <Trans i18nKey="settings.favoritesync">Synchronize rating to disk</Trans>
               </b>
             </Grid.Column>
             <Grid.Column width={12}>
@@ -1109,15 +981,9 @@ export class Settings extends Component {
                 }}
               >
                 <option value="" disabled selected />
-                <option value={"OFF"}>
-                  {this.props.t("settings.favoritesyncoptions.off")}
-                </option>
-                <option value={"SIDECAR_FILE"}>
-                  {this.props.t("settings.favoritesyncoptions.sidecar")}
-                </option>
-                <option value={"MEDIA_FILE"}>
-                  {this.props.t("settings.favoritesyncoptions.mediafile")}
-                </option>
+                <option value={"OFF"}>{this.props.t("settings.favoritesyncoptions.off")}</option>
+                <option value={"SIDECAR_FILE"}>{this.props.t("settings.favoritesyncoptions.sidecar")}</option>
+                <option value={"MEDIA_FILE"}>{this.props.t("settings.favoritesyncoptions.mediafile")}</option>
               </select>
             </Grid.Column>
           </Grid.Row>
@@ -1131,8 +997,7 @@ export class Settings extends Component {
                   delete newUserData["scan_directory"];
                   delete newUserData["avatar"];
                   updateUser(newUserData, this.props.dispatch);
-                  if (typeof this.props.onRequestClose == "function")
-                    this.props.onRequestClose();
+                  if (typeof this.props.onRequestClose == "function") this.props.onRequestClose();
                 }}
               >
                 <Trans i18nKey="settings.favoriteupdate">Update</Trans>
@@ -1142,17 +1007,13 @@ export class Settings extends Component {
         </Grid>
         <ConfigDatetime></ConfigDatetime>
         <Header as="h3">
-          <Trans i18nKey="settings.experimentaloptions">
-            Experimental options
-          </Trans>
+          <Trans i18nKey="settings.experimentaloptions">Experimental options</Trans>
         </Header>
         <Grid>
           <Grid.Row>
             <Grid.Column width={4} textAlign="left">
               <b>
-                <Trans i18nKey="settings.transcodevideo">
-                  Always trancode videos
-                </Trans>
+                <Trans i18nKey="settings.transcodevideo">Always trancode videos</Trans>
               </b>
             </Grid.Column>
             <Grid.Column width={12}>
@@ -1182,8 +1043,7 @@ export class Settings extends Component {
                   delete newUserData["scan_directory"];
                   delete newUserData["avatar"];
                   updateUser(newUserData, this.props.dispatch);
-                  if (typeof this.props.onRequestClose == "function")
-                    this.props.onRequestClose();
+                  if (typeof this.props.onRequestClose == "function") this.props.onRequestClose();
                 }}
               >
                 <Trans i18nKey="settings.experimentalupdate">Update</Trans>
@@ -1264,16 +1124,12 @@ class ModalNextcloudScanDirectoryEdit extends Component {
       >
         <div style={{ padding: 10 }}>
           <Header as="h3">
-            <Trans i18nKey="modalnextcloud.setdirectory">
-              Set your Nextcloud scan directory
-            </Trans>
+            <Trans i18nKey="modalnextcloud.setdirectory">Set your Nextcloud scan directory</Trans>
           </Header>
         </div>
         <div style={{ padding: 10 }}>
           <Header as="h5">
-            <Trans i18nKey="modalnextcloud.currentdirectory">
-              Current Nextcloud scan directory
-            </Trans>
+            <Trans i18nKey="modalnextcloud.currentdirectory">Current Nextcloud scan directory</Trans>
           </Header>
         </div>
         <div style={{ padding: 7 }}>
@@ -1318,9 +1174,7 @@ class ModalNextcloudScanDirectoryEdit extends Component {
         <Divider />
         <div style={{ paddingLeft: 10 }}>
           <Header as="h5">
-            <Trans i18nKey="modalnextcloud.choosedirectory">
-              Choose a directory from below
-            </Trans>
+            <Trans i18nKey="modalnextcloud.choosedirectory">Choose a directory from below</Trans>
           </Header>
         </div>
         <div

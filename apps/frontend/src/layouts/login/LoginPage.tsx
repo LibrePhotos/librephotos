@@ -1,14 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  Button,
-  Divider,
-  Form,
-  Header,
-  Image,
-  Message,
-  Segment,
-} from "semantic-ui-react";
+import { Button, Divider, Form, Header, Image, Message, Segment } from "semantic-ui-react";
 
 import { fetchSiteSettings } from "../../actions/utilActions";
 import { login } from "../../actions/authActions";

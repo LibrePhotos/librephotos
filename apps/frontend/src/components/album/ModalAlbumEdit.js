@@ -1,19 +1,8 @@
 import React, { Component } from "react";
 import "react-virtualized/styles.css"; // only needs to be imported once
 import { connect } from "react-redux";
-import {
-  fetchUserAlbumsList,
-  addToUserAlbum,
-  createNewUserAlbum,
-} from "../../actions/albumsActions";
-import {
-  Header,
-  Divider,
-  Image,
-  Input,
-  Popup,
-  Button,
-} from "semantic-ui-react";
+import { fetchUserAlbumsList, addToUserAlbum, createNewUserAlbum } from "../../actions/albumsActions";
+import { Header, Divider, Image, Input, Popup, Button } from "semantic-ui-react";
 import { serverAddress } from "../../api_client/apiClient";
 import _ from "lodash";
 import * as moment from "moment";
@@ -61,10 +50,7 @@ export class ModalAlbumEdit extends Component {
     var filteredUserAlbumList;
     if (this.state.newAlbumTitle.length > 0) {
       filteredUserAlbumList = this.props.albumsUserList.filter((el) =>
-        fuzzy_match(
-          el.title.toLowerCase(),
-          this.state.newAlbumTitle.toLowerCase()
-        )
+        fuzzy_match(el.title.toLowerCase(), this.state.newAlbumTitle.toLowerCase())
       );
     } else {
       filteredUserAlbumList = this.props.albumsUserList;
@@ -86,10 +72,7 @@ export class ModalAlbumEdit extends Component {
           <Header>
             <Header.Content>
               Add to Album
-              <Header.Subheader>
-                Add selected {this.props.selectedImageHashes.length} photo(s)
-                to...
-              </Header.Subheader>
+              <Header.Subheader>Add selected {this.props.selectedImageHashes.length} photo(s) to...</Header.Subheader>
             </Header.Content>
           </Header>
         </div>
@@ -120,11 +103,7 @@ export class ModalAlbumEdit extends Component {
             <Header as="h4">New album</Header>
             <Popup
               inverted
-              content={
-                'Album "' +
-                this.state.newAlbumTitle.trim() +
-                '" already exists.'
-              }
+              content={'Album "' + this.state.newAlbumTitle.trim() + '" already exists.'}
               position="bottom center"
               open={this.props.albumsUserList
                 .map((el) => el.title.toLowerCase().trim())
@@ -145,12 +124,7 @@ export class ModalAlbumEdit extends Component {
                   <Button
                     positive
                     onClick={() => {
-                      this.props.dispatch(
-                        createNewUserAlbum(
-                          this.state.newAlbumTitle,
-                          this.props.selectedImageHashes
-                        )
-                      );
+                      this.props.dispatch(createNewUserAlbum(this.state.newAlbumTitle, this.props.selectedImageHashes));
                       this.props.onRequestClose();
                       this.setState({ newAlbumTitle: "" });
                     }}
@@ -179,13 +153,7 @@ export class ModalAlbumEdit extends Component {
                 >
                   <Header
                     onClick={() => {
-                      this.props.dispatch(
-                        addToUserAlbum(
-                          item.id,
-                          item.title,
-                          this.props.selectedImageHashes
-                        )
-                      );
+                      this.props.dispatch(addToUserAlbum(item.id, item.title, this.props.selectedImageHashes));
                       this.props.onRequestClose();
                     }}
                     as="a"
@@ -196,9 +164,7 @@ export class ModalAlbumEdit extends Component {
                       style={{ objectFit: "cover" }}
                       src={
                         item.cover_photos[0]
-                          ? serverAddress +
-                            "/media/thumbnails_big/" +
-                            item.cover_photos[0].image_hash
+                          ? serverAddress + "/media/thumbnails_big/" + item.cover_photos[0].image_hash
                           : "/thumbnail_placeholder.png"
                       }
                     />

@@ -13,11 +13,7 @@ export const EventCountMonthGraph = () => {
     },
   });
   const dispatch = useAppDispatch();
-  const {
-    photoMonthCounts,
-    fetchingPhotoMonthCounts,
-    fetchedPhotoMonthCounts,
-  } = useAppSelector((state) => state.util);
+  const { photoMonthCounts, fetchingPhotoMonthCounts, fetchedPhotoMonthCounts } = useAppSelector((state) => state.util);
 
   useEffect(() => {
     if (!fetchedPhotoMonthCounts) {

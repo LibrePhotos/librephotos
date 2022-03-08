@@ -60,30 +60,21 @@ export class AlbumAuto extends Component {
   }
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    var albumAutoIndex =
-      rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
+    var albumAutoIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
     if (albumAutoIndex < this.props.albumsAutoList.length) {
       return (
         <div key={key} style={style}>
           <div onClick={() => {}} style={{ padding: 5 }}>
             <Link to={"/event/" + this.props.albumsAutoList[albumAutoIndex].id}>
               <Tile
-                video={
-                  this.props.albumsAutoList[albumAutoIndex].photos.video ===
-                  true
-                }
+                video={this.props.albumsAutoList[albumAutoIndex].photos.video === true}
                 height={this.state.entrySquareSize - 10}
                 width={this.state.entrySquareSize - 10}
-                image_hash={
-                  this.props.albumsAutoList[albumAutoIndex].photos.image_hash
-                }
+                image_hash={this.props.albumsAutoList[albumAutoIndex].photos.image_hash}
               ></Tile>
             </Link>
           </div>
-          <div
-            className="personCardName"
-            style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}
-          >
+          <div className="personCardName" style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
             <b>{this.props.albumsAutoList[albumAutoIndex].title}</b> <br />
             {this.props.t("numberofphotos", {
               number: this.props.albumsAutoList[albumAutoIndex].photo_count,
@@ -103,26 +94,15 @@ export class AlbumAuto extends Component {
           <Header as="h2">
             <Icon name="wizard" />
             <Header.Content>
-              {this.props.t("events")}{" "}
-              <Loader
-                size="tiny"
-                inline
-                active={this.props.fetchingAlbumsAutoList}
-              />
+              {this.props.t("events")} <Loader size="tiny" inline active={this.props.fetchingAlbumsAutoList} />
               <Header.Subheader>
-                <Trans
-                  i18nKey="autoalbum.subtitle"
-                  values={{ autoalbumlength: this.props.albumsAutoList.length }}
-                />
+                <Trans i18nKey="autoalbum.subtitle" values={{ autoalbumlength: this.props.albumsAutoList.length }} />
               </Header.Subheader>
             </Header.Content>
           </Header>
         </div>
 
-        <AutoSizer
-          disableHeight
-          style={{ outline: "none", padding: 0, margin: 0 }}
-        >
+        <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
           {({ width }) => (
             <Grid
               style={{ outline: "none" }}
@@ -132,10 +112,7 @@ export class AlbumAuto extends Component {
               columnCount={this.state.numEntrySquaresPerRow}
               height={this.state.height - TOP_MENU_HEIGHT - 60}
               rowHeight={this.state.entrySquareSize + 120}
-              rowCount={Math.ceil(
-                this.props.albumsAutoList.length /
-                  this.state.numEntrySquaresPerRow.toFixed(1)
-              )}
+              rowCount={Math.ceil(this.props.albumsAutoList.length / this.state.numEntrySquaresPerRow.toFixed(1))}
               width={width}
             />
           )}
@@ -171,11 +148,7 @@ export class EntrySquare extends Component {
         }}
       >
         <div style={{ height: this.props.size }}>
-          <LazyLoad
-            once={true}
-            unmountIfInvisible={true}
-            height={this.props.size}
-          >
+          <LazyLoad once={true} unmountIfInvisible={true} height={this.props.size}>
             <Image.Group>{images}</Image.Group>
           </LazyLoad>
         </div>

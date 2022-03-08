@@ -1,12 +1,5 @@
 import React, { useState } from "react";
-import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
+import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import {
   arrayMove,
   SortableContext,
@@ -23,9 +16,7 @@ import { updateUser } from "../../actions/utilActions";
 
 export function ConfigDatetime() {
   const [showModal, setShowModal] = useState(false);
-  const { datetime_rules } = useAppSelector(
-    (state) => state.user.userSelfDetails
-  );
+  const { datetime_rules } = useAppSelector((state) => state.user.userSelfDetails);
   const { userSelfDetails } = useAppSelector((state) => state.user);
   const rules = JSON.parse(datetime_rules ? datetime_rules : "[]");
   //make sure rules have ids
@@ -51,18 +42,10 @@ export function ConfigDatetime() {
   return (
     <div style={{ marginTop: 10 }}>
       <Header as="h3">{t("settings.configdatetime")}</Header>
-      <Button
-        color="green"
-        onClick={() => setShowModal(true)}
-        style={{ marginBottom: 10 }}
-      >
+      <Button color="green" onClick={() => setShowModal(true)} style={{ marginBottom: 10 }}>
         Add Rule{" "}
       </Button>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={rules} strategy={verticalListSortingStrategy}>
           {rules.map((rule: any) => (
             <SortableItem
@@ -70,9 +53,7 @@ export function ConfigDatetime() {
               id={rule.id}
               item={rule}
               removeItemFunction={(itemToRemove: any) => {
-                const newItems = rules.filter(
-                  (i: any) => i.id !== itemToRemove.id
-                );
+                const newItems = rules.filter((i: any) => i.id !== itemToRemove.id);
                 dispatch({
                   type: "SET_RULES",
                   payload: JSON.stringify(newItems),

@@ -22,8 +22,7 @@ export class SharedToMe extends Component {
     if (activeItem === "photos") {
       return (
         <Header.Subheader>
-          {this.props.photosGroupedByUser.length} user(s) shared{" "}
-          {this.props.photosFlat.length} photo(s) with you
+          {this.props.photosGroupedByUser.length} user(s) shared {this.props.photosFlat.length} photo(s) with you
         </Header.Subheader>
       );
     } else {
@@ -31,9 +30,7 @@ export class SharedToMe extends Component {
         <Header.Subheader>
           {this.props.albums.albumsSharedToMe.length} user(s) shared{" "}
           {this.props.albums.albumsSharedToMe.length > 0 &&
-            this.props.albums.albumsSharedToMe
-              .map((el) => el.albums.length)
-              .reduce((a, b) => a + b, 0)}{" "}
+            this.props.albums.albumsSharedToMe.map((el) => el.albums.length).reduce((a, b) => a + b, 0)}{" "}
           album(s) with you
         </Header.Subheader>
       );
@@ -45,16 +42,11 @@ export class SharedToMe extends Component {
       <div style={{ height: 60, paddingTop: 10 }}>
         <Header as="h2">
           <Icon.Group size="big">
-            <Icon
-              name={
-                activeItem === "photos" ? "image outline" : "images outline"
-              }
-            />
+            <Icon name={activeItem === "photos" ? "image outline" : "images outline"} />
             <Icon corner name="share" color="green" size="mimi" />
           </Icon.Group>
           <Header.Content style={{ paddingLeft: 10 }}>
-            {activeItem === "photos" ? "Photos" : "Albums"} others shared{" "}
-            {this.getSubHeader(activeItem)}
+            {activeItem === "photos" ? "Photos" : "Albums"} others shared {this.getSubHeader(activeItem)}
           </Header.Content>
         </Header>
       </div>
@@ -65,20 +57,10 @@ export class SharedToMe extends Component {
     return (
       <div style={{ marginLeft: -5, height: 40 }}>
         <Menu pointing secondary>
-          <Menu.Item
-            as={Link}
-            to="/shared/tome/photos/"
-            name="photos"
-            active={activeItem === "photos"}
-          >
+          <Menu.Item as={Link} to="/shared/tome/photos/" name="photos" active={activeItem === "photos"}>
             {"Photos "} <Loader size="mini" inline />
           </Menu.Item>
-          <Menu.Item
-            as={Link}
-            to="/shared/tome/albums/"
-            name="albums"
-            active={activeItem === "albums"}
-          >
+          <Menu.Item as={Link} to="/shared/tome/albums/" name="albums" active={activeItem === "albums"}>
             {"Albums "} <Loader size="mini" inline />
           </Menu.Item>
         </Menu>

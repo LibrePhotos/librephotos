@@ -42,12 +42,10 @@ export default function reducer(
         ...state,
       };
       if (action.payload.favorite_min_rating !== undefined) {
-        newState.userSelfDetails.favorite_min_rating =
-          action.payload.favorite_min_rating;
+        newState.userSelfDetails.favorite_min_rating = action.payload.favorite_min_rating;
       }
       if (action.payload.save_metadata_to_disk !== undefined) {
-        newState.userSelfDetails.save_metadata_to_disk =
-          action.payload.save_metadata_to_disk;
+        newState.userSelfDetails.save_metadata_to_disk = action.payload.save_metadata_to_disk;
       }
       return newState;
     }

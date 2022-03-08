@@ -9,12 +9,7 @@ export class TopMenuPublic extends Component {
   render() {
     return (
       <div>
-        <Menu
-          style={{ contentAlign: "left", backgroundColor: "#eeeeee" }}
-          borderless
-          fixed="top"
-          size="mini"
-        >
+        <Menu style={{ contentAlign: "left", backgroundColor: "#eeeeee" }} borderless fixed="top" size="mini">
           <Menu.Menu position="left">
             <Menu.Item>
               <Icon

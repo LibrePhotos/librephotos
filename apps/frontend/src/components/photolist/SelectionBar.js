@@ -5,11 +5,7 @@ export class SelectionBar extends Component {
   render() {
     return (
       <div>
-        <Button.Group
-          compact
-          floated="left"
-          style={{ paddingLeft: 2, paddingRight: 2 }}
-        >
+        <Button.Group compact floated="left" style={{ paddingLeft: 2, paddingRight: 2 }}>
           <Popup
             trigger={
               <Button
@@ -32,9 +28,7 @@ export class SelectionBar extends Component {
                 label={{
                   as: "a",
                   basic: true,
-                  content: `${this.props.selectedItems.length} ${this.props.t(
-                    "selectionbar.selected"
-                  )}`,
+                  content: `${this.props.selectedItems.length} ${this.props.t("selectionbar.selected")}`,
                 }}
                 labelPosition="right"
               />
@@ -44,28 +38,17 @@ export class SelectionBar extends Component {
           />
         </Button.Group>
 
-        <Button.Group
-          compact
-          floated="left"
-          style={{ paddingLeft: 2, paddingRight: 2 }}
-        >
+        <Button.Group compact floated="left" style={{ paddingLeft: 2, paddingRight: 2 }}>
           <Popup
             inverted
             trigger={
               <Button
                 icon
                 compact
-                positive={
-                  this.props.selectedItems.length !== this.props.idx2hash.length
-                }
-                negative={
-                  this.props.selectedItems.length === this.props.idx2hash.length
-                }
+                positive={this.props.selectedItems.length !== this.props.idx2hash.length}
+                negative={this.props.selectedItems.length === this.props.idx2hash.length}
                 onClick={() => {
-                  if (
-                    this.props.selectedItems.length ===
-                    this.props.idx2hash.length
-                  ) {
+                  if (this.props.selectedItems.length === this.props.idx2hash.length) {
                     this.props.updateSelectionState({
                       selectMode: false,
                       selectedItems: [],
@@ -80,8 +63,7 @@ export class SelectionBar extends Component {
               >
                 <Icon
                   name={
-                    this.props.selectedItems.length ===
-                    this.props.idx2hash.length
+                    this.props.selectedItems.length === this.props.idx2hash.length
                       ? "check circle outline"
                       : "check circle"
                   }

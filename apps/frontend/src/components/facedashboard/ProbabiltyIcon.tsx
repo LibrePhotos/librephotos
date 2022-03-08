@@ -22,14 +22,7 @@ export const ProbabilityIcon = (props: Props) => {
   return (
     <div style={{ right: 6, bottom: 6, position: "absolute" }}>
       <Popup
-        trigger={
-          <Icon
-            circular
-            style={{ backgroundColor: "white" }}
-            color={labelProbabilityColor}
-            name="circle"
-          />
-        }
+        trigger={<Icon circular style={{ backgroundColor: "white" }} color={labelProbabilityColor} name="circle" />}
         on="focus"
         flowing
         inverted

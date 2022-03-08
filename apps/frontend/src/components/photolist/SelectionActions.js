@@ -18,12 +18,7 @@ export class SelectionActions extends Component {
   render() {
     return (
       <div>
-        <Button.Group
-          style={{ paddingLeft: 2, paddingRight: 2 }}
-          compact
-          floated="right"
-          color="orange"
-        >
+        <Button.Group style={{ paddingLeft: 2, paddingRight: 2 }} compact floated="right" color="orange">
           <Dropdown
             icon="ellipsis vertical"
             pointing="top right"
@@ -37,8 +32,7 @@ export class SelectionActions extends Component {
             <Dropdown.Menu>
               <Dropdown.Header>
                 <Icon name="image" />
-                {this.props.t("selectionactions.photoactions")} (
-                {this.props.selectedItems.length}{" "}
+                {this.props.t("selectionactions.photoactions")} ({this.props.selectedItems.length}{" "}
                 {this.props.t("selectionactions.selected")} )
               </Dropdown.Header>
               <Dropdown.Divider />
@@ -166,9 +160,7 @@ export class SelectionActions extends Component {
               <Dropdown.Item
                 disabled={this.props.selectedItems.length === 0}
                 onClick={() => {
-                  this.props.dispatch(
-                    downloadPhotos(this.props.selectedItems.map((i) => i.id))
-                  );
+                  this.props.dispatch(downloadPhotos(this.props.selectedItems.map((i) => i.id)));
 
                   this.props.updateSelectionState({
                     selectMode: false,
@@ -229,9 +221,8 @@ export class SelectionActions extends Component {
                 trigger={
                   <Dropdown.Item
                     disabled={
-                      !this.props.route.location.pathname.startsWith(
-                        "/person/"
-                      ) || this.props.selectedItems.length !== 1
+                      !this.props.route.location.pathname.startsWith("/person/") ||
+                      this.props.selectedItems.length !== 1
                     }
                     onClick={() => {
                       this.props.setAlbumCover();
@@ -253,20 +244,14 @@ export class SelectionActions extends Component {
                 position="left center"
                 trigger={
                   <Dropdown.Item
-                    disabled={
-                      !this.props.route.location.pathname.startsWith(
-                        "/useralbum/"
-                      )
-                    }
+                    disabled={!this.props.route.location.pathname.startsWith("/useralbum/")}
                     onClick={this.props.onShareAlbum}
                   >
                     <Icon name="share" />
                     {"  " + this.props.t("selectionactions.sharing")}
                   </Dropdown.Item>
                 }
-                content={this.props.t(
-                  "selectionactions.albumsharingdescription"
-                )}
+                content={this.props.t("selectionactions.albumsharingdescription")}
               />
               <Popup
                 inverted
@@ -298,20 +283,13 @@ export class SelectionActions extends Component {
                     {"  " + this.props.t("selectionactions.removephotos")}
                   </Dropdown.Item>
                 }
-                content={this.props.t(
-                  "selectionactions.removephotosdescription"
-                )}
+                content={this.props.t("selectionactions.removephotosdescription")}
               />
             </Dropdown.Menu>
           </Dropdown>
         </Button.Group>
 
-        <Button.Group
-          style={{ paddingLeft: 2, paddingRight: 2 }}
-          floated="right"
-          compact
-          color="teal"
-        >
+        <Button.Group style={{ paddingLeft: 2, paddingRight: 2 }} floated="right" compact color="teal">
           <Dropdown
             disabled={this.props.selectedItems.length === 0}
             pointing="top right"
@@ -324,8 +302,7 @@ export class SelectionActions extends Component {
           >
             <Dropdown.Menu>
               <Dropdown.Header>
-                {this.props.t("selectionactions.album")} (
-                {this.props.selectedItems.length}{" "}
+                {this.props.t("selectionactions.album")} ({this.props.selectedItems.length}{" "}
                 {this.props.t("selectionactions.selected")} )
               </Dropdown.Header>
               <Dropdown.Divider />
