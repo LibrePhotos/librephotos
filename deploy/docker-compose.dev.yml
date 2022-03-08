@@ -30,6 +30,7 @@ services:
     tty: true
     environment:
     - DEBUG=1
+    - WDS_SOCKET_PORT=0 # needed for webpack-dev-server
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
