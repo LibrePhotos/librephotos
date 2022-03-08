@@ -33,7 +33,7 @@
         "credentials": "Credentials",
         "credentialspopup": "Use application password",
         "serveradress": "Server address",
-        "serveradressplaceholder": "https://…",
+        "serveradressplaceholder": "https://",
         "nextcloudusername": "User name",
         "nextcloudusernameplaceholder": "User name",
         "nextcloudpassword": "Nextcloud App Password",
