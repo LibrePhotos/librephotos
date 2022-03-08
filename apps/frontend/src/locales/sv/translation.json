@@ -362,7 +362,7 @@
         "unfavoritephoto": "{{numberOfPhotos}} bild(er) togs bort från favoriter.",
         "setfavoritestitle": "Ange favoriter",
         "hidephoto": "{{numberOfPhotos}} bild(er) doldes.",
-        "sethidestitle": "Ange som dold",
+        "sethidetitle": "Ange som dold",
         "scanphotostitle": "Genomsök bilder",
         "fullscanphotostitle": "Skanna bilder (fullständig)",
         "scannextcloudphotos": "Genomsökning av bilder på Nextcloud startad",

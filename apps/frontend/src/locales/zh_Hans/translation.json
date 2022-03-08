@@ -401,7 +401,7 @@
         "favoritephoto": "已将 {{numberOfPhotos}} 张照片添加到您最爱的照片。",
         "sharephoto": "已将 {{numberOfPhotos}} 张照片分享给 {{username}}",
         "removepublicphoto": "已将 {{numberOfPhotos}} 张照片从公开图片集中移除。",
-        "sethidestitle": "设置隐藏照片",
+        "sethidetitle": "设置隐藏照片",
         "fullscanphotos": "图片扫描中（全盘）…",
         "scanphotostitle": "扫描图片",
         "regenerateevents": "重新生成事件标题…",

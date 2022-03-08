@@ -408,7 +408,7 @@
         "setpublicphotostitle": "Öffentliche Fotos einstellen",
         "setcoverphoto": "Cover-Foto gesetzt",
         "setfavoritestitle": "Favoriten festlegen",
-        "sethidestitle": "Verborgen festlegen",
+        "sethidetitle": "Verborgen festlegen",
         "updateuser": "Infos von {{username}} aktualisiert",
         "unfavoritephoto": "{{numberOfPhotos}} Foto(s) aus Favoriten entfernt.",
         "finaldeletephoto": "{{numberOfPhotos}} Foto(s) endgültig gelöscht.",

@@ -400,7 +400,7 @@
         "setcoverphototitle": "Modifier la photo de couverture",
         "unsharephoto": "{{numberOfPhotos}} photo(s) ont été partagées avec {{username}}",
         "setcoverphoto": "Photo de couverture définie",
-        "sethidestitle": "Cacher",
+        "sethidetitle": "Cacher",
         "scannextcloudphotostitle": "Scanner les photos Nextcloud",
         "updateusertitle": "Mettre à jour l'utilisateur",
         "jobfinished": "{{job}} terminé.",

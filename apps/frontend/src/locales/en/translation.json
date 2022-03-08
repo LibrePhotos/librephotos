@@ -400,7 +400,7 @@
         "setfavoritestitle": "Set favorites",
         "hidephoto": "{{numberOfPhotos}} photo(s) were hidden.",
         "unhidephoto": "{{numberOfPhotos}} photo(s) were unhidden.",
-        "sethidestitle": "Set hidden",
+        "sethidetitle": "Set hidden",
         "scanphotos": "Scanning started",
         "scanphotostitle": "Scan photos",
         "fullscanphotos": "Scanning photos (full)…",
