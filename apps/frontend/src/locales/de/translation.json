@@ -27,7 +27,7 @@
         "credentials": "Zugangsdaten",
         "credentialspopup": "Anwendungspasswort verwenden",
         "serveradress": "Serveradresse",
-        "serveradressplaceholder": "https://…",
+        "serveradressplaceholder": "https://",
         "nextcloudusername": "Nutzername",
         "nextcloudusernameplaceholder": "Nutzername",
         "nextcloudpassword": "Nextcloud App-Passwort",
