@@ -10,6 +10,7 @@ from rest_framework_extensions.cache.decorators import cache_response
 from api.autoalbum import generate_event_albums, regenerate_event_titles
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 from api.models import AlbumAuto, Photo
+from api.serializers.serializers import AlbumAutoListSerializer, AlbumAutoSerializer
 from api.util import logger
 from api.views.caching import (
     CACHE_TTL,
@@ -17,7 +18,6 @@ from api.views.caching import (
     CustomObjectKeyConstructor,
 )
 from api.views.pagination import StandardResultsSetPagination
-from api.views.serializers import AlbumAutoListSerializer, AlbumAutoSerializer
 
 
 @six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)

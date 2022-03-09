@@ -19,8 +19,8 @@ from django.conf import settings
 from django.conf.urls import url
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, path
-from rest_framework import permissions, routers
+from django.urls import include
+from rest_framework import routers
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
     TokenRefreshSerializer,
@@ -28,7 +28,19 @@ from rest_framework_simplejwt.serializers import (
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 import ownphotos.settings
-from api.views import album_auto, albums, photos, search, views
+from api.views import (
+    album_auto,
+    albums,
+    dataviz,
+    faces,
+    jobs,
+    photos,
+    search,
+    sharing,
+    upload,
+    user,
+    views,
+)
 from nextcloud import views as nextcloud_views
 
 
@@ -75,8 +87,8 @@ class TokenRefreshView(TokenRefreshView):
 
 router = routers.DefaultRouter()
 
-router.register(r"api/user", views.UserViewSet, basename="user")
-router.register(r"api/manage/user", views.ManageUserViewSet)
+router.register(r"api/user", user.UserViewSet, basename="user")
+router.register(r"api/manage/user", user.ManageUserViewSet)
 
 router.register(
     r"api/albums/auto/list", album_auto.AlbumAutoListViewSet, basename="album_auto"
@@ -108,12 +120,12 @@ router.register(
 
 router.register(
     r"api/albums/user/shared/tome",
-    views.SharedToMeAlbumUserListViewSet,
+    sharing.SharedToMeAlbumUserListViewSet,
     basename="album_user",
 )
 router.register(
     r"api/albums/user/shared/fromme",
-    views.SharedFromMeAlbumUserListViewSet,
+    sharing.SharedFromMeAlbumUserListViewSet,
     basename="album_user",
 )
 
@@ -128,12 +140,12 @@ router.register(r"api/persons", albums.PersonViewSet, basename="person")
 
 router.register(
     r"api/photos/shared/tome",
-    views.SharedToMePhotoSuperSimpleListViewSet,
+    sharing.SharedToMePhotoSuperSimpleListViewSet,
     basename="photo",
 )
 router.register(
     r"api/photos/shared/fromme",
-    views.SharedFromMePhotoSuperSimpleListViewSet2,
+    sharing.SharedFromMePhotoSuperSimpleListViewSet2,
     basename="photo",
 )
 
@@ -149,15 +161,17 @@ router.register(
     basename="photo",
 )
 
-router.register(r"api/photos/edit", views.PhotoEditViewSet, basename="photo")
+router.register(r"api/photos/edit", photos.PhotoEditViewSet, basename="photo")
 
 router.register(
     r"api/photos/recentlyadded", photos.RecentlyAddedPhotoListViewSet, basename="photo"
 )
 router.register(
-    r"api/photos/simplelist", views.PhotoSimpleListViewSet, basename="photo"
+    r"api/photos/simplelist", photos.PhotoSimpleListViewSet, basename="photo"
 )
-router.register(r"api/photos/list", views.PhotoSuperSimpleListViewSet, basename="photo")
+router.register(
+    r"api/photos/list", photos.PhotoSuperSimpleListViewSet, basename="photo"
+)
 router.register(
     r"api/photos/favorites", photos.FavoritePhotoListViewset, basename="photo"
 )
@@ -166,59 +180,59 @@ router.register(r"api/photos/searchlist", search.SearchListViewSet, basename="ph
 
 router.register(r"api/photos/public", photos.PublicPhotoListViewset, basename="photo")
 
-router.register(r"api/photos", views.PhotoViewSet, basename="photo")
+router.register(r"api/photos", photos.PhotoViewSet, basename="photo")
 
 router.register(
-    r"api/faces/inferred/list", views.FaceInferredListViewSet, basename="face"
+    r"api/faces/inferred/list", faces.FaceInferredListViewSet, basename="face"
 )
 
 router.register(
-    r"api/faces/labeled/list", views.FaceLabeledListViewSet, basename="face"
+    r"api/faces/labeled/list", faces.FaceLabeledListViewSet, basename="face"
 )
 
-router.register(r"api/faces/list", views.FaceListViewSet, basename="face")
+router.register(r"api/faces/list", faces.FaceListViewSet, basename="face")
 
-router.register(r"api/faces/inferred", views.FaceInferredViewSet, basename="face")
-router.register(r"api/faces/labeled", views.FaceLabeledViewSet, basename="face")
-router.register(r"api/faces", views.FaceViewSet)
+router.register(r"api/faces/inferred", faces.FaceInferredViewSet, basename="face")
+router.register(r"api/faces/labeled", faces.FaceLabeledViewSet, basename="face")
+router.register(r"api/faces", faces.FaceViewSet)
 
-router.register(r"api/exists", views.UploadPhotoExists, basename="exists")
+router.register(r"api/exists", upload.UploadPhotoExists, basename="exists")
 
-router.register(r"api/jobs", views.LongRunningJobViewSet)
+router.register(r"api/jobs", jobs.LongRunningJobViewSet)
 urlpatterns = [
     url(r"^", include(router.urls)),
     url(r"^admin/", admin.site.urls),
-    url(r"^api/allowupload", views.AllowPhotoUpload.as_view()),
+    url(r"^api/allowupload", upload.AllowPhotoUpload.as_view()),
     url(r"^api/sitesettings", views.SiteSettingsView.as_view()),
-    url(r"^api/dirtree", views.RootPathTreeView.as_view()),
-    url(r"^api/labelfaces", views.SetFacePersonLabel.as_view()),
-    url(r"^api/deletefaces", views.DeleteFaces.as_view()),
-    url(r"^api/photosedit/delete", views.DeletePhotos.as_view()),
-    url(r"^api/photosedit/setdeleted", views.SetPhotosDeleted.as_view()),
-    url(r"^api/photosedit/favorite", views.SetPhotosFavorite.as_view()),
-    url(r"^api/photosedit/hide", views.SetPhotosHidden.as_view()),
-    url(r"^api/photosedit/makepublic", views.SetPhotosPublic.as_view()), 
-    url(r"^api/photosedit/share", views.SetPhotosShared.as_view()),
-    url(r"^api/photosedit/generateim2txt", views.GeneratePhotoCaption.as_view()),
+    url(r"^api/dirtree", user.RootPathTreeView.as_view()),
+    url(r"^api/labelfaces", faces.SetFacePersonLabel.as_view()),
+    url(r"^api/deletefaces", faces.DeleteFaces.as_view()),
+    url(r"^api/photosedit/delete", photos.DeletePhotos.as_view()),
+    url(r"^api/photosedit/setdeleted", photos.SetPhotosDeleted.as_view()),
+    url(r"^api/photosedit/favorite", photos.SetPhotosFavorite.as_view()),
+    url(r"^api/photosedit/hide", photos.SetPhotosHidden.as_view()),
+    url(r"^api/photosedit/makepublic", photos.SetPhotosPublic.as_view()),
+    url(r"^api/photosedit/share", photos.SetPhotosShared.as_view()),
+    url(r"^api/photosedit/generateim2txt", photos.GeneratePhotoCaption.as_view()),
     url(r"^api/useralbum/share", views.SetUserAlbumShared.as_view()),
-    url(r"^api/trainfaces", views.TrainFaceView.as_view()),
-    url(r"^api/clusterfaces", views.ClusterFaceView.as_view()),
-    url(r"^api/socialgraph", views.SocialGraphView.as_view()),
+    url(r"^api/trainfaces", faces.TrainFaceView.as_view()),
+    url(r"^api/clusterfaces", dataviz.ClusterFaceView.as_view()),
+    url(r"^api/socialgraph", dataviz.SocialGraphView.as_view()),
     url(r"^api/scanphotos", views.ScanPhotosView.as_view()),
     url(r"^api/fullscanphotos", views.FullScanPhotosView.as_view()),
-    url(r"^api/scanfaces", views.ScanFacesView.as_view()),
+    url(r"^api/scanfaces", faces.ScanFacesView.as_view()),
     url(r"^api/deletemissingphotos", views.DeleteMissingPhotosView.as_view()),
     url(r"^api/autoalbumgen", album_auto.AutoAlbumGenerateView.as_view()),
     url(r"^api/autoalbumtitlegen", album_auto.RegenerateAutoAlbumTitles.as_view()),
     url(r"^api/searchtermexamples", views.SearchTermExamples.as_view()),
-    url(r"^api/locationsunburst", views.LocationSunburst.as_view()),
-    url(r"^api/locationtimeline", views.LocationTimeline.as_view()),
-    url(r"^api/defaultrules", views.DefaultRulesView.as_view()),
-    url(r"^api/predefinedrules", views.PredefinedRulesView.as_view()),
-    url(r"^api/stats", views.StatsView.as_view()),
-    url(r"^api/locclust", views.LocationClustersView.as_view()),
-    url(r"^api/photomonthcounts", views.PhotoMonthCountsView.as_view()),
-    url(r"^api/wordcloud", views.SearchTermWordCloudView.as_view()),
+    url(r"^api/locationsunburst", dataviz.LocationSunburst.as_view()),
+    url(r"^api/locationtimeline", dataviz.LocationTimeline.as_view()),
+    url(r"^api/defaultrules", user.DefaultRulesView.as_view()),
+    url(r"^api/predefinedrules", user.PredefinedRulesView.as_view()),
+    url(r"^api/stats", dataviz.StatsView.as_view()),
+    url(r"^api/locclust", dataviz.LocationClustersView.as_view()),
+    url(r"^api/photomonthcounts", dataviz.PhotoMonthCountsView.as_view()),
+    url(r"^api/wordcloud", dataviz.SearchTermWordCloudView.as_view()),
     url(r"^api/auth/token/obtain/$", TokenObtainPairView.as_view()),
     url(r"^api/auth/token/refresh/$", TokenRefreshView.as_view()),
     url(
@@ -226,9 +240,9 @@ urlpatterns = [
         views.MediaAccessFullsizeOriginalView.as_view(),
         name="media",
     ),
-    url(r"^api/rqavailable/$", views.QueueAvailabilityView.as_view()),
-    url(r"^api/rqjobstat/$", views.RQJobStatView.as_view()),
-    url(r"^api/rqjoblist/$", views.ListAllRQJobsView.as_view()),
+    url(r"^api/rqavailable/$", jobs.QueueAvailabilityView.as_view()),
+    url(r"^api/rqjobstat/$", jobs.RQJobStatView.as_view()),
+    url(r"^api/rqjoblist/$", jobs.ListAllRQJobsView.as_view()),
     url(r"^api/nextcloud/listdir", nextcloud_views.ListDir.as_view()),
     url(r"^api/nextcloud/scanphotos", nextcloud_views.ScanPhotosView.as_view()),
     url(r"^api/photos/download", views.ZipListPhotosView.as_view()),
@@ -237,8 +251,10 @@ urlpatterns += [url("api/django-rq/", include("django_rq.urls"))]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if ownphotos.settings.ALLOW_UPLOAD:
-    urlpatterns += [url(r'api/upload/complete/', views.UploadPhotosChunkedComplete.as_view())]
-    urlpatterns += [url(r'api/upload/', views.UploadPhotosChunked.as_view())]
+    urlpatterns += [
+        url(r"api/upload/complete/", upload.UploadPhotosChunkedComplete.as_view())
+    ]
+    urlpatterns += [url(r"api/upload/", upload.UploadPhotosChunked.as_view())]
 
 
 if settings.DEBUG:
@@ -247,8 +263,10 @@ if settings.DEBUG:
         SpectacularRedocView,
         SpectacularSwaggerView,
     )
+
     urlpatterns += [url(r"^api/silk/", include("silk.urls", namespace="silk"))]
-    urlpatterns += [url(r"^api/schema", SpectacularAPIView.as_view(), name='schema'),
-        url(r"^api/swagger", SpectacularSwaggerView.as_view(), name='swagger-ui'),
-        url(r"^api/redoc", SpectacularRedocView.as_view(), name='redoc')
-        ]
+    urlpatterns += [
+        url(r"^api/schema", SpectacularAPIView.as_view(), name="schema"),
+        url(r"^api/swagger", SpectacularSwaggerView.as_view(), name="swagger-ui"),
+        url(r"^api/redoc", SpectacularRedocView.as_view(), name="redoc"),
+    ]

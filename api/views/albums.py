@@ -19,6 +19,22 @@ from api.models import (
     Photo,
     User,
 )
+from api.serializers.album_user import AlbumUserListSerializer, AlbumUserSerializerSerpy
+from api.serializers.serializers import (
+    AlbumPersonListSerializer,
+    AlbumPlaceListSerializer,
+    AlbumPlaceSerializer,
+    AlbumThingListSerializer,
+    AlbumThingSerializer,
+    PersonSerializer,
+)
+from api.serializers.serializers_serpy import (
+    GroupedPersonPhotosSerializer,
+    GroupedPlacePhotosSerializer,
+    GroupedThingPhotosSerializer,
+    PigAlbumDateSerializer,
+    PigIncompleteAlbumDateSerializer,
+)
 from api.util import logger
 from api.views.caching import (
     CACHE_TTL,
@@ -28,23 +44,6 @@ from api.views.caching import (
 from api.views.pagination import (
     RegularResultsSetPagination,
     StandardResultsSetPagination,
-)
-from api.views.serializers import (
-    AlbumPersonListSerializer,
-    AlbumPlaceListSerializer,
-    AlbumPlaceSerializer,
-    AlbumThingListSerializer,
-    AlbumThingSerializer,
-    AlbumUserListSerializer,
-    PersonSerializer,
-)
-from api.views.serializers_serpy import (
-    AlbumUserSerializerSerpy,
-    GroupedPersonPhotosSerializer,
-    GroupedPlacePhotosSerializer,
-    GroupedThingPhotosSerializer,
-    PigAlbumDateSerializer,
-    PigIncompleteAlbumDateSerializer,
 )
 
 
