@@ -22,8 +22,8 @@ from api.models import (
     Person,
     Photo,
 )
+from api.serializers.serializers import LongRunningJobSerializer
 from api.util import logger
-from api.views.serializers import LongRunningJobSerializer
 
 
 def get_current_job():

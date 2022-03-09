@@ -4,9 +4,9 @@ from rest_framework.response import Response
 
 from api.filters import SemanticSearchFilter
 from api.models import Photo
+from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
+from api.serializers.serializers_serpy import GroupedPhotosSerializer, PigPhotoSerilizer
 from api.views.pagination import HugeResultsSetPagination
-from api.views.PhotosGroupedByDate import get_photos_ordered_by_date
-from api.views.serializers_serpy import GroupedPhotosSerializer, PigPhotoSerilizer
 
 
 class SearchListViewSet(viewsets.ModelViewSet):

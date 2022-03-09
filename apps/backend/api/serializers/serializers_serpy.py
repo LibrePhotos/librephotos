@@ -1,8 +1,9 @@
 import serpy
 from django.core.paginator import Paginator
 
+from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
+from api.serializers.user import SimpleUserSerializerSerpy as SimpleUserSerializer
 from api.util import logger
-from api.views.PhotosGroupedByDate import get_photos_ordered_by_date
 
 
 # Serpy is used, because it is way faster when serializing than the django restframework
@@ -16,13 +17,6 @@ class DateTimeField(serpy.Field):
         except Exception:
             # import pdb; pdb.set_trace()
             logger.warning("DateTimefield error")
-
-
-class SimpleUserSerializer(serpy.Serializer):
-    id = serpy.IntField()
-    username = serpy.StrField()
-    first_name = serpy.StrField()
-    last_name = serpy.StrField()
 
 
 class SharedPhotoSuperSimpleSerializer(serpy.Serializer):
@@ -171,36 +165,6 @@ class PigAlbumDateSerializer(serpy.Serializer):
     def get_location(self, obj):
         if obj and obj.location:
             return obj.location["places"][0]
-        else:
-            return ""
-
-
-class AlbumUserSerializerSerpy(serpy.Serializer):
-    id = serpy.StrField()
-    title = serpy.StrField()
-    owner = SimpleUserSerializer()
-    shared_to = SimpleUserSerializer(many=True, call=True, attr="shared_to.all")
-    date = serpy.MethodField("get_date")
-    location = serpy.MethodField("get_location")
-    grouped_photos = serpy.MethodField("get_photos")
-
-    def get_photos(self, obj):
-        grouped_photos = get_photos_ordered_by_date(
-            obj.photos.all().order_by("-exif_timestamp")
-        )
-        res = GroupedPhotosSerializer(grouped_photos, many=True).data
-        return res
-
-    def get_location(self, obj):
-        for photo in obj.photos.all():
-            if photo and photo.search_location:
-                return photo.search_location
-        return ""
-
-    def get_date(self, obj):
-        for photo in obj.photos.all():
-            if photo and photo.exif_timestamp:
-                return photo.exif_timestamp
         else:
             return ""
 
