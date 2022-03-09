@@ -1,11 +1,11 @@
 ---
-title: "Development"
+title: "👷‍♂️ Development"
 excerpt: "How to install LibrePhotos for Developers"
 last_modified_at: 2021-05-31
-category: 1 
+category: 1
 ---
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=LibrePhotos_ownphotos&metric=alert_status)](https://sonarcloud.io/dashboard?id=LibrePhotos_ownphotos) ![Discord](https://img.shields.io/discord/784619049208250388?style=plastic) ![Website](https://img.shields.io/website?down_color=lightgrey&down_message=offline&style=plastic&up_color=blue&up_message=online&url=https%3A%2F%2Flibrephotos.com) ![GitHub contributors](https://img.shields.io/github/contributors/librephotos/librephotos?style=plastic)
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=LibrePhotos_ownphotos&metric=alert_status)](https://sonarcloud.io/dashboard?id=LibrePhotos_ownphotos) ![Discord](https://img.shields.io/discord/784619049208250388?style=plastic) ![Website](https://img.shields.io/website?down_color=lightgrey&down_message=offline&style=plastic&up_color=blue&up_message=online&url=https%3A%2F%2Flibrephotos.com) ![GitHub contributors](https://img.shields.io/github/contributors/librephotos/librephotos?style=plastic)
 
 ## For Developers
 
@@ -23,8 +23,8 @@ Pull librephotos-docker repo `git clone https://github.com/LibrePhotos/librephot
 ```bash
 codedir=/dev/librephotos
 cd ${codedir}
-git clone https://github.com/LibrePhotos/librephotos-frontend.git 
-git clone https://github.com/LibrePhotos/librephotos.git 
+git clone https://github.com/LibrePhotos/librephotos-frontend.git
+git clone https://github.com/LibrePhotos/librephotos.git
 git clone https://github.com/LibrePhotos/librephotos-docker.git
 ```
 
@@ -35,8 +35,8 @@ In PowerShell:
 ```powershell
 $Env:codedir = "/dev/librephotos"
 CD $Env:codedir
-git clone https://github.com/LibrePhotos/librephotos-frontend.git 
-git clone https://github.com/LibrePhotos/librephotos.git 
+git clone https://github.com/LibrePhotos/librephotos-frontend.git
+git clone https://github.com/LibrePhotos/librephotos.git
 git clone https://github.com/LibrePhotos/librephotos-docker.git
 ```
 
@@ -71,12 +71,12 @@ If you use Visual Studio Code, you can also benefit from auto-completion and oth
 in your Dockerfile folder, which is `/dev/librephotos/librephotos-docker` in our example.
 
 Visual Studio Code will open and ask you if you want to reopen it in the container. If you do, it will create the images
-from scratch (first time you do it can take a couple of minutes), and you will have the same Python interpreter 
+from scratch (first time you do it can take a couple of minutes), and you will have the same Python interpreter
 LibrePhotos uses internally - and hence the same installed libraries in auto completion, and the same development
-environment, will be shared by all devs. This includes tools like [isort](https://pycqa.github.io/isort/), 
+environment, will be shared by all devs. This includes tools like [isort](https://pycqa.github.io/isort/),
 [flake8](https://flake8.pycqa.org/en/latest/) and [pylint](https://www.pylint.org/).
 
-Alternatively, you can run the `Remote-Containers: Open Folder in Container` command from the Command Palette. Note 
+Alternatively, you can run the `Remote-Containers: Open Folder in Container` command from the Command Palette. Note
 in order to open this container, you must have the required dependencies installed. More details can be found
 [here](https://code.visualstudio.com/docs/remote/containers).
 

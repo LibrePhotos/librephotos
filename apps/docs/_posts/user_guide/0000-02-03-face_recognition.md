@@ -1,5 +1,5 @@
 ---
-title: "Face recognition"
+title: "😃 Face recognition"
 excerpt: "How to us the face dashboard"
 last_modified_at: 2021-11-07
 category: 2

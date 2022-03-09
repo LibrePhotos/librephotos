@@ -1,5 +1,5 @@
 ---
-title: "Docker Compose"
+title: "🐋 Docker Compose"
 excerpt: "How to install Libre Photos using Docker Compose."
 last_modified_at: 2021-10-07
 category: 1
@@ -28,8 +28,8 @@ Do not forget to create the directories you specified in the `.env` file if they
 
 Start LibrePhotos with `docker-compose up -d`
 
-You should have LibrePhotos accessible after a few minutes of boot-up on [localhost:3000](http://localhost:3000) 
-unless you changed this in the `.env` file.  The username is `admin` & the password is `admin` unless you changed them in the `.env` file.
+You should have LibrePhotos accessible after a few minutes of boot-up on [localhost:3000](http://localhost:3000)
+unless you changed this in the `.env` file. The username is `admin` & the password is `admin` unless you changed them in the `.env` file.
 It is recommended you change the admin username and password if LibrePhotos is going to be publicly accessible. This is done via the `.env` file.
 
 ## Updating
@@ -37,6 +37,7 @@ It is recommended you change the admin username and password if LibrePhotos is g
 To update LibrePhotos when using Docker Compose, navigate to the librephotos-docker folder that was created when you installed LibrePhotos.
 
 Then run:
+
 ```sh
 docker-compose down
 docker-compose pull
