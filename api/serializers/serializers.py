@@ -55,21 +55,15 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
 
 
 class PhotoSerializer(serializers.ModelSerializer):
-    thumbnail_url = serializers.SerializerMethodField()
-    thumbnail_height = serializers.SerializerMethodField()
-    thumbnail_width = serializers.SerializerMethodField()
     square_thumbnail_url = serializers.SerializerMethodField()
-    small_thumbnail_url = serializers.SerializerMethodField()
     big_thumbnail_url = serializers.SerializerMethodField()
-    big_square_thumbnail_url = serializers.SerializerMethodField()
     small_square_thumbnail_url = serializers.SerializerMethodField()
-    tiny_square_thumbnail_url = serializers.SerializerMethodField()
     similar_photos = serializers.SerializerMethodField()
     captions_json = serializers.SerializerMethodField()
-    image_url = serializers.SerializerMethodField()
     people = serializers.SerializerMethodField()
     shared_to = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     image_path = serializers.SerializerMethodField()
+    owner = SimpleUserSerializer(many=False, read_only=True)
 
     class Meta:
         model = Photo
@@ -80,27 +74,22 @@ class PhotoSerializer(serializers.ModelSerializer):
             "search_captions",
             "search_location",
             "captions_json",
-            "thumbnail_url",
-            "thumbnail_height",
-            "thumbnail_width",
-            "small_thumbnail_url",
             "big_thumbnail_url",
             "square_thumbnail_url",
-            "big_square_thumbnail_url",
             "small_square_thumbnail_url",
-            "tiny_square_thumbnail_url",
             "geolocation_json",
             "exif_json",
             "people",
-            "image_url",
             "image_hash",
             "image_path",
             "rating",
             "hidden",
             "public",
+            "deleted",
             "shared_to",
             "similar_photos",
             "video",
+            "owner",
         )
 
     def get_similar_photos(self, obj):
@@ -135,39 +124,9 @@ class PhotoSerializer(serializers.ModelSerializer):
         except Exception:
             return "Missing"
 
-    def get_thumbnail_url(self, obj):
-        try:
-            return obj.thumbnail.url
-        except Exception:
-            return None
-
-    def get_thumbnail_height(self, obj):
-        try:
-            return obj.thumbnail.height
-        except Exception:
-            return None
-
-    def get_thumbnail_width(self, obj):
-        try:
-            return obj.thumbnail.width
-        except Exception:
-            return None
-
     def get_square_thumbnail_url(self, obj):
         try:
             return obj.square_thumbnail.url
-        except Exception:
-            return None
-
-    def get_small_thumbnail_url(self, obj):
-        try:
-            return obj.thumbnail_small.url
-        except Exception:
-            return None
-
-    def get_big_square_thumbnail_url(self, obj):
-        try:
-            return obj.square_thumbnail_big.url
         except Exception:
             return None
 
@@ -177,21 +136,9 @@ class PhotoSerializer(serializers.ModelSerializer):
         except Exception:
             return None
 
-    def get_tiny_square_thumbnail_url(self, obj):
-        try:
-            return obj.square_thumbnail_tiny.url
-        except Exception:
-            return None
-
     def get_big_thumbnail_url(self, obj):
         try:
             return obj.thumbnail_big.url
-        except Exception:
-            return None
-
-    def get_image_url(self, obj):
-        try:
-            return obj.image.url
         except Exception:
             return None
 
