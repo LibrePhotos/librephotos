@@ -53,7 +53,6 @@ const noMenubarPaths = ["/signup", "/login"];
 
 class App extends React.Component {
   render() {
-    console.info("this.props.dismiss: ", this.props.dismiss);
     return (
       <div>
         <ConnectedRouter history={appHistory}>

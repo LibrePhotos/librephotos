@@ -5,13 +5,16 @@
   "scripts": {
     "lint:warn": "eslint --cache \"src/**\"",
     "lint:error": "eslint --cache --quiet \"src/**\"",
-    "lint:fix": "eslint --cache --quiet \"src/**\" --fix",
+    "lint:error:fix": "eslint --cache --quiet \"src/**\" --fix",
+    "lint:warning:fix": "eslint --cache --quiet \"src/**\" --fix",
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "rimraf ./build && react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject",
     "prepare": "husky install",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "eslint-fix-interactive": "eslint-nibble --fixable-only \"./src/**/*\"",
+    "eslint-fix-specified": "eslint-filtered-fix \"./src/**/*\" --rule import/no-duplicates"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
