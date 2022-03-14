@@ -11,6 +11,7 @@
     "build": "rimraf ./build && react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject",
+    "analyze": "source-map-explorer 'build/static/js/*.js'",
     "prepare": "husky install",
     "postinstall": "patch-package",
     "eslint-fix-interactive": "eslint-nibble --fixable-only \"./src/**/*\"",
@@ -25,7 +26,6 @@
       "yarn prettier --config ./prettier.config.js  --write"
     ]
   },
-  "proxy": "http://192.168.1.100:8000/",
   "browserslist": [
     ">0.2%",
     "not dead",
@@ -107,6 +107,7 @@
     "rumble-charts": "^2.0.0",
     "semantic-ui-css": "npm:fomantic-ui-css@^2.8.8",
     "semantic-ui-react": "2.1.2",
+    "source-map-explorer": "^2.5.2",
     "zod": "^3.11.6"
   },
   "devDependencies": {
@@ -132,6 +133,7 @@
     "eslint-plugin-import": "^2.25.4",
     "eslint-plugin-react": "^7.29.3",
     "eslint-plugin-react-hooks": "^4.3.0",
+    "http-proxy-middleware": "^2.0.4",
     "husky": "^7.0.4",
     "jest": "^27.5.1",
     "lint-staged": "^12.3.5",
