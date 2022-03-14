@@ -21,6 +21,7 @@ services:
     build:
       context: ./proxy
       dockerfile: Dockerfile
+    container_name: __proxy_name__
     volumes:
       - ${myPhotos}:/data
       - ${proMedia}:/protected_media
@@ -30,9 +31,11 @@ services:
     tty: true
     environment:
     - DEBUG=1
+    - WDS_SOCKET_PORT=0 # needed for webpack-dev-server
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
+    container_name: __frontend_name__
     volumes:
       - ${codedir}/librephotos-frontend:/usr/src/app
 
@@ -46,6 +49,7 @@ services:
       dockerfile: Dockerfile
       args:
         DEBUG: 1
+    container_name: __backend_name__
     volumes:
       - ${myPhotos}:/data
       - ${proMedia}:/protected_media
@@ -59,11 +63,12 @@ services:
 
   __pgadmin_name__:
     image: dpage/pgadmin4
+    container_name: __pgadmin_name__
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@admin.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
     volumes:
-       - $HOME/pgadmin:/root/.pgadmin
+       - ${pgAdminLocation}/pgadmin:/root/.pgadmin
     ports:
       - "3001:80"
     restart: unless-stopped

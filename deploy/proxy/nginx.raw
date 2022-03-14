@@ -26,6 +26,13 @@ http {
       include uwsgi_params;
       proxy_pass http://__backend_name__:8001;
     }
+    # needed for webpack-dev-server
+    location /ws {
+      proxy_pass http://__frontend_name__:3000;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+    }
     # Django media
     location /protected_media  {
         internal;
