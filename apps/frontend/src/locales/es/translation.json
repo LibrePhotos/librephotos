@@ -27,7 +27,7 @@
         "credentials": "Credenciales",
         "credentialspopup": "Use la contraseña de la aplicación",
         "serveradress": "Dirección del servidor",
-        "serveradressplaceholder": "https://…",
+        "serveradressplaceholder": "https://",
         "nextcloudusername": "Usuario",
         "nextcloudusernameplaceholder": "Usuario",
         "nextcloudpassword": "Contraseña de Nextcloud",
