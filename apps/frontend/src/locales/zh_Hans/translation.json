@@ -53,7 +53,7 @@
             "item1": "列出子目录下的所有文件， 对于每个媒体文件：",
             "item4": "如果此媒体文件已存在于数据库中，将路径添加到已有媒体库中。"
         },
-        "serveradressplaceholder": "https://…",
+        "serveradressplaceholder": "https://",
         "statusrescanphotostrue": "重新扫描照片（本地文件系统）",
         "statusrescanphotosfalse": "重新扫描照片（本地文件系统）",
         "missingphotos": "丢失的照片",
@@ -413,7 +413,9 @@
         "unhidephoto": "已将 {{numberOfPhotos}} 张照片取消隐藏。",
         "deletephoto": "{{numberOfPhotos}} 张照片已被删除。",
         "recoverphoto": "{{numberOfPhotos}} 张照片已被恢复。",
-        "finaldeletephoto": "{{numberOfPhotos}} 张照片已被永久删除。"
+        "finaldeletephoto": "{{numberOfPhotos}} 张照片已被永久删除。",
+        "finaldeletephototitle": "删除图片",
+        "setdeletetitle": "删除图片"
     },
     "rules": {
         "1": "提取exif中的DATE_TIME_ORIGINAL作为当地时间",
@@ -426,5 +428,9 @@
         "exif_tag": "使用Exif标签 {{rule}}",
         "file_property": "使用文件属性{{rule}}"
     },
-    "fetchingsocialgraph": "正在获取社交图谱…"
+    "fetchingsocialgraph": "正在获取社交图谱…",
+    "nofaces": "未检测到人脸",
+    "nodata": "无数据",
+    "nosocialgraph": "无社交图谱",
+    "locationtimeline": "地理时间轴"
 }
