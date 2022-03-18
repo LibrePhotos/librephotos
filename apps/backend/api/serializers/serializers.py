@@ -21,15 +21,26 @@ from api.serializers.user import SimpleUserSerializer
 from api.util import logger
 
 
-# To-Do: Are you even used?!?
 class PhotoEditSerializer(serializers.ModelSerializer):
     class Meta:
         model = Photo
-        fields = ("image_hash", "hidden", "rating", "deleted", "video")
+        fields = (
+            "image_hash",
+            "hidden",
+            "rating",
+            "deleted",
+            "video",
+            "exif_timestamp",
+            "timestamp",
+        )
 
     def update(self, instance, validated_data):
-        # import pdb; pdb.set_trace()
-        logger.info("Removed pdb to avoid blocks")
+        # photo can only update the following
+        if "exif_timestamp" in validated_data:
+            instance.timestamp = validated_data.pop("exif_timestamp")
+            instance.save()
+            instance._extract_date_time_from_exif()
+        return instance
 
 
 class PhotoHashListSerializer(serializers.ModelSerializer):

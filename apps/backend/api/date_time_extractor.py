@@ -103,6 +103,7 @@ class RuleTypes:
     EXIF = "exif"
     PATH = "path"
     FILESYSTEM = "filesystem"
+    USER_DEFINED = "user_defined"
 
 
 class TimeExtractionRule:
@@ -275,7 +276,9 @@ class TimeExtractionRule:
             and self._check_condition_filename(path)
         )
 
-    def apply(self, path, exif_tags, gps_lat, gps_lon, user_default_tz):
+    def apply(
+        self, path, exif_tags, gps_lat, gps_lon, user_default_tz, user_defined_timestamp
+    ):
         if not self._check_conditions(path, exif_tags, gps_lat, gps_lon):
             return None
         if self.rule_type == RuleTypes.EXIF:
@@ -284,6 +287,8 @@ class TimeExtractionRule:
             return self._apply_path(path, gps_lat, gps_lon, user_default_tz)
         elif self.rule_type == RuleTypes.FILESYSTEM:
             return self._apply_filesystem(path, gps_lat, gps_lon, user_default_tz)
+        elif self.rule_type == RuleTypes.USER_DEFINED:
+            return user_defined_timestamp
         else:
             raise ValueError(f"Unknown rule type {self.rule_type}")
 
@@ -380,6 +385,17 @@ def _check_gps_ok(lat, lon):
 
 
 DEFAULT_RULES_PARAMS = [
+    {
+        "id": 14,
+        "name": "Timestamp set by user",
+        "rule_type": RuleTypes.USER_DEFINED,
+    },
+    {
+        "id": 15,
+        "name": f"Local time from {Tags.DATE_TIME} exif tag",
+        "rule_type": RuleTypes.EXIF,
+        "exif_tag": Tags.DATE_TIME,
+    },
     {
         "id": 1,
         "name": f"Local time from {Tags.DATE_TIME_ORIGINAL} exif tag",
@@ -494,7 +510,7 @@ def as_rules(configs):
 
 
 def extract_local_date_time(
-    path, rules, exif_getter, gps_lat, gps_lon, user_default_tz
+    path, rules, exif_getter, gps_lat, gps_lon, user_default_tz, user_defined_timestamp
 ):
     required_tags = set()
     for rule in rules:
@@ -503,7 +519,9 @@ def extract_local_date_time(
     exif_values = exif_getter(required_tags)
     exif_tags = {k: v for k, v in zip(required_tags, exif_values)}
     for rule in rules:
-        res = rule.apply(path, exif_tags, gps_lat, gps_lon, user_default_tz)
+        res = rule.apply(
+            path, exif_tags, gps_lat, gps_lon, user_default_tz, user_defined_timestamp
+        )
         if res:
             return res
     return None

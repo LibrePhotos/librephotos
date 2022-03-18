@@ -377,11 +377,9 @@ class PhotoViewSet(viewsets.ModelViewSet):
         else:
             return Photo.objects.order_by("-exif_timestamp")
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(PhotoViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(PhotoViewSet, self).list(*args, **kwargs)
 
@@ -393,11 +391,9 @@ class PhotoEditViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Photo.visible.filter(Q(owner=self.request.user))
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(PhotoEditViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(PhotoEditViewSet, self).list(*args, **kwargs)
 
