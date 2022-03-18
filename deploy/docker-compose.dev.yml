@@ -21,6 +21,7 @@ services:
     build:
       context: ./proxy
       dockerfile: Dockerfile
+    container_name: proxy
     volumes:
       - ${myPhotos}:/data
       - ${proMedia}:/protected_media
@@ -34,6 +35,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
+    container_name: frontend
     volumes:
       - ${codedir}/librephotos-frontend:/usr/src/app
 
@@ -47,6 +49,7 @@ services:
       dockerfile: Dockerfile
       args:
         DEBUG: 1
+    container_name: backend
     volumes:
       - ${myPhotos}:/data
       - ${proMedia}:/protected_media
@@ -60,11 +63,12 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4
+    container_name: pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@admin.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
     volumes:
-       - $HOME/pgadmin:/root/.pgadmin
+       - ${pgAdminLocation}/pgadmin:/root/.pgadmin
     ports:
       - "3001:80"
     restart: unless-stopped

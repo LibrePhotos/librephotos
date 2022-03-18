@@ -11,10 +11,12 @@ version: "3.8"
 services:
   proxy:
     image: reallibrephotos/librephotos-proxy:${tag}
+    container_name: proxy
     restart: unless-stopped
     volumes:
       - ${myPhotos}:/data
       - ${proMedia}:/protected_media
+      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
       - ${httpPort}:80
     depends_on:
@@ -23,6 +25,7 @@ services:
 
   db:
     image: postgres:13
+    container_name: db
     restart: unless-stopped
     environment:
       - POSTGRES_USER=${dbUser}
@@ -34,12 +37,14 @@ services:
 
   frontend:
     image: reallibrephotos/librephotos-frontend:${tag}
+    container_name: frontend
     restart: unless-stopped
     depends_on:
       - backend
 
   backend:
     image: reallibrephotos/librephotos:${tag}
+    container_name: backend
     restart: unless-stopped
     volumes:
       - ${myPhotos}:/data
@@ -74,4 +79,5 @@ services:
 
   redis:
     image: redis:6
+    container_name: redis
     restart: unless-stopped
