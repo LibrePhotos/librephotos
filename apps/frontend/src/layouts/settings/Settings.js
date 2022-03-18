@@ -1,21 +1,6 @@
 import React, { Component } from "react";
 import { compose } from "redux";
-import {
-  Form,
-  Radio,
-  List,
-  Grid,
-  Icon,
-  Header,
-  Segment,
-  Input,
-  Button,
-  Table,
-  Popup,
-  Divider,
-  Confirm,
-  Dropdown,
-} from "semantic-ui-react";
+import { Form, Radio, List, Grid, Icon, Header, Segment, Input, Button, Table, Popup, Divider, Confirm, Dropdown } from "semantic-ui-react";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
 import Modal from "react-modal";
@@ -165,13 +150,7 @@ export class Settings extends Component {
                       return (
                         <div {...getRootProps()}>
                           <input {...getInputProps()} />
-                          <AvatarEditor
-                            ref={this.setEditorRef}
-                            width={150}
-                            height={150}
-                            border={0}
-                            image={this.state.avatarImgSrc}
-                          />
+                          <AvatarEditor ref={this.setEditorRef} width={150} height={150} border={0} image={this.state.avatarImgSrc} />
                         </div>
                       );
                     }}
@@ -203,10 +182,7 @@ export class Settings extends Component {
                     color="green"
                     onClick={() => {
                       let form_data = new FormData();
-                      this.urltoFile(
-                        this.editor.getImageScaledToCanvas().toDataURL(),
-                        this.state.userSelfDetails.first_name + "avatar.png"
-                      ).then((file) => {
+                      this.urltoFile(this.editor.getImageScaledToCanvas().toDataURL(), this.state.userSelfDetails.first_name + "avatar.png").then((file) => {
                         form_data.append("avatar", file, this.state.userSelfDetails.first_name + "avatar.png");
                         this.props.dispatch(updateAvatar(this.state.userSelfDetails, form_data));
                       });
@@ -401,12 +377,7 @@ export class Settings extends Component {
               <b>
                 <Trans i18nKey="settings.credentials">Credentials</Trans>
               </b>
-              <Popup
-                position="right center"
-                inverted
-                trigger={<Icon size="small" name="question" />}
-                content={this.props.t("settings.credentialspopup")}
-              />
+              <Popup position="right center" inverted trigger={<Icon size="small" name="question" />} content={this.props.t("settings.credentialspopup")} />
             </Grid.Column>
 
             <Grid.Column width={12}>
@@ -494,16 +465,10 @@ export class Settings extends Component {
                 <Trans i18nKey="settings.nextcloudscandirectory">Nextcloud Scan Directory</Trans>
               </b>
               <Popup
-                trigger={
-                  <Icon size="small" name="circle" color={this.props.fetchedNextcloudDirectoryTree ? "green" : "red"} />
-                }
+                trigger={<Icon size="small" name="circle" color={this.props.fetchedNextcloudDirectoryTree ? "green" : "red"} />}
                 inverted
                 position="right center"
-                content={
-                  this.props.fetchedNextcloudDirectoryTree
-                    ? this.props.t("settings.nextcloudloggedin")
-                    : this.props.t("settings.nextcloudnotloggedin")
-                }
+                content={this.props.fetchedNextcloudDirectoryTree ? this.props.t("settings.nextcloudloggedin") : this.props.t("settings.nextcloudnotloggedin")}
               />
             </Grid.Column>
 
@@ -589,20 +554,10 @@ export class Settings extends Component {
                   {this.props.util.countStats.num_photos} <Trans i18nKey="settings.photos">Photos</Trans>
                 </Header>
                 <Divider />
-                <Button
-                  attached="top"
-                  fluid
-                  color="green"
-                  onClick={this.onPhotoScanButtonClick}
-                  disabled={buttonsDisabled}
-                >
-                  <Icon
-                    name="refresh"
-                    loading={this.props.statusPhotoScan.status && this.props.statusPhotoScan.added}
-                  />
+                <Button attached="top" fluid color="green" onClick={this.onPhotoScanButtonClick} disabled={buttonsDisabled}>
+                  <Icon name="refresh" loading={this.props.statusPhotoScan.status && this.props.statusPhotoScan.added} />
                   {this.props.statusPhotoScan.added
-                    ? this.props.t("settings.statusscanphotostrue") +
-                      `(${this.props.statusPhotoScan.added}/${this.props.statusPhotoScan.to_add})`
+                    ? this.props.t("settings.statusscanphotostrue") + `(${this.props.statusPhotoScan.added}/${this.props.statusPhotoScan.to_add})`
                     : this.props.t("settings.statusscanphotosfalse")}
                 </Button>
 
@@ -612,11 +567,7 @@ export class Settings extends Component {
                   onClick={() => {
                     this.props.dispatch(scanNextcloudPhotos());
                   }}
-                  disabled={
-                    !this.props.fetchedNextcloudDirectoryTree ||
-                    buttonsDisabled ||
-                    !this.props.userSelfDetails.nextcloud_scan_directory
-                  }
+                  disabled={!this.props.fetchedNextcloudDirectoryTree || buttonsDisabled || !this.props.userSelfDetails.nextcloud_scan_directory}
                   color="blue"
                 >
                   <Icon name="refresh" />
@@ -626,20 +577,15 @@ export class Settings extends Component {
                 <Divider hidden />
                 <List bulleted>
                   <List.Item>
-                    <Trans i18nKey="settings.scannextclouddescription.item1">
-                      Make a list of all files in subdirectories. For each media file:
-                    </Trans>
+                    <Trans i18nKey="settings.scannextclouddescription.item1">Make a list of all files in subdirectories. For each media file:</Trans>
                   </List.Item>
                   <List.Item>
                     <Trans i18nKey="settings.scannextclouddescription.item2">
-                      If the filepath exists, check if the file has been modified. If it was modified, rescan the image.
-                      If not, we skip.
+                      If the filepath exists, check if the file has been modified. If it was modified, rescan the image. If not, we skip.
                     </Trans>
                   </List.Item>
                   <List.Item>
-                    <Trans i18nKey="settings.scannextclouddescription.item3">
-                      Calculate a unique ID of the image file (md5)
-                    </Trans>
+                    <Trans i18nKey="settings.scannextclouddescription.item3">Calculate a unique ID of the image file (md5)</Trans>
                   </List.Item>
                   <List.Item>
                     <Trans i18nKey="settings.scannextclouddescription.item4">
@@ -656,32 +602,22 @@ export class Settings extends Component {
                     <Trans i18nKey="settings.scannextclouddescription.item7">Extract Exif information</Trans>{" "}
                   </List.Item>
                   <List.Item>
-                    <Trans i18nKey="settings.scannextclouddescription.item8">
-                      Reverse geolocate to get location names from GPS coordinates{" "}
-                    </Trans>
+                    <Trans i18nKey="settings.scannextclouddescription.item8">Reverse geolocate to get location names from GPS coordinates </Trans>
                   </List.Item>
                   <List.Item>
                     <Trans i18nKey="settings.scannextclouddescription.item9">Extract faces. </Trans>{" "}
                   </List.Item>
                   <List.Item>
-                    <Trans i18nKey="settings.scannextclouddescription.item10">
-                      Add photo to thing and place albums.
-                    </Trans>{" "}
+                    <Trans i18nKey="settings.scannextclouddescription.item10">Add photo to thing and place albums.</Trans>{" "}
                   </List.Item>
                   <List.Item>
-                    <Trans i18nKey="settings.scannextclouddescription.item11">
-                      Check if photos are missing or have been moved.
-                    </Trans>
+                    <Trans i18nKey="settings.scannextclouddescription.item11">Check if photos are missing or have been moved.</Trans>
                   </List.Item>
                 </List>
                 <Button fluid color="green" onClick={this.onPhotoFullScanButtonClick} disabled={buttonsDisabled}>
-                  <Icon
-                    name="refresh"
-                    loading={this.props.statusPhotoScan.status && this.props.statusPhotoScan.added}
-                  />
+                  <Icon name="refresh" loading={this.props.statusPhotoScan.status && this.props.statusPhotoScan.added} />
                   {this.props.statusPhotoScan.added
-                    ? this.props.t("settings.statusrescanphotostrue") +
-                      `(${this.props.statusPhotoScan.added}/${this.props.statusPhotoScan.to_add})`
+                    ? this.props.t("settings.statusrescanphotostrue") + `(${this.props.statusPhotoScan.added}/${this.props.statusPhotoScan.to_add})`
                     : this.props.t("settings.statusrescanphotosfalse")}
                 </Button>
               </Segment>
@@ -689,30 +625,19 @@ export class Settings extends Component {
             <Grid.Column>
               <Segment>
                 <Header textAlign="center">
-                  {this.props.util.countStats.num_missing_photos}{" "}
-                  <Trans i18nKey="settings.missingphotos">Missing Photos</Trans>
+                  {this.props.util.countStats.num_missing_photos} <Trans i18nKey="settings.missingphotos">Missing Photos</Trans>
                 </Header>
                 <Divider />
-                <Button
-                  fluid
-                  attached={this.state.accordionTwoActive ? "bottom" : false}
-                  onClick={this.open}
-                  disabled={false && buttonsDisabled}
-                  color="red"
-                >
+                <Button fluid attached={this.state.accordionTwoActive ? "bottom" : false} onClick={this.open} disabled={false && buttonsDisabled} color="red">
                   <Icon name="trash" />
                   <Trans i18nKey="settings.missingphotosbutton">Remove missing photos</Trans>
                 </Button>
-                <Confirm
-                  open={this.state.open}
-                  onCancel={this.close}
-                  onConfirm={this.onDeleteMissingPhotosButtonClick}
-                />
+                <Confirm open={this.state.open} onCancel={this.close} onConfirm={this.onDeleteMissingPhotosButtonClick} />
                 <Divider hidden />
                 <p>
                   <Trans i18nKey="settings.missingphotosdescription">
-                    On every scan LibrePhotos will check if the files are still in the same location or if they have
-                    been moved. If they are missing, then they get marked as such.
+                    On every scan LibrePhotos will check if the files are still in the same location or if they have been moved. If they are missing, then they
+                    get marked as such.
                   </Trans>
                 </p>
                 <Divider />
@@ -737,9 +662,8 @@ export class Settings extends Component {
                 <Divider hidden />
                 <p>
                   <Trans i18nKey="settings.eventsalbumsdescription">
-                    The backend server will first group photos by time taken. If two consecutive photos are taken within
-                    12 hours of each other, the two photos are considered to be from the same event. After groups are
-                    put together in this way, it automatically generates a title for this album.
+                    The backend server will first group photos by time taken. If two consecutive photos are taken within 12 hours of each other, the two photos
+                    are considered to be from the same event. After groups are put together in this way, it automatically generates a title for this album.
                   </Trans>
                 </p>
                 <Divider />
@@ -759,9 +683,8 @@ export class Settings extends Component {
                 <Divider hidden />
                 <p>
                   <Trans i18nKey="settings.eventalbumsregeneratedescription">
-                    Automatically generated albums have names of people in the titles. If you trained your face
-                    classifier after making event albums, you can generate new titles for already existing event albums
-                    to reflect the new names associated with the faces in photos.
+                    Automatically generated albums have names of people in the titles. If you trained your face classifier after making event albums, you can
+                    generate new titles for already existing event albums to reflect the new names associated with the faces in photos.
                   </Trans>
                 </p>
               </Segment>
@@ -769,8 +692,8 @@ export class Settings extends Component {
             <Grid.Column>
               <Segment>
                 <Header textAlign="center">
-                  {this.props.util.countStats.num_faces} <Trans i18nKey="settings.faces">Faces</Trans>,{" "}
-                  {this.props.util.countStats.num_people} <Trans i18nKey="settings.people">People</Trans>
+                  {this.props.util.countStats.num_faces} <Trans i18nKey="settings.faces">Faces</Trans>, {this.props.util.countStats.num_people}{" "}
+                  <Trans i18nKey="settings.people">People</Trans>
                 </Header>
                 <Divider />
                 <Button
@@ -794,8 +717,7 @@ export class Settings extends Component {
                         </b>
                       </Table.Cell>
                       <Table.Cell textAlign="center">
-                        {this.props.util.countStats.num_inferred_faces}{" "}
-                        <Trans i18nKey="settings.facessmall">faces</Trans>
+                        {this.props.util.countStats.num_inferred_faces} <Trans i18nKey="settings.facessmall">faces</Trans>
                       </Table.Cell>
                     </Table.Row>
                     <Table.Row>
@@ -806,8 +728,7 @@ export class Settings extends Component {
                         </b>
                       </Table.Cell>
                       <Table.Cell textAlign="center">
-                        {this.props.util.countStats.num_labeled_faces}{" "}
-                        <Trans i18nKey="settings.facessmall">faces</Trans>
+                        {this.props.util.countStats.num_labeled_faces} <Trans i18nKey="settings.facessmall">faces</Trans>
                       </Table.Cell>
                     </Table.Row>
                     <Table.Row>
@@ -818,8 +739,7 @@ export class Settings extends Component {
                         </b>
                       </Table.Cell>
                       <Table.Cell textAlign="center">
-                        {this.props.util.countStats.num_unknown_faces}{" "}
-                        <Trans i18nKey="settings.facessmall">faces</Trans>
+                        {this.props.util.countStats.num_unknown_faces} <Trans i18nKey="settings.facessmall">faces</Trans>
                       </Table.Cell>
                     </Table.Row>
                   </Table.Body>
@@ -925,8 +845,41 @@ export class Settings extends Component {
           </Grid.Row>
         </Grid>
         <Header as="h3">
-          <Trans i18nKey="settings.favorite">Favorite options</Trans>
+          <Trans i18nKey="settings.metadata">Metadata options</Trans>
         </Header>
+
+        <Grid>
+          <Grid.Row>
+            <Grid.Column width={4} textAlign="left">
+              <b>
+                <Trans i18nKey="settings.sync">Synchronize metadata to disk</Trans>
+              </b>
+            </Grid.Column>
+            <Grid.Column width={12}>
+              <select
+                value={this.state.userSelfDetails.save_metadata_to_disk}
+                onChange={(event) => {
+                  this.setState(
+                    {
+                      userSelfDetails: {
+                        ...this.state.userSelfDetails,
+                        save_metadata_to_disk: event.target.value,
+                      },
+                    },
+                    () => {
+                      console.log(this.state.userSelfDetails);
+                    }
+                  );
+                }}
+              >
+                <option value="" disabled selected />
+                <option value={"OFF"}>{this.props.t("settings.favoritesyncoptions.off")}</option>
+                <option value={"SIDECAR_FILE"}>{this.props.t("settings.favoritesyncoptions.sidecar")}</option>
+                <option value={"MEDIA_FILE"}>{this.props.t("settings.favoritesyncoptions.mediafile")}</option>
+              </select>
+            </Grid.Column>
+          </Grid.Row>
+        </Grid>
         <Grid>
           <Grid.Row>
             <Grid.Column width={4} textAlign="left">
@@ -957,36 +910,7 @@ export class Settings extends Component {
               </select>
             </Grid.Column>
           </Grid.Row>
-          <Grid.Row>
-            <Grid.Column width={4} textAlign="left">
-              <b>
-                <Trans i18nKey="settings.favoritesync">Synchronize rating to disk</Trans>
-              </b>
-            </Grid.Column>
-            <Grid.Column width={12}>
-              <select
-                value={this.state.userSelfDetails.save_metadata_to_disk}
-                onChange={(event) => {
-                  this.setState(
-                    {
-                      userSelfDetails: {
-                        ...this.state.userSelfDetails,
-                        save_metadata_to_disk: event.target.value,
-                      },
-                    },
-                    () => {
-                      console.log(this.state.userSelfDetails);
-                    }
-                  );
-                }}
-              >
-                <option value="" disabled selected />
-                <option value={"OFF"}>{this.props.t("settings.favoritesyncoptions.off")}</option>
-                <option value={"SIDECAR_FILE"}>{this.props.t("settings.favoritesyncoptions.sidecar")}</option>
-                <option value={"MEDIA_FILE"}>{this.props.t("settings.favoritesyncoptions.mediafile")}</option>
-              </select>
-            </Grid.Column>
-          </Grid.Row>
+
           <Grid.Row>
             <Grid.Column width={12}>
               <Button

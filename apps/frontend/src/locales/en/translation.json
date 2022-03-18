@@ -108,7 +108,8 @@
         "favoriteoption": {
             "placeholder": "Minimum rating"
         },
-        "favoritesync": "Synchronize rating to disk",
+        "metadata": "Metadata options",
+        "sync": "Synchronize metadata to disk",
         "favoritesyncoptions": {
             "off": "Off",
             "sidecar": "Save to sidecar",
@@ -420,7 +421,9 @@
         "recoverphoto": "{{numberOfPhotos}} photo(s) were recovered.",
         "setdeletetitle": "Delete Images",
         "finaldeletephoto": "{{numberOfPhotos}} photo(s) were permanently deleted.",
-        "finaldeletephototitle": "Delete Images"
+        "finaldeletephototitle": "Delete Images",
+        "editphoto": "Photo edited",
+        "editphototitle": "Edit photo"
     },
     "rules": {
         "1": "Local time from DATE_TIME_ORIGINAL exif tag",

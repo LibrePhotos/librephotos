@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import "react-virtualized/styles.css"; // only needs to be imported once
 import { generatePhotoIm2txtCaption } from "../../actions/photosActions";
-import { Image, Header, Item, Form, Label, Button, Icon, Transition, Breadcrumb } from "semantic-ui-react";
+import { Button, Input, Image, Header, Item, Form, Label, Icon, Transition, Breadcrumb } from "semantic-ui-react";
 import { connect } from "react-redux";
 import { serverAddress } from "../../api_client/apiClient";
 import { LocationMap } from "../maps";
@@ -12,31 +12,19 @@ import { Link } from "react-router-dom";
 import { Tile } from "../Tile";
 import { withTranslation, Trans } from "react-i18next";
 import { compose } from "redux";
+import { TimestampItem } from "./TimestampItem";
 var LIGHTBOX_SIDEBAR_WIDTH = 360;
 if (window.innerWidth < 600) {
   LIGHTBOX_SIDEBAR_WIDTH = window.innerWidth;
 }
 
-const colors = [
-  "red",
-  "orange",
-  "yellow",
-  "olive",
-  "green",
-  "teal",
-  "blue",
-  "violet",
-  "purple",
-  "pink",
-  "brown",
-  "grey",
-  "black",
-];
+const colors = ["red", "orange", "yellow", "olive", "green", "teal", "blue", "violet", "purple", "pink", "brown", "grey", "black"];
 
 export default class Sidebar extends Component {
   constructor(props) {
     super(props);
   }
+
   render() {
     return (
       <Transition visible={this.props.lightboxSidebarShow} animation="fade left" duration={500}>
@@ -79,18 +67,7 @@ export default class Sidebar extends Component {
 
                 <Item.Group relaxed>
                   {/* Start Item Time Taken */}
-
-                  <Item>
-                    <Item.Content verticalAlign="middle">
-                      <Item.Header>
-                        <Icon name="calendar" /> {this.props.t("lightbox.sidebar.timetaken")}
-                      </Item.Header>
-                      <Item.Description>
-                        {moment.utc(this.props.photoDetail.exif_timestamp).format("dddd, MMMM Do YYYY, h:mm a")}
-                      </Item.Description>
-                    </Item.Content>
-                  </Item>
-
+                  <TimestampItem photoDetail={this.props.photoDetail} dispatch={this.props.dispatch}></TimestampItem>
                   {/* End Item Time Taken */}
                   {/* Start Item File Path */}
 
@@ -177,11 +154,7 @@ export default class Sidebar extends Component {
                       <Item.Description>
                         {false && this.props.photoDetail.captions_json.im2txt}
                         <Form>
-                          <Form.TextArea
-                            disabled={this.props.isPublic}
-                            fluid
-                            placeholder={this.props.photoDetail.captions_json.im2txt}
-                          >
+                          <Form.TextArea disabled={this.props.isPublic} fluid placeholder={this.props.photoDetail.captions_json.im2txt}>
                             {this.props.photoDetail.captions_json.im2txt}
                           </Form.TextArea>
                           <Button disabled={this.props.isPublic} floated="left" size="small" color="green">
@@ -192,10 +165,7 @@ export default class Sidebar extends Component {
                             onClick={() => {
                               this.props.dispatch(generatePhotoIm2txtCaption(this.props.photoDetail.image_hash));
                             }}
-                            disabled={
-                              this.props.isPublic |
-                              (this.props.generatingCaptionIm2txt != null && this.props.generatingCaptionIm2txt)
-                            }
+                            disabled={this.props.isPublic | (this.props.generatingCaptionIm2txt != null && this.props.generatingCaptionIm2txt)}
                             floated="left"
                             size="small"
                             color="blue"
@@ -272,12 +242,7 @@ export default class Sidebar extends Component {
                         <Item.Description>
                           <Image.Group>
                             {this.props.photoDetail.similar_photos.slice(0, 30).map((el) => (
-                              <Tile
-                                video={el.type.includes("video")}
-                                height={95}
-                                width={95}
-                                image_hash={el.image_hash}
-                              />
+                              <Tile video={el.type.includes("video")} height={95} width={95} image_hash={el.image_hash} />
                             ))}
                             ;
                           </Image.Group>

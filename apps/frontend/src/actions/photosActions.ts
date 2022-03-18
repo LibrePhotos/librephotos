@@ -603,3 +603,26 @@ export function generatePhotoIm2txtCaption(image_hash: string) {
       });
   };
 }
+
+export function editPhoto(image_hash: string, photo_details: any) {
+  return function (dispatch: Dispatch<any>) {
+    dispatch({ type: "EDIT_PHOTO" });
+    Server.patch(`photos/edit/${image_hash}/`, photo_details)
+      .then((response) => {
+        dispatch({ type: "EDIT_PHOTO_FULFILLED" });
+        dispatch(
+          notify(i18n.t("toasts.editphoto"), {
+            title: i18n.t("toasts.editphototitle"),
+            status: "success",
+            dismissible: true,
+            dismissAfter: 3000,
+            position: "bottom-right",
+          })
+        );
+      })
+      .catch((error) => {
+        dispatch({ type: "EDIT_PHOTO_REJECTED" });
+        console.log(error);
+      });
+  };
+}

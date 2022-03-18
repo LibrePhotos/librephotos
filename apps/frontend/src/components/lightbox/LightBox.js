@@ -7,6 +7,7 @@ import ReactPlayer from "react-player";
 import "react-image-lightbox/style.css"; // This only needs to be imported once in your app
 import Toolbar from "./Toolbar";
 import Sidebar from "./Sidebar";
+import { Loader } from "semantic-ui-react";
 
 var LIGHTBOX_SIDEBAR_WIDTH = 360;
 if (window.innerWidth < 600) {
