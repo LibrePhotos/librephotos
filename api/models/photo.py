@@ -66,6 +66,7 @@ class Photo(models.Model):
     search_captions = models.TextField(blank=True, null=True, db_index=True)
     search_location = models.TextField(blank=True, null=True, db_index=True)
 
+    timestamp = models.DateTimeField(blank=True, null=True, db_index=True)
     rating = models.IntegerField(default=0, db_index=True)
     deleted = models.BooleanField(default=False, db_index=True)
     hidden = models.BooleanField(default=False, db_index=True)
@@ -129,6 +130,9 @@ class Photo(models.Model):
         tags_to_write = {}
         if modified_fields is None or "rating" in modified_fields:
             tags_to_write[Tags.RATING] = self.rating
+        if "timestamp" in modified_fields:
+            # To-Do: Only works for files and not for the sidecar file
+            tags_to_write[Tags.DATE_TIME] = self.timestamp
         if tags_to_write:
             util.write_metadata(
                 self.image_paths[0], tags_to_write, use_sidecar=use_sidecar
@@ -349,10 +353,11 @@ class Photo(models.Model):
             self.exif_gps_lat,
             self.exif_gps_lon,
             self.owner.default_timezone,
+            self.timestamp,
         )
 
         old_album_date = self._find_album_date()
-
+        util.logger.info("Old Album Date: %s" % old_album_date.date)
         if self.exif_timestamp != extracted_local_time:
             self.exif_timestamp = extracted_local_time
 
@@ -372,6 +377,7 @@ class Photo(models.Model):
                 date=None, owner=self.owner
             )
             album_date.photos.add(self)
+        util.logger.info("New Album Date: %s" % album_date.date)
         cache.clear()
         if commit:
             self.save()
