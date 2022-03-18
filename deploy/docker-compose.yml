@@ -16,7 +16,6 @@ services:
     volumes:
       - ${myPhotos}:/data
       - ${proMedia}:/protected_media
-      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
       - ${httpPort}:80
     depends_on:
