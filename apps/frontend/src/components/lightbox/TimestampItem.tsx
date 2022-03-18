@@ -14,8 +14,8 @@ type Props = {
 };
 
 export const TimestampItem = (props: Props) => {
-  let [timestamp, setTimestamp] = useState("");
-  let [editMode, setEditMode] = useState(false);
+  const [timestamp, setTimestamp] = useState("");
+  const [editMode, setEditMode] = useState(false);
 
   const { t } = useTranslation();
 
@@ -49,7 +49,14 @@ export const TimestampItem = (props: Props) => {
           <div>
             <Input type="date" value={timestamp} onChange={onChange}></Input>
             <Icon style={{ margin: 5 }} name="save" circular link onClick={onSubmit} />
-            <Icon style={{ margin: 5 }} name="cancel" color="red" circular link onClick={() => setEditMode(!editMode)} />
+            <Icon
+              style={{ margin: 5 }}
+              name="cancel"
+              color="red"
+              circular
+              link
+              onClick={() => setEditMode(!editMode)}
+            />
           </div>
         )}
         {!editMode && (
