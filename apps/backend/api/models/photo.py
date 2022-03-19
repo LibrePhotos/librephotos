@@ -357,11 +357,11 @@ class Photo(models.Model):
         )
 
         old_album_date = self._find_album_date()
-        util.logger.info("Old Album Date: %s" % old_album_date.date)
         if self.exif_timestamp != extracted_local_time:
             self.exif_timestamp = extracted_local_time
 
         if old_album_date is not None:
+            util.logger.info("Old Album Date: %s" % old_album_date.date)
             old_album_date.photos.remove(self)
             old_album_date.save()
 
