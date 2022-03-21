@@ -24,7 +24,7 @@ matplotlib==3.3.2
 networkx==2.6.3
 nltk==3.6.7
 markupsafe==2.0.1
-Pillow==9.0.0
+Pillow==9.0.1
 psycopg2==2.8.6
 pycocotools==2.0.2
 https://github.com/owncloud/pyocclient/archive/master.zip
