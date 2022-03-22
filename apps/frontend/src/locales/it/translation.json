@@ -56,7 +56,8 @@
         "scannextclouddescription": {
             "item5": "Genera un certo numero di miniature",
             "item6": "Genera didascalie alle immagini",
-            "item1": "Fai una lista di tutti i file nelle sottodirectory. Per ogni file multimediale:"
+            "item1": "Fai una lista di tutti i file nelle sottodirectory. Per ogni file multimediale:",
+            "item2": "Se il percorso del file esiste, controlla se il file è stato modificato. Se è stato modificato, si esegue una nuova scansione dell'immagine. Se no, si salta."
         }
     },
     "joblist": {
