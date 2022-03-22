@@ -120,7 +120,9 @@
         "japanese": "Japanisch",
         "russian": "Russisch",
         "swedish": "Schwedisch",
-        "configdatetime": " Analyseregeln für Datumsangaben festlegen"
+        "configdatetime": " Analyseregeln für Datumsangaben festlegen",
+        "sync": "Synchronisiere Metadaten auf Festplatte",
+        "metadata": "Metadaten-Optionen"
     },
     "modalnextcloud": {
         "setdirectory": "Setze dein Nextcloud Scan Ordner",
@@ -238,7 +240,7 @@
         "password": "Passwort",
         "passwordplaceholder": "Passwort",
         "signup": "Konto erstellen",
-        "errorbackend": "Es gibt keine Verbindung zum Backend Server. Probiere es in ein paar Minuten nochmal.",
+        "errorbackend": "Verbindung zum Backend Server fehlgeschlagen. Probiere es in ein paar Minuten nochmal.",
         "errorpassword": "Das Passwortfeld darf nicht leer sein!",
         "errorusername": "Das Nutzernamenfeld darf nicht leer sein!",
         "tagline": "Ein gemütlicher Platz für deine Fotos.",
@@ -415,7 +417,9 @@
         "deletephoto": "{{numberOfPhotos}} Foto(s) gelöscht.",
         "recoverphoto": "{{numberOfPhotos}} Foto(s) wiederhergestellt.",
         "finaldeletephototitle": "Bilder löschen",
-        "setdeletetitle": "Bilder löschen"
+        "setdeletetitle": "Bilder löschen",
+        "editphototitle": "Foto bearbeiten",
+        "editphoto": "Foto bearbeitet"
     },
     "rules": {
         "file_property": "Dateieigenschaft verwenden {{rule}}",
