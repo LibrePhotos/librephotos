@@ -120,7 +120,9 @@
         "japanese": "Japonais",
         "swedish": "suédois",
         "russian": "russe",
-        "configdatetime": " Définir les règles d'analyse des dates"
+        "configdatetime": " Définir les règles d'analyse des dates",
+        "metadata": "Options de métadonnées",
+        "sync": "Synchronisation des métadonnées sur le disque"
     },
     "modalnextcloud": {
         "setdirectory": "Définir votre répertoire de scan Nextcloud",
@@ -415,7 +417,9 @@
         "finaldeletephototitle": "Supprimer les images",
         "finaldeletephoto": "{{numberOfPhotos}} photo(s) supprimée(s) définitivement.",
         "deletephoto": "{{numberOfPhotos}} photo(s) supprimée(s).",
-        "setdeletetitle": "Supprimer les images"
+        "setdeletetitle": "Supprimer les images",
+        "editphoto": "Photo modifiée",
+        "editphototitle": "Modifier la photo"
     },
     "rules": {
         "file_property": "Utiliser la propriété du fichier {{rule}}",
