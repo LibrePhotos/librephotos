@@ -7,6 +7,7 @@ from multiprocessing import Pool
 import magic
 import pytz
 import pyvips
+from constance import config as site_config
 from django import db
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -59,10 +60,10 @@ def calculate_hash_b64(user, content):
 
 
 def should_skip(filepath):
-    if not os.getenv("SKIP_PATTERNS"):
+    if not site_config.SKIP_PATTERNS:
         return False
 
-    skip_patterns = os.getenv("SKIP_PATTERNS")
+    skip_patterns = site_config.SKIP_PATTERNS
     skip_list = skip_patterns.split(",")
     skip_list = map(str.strip, skip_list)
 
