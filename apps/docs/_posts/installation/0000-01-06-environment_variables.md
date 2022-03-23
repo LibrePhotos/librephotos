@@ -1,5 +1,5 @@
 ---
-title: "🌎 Advanced docker-compose usage"
+title: "📖 Advanced docker-compose usage"
 excerpt: "Here are a couple of advanced tips"
 last_modified_at: 2022-03-23
 category: 1
