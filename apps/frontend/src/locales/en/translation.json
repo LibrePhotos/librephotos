@@ -294,7 +294,9 @@
     "noallow": "Do not allow",
     "headerupload": "Allow uploads",
     "headerskippatterns": "Skip patterns",
-    "skippatterns": " Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for synology devices)"
+    "skippatterns": " Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for synology devices)",
+    "headerapikey": "Mapbox API Key",
+    "apikey": "Do you want to see on a map where all your photos where taken (if a location is stored in your photos). Get a Map box API Key https://account.mapbox.com/auth/signup/"
   },
   "countstats": {
     "photos": "Photos"
