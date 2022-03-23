@@ -292,7 +292,9 @@
     "header": "Allow user registration",
     "allow": "Allow",
     "noallow": "Do not allow",
-    "headerupload": "Allow uploads"
+    "headerupload": "Allow uploads",
+    "headerskippatterns": "Skip patterns",
+    "skippatterns": " Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for synology devices)"
   },
   "countstats": {
     "photos": "Photos"
