@@ -4,8 +4,8 @@ import os
 import os.path
 
 import exiftool
-import numpy as np
 import requests
+from constance import config as site_config
 
 import ownphotos.settings
 
@@ -50,7 +50,7 @@ weekdays = {
 
 
 def mapbox_reverse_geocode(lat, lon):
-    mapbox_api_key = os.environ.get("MAPBOX_API_KEY", "")
+    mapbox_api_key = site_config.MAP_API_KEY
 
     if mapbox_api_key == "":
         return {}
