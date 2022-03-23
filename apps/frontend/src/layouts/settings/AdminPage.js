@@ -3,13 +3,7 @@ import { compose } from "redux";
 import { Progress, Icon, Header, Button, Loader, Table, Popup, Divider, Pagination } from "semantic-ui-react";
 import { connect } from "react-redux";
 import moment from "moment";
-import {
-  fetchSiteSettings,
-  fetchJobList,
-  deleteJob,
-  fetchUserList,
-  fetchDirectoryTree,
-} from "../../actions/utilActions";
+import { fetchSiteSettings, fetchJobList, deleteJob, fetchUserList } from "../../actions/utilActions";
 import SiteSettings from "./SiteSettings";
 import { withTranslation } from "react-i18next";
 import { ModalScanDirectoryEdit } from "../../components/modals/ModalScanDirectoryEdit";
@@ -39,7 +33,7 @@ export class AdminPage extends Component {
 
         <Divider />
         <Header as="h3">{this.props.t("adminarea.sitesettings")}</Header>
-        <SiteSettings allow_registration={this.props.siteSettings.allow_registration} dispatch={this.props.dispatch} />
+        <SiteSettings siteSettings={this.props.siteSettings} dispatch={this.props.dispatch} />
 
         <Divider />
         <Header as="h3">

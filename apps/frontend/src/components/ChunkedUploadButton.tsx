@@ -8,13 +8,12 @@ import MD5 from "crypto-js/md5";
 import CryptoJS from "crypto-js";
 
 export const ChunkedUploadButton = ({ token }: { token?: string }) => {
-  const dispatch = useAppDispatch();
   const { t } = useTranslation();
   var [totalSize, setTotalSize] = useState(1);
   var [currentSize, setCurrentSize] = useState(1);
-  var [allowUpload, setAllowUpload] = useState(false);
 
   const { userSelfDetails } = useAppSelector((state) => state.user);
+  const { siteSettings } = useAppSelector((state) => state.util);
   const chunkSize = 100000; // 100kb chunks
   var currentUploadedFileSize = 0;
   const { getRootProps, getInputProps, open, acceptedFiles } = useDropzone({
@@ -61,14 +60,6 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
   });
 
   useEffect(() => {
-    getAllowUpload();
-  }, []);
-
-  useEffect(() => {
-    console.log("allowUpload: " + allowUpload);
-  }, [allowUpload]);
-
-  useEffect(() => {
     console.log("total size: " + totalSize);
   }, [totalSize]);
 
@@ -94,12 +85,6 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
         }
       };
       temporaryFileReader.readAsBinaryString(file);
-    });
-  };
-
-  const getAllowUpload = () => {
-    Server.get("/allowupload").then((response) => {
-      setAllowUpload(response.data.allow_upload);
     });
   };
 
@@ -178,7 +163,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
     }
     return chunk;
   };
-  if (allowUpload) {
+  if (siteSettings.allow_upload) {
     return (
       <div style={{ width: "50px" }}>
         <div {...getRootProps({ className: "dropzone" })}>

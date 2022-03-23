@@ -18,7 +18,7 @@ export default class SiteSettings extends Component {
                     label={this.props.t("sitesettings.allow")}
                     name="radioGroup"
                     onChange={() => this.props.dispatch(setSiteSettings({ allow_registration: true }))}
-                    checked={this.props.allow_registration}
+                    checked={this.props.siteSettings.allow_registration}
                   />
                 </Form.Field>
                 <Form.Field>
@@ -26,7 +26,32 @@ export default class SiteSettings extends Component {
                     label={this.props.t("sitesettings.noallow")}
                     name="radioGroup"
                     onChange={() => this.props.dispatch(setSiteSettings({ allow_registration: false }))}
-                    checked={!this.props.allow_registration}
+                    checked={!this.props.siteSettings.allow_registration}
+                  />
+                </Form.Field>
+              </Form.Group>
+            </Form>
+          </Grid.Column>
+          <Grid.Column width={4} textAlign="left">
+            <b>{this.props.t("sitesettings.headerupload")}</b>
+          </Grid.Column>
+          <Grid.Column width={12}>
+            <Form>
+              <Form.Group>
+                <Form.Field>
+                  <Radio
+                    label={this.props.t("sitesettings.allow")}
+                    name="radioGroup"
+                    onChange={() => this.props.dispatch(setSiteSettings({ allow_upload: true }))}
+                    checked={this.props.siteSettings.allow_upload}
+                  />
+                </Form.Field>
+                <Form.Field>
+                  <Radio
+                    label={this.props.t("sitesettings.noallow")}
+                    name="radioGroup"
+                    onChange={() => this.props.dispatch(setSiteSettings({ allow_upload: false }))}
+                    checked={!this.props.siteSettings.allow_upload}
                   />
                 </Form.Field>
               </Form.Group>
