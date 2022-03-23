@@ -11,7 +11,9 @@ from constance import config as site_config
 from django.core.cache import cache
 from django.db.models import Count, Prefetch, Q
 from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
+from django.utils.decorators import method_decorator
 from django.utils.encoding import iri_to_uri
+from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
@@ -108,14 +110,27 @@ class SiteSettingsView(APIView):
 
         return super(SiteSettingsView, self).get_permissions()
 
+    @method_decorator(ensure_csrf_cookie)
     def get(self, request, format=None):
         out = {}
         out["allow_registration"] = site_config.ALLOW_REGISTRATION
+        out["allow_upload"] = site_config.ALLOW_UPLOAD
+        out["skip_patterns"] = site_config.SKIP_PATTERNS
+        out["heavyweight_process"] = site_config.HEAVYWEIGHT_PROCESS
+        out["map_api_key"] = site_config.MAP_API_KEY
         return Response(out)
 
     def post(self, request, format=None):
         if "allow_registration" in request.data.keys():
             site_config.ALLOW_REGISTRATION = request.data["allow_registration"]
+        if "allow_upload" in request.data.keys():
+            site_config.ALLOW_UPLOAD = request.data["allow_upload"]
+        if "skip_patterns" in request.data.keys():
+            site_config.SKIP_PATTERNS = request.data["skip_patterns"]
+        if "heavyweight_process" in request.data.keys():
+            site_config.HEAVYWEIGHT_PROCESS = request.data["heavyweight_process"]
+        if "map_api_key" in request.data.keys():
+            site_config.MAP_API_KEY = request.data["map_api_key"]
 
         return self.get(request, format=format)
 

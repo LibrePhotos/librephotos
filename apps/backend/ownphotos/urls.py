@@ -14,7 +14,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
 
-
+from constance import config as site_config
 from django.conf import settings
 from django.conf.urls import url
 from django.conf.urls.static import static
@@ -27,7 +27,6 @@ from rest_framework_simplejwt.serializers import (
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-import ownphotos.settings
 from api.views import (
     album_auto,
     albums,
@@ -202,7 +201,6 @@ router.register(r"api/jobs", jobs.LongRunningJobViewSet)
 urlpatterns = [
     url(r"^", include(router.urls)),
     url(r"^admin/", admin.site.urls),
-    url(r"^api/allowupload", upload.AllowPhotoUpload.as_view()),
     url(r"^api/sitesettings", views.SiteSettingsView.as_view()),
     url(r"^api/dirtree", user.RootPathTreeView.as_view()),
     url(r"^api/labelfaces", faces.SetFacePersonLabel.as_view()),
@@ -250,7 +248,7 @@ urlpatterns = [
 urlpatterns += [url("api/django-rq/", include("django_rq.urls"))]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
-if ownphotos.settings.ALLOW_UPLOAD:
+if site_config.ALLOW_UPLOAD:
     urlpatterns += [
         url(r"api/upload/complete/", upload.UploadPhotosChunkedComplete.as_view())
     ]
