@@ -72,6 +72,12 @@ INSTALLED_APPS = [
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
 CONSTANCE_DATABASE_CACHE_BACKEND = "default"
 
+# Must be less or egal of nb core CPU ( Nearly 2GB per process)
+HEAVYWEIGHT_PROCESS_ENV = os.environ.get("HEAVYWEIGHT_PROCESS", "1")
+HEAVYWEIGHT_PROCESS = (
+    int(HEAVYWEIGHT_PROCESS_ENV) if HEAVYWEIGHT_PROCESS_ENV.isnumeric() else 1
+)
+
 CONSTANCE_CONFIG = {
     "ALLOW_REGISTRATION": (False, "Publicly allow user registration", bool),
     "ALLOW_UPLOAD": (
@@ -85,7 +91,7 @@ CONSTANCE_CONFIG = {
         str,
     ),
     "HEAVYWEIGHT_PROCESS": (
-        os.environ.get("HEAVYWEIGHT_PROCESS", 1),
+        HEAVYWEIGHT_PROCESS,
         "Number of workers, when scanning pictures. This setting can dramatically affect the ram usage. Each worker needs 800MB of RAM. Change at your own will. Default is 1.",
         int,
     ),
@@ -288,12 +294,6 @@ CORS_ALLOW_CREDENTIALS = True
 
 IMAGE_SIMILARITY_SERVER = "http://localhost:8002"
 
-
-# Must be less or egal of nb core CPU ( Nearly 2GB per process)
-HEAVYWEIGHT_PROCESS_ENV = os.environ.get("HEAVYWEIGHT_PROCESS", "1")
-HEAVYWEIGHT_PROCESS = (
-    int(HEAVYWEIGHT_PROCESS_ENV) if HEAVYWEIGHT_PROCESS_ENV.isnumeric() else 1
-)
 
 LOGGING = {
     "version": 1,

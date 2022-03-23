@@ -128,7 +128,13 @@ class SiteSettingsView(APIView):
         if "skip_patterns" in request.data.keys():
             site_config.SKIP_PATTERNS = request.data["skip_patterns"]
         if "heavyweight_process" in request.data.keys():
-            site_config.HEAVYWEIGHT_PROCESS = request.data["heavyweight_process"]
+            HEAVYWEIGHT_PROCESS_ENV = request.data["heavyweight_process"]
+            HEAVYWEIGHT_PROCESS = (
+                int(HEAVYWEIGHT_PROCESS_ENV)
+                if HEAVYWEIGHT_PROCESS_ENV.isnumeric()
+                else 1
+            )
+            site_config.HEAVYWEIGHT_PROCESS = HEAVYWEIGHT_PROCESS
         if "map_api_key" in request.data.keys():
             site_config.MAP_API_KEY = request.data["map_api_key"]
 
