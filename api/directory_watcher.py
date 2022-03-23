@@ -358,11 +358,11 @@ def scan_photos(user, full_scan, job_id):
         lrj.save()
         db.connections.close_all()
 
-        if ownphotos.settings.HEAVYWEIGHT_PROCESS > 1:
+        if site_config.HEAVYWEIGHT_PROCESS > 1:
             import torch
 
             num_threads = max(
-                1, torch.get_num_threads() // ownphotos.settings.HEAVYWEIGHT_PROCESS
+                1, torch.get_num_threads() // site_config.HEAVYWEIGHT_PROCESS
             )
             torch.set_num_threads(num_threads)
             os.environ["OMP_NUM_THREADS"] = str(num_threads)
@@ -372,7 +372,7 @@ def scan_photos(user, full_scan, job_id):
             import face_recognition  # noqa: F401
 
         with Pool(
-            processes=ownphotos.settings.HEAVYWEIGHT_PROCESS,
+            processes=site_config.HEAVYWEIGHT_PROCESS,
             initializer=initialize_scan_process,
         ) as pool:
             pool.starmap(photo_scanner, all)
@@ -445,7 +445,7 @@ def scan_faces(user, job_id):
         # Import before forking so that we can save on shared data loaded at module import.
         import face_recognition  # noqa: F401
 
-        with Pool(processes=ownphotos.settings.HEAVYWEIGHT_PROCESS) as pool:
+        with Pool(processes=site_config.HEAVYWEIGHT_PROCESS) as pool:
             pool.starmap(face_scanner, all)
 
     except Exception:
