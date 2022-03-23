@@ -62,7 +62,7 @@ INSTALLED_APPS = [
     "nextcloud",
     "rest_framework",
     "corsheaders",
-    'chunked_upload',
+    "chunked_upload",
     "django_extensions",
     "django_rq",
     "constance",
@@ -74,6 +74,22 @@ CONSTANCE_DATABASE_CACHE_BACKEND = "default"
 
 CONSTANCE_CONFIG = {
     "ALLOW_REGISTRATION": (False, "Publicly allow user registration", bool),
+    "ALLOW_UPLOAD": (
+        not os.environ.get("ALLOW_UPLOAD", "True") in ("false", "False", "0", "f"),
+        "Allow uploading files",
+        bool,
+    ),
+    "SKIP_PATTERNS": (
+        os.environ.get("SKIP_PATTERNS", ""),
+        "Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for synology devices)",
+        str,
+    ),
+    "HEAVYWEIGHT_PROCESS": (
+        os.environ.get("HEAVYWEIGHT_PROCESS", 1),
+        "Number of workers, when scanning pictures. This setting can dramatically affect the ram usage. Each worker needs 800MB of RAM. Change at your own will. Default is 1.",
+        int,
+    ),
+    "MAP_API_KEY": (os.environ.get("MAPBOX_API_KEY", ""), "Map Box API Key", str),
     "IMAGE_DIRS": ("/data", "Image dirs list (serialized json)", str),
 }
 
@@ -103,7 +119,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.BasicAuthentication",
     ),
-    "DEFAULT_SCHEMA_CLASS": 'drf_spectacular.openapi.AutoSchema',
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 20000,
@@ -129,11 +145,11 @@ MIDDLEWARE = [
 if DEBUG:
     MIDDLEWARE += ["silk.middleware.SilkyMiddleware"]
     INSTALLED_APPS += ["silk"]
-    INSTALLED_APPS += ['drf_spectacular']
+    INSTALLED_APPS += ["drf_spectacular"]
     SPECTACULAR_SETTINGS = {
-    'TITLE': 'LibrePhotos',
-    'DESCRIPTION': 'Your project description',
-    'VERSION': '1.0.0',
+        "TITLE": "LibrePhotos",
+        "DESCRIPTION": "Your project description",
+        "VERSION": "1.0.0",
     }
 
 ROOT_URLCONF = "ownphotos.urls"
@@ -256,7 +272,7 @@ CLIP_ROOT = os.path.join(BASE_DATA, "data_models", "clip-embeddings")
 LOGS_ROOT = BASE_LOGS
 
 CHUNKED_UPLOAD_PATH = ""
-CHUNKED_UPLOAD_TO = os.path.join( "chunked_uploads")
+CHUNKED_UPLOAD_TO = os.path.join("chunked_uploads")
 
 THUMBNAIL_SIZE_TINY = 100
 THUMBNAIL_SIZE_SMALL = 200
@@ -267,7 +283,6 @@ THUMBNAIL_SIZE_BIG = (2048, 2048)
 FULLPHOTO_SIZE = (1000, 1000)
 
 DEFAULT_FAVORITE_MIN_RATING = os.environ.get("DEFAULT_FAVORITE_MIN_RATING", 4)
-ALLOW_UPLOAD = not os.environ.get("ALLOW_UPLOAD", "True") in ('false', 'False', '0', 'f')
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 

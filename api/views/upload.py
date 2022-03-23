@@ -7,22 +7,11 @@ from chunked_upload.models import ChunkedUpload
 from chunked_upload.views import ChunkedUploadCompleteView, ChunkedUploadView
 from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import viewsets
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
-import ownphotos.settings
 from api.directory_watcher import calculate_hash_b64, handle_new_image
 from api.models import Photo, User
-
-
-class AllowPhotoUpload(APIView):
-    # set the csrf token if allow photo is set to true
-    @method_decorator(ensure_csrf_cookie)
-    def get(self, request):
-        return Response({"allow_upload": ownphotos.settings.ALLOW_UPLOAD})
 
 
 class UploadPhotoExists(viewsets.ViewSet):
