@@ -246,7 +246,8 @@
     "errorusername": "Username may not be blank!",
     "errorusernameexists": "A user with that username already exists.",
     "erroremail": "Enter a valid email address.",
-    "tagline": "A comfy place for your photos."
+    "tagline": "A comfy place for your photos.",
+    "firsttimesetup": "First time setup"
   },
   "search": {
     "search": "Search",

@@ -5,7 +5,7 @@ import { useAppDispatch, useAppSelector } from "../../hooks";
 import { useTranslation } from "react-i18next";
 import { authErrors } from "../../reducers";
 
-export const SignupPage = () => {
+export const FirstTimeSetupPage = () => {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const errors = useAppSelector((state) => authErrors(state));
@@ -15,7 +15,6 @@ export const SignupPage = () => {
   const [lastname, setLastname] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [email, setEmail] = useState("");
-  console.log(errors);
   return (
     <div
       style={{
@@ -46,7 +45,7 @@ export const SignupPage = () => {
           </span>
         </div>
         <Segment attached>
-          <Header>{t("login.signup")}</Header>
+          <Header>{t("login.firsttimesetup")}</Header>
           <Form>
             <Form.Field>
               <label>{t("login.username")}</label>
@@ -111,7 +110,7 @@ export const SignupPage = () => {
             </Form.Field>
             <Button
               onClick={() => {
-                signup(username.toLowerCase(), password, email, firstname, lastname, false, dispatch);
+                signup(username.toLowerCase(), password, email, firstname, lastname, true, dispatch);
               }}
               disabled={password.length === 0 || password !== passwordConfirm}
               fluid

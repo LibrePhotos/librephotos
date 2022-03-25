@@ -1,6 +1,6 @@
 import { push } from "connected-react-router";
 import { Server } from "../api_client/apiClient";
-
+import { fetchUserList } from "./utilActions";
 import { AppDispatch } from "../store";
 export const LOGIN_REQUEST = "@@auth/LOGIN_REQUEST";
 export const LOGIN_SUCCESS = "@@auth/LOGIN_SUCCESS";
@@ -16,6 +16,7 @@ export function signup(
   email: String,
   firstname: String,
   lastname: String,
+  is_superuser: Boolean,
   dispatch: AppDispatch
 ) {
   dispatch({ type: "SIGNUP" });
@@ -26,9 +27,12 @@ export function signup(
     scan_directory: "initial",
     first_name: firstname,
     last_name: lastname,
+    is_superuser: is_superuser,
   })
     .then((response) => {
       dispatch({ type: "SIGNUP_FULFILLED", payload: response.data });
+      // @ts-ignore
+      dispatch(fetchUserList());
       dispatch(push("/login"));
     })
     .catch((err) => {
