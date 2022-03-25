@@ -39,4 +39,10 @@ HEAVYWEIGHT_PROCESS=1
 # Do you want to see on a map where all your photos where taken (if a location is stored in your photos)
 # Get a Map box API Key https://account.mapbox.com/auth/signup/
 mapApiKey=
+# Username for the Administrator login.
+userName=admin
+# Password for the administrative user you set above.
+userPass=admin
+# Email for the administrative user.
+adminEmail=admin@example.com
 ```
