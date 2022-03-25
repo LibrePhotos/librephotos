@@ -302,7 +302,14 @@
     "sitesettings": {
         "header": "Autoriser l’enregistrement des utilisateurs",
         "allow": "Autoriser",
-        "noallow": "Ne pas autoriser"
+        "noallow": "Ne pas autoriser",
+        "skippatterns": " Liste délimitée par des virgules des modèles à ignorer (par exemple, « @eaDir #recycle » pour les périphériques de synologie)",
+        "headerapikey": "Clé API Mapbox",
+        "headerheavyweight": "Processus lourds",
+        "headerupload": "Autoriser les téléversements",
+        "headerskippatterns": "Ignorer les modèles",
+        "apikey": "Voulez-vous voir sur une carte où toutes vos photos ont été prises (si un emplacement est stocké dans vos photos). Obtenir une clé API Map box https://account.mapbox.com/auth/signup/",
+        "heavyweight": "Nombre de travailleurs, lors de la numérisation d'images. Ce paramètre peut affecter considérablement l'utilisation de la mémoire vive. Chaque travailleur a besoin de 800 Mo de mémoire vive. Changez à votre guise. La valeur par défaut est 1."
     },
     "autoalbum": {
         "subtitle": "Affichage des {{ autoalbumlength }} albums créés automatiquement"
