@@ -68,6 +68,7 @@ class UserSerializer(serializers.ModelSerializer):
             "date_joined",
             "password",
             "avatar",
+            "is_superuser",
             "photo_count",
             "nextcloud_server_address",
             "nextcloud_username",
@@ -90,7 +91,10 @@ class UserSerializer(serializers.ModelSerializer):
         # make sure username is always lowercase
         if "username" in validated_data.keys():
             validated_data["username"] = validated_data["username"].lower()
-        user = User.objects.create_user(**validated_data)
+        if "is_superuser" in validated_data.keys():
+            user = User.objects.create_superuser(**validated_data)
+        else:
+            user = User.objects.create_user(**validated_data)
         logger.info("Created user {}".format(user.id))
         cache.clear()
         return user

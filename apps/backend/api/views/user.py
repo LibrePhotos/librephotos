@@ -1,5 +1,5 @@
 from django.core.cache import cache
-from rest_framework import viewsets
+from rest_framework import permissions, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -43,6 +43,13 @@ class RootPathTreeView(APIView):
             return Response({"message": str(e)})
 
 
+class FirstTimeSetupPermission(permissions.BasePermission):
+    message = "Check if the first time setup is done"
+
+    def has_permission(self, request, view):
+        return not User.objects.filter(is_superuser=True).exists()
+
+
 class UserViewSet(viewsets.ModelViewSet):
 
     serializer_class = UserSerializer
@@ -75,7 +82,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action == "create":
-            self.permission_classes = (IsRegistrationAllowed,)
+            self.permission_classes = [IsRegistrationAllowed | FirstTimeSetupPermission]
             cache.clear()
         elif self.action == "list":
             self.permission_classes = (AllowAny,)
