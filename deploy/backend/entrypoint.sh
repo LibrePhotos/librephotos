@@ -7,7 +7,11 @@ python manage.py showmigrations | tee /logs/show_migrate.log
 python manage.py migrate | tee /logs/command_migrate.log
 python manage.py showmigrations | tee /logs/show_migrate.log
 python manage.py clear_cache 
-python manage.py createadmin -u $ADMIN_USERNAME $ADMIN_EMAIL 2>&1 | tee /logs/command_createadmin.log
+
+if [ -n "$ADMIN_USERNAME" ]
+then
+    python manage.py createadmin -u $ADMIN_USERNAME $ADMIN_EMAIL 2>&1 | tee /logs/command_createadmin.log
+fi
 
 echo "Running backend server..."
 
