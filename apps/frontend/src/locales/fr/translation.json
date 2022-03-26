@@ -247,7 +247,8 @@
         "confirmpassword": "Confirmer le mot de passe",
         "confirmpasswordplaceholder": "Confirmer le mot de passe",
         "errorusernameexists": "Un utilisateur avec ce nom d'utilisateur existe déjà.",
-        "erroremail": "Saisissez une adresse courriel valide."
+        "erroremail": "Saisissez une adresse courriel valide.",
+        "firsttimesetup": "Première configuration"
     },
     "search": {
         "search": "Recherche",
