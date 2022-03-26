@@ -299,7 +299,8 @@
         "headerapikey": "Mapbox API-Schlüssel",
         "headerheavyweight": "Schwergewichtige Prozesse",
         "skippatterns": " Durch Kommata getrennte Liste der zu ignorierenden Muster (z. B. '@eaDir,#recycle' für Synology-Geräte)",
-        "apikey": "Möchten Sie auf einer Karte sehen, wo alle Ihre Fotos aufgenommen wurden (wenn ein Ort in Ihren Fotos gespeichert ist). Holen Sie sich einen API-Schlüssel für die Kartenbox https://account.mapbox.com/auth/signup/"
+        "apikey": "Möchten Sie auf einer Karte sehen, wo alle Ihre Fotos aufgenommen wurden (wenn ein Ort in Ihren Fotos gespeichert ist). Holen Sie sich einen API-Schlüssel für die Kartenbox https://account.mapbox.com/auth/signup/",
+        "heavyweight": "Anzahl der Arbeiter, wenn Bilder gescannt werden. Diese Einstellung kann den Speicherverbrauch drastisch beeinflussen. Jeder Arbeiter benötigt 800 MB RAM. Ändern Sie diese Einstellung nach eigenem Ermessen. Die Voreinstellung ist 1."
     },
     "countstats": {
         "photos": "Fotos"
