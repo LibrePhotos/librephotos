@@ -247,7 +247,8 @@
         "confirmpasswordplaceholder": "Passwort bestätigen",
         "confirmpassword": "Passwort bestätigen",
         "errorusernameexists": "Ein Nutzer mit diesem Benutzernamen existiert bereits.",
-        "erroremail": "Bitte gültige E-Mail-Adresse eingeben."
+        "erroremail": "Bitte gültige E-Mail-Adresse eingeben.",
+        "firsttimesetup": "Erstmalige Einrichtung"
     },
     "search": {
         "search": "Suche nach",
@@ -292,7 +293,13 @@
     "sitesettings": {
         "header": "Erlaube Nutzerregistrierung",
         "allow": "Erlaubt",
-        "noallow": "Nicht Erlaubt"
+        "noallow": "Nicht Erlaubt",
+        "headerupload": "Hochladen zulassen",
+        "headerskippatterns": "Muster überspringen",
+        "headerapikey": "Mapbox API-Schlüssel",
+        "headerheavyweight": "Schwergewichtige Prozesse",
+        "skippatterns": " Durch Kommata getrennte Liste der zu ignorierenden Muster (z. B. '@eaDir,#recycle' für Synology-Geräte)",
+        "apikey": "Möchten Sie auf einer Karte sehen, wo alle Ihre Fotos aufgenommen wurden (wenn ein Ort in Ihren Fotos gespeichert ist). Holen Sie sich einen API-Schlüssel für die Kartenbox https://account.mapbox.com/auth/signup/"
     },
     "countstats": {
         "photos": "Fotos"
