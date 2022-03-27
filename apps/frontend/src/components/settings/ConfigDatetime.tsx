@@ -11,7 +11,7 @@ import { SortableItem } from "./SortableItem";
 import { useTranslation } from "react-i18next";
 import { Header, Button } from "semantic-ui-react";
 import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
-import { useAppDispatch, useAppSelector } from "../../hooks";
+import { useAppDispatch, useAppSelector } from "../../store/store";
 import { updateUser } from "../../actions/utilActions";
 import { userActions } from "../../store/user/userSlice";
 
@@ -78,9 +78,9 @@ export function ConfigDatetime(): JSX.Element {
         color="green"
         floated="left"
         onClick={() => {
-          const newUserData = userSelfDetails;
-          delete newUserData["scan_directory"];
-          delete newUserData["avatar"];
+          const newUserData = { ...userSelfDetails };
+          // delete newUserData.scan_directory;
+          // delete newUserData.avatar;
           updateUser(newUserData, dispatch);
         }}
       >

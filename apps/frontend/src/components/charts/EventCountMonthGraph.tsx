@@ -1,8 +1,9 @@
 import React, { useEffect } from "react";
-import { Loader, Segment, Header } from "semantic-ui-react";
-import { useAppSelector, useAppDispatch } from "../../hooks";
+import { Header, Loader, Segment } from "semantic-ui-react";
 import { fetchPhotoMonthCounts } from "../../actions/utilActions";
 import useDimensions from "react-cool-dimensions";
+import { useAppDispatch, useAppSelector } from "../../store/store";
+
 const { Chart, Bars, Ticks, Layer } = require("rumble-charts");
 
 export const EventCountMonthGraph = () => {

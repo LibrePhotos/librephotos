@@ -3,8 +3,8 @@ import { fetchAlbumDateList, fetchAlbumDate } from "../../actions/albumsActions"
 import _ from "lodash";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType, PhotosState } from "../../reducers/photosReducer";
-import { useAppDispatch, useAppSelector } from "../../hooks";
 import { useTranslation } from "react-i18next";
+import { useAppDispatch, useAppSelector } from "../../store/store";
 
 type fetchedGroup = {
   id: string;

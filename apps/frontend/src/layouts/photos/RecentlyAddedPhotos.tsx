@@ -1,11 +1,11 @@
 import React, { useEffect } from "react";
 import { fetchRecentlyAddedPhotos } from "../../actions/photosActions";
-import _ from "lodash";
 import moment from "moment";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { PhotosetType, PhotosState } from "../../reducers/photosReducer";
-import { useAppDispatch, useAppSelector } from "../../hooks";
+import type { PhotosState } from "../../reducers/photosReducer";
+import { PhotosetType } from "../../reducers/photosReducer";
 import { useTranslation } from "react-i18next";
+import { useAppDispatch, useAppSelector } from "../../store/store";
 
 export const RecentlyAddedPhotos = () => {
   const { fetchedPhotosetType, photosFlat, recentlyAddedPhotosDate } = useAppSelector(

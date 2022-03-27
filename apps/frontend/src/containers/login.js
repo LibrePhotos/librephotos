@@ -1,18 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { connect } from "react-redux";
 import { Redirect } from "react-router-dom";
 import { LoginPage } from "../layouts/login/LoginPage";
 import { isRefreshTokenExpired } from "../store/auth/authSelectors";
 import { fetchUserList } from "../actions/utilActions";
-import { useAppDispatch, useAppSelector } from "../hooks";
 import { FirstTimeSetupPage } from "../layouts/login/FirstTimeSetupPage";
+import { useAppDispatch, useAppSelector } from "../store/store";
 
 const Login = (props) => {
   const dispatch = useAppDispatch();
   const { fetchedUserList, userList } = useAppSelector((state) => state.util);
   useEffect(() => {
     dispatch(fetchUserList());
-  }, []);
+  }, [dispatch]);
 
   if (props.isAuthenticated) {
     if (props.location.state) {

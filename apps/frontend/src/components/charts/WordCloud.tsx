@@ -1,10 +1,11 @@
 import React from "react";
-import _ from "lodash";
-import { Header, Loader } from "semantic-ui-react";
-const { Chart, Transform, Cloud } = require("rumble-charts");
+import { Header } from "semantic-ui-react";
 import { useTranslation } from "react-i18next";
-import { useAppSelector } from "../../hooks";
+
 import useDimensions from "react-cool-dimensions";
+import { useAppSelector } from "../../store/store";
+
+const { Chart, Transform, Cloud } = require("rumble-charts");
 
 type Props = {
   type: string;

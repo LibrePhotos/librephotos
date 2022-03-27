@@ -1,4 +1,3 @@
-import type { AnyAction } from "@reduxjs/toolkit";
 import { combineReducers } from "@reduxjs/toolkit";
 import { connectRouter } from "connected-react-router";
 import people from "./peopleReducer";
@@ -15,7 +14,7 @@ import { reducer as notificationsReducer } from "reapop";
 import { userReducer as user } from "../store/user/userSlice";
 import { userApi } from "../store/user/user.api";
 
-const appReducer = combineReducers({
+export const rootReducer = combineReducers({
   router: connectRouter(appHistory),
   people,
   faces,
@@ -30,13 +29,3 @@ const appReducer = combineReducers({
   notifications: notificationsReducer(),
   [userApi.reducerPath]: userApi.reducer,
 });
-
-export type RootReducerShape = ReturnType<typeof appReducer>;
-
-export const rootReducer = (state: RootReducerShape | undefined, action: AnyAction) => {
-  if (action.type === "LOGOUT") {
-    state = undefined;
-  }
-
-  return appReducer(state, action);
-};

@@ -3,7 +3,7 @@ import { fetchAlbumDateList, fetchAlbumDate } from "../../actions/albumsActions"
 import { fetchPeople } from "../../actions/peopleActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType, PhotosState } from "../../reducers/photosReducer";
-import { useAppDispatch, useAppSelector } from "../../hooks";
+import { useAppDispatch, useAppSelector } from "../../store/store";
 import { useTranslation } from "react-i18next";
 import _ from "lodash";
 

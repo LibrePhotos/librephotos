@@ -264,7 +264,7 @@ module.exports = {
         "@typescript-eslint/no-require-imports": "warn",
         "@typescript-eslint/no-this-alias": "warn",
         // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/docs/rules/no-type-alias.md
-        "@typescript-eslint/no-type-alias": "warn",
+        "@typescript-eslint/no-type-alias": "off",
         "@typescript-eslint/no-unnecessary-boolean-literal-compare": "warn",
         "@typescript-eslint/no-unnecessary-condition": "warn",
         "@typescript-eslint/no-unnecessary-qualifier": "warn",

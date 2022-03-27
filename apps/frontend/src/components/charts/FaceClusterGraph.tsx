@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { Loader, Header, Label } from "semantic-ui-react";
-const { XYPlot, HorizontalGridLines, Hint, MarkSeries, VerticalGridLines } = require("react-vis");
+import React, { useEffect, useState } from "react";
+import { Header, Label, Loader } from "semantic-ui-react";
 import useDimensions from "react-cool-dimensions";
 import { serverAddress } from "../../api_client/apiClient";
 import { clusterFaces } from "../../actions/facesActions";
 import { SecuredImageJWT } from "../SecuredImage";
 import { useTranslation } from "react-i18next";
-import { useAppSelector, useAppDispatch } from "../../hooks";
+import { useAppDispatch, useAppSelector } from "../../store/store";
+
+const { XYPlot, HorizontalGridLines, Hint, MarkSeries, VerticalGridLines } = require("react-vis");
 
 type Props = {
   height: number;

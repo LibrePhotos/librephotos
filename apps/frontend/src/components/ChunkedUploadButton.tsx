@@ -1,44 +1,45 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useAppDispatch, useAppSelector } from "../hooks";
+
 import { useDropzone } from "react-dropzone";
 import { Button, Progress } from "semantic-ui-react";
 import { Server } from "../api_client/apiClient";
 import MD5 from "crypto-js/md5";
 import CryptoJS from "crypto-js";
+import { useAppSelector } from "../store/store";
 
 export const ChunkedUploadButton = ({ token }: { token?: string }) => {
   const { t } = useTranslation();
-  var [totalSize, setTotalSize] = useState(1);
-  var [currentSize, setCurrentSize] = useState(1);
+  const [totalSize, setTotalSize] = useState(1);
+  const [currentSize, setCurrentSize] = useState(1);
 
   const { userSelfDetails } = useAppSelector((state) => state.user);
   const { siteSettings } = useAppSelector((state) => state.util);
   const chunkSize = 100000; // 100kb chunks
-  var currentUploadedFileSize = 0;
+  let currentUploadedFileSize = 0;
   const { getRootProps, getInputProps, open, acceptedFiles } = useDropzone({
     accept: ["image/*", "video/*"],
     noClick: true,
     noKeyboard: true,
     onDrop: async (acceptedFiles) => {
-      var totalSize = 0;
+      let totalSize = 0;
       acceptedFiles.forEach((file) => {
         const fileSize = file.size;
         totalSize += fileSize;
       });
       setTotalSize(totalSize);
-      var currentUploadedFileSizeStartValue = currentUploadedFileSize;
+      const currentUploadedFileSizeStartValue = currentUploadedFileSize;
       for (const file of acceptedFiles) {
         // Check if the upload already exists via the hash of the file
         const hash = (await calculateMD5(file)) + userSelfDetails.id;
         const isAlreadyUploaded = await uploadExists(hash);
         if (!isAlreadyUploaded) {
           const chunks = calculateChunks(file, chunkSize);
-          var offset = 0;
-          var uploadId = "";
+          let offset = 0;
+          let uploadId = "";
           //To-Do: Handle Resume and Pause
           for (let i = 0; i < chunks.length; i++) {
-            var response = await uploadChunk(chunks[offset / chunkSize], uploadId, offset);
+            const response = await uploadChunk(chunks[offset / chunkSize], uploadId, offset);
             offset = response.offset;
             uploadId = response.uploadId;
             if (chunks[offset / chunkSize]) {
@@ -67,8 +68,8 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
     console.log("current size: " + currentSize);
   }, [currentSize]);
 
-  const calculateMD5 = (file: File) => {
-    var temporaryFileReader = new FileReader();
+  const calculateMD5 = async (file: File) => {
+    const temporaryFileReader = new FileReader();
     return new Promise<string>((resolve, reject) => {
       temporaryFileReader.onerror = () => {
         temporaryFileReader.abort();
@@ -77,7 +78,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
 
       temporaryFileReader.onload = () => {
         if (temporaryFileReader.result) {
-          var hash = CryptoJS.MD5(
+          const hash = CryptoJS.MD5(
             // @ts-ignore
             CryptoJS.enc.Latin1.parse(temporaryFileReader.result)
           );
@@ -115,7 +116,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
     Server.post("/upload/complete/", form_data);
   };
 
-  const uploadChunk = (chunk: Blob, uploadId: string, offset: number) => {
+  const uploadChunk = async (chunk: Blob, uploadId: string, offset: number) => {
     //only send first chunk without upload id
     if (!uploadId) {
       var form_data = new FormData();
@@ -158,7 +159,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
     const chunks = Math.ceil(file.size / chunkSize);
     const chunk = [];
     for (let i = 0; i < chunks; i++) {
-      var chunkEnd = Math.min((i + 1) * chunkSize, file.size);
+      const chunkEnd = Math.min((i + 1) * chunkSize, file.size);
       chunk.push(file.slice(i * chunkSize, chunkEnd));
     }
     return chunk;

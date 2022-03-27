@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Image, Header, Divider, Message, Segment, Button, Form } from "semantic-ui-react";
 import { signup } from "../../actions/authActions";
-import { useAppDispatch, useAppSelector } from "../../hooks";
+import { useAppDispatch, useAppSelector } from "../../store/store";
 import { useTranslation } from "react-i18next";
 import { authErrors } from "../../store/auth/authSelectors";
 

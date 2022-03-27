@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { Loader } from "semantic-ui-react";
 import useDimensions from "react-cool-dimensions";
-const { Graph } = require("react-d3-graph");
 import { fetchSocialGraph } from "../../actions/peopleActions";
-import { useAppSelector, useAppDispatch } from "../../hooks";
+
 import { useTranslation } from "react-i18next";
+import { useAppDispatch, useAppSelector } from "../../store/store";
+
+const { Graph } = require("react-d3-graph");
 type Props = {
   height: number;
 };

@@ -7,9 +7,11 @@ import { SideMenuNarrow } from "../../components/menubars/SideMenuNarrow";
 import { TopMenuPublic } from "../../components/menubars/TopMenuPublic";
 import { SideMenuNarrowPublic } from "../../components/menubars/SideMenuNarrowPublic";
 import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
-import { PhotosetType, PhotosState } from "../../reducers/photosReducer";
-import { useAppDispatch, useAppSelector } from "../../hooks";
+import { PhotosetType } from "../../reducers/photosReducer";
+import type { PhotosState } from "../../reducers/photosReducer";
+
 import { useTranslation } from "react-i18next";
+import { useAppDispatch, useAppSelector } from "../../store/store";
 
 type Props = {
   match: any;

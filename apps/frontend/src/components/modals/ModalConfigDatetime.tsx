@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Header } from "semantic-ui-react";
 import Modal from "react-modal";
 import { SortableItem } from "../settings/SortableItem";
-import { useAppSelector } from "../../hooks";
+import { useAppSelector } from "../../store/store";
+
 import { useFetchPredefinedRulesQuery } from "../../store/user/user.api";
 
 type Props = {
