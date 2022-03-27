@@ -24,7 +24,7 @@ services:
     container_name: proxy
     volumes:
       - ${myPhotos}:/data
-      - ${proMedia}:/protected_media
+      - ${data}/protected_media:/protected_media
       - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
 
   frontend:
@@ -52,10 +52,10 @@ services:
     container_name: backend
     volumes:
       - ${myPhotos}:/data
-      - ${proMedia}:/protected_media
-      - ${logLocation}:/logs
+      - ${data}/protected_media:/protected_media
+      - ${data}/logs:/logs
       - ${codedir}/librephotos:/code
-      - ${cachedir}:/root/.cache
+      - ${data}/cache:/root/.cache
       - ./vscode/server-extensions:/root/.vscode-server/extensions
       - ./vscode/server-insiders-extensions:/root/.vscode-server-insiders/extensions
       - ./vscode/settings.json:/code/.vscode/settings.json

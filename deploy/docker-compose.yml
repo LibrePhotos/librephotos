@@ -15,7 +15,7 @@ services:
     restart: unless-stopped
     volumes:
       - ${myPhotos}:/data
-      - ${proMedia}:/protected_media
+      - ${data}/protected_media:/protected_media
     ports:
       - ${httpPort}:80
     depends_on:
@@ -31,7 +31,7 @@ services:
       - POSTGRES_PASSWORD=${dbPass}
       - POSTGRES_DB=${dbName}
     volumes:
-      - ${dbLocation}:/var/lib/postgresql/data
+      - ${data}/db:/var/lib/postgresql/data
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c random_page_cost=1.0
 
   frontend:
@@ -47,9 +47,9 @@ services:
     restart: unless-stopped
     volumes:
       - ${myPhotos}:/data
-      - ${proMedia}:/protected_media
-      - ${logLocation}:/logs
-      - ${cachedir}:/root/.cache
+      - ${data}/protected_media:/protected_media
+      - ${data}/logs:/logs
+      - ${data}/cache:/root/.cache
 
     environment:
       - SECRET_KEY=${shhhhKey}
