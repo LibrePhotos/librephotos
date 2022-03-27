@@ -7,7 +7,8 @@ import "react-leaflet-markercluster/dist/styles.min.css"; // css
 import { CookiesProvider } from "react-cookie";
 import App from "./App";
 import { Provider } from "react-redux";
-import store from "./store";
+import { store } from "./store/store";
+
 ReactDOM.render(
   <Provider store={store}>
     <CookiesProvider>

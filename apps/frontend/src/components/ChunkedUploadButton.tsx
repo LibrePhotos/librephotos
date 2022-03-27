@@ -110,7 +110,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
     const form_data = new FormData();
     form_data.append("upload_id", uploadId ? uploadId : "");
     form_data.append("md5", await calculateMD5(file));
-    form_data.append("user", userSelfDetails.id);
+    form_data.append("user", userSelfDetails.id.toString());
     form_data.append("filename", file.name);
     Server.post("/upload/complete/", form_data);
   };
@@ -122,7 +122,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
       form_data.append("file", chunk);
       form_data.append("md5", calculateMD5Blob(chunk));
       form_data.append("offset", offset.toString());
-      form_data.append("user", userSelfDetails.id);
+      form_data.append("user", userSelfDetails.id.toString());
       return Server.post("upload/", form_data, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -140,7 +140,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
     form_data.append("file", chunk);
     form_data.append("md5", calculateMD5Blob(chunk));
     form_data.append("offset", offset.toString());
-    form_data.append("user", userSelfDetails.id);
+    form_data.append("user", userSelfDetails.id.toString());
     return Server.post("upload/", form_data, {
       headers: {
         "Content-Type": "multipart/form-data",

@@ -1,7 +1,8 @@
 import { push } from "connected-react-router";
 import { Server } from "../api_client/apiClient";
+import { AppDispatch } from "../store/store";
 import { fetchUserList } from "./utilActions";
-import { AppDispatch } from "../store";
+
 export const LOGIN_REQUEST = "@@auth/LOGIN_REQUEST";
 export const LOGIN_SUCCESS = "@@auth/LOGIN_SUCCESS";
 export const LOGIN_FAILURE = "@@auth/LOGIN_FAILURE";

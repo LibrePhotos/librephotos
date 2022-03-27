@@ -3,7 +3,7 @@ import { Image, Header, Divider, Message, Segment, Button, Form } from "semantic
 import { signup } from "../../actions/authActions";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { useTranslation } from "react-i18next";
-import { authErrors } from "../../reducers";
+import { authErrors } from "../../store/auth/authSelectors";
 
 export const SignupPage = () => {
   const dispatch = useAppDispatch();

@@ -1,6 +1,6 @@
 import axios from "axios";
-import store from "../store";
-import { isRefreshTokenExpired } from "../reducers/";
+import { store } from "../store/store";
+import { isRefreshTokenExpired } from "../store/auth/authSelectors";
 
 export var serverAddress = "";
 // This is a dirty hack. Grabs current host for when sharing. URL handling needs cleaned up. DW 12-13-20

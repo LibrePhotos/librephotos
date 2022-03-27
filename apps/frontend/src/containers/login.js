@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { connect } from "react-redux";
 import { Redirect } from "react-router-dom";
 import { LoginPage } from "../layouts/login/LoginPage";
-import { isRefreshTokenExpired } from "../reducers";
+import { isRefreshTokenExpired } from "../store/auth/authSelectors";
 import { fetchUserList } from "../actions/utilActions";
 import { useAppDispatch, useAppSelector } from "../hooks";
 import { FirstTimeSetupPage } from "../layouts/login/FirstTimeSetupPage";

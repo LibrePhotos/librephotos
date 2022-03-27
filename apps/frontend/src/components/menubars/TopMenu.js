@@ -9,16 +9,16 @@ import { toggleSidebar } from "../../actions/uiActions";
 import { CustomSearch } from "../CustomSearch";
 import { fetchWorkerAvailability } from "../../actions/utilActions";
 import { serverAddress } from "../../api_client/apiClient";
-import { fetchUserSelfDetails } from "../../actions/userActions";
 import { compose } from "redux";
 import { withTranslation, Trans } from "react-i18next";
+import { userApi } from "../../store/user/user.api";
 export class TopMenu extends Component {
   state = {
     width: window.innerWidth,
   };
   throttledFetchUserSelfDetails = _.throttle(
     (user_id) => {
-      return this.props.dispatch(fetchUserSelfDetails(user_id));
+      return this.props.dispatch(this.props.fetchUserSelfDetails(user_id));
     },
     500,
     { leading: true, trailing: false }
@@ -202,6 +202,7 @@ TopMenu = compose(
       fetchingAlbumsPlaceList: store.albums.fetchingAlbumsPlaceList,
       fetchedAlbumsPlaceList: store.albums.fetchedAlbumsPlaceList,
       userSelfDetails: store.user.userSelfDetails,
+      fetchUserSelfDetails: userApi.endpoints.fetchUserSelfDetails.initiate,
     };
   }),
   withTranslation()

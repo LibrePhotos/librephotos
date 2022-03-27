@@ -13,8 +13,9 @@ import { Header, Button } from "semantic-ui-react";
 import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { updateUser } from "../../actions/utilActions";
+import { userActions } from "../../store/user/userSlice";
 
-export function ConfigDatetime() {
+export function ConfigDatetime(): JSX.Element {
   const [showModal, setShowModal] = useState(false);
   const { datetime_rules } = useAppSelector((state) => state.user.userSelfDetails);
   const { userSelfDetails } = useAppSelector((state) => state.user);
@@ -54,12 +55,9 @@ export function ConfigDatetime() {
               item={rule}
               removeItemFunction={(itemToRemove: any) => {
                 const newItems = rules.filter((i: any) => i.id !== itemToRemove.id);
-                dispatch({
-                  type: "SET_RULES",
-                  payload: JSON.stringify(newItems),
-                });
+                dispatch(userActions.setRules(JSON.stringify(newItems)));
               }}
-            ></SortableItem>
+            />
           ))}
         </SortableContext>
       </DndContext>
@@ -71,13 +69,10 @@ export function ConfigDatetime() {
           if (rules.filter((i: any) => i.id === item.id).length === 0) {
             //dispatch(setRules(newItems));
             setShowModal(false);
-            dispatch({
-              type: "SET_RULES",
-              payload: JSON.stringify([...rules, item]),
-            });
+            dispatch(userActions.setRules(JSON.stringify([...rules, item])));
           }
         }}
-      ></ModalConfigDatetime>
+      />
       <Button
         size="small"
         color="green"
@@ -104,10 +99,7 @@ export function ConfigDatetime() {
 
         return arrayMove(items, oldIndex, newIndex);
       };
-      dispatch({
-        type: "SET_RULES",
-        payload: JSON.stringify(sortItems(rules)),
-      });
+      dispatch(userActions.setRules(JSON.stringify(sortItems(rules))));
     }
   }
 }
