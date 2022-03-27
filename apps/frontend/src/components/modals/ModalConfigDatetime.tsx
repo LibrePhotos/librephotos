@@ -5,6 +5,7 @@ import { SortableItem } from "../settings/SortableItem";
 import { useAppSelector } from "../../store/store";
 
 import { useFetchPredefinedRulesQuery } from "../../store/user/user.api";
+import { selectUserSelfDetails } from "../../store/user/userSelectors";
 
 type Props = {
   isOpen: boolean;
@@ -16,8 +17,7 @@ export const ModalConfigDatetime = (props: Props) => {
   const [possibleOptions, setPossibleOptions] = useState<Array<any>>([]);
   const { isLoading, isError, error, data } = useFetchPredefinedRulesQuery();
 
-  const { datetime_rules } = useAppSelector((state) => state.user.userSelfDetails);
-
+  const { datetime_rules } = useAppSelector(selectUserSelfDetails);
   const rules = JSON.parse(datetime_rules ? datetime_rules : "[]");
   //make sure rules have ids
   rules.forEach((rule: any, index: any) => {

@@ -14,11 +14,14 @@ import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { updateUser } from "../../actions/utilActions";
 import { userActions } from "../../store/user/userSlice";
+import { selectUserSelfDetails } from "../../store/user/userSelectors";
+import { UserSchema } from "../../store/user/user.zod";
 
 export function ConfigDatetime(): JSX.Element {
   const [showModal, setShowModal] = useState(false);
-  const { datetime_rules } = useAppSelector((state) => state.user.userSelfDetails);
-  const { userSelfDetails } = useAppSelector((state) => state.user);
+  const { datetime_rules } = useAppSelector(selectUserSelfDetails);
+  const userSelfDetails = useAppSelector(selectUserSelfDetails);
+
   const rules = JSON.parse(datetime_rules ? datetime_rules : "[]");
   //make sure rules have ids
   rules.forEach((rule: any, index: any) => {
@@ -78,9 +81,9 @@ export function ConfigDatetime(): JSX.Element {
         color="green"
         floated="left"
         onClick={() => {
-          const newUserData = { ...userSelfDetails };
-          // delete newUserData.scan_directory;
-          // delete newUserData.avatar;
+          const newUserData = JSON.parse(JSON.stringify(userSelfDetails));
+          delete newUserData.scan_directory;
+          delete newUserData.avatar;
           updateUser(newUserData, dispatch);
         }}
       >
