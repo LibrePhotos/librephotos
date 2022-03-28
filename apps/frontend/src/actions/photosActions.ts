@@ -16,7 +16,7 @@ import {
   SimpleUser,
 } from "./photosActions.types";
 import { z } from "zod";
-import { AppDispatch } from "../store";
+import { AppDispatch } from "../store/store";
 import i18n from "../i18n";
 
 export type UserPhotosGroup = {
@@ -157,9 +157,11 @@ export function fetchPhotosSharedToMe() {
     Server.get("photos/shared/tome/")
       .then((response) => {
         const data = _PigPhotoListResponseSchema.parse(response.data);
-        const sharedPhotosGroupedByOwner: UserPhotosGroup[] = _.toPairs(_.groupBy(data.results, "owner.id")).map((el) => {
-          return { userId: parseInt(el[0], 10), photos: el[1] };
-        });
+        const sharedPhotosGroupedByOwner: UserPhotosGroup[] = _.toPairs(_.groupBy(data.results, "owner.id")).map(
+          (el) => {
+            return { userId: parseInt(el[0], 10), photos: el[1] };
+          }
+        );
 
         dispatch({
           type: FETCH_PHOTOSET_FULFILLED,
@@ -185,12 +187,14 @@ export function fetchPhotosSharedFromMe() {
     Server.get("photos/shared/fromme/")
       .then((response) => {
         const data = _PhotosSharedFromMeResponseSchema.parse(response.data);
-        const sharedPhotosGroupedBySharedTo: UserPhotosGroup[] = _.toPairs(_.groupBy(data.results, "user_id")).map((el) => {
-          return {
-            userId: parseInt(el[0], 10),
-            photos: el[1].map((item) => item.photo),
-          };
-        });
+        const sharedPhotosGroupedBySharedTo: UserPhotosGroup[] = _.toPairs(_.groupBy(data.results, "user_id")).map(
+          (el) => {
+            return {
+              userId: parseInt(el[0], 10),
+              photos: el[1].map((item) => item.photo),
+            };
+          }
+        );
 
         console.log(sharedPhotosGroupedBySharedTo);
 

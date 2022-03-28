@@ -1,6 +1,6 @@
 import React from "react";
 import { connect } from "react-redux";
-import { isRefreshTokenExpired } from "../reducers";
+import { isRefreshTokenExpired } from "../store/auth/authSelectors";
 // Router and Switch are needed Breaks site if not in import. DW
 import { Switch, Route, Redirect } from "react-router-dom";
 import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../ui-constants";

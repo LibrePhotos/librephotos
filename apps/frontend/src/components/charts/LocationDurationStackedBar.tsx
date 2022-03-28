@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { Label, Segment, Header, Loader } from "semantic-ui-react";
+import React, { useEffect, useState } from "react";
+import { Header, Label, Loader, Segment } from "semantic-ui-react";
 import useDimensions from "react-cool-dimensions";
 import { fetchLocationTimeline } from "../../actions/utilActions";
 
-import { useAppSelector, useAppDispatch } from "../../hooks";
 import moment from "moment";
+import { useTranslation } from "react-i18next";
+import { useAppDispatch, useAppSelector } from "../../store/store";
+
 const { Hint, XYPlot, XAxis, HorizontalBarSeries } = require("react-vis");
 
-import { useTranslation } from "react-i18next";
 type Hint = {
   y: number;
   x: number;

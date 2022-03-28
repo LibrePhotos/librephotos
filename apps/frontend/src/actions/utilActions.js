@@ -1,12 +1,12 @@
 import { notify } from "reapop";
 import { Server } from "../api_client/apiClient";
-import { logout } from "../actions/authActions";
+import { logout } from "./authActions";
 import { fetchInferredFacesList, fetchLabeledFacesList } from "./facesActions";
-import { fetchUserSelfDetails } from "./userActions";
 import { fetchPeople } from "./peopleActions";
 import { fetchAlbumDateList } from "./albumsActions";
-import { scanPhotos } from "../actions/photosActions";
+import { scanPhotos } from "./photosActions";
 import i18n from "../i18n";
+import { userActions } from "../store/user/userSlice";
 
 export function fetchJobList(page, page_size = 10) {
   return function (dispatch) {
@@ -119,13 +119,9 @@ export function fetchNextcloudDirectoryTree(path) {
 
 export function updateAvatar(user, form_data) {
   return function (dispatch) {
-    dispatch({ type: "UPDATE_USER" });
     Server.patch(`user/${user.id}/`, form_data)
       .then((response) => {
-        dispatch({
-          type: "UPDATE_USER_FULFILLED",
-          payload: response.data,
-        });
+        dispatch(userActions.updateRules(response.data));
         dispatch(fetchUserList());
         dispatch(fetchNextcloudDirectoryTree("/"));
         dispatch(
@@ -137,7 +133,7 @@ export function updateAvatar(user, form_data) {
             position: "bottom-right",
           })
         );
-        dispatch(fetchUserSelfDetails(user.id));
+        dispatch(userApi.endpoints.fetchUserSelfDetails.initiate(user.id));
       })
       .catch((error) => {
         dispatch({ type: "UPDATE_USER_REJECTED", payload: error });
@@ -146,13 +142,9 @@ export function updateAvatar(user, form_data) {
 }
 
 export function updateUser(user, dispatch) {
-  dispatch({ type: "UPDATE_USER" });
   Server.patch(`user/${user.id}/`, user)
     .then((response) => {
-      dispatch({
-        type: "UPDATE_USER_FULFILLED",
-        payload: response.data,
-      });
+      dispatch(userActions.updateRules(response.data));
       dispatch(fetchUserList());
       dispatch(fetchNextcloudDirectoryTree("/"));
       dispatch(
@@ -164,7 +156,8 @@ export function updateUser(user, dispatch) {
           position: "bottom-right",
         })
       );
-      dispatch(fetchUserSelfDetails(user.id));
+      dispatch(userApi.endpoints.fetchUserSelfDetails.initiate(user.id));
+      // dispatch(fetchUserSelfDetails(user.id));
     })
     .catch((error) => {
       dispatch({ type: "UPDATE_USER_REJECTED", payload: error });
@@ -173,15 +166,11 @@ export function updateUser(user, dispatch) {
 
 export function updateUserAndScan(user) {
   return function (dispatch) {
-    dispatch({ type: "UPDATE_USER" });
     console.log(user);
 
     Server.patch(`manage/user/${user.id}/`, user)
       .then((response) => {
-        dispatch({
-          type: "UPDATE_USER_FULFILLED",
-          payload: response.data,
-        });
+        dispatch(userActions.updateRules(response.data));
         dispatch(fetchUserList());
         dispatch(
           notify(i18n.t("toasts.updateuser", { username: user.username }), {
@@ -192,7 +181,8 @@ export function updateUserAndScan(user) {
             position: "bottom-right",
           })
         );
-        dispatch(fetchUserSelfDetails(user.id));
+        dispatch(userApi.endpoints.fetchUserSelfDetails.initiate(user.id));
+        // dispatch(fetchUserSelfDetails(user.id));
         dispatch(scanPhotos());
       })
       .catch((error) => {
@@ -203,15 +193,11 @@ export function updateUserAndScan(user) {
 
 export function manageUpdateUser(user) {
   return function (dispatch) {
-    dispatch({ type: "UPDATE_USER" });
     console.log(user);
 
     Server.patch(`manage/user/${user.id}/`, user)
       .then((response) => {
-        dispatch({
-          type: "UPDATE_USER_FULFILLED",
-          payload: response.data,
-        });
+        dispatch(userActions.updateRules(response.data));
         dispatch(fetchUserList());
         dispatch(
           notify(i18n.t("toasts.updateuser", { username: user.username }), {

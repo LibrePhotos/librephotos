@@ -1,10 +1,11 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Header } from "semantic-ui-react";
 import Modal from "react-modal";
 import { SortableItem } from "../settings/SortableItem";
-import { useTranslation } from "react-i18next";
-import { useAppDispatch, useAppSelector } from "../../hooks";
-import { fetchPredefinedRules } from "../../actions/userActions";
+import { useAppSelector } from "../../store/store";
+
+import { useFetchPredefinedRulesQuery } from "../../store/user/user.api";
+import { selectUserSelfDetails } from "../../store/user/userSelectors";
 
 type Props = {
   isOpen: boolean;
@@ -13,8 +14,10 @@ type Props = {
 };
 
 export const ModalConfigDatetime = (props: Props) => {
-  const defaultRules: any = useAppSelector((state) => state.user.defaultRules);
-  const { datetime_rules } = useAppSelector((state) => state.user.userSelfDetails);
+  const [possibleOptions, setPossibleOptions] = useState<Array<any>>([]);
+  const { isLoading, isError, error, data } = useFetchPredefinedRulesQuery();
+
+  const { datetime_rules } = useAppSelector(selectUserSelfDetails);
   const rules = JSON.parse(datetime_rules ? datetime_rules : "[]");
   //make sure rules have ids
   rules.forEach((rule: any, index: any) => {
@@ -23,20 +26,11 @@ export const ModalConfigDatetime = (props: Props) => {
     }
   });
 
-  const possibleOptions = defaultRules
-    ? defaultRules.filter((i: any) => rules.filter((x: any) => x.id == i.id).length == 0)
-    : [];
-
-  const dispatch = useAppDispatch();
-  //To-Do: use translation
-  const { t } = useTranslation();
-  const inputRef = React.useRef<HTMLInputElement>();
-
   useEffect(() => {
-    if (!defaultRules) {
-      fetchPredefinedRules(dispatch);
+    if (!isLoading && !isError && data !== undefined) {
+      setPossibleOptions(data.filter((i: any) => rules.filter((x: any) => x.id == i.id).length == 0));
     }
-  }, []); // Only run on first render
+  }, [isLoading]);
 
   return (
     <Modal

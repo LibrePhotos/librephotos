@@ -11,13 +11,17 @@ import { SortableItem } from "./SortableItem";
 import { useTranslation } from "react-i18next";
 import { Header, Button } from "semantic-ui-react";
 import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
-import { useAppDispatch, useAppSelector } from "../../hooks";
+import { useAppDispatch, useAppSelector } from "../../store/store";
 import { updateUser } from "../../actions/utilActions";
+import { userActions } from "../../store/user/userSlice";
+import { selectUserSelfDetails } from "../../store/user/userSelectors";
+import { UserSchema } from "../../store/user/user.zod";
 
-export function ConfigDatetime() {
+export function ConfigDatetime(): JSX.Element {
   const [showModal, setShowModal] = useState(false);
-  const { datetime_rules } = useAppSelector((state) => state.user.userSelfDetails);
-  const { userSelfDetails } = useAppSelector((state) => state.user);
+  const { datetime_rules } = useAppSelector(selectUserSelfDetails);
+  const userSelfDetails = useAppSelector(selectUserSelfDetails);
+
   const rules = JSON.parse(datetime_rules ? datetime_rules : "[]");
   //make sure rules have ids
   rules.forEach((rule: any, index: any) => {
@@ -54,12 +58,9 @@ export function ConfigDatetime() {
               item={rule}
               removeItemFunction={(itemToRemove: any) => {
                 const newItems = rules.filter((i: any) => i.id !== itemToRemove.id);
-                dispatch({
-                  type: "SET_RULES",
-                  payload: JSON.stringify(newItems),
-                });
+                dispatch(userActions.setRules(JSON.stringify(newItems)));
               }}
-            ></SortableItem>
+            />
           ))}
         </SortableContext>
       </DndContext>
@@ -71,21 +72,18 @@ export function ConfigDatetime() {
           if (rules.filter((i: any) => i.id === item.id).length === 0) {
             //dispatch(setRules(newItems));
             setShowModal(false);
-            dispatch({
-              type: "SET_RULES",
-              payload: JSON.stringify([...rules, item]),
-            });
+            dispatch(userActions.setRules(JSON.stringify([...rules, item])));
           }
         }}
-      ></ModalConfigDatetime>
+      />
       <Button
         size="small"
         color="green"
         floated="left"
         onClick={() => {
-          const newUserData = userSelfDetails;
-          delete newUserData["scan_directory"];
-          delete newUserData["avatar"];
+          const newUserData = JSON.parse(JSON.stringify(userSelfDetails));
+          delete newUserData.scan_directory;
+          delete newUserData.avatar;
           updateUser(newUserData, dispatch);
         }}
       >
@@ -104,10 +102,7 @@ export function ConfigDatetime() {
 
         return arrayMove(items, oldIndex, newIndex);
       };
-      dispatch({
-        type: "SET_RULES",
-        payload: JSON.stringify(sortItems(rules)),
-      });
+      dispatch(userActions.setRules(JSON.stringify(sortItems(rules))));
     }
   }
 }

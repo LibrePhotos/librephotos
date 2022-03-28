@@ -2,9 +2,10 @@ import { fetchNoTimestampPhotoPaginated } from "../../actions/photosActions";
 import React, { useEffect, useCallback } from "react";
 import _ from "lodash";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { PhotosetType, PhotosState } from "../../reducers/photosReducer";
-import { useAppDispatch, useAppSelector } from "../../hooks";
+import type { PhotosState } from "../../reducers/photosReducer";
+import { PhotosetType } from "../../reducers/photosReducer";
 import { useTranslation } from "react-i18next";
+import { useAppDispatch, useAppSelector } from "../../store/store";
 
 export const NoTimestampPhotosView = () => {
   const { fetchedPhotosetType, numberOfPhotos, photosFlat } = useAppSelector((state) => state.photos as PhotosState);
@@ -19,8 +20,8 @@ export const NoTimestampPhotosView = () => {
 
   const getImages = (visibleItems: any) => {
     if (visibleItems.filter((i: any) => i.isTemp && i.isTemp != undefined).length > 0) {
-      var firstTempObject = visibleItems.filter((i: any) => i.isTemp)[0];
-      var page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
+      const firstTempObject = visibleItems.filter((i: any) => i.isTemp)[0];
+      const page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
       if (page > 1) {
         fetchNoTimestampPhotoPaginated(dispatch, page);
       }

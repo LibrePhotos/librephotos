@@ -24,3 +24,4 @@ yarn-error.log*
 tags
 
 .eslintcache
+.env.development

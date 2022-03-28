@@ -1,4 +1,4 @@
-import store from "../store";
+import { store } from "../store/store";
 import _ from "lodash";
 
 store.subscribe(listener);

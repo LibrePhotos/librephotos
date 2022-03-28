@@ -37,7 +37,7 @@ import {
   UserAlbumInfoSchema,
 } from "./albumActions.types";
 import { z } from "zod";
-import type { AppDispatch } from "../store";
+import type { AppDispatch } from "../store/store";
 import i18n from "../i18n";
 
 export function fetchThingAlbumsList() {
