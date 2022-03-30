@@ -26,11 +26,6 @@ export const userApi = createApi({
       return headers;
     },
   }),
-  extractRehydrationInfo: (action, { reducerPath }) => {
-    if (action.type === REHYDRATE) {
-      return action.payload[reducerPath];
-    }
-  },
   endpoints: (builder) => ({
     //TODO Add Types and ZOD
     fetchPredefinedRules: builder.query<any[], void>({
