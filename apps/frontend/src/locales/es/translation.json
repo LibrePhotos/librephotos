@@ -120,7 +120,9 @@
         "japanese": "Japonés",
         "russian": "Ruso",
         "swedish": "Sueco",
-        "configdatetime": " Establecer reglas de análisis de fecha y hora"
+        "configdatetime": " Establecer reglas de análisis de fecha y hora",
+        "metadata": "Opciones de metadatos",
+        "sync": "Sincronizar metadatos con el disco"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de escaneo de Nextcloud",
@@ -245,7 +247,8 @@
         "confirmpassword": "Confirmar contraseña",
         "confirmpasswordplaceholder": "Confirmar contraseña",
         "errorusernameexists": "Un usuario con ese nombre ya existe.",
-        "erroremail": "Introduzca una dirección de correo electrónico válida."
+        "erroremail": "Introduzca una dirección de correo electrónico válida.",
+        "firsttimesetup": "Configuración por primera vez"
     },
     "search": {
         "search": "Buscar",
@@ -290,7 +293,14 @@
     "sitesettings": {
         "header": "Permitir el registro de usuarios",
         "allow": "Permitir",
-        "noallow": "No permitir"
+        "noallow": "No permitir",
+        "skippatterns": " Lista delimitada por comas de patrones para ignorar (p. ej., '@eaDir,#recycle' para dispositivos Synology)",
+        "apikey": "¿Quiere ver en un mapa dónde se tomaron todas sus fotos (si una ubicación está almacenada en sus fotos)? Obtenga una clave de API de Map Box https://account.mapbox.com/auth/signup/",
+        "headerupload": "Permitir subir fotos",
+        "headerskippatterns": "Omitir patrones",
+        "headerapikey": "Clave API de Mapbox",
+        "headerheavyweight": "Procesos pesados",
+        "heavyweight": "Número de trabajadores, al escanear imágenes. Esta configuración puede afectar drásticamente el uso de RAM. Cada trabajador necesita 800 MB de RAM. Cambia a tu voluntad. El valor predeterminado es 1."
     },
     "countstats": {
         "photos": "Fotos"
@@ -415,7 +425,9 @@
         "recoverphoto": "{{numberOfPhotos}} foto(s) fueron recuperadas.",
         "setdeletetitle": "Eliminar Imágenes",
         "finaldeletephoto": "{{numberOfPhotos}} la(s) foto(s) se eliminaron permanentemente.",
-        "finaldeletephototitle": "Eliminar Imagenes"
+        "finaldeletephototitle": "Eliminar Imagenes",
+        "editphoto": "Foto editada",
+        "editphototitle": "Editar foto"
     },
     "rules": {
         "report_tz": "Transformar a{{rule}}",
