@@ -37,6 +37,13 @@ export const UserSchema = z.object({
   default_timezone: z.string(),
 });
 
+export const SimpleUser = z.object({
+  id: z.number(),
+  username: z.string(),
+  first_name: z.string(),
+  last_name: z.string(),
+});
+
 export type IUser = z.infer<typeof UserSchema>;
 
 export type IUserState = {

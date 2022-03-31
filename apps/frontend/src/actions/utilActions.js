@@ -7,15 +7,19 @@ import { fetchAlbumDateList } from "./albumsActions";
 import { scanPhotos } from "./photosActions";
 import i18n from "../i18n";
 import { userActions } from "../store/user/userSlice";
+import { Job, SiteSettings, DirTree } from "./utilActions.types";
+import { UserSchema } from "../store/user/user.zod";
 
 export function fetchJobList(page, page_size = 10) {
   return function (dispatch) {
     dispatch({ type: "FETCH_JOB_LIST" });
     Server.get(`jobs/?page_size=${page_size}&page=${page}`)
       .then((response) => {
+        const data = Job.array().parse(response.data.results);
         dispatch({ type: "FETCH_JOB_LIST_FULFILLED", payload: response.data });
       })
       .catch((error) => {
+        console.log();
         dispatch({ type: "FETCH_JOB_LIST_REJECTED", payload: error });
       });
   };
@@ -26,10 +30,12 @@ export function deleteJob(job_id, page = 1, page_size = 10) {
     dispatch({ type: "DELETE_JOB" });
     Server.delete(`jobs/${job_id}`)
       .then((response) => {
+        const data = Job.parse(response.data);
         dispatch(fetchJobList(page, page_size));
         dispatch({ type: "DELETE_JOB_FULFILLED", payload: response.data });
       })
       .catch((error) => {
+        console.log(error);
         dispatch({ type: "DELETE_JOB_REJECTED", payload: error });
       });
   };
@@ -40,12 +46,14 @@ export function setSiteSettings(siteSettings) {
     dispatch({ type: "SET_SITE_SETTINGS" });
     Server.post("sitesettings/", siteSettings)
       .then((response) => {
+        const data = SiteSettings.parse(response.data);
         dispatch({
           type: "SET_SITE_SETTINGS_FULFILLED",
           payload: response.data,
         });
       })
       .catch((error) => {
+        console.log(error);
         dispatch({ type: "SET_SITE_SETTINGS_REJECTED", payload: error });
       });
   };
@@ -55,12 +63,14 @@ export function fetchSiteSettings(dispatch) {
   dispatch({ type: "FETCH_SITE_SETTINGS" });
   Server.get("sitesettings/")
     .then((response) => {
+      const data = SiteSettings.parse(response.data);
       dispatch({
         type: "FETCH_SITE_SETTINGS_FULFILLED",
         payload: response.data,
       });
     })
     .catch((error) => {
+      console.log(error);
       dispatch({ type: "FETCH_SITE_SETTINGS_REJECTED", payload: error });
     });
 }
@@ -71,12 +81,14 @@ export function fetchUserList() {
     dispatch({ type: "FETCH_USER_LIST" });
     Server.get("user/")
       .then((response) => {
+        const data = UserSchema.array().parse(response.data.results);
         dispatch({
           type: "FETCH_USER_LIST_FULFILLED",
           payload: response.data.results,
         });
       })
       .catch((error) => {
+        console.log(error);
         dispatch({ type: "FETCH_USER_LIST_REJECTED", payload: error });
       });
   };
@@ -87,12 +99,14 @@ export function fetchDirectoryTree() {
     dispatch({ type: "FETCH_DIRECTORY_TREE" });
     Server.get("dirtree/")
       .then((response) => {
+        const data = DirTree.array().parse(response.data);
         dispatch({
           type: "FETCH_DIRECTORY_TREE_FULFILLED",
           payload: response.data,
         });
       })
       .catch((error) => {
+        console.log(error);
         dispatch({ type: "FETCH_DIRECTORY_TREE_REJECTED", payload: error });
       });
   };
