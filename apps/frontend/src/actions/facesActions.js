@@ -1,12 +1,22 @@
 import { notify } from "reapop";
 import { Server } from "../api_client/apiClient";
 import i18n from "../i18n";
+import {
+  DeleteFacesResponse,
+  SetFacesLabelResponse,
+  ScanFacesResponse,
+  TrainFacesResponse,
+  ClusterFaces,
+  InferredFaces,
+  FaceList,
+} from "./facesActions.types";
 
 export function setFacesPersonLabel(faceIDs, personName) {
   return function (dispatch) {
     dispatch({ type: "SET_FACES_PERSON_LABEL" });
     Server.post("labelfaces/", { person_name: personName, face_ids: faceIDs })
       .then((response) => {
+        const data = SetFacesLabelResponse.parse(response.data);
         dispatch({
           type: "SET_FACES_PERSON_LABEL_FULFILLED",
           payload: response.data.results,
@@ -27,7 +37,9 @@ export function setFacesPersonLabel(faceIDs, personName) {
           )
         );
       })
-      .catch((err) => {});
+      .catch((err) => {
+        console.log(err);
+      });
   };
 }
 
@@ -36,6 +48,7 @@ export function deleteFaces(faceIDs) {
     dispatch({ type: "DELETE_FACES" });
     Server.post("deletefaces/", { face_ids: faceIDs })
       .then((response) => {
+        const data = DeleteFacesResponse.parse(response.data);
         dispatch({
           type: "DELETE_FACES_FULFILLED",
           payload: response.data.results,
@@ -55,7 +68,9 @@ export function deleteFaces(faceIDs) {
           )
         );
       })
-      .catch((err) => {});
+      .catch((err) => {
+        console.log(err);
+      });
   };
 }
 
@@ -79,9 +94,11 @@ export function trainFaces() {
     );
     Server.get("trainfaces/", { timeout: 30000 })
       .then((response) => {
+        const data = TrainFacesResponse.parse(response.data);
         dispatch({ type: "TRAIN_FACES_FULFILLED", payload: response.data });
       })
       .catch((err) => {
+        console.log(err);
         dispatch({ type: "TRAIN_FACES_REJECTED", payload: err });
       });
   };
@@ -108,9 +125,11 @@ export function rescanFaces() {
     );
     Server.get("scanfaces/", { timeout: 30000 })
       .then((response) => {
+        const data = ScanFacesResponse.parse(response.data);
         dispatch({ type: "TRAIN_FACES_FULFILLED", payload: response.data });
       })
       .catch((err) => {
+        console.log(err);
         dispatch({ type: "TRAIN_FACES_REJECTED", payload: err });
       });
   };
@@ -120,73 +139,28 @@ export function clusterFaces(dispatch) {
   dispatch({ type: "CLUSTER_FACES" });
   Server.get("clusterfaces/")
     .then((response) => {
+      const data = ClusterFaces.parse(response.data);
       dispatch({ type: "CLUSTER_FACES_FULFILLED", payload: response.data });
     })
     .catch((err) => {
+      console.log(err);
       dispatch({ type: "CLUSTER_FACES_REJECTED", payload: err });
     });
 }
 
-export function fetchInferredFaces() {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_INFERRED_FACES" });
-    Server.get("faces/inferred/")
-      .then((response) => {
-        dispatch({
-          type: "FETCH_INFERRED_FACES_FULFILLED",
-          payload: response.data.results,
-        });
-      })
-      .catch((err) => {
-        dispatch({ type: "FETCH_INFERRED_FACES_REJECTED", payload: err });
-      });
-  };
-}
-
-export function fetchLabeledFaces() {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_LABELED_FACES" });
-    Server.get("faces/labeled/")
-      .then((response) => {
-        dispatch({
-          type: "FETCH_LABELED_FACES_FULFILLED",
-          payload: response.data.results,
-        });
-      })
-      .catch((err) => {
-        dispatch({ type: "FETCH_LABELED_FACES_REJECTED", payload: err });
-      });
-  };
-}
-
-export function fetchFaces() {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_FACES" });
-    Server.get("faces/?page_size=20")
-      .then((response) => {
-        dispatch({
-          type: "FETCH_FACES_FULFILLED",
-          payload: response.data.results,
-        });
-      })
-      .catch((err) => {
-        dispatch({ type: "FETCH_FACES_REJECTED", payload: err });
-      });
-  };
-}
-
-// fast face list views
 export function fetchInferredFacesList() {
   return function (dispatch) {
     dispatch({ type: "FETCH_INFERRED_FACES_LIST" });
     Server.get("faces/inferred/list/")
       .then((response) => {
+        const data = FaceList.parse(response.data.results);
         dispatch({
           type: "FETCH_INFERRED_FACES_LIST_FULFILLED",
           payload: response.data.results,
         });
       })
       .catch((err) => {
+        console.log(err);
         dispatch({ type: "FETCH_INFERRED_FACES_LIST_REJECTED", payload: err });
       });
   };
@@ -197,45 +171,15 @@ export function fetchLabeledFacesList() {
     dispatch({ type: "FETCH_LABELED_FACES_LIST" });
     Server.get("faces/labeled/list/")
       .then((response) => {
+        const data = FaceList.parse(response.data.results);
         dispatch({
           type: "FETCH_LABELED_FACES_LIST_FULFILLED",
           payload: response.data.results,
         });
       })
       .catch((err) => {
+        console.log(err);
         dispatch({ type: "FETCH_LABELED_FACES_LIST_REJECTED", payload: err });
-      });
-  };
-}
-
-export function fetchFacesList() {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_FACES_LIST" });
-    Server.get("faces/list/")
-      .then((response) => {
-        dispatch({
-          type: "FETCH_FACES_LIST_FULFILLED",
-          payload: response.data.results,
-        });
-      })
-      .catch((err) => {
-        dispatch({ type: "FETCH_FACES_LIST_REJECTED", payload: err });
-      });
-  };
-}
-export function labelFacePerson(face_id, person_name) {
-  return function (dispatch) {
-    dispatch({ type: "LABEL_FACE_PERSON" });
-    var endpoint = `faces/${face_id}/`;
-    Server.patch(endpoint, { person: { name: person_name } })
-      .then((response) => {
-        dispatch({
-          type: "LABEL_FACE_PERSON_FULFILLED",
-          payload: response.data,
-        });
-      })
-      .catch((err) => {
-        dispatch({ type: "LABEL_FACE_PERSON_REJECTED", payload: err });
       });
   };
 }
