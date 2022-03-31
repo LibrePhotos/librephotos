@@ -41,12 +41,6 @@ export const PhotoHashSchema = z.object({
   video: z.boolean(),
 });
 
-export const PersonInfoSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-});
-export type PersonInfo = z.infer<typeof PersonInfoSchema>;
-
 export const PhotoSchema = z.object({
   exif_gps_lat: z.number().nullable(),
   exif_gps_lon: z.number().nullable(),

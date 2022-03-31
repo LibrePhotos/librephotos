@@ -2,10 +2,13 @@ import { Server } from "../api_client/apiClient";
 import { notify } from "reapop";
 import i18n from "../i18n";
 
+import { PersonList, PersonDataPointList } from "./peopleActions.types";
+
 export function fetchPeople(dispatch) {
   dispatch({ type: "FETCH_PEOPLE" });
   Server.get("persons/?page_size=1000")
     .then((response) => {
+      const data = PersonList.parse(response.data.results);
       var mappedPeopleDropdownOptions = response.data.results.map(function (person) {
         return {
           key: person.id,
@@ -22,29 +25,9 @@ export function fetchPeople(dispatch) {
       });
     })
     .catch((err) => {
+      console.log(err);
       dispatch({ type: "FETCH_PEOPLE_REJECTED", payload: err });
     });
-}
-
-export function addPerson(person_name) {
-  return function (dispatch) {
-    dispatch({ type: "ADD_PERSON" });
-    Server.post("persons/", { name: person_name })
-      .then((response) => {
-        const personDropdownOption = {
-          text: response.data.name,
-          value: response.data.name,
-          key: response.data.id,
-        };
-        dispatch({
-          type: "ADD_PERSON_FULFILLED",
-          payload: personDropdownOption,
-        });
-      })
-      .catch((err) => {
-        dispatch({ type: "ADD_PERSON_REJECTED", payload: err });
-      });
-  };
 }
 
 export function renamePerson(personId, personName, newPersonName) {
@@ -54,6 +37,7 @@ export function renamePerson(personId, personName, newPersonName) {
       newPersonName: newPersonName,
     })
       .then((response) => {
+        // To-Do: I should do something with the response
         dispatch({ type: "RENAME_PERSON_FULFILLED", payload: personId });
         fetchPeople(dispatch);
         dispatch(
@@ -73,6 +57,7 @@ export function renamePerson(personId, personName, newPersonName) {
         );
       })
       .catch((err) => {
+        console.log(err);
         dispatch({ type: "RENAME_PERSON_REJECTED", payload: err });
       });
   };
@@ -83,6 +68,7 @@ export function deletePerson(person_id) {
     dispatch({ type: "DELETE_PERSON" });
     Server.delete(`persons/${person_id}/`)
       .then((response) => {
+        // To-Do: I should do something with the response
         fetchPeople(dispatch);
         dispatch(
           notify(i18n.t("toasts.deleteperson"), {
@@ -97,6 +83,7 @@ export function deletePerson(person_id) {
         dispatch({ type: "DELETE_PERSON_FULFILLED" });
       })
       .catch((err) => {
+        console.log(err);
         dispatch({ type: "DELETE_PERSON_REJECTED", payload: err });
       });
   };
@@ -109,6 +96,7 @@ export function setAlbumCoverForPerson(person_id, photo_hash) {
       cover_photo: photo_hash,
     })
       .then((response) => {
+        // To-Do: I should do something with the response
         dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON_FULFILLED" });
         dispatch(
           notify(i18n.t("toasts.setcoverphoto"), {
@@ -122,43 +110,8 @@ export function setAlbumCoverForPerson(person_id, photo_hash) {
         fetchPeople(dispatch);
       })
       .catch((err) => {
+        console.log(err);
         dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON_REJECTED", payload: err });
-      });
-  };
-}
-
-export function addPersonAndSetLabelToFace(person_name, face_id) {
-  return function (dispatch) {
-    dispatch({ type: "ADD_PERSON_AND_SET_FACE_LABEL" });
-    // Make post request to /persons/
-    Server.post("persons/", { name: person_name })
-      .then((response1) => {
-        // Make patch request to update person label
-        var endpoint = `faces/${face_id}/`;
-        Server.patch(endpoint, { person: { name: person_name } })
-          .then((response2) => {
-            var personDropdownOption2 = {
-              text: response2.data.person.name,
-              value: response2.data.person.name,
-              key: response2.data.person.id,
-            };
-            dispatch({
-              type: "ADD_PERSON_AND_SET_FACE_LABEL_FULFILLED",
-              payload: personDropdownOption2,
-            });
-          })
-          .catch((err2) => {
-            dispatch({
-              type: "ADD_PERSON_AND_SET_FACE_LABEL_REJECTED",
-              payload: err2,
-            });
-          });
-      })
-      .catch((err1) => {
-        dispatch({
-          type: "ADD_PERSON_AND_SET_FACE_LABEL_REJECTED",
-          payload: err1,
-        });
       });
   };
 }
@@ -167,12 +120,14 @@ export function fetchSocialGraph(dispatch) {
   dispatch({ type: "FETCH_SOCIAL_GRAPH" });
   Server.get("socialgraph")
     .then((response) => {
+      const data = PersonDataPointList.parse(response.data);
       dispatch({
         type: "FETCH_SOCIAL_GRAPH_FULFILLED",
         payload: response.data,
       });
     })
     .catch((err) => {
+      console.log(err);
       dispatch({ type: "FETCH_SOCIAL_GRAPH_REJECTED", payload: err });
     });
 }

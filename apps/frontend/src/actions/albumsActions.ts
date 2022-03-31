@@ -12,7 +12,7 @@ import {
 } from "../util/util";
 import type { Dispatch } from "react";
 import type { DatePhotosGroup, IncompleteDatePhotosGroup } from "./photosActions.types";
-import { IncompleteDatePhotosGroupSchema, PersonInfo } from "./photosActions.types";
+import { IncompleteDatePhotosGroupSchema } from "./photosActions.types";
 import type {
   AlbumInfo,
   ThingAlbum,

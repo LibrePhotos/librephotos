@@ -53,6 +53,7 @@ export const SocialGraph = (props: Props) => {
     graph = <Graph id="social-graph" config={myConfig} data={socialGraph} />;
   } else {
     if (fetchingSocialGraph) {
+      // To-Do: This doesn't show up for some reason
       graph = <Loader active>{t("fetchingsocialgraph")}</Loader>;
     }
     graph = <p>{t("nosocialgraph")}</p>;

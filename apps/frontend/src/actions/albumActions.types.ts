@@ -3,11 +3,11 @@ import {
   DatePhotosGroupSchema,
   IncompleteDatePhotosGroup,
   IncompleteDatePhotosGroupSchema,
-  PersonInfo,
-  PersonInfoSchema,
   PhotoHashSchema,
   SimpleUserSchema,
 } from "./photosActions.types";
+
+import { PersonSchema } from "./peopleActions.types";
 
 import { z } from "zod";
 
@@ -84,14 +84,6 @@ export const PlaceAlbumSchema = z.object({
   grouped_photos: DatePhotosGroupSchema.array(),
 });
 
-export const PersonSchema = z.object({
-  name: z.string(),
-  face_url: z.string().nullable(),
-  face_count: z.number(),
-  face_photo_url: z.string().nullable(),
-  id: z.number(),
-  newPersonName: z.string().optional(),
-});
 export const PhotoSimpleSchema = z.object({
   square_thumbnail: z.string(),
   image_hash: z.string(),
