@@ -91,8 +91,7 @@ export function searchPlaceAlbums(query) {
     dispatch({ type: "SEARCH_PLACE_ALBUMS" });
     Server.get(`albums/place/list/?search=${query}`)
       .then((response) => {
-        //To-Do: Can't find my map box key to test
-        //const data = _FetchPlaceAlbumsListResponseSchema.parse(response.data);
+        const data = _FetchPlaceAlbumsListResponseSchema.parse(response.data);
         dispatch({
           type: "SEARCH_PLACE_ALBUMS_FULFILLED",
           payload: response.data.results,

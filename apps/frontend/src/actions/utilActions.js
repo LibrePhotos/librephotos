@@ -34,7 +34,7 @@ export function fetchJobList(page, page_size = 10) {
         dispatch({ type: "FETCH_JOB_LIST_FULFILLED", payload: response.data });
       })
       .catch((error) => {
-        console.log();
+        console.log(error);
         dispatch({ type: "FETCH_JOB_LIST_REJECTED", payload: error });
       });
   };
@@ -253,7 +253,7 @@ export function fetchWorkerAvailability(prevRunningJob, dispatch) {
   dispatch({ type: "FETCH_WORKER_AVAILABILITY" });
   Server.get("rqavailable/")
     .then((response) => {
-      const data = WorkerAvailability.parse(response.data);
+      const data = WorkerAvailability.optional().parse(response.data);
       if (prevRunningJob !== null && response.data.job_detail === null) {
         dispatch(
           notify(
@@ -423,13 +423,14 @@ export function fetchLocationSunburst() {
     dispatch({ type: "FETCH_LOCATION_SUNBURST" });
     Server.get(`locationsunburst/`)
       .then((response) => {
-        const data = LocationSunburst.parse(response.data.results);
+        const data = LocationSunburst.parse(response.data);
         dispatch({
           type: "FETCH_LOCATION_SUNBURST_FULFILLED",
           payload: response.data,
         });
       })
       .catch((err) => {
+        console.log(err);
         dispatch({ type: "FETCH_LOCATION_SUNBURST_REJECTED", payload: err });
       });
   };
@@ -474,7 +475,8 @@ export function fetchLocationClusters() {
     dispatch({ type: "FETCH_LOCATION_CLUSTERS" });
     Server.get(`locclust/`)
       .then((response) => {
-        const data = LocationClusters.array().parse(response.data);
+        // To-Do: Weird response from server
+        //const data = LocationCluster.array().parse(response.data);
         dispatch({
           type: "FETCH_LOCATION_CLUSTERS_FULFILLED",
           payload: response.data,

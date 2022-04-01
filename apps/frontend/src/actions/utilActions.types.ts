@@ -6,7 +6,7 @@ export const Job = z.object({
   job_id: z.string(),
   queued_at: z.string(),
   started_at: z.string(),
-  finished_at: z.string(),
+  finished_at: z.string().nullable(),
   finished: z.boolean(),
   failed: z.boolean(),
   job_type: z.number(),
@@ -17,8 +17,7 @@ export const Job = z.object({
 });
 
 export const WorkerAvailability = z.object({
-  job_type_str: z.string().optional(),
-  job_detail: z.string().nullable(),
+  job_detail: Job.nullable(),
   queue_can_accept_job: z.boolean(),
   status: z.boolean(),
 });
@@ -68,22 +67,20 @@ export const SearchTermExamples = z.array(z.string());
 
 interface LocationSunburst {
   name: string;
-  value: number;
   hex?: string;
-  children: LocationSunburst[];
+  children?: LocationSunburst[];
 }
 
 export const LocationSunburst: z.ZodType<LocationSunburst> = z.lazy(() =>
   z.object({
     name: z.string(),
-    value: z.number(),
     hex: z.string().optional(),
-    children: z.array(LocationSunburst),
+    children: z.array(LocationSunburst).optional(),
   })
 );
 
 export const TimelinePoint = z.object({
-  data: z.string(),
+  data: z.array(z.number()),
   color: z.string(),
   loc: z.string(),
   start: z.number(),
@@ -105,18 +102,12 @@ export const CountStats = z.object({
   num_albumuser: z.number(),
 });
 
-export const LocationCluster = z.object({
-  name: z.string(),
-  x: z.number(),
-  y: z.number(),
-  value: z.number(),
-});
-
 export const PhotoMonthCount = z.object({
   month: z.string(),
   count: z.number(),
 });
 
+// To-Do: Why y?!?!
 export const WordCloud = z.object({
   label: z.string(),
   y: z.number(),
