@@ -7,8 +7,23 @@ import { fetchAlbumDateList } from "./albumsActions";
 import { scanPhotos } from "./photosActions";
 import i18n from "../i18n";
 import { userActions } from "../store/user/userSlice";
-import { Job, SiteSettings, DirTree } from "./utilActions.types";
-import { UserSchema } from "../store/user/user.zod";
+import {
+  Job,
+  SiteSettings,
+  SearchTermExamples,
+  GenerateEventAlbumsResponse,
+  GenerateEventAlbumsTitlesResponse,
+  WorkerAvailability,
+  DirTree,
+  LocationTimeline,
+  PhotoMonthCount,
+  WordCloudResponse,
+  DeleteMissingPhotosResponse,
+  LocationSunburst,
+  CountStats,
+} from "./utilActions.types";
+import { UserSchema, ManageUser } from "../store/user/user.zod";
+import { userApi } from "../store/user/user.api";
 
 export function fetchJobList(page, page_size = 10) {
   return function (dispatch) {
@@ -115,14 +130,17 @@ export function fetchDirectoryTree() {
 export function fetchNextcloudDirectoryTree(path) {
   return function (dispatch) {
     dispatch({ type: "FETCH_NEXTCLOUD_DIRECTORY_TREE" });
-    Server.get(`nextcloud/listdir/?path=${path}`)
+    Server.get(`nextcloud/listdir/?fpath=${path}`)
       .then((response) => {
+        //To-Do: Needs to be tested...
+        //const data = DirTree.array().parse(response.data);
         dispatch({
           type: "FETCH_NEXTCLOUD_DIRECTORY_TREE_FULFILLED",
           payload: response.data,
         });
       })
       .catch((error) => {
+        console.log(error);
         dispatch({
           type: "FETCH_NEXTCLOUD_DIRECTORY_TREE_REJECTED",
           payload: error,
@@ -135,6 +153,7 @@ export function updateAvatar(user, form_data) {
   return function (dispatch) {
     Server.patch(`user/${user.id}/`, form_data)
       .then((response) => {
+        const data = UserSchema.parse(response.data);
         dispatch(userActions.updateRules(response.data));
         dispatch(fetchUserList());
         dispatch(fetchNextcloudDirectoryTree("/"));
@@ -150,6 +169,7 @@ export function updateAvatar(user, form_data) {
         dispatch(userApi.endpoints.fetchUserSelfDetails.initiate(user.id));
       })
       .catch((error) => {
+        console.log(error);
         dispatch({ type: "UPDATE_USER_REJECTED", payload: error });
       });
   };
@@ -158,6 +178,7 @@ export function updateAvatar(user, form_data) {
 export function updateUser(user, dispatch) {
   Server.patch(`user/${user.id}/`, user)
     .then((response) => {
+      const data = UserSchema.parse(response.data);
       dispatch(userActions.updateRules(response.data));
       dispatch(fetchUserList());
       dispatch(fetchNextcloudDirectoryTree("/"));
@@ -171,19 +192,18 @@ export function updateUser(user, dispatch) {
         })
       );
       dispatch(userApi.endpoints.fetchUserSelfDetails.initiate(user.id));
-      // dispatch(fetchUserSelfDetails(user.id));
     })
     .catch((error) => {
+      console.log(error);
       dispatch({ type: "UPDATE_USER_REJECTED", payload: error });
     });
 }
 
 export function updateUserAndScan(user) {
   return function (dispatch) {
-    console.log(user);
-
     Server.patch(`manage/user/${user.id}/`, user)
       .then((response) => {
+        const data = UserSchema.parse(response.data);
         dispatch(userActions.updateRules(response.data));
         dispatch(fetchUserList());
         dispatch(
@@ -196,10 +216,10 @@ export function updateUserAndScan(user) {
           })
         );
         dispatch(userApi.endpoints.fetchUserSelfDetails.initiate(user.id));
-        // dispatch(fetchUserSelfDetails(user.id));
         dispatch(scanPhotos());
       })
       .catch((error) => {
+        console.log(error);
         dispatch({ type: "UPDATE_USER_REJECTED", payload: error });
       });
   };
@@ -207,10 +227,9 @@ export function updateUserAndScan(user) {
 
 export function manageUpdateUser(user) {
   return function (dispatch) {
-    console.log(user);
-
     Server.patch(`manage/user/${user.id}/`, user)
       .then((response) => {
+        const data = ManageUser.parse(response.data);
         dispatch(userActions.updateRules(response.data));
         dispatch(fetchUserList());
         dispatch(
@@ -224,6 +243,7 @@ export function manageUpdateUser(user) {
         );
       })
       .catch((error) => {
+        console.log(error);
         dispatch({ type: "UPDATE_USER_REJECTED", payload: error });
       });
   };
@@ -233,6 +253,7 @@ export function fetchWorkerAvailability(prevRunningJob, dispatch) {
   dispatch({ type: "FETCH_WORKER_AVAILABILITY" });
   Server.get("rqavailable/")
     .then((response) => {
+      const data = WorkerAvailability.parse(response.data);
       if (prevRunningJob !== null && response.data.job_detail === null) {
         dispatch(
           notify(
@@ -269,9 +290,8 @@ export function fetchWorkerAvailability(prevRunningJob, dispatch) {
       });
     })
     .catch((error) => {
+      console.log(error);
       dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
-      console.log(error.message);
-
       if (error.message.indexOf("502") !== -1) {
         // Backend is offline; HTTP error status code 502
         console.log("Backend is offline");
@@ -290,6 +310,7 @@ export function deleteMissingPhotos() {
     });
     Server.get(`deletemissingphotos`)
       .then((response) => {
+        const data = DeleteMissingPhotosResponse.parse(response.data);
         dispatch(
           notify(i18n.t("toasts.deletemissingphotos"), {
             title: i18n.t("toasts.deletemissingphotostitle"),
@@ -305,6 +326,7 @@ export function deleteMissingPhotos() {
         });
       })
       .catch((err) => {
+        console.log(err);
         dispatch({ type: "DELETE_MISSING_PHOTOS_REJECTED", payload: err });
       });
   };
@@ -320,6 +342,7 @@ export function generateEventAlbums() {
     });
     Server.get(`autoalbumgen/`)
       .then((response) => {
+        const data = GenerateEventAlbumsResponse.parse(response.data);
         dispatch(
           notify(i18n.t("toasts.generateeventalbums"), {
             title: i18n.t("toasts.generateeventalbumstitle"),
@@ -335,6 +358,7 @@ export function generateEventAlbums() {
         });
       })
       .catch((err) => {
+        console.log(err);
         dispatch({ type: "GENERATE_EVENT_ALBUMS_REJECTED", payload: err });
       });
   };
@@ -351,6 +375,7 @@ export function generateEventAlbumTitles() {
 
     Server.get("autoalbumtitlegen/")
       .then((response) => {
+        const data = GenerateEventAlbumsTitlesResponse.parse(response.data);
         dispatch(
           notify(i18n.t("toasts.regenerateevents"), {
             title: i18n.t("toasts.regenerateeventstitle"),
@@ -366,6 +391,7 @@ export function generateEventAlbumTitles() {
         });
       })
       .catch((err) => {
+        console.log(err);
         dispatch({
           type: "GENERATE_EVENT_ALBUMS_TITLES_REJECTED",
           payload: err,
@@ -379,12 +405,14 @@ export function fetchExampleSearchTerms() {
     dispatch({ type: "FETCH_EXAMPLE_SEARCH_TERMS" });
     Server.get(`searchtermexamples/`)
       .then((response) => {
+        const data = SearchTermExamples.parse(response.data.results);
         dispatch({
           type: "FETCH_EXAMPLE_SEARCH_TERMS_FULFILLED",
           payload: response.data.results,
         });
       })
       .catch((err) => {
+        console.log(err);
         dispatch({ type: "FETCH_EXAMPLE_SEARCH_TERMS_REJECTED", payload: err });
       });
   };
@@ -395,6 +423,7 @@ export function fetchLocationSunburst() {
     dispatch({ type: "FETCH_LOCATION_SUNBURST" });
     Server.get(`locationsunburst/`)
       .then((response) => {
+        const data = LocationSunburst.parse(response.data.results);
         dispatch({
           type: "FETCH_LOCATION_SUNBURST_FULFILLED",
           payload: response.data,
@@ -410,12 +439,14 @@ export function fetchLocationTimeline(dispatch) {
   dispatch({ type: "FETCH_LOCATION_TIMELINE" });
   Server.get(`locationtimeline/`)
     .then((response) => {
+      const data = LocationTimeline.parse(response.data);
       dispatch({
         type: "FETCH_LOCATION_TIMELINE_FULFILLED",
         payload: response.data,
       });
     })
     .catch((err) => {
+      console.log(err);
       dispatch({ type: "FETCH_LOCATION_TIMELINE_REJECTED", payload: err });
     });
 }
@@ -425,12 +456,14 @@ export function fetchCountStats() {
     dispatch({ type: "FETCH_COUNT_STATS" });
     Server.get(`stats/`)
       .then((response) => {
+        const data = CountStats.parse(response.data);
         dispatch({
           type: "FETCH_COUNT_STATS_FULFILLED",
           payload: response.data,
         });
       })
       .catch((err) => {
+        console.log(err);
         dispatch({ type: "FETCH_COUNT_STATS_REJECTED", payload: err });
       });
   };
@@ -441,6 +474,7 @@ export function fetchLocationClusters() {
     dispatch({ type: "FETCH_LOCATION_CLUSTERS" });
     Server.get(`locclust/`)
       .then((response) => {
+        const data = LocationClusters.array().parse(response.data);
         dispatch({
           type: "FETCH_LOCATION_CLUSTERS_FULFILLED",
           payload: response.data,
@@ -456,12 +490,14 @@ export function fetchPhotoMonthCounts(dispatch) {
   dispatch({ type: "FETCH_PHOTO_MONTH_COUNTS" });
   Server.get(`photomonthcounts/`)
     .then((response) => {
+      const data = PhotoMonthCount.array().parse(response.data);
       dispatch({
         type: "FETCH_PHOTO_MONTH_COUNTS_FULFILLED",
         payload: response.data,
       });
     })
     .catch((err) => {
+      console.log(err);
       dispatch({ type: "FETCH_PHOTO_MONTH_COUNTS_REJECTED", payload: err });
     });
 }
@@ -470,9 +506,11 @@ export function fetchWordCloud(dispatch) {
   dispatch({ type: "FETCH_WORDCLOUD" });
   Server.get(`wordcloud/`)
     .then((response) => {
+      const data = WordCloudResponse.parse(response.data);
       dispatch({ type: "FETCH_WORDCLOUD_FULFILLED", payload: response.data });
     })
     .catch((err) => {
+      console.log(err);
       dispatch({ type: "FETCH_WORDCLOUD_REJECTED", payload: err });
     });
 }

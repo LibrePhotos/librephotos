@@ -37,6 +37,20 @@ export const UserSchema = z.object({
   default_timezone: z.string(),
 });
 
+export const ManageUser = z.object({
+  confidence: z.number(),
+  date_joined: z.string(),
+  favorite_min_rating: z.number(),
+  id: z.number(),
+  image_scale: z.number(),
+  last_login: z.string().nullable(),
+  photo_count: z.number(),
+  save_metadata_to_disk: z.string(),
+  scan_directory: z.string(),
+  semantic_search_topk: z.number(),
+  username: z.string(),
+});
+
 export const SimpleUser = z.object({
   id: z.number(),
   username: z.string(),
