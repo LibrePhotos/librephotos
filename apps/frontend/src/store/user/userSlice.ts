@@ -1,8 +1,9 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createSlice } from "@reduxjs/toolkit";
 import type { IUser, IUserState } from "./user.zod";
-import { userApi } from "./user.api";
+
 import { UserSchema } from "./user.zod";
+import { api } from "../../api_client/api";
 
 const initialState: IUserState = {
   userSelfDetails: {} as IUser,
@@ -29,21 +30,21 @@ const userSlice = createSlice({
       }),
     }),
   },
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     builder
-      .addMatcher(userApi.endpoints.fetchUserSelfDetails.matchFulfilled, (state, { payload }) => ({
+      .addMatcher(api.endpoints.fetchUserSelfDetails.matchFulfilled, (state, { payload }) => ({
         ...state,
         userSelfDetails: UserSchema.parse(payload),
       }))
-      .addMatcher(userApi.endpoints.fetchUserSelfDetails.matchRejected, (state, { payload }) => ({
+      .addMatcher(api.endpoints.fetchUserSelfDetails.matchRejected, (state, { payload }) => ({
         ...state,
         error: payload,
       }))
-      .addMatcher(userApi.endpoints.fetchPredefinedRules.matchRejected, (state, { payload }) => ({
+      .addMatcher(api.endpoints.fetchPredefinedRules.matchRejected, (state, { payload }) => ({
         ...state,
         error: payload,
       }))
-      .addDefaultCase((state) => state);
+      .addDefaultCase(state => state);
   },
 });
 

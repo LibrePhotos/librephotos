@@ -3,9 +3,8 @@ import { Header } from "semantic-ui-react";
 import Modal from "react-modal";
 import { SortableItem } from "../settings/SortableItem";
 import { useAppSelector } from "../../store/store";
-
-import { useFetchPredefinedRulesQuery } from "../../store/user/user.api";
 import { selectUserSelfDetails } from "../../store/user/userSelectors";
+import { useFetchPredefinedRulesQuery } from "../../api_client/api";
 
 type Props = {
   isOpen: boolean;

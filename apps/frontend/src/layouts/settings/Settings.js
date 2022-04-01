@@ -41,7 +41,7 @@ import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
 import { serverAddress } from "../../api_client/apiClient";
 import { withTranslation, Trans } from "react-i18next";
 import { ConfigDatetime } from "../../components/settings/ConfigDatetime";
-import { userApi } from "../../store/user/user.api";
+import { api } from "../../api_client/api";
 
 export class Settings extends Component {
   state = {
@@ -57,26 +57,26 @@ export class Settings extends Component {
   open = () => this.setState({ open: true });
   close = () => this.setState({ open: false });
 
-  setEditorRef = (editor) => (this.editor = editor);
+  setEditorRef = editor => (this.editor = editor);
 
   constructor(props) {
     super(props);
     this.dropzoneRef = React.createRef();
   }
 
-  onPhotoScanButtonClick = (e) => {
+  onPhotoScanButtonClick = e => {
     this.props.dispatch(scanPhotos());
   };
 
-  onPhotoFullScanButtonClick = (e) => {
+  onPhotoFullScanButtonClick = e => {
     this.props.dispatch(scanAllPhotos());
   };
 
-  onGenerateEventAlbumsButtonClick = (e) => {
+  onGenerateEventAlbumsButtonClick = e => {
     this.props.dispatch(generateEventAlbums());
   };
 
-  onDeleteMissingPhotosButtonClick = (e) => {
+  onDeleteMissingPhotosButtonClick = e => {
     this.props.dispatch(deleteMissingPhotos());
     this.close();
   };
@@ -152,7 +152,7 @@ export class Settings extends Component {
                   <Dropzone
                     noClick
                     style={{ width: 150, height: 150, borderRadius: 75 }}
-                    ref={(node) => {
+                    ref={node => {
                       this.dropzoneRef = node;
                     }}
                     onDrop={(accepted, rejected) => {
@@ -206,7 +206,7 @@ export class Settings extends Component {
                       this.urltoFile(
                         this.editor.getImageScaledToCanvas().toDataURL(),
                         this.state.userSelfDetails.first_name + "avatar.png"
-                      ).then((file) => {
+                      ).then(file => {
                         form_data.append("avatar", file, this.state.userSelfDetails.first_name + "avatar.png");
                         this.props.dispatch(updateAvatar(this.state.userSelfDetails, form_data));
                       });
@@ -858,7 +858,7 @@ export class Settings extends Component {
             <Grid.Column width={12}>
               <select
                 value={this.state.userSelfDetails.confidence}
-                onChange={(event) => {
+                onChange={event => {
                   this.setState({
                     userSelfDetails: {
                       ...this.state.userSelfDetails,
@@ -887,7 +887,7 @@ export class Settings extends Component {
             <Grid.Column width={12}>
               <select
                 value={this.state.userSelfDetails.semantic_search_topk}
-                onChange={(event) => {
+                onChange={event => {
                   this.setState({
                     userSelfDetails: {
                       ...this.state.userSelfDetails,
@@ -938,7 +938,7 @@ export class Settings extends Component {
             <Grid.Column width={12}>
               <select
                 value={this.state.userSelfDetails.save_metadata_to_disk}
-                onChange={(event) => {
+                onChange={event => {
                   this.setState(
                     {
                       userSelfDetails: {
@@ -970,7 +970,7 @@ export class Settings extends Component {
             <Grid.Column width={12}>
               <select
                 value={this.state.userSelfDetails.favorite_min_rating}
-                onChange={(event) => {
+                onChange={event => {
                   this.setState({
                     userSelfDetails: {
                       ...this.state.userSelfDetails,
@@ -1023,7 +1023,7 @@ export class Settings extends Component {
             <Grid.Column width={12}>
               <select
                 value={this.state.userSelfDetails.transcode_videos}
-                onChange={(event) => {
+                onChange={event => {
                   this.setState({
                     userSelfDetails: {
                       ...this.state.userSelfDetails,
@@ -1195,11 +1195,11 @@ class ModalNextcloudScanDirectoryEdit extends Component {
             canDrag={() => false}
             canDrop={() => false}
             treeData={this.state.treeData}
-            onChange={(treeData) => this.setState({ treeData })}
+            onChange={treeData => this.setState({ treeData })}
             theme={FileExplorerTheme}
-            generateNodeProps={(rowInfo) => {
+            generateNodeProps={rowInfo => {
               let nodeProps = {
-                onClick: (event) => this.nodeClicked(event, rowInfo),
+                onClick: event => this.nodeClicked(event, rowInfo),
               };
               if (this.state.selectedNodeId === rowInfo.node.id) {
                 nodeProps.className = "selected-node";
@@ -1214,7 +1214,7 @@ class ModalNextcloudScanDirectoryEdit extends Component {
 }
 
 ModalNextcloudScanDirectoryEdit = compose(
-  connect((store) => {
+  connect(store => {
     return {
       auth: store.auth,
 
@@ -1231,7 +1231,7 @@ ModalNextcloudScanDirectoryEdit = compose(
 )(ModalNextcloudScanDirectoryEdit);
 
 Settings = compose(
-  connect((store) => {
+  connect(store => {
     return {
       auth: store.auth,
       util: store.util,
@@ -1245,7 +1245,7 @@ Settings = compose(
       workerAvailability: store.util.workerAvailability,
       fetchedNextcloudDirectoryTree: store.util.fetchedNextcloudDirectoryTree,
       userSelfDetails: store.user.userSelfDetails,
-      fetchUserSelfDetails: userApi.endpoints.fetchUserSelfDetails.initiate,
+      fetchUserSelfDetails: api.endpoints.fetchUserSelfDetails.initiate,
     };
   }),
   withTranslation()

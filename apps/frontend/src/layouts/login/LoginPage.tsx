@@ -1,29 +1,43 @@
+import type { FormEvent } from "react";
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Button, Divider, Form, Header, Image, Message, Segment } from "semantic-ui-react";
+import { Link, useHistory } from "react-router-dom";
+import { Button, Divider, Form, Header, Image, Segment } from "semantic-ui-react";
 import { fetchSiteSettings } from "../../actions/utilActions";
-import { login } from "../../actions/authActions";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { useTranslation } from "react-i18next";
-import { authErrors } from "../../store/auth/authSelectors";
+import { useLoginMutation } from "../../api_client/api";
+import { authActions } from "../../store/auth/authSlice";
+import { selectSiteSettings } from "../../store/util/utilSelectors";
+import type { ISignInFormState } from "./loginUtils";
+import { validateSignInForm } from "./loginUtils";
 
-export const LoginPage = () => {
-  const { siteSettings } = useAppSelector((state) => state.util);
-  const errors = useAppSelector((state) => authErrors(state));
+const initialFormState: ISignInFormState = { username: "", password: "" };
+
+export const LoginPage = (): JSX.Element => {
+  const timeNow = new Date().toLocaleTimeString();
+  const history = useHistory();
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+
+  const siteSettings = useAppSelector(selectSiteSettings);
+  const [login, { isSuccess, isLoading }] = useLoginMutation();
+  const [form, setForm] = useState<ISignInFormState>(initialFormState);
 
   useEffect(() => {
+    dispatch(authActions.clearError());
     fetchSiteSettings(dispatch);
   }, [dispatch]);
 
-  const onSubmit = (event: any) => {
+  useEffect(() => {
+    if (isSuccess) {
+      history.push("/");
+    }
+  }, [history, isSuccess]);
+
+  function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    login(username.toLowerCase(), password, "", dispatch);
-  };
-  const timeNow = new Date().toLocaleTimeString();
+    void login({ username: form.username.toLowerCase(), password: form.password });
+  }
 
   return (
     <div
@@ -64,8 +78,8 @@ export const LoginPage = () => {
                 icon="user"
                 placeholder={t("login.usernameplaceholder")}
                 name="username"
-                value={username}
-                onChange={(e, { name, value }) => setUsername(value)}
+                value={form.username}
+                onChange={(e, { value }) => setForm(ps => ({ ...ps, username: value }))}
               />
             </Form.Field>
             <Form.Field>
@@ -75,8 +89,8 @@ export const LoginPage = () => {
                 type="password"
                 placeholder={t("login.passwordplaceholder")}
                 name="password"
-                value={password}
-                onChange={(e, { name, value }) => setPassword(value)}
+                value={form.password}
+                onChange={(e, { value }) => setForm(ps => ({ ...ps, password: value }))}
               />
               <Divider />
               <Form.Button fluid color="blue" content="Log in" />
@@ -85,7 +99,7 @@ export const LoginPage = () => {
                 <div>
                   <Divider />
                   <Button
-                    disabled={!siteSettings.allow_registration}
+                    disabled={!siteSettings.allow_registration || isLoading || validateSignInForm(form)}
                     as={Link}
                     to="/signup"
                     fluid
@@ -97,30 +111,6 @@ export const LoginPage = () => {
             </Form.Field>
           </Form>
         </Segment>
-        {errors && errors.data && errors.data.detail && (
-          <Message color="red" secondary attached>
-            <p>{errors.data.detail}</p>
-            <p>{timeNow}</p>
-          </Message>
-        )}
-        {errors && errors.data && !errors.data.detail && (
-          <Message color="red" secondary attached>
-            <p>{t("login.errorbackend")}</p>
-            <p>{timeNow}</p>
-          </Message>
-        )}
-        {errors && errors.password && (
-          <Message color="red" secondary attached>
-            <p>{t("login.errorpassword")}</p>
-            <p>{timeNow}</p>
-          </Message>
-        )}
-        {errors && errors.username && (
-          <Message color="red" secondary attached="bottom">
-            <p>{t("login.errorusername")}</p>
-            <p>{timeNow}</p>
-          </Message>
-        )}
       </div>
       <div
         style={{

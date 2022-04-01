@@ -1,9 +1,20 @@
 import type { RootState } from "../store";
-import * as fromAuth from "../../reducers/authReducer";
+import { selectSelf } from "../store";
+import { createSelector } from "@reduxjs/toolkit";
+import { isTokenExpired } from "../util/auth";
 
-export const isAuthenticated = (state: RootState): boolean => fromAuth.isAuthenticated(state.auth);
-export const accessToken = (state: RootState): string => fromAuth.accessToken(state.auth);
-export const isAccessTokenExpired = (state: RootState): boolean => fromAuth.isAccessTokenExpired(state.auth);
-export const refreshToken = (state: RootState): string => fromAuth.refreshToken(state.auth);
-export const isRefreshTokenExpired = (state: RootState): boolean => fromAuth.isRefreshTokenExpired(state.auth);
-export const authErrors = (state: RootState): Record<string, any> => fromAuth.errors(state.auth);
+export const selectIsAuthenticated = createSelector(selectSelf, (state: RootState) =>
+  state.auth.access !== null && state.auth.access.exp ? !isTokenExpired(state.auth.access.exp) : false
+);
+export const accessToken = createSelector(selectSelf, (state: RootState) => state.auth.access);
+export const isAccessTokenExpired = createSelector(selectSelf, (state: RootState) =>
+  state.auth.access !== null ? isTokenExpired(state.auth.access.exp) : true
+);
+export const refreshToken = createSelector(selectSelf, (state: RootState) => state.auth.refresh);
+export const isRefreshTokenExpired = createSelector(selectSelf, (state: RootState) =>
+  state.auth.refresh !== null && state.auth.refresh.exp ? isTokenExpired(state.auth.refresh.exp) : true
+);
+export const selectAuthErrors = createSelector(selectSelf, (state: RootState) => state.auth.error ?? null);
+export const selectAuth = createSelector(selectSelf, (state: RootState) => state.auth);
+export const selectAuthAccess = createSelector(selectSelf, (state: RootState) => state.auth.access);
+export const selectAuthRefres = createSelector(selectSelf, (state: RootState) => state.auth.refresh);

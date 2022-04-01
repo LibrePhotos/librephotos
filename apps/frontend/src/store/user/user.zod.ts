@@ -60,6 +60,15 @@ export const SimpleUser = z.object({
 
 export type IUser = z.infer<typeof UserSchema>;
 
+export const ApiUserListResponseSchema = z.object({
+  count: z.number(),
+  next: z.string().nullable(),
+  previous: z.string().nullable(),
+  results: z.array(UserSchema),
+});
+
+export type IApiUserListResponse = z.infer<typeof ApiUserListResponseSchema>;
+
 export type IUserState = {
   userSelfDetails: IUser;
   error: Error | FetchBaseQueryError | string | null | undefined;
