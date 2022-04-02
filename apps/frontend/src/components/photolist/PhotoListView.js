@@ -178,6 +178,7 @@ export class PhotoListView extends Component {
             this.props.header
           ) : (
             <DefaultHeader
+              route={this.props.route}
               photoList={this}
               loading={this.props.loading}
               numPhotosetItems={this.getNumPhotosetItems()}
