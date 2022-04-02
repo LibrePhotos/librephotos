@@ -47,49 +47,13 @@ export class SideMenuNarrow extends Component {
           </Menu.Item>
         )}
 
-        <Dropdown pointing="left" item icon={<Icon size="big" name="image outline" />}>
-          <Dropdown.Menu>
-            <Dropdown.Header>
-              <Trans i18nKey="sidemenu.photos">Photos</Trans>
-            </Dropdown.Header>
-            <Dropdown.Item as={Link} to="/">
-              <Icon color="green" name="calendar check outline" />
-              {"  " + this.props.t("sidemenu.withtimestamp")}
-            </Dropdown.Item>
-            <Dropdown.Item as={Link} to="/notimestamp">
-              <Icon color="red" name="calendar times outline" />
-              {"  " + this.props.t("sidemenu.withouttimestamp")}
-            </Dropdown.Item>
-            <Dropdown.Divider />
-
-            <Dropdown.Item as={Link} to="/recent">
-              <Icon name="clock" />
-              {"  " + this.props.t("sidemenu.recentlyadded")}
-            </Dropdown.Item>
-            <Dropdown.Divider />
-
-            <Dropdown.Item as={Link} to="/hidden">
-              <Icon color="red" name="hide" />
-              {"  " + this.props.t("sidemenu.hidden")}
-            </Dropdown.Item>
-            <Dropdown.Item as={Link} to="/favorites">
-              <Icon name="star" color="yellow" />
-              {"  " + this.props.t("sidemenu.favorites")}
-            </Dropdown.Item>
-            <Dropdown.Item
-              disabled={!this.props.auth.access}
-              as={Link}
-              to={this.props.auth.access ? `/user/${this.props.auth.access.name}` : "/"}
-            >
-              <Icon color="green" name="globe" />
-              {"  " + this.props.t("sidemenu.mypublicphotos")}
-            </Dropdown.Item>
-          </Dropdown.Menu>
-        </Dropdown>
-        <div style={{ marginTop: -17 }}>
+        <Menu.Item name="photos" as={Link} to="/">
+          <Icon size="big" name="image outline"></Icon>
           <small>{this.props.t("sidemenu.photos")}</small>
-        </div>
-
+        </Menu.Item>
+        {
+          //To-DO figure out how to align menu items with dropdowns properly
+        }
         <Divider hidden />
 
         <Dropdown
@@ -170,23 +134,11 @@ export class SideMenuNarrow extends Component {
         </div>
 
         <Divider hidden />
-        <Dropdown pointing="left" item icon={<Icon size="big" name="dashboard" />}>
-          <Dropdown.Menu>
-            <Dropdown.Header>{this.props.t("sidemenu.dashboards")}</Dropdown.Header>
-            <Dropdown.Item as={Link} to="/faces">
-              <Icon name="user circle outline" />
-              {"  " + this.props.t("sidemenu.facerecognition")}
-            </Dropdown.Item>
-            <Dropdown.Item as={Link} to="/settings">
-              <Icon name="database" />
-              {"  " + this.props.t("sidemenu.library")}
-            </Dropdown.Item>
-          </Dropdown.Menu>
-        </Dropdown>
-        <div style={{ marginTop: -17 }}>
-          <small>{this.props.t("sidemenu.dashboards")}</small>
-        </div>
 
+        <Menu.Item name="faces" as={Link} to="/faces">
+          <Icon size="big" name="user circle outline"></Icon>
+          <small>{this.props.t("sidemenu.facerecognition")}</small>
+        </Menu.Item>
         {this.props.auth && (
           <div>
             <Divider hidden />
