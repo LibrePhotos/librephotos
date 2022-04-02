@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  selector:
+    matchLabels:
+      app: backend
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: backend-placeholder
+        envFrom:
+        - configMapRef:
+            name: backend
+        - secretRef:
+            name: backend
+        - secretRef:
+            name: database
+        securityContext:
+          readOnlyRootFilesystem: true
+        ports:
+        - name: backend
+          containerPort: 8001
+        volumeMounts:
+        - name: photos
+          mountPath: /data
+        - name: protected-media
+          mountPath: /protected_media
+        - name: logs
+          mountPath: /logs
+        - name: cache
+          mountPath: /root/.cache
+        - name: backend-tmp
+          mountPath: /tmp
+      - name: proxy
+        image: proxy-placeholder
+        securityContext:
+          readOnlyRootFilesystem: true
+        ports:
+        - name: proxy
+          containerPort: 80
+        volumeMounts:
+        - name: photos
+          mountPath: /data
+        - name: protected-media
+          mountPath: /protected_media
+        - name: nginx-cache
+          mountPath: /var/cache/nginx
+        - name: proxy-var-run
+          mountPath: /var/run
+      securityContext:
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+      volumes:
+      - name: photos
+        persistentVolumeClaim:
+          claimName: photos
+      - name: protected-media
+        persistentVolumeClaim:
+          claimName: protected
+      - name: logs
+        emptyDir: {}
+      - name: cache
+        emptyDir: {}
+      - name: backend-tmp
+        emptyDir: {}
+      - name: nginx-cache
+        emptyDir: {}
+      - name: proxy-var-run
+        emptyDir: {}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector:
+    app: backend
+  ports:
+  - name: http
+    port: 8001
+    targetPort: backend
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: proxy
+spec:
+  selector:
+    app: backend
+  ports:
+  - name: http
+    port: 80
+    targetPort: proxy
