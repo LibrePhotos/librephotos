@@ -9,6 +9,11 @@ category: 1
 
 An out of the box [Raspberry Pi](http://www.raspberrypi.org/) distro with [LibrePhotos](https://github.com/LibrePhotos) installed. You can find the [repository from guysoft here](https://github.com/guysoft/LibrePhotosOS).
 
+### 🌟 Features
+
+- [LibrePhotos](https://github.com/LibrePhotos)
+- Automatically mounts hard drive attached to Pi and links librephotos to the "librephotos" folder on that drive
+
 ### 🗺️ Where to get it?
 
 You can use the [pi-imager](https://github.com/guysoft/pi-imager/releases) commuity raspberrypi imager here, unofficial section.
@@ -28,11 +33,6 @@ Or download directly form the official mirror [here](http://unofficialpi.org/Dis
 
 - Raspberrypi 3 and above, needs a 64bit capable pi
 - 2A power supply
-
-### 🌟 Features
-
-- [LibrePhotos](https://github.com/LibrePhotos)
-- Automatically mounts hard drive attached to Pi and links librephotos to the "librephotos" folder on that drive
 
 ### 🔨 Developing
 
