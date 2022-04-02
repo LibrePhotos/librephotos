@@ -1,5 +1,7 @@
 import React, { Component } from "react";
-import { Button, Grid, GridColumn, GridRow, Header, Icon, Loader } from "semantic-ui-react";
+import { Button, Grid, GridColumn, GridRow, Header, Icon, Loader, Dropdown } from "semantic-ui-react";
+
+import { Link } from "react-router-dom";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { withTranslation } from "react-i18next";
 import { connect } from "react-redux";
@@ -8,6 +10,17 @@ import { ModalScanDirectoryEdit } from "../modals/ModalScanDirectoryEdit";
 
 export class DefaultHeader extends Component {
   state = { modalOpen: false };
+
+  // return true if it is a view with a dropdown
+  isDropdownView = () => {
+    return (
+      this.props.route.location.pathname === "/" ||
+      this.props.route.location.pathname.startsWith("/hidden") ||
+      this.props.route.location.pathname.startsWith("/notimestamp") ||
+      this.props.route.location.pathname.startsWith("/recent") ||
+      this.props.route.location.pathname.startsWith("/user/")
+    );
+  };
 
   render() {
     if (this.props.loading || this.props.numPhotosetItems < 1) {
@@ -78,7 +91,57 @@ export class DefaultHeader extends Component {
             <Header as="h2" style={{ paddingRight: 10 }}>
               <Icon name={this.props.titleIconName} />
               <Header.Content>
-                {this.props.title}{" "}
+                {this.props.auth.access && this.isDropdownView() ? (
+                  <Dropdown
+                    item
+                    trigger={
+                      <span>
+                        <Header as="h2">
+                          {this.props.title} <Icon size="small" style={{ paddingTop: 7 }} name="caret down" />
+                        </Header>
+                      </span>
+                    }
+                    icon={null}
+                    simple
+                  >
+                    <Dropdown.Menu>
+                      <Dropdown.Item as={Link} to="/">
+                        <Icon color="green" name="calendar check outline" />
+                        {"  " + this.props.t("sidemenu.withtimestamp")}
+                      </Dropdown.Item>
+                      <Dropdown.Item as={Link} to="/notimestamp">
+                        <Icon color="red" name="calendar times outline" />
+                        {"  " + this.props.t("sidemenu.withouttimestamp")}
+                      </Dropdown.Item>
+                      <Dropdown.Divider />
+
+                      <Dropdown.Item as={Link} to="/recent">
+                        <Icon name="clock" />
+                        {"  " + this.props.t("sidemenu.recentlyadded")}
+                      </Dropdown.Item>
+                      <Dropdown.Divider />
+
+                      <Dropdown.Item as={Link} to="/hidden">
+                        <Icon color="red" name="hide" />
+                        {"  " + this.props.t("sidemenu.hidden")}
+                      </Dropdown.Item>
+                      <Dropdown.Item as={Link} to="/favorites">
+                        <Icon name="star" color="yellow" />
+                        {"  " + this.props.t("sidemenu.favorites")}
+                      </Dropdown.Item>
+                      <Dropdown.Item
+                        disabled={!this.props.auth.access}
+                        as={Link}
+                        to={this.props.auth.access ? `/user/${this.props.auth.access.name}` : "/"}
+                      >
+                        <Icon color="green" name="globe" />
+                        {"  " + this.props.t("sidemenu.mypublicphotos")}
+                      </Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
+                ) : (
+                  this.props.title
+                )}
                 <Header.Subheader>
                   {this.props.numPhotosetItems != this.props.numPhotos
                     ? this.props.numPhotosetItems + " " + this.props.t("defaultheader.days") + ", "
