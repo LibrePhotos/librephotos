@@ -39,7 +39,7 @@ spec:
             - -h
             - localhost
             - -U
-            - gogs
+            - librephotos
         ports:
         - containerPort: 5432
           name: psql
