@@ -438,10 +438,22 @@
     "2": "Get Video creation tag in UTC + figure out timezone using GPS coordinates",
     "3": "Using filename assuming time is local",
     "4": "Video UTC - report local time in UTC (since we can't find out actual timezone)",
+    "5": "Extract date using WhatsApp file name",
+    "6": "Video creation datetime in UTC timezone (can't find out actual timezone)",
+    "7": "File modified time in user default timezone",
+    "8": "File modified time in UTC timezone",
+    "9": "File created time in user default timezone",
+    "10": "File created time in UTC timezone",
+    "11": "Use Composite:GPSDateTime tag + figure out timezone using GPS coordinates",
+    "12": "Use Composite:GPSDateTime tag in user default timezone (can't find out actual timezone)",
+    "13": "Use Composite:GPSDateTime tag in UTC timezone (can't find out actual timezone)",
+    "14": "Timestamp set by user",
+    "15": "Local time from EXIF:DateTime exif tag",
     "rule_type": "Rule Type: {{rule}}",
     "exif_tag": "Use Exiftag {{rule}}",
     "file_property": "Use file property {{rule}}",
     "source_tz": "Transform from {{rule}}",
-    "report_tz": "Transform to {{rule}}"
+    "report_tz": "Transform to {{rule}}",
+    "predefined_regexp": "Use predefined regular expression: {{rule}}"
   }
 }
