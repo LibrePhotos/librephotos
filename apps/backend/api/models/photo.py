@@ -174,7 +174,7 @@ class Photo(models.Model):
 
     def _generate_clip_embeddings(self, commit=True):
         image_path = self.thumbnail_big.path
-        if not self.clip_embeddings:
+        if not self.clip_embeddings and image_path:
             try:
                 img_emb, magnitude = semantic_search_instance.calculate_clip_embeddings(
                     image_path
@@ -361,7 +361,6 @@ class Photo(models.Model):
             self.exif_timestamp = extracted_local_time
 
         if old_album_date is not None:
-            util.logger.info("Old Album Date: %s" % old_album_date.date)
             old_album_date.photos.remove(self)
             old_album_date.save()
 
@@ -377,7 +376,6 @@ class Photo(models.Model):
                 date=None, owner=self.owner
             )
             album_date.photos.add(self)
-        util.logger.info("New Album Date: %s" % album_date.date)
         cache.clear()
         if commit:
             self.save()
