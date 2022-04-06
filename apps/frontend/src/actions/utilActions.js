@@ -45,7 +45,6 @@ export function deleteJob(job_id, page = 1, page_size = 10) {
     dispatch({ type: "DELETE_JOB" });
     Server.delete(`jobs/${job_id}`)
       .then((response) => {
-        const data = Job.parse(response.data);
         dispatch(fetchJobList(page, page_size));
         dispatch({ type: "DELETE_JOB_FULFILLED", payload: response.data });
       })

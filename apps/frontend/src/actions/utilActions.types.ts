@@ -5,7 +5,7 @@ import { SimpleUser } from "../store/user/user.zod";
 export const Job = z.object({
   job_id: z.string(),
   queued_at: z.string(),
-  started_at: z.string(),
+  started_at: z.string().nullable(),
   finished_at: z.string().nullable(),
   finished: z.boolean(),
   failed: z.boolean(),
