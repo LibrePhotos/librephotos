@@ -438,7 +438,11 @@
         "4": "Video UTC - verwende lokale Zeit in UTC (da tatsächliche Zeitzone nicht bestimmt werden kann)",
         "rule_type": "Regeltyp: {{rule}}",
         "exif_tag": "Verwende Exif-Tag {{rule}}",
-        "report_tz": "Transformiere nach {{rule}}"
+        "report_tz": "Transformiere nach {{rule}}",
+        "5": "Datum mit WhatsApp-Dateinamen extrahieren",
+        "6": "Datum der Videoerstellung in UTC-Zeitzone (kann die aktuelle Zeitzone nicht herausfinden)",
+        "7": "Änderungszeit der Datei in der Standardzeitzone des Benutzers",
+        "14": "Vom Benutzer festgelegter Zeitstempel"
     },
     "nofaces": "Keine Gesichter",
     "locationtimeline": "Ort-Zeitstrahl",
