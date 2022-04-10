@@ -418,26 +418,16 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if not self.request.user.is_anonymous:
-            qs = AlbumDate.objects.filter(
-                Q(owner=self.request.user)
-                & Q(photos__hidden=False)
-                & Q(photos__deleted=False)
-            )
+            qs = AlbumDate.visible.filter(Q(owner=self.request.user))
         if self.request.query_params.get("favorite"):
             min_rating = self.request.user.favorite_min_rating
-            qs = AlbumDate.objects.filter(
-                Q(owner=self.request.user)
-                & Q(photos__hidden=False)
-                & Q(photos__deleted=False)
-                & Q(photos__rating__gte=min_rating)
+            qs = AlbumDate.visible.filter(
+                Q(owner=self.request.user) & Q(photos__rating__gte=min_rating)
             )
         if self.request.query_params.get("public"):
             username = self.request.query_params.get("username")
-            qs = AlbumDate.objects.filter(
-                Q(owner__username=username)
-                & Q(photos__hidden=False)
-                & Q(photos__deleted=False)
-                & Q(photos__public=True)
+            qs = AlbumDate.visible.filter(
+                Q(owner__username=username) & Q(photos__public=True)
             )
 
         if self.request.query_params.get("deleted"):
@@ -452,10 +442,8 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
             return qs
         if self.request.query_params.get("person"):
             return (
-                AlbumDate.objects.filter(
+                AlbumDate.visible.filter(
                     Q(owner=self.request.user)
-                    & Q(photos__hidden=False)
-                    & Q(photos__deleted=False)
                     & Q(
                         photos__faces__person__id=self.request.query_params.get(
                             "person"
