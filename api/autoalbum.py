@@ -77,7 +77,11 @@ def generate_event_albums(user, job_id):
         lrj.save()
 
     try:
-        photos = Photo.objects.filter(owner=user).only("exif_timestamp")
+        photos = (
+            Photo.objects.filter(Q(owner=user))
+            .exclude(Q(exif_timestamp=None))
+            .only("exif_timestamp")
+        )
 
         photos_with_timestamp = [
             (photo.exif_timestamp, photo) for photo in photos if photo.exif_timestamp
@@ -106,16 +110,23 @@ def generate_event_albums(user, job_id):
 
         target_count = len(groups)
 
-        date_format = "%Y:%m:%d %H:%M:%S"
+        date_format = "%Y:%m:%d"
         for idx, group in enumerate(groups):
             key = group[0].exif_timestamp
+            lastKey = group[-1].exif_timestamp
+            logger.info(str(key.date) + " - " + str(lastKey.date))
             logger.info(
                 "job {}: processing auto album with date: ".format(job_id)
                 + key.strftime(date_format)
+                + " to "
+                + lastKey.strftime(date_format)
             )
             items = group
             if len(group) >= 2:
-                qs = AlbumAuto.objects.filter(timestamp=key).filter(owner=user)
+                # To-Do: check a larger range of dates to see if there are AlbumAuto objects with the same date
+                qs = AlbumAuto.objects.filter(owner=user).filter(
+                    timestamp__range=(key, lastKey)
+                )
                 if qs.count() == 0:
                     album = AlbumAuto(
                         created_on=datetime.utcnow().replace(tzinfo=pytz.utc),
@@ -141,6 +152,25 @@ def generate_event_albums(user, job_id):
                     album.save()
                     logger.info(
                         "job {}: generated auto album {}".format(job_id, album.id)
+                    )
+                if qs.count() == 1:
+                    album = qs.first()
+                    for item in items:
+                        if item in album.photos.all():
+                            continue
+                        album.photos.add(item)
+                        item.save()
+                    album._generate_title()
+                    album.save()
+                    logger.info(
+                        "job {}: updated auto album {}".format(job_id, album.id)
+                    )
+                if qs.count() > 1:
+                    # TODO: handle this case
+                    logger.info(
+                        "job {}: found multiple auto albums for date {}".format(
+                            job_id, key.strftime(date_format)
+                        )
                     )
 
             lrj.result = {"progress": {"current": idx + 1, "target": target_count}}
