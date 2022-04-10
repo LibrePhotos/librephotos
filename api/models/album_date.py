@@ -1,7 +1,21 @@
 from django.db import models
+from django.db.models import Q
 
 from api.models.photo import Photo
 from api.models.user import User, get_deleted_user
+
+
+class VisibleAlbumDatePhotoManager(models.Manager):
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .filter(
+                Q(photos__hidden=False)
+                & Q(photos__aspect_ratio__isnull=False)
+                & Q(photos__deleted=False)
+            )
+        )
 
 
 class AlbumDate(models.Model):
@@ -14,6 +28,8 @@ class AlbumDate(models.Model):
         User, on_delete=models.SET(get_deleted_user), default=None
     )
     shared_to = models.ManyToManyField(User, related_name="album_date_shared_to")
+    visible = VisibleAlbumDatePhotoManager()
+    objects = models.Manager()
 
     class Meta:
         unique_together = ("date", "owner")
