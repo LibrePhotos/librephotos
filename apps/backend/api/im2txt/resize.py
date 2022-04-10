@@ -34,4 +34,3 @@ def resize_images(image_dir, output_dir, size):
 
 def main():
     resize_images(image_dir, output_dir, [image_size, image_size])
-
