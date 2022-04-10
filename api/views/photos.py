@@ -58,9 +58,7 @@ class RecentlyAddedPhotoListViewSet(viewsets.ModelViewSet):
                     added_on__day=latestDate.day,
                 )
             )
-            .only(
-                "image_hash", "exif_timestamp", "rating", "public", "added_on", "hidden"
-            )
+            .prefetch_related("users")
             .order_by("-added_on")
         )
         return queryset
