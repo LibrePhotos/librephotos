@@ -1,26 +1,17 @@
 import uuid
 
-import six
 from django.db.models import Count, Prefetch, Q
 from rest_framework import filters, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_extensions.cache.decorators import cache_response
 
 from api.autoalbum import generate_event_albums, regenerate_event_titles
-from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 from api.models import AlbumAuto, Photo
 from api.serializers.serializers import AlbumAutoListSerializer, AlbumAutoSerializer
 from api.util import logger
-from api.views.caching import (
-    CACHE_TTL,
-    CustomListKeyConstructor,
-    CustomObjectKeyConstructor,
-)
 from api.views.pagination import StandardResultsSetPagination
 
 
-@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumAutoViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumAutoSerializer
     pagination_class = StandardResultsSetPagination
@@ -45,11 +36,9 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
             .order_by("-timestamp")
         )
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(AlbumAutoViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(AlbumAutoViewSet, self).list(*args, **kwargs)
 
