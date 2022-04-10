@@ -85,7 +85,6 @@ if os.name == "Windows":
         except Exception:
             return False
 
-
 else:
 
     def is_hidden(filepath):
