@@ -202,7 +202,7 @@ export function updateUserAndScan(user) {
   return function (dispatch) {
     Server.patch(`manage/user/${user.id}/`, user)
       .then((response) => {
-        const data = UserSchema.parse(response.data);
+        const data = ManageUser.parse(response.data);
         dispatch(userActions.updateRules(response.data));
         dispatch(fetchUserList());
         dispatch(
