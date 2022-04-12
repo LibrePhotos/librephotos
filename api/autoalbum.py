@@ -110,10 +110,10 @@ def generate_event_albums(user, job_id):
 
         target_count = len(groups)
 
-        date_format = "%Y:%m:%d"
+        date_format = "%Y:%m:%d %H:%M:%S"
         for idx, group in enumerate(groups):
-            key = group[0].exif_timestamp
-            lastKey = group[-1].exif_timestamp
+            key = group[0].exif_timestamp - timedelta(hours=11, minutes=59)
+            lastKey = group[-1].exif_timestamp + timedelta(hours=11, minutes=59)
             logger.info(str(key.date) + " - " + str(lastKey.date))
             logger.info(
                 "job {}: processing auto album with date: ".format(job_id)
@@ -123,7 +123,6 @@ def generate_event_albums(user, job_id):
             )
             items = group
             if len(group) >= 2:
-                # To-Do: check a larger range of dates to see if there are AlbumAuto objects with the same date
                 qs = AlbumAuto.objects.filter(owner=user).filter(
                     timestamp__range=(key, lastKey)
                 )
@@ -166,7 +165,7 @@ def generate_event_albums(user, job_id):
                         "job {}: updated auto album {}".format(job_id, album.id)
                     )
                 if qs.count() > 1:
-                    # TODO: handle this case
+                    # To-Do: Merge both auto albums
                     logger.info(
                         "job {}: found multiple auto albums for date {}".format(
                             job_id, key.strftime(date_format)
