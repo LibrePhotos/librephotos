@@ -17,7 +17,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework.views import APIView, exception_handler
 from rest_framework_extensions.cache.decorators import cache_response
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
@@ -37,6 +37,25 @@ from api.views.caching import (
     CustomObjectKeyConstructor,
 )
 from api.views.pagination import StandardResultsSetPagination
+
+
+def custom_exception_handler(exc, context):
+    # Call REST framework's default exception handler first,
+    # to get the standard error response.
+    response = exception_handler(exc, context)
+
+    # Update the structure of the response data.
+    if response is not None:
+        customized_response = {}
+        customized_response["errors"] = []
+
+        for key, value in response.data.items():
+            error = {"field": key, "message": value}
+            customized_response["errors"].append(error)
+
+        response.data = customized_response
+
+    return response
 
 
 class AlbumDateListWithPhotoHashViewSet(viewsets.ReadOnlyModelViewSet):
