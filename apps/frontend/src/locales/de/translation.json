@@ -442,7 +442,15 @@
         "5": "Datum mit WhatsApp-Dateinamen extrahieren",
         "6": "Datum der Videoerstellung in UTC-Zeitzone (kann die aktuelle Zeitzone nicht herausfinden)",
         "7": "Änderungszeit der Datei in der Standardzeitzone des Benutzers",
-        "14": "Vom Benutzer festgelegter Zeitstempel"
+        "14": "Vom Benutzer festgelegter Zeitstempel",
+        "8": "Änderungsdatum in UTC-Zeitzone",
+        "9": "Erstellungsdatum in Nutzer-Zeitzone",
+        "10": "Erstellungsdatum in UTC-Zeitzone",
+        "11": "Nutze Composite:GPSDateTime Tag + bestimme Zeitzone per GPS-Koordinaten",
+        "12": "Nutze Composite:GPSDateTime Tag in Standardzeitzone des Benutzers (tatsächliche Zeitzone nicht bestimmbar)",
+        "15": "Lokale Zeit aus EXIF:DateTime Exif-Tag",
+        "predefined_regexp": "Nutze vordefinierten regulären Ausdruck: {{rule}}",
+        "13": "Nutze Composite:GPSDateTime Tag in UTC-Zeitzone (tatsächliche Zeitzone nicht bestimmbar)"
     },
     "nofaces": "Keine Gesichter",
     "locationtimeline": "Ort-Zeitstrahl",
