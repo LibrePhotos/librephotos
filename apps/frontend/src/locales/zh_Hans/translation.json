@@ -296,9 +296,11 @@
         "header": "用户注册",
         "apikey": "你想在地图上看到你所有照片的拍摄地点吗（如果你的照片中存储了位置）？在这里获取一个 Mapbox API 密钥 https://account.mapbox.com/auth/signup/",
         "headerupload": "允许上传",
-        "skippatterns": " 用逗号分隔的欲忽略 patterns 列表（例如：群晖设备上的“@eaDir,#recycle”）",
+        "skippatterns": " 用逗号分隔欲忽略的模式列表（例如：群晖设备上的“@eaDir,#recycle”）",
         "headerapikey": "Mapbox API 密钥",
-        "heavyweight": "扫描图片时的工作线程数量。此设置会显著影响内存的使用。每个工作线程需要 800MB 的内存。根据你的意愿修改。默认为1。"
+        "heavyweight": "扫描图片时的工作线程数量。此设置会显著影响内存的使用。每个工作线程需要 800MB 的内存。根据你的意愿修改。默认为1。",
+        "headerheavyweight": "高负荷处理",
+        "headerskippatterns": "忽略模式"
     },
     "countstats": {
         "photos": "照片"
@@ -438,7 +440,17 @@
         "exif_tag": "使用Exif标签 {{rule}}",
         "file_property": "使用文件属性{{rule}}",
         "5": "从 WhatsApp 文件名中提取日期",
-        "predefined_regexp": "使用预定义的正则表达式：{{rule}}"
+        "predefined_regexp": "使用预定义的正则表达式：{{rule}}",
+        "6": "设定视频创建时间为UTC时区（无法确定实际时区时）",
+        "7": "文件修改时间使用用户默认时区",
+        "8": "文件修改时间使用UTC时区",
+        "9": "文件创建时间使用用户默认时区",
+        "11": "综合判定：GPS时间标签 + GPS坐标推理的时区",
+        "12": "综合判定：GPS时间标签并使用用户默认时区（无法确定实际时区）",
+        "13": "综合判定：GPS时间标签并使用UTC时区（无法确定实际时区）",
+        "14": "用户设定的时间戳",
+        "15": "从EXIF加载时间：使用EXIF时间信息",
+        "10": "文件创建时间使用UTC时区"
     },
     "fetchingsocialgraph": "正在获取社交图谱…",
     "nofaces": "未检测到人脸",
