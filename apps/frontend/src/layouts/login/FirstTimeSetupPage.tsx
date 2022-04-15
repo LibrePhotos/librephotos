@@ -1,20 +1,50 @@
-import React, { useState } from "react";
-import { Image, Header, Divider, Message, Segment, Button, Form } from "semantic-ui-react";
-import { signup } from "../../actions/authActions";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import React, { useEffect, useState } from "react";
+import { Button, Divider, Form, Header, Image, Segment } from "semantic-ui-react";
 import { useTranslation } from "react-i18next";
-import { authErrors } from "../../store/auth/authSelectors";
+import type {} from "../../api_client/api";
+import { useSignUpMutation } from "../../api_client/api";
+import { useHistory } from "react-router-dom";
+import type { ISignUpFormState } from "./loginUtils";
+import { validateSignUpForm } from "./loginUtils";
+import type { IApiUserSignUpPost } from "../../store/auth/auth.zod";
 
-export const FirstTimeSetupPage = () => {
-  const dispatch = useAppDispatch();
+export const initialFormState: ISignUpFormState = {
+  username: "",
+  password: "",
+  firstname: "",
+  lastname: "",
+  passwordConfirm: "",
+  email: "",
+};
+
+export const FirstTimeSetupPage = (): JSX.Element => {
   const { t } = useTranslation();
-  const errors = useAppSelector((state) => authErrors(state));
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [firstname, setFirstname] = useState("");
-  const [lastname, setLastname] = useState("");
-  const [passwordConfirm, setPasswordConfirm] = useState("");
-  const [email, setEmail] = useState("");
+  const history = useHistory();
+  const [signup, { isLoading, isSuccess }] = useSignUpMutation();
+  const [form, setForm] = useState<ISignUpFormState>(initialFormState);
+
+  function onClickSignUp(e: React.MouseEvent<HTMLButtonElement>): void {
+    e.preventDefault();
+
+    const { email, firstname, lastname, username, password } = form;
+    const formApi: IApiUserSignUpPost = {
+      email,
+      firstname,
+      lastname,
+      username,
+      password,
+      is_superuser: true,
+    };
+
+    void signup(formApi);
+  }
+
+  useEffect(() => {
+    if (isSuccess) {
+      history.push("/");
+    }
+  }, [history, isSuccess]);
+
   return (
     <div
       style={{
@@ -40,7 +70,7 @@ export const FirstTimeSetupPage = () => {
         >
           <Image src={"/logo.png"} size="tiny" verticalAlign="middle" />
           <span style={{ paddingLeft: 5, fontSize: 18 }}>
-            {" "}
+            &nbsp;
             <b>LibrePhotos</b>
           </span>
         </div>
@@ -53,8 +83,8 @@ export const FirstTimeSetupPage = () => {
                 icon="user"
                 placeholder={t("login.usernameplaceholder")}
                 name="username"
-                value={username}
-                onChange={(e, { name, value }) => setUsername(value)}
+                value={form.username}
+                onChange={(e, { value }) => setForm(ps => ({ ...ps, username: value }))}
               />
             </Form.Field>
             <Form.Field>
@@ -63,8 +93,8 @@ export const FirstTimeSetupPage = () => {
                 icon="mail"
                 placeholder={t("settings.emailplaceholder")}
                 name="email"
-                value={email}
-                onChange={(e, { name, value }) => setEmail(value)}
+                value={form.email}
+                onChange={(e, { value }) => setForm(ps => ({ ...ps, email: value }))}
               />
             </Form.Field>
             <Form.Field>
@@ -72,8 +102,8 @@ export const FirstTimeSetupPage = () => {
               <Form.Input
                 placeholder={t("settings.firstnameplaceholder")}
                 name="firstname"
-                value={firstname}
-                onChange={(e, { name, value }) => setFirstname(value)}
+                value={form.firstname}
+                onChange={(e, { value }) => setForm(ps => ({ ...ps, firstname: value }))}
               />
             </Form.Field>
             <Form.Field>
@@ -81,72 +111,38 @@ export const FirstTimeSetupPage = () => {
               <Form.Input
                 placeholder={t("settings.lastnameplaceholder")}
                 name="lastname"
-                value={lastname}
-                onChange={(e, { name, value }) => setLastname(value)}
+                value={form.lastname}
+                onChange={(e, { value }) => setForm(ps => ({ ...ps, lastname: value }))}
               />
             </Form.Field>
             <Form.Field>
               <label>{t("login.password")}</label>
               <Form.Input
-                error={passwordConfirm.length > 0 && password !== passwordConfirm}
+                error={form.passwordConfirm.length > 0 && form.password !== form.passwordConfirm}
                 icon="lock"
                 type="password"
                 placeholder={t("login.passwordplaceholder")}
                 name="password"
-                value={password}
-                onChange={(e, { name, value }) => setPassword(value)}
+                value={form.password}
+                onChange={(e, { value }) => setForm(ps => ({ ...ps, password: value }))}
               />
               <label>{t("login.confirmpassword")}</label>
               <Form.Input
-                error={passwordConfirm.length > 0 && password !== passwordConfirm}
+                error={form.passwordConfirm.length > 0 && form.password !== form.passwordConfirm}
                 icon="lock"
                 type="password"
                 placeholder={t("login.confirmpasswordplaceholder")}
                 name="passwordConfirm"
-                value={passwordConfirm}
-                onChange={(e, { name, value }) => setPasswordConfirm(value)}
+                value={form.passwordConfirm}
+                onChange={(e, { value }) => setForm(ps => ({ ...ps, passwordConfirm: value }))}
               />
               <Divider />
             </Form.Field>
-            <Button
-              onClick={() => {
-                signup(username.toLowerCase(), password, email, firstname, lastname, true, dispatch);
-              }}
-              disabled={password.length === 0 || password !== passwordConfirm}
-              fluid
-              color="blue"
-            >
+            <Button onClick={onClickSignUp} disabled={isLoading || validateSignUpForm(form)} fluid color="blue">
               {t("login.signup")}
             </Button>
           </Form>
         </Segment>
-        {errors && errors.data && errors.data.detail && (
-          <Message color="red" secondary attached>
-            <p>{errors.data.detail}</p>
-          </Message>
-        )}
-        {errors && errors.non_field_errors && (
-          <Message color="red" secondary attached>
-            {errors.non_field_errors}
-          </Message>
-        )}
-        {errors && errors.data && errors.data.password && (
-          <Message color="red" secondary attached>
-            {t("login.errorpassword")}
-          </Message>
-        )}
-        {errors && errors.data && errors.data.username && (
-          <Message color="red" secondary attached="bottom">
-            {errors.data.username[0].includes("already exists")
-              ? t("login.errorusernameexists")
-              : t("login.errorusername")}
-          </Message>
-        )}
-        {errors && errors.data && errors.data.email && (
-          <Message color="red" secondary attached="bottom">
-            {t("login.erroremail")}
-          </Message>
-        )}
       </div>
       <div
         style={{

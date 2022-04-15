@@ -103,7 +103,7 @@ export const UserPublicPage = (props: Props) => {
             isDateView={true}
             photoset={photosGroupedByDate}
             idx2hash={photosFlat}
-            isPublic={auth.access === undefined || auth.access.name !== props.match.params.username}
+            isPublic={auth.access === null || auth.access.name !== props.match.params.username}
             updateGroups={throttledGetAlbums}
             selectable={true}
           />

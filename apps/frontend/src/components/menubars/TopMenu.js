@@ -4,20 +4,21 @@ import "./TopMenu.css";
 import { connect } from "react-redux";
 import { push } from "connected-react-router";
 import { Menu, Button, Dropdown, Icon, Image, Popup, Progress } from "semantic-ui-react";
-import { logout } from "../../actions/authActions";
+import { logout } from "../../store/auth/authSlice";
 import { toggleSidebar } from "../../actions/uiActions";
 import { CustomSearch } from "../CustomSearch";
 import { fetchWorkerAvailability } from "../../actions/utilActions";
 import { serverAddress } from "../../api_client/apiClient";
 import { compose } from "redux";
 import { withTranslation, Trans } from "react-i18next";
-import { userApi } from "../../store/user/user.api";
+import { api } from "../../api_client/api";
+
 export class TopMenu extends Component {
   state = {
     width: window.innerWidth,
   };
   throttledFetchUserSelfDetails = _.throttle(
-    (user_id) => {
+    user_id => {
       return this.props.dispatch(this.props.fetchUserSelfDetails(user_id));
     },
     500,
@@ -137,7 +138,7 @@ export class TopMenu extends Component {
                     <Trans i18nKey="topmenu.loggedin">Logged in as</Trans>{" "}
                     {this.props.auth.access ? this.props.auth.access.name : ""}
                   </Dropdown.Header>
-                  <Dropdown.Item onClick={() => logout(this.props.dispatch)}>
+                  <Dropdown.Item onClick={() => this.props.dispatch(logout())}>
                     <Icon name="sign out" />
                     <b>
                       <Trans i18nKey="topmenu.logout">Logout</Trans>
@@ -170,7 +171,7 @@ export class TopMenu extends Component {
 }
 
 TopMenu = compose(
-  connect((store) => {
+  connect(store => {
     return {
       showSidebar: store.ui.showSidebar,
       gridType: store.ui.gridType,
@@ -202,7 +203,7 @@ TopMenu = compose(
       fetchingAlbumsPlaceList: store.albums.fetchingAlbumsPlaceList,
       fetchedAlbumsPlaceList: store.albums.fetchedAlbumsPlaceList,
       userSelfDetails: store.user.userSelfDetails,
-      fetchUserSelfDetails: userApi.endpoints.fetchUserSelfDetails.initiate,
+      fetchUserSelfDetails: api.endpoints.fetchUserSelfDetails.initiate,
     };
   }),
   withTranslation()

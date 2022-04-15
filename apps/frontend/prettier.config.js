@@ -5,7 +5,7 @@ module.exports = {
   tabWidth: 2,
   singleQuote: false,
   trailingComma: "es5",
-  arrowParens: "always",
+  arrowParens: "avoid",
   overrides: [
     {
       files: "*.{json,css,scss}",
