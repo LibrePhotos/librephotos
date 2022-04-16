@@ -1,10 +1,11 @@
 import React from "react";
 import { Redirect, useLocation } from "react-router-dom";
+
+import { useFetchUserListQuery } from "../api_client/api";
+import { FirstTimeSetupPage } from "../layouts/login/FirstTimeSetupPage";
 import { LoginPage } from "../layouts/login/LoginPage";
 import { selectIsAuthenticated } from "../store/auth/authSelectors";
-import { FirstTimeSetupPage } from "../layouts/login/FirstTimeSetupPage";
 import { useAppSelector } from "../store/store";
-import { useFetchUserListQuery } from "../api_client/api";
 
 export interface LocationState {
   from: {
@@ -12,37 +13,32 @@ export interface LocationState {
   };
 }
 
-const Login = (): JSX.Element => {
+function Login(): JSX.Element {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
 
   const location = useLocation<LocationState>();
   const { count } = useFetchUserListQuery(undefined, {
-    selectFromResult: ({ data }) => {
-      return { count: data != null ? data.count : null };
-    },
+    selectFromResult: ({ data }) => ({ count: data != null ? data.count : null }),
   });
 
   if (isAuthenticated) {
     if (location.state) {
       return <Redirect to={location.state.from.pathname} />;
-    } else {
-      return <Redirect to="/" />;
     }
-  } else {
-    if (count !== null && count === 0) {
-      return (
-        <div className="login-page">
-          <FirstTimeSetupPage />
-        </div>
-      );
-    } else {
-      return (
-        <div className="login-page">
-          <LoginPage />
-        </div>
-      );
-    }
+    return <Redirect to="/" />;
   }
-};
+  if (count !== null && count === 0) {
+    return (
+      <div className="login-page">
+        <FirstTimeSetupPage />
+      </div>
+    );
+  }
+  return (
+    <div className="login-page">
+      <LoginPage />
+    </div>
+  );
+}
 
 export default Login;

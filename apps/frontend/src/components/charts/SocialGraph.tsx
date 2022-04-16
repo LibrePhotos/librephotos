@@ -1,16 +1,17 @@
 import React, { useEffect } from "react";
-import { Loader } from "semantic-ui-react";
 import useDimensions from "react-cool-dimensions";
-import { fetchSocialGraph } from "../../actions/peopleActions";
-
 import { useTranslation } from "react-i18next";
+import { Loader } from "semantic-ui-react";
+
+import { fetchSocialGraph } from "../../actions/peopleActions";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 const { Graph } = require("react-d3-graph");
+
 type Props = {
   height: number;
 };
-export const SocialGraph = (props: Props) => {
+export function SocialGraph(props: Props) {
   const { observe, width } = useDimensions({
     onResize: ({ observe, unobserve, width, height, entry }) => {
       observe();
@@ -18,7 +19,7 @@ export const SocialGraph = (props: Props) => {
   });
 
   const dispatch = useAppDispatch();
-  const { socialGraph, fetchedSocialGraph, fetchingSocialGraph } = useAppSelector((state) => state.people);
+  const { socialGraph, fetchedSocialGraph, fetchingSocialGraph } = useAppSelector(state => state.people);
 
   const { t } = useTranslation();
 
@@ -28,7 +29,7 @@ export const SocialGraph = (props: Props) => {
     }
   }, [dispatch]); // Only run on first render
 
-  var myConfig = {
+  const myConfig = {
     automaticRearrangeAfterDropNode: false,
     staticGraph: true,
     nodeHighlightBehavior: true,
@@ -48,7 +49,7 @@ export const SocialGraph = (props: Props) => {
     height: props.height,
     width: width,
   };
-  var graph;
+  let graph;
   if (fetchedSocialGraph && socialGraph.nodes.length > 0) {
     graph = <Graph id="social-graph" config={myConfig} data={socialGraph} />;
   } else {
@@ -59,6 +60,6 @@ export const SocialGraph = (props: Props) => {
     graph = <p>{t("nosocialgraph")}</p>;
   }
   return <div ref={observe}>{graph}</div>;
-};
+}
 
 export default SocialGraph;

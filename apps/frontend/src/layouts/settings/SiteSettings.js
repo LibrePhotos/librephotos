@@ -1,13 +1,16 @@
 import React, { Component } from "react";
-import { Form, Grid, Radio, Input, Dropdown } from "semantic-ui-react";
+import { Trans, withTranslation } from "react-i18next";
+import { Dropdown, Form, Grid, Input, Radio } from "semantic-ui-react";
+
 import { setSiteSettings } from "../../actions/utilActions";
-import { withTranslation, Trans } from "react-i18next";
+
 export default class SiteSettings extends Component {
   state = {
     skip_patterns: this.props.siteSettings.skip_patterns,
     map_api_key: this.props.siteSettings.map_api_key,
     heavyweight_process: this.props.siteSettings.heavyweight_process,
   };
+
   options = [
     { key: "1", text: "1", value: "1" },
     { key: "2", text: "2", value: "2" },
@@ -78,14 +81,14 @@ export default class SiteSettings extends Component {
                   control={Input}
                   label={this.props.t("sitesettings.skippatterns")}
                   value={this.state.skip_patterns}
-                  onKeyDown={(e) => {
+                  onKeyDown={e => {
                     if (e.key === "Enter") {
                       this.props.dispatch(setSiteSettings({ skip_patterns: this.state.skip_patterns }));
                     }
                   }}
                   onBlur={() => this.props.dispatch(setSiteSettings({ skip_patterns: this.state.skip_patterns }))}
-                  onChange={(e) => this.setState({ skip_patterns: e.target.value })}
-                ></Form.Field>
+                  onChange={e => this.setState({ skip_patterns: e.target.value })}
+                />
               </Form.Group>
             </Form>
           </Grid.Column>
@@ -99,14 +102,14 @@ export default class SiteSettings extends Component {
                   control={Input}
                   label={this.props.t("sitesettings.apikey")}
                   value={this.state.map_api_key}
-                  onKeyDown={(e) => {
+                  onKeyDown={e => {
                     if (e.key === "Enter") {
                       this.props.dispatch(setSiteSettings({ map_api_key: this.state.map_api_key }));
                     }
                   }}
                   onBlur={() => this.props.dispatch(setSiteSettings({ map_api_key: this.state.map_api_key }))}
-                  onChange={(e) => this.setState({ map_api_key: e.target.value })}
-                ></Form.Field>
+                  onChange={e => this.setState({ map_api_key: e.target.value })}
+                />
               </Form.Group>
             </Form>
           </Grid.Column>
@@ -121,7 +124,7 @@ export default class SiteSettings extends Component {
                   label={this.props.t("sitesettings.heavyweight")}
                   options={this.options}
                   value={this.state.heavyweight_process}
-                  onKeyDown={(e) => {
+                  onKeyDown={e => {
                     if (e.key === "Enter") {
                       this.props.dispatch(setSiteSettings({ heavyweight_process: e.target.value }));
                     }
@@ -129,7 +132,7 @@ export default class SiteSettings extends Component {
                   onBlur={() =>
                     this.props.dispatch(setSiteSettings({ heavyweight_process: this.state.heavyweight_process }))
                   }
-                  onChange={(e) => {
+                  onChange={e => {
                     const re = /^[0-9\b]+$/;
 
                     // if value is not blank, then test the regex
@@ -137,7 +140,7 @@ export default class SiteSettings extends Component {
                       this.setState({ heavyweight_process: e.target.value });
                     }
                   }}
-                ></Form.Field>
+                />
               </Form.Group>
             </Form>
           </Grid.Column>

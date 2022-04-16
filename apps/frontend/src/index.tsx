@@ -1,12 +1,14 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import "semantic-ui-css/semantic.min.css";
-import "react-vis/dist/style.css";
 import "font-awesome/css/font-awesome.min.css";
-import "react-leaflet-markercluster/dist/styles.min.css"; // css
+import React from "react";
+// css
 import { CookiesProvider } from "react-cookie";
-import App from "./App";
+import ReactDOM from "react-dom";
+import "react-leaflet-markercluster/dist/styles.min.css";
 import { Provider } from "react-redux";
+import "react-vis/dist/style.css";
+import "semantic-ui-css/semantic.min.css";
+
+import App from "./App";
 import { store } from "./store/store";
 
 ReactDOM.render(

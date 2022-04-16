@@ -1,12 +1,13 @@
-import React, { Component } from "react";
-import { compose } from "redux";
-import { Progress, Icon, Header, Button, Loader, Table, Popup, Divider, Pagination } from "semantic-ui-react";
-import { connect } from "react-redux";
 import moment from "moment";
-import { fetchSiteSettings, fetchJobList, deleteJob, fetchUserList } from "../../actions/utilActions";
-import SiteSettings from "./SiteSettings";
+import React, { Component } from "react";
 import { withTranslation } from "react-i18next";
+import { connect } from "react-redux";
+import { compose } from "redux";
+import { Button, Divider, Header, Icon, Loader, Pagination, Popup, Progress, Table } from "semantic-ui-react";
+
+import { deleteJob, fetchJobList, fetchSiteSettings, fetchUserList } from "../../actions/utilActions";
 import { ModalScanDirectoryEdit } from "../../components/modals/ModalScanDirectoryEdit";
+import SiteSettings from "./SiteSettings";
 
 export class AdminPage extends Component {
   state = { modalOpen: false, userToEdit: null };
@@ -51,28 +52,26 @@ export class AdminPage extends Component {
             </Table.Row>
           </Table.Header>
           <Table.Body>
-            {this.props.userList.map((user) => {
-              return (
-                <Table.Row key={user.username}>
-                  <Table.Cell>{user.username}</Table.Cell>
-                  <Table.Cell error={!user.scan_directory}>
-                    <Icon
-                      name="edit"
-                      onClick={() => {
-                        this.setState({
-                          userToEdit: user,
-                          modalOpen: true,
-                        });
-                      }}
-                    />
-                    {user.scan_directory ? user.scan_directory : this.props.t("adminarea.notset")}
-                  </Table.Cell>
-                  <Table.Cell>{user.confidence ? user.confidence : this.props.t("adminarea.notset")}</Table.Cell>
-                  <Table.Cell>{user.photo_count}</Table.Cell>
-                  <Table.Cell>{moment(user.date_joined).fromNow()}</Table.Cell>
-                </Table.Row>
-              );
-            })}
+            {this.props.userList.map(user => (
+              <Table.Row key={user.username}>
+                <Table.Cell>{user.username}</Table.Cell>
+                <Table.Cell error={!user.scan_directory}>
+                  <Icon
+                    name="edit"
+                    onClick={() => {
+                      this.setState({
+                        userToEdit: user,
+                        modalOpen: true,
+                      });
+                    }}
+                  />
+                  {user.scan_directory ? user.scan_directory : this.props.t("adminarea.notset")}
+                </Table.Cell>
+                <Table.Cell>{user.confidence ? user.confidence : this.props.t("adminarea.notset")}</Table.Cell>
+                <Table.Cell>{user.photo_count}</Table.Cell>
+                <Table.Cell>{moment(user.date_joined).fromNow()}</Table.Cell>
+              </Table.Row>
+            ))}
           </Table.Body>
         </Table>
 
@@ -129,7 +128,7 @@ class JobList extends Component {
             </Table.Row>
           </Table.Header>
           <Table.Body>
-            {this.props.jobList.map((job) => {
+            {this.props.jobList.map(job => {
               const jobSuccess = job.finished && !job.failed;
               return (
                 <Table.Row key={job.job_id} error={job.failed} warning={!job.finished_at}>
@@ -226,39 +225,35 @@ class JobList extends Component {
 }
 
 JobList = compose(
-  connect((store) => {
-    return {
-      auth: store.auth,
-      jobList: store.util.jobList,
-      jobCount: store.util.jobCount,
-      fetchingJobList: store.util.fetchingJobList,
-      fetchedJobList: store.util.fetchedJobList,
-    };
-  }),
+  connect(store => ({
+    auth: store.auth,
+    jobList: store.util.jobList,
+    jobCount: store.util.jobCount,
+    fetchingJobList: store.util.fetchingJobList,
+    fetchedJobList: store.util.fetchedJobList,
+  })),
   withTranslation()
 )(JobList);
 
 AdminPage = compose(
-  connect((store) => {
-    return {
-      auth: store.auth,
-      util: store.util,
-      gridType: store.ui.gridType,
-      siteSettings: store.util.siteSettings,
-      statusPhotoScan: store.util.statusPhotoScan,
-      statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
-      generatingAutoAlbums: store.util.generatingAutoAlbums,
-      scanningPhotos: store.photos.scanningPhotos,
-      fetchedCountStats: store.util.fetchedCountStats,
-      workerAvailability: store.util.workerAvailability,
-      fetchedNextcloudDirectoryTree: store.util.fetchedNextcloudDirectoryTree,
-      userSelfDetails: store.user.userSelfDetails,
-      fetchingJobList: store.util.fetchingJobList,
-      fetchedJobList: store.util.fetchedJobList,
-      userList: store.util.userList,
-      fetchingUserList: store.util.fetchingUserList,
-      fetchedUserList: store.util.fetchedUserList,
-    };
-  }),
+  connect(store => ({
+    auth: store.auth,
+    util: store.util,
+    gridType: store.ui.gridType,
+    siteSettings: store.util.siteSettings,
+    statusPhotoScan: store.util.statusPhotoScan,
+    statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
+    generatingAutoAlbums: store.util.generatingAutoAlbums,
+    scanningPhotos: store.photos.scanningPhotos,
+    fetchedCountStats: store.util.fetchedCountStats,
+    workerAvailability: store.util.workerAvailability,
+    fetchedNextcloudDirectoryTree: store.util.fetchedNextcloudDirectoryTree,
+    userSelfDetails: store.user.userSelfDetails,
+    fetchingJobList: store.util.fetchingJobList,
+    fetchedJobList: store.util.fetchedJobList,
+    userList: store.util.userList,
+    fetchingUserList: store.util.fetchingUserList,
+    fetchedUserList: store.util.fetchedUserList,
+  })),
   withTranslation()
 )(AdminPage);

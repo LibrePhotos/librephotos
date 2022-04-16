@@ -1,9 +1,9 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createSlice } from "@reduxjs/toolkit";
-import type { IUser, IUserState } from "./user.zod";
 
-import { UserSchema } from "./user.zod";
 import { api } from "../../api_client/api";
+import type { IUser, IUserState } from "./user.zod";
+import { UserSchema } from "./user.zod";
 
 const initialState: IUserState = {
   userSelfDetails: {} as IUser,

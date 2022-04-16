@@ -1,8 +1,8 @@
-import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Card, Label, Icon, Button } from "semantic-ui-react";
+import React from "react";
 import { useTranslation } from "react-i18next";
+import { Button, Card, Icon, Label } from "semantic-ui-react";
 
 type Props = {
   item: any;
@@ -26,15 +26,15 @@ export function SortableItem(props: Props) {
       <Card style={{ width: 400 }}>
         <Card.Content>
           <Card.Header>
-            {t("rules." + props.item.id) !== "rules." + props.item.id ? t("rules." + props.item.id) : props.item.name}
+            {t(`rules.${props.item.id}`) !== `rules.${props.item.id}` ? t(`rules.${props.item.id}`) : props.item.name}
           </Card.Header>
           <Card.Meta>{t("rules.rule_type", { rule: props.item.rule_type })}</Card.Meta>
           <Card.Description>
             {Object.entries(props.item)
-              .filter((i) => i[0] !== "name" && i[0] !== "id" && i[0] !== "rule_type" && i[0] !== "transform_tz")
-              .map((prop) =>
-                t("rules." + prop[0], { rule: prop[1] }) !== "rules." + prop[0] ? (
-                  <li>{t("rules." + prop[0], { rule: prop[1] })}</li>
+              .filter(i => i[0] !== "name" && i[0] !== "id" && i[0] !== "rule_type" && i[0] !== "transform_tz")
+              .map(prop =>
+                t(`rules.${prop[0]}`, { rule: prop[1] }) !== `rules.${prop[0]}` ? (
+                  <li>{t(`rules.${prop[0]}`, { rule: prop[1] })}</li>
                 ) : (
                   <li>
                     {prop[0]}: {prop[1]}

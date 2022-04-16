@@ -1,20 +1,20 @@
 import type { FormEvent } from "react";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useHistory } from "react-router-dom";
 import { Button, Divider, Form, Header, Image, Segment } from "semantic-ui-react";
+
 import { fetchSiteSettings } from "../../actions/utilActions";
-import { useAppDispatch, useAppSelector } from "../../store/store";
-import { useTranslation } from "react-i18next";
 import { useLoginMutation } from "../../api_client/api";
 import { authActions } from "../../store/auth/authSlice";
+import { useAppDispatch, useAppSelector } from "../../store/store";
 import { selectSiteSettings } from "../../store/util/utilSelectors";
 import type { ISignInFormState } from "./loginUtils";
 import { validateSignInForm } from "./loginUtils";
 
 const initialFormState: ISignInFormState = { username: "", password: "" };
 
-export const LoginPage = (): JSX.Element => {
-  const timeNow = new Date().toLocaleTimeString();
+export function LoginPage(): JSX.Element {
   const history = useHistory();
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
@@ -62,7 +62,7 @@ export const LoginPage = (): JSX.Element => {
             padding: 20,
           }}
         >
-          <Image src={"/logo.png"} size="tiny" verticalAlign="middle" />{" "}
+          <Image src="/logo.png" size="tiny" verticalAlign="middle" />{" "}
           <span style={{ paddingLeft: 5, fontSize: 18 }}>
             <b>{t("login.name")}</b>
           </span>
@@ -124,4 +124,4 @@ export const LoginPage = (): JSX.Element => {
       </div>
     </div>
   );
-};
+}

@@ -1,12 +1,13 @@
 import React, { useEffect } from "react";
-import { Header, Loader, Segment } from "semantic-ui-react";
-import { fetchPhotoMonthCounts } from "../../actions/utilActions";
 import useDimensions from "react-cool-dimensions";
+import { Header, Loader, Segment } from "semantic-ui-react";
+
+import { fetchPhotoMonthCounts } from "../../actions/utilActions";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 const { Chart, Bars, Ticks, Layer } = require("rumble-charts");
 
-export const EventCountMonthGraph = () => {
+export function EventCountMonthGraph() {
   const { observe, width } = useDimensions({
     onResize: ({ observe, unobserve, width, height, entry }) => {
       observe();
@@ -14,7 +15,7 @@ export const EventCountMonthGraph = () => {
     },
   });
   const dispatch = useAppDispatch();
-  const { photoMonthCounts, fetchingPhotoMonthCounts, fetchedPhotoMonthCounts } = useAppSelector((state) => state.util);
+  const { photoMonthCounts, fetchingPhotoMonthCounts, fetchedPhotoMonthCounts } = useAppSelector(state => state.util);
 
   useEffect(() => {
     if (!fetchedPhotoMonthCounts) {
@@ -23,13 +24,9 @@ export const EventCountMonthGraph = () => {
   }, [dispatch]); // Only run on first render
 
   if (fetchedPhotoMonthCounts) {
-    var countDict = photoMonthCounts;
-    var series = countDict.map(function (el: any) {
-      return { y: el.count, month: el.month };
-    });
-    var xticks = countDict.map(function (el: any) {
-      return el.month;
-    });
+    const countDict = photoMonthCounts;
+    var series = countDict.map((el: any) => ({ y: el.count, month: el.month }));
+    var xticks = countDict.map((el: any) => el.month);
   } else {
     return (
       <div style={{ height: 280 }}>
@@ -41,7 +38,7 @@ export const EventCountMonthGraph = () => {
     );
   }
 
-  var data = [
+  const data = [
     {
       data: series,
     },
@@ -59,7 +56,7 @@ export const EventCountMonthGraph = () => {
             <Ticks
               axis="y"
               lineLength="100%"
-              lineVisible={true}
+              lineVisible
               lineStyle={{ stroke: "lightgray" }}
               labelStyle={{
                 textAnchor: "end",
@@ -70,7 +67,7 @@ export const EventCountMonthGraph = () => {
               labelFormat={(label: any) => label}
             />
             <Ticks
-              lineVisible={true}
+              lineVisible
               lineLength="100%"
               axis="x"
               labelFormat={(label: any) => xticks[label]}
@@ -87,6 +84,6 @@ export const EventCountMonthGraph = () => {
       </div>
     </div>
   );
-};
+}
 
 export default EventCountMonthGraph;

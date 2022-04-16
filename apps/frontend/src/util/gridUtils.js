@@ -1,5 +1,6 @@
-import { store } from "../store/store";
 import _ from "lodash";
+
+import { store } from "../store/store";
 
 store.subscribe(listener);
 
@@ -7,18 +8,18 @@ function select(state) {
   return state.ui;
 }
 
-var gridType = "dense";
+let gridType = "dense";
 
 function listener() {
-  var ui = select(store.getState());
+  const ui = select(store.getState());
   gridType = ui.gridType;
 }
 
 export const calculateSharedPhotoGridCells = (groupedBySharerList, itemsPerRow) => {
-  var gridContents = [];
-  var rowCursor = [];
+  const gridContents = [];
+  let rowCursor = [];
 
-  groupedBySharerList.forEach((group) => {
+  groupedBySharerList.forEach(group => {
     gridContents.push([group]);
     _.reverse(_.sortBy(group.photos, "exif_timestamp")).forEach((photo, idx) => {
       if (idx === 0) {
@@ -40,10 +41,10 @@ export const calculateSharedPhotoGridCells = (groupedBySharerList, itemsPerRow) 
 };
 
 export const calculateSharedAlbumGridCells = (groupedBySharerList, itemsPerRow) => {
-  var gridContents = [];
-  var rowCursor = [];
+  const gridContents = [];
+  let rowCursor = [];
 
-  groupedBySharerList.forEach((group) => {
+  groupedBySharerList.forEach(group => {
     gridContents.push([group]);
     group.albums.forEach((album, idx) => {
       if (idx === 0) {
@@ -65,13 +66,13 @@ export const calculateSharedAlbumGridCells = (groupedBySharerList, itemsPerRow) 
 };
 
 export const calculateGridCells = (groupedByDateList, itemsPerRow) => {
-  var gridContents = [];
-  var rowCursor = [];
-  var hash2row = {};
+  const gridContents = [];
+  let rowCursor = [];
+  const hash2row = {};
 
-  groupedByDateList.forEach((day) => {
+  groupedByDateList.forEach(day => {
     gridContents.push([day]);
-    var currRowIdx = gridContents.length;
+    const currRowIdx = gridContents.length;
     day.photos.forEach((photo, idx) => {
       if (idx === 0) {
         rowCursor = [];
@@ -92,8 +93,8 @@ export const calculateGridCells = (groupedByDateList, itemsPerRow) => {
   return { cellContents: gridContents, hash2row: hash2row };
 };
 
-export const calculateGridCellSize = (gridWidth) => {
-  var numEntrySquaresPerRow;
+export const calculateGridCellSize = gridWidth => {
+  let numEntrySquaresPerRow;
 
   if (gridType === "dense") {
     if (gridWidth < 600) {
@@ -117,31 +118,29 @@ export const calculateGridCellSize = (gridWidth) => {
     } else {
       numEntrySquaresPerRow = 19;
     }
+  } else if (gridWidth < 600) {
+    numEntrySquaresPerRow = 1;
+  } else if (gridWidth < 800) {
+    numEntrySquaresPerRow = 2;
+  } else if (gridWidth < 1000) {
+    numEntrySquaresPerRow = 3;
+  } else if (gridWidth < 1200) {
+    numEntrySquaresPerRow = 4;
+  } else if (gridWidth < 1400) {
+    numEntrySquaresPerRow = 5;
+  } else if (gridWidth < 1600) {
+    numEntrySquaresPerRow = 6;
+  } else if (gridWidth < 1800) {
+    numEntrySquaresPerRow = 7;
+  } else if (gridWidth < 2000) {
+    numEntrySquaresPerRow = 6;
+  } else if (gridWidth < 2200) {
+    numEntrySquaresPerRow = 9;
   } else {
-    if (gridWidth < 600) {
-      numEntrySquaresPerRow = 1;
-    } else if (gridWidth < 800) {
-      numEntrySquaresPerRow = 2;
-    } else if (gridWidth < 1000) {
-      numEntrySquaresPerRow = 3;
-    } else if (gridWidth < 1200) {
-      numEntrySquaresPerRow = 4;
-    } else if (gridWidth < 1400) {
-      numEntrySquaresPerRow = 5;
-    } else if (gridWidth < 1600) {
-      numEntrySquaresPerRow = 6;
-    } else if (gridWidth < 1800) {
-      numEntrySquaresPerRow = 7;
-    } else if (gridWidth < 2000) {
-      numEntrySquaresPerRow = 6;
-    } else if (gridWidth < 2200) {
-      numEntrySquaresPerRow = 9;
-    } else {
-      numEntrySquaresPerRow = 10;
-    }
+    numEntrySquaresPerRow = 10;
   }
 
-  var entrySquareSize = gridWidth / numEntrySquaresPerRow;
+  const entrySquareSize = gridWidth / numEntrySquaresPerRow;
 
   return {
     entrySquareSize: entrySquareSize,
@@ -150,13 +149,13 @@ export const calculateGridCellSize = (gridWidth) => {
 };
 
 export const calculateFaceGridCells = (groupedByPersonList, itemsPerRow) => {
-  var gridContents = [];
-  var rowCursor = [];
-  var hash2row = {};
+  const gridContents = [];
+  let rowCursor = [];
+  const hash2row = {};
 
-  groupedByPersonList.forEach((person) => {
+  groupedByPersonList.forEach(person => {
     gridContents.push([person]);
-    var currRowIdx = gridContents.length;
+    const currRowIdx = gridContents.length;
     person.faces.forEach((face, idx) => {
       if (idx === 0) {
         rowCursor = [];
@@ -177,8 +176,8 @@ export const calculateFaceGridCells = (groupedByPersonList, itemsPerRow) => {
   return { cellContents: gridContents, hash2row: hash2row };
 };
 
-export const calculateFaceGridCellSize = (gridWidth) => {
-  var numEntrySquaresPerRow = 10;
+export const calculateFaceGridCellSize = gridWidth => {
+  let numEntrySquaresPerRow = 10;
   if (gridWidth < 300) {
     numEntrySquaresPerRow = 2;
   } else if (gridWidth < 600) {
@@ -191,7 +190,7 @@ export const calculateFaceGridCellSize = (gridWidth) => {
     numEntrySquaresPerRow = 8;
   }
 
-  var entrySquareSize = gridWidth / numEntrySquaresPerRow;
+  const entrySquareSize = gridWidth / numEntrySquaresPerRow;
 
   return {
     entrySquareSize: entrySquareSize,

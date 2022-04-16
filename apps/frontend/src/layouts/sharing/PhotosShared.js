@@ -1,15 +1,16 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
 import { Header, Icon, Loader } from "semantic-ui-react";
+
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType } from "../../reducers/photosReducer";
 
 class GroupHeader extends Component {
   render() {
-    const owner = this.props.pub.publicUserList.filter((e) => e.id === this.props.group.userId)[0];
-    var displayName = this.props.group.userId;
+    const owner = this.props.pub.publicUserList.filter(e => e.id === this.props.group.userId)[0];
+    let displayName = this.props.group.userId;
     if (owner && owner.last_name.length + owner.first_name.length > 0) {
-      displayName = owner.first_name + " " + owner.last_name;
+      displayName = `${owner.first_name} ${owner.last_name}`;
     } else if (owner) {
       displayName = owner.username;
     }
@@ -37,11 +38,9 @@ class GroupHeader extends Component {
   }
 }
 
-GroupHeader = connect((store) => {
-  return {
-    pub: store.pub,
-  };
-})(GroupHeader);
+GroupHeader = connect(store => ({
+  pub: store.pub,
+}))(GroupHeader);
 
 export class PhotosShared extends Component {
   render() {
@@ -54,30 +53,26 @@ export class PhotosShared extends Component {
         {this.props.fetchedPhotosetType !== photosetType ? (
           <Loader active>{loadingText}</Loader>
         ) : (
-          this.props.photosGroupedByUser.map((group) => {
-            return (
-              <PhotoListView
-                title={"Photos"}
-                loading={this.props.fetchedPhotosetType !== photosetType}
-                titleIconName={"images"}
-                isDateView={false}
-                photoset={group.photos}
-                idx2hash={group.photos}
-                isPublic={true}
-                header={<GroupHeader group={group} isSharedToMe={this.props.isSharedToMe} />}
-                selectable={false}
-              />
-            );
-          })
+          this.props.photosGroupedByUser.map(group => (
+            <PhotoListView
+              title="Photos"
+              loading={this.props.fetchedPhotosetType !== photosetType}
+              titleIconName="images"
+              isDateView={false}
+              photoset={group.photos}
+              idx2hash={group.photos}
+              isPublic
+              header={<GroupHeader group={group} isSharedToMe={this.props.isSharedToMe} />}
+              selectable={false}
+            />
+          ))
         )}
       </div>
     );
   }
 }
 
-PhotosShared = connect((store) => {
-  return {
-    photosGroupedByUser: store.photos.photosGroupedByUser,
-    fetchedPhotosetType: store.photos.fetchedPhotosetType,
-  };
-})(PhotosShared);
+PhotosShared = connect(store => ({
+  photosGroupedByUser: store.photos.photosGroupedByUser,
+  fetchedPhotosetType: store.photos.fetchedPhotosetType,
+}))(PhotosShared);

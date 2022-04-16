@@ -1,15 +1,16 @@
 import React, { Component } from "react";
+import { Trans, withTranslation } from "react-i18next";
 import { connect } from "react-redux";
-import { Popup, Icon, Modal, Input, Confirm, Header, Image, Loader, Button, Dropdown, Label } from "semantic-ui-react";
-import { fetchPeople, deletePerson, renamePerson } from "../../actions/peopleActions";
-import { Tile } from "../../components/Tile";
-import { Grid, AutoSizer } from "react-virtualized";
 import { Link } from "react-router-dom";
-import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { AutoSizer, Grid } from "react-virtualized";
 import { compose } from "redux";
-import { withTranslation, Trans } from "react-i18next";
+import { Button, Confirm, Dropdown, Header, Icon, Image, Input, Label, Loader, Modal, Popup } from "semantic-ui-react";
 
-var SIDEBAR_WIDTH = 85;
+import { deletePerson, fetchPeople, renamePerson } from "../../actions/peopleActions";
+import { Tile } from "../../components/Tile";
+import { TOP_MENU_HEIGHT } from "../../ui-constants";
+
+const SIDEBAR_WIDTH = 85;
 
 export class AlbumPeople extends Component {
   constructor(props) {
@@ -37,13 +38,16 @@ export class AlbumPeople extends Component {
       personID: personID,
       personName: personName,
     });
+
   openRenameDialog = (personID, personName) =>
     this.setState({
       openRenameDialog: true,
       personID: personID,
       personName: personName,
     });
+
   closeDeleteDialog = () => this.setState({ openDeleteDialog: false });
+
   closeRenameDialog = () => this.setState({ openRenameDialog: false });
 
   componentDidMount() {
@@ -59,7 +63,7 @@ export class AlbumPeople extends Component {
   }
 
   calculateEntrySquareSize() {
-    var numEntrySquaresPerRow = 6;
+    let numEntrySquaresPerRow = 6;
     if (window.innerWidth < 600) {
       numEntrySquaresPerRow = 2;
     } else if (window.innerWidth < 800) {
@@ -70,9 +74,9 @@ export class AlbumPeople extends Component {
       numEntrySquaresPerRow = 5;
     }
 
-    var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15;
+    const columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15;
 
-    var entrySquareSize = columnWidth / numEntrySquaresPerRow;
+    const entrySquareSize = columnWidth / numEntrySquaresPerRow;
     this.setState({
       width: window.innerWidth,
       height: window.innerHeight,
@@ -82,7 +86,7 @@ export class AlbumPeople extends Component {
   }
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    var albumPersonIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
+    const albumPersonIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
     if (albumPersonIndex < this.props.people.length) {
       return (
         <div key={key} style={style}>
@@ -94,7 +98,7 @@ export class AlbumPeople extends Component {
                   width={this.state.entrySquareSize - 10}
                   as={Link}
                   to={`/person/${this.props.people[albumPersonIndex].key}`}
-                  src={"/unknown_user.jpg"}
+                  src="/unknown_user.jpg"
                 />
               ) : (
                 <Link to={`/person/${this.props.people[albumPersonIndex].key}`}>
@@ -103,18 +107,18 @@ export class AlbumPeople extends Component {
                     height={this.state.entrySquareSize - 10}
                     width={this.state.entrySquareSize - 10}
                     image_hash={this.props.people[albumPersonIndex].face_photo_url}
-                  ></Tile>
+                  />
                 </Link>
               )
             ) : (
               <Image
                 height={this.state.entrySquareSize - 10}
                 width={this.state.entrySquareSize - 10}
-                src={"/unknown_user.jpg"}
+                src="/unknown_user.jpg"
               />
             )}
             <Label style={{ backgroundColor: "transparent" }} attached="top right">
-              <Dropdown item icon={<Icon color="black" name="ellipsis vertical"></Icon>}>
+              <Dropdown item icon={<Icon color="black" name="ellipsis vertical" />}>
                 <Dropdown.Menu>
                   <Dropdown.Item
                     icon="edit"
@@ -148,9 +152,8 @@ export class AlbumPeople extends Component {
           </div>
         </div>
       );
-    } else {
-      return <div key={key} style={style} />;
     }
+    return <div key={key} style={style} />;
   };
 
   render() {
@@ -170,7 +173,7 @@ export class AlbumPeople extends Component {
           </Header>
         </div>
         <Modal
-          size={"mini"}
+          size="mini"
           onClose={() => this.closeRenameDialog()}
           onOpen={() => this.openRenameDialog()}
           open={this.state.openRenameDialog}
@@ -184,13 +187,13 @@ export class AlbumPeople extends Component {
               })}
               position="bottom center"
               open={this.props.people
-                .map((el) => el.text.toLowerCase().trim())
+                .map(el => el.text.toLowerCase().trim())
                 .includes(this.state.newPersonName.toLowerCase().trim())}
               trigger={
                 <Input
                   fluid
                   error={this.props.people
-                    .map((el) => el.text.toLowerCase().trim())
+                    .map(el => el.text.toLowerCase().trim())
                     .includes(this.state.newPersonName.toLowerCase().trim())}
                   onChange={(e, v) => {
                     this.setState({ newPersonName: v.value });
@@ -208,7 +211,7 @@ export class AlbumPeople extends Component {
                       this.closeRenameDialog();
                     }}
                     disabled={this.props.people
-                      .map((el) => el.text.toLowerCase().trim())
+                      .map(el => el.text.toLowerCase().trim())
                       .includes(this.state.newPersonName.toLowerCase().trim())}
                     type="submit"
                   >
@@ -249,15 +252,13 @@ export class AlbumPeople extends Component {
 }
 
 AlbumPeople = compose(
-  connect((store) => {
-    return {
-      albumsPeople: store.albums.albumsPeople,
-      fetchingAlbumsPeople: store.albums.fetchingAlbumsPeople,
-      fetchedAlbumsPeople: store.albums.fetchedAlbumsPeople,
-      people: store.people.people,
-      fetchedPeople: store.people.fetched,
-      fetchingPeople: store.people.fetching,
-    };
-  }),
+  connect(store => ({
+    albumsPeople: store.albums.albumsPeople,
+    fetchingAlbumsPeople: store.albums.fetchingAlbumsPeople,
+    fetchedAlbumsPeople: store.albums.fetchedAlbumsPeople,
+    people: store.people.people,
+    fetchedPeople: store.people.fetched,
+    fetchingPeople: store.people.fetching,
+  })),
   withTranslation()
 )(AlbumPeople);

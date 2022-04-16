@@ -1,15 +1,16 @@
-import React, { useEffect } from "react";
-import { fetchRecentlyAddedPhotos } from "../../actions/photosActions";
 import moment from "moment";
+import React, { useEffect } from "react";
+import { useTranslation } from "react-i18next";
+
+import { fetchRecentlyAddedPhotos } from "../../actions/photosActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { PhotosState } from "../../reducers/photosReducer";
 import { PhotosetType } from "../../reducers/photosReducer";
-import { useTranslation } from "react-i18next";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
-export const RecentlyAddedPhotos = () => {
+export function RecentlyAddedPhotos() {
   const { fetchedPhotosetType, photosFlat, recentlyAddedPhotosDate } = useAppSelector(
-    (state) => state.photos as PhotosState
+    state => state.photos as PhotosState
   );
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
@@ -24,7 +25,7 @@ export const RecentlyAddedPhotos = () => {
     <PhotoListView
       title={t("photos.recentlyadded")}
       loading={fetchedPhotosetType !== PhotosetType.RECENTLY_ADDED}
-      titleIconName={"clock"}
+      titleIconName="clock"
       isDateView={false}
       date={
         moment(recentlyAddedPhotosDate).format("MMM Do YYYY, dddd") !== "Invalid date"
@@ -34,7 +35,7 @@ export const RecentlyAddedPhotos = () => {
       photoset={photosFlat}
       idx2hash={photosFlat}
       dayHeaderPrefix={t("photos.addedon")}
-      selectable={true}
+      selectable
     />
   );
-};
+}

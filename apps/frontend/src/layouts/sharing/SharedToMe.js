@@ -1,13 +1,14 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import { fetchPhotosSharedToMe } from "../../actions/photosActions";
-import { PhotosetType } from "../../reducers/photosReducer";
-import { Header, Icon, Loader, Menu } from "semantic-ui-react";
 import { Link } from "react-router-dom";
-import { fetchPublicUserList } from "../../actions/publicActions";
+import { Header, Icon, Loader, Menu } from "semantic-ui-react";
+
 import { fetchUserAlbumsSharedToMe } from "../../actions/albumsActions";
-import { PhotosShared } from "./PhotosShared";
+import { fetchPhotosSharedToMe } from "../../actions/photosActions";
+import { fetchPublicUserList } from "../../actions/publicActions";
+import { PhotosetType } from "../../reducers/photosReducer";
 import { AlbumsShared } from "./AlbumsShared";
+import { PhotosShared } from "./PhotosShared";
 
 export class SharedToMe extends Component {
   componentDidMount() {
@@ -25,16 +26,15 @@ export class SharedToMe extends Component {
           {this.props.photosGroupedByUser.length} user(s) shared {this.props.photosFlat.length} photo(s) with you
         </Header.Subheader>
       );
-    } else {
-      return (
-        <Header.Subheader>
-          {this.props.albums.albumsSharedToMe.length} user(s) shared{" "}
-          {this.props.albums.albumsSharedToMe.length > 0 &&
-            this.props.albums.albumsSharedToMe.map((el) => el.albums.length).reduce((a, b) => a + b, 0)}{" "}
-          album(s) with you
-        </Header.Subheader>
-      );
     }
+    return (
+      <Header.Subheader>
+        {this.props.albums.albumsSharedToMe.length} user(s) shared{" "}
+        {this.props.albums.albumsSharedToMe.length > 0 &&
+          this.props.albums.albumsSharedToMe.map(el => el.albums.length).reduce((a, b) => a + b, 0)}{" "}
+        album(s) with you
+      </Header.Subheader>
+    );
   }
 
   getHeader(activeItem) {
@@ -75,19 +75,17 @@ export class SharedToMe extends Component {
       <div>
         {this.getHeader(activeItem)}
         {this.getMenu(activeItem)}
-        {activeItem === "photos" && <PhotosShared isSharedToMe={true} />}
-        {activeItem === "albums" && <AlbumsShared isSharedToMe={true} />}
+        {activeItem === "photos" && <PhotosShared isSharedToMe />}
+        {activeItem === "albums" && <AlbumsShared isSharedToMe />}
       </div>
     );
   }
 }
 
-SharedToMe = connect((store) => {
-  return {
-    photosFlat: store.photos.photosFlat,
-    photosGroupedByUser: store.photos.photosGroupedByUser,
-    fetchedPhotosetType: store.photos.fetchedPhotosetType,
-    albums: store.albums,
-    pub: store.pub,
-  };
-})(SharedToMe);
+SharedToMe = connect(store => ({
+  photosFlat: store.photos.photosFlat,
+  photosGroupedByUser: store.photos.photosGroupedByUser,
+  fetchedPhotosetType: store.photos.fetchedPhotosetType,
+  albums: store.albums,
+  pub: store.pub,
+}))(SharedToMe);

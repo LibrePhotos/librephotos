@@ -1,21 +1,22 @@
+import debounce from "lodash/debounce";
 import React, { Component } from "react";
-import { Header, Icon, Loader } from "semantic-ui-react";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
+import { AutoSizer, Grid } from "react-virtualized";
+import { Header, Icon, Loader } from "semantic-ui-react";
+
 import { serverAddress } from "../../api_client/apiClient";
 import { SecuredImageJWT } from "../../components/SecuredImage";
-import { Grid, AutoSizer } from "react-virtualized";
 import {
   calculateGridCellSize,
   calculateSharedAlbumGridCells,
   calculateSharedPhotoGridCells,
 } from "../../util/gridUtils";
-import { ScrollSpeed, SCROLL_DEBOUNCE_DURATION } from "../../util/scrollUtils";
-import debounce from "lodash/debounce";
+import { SCROLL_DEBOUNCE_DURATION, ScrollSpeed } from "../../util/scrollUtils";
 
 const SPEED_THRESHOLD = 300;
-var SIDEBAR_WIDTH = 85;
-var DAY_HEADER_HEIGHT = 70;
+const SIDEBAR_WIDTH = 85;
+const DAY_HEADER_HEIGHT = 70;
 
 export class AlbumsShared extends Component {
   state = {
@@ -66,7 +67,7 @@ export class AlbumsShared extends Component {
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
-    var albumGridContents;
+    let albumGridContents;
     if (prevState.isSharedToMe) {
       albumGridContents = calculateSharedAlbumGridCells(
         nextProps.albums.albumsSharedToMe,
@@ -85,7 +86,7 @@ export class AlbumsShared extends Component {
   }
 
   handleResize() {
-    var columnWidth = 0;
+    let columnWidth = 0;
     if (this.props.showSidebar) {
       columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10;
     } else {
@@ -111,10 +112,10 @@ export class AlbumsShared extends Component {
       const cell = this.state.albumGridContents[rowIndex][columnIndex];
       if (cell.user_id) {
         // sharer info header
-        const owner = this.props.pub.publicUserList.filter((e) => e.id === cell.user_id)[0];
-        var displayName = cell.user_id;
+        const owner = this.props.pub.publicUserList.filter(e => e.id === cell.user_id)[0];
+        let displayName = cell.user_id;
         if (owner && owner.last_name.length + owner.first_name.length > 0) {
-          displayName = owner.first_name + " " + owner.last_name;
+          displayName = `${owner.first_name} ${owner.last_name}`;
         } else if (owner) {
           displayName = owner.username;
         }
@@ -141,47 +142,44 @@ export class AlbumsShared extends Component {
             </Header>
           </div>
         );
-      } else {
-        // photo cell
-        return (
-          <div key={key} style={{ ...style, padding: 1 }}>
-            <SecuredImageJWT
-              label={{
-                as: "a",
-                corner: "left",
-                icon: "bookmark",
-                color: "red",
-              }}
-              as={Link}
-              to={`/useralbum/${cell.id}/`}
-              width={this.state.entrySquareSize - 2}
-              height={this.state.entrySquareSize - 2}
-              src={serverAddress + "/media/square_thumbnails/" + cell.cover_photos[0].image_hash}
-            />
-            <div style={{ height: 40, paddingLeft: 10, paddingTop: 5 }}>
-              <b>{cell.title}</b>
-              <br />
-              {cell.photo_count} photo(s)
-            </div>
-          </div>
-        );
       }
-    } else {
-      // empty cell
-      return <div key={key} style={style} />;
+      // photo cell
+      return (
+        <div key={key} style={{ ...style, padding: 1 }}>
+          <SecuredImageJWT
+            label={{
+              as: "a",
+              corner: "left",
+              icon: "bookmark",
+              color: "red",
+            }}
+            as={Link}
+            to={`/useralbum/${cell.id}/`}
+            width={this.state.entrySquareSize - 2}
+            height={this.state.entrySquareSize - 2}
+            src={`${serverAddress}/media/square_thumbnails/${cell.cover_photos[0].image_hash}`}
+          />
+          <div style={{ height: 40, paddingLeft: 10, paddingTop: 5 }}>
+            <b>{cell.title}</b>
+            <br />
+            {cell.photo_count} photo(s)
+          </div>
+        </div>
+      );
     }
+    // empty cell
+    return <div key={key} style={style} />;
   };
 
   render() {
     const totalListHeight = this.state.albumGridContents
       .map((row, index) => {
         if (row[0].user_id) {
-          //header row
+          // header row
           return DAY_HEADER_HEIGHT;
-        } else {
-          //photo row
-          return this.state.entrySquareSize + 40;
         }
+        // photo row
+        return this.state.entrySquareSize + 40;
       })
       .reduce((a, b) => a + b, 0);
 
@@ -211,7 +209,7 @@ export class AlbumsShared extends Component {
                     ref={this.photoGridRef}
                     onSectionRendered={({ rowStartIndex }) => {
                       const cell = this.state.albumGridContents[rowStartIndex][0];
-                      var owner = "";
+                      let owner = "";
                       if (cell.user_id) {
                         owner = cell.albums[0].owner.username;
                       } else {
@@ -229,12 +227,11 @@ export class AlbumsShared extends Component {
                     rowCount={this.state.albumGridContents.length}
                     rowHeight={({ index }) => {
                       if (this.state.albumGridContents[index][0].user_id) {
-                        //header row
+                        // header row
                         return DAY_HEADER_HEIGHT;
-                      } else {
-                        //photo row
-                        return this.state.entrySquareSize + 40;
                       }
+                      // photo row
+                      return this.state.entrySquareSize + 40;
                     }}
                     estimatedRowSize={totalListHeight / this.state.albumGridContents.length.toFixed(1)}
                     width={width}
@@ -248,13 +245,11 @@ export class AlbumsShared extends Component {
   }
 }
 
-AlbumsShared = connect((store) => {
-  return {
-    showSidebar: store.ui.showSidebar,
-    pub: store.pub,
-    ui: store.ui,
-    auth: store.auth,
-    photos: store.photos,
-    albums: store.albums,
-  };
-})(AlbumsShared);
+AlbumsShared = connect(store => ({
+  showSidebar: store.ui.showSidebar,
+  pub: store.pub,
+  ui: store.ui,
+  auth: store.auth,
+  photos: store.photos,
+  albums: store.albums,
+}))(AlbumsShared);

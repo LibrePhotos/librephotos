@@ -1,27 +1,27 @@
-import React from "react";
+import { LinearGradient } from "@vx/gradient";
 import { Group } from "@vx/group";
 import { Tree } from "@vx/hierarchy";
-import { LinearGradient } from "@vx/gradient";
+import {
+  LinkHorizontal,
+  LinkHorizontalCurve,
+  LinkHorizontalLine,
+  LinkHorizontalStep,
+  LinkRadial,
+  LinkRadialCurve,
+  LinkRadialLine,
+  LinkRadialStep,
+  LinkVertical,
+  LinkVerticalCurve,
+  LinkVerticalLine,
+  LinkVerticalStep,
+} from "@vx/shape";
 import { hierarchy } from "d3-hierarchy";
 import { pointRadial } from "d3-shape";
-import { fetchLocationSunburst } from "../actions/utilActions";
+import React from "react";
 import { connect } from "react-redux";
 import { Form } from "semantic-ui-react";
 
-import {
-  LinkHorizontal,
-  LinkVertical,
-  LinkRadial,
-  LinkHorizontalStep,
-  LinkVerticalStep,
-  LinkRadialStep,
-  LinkHorizontalCurve,
-  LinkVerticalCurve,
-  LinkRadialCurve,
-  LinkHorizontalLine,
-  LinkVerticalLine,
-  LinkRadialLine,
-} from "@vx/shape";
+import { fetchLocationSunburst } from "../actions/utilActions";
 
 export class LocationLink extends React.Component {
   state = {
@@ -132,7 +132,7 @@ export class LocationLink extends React.Component {
           <Tree
             top={margin.top}
             left={margin.left}
-            root={hierarchy(this.props.locationSunburst, (d) => (d.isExpanded ? d.children : null))}
+            root={hierarchy(this.props.locationSunburst, d => (d.isExpanded ? d.children : null))}
             size={[sizeWidth, sizeHeight]}
             separation={(a, b) => (a.parent === b.parent ? 1 : 0.5) / a.depth}
           >
@@ -151,28 +151,24 @@ export class LocationLink extends React.Component {
                     } else {
                       LinkComponent = LinkRadial;
                     }
-                  } else {
-                    if (orientation === "vertical") {
-                      if (linkType === "step") {
-                        LinkComponent = LinkVerticalStep;
-                      } else if (linkType === "curve") {
-                        LinkComponent = LinkVerticalCurve;
-                      } else if (linkType === "line") {
-                        LinkComponent = LinkVerticalLine;
-                      } else {
-                        LinkComponent = LinkVertical;
-                      }
+                  } else if (orientation === "vertical") {
+                    if (linkType === "step") {
+                      LinkComponent = LinkVerticalStep;
+                    } else if (linkType === "curve") {
+                      LinkComponent = LinkVerticalCurve;
+                    } else if (linkType === "line") {
+                      LinkComponent = LinkVerticalLine;
                     } else {
-                      if (linkType === "step") {
-                        LinkComponent = LinkHorizontalStep;
-                      } else if (linkType === "curve") {
-                        LinkComponent = LinkHorizontalCurve;
-                      } else if (linkType === "line") {
-                        LinkComponent = LinkHorizontalLine;
-                      } else {
-                        LinkComponent = LinkHorizontal;
-                      }
+                      LinkComponent = LinkVertical;
                     }
+                  } else if (linkType === "step") {
+                    LinkComponent = LinkHorizontalStep;
+                  } else if (linkType === "curve") {
+                    LinkComponent = LinkHorizontalCurve;
+                  } else if (linkType === "line") {
+                    LinkComponent = LinkHorizontalLine;
+                  } else {
+                    LinkComponent = LinkHorizontal;
                   }
 
                   return (
@@ -197,14 +193,12 @@ export class LocationLink extends React.Component {
                     const [radialX, radialY] = pointRadial(node.x, node.y);
                     top = radialY;
                     left = radialX;
+                  } else if (orientation === "vertical") {
+                    top = node.y;
+                    left = node.x;
                   } else {
-                    if (orientation === "vertical") {
-                      top = node.y;
-                      left = node.x;
-                    } else {
-                      top = node.x;
-                      left = node.y;
-                    }
+                    top = node.x;
+                    left = node.y;
                   }
 
                   return (
@@ -243,10 +237,10 @@ export class LocationLink extends React.Component {
                         />
                       )}
                       <text
-                        dy={".33em"}
+                        dy=".33em"
                         fontSize={11}
                         fontFamily="Arial"
-                        textAnchor={"middle"}
+                        textAnchor="middle"
                         style={{ pointerEvents: "none" }}
                         fill={node.depth === 0 ? "white" : node.children ? "white" : "white"}
                       >
@@ -264,10 +258,8 @@ export class LocationLink extends React.Component {
   }
 }
 
-LocationLink = connect((store) => {
-  return {
-    locationSunburst: store.util.locationSunburst,
-    fetchingLocationSunburst: store.util.fetchingLocationSunburst,
-    fetchedLocationSunburst: store.util.fetechedLocationSunburst,
-  };
-})(LocationLink);
+LocationLink = connect(store => ({
+  locationSunburst: store.util.locationSunburst,
+  fetchingLocationSunburst: store.util.fetchingLocationSunburst,
+  fetchedLocationSunburst: store.util.fetechedLocationSunburst,
+}))(LocationLink);

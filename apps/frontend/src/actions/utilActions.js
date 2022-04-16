@@ -1,29 +1,30 @@
 import { notify } from "reapop";
+
+import { api } from "../api_client/api";
 import { Server } from "../api_client/apiClient";
+import i18n from "../i18n";
 import { logout } from "../store/auth/authSlice";
+import { ManageUser, UserSchema } from "../store/user/user.zod";
+import { userActions } from "../store/user/userSlice";
+import { fetchAlbumDateList } from "./albumsActions";
 import { fetchInferredFacesList, fetchLabeledFacesList } from "./facesActions";
 import { fetchPeople } from "./peopleActions";
-import { fetchAlbumDateList } from "./albumsActions";
 import { scanPhotos } from "./photosActions";
-import i18n from "../i18n";
-import { userActions } from "../store/user/userSlice";
 import {
-  Job,
-  SiteSettings,
-  SearchTermExamples,
+  CountStats,
+  DeleteMissingPhotosResponse,
+  DirTree,
   GenerateEventAlbumsResponse,
   GenerateEventAlbumsTitlesResponse,
-  WorkerAvailability,
-  DirTree,
+  Job,
+  LocationSunburst,
   LocationTimeline,
   PhotoMonthCount,
+  SearchTermExamples,
+  SiteSettings,
   WordCloudResponse,
-  DeleteMissingPhotosResponse,
-  LocationSunburst,
-  CountStats,
+  WorkerAvailability,
 } from "./utilActions.types";
-import { UserSchema, ManageUser } from "../store/user/user.zod";
-import { api } from "../api_client/api";
 
 export function fetchJobList(page, page_size = 10) {
   return function (dispatch) {
@@ -44,7 +45,7 @@ export function deleteJob(job_id, page = 1, page_size = 10) {
   return function (dispatch) {
     dispatch({ type: "DELETE_JOB" });
     Server.delete(`jobs/${job_id}`)
-      .then((response) => {
+      .then(response => {
         dispatch(fetchJobList(page, page_size));
         dispatch({ type: "DELETE_JOB_FULFILLED", payload: response.data });
       })
@@ -131,8 +132,8 @@ export function fetchNextcloudDirectoryTree(path) {
     dispatch({ type: "FETCH_NEXTCLOUD_DIRECTORY_TREE" });
     Server.get(`nextcloud/listdir/?fpath=${path}`)
       .then(response => {
-        //To-Do: Needs to be tested...
-        //const data = DirTree.array().parse(response.data);
+        // To-Do: Needs to be tested...
+        // const data = DirTree.array().parse(response.data);
         dispatch({
           type: "FETCH_NEXTCLOUD_DIRECTORY_TREE_FULFILLED",
           payload: response.data,
@@ -201,7 +202,7 @@ export function updateUser(user, dispatch) {
 export function updateUserAndScan(user) {
   return function (dispatch) {
     Server.patch(`manage/user/${user.id}/`, user)
-      .then((response) => {
+      .then(response => {
         const data = ManageUser.parse(response.data);
         dispatch(userActions.updateRules(response.data));
         dispatch(fetchUserList());
@@ -475,7 +476,7 @@ export function fetchLocationClusters() {
     Server.get(`locclust/`)
       .then(response => {
         // To-Do: Weird response from server
-        //const data = LocationCluster.array().parse(response.data);
+        // const data = LocationCluster.array().parse(response.data);
         dispatch({
           type: "FETCH_LOCATION_CLUSTERS_FULFILLED",
           payload: response.data,

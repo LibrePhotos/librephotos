@@ -1,16 +1,14 @@
 import React, { useEffect } from "react";
-import { fetchHiddenPhotos } from "../../actions/photosActions";
+import { useTranslation } from "react-i18next";
 
+import { fetchHiddenPhotos } from "../../actions/photosActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { PhotosState } from "../../reducers/photosReducer";
 import { PhotosetType } from "../../reducers/photosReducer";
-import { useTranslation } from "react-i18next";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
-export const HiddenPhotos = () => {
-  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(
-    (state) => state.photos as PhotosState
-  );
+export function HiddenPhotos() {
+  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(state => state.photos as PhotosState);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
 
@@ -22,14 +20,14 @@ export const HiddenPhotos = () => {
 
   return (
     <PhotoListView
-      showHidden={true}
+      showHidden
       title={t("photos.hidden")}
       loading={fetchedPhotosetType !== PhotosetType.HIDDEN}
-      titleIconName={"hide"}
-      isDateView={true}
+      titleIconName="hide"
+      isDateView
       photoset={photosGroupedByDate}
       idx2hash={photosFlat}
-      selectable={true}
+      selectable
     />
   );
-};
+}

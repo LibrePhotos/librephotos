@@ -1,47 +1,48 @@
+import MaterialIcon from "material-icons-react";
 import React, { Component } from "react";
-import { compose } from "redux";
-import {
-  Form,
-  Radio,
-  List,
-  Grid,
-  Icon,
-  Header,
-  Segment,
-  Input,
-  Button,
-  Table,
-  Popup,
-  Divider,
-  Confirm,
-  Dropdown,
-} from "semantic-ui-react";
+import AvatarEditor from "react-avatar-editor";
+import Dropzone from "react-dropzone";
+import { Trans, withTranslation } from "react-i18next";
+import Modal from "react-modal";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
-import Modal from "react-modal";
-import {
-  fetchCountStats,
-  generateEventAlbums,
-  generateEventAlbumTitles,
-  fetchSiteSettings,
-  updateAvatar,
-  updateUser,
-  fetchNextcloudDirectoryTree,
-  fetchJobList,
-  deleteMissingPhotos,
-} from "../../actions/utilActions";
-import { rescanFaces, trainFaces } from "../../actions/facesActions";
-import { scanPhotos, scanAllPhotos, scanNextcloudPhotos } from "../../actions/photosActions";
-import { CountStats } from "../../components/statistics";
-import Dropzone from "react-dropzone";
-import AvatarEditor from "react-avatar-editor";
-import MaterialIcon from "material-icons-react";
 import SortableTree from "react-sortable-tree";
 import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
-import { serverAddress } from "../../api_client/apiClient";
-import { withTranslation, Trans } from "react-i18next";
-import { ConfigDatetime } from "../../components/settings/ConfigDatetime";
+import { compose } from "redux";
+import {
+  Button,
+  Confirm,
+  Divider,
+  Dropdown,
+  Form,
+  Grid,
+  Header,
+  Icon,
+  Input,
+  List,
+  Popup,
+  Radio,
+  Segment,
+  Table,
+} from "semantic-ui-react";
+
+import { rescanFaces, trainFaces } from "../../actions/facesActions";
+import { scanAllPhotos, scanNextcloudPhotos, scanPhotos } from "../../actions/photosActions";
+import {
+  deleteMissingPhotos,
+  fetchCountStats,
+  fetchJobList,
+  fetchNextcloudDirectoryTree,
+  fetchSiteSettings,
+  generateEventAlbumTitles,
+  generateEventAlbums,
+  updateAvatar,
+  updateUser,
+} from "../../actions/utilActions";
 import { api } from "../../api_client/api";
+import { serverAddress } from "../../api_client/apiClient";
+import { ConfigDatetime } from "../../components/settings/ConfigDatetime";
+import { CountStats } from "../../components/statistics";
 
 export class Settings extends Component {
   state = {
@@ -54,7 +55,9 @@ export class Settings extends Component {
     userSelfDetails: {},
     modalNextcloudScanDirectoryOpen: false,
   };
+
   open = () => this.setState({ open: true });
+
   close = () => this.setState({ open: false });
 
   setEditorRef = editor => (this.editor = editor);
@@ -84,12 +87,8 @@ export class Settings extends Component {
   urltoFile = (url, filename, mimeType) => {
     mimeType = mimeType || (url.match(/^data:([^;]+);/) || "")[1];
     return fetch(url)
-      .then(function (res) {
-        return res.arrayBuffer();
-      })
-      .then(function (buf) {
-        return new File([buf], filename, { type: mimeType });
-      });
+      .then(res => res.arrayBuffer())
+      .then(buf => new File([buf], filename, { type: mimeType }));
   };
 
   componentDidMount() {
@@ -161,20 +160,18 @@ export class Settings extends Component {
                       });
                     }}
                   >
-                    {({ getRootProps, getInputProps }) => {
-                      return (
-                        <div {...getRootProps()}>
-                          <input {...getInputProps()} />
-                          <AvatarEditor
-                            ref={this.setEditorRef}
-                            width={150}
-                            height={150}
-                            border={0}
-                            image={this.state.avatarImgSrc}
-                          />
-                        </div>
-                      );
-                    }}
+                    {({ getRootProps, getInputProps }) => (
+                      <div {...getRootProps()}>
+                        <input {...getInputProps()} />
+                        <AvatarEditor
+                          ref={this.setEditorRef}
+                          width={150}
+                          height={150}
+                          border={0}
+                          image={this.state.avatarImgSrc}
+                        />
+                      </div>
+                    )}
                   </Dropzone>
                 </div>
                 <div
@@ -202,12 +199,12 @@ export class Settings extends Component {
                     size="small"
                     color="green"
                     onClick={() => {
-                      let form_data = new FormData();
+                      const form_data = new FormData();
                       this.urltoFile(
                         this.editor.getImageScaledToCanvas().toDataURL(),
-                        this.state.userSelfDetails.first_name + "avatar.png"
+                        `${this.state.userSelfDetails.first_name}avatar.png`
                       ).then(file => {
-                        form_data.append("avatar", file, this.state.userSelfDetails.first_name + "avatar.png");
+                        form_data.append("avatar", file, `${this.state.userSelfDetails.first_name}avatar.png`);
                         this.props.dispatch(updateAvatar(this.state.userSelfDetails, form_data));
                       });
                     }}
@@ -365,8 +362,8 @@ export class Settings extends Component {
                     floated="left"
                     onClick={() => {
                       const newUserData = this.state.userSelfDetails;
-                      delete newUserData["scan_directory"];
-                      delete newUserData["avatar"];
+                      delete newUserData.scan_directory;
+                      delete newUserData.avatar;
                       updateUser(newUserData, this.props.dispatch);
                     }}
                   >
@@ -475,8 +472,8 @@ export class Settings extends Component {
                   disabled={!this.state.userSelfDetails.nextcloud_app_password}
                   onClick={() => {
                     const ud = this.state.userSelfDetails;
-                    delete ud["scan_directory"];
-                    delete ud["avatar"];
+                    delete ud.scan_directory;
+                    delete ud.avatar;
                     updateUser(ud, this.props.dispatch);
                   }}
                   size="small"
@@ -613,8 +610,9 @@ export class Settings extends Component {
                     loading={this.props.statusPhotoScan.status && this.props.statusPhotoScan.added}
                   />
                   {this.props.statusPhotoScan.added
-                    ? this.props.t("settings.statusscanphotostrue") +
-                      `(${this.props.statusPhotoScan.added}/${this.props.statusPhotoScan.to_add})`
+                    ? `${this.props.t("settings.statusscanphotostrue")}(${this.props.statusPhotoScan.added}/${
+                        this.props.statusPhotoScan.to_add
+                      })`
                     : this.props.t("settings.statusscanphotosfalse")}
                 </Button>
 
@@ -692,8 +690,9 @@ export class Settings extends Component {
                     loading={this.props.statusPhotoScan.status && this.props.statusPhotoScan.added}
                   />
                   {this.props.statusPhotoScan.added
-                    ? this.props.t("settings.statusrescanphotostrue") +
-                      `(${this.props.statusPhotoScan.added}/${this.props.statusPhotoScan.to_add})`
+                    ? `${this.props.t("settings.statusrescanphotostrue")}(${this.props.statusPhotoScan.added}/${
+                        this.props.statusPhotoScan.to_add
+                      })`
                     : this.props.t("settings.statusrescanphotosfalse")}
                 </Button>
               </Segment>
@@ -925,10 +924,10 @@ export class Settings extends Component {
                 color="green"
                 onClick={() => {
                   const newUserData = this.state.userSelfDetails;
-                  delete newUserData["scan_directory"];
-                  delete newUserData["avatar"];
+                  delete newUserData.scan_directory;
+                  delete newUserData.avatar;
                   updateUser(newUserData, this.props.dispatch);
-                  if (typeof this.props.onRequestClose == "function") this.props.onRequestClose();
+                  if (typeof this.props.onRequestClose === "function") this.props.onRequestClose();
                 }}
               >
                 <Trans i18nKey="settings.semanticsearchupdate">Update</Trans>
@@ -965,9 +964,9 @@ export class Settings extends Component {
                 }}
               >
                 <option value="" disabled selected />
-                <option value={"OFF"}>{this.props.t("settings.favoritesyncoptions.off")}</option>
-                <option value={"SIDECAR_FILE"}>{this.props.t("settings.favoritesyncoptions.sidecar")}</option>
-                <option value={"MEDIA_FILE"}>{this.props.t("settings.favoritesyncoptions.mediafile")}</option>
+                <option value="OFF">{this.props.t("settings.favoritesyncoptions.off")}</option>
+                <option value="SIDECAR_FILE">{this.props.t("settings.favoritesyncoptions.sidecar")}</option>
+                <option value="MEDIA_FILE">{this.props.t("settings.favoritesyncoptions.mediafile")}</option>
               </select>
             </Grid.Column>
           </Grid.Row>
@@ -1010,10 +1009,10 @@ export class Settings extends Component {
                 color="green"
                 onClick={() => {
                   const newUserData = this.state.userSelfDetails;
-                  delete newUserData["scan_directory"];
-                  delete newUserData["avatar"];
+                  delete newUserData.scan_directory;
+                  delete newUserData.avatar;
                   updateUser(newUserData, this.props.dispatch);
-                  if (typeof this.props.onRequestClose == "function") this.props.onRequestClose();
+                  if (typeof this.props.onRequestClose === "function") this.props.onRequestClose();
                 }}
               >
                 <Trans i18nKey="settings.favoriteupdate">Update</Trans>
@@ -1021,7 +1020,7 @@ export class Settings extends Component {
             </Grid.Column>
           </Grid.Row>
         </Grid>
-        <ConfigDatetime></ConfigDatetime>
+        <ConfigDatetime />
         <Header as="h3">
           <Trans i18nKey="settings.experimentaloptions">Experimental options</Trans>
         </Header>
@@ -1045,7 +1044,7 @@ export class Settings extends Component {
                 }}
               >
                 <option value={false}>{this.props.t("settings.off")}</option>
-                <option value={true}>{this.props.t("settings.on")}</option>
+                <option value>{this.props.t("settings.on")}</option>
               </select>
             </Grid.Column>
           </Grid.Row>
@@ -1056,10 +1055,10 @@ export class Settings extends Component {
                 color="green"
                 onClick={() => {
                   const newUserData = this.state.userSelfDetails;
-                  delete newUserData["scan_directory"];
-                  delete newUserData["avatar"];
+                  delete newUserData.scan_directory;
+                  delete newUserData.avatar;
                   updateUser(newUserData, this.props.dispatch);
-                  if (typeof this.props.onRequestClose == "function") this.props.onRequestClose();
+                  if (typeof this.props.onRequestClose === "function") this.props.onRequestClose();
                 }}
               >
                 <Trans i18nKey="settings.experimentalupdate">Update</Trans>
@@ -1114,9 +1113,8 @@ class ModalNextcloudScanDirectoryEdit extends Component {
   static getDerivedStateFromProps(nextProps, prevState) {
     if (prevState.treeData.length === 0) {
       return { ...prevState, treeData: nextProps.nextcloudDirectoryTree };
-    } else {
-      return prevState;
     }
+    return prevState;
   }
 
   nodeClicked(event, rowInfo) {
@@ -1210,7 +1208,7 @@ class ModalNextcloudScanDirectoryEdit extends Component {
             onChange={treeData => this.setState({ treeData })}
             theme={FileExplorerTheme}
             generateNodeProps={rowInfo => {
-              let nodeProps = {
+              const nodeProps = {
                 onClick: event => this.nodeClicked(event, rowInfo),
               };
               if (this.state.selectedNodeId === rowInfo.node.id) {
@@ -1226,39 +1224,35 @@ class ModalNextcloudScanDirectoryEdit extends Component {
 }
 
 ModalNextcloudScanDirectoryEdit = compose(
-  connect(store => {
-    return {
-      auth: store.auth,
+  connect(store => ({
+    auth: store.auth,
 
-      nextcloudDirectoryTree: store.util.nextcloudDirectoryTree,
-      fetchingNextcloudDirectoryTree: store.util.fetchingNextcloudDirectoryTree,
-      fetchedNextcloudDirectoryTree: store.util.fetchedNextcloudDirectoryTree,
+    nextcloudDirectoryTree: store.util.nextcloudDirectoryTree,
+    fetchingNextcloudDirectoryTree: store.util.fetchingNextcloudDirectoryTree,
+    fetchedNextcloudDirectoryTree: store.util.fetchedNextcloudDirectoryTree,
 
-      userList: store.util.userList,
-      fetchingUSerList: store.util.fetchingUserList,
-      fetchedUserList: store.util.fetchedUserList,
-    };
-  }),
+    userList: store.util.userList,
+    fetchingUSerList: store.util.fetchingUserList,
+    fetchedUserList: store.util.fetchedUserList,
+  })),
   withTranslation()
 )(ModalNextcloudScanDirectoryEdit);
 
 Settings = compose(
-  connect(store => {
-    return {
-      auth: store.auth,
-      util: store.util,
-      gridType: store.ui.gridType,
-      siteSettings: store.util.siteSettings,
-      statusPhotoScan: store.util.statusPhotoScan,
-      statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
-      generatingAutoAlbums: store.util.generatingAutoAlbums,
-      scanningPhotos: store.photos.scanningPhotos,
-      fetchedCountStats: store.util.fetchedCountStats,
-      workerAvailability: store.util.workerAvailability,
-      fetchedNextcloudDirectoryTree: store.util.fetchedNextcloudDirectoryTree,
-      userSelfDetails: store.user.userSelfDetails,
-      fetchUserSelfDetails: api.endpoints.fetchUserSelfDetails.initiate,
-    };
-  }),
+  connect(store => ({
+    auth: store.auth,
+    util: store.util,
+    gridType: store.ui.gridType,
+    siteSettings: store.util.siteSettings,
+    statusPhotoScan: store.util.statusPhotoScan,
+    statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
+    generatingAutoAlbums: store.util.generatingAutoAlbums,
+    scanningPhotos: store.photos.scanningPhotos,
+    fetchedCountStats: store.util.fetchedCountStats,
+    workerAvailability: store.util.workerAvailability,
+    fetchedNextcloudDirectoryTree: store.util.fetchedNextcloudDirectoryTree,
+    userSelfDetails: store.user.userSelfDetails,
+    fetchUserSelfDetails: api.endpoints.fetchUserSelfDetails.initiate,
+  })),
   withTranslation()
 )(Settings);

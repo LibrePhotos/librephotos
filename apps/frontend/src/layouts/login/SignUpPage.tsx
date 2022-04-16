@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useHistory } from "react-router-dom";
 import { Button, Divider, Form, Header, Image, Segment } from "semantic-ui-react";
 
-import { useTranslation } from "react-i18next";
-import { initialFormState } from "./FirstTimeSetupPage";
 import { useSignUpMutation } from "../../api_client/api";
-import { useAppDispatch } from "../../store/store";
-import { useHistory } from "react-router-dom";
 import { authActions } from "../../store/auth/authSlice";
+import { useAppDispatch } from "../../store/store";
+import { initialFormState } from "./FirstTimeSetupPage";
 import type { ISignUpFormState } from "./loginUtils";
 import { validateSignUpForm } from "./loginUtils";
 
@@ -53,7 +53,7 @@ export function SignupPage(): JSX.Element {
             padding: 20,
           }}
         >
-          <Image src={"/logo.png"} size="tiny" verticalAlign="middle" />
+          <Image src="/logo.png" size="tiny" verticalAlign="middle" />
           <span style={{ paddingLeft: 5, fontSize: 18 }}>
             <b>LibrePhotos</b>
           </span>

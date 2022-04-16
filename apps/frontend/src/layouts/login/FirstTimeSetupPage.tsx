@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Button, Divider, Form, Header, Image, Segment } from "semantic-ui-react";
 import { useTranslation } from "react-i18next";
 import type {} from "../../api_client/api";
-import { useSignUpMutation } from "../../api_client/api";
 import { useHistory } from "react-router-dom";
+import { useSignUpMutation } from "../../api_client/api";
 import type { ISignUpFormState } from "./loginUtils";
 import { validateSignUpForm } from "./loginUtils";
 import type { IApiUserSignUpPost } from "../../store/auth/auth.zod";
@@ -17,7 +17,7 @@ export const initialFormState: ISignUpFormState = {
   email: "",
 };
 
-export const FirstTimeSetupPage = (): JSX.Element => {
+export function FirstTimeSetupPage(): JSX.Element {
   const { t } = useTranslation();
   const history = useHistory();
   const [signup, { isLoading, isSuccess }] = useSignUpMutation();
@@ -68,7 +68,7 @@ export const FirstTimeSetupPage = (): JSX.Element => {
             padding: 20,
           }}
         >
-          <Image src={"/logo.png"} size="tiny" verticalAlign="middle" />
+          <Image src="/logo.png" size="tiny" verticalAlign="middle" />
           <span style={{ paddingLeft: 5, fontSize: 18 }}>
             &nbsp;
             <b>LibrePhotos</b>
@@ -154,4 +154,4 @@ export const FirstTimeSetupPage = (): JSX.Element => {
       />
     </div>
   );
-};
+}

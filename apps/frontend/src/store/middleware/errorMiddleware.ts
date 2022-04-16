@@ -1,10 +1,11 @@
 import type { Middleware, MiddlewareAPI } from "@reduxjs/toolkit";
 import { isRejectedWithValue } from "@reduxjs/toolkit";
-import { Endpoints } from "../../api_client/api";
-import { AuthErrorSchema } from "../auth/auth.zod";
-import i18n from "../../i18n";
 import { notify } from "reapop";
+
+import { Endpoints } from "../../api_client/api";
+import i18n from "../../i18n";
 import { toUpperCase } from "../../util/stringUtils";
+import { AuthErrorSchema } from "../auth/auth.zod";
 
 export const errorMiddleware: Middleware =
   ({ dispatch }: MiddlewareAPI) =>
@@ -17,8 +18,8 @@ export const errorMiddleware: Middleware =
         } = AuthErrorSchema.parse(action.payload);
         errors.forEach(error => {
           const title =
-            action.meta.arg.endpointName === Endpoints.login && i18n.exists("login.error" + error.field)
-              ? i18n.t("login.error" + error.field)
+            action.meta.arg.endpointName === Endpoints.login && i18n.exists(`login.error${error.field}`)
+              ? i18n.t(`login.error${error.field}`)
               : error.message;
 
           dispatch(

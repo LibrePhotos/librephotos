@@ -63,7 +63,7 @@ export default function reducer(
   },
   action
 ) {
-  var new_album;
+  let new_album;
   switch (action.type) {
     case "FETCH_ALBUMS_SHARED_TO_ME": {
       return { ...state, fetchingAlbumsSharedToMe: true };
@@ -289,11 +289,11 @@ export default function reducer(
       new_album = { ...state.albumsAutoGalleries };
       new_album[action.payload.id] = action.payload;
 
-      var new_album_list = [...state.albumsAutoList];
+      const new_album_list = [...state.albumsAutoList];
 
-      var index = -1;
+      let index = -1;
 
-      for (var i = 0; i < new_album_list.length; i++) {
+      for (let i = 0; i < new_album_list.length; i++) {
         if (new_album_list[i].id === action.payload.id) {
           index = i;
         }

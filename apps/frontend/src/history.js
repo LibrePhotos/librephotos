@@ -1,7 +1,5 @@
 import { createBrowserHistory } from "history";
 
-const createHistory = () => {
-  return createBrowserHistory();
-};
+const createHistory = () => createBrowserHistory();
 
 export default createHistory();

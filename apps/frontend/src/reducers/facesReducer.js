@@ -35,8 +35,8 @@ export default function reducer(
   },
   action
 ) {
-  var newInferredFacesList;
-  var newLabeledFacesList;
+  let newInferredFacesList;
+  let newLabeledFacesList;
   switch (action.type) {
     // all faces
     case "FETCH_FACES": {
@@ -143,12 +143,12 @@ export default function reducer(
     }
     // mass labeling faces
     case "SET_FACES_PERSON_LABEL_FULFILLED": {
-      const justLabeledFaceIDs = action.payload.map((face) => face.id);
+      const justLabeledFaceIDs = action.payload.map(face => face.id);
 
-      newInferredFacesList = state.inferredFacesList.filter((face) => !justLabeledFaceIDs.includes(face.id));
-      newLabeledFacesList = state.labeledFacesList.filter((face) => !justLabeledFaceIDs.includes(face.id));
+      newInferredFacesList = state.inferredFacesList.filter(face => !justLabeledFaceIDs.includes(face.id));
+      newLabeledFacesList = state.labeledFacesList.filter(face => !justLabeledFaceIDs.includes(face.id));
 
-      action.payload.forEach((justLabeledFace) => {
+      action.payload.forEach(justLabeledFace => {
         newLabeledFacesList.push(justLabeledFace);
       });
 
@@ -162,8 +162,8 @@ export default function reducer(
     // mass labeling faces
     case "DELETE_FACES_FULFILLED": {
       const justDeletedFaces = action.payload;
-      newInferredFacesList = state.inferredFacesList.filter((face) => !justDeletedFaces.includes(face.id));
-      newLabeledFacesList = state.labeledFacesList.filter((face) => !justDeletedFaces.includes(face.id));
+      newInferredFacesList = state.inferredFacesList.filter(face => !justDeletedFaces.includes(face.id));
+      newLabeledFacesList = state.labeledFacesList.filter(face => !justDeletedFaces.includes(face.id));
 
       return {
         ...state,
@@ -172,7 +172,7 @@ export default function reducer(
       };
     }
 
-    //train faces
+    // train faces
     case "TRAIN_FACES": {
       return { ...state, training: true };
     }
@@ -188,7 +188,7 @@ export default function reducer(
       };
     }
 
-    //train faces
+    // train faces
     case "CLUSTER_FACES": {
       return { ...state, clustering: true };
     }
@@ -204,11 +204,11 @@ export default function reducer(
       };
     }
 
-    //delete face
+    // delete face
     case "DELETE_FACE": {
       return {
         ...state,
-        faces: state.faces.filter((element) => element.id !== action.payload),
+        faces: state.faces.filter(element => element.id !== action.payload),
       };
     }
 

@@ -1,6 +1,6 @@
 import React from "react";
-import { Header, Divider } from "semantic-ui-react";
 import { useTranslation } from "react-i18next";
+import { Divider, Header } from "semantic-ui-react";
 
 type Props = {
   key: number;
@@ -10,7 +10,7 @@ type Props = {
   style: any;
 };
 
-export const HeaderComponent = (props: Props) => {
+export function HeaderComponent(props: Props) {
   const { t } = useTranslation();
 
   return (
@@ -38,4 +38,4 @@ export const HeaderComponent = (props: Props) => {
       <Divider />
     </div>
   );
-};
+}

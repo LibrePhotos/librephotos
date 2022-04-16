@@ -1,3 +1,6 @@
+import { z } from "zod";
+
+import { PersonSchema } from "./peopleActions.types";
 import {
   DatePhotosGroup,
   DatePhotosGroupSchema,
@@ -6,10 +9,6 @@ import {
   PhotoHashSchema,
   SimpleUserSchema,
 } from "./photosActions.types";
-
-import { PersonSchema } from "./peopleActions.types";
-
-import { z } from "zod";
 
 const AlbumInfoSchema = z.object({
   id: z.number(),
@@ -119,7 +118,7 @@ export const AutoAlbumInfoSchema = z.object({
 });
 export type AutoAlbumInfo = z.infer<typeof AutoAlbumInfoSchema>;
 
-//actions using new list view in backend
+// actions using new list view in backend
 
 export const _FetchAutoAlbumsListResponseSchema = z.object({
   results: AutoAlbumInfoSchema.array(),

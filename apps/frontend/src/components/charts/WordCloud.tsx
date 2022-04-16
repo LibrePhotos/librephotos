@@ -1,8 +1,8 @@
 import React from "react";
-import { Header } from "semantic-ui-react";
-import { useTranslation } from "react-i18next";
-
 import useDimensions from "react-cool-dimensions";
+import { useTranslation } from "react-i18next";
+import { Header } from "semantic-ui-react";
+
 import { useAppSelector } from "../../store/store";
 
 const { Chart, Transform, Cloud } = require("rumble-charts");
@@ -12,7 +12,7 @@ type Props = {
   height: number;
 };
 
-export const WordCloud = (props: Props) => {
+export function WordCloud(props: Props) {
   const { observe, unobserve, width } = useDimensions({
     onResize: ({ observe, unobserve, width, height, entry }) => {
       observe();
@@ -20,12 +20,12 @@ export const WordCloud = (props: Props) => {
     useBorderBoxSize: true, // Tell the hook to measure based on the border-box size, default is false
     polyfill: ResizeObserver, // Use polyfill to make this feature works on more browsers);
   });
-  const height = props.height;
-  const { wordCloud, fetchedWordCloud } = useAppSelector((state) => state.util);
+  const { height } = props;
+  const { wordCloud, fetchedWordCloud } = useAppSelector(state => state.util);
   const { t } = useTranslation();
 
   const title = () => {
-    var title = t("people");
+    let title = t("people");
     if (props.type === "captions") {
       title = t("things");
     }
@@ -54,18 +54,11 @@ export const WordCloud = (props: Props) => {
       <Header as="h3">{title()}</Header>
       <Chart width={width - 50} height={height - 70} series={series()}>
         <Transform method={["transpose"]}>
-          <Cloud
-            font="sans-serif"
-            minFontsSize={10}
-            maxFontSize={50}
-            random={() => {
-              return 1;
-            }}
-          />
+          <Cloud font="sans-serif" minFontsSize={10} maxFontSize={50} random={() => 1} />
         </Transform>
       </Chart>
     </div>
   );
-};
+}
 
 export default WordCloud;

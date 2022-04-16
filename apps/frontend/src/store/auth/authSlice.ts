@@ -1,11 +1,12 @@
-import type { IAuthState, IToken } from "./auth.zod";
-import { AuthErrorSchema } from "./auth.zod";
 import { createSlice } from "@reduxjs/toolkit";
-import { api } from "../../api_client/api";
 import jwtDecode from "jwt-decode";
 import { persistReducer } from "redux-persist";
-import storage from "redux-persist/es/storage";
 import { createFilter } from "redux-persist-transform-filter";
+import storage from "redux-persist/es/storage";
+
+import { api } from "../../api_client/api";
+import { AuthErrorSchema } from "./auth.zod";
+import type { IAuthState, IToken } from "./auth.zod";
 
 const initialState: IAuthState = {
   access: null,

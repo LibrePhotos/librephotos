@@ -1,21 +1,23 @@
 import React, { Component } from "react";
-import { Header, Image, Icon, Grid, Divider } from "semantic-ui-react";
-import { fetchPublicUserList } from "../../actions/publicActions";
 import { connect } from "react-redux";
-import { TopMenu } from "../../components/menubars/TopMenu";
-import { SideMenuNarrow } from "../../components/menubars/SideMenuNarrow";
-import { TopMenuPublic } from "../../components/menubars/TopMenuPublic";
-import { SideMenuNarrowPublic } from "../../components/menubars/SideMenuNarrowPublic";
 import { Link } from "react-router-dom";
+import { Divider, Grid, Header, Icon, Image } from "semantic-ui-react";
+
+import { fetchPublicUserList } from "../../actions/publicActions";
 import { serverAddress } from "../../api_client/apiClient";
+import { SideMenuNarrow } from "../../components/menubars/SideMenuNarrow";
+import { SideMenuNarrowPublic } from "../../components/menubars/SideMenuNarrowPublic";
+import { TopMenu } from "../../components/menubars/TopMenu";
+import { TopMenuPublic } from "../../components/menubars/TopMenuPublic";
 import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
 
 export class PublicUserList extends Component {
   componentDidMount() {
     this.props.dispatch(fetchPublicUserList());
   }
+
   render() {
-    var menu;
+    let menu;
     if (this.props.auth.access) {
       menu = (
         <div>
@@ -50,9 +52,9 @@ export class PublicUserList extends Component {
           </div>
           <div style={{ padding: 10 }}>
             {this.props.pub.publicUserList.map((el, idx) => {
-              var displayName;
+              let displayName;
               if (el.first_name.length > 0 && el.last_name.length > 0) {
-                displayName = el.first_name + " " + el.last_name;
+                displayName = `${el.first_name} ${el.last_name}`;
               } else {
                 displayName = el.username;
               }
@@ -70,9 +72,9 @@ export class PublicUserList extends Component {
                     <Grid doubling stackable>
                       <Divider />
                       <Grid.Row columns={this.props.ui.gridType === "dense" ? 5 : 3}>
-                        {el.public_photo_samples.slice(0, this.props.ui.gridType === "dense" ? 10 : 6).map((photo) => (
+                        {el.public_photo_samples.slice(0, this.props.ui.gridType === "dense" ? 10 : 6).map(photo => (
                           <Grid.Column>
-                            <Image src={serverAddress + "/media/square_thumbnails/" + photo.image_hash + ".jpg"} />
+                            <Image src={`${serverAddress}/media/square_thumbnails/${photo.image_hash}.jpg`} />
                             <Divider hidden />
                           </Grid.Column>
                         ))}
@@ -89,10 +91,8 @@ export class PublicUserList extends Component {
   }
 }
 
-PublicUserList = connect((store) => {
-  return {
-    pub: store.pub,
-    ui: store.ui,
-    auth: store.auth,
-  };
-})(PublicUserList);
+PublicUserList = connect(store => ({
+  pub: store.pub,
+  ui: store.ui,
+  auth: store.auth,
+}))(PublicUserList);

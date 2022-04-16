@@ -1,24 +1,26 @@
+import _ from "lodash";
 import React, { Component } from "react";
 import Pig from "react-pig";
-import "react-virtualized/styles.css"; // only needs to be imported once
+// only needs to be imported once
 import { connect } from "react-redux";
-import { ModalAlbumEdit } from "../album/ModalAlbumEdit";
-import { fetchPhotoDetail } from "../../actions/photosActions";
-import { ModalPhotosShare } from "../sharing/ModalPhotosShare";
-import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
-import { serverAddress } from "../../api_client/apiClient";
-import { LightBox } from "../lightbox/LightBox";
-import _ from "lodash";
-import { SelectionBar } from "../photolist/SelectionBar";
-import FavoritedOverlay from "./FavoritedOverlay";
-import VideoOverlay from "./VideoOverlay";
-import { DefaultHeader } from "./DefaultHeader";
-import { TOP_MENU_HEIGHT } from "../../ui-constants";
-import { SelectionActions } from "./SelectionActions";
-import { setAlbumCoverForPerson } from "../../actions/peopleActions";
-import { TrashcanActions } from "./TrashcanActions";
+import "react-virtualized/styles.css";
 
-var TIMELINE_SCROLL_WIDTH = 0;
+import { setAlbumCoverForPerson } from "../../actions/peopleActions";
+import { fetchPhotoDetail } from "../../actions/photosActions";
+import { serverAddress } from "../../api_client/apiClient";
+import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { ModalAlbumEdit } from "../album/ModalAlbumEdit";
+import { LightBox } from "../lightbox/LightBox";
+import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
+import { ModalPhotosShare } from "../sharing/ModalPhotosShare";
+import { DefaultHeader } from "./DefaultHeader";
+import FavoritedOverlay from "./FavoritedOverlay";
+import { SelectionActions } from "./SelectionActions";
+import { SelectionBar } from "./SelectionBar";
+import { TrashcanActions } from "./TrashcanActions";
+import VideoOverlay from "./VideoOverlay";
+
+const TIMELINE_SCROLL_WIDTH = 0;
 
 export class PhotoListView extends Component {
   constructor(props) {
@@ -50,6 +52,7 @@ export class PhotoListView extends Component {
     this.handleResize();
     window.addEventListener("resize", this.handleResize);
   }
+
   componentWillUnmount() {
     window.removeEventListener("resize", this.handleResize);
   }
@@ -60,10 +63,10 @@ export class PhotoListView extends Component {
     });
   }
 
-  handleSelection = (item) => {
-    var newSelectedItems = this.state.selectionState.selectedItems;
-    if (newSelectedItems.find((selectedItem) => selectedItem.id === item.id)) {
-      newSelectedItems = newSelectedItems.filter((value) => value.id !== item.id);
+  handleSelection = item => {
+    let newSelectedItems = this.state.selectionState.selectedItems;
+    if (newSelectedItems.find(selectedItem => selectedItem.id === item.id)) {
+      newSelectedItems = newSelectedItems.filter(value => value.id !== item.id);
     } else {
       newSelectedItems = newSelectedItems.concat(item);
     }
@@ -74,11 +77,11 @@ export class PhotoListView extends Component {
     });
   };
 
-  handleSelections = (items) => {
-    var newSelectedItems = this.state.selectionState.selectedItems;
-    items.forEach((item) => {
-      if (newSelectedItems.find((selectedItem) => selectedItem.id === item.id)) {
-        newSelectedItems = newSelectedItems.filter((value) => value.id !== item.id);
+  handleSelections = items => {
+    let newSelectedItems = this.state.selectionState.selectedItems;
+    items.forEach(item => {
+      if (newSelectedItems.find(selectedItem => selectedItem.id === item.id)) {
+        newSelectedItems = newSelectedItems.filter(value => value.id !== item.id);
       } else {
         newSelectedItems = newSelectedItems.concat(item);
       }
@@ -90,31 +93,30 @@ export class PhotoListView extends Component {
   };
 
   handleClick = (event, item) => {
-    //if an image is selectable, then handle shift click
+    // if an image is selectable, then handle shift click
     if (this.props.selectable && event.shiftKey) {
-      var lastSelectedElement = this.state.selectionState.selectedItems.slice(-1)[0];
+      const lastSelectedElement = this.state.selectionState.selectedItems.slice(-1)[0];
       if (lastSelectedElement === undefined) {
         this.handleSelection(item);
         return;
       }
-      var indexOfCurrentlySelectedItem = this.props.idx2hash.findIndex((image) => image.id === item.id);
-      var indexOfLastSelectedItem = this.props.idx2hash.findIndex((image) => image.id === lastSelectedElement.id);
+      const indexOfCurrentlySelectedItem = this.props.idx2hash.findIndex(image => image.id === item.id);
+      const indexOfLastSelectedItem = this.props.idx2hash.findIndex(image => image.id === lastSelectedElement.id);
       console.log(indexOfCurrentlySelectedItem);
       console.log(indexOfLastSelectedItem);
       if (indexOfCurrentlySelectedItem > indexOfLastSelectedItem) {
         this.handleSelections(this.props.idx2hash.slice(indexOfLastSelectedItem + 1, indexOfCurrentlySelectedItem + 1));
         return;
-      } else {
-        this.handleSelections(this.props.idx2hash.slice(indexOfCurrentlySelectedItem, indexOfLastSelectedItem));
-        return;
       }
+      this.handleSelections(this.props.idx2hash.slice(indexOfCurrentlySelectedItem, indexOfLastSelectedItem));
+      return;
     }
     if (this.state.selectionState.selectMode) {
       this.handleSelection(item);
       return;
     }
 
-    const lightboxImageIndex = this.props.idx2hash.findIndex((image) => image.id === item.id);
+    const lightboxImageIndex = this.props.idx2hash.findIndex(image => image.id === item.id);
     this.setState({
       lightboxImageIndex: lightboxImageIndex,
       lightboxImageId: item.id,
@@ -155,7 +157,7 @@ export class PhotoListView extends Component {
   render() {
     this.closeLightboxIfImageIndexIsOutOfSync();
 
-    var isUserAlbum = false;
+    let isUserAlbum = false;
     if (this.props.route.location.pathname.startsWith("/useralbum/")) {
       isUserAlbum = true;
     }
@@ -231,7 +233,7 @@ export class PhotoListView extends Component {
                 selectedItems={this.state.selectionState.selectedItems}
                 title={this.props.title}
                 updateSelectionState={this.updateSelectionState}
-              ></TrashcanActions>
+              />
             </div>
           )}
         </div>
@@ -247,19 +249,19 @@ export class PhotoListView extends Component {
               groupByDate={this.props.isDateView}
               getUrl={(url, pxHeight) => {
                 if (pxHeight < 250) {
-                  return serverAddress + "/media/square_thumbnails_small/" + url.split(";")[0];
+                  return `${serverAddress}/media/square_thumbnails_small/${url.split(";")[0]}`;
                 }
-                return serverAddress + "/media/square_thumbnails/" + url.split(";")[0];
+                return `${serverAddress}/media/square_thumbnails/${url.split(";")[0]}`;
               }}
               toprightoverlay={FavoritedOverlay}
               bottomleftoverlay={VideoOverlay}
               numberOfItems={this.props.numberOfItems ? this.props.numberOfItems : this.props.idx2hash.length}
               updateItems={this.props.updateItems ? this.props.updateItems : () => {}}
               updateGroups={this.props.updateGroups ? this.props.updateGroups : () => {}}
-            ></Pig>
+            />
           </div>
         ) : (
-          <div></div>
+          <div />
         )}
 
         <div
@@ -285,7 +287,7 @@ export class PhotoListView extends Component {
               this.getPhotoDetails(this.props.idx2hash[this.state.lightboxImageIndex].id);
             }}
             onMovePrevRequest={() => {
-              var prevIndex =
+              const prevIndex =
                 (this.state.lightboxImageIndex + this.props.idx2hash.length - 1) % this.props.idx2hash.length;
               this.setState({
                 lightboxImageIndex: prevIndex,
@@ -294,7 +296,7 @@ export class PhotoListView extends Component {
               this.getPhotoDetails(this.props.idx2hash[prevIndex].id);
             }}
             onMoveNextRequest={() => {
-              var nextIndex =
+              const nextIndex =
                 (this.state.lightboxImageIndex + this.props.idx2hash.length + 1) % this.props.idx2hash.length;
               this.setState({
                 lightboxImageIndex: nextIndex,
@@ -313,7 +315,7 @@ export class PhotoListView extends Component {
                 modalAddToAlbumOpen: false,
               });
             }}
-            selectedImageHashes={this.state.selectionState.selectedItems.map((i) => i.id)}
+            selectedImageHashes={this.state.selectionState.selectedItems.map(i => i.id)}
           />
         )}
         {!this.props.isPublic && (
@@ -324,7 +326,7 @@ export class PhotoListView extends Component {
                 modalSharePhotosOpen: false,
               });
             }}
-            selectedImageHashes={this.state.selectionState.selectedItems.map((i) => i.id)}
+            selectedImageHashes={this.state.selectionState.selectedItems.map(i => i.id)}
           />
         )}
         {!this.props.isPublic && isUserAlbum && (
@@ -336,7 +338,7 @@ export class PhotoListView extends Component {
               });
             }}
             match={this.props.match}
-            selectedImageHashes={this.state.selectionState.selectedItems.map((i) => i.id)}
+            selectedImageHashes={this.state.selectionState.selectedItems.map(i => i.id)}
           />
         )}
       </div>
@@ -344,11 +346,9 @@ export class PhotoListView extends Component {
   }
 }
 
-PhotoListView = connect((store) => {
-  return {
-    auth: store.auth,
-    showSidebar: store.ui.showSidebar,
-    route: store.router,
-    userSelfDetails: store.user.userSelfDetails,
-  };
-})(PhotoListView);
+PhotoListView = connect(store => ({
+  auth: store.auth,
+  showSidebar: store.ui.showSidebar,
+  route: store.router,
+  userSelfDetails: store.user.userSelfDetails,
+}))(PhotoListView);

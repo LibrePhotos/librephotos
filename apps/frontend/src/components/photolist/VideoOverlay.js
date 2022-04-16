@@ -1,6 +1,7 @@
-import React, { Component } from "react";
-import { Icon, Button } from "semantic-ui-react";
 import { Duration } from "luxon";
+import React, { Component } from "react";
+import { Button, Icon } from "semantic-ui-react";
+
 export default class VideoOverlay extends Component {
   render() {
     return (

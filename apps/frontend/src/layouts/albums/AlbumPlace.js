@@ -1,21 +1,22 @@
+import _ from "lodash";
 import React, { Component } from "react";
+import { withTranslation } from "react-i18next";
+import { Map, Marker, Popup, TileLayer } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-markercluster";
 import { connect } from "react-redux";
-import { Loader, Flag, Segment, Image, Header, Icon } from "semantic-ui-react";
-import { Map, TileLayer, Marker, Popup } from "react-leaflet";
+import { Link } from "react-router-dom";
+import { AutoSizer, Grid } from "react-virtualized";
+import { compose } from "redux";
+import { Flag, Header, Icon, Image, Loader, Segment } from "semantic-ui-react";
+
+import { fetchPlaceAlbumsList } from "../../actions/albumsActions";
 import { fetchLocationClusters } from "../../actions/utilActions";
 import { serverAddress } from "../../api_client/apiClient";
-import MarkerClusterGroup from "react-leaflet-markercluster";
-import { fetchPlaceAlbumsList } from "../../actions/albumsActions";
-import { Grid, AutoSizer } from "react-virtualized";
-import { countryNames } from "../../util/countryNames";
-import { Link } from "react-router-dom";
 import { SecuredImageJWT } from "../../components/SecuredImage";
-import _ from "lodash";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
-import { compose } from "redux";
-import { withTranslation } from "react-i18next";
+import { countryNames } from "../../util/countryNames";
 
-var SIDEBAR_WIDTH = 85;
+const SIDEBAR_WIDTH = 85;
 
 export class AlbumPlace extends Component {
   state = {
@@ -52,7 +53,7 @@ export class AlbumPlace extends Component {
 
     console.log("Map was just set visible.");
 
-    var resizeDone = false;
+    let resizeDone = false;
 
     // attempt resize 8 times; mapRef.current might be undefined
     for (let i = 0; i < 8; i++) {
@@ -69,7 +70,7 @@ export class AlbumPlace extends Component {
     }
   }
 
-  onViewportChanged = (viewport) => {
+  onViewportChanged = viewport => {
     console.log("Viewport changed, mapping new photo location: ", viewport.center);
     this.setState({ viewport });
 
@@ -82,7 +83,7 @@ export class AlbumPlace extends Component {
 
     const bounds = map.getBounds();
 
-    const visibleMarkers = this.props.locationClusters.filter((loc) => {
+    const visibleMarkers = this.props.locationClusters.filter(loc => {
       const markerLat = loc[0];
       const markerLng = loc[1];
       if (
@@ -92,19 +93,17 @@ export class AlbumPlace extends Component {
         markerLng > bounds._southWest.lng
       ) {
         return true;
-      } else {
-        return false;
       }
+      return false;
     });
 
-    const visiblePlaceNames = visibleMarkers.map((el) => el[2]);
+    const visiblePlaceNames = visibleMarkers.map(el => el[2]);
 
-    const visiblePlaceAlbums = this.props.albumsPlaceList.filter((el) => {
+    const visiblePlaceAlbums = this.props.albumsPlaceList.filter(el => {
       if (visiblePlaceNames.includes(el.title)) {
         return true;
-      } else {
-        return false;
       }
+      return false;
     });
 
     console.log(visibleMarkers);
@@ -117,13 +116,12 @@ export class AlbumPlace extends Component {
   static getDerivedStateFromProps(nextProps, prevState) {
     if (prevState.locationClusters.length === 0) {
       const visibleMarkers = nextProps.locationClusters;
-      const visiblePlaceNames = visibleMarkers.map((el) => el[2]);
-      const visiblePlaceAlbums = nextProps.albumsPlaceList.filter((el) => {
+      const visiblePlaceNames = visibleMarkers.map(el => el[2]);
+      const visiblePlaceAlbums = nextProps.albumsPlaceList.filter(el => {
         if (visiblePlaceNames.includes(el.title)) {
           return true;
-        } else {
-          return false;
         }
+        return false;
       });
 
       return {
@@ -131,13 +129,12 @@ export class AlbumPlace extends Component {
         locationClusters: nextProps.locationClusters,
         visiblePlaceAlbums: _.sortBy(visiblePlaceAlbums, ["geolocation_level", "photo_count"]),
       };
-    } else {
-      return { ...prevState };
     }
+    return { ...prevState };
   }
 
   preprocess() {
-    var markers = this.props.locationClusters.map(function (loc) {
+    const markers = this.props.locationClusters.map(loc => {
       if (loc[0] !== 0) {
         return <Marker position={[loc[0], loc[1]]} title={loc[2]} />;
       }
@@ -151,7 +148,7 @@ export class AlbumPlace extends Component {
   }
 
   calculateEntrySquareSize() {
-    var numEntrySquaresPerRow = 6;
+    let numEntrySquaresPerRow = 6;
     if (window.innerWidth < 600) {
       numEntrySquaresPerRow = 2;
     } else if (window.innerWidth < 800) {
@@ -162,9 +159,9 @@ export class AlbumPlace extends Component {
       numEntrySquaresPerRow = 5;
     }
 
-    var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15;
+    const columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15;
 
-    var entrySquareSize = columnWidth / numEntrySquaresPerRow;
+    const entrySquareSize = columnWidth / numEntrySquaresPerRow;
     this.setState({
       ...this.state,
       width: window.innerWidth,
@@ -175,24 +172,22 @@ export class AlbumPlace extends Component {
   }
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    var place = this.state.visiblePlaceAlbums;
-    var albumPlaceIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
+    const place = this.state.visiblePlaceAlbums;
+    const albumPlaceIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
     if (albumPlaceIndex < place.length) {
       return (
         <div key={key} style={style}>
           <div onClick={() => {}} style={{ padding: 5 }}>
-            {place[albumPlaceIndex].cover_photos.slice(0, 1).map((photo) => {
-              return (
-                <Link to={`/place/${place[albumPlaceIndex].id}/`}>
-                  <SecuredImageJWT
-                    style={{ display: "inline-block", objectFit: "cover" }}
-                    width={this.state.entrySquareSize - 10}
-                    height={this.state.entrySquareSize - 10}
-                    src={serverAddress + "/media/thumbnails_big/" + photo.image_hash}
-                  />
-                </Link>
-              );
-            })}
+            {place[albumPlaceIndex].cover_photos.slice(0, 1).map(photo => (
+              <Link to={`/place/${place[albumPlaceIndex].id}/`}>
+                <SecuredImageJWT
+                  style={{ display: "inline-block", objectFit: "cover" }}
+                  width={this.state.entrySquareSize - 10}
+                  height={this.state.entrySquareSize - 10}
+                  src={`${serverAddress}/media/thumbnails_big/${photo.image_hash}`}
+                />
+              </Link>
+            ))}
           </div>
           <div style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
             {countryNames.includes(place[albumPlaceIndex].title.toLowerCase()) ? (
@@ -208,15 +203,14 @@ export class AlbumPlace extends Component {
           </div>
         </div>
       );
-    } else {
-      return <div key={key} style={style} />;
     }
+    return <div key={key} style={style} />;
   };
 
   render() {
     console.log(this.state);
     if (this.props.fetchedLocationClusters) {
-      var markers = this.preprocess();
+      const markers = this.preprocess();
 
       return (
         <div>
@@ -274,24 +268,21 @@ export class AlbumPlace extends Component {
           </AutoSizer>
         </div>
       );
-    } else {
-      return (
-        <div style={{ height: this.props.height }}>
-          <Loader active>{this.props.t("placealbum.maploading")}</Loader>
-        </div>
-      );
     }
+    return (
+      <div style={{ height: this.props.height }}>
+        <Loader active>{this.props.t("placealbum.maploading")}</Loader>
+      </div>
+    );
   }
 }
 
 AlbumPlace = compose(
-  connect((store) => {
-    return {
-      albumsPlaceList: store.albums.albumsPlaceList,
-      locationClusters: store.util.locationClusters,
-      fetchingLocationClusters: store.util.fetchingLocationClusters,
-      fetchedLocationClusters: store.util.fetchedLocationClusters,
-    };
-  }),
+  connect(store => ({
+    albumsPlaceList: store.albums.albumsPlaceList,
+    locationClusters: store.util.locationClusters,
+    fetchingLocationClusters: store.util.fetchingLocationClusters,
+    fetchedLocationClusters: store.util.fetchedLocationClusters,
+  })),
   withTranslation()
 )(AlbumPlace);

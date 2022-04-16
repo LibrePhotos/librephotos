@@ -1,13 +1,14 @@
 import React, { Component } from "react";
-import { compose } from "redux";
-import { Header, Input, Button } from "semantic-ui-react";
-import { connect } from "react-redux";
+import { withTranslation } from "react-i18next";
 import Modal from "react-modal";
-import { manageUpdateUser, updateUserAndScan } from "../../actions/utilActions";
+import { connect } from "react-redux";
 import SortableTree from "react-sortable-tree";
 import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
-import { withTranslation } from "react-i18next";
-import { fetchDirectoryTree } from "../../actions/utilActions";
+import { compose } from "redux";
+import { Button, Header, Input } from "semantic-ui-react";
+
+import { fetchDirectoryTree, manageUpdateUser, updateUserAndScan } from "../../actions/utilActions";
+
 export class ModalScanDirectoryEdit extends Component {
   constructor(props) {
     super(props);
@@ -33,9 +34,8 @@ export class ModalScanDirectoryEdit extends Component {
   static getDerivedStateFromProps(nextProps, prevState) {
     if (prevState.treeData.length === 0) {
       return { ...prevState, treeData: nextProps.directoryTree };
-    } else {
-      return prevState;
     }
+    return prevState;
   }
 
   nodeClicked(event, rowInfo) {
@@ -150,11 +150,11 @@ export class ModalScanDirectoryEdit extends Component {
             canDrag={() => false}
             canDrop={() => false}
             treeData={this.state.treeData}
-            onChange={(treeData) => this.setState({ treeData })}
+            onChange={treeData => this.setState({ treeData })}
             theme={FileExplorerTheme}
-            generateNodeProps={(rowInfo) => {
-              let nodeProps = {
-                onClick: (event) => this.nodeClicked(event, rowInfo),
+            generateNodeProps={rowInfo => {
+              const nodeProps = {
+                onClick: event => this.nodeClicked(event, rowInfo),
               };
               if (this.state.selectedNodeId === rowInfo.node.id) {
                 nodeProps.className = "selected-node";
@@ -194,18 +194,16 @@ const modalStyles = {
 };
 
 ModalScanDirectoryEdit = compose(
-  connect((store) => {
-    return {
-      auth: store.auth,
+  connect(store => ({
+    auth: store.auth,
 
-      directoryTree: store.util.directoryTree,
-      fetchingDirectoryTree: store.util.fetchingDirectoryTree,
-      fetchedDirectoryTree: store.util.fetchedDirectoryTree,
+    directoryTree: store.util.directoryTree,
+    fetchingDirectoryTree: store.util.fetchingDirectoryTree,
+    fetchedDirectoryTree: store.util.fetchedDirectoryTree,
 
-      userList: store.util.userList,
-      fetchingUSerList: store.util.fetchingUserList,
-      fetchedUserList: store.util.fetchedUserList,
-    };
-  }),
+    userList: store.util.userList,
+    fetchingUSerList: store.util.fetchingUserList,
+    fetchedUserList: store.util.fetchedUserList,
+  })),
   withTranslation()
 )(ModalScanDirectoryEdit);

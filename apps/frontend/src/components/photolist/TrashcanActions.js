@@ -1,10 +1,12 @@
 import React, { Component } from "react";
-import "react-virtualized/styles.css"; // only needs to be imported once
-import { finalPhotosDeleted, setPhotosDeleted } from "../../actions/photosActions";
-import { Button, Icon, Confirm } from "semantic-ui-react";
-import { connect } from "react-redux";
 import { withTranslation } from "react-i18next";
+import { connect } from "react-redux";
+import "react-virtualized/styles.css";
 import { compose } from "redux";
+// only needs to be imported once
+import { Button, Confirm, Icon } from "semantic-ui-react";
+
+import { finalPhotosDeleted, setPhotosDeleted } from "../../actions/photosActions";
 
 export class TrashcanActions extends Component {
   state = {
@@ -37,7 +39,7 @@ export class TrashcanActions extends Component {
             onClick={() => {
               this.props.dispatch(
                 setPhotosDeleted(
-                  this.props.selectedItems.map((i) => i.id),
+                  this.props.selectedItems.map(i => i.id),
                   false
                 )
               );
@@ -57,7 +59,7 @@ export class TrashcanActions extends Component {
           onConfirm={() => {
             console.log("delete");
 
-            this.props.dispatch(finalPhotosDeleted(this.props.selectedItems.map((i) => i.id)));
+            this.props.dispatch(finalPhotosDeleted(this.props.selectedItems.map(i => i.id)));
 
             this.props.updateSelectionState({
               selectMode: false,
@@ -72,10 +74,8 @@ export class TrashcanActions extends Component {
 }
 
 TrashcanActions = compose(
-  connect((store) => {
-    return {
-      route: store.router,
-    };
-  }),
+  connect(store => ({
+    route: store.router,
+  })),
   withTranslation()
 )(TrashcanActions);

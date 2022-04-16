@@ -1,18 +1,20 @@
 import React, { Component } from "react";
+import { withTranslation } from "react-i18next";
 import { connect } from "react-redux";
-import { Icon, Header, Dropdown, Loader, Popup, Confirm, Label, Modal, Button, Input } from "semantic-ui-react";
-import { Grid, AutoSizer } from "react-virtualized";
-import { fetchUserAlbumsList, renameUserAlbum, deleteUserAlbum } from "../../actions/albumsActions";
 import { Link } from "react-router-dom";
+import { AutoSizer, Grid } from "react-virtualized";
+import { compose } from "redux";
+import { Button, Confirm, Dropdown, Header, Icon, Input, Label, Loader, Modal, Popup } from "semantic-ui-react";
+
+import { deleteUserAlbum, fetchUserAlbumsList, renameUserAlbum } from "../../actions/albumsActions";
 import { Tile } from "../../components/Tile";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
-import { compose } from "redux";
-import { withTranslation } from "react-i18next";
 
-var SIDEBAR_WIDTH = 85;
+const SIDEBAR_WIDTH = 85;
 
 export class AlbumUser extends Component {
   state = { newAlbumTitle: "" };
+
   constructor() {
     super();
     this.setState({
@@ -30,20 +32,25 @@ export class AlbumUser extends Component {
     this.calculateEntrySquareSize = this.calculateEntrySquareSize.bind(this);
     this.cellRenderer = this.cellRenderer.bind(this);
   }
+
   openDeleteDialog = (albumID, albumTitle) =>
     this.setState({
       openDeleteDialog: true,
       albumID: albumID,
       albumTitle: albumTitle,
     });
+
   openRenameDialog = (albumID, albumTitle) =>
     this.setState({
       openRenameDialog: true,
       albumID: albumID,
       albumTitle: albumTitle,
     });
+
   closeDeleteDialog = () => this.setState({ openDeleteDialog: false });
+
   closeRenameDialog = () => this.setState({ openRenameDialog: false });
+
   componentDidMount() {
     this.calculateEntrySquareSize();
     window.addEventListener("resize", this.calculateEntrySquareSize.bind(this));
@@ -53,7 +60,7 @@ export class AlbumUser extends Component {
   }
 
   calculateEntrySquareSize() {
-    var numEntrySquaresPerRow = 6;
+    let numEntrySquaresPerRow = 6;
     if (window.innerWidth < 600) {
       numEntrySquaresPerRow = 2;
     } else if (window.innerWidth < 800) {
@@ -64,9 +71,9 @@ export class AlbumUser extends Component {
       numEntrySquaresPerRow = 5;
     }
 
-    var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15;
+    const columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15;
 
-    var entrySquareSize = columnWidth / numEntrySquaresPerRow;
+    const entrySquareSize = columnWidth / numEntrySquaresPerRow;
     this.setState({
       width: window.innerWidth,
       height: window.innerHeight,
@@ -76,7 +83,7 @@ export class AlbumUser extends Component {
   }
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    var albumUserIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
+    const albumUserIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
     if (albumUserIndex < this.props.albumsUserList.length) {
       return (
         <div key={key} style={style}>
@@ -87,10 +94,10 @@ export class AlbumUser extends Component {
                 height={this.state.entrySquareSize - 10}
                 width={this.state.entrySquareSize - 10}
                 image_hash={this.props.albumsUserList[albumUserIndex].cover_photos[0].image_hash}
-              ></Tile>
+              />
             </Link>
             <Label style={{ backgroundColor: "transparent" }} attached="top right">
-              <Dropdown item icon={<Icon color="black" name="ellipsis vertical"></Icon>}>
+              <Dropdown item icon={<Icon color="black" name="ellipsis vertical" />}>
                 <Dropdown.Menu>
                   <Dropdown.Item
                     icon="edit"
@@ -124,14 +131,12 @@ export class AlbumUser extends Component {
                 position="center right"
                 header="Shared with:"
                 trigger={<Icon name="users" />}
-                content={this.props.albumsUserList[albumUserIndex].shared_to.map((el) => {
-                  return (
-                    <div>
-                      <Icon name="user circle" />
-                      <b>{el.username}</b>
-                    </div>
-                  );
-                })}
+                content={this.props.albumsUserList[albumUserIndex].shared_to.map(el => (
+                  <div>
+                    <Icon name="user circle" />
+                    <b>{el.username}</b>
+                  </div>
+                ))}
               />
             )}
             <b>{this.props.albumsUserList[albumUserIndex].title}</b> <br />
@@ -141,9 +146,8 @@ export class AlbumUser extends Component {
           </div>
         </div>
       );
-    } else {
-      return <div key={key} style={style} />;
     }
+    return <div key={key} style={style} />;
   };
 
   render() {
@@ -163,7 +167,7 @@ export class AlbumUser extends Component {
           </Header>
         </div>
         <Modal
-          size={"mini"}
+          size="mini"
           onClose={() => this.closeRenameDialog()}
           onOpen={() => this.openRenameDialog()}
           open={this.state.openRenameDialog}
@@ -175,13 +179,13 @@ export class AlbumUser extends Component {
               content={(this.props.t("useralbum.albumalreadyexists"), { name: this.state.newAlbumTitle.trim() })}
               position="bottom center"
               open={this.props.albumsUserList
-                .map((el) => el.title.toLowerCase().trim())
+                .map(el => el.title.toLowerCase().trim())
                 .includes(this.state.newAlbumTitle.toLowerCase().trim())}
               trigger={
                 <Input
                   fluid
                   error={this.props.albumsUserList
-                    .map((el) => el.title.toLowerCase().trim())
+                    .map(el => el.title.toLowerCase().trim())
                     .includes(this.state.newAlbumTitle.toLowerCase().trim())}
                   onChange={(e, v) => {
                     this.setState({ newAlbumTitle: v.value });
@@ -199,7 +203,7 @@ export class AlbumUser extends Component {
                       this.closeRenameDialog();
                     }}
                     disabled={this.props.albumsUserList
-                      .map((el) => el.title.toLowerCase().trim())
+                      .map(el => el.title.toLowerCase().trim())
                       .includes(this.state.newAlbumTitle.toLowerCase().trim())}
                     type="submit"
                   >
@@ -239,12 +243,10 @@ export class AlbumUser extends Component {
 }
 
 AlbumUser = compose(
-  connect((store) => {
-    return {
-      albumsUserList: store.albums.albumsUserList,
-      fetchingAlbumsUserList: store.albums.fetchingAlbumsUserList,
-      fetchedAlbumsUserList: store.albums.fetchedAlbumsUserList,
-    };
-  }),
+  connect(store => ({
+    albumsUserList: store.albums.albumsUserList,
+    fetchingAlbumsUserList: store.albums.fetchingAlbumsUserList,
+    fetchedAlbumsUserList: store.albums.fetchedAlbumsUserList,
+  })),
   withTranslation()
 )(AlbumUser);

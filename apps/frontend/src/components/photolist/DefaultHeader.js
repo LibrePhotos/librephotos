@@ -1,26 +1,23 @@
 import React, { Component } from "react";
-import { Button, Grid, GridColumn, GridRow, Header, Icon, Loader, Dropdown } from "semantic-ui-react";
-
-import { Link } from "react-router-dom";
-import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { withTranslation } from "react-i18next";
 import { connect } from "react-redux";
+import { Link } from "react-router-dom";
 import { compose } from "redux";
+import { Button, Dropdown, Grid, GridColumn, GridRow, Header, Icon, Loader } from "semantic-ui-react";
+
+import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { ModalScanDirectoryEdit } from "../modals/ModalScanDirectoryEdit";
 
 export class DefaultHeader extends Component {
   state = { modalOpen: false };
 
   // return true if it is a view with a dropdown
-  isDropdownView = () => {
-    return (
-      this.props.route.location.pathname === "/" ||
-      this.props.route.location.pathname.startsWith("/hidden") ||
-      this.props.route.location.pathname.startsWith("/notimestamp") ||
-      this.props.route.location.pathname.startsWith("/recent") ||
-      this.props.route.location.pathname.startsWith("/user/")
-    );
-  };
+  isDropdownView = () =>
+    this.props.route.location.pathname === "/" ||
+    this.props.route.location.pathname.startsWith("/hidden") ||
+    this.props.route.location.pathname.startsWith("/notimestamp") ||
+    this.props.route.location.pathname.startsWith("/recent") ||
+    this.props.route.location.pathname.startsWith("/user/");
 
   render() {
     if (this.props.loading || this.props.numPhotosetItems < 1) {
@@ -70,7 +67,7 @@ export class DefaultHeader extends Component {
               <Header>{this.props.noResultsMessage}</Header>
             </div>
           ) : (
-            <div></div>
+            <div />
           )}
           <ModalScanDirectoryEdit
             onRequestClose={() => {
@@ -78,7 +75,7 @@ export class DefaultHeader extends Component {
             }}
             userToEdit={this.state.userToEdit}
             isOpen={this.state.modalOpen}
-            updateAndScan={true}
+            updateAndScan
           />
         </div>
       );
@@ -107,27 +104,27 @@ export class DefaultHeader extends Component {
                     <Dropdown.Menu>
                       <Dropdown.Item as={Link} to="/">
                         <Icon color="green" name="calendar check outline" />
-                        {"  " + this.props.t("sidemenu.withtimestamp")}
+                        {`  ${this.props.t("sidemenu.withtimestamp")}`}
                       </Dropdown.Item>
                       <Dropdown.Item as={Link} to="/notimestamp">
                         <Icon color="red" name="calendar times outline" />
-                        {"  " + this.props.t("sidemenu.withouttimestamp")}
+                        {`  ${this.props.t("sidemenu.withouttimestamp")}`}
                       </Dropdown.Item>
                       <Dropdown.Divider />
 
                       <Dropdown.Item as={Link} to="/recent">
                         <Icon name="clock" />
-                        {"  " + this.props.t("sidemenu.recentlyadded")}
+                        {`  ${this.props.t("sidemenu.recentlyadded")}`}
                       </Dropdown.Item>
                       <Dropdown.Divider />
 
                       <Dropdown.Item as={Link} to="/hidden">
                         <Icon color="red" name="hide" />
-                        {"  " + this.props.t("sidemenu.hidden")}
+                        {`  ${this.props.t("sidemenu.hidden")}`}
                       </Dropdown.Item>
                       <Dropdown.Item as={Link} to="/favorites">
                         <Icon name="star" color="yellow" />
-                        {"  " + this.props.t("sidemenu.favorites")}
+                        {`  ${this.props.t("sidemenu.favorites")}`}
                       </Dropdown.Item>
                       <Dropdown.Item
                         disabled={!this.props.auth.access}
@@ -135,7 +132,7 @@ export class DefaultHeader extends Component {
                         to={this.props.auth.access ? `/user/${this.props.auth.access.name}` : "/"}
                       >
                         <Icon color="green" name="globe" />
-                        {"  " + this.props.t("sidemenu.mypublicphotos")}
+                        {`  ${this.props.t("sidemenu.mypublicphotos")}`}
                       </Dropdown.Item>
                     </Dropdown.Menu>
                   </Dropdown>
@@ -144,7 +141,7 @@ export class DefaultHeader extends Component {
                 )}
                 <Header.Subheader>
                   {this.props.numPhotosetItems != this.props.numPhotos
-                    ? this.props.numPhotosetItems + " " + this.props.t("defaultheader.days") + ", "
+                    ? `${this.props.numPhotosetItems} ${this.props.t("defaultheader.days")}, `
                     : ""}
                   {this.props.numPhotos} {this.props.t("defaultheader.photos")}
                   {this.props.additionalSubHeader}
@@ -172,11 +169,9 @@ export class DefaultHeader extends Component {
 }
 
 DefaultHeader = compose(
-  connect((store) => {
-    return {
-      auth: store.auth,
-      user: store.user.userSelfDetails,
-    };
-  }),
+  connect(store => ({
+    auth: store.auth,
+    user: store.user.userSelfDetails,
+  })),
   withTranslation()
 )(DefaultHeader);

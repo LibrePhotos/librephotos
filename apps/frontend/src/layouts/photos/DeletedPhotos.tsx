@@ -1,10 +1,11 @@
-import React, { useEffect, useCallback, useState } from "react";
-import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
 import _ from "lodash";
+import React, { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { PhotosState } from "../../reducers/photosReducer";
 import { PhotosetType } from "../../reducers/photosReducer";
-import { useTranslation } from "react-i18next";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 type fetchedGroup = {
@@ -12,10 +13,8 @@ type fetchedGroup = {
   page: number;
 };
 
-export const DeletedPhotos = () => {
-  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(
-    (state) => state.photos as PhotosState
-  );
+export function DeletedPhotos() {
+  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(state => state.photos as PhotosState);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
 
@@ -40,17 +39,17 @@ export const DeletedPhotos = () => {
   const getAlbums = (visibleGroups: any) => {
     console.log("visibleGroups", visibleGroups);
     visibleGroups.forEach((group: any) => {
-      var visibleImages = group.items;
+      const visibleImages = group.items;
       if (visibleImages.filter((i: any) => i.isTemp && i.isTemp != undefined).length > 0) {
-        var firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
-        var page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
+        const firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
+        const page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
         setGroup({ id: group.id, page: page });
       }
     });
   };
 
   const throttledGetAlbums = useCallback(
-    _.throttle((visibleItems) => getAlbums(visibleItems), 500),
+    _.throttle(visibleItems => getAlbums(visibleItems), 500),
     []
   );
   return (
@@ -58,12 +57,12 @@ export const DeletedPhotos = () => {
       showHidden={false}
       title={t("photos.deleted")}
       loading={fetchedPhotosetType !== PhotosetType.DELETED}
-      titleIconName={"trash"}
-      isDateView={true}
+      titleIconName="trash"
+      isDateView
       photoset={photosGroupedByDate}
       updateGroups={throttledGetAlbums}
       idx2hash={photosFlat}
-      selectable={true}
+      selectable
     />
   );
-};
+}

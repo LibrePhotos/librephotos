@@ -1,16 +1,17 @@
 import React, { Component } from "react";
-import { Popup, Divider, Menu } from "semantic-ui-react";
+import { withTranslation } from "react-i18next";
 import { connect } from "react-redux";
-import { CountStats } from "../../components/statistics";
+import { compose } from "redux";
+import { Divider, Menu, Popup } from "semantic-ui-react";
+
+import { EventCountMonthGraph } from "../../components/charts/EventCountMonthGraph";
+import FaceClusterScatter from "../../components/charts/FaceClusterGraph";
+import { LocationDurationStackedBar } from "../../components/charts/LocationDurationStackedBar";
+import SocialGraph from "../../components/charts/SocialGraph";
 import WordCloud from "../../components/charts/WordCloud";
 import { LocationLink } from "../../components/locationLink";
+import { CountStats } from "../../components/statistics";
 import { AlbumPlace } from "../albums/AlbumPlace";
-import { EventCountMonthGraph } from "../../components/charts/EventCountMonthGraph";
-import { LocationDurationStackedBar } from "../../components/charts/LocationDurationStackedBar";
-import FaceClusterScatter from "../../components/charts/FaceClusterGraph";
-import SocialGraph from "../../components/charts/SocialGraph";
-import { withTranslation } from "react-i18next";
-import { compose } from "redux";
 
 export class Statistics extends Component {
   state = { activeItem: "location tree" };
@@ -151,14 +152,12 @@ export class Statistics extends Component {
 }
 
 Statistics = compose(
-  connect((store) => {
-    return {
-      statusPhotoScan: store.util.statusPhotoScan,
-      statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
-      generatingAlbumsAuto: store.albums.generatingAlbumsAuto,
-      scanningPhotos: store.photos.scanningPhotos,
-      fetchedCountStats: store.util.fetchedCountStats,
-    };
-  }),
+  connect(store => ({
+    statusPhotoScan: store.util.statusPhotoScan,
+    statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
+    generatingAlbumsAuto: store.albums.generatingAlbumsAuto,
+    scanningPhotos: store.photos.scanningPhotos,
+    fetchedCountStats: store.util.fetchedCountStats,
+  })),
   withTranslation()
 )(Statistics);

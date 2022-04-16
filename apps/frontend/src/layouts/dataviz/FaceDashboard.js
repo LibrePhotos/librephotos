@@ -1,20 +1,21 @@
+import _ from "lodash";
+import debounce from "lodash/debounce";
 import React, { Component } from "react";
+import { connect } from "react-redux";
+import { AutoSizer, Grid } from "react-virtualized";
 import { Label } from "semantic-ui-react";
 
-import { connect } from "react-redux";
-import { deleteFaces, trainFaces, fetchInferredFacesList, fetchLabeledFacesList } from "../../actions/facesActions";
-import _ from "lodash";
-import { Grid, AutoSizer } from "react-virtualized";
-import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
-import { ScrollSpeed, SCROLL_DEBOUNCE_DURATION } from "../../util/scrollUtils";
-import debounce from "lodash/debounce";
-import { TOP_MENU_HEIGHT } from "../../ui-constants";
-import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
+import { deleteFaces, fetchInferredFacesList, fetchLabeledFacesList, trainFaces } from "../../actions/facesActions";
+import { ButtonHeaderGroup } from "../../components/facedashboard/ButtonHeaderGroup";
 import { FaceComponent } from "../../components/facedashboard/FaceComponent";
 import { HeaderComponent } from "../../components/facedashboard/HeaderComponent";
 import { TabComponent } from "../../components/facedashboard/TabComponent";
-import { ButtonHeaderGroup } from "../../components/facedashboard/ButtonHeaderGroup";
-var SIDEBAR_WIDTH = 85;
+import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
+import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
+import { SCROLL_DEBOUNCE_DURATION, ScrollSpeed } from "../../util/scrollUtils";
+
+const SIDEBAR_WIDTH = 85;
 
 const SPEED_THRESHOLD = 500;
 
@@ -74,18 +75,17 @@ export class FaceDashboard extends Component {
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
-    var inferredGroupedByPerson = _.groupBy(nextProps.inferredFacesList, (el) => el.person_name);
-    var inferredGroupedByPersonList = _.sortBy(_.toPairsIn(inferredGroupedByPerson), (el) => el[0]).map((el) => {
-      return {
-        person_name: el[0],
-        faces: _.reverse(_.sortBy(el[1], (el2) => el2.person_label_probability)),
-      };
-    });
+    const inferredGroupedByPerson = _.groupBy(nextProps.inferredFacesList, el => el.person_name);
+    const inferredGroupedByPersonList = _.sortBy(_.toPairsIn(inferredGroupedByPerson), el => el[0]).map(el => ({
+      person_name: el[0],
+      faces: _.reverse(_.sortBy(el[1], el2 => el2.person_label_probability)),
+    }));
 
-    var labeledGroupedByPerson = _.groupBy(nextProps.labeledFacesList, (el) => el.person_name);
-    var labeledGroupedByPersonList = _.sortBy(_.toPairsIn(labeledGroupedByPerson), (el) => el[0]).map((el) => {
-      return { person_name: el[0], faces: el[1] };
-    });
+    const labeledGroupedByPerson = _.groupBy(nextProps.labeledFacesList, el => el.person_name);
+    const labeledGroupedByPersonList = _.sortBy(_.toPairsIn(labeledGroupedByPerson), el => el[0]).map(el => ({
+      person_name: el[0],
+      faces: el[1],
+    }));
     const inferredCellContents = calculateFaceGridCells(
       inferredGroupedByPersonList,
       prevState.numEntrySquaresPerRow
@@ -105,7 +105,7 @@ export class FaceDashboard extends Component {
   }
 
   handleResize() {
-    var columnWidth = window.innerWidth - 5 - 5 - 10;
+    let columnWidth = window.innerWidth - 5 - 5 - 10;
     if (this.props.showSidebar) {
       columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 10;
     }
@@ -146,20 +146,20 @@ export class FaceDashboard extends Component {
       return;
     }
     if (e.shiftKey) {
-      var currentCellsInRowFormat =
+      const currentCellsInRowFormat =
         this.state.activeItem === "labeled" ? this.state.labeledCellContents : this.state.inferredCellContents;
 
-      var allFacesInCells = [];
-      for (var i = 0; i < currentCellsInRowFormat.length; i++) {
-        for (var j = 0; j < this.state.numEntrySquaresPerRow; j++) {
+      const allFacesInCells = [];
+      for (let i = 0; i < currentCellsInRowFormat.length; i++) {
+        for (let j = 0; j < this.state.numEntrySquaresPerRow; j++) {
           allFacesInCells.push(currentCellsInRowFormat[i][j]);
         }
       }
-      var start = allFacesInCells.indexOf(cell);
-      var end = allFacesInCells.indexOf(this.state.lastChecked);
+      const start = allFacesInCells.indexOf(cell);
+      const end = allFacesInCells.indexOf(this.state.lastChecked);
 
-      var facesToSelect = allFacesInCells.slice(Math.min(start, end), Math.max(start, end) + 1);
-      facesToSelect.forEach((face) => this.onFaceSelect(face.id));
+      const facesToSelect = allFacesInCells.slice(Math.min(start, end), Math.max(start, end) + 1);
+      facesToSelect.forEach(face => this.onFaceSelect(face.id));
       return;
     }
     this.onFaceSelect(cell.id);
@@ -167,9 +167,9 @@ export class FaceDashboard extends Component {
   }
 
   onFaceSelect(faceID) {
-    var selectedFaces = this.state.selectedFaces;
+    let { selectedFaces } = this.state;
     if (selectedFaces.includes(faceID)) {
-      selectedFaces = selectedFaces.filter((item) => item !== faceID);
+      selectedFaces = selectedFaces.filter(item => item !== faceID);
     } else {
       selectedFaces.push(faceID);
     }
@@ -197,7 +197,7 @@ export class FaceDashboard extends Component {
   }
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    var cell;
+    let cell;
     if (this.state.activeItem === "labeled") {
       cell = this.state.labeledCellContents[rowIndex][columnIndex];
     } else {
@@ -215,24 +215,22 @@ export class FaceDashboard extends Component {
             width={this.state.width}
           />
         );
-      } else {
-        return (
-          <FaceComponent
-            handleClick={this.handleClick}
-            key={key}
-            cell={cell}
-            selectMode={this.state.selectMode}
-            isSelected={this.state.selectedFaces.includes(cell.id)}
-            isScrollingFast={this.state.isScrollingFast}
-            activeItem={this.state.activeItem}
-            style={style}
-            entrySquareSize={this.state.entrySquareSize}
-          />
-        );
       }
-    } else {
-      return <div key={key} style={style} />;
+      return (
+        <FaceComponent
+          handleClick={this.handleClick}
+          key={key}
+          cell={cell}
+          selectMode={this.state.selectMode}
+          isSelected={this.state.selectedFaces.includes(cell.id)}
+          isScrollingFast={this.state.isScrollingFast}
+          activeItem={this.state.activeItem}
+          style={style}
+          entrySquareSize={this.state.entrySquareSize}
+        />
+      );
     }
+    return <div key={key} style={style} />;
   };
 
   render() {
@@ -314,16 +312,14 @@ export class FaceDashboard extends Component {
   }
 }
 
-FaceDashboard = connect((store) => {
-  return {
-    workerAvailability: store.util.workerAvailability,
-    workerRunningJob: store.util.workerRunningJob,
-    showSidebar: store.ui.showSidebar,
-    inferredFacesList: store.faces.inferredFacesList,
-    labeledFacesList: store.faces.labeledFacesList,
-    fetchingLabeledFacesList: store.faces.fetchingLabeledFacesList,
-    fetchedLabeledFacesList: store.faces.fetchedLabeledFacesList,
-    fetchingInferredFacesList: store.faces.fetchingInferredFacesList,
-    fetchedInferredFacesList: store.faces.fetchedInferredFacesList,
-  };
-})(FaceDashboard);
+FaceDashboard = connect(store => ({
+  workerAvailability: store.util.workerAvailability,
+  workerRunningJob: store.util.workerRunningJob,
+  showSidebar: store.ui.showSidebar,
+  inferredFacesList: store.faces.inferredFacesList,
+  labeledFacesList: store.faces.labeledFacesList,
+  fetchingLabeledFacesList: store.faces.fetchingLabeledFacesList,
+  fetchedLabeledFacesList: store.faces.fetchedLabeledFacesList,
+  fetchingInferredFacesList: store.faces.fetchingInferredFacesList,
+  fetchedInferredFacesList: store.faces.fetchedInferredFacesList,
+}))(FaceDashboard);

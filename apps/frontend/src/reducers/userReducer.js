@@ -38,7 +38,7 @@ export default function reducer(
     }
 
     case "UPDATE_USER_FULFILLED": {
-      let newState = {
+      const newState = {
         ...state,
       };
       if (action.payload.favorite_min_rating !== undefined) {
