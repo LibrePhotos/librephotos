@@ -6,8 +6,9 @@ import { Button, Progress } from "semantic-ui-react";
 import { Server } from "../api_client/apiClient";
 import MD5 from "crypto-js/md5";
 import CryptoJS from "crypto-js";
-import { useAppSelector } from "../store/store";
+import { useAppDispatch, useAppSelector } from "../store/store";
 import { api } from "../api_client/api";
+import { UploadOptions } from "../store/upload/upload.zod";
 
 export const ChunkedUploadButton = ({ token }: { token?: string }) => {
   const { t } = useTranslation();
@@ -15,7 +16,9 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
   const [currentSize, setCurrentSize] = useState(1);
   const { userSelfDetails } = useAppSelector(state => state.user);
   const { siteSettings } = useAppSelector(state => state.util);
+  const dispatch = useAppDispatch();
   const chunkSize = 100000; // 100kb chunks
+  const [upload] = api.useUploadMutation();
   let currentUploadedFileSize = 0;
   const { getRootProps, getInputProps, open, acceptedFiles } = useDropzone({
     accept: ["image/*", "video/*"],
@@ -41,7 +44,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
           for (let i = 0; i < chunks.length; i++) {
             const response = await uploadChunk(chunks[offset / chunkSize], uploadId, offset);
             offset = response.offset;
-            uploadId = response.uploadId;
+            uploadId = response.upload_id;
             if (chunks[offset / chunkSize]) {
               currentUploadedFileSize += chunks[offset / chunkSize].size;
             } else {
@@ -102,7 +105,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
   };
 
   const uploadExists = async (hash: string) => {
-    return api.useUploadExistsQuery(hash);
+    return dispatch(api.endpoints.uploadExists.initiate(hash));
   };
 
   const uploadFinished = async (file: File, uploadId: string) => {
@@ -116,41 +119,17 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
 
   const uploadChunk = async (chunk: Blob, uploadId: string, offset: number) => {
     //only send first chunk without upload id
-    if (!uploadId) {
-      var form_data = new FormData();
-      form_data.append("file", chunk);
-      form_data.append("md5", calculateMD5Blob(chunk));
-      form_data.append("offset", offset.toString());
-      form_data.append("user", userSelfDetails.id.toString());
-      return Server.post("upload/", form_data, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          "Content-Range": `bytes ${offset}-${offset + chunk.size - 1}/${chunk.size}`,
-        },
-      }).then(response => {
-        return {
-          uploadId: response.data.upload_id,
-          offset: response.data.offset,
-        };
-      });
-    }
     var form_data = new FormData();
-    form_data.append("upload_id", uploadId);
+    if (uploadId) {
+      form_data.append("upload_id", uploadId);
+    }
     form_data.append("file", chunk);
     form_data.append("md5", calculateMD5Blob(chunk));
     form_data.append("offset", offset.toString());
     form_data.append("user", userSelfDetails.id.toString());
-    return Server.post("upload/", form_data, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-        "Content-Range": `bytes ${offset}-${offset + chunk.size - 1}/${chunk.size}`,
-      },
-    }).then(response => {
-      return {
-        uploadId: response.data.upload_id,
-        offset: response.data.offset,
-      };
-    });
+    var size = chunk.size;
+    var options = UploadOptions.parse({ form_data, offset, size });
+    return upload(options).unwrap();
   };
 
   const calculateChunks = (file: File, chunkSize: number) => {

@@ -12,6 +12,8 @@ import type {
 } from "../store/auth/auth.zod";
 import { TokenSchema } from "../store/auth/auth.zod";
 import type { RootState } from "../store/store";
+import type { IUploadResponse, IUploadOptions } from "../store/upload/upload.zod";
+import { UploadResponse } from "../store/upload/upload.zod";
 
 export enum Endpoints {
   login = "login",
@@ -21,6 +23,7 @@ export enum Endpoints {
   fetchPredefinedRules = "fetchPredefinedRules",
   refreshAccessToken = "refreshAccessToken",
   uploadExists = "uploadExists",
+  upload = "upload",
 }
 
 export const api = createApi({
@@ -86,6 +89,18 @@ export const api = createApi({
     }),
     [Endpoints.uploadExists]: builder.query<boolean, string>({
       query: hash => `/exists/${hash}`,
+    }),
+    [Endpoints.upload]: builder.mutation<IUploadResponse, IUploadOptions>({
+      query: options => ({
+        url: "/upload/",
+        method: "POST",
+        data: options.form_data,
+        headers: {
+          "Content-Type": "multipart/form-data",
+          "Content-Range": `bytes ${options.offset}-${options.offset + options.chunk_size - 1}/${options.chunk_size}`,
+        },
+      }),
+      transformResponse: (response: string) => UploadResponse.parse(response),
     }),
   }),
 });
