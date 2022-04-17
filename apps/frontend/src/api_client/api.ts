@@ -20,6 +20,7 @@ export enum Endpoints {
   fetchUserSelfDetails = "fetchUserSelfDetails",
   fetchPredefinedRules = "fetchPredefinedRules",
   refreshAccessToken = "refreshAccessToken",
+  uploadExists = "uploadExists",
 }
 
 export const api = createApi({
@@ -82,6 +83,9 @@ export const api = createApi({
         url: "/user/",
         method: "GET",
       }),
+    }),
+    [Endpoints.uploadExists]: builder.query<boolean, string>({
+      query: hash => `/exists/${hash}`,
     }),
   }),
 });

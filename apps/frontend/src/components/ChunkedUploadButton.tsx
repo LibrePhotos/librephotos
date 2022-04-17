@@ -7,23 +7,23 @@ import { Server } from "../api_client/apiClient";
 import MD5 from "crypto-js/md5";
 import CryptoJS from "crypto-js";
 import { useAppSelector } from "../store/store";
+import { api } from "../api_client/api";
 
 export const ChunkedUploadButton = ({ token }: { token?: string }) => {
   const { t } = useTranslation();
   const [totalSize, setTotalSize] = useState(1);
   const [currentSize, setCurrentSize] = useState(1);
-
-  const { userSelfDetails } = useAppSelector((state) => state.user);
-  const { siteSettings } = useAppSelector((state) => state.util);
+  const { userSelfDetails } = useAppSelector(state => state.user);
+  const { siteSettings } = useAppSelector(state => state.util);
   const chunkSize = 100000; // 100kb chunks
   let currentUploadedFileSize = 0;
   const { getRootProps, getInputProps, open, acceptedFiles } = useDropzone({
     accept: ["image/*", "video/*"],
     noClick: true,
     noKeyboard: true,
-    onDrop: async (acceptedFiles) => {
+    onDrop: async acceptedFiles => {
       let totalSize = 0;
-      acceptedFiles.forEach((file) => {
+      acceptedFiles.forEach(file => {
         const fileSize = file.size;
         totalSize += fileSize;
       });
@@ -102,9 +102,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
   };
 
   const uploadExists = async (hash: string) => {
-    return Server.get(`/exists/${hash}/`).then((response) => {
-      return response.data.exists;
-    });
+    return api.useUploadExistsQuery(hash);
   };
 
   const uploadFinished = async (file: File, uploadId: string) => {
@@ -129,7 +127,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
           "Content-Type": "multipart/form-data",
           "Content-Range": `bytes ${offset}-${offset + chunk.size - 1}/${chunk.size}`,
         },
-      }).then((response) => {
+      }).then(response => {
         return {
           uploadId: response.data.upload_id,
           offset: response.data.offset,
@@ -147,7 +145,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
         "Content-Type": "multipart/form-data",
         "Content-Range": `bytes ${offset}-${offset + chunk.size - 1}/${chunk.size}`,
       },
-    }).then((response) => {
+    }).then(response => {
       return {
         uploadId: response.data.upload_id,
         offset: response.data.offset,
