@@ -35,11 +35,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
       for (const file of acceptedFiles) {
         // Check if the upload already exists via the hash of the file
         const hash = (await calculateMD5(file)) + userSelfDetails.id;
-        // I have to ignore ts when acessing the data for some reason...
-        const data = await (await uploadExists(hash)).data;
-        //@ts-ignore
-        const isAlreadyUploaded = data ? data.exists : false;
-        console.log(isAlreadyUploaded);
+        const isAlreadyUploaded = (await uploadExists(hash)).data;
         if (!isAlreadyUploaded) {
           const chunks = calculateChunks(file, chunkSize);
           const offset = 0;
@@ -135,8 +131,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
     form_data.append("md5", calculateMD5Blob(chunk));
     form_data.append("offset", offset.toString());
     form_data.append("user", userSelfDetails.id.toString());
-    var options = UploadOptions.parse({ form_data: form_data, offset: offset, chunk_size: chunk.size });
-    return dispatch(api.endpoints.upload.initiate(options));
+    return dispatch(api.endpoints.upload.initiate({ form_data: form_data, offset: offset, chunk_size: chunk.size }));
   };
 
   const calculateChunks = (file: File, chunkSize: number) => {

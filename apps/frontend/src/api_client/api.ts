@@ -13,7 +13,7 @@ import type {
 import { TokenSchema } from "../store/auth/auth.zod";
 import type { RootState } from "../store/store";
 import type { IUploadResponse, IUploadOptions } from "../store/upload/upload.zod";
-import { UploadResponse } from "../store/upload/upload.zod";
+import { UploadResponse, UploadExistResponse } from "../store/upload/upload.zod";
 
 export enum Endpoints {
   login = "login",
@@ -89,6 +89,8 @@ export const api = createApi({
     }),
     [Endpoints.uploadExists]: builder.query<boolean, string>({
       query: hash => `/exists/${hash}`,
+      // This used to set the csrf token, but that isn't happening right now...
+      transformResponse: (response: string) => UploadExistResponse.parse(response).exists,
     }),
     [Endpoints.upload]: builder.mutation<IUploadResponse, IUploadOptions>({
       query: options => ({
@@ -96,11 +98,13 @@ export const api = createApi({
         method: "POST",
         data: options.form_data,
         headers: {
-          "Content-Type": "multipart/form-data",
+          // To-Do: Figure out the csrf token
+          // Boundary error when explicitly writing that
+          //"Content-Type": "multipart/form-data",
           "Content-Range": `bytes ${options.offset}-${options.offset + options.chunk_size - 1}/${options.chunk_size}`,
         },
       }),
-      transformResponse: (response: string) => UploadResponse.parse(response),
+      transformResponse: (response: IUploadResponse) => UploadResponse.parse(response),
     }),
   }),
 });

@@ -5,6 +5,10 @@ export const UploadResponse = z.object({
   offset: z.number(),
 });
 
+export const UploadExistResponse = z.object({
+  exists: z.boolean(),
+});
+
 export const UploadOptions = z.object({
   form_data: z.instanceof(FormData),
   offset: z.number(),
