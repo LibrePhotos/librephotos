@@ -35,16 +35,24 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
       for (const file of acceptedFiles) {
         // Check if the upload already exists via the hash of the file
         const hash = (await calculateMD5(file)) + userSelfDetails.id;
-        const isAlreadyUploaded = await uploadExists(hash);
+        // I have to ignore ts when acessing the data for some reason...
+        const data = await (await uploadExists(hash)).data;
+        //@ts-ignore
+        const isAlreadyUploaded = data ? data.exists : false;
+        console.log(isAlreadyUploaded);
         if (!isAlreadyUploaded) {
           const chunks = calculateChunks(file, chunkSize);
-          let offset = 0;
-          let uploadId = "";
+          const offset = 0;
+          const uploadId = "";
           //To-Do: Handle Resume and Pause
           for (let i = 0; i < chunks.length; i++) {
+            // Does not work at all
             const response = await uploadChunk(chunks[offset / chunkSize], uploadId, offset);
-            offset = response.offset;
-            uploadId = response.upload_id;
+            console.log(response);
+            //@ts-ignore
+            offset = response.data.offset;
+            //@ts-ignore
+            uploadId = response.data.upload_id;
             if (chunks[offset / chunkSize]) {
               currentUploadedFileSize += chunks[offset / chunkSize].size;
             } else {
@@ -127,9 +135,8 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
     form_data.append("md5", calculateMD5Blob(chunk));
     form_data.append("offset", offset.toString());
     form_data.append("user", userSelfDetails.id.toString());
-    var size = chunk.size;
-    var options = UploadOptions.parse({ form_data, offset, size });
-    return upload(options).unwrap();
+    var options = UploadOptions.parse({ form_data: form_data, offset: offset, chunk_size: chunk.size });
+    return dispatch(api.endpoints.upload.initiate(options));
   };
 
   const calculateChunks = (file: File, chunkSize: number) => {
