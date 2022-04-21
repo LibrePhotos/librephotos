@@ -19,7 +19,7 @@
         "credentials": "Inloggningsuppgifter",
         "credentialspopup": "Använd programmets lösenord",
         "serveradress": "Serveradress",
-        "serveradressplaceholder": "https://...",
+        "serveradressplaceholder": "https://",
         "nextcloudusername": "Användarnamn",
         "nextcloudusernameplaceholder": "Användarnamn",
         "nextcloudpassword": "Nextcloud-lösenord",
@@ -72,15 +72,15 @@
         "scanoptions": "Inställningar för sökning",
         "account": "Konto",
         "uploadheader": "Ladda upp ny avatar",
-        "accountinformation": "Kontoinformation",
+        "accountinformation": "Kontoinfo",
         "firstname": "Förnamn",
         "lastname": "Efternamn",
         "lastnameplaceholder": "Efternamn",
-        "email": "E-postadress",
+        "email": "E-post",
         "spanish": "Spanska",
         "french": "Franska",
         "italian": "Italienska",
-        "emailplaceholder": "E-postadress",
+        "emailplaceholder": "E-post",
         "missingphotos": "Saknade bilder",
         "eventsalbumsdescription": "Backendservern klustrar först foton efter tidpunkten de togs. Om två foton tagits inom 12 timmar från varandra anses de tillhöra samma händelse. Efter att klustren skapats genereras ett automatiskt namn på händelsealbumet.",
         "favoritesyncoptions": {
@@ -119,7 +119,9 @@
             "top0": "Inaktiverad"
         },
         "semanticsearchupdate": "Uppdatera",
-        "favorite": "Inställningar för favoriter"
+        "favorite": "Inställningar för favoriter",
+        "metadata": "Metadata alternativ",
+        "sync": "Synkronisera metadata till disk"
     },
     "modalnextcloud": {
         "setdirectory": "Ange lagringsplats i Nextcloud",
@@ -200,7 +202,8 @@
         "removephotosdescription": "Ta bort de valda bilderna från det aktuella albumet",
         "albumsharingdescription": "Öppna delningspanelen för det aktuella albumet",
         "removephotos": "Ta bort bilder",
-        "album": "Album"
+        "album": "Album",
+        "deleted": "Ta bort"
     },
     "lightbox": {
         "sidebar": {
@@ -237,7 +240,9 @@
     "sitesettings": {
         "header": "Tillåt användarregistrering",
         "noallow": "Tillåt inte",
-        "allow": "Tillåt"
+        "allow": "Tillåt",
+        "headerupload": "Tillåt uppladdningar",
+        "headerapikey": "Mapbox API-nyckel"
     },
     "photos": {
         "recentlyadded": "Nyligen tillagda",
@@ -245,7 +250,8 @@
         "photos": "Bilder",
         "notimestamp": "Bilder utan tidsstämpel",
         "hidden": "Dolda bilder",
-        "favorite": "Favoritbilder"
+        "favorite": "Favoritbilder",
+        "deleted": "Papperskorg"
     },
     "login": {
         "password": "Lösenord",
@@ -321,7 +327,7 @@
     "personedit": {
         "labelfaces": "Märk ansikten",
         "addperson": "Lägg till person",
-        "numberselected": "Märk valda {{number}} ansikten som...",
+        "numberselected": "Märk valda {{number}} ansikten som…",
         "newperson": "Ny person",
         "personname": "Personens namn"
     },
@@ -381,7 +387,11 @@
         "setcoverphoto": "Omslagsbild angiven",
         "sharephoto": "{{numberOfPhotos}} bild(er) delades med {{username}}",
         "unhidephoto": "{{numberOfPhotos}} bild(er) togs bort från dolda bilder.",
-        "fullscanphotos": "Söker bilder (fullständig)…"
+        "fullscanphotos": "Söker bilder (fullständig)…",
+        "editphoto": "Foto redigerat",
+        "editphototitle": "Redigera foto",
+        "finaldeletephototitle": "Ta bort bilder",
+        "setdeletetitle": "Ta bort bilder"
     },
     "facesdashboard": {
         "numberoffaces": "{{number}} ansikten",
@@ -408,5 +418,15 @@
     "myalbums": "Mina album",
     "things": "Saker",
     "places": "Platser",
-    "loading": "Laddar..."
+    "loading": "Laddar...",
+    "rules": {
+        "15": "Lokal tid från EXIF:DateTime exif tagg",
+        "source_tz": "Transformera från {{rule}}",
+        "report_tz": "Transformera till {{rule}}",
+        "1": "Lokal tid från DATE_TIME_ORIGINAL exif tagg",
+        "rule_type": "Regeltyp: {{rule}}",
+        "exif_tag": "Använd Exiftagg {{rule}}"
+    },
+    "nofaces": "Inga ansikten",
+    "nodata": "Ingen data"
 }
