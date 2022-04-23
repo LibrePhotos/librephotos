@@ -1,5 +1,5 @@
-import { z } from "zod";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import { z } from "zod";
 
 export const PublicPhotoSampleSchema = z.object({
   image_hash: z.string(),

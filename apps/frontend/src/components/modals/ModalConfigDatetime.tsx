@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Header } from "semantic-ui-react";
 import Modal from "react-modal";
-import { SortableItem } from "../settings/SortableItem";
+import { Header } from "semantic-ui-react";
+
+import { useFetchPredefinedRulesQuery } from "../../api_client/api";
 import { useAppSelector } from "../../store/store";
 import { selectUserSelfDetails } from "../../store/user/userSelectors";
-import { useFetchPredefinedRulesQuery } from "../../api_client/api";
+import { SortableItem } from "../settings/SortableItem";
 
 type Props = {
   isOpen: boolean;
@@ -12,13 +13,13 @@ type Props = {
   addItemFunction: (item: any) => void;
 };
 
-export const ModalConfigDatetime = (props: Props) => {
+export function ModalConfigDatetime(props: Props) {
   const [possibleOptions, setPossibleOptions] = useState<Array<any>>([]);
   const { isLoading, isError, error, data } = useFetchPredefinedRulesQuery();
 
   const { datetime_rules } = useAppSelector(selectUserSelfDetails);
-  const rules = JSON.parse(datetime_rules ? datetime_rules : "[]");
-  //make sure rules have ids
+  const rules = JSON.parse(datetime_rules || "[]");
+  // make sure rules have ids
   rules.forEach((rule: any, index: any) => {
     if (!rule.id) {
       rule.id = index;
@@ -79,20 +80,14 @@ export const ModalConfigDatetime = (props: Props) => {
       <div style={{ padding: 10, overflowY: "auto", height: "100%" }}>
         {possibleOptions &&
           possibleOptions.map((rule: any) => (
-            <SortableItem
-              key={rule.id}
-              id={rule.id}
-              item={rule}
-              addItem={true}
-              addItemFunction={props.addItemFunction}
-            ></SortableItem>
+            <SortableItem key={rule.id} id={rule.id} item={rule} addItem addItemFunction={props.addItemFunction} />
           ))}
       </div>
     </Modal>
   );
-};
+}
 
-//To-Do: Complains that position is a string and not a position, but I can't import the position interface. Copy and pasting fixed it
+// To-Do: Complains that position is a string and not a position, but I can't import the position interface. Copy and pasting fixed it
 const modalStyles = {
   content: {
     top: "12vh",

@@ -3,6 +3,7 @@ import React, { Component } from "react";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
 import { Button, Icon, Image, Menu } from "semantic-ui-react";
+
 import { toggleSidebar } from "../../actions/uiActions";
 
 export class TopMenuPublic extends Component {
@@ -17,7 +18,7 @@ export class TopMenuPublic extends Component {
                 onClick={() => {
                   this.props.dispatch(toggleSidebar());
                 }}
-                name={"sidebar"}
+                name="sidebar"
               />
               <Button
                 color="black"
@@ -41,9 +42,7 @@ export class TopMenuPublic extends Component {
   }
 }
 
-TopMenuPublic = connect((store) => {
-  return {
-    showSidebar: store.ui.showSidebar,
-    gridType: store.ui.gridType,
-  };
-})(TopMenuPublic);
+TopMenuPublic = connect(store => ({
+  showSidebar: store.ui.showSidebar,
+  gridType: store.ui.gridType,
+}))(TopMenuPublic);

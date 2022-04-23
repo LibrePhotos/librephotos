@@ -1,11 +1,12 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { fetchAlbumDateList, fetchAlbumDate } from "../../actions/albumsActions";
+import _ from "lodash";
+import React, { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
 import { fetchPeople } from "../../actions/peopleActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { PhotosetType, PhotosState } from "../../reducers/photosReducer";
+import { PhotosState, PhotosetType } from "../../reducers/photosReducer";
 import { useAppDispatch, useAppSelector } from "../../store/store";
-import { useTranslation } from "react-i18next";
-import _ from "lodash";
 
 type fetchedGroup = {
   id: string;
@@ -16,11 +17,9 @@ type Props = {
   match: any;
 };
 
-export const AlbumPersonGallery = (props: Props): JSX.Element => {
-  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(
-    (state) => state.photos as PhotosState
-  );
-  const { people } = useAppSelector((state) => state.people);
+export function AlbumPersonGallery(props: Props): JSX.Element {
+  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(state => state.photos as PhotosState);
+  const { people } = useAppSelector(state => state.people);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const [group, setGroup] = useState({} as fetchedGroup);
@@ -50,32 +49,32 @@ export const AlbumPersonGallery = (props: Props): JSX.Element => {
 
   const getAlbums = (visibleGroups: any) => {
     visibleGroups.forEach((group: any) => {
-      var visibleImages = group.items;
+      const visibleImages = group.items;
       if (visibleImages.filter((i: any) => i.isTemp && i.isTemp != undefined).length > 0) {
-        var firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
-        var page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
+        const firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
+        const page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
         setGroup({ id: group.id, page: page });
       }
     });
   };
 
   const throttledGetAlbums = useCallback(
-    _.throttle((visibleItems) => getAlbums(visibleItems), 500),
+    _.throttle(visibleItems => getAlbums(visibleItems), 500),
     []
   );
 
   // get person details
   return (
     <PhotoListView
-      title={personname ? personname : t("loading")}
+      title={personname || t("loading")}
       loading={fetchedPhotosetType !== PhotosetType.PERSON}
-      titleIconName={"user"}
-      isDateView={true}
+      titleIconName="user"
+      isDateView
       photoset={photosGroupedByDate}
       idx2hash={photosFlat}
       updateGroups={throttledGetAlbums}
-      selectable={true}
+      selectable
       match={props.match}
     />
   );
-};
+}

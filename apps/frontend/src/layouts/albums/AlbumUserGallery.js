@@ -1,10 +1,12 @@
 import React, { Component } from "react";
+import { withTranslation } from "react-i18next";
 import { connect } from "react-redux";
+import { compose } from "redux";
+
 import { fetchUserAlbum } from "../../actions/albumsActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType } from "../../reducers/photosReducer";
-import { compose } from "redux";
-import { withTranslation } from "react-i18next";
+
 export class AlbumUserGallery extends Component {
   isLoaded() {
     return (
@@ -22,7 +24,7 @@ export class AlbumUserGallery extends Component {
   render() {
     const isPublic =
       this.props.albumDetails.owner && this.props.albumDetails.owner.id !== this.props.auth.access.user_id;
-    var additionalSubHeader = "";
+    let additionalSubHeader = "";
     if (isPublic) {
       additionalSubHeader = (
         <span>
@@ -40,27 +42,25 @@ export class AlbumUserGallery extends Component {
         title={this.props.albumDetails ? this.props.albumDetails.title : this.props.t("loading")}
         additionalSubHeader={additionalSubHeader}
         loading={!this.isLoaded()}
-        titleIconName={"bookmark"}
-        isDateView={true}
+        titleIconName="bookmark"
+        isDateView
         photoset={this.props.photosGroupedByDate}
         idx2hash={this.props.photosFlat}
         match={this.props.match}
         isPublic={isPublic}
-        selectable={true}
+        selectable
       />
     );
   }
 }
 
 AlbumUserGallery = compose(
-  connect((store) => {
-    return {
-      auth: store.auth,
-      albumDetails: store.albums.albumDetails,
-      photosGroupedByDate: store.photos.photosGroupedByDate,
-      photosFlat: store.photos.photosFlat,
-      fetchedPhotosetType: store.photos.fetchedPhotosetType,
-    };
-  }),
+  connect(store => ({
+    auth: store.auth,
+    albumDetails: store.albums.albumDetails,
+    photosGroupedByDate: store.photos.photosGroupedByDate,
+    photosFlat: store.photos.photosFlat,
+    fetchedPhotosetType: store.photos.fetchedPhotosetType,
+  })),
   withTranslation()
 )(AlbumUserGallery);

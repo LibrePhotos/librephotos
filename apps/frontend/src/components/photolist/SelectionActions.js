@@ -1,19 +1,22 @@
 import React, { Component } from "react";
-import "react-virtualized/styles.css"; // only needs to be imported once
+import { Trans, withTranslation } from "react-i18next";
+import { connect } from "react-redux";
+import "react-virtualized/styles.css";
+import { compose } from "redux";
+// only needs to be imported once
+import { Button, Dropdown, Icon, Popup } from "semantic-ui-react";
+
+import { removeFromUserAlbum } from "../../actions/albumsActions";
 import {
-  setPhotosFavorite,
+  downloadPhotos,
   setPhotosDeleted,
+  setPhotosFavorite,
   setPhotosHidden,
   setPhotosPublic,
-  downloadPhotos,
 } from "../../actions/photosActions";
-import { copyToClipboard } from "../../util/util";
-import { Dropdown, Popup, Button, Icon } from "semantic-ui-react";
 import { serverAddress } from "../../api_client/apiClient";
-import { connect } from "react-redux";
-import { removeFromUserAlbum } from "../../actions/albumsActions";
-import { withTranslation, Trans } from "react-i18next";
-import { compose } from "redux";
+import { copyToClipboard } from "../../util/util";
+
 export class SelectionActions extends Component {
   render() {
     return (
@@ -41,7 +44,7 @@ export class SelectionActions extends Component {
                 onClick={() => {
                   this.props.dispatch(
                     setPhotosFavorite(
-                      this.props.selectedItems.map((i) => i.id),
+                      this.props.selectedItems.map(i => i.id),
                       true
                     )
                   );
@@ -52,14 +55,14 @@ export class SelectionActions extends Component {
                 }}
               >
                 <Icon name="star" color="yellow" />
-                {"  " + this.props.t("selectionactions.favorite")}
+                {`  ${this.props.t("selectionactions.favorite")}`}
               </Dropdown.Item>
               <Dropdown.Item
                 disabled={this.props.selectedItems.length === 0}
                 onClick={() => {
                   this.props.dispatch(
                     setPhotosFavorite(
-                      this.props.selectedItems.map((i) => i.id),
+                      this.props.selectedItems.map(i => i.id),
                       false
                     )
                   );
@@ -71,7 +74,7 @@ export class SelectionActions extends Component {
                 }}
               >
                 <Icon name="star outline" color="yellow" />
-                {"  " + this.props.t("selectionactions.unfavorite")}
+                {`  ${this.props.t("selectionactions.unfavorite")}`}
               </Dropdown.Item>
               <Dropdown.Divider />
               <Dropdown.Item
@@ -79,7 +82,7 @@ export class SelectionActions extends Component {
                 onClick={() => {
                   this.props.dispatch(
                     setPhotosHidden(
-                      this.props.selectedItems.map((i) => i.id),
+                      this.props.selectedItems.map(i => i.id),
                       true
                     )
                   );
@@ -91,14 +94,14 @@ export class SelectionActions extends Component {
                 }}
               >
                 <Icon name="hide" color="red" />
-                {"  " + this.props.t("selectionactions.hide")}
+                {`  ${this.props.t("selectionactions.hide")}`}
               </Dropdown.Item>
               <Dropdown.Item
                 disabled={this.props.selectedItems.length === 0}
                 onClick={() => {
                   this.props.dispatch(
                     setPhotosHidden(
-                      this.props.selectedItems.map((i) => i.id),
+                      this.props.selectedItems.map(i => i.id),
                       false
                     )
                   );
@@ -110,7 +113,7 @@ export class SelectionActions extends Component {
                 }}
               >
                 <Icon name="unhide" color="black" />
-                {"  " + this.props.t("selectionactions.unhide")}
+                {`  ${this.props.t("selectionactions.unhide")}`}
               </Dropdown.Item>
               <Dropdown.Divider />
               <Dropdown.Item
@@ -118,13 +121,13 @@ export class SelectionActions extends Component {
                 onClick={() => {
                   this.props.dispatch(
                     setPhotosPublic(
-                      this.props.selectedItems.map((i) => i.id),
+                      this.props.selectedItems.map(i => i.id),
                       true
                     )
                   );
                   const linksToCopy = this.props.selectedItems
-                    .map((i) => i.id)
-                    .map((ih) => serverAddress + "/media/photos/" + ih + ".jpg")
+                    .map(i => i.id)
+                    .map(ih => `${serverAddress}/media/photos/${ih}.jpg`)
                     .join("\n");
                   copyToClipboard(linksToCopy);
 
@@ -135,14 +138,14 @@ export class SelectionActions extends Component {
                 }}
               >
                 <Icon name="globe" />
-                {"  " + this.props.t("selectionactions.makepublic")}
+                {`  ${this.props.t("selectionactions.makepublic")}`}
               </Dropdown.Item>
               <Dropdown.Item
                 disabled={this.props.selectedItems.length === 0}
                 onClick={() => {
                   this.props.dispatch(
                     setPhotosPublic(
-                      this.props.selectedItems.map((i) => i.id),
+                      this.props.selectedItems.map(i => i.id),
                       false
                     )
                   );
@@ -154,13 +157,13 @@ export class SelectionActions extends Component {
                 }}
               >
                 <Icon name="key" />
-                {"  " + this.props.t("selectionactions.makeprivate")}
+                {`  ${this.props.t("selectionactions.makeprivate")}`}
               </Dropdown.Item>
               <Dropdown.Divider />
               <Dropdown.Item
                 disabled={this.props.selectedItems.length === 0}
                 onClick={() => {
-                  this.props.dispatch(downloadPhotos(this.props.selectedItems.map((i) => i.id)));
+                  this.props.dispatch(downloadPhotos(this.props.selectedItems.map(i => i.id)));
 
                   this.props.updateSelectionState({
                     selectMode: false,
@@ -169,7 +172,7 @@ export class SelectionActions extends Component {
                 }}
               >
                 <Icon name="download" />
-                {"  " + this.props.t("selectionactions.download")}
+                {`  ${this.props.t("selectionactions.download")}`}
               </Dropdown.Item>
               <Dropdown.Divider />
               <Dropdown.Item
@@ -177,7 +180,7 @@ export class SelectionActions extends Component {
                 onClick={() => {
                   this.props.dispatch(
                     setPhotosDeleted(
-                      this.props.selectedItems.map((i) => i.id),
+                      this.props.selectedItems.map(i => i.id),
                       true
                     )
                   );
@@ -188,7 +191,7 @@ export class SelectionActions extends Component {
                 }}
               >
                 <Icon name="trash" />
-                {"  " + this.props.t("selectionactions.deleted")}
+                {`  ${this.props.t("selectionactions.deleted")}`}
               </Dropdown.Item>
 
               <Dropdown.Divider />
@@ -205,7 +208,7 @@ export class SelectionActions extends Component {
                     }}
                   >
                     <Icon name="share" />
-                    {"  " + this.props.t("selectionactions.sharing")}
+                    {`  ${this.props.t("selectionactions.sharing")}`}
                   </Dropdown.Item>
                 }
                 content={this.props.t("selectionactions.sharingdescription")}
@@ -234,7 +237,7 @@ export class SelectionActions extends Component {
                     }}
                   >
                     <Icon name="photo" />
-                    {"  " + this.props.t("selectionactions.albumcover")}
+                    {`  ${this.props.t("selectionactions.albumcover")}`}
                   </Dropdown.Item>
                 }
                 content={this.props.t("selectionactions.albumcoverdescription")}
@@ -248,7 +251,7 @@ export class SelectionActions extends Component {
                     onClick={this.props.onShareAlbum}
                   >
                     <Icon name="share" />
-                    {"  " + this.props.t("selectionactions.sharing")}
+                    {`  ${this.props.t("selectionactions.sharing")}`}
                   </Dropdown.Item>
                 }
                 content={this.props.t("selectionactions.albumsharingdescription")}
@@ -264,12 +267,12 @@ export class SelectionActions extends Component {
                       )
                     }
                     onClick={() => {
-                      var id = this.props.albumID;
+                      const id = this.props.albumID;
                       this.props.dispatch(
                         removeFromUserAlbum(
                           id,
                           this.props.title,
-                          this.props.selectedItems.map((i) => i.id)
+                          this.props.selectedItems.map(i => i.id)
                         )
                       );
 
@@ -280,7 +283,7 @@ export class SelectionActions extends Component {
                     }}
                   >
                     <Icon name="trash" />
-                    {"  " + this.props.t("selectionactions.removephotos")}
+                    {`  ${this.props.t("selectionactions.removephotos")}`}
                   </Dropdown.Item>
                 }
                 content={this.props.t("selectionactions.removephotosdescription")}
@@ -325,10 +328,8 @@ export class SelectionActions extends Component {
 }
 
 SelectionActions = compose(
-  connect((store) => {
-    return {
-      route: store.router,
-    };
-  }),
+  connect(store => ({
+    route: store.router,
+  })),
   withTranslation()
 )(SelectionActions);

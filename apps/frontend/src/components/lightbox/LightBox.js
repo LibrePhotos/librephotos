@@ -1,15 +1,18 @@
 import React, { Component } from "react";
-import "react-virtualized/styles.css"; // only needs to be imported once
-import { connect } from "react-redux";
-import { serverAddress } from "../../api_client/apiClient";
 import Lightbox from "react-image-lightbox";
+import "react-image-lightbox/style.css";
 import ReactPlayer from "react-player";
-import "react-image-lightbox/style.css"; // This only needs to be imported once in your app
-import Toolbar from "./Toolbar";
-import Sidebar from "./Sidebar";
+// only needs to be imported once
+import { connect } from "react-redux";
+import "react-virtualized/styles.css";
 import { Loader } from "semantic-ui-react";
 
-var LIGHTBOX_SIDEBAR_WIDTH = 360;
+import { serverAddress } from "../../api_client/apiClient";
+import Sidebar from "./Sidebar";
+// This only needs to be imported once in your app
+import Toolbar from "./Toolbar";
+
+let LIGHTBOX_SIDEBAR_WIDTH = 360;
 if (window.innerWidth < 600) {
   LIGHTBOX_SIDEBAR_WIDTH = window.innerWidth;
 }
@@ -48,11 +51,11 @@ export class LightBox extends Component {
   }
 
   getPictureUrl(id) {
-    return serverAddress + "/media/thumbnails_big/" + id;
+    return `${serverAddress}/media/thumbnails_big/${id}`;
   }
 
   getVideoUrl(id) {
-    return serverAddress + "/media/video/" + id;
+    return `${serverAddress}/media/video/${id}`;
   }
 
   isVideo() {
@@ -64,7 +67,7 @@ export class LightBox extends Component {
 
   render() {
     if (!this.isVideo()) {
-      for (var i = 0; i < 10; i++) {
+      for (let i = 0; i < 10; i++) {
         setTimeout(() => {
           // Fix large wide images when side bar open; retry once per 250ms over 2.5 seconds
           if (document.getElementsByClassName("ril-image-current").length > 0) {
@@ -73,7 +76,7 @@ export class LightBox extends Component {
             });
 
             // 360px side bar /2 = 180px to the left = re-centers a wide image
-            var translate = this.state.lightboxSidebarShow && this.state.wideImg ? `-180px` : "";
+            const translate = this.state.lightboxSidebarShow && this.state.wideImg ? `-180px` : "";
 
             if (document.getElementsByClassName("ril-image-current")[0].style.left !== translate) {
               document.getElementsByClassName("ril-image-current")[0].style.left = translate;
@@ -101,7 +104,7 @@ export class LightBox extends Component {
     return (
       <div>
         <Lightbox
-          animationDisabled={true}
+          animationDisabled
           mainSrc={!this.isVideo() ? this.getPictureUrl(this.props.lightboxImageId) : null}
           nextSrc={this.getPictureUrl(this.getNextId())}
           prevSrc={this.getPictureUrl(this.getPreviousId())}
@@ -110,21 +113,21 @@ export class LightBox extends Component {
               <ReactPlayer
                 width="100%"
                 height="100%"
-                controls={true}
-                playing={true}
+                controls
+                playing
                 url={this.getVideoUrl(this.props.lightboxImageId)}
                 progressInterval={100}
-              ></ReactPlayer>
+              />
             ) : null
           }
-          imageLoadErrorMessage={""}
+          imageLoadErrorMessage=""
           toolbarButtons={[
             <Toolbar
               photosDetail={this.props.photoDetails[this.props.lightboxImageId]}
               lightboxSidebarShow={this.state.lightboxSidebarShow}
               closeSidepanel={this.closeSidepanel}
               isPublic={this.props.isPublic}
-            ></Toolbar>,
+            />,
           ]}
           onCloseRequest={this.props.onCloseRequest}
           onAfterOpen={() => {
@@ -141,22 +144,18 @@ export class LightBox extends Component {
             },
           }}
         />
-        {
-          <Sidebar
-            photoDetail={this.getCurrentPhotodetail()}
-            lightboxSidebarShow={this.state.lightboxSidebarShow}
-            closeSidepanel={this.closeSidepanel}
-            isPublic={this.props.isPublic}
-          ></Sidebar>
-        }
+        <Sidebar
+          photoDetail={this.getCurrentPhotodetail()}
+          lightboxSidebarShow={this.state.lightboxSidebarShow}
+          closeSidepanel={this.closeSidepanel}
+          isPublic={this.props.isPublic}
+        />
         ;
       </div>
     );
   }
 }
 
-LightBox = connect((store) => {
-  return {
-    photoDetails: store.photos.photoDetails,
-  };
-})(LightBox);
+LightBox = connect(store => ({
+  photoDetails: store.photos.photoDetails,
+}))(LightBox);

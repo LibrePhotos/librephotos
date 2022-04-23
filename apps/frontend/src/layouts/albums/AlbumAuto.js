@@ -1,19 +1,20 @@
-import React, { Component } from "react";
-import { connect } from "react-redux";
-import { fetchAutoAlbumsList } from "../../actions/albumsActions";
-import { Icon, Header, Loader, Image } from "semantic-ui-react";
-import { Grid, AutoSizer } from "react-virtualized";
-import { serverAddress } from "../../api_client/apiClient";
-import LazyLoad from "react-lazyload";
-import { searchPhotos } from "../../actions/searchActions";
 import { push } from "connected-react-router";
+import React, { Component } from "react";
+import { Trans, withTranslation } from "react-i18next";
+import LazyLoad from "react-lazyload";
+import { connect } from "react-redux";
 import { Link } from "react-router-dom";
+import { AutoSizer, Grid } from "react-virtualized";
+import { compose } from "redux";
+import { Header, Icon, Image, Loader } from "semantic-ui-react";
+
+import { fetchAutoAlbumsList } from "../../actions/albumsActions";
+import { searchPhotos } from "../../actions/searchActions";
+import { serverAddress } from "../../api_client/apiClient";
 import { Tile } from "../../components/Tile";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
-import { compose } from "redux";
-import { withTranslation, Trans } from "react-i18next";
 
-var SIDEBAR_WIDTH = 85;
+const SIDEBAR_WIDTH = 85;
 
 export class AlbumAuto extends Component {
   constructor() {
@@ -37,7 +38,7 @@ export class AlbumAuto extends Component {
   }
 
   calculateEntrySquareSize() {
-    var numEntrySquaresPerRow = 6;
+    let numEntrySquaresPerRow = 6;
     if (window.innerWidth < 600) {
       numEntrySquaresPerRow = 2;
     } else if (window.innerWidth < 800) {
@@ -48,9 +49,9 @@ export class AlbumAuto extends Component {
       numEntrySquaresPerRow = 5;
     }
 
-    var columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15;
+    const columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15;
 
-    var entrySquareSize = columnWidth / numEntrySquaresPerRow;
+    const entrySquareSize = columnWidth / numEntrySquaresPerRow;
     this.setState({
       width: window.innerWidth,
       height: window.innerHeight,
@@ -60,18 +61,18 @@ export class AlbumAuto extends Component {
   }
 
   cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    var albumAutoIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
+    const albumAutoIndex = rowIndex * this.state.numEntrySquaresPerRow + columnIndex;
     if (albumAutoIndex < this.props.albumsAutoList.length) {
       return (
         <div key={key} style={style}>
           <div onClick={() => {}} style={{ padding: 5 }}>
-            <Link to={"/event/" + this.props.albumsAutoList[albumAutoIndex].id}>
+            <Link to={`/event/${this.props.albumsAutoList[albumAutoIndex].id}`}>
               <Tile
                 video={this.props.albumsAutoList[albumAutoIndex].photos.video === true}
                 height={this.state.entrySquareSize - 10}
                 width={this.state.entrySquareSize - 10}
                 image_hash={this.props.albumsAutoList[albumAutoIndex].photos.image_hash}
-              ></Tile>
+              />
             </Link>
           </div>
           <div className="personCardName" style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
@@ -82,9 +83,8 @@ export class AlbumAuto extends Component {
           </div>
         </div>
       );
-    } else {
-      return <div key={key} style={style} />;
     }
+    return <div key={key} style={style} />;
   };
 
   render() {
@@ -124,13 +124,13 @@ export class AlbumAuto extends Component {
 
 export class EntrySquare extends Component {
   render() {
-    var images = this.props.cover_photos.map(function (photo) {
+    const images = this.props.cover_photos.map(function (photo) {
       return (
         <Image
           style={{ display: "inline-block", objectFit: "cover" }}
           width={this.props.size / 2 - 20}
           height={this.props.size / 2 - 20}
-          src={serverAddress + "/media/square_thumbnails/" + photo.image_hash}
+          src={`${serverAddress}/media/square_thumbnails/${photo.image_hash}`}
         />
       );
     }, this);
@@ -148,7 +148,7 @@ export class EntrySquare extends Component {
         }}
       >
         <div style={{ height: this.props.size }}>
-          <LazyLoad once={true} unmountIfInvisible={true} height={this.props.size}>
+          <LazyLoad once unmountIfInvisible height={this.props.size}>
             <Image.Group>{images}</Image.Group>
           </LazyLoad>
         </div>
@@ -161,13 +161,11 @@ export class EntrySquare extends Component {
 }
 
 AlbumAuto = compose(
-  connect((store) => {
-    return {
-      auth: store.auth,
-      albumsAutoList: store.albums.albumsAutoList,
-      fetchingAlbumsAutoList: store.albums.fetchingAlbumsAutoList,
-      fetchedAlbumsAutoList: store.albums.fetchedAlbumsAutoList,
-    };
-  }),
+  connect(store => ({
+    auth: store.auth,
+    albumsAutoList: store.albums.albumsAutoList,
+    fetchingAlbumsAutoList: store.albums.fetchingAlbumsAutoList,
+    fetchedAlbumsAutoList: store.albums.fetchedAlbumsAutoList,
+  })),
   withTranslation()
 )(AlbumAuto);

@@ -1,29 +1,25 @@
-import React, { Component } from "react";
-import { Popup, Input, Image, Header, Divider, Button } from "semantic-ui-react";
-
-import { SecuredImageJWT } from "../../components/SecuredImage";
-import { connect } from "react-redux";
-import { setFacesPersonLabel } from "../../actions/facesActions";
 import _ from "lodash";
+import React, { Component } from "react";
+import { withTranslation } from "react-i18next";
+import Modal from "react-modal";
+import { connect } from "react-redux";
+import { compose } from "redux";
+import { Button, Divider, Header, Image, Input, Popup } from "semantic-ui-react";
+
+import { setFacesPersonLabel } from "../../actions/facesActions";
 import { fetchPeople } from "../../actions/peopleActions";
 import { serverAddress } from "../../api_client/apiClient";
-import Modal from "react-modal";
-
-import { withTranslation } from "react-i18next";
-import { compose } from "redux";
+import { SecuredImageJWT } from "../SecuredImage";
 
 function fuzzy_match(str, pattern) {
   if (pattern.split("").length > 0) {
     pattern = pattern
       .split("")
-      .map((a) => _.escapeRegExp(a))
-      .reduce(function (a, b) {
-        return a + ".*" + b;
-      });
+      .map(a => _.escapeRegExp(a))
+      .reduce((a, b) => `${a}.*${b}`);
     return new RegExp(pattern).test(str);
-  } else {
-    return false;
   }
+  return false;
 }
 
 const modalStyles = {
@@ -52,18 +48,19 @@ const modalStyles = {
 
 export class ModalPersonEdit extends Component {
   state = { newPersonName: "" };
+
   render() {
-    var filteredPeopleList = this.props.people;
+    let filteredPeopleList = this.props.people;
     if (this.state.newPersonName.length > 0) {
-      filteredPeopleList = this.props.people.filter((el) =>
+      filteredPeopleList = this.props.people.filter(el =>
         fuzzy_match(el.text.toLowerCase(), this.state.newPersonName.toLowerCase())
       );
     }
 
     const allFaces = _.concat(this.props.inferredFacesList, this.props.labeledFacesList);
 
-    var selectedImageIDs = this.props.selectedFaces.map((faceID) => {
-      const res = allFaces.filter((face) => face.id === faceID)[0].image;
+    const selectedImageIDs = this.props.selectedFaces.map(faceID => {
+      const res = allFaces.filter(face => face.id === faceID)[0].image;
       const splitBySlash = res.split("/");
       console.log(splitBySlash[splitBySlash.length - 1]);
       const faceImageID = splitBySlash[splitBySlash.length - 1];
@@ -97,12 +94,12 @@ export class ModalPersonEdit extends Component {
         <Divider fitted />
         <div style={{ padding: 5, height: 50, overflowY: "hidden" }}>
           <Image.Group>
-            {selectedImageIDs.map((image) => (
+            {selectedImageIDs.map(image => (
               <SecuredImageJWT
-                key={"selected_image" + image}
+                key={`selected_image${image}`}
                 height={40}
                 width={40}
-                src={serverAddress + "/media/faces/" + image}
+                src={`${serverAddress}/media/faces/${image}`}
               />
             ))}
           </Image.Group>
@@ -126,13 +123,13 @@ export class ModalPersonEdit extends Component {
               })}
               position="bottom center"
               open={this.props.people
-                .map((el) => el.text.toLowerCase().trim())
+                .map(el => el.text.toLowerCase().trim())
                 .includes(this.state.newPersonName.toLowerCase().trim())}
               trigger={
                 <Input
                   fluid
                   error={this.props.people
-                    .map((el) => el.text.toLowerCase().trim())
+                    .map(el => el.text.toLowerCase().trim())
                     .includes(this.state.newPersonName.toLowerCase().trim())}
                   onChange={(e, v) => {
                     this.setState({ newPersonName: v.value });
@@ -149,7 +146,7 @@ export class ModalPersonEdit extends Component {
                       this.setState({ newPersonName: "" });
                     }}
                     disabled={this.props.people
-                      .map((el) => el.text.toLowerCase().trim())
+                      .map(el => el.text.toLowerCase().trim())
                       .includes(this.state.newPersonName.toLowerCase().trim())}
                     type="submit"
                   >
@@ -161,38 +158,36 @@ export class ModalPersonEdit extends Component {
           </div>
           <Divider />
           {filteredPeopleList.length > 0 &&
-            filteredPeopleList.map((item) => {
-              return (
-                <div
-                  key={"modal_person_face_label_" + item.text}
-                  style={{
-                    height: 70,
-                    justifyContent: "center",
-                    alignItems: "center",
+            filteredPeopleList.map(item => (
+              <div
+                key={`modal_person_face_label_${item.text}`}
+                style={{
+                  height: 70,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <Header
+                  as="h4"
+                  onClick={() => {
+                    this.props.dispatch(setFacesPersonLabel(this.props.selectedFaces, item.text));
+                    this.props.onRequestClose();
+                    // console.log('trying to add photos: ',this.props.selectedFaces)
+                    // console.log('to user album id: ',item.id)
                   }}
                 >
-                  <Header
-                    as="h4"
-                    onClick={() => {
-                      this.props.dispatch(setFacesPersonLabel(this.props.selectedFaces, item.text));
-                      this.props.onRequestClose();
-                      // console.log('trying to add photos: ',this.props.selectedFaces)
-                      // console.log('to user album id: ',item.id)
-                    }}
-                  >
-                    <SecuredImageJWT circular height={60} width={60} src={serverAddress + item.face_url} />
-                    <Header.Content>
-                      {item.text}
-                      <Header.Subheader>
-                        {this.props.t("numberofphotos", {
-                          number: item.face_count,
-                        })}
-                      </Header.Subheader>
-                    </Header.Content>
-                  </Header>
-                </div>
-              );
-            })}
+                  <SecuredImageJWT circular height={60} width={60} src={serverAddress + item.face_url} />
+                  <Header.Content>
+                    {item.text}
+                    <Header.Subheader>
+                      {this.props.t("numberofphotos", {
+                        number: item.face_count,
+                      })}
+                    </Header.Subheader>
+                  </Header.Content>
+                </Header>
+              </div>
+            ))}
         </div>
       </Modal>
     );
@@ -200,20 +195,18 @@ export class ModalPersonEdit extends Component {
 }
 
 ModalPersonEdit = compose(
-  connect((store) => {
-    return {
-      people: store.people.people,
-      fetchingPeople: store.people.fetchingPeople,
-      fetchedPeople: store.people.fetchedPeople,
+  connect(store => ({
+    people: store.people.people,
+    fetchingPeople: store.people.fetchingPeople,
+    fetchedPeople: store.people.fetchedPeople,
 
-      inferredFacesList: store.faces.inferredFacesList,
-      labeledFacesList: store.faces.labeledFacesList,
+    inferredFacesList: store.faces.inferredFacesList,
+    labeledFacesList: store.faces.labeledFacesList,
 
-      fetchingLabeledFacesList: store.faces.fetchingLabeledFacesList,
-      fetchedLabeledFacesList: store.faces.fetchedLabeledFacesList,
-      fetchingInferredFacesList: store.faces.fetchingInferredFacesList,
-      fetchedInferredFacesList: store.faces.fetchedInferredFacesList,
-    };
-  }),
+    fetchingLabeledFacesList: store.faces.fetchingLabeledFacesList,
+    fetchedLabeledFacesList: store.faces.fetchedLabeledFacesList,
+    fetchingInferredFacesList: store.faces.fetchingInferredFacesList,
+    fetchedInferredFacesList: store.faces.fetchedInferredFacesList,
+  })),
   withTranslation()
 )(ModalPersonEdit);

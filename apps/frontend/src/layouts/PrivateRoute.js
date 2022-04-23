@@ -1,15 +1,16 @@
 import React from "react";
 import { connect } from "react-redux";
+import { Redirect, Route, Switch } from "react-router-dom";
+
 import { isRefreshTokenExpired } from "../store/auth/authSelectors";
 // Router and Switch are needed Breaks site if not in import. DW
-import { Switch, Route, Redirect } from "react-router-dom";
 import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../ui-constants";
 
-const PrivateRoute = ({ component: Component, isAuthenticated, showSidebar, ...rest }) => {
+function PrivateRoute({ component: Component, isAuthenticated, showSidebar, ...rest }) {
   return (
     <Route
       {...rest}
-      render={(props) =>
+      render={props =>
         isAuthenticated ? (
           <div>
             <div
@@ -34,9 +35,9 @@ const PrivateRoute = ({ component: Component, isAuthenticated, showSidebar, ...r
       }
     />
   );
-};
+}
 
-const mapStateToProps = (state) => ({
+const mapStateToProps = state => ({
   isAuthenticated: !isRefreshTokenExpired(state),
   showSidebar: state.ui.showSidebar,
 });

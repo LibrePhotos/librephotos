@@ -1,29 +1,29 @@
-import React, { useState } from "react";
-import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import {
-  arrayMove,
   SortableContext,
+  arrayMove,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-
-import { SortableItem } from "./SortableItem";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Header, Button } from "semantic-ui-react";
-import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { Button, Header } from "semantic-ui-react";
+
 import { updateUser } from "../../actions/utilActions";
-import { userActions } from "../../store/user/userSlice";
-import { selectUserSelfDetails } from "../../store/user/userSelectors";
+import { useAppDispatch, useAppSelector } from "../../store/store";
 import { UserSchema } from "../../store/user/user.zod";
+import { selectUserSelfDetails } from "../../store/user/userSelectors";
+import { userActions } from "../../store/user/userSlice";
+import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
+import { SortableItem } from "./SortableItem";
 
 export function ConfigDatetime(): JSX.Element {
   const [showModal, setShowModal] = useState(false);
   const { datetime_rules } = useAppSelector(selectUserSelfDetails);
   const userSelfDetails = useAppSelector(selectUserSelfDetails);
 
-  const rules = JSON.parse(datetime_rules ? datetime_rules : "[]");
-  //make sure rules have ids
+  const rules = JSON.parse(datetime_rules || "[]");
+  // make sure rules have ids
   rules.forEach((rule: any, index: any) => {
     if (!rule.id) {
       rule.id = index;
@@ -68,9 +68,9 @@ export function ConfigDatetime(): JSX.Element {
       <ModalConfigDatetime
         isOpen={showModal}
         onRequestClose={() => setShowModal(false)}
-        addItemFunction={(item) => {
+        addItemFunction={item => {
           if (rules.filter((i: any) => i.id === item.id).length === 0) {
-            //dispatch(setRules(newItems));
+            // dispatch(setRules(newItems));
             setShowModal(false);
             dispatch(userActions.setRules(JSON.stringify([...rules, item])));
           }

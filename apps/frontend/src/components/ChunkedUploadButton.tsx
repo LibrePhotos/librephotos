@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
-
-import { useDropzone } from "react-dropzone";
-import { Button, Progress } from "semantic-ui-react";
-import { Server } from "../api_client/apiClient";
-import MD5 from "crypto-js/md5";
 import CryptoJS from "crypto-js";
-import { useAppDispatch, useAppSelector } from "../store/store";
+import MD5 from "crypto-js/md5";
+import React, { useEffect, useState } from "react";
+import { useDropzone } from "react-dropzone";
+import { useTranslation } from "react-i18next";
+import { Button, Progress } from "semantic-ui-react";
+
 import { api } from "../api_client/api";
+import { Server } from "../api_client/apiClient";
+import { useAppDispatch, useAppSelector } from "../store/store";
 import { IUploadResponse } from "../store/upload/upload.zod";
 
 export const ChunkedUploadButton = ({ token }: { token?: string }) => {
@@ -49,6 +49,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
             }
             //To-Do: Handle Error
             if (chunks[offset / chunkSize]) {
+              // @ts-ignore
               currentUploadedFileSize += chunks[offset / chunkSize].size;
             } else {
               currentUploadedFileSize += file.size - (currentUploadedFileSize - currentUploadedFileSizeStartValue);
@@ -144,6 +145,7 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
     const chunk = [];
     for (let i = 0; i < chunks; i++) {
       const chunkEnd = Math.min((i + 1) * chunkSize, file.size);
+      // @ts-ignore
       chunk.push(file.slice(i * chunkSize, chunkEnd));
     }
     return chunk;

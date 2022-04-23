@@ -1,14 +1,15 @@
 import React, { Component } from "react";
-import { Divider } from "semantic-ui-react";
 import { connect } from "react-redux";
+import { Divider } from "semantic-ui-react";
+
 import { fetchWordCloud } from "../../actions/utilActions";
+import { EventCountMonthGraph } from "../../components/charts/EventCountMonthGraph";
+import FaceClusterScatter from "../../components/charts/FaceClusterGraph";
+import { LocationDurationStackedBar } from "../../components/charts/LocationDurationStackedBar";
+import SocialGraph from "../../components/charts/SocialGraph";
 import { WordCloud } from "../../components/charts/WordCloud";
 import { LocationLink } from "../../components/locationLink";
 import { AlbumPlace } from "../albums/AlbumPlace";
-import { EventCountMonthGraph } from "../../components/charts/EventCountMonthGraph";
-import { LocationDurationStackedBar } from "../../components/charts/LocationDurationStackedBar";
-import FaceClusterScatter from "../../components/charts/FaceClusterGraph";
-import SocialGraph from "../../components/charts/SocialGraph";
 
 export class LocationTree extends Component {
   render() {
@@ -50,15 +51,13 @@ export class WordClouds extends Component {
   }
 }
 
-WordClouds = connect((store) => {
-  return {
-    statusPhotoScan: store.util.statusPhotoScan,
-    statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
-    generatingAlbumsAuto: store.albums.generatingAlbumsAuto,
-    scanningPhotos: store.photos.scanningPhotos,
-    fetchedCountStats: store.util.fetchedCountStats,
-  };
-})(WordClouds);
+WordClouds = connect(store => ({
+  statusPhotoScan: store.util.statusPhotoScan,
+  statusAutoAlbumProcessing: store.util.statusAutoAlbumProcessing,
+  generatingAlbumsAuto: store.albums.generatingAlbumsAuto,
+  scanningPhotos: store.photos.scanningPhotos,
+  fetchedCountStats: store.util.fetchedCountStats,
+}))(WordClouds);
 
 export class Timeline extends Component {
   render() {

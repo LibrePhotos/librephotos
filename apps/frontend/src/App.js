@@ -1,49 +1,50 @@
+import { ConnectedRouter } from "connected-react-router";
 import React from "react";
 import { connect } from "react-redux";
 import { Route, Switch } from "react-router-dom";
 import NotificationSystem, { bootstrapTheme, dismissNotification } from "reapop";
+import "semantic-ui-css/semantic.min.css";
+
 import "./App.css";
-import { CountStats } from "./components/statistics";
-import Login from "./containers/login";
-import { FaceScatter, Graph, LocationTree, PhotoMap, Timeline, WordClouds } from "./layouts/dataviz/DataVisualization";
-import { FaceDashboard } from "./layouts/dataviz/FaceDashboard";
-import { FavoritePhotos } from "./layouts/photos/FavoritePhotos";
-import { HiddenPhotos } from "./layouts/photos/HiddenPhotos";
-import { SignupPage } from "./layouts/login/SignUpPage";
-import { AlbumAutoGalleryView } from "./layouts/albums/AlbumAutoGalleryView";
-import { AlbumAuto } from "./layouts/albums/AlbumAuto";
-import { AlbumPeople } from "./layouts/albums/AlbumPeople";
-import { AlbumPersonGallery } from "./layouts/albums/AlbumPersonGallery";
-import { AlbumPlaceGallery } from "./layouts/albums/AlbumPlaceGallery";
-import { AlbumThingGallery } from "./layouts/albums/AlbumThingGallery";
-import { AlbumThing } from "./layouts/albums/AlbumThing";
-import { AlbumUser } from "./layouts/albums/AlbumUser";
-import { AlbumUserGallery } from "./layouts/albums/AlbumUserGallery";
 import { SideMenuNarrow } from "./components/menubars/SideMenuNarrow";
 import { TopMenu } from "./components/menubars/TopMenu";
-import { NoTimestampPhotosView } from "./layouts/photos/NoTimestampPhotosView";
-import { RecentlyAddedPhotos } from "./layouts/photos/RecentlyAddedPhotos";
-import PrivateRoute from "./layouts/PrivateRoute";
-import { SearchView } from "./layouts/SearchView";
-import { Settings } from "./layouts/settings/Settings";
-import { AdminPage } from "./layouts/settings/AdminPage";
-import { Statistics } from "./layouts/dataviz/Statistics";
-import { UserPublicPage } from "./layouts/public/UserPublicPage";
-import { PublicUserList } from "./layouts/public/PublicUserList";
-import { SharedToMe } from "./layouts/sharing/SharedToMe";
-import { SharedFromMe } from "./layouts/sharing/SharedFromMe";
-import "semantic-ui-css/semantic.min.css";
-import { AlbumPlace } from "./layouts/albums/AlbumPlace";
-import { TimestampPhotos } from "./layouts/photos/TimestampPhotos";
+import { CountStats } from "./components/statistics";
+import Login from "./containers/login";
 import appHistory from "./history";
 import "./i18n";
-import { ConnectedRouter } from "connected-react-router";
+import PrivateRoute from "./layouts/PrivateRoute";
+import { SearchView } from "./layouts/SearchView";
+import { AlbumAuto } from "./layouts/albums/AlbumAuto";
+import { AlbumAutoGalleryView } from "./layouts/albums/AlbumAutoGalleryView";
+import { AlbumPeople } from "./layouts/albums/AlbumPeople";
+import { AlbumPersonGallery } from "./layouts/albums/AlbumPersonGallery";
+import { AlbumPlace } from "./layouts/albums/AlbumPlace";
+import { AlbumPlaceGallery } from "./layouts/albums/AlbumPlaceGallery";
+import { AlbumThing } from "./layouts/albums/AlbumThing";
+import { AlbumThingGallery } from "./layouts/albums/AlbumThingGallery";
+import { AlbumUser } from "./layouts/albums/AlbumUser";
+import { AlbumUserGallery } from "./layouts/albums/AlbumUserGallery";
+import { FaceScatter, Graph, LocationTree, PhotoMap, Timeline, WordClouds } from "./layouts/dataviz/DataVisualization";
+import { FaceDashboard } from "./layouts/dataviz/FaceDashboard";
+import { Statistics } from "./layouts/dataviz/Statistics";
+import { SignupPage } from "./layouts/login/SignUpPage";
 import { DeletedPhotos } from "./layouts/photos/DeletedPhotos";
+import { FavoritePhotos } from "./layouts/photos/FavoritePhotos";
+import { HiddenPhotos } from "./layouts/photos/HiddenPhotos";
+import { NoTimestampPhotosView } from "./layouts/photos/NoTimestampPhotosView";
+import { RecentlyAddedPhotos } from "./layouts/photos/RecentlyAddedPhotos";
+import { TimestampPhotos } from "./layouts/photos/TimestampPhotos";
+import { PublicUserList } from "./layouts/public/PublicUserList";
+import { UserPublicPage } from "./layouts/public/UserPublicPage";
+import { AdminPage } from "./layouts/settings/AdminPage";
+import { Settings } from "./layouts/settings/Settings";
+import { SharedFromMe } from "./layouts/sharing/SharedFromMe";
+import { SharedToMe } from "./layouts/sharing/SharedToMe";
 
 function Nav(props) {
   return (
     <div>
-      {props.showSidebar && <SideMenuNarrow visible={true} />}
+      {props.showSidebar && <SideMenuNarrow visible />}
       <TopMenu style={{ zIndex: -1 }} />
     </div>
   );
@@ -58,7 +59,7 @@ class App extends React.Component {
         <ConnectedRouter history={appHistory}>
           <NotificationSystem
             theme={bootstrapTheme}
-            dismissNotification={(id) => {
+            dismissNotification={id => {
               this.props.dismiss(id);
             }}
             notifications={this.props.notifications}
@@ -82,11 +83,11 @@ class App extends React.Component {
 
             <Route path="/signup" component={SignupPage} />
 
-            <Route path="/public/:username" component={(props) => <UserPublicPage {...props} />} />
+            <Route path="/public/:username" component={props => <UserPublicPage {...props} />} />
 
             <Route path="/users" component={PublicUserList} />
 
-            <Route path="/user/:username" component={(props) => <UserPublicPage {...props} />} />
+            <Route path="/user/:username" component={props => <UserPublicPage {...props} />} />
 
             <PrivateRoute path="/things" component={AlbumThing} />
 
@@ -116,7 +117,7 @@ class App extends React.Component {
 
             <PrivateRoute path="/search" component={SearchView} />
 
-            <PrivateRoute path="/person/:albumID" component={(props) => <AlbumPersonGallery {...props} />} />
+            <PrivateRoute path="/person/:albumID" component={props => <AlbumPersonGallery {...props} />} />
 
             <PrivateRoute path="/place/:albumID" component={AlbumPlaceGallery} />
 
@@ -145,17 +146,13 @@ class App extends React.Component {
   }
 }
 
-const mapStateToProps = (store) => {
-  return {
-    showSidebar: store.ui.showSidebar,
-    location: store.router.location,
-    notifications: store.notifications,
-  };
-};
+const mapStateToProps = store => ({
+  showSidebar: store.ui.showSidebar,
+  location: store.router.location,
+  notifications: store.notifications,
+});
 
-const mapDispatchToProps = (dispatch) => {
-  return { dismiss: (id) => dispatch(dismissNotification(id)) };
-};
+const mapDispatchToProps = dispatch => ({ dismiss: id => dispatch(dismissNotification(id)) });
 
 const connected = connect(mapStateToProps, mapDispatchToProps)(App);
 

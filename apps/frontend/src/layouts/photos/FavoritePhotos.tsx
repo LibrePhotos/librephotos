@@ -1,22 +1,21 @@
+import { throttle } from "lodash";
 import React, { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+
 import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { PhotosState } from "../../reducers/photosReducer";
 import { PhotosetType } from "../../reducers/photosReducer";
-import { useTranslation } from "react-i18next";
 import { useAppDispatch, useAppSelector } from "../../store/store";
-import { throttle } from "lodash";
 
 type fetchedGroup = {
   id: string;
   page: number;
 };
 
-export const FavoritePhotos = () => {
-  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(
-    (state) => state.photos as PhotosState
-  );
-  const { userSelfDetails } = useAppSelector((state) => state.user);
+export function FavoritePhotos() {
+  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(state => state.photos as PhotosState);
+  const { userSelfDetails } = useAppSelector(state => state.user);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
 
@@ -51,7 +50,7 @@ export const FavoritePhotos = () => {
   };
 
   const throttledGetAlbums = useCallback(
-    throttle((visibleItems) => getAlbums(visibleItems), 500),
+    throttle(visibleItems => getAlbums(visibleItems), 500),
     []
   );
   return (
@@ -59,12 +58,12 @@ export const FavoritePhotos = () => {
       showHidden={false}
       title={t("photos.favorite")}
       loading={fetchedPhotosetType !== PhotosetType.FAVORITES}
-      titleIconName={"star"}
-      isDateView={true}
+      titleIconName="star"
+      isDateView
       photoset={photosGroupedByDate}
       updateGroups={throttledGetAlbums}
       idx2hash={photosFlat}
-      selectable={true}
+      selectable
     />
   );
-};
+}

@@ -1,18 +1,19 @@
 import { combineReducers } from "@reduxjs/toolkit";
 import { connectRouter } from "connected-react-router";
-import people from "../reducers/peopleReducer";
-import faces from "../reducers/facesReducer";
+import { reducer as notificationsReducer } from "reapop";
+
+import { api } from "../api_client/api";
+import appHistory from "../history";
 import albums from "../reducers/albumsReducer";
-import util from "../reducers/utilReducer";
+import faces from "../reducers/facesReducer";
+import people from "../reducers/peopleReducer";
 import photos from "../reducers/photosReducer";
+import pub from "../reducers/publicReducer";
 import search from "../reducers/searchReducer";
 import ui from "../reducers/uiReducer";
-import pub from "../reducers/publicReducer";
-import appHistory from "../history";
-import { reducer as notificationsReducer } from "reapop";
-import { userReducer as user } from "./user/userSlice";
+import util from "../reducers/utilReducer";
 import { authReducer as auth } from "./auth/authSlice";
-import { api } from "../api_client/api";
+import { userReducer as user } from "./user/userSlice";
 
 export const rootReducer = combineReducers({
   router: connectRouter(appHistory),

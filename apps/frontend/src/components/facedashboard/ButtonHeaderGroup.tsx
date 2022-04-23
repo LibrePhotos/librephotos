@@ -1,6 +1,7 @@
 import React from "react";
-import { Checkbox, Popup, Button } from "semantic-ui-react";
 import { useTranslation } from "react-i18next";
+import { Button, Checkbox, Popup } from "semantic-ui-react";
+
 import { trainFaces } from "../../actions/facesActions";
 
 type Props = {
@@ -14,7 +15,7 @@ type Props = {
   trainFaces: () => void;
 };
 
-export const ButtonHeaderGroup = (props: Props) => {
+export function ButtonHeaderGroup(props: Props) {
   const { t } = useTranslation();
 
   return (
@@ -49,7 +50,7 @@ export const ButtonHeaderGroup = (props: Props) => {
         <Popup
           inverted
           trigger={
-            //To-Do: Confirmation of delete faces
+            // To-Do: Confirmation of delete faces
             <Button color="red" disabled={props.selectedFaces.length === 0} onClick={props.deleteFaces} icon="trash" />
           }
           content={t("facesdashboard.explanationdeleting")}
@@ -71,4 +72,4 @@ export const ButtonHeaderGroup = (props: Props) => {
       </Button.Group>
     </div>
   );
-};
+}

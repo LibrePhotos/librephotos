@@ -1,9 +1,11 @@
+import { push } from "connected-react-router";
 import _ from "lodash";
 import React, { Component } from "react";
+import { withTranslation } from "react-i18next";
 import { connect } from "react-redux";
-import { push } from "connected-react-router";
-import "./menubars/TopMenu.css";
-import { Icon, Image, Search, Popup, Segment, Loader } from "semantic-ui-react";
+import { compose } from "redux";
+import { Icon, Image, Loader, Popup, Search, Segment } from "semantic-ui-react";
+
 import {
   fetchPlaceAlbum,
   fetchPlaceAlbumsList,
@@ -15,22 +17,19 @@ import { fetchPeople } from "../actions/peopleActions";
 import { searchPeople, searchPhotos, searchPlaceAlbums, searchThingAlbums } from "../actions/searchActions";
 import { fetchExampleSearchTerms } from "../actions/utilActions";
 import { serverAddress } from "../api_client/apiClient";
-import { SecuredImageJWT } from "./SecuredImage";
 import { TOP_MENU_HEIGHT } from "../ui-constants";
-import { withTranslation } from "react-i18next";
-import { compose } from "redux";
 import { ChunkedUploadButton } from "./ChunkedUploadButton";
-var ENTER_KEY = 13;
+import { SecuredImageJWT } from "./SecuredImage";
+import "./menubars/TopMenu.css";
+
+const ENTER_KEY = 13;
 
 function fuzzy_match(str, pattern) {
   if (pattern.split("").length > 0) {
-    pattern = pattern.split("").reduce(function (a, b) {
-      return a + ".*" + b;
-    });
+    pattern = pattern.split("").reduce((a, b) => `${a}.*${b}`);
     return new RegExp(pattern).test(str);
-  } else {
-    return false;
   }
+  return false;
 }
 
 export class CustomSearch extends Component {
@@ -64,9 +63,9 @@ export class CustomSearch extends Component {
     this.exampleSearchTermCylcer = setInterval(() => {
       this.setState({
         exampleSearchTerm: this.props.exampleSearchTerms
-          ? this.props.t("search.search") +
-            " " +
-            this.props.exampleSearchTerms[Math.floor(Math.random() * this.props.exampleSearchTerms.length)]
+          ? `${this.props.t("search.search")} ${
+              this.props.exampleSearchTerms[Math.floor(Math.random() * this.props.exampleSearchTerms.length)]
+            }`
           : this.props.t("search.default"),
       });
     }, 5000);
@@ -80,19 +79,19 @@ export class CustomSearch extends Component {
       var filteredSuggestedThings = [];
       var filteredSuggestedUserAlbums = [];
     } else {
-      filteredExampleSearchTerms = nextProps.exampleSearchTerms.filter((el) =>
+      filteredExampleSearchTerms = nextProps.exampleSearchTerms.filter(el =>
         fuzzy_match(el.toLowerCase(), prevState.searchText.toLowerCase())
       );
-      filteredSuggestedPeople = nextProps.people.filter((person) =>
+      filteredSuggestedPeople = nextProps.people.filter(person =>
         fuzzy_match(person.text.toLowerCase(), prevState.searchText.toLowerCase())
       );
-      filteredSuggestedPlaces = nextProps.albumsPlaceList.filter((place) =>
+      filteredSuggestedPlaces = nextProps.albumsPlaceList.filter(place =>
         fuzzy_match(place.title.toLowerCase(), prevState.searchText.toLowerCase())
       );
-      filteredSuggestedThings = nextProps.albumsThingList.filter((thing) =>
+      filteredSuggestedThings = nextProps.albumsThingList.filter(thing =>
         fuzzy_match(thing.title.toLowerCase(), prevState.searchText.toLowerCase())
       );
-      filteredSuggestedUserAlbums = nextProps.albumsUserList.filter((album) =>
+      filteredSuggestedUserAlbums = nextProps.albumsUserList.filter(album =>
         fuzzy_match(album.title.toLowerCase(), prevState.searchText.toLowerCase())
       );
     }
@@ -143,19 +142,19 @@ export class CustomSearch extends Component {
       var filteredSuggestedThings = [];
       var filteredSuggestedUserAlbums = [];
     } else {
-      filteredExampleSearchTerms = this.props.exampleSearchTerms.filter((el) =>
+      filteredExampleSearchTerms = this.props.exampleSearchTerms.filter(el =>
         fuzzy_match(el.toLowerCase(), this.state.searchText.toLowerCase())
       );
-      filteredSuggestedPeople = this.props.people.filter((person) =>
+      filteredSuggestedPeople = this.props.people.filter(person =>
         fuzzy_match(person.text.toLowerCase(), this.state.searchText.toLowerCase())
       );
-      filteredSuggestedPlaces = this.props.albumsPlaceList.filter((place) =>
+      filteredSuggestedPlaces = this.props.albumsPlaceList.filter(place =>
         fuzzy_match(place.title.toLowerCase(), this.state.searchText.toLowerCase())
       );
-      filteredSuggestedThings = this.props.albumsThingList.filter((thing) =>
+      filteredSuggestedThings = this.props.albumsThingList.filter(thing =>
         fuzzy_match(thing.title.toLowerCase(), this.state.searchText.toLowerCase())
       );
-      filteredSuggestedUserAlbums = this.props.albumsUserList.filter((album) =>
+      filteredSuggestedUserAlbums = this.props.albumsUserList.filter(album =>
         fuzzy_match(album.title.toLowerCase(), this.state.searchText.toLowerCase())
       );
     }
@@ -189,7 +188,7 @@ export class CustomSearch extends Component {
   }
 
   render() {
-    var searchBarWidth = this.state.width - this.state.width / 2.2;
+    const searchBarWidth = this.state.width - this.state.width / 2.2;
 
     const {
       filteredSuggestedUserAlbums,
@@ -213,7 +212,7 @@ export class CustomSearch extends Component {
               this.setState({ searchBarFocused: false });
             }, 200)();
           }}
-          onKeyDown={(event) => {
+          onKeyDown={event => {
             switch (event.keyCode) {
               case ENTER_KEY:
                 this.props.dispatch(searchPhotos(this.state.searchText));
@@ -247,23 +246,21 @@ export class CustomSearch extends Component {
                   }}
                 >
                   <div style={{ height: 10 }} />
-                  {filteredExampleSearchTerms.slice(0, 2).map((el) => {
-                    return (
-                      <p
-                        key={"suggestion_" + el}
-                        onClick={() => {
-                          this.props.dispatch(searchPhotos(el));
-                          this.props.dispatch(searchPeople(el));
-                          this.props.dispatch(searchThingAlbums(el));
-                          this.props.dispatch(searchPlaceAlbums(el));
-                          this.props.dispatch(push("/search"));
-                        }}
-                      >
-                        <Icon name="search" />
-                        {el}
-                      </p>
-                    );
-                  })}
+                  {filteredExampleSearchTerms.slice(0, 2).map(el => (
+                    <p
+                      key={`suggestion_${el}`}
+                      onClick={() => {
+                        this.props.dispatch(searchPhotos(el));
+                        this.props.dispatch(searchPeople(el));
+                        this.props.dispatch(searchThingAlbums(el));
+                        this.props.dispatch(searchPlaceAlbums(el));
+                        this.props.dispatch(push("/search"));
+                      }}
+                    >
+                      <Icon name="search" />
+                      {el}
+                    </p>
+                  ))}
                   <div style={{ height: 5 }} />
                 </div>
               </Segment>
@@ -277,20 +274,18 @@ export class CustomSearch extends Component {
                   }}
                 >
                   <div style={{ height: 10 }} />
-                  {filteredSuggestedUserAlbums.slice(0, 2).map((album) => {
-                    return (
-                      <p
-                        key={"suggestion_place_" + album.title}
-                        onClick={() => {
-                          this.props.dispatch(push(`/useralbum/${album.id}`));
-                          this.props.dispatch(fetchUserAlbum(album.id));
-                        }}
-                      >
-                        <Icon name="bookmark" />
-                        {album.title}
-                      </p>
-                    );
-                  })}
+                  {filteredSuggestedUserAlbums.slice(0, 2).map(album => (
+                    <p
+                      key={`suggestion_place_${album.title}`}
+                      onClick={() => {
+                        this.props.dispatch(push(`/useralbum/${album.id}`));
+                        this.props.dispatch(fetchUserAlbum(album.id));
+                      }}
+                    >
+                      <Icon name="bookmark" />
+                      {album.title}
+                    </p>
+                  ))}
                   <div style={{ height: 5 }} />
                 </div>
               </Segment>
@@ -304,20 +299,18 @@ export class CustomSearch extends Component {
                   }}
                 >
                   <div style={{ height: 10 }} />
-                  {filteredSuggestedPlaces.slice(0, 2).map((place) => {
-                    return (
-                      <p
-                        key={"suggestion_place_" + place.title}
-                        onClick={() => {
-                          this.props.dispatch(push(`/place/${place.id}`));
-                          this.props.dispatch(fetchPlaceAlbum(place.id));
-                        }}
-                      >
-                        <Icon name="map outline" />
-                        {place.title}
-                      </p>
-                    );
-                  })}
+                  {filteredSuggestedPlaces.slice(0, 2).map(place => (
+                    <p
+                      key={`suggestion_place_${place.title}`}
+                      onClick={() => {
+                        this.props.dispatch(push(`/place/${place.id}`));
+                        this.props.dispatch(fetchPlaceAlbum(place.id));
+                      }}
+                    >
+                      <Icon name="map outline" />
+                      {place.title}
+                    </p>
+                  ))}
                   <div style={{ height: 5 }} />
                 </div>
               </Segment>
@@ -331,20 +324,18 @@ export class CustomSearch extends Component {
                   }}
                 >
                   <div style={{ height: 10 }} />
-                  {filteredSuggestedThings.slice(0, 2).map((thing) => {
-                    return (
-                      <p
-                        key={"suggestion_thing_" + thing.title}
-                        onClick={() => {
-                          this.props.dispatch(push(`/search`));
-                          this.props.dispatch(searchPhotos(thing.title));
-                        }}
-                      >
-                        <Icon name="tag" />
-                        {thing.title}
-                      </p>
-                    );
-                  })}
+                  {filteredSuggestedThings.slice(0, 2).map(thing => (
+                    <p
+                      key={`suggestion_thing_${thing.title}`}
+                      onClick={() => {
+                        this.props.dispatch(push(`/search`));
+                        this.props.dispatch(searchPhotos(thing.title));
+                      }}
+                    >
+                      <Icon name="tag" />
+                      {thing.title}
+                    </p>
+                  ))}
                   <div style={{ height: 5 }} />
                 </div>
               </Segment>
@@ -360,26 +351,24 @@ export class CustomSearch extends Component {
                   }}
                 >
                   <Image.Group>
-                    {filteredSuggestedPeople.map((person) => {
-                      return (
-                        <Popup
-                          inverted
-                          content={person.text}
-                          trigger={
-                            <SecuredImageJWT
-                              key={"suggestion_person_" + person.key}
-                              onClick={() => {
-                                this.props.dispatch(push(`/person/${person.key}`));
-                              }}
-                              height={50}
-                              width={50}
-                              circular
-                              src={serverAddress + person.face_url}
-                            />
-                          }
-                        />
-                      );
-                    })}
+                    {filteredSuggestedPeople.map(person => (
+                      <Popup
+                        inverted
+                        content={person.text}
+                        trigger={
+                          <SecuredImageJWT
+                            key={`suggestion_person_${person.key}`}
+                            onClick={() => {
+                              this.props.dispatch(push(`/person/${person.key}`));
+                            }}
+                            height={50}
+                            width={50}
+                            circular
+                            src={serverAddress + person.face_url}
+                          />
+                        }
+                      />
+                    ))}
                   </Image.Group>
                 </div>
               </Segment>
@@ -393,27 +382,25 @@ export class CustomSearch extends Component {
                   }}
                 >
                   {this.props.t("search.loading")}
-                  <Loader inline active={true} size="mini" />
+                  <Loader inline active size="mini" />
                 </div>
               </Segment>
             )}
           </div>
         )}
-        <ChunkedUploadButton></ChunkedUploadButton>
+        <ChunkedUploadButton />
       </div>
     );
   }
 }
 
 CustomSearch = compose(
-  connect((store) => {
-    return {
-      exampleSearchTerms: store.util.exampleSearchTerms,
-      people: store.people.people,
-      albumsThingList: store.albums.albumsThingList,
-      albumsUserList: store.albums.albumsUserList,
-      albumsPlaceList: store.albums.albumsPlaceList,
-    };
-  }),
+  connect(store => ({
+    exampleSearchTerms: store.util.exampleSearchTerms,
+    people: store.people.people,
+    albumsThingList: store.albums.albumsThingList,
+    albumsUserList: store.albums.albumsUserList,
+    albumsPlaceList: store.albums.albumsPlaceList,
+  })),
   withTranslation()
 )(CustomSearch);

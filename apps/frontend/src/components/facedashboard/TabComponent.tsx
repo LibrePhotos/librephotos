@@ -1,6 +1,6 @@
 import React from "react";
-import { Menu, Loader } from "semantic-ui-react";
 import { useTranslation } from "react-i18next";
+import { Loader, Menu } from "semantic-ui-react";
 
 type Props = {
   activeTab: string;
@@ -9,7 +9,7 @@ type Props = {
   fetchingInferredFacesList: boolean;
 };
 
-export const TabComponent = (props: Props) => {
+export function TabComponent(props: Props) {
   const { t } = useTranslation();
 
   return (
@@ -24,4 +24,4 @@ export const TabComponent = (props: Props) => {
       </Menu>
     </div>
   );
-};
+}

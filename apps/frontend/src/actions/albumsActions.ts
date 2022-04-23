@@ -1,50 +1,50 @@
-import { Server } from "../api_client/apiClient";
-import _ from "lodash";
-import { PhotosetType } from "../reducers/photosReducer";
-import { notify } from "reapop";
-
 import { push } from "connected-react-router";
+import _ from "lodash";
+import type { Dispatch } from "react";
+import { notify } from "reapop";
+import { z } from "zod";
+
+import { Server } from "../api_client/apiClient";
+import i18n from "../i18n";
+import { PhotosetType } from "../reducers/photosReducer";
+import type { AppDispatch } from "../store/store";
 import {
+  addTempElementsToGroups,
   adjustDateFormat,
   adjustDateFormatForSingleGroup,
   getPhotosFlatFromGroupedByDate,
-  addTempElementsToGroups,
 } from "../util/util";
-import type { Dispatch } from "react";
-import type { DatePhotosGroup, IncompleteDatePhotosGroup } from "./photosActions.types";
-import { IncompleteDatePhotosGroupSchema } from "./photosActions.types";
 import type {
   AlbumInfo,
-  ThingAlbum,
-  UserAlbumInfo,
-  UserAlbumDetails,
-  PlaceAlbumInfo,
-  AutoAlbumInfo,
   AutoAlbum,
+  AutoAlbumInfo,
+  PlaceAlbumInfo,
+  ThingAlbum,
+  UserAlbumDetails,
+  UserAlbumInfo,
 } from "./albumActions.types";
 import {
-  _FetchThingAlbumsListResponseSchema,
-  _FetchThingAlbumResponseSchema,
-  _FetchUserAlbumsListResponseSchema,
-  UserAlbumSchema,
-  _UserAlbumEditResponseSchema,
-  _FetchPlaceAlbumsListResponseSchema,
-  PlaceAlbumSchema,
-  _FetchAutoAlbumsListResponseSchema,
-  _FetchUserAlbumsSharedResponseSchema,
-  _FetchDateAlbumsListResponseSchema,
   AutoAlbumSchema,
+  PlaceAlbumSchema,
   UserAlbumInfoSchema,
+  UserAlbumSchema,
+  _FetchAutoAlbumsListResponseSchema,
+  _FetchDateAlbumsListResponseSchema,
+  _FetchPlaceAlbumsListResponseSchema,
+  _FetchThingAlbumResponseSchema,
+  _FetchThingAlbumsListResponseSchema,
+  _FetchUserAlbumsListResponseSchema,
+  _FetchUserAlbumsSharedResponseSchema,
+  _UserAlbumEditResponseSchema,
 } from "./albumActions.types";
-import { z } from "zod";
-import type { AppDispatch } from "../store/store";
-import i18n from "../i18n";
+import type { DatePhotosGroup, IncompleteDatePhotosGroup } from "./photosActions.types";
+import { IncompleteDatePhotosGroupSchema } from "./photosActions.types";
 
 export function fetchThingAlbumsList() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_THING_ALBUMS_LIST" });
     Server.get("albums/thing/list/")
-      .then((response) => {
+      .then(response => {
         const data = _FetchThingAlbumsListResponseSchema.parse(response.data);
         const albumInfoList: AlbumInfo[] = data.results;
         dispatch({
@@ -52,7 +52,7 @@ export function fetchThingAlbumsList() {
           payload: albumInfoList,
         });
       })
-      .catch((err) => {
+      .catch(err => {
         dispatch({ type: "FETCH_THING_ALBUMS_LIST_REJECTED", payload: err });
       });
   };
@@ -62,7 +62,7 @@ export function fetchThingAlbum(album_id: string) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_THING_ALBUMS" });
     Server.get(`albums/thing/${album_id}/`)
-      .then((response) => {
+      .then(response => {
         const data = _FetchThingAlbumResponseSchema.parse(response.data);
         const thingAlbum: ThingAlbum = data.results;
         dispatch({
@@ -70,7 +70,7 @@ export function fetchThingAlbum(album_id: string) {
           payload: thingAlbum,
         });
       })
-      .catch((err) => {
+      .catch(err => {
         dispatch({ type: "FETCH_THING_ALBUMS_REJECTED", payload: err });
       });
   };
@@ -80,7 +80,7 @@ export function fetchUserAlbumsList() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_USER_ALBUMS_LIST" });
     Server.get("albums/user/list/")
-      .then((response) => {
+      .then(response => {
         const data = _FetchUserAlbumsListResponseSchema.parse(response.data);
         const userAlbumInfoList: UserAlbumInfo[] = data.results;
         dispatch({
@@ -88,7 +88,7 @@ export function fetchUserAlbumsList() {
           payload: userAlbumInfoList,
         });
       })
-      .catch((err) => {
+      .catch(err => {
         dispatch({ type: "FETCH_USER_ALBUMS_LIST_REJECTED", payload: err });
       });
   };
@@ -101,7 +101,7 @@ export function fetchUserAlbum(album_id: number) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: FETCH_USER_ALBUM });
     Server.get(`albums/user/${album_id}/`)
-      .then((response) => {
+      .then(response => {
         const data = UserAlbumSchema.parse(response.data);
         const photosGroupedByDate: DatePhotosGroup[] = data.grouped_photos;
         adjustDateFormat(photosGroupedByDate);
@@ -115,7 +115,7 @@ export function fetchUserAlbum(album_id: number) {
           },
         });
       })
-      .catch((err) => {
+      .catch(err => {
         dispatch({ type: FETCH_USER_ALBUM_REJECTED, payload: err });
       });
   };
@@ -125,7 +125,7 @@ export function createNewUserAlbum(title: string, image_hashes: string[]) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "CREATE_USER_ALBUMS_LIST" });
     Server.post("albums/user/edit/", { title: title, photos: image_hashes })
-      .then((response) => {
+      .then(response => {
         const data = _UserAlbumEditResponseSchema.parse(response.data);
         dispatch({
           type: "CREATE_USER_ALBUMS_LIST_FULFILLED",
@@ -158,7 +158,7 @@ export function createNewUserAlbum(title: string, image_hashes: string[]) {
           )
         );
       })
-      .catch((err) => {
+      .catch(err => {
         dispatch({ type: "CREATE_USER_ALBUMS_LIST_REJECTED", payload: err });
       });
   };
@@ -170,7 +170,7 @@ export function renameUserAlbum(albumID: string, albumTitle: string, newAlbumTit
     Server.patch(`/albums/user/edit/${albumID}/`, {
       title: newAlbumTitle,
     })
-      .then((response) => {
+      .then(response => {
         dispatch({ type: "RENAME_USER_ALBUM_FULFILLED", payload: albumID });
         dispatch(fetchUserAlbumsList());
         dispatch(
@@ -189,7 +189,7 @@ export function renameUserAlbum(albumID: string, albumTitle: string, newAlbumTit
           )
         );
       })
-      .catch((err) => {
+      .catch(err => {
         dispatch({ type: "RENAME_USER_ALBUM_REJECTED", payload: err });
       });
   };
@@ -199,7 +199,7 @@ export function deleteUserAlbum(albumID: string, albumTitle: string) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "DELETE_USER_ALBUM" });
     Server.delete(`/albums/user/${albumID}`)
-      .then((response) => {
+      .then(response => {
         dispatch({ type: "DELETE_USER_ALBUM_FULFILLED", payload: albumID });
         dispatch(fetchUserAlbumsList());
         dispatch(
@@ -217,7 +217,7 @@ export function deleteUserAlbum(albumID: string, albumTitle: string) {
           )
         );
       })
-      .catch((err) => {
+      .catch(err => {
         dispatch({ type: "DELETE_USER_ALBUM_REJECTED", payload: err });
       });
   };
@@ -229,7 +229,7 @@ export function removeFromUserAlbum(album_id: number, title: string, image_hashe
     Server.patch(`albums/user/edit/${album_id}/`, {
       removedPhotos: image_hashes,
     })
-      .then((response) => {
+      .then(response => {
         const data = _UserAlbumEditResponseSchema.parse(response.data);
         dispatch({
           type: "REMOVE_USER_ALBUMS_LIST_FULFILLED",
@@ -253,7 +253,7 @@ export function removeFromUserAlbum(album_id: number, title: string, image_hashe
         dispatch(fetchUserAlbumsList());
         dispatch(fetchUserAlbum(album_id));
       })
-      .catch((err) => {
+      .catch(err => {
         dispatch({ type: "REMOVE_USER_ALBUMS_LIST_REJECTED", payload: err });
       });
   };
@@ -266,7 +266,7 @@ export function addToUserAlbum(album_id: number, title: string, image_hashes: st
       title: title,
       photos: image_hashes,
     })
-      .then((response) => {
+      .then(response => {
         const data = _UserAlbumEditResponseSchema.parse(response.data);
         dispatch({
           type: "EDIT_USER_ALBUMS_LIST_FULFILLED",
@@ -300,7 +300,7 @@ export function addToUserAlbum(album_id: number, title: string, image_hashes: st
         );
         dispatch(fetchUserAlbumsList());
       })
-      .catch((err) => {
+      .catch(err => {
         dispatch({ type: "EDIT_USER_ALBUMS_LIST_REJECTED", payload: err });
       });
   };
@@ -310,10 +310,10 @@ export function fetchPlaceAlbumsList() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_PLACE_ALBUMS_LIST" });
     Server.get("albums/place/list/")
-      .then((response) => {
+      .then(response => {
         const data = _FetchPlaceAlbumsListResponseSchema.parse(response.data);
         const placeAlbumInfoList: PlaceAlbumInfo[] = data.results;
-        const byGeolocationLevel = _.groupBy(placeAlbumInfoList, (el) => el.geolocation_level);
+        const byGeolocationLevel = _.groupBy(placeAlbumInfoList, el => el.geolocation_level);
         dispatch({
           type: "GROUP_PLACE_ALBUMS_BY_GEOLOCATION_LEVEL",
           payload: byGeolocationLevel,
@@ -323,7 +323,7 @@ export function fetchPlaceAlbumsList() {
           payload: placeAlbumInfoList,
         });
       })
-      .catch((err) => {
+      .catch(err => {
         dispatch({ type: "FETCH_PLACE_ALBUMS_LIST_REJECTED", payload: err });
       });
   };
@@ -334,14 +334,14 @@ export function fetchPlaceAlbum(album_id: string) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_PLACE_ALBUMS" });
     Server.get(`albums/place/${album_id}/`)
-      .then((response) => {
+      .then(response => {
         const data = PlaceAlbumResponseSchema.parse(response.data);
         dispatch({
           type: "FETCH_PLACE_ALBUMS_FULFILLED",
           payload: data,
         });
       })
-      .catch((err) => {
+      .catch(err => {
         dispatch({ type: "FETCH_PLACE_ALBUMS_REJECTED", payload: err });
       });
   };
@@ -351,7 +351,7 @@ export function fetchAutoAlbumsList() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_AUTO_ALBUMS_LIST" });
     Server.get("albums/auto/list/")
-      .then((response) => {
+      .then(response => {
         const data = _FetchAutoAlbumsListResponseSchema.parse(response.data);
         const autoAlbumsList: AutoAlbumInfo[] = data.results;
         dispatch({
@@ -359,7 +359,7 @@ export function fetchAutoAlbumsList() {
           payload: autoAlbumsList,
         });
       })
-      .catch((err) => {
+      .catch(err => {
         dispatch({ type: "FETCH_AUTO_ALBUMS_LIST_REJECTED", payload: err });
       });
   };
@@ -382,10 +382,10 @@ export function fetchAlbumDateList(dispatch: AppDispatch, options: AlbumDateList
   const deletedParam = options.photosetType === PhotosetType.DELETED ? "?deleted=true" : "";
   const usernameParam = options.username ? `&username=${options.username.toLowerCase()}` : "";
   const personidParam = options.person_id ? `?person=${options.person_id}` : "";
-  Server.get("albums/date/list/" + favorites + publicParam + deletedParam + usernameParam + personidParam, {
+  Server.get(`albums/date/list/${favorites}${publicParam}${deletedParam}${usernameParam}${personidParam}`, {
     timeout: 100000,
   })
-    .then((response) => {
+    .then(response => {
       const data = _FetchDateAlbumsListResponseSchema.parse(response.data);
       const photosGroupedByDate: IncompleteDatePhotosGroup[] = data.results;
       adjustDateFormat(photosGroupedByDate);
@@ -399,7 +399,7 @@ export function fetchAlbumDateList(dispatch: AppDispatch, options: AlbumDateList
         },
       });
     })
-    .catch((err) => {
+    .catch(err => {
       console.log(err);
       dispatch({ type: "FETCH_DATE_ALBUMS_LIST_REJECTED", payload: err });
     });
@@ -426,14 +426,9 @@ export function fetchAlbumDate(dispatch: AppDispatch, options: AlbumDateOption) 
   const personidParam = options.person_id ? `&person=${options.person_id}` : "";
   const deletedParam = options.photosetType === PhotosetType.DELETED ? "&deleted=true" : "";
   Server.get(
-    `albums/date/${options.album_date_id}/?page=${options.page}` +
-      favorites +
-      publicParam +
-      usernameParam +
-      personidParam +
-      deletedParam
+    `albums/date/${options.album_date_id}/?page=${options.page}${favorites}${publicParam}${usernameParam}${personidParam}${deletedParam}`
   )
-    .then((response) => {
+    .then(response => {
       const datePhotosGroup: IncompleteDatePhotosGroup = IncompleteDatePhotosGroupSchema.parse(response.data.results);
       adjustDateFormatForSingleGroup(datePhotosGroup);
       dispatch({
@@ -444,24 +439,24 @@ export function fetchAlbumDate(dispatch: AppDispatch, options: AlbumDateOption) 
         },
       });
     })
-    .catch((err) => {
+    .catch(err => {
       console.log(err);
       dispatch({ type: "FETCH_DATE_ALBUMS_RETRIEVE_REJECTED", payload: err });
     });
 }
 
-//actions using new retrieve view in backend
+// actions using new retrieve view in backend
 export function fetchAlbumsAutoGalleries(dispatch: AppDispatch, album_id: string) {
   dispatch({ type: "FETCH_AUTO_ALBUMS_RETRIEVE" });
   Server.get(`albums/auto/${album_id}/`)
-    .then((response) => {
+    .then(response => {
       const autoAlbum: AutoAlbum = AutoAlbumSchema.parse(response.data);
       dispatch({
         type: "FETCH_AUTO_ALBUMS_RETRIEVE_FULFILLED",
         payload: autoAlbum,
       });
     })
-    .catch((err) => {
+    .catch(err => {
       console.log(err);
       dispatch({ type: "FETCH_AUTO_ALBUMS_RETRIEVE_REJECTED", payload: err });
     });
@@ -476,7 +471,7 @@ export function setUserAlbumShared(album_id: number, target_user_id: string, val
       album_id: album_id,
       target_user_id: target_user_id,
     })
-      .then((response) => {
+      .then(response => {
         const userAlbumInfo: UserAlbumInfo = UserAlbumInfoSchema.parse(response.data);
         dispatch({
           type: "SET_ALBUM_USER_SHARED_FULFILLED",
@@ -506,7 +501,7 @@ export function setUserAlbumShared(album_id: number, target_user_id: string, val
           );
         }
       })
-      .catch((err) => {
+      .catch(err => {
         dispatch({ type: "SET_ALBUM_USER_SHARED_FULFILLED", payload: err });
         console.log(err.content);
       });
@@ -517,18 +512,19 @@ export function fetchUserAlbumsSharedToMe() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_ALBUMS_SHARED_TO_ME" });
     Server.get("/albums/user/shared/tome/")
-      .then((response) => {
+      .then(response => {
         const data = _FetchUserAlbumsSharedResponseSchema.parse(response.data);
         const userAlbumInfoList: UserAlbumInfo[] = data.results;
-        const sharedAlbumsGroupedByOwner = _.toPairs(_.groupBy(userAlbumInfoList, "owner.id")).map((el) => {
-          return { user_id: parseInt(el[0], 10), albums: el[1] };
-        });
+        const sharedAlbumsGroupedByOwner = _.toPairs(_.groupBy(userAlbumInfoList, "owner.id")).map(el => ({
+          user_id: parseInt(el[0], 10),
+          albums: el[1],
+        }));
         dispatch({
           type: "FETCH_ALBUMS_SHARED_TO_ME_FULFILLED",
           payload: sharedAlbumsGroupedByOwner,
         });
       })
-      .catch((err) => {
+      .catch(err => {
         dispatch({ type: "FETCH_ALBUMS_SHARED_TO_ME_REJECTED", payload: err });
       });
   };
@@ -538,7 +534,7 @@ export function fetchUserAlbumsSharedFromMe() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_ALBUMS_SHARED_FROM_ME" });
     Server.get("/albums/user/shared/fromme/")
-      .then((response) => {
+      .then(response => {
         const data = _FetchUserAlbumsSharedResponseSchema.parse(response.data);
         const userAlbumInfoList: UserAlbumInfo[] = data.results;
         dispatch({
@@ -546,7 +542,7 @@ export function fetchUserAlbumsSharedFromMe() {
           payload: userAlbumInfoList,
         });
       })
-      .catch((err) => {
+      .catch(err => {
         dispatch({
           type: "FETCH_ALBUMS_SHARED_FROM_ME_REJECTED",
           payload: err,

@@ -1,20 +1,21 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import jwtDecode from "jwt-decode";
-import type { IApiUserListResponse, IUser } from "../store/user/user.zod";
-import { UserSchema } from "../store/user/user.zod";
+import { Cookies } from "react-cookie";
+
 import type {
   IApiLoginPost,
   IApiLoginResponse,
   IApiRefreshPost,
   IApiRefreshResponse,
-  IToken,
   IApiUserSignUpPost,
+  IToken,
 } from "../store/auth/auth.zod";
 import { TokenSchema } from "../store/auth/auth.zod";
 import type { RootState } from "../store/store";
-import type { IUploadResponse, IUploadOptions } from "../store/upload/upload.zod";
-import { UploadResponse, UploadExistResponse } from "../store/upload/upload.zod";
-import { Cookies } from "react-cookie";
+import type { IUploadOptions, IUploadResponse } from "../store/upload/upload.zod";
+import { UploadExistResponse, UploadResponse } from "../store/upload/upload.zod";
+import { IApiUserListResponse, IUser, UserSchema } from "../store/user/user.zod";
+
 export enum Endpoints {
   login = "login",
   signUp = "signUp",
@@ -105,7 +106,6 @@ export const api = createApi({
     }),
   }),
 });
-
 export const {
   useLazyFetchUserListQuery,
   useLazyFetchPredefinedRulesQuery,

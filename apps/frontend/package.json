@@ -5,7 +5,7 @@
   "scripts": {
     "lint:warn": "eslint --cache \"src/**\"",
     "lint:error": "eslint --cache --quiet \"src/**\"",
-    "lint:error:fix": "eslint --cache --quiet \"src/**\" --fix",
+    "lint:error:fix": "eslint --quiet \"src/**\" --fix",
     "lint:warning:fix": "eslint --cache --quiet \"src/**\" --fix",
     "start": "react-scripts start",
     "build": "rimraf ./build && react-scripts build",
@@ -20,7 +20,7 @@
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
       "yarn prettier --config ./prettier.config.js  --write",
-      "yarn eslint --cache --quiet -c ./.eslintrc.js"
+      "yarn eslint --cache --quiet -c ./.eslintrc.commitHook.js"
     ],
     "*.{json,css,scss,md}": [
       "yarn prettier --config ./prettier.config.js  --write"
@@ -113,6 +113,7 @@
   },
   "devDependencies": {
     "@babel/eslint-parser": "^7.17.0",
+    "@trivago/prettier-plugin-sort-imports": "^3.2.0",
     "@types/crypto-js": "4.1.0",
     "@types/lodash": "^4.14.176",
     "@types/luxon": "2.0.8",
@@ -124,21 +125,27 @@
     "@types/react-router-dom": "5.3.2",
     "@types/react-router-redux": "^5.0.20",
     "@types/reapop": "^3.0.0",
-    "@typescript-eslint/eslint-plugin": "^5.13.0",
-    "@typescript-eslint/parser": "^5.13.0",
-    "eslint": "^8.10.0",
+    "@typescript-eslint/eslint-plugin": "^5.19.0",
+    "@typescript-eslint/parser": "^5.19.0",
+    "eslint": "^8.13.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-airbnb-typescript": "^17.0.0",
+    "eslint-config-node": "^4.1.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-config-recommended": "^4.1.0",
     "eslint-filtered-fix": "^0.3.0",
     "eslint-nibble": "^8.0.1",
-    "eslint-plugin-import": "^2.25.4",
-    "eslint-plugin-react": "^7.29.3",
-    "eslint-plugin-react-hooks": "^4.3.0",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-jsx-a11y": "^6.5.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-react": "^7.29.4",
+    "eslint-plugin-react-hooks": "^4.4.0",
     "http-proxy-middleware": "^2.0.4",
     "husky": "^7.0.4",
     "jest": "^27.5.1",
     "lint-staged": "^12.3.5",
-    "prettier": "^2.5.1",
+    "prettier": "^2.6.2",
     "react-scripts": "5.0.0",
     "rimraf": "^3.0.2",
     "source-map-loader": "^3.0.0",

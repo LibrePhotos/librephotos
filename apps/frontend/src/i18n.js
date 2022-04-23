@@ -1,20 +1,20 @@
 import i18n from "i18next";
-import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { DateTime } from "luxon";
+import { initReactI18next } from "react-i18next";
 
-import translationEn from "./locales/en/translation.json";
 import translationDe from "./locales/de/translation.json";
+import translationEn from "./locales/en/translation.json";
 import translationEs from "./locales/es/translation.json";
 import translationFr from "./locales/fr/translation.json";
 import translationIt from "./locales/it/translation.json";
-import translationNb_NO from "./locales/nb_NO/translation.json";
-import translationZh_Hans from "./locales/zh_Hans/translation.json";
-import translationRu from "./locales/ru/translation.json";
 import translationJa from "./locales/ja/translation.json";
-import translationSv from "./locales/sv/translation.json";
-import translationPl from "./locales/pl/translation.json";
+import translationNb_NO from "./locales/nb_NO/translation.json";
 import translationNl from "./locales/nl/translation.json";
+import translationPl from "./locales/pl/translation.json";
+import translationRu from "./locales/ru/translation.json";
+import translationSv from "./locales/sv/translation.json";
+import translationZh_Hans from "./locales/zh_Hans/translation.json";
 
 const resources = {
   en: {

@@ -1,6 +1,7 @@
+import { createSelector } from "@reduxjs/toolkit";
+
 import type { RootState } from "../store";
 import { selectSelf } from "../store";
-import { createSelector } from "@reduxjs/toolkit";
 import { isTokenExpired } from "../util/auth";
 
 export const selectIsAuthenticated = createSelector(selectSelf, (state: RootState) =>

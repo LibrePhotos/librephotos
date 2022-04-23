@@ -1,13 +1,14 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import { fetchPhotosSharedFromMe } from "../../actions/photosActions";
-import { PhotosetType } from "../../reducers/photosReducer";
-import { Header, Icon, Loader, Menu } from "semantic-ui-react";
 import { Link } from "react-router-dom";
-import { fetchPublicUserList } from "../../actions/publicActions";
+import { Header, Icon, Loader, Menu } from "semantic-ui-react";
+
 import { fetchUserAlbumsSharedFromMe } from "../../actions/albumsActions";
-import { PhotosShared } from "./PhotosShared";
+import { fetchPhotosSharedFromMe } from "../../actions/photosActions";
+import { fetchPublicUserList } from "../../actions/publicActions";
+import { PhotosetType } from "../../reducers/photosReducer";
 import { AlbumsShared } from "./AlbumsShared";
+import { PhotosShared } from "./PhotosShared";
 
 export class SharedFromMe extends Component {
   componentDidMount() {
@@ -25,9 +26,8 @@ export class SharedFromMe extends Component {
           {this.props.photosFlat.length} photo share(s) with {this.props.photosGroupedByUser.length} user(s)
         </Header.Subheader>
       );
-    } else {
-      return <Header.Subheader>You shared {this.props.albums.albumsSharedFromMe.length} albums</Header.Subheader>;
     }
+    return <Header.Subheader>You shared {this.props.albums.albumsSharedFromMe.length} albums</Header.Subheader>;
   }
 
   getHeader(activeItem) {
@@ -75,12 +75,10 @@ export class SharedFromMe extends Component {
   }
 }
 
-SharedFromMe = connect((store) => {
-  return {
-    photosFlat: store.photos.photosFlat,
-    photosGroupedByUser: store.photos.photosGroupedByUser,
-    fetchedPhotosetType: store.photos.fetchedPhotosetType,
-    albums: store.albums,
-    pub: store.pub,
-  };
-})(SharedFromMe);
+SharedFromMe = connect(store => ({
+  photosFlat: store.photos.photosFlat,
+  photosGroupedByUser: store.photos.photosGroupedByUser,
+  fetchedPhotosetType: store.photos.fetchedPhotosetType,
+  albums: store.albums,
+  pub: store.pub,
+}))(SharedFromMe);

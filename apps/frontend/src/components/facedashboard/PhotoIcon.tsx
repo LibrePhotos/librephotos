@@ -1,14 +1,14 @@
 import React from "react";
-import { Popup, Icon } from "semantic-ui-react";
-import { SecuredImageJWT } from "../../components/SecuredImage";
+import { Icon, Popup } from "semantic-ui-react";
 
 import { serverAddress } from "../../api_client/apiClient";
+import { SecuredImageJWT } from "../SecuredImage";
 
 type Props = {
   photo: string;
 };
 
-export const PhotoIcon = (props: Props) => {
+export function PhotoIcon(props: Props) {
   return (
     <div style={{ left: 6, bottom: 6, position: "absolute" }}>
       <Popup
@@ -17,8 +17,8 @@ export const PhotoIcon = (props: Props) => {
         flowing
         hideOnScroll
         inverted
-        content={<SecuredImageJWT size="large" src={serverAddress + "/media/thumbnails_big/" + props.photo} />}
+        content={<SecuredImageJWT size="large" src={`${serverAddress}/media/thumbnails_big/${props.photo}`} />}
       />
     </div>
   );
-};
+}

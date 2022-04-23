@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+
 import { UserPhotosGroup } from "../actions/photosActions";
 import { DatePhotosGroup, IncompleteDatePhotosGroup, PigPhoto } from "../actions/photosActions.types";
 import i18n from "../i18n";
@@ -16,7 +17,7 @@ export const copyToClipboard = (str: string) => {
   }
 };
 
-//To-Do: Add ordinal suffix to day of month when implemented in luxon
+// To-Do: Add ordinal suffix to day of month when implemented in luxon
 export function adjustDateFormatForSingleGroup(group: DatePhotosGroup) {
   if (group.date != null) {
     group.date =
@@ -41,8 +42,8 @@ export function getPhotosFlatFromGroupedByDate(photosGroupedByDate: DatePhotosGr
 }
 
 export function addTempElementsToGroups(photosGroupedByDate: IncompleteDatePhotosGroup[]) {
-  photosGroupedByDate.forEach((group) => {
-    for (var i = 0; i < group.numberOfItems; i++) {
+  photosGroupedByDate.forEach(group => {
+    for (let i = 0; i < group.numberOfItems; i++) {
       group.items.push({
         id: i.toString(),
         aspectRatio: 1,
@@ -53,8 +54,8 @@ export function addTempElementsToGroups(photosGroupedByDate: IncompleteDatePhoto
 }
 
 export function addTempElementsToFlatList(photosCount: number) {
-  var newPhotosFlat: PigPhoto[] = [];
-  for (var i = 0; i < photosCount; i++) {
+  const newPhotosFlat: PigPhoto[] = [];
+  for (let i = 0; i < photosCount; i++) {
     newPhotosFlat.push({
       id: i.toString(),
       aspectRatio: 1,
@@ -65,5 +66,5 @@ export function addTempElementsToFlatList(photosCount: number) {
 }
 
 export function getPhotosFlatFromGroupedByUser(photosGroupedByUser: UserPhotosGroup[]) {
-  return photosGroupedByUser.flatMap((el) => el.photos);
+  return photosGroupedByUser.flatMap(el => el.photos);
 }

@@ -1,10 +1,12 @@
 import React, { Component } from "react";
-import "react-virtualized/styles.css"; // only needs to be imported once
-import { copyToClipboard } from "../../util/util";
+// only needs to be imported once
 import { connect } from "react-redux";
-import { setPhotosFavorite, setPhotosHidden, setPhotosPublic } from "../../actions/photosActions";
+import "react-virtualized/styles.css";
 import { Button, Icon } from "semantic-ui-react";
+
+import { setPhotosFavorite, setPhotosHidden, setPhotosPublic } from "../../actions/photosActions";
 import { shareAddress } from "../../api_client/apiClient";
+import { copyToClipboard } from "../../util/util";
 
 export default class Toolbar extends Component {
   constructor(props) {
@@ -16,24 +18,24 @@ export default class Toolbar extends Component {
       <div>
         {!this.props.photosDetail && (
           <Button loading color="black" icon circular disabled={this.props.isPublic}>
-            <Icon name="hide" color={"grey"} />
+            <Icon name="hide" color="grey" />
           </Button>
         )}
         {!this.props.photosDetail && (
           <Button loading color="black" icon circular disabled={this.props.isPublic}>
-            <Icon name="star" color={"grey"} />
+            <Icon name="star" color="grey" />
           </Button>
         )}
         {!this.props.photosDetail && (
           <Button loading color="black" icon circular disabled={this.props.isPublic}>
-            <Icon name="globe" color={"grey"} />
+            <Icon name="globe" color="grey" />
           </Button>
         )}
         {this.props.photosDetail && (
           <Button
             disabled={this.props.isPublic}
             onClick={() => {
-              const image_hash = this.props.photosDetail.image_hash;
+              const { image_hash } = this.props.photosDetail;
               const val = !this.props.photosDetail.hidden;
               this.props.dispatch(setPhotosHidden([image_hash], val));
             }}
@@ -48,7 +50,7 @@ export default class Toolbar extends Component {
           <Button
             disabled={this.props.isPublic}
             onClick={() => {
-              const image_hash = this.props.photosDetail.image_hash;
+              const { image_hash } = this.props.photosDetail;
               const val = !(this.props.photosDetail.rating >= this.props.favorite_min_rating);
               this.props.dispatch(setPhotosFavorite([image_hash], val));
             }}
@@ -66,14 +68,14 @@ export default class Toolbar extends Component {
           <Button
             disabled={this.props.isPublic}
             onClick={() => {
-              const image_hash = this.props.photosDetail.image_hash;
+              const { image_hash } = this.props.photosDetail;
               const val = !this.props.photosDetail.public;
               this.props.dispatch(setPhotosPublic([image_hash], val));
               copyToClipboard(
-                //edited from serverAddress.replace('//','') + "/media/thumbnails_big/" + image_hash + ".jpg"
+                // edited from serverAddress.replace('//','') + "/media/thumbnails_big/" + image_hash + ".jpg"
                 // as above removed the domain and just left /media/thumbnails_big/" + image_hash + ".jpg"  *DW 12/9/20
                 // Not location of shared photo link Reverted to orgiinal *DW 12/13/20
-                shareAddress + "/media/thumbnails_big/" + image_hash + ".jpg"
+                `${shareAddress}/media/thumbnails_big/${image_hash}.jpg`
               );
             }}
             color="black"
@@ -91,8 +93,6 @@ export default class Toolbar extends Component {
   }
 }
 
-Toolbar = connect((store) => {
-  return {
-    favorite_min_rating: store.user.userSelfDetails.favorite_min_rating,
-  };
-})(Toolbar);
+Toolbar = connect(store => ({
+  favorite_min_rating: store.user.userSelfDetails.favorite_min_rating,
+}))(Toolbar);

@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
 import { Image } from "semantic-ui-react";
+
 import { Server } from "../api_client/apiClient";
 
 export class SecuredImageJWT extends Component {
@@ -16,25 +17,24 @@ export class SecuredImage extends Component {
 
   componentDidMount() {
     Server.get(this.props.src)
-      .then((resp) => {
+      .then(resp => {
         this.setState({ imgData: resp.data.data });
       })
-      .catch((err) => {
+      .catch(err => {
         console.log("fail");
       });
   }
+
   render() {
     const { imgData } = this.state;
-    var newProps = this.props;
+    const newProps = this.props;
     if (imgData) {
-      return <Image {...newProps} src={"data:image/jpeg;base64," + imgData} />;
+      return <Image {...newProps} src={`data:image/jpeg;base64,${imgData}`} />;
     }
-    return <Image {...newProps} src={"/thumbnail_placeholder.png"} />;
+    return <Image {...newProps} src="/thumbnail_placeholder.png" />;
   }
 }
 
-SecuredImageJWT = connect((store) => {
-  return {
-    auth: store.auth,
-  };
-})(SecuredImageJWT);
+SecuredImageJWT = connect(store => ({
+  auth: store.auth,
+}))(SecuredImageJWT);

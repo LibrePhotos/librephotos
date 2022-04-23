@@ -1,9 +1,10 @@
 import React, { Component } from "react";
-import { Statistic, Icon } from "semantic-ui-react";
-import { connect } from "react-redux";
-import { fetchCountStats } from "../actions/utilActions";
-import { compose } from "redux";
 import { withTranslation } from "react-i18next";
+import { connect } from "react-redux";
+import { compose } from "redux";
+import { Icon, Statistic } from "semantic-ui-react";
+
+import { fetchCountStats } from "../actions/utilActions";
 
 export class CountStats extends Component {
   componentDidMount() {
@@ -11,7 +12,7 @@ export class CountStats extends Component {
   }
 
   render() {
-    var statsGroup;
+    let statsGroup;
     if (this.props.fetchedCountStats) {
       statsGroup = (
         <div style={{ height: "60px" }}>
@@ -103,12 +104,10 @@ export class CountStats extends Component {
 }
 
 CountStats = compose(
-  connect((store) => {
-    return {
-      countStats: store.util.countStats,
-      fetchingCountStats: store.util.fetchingCountStats,
-      fetchedCountStats: store.util.fetchedCountStats,
-    };
-  }),
+  connect(store => ({
+    countStats: store.util.countStats,
+    fetchingCountStats: store.util.fetchingCountStats,
+    fetchedCountStats: store.util.fetchedCountStats,
+  })),
   withTranslation()
 )(CountStats);

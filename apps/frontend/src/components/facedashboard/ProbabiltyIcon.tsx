@@ -1,22 +1,16 @@
 import React from "react";
-import { Popup, Icon } from "semantic-ui-react";
-import { SortableItem } from "../settings/SortableItem";
 import { useTranslation } from "react-i18next";
+import { Icon, Popup } from "semantic-ui-react";
+
+import { SortableItem } from "../settings/SortableItem";
 
 type Props = {
   probability: number;
 };
 
-export const ProbabilityIcon = (props: Props) => {
-  const calculateProbabiltyColor = (labelProbability: number) => {
-    return labelProbability > 0.9
-      ? "green"
-      : labelProbability > 0.8
-      ? "yellow"
-      : labelProbability > 0.7
-      ? "orange"
-      : "red";
-  };
+export function ProbabilityIcon(props: Props) {
+  const calculateProbabiltyColor = (labelProbability: number) =>
+    labelProbability > 0.9 ? "green" : labelProbability > 0.8 ? "yellow" : labelProbability > 0.7 ? "orange" : "red";
   const labelProbabilityColor = calculateProbabiltyColor(props.probability);
 
   return (
@@ -29,10 +23,10 @@ export const ProbabilityIcon = (props: Props) => {
         hideOnScroll
         position="bottom center"
         content={
-          //To-Do: Translate this
+          // To-Do: Translate this
           `Confidence: ${(props.probability * 100).toFixed(1)}%`
         }
       />
     </div>
   );
-};
+}

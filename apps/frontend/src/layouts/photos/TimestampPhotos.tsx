@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { fetchAlbumDateList, fetchAlbumDate } from "../../actions/albumsActions";
 import _ from "lodash";
-import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { PhotosetType, PhotosState } from "../../reducers/photosReducer";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
+import { PhotoListView } from "../../components/photolist/PhotoListView";
+import { PhotosState, PhotosetType } from "../../reducers/photosReducer";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 type fetchedGroup = {
@@ -11,10 +12,8 @@ type fetchedGroup = {
   page: number;
 };
 
-export const TimestampPhotos = () => {
-  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(
-    (state) => state.photos as PhotosState
-  );
+export function TimestampPhotos() {
+  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(state => state.photos as PhotosState);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const [group, setGroup] = useState({} as fetchedGroup);
@@ -37,17 +36,17 @@ export const TimestampPhotos = () => {
 
   const getAlbums = (visibleGroups: any) => {
     visibleGroups.forEach((group: any) => {
-      var visibleImages = group.items;
+      const visibleImages = group.items;
       if (visibleImages.filter((i: any) => i.isTemp && i.isTemp != undefined).length > 0) {
-        var firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
-        var page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
+        const firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
+        const page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
         setGroup({ id: group.id, page: page });
       }
     });
   };
 
   const throttledGetAlbums = useCallback(
-    _.throttle((visibleItems) => getAlbums(visibleItems), 500),
+    _.throttle(visibleItems => getAlbums(visibleItems), 500),
     []
   );
 
@@ -55,12 +54,12 @@ export const TimestampPhotos = () => {
     <PhotoListView
       title={t("photos.photos")}
       loading={fetchedPhotosetType !== PhotosetType.TIMESTAMP}
-      titleIconName={"images"}
-      isDateView={true}
+      titleIconName="images"
+      isDateView
       photoset={photosGroupedByDate}
       idx2hash={photosFlat}
       updateGroups={throttledGetAlbums}
-      selectable={true}
+      selectable
     />
   );
-};
+}

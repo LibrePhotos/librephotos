@@ -1,13 +1,14 @@
 import { configureStore } from "@reduxjs/toolkit";
-import { rootReducer } from "./rootReducer";
-import { FLUSH, PAUSE, PERSIST, persistStore, PURGE, REGISTER, REHYDRATE } from "redux-persist";
-import appHistory from "../history";
-import { routerMiddleware } from "connected-react-router";
 import { setupListeners } from "@reduxjs/toolkit/query";
+import { routerMiddleware } from "connected-react-router";
 import type { TypedUseSelectorHook } from "react-redux";
 import { useDispatch, useSelector } from "react-redux";
+import { FLUSH, PAUSE, PERSIST, PURGE, REGISTER, REHYDRATE, persistStore } from "redux-persist";
+
 import { api } from "../api_client/api";
+import appHistory from "../history";
 import { errorMiddleware } from "./middleware/errorMiddleware";
+import { rootReducer } from "./rootReducer";
 
 export const store = configureStore({
   reducer: rootReducer,

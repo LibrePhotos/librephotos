@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Divider, Dropdown, Icon, Menu } from "semantic-ui-react";
 
 import { LEFT_MENU_WIDTH } from "../../ui-constants";
+
 export class SideMenuNarrowPublic extends Component {
   render() {
     return (

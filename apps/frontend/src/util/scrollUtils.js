@@ -3,6 +3,7 @@ export class ScrollSpeed {
     this.lastPosition = null;
     this.delta = 0;
   };
+
   getScrollSpeed(scrollOffset) {
     if (this.lastPosition != null) {
       this.delta = scrollOffset - this.lastPosition;
@@ -14,6 +15,7 @@ export class ScrollSpeed {
 
     return this.delta;
   }
+
   clearTimeout() {
     window.clearTimeout(this._timeout);
   }

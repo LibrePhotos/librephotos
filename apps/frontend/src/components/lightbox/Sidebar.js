@@ -1,24 +1,41 @@
-import React, { Component } from "react";
-import "react-virtualized/styles.css"; // only needs to be imported once
-import { generatePhotoIm2txtCaption } from "../../actions/photosActions";
-import { Button, Input, Image, Header, Item, Form, Label, Icon, Transition, Breadcrumb } from "semantic-ui-react";
-import { connect } from "react-redux";
-import { serverAddress } from "../../api_client/apiClient";
-import { LocationMap } from "../maps";
 import { push } from "connected-react-router";
-import { searchPhotos } from "../../actions/searchActions";
 import * as moment from "moment";
+import React, { Component } from "react";
+import { Trans, withTranslation } from "react-i18next";
+import { connect } from "react-redux";
 import { Link } from "react-router-dom";
-import { Tile } from "../Tile";
-import { withTranslation, Trans } from "react-i18next";
+import "react-virtualized/styles.css";
 import { compose } from "redux";
+// only needs to be imported once
+import { Breadcrumb, Button, Form, Header, Icon, Image, Input, Item, Label, Transition } from "semantic-ui-react";
+
+import { generatePhotoIm2txtCaption } from "../../actions/photosActions";
+import { searchPhotos } from "../../actions/searchActions";
+import { serverAddress } from "../../api_client/apiClient";
+import { Tile } from "../Tile";
+import { LocationMap } from "../maps";
 import { TimestampItem } from "./TimestampItem";
-var LIGHTBOX_SIDEBAR_WIDTH = 360;
+
+let LIGHTBOX_SIDEBAR_WIDTH = 360;
 if (window.innerWidth < 600) {
   LIGHTBOX_SIDEBAR_WIDTH = window.innerWidth;
 }
 
-const colors = ["red", "orange", "yellow", "olive", "green", "teal", "blue", "violet", "purple", "pink", "brown", "grey", "black"];
+const colors = [
+  "red",
+  "orange",
+  "yellow",
+  "olive",
+  "green",
+  "teal",
+  "blue",
+  "violet",
+  "purple",
+  "pink",
+  "brown",
+  "grey",
+  "black",
+];
 
 export default class Sidebar extends Component {
   constructor(props) {
@@ -67,7 +84,7 @@ export default class Sidebar extends Component {
 
                 <Item.Group relaxed>
                   {/* Start Item Time Taken */}
-                  <TimestampItem photoDetail={this.props.photoDetail} dispatch={this.props.dispatch}></TimestampItem>
+                  <TimestampItem photoDetail={this.props.photoDetail} dispatch={this.props.dispatch} />
                   {/* End Item Time Taken */}
                   {/* Start Item File Path */}
 
@@ -79,12 +96,10 @@ export default class Sidebar extends Component {
                       <Item.Description>
                         <Breadcrumb
                           as={Link}
-                          to={serverAddress + "/media/photos/" + this.props.photoDetail.image_hash + ".jpg"}
+                          to={`${serverAddress}/media/photos/${this.props.photoDetail.image_hash}.jpg`}
                           target="_blank"
                           divider="/"
-                          sections={this.props.photoDetail.image_path.split("/").map((el) => {
-                            return { key: el, content: el };
-                          })}
+                          sections={this.props.photoDetail.image_path.split("/").map(el => ({ key: el, content: el }))}
                         />
                       </Item.Description>
                     </Item.Content>
@@ -154,7 +169,11 @@ export default class Sidebar extends Component {
                       <Item.Description>
                         {false && this.props.photoDetail.captions_json.im2txt}
                         <Form>
-                          <Form.TextArea disabled={this.props.isPublic} fluid placeholder={this.props.photoDetail.captions_json.im2txt}>
+                          <Form.TextArea
+                            disabled={this.props.isPublic}
+                            fluid
+                            placeholder={this.props.photoDetail.captions_json.im2txt}
+                          >
                             {this.props.photoDetail.captions_json.im2txt}
                           </Form.TextArea>
                           <Button disabled={this.props.isPublic} floated="left" size="small" color="green">
@@ -165,7 +184,10 @@ export default class Sidebar extends Component {
                             onClick={() => {
                               this.props.dispatch(generatePhotoIm2txtCaption(this.props.photoDetail.image_hash));
                             }}
-                            disabled={this.props.isPublic | (this.props.generatingCaptionIm2txt != null && this.props.generatingCaptionIm2txt)}
+                            disabled={
+                              this.props.isPublic |
+                              (this.props.generatingCaptionIm2txt != null && this.props.generatingCaptionIm2txt)
+                            }
                             floated="left"
                             size="small"
                             color="blue"
@@ -195,7 +217,7 @@ export default class Sidebar extends Component {
                           <Label.Group>
                             {this.props.photoDetail.captions_json.places365.attributes.map((nc, idx) => (
                               <Label
-                                key={"lightbox_attribute_label_" + this.props.photoDetail.image_hash + "_" + nc}
+                                key={`lightbox_attribute_label_${this.props.photoDetail.image_hash}_${nc}`}
                                 tag
                                 color="blue"
                                 onClick={() => {
@@ -214,7 +236,7 @@ export default class Sidebar extends Component {
                           <Label.Group>
                             {this.props.photoDetail.captions_json.places365.categories.map((nc, idx) => (
                               <Label
-                                key={"lightbox_category_label_" + this.props.photoDetail.image_hash + "_" + nc}
+                                key={`lightbox_category_label_${this.props.photoDetail.image_hash}_${nc}`}
                                 tag
                                 color="teal"
                                 onClick={() => {
@@ -241,8 +263,13 @@ export default class Sidebar extends Component {
                         </Item.Header>
                         <Item.Description>
                           <Image.Group>
-                            {this.props.photoDetail.similar_photos.slice(0, 30).map((el) => (
-                              <Tile video={el.type.includes("video")} height={95} width={95} image_hash={el.image_hash} />
+                            {this.props.photoDetail.similar_photos.slice(0, 30).map(el => (
+                              <Tile
+                                video={el.type.includes("video")}
+                                height={95}
+                                width={95}
+                                image_hash={el.image_hash}
+                              />
                             ))}
                             ;
                           </Image.Group>
@@ -262,10 +289,8 @@ export default class Sidebar extends Component {
 }
 
 Sidebar = compose(
-  connect((store) => {
-    return {
-      generatingCaptionIm2txt: store.photos.generatingCaptionIm2txt,
-    };
-  }),
+  connect(store => ({
+    generatingCaptionIm2txt: store.photos.generatingCaptionIm2txt,
+  })),
   withTranslation()
 )(Sidebar);

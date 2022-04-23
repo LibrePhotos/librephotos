@@ -1,26 +1,26 @@
+import { push } from "connected-react-router";
 import _ from "lodash";
 import React, { Component } from "react";
-import "./TopMenu.css";
+import { Trans, withTranslation } from "react-i18next";
 import { connect } from "react-redux";
-import { push } from "connected-react-router";
-import { Menu, Button, Dropdown, Icon, Image, Popup, Progress } from "semantic-ui-react";
-import { logout } from "../../store/auth/authSlice";
-import { toggleSidebar } from "../../actions/uiActions";
-import { CustomSearch } from "../CustomSearch";
-import { fetchWorkerAvailability } from "../../actions/utilActions";
-import { serverAddress } from "../../api_client/apiClient";
 import { compose } from "redux";
-import { withTranslation, Trans } from "react-i18next";
+import { Button, Dropdown, Icon, Image, Menu, Popup, Progress } from "semantic-ui-react";
+
+import { toggleSidebar } from "../../actions/uiActions";
+import { fetchWorkerAvailability } from "../../actions/utilActions";
 import { api } from "../../api_client/api";
+import { serverAddress } from "../../api_client/apiClient";
+import { logout } from "../../store/auth/authSlice";
+import { CustomSearch } from "../CustomSearch";
+import "./TopMenu.css";
 
 export class TopMenu extends Component {
   state = {
     width: window.innerWidth,
   };
+
   throttledFetchUserSelfDetails = _.throttle(
-    user_id => {
-      return this.props.dispatch(this.props.fetchUserSelfDetails(user_id));
-    },
+    user_id => this.props.dispatch(this.props.fetchUserSelfDetails(user_id)),
     500,
     { leading: true, trailing: false }
   );
@@ -42,7 +42,7 @@ export class TopMenu extends Component {
   }
 
   componentDidMount() {
-    var intervalId = setInterval(() => {
+    const intervalId = setInterval(() => {
       fetchWorkerAvailability(this.props.workerRunningJob, this.props.dispatch);
     }, 2000);
     this.setState({ intervalId: intervalId });
@@ -87,7 +87,7 @@ export class TopMenu extends Component {
                 onClick={() => {
                   this.props.dispatch(toggleSidebar());
                 }}
-                name={"sidebar"}
+                name="sidebar"
               />
               <Button
                 color="black"
@@ -171,40 +171,38 @@ export class TopMenu extends Component {
 }
 
 TopMenu = compose(
-  connect(store => {
-    return {
-      showSidebar: store.ui.showSidebar,
-      gridType: store.ui.gridType,
+  connect(store => ({
+    showSidebar: store.ui.showSidebar,
+    gridType: store.ui.gridType,
 
-      workerAvailability: store.util.workerAvailability,
-      workerRunningJob: store.util.workerRunningJob,
+    workerAvailability: store.util.workerAvailability,
+    workerRunningJob: store.util.workerRunningJob,
 
-      auth: store.auth,
-      jwtToken: store.auth.jwtToken,
-      exampleSearchTerms: store.util.exampleSearchTerms,
-      fetchingExampleSearchTerms: store.util.fetchingExampleSearchTerms,
-      fetchedExampleSearchTerms: store.util.fetchedExampleSearchTerms,
-      searchError: store.search.error,
-      searchingPhotos: store.search.searchingPhotos,
-      searchedPhotos: store.search.searchedPhotos,
-      people: store.people.people,
-      fetchingPeople: store.people.fetchingPeople,
-      fetchedPeople: store.people.fetchedPeople,
+    auth: store.auth,
+    jwtToken: store.auth.jwtToken,
+    exampleSearchTerms: store.util.exampleSearchTerms,
+    fetchingExampleSearchTerms: store.util.fetchingExampleSearchTerms,
+    fetchedExampleSearchTerms: store.util.fetchedExampleSearchTerms,
+    searchError: store.search.error,
+    searchingPhotos: store.search.searchingPhotos,
+    searchedPhotos: store.search.searchedPhotos,
+    people: store.people.people,
+    fetchingPeople: store.people.fetchingPeople,
+    fetchedPeople: store.people.fetchedPeople,
 
-      albumsThingList: store.albums.albumsThingList,
-      fetchingAlbumsThingList: store.albums.fetchingAlbumsThingList,
-      fetchedAlbumsThingList: store.albums.fetchedAlbumsThingList,
+    albumsThingList: store.albums.albumsThingList,
+    fetchingAlbumsThingList: store.albums.fetchingAlbumsThingList,
+    fetchedAlbumsThingList: store.albums.fetchedAlbumsThingList,
 
-      albumsUserList: store.albums.albumsUserList,
-      fetchingAlbumsUserList: store.albums.fetchingAlbumsUserList,
-      fetchedAlbumsUserList: store.albums.fetchedAlbumsUserList,
+    albumsUserList: store.albums.albumsUserList,
+    fetchingAlbumsUserList: store.albums.fetchingAlbumsUserList,
+    fetchedAlbumsUserList: store.albums.fetchedAlbumsUserList,
 
-      albumsPlaceList: store.albums.albumsPlaceList,
-      fetchingAlbumsPlaceList: store.albums.fetchingAlbumsPlaceList,
-      fetchedAlbumsPlaceList: store.albums.fetchedAlbumsPlaceList,
-      userSelfDetails: store.user.userSelfDetails,
-      fetchUserSelfDetails: api.endpoints.fetchUserSelfDetails.initiate,
-    };
-  }),
+    albumsPlaceList: store.albums.albumsPlaceList,
+    fetchingAlbumsPlaceList: store.albums.fetchingAlbumsPlaceList,
+    fetchedAlbumsPlaceList: store.albums.fetchedAlbumsPlaceList,
+    userSelfDetails: store.user.userSelfDetails,
+    fetchUserSelfDetails: api.endpoints.fetchUserSelfDetails.initiate,
+  })),
   withTranslation()
 )(TopMenu);

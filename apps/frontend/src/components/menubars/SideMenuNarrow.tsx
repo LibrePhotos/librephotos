@@ -1,10 +1,11 @@
 import React from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Divider, Dropdown, Icon, Menu } from "semantic-ui-react";
-import { Trans, useTranslation } from "react-i18next";
-import { LEFT_MENU_WIDTH } from "../../ui-constants";
-import { selectIsAuthenticated, selectAuthAccess } from "../../store/auth/authSelectors";
+
+import { selectAuthAccess, selectIsAuthenticated } from "../../store/auth/authSelectors";
 import { useAppSelector } from "../../store/store";
+import { LEFT_MENU_WIDTH } from "../../ui-constants";
 
 export function SideMenuNarrow(): JSX.Element {
   const isAuth = useAppSelector(selectIsAuthenticated);
@@ -45,11 +46,11 @@ export function SideMenuNarrow(): JSX.Element {
       )}
 
       <Menu.Item name="photos" as={Link} to="/">
-        <Icon size="big" name="image outline"></Icon>
+        <Icon size="big" name="image outline" />
         <small>{t("sidemenu.photos")}</small>
       </Menu.Item>
       {
-        //To-DO figure out how to align menu items with dropdowns properly
+        // To-DO figure out how to align menu items with dropdowns properly
       }
       <Divider hidden />
 
@@ -69,24 +70,24 @@ export function SideMenuNarrow(): JSX.Element {
           <Dropdown.Header>{t("sidemenu.albums")}</Dropdown.Header>
           <Dropdown.Item as={Link} to="/people">
             <Icon name="users" />
-            {"  " + t("sidemenu.people")}
+            {`  ${t("sidemenu.people")}`}
           </Dropdown.Item>
           <Dropdown.Item as={Link} to="/places">
             <Icon name="map" />
-            {"  " + t("sidemenu.places")}
+            {`  ${t("sidemenu.places")}`}
           </Dropdown.Item>
           <Dropdown.Item as={Link} to="/things">
             <Icon name="tags" />
-            {"  " + t("sidemenu.things")}
+            {`  ${t("sidemenu.things")}`}
           </Dropdown.Item>
           <Dropdown.Divider />
           <Dropdown.Item as={Link} to="/useralbums">
             <Icon name="bookmark" />
-            {"  " + t("sidemenu.myalbums")}
+            {`  ${t("sidemenu.myalbums")}`}
           </Dropdown.Item>
           <Dropdown.Item as={Link} to="/events">
             <Icon name="wizard" />
-            {"  " + t("sidemenu.autoalbums")}
+            {`  ${t("sidemenu.autoalbums")}`}
           </Dropdown.Item>
         </Dropdown.Menu>
       </Dropdown>
@@ -102,27 +103,27 @@ export function SideMenuNarrow(): JSX.Element {
           </Dropdown.Header>
           <Dropdown.Item as={Link} to="/placetree">
             <Icon name="sitemap" />
-            {"  " + t("sidemenu.placetree")}
+            {`  ${t("sidemenu.placetree")}`}
           </Dropdown.Item>
 
           <Dropdown.Item as={Link} to="/wordclouds">
             <Icon name="cloud" />
-            {"  " + t("sidemenu.wordclouds")}
+            {`  ${t("sidemenu.wordclouds")}`}
           </Dropdown.Item>
 
           <Dropdown.Item as={Link} to="/timeline">
             <Icon name="chart bar" />
-            {"  " + t("sidemenu.timeline")}
+            {`  ${t("sidemenu.timeline")}`}
           </Dropdown.Item>
 
           <Dropdown.Item as={Link} to="/socialgraph">
             <Icon name="share alternate" />
-            {"  " + t("sidemenu.socialgraph")}
+            {`  ${t("sidemenu.socialgraph")}`}
           </Dropdown.Item>
 
           <Dropdown.Item as={Link} to="/facescatter">
             <Icon name="user circle" />
-            {"  " + t("sidemenu.facecluster")}
+            {`  ${t("sidemenu.facecluster")}`}
           </Dropdown.Item>
         </Dropdown.Menu>
       </Dropdown>
@@ -133,7 +134,7 @@ export function SideMenuNarrow(): JSX.Element {
       <Divider hidden />
 
       <Menu.Item name="faces" as={Link} to="/faces">
-        <Icon size="big" name="user circle outline"></Icon>
+        <Icon size="big" name="user circle outline" />
         <small>{t("sidemenu.facerecognition")}</small>
       </Menu.Item>
       {isAuth && (
@@ -143,19 +144,19 @@ export function SideMenuNarrow(): JSX.Element {
             <Dropdown.Menu>
               <Dropdown.Header>{t("sidemenu.sharing")}</Dropdown.Header>
 
-              <Dropdown.Item disabled={!access} as={Link} to={"/users/"}>
+              <Dropdown.Item disabled={!access} as={Link} to="/users/">
                 <Icon name="globe" />
-                {"  " + t("sidemenu.publicphotos")}
+                {`  ${t("sidemenu.publicphotos")}`}
               </Dropdown.Item>
 
               <Dropdown.Item as={Link} to="/shared/fromme/photos/">
                 <Icon name="share" color="red" />
-                {"  " + t("sidemenu.youshared")}
+                {`  ${t("sidemenu.youshared")}`}
               </Dropdown.Item>
 
               <Dropdown.Item as={Link} to="/shared/tome/photos/">
                 <Icon name="share" color="green" />
-                {"  " + t("sidemenu.sharedwithyou")}
+                {`  ${t("sidemenu.sharedwithyou")}`}
               </Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
@@ -167,7 +168,7 @@ export function SideMenuNarrow(): JSX.Element {
 
       <Divider hidden />
       <Menu.Item name="trash" as={Link} to="/deleted">
-        <Icon size="big" name="trash"></Icon>
+        <Icon size="big" name="trash" />
         <small>{t("photos.deleted")}</small>
       </Menu.Item>
     </Menu>

@@ -1,22 +1,20 @@
+import moment from "moment";
 import React, { Component } from "react";
-import { Input, Image, Icon, Header, Divider, Button } from "semantic-ui-react";
-import { SecuredImageJWT } from "../SecuredImage";
+import Modal from "react-modal";
 import { connect } from "react-redux";
+import { Button, Divider, Header, Icon, Image, Input } from "semantic-ui-react";
+
+import { setPhotosShared } from "../../actions/photosActions";
 import { fetchPublicUserList } from "../../actions/publicActions";
 import { serverAddress } from "../../api_client/apiClient";
-import { setPhotosShared } from "../../actions/photosActions";
-import Modal from "react-modal";
-import moment from "moment";
+import { SecuredImageJWT } from "../SecuredImage";
 
 function fuzzy_match(str, pattern) {
   if (pattern.split("").length > 0) {
-    pattern = pattern.split("").reduce(function (a, b) {
-      return a + ".*" + b;
-    });
+    pattern = pattern.split("").reduce((a, b) => `${a}.*${b}`);
     return new RegExp(pattern).test(str);
-  } else {
-    return false;
   }
+  return false;
 }
 
 const modalStyles = {
@@ -45,25 +43,26 @@ const modalStyles = {
 
 export class ModalPhotosShare extends Component {
   state = { userNameFilter: "", valShare: true };
+
   render() {
-    var filteredUserList;
+    let filteredUserList;
     if (this.state.userNameFilter.length > 0) {
       filteredUserList = this.props.pub.publicUserList.filter(
-        (el) =>
+        el =>
           fuzzy_match(el.username.toLowerCase(), this.state.userNameFilter.toLowerCase()) ||
           fuzzy_match(
-            el.first_name.toLowerCase() + " " + el.last_name.toLowerCase(),
+            `${el.first_name.toLowerCase()} ${el.last_name.toLowerCase()}`,
             this.state.userNameFilter.toLowerCase()
           )
       );
     } else {
       filteredUserList = this.props.pub.publicUserList;
     }
-    filteredUserList = filteredUserList.filter((el) => el.id !== this.props.auth.access.user_id);
+    filteredUserList = filteredUserList.filter(el => el.id !== this.props.auth.access.user_id);
 
-    var selectedImageSrcs = this.props.selectedImageHashes.map((image_hash) => {
-      return serverAddress + "/media/square_thumbnails/" + image_hash;
-    });
+    const selectedImageSrcs = this.props.selectedImageHashes.map(
+      image_hash => `${serverAddress}/media/square_thumbnails/${image_hash}`
+    );
     return (
       <Modal
         ariaHideApp={false}
@@ -89,8 +88,8 @@ export class ModalPhotosShare extends Component {
         <Divider fitted />
         <div style={{ padding: 5, height: 50, overflowY: "hidden" }}>
           <Image.Group>
-            {selectedImageSrcs.slice(0, 100).map((image) => (
-              <SecuredImageJWT key={"selected_image" + image} height={40} src={image} />
+            {selectedImageSrcs.slice(0, 100).map(image => (
+              <SecuredImageJWT key={`selected_image${image}`} height={40} src={image} />
             ))}
           </Image.Group>
         </div>
@@ -116,14 +115,14 @@ export class ModalPhotosShare extends Component {
           </div>
           <Divider />
           {filteredUserList.length > 0 &&
-            filteredUserList.map((item) => {
+            filteredUserList.map(item => {
               var displayName = item.username;
               if (item.first_name.length > 0 && item.last_name.length > 0) {
-                var displayName = item.first_name + " " + item.last_name;
+                var displayName = `${item.first_name} ${item.last_name}`;
               }
               return (
                 <div
-                  key={"modal_photos_share_user_" + item.username}
+                  key={`modal_photos_share_user_${item.username}`}
                   style={{
                     height: 70,
                     justifyContent: "center",
@@ -171,21 +170,19 @@ export class ModalPhotosShare extends Component {
   }
 }
 
-ModalPhotosShare = connect((store) => {
-  return {
-    auth: store.auth,
-    people: store.people.people,
-    fetchingPeople: store.people.fetchingPeople,
-    fetchedPeople: store.people.fetchedPeople,
+ModalPhotosShare = connect(store => ({
+  auth: store.auth,
+  people: store.people.people,
+  fetchingPeople: store.people.fetchingPeople,
+  fetchedPeople: store.people.fetchedPeople,
 
-    inferredFacesList: store.faces.inferredFacesList,
-    labeledFacesList: store.faces.labeledFacesList,
+  inferredFacesList: store.faces.inferredFacesList,
+  labeledFacesList: store.faces.labeledFacesList,
 
-    fetchingLabeledFacesList: store.faces.fetchingLabeledFacesList,
-    fetchedLabeledFacesList: store.faces.fetchedLabeledFacesList,
-    fetchingInferredFacesList: store.faces.fetchingInferredFacesList,
-    fetchedInferredFacesList: store.faces.fetchedInferredFacesList,
+  fetchingLabeledFacesList: store.faces.fetchingLabeledFacesList,
+  fetchedLabeledFacesList: store.faces.fetchedLabeledFacesList,
+  fetchingInferredFacesList: store.faces.fetchingInferredFacesList,
+  fetchedInferredFacesList: store.faces.fetchedInferredFacesList,
 
-    pub: store.pub,
-  };
-})(ModalPhotosShare);
+  pub: store.pub,
+}))(ModalPhotosShare);

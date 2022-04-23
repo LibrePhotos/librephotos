@@ -1,19 +1,19 @@
-import React, { useState, useEffect } from "react";
-import "react-virtualized/styles.css"; // only needs to be imported once
-import { Input, Item, Icon } from "semantic-ui-react";
+import { DateTime } from "luxon";
+import * as moment from "moment";
+import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import "react-virtualized/styles.css";
+// only needs to be imported once
+import { Icon, Input, Item } from "semantic-ui-react";
 
 import { editPhoto } from "../../actions/photosActions";
-import * as moment from "moment";
-
-import { DateTime } from "luxon";
-import { useTranslation } from "react-i18next";
 
 type Props = {
   photoDetail: any;
   dispatch: any;
 };
 
-export const TimestampItem = (props: Props) => {
+export function TimestampItem(props: Props) {
   const [timestamp, setTimestamp] = useState("");
   const [editMode, setEditMode] = useState(false);
 
@@ -24,16 +24,16 @@ export const TimestampItem = (props: Props) => {
   }, []);
 
   const onChange = (e: any, data: any) => {
-    var value = data.value;
+    const { value } = data;
     setTimestamp(DateTime.fromISO(value).toISODate());
   };
 
   const onSubmit = (e: any) => {
     // To-Do: Use the user defined timezone
-    var photoDetail = props.photoDetail;
+    const { photoDetail } = props;
     console.log(DateTime.fromISO(timestamp).toISO());
     photoDetail.exif_timestamp = DateTime.fromISO(timestamp, { zone: "utc" }).toISO();
-    var differentJson = { exif_timestamp: photoDetail.exif_timestamp };
+    const differentJson = { exif_timestamp: photoDetail.exif_timestamp };
     props.dispatch(editPhoto(props.photoDetail.image_hash, differentJson));
     setEditMode(false);
   };
@@ -47,7 +47,7 @@ export const TimestampItem = (props: Props) => {
         {/* To-Do: Handle click on calender */}
         {editMode && (
           <div>
-            <Input type="date" value={timestamp} onChange={onChange}></Input>
+            <Input type="date" value={timestamp} onChange={onChange} />
             <Icon style={{ margin: 5 }} name="save" circular link onClick={onSubmit} />
             <Icon
               style={{ margin: 5 }}
@@ -68,4 +68,4 @@ export const TimestampItem = (props: Props) => {
       </Item.Content>
     </Item>
   );
-};
+}

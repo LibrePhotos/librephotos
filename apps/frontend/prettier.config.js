@@ -6,6 +6,9 @@ module.exports = {
   singleQuote: false,
   trailingComma: "es5",
   arrowParens: "avoid",
+  "importOrder": ["<THIRD_PARTY_MODULES>", "^[./]"],
+  "importOrderSeparation": true,
+  "importOrderSortSpecifiers": true,
   overrides: [
     {
       files: "*.{json,css,scss}",
