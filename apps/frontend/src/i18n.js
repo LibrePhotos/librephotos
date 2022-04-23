@@ -13,6 +13,8 @@ import translationZh_Hans from "./locales/zh_Hans/translation.json";
 import translationRu from "./locales/ru/translation.json";
 import translationJa from "./locales/ja/translation.json";
 import translationSv from "./locales/sv/translation.json";
+import translationPl from "./locales/pl/translation.json";
+import translationNl from "./locales/nl/translation.json";
 
 const resources = {
   en: {
@@ -44,6 +46,12 @@ const resources = {
   },
   sv: {
     translation: translationSv,
+  },
+  pl: {
+    translation: translationPl,
+  },
+  nl: {
+    translation: translationNl,
   },
 };
 i18n

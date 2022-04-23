@@ -343,6 +343,18 @@ export class Settings extends Component {
                         flag: "se",
                         text: this.props.t("settings.swedish"),
                       },
+                      {
+                        key: "pl",
+                        value: "pl",
+                        flag: "pl",
+                        text: this.props.t("settings.polish"),
+                      },
+                      {
+                        key: "nl",
+                        value: "nl",
+                        flag: "nl",
+                        text: this.props.t("settings.dutch"),
+                      },
                     ]}
                   />
                 </Form>{" "}
