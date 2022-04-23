@@ -94,7 +94,7 @@ export const api = createApi({
       query: options => ({
         url: "/upload/",
         method: "POST",
-        data: options.form_data,
+        body: options.form_data,
         headers: {
           // Boundary error when explicitly writing that
           //"Content-Type": "multipart/form-data",

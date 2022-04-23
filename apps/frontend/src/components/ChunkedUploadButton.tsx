@@ -8,7 +8,7 @@ import MD5 from "crypto-js/md5";
 import CryptoJS from "crypto-js";
 import { useAppDispatch, useAppSelector } from "../store/store";
 import { api } from "../api_client/api";
-import { UploadOptions } from "../store/upload/upload.zod";
+import { IUploadResponse } from "../store/upload/upload.zod";
 
 export const ChunkedUploadButton = ({ token }: { token?: string }) => {
   const { t } = useTranslation();
@@ -38,17 +38,16 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
         const isAlreadyUploaded = (await uploadExists(hash)).data;
         if (!isAlreadyUploaded) {
           const chunks = calculateChunks(file, chunkSize);
-          const offset = 0;
-          const uploadId = "";
+          var offset = 0;
+          var uploadId = "";
           //To-Do: Handle Resume and Pause
           for (let i = 0; i < chunks.length; i++) {
-            // Does not work at all
             const response = await uploadChunk(chunks[offset / chunkSize], uploadId, offset);
-            console.log(response);
-            //@ts-ignore
-            offset = response.data.offset;
-            //@ts-ignore
-            uploadId = response.data.upload_id;
+            if ("data" in response) {
+              offset = response.data.offset;
+              uploadId = response.data.upload_id;
+            }
+            //To-Do: Handle Error
             if (chunks[offset / chunkSize]) {
               currentUploadedFileSize += chunks[offset / chunkSize].size;
             } else {
@@ -131,7 +130,13 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
     form_data.append("md5", calculateMD5Blob(chunk));
     form_data.append("offset", offset.toString());
     form_data.append("user", userSelfDetails.id.toString());
-    return dispatch(api.endpoints.upload.initiate({ form_data: form_data, offset: offset, chunk_size: chunk.size }));
+    return dispatch(
+      api.endpoints.upload.initiate({
+        form_data: form_data,
+        offset: offset,
+        chunk_size: chunk.size,
+      })
+    );
   };
 
   const calculateChunks = (file: File, chunkSize: number) => {
