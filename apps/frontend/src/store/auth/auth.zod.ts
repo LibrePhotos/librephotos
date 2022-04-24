@@ -13,19 +13,19 @@ export const AuthErrorSchema = z.object({
 
 export const TokenSchema = z.object({
   token: z.string(),
-  token_type: z.string().regex(/access|refresh/), // "token_type": "access",
-  exp: z.number(), //   "exp": 1648930590,
-  jti: z.string(), //   "jti": "7d967fde7e384e77a01837def56fe826",
-  user_id: z.number(), //   "user_id": 1,
-  name: z.string(), //   "name": "admin",
-  is_admin: z.boolean(), //   "is_admin": true,
-  first_name: z.string(), //  "first_name": "Daniel",
-  last_name: z.string(), //   "last_name": "Einars",
-  scan_directory: z.string().nullable(), //   "scan_directory": "/data",
-  confidence: z.number(), //   "confidence": 0.1,
-  semantic_search_topk: z.number(), //   "semantic_search_topk": 0,
-  nextcloud_server_address: z.string().nullable(), //   "nextcloud_server_address": null,
-  nextcloud_username: z.string().nullable(), //   "nextcloud_username": null
+  token_type: z.string().regex(/access|refresh/),
+  exp: z.number(),
+  jti: z.string(),
+  user_id: z.number(),
+  name: z.string(),
+  is_admin: z.boolean(),
+  first_name: z.string(),
+  last_name: z.string(),
+  scan_directory: z.string().nullable(),
+  confidence: z.number(),
+  semantic_search_topk: z.number(),
+  nextcloud_server_address: z.string().nullable(),
+  nextcloud_username: z.string().nullable(),
 });
 
 export const AuthStateSchema = z.object({

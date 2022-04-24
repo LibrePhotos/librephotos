@@ -1,16 +1,10 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import jwtDecode from "jwt-decode";
+import { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import { BaseQueryFn, FetchArgs, createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Cookies } from "react-cookie";
 
-import type {
-  IApiLoginPost,
-  IApiLoginResponse,
-  IApiRefreshPost,
-  IApiRefreshResponse,
-  IApiUserSignUpPost,
-  IToken,
-} from "../store/auth/auth.zod";
-import { TokenSchema } from "../store/auth/auth.zod";
+import type { IApiLoginPost, IApiLoginResponse, IApiUserSignUpPost } from "../store/auth/auth.zod";
+// eslint-disable-next-line import/no-cycle
+import { tokenReceived } from "../store/auth/authSlice";
 import type { RootState } from "../store/store";
 import type { IUploadOptions, IUploadResponse } from "../store/upload/upload.zod";
 import { UploadExistResponse, UploadResponse } from "../store/upload/upload.zod";
@@ -27,28 +21,55 @@ export enum Endpoints {
   upload = "upload",
 }
 
+const baseQuery = fetchBaseQuery({
+  baseUrl: "/api/",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  credentials: "include",
+
+  prepareHeaders: (headers, { getState, endpoint }) => {
+    const cookies = new Cookies();
+    headers.set("X-CSRFToken", cookies.get("csrftoken"));
+    const { user } = getState() as RootState;
+    const { access } = (getState() as RootState).auth;
+    if (access !== null && user && endpoint !== "refresh") {
+      headers.set("Authorization", `Bearer ${access.token}`);
+    }
+    return headers;
+  },
+});
+
+const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
+  args,
+  api,
+  extraOptions
+) => {
+  let result = await baseQuery(args, api, extraOptions);
+
+  if (result.error && result.error.status === 401) {
+    // try to get a new token
+    const refreshToken: string = (api.getState() as RootState).auth?.refresh?.token;
+    if (refreshToken) {
+      const refreshResult = await baseQuery(
+        { url: "/auth/token/refresh/", method: "POST", body: { refresh: refreshToken } },
+        api,
+        extraOptions
+      );
+      if (refreshResult.data) {
+        // store the new token
+        api.dispatch(tokenReceived(refreshResult.data));
+        // retry the initial query
+        result = await baseQuery(args, api, extraOptions);
+      }
+    }
+  }
+  return result;
+};
+
 export const api = createApi({
   reducerPath: "api",
-
-  baseQuery: fetchBaseQuery({
-    baseUrl: "/api/",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-
-    prepareHeaders: (headers, { getState, endpoint }) => {
-      const cookies = new Cookies();
-      headers.set("X-CSRFToken", cookies.get("csrftoken"));
-      const user = (getState() as RootState).user;
-      const { access } = (getState() as RootState).auth;
-      if (access !== null && user && endpoint !== "refresh") {
-        headers.set("Authorization", `Bearer ${access.token}`);
-      }
-      return headers;
-    },
-  }),
-
+  baseQuery: baseQueryWithReauth,
   endpoints: builder => ({
     [Endpoints.signUp]: builder.mutation<IUser, IApiUserSignUpPost>({
       query: body => ({
@@ -64,14 +85,6 @@ export const api = createApi({
         method: "POST",
         body: body,
       }),
-    }),
-    [Endpoints.refreshAccessToken]: builder.mutation<IToken, IApiRefreshPost>({
-      query: () => ({ url: "/auth/token/refresh/", method: "POST" }),
-      transformResponse: (response: IApiRefreshResponse) =>
-        TokenSchema.parse({
-          ...jwtDecode<IToken>(response.access),
-          token: response.access,
-        }),
     }),
     [Endpoints.fetchPredefinedRules]: builder.query<any[], void>({
       query: () => "/predefinedrules/",
@@ -98,7 +111,7 @@ export const api = createApi({
         body: options.form_data,
         headers: {
           // Boundary error when explicitly writing that
-          //"Content-Type": "multipart/form-data",
+          // "Content-Type": "multipart/form-data",
           "Content-Range": `bytes ${options.offset}-${options.offset + options.chunk_size - 1}/${options.chunk_size}`,
         },
       }),
@@ -114,6 +127,5 @@ export const {
   useFetchPredefinedRulesQuery,
   useFetchUserSelfDetailsQuery,
   useLoginMutation,
-  useRefreshAccessTokenMutation,
   useSignUpMutation,
 } = api;

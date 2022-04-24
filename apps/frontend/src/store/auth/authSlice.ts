@@ -4,6 +4,7 @@ import { persistReducer } from "redux-persist";
 import { createFilter } from "redux-persist-transform-filter";
 import storage from "redux-persist/es/storage";
 
+// eslint-disable-next-line import/no-cycle
 import { api } from "../../api_client/api";
 import { AuthErrorSchema } from "./auth.zod";
 import type { IAuthState, IToken } from "./auth.zod";
@@ -18,6 +19,13 @@ const authSlice = createSlice({
   name: "auth",
   initialState: initialState,
   reducers: {
+    tokenReceived: (state, { payload }) => ({
+      ...state,
+      access: {
+        ...jwtDecode<IToken>(payload.access),
+        token: payload.access,
+      },
+    }),
     logout: () => initialState,
     clearError: state => ({ ...state, error: null }),
   },
@@ -39,21 +47,7 @@ const authSlice = createSlice({
         refresh: null,
         error: AuthErrorSchema.parse(payload),
       }))
-      .addMatcher(api.endpoints.signUp.matchRejected, (state, { payload }) => {
-        console.info("api.endpoints.signUp.matchRejected.payload: ", payload);
-
-        return {
-          access: null,
-          refresh: null,
-          error: AuthErrorSchema.parse(payload),
-        };
-      })
-      .addMatcher(api.endpoints.refreshAccessToken.matchFulfilled, (state, { payload }) => ({
-        ...state,
-        access: payload,
-        error: null,
-      }))
-      .addMatcher(api.endpoints.refreshAccessToken.matchRejected, (state, { payload }) => ({
+      .addMatcher(api.endpoints.signUp.matchRejected, (state, { payload }) => ({
         access: null,
         refresh: null,
         error: AuthErrorSchema.parse(payload),
@@ -74,4 +68,4 @@ export const authReducer = persistReducer(
 );
 
 export const { actions: authActions } = authSlice;
-export const { logout } = authActions;
+export const { logout, tokenReceived, clearError } = authActions;
