@@ -6,7 +6,7 @@ import { selectSelf } from "../store";
 import { isTokenExpired } from "../util/auth";
 
 export const selectIsAuthenticated = createSelector(selectSelf, (state: RootState) =>
-  state.auth.access !== null && state.auth.access.exp ? !isTokenExpired(state.auth.access.exp) : false
+  state.auth.refresh !== null && state.auth.refresh.exp ? !isTokenExpired(state.auth.refresh.exp) : false
 );
 export const accessToken = createSelector(selectSelf, (state: RootState) => state.auth.access);
 export const isAccessTokenExpired = createSelector(selectSelf, (state: RootState) =>
