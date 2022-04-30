@@ -242,7 +242,7 @@
         "confirmpassword": "再次输入密码",
         "confirmpasswordplaceholder": "再次输入密码",
         "signup": "注册",
-        "errorbackend": "无法连接到服务器，请过会儿再试。",
+        "errorbackend": "无法连接到后端服务器，请稍后再试。",
         "errorpassword": "不可使用空密码！",
         "errorusername": "不可使用空用户名！",
         "tagline": "为您的照片提供一个舒适的场所。",
