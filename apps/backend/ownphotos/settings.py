@@ -267,12 +267,12 @@ USE_TZ = True
 
 BASE_DATA = os.environ.get("BASE_DATA", "/")
 BASE_LOGS = os.environ.get("BASE_LOGS", "/logs/")
-
+PHOTOS = os.enivron.get("PHOTOS", os.path.join(BASE_DATA, "data"))
 STATIC_URL = "api/static/"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DATA, "protected_media")
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
-DATA_ROOT = os.path.join(BASE_DATA, "data")
+DATA_ROOT = PHOTOS
 IM2TXT_ROOT = os.path.join(BASE_DATA, "data_models", "im2txt")
 PLACES365_ROOT = os.path.join(BASE_DATA, "data_models", "places365", "model")
 CLIP_ROOT = os.path.join(BASE_DATA, "data_models", "clip-embeddings")
