@@ -267,7 +267,7 @@ USE_TZ = True
 
 BASE_DATA = os.environ.get("BASE_DATA", "/")
 BASE_LOGS = os.environ.get("BASE_LOGS", "/logs/")
-PHOTOS = os.enivron.get("PHOTOS", os.path.join(BASE_DATA, "data"))
+PHOTOS = os.environ.get("PHOTOS", os.path.join(BASE_DATA, "data"))
 STATIC_URL = "api/static/"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DATA, "protected_media")
