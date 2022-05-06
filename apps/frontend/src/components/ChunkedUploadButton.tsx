@@ -2,25 +2,98 @@ import CryptoJS from "crypto-js";
 import MD5 from "crypto-js/md5";
 import React, { useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { useTranslation } from "react-i18next";
 import { Button, Progress } from "semantic-ui-react";
 
 import { api } from "../api_client/api";
-import { Server } from "../api_client/apiClient";
 import { useAppDispatch, useAppSelector } from "../store/store";
-import { IUploadResponse } from "../store/upload/upload.zod";
 
-export const ChunkedUploadButton = ({ token }: { token?: string }) => {
-  const { t } = useTranslation();
+export const ChunkedUploadButton = () => {
   const [totalSize, setTotalSize] = useState(1);
   const [currentSize, setCurrentSize] = useState(1);
   const { userSelfDetails } = useAppSelector(state => state.user);
   const { siteSettings } = useAppSelector(state => state.util);
   const dispatch = useAppDispatch();
   const chunkSize = 100000; // 100kb chunks
-  const [upload] = api.useUploadMutation();
+
   let currentUploadedFileSize = 0;
-  const { getRootProps, getInputProps, open, acceptedFiles } = useDropzone({
+
+  const calculateMD5 = async (file: File) => {
+    const temporaryFileReader = new FileReader();
+    return new Promise<string>((resolve, reject) => {
+      temporaryFileReader.onerror = () => {
+        temporaryFileReader.abort();
+        reject(new DOMException("Problem parsing input file."));
+      };
+
+      temporaryFileReader.onload = () => {
+        if (temporaryFileReader.result) {
+          const hash = CryptoJS.MD5(
+            // @ts-ignore
+            CryptoJS.enc.Latin1.parse(temporaryFileReader.result)
+          );
+          resolve(hash.toString(CryptoJS.enc.Hex));
+        }
+      };
+      temporaryFileReader.readAsBinaryString(file);
+    });
+  };
+
+  const uploadExists = async (hash: string) => {
+    return dispatch(api.endpoints.uploadExists.initiate(hash));
+  };
+
+  const uploadFinished = async (file: File, uploadId: string) => {
+    const formData = new FormData();
+    formData.append("upload_id", uploadId);
+    formData.append("md5", await calculateMD5(file));
+    formData.append("user", userSelfDetails.id.toString());
+    formData.append("filename", file.name);
+    dispatch(api.endpoints.uploadFinished.initiate(formData));
+  };
+
+  const calculateMD5Blob = (blob: Blob) => {
+    const reader = new FileReader();
+    reader.readAsArrayBuffer(blob);
+    reader.onload = () => {
+      const buffer = reader.result;
+      // @ts-ignore
+      const md5 = MD5(buffer).toString();
+      return md5;
+    };
+    return "";
+  };
+
+  const uploadChunk = async (chunk: Blob, uploadId: string, offset: number) => {
+    //only send first chunk without upload id
+    const formData = new FormData();
+    if (uploadId) {
+      formData.append("upload_id", uploadId);
+    }
+    formData.append("file", chunk);
+    formData.append("md5", calculateMD5Blob(chunk));
+    formData.append("offset", offset.toString());
+    formData.append("user", userSelfDetails.id.toString());
+    return dispatch(
+      api.endpoints.upload.initiate({
+        form_data: formData,
+        offset: offset,
+        chunk_size: chunk.size,
+      })
+    );
+  };
+
+  const calculateChunks = (file: File, chunkSize: number) => {
+    const chunks = Math.ceil(file.size / chunkSize);
+    const chunk = [];
+    for (let i = 0; i < chunks; i++) {
+      const chunkEnd = Math.min((i + 1) * chunkSize, file.size);
+      // @ts-ignore
+      chunk.push(file.slice(i * chunkSize, chunkEnd));
+    }
+    return chunk;
+  };
+
+  const { getRootProps, getInputProps, open } = useDropzone({
     accept: ["image/*", "video/*"],
     noClick: true,
     noKeyboard: true,
@@ -36,10 +109,10 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
         // Check if the upload already exists via the hash of the file
         const hash = (await calculateMD5(file)) + userSelfDetails.id;
         const isAlreadyUploaded = (await uploadExists(hash)).data;
+        var offset = 0;
+        var uploadId = "";
         if (!isAlreadyUploaded) {
           const chunks = calculateChunks(file, chunkSize);
-          var offset = 0;
-          var uploadId = "";
           //To-Do: Handle Resume and Pause
           for (let i = 0; i < chunks.length; i++) {
             const response = await uploadChunk(chunks[offset / chunkSize], uploadId, offset);
@@ -68,95 +141,20 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
   });
 
   useEffect(() => {
-    console.log("total size: " + totalSize);
+    console.log(`total size: ${totalSize}`);
   }, [totalSize]);
 
   useEffect(() => {
-    console.log("current size: " + currentSize);
+    console.log(`current size: ${currentSize}`);
   }, [currentSize]);
 
-  const calculateMD5 = async (file: File) => {
-    const temporaryFileReader = new FileReader();
-    return new Promise<string>((resolve, reject) => {
-      temporaryFileReader.onerror = () => {
-        temporaryFileReader.abort();
-        reject(new DOMException("Problem parsing input file."));
-      };
-
-      temporaryFileReader.onload = () => {
-        if (temporaryFileReader.result) {
-          const hash = CryptoJS.MD5(
-            // @ts-ignore
-            CryptoJS.enc.Latin1.parse(temporaryFileReader.result)
-          );
-          resolve(hash.toString(CryptoJS.enc.Hex));
-        }
-      };
-      temporaryFileReader.readAsBinaryString(file);
-    });
-  };
-
-  const calculateMD5Blob = (blob: Blob) => {
-    const reader = new FileReader();
-    reader.readAsArrayBuffer(blob);
-    reader.onload = () => {
-      const buffer = reader.result;
-      // @ts-ignore
-      const md5 = MD5(buffer).toString();
-      return md5;
-    };
-    return "";
-  };
-
-  const uploadExists = async (hash: string) => {
-    return dispatch(api.endpoints.uploadExists.initiate(hash));
-  };
-
-  const uploadFinished = async (file: File, uploadId: string) => {
-    const form_data = new FormData();
-    form_data.append("upload_id", uploadId ? uploadId : "");
-    form_data.append("md5", await calculateMD5(file));
-    form_data.append("user", userSelfDetails.id.toString());
-    form_data.append("filename", file.name);
-    Server.post("/upload/complete/", form_data);
-  };
-
-  const uploadChunk = async (chunk: Blob, uploadId: string, offset: number) => {
-    //only send first chunk without upload id
-    var form_data = new FormData();
-    if (uploadId) {
-      form_data.append("upload_id", uploadId);
-    }
-    form_data.append("file", chunk);
-    form_data.append("md5", calculateMD5Blob(chunk));
-    form_data.append("offset", offset.toString());
-    form_data.append("user", userSelfDetails.id.toString());
-    return dispatch(
-      api.endpoints.upload.initiate({
-        form_data: form_data,
-        offset: offset,
-        chunk_size: chunk.size,
-      })
-    );
-  };
-
-  const calculateChunks = (file: File, chunkSize: number) => {
-    const chunks = Math.ceil(file.size / chunkSize);
-    const chunk = [];
-    for (let i = 0; i < chunks; i++) {
-      const chunkEnd = Math.min((i + 1) * chunkSize, file.size);
-      // @ts-ignore
-      chunk.push(file.slice(i * chunkSize, chunkEnd));
-    }
-    return chunk;
-  };
   if (siteSettings.allow_upload) {
     return (
       <div style={{ width: "50px" }}>
         <div {...getRootProps({ className: "dropzone" })}>
           <input {...getInputProps()} />
           {currentSize / totalSize > 0.99 && (
-            <Button icon="upload" loading={currentSize / totalSize < 1} onClick={open}></Button>
+            <Button icon="upload" loading={currentSize / totalSize < 1} onClick={open} />
           )}
 
           {currentSize / totalSize < 1 && (
@@ -173,7 +171,6 @@ export const ChunkedUploadButton = ({ token }: { token?: string }) => {
         </div>
       </div>
     );
-  } else {
-    return <div></div>;
   }
+  return null;
 };

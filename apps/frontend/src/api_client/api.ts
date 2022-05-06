@@ -18,6 +18,7 @@ export enum Endpoints {
   fetchPredefinedRules = "fetchPredefinedRules",
   refreshAccessToken = "refreshAccessToken",
   uploadExists = "uploadExists",
+  uploadFinished = "uploadFinished",
   upload = "upload",
 }
 
@@ -104,14 +105,19 @@ export const api = createApi({
       query: hash => `/exists/${hash}`,
       transformResponse: (response: string) => UploadExistResponse.parse(response).exists,
     }),
+    [Endpoints.uploadFinished]: builder.mutation<void, FormData>({
+      query: form_data => ({
+        url: "/upload/complete/",
+        method: "POST",
+        body: form_data,
+      }),
+    }),
     [Endpoints.upload]: builder.mutation<IUploadResponse, IUploadOptions>({
       query: options => ({
         url: "/upload/",
         method: "POST",
         body: options.form_data,
         headers: {
-          // Boundary error when explicitly writing that
-          // "Content-Type": "multipart/form-data",
           "Content-Range": `bytes ${options.offset}-${options.offset + options.chunk_size - 1}/${options.chunk_size}`,
         },
       }),
