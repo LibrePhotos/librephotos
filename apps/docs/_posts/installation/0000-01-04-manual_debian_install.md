@@ -1,15 +1,16 @@
 ---
 title: "💻 Local"
-excerpt: "How to install Libre Photos manually on Debian-based operating systems."
-last_modified_at: 2022-03-15
+excerpt: "How to install Libre Photos locally on Debian-based operating systems."
+last_modified_at: 2022-05-07
 category: 1
 ---
 
-LibrePhotos can be installed manually on Debian-based operating systems, eliminating the need for Docker Compose.
+LibrePhotos can be installed locally on Debian-based operating systems with systemd.
 
 ## Notes
 
-Script is not adopted to remote postgresql server.  
+We currently only support nginx. If you want something custom adapt the script to your liking.
+We do not support a remote postgresql server yet.
 If REDIS present on the system AND connection to it through socket, change socket permissions to 770. librephotos user will be added to redis group.
 
 ## Compatibility
@@ -47,10 +48,7 @@ nano install-librephotos.sh
 ./install-librephotos.sh
 ```
 
-Admin password will store in /tmp/ADMIN_PASS.
-After changing the photos directory, must edit one of the `/etc/nginx/nginx.conf` or `/etc/nginx/sites-available/librephotos`. There are four places `alias /var/lib/librephotos.
-
-No cheking Apache or any other web server exsistense on system. Please adopt the script. Easiest way to remove all lines, releated with nginx, and create virtual host in Apache.
+After changing the photos directory, you must edit either `/etc/nginx/nginx.conf` or `/etc/nginx/sites-available/librephotos`. There are four places where you have to update the location.
 
 ```
 nano /etc/librephotos/librephotos-backend.env
@@ -68,18 +66,6 @@ librephotos-frontend
 ```
 
 ### librephotos-cli
-
-Update database (on the first time this is already done by the script)
-
-```
-/usr/lib/librephotos/bin/librephotos-upgrade
-```
-
-Create admin user as root with the following command (on the first time this is already done by the script)
-
-```
-/usr/lib/librephotos/bin/librephotos-createadmin <user> <email> <pasword>
-```
 
 As root you can use
 
