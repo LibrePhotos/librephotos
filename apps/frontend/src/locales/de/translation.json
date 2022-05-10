@@ -136,7 +136,7 @@
     },
     "topmenu": {
         "running": "Bearbeitet",
-        "available": "Arbeiter verfügbar! Du kannst mehr Fotos scannen, Gesichter herleiten, Ereignis-Alben erstellen oder Titel für Ereignis-Alben neu generieren.",
+        "available": "Arbeiter verfügbar! Du kannst mehr Fotos scannen, Gesichter analysieren, Ereignis-Alben erstellen oder Titel für Ereignis-Alben neu generieren.",
         "busy": "Beschäftigt …",
         "loggedin": "Angemeldet als",
         "logout": "Abmelden",
