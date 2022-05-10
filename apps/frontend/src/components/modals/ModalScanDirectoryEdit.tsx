@@ -9,9 +9,9 @@ import { useAppDispatch, useAppSelector } from "../../store/store";
 
 type Props = {
   isOpen: boolean;
-  updateAndScan: boolean;
+  updateAndScan?: boolean;
   userToEdit: any;
-  selectedNodeId: string;
+  selectedNodeId?: string;
   onRequestClose: () => void;
 };
 

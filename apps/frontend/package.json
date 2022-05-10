@@ -114,6 +114,7 @@
     "semantic-ui-css": "npm:fomantic-ui-css@^2.8.8",
     "semantic-ui-react": "2.1.2",
     "source-map-explorer": "^2.5.2",
+    "tabler-icons-react": "^1.48.0",
     "zod": "^3.11.6"
   },
   "devDependencies": {
