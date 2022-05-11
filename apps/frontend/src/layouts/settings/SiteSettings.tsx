@@ -1,15 +1,14 @@
-import { NativeSelect, SimpleGrid, Switch, TextInput } from "@mantine/core";
+import { NativeSelect, Stack, Switch, TextInput } from "@mantine/core";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Form } from "semantic-ui-react";
 
 import { setSiteSettings } from "../../actions/utilActions";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 export const SiteSettings = () => {
-  const [skip_patterns, setSkipPatterns] = useState([]);
-  const [map_api_key, setMapApiKey] = useState("");
-  const [heavyweight_process, setHeavyweigthProcess] = useState(1);
+  const [skipPatterns, setSkipPatterns] = useState([]);
+  const [mapApiKey, setMapApiKey] = useState("");
+  const [heavyweightProcess, setHeavyweigthProcess] = useState(1);
 
   const siteSettings = useAppSelector(state => state.util.siteSettings);
 
@@ -25,65 +24,68 @@ export const SiteSettings = () => {
   const options = ["1", "2", "3"];
 
   return (
-    <SimpleGrid cols={2} spacing="lg">
-      <b>{t("sitesettings.header")}</b>
+    <Stack align="flex-start" justify="flex-start">
       <Switch
-        label={t("sitesettings.allow")}
+        label={t("sitesettings.header")}
         onChange={() => dispatch(setSiteSettings({ allow_registration: !siteSettings.allow_registration }))}
         checked={siteSettings.allow_registration}
-      ></Switch>
-      <b>{t("sitesettings.headerupload")}</b>
+      />
       <Switch
-        label={t("sitesettings.allow")}
+        label={t("sitesettings.headerupload")}
         onChange={() => dispatch(setSiteSettings({ allow_upload: !siteSettings.allow_upload }))}
         checked={siteSettings.allow_upload}
-      ></Switch>
-      <b>{t("sitesettings.headerskippatterns")}</b>
+      />
       <TextInput
-        label={t("sitesettings.skippatterns")}
-        value={skip_patterns}
+        style={{ maxWidth: 500 }}
+        label={t("sitesettings.headerskippatterns")}
+        description={t("sitesettings.skippatterns")}
+        value={skipPatterns}
         onKeyDown={e => {
           if (e.key === "Enter") {
-            dispatch(setSiteSettings({ skip_patterns: skip_patterns }));
+            dispatch(setSiteSettings({ skip_patterns: skipPatterns }));
           }
         }}
-        onBlur={() => dispatch(setSiteSettings({ skip_patterns: skip_patterns }))}
-        //@ts-ignore
+        onBlur={() => dispatch(setSiteSettings({ skip_patterns: skipPatterns }))}
+        // @ts-ignore
         onChange={event => setSkipPatterns(event.currentTarget.value)}
       />
-      <b>{t("sitesettings.headerapikey")}</b>
       <TextInput
-        label={t("sitesettings.apikey")}
-        value={map_api_key}
+        style={{ maxWidth: 500 }}
+        label={t("sitesettings.headerapikey")}
+        description={t("sitesettings.apikey")}
+        rightSectionWidth={100}
+        value={mapApiKey}
         onKeyDown={e => {
           if (e.key === "Enter") {
-            dispatch(setSiteSettings({ map_api_key: map_api_key }));
+            dispatch(setSiteSettings({ map_api_key: mapApiKey }));
           }
         }}
-        onBlur={() => dispatch(setSiteSettings({ map_api_key: map_api_key }))}
+        onBlur={() => dispatch(setSiteSettings({ map_api_key: mapApiKey }))}
         onChange={e => setMapApiKey(e.target.value)}
       />
-      <b>{t("sitesettings.headerheavyweight")}</b>
       <NativeSelect
-        label={t("sitesettings.heavyweight")}
+        style={{ maxWidth: 500 }}
+        label={t("sitesettings.headerheavyweight")}
+        description={t("sitesettings.heavyweight")}
+        rightSectionWidth={100}
         data={options}
-        value={heavyweight_process}
+        value={heavyweightProcess}
         onKeyDown={e => {
           if (e.key === "Enter") {
             dispatch(setSiteSettings({ heavyweight_process: e.currentTarget.value }));
           }
         }}
-        onBlur={() => dispatch(setSiteSettings({ heavyweight_process: heavyweight_process }))}
+        onBlur={() => dispatch(setSiteSettings({ heavyweight_process: heavyweightProcess }))}
         onChange={e => {
           const re = /^[0-9\b]+$/;
 
           // if value is not blank, then test the regex
           if (e.target.value === "" || re.test(e.target.value)) {
-            //@ts-ignore
+            // @ts-ignore
             setHeavyweigthProcess(e.currentTarget.value);
           }
         }}
       />
-    </SimpleGrid>
+    </Stack>
   );
 };
