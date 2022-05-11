@@ -15,7 +15,7 @@ export const AdminPage = () => {
 
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
-  const { siteSettings, userList, fetchingUserList } = useAppSelector(state => state.util);
+  const { userList, fetchingUserList } = useAppSelector(state => state.util);
   const { t } = useTranslation();
 
   useEffect(() => {
