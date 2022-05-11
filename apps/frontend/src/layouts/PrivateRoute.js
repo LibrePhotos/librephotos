@@ -3,8 +3,8 @@ import { connect } from "react-redux";
 import { Redirect, Route, Switch } from "react-router-dom";
 
 import { isRefreshTokenExpired } from "../store/auth/authSelectors";
+
 // Router and Switch are needed Breaks site if not in import. DW
-import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../ui-constants";
 
 function PrivateRoute({ component: Component, isAuthenticated, showSidebar, ...rest }) {
   return (
@@ -12,18 +12,7 @@ function PrivateRoute({ component: Component, isAuthenticated, showSidebar, ...r
       {...rest}
       render={props =>
         isAuthenticated ? (
-          <div>
-            <div
-              style={{
-                paddingLeft: showSidebar ? LEFT_MENU_WIDTH + 5 : 5,
-                paddingRight: 0,
-              }}
-            >
-              <div style={{ paddingTop: TOP_MENU_HEIGHT }}>
-                <Component {...props} />
-              </div>
-            </div>
-          </div>
+          <Component {...props} />
         ) : (
           <Redirect
             to={{

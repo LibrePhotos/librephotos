@@ -1,3 +1,4 @@
+import { AppShell } from "@mantine/core";
 import { ConnectedRouter } from "connected-react-router";
 import React from "react";
 import { connect } from "react-redux";
@@ -37,18 +38,11 @@ import { TimestampPhotos } from "./layouts/photos/TimestampPhotos";
 import { PublicUserList } from "./layouts/public/PublicUserList";
 import { UserPublicPage } from "./layouts/public/UserPublicPage";
 import { AdminPage } from "./layouts/settings/AdminPage";
+import { Library } from "./layouts/settings/Library";
+import { Profile } from "./layouts/settings/Profile";
 import { Settings } from "./layouts/settings/Settings";
 import { SharedFromMe } from "./layouts/sharing/SharedFromMe";
 import { SharedToMe } from "./layouts/sharing/SharedToMe";
-
-function Nav(props) {
-  return (
-    <div>
-      {props.showSidebar && <SideMenuNarrow visible />}
-      <TopMenu style={{ zIndex: -1 }} />
-    </div>
-  );
-}
 
 const noMenubarPaths = ["/signup", "/login"];
 
@@ -64,82 +58,94 @@ class App extends React.Component {
             }}
             notifications={this.props.notifications}
           />
-          {this.props.location.pathname &&
-          !noMenubarPaths.includes(this.props.location.pathname) &&
-          !(
-            this.props.location.pathname.startsWith("/public") ||
-            this.props.location.pathname.startsWith("/user/") ||
-            this.props.location.pathname.startsWith("/users/")
-          ) ? (
-            <Nav showSidebar={this.props.showSidebar} />
-          ) : (
-            <div />
-          )}
+          <AppShell
+            navbar={
+              this.props.location.pathname &&
+              !noMenubarPaths.includes(this.props.location.pathname) &&
+              !(
+                this.props.location.pathname.startsWith("/public") ||
+                this.props.location.pathname.startsWith("/user/") ||
+                this.props.location.pathname.startsWith("/users/")
+              ) ? (
+                this.props.showSidebar && <SideMenuNarrow visible />
+              ) : (
+                <div />
+              )
+            }
+            header={<TopMenu />}
+            styles={theme => ({
+              main: { backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0] },
+            })}
+          >
+            <Switch>
+              <PrivateRoute path="/" component={TimestampPhotos} exact />
 
-          <Switch>
-            <PrivateRoute path="/" component={TimestampPhotos} exact />
+              <Route path="/login" component={Login} />
 
-            <Route path="/login" component={Login} />
+              <Route path="/signup" component={SignupPage} />
 
-            <Route path="/signup" component={SignupPage} />
+              <Route path="/public/:username" component={props => <UserPublicPage {...props} />} />
 
-            <Route path="/public/:username" component={props => <UserPublicPage {...props} />} />
+              <Route path="/users" component={PublicUserList} />
 
-            <Route path="/users" component={PublicUserList} />
+              <Route path="/user/:username" component={props => <UserPublicPage {...props} />} />
 
-            <Route path="/user/:username" component={props => <UserPublicPage {...props} />} />
+              <PrivateRoute path="/things" component={AlbumThing} />
 
-            <PrivateRoute path="/things" component={AlbumThing} />
+              <PrivateRoute path="/recent" component={RecentlyAddedPhotos} />
 
-            <PrivateRoute path="/recent" component={RecentlyAddedPhotos} />
+              <PrivateRoute path="/favorites" component={FavoritePhotos} />
 
-            <PrivateRoute path="/favorites" component={FavoritePhotos} />
+              <PrivateRoute path="/deleted" component={DeletedPhotos} />
 
-            <PrivateRoute path="/deleted" component={DeletedPhotos} />
+              <PrivateRoute path="/hidden" component={HiddenPhotos} />
 
-            <PrivateRoute path="/hidden" component={HiddenPhotos} />
+              <PrivateRoute path="/notimestamp" component={NoTimestampPhotosView} />
 
-            <PrivateRoute path="/notimestamp" component={NoTimestampPhotosView} />
+              <PrivateRoute path="/useralbums" component={AlbumUser} />
 
-            <PrivateRoute path="/useralbums" component={AlbumUser} />
+              <PrivateRoute path="/places" component={AlbumPlace} />
 
-            <PrivateRoute path="/places" component={AlbumPlace} />
+              <PrivateRoute path="/people" component={AlbumPeople} />
 
-            <PrivateRoute path="/people" component={AlbumPeople} />
+              <PrivateRoute path="/events" component={AlbumAuto} />
 
-            <PrivateRoute path="/events" component={AlbumAuto} />
+              <PrivateRoute path="/statistics" component={Statistics} />
 
-            <PrivateRoute path="/statistics" component={Statistics} />
+              <PrivateRoute path="/settings" component={Settings} />
 
-            <PrivateRoute path="/settings" component={Settings} />
+              <PrivateRoute path="/profile" component={Profile} />
 
-            <PrivateRoute path="/faces" component={FaceDashboard} />
+              <PrivateRoute path="/library" component={Library} />
 
-            <PrivateRoute path="/search" component={SearchView} />
+              <PrivateRoute path="/faces" component={FaceDashboard} />
 
-            <PrivateRoute path="/person/:albumID" component={props => <AlbumPersonGallery {...props} />} />
+              <PrivateRoute path="/search" component={SearchView} />
 
-            <PrivateRoute path="/place/:albumID" component={AlbumPlaceGallery} />
+              <PrivateRoute path="/person/:albumID" component={props => <AlbumPersonGallery {...props} />} />
 
-            <PrivateRoute path="/thing/:albumID" component={AlbumThingGallery} />
+              <PrivateRoute path="/place/:albumID" component={AlbumPlaceGallery} />
 
-            <PrivateRoute path="/event/:albumID" component={AlbumAutoGalleryView} />
+              <PrivateRoute path="/thing/:albumID" component={AlbumThingGallery} />
 
-            <PrivateRoute path="/useralbum/:albumID" component={AlbumUserGallery} />
+              <PrivateRoute path="/event/:albumID" component={AlbumAutoGalleryView} />
 
-            <PrivateRoute path="/shared/tome/:which" component={SharedToMe} />
-            <PrivateRoute path="/shared/fromme/:which" component={SharedFromMe} />
+              <PrivateRoute path="/useralbum/:albumID" component={AlbumUserGallery} />
 
-            <PrivateRoute path="/admin" component={AdminPage} />
+              <PrivateRoute path="/shared/tome/:which" component={SharedToMe} />
+              <PrivateRoute path="/shared/fromme/:which" component={SharedFromMe} />
 
-            <PrivateRoute path="/map" component={PhotoMap} />
-            <PrivateRoute path="/placetree" component={LocationTree} />
-            <PrivateRoute path="/wordclouds" component={WordClouds} />
-            <PrivateRoute path="/timeline" component={Timeline} />
-            <PrivateRoute path="/socialgraph" component={Graph} />
-            <PrivateRoute path="/facescatter" component={FaceScatter} />
-            <PrivateRoute path="/countstats" component={CountStats} />
-          </Switch>
+              <PrivateRoute path="/admin" component={AdminPage} />
+
+              <PrivateRoute path="/map" component={PhotoMap} />
+              <PrivateRoute path="/placetree" component={LocationTree} />
+              <PrivateRoute path="/wordclouds" component={WordClouds} />
+              <PrivateRoute path="/timeline" component={Timeline} />
+              <PrivateRoute path="/socialgraph" component={Graph} />
+              <PrivateRoute path="/facescatter" component={FaceScatter} />
+              <PrivateRoute path="/countstats" component={CountStats} />
+            </Switch>
+          </AppShell>
         </ConnectedRouter>
       </div>
     );

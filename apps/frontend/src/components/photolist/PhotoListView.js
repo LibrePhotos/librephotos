@@ -171,7 +171,6 @@ export class PhotoListView extends Component {
             boxSizing: "border-box",
             backgroundColor: "white",
             position: "sticky",
-            paddingTop: 6,
             top: 44,
             animation: "500ms ease-in-out 0s normal none 1 running fadeInDown",
           }}
@@ -197,10 +196,8 @@ export class PhotoListView extends Component {
             <div
               style={{
                 marginLeft: -5,
-                paddingLeft: 5,
                 paddingRight: 5,
                 height: 40,
-                paddingTop: 4,
                 backgroundColor: "#f6f6f6",
               }}
             >
@@ -258,6 +255,7 @@ export class PhotoListView extends Component {
               numberOfItems={this.props.numberOfItems ? this.props.numberOfItems : this.props.idx2hash.length}
               updateItems={this.props.updateItems ? this.props.updateItems : () => {}}
               updateGroups={this.props.updateGroups ? this.props.updateGroups : () => {}}
+              bgColor="inherit"
             />
           </div>
         ) : (
@@ -266,7 +264,6 @@ export class PhotoListView extends Component {
 
         <div
           style={{
-            backgroundColor: "white",
             position: "fixed",
             right: 0,
             top: TOP_MENU_HEIGHT,

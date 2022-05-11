@@ -1,3 +1,4 @@
+import { Header } from "@mantine/core";
 import { push } from "connected-react-router";
 import _ from "lodash";
 import React, { Component } from "react";
@@ -78,7 +79,7 @@ export class TopMenu extends Component {
     }
 
     return (
-      <div>
+      <Header height={45} p="md">
         <Menu style={{ contentAlign: "left", backgroundColor: "#eeeeee" }} fixed="top" borderless size="mini" fluid>
           <Menu.Menu position="left">
             <Menu.Item>
@@ -138,10 +139,18 @@ export class TopMenu extends Component {
                     <Trans i18nKey="topmenu.loggedin">Logged in as</Trans>{" "}
                     {this.props.auth.access ? this.props.auth.access.name : ""}
                   </Dropdown.Header>
-                  <Dropdown.Item onClick={() => this.props.dispatch(logout())}>
-                    <Icon name="sign out" />
+
+                  <Dropdown.Item onClick={() => this.props.dispatch(push("/library"))}>
+                    <Icon name="book" />
                     <b>
-                      <Trans i18nKey="topmenu.logout">Logout</Trans>
+                      <Trans i18nKey="topmenu.library">Library</Trans>
+                    </b>
+                  </Dropdown.Item>
+
+                  <Dropdown.Item onClick={() => this.props.dispatch(push("/profile"))}>
+                    <Icon name="user" />
+                    <b>
+                      <Trans i18nKey="topmenu.profile">Profile</Trans>
                     </b>
                   </Dropdown.Item>
                   <Dropdown.Item onClick={() => this.props.dispatch(push("/settings"))}>
@@ -160,12 +169,19 @@ export class TopMenu extends Component {
                       </b>
                     </Dropdown.Item>
                   )}
+
+                  <Dropdown.Item onClick={() => this.props.dispatch(logout())}>
+                    <Icon name="sign out" />
+                    <b>
+                      <Trans i18nKey="topmenu.logout">Logout</Trans>
+                    </b>
+                  </Dropdown.Item>
                 </Dropdown.Menu>
               </Dropdown>
             </Menu.Item>
           </Menu.Menu>
         </Menu>
-      </div>
+      </Header>
     );
   }
 }

@@ -1,4 +1,16 @@
-import { Button, Center, Loader, Pagination, Popover, Progress, SimpleGrid, Space, Table, Title } from "@mantine/core";
+import {
+  Button,
+  Center,
+  Group,
+  Loader,
+  Pagination,
+  Popover,
+  Progress,
+  SimpleGrid,
+  Space,
+  Table,
+  Title,
+} from "@mantine/core";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -32,10 +44,10 @@ export const AdminPage = () => {
 
   return (
     <SimpleGrid cols={1} spacing="xl">
-      <Title order={2}>
-        <Adjustments />
-        {t("adminarea.header")}
-      </Title>
+      <Group spacing="xs">
+        <Adjustments size={35} />
+        <Title order={2}>{t("adminarea.header")}</Title>
+      </Group>
       <Title order={3}>{t("adminarea.sitesettings")}</Title>
       <SiteSettings />
       <Title order={3}>
