@@ -1,3 +1,4 @@
+import { Box } from "@mantine/core";
 import _ from "lodash";
 import React, { Component } from "react";
 import Pig from "react-pig";
@@ -164,15 +165,18 @@ export class PhotoListView extends Component {
 
     return (
       <div>
-        <div
+        <Box
+          sx={theme => ({
+            backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+            textAlign: "center",
+            cursor: "pointer",
+            position: "sticky",
+          })}
           style={{
             width: "100%",
             zIndex: 100,
             boxSizing: "border-box",
-            backgroundColor: "white",
-            position: "sticky",
-            top: 44,
-            animation: "500ms ease-in-out 0s normal none 1 running fadeInDown",
+            top: 40,
           }}
         >
           {this.props.header ? (
@@ -193,12 +197,14 @@ export class PhotoListView extends Component {
             />
           )}
           {!this.props.loading && !this.props.isPublic && this.getNumPhotos() > 0 && (
-            <div
+            <Box
+              sx={theme => ({
+                backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[2],
+                textAlign: "center",
+                cursor: "pointer",
+              })}
               style={{
-                marginLeft: -5,
-                paddingRight: 5,
                 height: 40,
-                backgroundColor: "#f6f6f6",
               }}
             >
               <SelectionBar
@@ -231,9 +237,9 @@ export class PhotoListView extends Component {
                 title={this.props.title}
                 updateSelectionState={this.updateSelectionState}
               />
-            </div>
+            </Box>
           )}
-        </div>
+        </Box>
         {!this.props.loading && this.props.photoset && this.props.photoset.length > 0 ? (
           <div>
             <Pig
