@@ -48,6 +48,13 @@ export function deleteJob(job_id, page = 1, page_size = 10) {
       .then(response => {
         dispatch(fetchJobList(page, page_size));
         dispatch({ type: "DELETE_JOB_FULFILLED", payload: response.data });
+        notify(i18n.t("toasts.deletejob", { id: job_id }), {
+          title: i18n.t("toasts.deletejobtitle"),
+          status: "success",
+          dismissible: true,
+          dismissAfter: 3000,
+          position: "bottom-right",
+        });
       })
       .catch(error => {
         console.log(error);

@@ -265,7 +265,8 @@
     "minimumconfidence": "Minimum Confidence",
     "photocount": "Photo Count",
     "joined": "Joined",
-    "notset": "Not set"
+    "notset": "Not set",
+    "remove": "Remove"
   },
   "joblist": {
     "workerlogs": "Worker Logs",

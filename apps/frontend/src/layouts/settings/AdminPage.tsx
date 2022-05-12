@@ -102,10 +102,15 @@ export const AdminPage = () => {
   );
 };
 
-export const DeleteButton = (job, activePage, pageSize) => {
+export const DeleteButton = job => {
   const [opened, setOpened] = useState(false);
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
+
+  const id = job.job.id;
+  const page = job.activePage;
+  const pageSize = job.pageSize;
+
   return (
     <Popover
       opened={opened}
@@ -119,11 +124,11 @@ export const DeleteButton = (job, activePage, pageSize) => {
           onMouseEnter={() => setOpened(true)}
           onMouseLeave={() => setOpened(false)}
           onClick={() => {
-            dispatch(deleteJob(job.id, activePage, pageSize));
+            dispatch(deleteJob(id, page, pageSize));
           }}
           color="red"
         >
-          Remove
+          {t("adminarea.remove")}
         </Button>
       }
     >
@@ -222,7 +227,7 @@ export const JobList = () => {
                 </td>
                 <td>{job.started_by.username}</td>
                 <td>
-                  <DeleteButton job={job} activePage={activePage} pageSize={pageSize}></DeleteButton>
+                  <DeleteButton job={job}></DeleteButton>
                 </td>
               </tr>
             );
