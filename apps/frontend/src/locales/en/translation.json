@@ -1,6 +1,7 @@
 {
   "settings": {
     "header": "Settings",
+    "profile": "Profile",
     "account": "Account",
     "avatar": "Public Avatar",
     "uploadheader": "Upload new avatar",
