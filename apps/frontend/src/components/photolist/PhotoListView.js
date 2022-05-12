@@ -174,7 +174,7 @@ export class PhotoListView extends Component {
           })}
           style={{
             width: "100%",
-            zIndex: 100,
+            zIndex: 10,
             boxSizing: "border-box",
             top: 40,
           }}

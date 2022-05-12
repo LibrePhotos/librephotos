@@ -7,6 +7,7 @@ import NotificationSystem, { bootstrapTheme, dismissNotification } from "reapop"
 import "semantic-ui-css/semantic.min.css";
 
 import "./App.css";
+import { FooterMenu } from "./components/menubars/Footer";
 import { SideMenuNarrow } from "./components/menubars/SideMenuNarrow";
 import { TopMenu } from "./components/menubars/TopMenu";
 import { CountStats } from "./components/statistics";
@@ -59,6 +60,8 @@ class App extends React.Component {
             notifications={this.props.notifications}
           />
           <AppShell
+            fixed
+            padding={0}
             navbar={
               this.props.location.pathname &&
               !noMenubarPaths.includes(this.props.location.pathname) &&
@@ -73,6 +76,7 @@ class App extends React.Component {
               )
             }
             header={<TopMenu />}
+            footer={<FooterMenu />}
             styles={theme => ({
               main: { backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0] },
             })}

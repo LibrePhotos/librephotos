@@ -1,4 +1,4 @@
-import { MediaQuery, Navbar } from "@mantine/core";
+import { Footer, SimpleGrid } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -10,28 +10,23 @@ import { selectAuthAccess, selectIsAuthenticated } from "../../store/auth/authSe
 import { useAppSelector } from "../../store/store";
 import { MainLink } from "./MenuLink";
 
-export function SideMenuNarrow(): JSX.Element {
+export function FooterMenu(): JSX.Element {
   const isAuth = useAppSelector(selectIsAuthenticated);
   const access = useAppSelector(selectAuthAccess);
 
   const matches = useMediaQuery("(min-width: 700px)");
   const { t } = useTranslation();
 
-  if (!matches) {
+  if (matches) {
     return <div></div>;
   }
 
   return (
-    <Navbar p="sm" hidden={false} width={{ base: 100 }}>
-      <Navbar.Section>
-        <MainLink icon={<Photo size={33}></Photo>} color="green" label={t("sidemenu.photos")} to="/" />
-      </Navbar.Section>
-      <Navbar.Section>
-        <Dropdown
-          pointing="left"
-          item
-          icon={<MainLink icon={<Album size={33}></Album>} color="blue" label={t("sidemenu.albums")} />}
-        >
+    <Footer height={90} p="xs">
+      <SimpleGrid cols={6} spacing="xs">
+        <MainLink icon={<Photo size={33}></Photo>} color="green" to="/" />
+
+        <Dropdown pointing="top" item icon={<MainLink icon={<Album size={33}></Album>} color="blue" />}>
           <Dropdown.Menu>
             <Dropdown.Header>{t("sidemenu.albums")}</Dropdown.Header>
             <Dropdown.Item as={Link} to="/people">
@@ -57,13 +52,7 @@ export function SideMenuNarrow(): JSX.Element {
             </Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown>
-      </Navbar.Section>
-      <Navbar.Section>
-        <Dropdown
-          pointing="left"
-          item
-          icon={<MainLink icon={<ChartLine size={33}></ChartLine>} color="yellow" label={t("sidemenu.datavizsmall")} />}
-        >
+        <Dropdown pointing="top" item icon={<MainLink icon={<ChartLine size={33}></ChartLine>} color="yellow" />}>
           <Dropdown.Menu>
             <Dropdown.Header>
               <div style={{ overflow: "visible" }}>{t("sidemenu.dataviz")}</div>
@@ -94,17 +83,9 @@ export function SideMenuNarrow(): JSX.Element {
             </Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown>
-      </Navbar.Section>
-      <Navbar.Section>
-        <MainLink icon={<FaceId size={33}></FaceId>} color="orange" label={t("sidemenu.facerecognition")} to="/faces" />
-      </Navbar.Section>
-      {isAuth && (
-        <Navbar.Section>
-          <Dropdown
-            pointing="left"
-            item
-            icon={<MainLink icon={<Users size={33}></Users>} color="red" label={t("sidemenu.sharing")} />}
-          >
+        <MainLink icon={<FaceId size={33}></FaceId>} color="orange" to="/faces" />
+        {isAuth && (
+          <Dropdown pointing="top" item icon={<MainLink icon={<Users size={33}></Users>} color="red" />}>
             <Dropdown.Menu>
               <Dropdown.Header>{t("sidemenu.sharing")}</Dropdown.Header>
 
@@ -124,11 +105,9 @@ export function SideMenuNarrow(): JSX.Element {
               </Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
-        </Navbar.Section>
-      )}
-      <Navbar.Section>
-        <MainLink icon={<Trash size={33}></Trash>} color="black" label={t("photos.deleted")} to="/deleted" />
-      </Navbar.Section>
-    </Navbar>
+        )}
+        <MainLink icon={<Trash size={33}></Trash>} color="black" to="/deleted" />
+      </SimpleGrid>
+    </Footer>
   );
 }

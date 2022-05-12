@@ -7,11 +7,11 @@ import { useAppDispatch } from "../../store/store";
 interface MainLinkProps {
   icon: React.ReactNode;
   color: string;
-  label: string;
+  label?: string;
   to?: string;
 }
 
-export const MainLink = ({ icon, color, label, to = "" }: MainLinkProps) => {
+export const MainLink = ({ icon, color, label = "", to = "" }: MainLinkProps) => {
   const dispatch = useAppDispatch();
   return (
     <Box
