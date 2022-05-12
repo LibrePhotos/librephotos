@@ -1,7 +1,6 @@
-import { AppShell } from "@mantine/core";
+import { AppShell, ColorSchemeProvider, MantineProvider } from "@mantine/core";
 import { ConnectedRouter } from "connected-react-router";
-import React from "react";
-import { connect } from "react-redux";
+import React, { useState } from "react";
 import { Route, Switch } from "react-router-dom";
 import NotificationSystem, { bootstrapTheme, dismissNotification } from "reapop";
 import "semantic-ui-css/semantic.min.css";
@@ -44,126 +43,125 @@ import { Profile } from "./layouts/settings/Profile";
 import { Settings } from "./layouts/settings/Settings";
 import { SharedFromMe } from "./layouts/sharing/SharedFromMe";
 import { SharedToMe } from "./layouts/sharing/SharedToMe";
+import { useAppDispatch, useAppSelector } from "./store/store";
 
 const noMenubarPaths = ["/signup", "/login"];
 
-class App extends React.Component {
-  render() {
-    return (
-      <div>
-        <ConnectedRouter history={appHistory}>
-          <NotificationSystem
-            theme={bootstrapTheme}
-            dismissNotification={id => {
-              this.props.dismiss(id);
-            }}
-            notifications={this.props.notifications}
-          />
-          <AppShell
-            fixed
-            padding={0}
-            navbar={
-              this.props.location.pathname &&
-              !noMenubarPaths.includes(this.props.location.pathname) &&
-              !(
-                this.props.location.pathname.startsWith("/public") ||
-                this.props.location.pathname.startsWith("/user/") ||
-                this.props.location.pathname.startsWith("/users/")
-              ) ? (
-                this.props.showSidebar && <SideMenuNarrow visible />
-              ) : (
-                <div />
-              )
-            }
-            header={<TopMenu />}
-            footer={<FooterMenu />}
-            styles={theme => ({
-              main: { backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0] },
-            })}
-          >
-            <Switch>
-              <PrivateRoute path="/" component={TimestampPhotos} exact />
+function App() {
+  const [colorScheme, setColorScheme] = useState("light");
+  const toggleColorScheme = value => setColorScheme(value || (colorScheme === "dark" ? "light" : "dark"));
+  const showSidebar = useAppSelector(store => store.ui.showSidebar);
+  const dispatch = useAppDispatch();
+  const location = useAppSelector(store => store.router.location);
+  const notifications = useAppSelector(store => store.notifications);
+  return (
+    <div>
+      <ConnectedRouter history={appHistory}>
+        <ColorSchemeProvider colorScheme={colorScheme} toggleColorScheme={toggleColorScheme}>
+          <MantineProvider theme={{ colorScheme }} withGlobalStyles withNormalizeCSS>
+            <NotificationSystem
+              theme={bootstrapTheme}
+              dismissNotification={id => {
+                dispatch(dismissNotification(id));
+              }}
+              notifications={notifications}
+            />
+            <AppShell
+              fixed
+              padding={0}
+              navbar={
+                location.pathname &&
+                !noMenubarPaths.includes(location.pathname) &&
+                !(
+                  location.pathname.startsWith("/public") ||
+                  location.pathname.startsWith("/user/") ||
+                  location.pathname.startsWith("/users/")
+                ) ? (
+                  showSidebar && <SideMenuNarrow visible />
+                ) : (
+                  <div />
+                )
+              }
+              header={<TopMenu />}
+              footer={<FooterMenu />}
+              styles={theme => ({
+                main: { backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0] },
+              })}
+            >
+              <Switch>
+                <PrivateRoute path="/" component={TimestampPhotos} exact />
 
-              <Route path="/login" component={Login} />
+                <Route path="/login" component={Login} />
 
-              <Route path="/signup" component={SignupPage} />
+                <Route path="/signup" component={SignupPage} />
 
-              <Route path="/public/:username" component={props => <UserPublicPage {...props} />} />
+                <Route path="/public/:username" component={props => <UserPublicPage {...props} />} />
 
-              <Route path="/users" component={PublicUserList} />
+                <Route path="/users" component={PublicUserList} />
 
-              <Route path="/user/:username" component={props => <UserPublicPage {...props} />} />
+                <Route path="/user/:username" component={props => <UserPublicPage {...props} />} />
 
-              <PrivateRoute path="/things" component={AlbumThing} />
+                <PrivateRoute path="/things" component={AlbumThing} />
 
-              <PrivateRoute path="/recent" component={RecentlyAddedPhotos} />
+                <PrivateRoute path="/recent" component={RecentlyAddedPhotos} />
 
-              <PrivateRoute path="/favorites" component={FavoritePhotos} />
+                <PrivateRoute path="/favorites" component={FavoritePhotos} />
 
-              <PrivateRoute path="/deleted" component={DeletedPhotos} />
+                <PrivateRoute path="/deleted" component={DeletedPhotos} />
 
-              <PrivateRoute path="/hidden" component={HiddenPhotos} />
+                <PrivateRoute path="/hidden" component={HiddenPhotos} />
 
-              <PrivateRoute path="/notimestamp" component={NoTimestampPhotosView} />
+                <PrivateRoute path="/notimestamp" component={NoTimestampPhotosView} />
 
-              <PrivateRoute path="/useralbums" component={AlbumUser} />
+                <PrivateRoute path="/useralbums" component={AlbumUser} />
 
-              <PrivateRoute path="/places" component={AlbumPlace} />
+                <PrivateRoute path="/places" component={AlbumPlace} />
 
-              <PrivateRoute path="/people" component={AlbumPeople} />
+                <PrivateRoute path="/people" component={AlbumPeople} />
 
-              <PrivateRoute path="/events" component={AlbumAuto} />
+                <PrivateRoute path="/events" component={AlbumAuto} />
 
-              <PrivateRoute path="/statistics" component={Statistics} />
+                <PrivateRoute path="/statistics" component={Statistics} />
 
-              <PrivateRoute path="/settings" component={Settings} />
+                <PrivateRoute path="/settings" component={Settings} />
 
-              <PrivateRoute path="/profile" component={Profile} />
+                <PrivateRoute path="/profile" component={Profile} />
 
-              <PrivateRoute path="/library" component={Library} />
+                <PrivateRoute path="/library" component={Library} />
 
-              <PrivateRoute path="/faces" component={FaceDashboard} />
+                <PrivateRoute path="/faces" component={FaceDashboard} />
 
-              <PrivateRoute path="/search" component={SearchView} />
+                <PrivateRoute path="/search" component={SearchView} />
 
-              <PrivateRoute path="/person/:albumID" component={props => <AlbumPersonGallery {...props} />} />
+                <PrivateRoute path="/person/:albumID" component={props => <AlbumPersonGallery {...props} />} />
 
-              <PrivateRoute path="/place/:albumID" component={AlbumPlaceGallery} />
+                <PrivateRoute path="/place/:albumID" component={AlbumPlaceGallery} />
 
-              <PrivateRoute path="/thing/:albumID" component={AlbumThingGallery} />
+                <PrivateRoute path="/thing/:albumID" component={AlbumThingGallery} />
 
-              <PrivateRoute path="/event/:albumID" component={AlbumAutoGalleryView} />
+                <PrivateRoute path="/event/:albumID" component={AlbumAutoGalleryView} />
 
-              <PrivateRoute path="/useralbum/:albumID" component={AlbumUserGallery} />
+                <PrivateRoute path="/useralbum/:albumID" component={AlbumUserGallery} />
 
-              <PrivateRoute path="/shared/tome/:which" component={SharedToMe} />
-              <PrivateRoute path="/shared/fromme/:which" component={SharedFromMe} />
+                <PrivateRoute path="/shared/tome/:which" component={SharedToMe} />
+                <PrivateRoute path="/shared/fromme/:which" component={SharedFromMe} />
 
-              <PrivateRoute path="/admin" component={AdminPage} />
+                <PrivateRoute path="/admin" component={AdminPage} />
 
-              <PrivateRoute path="/map" component={PhotoMap} />
-              <PrivateRoute path="/placetree" component={LocationTree} />
-              <PrivateRoute path="/wordclouds" component={WordClouds} />
-              <PrivateRoute path="/timeline" component={Timeline} />
-              <PrivateRoute path="/socialgraph" component={Graph} />
-              <PrivateRoute path="/facescatter" component={FaceScatter} />
-              <PrivateRoute path="/countstats" component={CountStats} />
-            </Switch>
-          </AppShell>
-        </ConnectedRouter>
-      </div>
-    );
-  }
+                <PrivateRoute path="/map" component={PhotoMap} />
+                <PrivateRoute path="/placetree" component={LocationTree} />
+                <PrivateRoute path="/wordclouds" component={WordClouds} />
+                <PrivateRoute path="/timeline" component={Timeline} />
+                <PrivateRoute path="/socialgraph" component={Graph} />
+                <PrivateRoute path="/facescatter" component={FaceScatter} />
+                <PrivateRoute path="/countstats" component={CountStats} />
+              </Switch>
+            </AppShell>
+          </MantineProvider>
+        </ColorSchemeProvider>
+      </ConnectedRouter>
+    </div>
+  );
 }
 
-const mapStateToProps = store => ({
-  showSidebar: store.ui.showSidebar,
-  location: store.router.location,
-  notifications: store.notifications,
-});
-
-const mapDispatchToProps = dispatch => ({ dismiss: id => dispatch(dismissNotification(id)) });
-
-const connected = connect(mapStateToProps, mapDispatchToProps)(App);
-
-export default connected;
+export default App;

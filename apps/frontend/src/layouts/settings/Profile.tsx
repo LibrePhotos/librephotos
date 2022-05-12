@@ -1,18 +1,23 @@
-import { Button, Dialog, Group, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
+import {
+  ActionIcon,
+  Button,
+  Dialog,
+  Group,
+  Select,
+  Stack,
+  Switch,
+  Text,
+  TextInput,
+  Title,
+  useMantineColorScheme,
+} from "@mantine/core";
 import React, { useEffect, useRef, useState } from "react";
 import AvatarEditor from "react-avatar-editor";
 import Dropzone, { DropzoneRef } from "react-dropzone";
 import { Trans, useTranslation } from "react-i18next";
-import { Photo, Upload, User } from "tabler-icons-react";
+import { MoonStars, Photo, Sun, Upload, User } from "tabler-icons-react";
 
-import {
-  fetchCountStats,
-  fetchJobList,
-  fetchNextcloudDirectoryTree,
-  fetchSiteSettings,
-  updateAvatar,
-  updateUser,
-} from "../../actions/utilActions";
+import { updateAvatar, updateUser } from "../../actions/utilActions";
 import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppDispatch, useAppSelector } from "../../store/store";
@@ -28,6 +33,8 @@ export const Profile = () => {
   const workerAvailability = useAppSelector(state => state.util.workerAvailability);
   const { t, i18n } = useTranslation();
 
+  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+  const dark = colorScheme === "dark";
   let editor = useRef(null);
 
   const close = () => setIsOpen(false);
@@ -258,6 +265,14 @@ export const Profile = () => {
             placeholder={userSelfDetails.scan_directory}
           ></TextInput>
         ) : null}
+        <ActionIcon
+          variant="outline"
+          color={dark ? "yellow" : "blue"}
+          onClick={() => toggleColorScheme()}
+          title="Toggle color scheme"
+        >
+          {dark ? <Sun size={18} /> : <MoonStars size={18} />}
+        </ActionIcon>
       </Stack>
       <Dialog
         opened={isOpenUpdateDialog}
