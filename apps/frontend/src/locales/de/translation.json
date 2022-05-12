@@ -124,7 +124,8 @@
         "sync": "Synchronisiere Metadaten auf Festplatte",
         "metadata": "Metadaten-Optionen",
         "polish": "Polnisch",
-        "dutch": "Niederländisch"
+        "dutch": "Niederländisch",
+        "profile": "Profil"
     },
     "modalnextcloud": {
         "setdirectory": "Setze dein Nextcloud Scan Ordner",
@@ -266,7 +267,8 @@
         "minimumconfidence": "Minimales Vertrauen",
         "photocount": "Anzahl Fotos",
         "joined": "Beigetreten",
-        "notset": "Nicht gesetzt"
+        "notset": "Nicht gesetzt",
+        "remove": "Entfernen"
     },
     "joblist": {
         "workerlogs": "Arbeiterprotokolle",
