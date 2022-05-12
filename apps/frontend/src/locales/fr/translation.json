@@ -124,7 +124,8 @@
         "metadata": "Options de métadonnées",
         "sync": "Synchronisation des métadonnées sur le disque",
         "polish": "polonais",
-        "dutch": "néerlandais"
+        "dutch": "néerlandais",
+        "profile": "Profil"
     },
     "modalnextcloud": {
         "setdirectory": "Définir votre répertoire de scan Nextcloud",
@@ -266,7 +267,8 @@
         "minimumconfidence": "Minimum Confiance",
         "photocount": "Nombre de photos (et vidéos)",
         "joined": "Enregistré depuis",
-        "notset": "Non spécifié"
+        "notset": "Non spécifié",
+        "remove": "Retirer"
     },
     "joblist": {
         "workerlogs": "Journaux d’activité",
