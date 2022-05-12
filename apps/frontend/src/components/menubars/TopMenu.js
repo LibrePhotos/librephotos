@@ -1,4 +1,4 @@
-import { Header } from "@mantine/core";
+import { Grid, Group, Header } from "@mantine/core";
 import { push } from "connected-react-router";
 import _ from "lodash";
 import React, { Component } from "react";
@@ -12,6 +12,7 @@ import { fetchWorkerAvailability } from "../../actions/utilActions";
 import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { logout } from "../../store/auth/authSlice";
+import { ChunkedUploadButton } from "../ChunkedUploadButton";
 import { CustomSearch } from "../CustomSearch";
 import "./TopMenu.css";
 
@@ -79,10 +80,10 @@ export class TopMenu extends Component {
     }
 
     return (
-      <Header height={45} p="md">
-        <Menu style={{ contentAlign: "left", backgroundColor: "#eeeeee" }} fixed="top" borderless size="mini" fluid>
-          <Menu.Menu position="left">
-            <Menu.Item>
+      <Header height={45}>
+        <Grid justify="space-between" grow style={{ padding: 5 }}>
+          <Grid.Col span={1}>
+            <Group>
               <Icon
                 size="big"
                 onClick={() => {
@@ -98,13 +99,14 @@ export class TopMenu extends Component {
               >
                 <Image height={30} src="/logo-white.png" />
               </Button>
-            </Menu.Item>
-          </Menu.Menu>
-          <Menu.Menu className="header" style={{ paddingTop: 2 }}>
-            <CustomSearch className="element" />
-          </Menu.Menu>
-          <Menu.Menu position="right">
-            <Menu.Item>
+            </Group>
+          </Grid.Col>
+          <Grid.Col span={3}>
+            <CustomSearch />
+          </Grid.Col>
+          <Grid.Col span={1}>
+            <Group position="right">
+              <ChunkedUploadButton />
               <Popup
                 trigger={<Icon name="circle" color={!this.props.workerAvailability ? "red" : "green"} />}
                 position="bottom right"
@@ -178,9 +180,9 @@ export class TopMenu extends Component {
                   </Dropdown.Item>
                 </Dropdown.Menu>
               </Dropdown>
-            </Menu.Item>
-          </Menu.Menu>
-        </Menu>
+            </Group>
+          </Grid.Col>
+        </Grid>
       </Header>
     );
   }

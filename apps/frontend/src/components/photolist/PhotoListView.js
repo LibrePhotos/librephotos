@@ -199,7 +199,7 @@ export class PhotoListView extends Component {
           {!this.props.loading && !this.props.isPublic && this.getNumPhotos() > 0 && (
             <Box
               sx={theme => ({
-                backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[2],
+                backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
                 textAlign: "center",
                 cursor: "pointer",
               })}

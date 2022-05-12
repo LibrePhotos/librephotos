@@ -7,7 +7,6 @@
 .element {
   width: 80%;
   margin: auto;
-  background: "#eeeeee";
 
   display: flex;
 }
