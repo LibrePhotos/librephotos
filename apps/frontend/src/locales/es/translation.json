@@ -124,7 +124,8 @@
         "metadata": "Opciones de metadatos",
         "sync": "Sincronizar metadatos con el disco",
         "polish": "Polaco",
-        "dutch": "Alemán"
+        "dutch": "Alemán",
+        "profile": "Perfil"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de escaneo de Nextcloud",
@@ -266,7 +267,8 @@
         "minimumconfidence": "Confianza mínima",
         "photocount": "Número de fotos",
         "joined": "Ingresado",
-        "notset": "No configurado"
+        "notset": "No configurado",
+        "remove": "Eliminar"
     },
     "joblist": {
         "workerlogs": "Registros de trabajadores",
