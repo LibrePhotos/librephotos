@@ -1,4 +1,4 @@
-import { AppShell, ColorSchemeProvider, MantineProvider } from "@mantine/core";
+import { AppShell, ColorScheme, ColorSchemeProvider, MantineProvider } from "@mantine/core";
 import { ConnectedRouter } from "connected-react-router";
 import React, { useState } from "react";
 import { Route, Switch } from "react-router-dom";
@@ -15,7 +15,7 @@ import { CountStats } from "./components/statistics";
 import Login from "./containers/login";
 import appHistory from "./history";
 import "./i18n";
-import PrivateRoute from "./layouts/PrivateRoute";
+import { PrivateRoute } from "./layouts/PrivateRoute";
 import { SearchView } from "./layouts/SearchView";
 import { AlbumAuto } from "./layouts/albums/AlbumAuto";
 import { AlbumAutoGalleryView } from "./layouts/albums/AlbumAutoGalleryView";
@@ -50,13 +50,14 @@ import { useAppDispatch, useAppSelector } from "./store/store";
 const noMenubarPaths = ["/signup", "/login"];
 
 function App() {
-  const [colorScheme, setColorScheme] = useState("light");
+  const [colorScheme, setColorScheme] = useState<ColorScheme>("light");
   const toggleColorScheme = value => setColorScheme(value || (colorScheme === "dark" ? "light" : "dark"));
   const showSidebar = useAppSelector(store => store.ui.showSidebar);
   const dispatch = useAppDispatch();
   const location = useAppSelector(store => store.router.location);
   const notifications = useAppSelector(store => store.notifications);
   const auth = useAppSelector(store => store.auth);
+  //@ts-ignore
   const showMenubar = location.pathname && !noMenubarPaths.includes(location.pathname);
 
   return (
@@ -75,15 +76,7 @@ function App() {
               fixed
               padding={0}
               navbar={
-                showMenubar && showSidebar ? (
-                  auth.access ? (
-                    <SideMenuNarrow visible />
-                  ) : (
-                    <SideMenuNarrowPublic />
-                  )
-                ) : (
-                  <div />
-                )
+                showMenubar && showSidebar ? auth.access ? <SideMenuNarrow /> : <SideMenuNarrowPublic /> : <div />
               }
               header={showMenubar ? auth.access ? <TopMenu /> : <TopMenuPublic /> : <div />}
               footer={<FooterMenu />}
