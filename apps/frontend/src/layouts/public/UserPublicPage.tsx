@@ -3,15 +3,10 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
-import { SideMenuNarrow } from "../../components/menubars/SideMenuNarrow";
-import { SideMenuNarrowPublic } from "../../components/menubars/SideMenuNarrowPublic";
-import { TopMenu } from "../../components/menubars/TopMenu";
-import { TopMenuPublic } from "../../components/menubars/TopMenuPublic";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType } from "../../reducers/photosReducer";
 import type { PhotosState } from "../../reducers/photosReducer";
 import { useAppDispatch, useAppSelector } from "../../store/store";
-import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
 
 type Props = {
   match: any;
@@ -64,49 +59,21 @@ export function UserPublicPage(props: Props) {
     []
   );
 
-  let menu;
-  if (auth.access) {
-    menu = (
-      <div>
-        {ui.showSidebar && <SideMenuNarrow />}
-        <TopMenu />
-      </div>
-    );
-  } else {
-    menu = (
-      <div>
-        {ui.showSidebar && <SideMenuNarrowPublic />}
-        <TopMenuPublic />
-      </div>
-    );
-  }
   return (
-    <div>
-      {menu}
-      <div
-        style={{
-          paddingLeft: ui.showSidebar ? LEFT_MENU_WIDTH + 5 : 5,
-          paddingRight: 0,
-        }}
-      >
-        <div style={{ paddingTop: TOP_MENU_HEIGHT }}>
-          <PhotoListView
-            title={
-              auth.access && auth.access.name === props.match.params.username
-                ? "Your public photos"
-                : `Public photos of ${props.match.params.username}`
-            }
-            loading={fetchedPhotosetType !== PhotosetType.PUBLIC}
-            titleIconName="globe"
-            isDateView
-            photoset={photosGroupedByDate}
-            idx2hash={photosFlat}
-            isPublic={auth.access === null || auth.access.name !== props.match.params.username}
-            updateGroups={throttledGetAlbums}
-            selectable
-          />
-        </div>
-      </div>
-    </div>
+    <PhotoListView
+      title={
+        auth.access && auth.access.name === props.match.params.username
+          ? "Your public photos"
+          : `Public photos of ${props.match.params.username}`
+      }
+      loading={fetchedPhotosetType !== PhotosetType.PUBLIC}
+      titleIconName="globe"
+      isDateView
+      photoset={photosGroupedByDate}
+      idx2hash={photosFlat}
+      isPublic={auth.access === null || auth.access.name !== props.match.params.username}
+      updateGroups={throttledGetAlbums}
+      selectable
+    />
   );
 }

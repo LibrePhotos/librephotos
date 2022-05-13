@@ -8,7 +8,9 @@ import "semantic-ui-css/semantic.min.css";
 import "./App.css";
 import { FooterMenu } from "./components/menubars/Footer";
 import { SideMenuNarrow } from "./components/menubars/SideMenuNarrow";
+import { SideMenuNarrowPublic } from "./components/menubars/SideMenuNarrowPublic";
 import { TopMenu } from "./components/menubars/TopMenu";
+import { TopMenuPublic } from "./components/menubars/TopMenuPublic";
 import { CountStats } from "./components/statistics";
 import Login from "./containers/login";
 import appHistory from "./history";
@@ -54,6 +56,9 @@ function App() {
   const dispatch = useAppDispatch();
   const location = useAppSelector(store => store.router.location);
   const notifications = useAppSelector(store => store.notifications);
+  const auth = useAppSelector(store => store.auth);
+  const showMenubar = location.pathname && !noMenubarPaths.includes(location.pathname);
+
   return (
     <div>
       <ConnectedRouter history={appHistory}>
@@ -70,19 +75,17 @@ function App() {
               fixed
               padding={0}
               navbar={
-                location.pathname &&
-                !noMenubarPaths.includes(location.pathname) &&
-                !(
-                  location.pathname.startsWith("/public") ||
-                  location.pathname.startsWith("/user/") ||
-                  location.pathname.startsWith("/users/")
-                ) ? (
-                  showSidebar && <SideMenuNarrow visible />
+                showMenubar && showSidebar ? (
+                  auth.access ? (
+                    <SideMenuNarrow visible />
+                  ) : (
+                    <SideMenuNarrowPublic />
+                  )
                 ) : (
                   <div />
                 )
               }
-              header={<TopMenu />}
+              header={showMenubar ? auth.access ? <TopMenu /> : <TopMenuPublic /> : <div />}
               footer={<FooterMenu />}
               styles={theme => ({
                 main: { backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0] },
