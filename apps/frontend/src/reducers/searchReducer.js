@@ -14,7 +14,7 @@ export default function reducer(
     searchedPlaceAlbums: false,
 
     error: null,
-    query: null,
+    query: "",
   },
   action
 ) {
