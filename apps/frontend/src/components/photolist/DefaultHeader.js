@@ -1,3 +1,4 @@
+import { Group, Title } from "@mantine/core";
 import React, { Component } from "react";
 import { withTranslation } from "react-i18next";
 import { connect } from "react-redux";
@@ -23,38 +24,35 @@ export class DefaultHeader extends Component {
     if (this.props.loading || this.props.numPhotosetItems < 1) {
       return (
         <div>
-          <div style={{ height: 60, paddingTop: 10 }}>
-            <Header as="h4">
-              <Header.Content>
-                {!this.props.loading &&
-                this.props.auth.access &&
-                this.props.auth.access.is_admin &&
-                !this.props.user.scan_directory &&
-                this.props.numPhotosetItems < 1 ? (
-                  <div>
-                    <p>{this.props.t("defaultheader.setup")}</p>
-                    <Button
-                      color="green"
-                      onClick={() => {
-                        this.setState({
-                          userToEdit: this.props.user,
-                          modalOpen: true,
-                        });
-                      }}
-                    >
-                      {this.props.t("defaultheader.gettingstarted")}
-                    </Button>
-                  </div>
-                ) : this.props.loading ? (
-                  this.props.t("defaultheader.loading")
-                ) : (
-                  this.props.t("defaultheader.noimages")
-                )}
-                <Loader inline active={this.props.loading} size="mini" />
-              </Header.Content>
-            </Header>
-          </div>
-
+          <Title order={4}>
+            <Header.Content>
+              {!this.props.loading &&
+              this.props.auth.access &&
+              this.props.auth.access.is_admin &&
+              !this.props.user.scan_directory &&
+              this.props.numPhotosetItems < 1 ? (
+                <div>
+                  <p>{this.props.t("defaultheader.setup")}</p>
+                  <Button
+                    color="green"
+                    onClick={() => {
+                      this.setState({
+                        userToEdit: this.props.user,
+                        modalOpen: true,
+                      });
+                    }}
+                  >
+                    {this.props.t("defaultheader.gettingstarted")}
+                  </Button>
+                </div>
+              ) : this.props.loading ? (
+                this.props.t("defaultheader.loading")
+              ) : (
+                this.props.t("defaultheader.noimages")
+              )}
+              <Loader inline active={this.props.loading} size="mini" />
+            </Header.Content>
+          </Title>
           {this.props.numPhotosetItems < 1 ? (
             <div
               style={{
@@ -64,7 +62,7 @@ export class DefaultHeader extends Component {
                 height: window.innerHeight - TOP_MENU_HEIGHT - 60,
               }}
             >
-              <Header>{this.props.noResultsMessage}</Header>
+              <Title>{this.props.noResultsMessage}</Title>
             </div>
           ) : (
             <div />
@@ -85,17 +83,17 @@ export class DefaultHeader extends Component {
       <Grid columns={2}>
         <GridRow>
           <GridColumn>
-            <Header as="h2" style={{ paddingRight: 10 }}>
-              <Icon name={this.props.titleIconName} />
-              <Header.Content>
+            <Group position="left">
+              <Title order={2}>
+                <Icon name={this.props.titleIconName} />
                 {this.props.auth.access && this.isDropdownView() ? (
                   <Dropdown
                     item
                     trigger={
                       <span>
-                        <Header as="h2">
+                        <Title order={2}>
                           {this.props.title} <Icon size="small" style={{ paddingTop: 7 }} name="caret down" />
-                        </Header>
+                        </Title>
                       </span>
                     }
                     icon={null}
@@ -139,15 +137,15 @@ export class DefaultHeader extends Component {
                 ) : (
                   this.props.title
                 )}
-                <Header.Subheader>
+                <Title order={3}>
                   {this.props.numPhotosetItems != this.props.numPhotos
                     ? `${this.props.numPhotosetItems} ${this.props.t("defaultheader.days")}, `
                     : ""}
                   {this.props.numPhotos} {this.props.t("defaultheader.photos")}
                   {this.props.additionalSubHeader}
-                </Header.Subheader>
-              </Header.Content>
-            </Header>
+                </Title>
+              </Title>
+            </Group>
           </GridColumn>
           <GridColumn>
             <div

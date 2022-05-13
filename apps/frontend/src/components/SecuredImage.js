@@ -1,6 +1,6 @@
+import { Image } from "@mantine/core";
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import { Image } from "semantic-ui-react";
 
 import { Server } from "../api_client/apiClient";
 

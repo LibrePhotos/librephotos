@@ -1,12 +1,10 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import { Icon } from "semantic-ui-react";
+import { Star } from "tabler-icons-react";
 
 export default class FavoritedOverlay extends Component {
   render() {
-    return (
-      <span>{this.props.item.rating >= this.props.favorite_min_rating && <Icon name="star" color="yellow" />}</span>
-    );
+    return <span>{this.props.item.rating >= this.props.favorite_min_rating && <Star color="yellow" />}</span>;
   }
 }
 

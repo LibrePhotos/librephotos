@@ -141,6 +141,8 @@
     "loggedin": "Logged in as",
     "logout": "Log out",
     "settings": "Settings",
+    "profile": "Profile",
+    "library": "Library",
     "adminarea": "Admin Area"
   },
   "sidemenu": {

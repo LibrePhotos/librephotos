@@ -21,7 +21,6 @@ import { serverAddress } from "../api_client/apiClient";
 import { useAppDispatch, useAppSelector } from "../store/store";
 import { TOP_MENU_HEIGHT } from "../ui-constants";
 import { SecuredImageJWT } from "./SecuredImage";
-import "./menubars/TopMenu.css";
 
 const ENTER_KEY = 13;
 

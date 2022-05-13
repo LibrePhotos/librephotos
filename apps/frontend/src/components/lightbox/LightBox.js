@@ -5,7 +5,6 @@ import ReactPlayer from "react-player";
 // only needs to be imported once
 import { connect } from "react-redux";
 import "react-virtualized/styles.css";
-import { Loader } from "semantic-ui-react";
 
 import { serverAddress } from "../../api_client/apiClient";
 import Sidebar from "./Sidebar";

@@ -1,8 +1,9 @@
+import { ActionIcon, Progress } from "@mantine/core";
 import CryptoJS from "crypto-js";
 import MD5 from "crypto-js/md5";
 import React, { useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { Button, Progress } from "semantic-ui-react";
+import { Upload } from "tabler-icons-react";
 
 import { api } from "../api_client/api";
 import { useAppDispatch, useAppSelector } from "../store/store";
@@ -154,13 +155,14 @@ export const ChunkedUploadButton = () => {
         <div {...getRootProps({ className: "dropzone" })}>
           <input {...getInputProps()} />
           {currentSize / totalSize > 0.99 && (
-            <Button icon="upload" loading={currentSize / totalSize < 1} onClick={open} />
+            <ActionIcon color="gray" variant="light" loading={currentSize / totalSize < 1} onClick={open}>
+              <Upload></Upload>
+            </ActionIcon>
           )}
 
           {currentSize / totalSize < 1 && (
             <Progress
-              percent={((currentSize / totalSize) * 100).toFixed(0)}
-              progress
+              value={(currentSize / totalSize) * 100}
               style={{
                 width: "100%",
                 margin: "0",
