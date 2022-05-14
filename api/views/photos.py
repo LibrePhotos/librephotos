@@ -58,7 +58,6 @@ class RecentlyAddedPhotoListViewSet(viewsets.ModelViewSet):
                     added_on__day=latestDate.day,
                 )
             )
-            .prefetch_related("users")
             .order_by("-added_on")
         )
         return queryset
