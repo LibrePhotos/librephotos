@@ -2,7 +2,7 @@ import { Button, Divider, Group, Loader, Menu, Text, Title } from "@mantine/core
 import { push } from "connected-react-router";
 import React, { ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Calendar, CaretDown, Clock, EyeOff, Globe, Star } from "tabler-icons-react";
+import { Calendar, ChevronDown, Clock, EyeOff, Globe, Star } from "tabler-icons-react";
 
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
@@ -129,7 +129,7 @@ export const DefaultHeader = (props: Props) => {
               trigger="hover"
               control={
                 <Title style={{ minWidth: 200 }} align="left" order={2}>
-                  {title} <CaretDown size={20} />
+                  {title} <ChevronDown size={20} />
                 </Title>
               }
             >

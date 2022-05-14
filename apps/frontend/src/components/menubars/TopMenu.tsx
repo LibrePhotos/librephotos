@@ -3,7 +3,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import { push } from "connected-react-router";
 import React, { useEffect } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { Adjustments, Book, CaretDown, Logout, Menu2, Settings, User } from "tabler-icons-react";
+import { Adjustments, Book, ChevronDown, Logout, Menu2, Settings, User } from "tabler-icons-react";
 
 import { toggleSidebar } from "../../actions/uiActions";
 import { api } from "../../api_client/api";
@@ -58,7 +58,7 @@ export const TopMenu = () => {
             <Menu
               trigger="hover"
               control={
-                <Group>
+                <Group spacing="xs">
                   <Avatar
                     src={
                       userSelfDetails && userSelfDetails.avatar_url
@@ -69,7 +69,7 @@ export const TopMenu = () => {
                     alt="it's me"
                     radius="xl"
                   />
-                  <CaretDown />
+                  <ChevronDown size={15} />
                 </Group>
               }
             >
