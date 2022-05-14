@@ -1,6 +1,7 @@
 import _ from "lodash";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { User } from "tabler-icons-react";
 
 import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
 import { fetchPeople } from "../../actions/peopleActions";
@@ -68,7 +69,7 @@ export function AlbumPersonGallery(props: Props): JSX.Element {
     <PhotoListView
       title={personname || t("loading")}
       loading={fetchedPhotosetType !== PhotosetType.PERSON}
-      titleIconName="user"
+      icon={<User size={50} />}
       isDateView
       photoset={photosGroupedByDate}
       idx2hash={photosFlat}

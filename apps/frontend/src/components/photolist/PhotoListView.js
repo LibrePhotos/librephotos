@@ -1,4 +1,4 @@
-import { Box } from "@mantine/core";
+import { Box, Group } from "@mantine/core";
 import _ from "lodash";
 import React, { Component } from "react";
 import Pig from "react-pig";
@@ -205,36 +205,40 @@ export class PhotoListView extends Component {
                 height: 40,
               }}
             >
-              <SelectionBar
-                selectMode={this.state.selectionState.selectMode}
-                selectedItems={this.state.selectionState.selectedItems}
-                idx2hash={this.props.idx2hash}
-                updateSelectionState={this.updateSelectionState}
-              />
-              {!this.props.route.location.pathname.startsWith("/deleted") && (
-                <SelectionActions
+              <Group position="apart">
+                <SelectionBar
+                  selectMode={this.state.selectionState.selectMode}
                   selectedItems={this.state.selectionState.selectedItems}
-                  albumID={this.props.match ? this.props.match.params.albumID : undefined}
-                  title={this.props.title}
-                  setAlbumCover={() => {
-                    this.props.dispatch(
-                      setAlbumCoverForPerson(
-                        this.props.match.params.albumID,
-                        this.state.selectionState.selectedItems[0].id
-                      )
-                    );
-                  }}
-                  onSharePhotos={() => this.setState({ modalSharePhotosOpen: true })}
-                  onShareAlbum={() => this.setState({ modalAlbumShareOpen: true })}
-                  onAddToAlbum={() => this.setState({ modalAddToAlbumOpen: true })}
+                  idx2hash={this.props.idx2hash}
                   updateSelectionState={this.updateSelectionState}
                 />
-              )}
-              <TrashcanActions
-                selectedItems={this.state.selectionState.selectedItems}
-                title={this.props.title}
-                updateSelectionState={this.updateSelectionState}
-              />
+                <Group position="right">
+                  {!this.props.route.location.pathname.startsWith("/deleted") && (
+                    <SelectionActions
+                      selectedItems={this.state.selectionState.selectedItems}
+                      albumID={this.props.match ? this.props.match.params.albumID : undefined}
+                      title={this.props.title}
+                      setAlbumCover={() => {
+                        this.props.dispatch(
+                          setAlbumCoverForPerson(
+                            this.props.match.params.albumID,
+                            this.state.selectionState.selectedItems[0].id
+                          )
+                        );
+                      }}
+                      onSharePhotos={() => this.setState({ modalSharePhotosOpen: true })}
+                      onShareAlbum={() => this.setState({ modalAlbumShareOpen: true })}
+                      onAddToAlbum={() => this.setState({ modalAddToAlbumOpen: true })}
+                      updateSelectionState={this.updateSelectionState}
+                    />
+                  )}
+                  <TrashcanActions
+                    selectedItems={this.state.selectionState.selectedItems}
+                    title={this.props.title}
+                    updateSelectionState={this.updateSelectionState}
+                  />
+                </Group>
+              </Group>
             </Box>
           )}
         </Box>

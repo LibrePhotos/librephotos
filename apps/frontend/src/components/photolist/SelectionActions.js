@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { Trans, withTranslation } from "react-i18next";
+import { withTranslation } from "react-i18next";
 import { connect } from "react-redux";
 import "react-virtualized/styles.css";
 import { compose } from "redux";

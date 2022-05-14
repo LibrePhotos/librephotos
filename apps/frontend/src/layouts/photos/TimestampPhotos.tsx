@@ -1,6 +1,7 @@
 import _ from "lodash";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Photo } from "tabler-icons-react";
 
 import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";

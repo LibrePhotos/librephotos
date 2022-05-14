@@ -1,8 +1,8 @@
-import { Button, Divider, Group, Loader, Menu, Stack, Text, Title } from "@mantine/core";
+import { Button, Divider, Group, Loader, Menu, Text, Title } from "@mantine/core";
 import { push } from "connected-react-router";
 import React, { ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Calendar, CaretDown, Clock, EyeOff, Globe, Photo, Star } from "tabler-icons-react";
+import { Calendar, CaretDown, Clock, EyeOff, Globe, Star } from "tabler-icons-react";
 
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
@@ -44,6 +44,12 @@ export const DefaultHeader = (props: Props) => {
     );
   };
 
+  const isScanView = () => {
+    // @ts-ignore
+    const path = route.location.pathname;
+    return path === "/";
+  };
+
   const {
     loading,
     numPhotosetItems,
@@ -61,7 +67,12 @@ export const DefaultHeader = (props: Props) => {
       <div>
         <Title order={4}>
           <Group>
-            {!loading && auth.access && auth.access.is_admin && !user.scan_directory && numPhotosetItems < 1 ? (
+            {!loading &&
+            auth.access &&
+            isScanView() &&
+            auth.access.is_admin &&
+            !user.scan_directory &&
+            numPhotosetItems < 1 ? (
               <div>
                 <p>{t("defaultheader.setup")}</p>
                 <Button
