@@ -1,6 +1,7 @@
 import _ from "lodash";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Globe } from "tabler-icons-react";
 
 import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
@@ -67,7 +68,7 @@ export function UserPublicPage(props: Props) {
           : `Public photos of ${props.match.params.username}`
       }
       loading={fetchedPhotosetType !== PhotosetType.PUBLIC}
-      titleIconName="globe"
+      icon={<Globe size={50} />}
       isDateView
       photoset={photosGroupedByDate}
       idx2hash={photosFlat}

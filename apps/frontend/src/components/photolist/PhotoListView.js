@@ -2,9 +2,7 @@ import { Box } from "@mantine/core";
 import _ from "lodash";
 import React, { Component } from "react";
 import Pig from "react-pig";
-// only needs to be imported once
 import { connect } from "react-redux";
-import "react-virtualized/styles.css";
 
 import { setAlbumCoverForPerson } from "../../actions/peopleActions";
 import { fetchPhotoDetail } from "../../actions/photosActions";
@@ -15,7 +13,7 @@ import { LightBox } from "../lightbox/LightBox";
 import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
 import { ModalPhotosShare } from "../sharing/ModalPhotosShare";
 import { DefaultHeader } from "./DefaultHeader";
-import FavoritedOverlay from "./FavoritedOverlay";
+import { FavoritedOverlay } from "./FavoritedOverlay";
 import { SelectionActions } from "./SelectionActions";
 import { SelectionBar } from "./SelectionBar";
 import { TrashcanActions } from "./TrashcanActions";
@@ -189,7 +187,7 @@ export class PhotoListView extends Component {
               numPhotosetItems={this.getNumPhotosetItems()}
               numPhotos={this.getNumPhotos()}
               noResultsMessage={this.props.noResultsMessage}
-              titleIconName={this.props.titleIconName}
+              icon={this.props.icon}
               title={this.props.title}
               dayHeaderPrefix={this.props.dayHeaderPrefix}
               date={this.props.date}

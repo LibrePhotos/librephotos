@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { EyeOff } from "tabler-icons-react";
 
 import { fetchHiddenPhotos } from "../../actions/photosActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
@@ -23,7 +24,7 @@ export function HiddenPhotos() {
       showHidden
       title={t("photos.hidden")}
       loading={fetchedPhotosetType !== PhotosetType.HIDDEN}
-      titleIconName="hide"
+      icon={<EyeOff size={50} />}
       isDateView
       photoset={photosGroupedByDate}
       idx2hash={photosFlat}

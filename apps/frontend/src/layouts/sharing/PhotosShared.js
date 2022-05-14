@@ -57,7 +57,7 @@ export class PhotosShared extends Component {
             <PhotoListView
               title="Photos"
               loading={this.props.fetchedPhotosetType !== photosetType}
-              titleIconName="images"
+              icon={<Photo size={50} />}
               isDateView={false}
               photoset={group.photos}
               idx2hash={group.photos}

@@ -1,6 +1,7 @@
 import moment from "moment";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { Clock } from "tabler-icons-react";
 
 import { fetchRecentlyAddedPhotos } from "../../actions/photosActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
@@ -25,7 +26,7 @@ export function RecentlyAddedPhotos() {
     <PhotoListView
       title={t("photos.recentlyadded")}
       loading={fetchedPhotosetType !== PhotosetType.RECENTLY_ADDED}
-      titleIconName="clock"
+      icon={<Clock size={50} />}
       isDateView={false}
       date={
         moment(recentlyAddedPhotosDate).format("MMM Do YYYY, dddd") !== "Invalid date"

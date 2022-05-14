@@ -1,6 +1,7 @@
 import _ from "lodash";
 import React, { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { Photo } from "tabler-icons-react";
 
 import { fetchNoTimestampPhotoPaginated } from "../../actions/photosActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
@@ -38,7 +39,7 @@ export function NoTimestampPhotosView() {
     <PhotoListView
       title={t("photos.notimestamp")}
       loading={fetchedPhotosetType !== PhotosetType.NO_TIMESTAMP}
-      titleIconName="images outline"
+      icon={<Photo size={50} />}
       isDateView={false}
       photoset={photosFlat}
       idx2hash={photosFlat}

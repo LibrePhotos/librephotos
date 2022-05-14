@@ -54,7 +54,7 @@ export function TimestampPhotos() {
     <PhotoListView
       title={t("photos.photos")}
       loading={fetchedPhotosetType !== PhotosetType.TIMESTAMP}
-      titleIconName="images"
+      icon={<Photo size={50} />}
       isDateView
       photoset={photosGroupedByDate}
       idx2hash={photosFlat}

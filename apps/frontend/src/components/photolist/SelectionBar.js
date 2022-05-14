@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { Trans, withTranslation } from "react-i18next";
+import { withTranslation } from "react-i18next";
 import { Button, Icon, Popup } from "semantic-ui-react";
 
 export class SelectionBar extends Component {

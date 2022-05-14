@@ -2,6 +2,7 @@ import React from "react";
 // only needs to be imported once
 import { Redirect } from "react-router-dom";
 import "react-virtualized/styles.css";
+import { Search } from "tabler-icons-react";
 
 import { PhotoListView } from "../components/photolist/PhotoListView";
 import { PhotosetType } from "../reducers/photosReducer";
@@ -26,7 +27,7 @@ export const SearchView = () => {
     <PhotoListView
       title={title}
       loading={fetchedPhotosetType !== PhotosetType.SEARCH}
-      titleIconName="search"
+      icon={<Search size={50} />}
       isDateView={!user.semantic_search_topk}
       photoset={photosGroupedByDate}
       idx2hash={user.semantic_search_topk ? photosGroupedByDate : photosFlat}

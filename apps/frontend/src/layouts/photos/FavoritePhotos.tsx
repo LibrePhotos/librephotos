@@ -1,6 +1,7 @@
 import { throttle } from "lodash";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Star } from "tabler-icons-react";
 
 import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
@@ -58,7 +59,7 @@ export function FavoritePhotos() {
       showHidden={false}
       title={t("photos.favorite")}
       loading={fetchedPhotosetType !== PhotosetType.FAVORITES}
-      titleIconName="star"
+      icon={<Star size={50} />}
       isDateView
       photoset={photosGroupedByDate}
       updateGroups={throttledGetAlbums}

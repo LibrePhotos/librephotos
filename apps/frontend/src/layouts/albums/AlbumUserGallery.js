@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import { withTranslation } from "react-i18next";
 import { connect } from "react-redux";
 import { compose } from "redux";
+import { Bookmark } from "tabler-icons-react";
 
 import { fetchUserAlbum } from "../../actions/albumsActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
@@ -42,7 +43,7 @@ export class AlbumUserGallery extends Component {
         title={this.props.albumDetails ? this.props.albumDetails.title : this.props.t("loading")}
         additionalSubHeader={additionalSubHeader}
         loading={!this.isLoaded()}
-        titleIconName="bookmark"
+        icon={<Bookmark size={50} />}
         isDateView
         photoset={this.props.photosGroupedByDate}
         idx2hash={this.props.photosFlat}

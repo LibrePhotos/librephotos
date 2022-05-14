@@ -4,6 +4,7 @@ import React, { Component } from "react";
 import { withTranslation } from "react-i18next";
 import { connect } from "react-redux";
 import { compose } from "redux";
+import { Map } from "tabler-icons-react";
 
 import { fetchPlaceAlbum } from "../../actions/albumsActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
@@ -29,7 +30,7 @@ export class AlbumPlaceGallery extends Component {
       <PhotoListView
         title={groupedPhotos ? groupedPhotos.title : this.props.t("loading")}
         loading={fetchingAlbumsPlace}
-        titleIconName="map outline"
+        icon={<Map size={50} />}
         isDateView
         photoset={groupedPhotos ? groupedPhotos.grouped_photos : []}
         idx2hash={groupedPhotos ? groupedPhotos.grouped_photos.flatMap(el => el.items) : []}
