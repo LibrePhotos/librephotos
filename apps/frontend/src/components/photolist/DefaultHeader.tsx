@@ -128,7 +128,7 @@ export const DefaultHeader = (props: Props) => {
             <Menu
               trigger="hover"
               control={
-                <Title align="left" order={2}>
+                <Title style={{ minWidth: 200 }} align="left" order={2}>
                   {title} <CaretDown size={20} />
                 </Title>
               }
