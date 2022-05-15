@@ -142,7 +142,9 @@
         "loggedin": "Angemeldet als",
         "logout": "Abmelden",
         "settings": "Einstellungen",
-        "adminarea": "Adminbereich"
+        "adminarea": "Adminbereich",
+        "profile": "Profil",
+        "library": "Bibliothek"
     },
     "sidemenu": {
         "name": "LibrePhotos",
