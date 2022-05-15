@@ -1,11 +1,10 @@
-import { Stack, TextInput } from "@mantine/core";
+import { Avatar, Button, Group, Popover, Stack, TextInput } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { push } from "connected-react-router";
-import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Icon, Image, Loader, Popup, Segment } from "semantic-ui-react";
-import { Search } from "tabler-icons-react";
+import { Link } from "react-router-dom";
+import { Album, Map, Search, Tag } from "tabler-icons-react";
 
 import {
   fetchPlaceAlbum,
@@ -19,8 +18,6 @@ import { searchPeople, searchPhotos, searchPlaceAlbums, searchThingAlbums } from
 import { fetchExampleSearchTerms } from "../actions/utilActions";
 import { serverAddress } from "../api_client/apiClient";
 import { useAppDispatch, useAppSelector } from "../store/store";
-import { TOP_MENU_HEIGHT } from "../ui-constants";
-import { SecuredImageJWT } from "./SecuredImage";
 
 const ENTER_KEY = 13;
 
@@ -120,193 +117,134 @@ export const CustomSearch = () => {
 
   return (
     <Stack>
-      <TextInput
-        icon={<Search size={14} />}
+      <Popover
+        opened={searchBarFocused}
+        onClose={() => setSearchBarFocused(false)}
+        trapFocus={false}
         width={searchBarWidth}
-        onFocus={() => {
-          setSearchBarFocused(true);
-        }}
-        onBlur={() => {
-          _.debounce(() => {
-            setSearchBarFocused(false);
-          }, 200)();
-        }}
-        onKeyDown={event => {
-          switch (event.keyCode) {
-            case ENTER_KEY:
-              dispatch(searchPhotos(searchText));
-              dispatch(push("/search"));
-              setSearchBarFocused(false);
-              break;
-            default:
-              break;
-          }
-        }}
-        onChange={handleChange}
-        placeholder={exampleSearchTerm}
-      />
-      {searchBarFocused && (
-        <div
-          style={{
-            width: searchBarWidth,
-            textAlign: "left",
-            zIndex: 120,
-            top: TOP_MENU_HEIGHT,
-            left: (width - searchBarWidth) / 2.1,
-            position: "absolute",
-          }}
-        >
-          {filteredExampleSearchTerms.length > 0 && (
-            <Segment attached textAlign="left" style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}>
-              <div
-                style={{
-                  maxHeight: window.innerHeight / 5,
-                  overflowY: "auto",
+        onFocusCapture={() => setSearchBarFocused(true)}
+        onBlurCapture={() => setSearchBarFocused(false)}
+        target={
+          <TextInput
+            icon={<Search size={14} />}
+            onKeyDown={event => {
+              switch (event.keyCode) {
+                case ENTER_KEY:
+                  dispatch(searchPhotos(searchText));
+                  dispatch(push("/search"));
+                  setSearchBarFocused(false);
+                  break;
+                default:
+                  break;
+              }
+            }}
+            onChange={handleChange}
+            placeholder={exampleSearchTerm}
+          />
+        }
+        position="bottom"
+      >
+        <Stack spacing="xs">
+          {filteredExampleSearchTerms.length > 0 &&
+            filteredExampleSearchTerms.slice(0, 2).map(el => (
+              <Button
+                variant="subtle"
+                leftIcon={<Search size={14} />}
+                key={`suggestion_${el}`}
+                onClick={() => {
+                  dispatch(searchPhotos(el));
+                  dispatch(searchPeople(el));
+                  dispatch(searchThingAlbums(el));
+                  dispatch(searchPlaceAlbums(el));
+                  dispatch(push("/search"));
                 }}
               >
-                <div style={{ height: 10 }} />
-                {filteredExampleSearchTerms.slice(0, 2).map(el => (
-                  <p
-                    key={`suggestion_${el}`}
-                    onClick={() => {
-                      dispatch(searchPhotos(el));
-                      dispatch(searchPeople(el));
-                      dispatch(searchThingAlbums(el));
-                      dispatch(searchPlaceAlbums(el));
-                      dispatch(push("/search"));
-                    }}
-                  >
-                    <Icon name="search" />
-                    {el}
-                  </p>
-                ))}
-                <div style={{ height: 5 }} />
-              </div>
-            </Segment>
-          )}
-          {filteredSuggestedUserAlbums.length > 0 && (
-            <Segment attached textAlign="left" style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}>
-              <div
-                style={{
-                  maxHeight: window.innerHeight / 5,
-                  overflowY: "auto",
+                {el}
+              </Button>
+            ))}
+          {filteredSuggestedUserAlbums.length > 0 &&
+            filteredSuggestedUserAlbums.slice(0, 2).map(album => (
+              <Button
+                variant="subtle"
+                leftIcon={<Album size={14} />}
+                key={`suggestion_place_${album.title}`}
+                onClick={() => {
+                  dispatch(push(`/useralbum/${album.id}`));
+                  dispatch(fetchUserAlbum(album.id));
                 }}
               >
-                <div style={{ height: 10 }} />
-                {filteredSuggestedUserAlbums.slice(0, 2).map(album => (
-                  <p
-                    key={`suggestion_place_${album.title}`}
-                    onClick={() => {
-                      dispatch(push(`/useralbum/${album.id}`));
-                      dispatch(fetchUserAlbum(album.id));
-                    }}
-                  >
-                    <Icon name="bookmark" />
-                    {album.title}
-                  </p>
-                ))}
-                <div style={{ height: 5 }} />
-              </div>
-            </Segment>
-          )}
-          {filteredSuggestedPlaces.length > 0 && (
-            <Segment attached textAlign="left" style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}>
-              <div
-                style={{
-                  maxHeight: window.innerHeight / 5,
-                  overflowY: "auto",
+                {album.title}
+              </Button>
+            ))}
+          {filteredSuggestedPlaces.length > 0 &&
+            filteredSuggestedPlaces.slice(0, 2).map(place => (
+              <Button
+                variant="subtle"
+                leftIcon={<Map size={14} />}
+                key={`suggestion_place_${place.title}`}
+                onClick={() => {
+                  dispatch(push(`/place/${place.id}`));
+                  dispatch(fetchPlaceAlbum(place.id));
                 }}
               >
-                <div style={{ height: 10 }} />
-                {filteredSuggestedPlaces.slice(0, 2).map(place => (
-                  <p
-                    key={`suggestion_place_${place.title}`}
-                    onClick={() => {
-                      dispatch(push(`/place/${place.id}`));
-                      dispatch(fetchPlaceAlbum(place.id));
-                    }}
-                  >
-                    <Icon name="map outline" />
-                    {place.title}
-                  </p>
-                ))}
-                <div style={{ height: 5 }} />
-              </div>
-            </Segment>
-          )}
-          {filteredSuggestedThings.length > 0 && (
-            <Segment attached textAlign="left" style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}>
-              <div
-                style={{
-                  maxHeight: window.innerHeight / 5,
-                  overflowY: "auto",
+                {place.title}
+              </Button>
+            ))}
+          {filteredSuggestedThings.length > 0 &&
+            filteredSuggestedThings.slice(0, 2).map(thing => (
+              <Button
+                variant="subtle"
+                leftIcon={<Tag size={14} />}
+                key={`suggestion_thing_${thing.title}`}
+                onClick={() => {
+                  dispatch(push(`/search`));
+                  dispatch(searchPhotos(thing.title));
                 }}
               >
-                <div style={{ height: 10 }} />
-                {filteredSuggestedThings.slice(0, 2).map(thing => (
-                  <p
-                    key={`suggestion_thing_${thing.title}`}
-                    onClick={() => {
-                      dispatch(push(`/search`));
-                      dispatch(searchPhotos(thing.title));
-                    }}
-                  >
-                    <Icon name="tag" />
-                    {thing.title}
-                  </p>
-                ))}
-                <div style={{ height: 5 }} />
-              </div>
-            </Segment>
-          )}
+                {thing.title}
+              </Button>
+            ))}
           {filteredSuggestedPeople.length > 0 && (
-            <Segment attached style={{ padding: 0 }}>
-              <div
-                style={{
-                  maxWidth: searchBarWidth - 5,
-                  height: 60,
-                  padding: 5,
-                  overflow: "hidden",
-                }}
-              >
-                <Image.Group>
-                  {filteredSuggestedPeople.map(person => (
-                    <Popup
-                      inverted
-                      content={person.text}
-                      trigger={
-                        <SecuredImageJWT
-                          key={`suggestion_person_${person.key}`}
-                          onClick={() => {
-                            dispatch(push(`/person/${person.key}`));
-                          }}
-                          height={50}
-                          width={50}
-                          circular
-                          src={serverAddress + person.face_url}
-                        />
-                      }
-                    />
-                  ))}
-                </Image.Group>
-              </div>
-            </Segment>
+            <Group>
+              {filteredSuggestedPeople.map(person => (
+                <PersonAvatar person={person} key={`suggestion_person_${person.text}`} />
+              ))}
+            </Group>
           )}
           {albumsThingList.length == 0 && searchText.length > 0 && (
-            <Segment attached textAlign="left" style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}>
-              <div
-                style={{
-                  maxHeight: window.innerHeight / 5,
-                  overflowY: "auto",
-                }}
-              >
-                {t("search.loading")}
-                <Loader inline active size="mini" />
-              </div>
-            </Segment>
+            <Button variant="subtle" leftIcon={<Search size={14} />} loading>
+              {t("search.loading")}
+            </Button>
           )}
-        </div>
-      )}
+        </Stack>
+      </Popover>
     </Stack>
+  );
+};
+
+const PersonAvatar = ({ person }) => {
+  const [opened, setOpened] = useState(false);
+
+  return (
+    <Popover
+      opened={opened}
+      onClose={() => setOpened(false)}
+      withArrow
+      position="bottom"
+      target={
+        <Avatar
+          component={Link}
+          to={`/person/${person.key}`}
+          onMouseEnter={() => setOpened(true)}
+          onMouseLeave={() => setOpened(false)}
+          key={`suggestion_person_${person.key}`}
+          size={50}
+          radius="xl"
+          src={serverAddress + person.face_url}
+        />
+      }
+    >
+      {person.text}
+    </Popover>
   );
 };
