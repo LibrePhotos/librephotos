@@ -174,7 +174,7 @@ export class PhotoListView extends Component {
             width: "100%",
             zIndex: 10,
             boxSizing: "border-box",
-            top: 40,
+            top: 45,
           }}
         >
           {this.props.header ? (
@@ -205,7 +205,12 @@ export class PhotoListView extends Component {
                 height: 40,
               }}
             >
-              <Group position="apart">
+              <Group
+                style={{
+                  paddingLeft: 10,
+                }}
+                position="apart"
+              >
                 <SelectionBar
                   selectMode={this.state.selectionState.selectMode}
                   selectedItems={this.state.selectionState.selectedItems}

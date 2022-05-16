@@ -1,4 +1,4 @@
-import { Footer, SimpleGrid } from "@mantine/core";
+import { ActionIcon, Footer, Group } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -8,7 +8,6 @@ import { Album, ChartLine, FaceId, Photo, Trash, Users } from "tabler-icons-reac
 
 import { selectAuthAccess, selectIsAuthenticated } from "../../store/auth/authSelectors";
 import { useAppSelector } from "../../store/store";
-import { MainLink } from "./MenuLink";
 
 export function FooterMenu(): JSX.Element {
   const isAuth = useAppSelector(selectIsAuthenticated);
@@ -22,11 +21,21 @@ export function FooterMenu(): JSX.Element {
   }
 
   return (
-    <Footer height={90} p="xs">
-      <SimpleGrid cols={6} spacing="xs">
-        <MainLink icon={<Photo size={33}></Photo>} color="green" to="/" />
+    <Footer height={50} p="xs">
+      <Group position="apart">
+        <ActionIcon color="green" variant="light" component={Link} to="/">
+          <Photo size={33}></Photo>
+        </ActionIcon>
 
-        <Dropdown pointing="top" item icon={<MainLink icon={<Album size={33}></Album>} color="blue" />}>
+        <Dropdown
+          pointing="top"
+          item
+          icon={
+            <ActionIcon color="blue" variant="light">
+              <Album size={33} />
+            </ActionIcon>
+          }
+        >
           <Dropdown.Menu>
             <Dropdown.Header>{t("sidemenu.albums")}</Dropdown.Header>
             <Dropdown.Item as={Link} to="/people">
@@ -52,7 +61,15 @@ export function FooterMenu(): JSX.Element {
             </Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown>
-        <Dropdown pointing="top" item icon={<MainLink icon={<ChartLine size={33}></ChartLine>} color="yellow" />}>
+        <Dropdown
+          pointing="top"
+          item
+          icon={
+            <ActionIcon color="yellow" variant="light">
+              <ChartLine size={33} />
+            </ActionIcon>
+          }
+        >
           <Dropdown.Menu>
             <Dropdown.Header>
               <div style={{ overflow: "visible" }}>{t("sidemenu.dataviz")}</div>
@@ -83,9 +100,20 @@ export function FooterMenu(): JSX.Element {
             </Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown>
-        <MainLink icon={<FaceId size={33}></FaceId>} color="orange" to="/faces" />
+
+        <ActionIcon color="orange" variant="light" component={Link} to="/faces">
+          <FaceId size={33} />
+        </ActionIcon>
         {isAuth && (
-          <Dropdown pointing="top" item icon={<MainLink icon={<Users size={33}></Users>} color="red" />}>
+          <Dropdown
+            pointing="top"
+            item
+            icon={
+              <ActionIcon color="red" variant="light">
+                <Users size={33} />
+              </ActionIcon>
+            }
+          >
             <Dropdown.Menu>
               <Dropdown.Header>{t("sidemenu.sharing")}</Dropdown.Header>
 
@@ -106,8 +134,10 @@ export function FooterMenu(): JSX.Element {
             </Dropdown.Menu>
           </Dropdown>
         )}
-        <MainLink icon={<Trash size={33}></Trash>} color="black" to="/deleted" />
-      </SimpleGrid>
+        <ActionIcon color="black" variant="light" component={Link} to="/deleted">
+          <Trash size={33} />
+        </ActionIcon>
+      </Group>
     </Footer>
   );
 }

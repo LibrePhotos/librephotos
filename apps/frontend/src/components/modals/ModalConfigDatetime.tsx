@@ -1,6 +1,6 @@
+import { Modal, Stack, Text, Title } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import React, { useEffect, useState } from "react";
-import Modal from "react-modal";
-import { Header } from "semantic-ui-react";
 
 import { useFetchPredefinedRulesQuery } from "../../api_client/api";
 import { useAppSelector } from "../../store/store";
@@ -15,8 +15,9 @@ type Props = {
 
 export function ModalConfigDatetime(props: Props) {
   const [possibleOptions, setPossibleOptions] = useState<Array<any>>([]);
-  const { isLoading, isError, error, data } = useFetchPredefinedRulesQuery();
+  const { isLoading, isError, data } = useFetchPredefinedRulesQuery();
 
+  const matches = useMediaQuery("(min-width: 700px)");
   const { datetime_rules } = useAppSelector(selectUserSelfDetails);
   const rules = JSON.parse(datetime_rules || "[]");
   // make sure rules have ids
@@ -34,81 +35,20 @@ export function ModalConfigDatetime(props: Props) {
 
   return (
     <Modal
-      ariaHideApp={false}
-      isOpen={props.isOpen}
-      onRequestClose={() => {
+      opened={props.isOpen}
+      title={<Title order={3}>Choose a new rule to add</Title>}
+      onClose={() => {
         props.onRequestClose();
       }}
-      style={{
-        content: {
-          top: "12vh",
-          left: "8vh",
-          right: "8vh",
-          height: "65vh",
-          display: "flex",
-          flexFlow: "column",
-          overflow: "hidden",
-          padding: 0,
-          backgroundColor: "white",
-        },
-        overlay: {
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          position: "fixed",
-          borderRadius: 0,
-          border: 0,
-          zIndex: 102,
-          backgroundColor: "rgba(200,200,200,0.8)",
-        },
-      }}
     >
-      <div style={{ padding: 10 }}>
-        <Header>
-          <Header.Content>
-            Choose a new rule to add
-            <Header.Subheader>
-              Choose a rule, that will parse the date from a certain field or attribute.
-            </Header.Subheader>
-          </Header.Content>
-        </Header>
-      </div>
-      <div style={{ padding: 10 }}>
-        <Header as="h5">Rules:</Header>
-      </div>
-      <div style={{ padding: 10, overflowY: "auto", height: "100%" }}>
+      <Stack>
+        <Text color="dimmed">Choose a rule, that will parse the date from a certain field or attribute.</Text>
+        <Title order={5}>Rules:</Title>
         {possibleOptions &&
           possibleOptions.map((rule: any) => (
             <SortableItem key={rule.id} id={rule.id} item={rule} addItem addItemFunction={props.addItemFunction} />
           ))}
-      </div>
+      </Stack>
     </Modal>
   );
 }
-
-// To-Do: Complains that position is a string and not a position, but I can't import the position interface. Copy and pasting fixed it
-const modalStyles = {
-  content: {
-    top: "12vh",
-    left: "8vh",
-    right: "8vh",
-    height: "65vh",
-    display: "flex",
-    flexFlow: "column",
-    overflow: "hidden",
-    padding: 0,
-    backgroundColor: "white",
-  },
-  overlay: {
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    position: "fixed",
-    borderRadius: 0,
-    border: 0,
-    zIndex: 102,
-    backgroundColor: "rgba(200,200,200,0.8)",
-  },
-};

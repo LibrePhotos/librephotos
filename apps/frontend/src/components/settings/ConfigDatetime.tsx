@@ -5,9 +5,9 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { Button, Title } from "@mantine/core";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Header } from "semantic-ui-react";
 
 import { updateUser } from "../../actions/utilActions";
 import { useAppDispatch, useAppSelector } from "../../store/store";
@@ -45,7 +45,7 @@ export function ConfigDatetime(): JSX.Element {
 
   return (
     <div style={{ marginTop: 10 }}>
-      <Header as="h3">{t("settings.configdatetime")}</Header>
+      <Title order={3}>{t("settings.configdatetime")}</Title>
       <Button color="green" onClick={() => setShowModal(true)} style={{ marginBottom: 10 }}>
         Add Rule{" "}
       </Button>
@@ -77,9 +77,8 @@ export function ConfigDatetime(): JSX.Element {
         }}
       />
       <Button
-        size="small"
+        size="sm"
         color="green"
-        floated="left"
         onClick={() => {
           const newUserData = JSON.parse(JSON.stringify(userSelfDetails));
           delete newUserData.scan_directory;

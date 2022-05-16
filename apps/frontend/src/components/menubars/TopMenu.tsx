@@ -69,7 +69,6 @@ export const TopMenu = () => {
                     alt="it's me"
                     radius="xl"
                   />
-                  <ChevronDown size={15} />
                 </Group>
               }
             >

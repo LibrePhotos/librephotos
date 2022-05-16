@@ -1,8 +1,9 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Button, Card, Stack, Text, Title } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Card, Icon, Label } from "semantic-ui-react";
+import { X } from "tabler-icons-react";
 
 type Props = {
   item: any;
@@ -23,53 +24,59 @@ export function SortableItem(props: Props) {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <Card style={{ width: 400 }}>
-        <Card.Content>
-          <Card.Header>
-            {t(`rules.${props.item.id}`) !== `rules.${props.item.id}` ? t(`rules.${props.item.id}`) : props.item.name}
-          </Card.Header>
-          <Card.Meta>{t("rules.rule_type", { rule: props.item.rule_type })}</Card.Meta>
-          <Card.Description>
-            {Object.entries(props.item)
-              .filter(i => i[0] !== "name" && i[0] !== "id" && i[0] !== "rule_type" && i[0] !== "transform_tz")
-              .map(prop =>
-                t(`rules.${prop[0]}`, { rule: prop[1] }) !== `rules.${prop[0]}` ? (
-                  <li>{t(`rules.${prop[0]}`, { rule: prop[1] })}</li>
-                ) : (
-                  <li>
-                    {prop[0]}: {prop[1]}
-                  </li>
-                )
-              )}
-          </Card.Description>
-        </Card.Content>
-        {!props.addItem && (
-          <Label
-            style={{ backgroundColor: "transparent" }}
-            attached="top right"
-            onClick={() => {
-              if (props.removeItemFunction) {
-                props.removeItemFunction(props.item);
-              }
-            }}
-          >
-            <Icon name="delete" />
-          </Label>
-        )}
-        {props.addItem && (
-          <Card.Content extra>
-            <Button
-              color="green"
+      <Card style={{ width: 325 }}>
+        <Stack>
+          <Card.Section>
+            <Title order={4}>
+              {t(`rules.${props.item.id}`) !== `rules.${props.item.id}` ? t(`rules.${props.item.id}`) : props.item.name}
+            </Title>
+            <Text color="dimmed">{t("rules.rule_type", { rule: props.item.rule_type })}</Text>
+            <Text>
+              {Object.entries(props.item)
+                .filter(i => i[0] !== "name" && i[0] !== "id" && i[0] !== "rule_type" && i[0] !== "transform_tz")
+                .map(prop =>
+                  t(`rules.${prop[0]}`, { rule: prop[1] }) !== `rules.${prop[0]}` ? (
+                    <li>{t(`rules.${prop[0]}`, { rule: prop[1] })}</li>
+                  ) : (
+                    <li>
+                      {prop[0]}: {prop[1]}
+                    </li>
+                  )
+                )}
+            </Text>
+          </Card.Section>
+          {!props.addItem && (
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                right: 0,
+                padding: 5,
+              }}
               onClick={() => {
-                if (props.addItemFunction) {
-                  props.addItemFunction(props.item);
+                if (props.removeItemFunction) {
+                  props.removeItemFunction(props.item);
                 }
               }}
             >
-              Add
-            </Button>
-          </Card.Content>
-        )}
+              <X />
+            </div>
+          )}
+          {props.addItem && (
+            <Card.Section>
+              <Button
+                color="green"
+                onClick={() => {
+                  if (props.addItemFunction) {
+                    props.addItemFunction(props.item);
+                  }
+                }}
+              >
+                Add
+              </Button>
+            </Card.Section>
+          )}
+        </Stack>
       </Card>
     </div>
   );
