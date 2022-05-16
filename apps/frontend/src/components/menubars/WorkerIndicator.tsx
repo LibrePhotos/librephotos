@@ -8,16 +8,19 @@ import { useAppDispatch, useAppSelector } from "../../store/store";
 export const WorkerIndicator = () => {
   const dispatch = useAppDispatch();
   const workerRunningJob = useAppSelector(state => state.util.workerRunningJob);
-
+  const auth = useAppSelector(state => state.auth);
   const [opened, setOpened] = useState(false);
   const workerAvailability = useAppSelector(state => state.util.workerAvailability);
   const { t } = useTranslation();
+
   useEffect(() => {
     const intervalId = setInterval(() => {
-      fetchWorkerAvailability(workerRunningJob, dispatch);
+      if (auth.access) {
+        fetchWorkerAvailability(workerRunningJob, dispatch);
+      }
     }, 2000);
     return () => clearInterval(intervalId);
-  }, [dispatch]);
+  }, [auth, dispatch]);
 
   let runningJobPopupProgress;
   if (workerRunningJob && workerRunningJob.result && workerRunningJob.result.progress) {

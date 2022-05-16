@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Button, Divider, Form, Header, Image, Segment } from "semantic-ui-react";
 import { useTranslation } from "react-i18next";
-import type {} from "../../api_client/api";
 import { useHistory } from "react-router-dom";
-import { useSignUpMutation } from "../../api_client/api";
+import { Button, Divider, Form, Header, Image, Segment } from "semantic-ui-react";
+
+import { api, useSignUpMutation } from "../../api_client/api";
+import type { IApiUserSignUpPost } from "../../store/auth/auth.zod";
+import { useAppDispatch } from "../../store/store";
 import type { ISignUpFormState } from "./loginUtils";
 import { validateSignUpForm } from "./loginUtils";
-import type { IApiUserSignUpPost } from "../../store/auth/auth.zod";
 
 export const initialFormState: ISignUpFormState = {
   username: "",
@@ -22,7 +23,7 @@ export function FirstTimeSetupPage(): JSX.Element {
   const history = useHistory();
   const [signup, { isLoading, isSuccess }] = useSignUpMutation();
   const [form, setForm] = useState<ISignUpFormState>(initialFormState);
-
+  const dispatch = useAppDispatch();
   function onClickSignUp(e: React.MouseEvent<HTMLButtonElement>): void {
     e.preventDefault();
 
@@ -41,6 +42,7 @@ export function FirstTimeSetupPage(): JSX.Element {
 
   useEffect(() => {
     if (isSuccess) {
+      dispatch(api.endpoints.fetchUserList.initiate());
       history.push("/");
     }
   }, [history, isSuccess]);
@@ -138,7 +140,7 @@ export function FirstTimeSetupPage(): JSX.Element {
               />
               <Divider />
             </Form.Field>
-            <Button onClick={onClickSignUp} disabled={isLoading || validateSignUpForm(form)} fluid color="blue">
+            <Button onClick={onClickSignUp} disabled={isLoading || !validateSignUpForm(form)} fluid color="blue">
               {t("login.signup")}
             </Button>
           </Form>

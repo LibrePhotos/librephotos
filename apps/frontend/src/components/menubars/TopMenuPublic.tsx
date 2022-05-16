@@ -17,8 +17,10 @@ export const TopMenuPublic = () => {
   const matches = useMediaQuery("(min-width: 700px)");
 
   useEffect(() => {
-    dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.user_id));
-  }, [auth.user_id]);
+    if (auth.access) {
+      dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id));
+    }
+  }, [auth.access]);
 
   return (
     <Header height={45}>

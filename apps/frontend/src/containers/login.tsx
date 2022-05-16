@@ -1,11 +1,11 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Redirect, useLocation } from "react-router-dom";
 
-import { useFetchUserListQuery } from "../api_client/api";
+import { fetchUserList } from "../actions/utilActions";
 import { FirstTimeSetupPage } from "../layouts/login/FirstTimeSetupPage";
 import { LoginPage } from "../layouts/login/LoginPage";
 import { selectIsAuthenticated } from "../store/auth/authSelectors";
-import { useAppSelector } from "../store/store";
+import { useAppDispatch, useAppSelector } from "../store/store";
 
 export interface LocationState {
   from: {
@@ -17,9 +17,13 @@ function Login(): JSX.Element {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
 
   const location = useLocation<LocationState>();
-  const { count } = useFetchUserListQuery(undefined, {
-    selectFromResult: ({ data }) => ({ count: data != null ? data.count : null }),
-  });
+
+  const { userList, fetchedUserList } = useAppSelector(state => state.util);
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    dispatch(fetchUserList());
+  }, []);
 
   if (isAuthenticated) {
     if (location.state) {
@@ -27,7 +31,7 @@ function Login(): JSX.Element {
     }
     return <Redirect to="/" />;
   }
-  if (count !== null && count === 0) {
+  if (fetchedUserList && userList.length === 0) {
     return (
       <div className="login-page">
         <FirstTimeSetupPage />
