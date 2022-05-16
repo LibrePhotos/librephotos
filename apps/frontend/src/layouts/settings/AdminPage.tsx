@@ -206,9 +206,10 @@ export const JobList = () => {
                         value={(job.result.progress.current.toFixed(2) / job.result.progress.target) * 100}
                       ></Progress>
                       <Center>
-                        {`${((job.result.progress.current.toFixed(2) / job.result.progress.target) * 100).toFixed(
-                          2
-                        )} %`}
+                        {`${job.result.progress.current} ${t("joblist.itemsprocessed")} (${(
+                          (job.result.progress.current.toFixed(2) / job.result.progress.target) *
+                          100
+                        ).toFixed(2)} %) `}
                       </Center>
                     </div>
                   ) : job.finished ? (
