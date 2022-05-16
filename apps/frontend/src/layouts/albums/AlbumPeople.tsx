@@ -1,16 +1,17 @@
+import { Button, Group, Modal, Text, TextInput } from "@mantine/core";
 import { useResizeObserver, useViewportSize } from "@mantine/hooks";
 import React, { useEffect, useState } from "react";
-import { Trans, useTranslation, withTranslation } from "react-i18next";
-import { connect } from "react-redux";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
-import { compose } from "redux";
-import { Button, Confirm, Dropdown, Header, Icon, Image, Input, Label, Loader, Modal, Popup } from "semantic-ui-react";
+import { Dropdown, Icon, Image, Label } from "semantic-ui-react";
+import { Users } from "tabler-icons-react";
 
 import { deletePerson, fetchPeople, renamePerson } from "../../actions/peopleActions";
 import { Tile } from "../../components/Tile";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { HeaderComponent } from "./HeaderComponent";
 
 const SIDEBAR_WIDTH = 85;
 
@@ -99,7 +100,7 @@ export const AlbumPeople = () => {
               <Image height={entrySquareSize - 10} width={entrySquareSize - 10} src="/unknown_user.jpg" />
             )}
             <Label style={{ backgroundColor: "transparent" }} attached="top right">
-              <Dropdown item icon={<Icon color="black" name="ellipsis vertical" />}>
+              <Dropdown item icon={<Icon name="ellipsis vertical" />}>
                 <Dropdown.Menu>
                   <Dropdown.Item
                     icon="edit"
@@ -131,69 +132,67 @@ export const AlbumPeople = () => {
 
   return (
     <div ref={ref}>
-      <div style={{ height: 60, paddingTop: 10 }}>
-        <Header as="h2">
-          <Icon name="users" />
-          <Header.Content>
-            {t("people")} <Loader size="tiny" inline active={fetching} />
-            <Header.Subheader>
-              {t("personalbum.numberofpeople", {
-                peoplelength: people.length,
-              })}
-            </Header.Subheader>
-          </Header.Content>
-        </Header>
-      </div>
-      <Modal
-        size="mini"
-        onClose={() => setOpenRenameDialogState(false)}
-        onOpen={() => setOpenRenameDialogState(true)}
-        open={openRenameDialogState}
-      >
-        <div style={{ padding: 20 }}>
-          <Header as="h4">{t("personalbum.renameperson")}</Header>
-          <Popup
-            inverted
-            content={t("personalbum.personalreadyexists", {
-              name: newPersonName.trim(),
-            })}
-            position="bottom center"
-            open={people.map(el => el.text.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())}
-            trigger={
-              <Input
-                fluid
-                error={people.map(el => el.text.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())}
-                onChange={(e, v) => {
-                  setNewPersonName(v.value);
-                }}
-                placeholder={t("personalbum.nameplaceholder")}
-                action
-              >
-                <input />
-                <Button
-                  positive
-                  onClick={() => {
-                    dispatch(renamePerson(personID, personName, newPersonName));
-                    setOpenRenameDialogState(false);
-                  }}
-                  disabled={people.map(el => el.text.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())}
-                  type="submit"
-                >
-                  {t("rename")}
-                </Button>
-              </Input>
-            }
-          />
-        </div>
-      </Modal>
-      <Confirm
-        open={openDeleteDialogState}
-        onCancel={() => setOpenDeleteDialogState(false)}
-        onConfirm={() => {
-          dispatch(deletePerson(personID));
-          setOpenDeleteDialogState(false);
-        }}
+      <HeaderComponent
+        icon={<Users size={50} />}
+        title={t("people")}
+        fetching={fetching}
+        subtitle={t("personalbum.numberofpeople", {
+          peoplelength: people.length,
+        })}
       />
+      <Modal
+        title={t("personalbum.renameperson")}
+        onClose={() => setOpenRenameDialogState(false)}
+        opened={openRenameDialogState}
+      >
+        <Group>
+          <TextInput
+            error={
+              people.map(el => el.text.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())
+                ? t("personalbum.personalreadyexists", {
+                    name: newPersonName.trim(),
+                  })
+                : false
+            }
+            onChange={e => {
+              setNewPersonName(e.currentTarget.value);
+            }}
+            placeholder={t("personalbum.nameplaceholder")}
+          ></TextInput>
+          <Button
+            onClick={() => {
+              dispatch(renamePerson(personID, personName, newPersonName));
+              setOpenRenameDialogState(false);
+            }}
+            disabled={people.map(el => el.text.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())}
+            type="submit"
+          >
+            {t("rename")}
+          </Button>
+        </Group>
+      </Modal>
+      <Modal opened={openDeleteDialogState} title="Delete Person" onClose={() => setOpenDeleteDialogState(false)}>
+        <Text size="sm">Do you really want to delete this person?</Text>
+        <Group>
+          <Button
+            onClick={() => {
+              setOpenDeleteDialogState(false);
+            }}
+          >
+            {t("cancel")}
+          </Button>
+          <Button
+            color="red"
+            onClick={() => {
+              dispatch(deletePerson(personID));
+              setOpenDeleteDialogState(false);
+            }}
+          >
+            {t("delete")}
+          </Button>
+        </Group>
+      </Modal>
+
       <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
         {({ width }) => (
           <Grid

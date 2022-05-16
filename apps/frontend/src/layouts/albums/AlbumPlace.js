@@ -1,13 +1,14 @@
 import _ from "lodash";
 import React, { Component } from "react";
 import { withTranslation } from "react-i18next";
-import { Map, Marker, Popup, TileLayer } from "react-leaflet";
+import { Map, Marker, TileLayer } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-markercluster";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
 import { compose } from "redux";
-import { Flag, Header, Icon, Image, Loader, Segment } from "semantic-ui-react";
+import { Flag, Loader } from "semantic-ui-react";
+import { Map2 } from "tabler-icons-react";
 
 import { fetchPlaceAlbumsList } from "../../actions/albumsActions";
 import { fetchLocationClusters } from "../../actions/utilActions";
@@ -15,6 +16,7 @@ import { serverAddress } from "../../api_client/apiClient";
 import { SecuredImageJWT } from "../../components/SecuredImage";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { countryNames } from "../../util/countryNames";
+import { HeaderComponent } from "./HeaderComponent";
 
 const SIDEBAR_WIDTH = 85;
 
@@ -214,25 +216,14 @@ export class AlbumPlace extends Component {
 
       return (
         <div>
-          <div
-            style={{
-              height: this.state.headerHeight,
-              paddingTop: 10,
-              paddingRight: 5,
-            }}
-          >
-            <Header as="h2">
-              <Icon name="map outline" />
-              <Header.Content>
-                {this.props.t("places")} <Loader size="tiny" inline active={this.props.fetchingAlbumsPlaceList} />
-                <Header.Subheader>
-                  {this.props.t("placealbum.showingplaces", {
-                    number: this.state.visiblePlaceAlbums.length,
-                  })}
-                </Header.Subheader>
-              </Header.Content>
-            </Header>
-          </div>
+          <HeaderComponent
+            icon={<Map2 size={50} />}
+            title={this.props.t("places")}
+            fetching={this.props.fetchingAlbumsPlaceList}
+            subtitle={this.props.t("placealbum.showingplaces", {
+              number: this.state.visiblePlaceAlbums.length,
+            })}
+          />
           <div style={{ marginLeft: -5 }}>
             <Map
               ref={this.mapRef}

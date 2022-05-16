@@ -4,11 +4,12 @@ import { connect } from "react-redux";
 import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
 import { compose } from "redux";
-import { Header, Icon, Loader } from "semantic-ui-react";
+import { Tags } from "tabler-icons-react";
 
 import { fetchThingAlbumsList } from "../../actions/albumsActions";
 import { Tile } from "../../components/Tile";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { HeaderComponent } from "./HeaderComponent";
 
 const SIDEBAR_WIDTH = 85;
 
@@ -94,20 +95,14 @@ export class AlbumThing extends Component {
   render() {
     return (
       <div>
-        <div style={{ height: 60, paddingTop: 10 }}>
-          <Header as="h2">
-            <Icon name="tags" />
-            <Header.Content>
-              {this.props.t("things")} <Loader size="tiny" inline active={this.props.fetchingAlbumsThingList} />
-              <Header.Subheader>
-                {this.props.t("thingalbum.showingthings", {
-                  number: this.props.albumsThingList.length,
-                })}
-              </Header.Subheader>
-            </Header.Content>
-          </Header>
-        </div>
-
+        <HeaderComponent
+          icon={<Tags size={50} />}
+          title={this.props.t("things")}
+          fetching={this.props.fetchingAlbumsThingList}
+          subtitle={this.props.t("thingalbum.showingthings", {
+            number: this.props.albumsThingList.length,
+          })}
+        />
         <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
           {({ width }) => (
             <Grid

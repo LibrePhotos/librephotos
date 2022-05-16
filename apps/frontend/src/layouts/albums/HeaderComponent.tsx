@@ -1,0 +1,26 @@
+import { Group, Loader, Text, Title } from "@mantine/core";
+import React from "react";
+
+type Props = {
+  icon: any;
+  title: string;
+  fetching: boolean;
+  subtitle: string;
+};
+
+export const HeaderComponent = (props: Props) => {
+  const { icon, title, fetching, subtitle } = props;
+  return (
+    <Group position="left">
+      {icon}
+      <div>
+        <Title style={{ minWidth: 200 }} align="left" order={2}>
+          {title} {fetching ? <Loader size={20} /> : null}
+        </Title>
+        <Text align="left" color="dimmed">
+          {subtitle}
+        </Text>
+      </div>
+    </Group>
+  );
+};

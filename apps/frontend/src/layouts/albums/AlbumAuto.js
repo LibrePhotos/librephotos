@@ -1,18 +1,20 @@
 import { push } from "connected-react-router";
 import React, { Component } from "react";
-import { Trans, withTranslation } from "react-i18next";
+import { withTranslation } from "react-i18next";
 import LazyLoad from "react-lazyload";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
 import { compose } from "redux";
-import { Header, Icon, Image, Loader } from "semantic-ui-react";
+import { Image } from "semantic-ui-react";
+import { SettingsAutomation } from "tabler-icons-react";
 
 import { fetchAutoAlbumsList } from "../../actions/albumsActions";
 import { searchPhotos } from "../../actions/searchActions";
 import { serverAddress } from "../../api_client/apiClient";
 import { Tile } from "../../components/Tile";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { HeaderComponent } from "./HeaderComponent";
 
 const SIDEBAR_WIDTH = 85;
 
@@ -90,17 +92,14 @@ export class AlbumAuto extends Component {
   render() {
     return (
       <div>
-        <div style={{ height: 60, paddingTop: 10 }}>
-          <Header as="h2">
-            <Icon name="wizard" />
-            <Header.Content>
-              {this.props.t("events")} <Loader size="tiny" inline active={this.props.fetchingAlbumsAutoList} />
-              <Header.Subheader>
-                <Trans i18nKey="autoalbum.subtitle" values={{ autoalbumlength: this.props.albumsAutoList.length }} />
-              </Header.Subheader>
-            </Header.Content>
-          </Header>
-        </div>
+        <HeaderComponent
+          icon={<SettingsAutomation size={50} />}
+          title={this.props.t("events")}
+          fetching={this.props.fetchingAlbumsAutoList}
+          subtitle={this.props.t("autoalbum.subtitle", {
+            autoalbumlength: this.props.albumsAutoList.length,
+          })}
+        />
 
         <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
           {({ width }) => (

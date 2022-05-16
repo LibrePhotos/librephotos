@@ -4,11 +4,13 @@ import { connect } from "react-redux";
 import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
 import { compose } from "redux";
-import { Button, Confirm, Dropdown, Header, Icon, Input, Label, Loader, Modal, Popup } from "semantic-ui-react";
+import { Button, Confirm, Dropdown, Header, Icon, Input, Label, Modal, Popup } from "semantic-ui-react";
+import { Album } from "tabler-icons-react";
 
 import { deleteUserAlbum, fetchUserAlbumsList, renameUserAlbum } from "../../actions/albumsActions";
 import { Tile } from "../../components/Tile";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { HeaderComponent } from "./HeaderComponent";
 
 const SIDEBAR_WIDTH = 85;
 
@@ -153,19 +155,14 @@ export class AlbumUser extends Component {
   render() {
     return (
       <div>
-        <div style={{ height: 60, paddingTop: 10 }}>
-          <Header as="h2">
-            <Icon name="bookmark" />
-            <Header.Content>
-              {this.props.t("myalbums")} <Loader size="tiny" inline active={this.props.fetchingAlbumsUserList} />
-              <Header.Subheader>
-                {this.props.t("useralbum.numberof", {
-                  number: this.props.albumsUserList.length,
-                })}
-              </Header.Subheader>
-            </Header.Content>
-          </Header>
-        </div>
+        <HeaderComponent
+          icon={<Album size={50} />}
+          title={this.props.t("myalbums")}
+          fetching={this.props.fetchingAlbumsUserList}
+          subtitle={this.props.t("useralbum.numberof", {
+            number: this.props.albumsUserList.length,
+          })}
+        />
         <Modal
           size="mini"
           onClose={() => this.closeRenameDialog()}
