@@ -81,10 +81,14 @@ def jump_by_month(start_date, end_date, month_step=1):
 
 def get_location_timeline(user):
     qs_photos = (
-        Photo.objects.exclude(geolocation_json={})
-        .exclude(exif_timestamp=None)
-        .filter(owner=user)
-        .order_by("exif_timestamp")
+        Photo
+            .objects
+            .filter(**{
+                'geolocation_json__features__-1__text__isnull': False,
+                'exif_timestamp__isnull': False,
+                'owner': user
+            })
+            .order_by("exif_timestamp")
     )
     timestamp_loc = []
     paginator = Paginator(qs_photos, 5000)
