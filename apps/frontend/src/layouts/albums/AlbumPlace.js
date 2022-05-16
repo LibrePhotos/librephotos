@@ -210,7 +210,6 @@ export class AlbumPlace extends Component {
   };
 
   render() {
-    console.log(this.state);
     if (this.props.fetchedLocationClusters) {
       const markers = this.preprocess();
 

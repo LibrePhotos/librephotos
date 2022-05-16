@@ -27,6 +27,8 @@ import { AlbumThing } from "./layouts/albums/AlbumThing";
 import { AlbumThingGallery } from "./layouts/albums/AlbumThingGallery";
 import { AlbumUser } from "./layouts/albums/AlbumUser";
 import { AlbumUserGallery } from "./layouts/albums/AlbumUserGallery";
+import { AlbumViewer } from "./layouts/albums/AlbumViewer";
+import { Explorer } from "./layouts/albums/Explorer";
 import { FaceScatter, Graph, LocationTree, PhotoMap, Timeline, WordClouds } from "./layouts/dataviz/DataVisualization";
 import { FaceDashboard } from "./layouts/dataviz/FaceDashboard";
 import { Statistics } from "./layouts/dataviz/Statistics";
@@ -136,6 +138,9 @@ function App() {
                 <PrivateRoute path="/thing/:albumID" component={AlbumThingGallery} />
 
                 <PrivateRoute path="/event/:albumID" component={AlbumAutoGalleryView} />
+
+                <PrivateRoute path="/explorer" component={Explorer} />
+                <PrivateRoute path="/albumviewer" component={AlbumViewer} />
 
                 <PrivateRoute path="/useralbum/:albumID" component={AlbumUserGallery} />
 

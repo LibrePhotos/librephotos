@@ -99,7 +99,15 @@ export class AlbumUser extends Component {
               />
             </Link>
             <Label style={{ backgroundColor: "transparent" }} attached="top right">
-              <Dropdown item icon={<Icon color="black" name="ellipsis vertical" />}>
+              <Dropdown
+                style={{
+                  position: "absolute",
+                  top: 17,
+                  right: 10,
+                }}
+                item
+                icon={<Icon color="black" name="ellipsis vertical" />}
+              >
                 <Dropdown.Menu>
                   <Dropdown.Item
                     icon="edit"
