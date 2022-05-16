@@ -1,4 +1,4 @@
-import { Avatar, Button, Group, Popover, Stack, TextInput } from "@mantine/core";
+import { Avatar, Button, Group, Loader, Menu, Popover, Stack, TextInput } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { push } from "connected-react-router";
 import React, { useEffect, useState } from "react";
@@ -34,7 +34,6 @@ export const CustomSearch = () => {
   const [searchText, setSearchText] = useState("");
   const { width } = useViewportSize();
   const [exampleSearchTerm, setExampleSearchTerm] = useState("");
-  const [searchBarFocused, setSearchBarFocused] = useState(false);
   const [filteredExampleSearchTerms, setFilteredExampleSearchTerms] = useState<any[]>([]);
   const [filteredSuggestedPeople, setFilteredSuggestedPeople] = useState<any[]>([]);
   const [filteredSuggestedPlaces, setFilteredSuggestedPlaces] = useState<any[]>([]);
@@ -60,7 +59,7 @@ export const CustomSearch = () => {
   }, []);
 
   useEffect(() => {
-    if (searchBarFocused) {
+    if (searchText) {
       if (people.length == 0) {
         fetchPeople(dispatch);
       }
@@ -74,7 +73,7 @@ export const CustomSearch = () => {
         dispatch(fetchUserAlbumsList());
       }
     }
-  }, [searchBarFocused]);
+  }, [searchText]);
 
   const filterSearchSuggestions = () => {
     if (searchText.trim().length === 0) {
@@ -116,109 +115,94 @@ export const CustomSearch = () => {
   const searchBarWidth = width - width / 2.2;
 
   return (
-    <Stack>
-      <Popover
-        opened={searchBarFocused}
-        onClose={() => setSearchBarFocused(false)}
-        trapFocus={false}
-        width={searchBarWidth}
-        onFocusCapture={() => setSearchBarFocused(true)}
-        onBlurCapture={() => setSearchBarFocused(false)}
-        target={
-          <TextInput
+    <Menu
+      style={{
+        width: searchBarWidth,
+      }}
+      control={
+        <TextInput
+          icon={<Search size={14} />}
+          onKeyDown={event => {
+            switch (event.keyCode) {
+              case ENTER_KEY:
+                dispatch(searchPhotos(searchText));
+                dispatch(push("/search"));
+                break;
+              default:
+                break;
+            }
+          }}
+          onChange={handleChange}
+          placeholder={exampleSearchTerm}
+        />
+      }
+    >
+      {filteredExampleSearchTerms.length > 0 &&
+        filteredExampleSearchTerms.slice(0, 2).map(el => (
+          <Menu.Item
+            component={Link}
+            to="/search"
             icon={<Search size={14} />}
-            onKeyDown={event => {
-              switch (event.keyCode) {
-                case ENTER_KEY:
-                  dispatch(searchPhotos(searchText));
-                  dispatch(push("/search"));
-                  setSearchBarFocused(false);
-                  break;
-                default:
-                  break;
-              }
+            key={`suggestion_${el}`}
+            onClick={() => {
+              dispatch(searchPhotos(el));
+              dispatch(searchPeople(el));
+              dispatch(searchThingAlbums(el));
+              dispatch(searchPlaceAlbums(el));
             }}
-            onChange={handleChange}
-            placeholder={exampleSearchTerm}
-          />
-        }
-        position="bottom"
-      >
-        <Stack spacing="xs">
-          {filteredExampleSearchTerms.length > 0 &&
-            filteredExampleSearchTerms.slice(0, 2).map(el => (
-              <Button
-                variant="subtle"
-                leftIcon={<Search size={14} />}
-                key={`suggestion_${el}`}
-                onClick={() => {
-                  dispatch(searchPhotos(el));
-                  dispatch(searchPeople(el));
-                  dispatch(searchThingAlbums(el));
-                  dispatch(searchPlaceAlbums(el));
-                  dispatch(push("/search"));
-                }}
-              >
-                {el}
-              </Button>
-            ))}
-          {filteredSuggestedUserAlbums.length > 0 &&
-            filteredSuggestedUserAlbums.slice(0, 2).map(album => (
-              <Button
-                variant="subtle"
-                leftIcon={<Album size={14} />}
-                key={`suggestion_place_${album.title}`}
-                onClick={() => {
-                  dispatch(push(`/useralbum/${album.id}`));
-                  dispatch(fetchUserAlbum(album.id));
-                }}
-              >
-                {album.title}
-              </Button>
-            ))}
-          {filteredSuggestedPlaces.length > 0 &&
-            filteredSuggestedPlaces.slice(0, 2).map(place => (
-              <Button
-                variant="subtle"
-                leftIcon={<Map size={14} />}
-                key={`suggestion_place_${place.title}`}
-                onClick={() => {
-                  dispatch(push(`/place/${place.id}`));
-                  dispatch(fetchPlaceAlbum(place.id));
-                }}
-              >
-                {place.title}
-              </Button>
-            ))}
-          {filteredSuggestedThings.length > 0 &&
-            filteredSuggestedThings.slice(0, 2).map(thing => (
-              <Button
-                variant="subtle"
-                leftIcon={<Tag size={14} />}
-                key={`suggestion_thing_${thing.title}`}
-                onClick={() => {
-                  dispatch(push(`/search`));
-                  dispatch(searchPhotos(thing.title));
-                }}
-              >
-                {thing.title}
-              </Button>
-            ))}
-          {filteredSuggestedPeople.length > 0 && (
-            <Group>
-              {filteredSuggestedPeople.map(person => (
-                <PersonAvatar person={person} key={`suggestion_person_${person.text}`} />
-              ))}
-            </Group>
-          )}
-          {albumsThingList.length == 0 && searchText.length > 0 && (
-            <Button variant="subtle" leftIcon={<Search size={14} />} loading>
-              {t("search.loading")}
-            </Button>
-          )}
-        </Stack>
-      </Popover>
-    </Stack>
+          >
+            {el}
+          </Menu.Item>
+        ))}
+      {filteredSuggestedUserAlbums.length > 0 &&
+        filteredSuggestedUserAlbums.slice(0, 2).map(album => (
+          <Menu.Item
+            component={Link}
+            to={`/useralbum/${album.id}`}
+            icon={<Album size={14} />}
+            key={`suggestion_place_${album.title}`}
+          >
+            {album.title}
+          </Menu.Item>
+        ))}
+      {filteredSuggestedPlaces.length > 0 &&
+        filteredSuggestedPlaces.slice(0, 2).map(place => (
+          <Menu.Item
+            component={Link}
+            to={`/place/${place.id}`}
+            icon={<Map size={14} />}
+            key={`suggestion_place_${place.title}`}
+          >
+            {place.title}
+          </Menu.Item>
+        ))}
+      {filteredSuggestedThings.length > 0 &&
+        filteredSuggestedThings.slice(0, 2).map(thing => (
+          <Menu.Item
+            component={Link}
+            to={`/thing/${thing.id}`}
+            icon={<Tag size={14} />}
+            key={`suggestion_thing_${thing.title}`}
+          >
+            {thing.title}
+          </Menu.Item>
+        ))}
+      {filteredSuggestedPeople.length > 0 && (
+        <Group>
+          {filteredSuggestedPeople.map(person => (
+            <PersonAvatar person={person} key={`suggestion_person_${person.text}`} />
+          ))}
+        </Group>
+      )}
+      {albumsThingList.length == 0 && searchText.length > 0 && (
+        <Menu.Item icon={<Search size={14} />}>
+          <Group>
+            <Loader size={14} />
+            {t("search.loading")}
+          </Group>
+        </Menu.Item>
+      )}
+    </Menu>
   );
 };
 
