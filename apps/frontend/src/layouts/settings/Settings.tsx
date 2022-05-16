@@ -65,7 +65,7 @@ export const Settings = () => {
       <Title order={3}>
         <Trans i18nKey="settings.scanoptions">Scan Options</Trans>
       </Title>
-      <Group>
+      <Group position="center">
         <Select
           label={t("settings.sceneconfidence")}
           value={userSelfDetails.confidence}
@@ -98,7 +98,7 @@ export const Settings = () => {
       <Title order={3}>
         <Trans i18nKey="settings.metadata">Metadata options</Trans>
       </Title>
-      <Group>
+      <Group position="center">
         <Select
           label={t("settings.sync")}
           value={userSelfDetails.save_metadata_to_disk}

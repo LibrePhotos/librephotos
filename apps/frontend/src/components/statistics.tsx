@@ -1,4 +1,4 @@
-import { Button, Center, Group, Text, Title } from "@mantine/core";
+import { Button, Group, Title } from "@mantine/core";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Calendar, FaceId, Photo, SettingsAutomation, Users } from "tabler-icons-react";
@@ -10,7 +10,7 @@ export const CountStats = () => {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
 
-  const { countStats, fetchingCountStats, fetchedCountStats } = useAppSelector(store => store.util);
+  const { countStats } = useAppSelector(store => store.util);
   useEffect(() => {
     dispatch(fetchCountStats());
   }, []);

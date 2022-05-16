@@ -7,10 +7,11 @@ import {
   Popover,
   Progress,
   SimpleGrid,
-  Space,
   Table,
+  Text,
   Title,
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -29,6 +30,8 @@ export const AdminPage = () => {
   const auth = useAppSelector(state => state.auth);
   const { userList, fetchingUserList } = useAppSelector(state => state.util);
   const { t } = useTranslation();
+
+  const matches = useMediaQuery("(min-width: 700px)");
 
   useEffect(() => {
     if (auth.access.is_admin) {
@@ -59,9 +62,9 @@ export const AdminPage = () => {
           <tr>
             <th>{t("adminarea.username")}</th>
             <th>{t("adminarea.scandirectory")}</th>
-            <th>{t("adminarea.minimumconfidence")}</th>
-            <th>{t("adminarea.photocount")}</th>
-            <th>{t("adminarea.joined")}</th>
+            {matches && <th>{t("adminarea.minimumconfidence")}</th>}
+            {matches && <th>{t("adminarea.photocount")}</th>}
+            {matches && <th>{t("adminarea.joined")}</th>}
           </tr>
         </thead>
         <tbody>
@@ -83,9 +86,9 @@ export const AdminPage = () => {
                   {user.scan_directory ? user.scan_directory : t("adminarea.notset")}
                 </Button>
               </td>
-              <td>{user.confidence ? user.confidence : t("adminarea.notset")}</td>
-              <td>{user.photo_count}</td>
-              <td>{moment(user.date_joined).fromNow()}</td>
+              {matches && <td>{user.confidence ? user.confidence : t("adminarea.notset")}</td>}
+              {matches && <td>{user.photo_count}</td>}
+              {matches && <td>{moment(user.date_joined).fromNow()}</td>}
             </tr>
           ))}
         </tbody>
@@ -145,6 +148,7 @@ export const JobList = () => {
   const [activePage, setActivePage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  const matches = useMediaQuery("(min-width: 700px)");
   const auth = useAppSelector(state => state.auth);
   //fetch job every two seconds
   useEffect(() => {
@@ -167,10 +171,10 @@ export const JobList = () => {
             <th> {t("joblist.status")}</th>
             <th> {t("joblist.jobtype")}</th>
             <th> {t("joblist.progress")}</th>
-            <th> {t("joblist.queued")}</th>
-            <th> {t("joblist.started")}</th>
-            <th> {t("joblist.duration")}</th>
-            <th> {t("joblist.startedby")}</th>
+            {matches && <th> {t("joblist.queued")}</th>}
+            {matches && <th> {t("joblist.started")}</th>}
+            {matches && <th> {t("joblist.duration")}</th>}
+            {matches && <th> {t("joblist.startedby")}</th>}
             <th> {t("joblist.delete")}</th>
           </tr>
         </thead>
@@ -214,18 +218,20 @@ export const JobList = () => {
                     </div>
                   ) : null}
                 </td>
-                <td>{moment(job.queued_at).fromNow()}</td>
-                <td>{job.started_at ? moment(job.started_at).fromNow() : ""}</td>
+                {matches && <td>{moment(job.queued_at).fromNow()}</td>}
+                {matches && <td>{job.started_at ? moment(job.started_at).fromNow() : ""}</td>}
 
-                <td>
-                  {job.finished
-                    ? // @ts-ignore
-                      moment.duration(moment(job.finished_at) - moment(job.started_at)).humanize()
-                    : job.started_at
-                    ? t("joblist.running")
-                    : ""}
-                </td>
-                <td>{job.started_by.username}</td>
+                {matches && (
+                  <td>
+                    {job.finished
+                      ? // @ts-ignore
+                        moment.duration(moment(job.finished_at) - moment(job.started_at)).humanize()
+                      : job.started_at
+                      ? t("joblist.running")
+                      : ""}
+                  </td>
+                )}
+                {matches && <td>{job.started_by.username}</td>}
                 <td>
                   <DeleteButton job={job}></DeleteButton>
                 </td>
