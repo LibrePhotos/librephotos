@@ -113,7 +113,7 @@ def get_location_timeline(user):
     for idx, sted in enumerate(city_start_end_duration):
         data.append(
             {
-                "data": sted[3].timestamp(),
+                "data": sted[3],
                 "color": colors[idx],
                 "loc": sted[0],
                 "start": sted[1].timestamp(),
