@@ -84,17 +84,17 @@ def get_location_timeline(user):
     with connection.cursor() as cursor:
         raw_sql = """
             SELECT
-                DISTINCT jsonb_extract_path_text("feature", 'text') "location"
+                DISTINCT jsonb_extract_path("feature", 'text') "location"
                 , MIN("api_photo"."exif_timestamp") "start"
                 , MAX("api_photo"."exif_timestamp") "end"
                 , EXTRACT(EPOCH FROM MAX("api_photo"."exif_timestamp") - MIN("api_photo"."exif_timestamp")) "duration"
             FROM
                 "api_photo"
-                , jsonb_array_elements(jsonb_extract_path_text("api_photo"."geolocation_json", 'features')) "feature"
+                , jsonb_array_elements(jsonb_extract_path("api_photo"."geolocation_json", 'features')) "feature"
             WHERE
                 (
-                    "api_photo"."exif_timestamp" IS NOT NULL 
-                    AND jsonb_extract_path_text("feature", 'text') IS NOT NULL 
+                    "api_photo"."exif_timestamp" IS NOT NULL
+                    AND jsonb_extract_path("feature", 'text') IS NOT NULL
                     AND "api_photo"."owner_id" = %s
                 )
             GROUP BY
