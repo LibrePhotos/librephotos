@@ -20,6 +20,10 @@ export const ChunkedUploadButton = () => {
 
   const calculateMD5 = async (file: File) => {
     const temporaryFileReader = new FileReader();
+    var fileSize = file.size;
+    var chunkSize = 25 * 1024 * 1024; // 4MB
+    var offset = 0;
+    var md5 = CryptoJS.algo.MD5.create();
     return new Promise<string>((resolve, reject) => {
       temporaryFileReader.onerror = () => {
         temporaryFileReader.abort();
@@ -28,14 +32,24 @@ export const ChunkedUploadButton = () => {
 
       temporaryFileReader.onload = () => {
         if (temporaryFileReader.result) {
-          const hash = CryptoJS.MD5(
+          // @ts-ignore
+          offset += temporaryFileReader.result.length;
+          console.log(offset);
+          md5.update(
             // @ts-ignore
             CryptoJS.enc.Latin1.parse(temporaryFileReader.result)
           );
-          resolve(hash.toString(CryptoJS.enc.Hex));
+          if (offset >= fileSize) {
+            resolve(md5.finalize().toString(CryptoJS.enc.Hex));
+          }
+          readNext();
         }
       };
-      temporaryFileReader.readAsBinaryString(file);
+      function readNext() {
+        var fileSlice = file.slice(offset, offset + chunkSize);
+        temporaryFileReader.readAsBinaryString(fileSlice);
+      }
+      readNext();
     });
   };
 
