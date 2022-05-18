@@ -83,33 +83,24 @@ def get_location_timeline(user):
     city_start_end_duration = []
     with connection.cursor() as cursor:
         raw_sql = """
-            WITH time_in_location AS (
-                SELECT
-                    DISTINCT ON("feature" ->> 'text') "feature" ->> 'text' "location"
-                    , MIN("api_photo"."exif_timestamp") "start"
-                    , MAX("api_photo"."exif_timestamp") "end"
-                    , EXTRACT(EPOCH FROM MAX("api_photo"."exif_timestamp") - MIN("api_photo"."exif_timestamp")) "duration"
-                FROM
-                    "api_photo"
-                    , json_array_elements(CAST("api_photo"."geolocation_json" -> 'features' AS JSON)) "feature"
-                WHERE
-                    ("api_photo"."exif_timestamp" IS NOT NULL AND "feature" ->> 'text' IS NOT NULL AND "api_photo"."owner_id" = %s)
-                GROUP BY
-                    "location"
-            )
-
-            SELECT 
-                "time_in_location"."location"
-                , "time_in_location"."start"
-                , "time_in_location"."end"
-                , "time_in_location"."duration"
+            SELECT
+                DISTINCT jsonb_extract_path_text("feature", 'text') "location"
+                , MIN("api_photo"."exif_timestamp") "start"
+                , MAX("api_photo"."exif_timestamp") "end"
+                , EXTRACT(EPOCH FROM MAX("api_photo"."exif_timestamp") - MIN("api_photo"."exif_timestamp")) "duration"
             FROM
-                "time_in_location"
+                "api_photo"
+                , jsonb_array_elements(jsonb_extract_path_text("api_photo"."geolocation_json", 'features')) "feature"
             WHERE
-                ("time_in_location"."duration" > 0)
-            ORDER BY
-                "location" ASC;
-
+                (
+                    "api_photo"."exif_timestamp" IS NOT NULL 
+                    AND jsonb_extract_path_text("feature", 'text') IS NOT NULL 
+                    AND "api_photo"."owner_id" = %s
+                )
+            GROUP BY
+                "location"
+            HAVING
+                EXTRACT(EPOCH FROM MAX("api_photo"."exif_timestamp") - MIN("api_photo"."exif_timestamp")) > 0
         """
         cursor.execute(raw_sql, [user.id])
         city_start_end_duration = [
@@ -305,16 +296,18 @@ def get_location_clusters(user):
     with connection.cursor() as cursor:
         raw_sql = """
             SELECT
-                DISTINCT ON ("feature" ->> 'text') "feature" ->> 'text' "location"
-                , "feature" -> 'center' ->> 0
-                , "feature" -> 'center' ->> 1
+                DISTINCT ON (jsonb_extract_path("feature", 'text')) jsonb_extract_path("feature", 'text') "location"
+                , jsonb_extract_path("feature", 'center', '0')
+                , jsonb_extract_path("feature", 'center', '1')
             FROM
                 "api_photo"
-                , json_array_elements(CAST("api_photo"."geolocation_json" -> 'features' AS JSON)) "feature"
-            WHERE
-                ("api_photo"."owner_id" = %s AND NOT ("feature" ->> 'text' ~ '^(-)?[0-9]+$'))
-            ORDER BY 
-                "location" ASC;
+                , jsonb_array_elements(jsonb_extract_path("api_photo"."geolocation_json", 'features')) "feature"
+            WHERE (
+                "api_photo"."owner_id" = %s
+                AND NOT (jsonb_extract_path_text("feature", 'text') ~ '^(-)?[0-9]+$')
+            )
+            ORDER BY
+                "location";
         """
         cursor.execute(raw_sql, [user.id])
         res = [[row[1], row[2], row[0]] for row in cursor.fetchall()]
@@ -328,15 +321,18 @@ def get_photo_country_counts(user):
     with connection.cursor() as cursor:
         raw_sql = """
             SELECT
-                "feature" ->> 'place_name'
-                , COUNT("feature" ->> 'place_name')
+                DISTINCT ON(jsonb_extract_path("feature", 'place_name')) jsonb_extract_path("feature", 'place_name') "place_name"
+                , COUNT(jsonb_extract_path("feature", 'place_name'))
             FROM
                 "api_photo"
-                , json_array_elements(CAST("api_photo"."geolocation_json" -> 'features' AS JSON)) "feature"
+                , jsonb_array_elements(jsonb_extract_path("api_photo"."geolocation_json", 'features')) "feature"
             WHERE
-                ("api_photo"."owner_id" = %s AND ("feature" -> 'place_type' ->> 0) = 'country')
+                (
+                    "api_photo"."owner_id" = %s
+                    AND jsonb_extract_path_text("feature", 'place_type', '0') = 'country'
+                )
             GROUP BY
-                "feature" ->> 'place_name';
+                "place_name";
         """
         cursor.execute(raw_sql, [user.id])
         return Counter({row[0]: row[1] for row in cursor.fetchall()})
@@ -347,14 +343,17 @@ def get_location_sunburst(user):
     with connection.cursor() as cursor:
         raw_sql = """
             SELECT
-                "api_photo"."geolocation_json" -> 'features' -> -1 ->> 'text' "l1"
-                , "api_photo"."geolocation_json" -> 'features' -> -2 ->> 'text' "l2"
-                , "api_photo"."geolocation_json" -> 'features' -> -3 ->> 'text' "l3",
-                COUNT(*)
+                jsonb_extract_path("api_photo"."geolocation_json", 'features', '-1', 'text') "l1"
+                , jsonb_extract_path("api_photo"."geolocation_json", 'features', '-2', 'text') "l2"
+                , jsonb_extract_path("api_photo"."geolocation_json", 'features', '-3', 'text') "l3"
+                , COUNT(*)
             FROM
                 "api_photo"
             WHERE
-                ("api_photo"."owner_id" = %s AND jsonb_array_length("api_photo"."geolocation_json" -> 'features') >= 3)
+                (
+                    "api_photo"."owner_id" = %s
+                    AND jsonb_array_length(jsonb_extract_path("api_photo"."geolocation_json", 'features')) >= 3
+                )
             GROUP BY
                 "l1"
                 , "l2"
