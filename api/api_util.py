@@ -83,24 +83,66 @@ def get_location_timeline(user):
     city_start_end_duration = []
     with connection.cursor() as cursor:
         raw_sql = """
+            WITH data AS (
+                SELECT
+                    jsonb_extract_path_text("features", '-1', 'text') "location"
+                    , "api_photo"."exif_timestamp"
+                    , ROW_NUMBER() OVER(ORDER BY "api_photo"."exif_timestamp") "unique_order"
+                FROM
+                    "api_photo"
+                    , jsonb_extract_path("api_photo"."geolocation_json", 'features') "features"
+                WHERE
+                    (
+                        "api_photo"."exif_timestamp" IS NOT NULL
+                        AND jsonb_extract_path("features", '-1', 'text') IS NOT NULL
+                        AND "api_photo"."owner_id" = %s
+                    )
+                ORDER BY
+                     "api_photo"."exif_timestamp"
+            ),
+            partitioned AS (
+                SELECT
+                    "data"."exif_timestamp"
+                    , "data"."location"
+                    , "data"."unique_order"
+                    , "data"."unique_order" - ROW_NUMBER() OVER (PARTITION BY "data"."location" ORDER BY "data"."unique_order") "grp"
+                FROM
+                    "data"
+            ),
+            grouped AS (
+                SELECT
+                    "partitioned"."location"
+                    , MIN("partitioned"."exif_timestamp") "begin"
+                    , MAX("partitioned"."exif_timestamp") "end"
+                FROM
+                    "partitioned"
+                GROUP BY
+                    "partitioned"."location"
+                    , "partitioned"."grp"
+                ORDER BY
+                    MIN("partitioned"."exif_timestamp")
+            ),
+            coalesced AS (
+                SELECT
+                    "grouped"."location"
+                    , "grouped"."begin"
+                    , COALESCE(
+                        LEAD("grouped"."begin", 1) OVER (
+                            ORDER BY "grouped"."begin"
+                    ), "grouped"."end") "end"
+                FROM
+                    "grouped"
+                ORDER BY
+                    "grouped"."begin"
+            )
+
             SELECT
-                DISTINCT jsonb_extract_path("feature", '-1', 'text') "location"
-                , MIN("api_photo"."exif_timestamp") "start"
-                , MAX("api_photo"."exif_timestamp") "end"
-                , EXTRACT(EPOCH FROM MAX("api_photo"."exif_timestamp") - MIN("api_photo"."exif_timestamp")) "duration"
+                "coalesced"."location"
+                , "coalesced"."begin"
+                , "coalesced"."end"
+                , EXTRACT(EPOCH FROM "coalesced"."end" - "coalesced"."begin")
             FROM
-                "api_photo"
-                , jsonb_array_elements(jsonb_extract_path("api_photo"."geolocation_json", 'features')) "feature"
-            WHERE
-                (
-                    "api_photo"."exif_timestamp" IS NOT NULL
-                    AND jsonb_extract_path("feature", '-1', 'text') IS NOT NULL
-                    AND "api_photo"."owner_id" = %s
-                )
-            GROUP BY
-                "location"
-            HAVING
-                EXTRACT(EPOCH FROM MAX("api_photo"."exif_timestamp") - MIN("api_photo"."exif_timestamp")) > 0
+                "coalesced";
         """
         cursor.execute(raw_sql, [user.id])
         city_start_end_duration = [
@@ -113,7 +155,7 @@ def get_location_timeline(user):
     for idx, sted in enumerate(city_start_end_duration):
         data.append(
             {
-                "data": sted[3],
+                "data": [sted[3]],
                 "color": colors[idx],
                 "loc": sted[0],
                 "start": sted[1].timestamp(),
@@ -296,9 +338,9 @@ def get_location_clusters(user):
     with connection.cursor() as cursor:
         raw_sql = """
             SELECT
-                DISTINCT ON (jsonb_extract_path("feature", 'text')) jsonb_extract_path("feature", 'text') "location"
-                , jsonb_extract_path("feature", 'center', '0')
-                , jsonb_extract_path("feature", 'center', '1')
+                DISTINCT ON (jsonb_extract_path_text("feature", 'text')) jsonb_extract_path_text("feature", 'text') "location"
+                , jsonb_extract_path_text("feature", 'center', '0')
+                , jsonb_extract_path_text("feature", 'center', '1')
             FROM
                 "api_photo"
                 , jsonb_array_elements(jsonb_extract_path("api_photo"."geolocation_json", 'features')) "feature"
@@ -310,7 +352,7 @@ def get_location_clusters(user):
                 "location";
         """
         cursor.execute(raw_sql, [user.id])
-        res = [[row[1], row[2], row[0]] for row in cursor.fetchall()]
+        res = [[float(row[2]), float(row[1]), row[0]] for row in cursor.fetchall()]
 
         elapsed = (datetime.now() - start).total_seconds()
         logger.info("location clustering took %.2f seconds" % elapsed)
@@ -343,9 +385,9 @@ def get_location_sunburst(user):
     with connection.cursor() as cursor:
         raw_sql = """
             SELECT
-                jsonb_extract_path("api_photo"."geolocation_json", 'features', '-1', 'text') "l1"
-                , jsonb_extract_path("api_photo"."geolocation_json", 'features', '-2', 'text') "l2"
-                , jsonb_extract_path("api_photo"."geolocation_json", 'features', '-3', 'text') "l3"
+                jsonb_extract_path_text("api_photo"."geolocation_json", 'features', '-1', 'text') "l1"
+                , jsonb_extract_path_text("api_photo"."geolocation_json", 'features', '-2', 'text') "l2"
+                , jsonb_extract_path_text("api_photo"."geolocation_json", 'features', '-3', 'text') "l3"
                 , COUNT(*)
             FROM
                 "api_photo"
