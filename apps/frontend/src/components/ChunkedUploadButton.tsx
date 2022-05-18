@@ -14,14 +14,14 @@ export const ChunkedUploadButton = () => {
   const { userSelfDetails } = useAppSelector(state => state.user);
   const { siteSettings } = useAppSelector(state => state.util);
   const dispatch = useAppDispatch();
-  const chunkSize = 100000; // 100kb chunks
+  const chunkSize = 1000000; // < 1MB chunks, because of default of nginx
 
   let currentUploadedFileSize = 0;
 
   const calculateMD5 = async (file: File) => {
     const temporaryFileReader = new FileReader();
     var fileSize = file.size;
-    var chunkSize = 25 * 1024 * 1024; // 4MB
+    var chunkSize = 25 * 1024 * 1024; // 25MB
     var offset = 0;
     var md5 = CryptoJS.algo.MD5.create();
     return new Promise<string>((resolve, reject) => {
