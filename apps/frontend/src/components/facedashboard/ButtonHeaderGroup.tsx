@@ -1,8 +1,10 @@
+import { ActionIcon, Group, Switch, Tooltip } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Checkbox, Popup } from "semantic-ui-react";
+import { Barbell, Plus, Trash } from "tabler-icons-react";
 
 import { trainFaces } from "../../actions/facesActions";
+import { useAppDispatch } from "../../store/store";
 
 type Props = {
   selectMode: boolean;
@@ -12,64 +14,60 @@ type Props = {
   changeSelectMode: () => void;
   addFaces: () => void;
   deleteFaces: (faces: any) => void;
-  trainFaces: () => void;
 };
 
 export function ButtonHeaderGroup(props: Props) {
   const { t } = useTranslation();
-
+  const dispatch = useAppDispatch();
   return (
-    <div
-      style={{
-        marginLeft: -5,
-        paddingLeft: 5,
-        paddingRight: 5,
-        height: 40,
-        paddingTop: 4,
-        backgroundColor: props.selectMode ? "#AED6F1" : "#eeeeee",
-      }}
-    >
-      <Checkbox
+    <Group position="apart">
+      <Switch
         label={t("facesdashboard.selectedfaces", {
           number: props.selectedFaces.length,
         })}
-        style={{ padding: 5 }}
-        toggle
         checked={props.selectMode}
         onClick={props.changeSelectMode}
       />
 
-      <Button.Group compact floated="right">
-        <Popup
-          inverted
-          trigger={
-            <Button color="green" disabled={props.selectedFaces.length === 0} onClick={props.addFaces} icon="plus" />
-          }
-          content={t("facesdashboard.explanationadding")}
-        />
-        <Popup
-          inverted
-          trigger={
+      <Group>
+        <Tooltip label={t("facesdashboard.explanationadding")}>
+          <ActionIcon
+            variant="light"
+            color="green"
+            disabled={props.selectedFaces.length === 0}
+            onClick={props.addFaces}
+          >
+            <Plus></Plus>
+          </ActionIcon>
+        </Tooltip>
+        <Tooltip label={t("facesdashboard.explanationdeleting")}>
+          {
             // To-Do: Confirmation of delete faces
-            <Button color="red" disabled={props.selectedFaces.length === 0} onClick={props.deleteFaces} icon="trash" />
           }
-          content={t("facesdashboard.explanationdeleting")}
-        />
+          <ActionIcon
+            variant="light"
+            color="red"
+            disabled={props.selectedFaces.length === 0}
+            onClick={props.deleteFaces}
+          >
+            <Trash></Trash>
+          </ActionIcon>
+        </Tooltip>
 
-        <Popup
-          inverted
-          trigger={
-            <Button
-              disabled={!props.workerAvailability}
-              loading={props.workerRunningJob && props.workerRunningJob.job_type_str === "Train Faces"}
-              color="blue"
-              onClick={props.trainFaces}
-              icon="lightning"
-            />
-          }
-          content={t("facesdashboard.explanationtraining")}
-        />
-      </Button.Group>
-    </div>
+        <Tooltip label={t("facesdashboard.explanationtraining")}>
+          <ActionIcon
+            disabled={!props.workerAvailability}
+            loading={props.workerRunningJob && props.workerRunningJob.job_type_str === "Train Faces"}
+            color="blue"
+            variant="light"
+            onClick={() => {
+              dispatch(trainFaces());
+            }}
+          >
+            <Barbell></Barbell>
+          </ActionIcon>
+        </Tooltip>
+      </Group>
+    </Group>
   );
 }

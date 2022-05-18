@@ -1,20 +1,18 @@
+import { Avatar, Box, Center } from "@mantine/core";
 import _ from "lodash";
 import React from "react";
 
 import { serverAddress } from "../../api_client/apiClient";
-import { SecuredImageJWT } from "../SecuredImage";
 import { PhotoIcon } from "./PhotoIcon";
 import { ProbabilityIcon } from "./ProbabiltyIcon";
 
 type Props = {
-  key: number;
   cell: any;
   isScrollingFast: boolean;
   selectMode: boolean;
   entrySquareSize: number;
   isSelected: boolean;
-  style: any;
-  activeItem: string;
+  activeItem: number;
   handleClick: (e: any, cell: any) => void;
 };
 
@@ -24,55 +22,64 @@ export function FaceComponent(props: Props) {
   // TODO: janky shit going on in the next line!
   const faceImageSrc = `${serverAddress}/media/faces/${_.reverse(props.cell.image.split("/"))[0]}`;
   if (props.isScrollingFast) {
-    return (
-      <div key={props.key} style={{ ...props.style, padding: 5 }}>
-        <SecuredImageJWT
-          rounded
-          src="/thumbnail_placeholder.png"
-          height={props.entrySquareSize - 10}
-          width={props.entrySquareSize - 10}
-        />
-      </div>
-    );
+    return <Avatar radius="xl" src="/thumbnail_placeholder.png" size={props.entrySquareSize - 10} />;
   }
   if (props.selectMode) {
     const { isSelected } = props;
     return (
-      <div key={props.key} style={{ ...props.style, padding: 5 }}>
-        <div
-          style={{
-            padding: 10,
-            backgroundColor: isSelected ? "#AED6F1" : "#eeeeee",
+      <Box
+        sx={theme => ({
+          display: "block",
+          backgroundColor: isSelected ? "rgba(174, 214, 241, 0.4)" : "transparent",
+          alignContent: "center",
+          borderRadius: theme.radius.md,
+          padding: 10,
+          marginRight: 10,
+          cursor: "pointer",
+          "&:hover": {
+            backgroundColor: isSelected ? "rgba(174, 214, 241, 0.8)" : "rgba(174, 214, 241, 0.6)",
+          },
+        })}
+      >
+        <Avatar
+          radius="xl"
+          onClick={(e: any) => {
+            props.handleClick(e, props.cell);
           }}
-        >
-          <SecuredImageJWT
-            rounded
-            onClick={(e: any) => {
-              props.handleClick(e, props.cell);
-            }}
-            src={faceImageSrc}
-            height={props.entrySquareSize - 30}
-            width={props.entrySquareSize - 30}
-          />
-          {props.activeItem === "inferred" && labelProbabilityIcon}
-          {showPhotoIcon}
-        </div>
-      </div>
+          src={faceImageSrc}
+          size={props.entrySquareSize - 30}
+        />
+        {props.activeItem === 1 && labelProbabilityIcon}
+
+        {showPhotoIcon}
+      </Box>
     );
   }
   return (
-    <div key={props.key} style={{ ...props.style, padding: 5 }}>
-      <SecuredImageJWT
-        rounded
+    <Box
+      sx={theme => ({
+        display: "block",
+        backgroundColor: "transparent",
+        alignContent: "center",
+        borderRadius: theme.radius.md,
+        padding: 0,
+        marginRight: 10,
+        cursor: "pointer",
+        "&:hover": {
+          backgroundColor: "rgba(174, 214, 241, 0.6)",
+        },
+      })}
+    >
+      <Avatar
         onClick={(e: any) => {
           props.handleClick(e, props.cell);
         }}
+        radius="xl"
         src={faceImageSrc}
-        height={props.entrySquareSize - 10}
-        width={props.entrySquareSize - 10}
+        size={props.entrySquareSize - 10}
       />
-      {props.activeItem === "inferred" && labelProbabilityIcon}
+      {props.activeItem === 1 && labelProbabilityIcon}
       {showPhotoIcon}
-    </div>
+    </Box>
   );
 }

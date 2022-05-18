@@ -1,41 +1,42 @@
+import { Divider, Stack, Text, Title } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Divider, Header } from "semantic-ui-react";
 
 type Props = {
-  key: number;
   cell: any;
-  entrySquareSize: number;
   width: number;
   style: any;
+  key: any;
+  entrySquareSize: number;
 };
 
 export function HeaderComponent(props: Props) {
   const { t } = useTranslation();
-
+  const { cell, width } = props;
   return (
-    <div
+    <Stack
       key={props.key}
+      spacing="xs"
       style={{
         ...props.style,
+        width: width,
         paddingTop: props.entrySquareSize / 2.0 - 35,
-        width: props.width,
         height: props.entrySquareSize,
-        justifyContent: "center",
-        alignItems: "center",
       }}
     >
-      <Header size="huge">
-        <Header.Content>
-          {props.cell.person_name}
-          <Header.Subheader>
-            {t("facesdashboard.numberoffaces", {
-              number: props.cell.faces.length,
-            })}
-          </Header.Subheader>
-        </Header.Content>
-      </Header>
+      <div
+        style={{
+          paddingLeft: 5,
+        }}
+      >
+        <Title>{cell.person_name}</Title>
+        <Text color="dimmed">
+          {t("facesdashboard.numberoffaces", {
+            number: cell.faces.length,
+          })}
+        </Text>
+      </div>
       <Divider />
-    </div>
+    </Stack>
   );
 }

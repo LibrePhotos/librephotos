@@ -14,7 +14,7 @@ export function ProbabilityIcon(props: Props) {
   const labelProbabilityColor = calculateProbabiltyColor(props.probability);
 
   return (
-    <div style={{ right: 6, bottom: 6, position: "absolute" }}>
+    <div style={{ right: 12, bottom: 6, position: "absolute" }}>
       <Popup
         trigger={<Icon circular style={{ backgroundColor: "white" }} color={labelProbabilityColor} name="circle" />}
         on="focus"
