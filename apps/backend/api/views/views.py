@@ -318,13 +318,11 @@ class MediaAccessView(APIView):
         return HttpResponse(status=404)
 
 
-class MediaAccessFullsizeOriginalView(APIView):
-    permission_classes = (AllowAny,)
+class VideoTranscoder:
 
-    def _get_protected_media_url(self, path, fname):
-        return "/protected_media{}/{}".format(path, fname)
+    process = ""
 
-    def _transcode_video(self, path):
+    def __init__(self, path):
         ffmpeg_command = [
             "ffmpeg",
             "-i",
@@ -341,15 +339,26 @@ class MediaAccessFullsizeOriginalView(APIView):
             "mp4",
             "-",
         ]
-        response = subprocess.Popen(
+        self.process = subprocess.Popen(
             ffmpeg_command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        response_iterator = iter(response.stdout.readline, b"")
 
-        for resp in response_iterator:
-            yield resp
+    def __del__(self):
+        self.process.kill()
+
+
+def gen(transcoder):
+    for resp in iter(transcoder.process.stdout.readline, b""):
+        yield resp
+
+
+class MediaAccessFullsizeOriginalView(APIView):
+    permission_classes = (AllowAny,)
+
+    def _get_protected_media_url(self, path, fname):
+        return "/protected_media{}/{}".format(path, fname)
 
     def _generate_response(self, photo, path, fname, transcode_videos):
         if "thumbnail" in path:
@@ -381,7 +390,7 @@ class MediaAccessFullsizeOriginalView(APIView):
             filename = mime.from_file(photo.image_paths[0])
             if transcode_videos:
                 response = StreamingHttpResponse(
-                    self._transcode_video(photo.image_paths[0]),
+                    gen(VideoTranscoder(photo.image_paths[0])),
                     content_type="video/mp4",
                 )
                 return response
