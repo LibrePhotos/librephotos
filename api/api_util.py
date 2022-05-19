@@ -80,66 +80,88 @@ def jump_by_month(start_date, end_date, month_step=1):
 
 
 def get_location_timeline(user):
-    qs_photos = (
-        Photo.objects.exclude(geolocation_json={})
-        .exclude(exif_timestamp=None)
-        .filter(owner=user)
-        .order_by("exif_timestamp")
-    )
-    timestamp_loc = []
-    paginator = Paginator(qs_photos, 5000)
-    for page in range(1, paginator.num_pages + 1):
-        current_page = [
-            (p.exif_timestamp, p.geolocation_json["features"][-1]["text"])
-            for p in paginator.page(page).object_list
-        ]
-        timestamp_loc = timestamp_loc + current_page
-
-    groups = []
-    uniquekeys = []
-    for k, g in groupby(timestamp_loc, lambda x: x[1]):
-        groups.append(list(g))  # Store group iterator as a list
-        uniquekeys.append(k)
-
     city_start_end_duration = []
-    for idx, group in enumerate(groups):
-        city = group[0][1]
-        start = group[0][0]
-        if idx < len(groups) - 1:
-            end = groups[idx + 1][0][0]
-        else:
-            end = group[-1][0]
-        time_in_city = (end - start).total_seconds()
+    with connection.cursor() as cursor:
+        raw_sql = """
+            WITH data AS (
+                SELECT
+                    jsonb_extract_path_text("features", '-1', 'text') "location"
+                    , "api_photo"."exif_timestamp"
+                    , ROW_NUMBER() OVER(ORDER BY "api_photo"."exif_timestamp") "unique_order"
+                FROM
+                    "api_photo"
+                    , jsonb_extract_path("api_photo"."geolocation_json", 'features') "features"
+                WHERE
+                    (
+                        "api_photo"."exif_timestamp" IS NOT NULL
+                        AND jsonb_extract_path("features", '-1', 'text') IS NOT NULL
+                        AND "api_photo"."owner_id" = %s
+                    )
+                ORDER BY
+                     "api_photo"."exif_timestamp"
+            ),
+            partitioned AS (
+                SELECT
+                    "data"."exif_timestamp"
+                    , "data"."location"
+                    , "data"."unique_order"
+                    , "data"."unique_order" - ROW_NUMBER() OVER (PARTITION BY "data"."location" ORDER BY "data"."unique_order") "grp"
+                FROM
+                    "data"
+            ),
+            grouped AS (
+                SELECT
+                    "partitioned"."location"
+                    , MIN("partitioned"."exif_timestamp") "begin"
+                    , MAX("partitioned"."exif_timestamp") "end"
+                FROM
+                    "partitioned"
+                GROUP BY
+                    "partitioned"."location"
+                    , "partitioned"."grp"
+                ORDER BY
+                    MIN("partitioned"."exif_timestamp")
+            ),
+            coalesced AS (
+                SELECT
+                    "grouped"."location"
+                    , "grouped"."begin"
+                    , COALESCE(
+                        LEAD("grouped"."begin", 1) OVER (
+                            ORDER BY "grouped"."begin"
+                    ), "grouped"."end") "end"
+                FROM
+                    "grouped"
+                ORDER BY
+                    "grouped"."begin"
+            )
 
-        if time_in_city > 0:
-            city_start_end_duration.append([city, start, end, time_in_city])
+            SELECT
+                "coalesced"."location"
+                , "coalesced"."begin"
+                , "coalesced"."end"
+                , EXTRACT(EPOCH FROM "coalesced"."end" - "coalesced"."begin")
+            FROM
+                "coalesced";
+        """
+        cursor.execute(raw_sql, [user.id])
+        city_start_end_duration = [
+            (row[0], row[1], row[2], row[3]) for row in cursor.fetchall()
+        ]
 
-    locs = list(set([e[0] for e in city_start_end_duration]))
-    colors = sns.color_palette("Paired", len(locs)).as_hex()
+    colors = sns.color_palette("Paired", len(city_start_end_duration)).as_hex()
 
-    loc2color = dict(zip(locs, colors))
-
-    intervals_in_seconds = []
+    data = []
     for idx, sted in enumerate(city_start_end_duration):
-        intervals_in_seconds.append(
+        data.append(
             {
+                "data": [sted[3]],
+                "color": colors[idx],
                 "loc": sted[0],
                 "start": sted[1].timestamp(),
                 "end": sted[2].timestamp(),
-                "dur": sted[2].timestamp() - sted[1].timestamp(),
             }
         )
-
-    data = [
-        {
-            "data": [d["dur"]],
-            "color": loc2color[d["loc"]],
-            "loc": d["loc"],
-            "start": d["start"],
-            "end": d["end"],
-        }
-        for d in intervals_in_seconds
-    ]
     return data
 
 
@@ -313,91 +335,85 @@ def get_count_stats(user):
 
 def get_location_clusters(user):
     start = datetime.now()
-    photos = (
-        Photo.objects.filter(owner=user)
-        .exclude(geolocation_json={})
-        .only("geolocation_json")
-        .all()
-    )
+    with connection.cursor() as cursor:
+        raw_sql = """
+            SELECT
+                DISTINCT ON (jsonb_extract_path_text("feature", 'text')) jsonb_extract_path_text("feature", 'text') "location"
+                , jsonb_extract_path_text("feature", 'center', '0')
+                , jsonb_extract_path_text("feature", 'center', '1')
+            FROM
+                "api_photo"
+                , jsonb_array_elements(jsonb_extract_path("api_photo"."geolocation_json", 'features')) "feature"
+            WHERE (
+                "api_photo"."owner_id" = %s
+                AND NOT (jsonb_extract_path_text("feature", 'text') ~ '^(-)?[0-9]+$')
+            )
+            ORDER BY
+                "location";
+        """
+        cursor.execute(raw_sql, [user.id])
+        res = [[float(row[2]), float(row[1]), row[0]] for row in cursor.fetchall()]
 
-    coord_names = []
-    paginator = Paginator(photos, 5000)
-    for page in range(1, paginator.num_pages + 1):
-        for p in paginator.page(page).object_list:
-            for feature in p.geolocation_json["features"]:
-                if not feature["text"].isdigit():
-                    coord_names.append([feature["text"], feature["center"]])
-
-    groups = []
-    uniquekeys = []
-    coord_names.sort(key=lambda x: x[0])
-    for k, g in groupby(coord_names, lambda x: x[0]):
-        groups.append(list(g))  # Store group iterator as a list
-        uniquekeys.append(k)
-
-    res = [[g[0][1][1], g[0][1][0], g[0][0]] for g in groups]
-    elapsed = (datetime.now() - start).total_seconds()
-    logger.info("location clustering took %.2f seconds" % elapsed)
-    return res
+        elapsed = (datetime.now() - start).total_seconds()
+        logger.info("location clustering took %.2f seconds" % elapsed)
+        return res
 
 
 def get_photo_country_counts(user):
-    photos_with_gps = Photo.objects.exclude(geolocation_json=None).filter(owner=user)
-    geolocations = [p.geolocation_json for p in photos_with_gps]
-    countries = []
-    for gl in geolocations:
-        if "features" in gl.keys():
-            for feature in gl["features"]:
-                if feature["place_type"][0] == "country":
-                    countries.append(feature["place_name"])
-
-    counts = Counter(countries)
-    return counts
+    with connection.cursor() as cursor:
+        raw_sql = """
+            SELECT
+                DISTINCT ON(jsonb_extract_path("feature", 'place_name')) jsonb_extract_path("feature", 'place_name') "place_name"
+                , COUNT(jsonb_extract_path("feature", 'place_name'))
+            FROM
+                "api_photo"
+                , jsonb_array_elements(jsonb_extract_path("api_photo"."geolocation_json", 'features')) "feature"
+            WHERE
+                (
+                    "api_photo"."owner_id" = %s
+                    AND jsonb_extract_path_text("feature", 'place_type', '0') = 'country'
+                )
+            GROUP BY
+                "place_name";
+        """
+        cursor.execute(raw_sql, [user.id])
+        return Counter({row[0]: row[1] for row in cursor.fetchall()})
 
 
 def get_location_sunburst(user):
-    photos_with_gps = (
-        Photo.objects.exclude(geolocation_json={})
-        .exclude(geolocation_json=None)
-        .filter(owner=user)
-    )
-
-    if photos_with_gps.count() == 0:
-        return {"children": []}
-    geolocations = []
-    paginator = Paginator(photos_with_gps, 5000)
-    for page in range(1, paginator.num_pages + 1):
-        for p in paginator.page(page).object_list:
-            geolocations.append(p.geolocation_json)
-
-    four_levels = []
-    for gl in geolocations:
-        out_dict = {}
-        if "features" in gl.keys():
-            if len(gl["features"]) >= 1:
-                out_dict[1] = gl["features"][-1]["text"]
-            if len(gl["features"]) >= 2:
-                out_dict[2] = gl["features"][-2]["text"]
-            if len(gl["features"]) >= 3:
-                out_dict[3] = gl["features"][-3]["text"]
-            four_levels.append(out_dict)
-
-    df = pd.DataFrame(four_levels)
-    df = (
-        df.groupby(df.columns.tolist())
-        .size()
-        .reset_index()
-        .rename(columns={4: "count"})
-    )
+    levels = []
+    with connection.cursor() as cursor:
+        raw_sql = """
+            SELECT
+                jsonb_extract_path_text("api_photo"."geolocation_json", 'features', '-1', 'text') "l1"
+                , jsonb_extract_path_text("api_photo"."geolocation_json", 'features', '-2', 'text') "l2"
+                , jsonb_extract_path_text("api_photo"."geolocation_json", 'features', '-3', 'text') "l3"
+                , COUNT(*)
+            FROM
+                "api_photo"
+            WHERE
+                (
+                    "api_photo"."owner_id" = %s
+                    AND jsonb_array_length(jsonb_extract_path("api_photo"."geolocation_json", 'features')) >= 3
+                )
+            GROUP BY
+                "l1"
+                , "l2"
+                , "l3"
+            ORDER BY
+                "l1"
+                , "l2"
+                , "l3"
+        """
+        cursor.execute(raw_sql, [user.id])
+        levels = [[row[0], row[1], row[2], row[3]] for row in cursor.fetchall()]
 
     data_structure = {"name": "Places I've visited", "children": []}
     palette = sns.color_palette("hls", 10).as_hex()
 
-    for data in df.iterrows():
-
-        current = data_structure
-        depth_cursor = current["children"]
-        for i, item in enumerate(data[1][:-2]):
+    for data in levels:
+        depth_cursor = data_structure["children"]
+        for i, item in enumerate(data[0:-2]):
             idx = None
             j = None
             for j, c in enumerate(depth_cursor):
@@ -410,11 +426,11 @@ def get_location_sunburst(user):
                 idx = len(depth_cursor) - 1
 
             depth_cursor = depth_cursor[idx]["children"]
-            if i == len(data[1]) - 3:
+            if i == len(data) - 3:
                 depth_cursor.append(
                     {
-                        "name": "{}".format(list(data[1])[-2]),
-                        "value": list(data[1])[-1],
+                        "name": data[-2],
+                        "value": data[-1],
                         "hex": random.choice(palette),
                     }
                 )
