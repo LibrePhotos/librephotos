@@ -10,9 +10,9 @@ from nextcloud.directory_watcher import scan_photos
 
 class ListDir(APIView):
     def get(self, request, format=None):
-        if not request.query_params.get("path"):
+        if not request.query_params.get("fpath"):
             return Response(status=400)
-        path = request.query_params["path"]
+        path = request.query_params["fpath"]
 
         if request.user.nextcloud_server_address is None:
             return Response(status=400)
