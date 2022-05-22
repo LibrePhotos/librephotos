@@ -1,3 +1,4 @@
+import { Anchor, Image, Text } from "@mantine/core";
 import debounce from "lodash/debounce";
 import React, { Component } from "react";
 import { connect } from "react-redux";
@@ -6,7 +7,6 @@ import { AutoSizer, Grid } from "react-virtualized";
 import { Header, Icon, Loader } from "semantic-ui-react";
 
 import { serverAddress } from "../../api_client/apiClient";
-import { SecuredImageJWT } from "../../components/SecuredImage";
 import {
   calculateGridCellSize,
   calculateSharedAlbumGridCells,
@@ -146,24 +146,17 @@ export class AlbumsShared extends Component {
       // photo cell
       return (
         <div key={key} style={{ ...style, padding: 1 }}>
-          <SecuredImageJWT
-            label={{
-              as: "a",
-              corner: "left",
-              icon: "bookmark",
-              color: "red",
-            }}
-            as={Link}
-            to={`/useralbum/${cell.id}/`}
-            width={this.state.entrySquareSize - 2}
-            height={this.state.entrySquareSize - 2}
-            src={`${serverAddress}/media/square_thumbnails/${cell.cover_photos[0].image_hash}`}
-          />
-          <div style={{ height: 40, paddingLeft: 10, paddingTop: 5 }}>
-            <b>{cell.title}</b>
-            <br />
+          <Anchor href={`/useralbum/${cell.id}/`}>
+            <Image
+              width={this.state.entrySquareSize - 2}
+              height={this.state.entrySquareSize - 2}
+              src={`${serverAddress}/media/square_thumbnails/${cell.cover_photos[0].image_hash}`}
+            />
+          </Anchor>
+          <Text weight={700}>{cell.title}</Text>
+          <Text size="sm" color="dimmed">
             {cell.photo_count} photo(s)
-          </div>
+          </Text>
         </div>
       );
     }

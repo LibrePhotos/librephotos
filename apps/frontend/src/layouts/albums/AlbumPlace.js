@@ -1,3 +1,4 @@
+import { Image } from "@mantine/core";
 import _ from "lodash";
 import React, { Component } from "react";
 import { withTranslation } from "react-i18next";
@@ -13,7 +14,6 @@ import { Map2 } from "tabler-icons-react";
 import { fetchPlaceAlbumsList } from "../../actions/albumsActions";
 import { fetchLocationClusters } from "../../actions/utilActions";
 import { serverAddress } from "../../api_client/apiClient";
-import { SecuredImageJWT } from "../../components/SecuredImage";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { countryNames } from "../../util/countryNames";
 import { HeaderComponent } from "./HeaderComponent";
@@ -181,14 +181,13 @@ export class AlbumPlace extends Component {
         <div key={key} style={style}>
           <div onClick={() => {}} style={{ padding: 5 }}>
             {place[albumPlaceIndex].cover_photos.slice(0, 1).map(photo => (
-              <Link to={`/place/${place[albumPlaceIndex].id}/`}>
-                <SecuredImageJWT
-                  style={{ display: "inline-block", objectFit: "cover" }}
+              <Anchor href={`/place/${place[albumPlaceIndex].id}/`}>
+                <Image
                   width={this.state.entrySquareSize - 10}
                   height={this.state.entrySquareSize - 10}
                   src={`${serverAddress}/media/thumbnails_big/${photo.image_hash}`}
                 />
-              </Link>
+              </Anchor>
             ))}
           </div>
           <div style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>

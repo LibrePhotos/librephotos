@@ -1,3 +1,4 @@
+import { Image } from "@mantine/core";
 import React, { useEffect, useState } from "react";
 import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
@@ -6,7 +7,6 @@ import { Header, Label, Loader } from "semantic-ui-react";
 import { clusterFaces } from "../../actions/facesActions";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppDispatch, useAppSelector } from "../../store/store";
-import { SecuredImageJWT } from "../SecuredImage";
 
 const { XYPlot, HorizontalGridLines, Hint, MarkSeries, VerticalGridLines } = require("react-vis");
 
@@ -71,14 +71,7 @@ export function FaceClusterGraph(props: Props) {
             <Hint value={hintValue}>
               <Label color="black">
                 {hintValue.name}
-                <SecuredImageJWT
-                  style={{ borderRadius: "1em" }}
-                  floated="right"
-                  height={70}
-                  width={70}
-                  shape="rounded"
-                  src={serverAddress + hintValue.face_url}
-                />
+                <Image radius="xl" height={70} width={70} src={serverAddress + hintValue.face_url} />
               </Label>
             </Hint>
           )}

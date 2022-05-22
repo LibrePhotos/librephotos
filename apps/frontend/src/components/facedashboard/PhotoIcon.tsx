@@ -1,8 +1,8 @@
+import { Image } from "@mantine/core";
 import React from "react";
 import { Icon, Popup } from "semantic-ui-react";
 
 import { serverAddress } from "../../api_client/apiClient";
-import { SecuredImageJWT } from "../SecuredImage";
 
 type Props = {
   photo: string;
@@ -17,7 +17,7 @@ export function PhotoIcon(props: Props) {
         flowing
         hideOnScroll
         inverted
-        content={<SecuredImageJWT size="large" src={`${serverAddress}/media/thumbnails_big/${props.photo}`} />}
+        content={<Image src={`${serverAddress}/media/thumbnails_big/${props.photo}`} />}
       />
     </div>
   );
