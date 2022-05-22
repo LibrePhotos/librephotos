@@ -160,7 +160,10 @@ class PhotoSerializer(serializers.ModelSerializer):
             return None
 
     def get_people(self, obj):
-        return [f.person.name for f in obj.faces.all()]
+        return [
+            {"name": f.person.name, "face_url": f.image.url, "face_id": f.id}
+            for f in obj.faces.all()
+        ]
 
 
 class PersonSerializer(serializers.ModelSerializer):
@@ -254,17 +257,22 @@ class PersonSerializer(serializers.ModelSerializer):
 
 class FaceListSerializer(serializers.ModelSerializer):
     person_name = serializers.SerializerMethodField()
+    face_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Face
         fields = (
             "id",
             "image",
+            "face_url",
             "photo",
             "person",
             "person_label_probability",
             "person_name",
         )
+
+    def get_face_url(self, obj):
+        return obj.image.url
 
     def get_person_name(self, obj):
         return obj.person.name
