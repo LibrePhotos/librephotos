@@ -1,4 +1,4 @@
-import { Image } from "@mantine/core";
+import { Anchor, Image } from "@mantine/core";
 import _ from "lodash";
 import React, { Component } from "react";
 import { withTranslation } from "react-i18next";
