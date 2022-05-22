@@ -24,7 +24,6 @@ export const FaceDashboard = () => {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
   const [modalPersonEditOpen, setModalPersonEditOpen] = useState(false);
-  const [topRowPersonName, setTopRowPersonName] = useState("");
 
   const matches = useMediaQuery("(min-width: 700px)");
   const [inferredCellContents, setInferredCellContents] = useState<any[]>([]);
@@ -93,7 +92,7 @@ export const FaceDashboard = () => {
   const handleClick = (e, cell) => {
     if (!lastChecked) {
       setLastChecked(cell);
-      onFaceSelect(cell.id);
+      onFaceSelect({ face_id: cell.id, face_url: cell.face_url });
       return;
     }
     if (e.shiftKey) {
@@ -109,19 +108,19 @@ export const FaceDashboard = () => {
       const end = allFacesInCells.indexOf(lastChecked);
 
       const facesToSelect = allFacesInCells.slice(Math.min(start, end), Math.max(start, end) + 1);
-      facesToSelect.forEach(face => onFaceSelect(face.id));
+      facesToSelect.forEach(face => onFaceSelect({ face_id: face.id, face_url: face.face_url }));
       return;
     }
-    onFaceSelect(cell.id);
+    onFaceSelect({ face_id: cell.id, face_url: cell.face_url });
     setLastChecked(cell);
   };
 
-  const onFaceSelect = faceID => {
+  const onFaceSelect = face => {
     var tempSelectedFaces = selectedFaces;
-    if (tempSelectedFaces.includes(faceID)) {
-      tempSelectedFaces = tempSelectedFaces.filter(item => item !== faceID);
+    if (tempSelectedFaces.includes(face.face_id)) {
+      tempSelectedFaces = tempSelectedFaces.filter(item => item.face_id !== face.face_id);
     } else {
-      tempSelectedFaces.push(faceID);
+      tempSelectedFaces.push(face);
     }
     setSelectedFaces(tempSelectedFaces);
     setSelectMode(tempSelectedFaces.length > 0);
@@ -189,16 +188,6 @@ export const FaceDashboard = () => {
             <Grid
               style={{ outline: "none" }}
               disableHeader={false}
-              onSectionRendered={({ rowStartIndex }) => {
-                if (activeItem === 0 && labeledGroupedByPersonList[rowStartIndex]) {
-                  setTopRowPersonName(labeledGroupedByPersonList[rowStartIndex].person_name);
-                }
-                if (inferredGroupedByPersonList[rowStartIndex]) {
-                  setTopRowPersonName(inferredGroupedByPersonList[rowStartIndex].person_name);
-                } else {
-                  setTopRowPersonName("");
-                }
-              }}
               cellRenderer={cellRenderer}
               columnWidth={entrySquareSize}
               columnCount={numEntrySquaresPerRow}

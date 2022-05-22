@@ -41,6 +41,8 @@ export const PhotoHashSchema = z.object({
   video: z.boolean(),
 });
 
+export const PeopleSchema = z.object({ name: z.string(), face_url: z.string(), face_id: z.number() });
+
 export const PhotoSchema = z.object({
   exif_gps_lat: z.number().nullable(),
   exif_gps_lon: z.number().nullable(),
@@ -52,7 +54,7 @@ export const PhotoSchema = z.object({
   small_square_thumbnail_url: z.string().nullable(),
   geolocation_json: z.any().nullable(),
   exif_json: z.any().nullable(),
-  people: z.string().array(),
+  people: PeopleSchema.array(),
   image_hash: z.string(),
   image_path: z.string(),
   rating: z.number(),

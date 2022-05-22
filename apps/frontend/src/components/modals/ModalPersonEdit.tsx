@@ -31,24 +31,18 @@ export const ModalPersonEdit = (props: Props) => {
 
   const matches = useMediaQuery("(min-width: 700px)");
   const { people } = useAppSelector(store => store.people);
-  const { inferredFacesList, labeledFacesList } = useAppSelector(store => store.faces);
+
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const { isOpen, onRequestClose, selectedFaces } = props;
   let filteredPeopleList = people;
+
   if (newPersonName.length > 0) {
     filteredPeopleList = people.filter(el => fuzzy_match(el.text.toLowerCase(), newPersonName.toLowerCase()));
   }
 
-  const allFaces = _.concat(inferredFacesList, labeledFacesList);
-
-  const selectedImageIDs = selectedFaces.map(faceID => {
-    const res = allFaces.filter(face => face.id === faceID)[0].image;
-    const splitBySlash = res.split("/");
-    console.log(splitBySlash[splitBySlash.length - 1]);
-    const faceImageID = splitBySlash[splitBySlash.length - 1];
-    return faceImageID;
-  });
+  const selectedImageIDs = selectedFaces.map(face => face.face_url);
+  const selectedFaceIDs = selectedFaces.map(face => face.face_id);
 
   useEffect(() => {
     if (isOpen) {
@@ -58,6 +52,7 @@ export const ModalPersonEdit = (props: Props) => {
 
   return (
     <Modal
+      zIndex={1500}
       opened={isOpen}
       title={<Title>{t("personedit.labelfaces")}</Title>}
       onClose={() => {
@@ -74,12 +69,7 @@ export const ModalPersonEdit = (props: Props) => {
         <ScrollArea style={{ height: 50 }}>
           <Group>
             {selectedImageIDs.map(image => (
-              <Avatar
-                key={`selected_image${image}`}
-                size={40}
-                src={`${serverAddress}/media/faces/${image}`}
-                radius="xl"
-              />
+              <Avatar key={`selected_image${image}`} size={40} src={`${serverAddress}${image}`} radius="xl" />
             ))}
           </Group>
         </ScrollArea>
@@ -102,7 +92,7 @@ export const ModalPersonEdit = (props: Props) => {
           />
           <Button
             onClick={() => {
-              dispatch(setFacesPersonLabel(selectedFaces, newPersonName));
+              dispatch(setFacesPersonLabel(selectedFaceIDs, newPersonName));
               onRequestClose();
               setNewPersonName("");
             }}
@@ -122,7 +112,7 @@ export const ModalPersonEdit = (props: Props) => {
                   <Title
                     order={4}
                     onClick={() => {
-                      dispatch(setFacesPersonLabel(selectedFaces, item.text));
+                      dispatch(setFacesPersonLabel(selectedFaceIDs, item.text));
                       onRequestClose();
                     }}
                   >

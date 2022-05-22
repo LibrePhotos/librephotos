@@ -1,7 +1,8 @@
+import { Avatar } from "@mantine/core";
 import _ from "lodash";
 import * as moment from "moment";
 import React, { Component } from "react";
-import { Trans, withTranslation } from "react-i18next";
+import { withTranslation } from "react-i18next";
 import { Map, Marker, TileLayer } from "react-leaflet";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
@@ -11,7 +12,6 @@ import { Breadcrumb, Button, Divider, Header, Icon, Label, Loader } from "semant
 import { fetchAlbumsAutoGalleries } from "../../actions/albumsActions";
 import { fetchPhotoDetail } from "../../actions/photosActions";
 import { serverAddress } from "../../api_client/apiClient";
-import { SecuredImageJWT } from "../../components/SecuredImage";
 import { Tile } from "../../components/Tile";
 import { LightBox } from "../../components/lightbox/LightBox";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
@@ -228,7 +228,7 @@ export class AlbumAutoGalleryView extends Component {
                       to={`/person/${person.id}`}
                       color={colors[idx % album.people.length]}
                     >
-                      <SecuredImageJWT avatar spaced="right" src={serverAddress + person.face_url} />
+                      <Avatar radisu="xl" src={serverAddress + person.face_url} />
                       <b>{person.name}</b>
                     </Label>
                   ))}
