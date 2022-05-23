@@ -6,16 +6,11 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Album, Map, Search, Tag } from "tabler-icons-react";
 
-import {
-  fetchPlaceAlbum,
-  fetchPlaceAlbumsList,
-  fetchThingAlbumsList,
-  fetchUserAlbum,
-  fetchUserAlbumsList,
-} from "../actions/albumsActions";
+import { fetchPlaceAlbumsList, fetchThingAlbumsList, fetchUserAlbumsList } from "../actions/albumsActions";
 import { fetchPeople } from "../actions/peopleActions";
 import { searchPeople, searchPhotos, searchPlaceAlbums, searchThingAlbums } from "../actions/searchActions";
 import { fetchExampleSearchTerms } from "../actions/utilActions";
+import { SearchTermExamples } from "../actions/utilActions.types";
 import { serverAddress } from "../api_client/apiClient";
 import { useAppDispatch, useAppSelector } from "../store/store";
 
@@ -47,16 +42,18 @@ export const CustomSearch = () => {
 
   useEffect(() => {
     dispatch(fetchExampleSearchTerms());
+  }, []);
+
+  useEffect(() => {
     const interval = setInterval(() => {
-      const searchTerm = exampleSearchTerms
-        ? `${t("search.search")} ${exampleSearchTerms[Math.floor(Math.random() * exampleSearchTerms.length)]}`
-        : t("search.default");
-      setExampleSearchTerm(searchTerm);
+      const example = exampleSearchTerms[Math.floor(Math.random() * exampleSearchTerms.length)];
+      const searchTerm = example ? `${t("search.search")} ${example}` : t("search.default");
+      setExampleSearchTerm(searchTerm ? searchTerm : "");
     }, 5000);
     return () => {
       clearInterval(interval);
     };
-  }, []);
+  }, [exampleSearchTerms]);
 
   useEffect(() => {
     if (searchText) {
