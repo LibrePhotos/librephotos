@@ -124,7 +124,8 @@
         "sync": "Synkronisera metadata till disk",
         "polish": "Polska",
         "dutch": "Tyska",
-        "configdatetime": " Ange regler för tolkning av datumtid"
+        "configdatetime": " Ange regler för tolkning av datumtid",
+        "profile": "Profil"
     },
     "modalnextcloud": {
         "setdirectory": "Ange lagringsplats i Nextcloud",
@@ -141,7 +142,9 @@
         "running": "Kör",
         "loggedin": "Inloggad som",
         "logout": "Logga ut",
-        "settings": "Inställningar"
+        "settings": "Inställningar",
+        "profile": "Profil",
+        "library": "Bibliotek"
     },
     "sidemenu": {
         "name": "LibrePhotos",
