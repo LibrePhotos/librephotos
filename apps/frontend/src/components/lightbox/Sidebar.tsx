@@ -1,25 +1,11 @@
-import {
-  ActionIcon,
-  Anchor,
-  Avatar,
-  Badge,
-  Box,
-  Button,
-  Center,
-  Group,
-  Stack,
-  Text,
-  Title,
-  UnstyledButton,
-} from "@mantine/core";
+import { ActionIcon, Anchor, Avatar, Badge, Box, Button, Group, Stack, Text, Textarea, Title } from "@mantine/core";
 import { push } from "connected-react-router";
 import * as moment from "moment";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-virtualized/styles.css";
 // only needs to be imported once
-import { Form, Icon, Image, Item, Label } from "semantic-ui-react";
-import { Edit, File, Note, X } from "tabler-icons-react";
+import { Edit, File, Map2, Note, Photo, Tags, Users, X } from "tabler-icons-react";
 
 import { generatePhotoIm2txtCaption } from "../../actions/photosActions";
 import { searchPhotos } from "../../actions/searchActions";
@@ -94,14 +80,12 @@ export const Sidebar = (props: Props) => {
           {/* Start Item Location */}
 
           {photoDetail.search_location && (
-            <Item>
-              <Item.Content verticalAlign="middle">
-                <Title order={4}>
-                  <Icon name="point" /> {t("lightbox.sidebar.location")}
-                </Title>
-                <Text>{photoDetail.search_location}</Text>
-              </Item.Content>
-            </Item>
+            <Stack>
+              <Title order={4}>
+                <Map2 /> {t("lightbox.sidebar.location")}
+              </Title>
+              <Text>{photoDetail.search_location}</Text>
+            </Stack>
           )}
 
           <div
@@ -120,7 +104,7 @@ export const Sidebar = (props: Props) => {
           {photoDetail.people.length > 0 && (
             <Stack>
               <Group>
-                <Icon name="users" />
+                <Users />
                 <Title order={4}>{t("lightbox.sidebar.people")}</Title>
               </Group>
               {photoDetail.people.map((nc, idx) => (
@@ -154,101 +138,93 @@ export const Sidebar = (props: Props) => {
           {/* End Item People */}
           {/* Start Item Caption */}
 
-          <Item>
-            <Item.Content verticalAlign="middle">
+          <Stack>
+            <Group>
+              <Note></Note>
+              <Title order={4}>{t("lightbox.sidebar.caption")}</Title>
+            </Group>
+            {false && photoDetail.captions_json.im2txt}
+            <Stack>
+              <Textarea
+                value={photoDetail.captions_json.im2txt}
+                disabled={isPublic}
+                placeholder={photoDetail.captions_json.im2txt}
+              />
               <Group>
-                <Note></Note>
-                <Title order={4}>{t("lightbox.sidebar.caption")}</Title>
+                <Button disabled={isPublic} size="sm" color="green">
+                  {t("lightbox.sidebar.submit")}
+                </Button>
+                <Button
+                  loading={generatingCaptionIm2txt}
+                  onClick={() => {
+                    dispatch(generatePhotoIm2txtCaption(photoDetail.image_hash));
+                  }}
+                  disabled={isPublic || (generatingCaptionIm2txt != null && generatingCaptionIm2txt)}
+                  size="sm"
+                  color="blue"
+                >
+                  {t("lightbox.sidebar.generate")}
+                </Button>
               </Group>
-              <Text>
-                {false && photoDetail.captions_json.im2txt}
-                <Form>
-                  <Form.TextArea disabled={isPublic} fluid placeholder={photoDetail.captions_json.im2txt}>
-                    {photoDetail.captions_json.im2txt}
-                  </Form.TextArea>
-                  <Group>
-                    <Button disabled={isPublic} size="sm" color="green">
-                      {t("lightbox.sidebar.submit")}
-                    </Button>
-                    <Button
-                      loading={generatingCaptionIm2txt}
-                      onClick={() => {
-                        dispatch(generatePhotoIm2txtCaption(photoDetail.image_hash));
-                      }}
-                      disabled={isPublic || (generatingCaptionIm2txt != null && generatingCaptionIm2txt)}
-                      size="sm"
-                      color="blue"
-                    >
-                      {t("lightbox.sidebar.generate")}
-                    </Button>
-                    <Button disabled={isPublic} size="sm">
-                      {t("lightbox.sidebar.cancel")}
-                    </Button>
-                  </Group>
-                </Form>
-              </Text>
-            </Item.Content>
-          </Item>
+            </Stack>
+          </Stack>
 
           {/* End Item Caption */}
           {/* Start Item Scene */}
           {photoDetail.captions_json.places365 && (
             <Stack>
-              <Title order={4}>
-                <Icon name="tags" /> {t("lightbox.sidebar.scene")}
-              </Title>
-              <Text>
-                <p>
-                  <b>{t("lightbox.sidebar.attributes")}</b>
-                </p>
-                <Group>
-                  {photoDetail.captions_json.places365.attributes.map((nc, idx) => (
-                    <Badge
-                      key={`lightbox_attribute_label_${photoDetail.image_hash}_${nc}`}
-                      color="blue"
-                      onClick={() => {
-                        dispatch(searchPhotos(nc));
-                        dispatch(push("/search"));
-                      }}
-                    >
-                      {nc}
-                    </Badge>
-                  ))}
-                </Group>
+              <Group>
+                <Tags />
+                <Title order={4}>{t("lightbox.sidebar.scene")}</Title>
+              </Group>
+              <Text weight={700}>{t("lightbox.sidebar.attributes")}</Text>
+              <Group>
+                {photoDetail.captions_json.places365.attributes.map((nc, idx) => (
+                  <Badge
+                    key={`lightbox_attribute_label_${photoDetail.image_hash}_${nc}`}
+                    color="blue"
+                    onClick={() => {
+                      dispatch(searchPhotos(nc));
+                      dispatch(push("/search"));
+                    }}
+                  >
+                    {nc}
+                  </Badge>
+                ))}
+              </Group>
 
-                <p>
-                  <b>{t("lightbox.sidebar.categories")}</b>
-                </p>
-                <Group>
-                  {photoDetail.captions_json.places365.categories.map((nc, idx) => (
-                    <Badge
-                      key={`lightbox_category_label_${photoDetail.image_hash}_${nc}`}
-                      color="teal"
-                      onClick={() => {
-                        dispatch(searchPhotos(nc));
-                        dispatch(push("/search"));
-                      }}
-                    >
-                      {nc}
-                    </Badge>
-                  ))}
-                </Group>
-              </Text>
+              <Text weight={700}>{t("lightbox.sidebar.categories")}</Text>
+              <Group>
+                {photoDetail.captions_json.places365.categories.map((nc, idx) => (
+                  <Badge
+                    key={`lightbox_category_label_${photoDetail.image_hash}_${nc}`}
+                    color="teal"
+                    onClick={() => {
+                      dispatch(searchPhotos(nc));
+                      dispatch(push("/search"));
+                    }}
+                  >
+                    {nc}
+                  </Badge>
+                ))}
+              </Group>
             </Stack>
           )}
           {/* End Item Scene */}
           {/* Start Item Similar Photos */}
           {photoDetail.similar_photos.length > 0 && (
             <div>
-              <Icon name="images" />
-              <Title order={4}>{t("lightbox.sidebar.similarphotos")}</Title>
+              <Group>
+                <Photo />
+                <Title order={4}>{t("lightbox.sidebar.similarphotos")}</Title>
+              </Group>
               <Text>
-                <Image.Group>
+                <Group>
                   {photoDetail.similar_photos.slice(0, 30).map(el => (
                     <Tile video={el.type.includes("video")} height={95} width={95} image_hash={el.image_hash} />
                   ))}
                   ;
-                </Image.Group>
+                </Group>
               </Text>
             </div>
           )}

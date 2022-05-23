@@ -5,7 +5,6 @@ import { withTranslation } from "react-i18next";
 import { Map, Marker, TileLayer } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-markercluster";
 import { connect } from "react-redux";
-import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
 import { compose } from "redux";
 import { Flag, Loader } from "semantic-ui-react";
