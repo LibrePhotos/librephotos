@@ -219,11 +219,10 @@ export const Sidebar = (props: Props) => {
                 <Title order={4}>{t("lightbox.sidebar.similarphotos")}</Title>
               </Group>
               <Text>
-                <Group>
+                <Group spacing="xs">
                   {photoDetail.similar_photos.slice(0, 30).map(el => (
-                    <Tile video={el.type.includes("video")} height={95} width={95} image_hash={el.image_hash} />
+                    <Tile video={el.type.includes("video")} height={85} width={85} image_hash={el.image_hash} />
                   ))}
-                  ;
                 </Group>
               </Text>
             </div>
