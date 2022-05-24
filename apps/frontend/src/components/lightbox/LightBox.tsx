@@ -1,3 +1,4 @@
+import { useForceUpdate } from "@mantine/hooks";
 import React, { useState } from "react";
 import Lightbox from "react-image-lightbox";
 import "react-image-lightbox/style.css";
@@ -26,6 +27,7 @@ type Props = {
 };
 
 export const LightBox = (props: Props) => {
+  const forceUpdate = useForceUpdate();
   const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
   const { photoDetails } = useAppSelector(store => store.photos);
 
@@ -42,6 +44,7 @@ export const LightBox = (props: Props) => {
 
   const closeSidepanel = () => {
     setLightBoxSidebarShow(!lightboxSidebarShow);
+    forceUpdate();
   };
 
   const getCurrentPhotodetail = () => {
@@ -80,7 +83,6 @@ export const LightBox = (props: Props) => {
   return (
     <div>
       <Lightbox
-        animationDisabled
         // @ts-ignore
         mainSrc={!isVideo() ? getPictureUrl(lightboxImageId) : null}
         nextSrc={getPictureUrl(getNextId())}
@@ -110,9 +112,16 @@ export const LightBox = (props: Props) => {
         onAfterOpen={() => {
           console.log("lightbox trying to fetch photo detail");
           onImageLoad();
+          forceUpdate();
         }}
-        onMovePrevRequest={onMovePrevRequest}
-        onMoveNextRequest={onMoveNextRequest}
+        onMovePrevRequest={() => {
+          onMovePrevRequest();
+          forceUpdate();
+        }}
+        onMoveNextRequest={() => {
+          onMoveNextRequest();
+          forceUpdate();
+        }}
         reactModalStyle={{
           content: {},
           overlay: {
