@@ -18,14 +18,15 @@ import { useAppDispatch, useAppSelector } from "../../store/store";
 
 export const Settings = () => {
   const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
+  const userSelfDetailsRedux = useAppSelector(state => state.user.userSelfDetails);
   const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
-  const [userSelfDetails, setUserSelfDetails] = useState({} as any);
+  const [userSelfDetails, setUserSelfDetails] = useState(userSelfDetailsRedux);
   const [modalNextcloudScanDirectoryOpen, setModalNextcloudScanDirectoryOpen] = useState(false);
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
-  const userSelfDetailsRedux = useAppSelector(state => state.user.userSelfDetails);
   const workerAvailability = useAppSelector(state => state.util.workerAvailability);
   const { t } = useTranslation();
+  console.log(userSelfDetails);
   // open update dialog, when user was edited
   useEffect(() => {
     if (JSON.stringify(userSelfDetailsRedux) !== JSON.stringify(userSelfDetails)) {
@@ -38,7 +39,7 @@ export const Settings = () => {
   useEffect(() => {
     dispatch(fetchCountStats());
     fetchSiteSettings(dispatch);
-    dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id));
+    dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id)).refetch();
     dispatch(fetchNextcloudDirectoryTree("/"));
     if (auth.access.is_admin) {
       dispatch(fetchJobList());
@@ -68,9 +69,9 @@ export const Settings = () => {
       <Group position="center">
         <Select
           label={t("settings.sceneconfidence")}
-          value={userSelfDetails.confidence}
+          value={userSelfDetails.confidence.toString()}
           onChange={value => {
-            setUserSelfDetails({ ...userSelfDetails, confidence: value });
+            setUserSelfDetails({ ...userSelfDetails, confidence: value ? parseFloat(value) : 0 });
           }}
           placeholder={t("settings.confidencelevel")}
           data={[
@@ -83,9 +84,9 @@ export const Settings = () => {
         <Select
           label={t("settings.semanticsearchheader")}
           placeholder={t("settings.semanticsearch.placeholder")}
-          value={userSelfDetails.semantic_search_topk}
+          value={userSelfDetails.semantic_search_topk.toString()}
           onChange={value => {
-            setUserSelfDetails({ ...userSelfDetails, semantic_search_topk: value });
+            setUserSelfDetails({ ...userSelfDetails, semantic_search_topk: value ? parseInt(value) : 0 });
           }}
           data={[
             { value: "100", label: t("settings.semanticsearch.top100") },
@@ -103,7 +104,7 @@ export const Settings = () => {
           label={t("settings.sync")}
           value={userSelfDetails.save_metadata_to_disk}
           onChange={value => {
-            setUserSelfDetails({ ...userSelfDetails, save_metadata_to_disk: value });
+            setUserSelfDetails({ ...userSelfDetails, save_metadata_to_disk: value ? value : "OFF" });
           }}
           data={[
             { value: "OFF", label: t("settings.favoritesyncoptions.off") },
@@ -113,10 +114,10 @@ export const Settings = () => {
         ></Select>
         <Select
           label={t("settings.favoriteminimum")}
-          value={userSelfDetails.save_metadata_to_disk}
+          value={userSelfDetails.favorite_min_rating.toString()}
           placeholder={t("settings.favoriteoption.placeholder")}
           onChange={value => {
-            setUserSelfDetails({ ...userSelfDetails, favorite_min_rating: value });
+            setUserSelfDetails({ ...userSelfDetails, favorite_min_rating: value ? parseInt(value) : 3 });
           }}
           data={[
             { value: "1", label: "1" },
@@ -168,7 +169,6 @@ export const Settings = () => {
               delete newUserData.scan_directory;
               delete newUserData.avatar;
               updateUser(newUserData, dispatch);
-              dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id));
               setIsOpenUpdateDialog(false);
             }}
           >

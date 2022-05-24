@@ -23,21 +23,17 @@ import { serverAddress } from "../../api_client/apiClient";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 export const Profile = () => {
-  const [isOpen, setIsOpen] = useState(false);
   const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
   const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
   const [userSelfDetails, setUserSelfDetails] = useState({} as any);
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
   const userSelfDetailsRedux = useAppSelector(state => state.user.userSelfDetails);
-  const workerAvailability = useAppSelector(state => state.util.workerAvailability);
   const { t, i18n } = useTranslation();
 
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
   const dark = colorScheme === "dark";
   let editor = useRef(null);
-
-  const close = () => setIsOpen(false);
 
   const setEditorRef = newEditor => (editor = newEditor);
 
@@ -60,15 +56,13 @@ export const Profile = () => {
   }, [userSelfDetailsRedux, userSelfDetails]);
 
   useEffect(() => {
-    dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id));
+    dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id)).refetch();
   }, []);
 
   useEffect(() => {
     setUserSelfDetails(userSelfDetailsRedux);
   }, [userSelfDetailsRedux]);
 
-  let buttonsDisabled = !workerAvailability;
-  buttonsDisabled = false;
   if (avatarImgSrc === "/unknown_user.jpg") {
     if (userSelfDetails.avatar_url) {
       setAvatarImgSrc(serverAddress + userSelfDetails.avatar_url);
@@ -294,7 +288,6 @@ export const Profile = () => {
               delete newUserData.scan_directory;
               delete newUserData.avatar;
               updateUser(newUserData, dispatch);
-              dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id));
               setIsOpenUpdateDialog(false);
             }}
           >

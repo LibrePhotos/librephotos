@@ -173,7 +173,7 @@ export function updateAvatar(user, form_data) {
             position: "bottom-right",
           })
         );
-        dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id));
+        dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id)).refetch();
       })
       .catch(error => {
         console.log(error);
@@ -186,9 +186,9 @@ export function updateUser(user, dispatch) {
   Server.patch(`user/${user.id}/`, user)
     .then(response => {
       const data = UserSchema.parse(response.data);
+      dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id)).refetch();
       dispatch(userActions.updateRules(response.data));
-      dispatch(fetchUserList());
-      dispatch(fetchNextcloudDirectoryTree("/"));
+      //dispatch(fetchUserList());
       dispatch(
         notify(i18n.t("toasts.updateuser", { username: user.username }), {
           title: i18n.t("toasts.updateusertitle"),
@@ -198,7 +198,7 @@ export function updateUser(user, dispatch) {
           position: "bottom-right",
         })
       );
-      dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id));
+      dispatch(fetchNextcloudDirectoryTree("/"));
     })
     .catch(error => {
       console.log(error);
@@ -222,7 +222,7 @@ export function updateUserAndScan(user) {
             position: "bottom-right",
           })
         );
-        dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id));
+        dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id)).refetch();
         dispatch(scanPhotos());
       })
       .catch(error => {
