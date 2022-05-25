@@ -107,7 +107,9 @@ export const FaceDashboard = () => {
       const start = allFacesInCells.indexOf(cell);
       const end = allFacesInCells.indexOf(lastChecked);
 
-      const facesToSelect = allFacesInCells.slice(Math.min(start, end), Math.max(start, end) + 1);
+      const facesToSelect = allFacesInCells
+        .slice(Math.min(start, end), Math.max(start, end) + 1)
+        .filter(i => i && i.id);
       facesToSelect.forEach(face => onFaceSelect({ face_id: face.id, face_url: face.face_url }));
       return;
     }
@@ -117,7 +119,7 @@ export const FaceDashboard = () => {
 
   const onFaceSelect = face => {
     var tempSelectedFaces = selectedFaces;
-    if (tempSelectedFaces.includes(face.face_id)) {
+    if (tempSelectedFaces.map(face => face.face_id).includes(face.face_id)) {
       tempSelectedFaces = tempSelectedFaces.filter(item => item.face_id !== face.face_id);
     } else {
       tempSelectedFaces.push(face);
@@ -155,7 +157,7 @@ export const FaceDashboard = () => {
             cell={cell}
             isScrollingFast={false}
             selectMode={selectMode}
-            isSelected={selectedFaces.includes(cell.id)}
+            isSelected={selectedFaces.map(face => face.face_id).includes(cell.id)}
             activeItem={activeItem}
             entrySquareSize={entrySquareSize}
           />
