@@ -8,7 +8,7 @@ import "react-virtualized/styles.css";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppSelector } from "../../store/store";
 import { Sidebar } from "./Sidebar";
-import Toolbar from "./Toolbar";
+import { Toolbar } from "./Toolbar";
 
 let LIGHTBOX_SIDEBAR_WIDTH = 335;
 if (window.innerWidth < 600) {
