@@ -1,7 +1,7 @@
+import { Title } from "@mantine/core";
 import React from "react";
 import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
-import { Header } from "semantic-ui-react";
 
 import { useAppSelector } from "../../store/store";
 
@@ -51,7 +51,7 @@ export function WordCloud(props: Props) {
   };
   return (
     <div ref={observe}>
-      <Header as="h3">{title()}</Header>
+      <Title order={3}>{title()}</Title>
       <Chart width={width - 50} height={height - 70} series={series()}>
         <Transform method={["transpose"]}>
           <Cloud font="sans-serif" minFontsSize={10} maxFontSize={50} random={() => 1} />

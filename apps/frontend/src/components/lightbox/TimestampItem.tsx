@@ -1,13 +1,10 @@
 import { ActionIcon, Button, Group, Stack, Title } from "@mantine/core";
 import { DatePicker } from "@mantine/dates";
-import { timeStamp } from "console";
-import { DateTime } from "luxon";
 import * as moment from "moment";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-virtualized/styles.css";
 // only needs to be imported once
-import { Input } from "semantic-ui-react";
 import { Calendar, Check, Edit, X } from "tabler-icons-react";
 
 import { editPhoto } from "../../actions/photosActions";
