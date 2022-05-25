@@ -13,7 +13,7 @@ type Props = {
   workerRunningJob: any;
   changeSelectMode: () => void;
   addFaces: () => void;
-  deleteFaces: (faces: any) => void;
+  deleteFaces: () => void;
 };
 
 export function ButtonHeaderGroup(props: Props) {

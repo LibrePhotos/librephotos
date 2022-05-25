@@ -4,7 +4,7 @@ import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
 
-import { deleteFaces, fetchInferredFacesList, fetchLabeledFacesList, trainFaces } from "../../actions/facesActions";
+import { deleteFaces, fetchInferredFacesList, fetchLabeledFacesList } from "../../actions/facesActions";
 import { ButtonHeaderGroup } from "../../components/facedashboard/ButtonHeaderGroup";
 import { FaceComponent } from "../../components/facedashboard/FaceComponent";
 import { HeaderComponent } from "../../components/facedashboard/HeaderComponent";
@@ -132,6 +132,13 @@ export const FaceDashboard = () => {
     setSelectMode(!selectMode);
   };
 
+  const deleteSelectedFaces = () => {
+    if (selectedFaces.length > 0) {
+      const ids = selectedFaces.map(face => face.face_id);
+      dispatch(deleteFaces(ids));
+    }
+  };
+
   const addFaces = () => {
     if (selectedFaces.length > 0) {
       setModalPersonEditOpen(true);
@@ -182,7 +189,7 @@ export const FaceDashboard = () => {
         workerRunningJob={workerRunningJob}
         changeSelectMode={changeSelectMode}
         addFaces={addFaces}
-        deleteFaces={deleteFaces}
+        deleteFaces={deleteSelectedFaces}
       />
       <div>
         <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
