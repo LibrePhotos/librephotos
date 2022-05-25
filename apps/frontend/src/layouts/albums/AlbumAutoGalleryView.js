@@ -1,11 +1,10 @@
-import { Avatar } from "@mantine/core";
+import { Avatar, AvatarsGroup } from "@mantine/core";
 import _ from "lodash";
 import * as moment from "moment";
 import React, { Component } from "react";
 import { withTranslation } from "react-i18next";
 import { Map, Marker, TileLayer } from "react-leaflet";
 import { connect } from "react-redux";
-import { Link } from "react-router-dom";
 import { compose } from "redux";
 import { Breadcrumb, Button, Divider, Header, Icon, Label, Loader } from "semantic-ui-react";
 
@@ -17,22 +16,6 @@ import { LightBox } from "../../components/lightbox/LightBox";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 
 const SIDEBAR_WIDTH = 85;
-
-const colors = [
-  "red",
-  "orange",
-  "yellow",
-  "olive",
-  "green",
-  "teal",
-  "blue",
-  "violet",
-  "purple",
-  "pink",
-  "brown",
-  "grey",
-  "black",
-];
 
 export class AlbumLocationMap extends Component {
   render() {
@@ -220,19 +203,17 @@ export class AlbumAutoGalleryView extends Component {
                   <Icon name="users" /> {this.props.t("people")}
                 </Header>
 
-                <Label.Group circular>
+                <AvatarsGroup limit={5}>
                   {album.people.map((person, idx) => (
-                    <Label
-                      key={person.id}
-                      as={Link}
-                      to={`/person/${person.id}`}
-                      color={colors[idx % album.people.length]}
-                    >
-                      <Avatar radisu="xl" src={serverAddress + person.face_url} />
-                      <b>{person.name}</b>
-                    </Label>
+                    <Avatar
+                      radius="xl"
+                      component="a"
+                      href={`/person/${person.id}`}
+                      src={serverAddress + person.face_url}
+                      alt={person.name}
+                    />
                   ))}
-                </Label.Group>
+                </AvatarsGroup>
               </div>
             )}
 
