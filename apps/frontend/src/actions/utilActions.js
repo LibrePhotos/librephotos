@@ -116,10 +116,10 @@ export function fetchUserList() {
   };
 }
 
-export function fetchDirectoryTree() {
+export function fetchDirectoryTree(path) {
   return function (dispatch) {
     dispatch({ type: "FETCH_DIRECTORY_TREE" });
-    Server.get("dirtree/")
+    Server.get(`dirtree/?path=${path}`)
       .then(response => {
         const data = DirTree.array().parse(response.data);
         dispatch({

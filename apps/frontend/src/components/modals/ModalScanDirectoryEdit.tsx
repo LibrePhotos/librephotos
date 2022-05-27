@@ -17,7 +17,6 @@ type Props = {
 
 export function ModalScanDirectoryEdit(props: Props) {
   const { isOpen, updateAndScan, userToEdit, selectedNodeId, onRequestClose } = props;
-
   const [newScanDirectory, setNewScanDirectory] = useState("");
   const [treeData, setTreeData] = useState([]);
   const [scanDirectoryPlaceholder, setScanDirectoryPlaceholder] = useState("");
@@ -29,15 +28,20 @@ export function ModalScanDirectoryEdit(props: Props) {
 
   useEffect(() => {
     if (auth.access && auth.access.is_admin) {
-      dispatch(fetchDirectoryTree());
+      dispatch(fetchDirectoryTree(""));
     }
   }, [auth.access, dispatch]);
 
   useEffect(() => {
     if (treeData.length === 0) {
       setTreeData(directoryTree);
+    } else {
+      const newData = replacePath(treeData, directoryTree[0]);
+      console.log(newData);
+      // @ts-ignore
+      setTreeData([...newData]);
     }
-  }, [directoryTree, treeData]);
+  }, [directoryTree]);
 
   useEffect(() => {
     if (newScanDirectory) {
@@ -51,12 +55,29 @@ export function ModalScanDirectoryEdit(props: Props) {
     setScanDirectoryPlaceholder(t("modalscandirectoryedit.notset"));
   }, [newScanDirectory, userToEdit, t]);
 
+  const replacePath = (treeData, newData) => {
+    const path = newData.absolute_path;
+    treeData.map(folder => {
+      if (path === folder.absolute_path) {
+        folder.children = newData.children;
+        return folder;
+      }
+      if (path.startsWith(folder.absolute_path)) {
+        const newTreeData = replacePath(folder.children, newData);
+        folder.children = newTreeData;
+        return folder;
+      }
+      return folder;
+    });
+    return treeData;
+  };
+
   const nodeClicked = (event, rowInfo) => {
-    console.log(rowInfo);
     if (inputRef.current) {
-      // @ts-ignore
-      inputRef.current.value = rowInfo.node.absolute_path;
-      setNewScanDirectory(rowInfo.node.absolute_path);
+      const path = rowInfo.node.absolute_path;
+      inputRef.current.value = path;
+      dispatch(fetchDirectoryTree(path));
+      setNewScanDirectory(path);
     }
   };
 
@@ -129,7 +150,6 @@ export function ModalScanDirectoryEdit(props: Props) {
       <div style={{ height: "250px", overflow: "auto" }}>
         <SortableTree
           innerStyle={{ outline: "none" }}
-          isVirtualized={false}
           canDrag={() => false}
           canDrop={() => false}
           treeData={treeData}
