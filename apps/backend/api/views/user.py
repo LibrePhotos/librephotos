@@ -36,7 +36,11 @@ class RootPathTreeView(APIView):
 
     def get(self, request, format=None):
         try:
-            res = [path_to_dict(ownphotos.settings.DATA_ROOT)]
+            path = self.request.query_params.get("path")
+            if path:
+                res = [path_to_dict(path)]
+            else:
+                res = [path_to_dict(ownphotos.settings.DATA_ROOT)]
             return Response(res)
         except Exception as e:
             logger.exception(str(e))
