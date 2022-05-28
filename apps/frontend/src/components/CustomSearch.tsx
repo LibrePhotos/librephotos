@@ -119,9 +119,9 @@ export const CustomSearch = () => {
       control={
         <TextInput
           icon={<Search size={14} />}
-          onKeyDown={event => {
-            switch (event.keyCode) {
-              case ENTER_KEY:
+          onKeyPress={event => {
+            switch (event.key) {
+              case "Enter":
                 dispatch(searchPhotos(searchText));
                 dispatch(push("/search"));
                 break;
