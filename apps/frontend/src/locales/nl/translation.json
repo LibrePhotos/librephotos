@@ -120,7 +120,11 @@
         "experimentaloptions": "Experimentele instellingen",
         "off": "Uit",
         "experimentalupdate": "Bijwerken",
-        "configdatetime": " Datum- en tijdregels instellen"
+        "configdatetime": " Datum- en tijdregels instellen",
+        "eventsalbumsdescription": "De backendserver zal eerst trachten foto's te groepen op basis van tijdstippen. Als twee opeenvolgende foto's binnen twaalf uur na elkaar zijn genomen, dan worden ze bestempeld als behorende bij dezelfde gebeurtenis. Na het groeperen wordt er automatisch een albumnaam samengesteld.",
+        "missingphotosdescription": "LibrePhotos zal tijdens elke scan controleren of de bestanden nog op dezelfde locatie aanwezig zijn of verplaatst. Als ze ontbreken, dan worden ze als dusdanig aangemerkt.",
+        "eventalbumsregeneratedescription": "Automatisch samengestelde albumnamen bevatten persoonsnamen. Als u de gezichtsherkenning getraind hebt na het samenstellen van gebeurtenisalbums, dan kunt u nieuwe namen genereren voor reeds bestaande albums om ze te koppelen aan de gezichten op de foto's.",
+        "transcodevideo": "Video's altijd converteren"
     },
     "topmenu": {
         "profile": "Profiel",
@@ -130,7 +134,8 @@
         "adminarea": "Beheerderspaneel",
         "loggedin": "Ingelogd als",
         "logout": "Uitloggen",
-        "settings": "Instellingen"
+        "settings": "Instellingen",
+        "available": "Er is een proces beschikbaar! U kunt beginnen met het scannen van meer foto's, koppelen van labels, automatisch aanmaken van gebeurtenisalbums of automatisch samengestelde namen opnieuw genereren."
     },
     "sidemenu": {
         "myalbums": "Mijn albums",
@@ -270,7 +275,8 @@
         "delete": "Verwijderen",
         "itemsprocessed": "Aantal verwerkte items",
         "running": "in uitvoer",
-        "status": "Status"
+        "status": "Status",
+        "removeexplanation": "De taak wordt hiermee niet daadwerkelijk afgebroken; alleen het DB-item wordt verwijderd. Let op: gebruik dit alleen als een taak niet netjes is afgebroken en op basis van informatie uit het logboek."
     },
     "modalscandirectoryedit": {
         "explanation2": "op de knop ‘Foto's scannen’ klikt, dan worden hier opgegeven foto's geïmporteerd naar het gebruikersaccount",
@@ -288,7 +294,10 @@
         "headerskippatterns": "Negeerpatronen",
         "headerapikey": "Mapbox api-sleutel",
         "allow": "Toestaan",
-        "header": "Gebruikersregistratie"
+        "header": "Gebruikersregistratie",
+        "apikey": "Wilt u dat er een kaart met alle fotolocaties wordt getoond (indien vastgelegd)? Haal dan een Mapbox-api-sleutel op: https://account.mapbox.com/auth/signup/",
+        "headerheavyweight": "Zware processen",
+        "heavyweight": "Het aantal processen tijdens het scannen van afbeeldingen. Let op: deze instelling kan het geheugenverbruik flink verhogen. Elk proces vereist 800MB ram-geheugen; pas dit naar eigen inzicht aan. Standaard: 1."
     },
     "modalnextcloud": {
         "choosedirectory": "Kies een map uit onderstaande lijst",
@@ -297,5 +306,160 @@
         "notset": "niet ingesteld",
         "update": "Bijwerken",
         "cancel": "Annuleren"
-    }
+    },
+    "rules": {
+        "5": "Datum extraheren uit WhatsApp-bestandsnaam",
+        "2": "Video-opnamedatumlabel in UTC en tijdzone berekenen op basis van gps-coördinaten",
+        "6": "Video-opnamedatum en -tijd in UTC-tijdzone (de echte tijdzone kan niet worden vastgesteld)",
+        "8": "Bewerktijd in UTC-tijdzone",
+        "9": "Opnametijd in eigen standaard tijdzone",
+        "10": "Opnametijd in UTC-tijdzone",
+        "13": "Composite:GPSDateTime tag in UTC-tijdzone gebruiken (de echte tijdzone kan niet worden vastgesteld)",
+        "file_property": "Bestandseigenschap{{rule}} gebruiken",
+        "predefined_regexp": "Vooraf ingestelde reguliere uitdrukking gebruiken: {{rule}}",
+        "7": "Bewerktijd in eigen standaard tijdzone",
+        "source_tz": "Omzetten uit {{rule}}",
+        "14": "Eigen aangegeven tijdstip",
+        "12": "Composite:GPSDateTime tag in eigen standaard tijdzone gebruiken (de echte tijdzone kan niet worden vastgesteld)",
+        "11": "Composite:GPSDateTime-label gebruiken en tijdzone berekenen op basis van gps-coördinaten",
+        "15": "Lokaal tijdstip uit EXIF:DateTime-exif-label",
+        "1": "Lokaal tijdstip uit exif-label ‘DATE_TIME_ORIGINAL’",
+        "rule_type": "Soort regel: {{rule}}",
+        "exif_tag": "Exif-label-{{rule}} gebruiken",
+        "3": "Bestandsnaam gebruiken indien tijd lokaal is",
+        "4": "Video in UTC: lokale tijd tonen in UTC (omdat de tijdzone niet kan worden vastgesteld)",
+        "report_tz": "Omzetten naar {{rule}}"
+    },
+    "countstats": {
+        "photos": "Foto's"
+    },
+    "autoalbum": {
+        "subtitle": "Getoond: {{ autoalbumlength }} automatisch samengestelde albums"
+    },
+    "personalbum": {
+        "numberofpeople": "{{peoplelength}} personen",
+        "renameperson": "Persoonsnaam wijzigen",
+        "personalreadyexists": "{{name}} bestaat al.",
+        "nameplaceholder": "Naam"
+    },
+    "thingalbum": {
+        "showingthings": "Getoond: top {{number}} items"
+    },
+    "personedit": {
+        "personname": "Naam van persoon",
+        "addperson": "Persoon toevoegen",
+        "labelfaces": "Gezichten labelen",
+        "numberselected": "{{number}} geselecteerd(e) gezicht(en) labelen als…",
+        "newperson": "Nieuw persoon"
+    },
+    "facesdashboard": {
+        "numberoffaces": "{{number}} gezichten",
+        "selectedfaces": "{{number}} geselecteerd",
+        "explanationadding": "Toevoegen aan bestaand of nieuw gezicht",
+        "explanationdeleting": "Gezicht en bijbehorende miniaturen verwijderen",
+        "explanationtraining": "Gezichtsherkenning trainen en gezichten automatisch labelen"
+    },
+    "socialgraph": "Sociale grafiek",
+    "faceclusterexplanation": "Personen met gelijkaardige gezichten dienen dichter op elkaar te worden gegroepeerd. Klik op een punt om een label te tonen.",
+    "wordclouds": "Woordballonnen",
+    "people": "Personen",
+    "delete": "Verwijderen",
+    "loading": "Bezig met laden…",
+    "toasts": {
+        "removefromalbum": "Er is/zijn {{numberOfPhotos}} foto('s) verwijderd uit het album ‘{{title}}’",
+        "removefromalbumtitle": "Verwijderen uit album",
+        "addtoalbum": "Er is/zijn {{numberOfPhotos}} foto('s) toegevoegd aan het album ‘{{title}}’",
+        "addtoalbumtitle": "Toevoegen aan album",
+        "addfacestopersontitle": "Gezichten toekennen aan persoon",
+        "deletefaces": "Er is/zijn {{numberOfFaces}} gezicht(en) verwijderd",
+        "trainingstarted": "De training is begonnen",
+        "trainingstartedtitle": "Gezichtstraining",
+        "rescanfacestitle": "Opnieuw scannen",
+        "renameperson": "De naam van ‘{{personName}}’ is gewijzigd in ‘{{newPersonName}}’",
+        "renamepersontitle": "Naam wijzigen",
+        "setcoverphoto": "De omslagfoto is ingesteld",
+        "setcoverphototitle": "Instellen als omslagfoto",
+        "sharephoto": "Er is/zijn {{numberOfPhotos}} foto('s) gedeeld met ‘{{username}}’",
+        "unsharephoto": "Er is/zijn {{numberOfPhotos}} foto('s) gedeeld met ‘{{username}}’",
+        "sharephototitle": "Foto delen",
+        "removepublicphoto": "Er is/zijn {{numberOfPhotos}} foto('s) verwijderd uit uw openbare foto's.",
+        "unfavoritephoto": "Er is/zijn {{numberOfPhotos}} foto('s) verwijderd uit uw favorieten.",
+        "unhidephoto": "Er is/zijn {{numberOfPhotos}} foto('s) zichtbaar gemaakt.",
+        "sethidetitle": "Verbergen",
+        "fullscanphotostitle": "Volledige foto's scannen",
+        "scannextcloudphotos": "Het scannen van Nextcloud-foto's is begonnen",
+        "updateuser": "De informatie van {{username}} is bijgewerkt",
+        "updateusertitle": "Gebruiker bijwerken",
+        "deletemissingphotos": "Bezig met verwijderen van ontbrekende foto's…",
+        "deletemissingphotostitle": "Ontbrekende foto's verwijderen",
+        "generateeventalbums": "Bezig met samenstellen van gebeurtenisalbums…",
+        "deletephoto": "Er is/zijn {{numberOfPhotos}} foto('s) verwijderd.",
+        "scanphotos": "Het scannen is begonnen",
+        "recoverphoto": "Er is/zijn {{numberOfPhotos}} foto('s) hersteld.",
+        "deletepersontitle": "Persoon verwijderen",
+        "createnewalbum": "Er is/zijn {{numberOfPhotos}} foto('s) toegevoegd aan het album ‘{{title}}’",
+        "deletealbumtitle": "Album verwijderen",
+        "deletefacestitle": "Gezichten verwijderen",
+        "rescanfaces": "Het scannen is begonnen",
+        "deleteperson": "De persoon is verwijderd",
+        "setpublicphotostitle": "Openbare foto's instellen",
+        "fullscanphotos": "Bezig met scannen van volledige foto's…",
+        "favoritephoto": "Er is/zijn {{numberOfPhotos}} foto('s) toegevoegd aan uw favorieten.",
+        "addpublicphoto": "Er is/zijn {{numberOfPhotos}} foto('s) toegevoegd aan uw openbare foto's. De links zijn gekopieerd naar het klembord.",
+        "jobfinished": "{{job}} is afgerond.",
+        "generateeventalbumstitle": "Gebeurtenisalbums samenstellen",
+        "finaldeletephoto": "Er is/zijn {{numberOfPhotos}} foto('s) definitief verwijderd.",
+        "scannextcloudphotostitle": "Nextcloud-foto's scannen",
+        "regenerateevents": "Bezig met opnieuw aanmaken van gebeurtenissen…",
+        "regenerateeventstitle": "Gebeurtenisnamen opnieuw aanmaken",
+        "setdeletetitle": "Afbeeldingen verwijderen",
+        "createalbumtitle": "Album maken",
+        "viewalbum": "Album bekijken",
+        "scanphotostitle": "Foto's scannen",
+        "renamealbum": "De naam van ‘{{albumTitle}}’ is gewijzigd in ‘{{newAlbumTitle}}’.",
+        "renamealbumtitle": "Albumnaam wijzigen",
+        "deletealbum": "‘{{albumTitle}}’ is verwijderd.",
+        "addfacestoperson": "Er is/zijn {{numberOfFaces}} gezicht(en) gelabeld als ‘{{personName}}’",
+        "sharingalbum": "Het album is gedeeld",
+        "sharingalbumtitle": "Album delen",
+        "unsharingalbum": "Het album is niet gedeeld",
+        "unsharingalbumtitle": "Stoppen met delen",
+        "setfavoritestitle": "Favorieten instellen",
+        "hidephoto": "Er is/zijn {{numberOfPhotos}} foto('s) verborgen.",
+        "finaldeletephototitle": "Afbeeldingen verwijderen",
+        "editphoto": "De foto is bewerkt",
+        "editphototitle": "Foto bewerken"
+    },
+    "rename": "Naam wijzigen",
+    "events": "Gebeurtenissen",
+    "faces": "Gezichten",
+    "days": "Dagen",
+    "timeline": "Tijdlijn",
+    "locationtimeline": "Locatietijdlijn",
+    "places": "Locaties",
+    "things": "Items",
+    "useralbum": {
+        "renamealbum": "Albumnaam wijzigen",
+        "albumalreadyexists": "{{name}} bestaat al.",
+        "albumplaceholder": "Albumnaam",
+        "numberof": "Getoond: {{number}} zelfgemaakte albums"
+    },
+    "placealbum": {
+        "maploading": "Bezig met laden van kaart…",
+        "showingplaces": "Getoond: {{number}} kaartlocaties"
+    },
+    "numberofphotos": "{{number}} foto's",
+    "myalbums": "Mijn albums",
+    "autoalbumgallery": {
+        "showmap": "Kaart tonen",
+        "hidemap": "Kaart verbergen"
+    },
+    "scan": "Scannen",
+    "dataviz": "Gegevensinzicht",
+    "facecluster": "Gezichtsclusters",
+    "nofaces": "Geen gezichten",
+    "nodata": "Geen gegevens",
+    "nosocialgraph": "Geen sociale grafiek",
+    "fetchingsocialgraph": "Bezig met ophalen van grafiek…",
+    "placetree": "Locatielijst"
 }
