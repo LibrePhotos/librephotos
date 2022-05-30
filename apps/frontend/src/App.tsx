@@ -1,6 +1,7 @@
 import { AppShell, ColorScheme, ColorSchemeProvider, MantineProvider } from "@mantine/core";
 import { ConnectedRouter } from "connected-react-router";
 import React, { useState } from "react";
+import { Cookies } from "react-cookie";
 import { Route, Switch } from "react-router-dom";
 import NotificationSystem, { bootstrapTheme, dismissNotification } from "reapop";
 import "semantic-ui-css/semantic.min.css";
@@ -52,8 +53,15 @@ import { useAppDispatch, useAppSelector } from "./store/store";
 const noMenubarPaths = ["/signup", "/login"];
 
 function App() {
-  const [colorScheme, setColorScheme] = useState<ColorScheme>("light");
-  const toggleColorScheme = value => setColorScheme(value || (colorScheme === "dark" ? "light" : "dark"));
+  const cookies = new Cookies();
+  const [colorScheme, setColorScheme] = useState<ColorScheme>(
+    cookies.get("mantine-color-scheme") ? cookies.get("mantine-color-scheme") : "light"
+  );
+  const toggleColorScheme = value => {
+    const nextColorScheme = value || (colorScheme === "dark" ? "light" : "dark");
+    cookies.set("mantine-color-scheme", nextColorScheme);
+    setColorScheme(nextColorScheme);
+  };
   const showSidebar = useAppSelector(store => store.ui.showSidebar);
   const dispatch = useAppDispatch();
   const location = useAppSelector(store => store.router.location);
