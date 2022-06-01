@@ -1,11 +1,11 @@
-import { Button, Divider, Group, Image, Modal, ScrollArea, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Button, Divider, Group, Modal, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import _ from "lodash";
 import * as moment from "moment";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { addToUserAlbum, createNewUserAlbum, fetchUserAlbumsList } from "../../actions/albumsActions";
-import { serverAddress } from "../../api_client/apiClient";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { Tile } from "../Tile";
 
@@ -29,7 +29,7 @@ export const ModalAlbumEdit = (props: Props) => {
   const { albumsUserList } = useAppSelector(store => store.albums);
   const dispatch = useAppDispatch();
   const { isOpen, onRequestClose, selectedImageHashes } = props;
-
+  const { t } = useTranslation();
   useEffect(() => {
     if (isOpen) {
       dispatch(fetchUserAlbumsList());
@@ -48,32 +48,32 @@ export const ModalAlbumEdit = (props: Props) => {
     <Modal
       zIndex={1500}
       opened={isOpen}
-      title={<Title> Add to Album </Title>}
+      title={<Title>{t("modalalbum.title")} </Title>}
       onClose={() => {
         onRequestClose();
         setNewAlbumTitle("");
       }}
     >
       <Stack>
-        <Text color="dimmed">Add selected {selectedImageHashes.length} photo(s) to...</Text>
+        <Text color="dimmed">{t("modalalbum.selectedimages", { count: selectedImageHashes.length })}</Text>
         <Group>
           {selectedImageHashes.map(image_hash => (
             <Tile style={{ objectFit: "cover" }} height={40} width={40} image_hash={image_hash} />
           ))}
         </Group>
         <Divider />
-        <Title order={4}>New album</Title>
+        <Title order={4}>{t("modalalbum.newalbum")}</Title>
         <Group>
           <TextInput
             error={
               albumsUserList.map(el => el.title.toLowerCase().trim()).includes(newAlbumTitle.toLowerCase().trim())
-                ? `Album "${newAlbumTitle.trim()}" already exists.`
+                ? t("modalalbum.alreadyexists", { title: newAlbumTitle })
                 : ""
             }
             onChange={v => {
               setNewAlbumTitle(v.currentTarget.value);
             }}
-            placeholder="Album title"
+            placeholder={t("modalalbum.placeholder")}
           ></TextInput>
           <Button
             onClick={() => {
@@ -86,7 +86,7 @@ export const ModalAlbumEdit = (props: Props) => {
               .includes(newAlbumTitle.toLowerCase().trim())}
             type="submit"
           >
-            Create
+            {t("modalalbum.create")}
           </Button>
         </Group>
         <Divider />
@@ -110,7 +110,8 @@ export const ModalAlbumEdit = (props: Props) => {
                   <div>
                     <Title order={4}>{item.title}</Title>
                     <Text size="sm" color="dimmed">
-                      {item.photo_count} Item(s) <br />
+                      {t("modalalbum.items", { count: item.photo_count })}
+                      <br />
                       {
                         //@ts-ignore
                         `Updated ${moment(item.created_on).fromNow()}`

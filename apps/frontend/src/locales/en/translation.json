@@ -126,6 +126,15 @@
     "experimentalupdate": "Update",
     "configdatetime": " Set datetime parsing rules"
   },
+  "modalalbum": {
+    "title": "Add to Album",
+    "alreadexists": "Album {{title}} already exists.",
+    "selectedimages": "Add selected {{count}} photo(s) to...",
+    "newalbum": "New album",
+    "placeholder": "Album title",
+    "create": "Create",
+    "items": "{{count}} Item(s)"
+  },
   "modalnextcloud": {
     "setdirectory": "Set your Nextcloud scan directory",
     "currentdirectory": "Current Nextcloud scan directory",
