@@ -461,5 +461,14 @@
     "nodata": "Geen gegevens",
     "nosocialgraph": "Geen sociale grafiek",
     "fetchingsocialgraph": "Bezig met ophalen van grafiek…",
-    "placetree": "Locatielijst"
+    "placetree": "Locatielijst",
+    "modalalbum": {
+        "selectedimages": "{{count}} foto('s) toevoegen aan…",
+        "alreadexists": "“{{title}}” bestaat al.",
+        "placeholder": "Albumnaam",
+        "items": "{{count}} item(s)",
+        "title": "Toevoegen aan album",
+        "newalbum": "Nieuw album",
+        "create": "Aanmaken"
+    }
 }
