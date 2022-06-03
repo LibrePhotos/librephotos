@@ -467,6 +467,9 @@
         "title": "Ajouter à l'album",
         "alreadexists": "L'album {{title}} existe déjà.",
         "selectedimages": "Ajouter la ou les photos sélectionnées {{count}} à…",
-        "newalbum": "Nouvel album"
+        "newalbum": "Nouvel album",
+        "placeholder": "Titre de l'album",
+        "items": "{{count}} élément(s)",
+        "create": "Créer"
     }
 }
