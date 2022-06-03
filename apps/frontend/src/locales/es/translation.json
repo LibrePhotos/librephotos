@@ -462,5 +462,14 @@
     "locationtimeline": "Cronología de la ubicación",
     "nofaces": "Sin caras",
     "nosocialgraph": "Sin gráfico social",
-    "fetchingsocialgraph": "Obteniendo gráfico social…"
+    "fetchingsocialgraph": "Obteniendo gráfico social…",
+    "modalalbum": {
+        "title": "Añadir al álbum",
+        "newalbum": "Nuevo álbum",
+        "create": "Crear",
+        "items": "{{count}} elemento(s)",
+        "alreadexists": "El álbum {{title}} ya existe.",
+        "placeholder": "Título del álbum",
+        "selectedimages": "Añadir la(s) foto(s) seleccionada(s) {{count}} a…"
+    }
 }
