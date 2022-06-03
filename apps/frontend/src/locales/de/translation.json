@@ -462,5 +462,14 @@
     "locationtimeline": "Ort-Zeitstrahl",
     "nosocialgraph": "Kein Sozialer Graph",
     "nodata": "Keine Daten",
-    "fetchingsocialgraph": "Sozialen Graph abrufen …"
+    "fetchingsocialgraph": "Sozialen Graph abrufen …",
+    "modalalbum": {
+        "create": "Erstellen",
+        "title": "Zum Album hinzufügen",
+        "alreadexists": "Das Album {{title}} existiert bereits.",
+        "newalbum": "Neues Album",
+        "items": "{{count}} Element(e)",
+        "selectedimages": "Ausgewählte(s) {{count}} Foto(s) hinzufügen zu …",
+        "placeholder": "Albumtitel"
+    }
 }
