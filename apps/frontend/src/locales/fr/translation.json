@@ -462,5 +462,11 @@
     "fetchingsocialgraph": "Récupération du graphique social…",
     "locationtimeline": "Chronologie de l'emplacement",
     "nosocialgraph": "Aucun graphe social",
-    "nodata": "Aucune donnée"
+    "nodata": "Aucune donnée",
+    "modalalbum": {
+        "title": "Ajouter à l'album",
+        "alreadexists": "L'album {{title}} existe déjà.",
+        "selectedimages": "Ajouter la ou les photos sélectionnées {{count}} à…",
+        "newalbum": "Nouvel album"
+    }
 }
