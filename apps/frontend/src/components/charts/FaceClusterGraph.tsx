@@ -1,8 +1,7 @@
-import { Image } from "@mantine/core";
+import { Image, Loader, Stack, Text, Title } from "@mantine/core";
 import React, { useEffect, useState } from "react";
 import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
-import { Header, Label, Loader } from "semantic-ui-react";
 
 import { clusterFaces } from "../../actions/facesActions";
 import { serverAddress } from "../../api_client/apiClient";
@@ -57,44 +56,42 @@ export function FaceClusterGraph(props: Props) {
   }, this);
   if (clustered) {
     return (
-      <div style={{ padding: 10 }} ref={observe}>
-        <Header>
-          <Header.Content>
-            {t("facecluster")} <Header.Subheader>{t("faceclusterexplanation")}</Header.Subheader>
-          </Header.Content>
-        </Header>
+      <Stack ref={observe}>
+        <div>
+          <Title order={3}> {t("facecluster")} </Title>
+          <Text color="dimmed">{t("faceclusterexplanation")}</Text>
+        </div>
         <XYPlot width={width - 30} height={props.height}>
           <HorizontalGridLines />
           <VerticalGridLines />
           {mappedScatter}
           {hintValue.name && (
             <Hint value={hintValue}>
-              <Label color="black">
+              <Text>
                 {hintValue.name}
                 <Image radius="xl" height={70} width={70} src={serverAddress + hintValue.face_url} />
-              </Label>
+              </Text>
             </Hint>
           )}
         </XYPlot>
-      </div>
+      </Stack>
     );
   }
   if (clustering) {
     return (
-      <div style={{ padding: 10 }}>
-        <Loader active />
-      </div>
+      <Stack>
+        <Loader />
+      </Stack>
     );
   }
   return (
-    <div style={{ padding: 10 }}>
-      <Header>
-        <Header.Content>
-          {t("facecluster")} <Header.Subheader>{t("faceclusterexplanation")}</Header.Subheader>
-        </Header.Content>
-      </Header>
-      <div>{t("nofaces")}</div>
-    </div>
+    <Stack>
+      <div>
+        <Title order={3}>{t("facecluster")}</Title>
+        <Text color="dimmed">{t("faceclusterexplanation")}</Text>
+      </div>
+      <Text>{t("nofaces")}</Text>
+    </Stack>
   );
 }
 
