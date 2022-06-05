@@ -1,6 +1,6 @@
+import { Loader, Title, useMantineColorScheme } from "@mantine/core";
 import React, { useEffect } from "react";
 import useDimensions from "react-cool-dimensions";
-import { Header, Loader, Segment } from "semantic-ui-react";
 
 import { fetchPhotoMonthCounts } from "../../actions/utilActions";
 import { useAppDispatch, useAppSelector } from "../../store/store";
@@ -8,6 +8,8 @@ import { useAppDispatch, useAppSelector } from "../../store/store";
 const { Chart, Bars, Ticks, Layer } = require("rumble-charts");
 
 export function EventCountMonthGraph() {
+  const { colorScheme } = useMantineColorScheme();
+
   const { observe, width } = useDimensions({
     onResize: ({ observe, unobserve, width, height, entry }) => {
       observe();
@@ -30,10 +32,8 @@ export function EventCountMonthGraph() {
   } else {
     return (
       <div style={{ height: 280 }}>
-        <Header as="h3">Monthly Photo Counts</Header>
-        <Segment style={{ height: 250 }} basic>
-          <Loader active />
-        </Segment>
+        <Title order={3}>Monthly Photo Counts</Title>
+        <Loader />
       </div>
     );
   }
@@ -49,7 +49,7 @@ export function EventCountMonthGraph() {
 
   return (
     <div ref={observe} style={{ height: 280 }}>
-      <Header as="h3">Monthly Photo Counts</Header>
+      <Title order={3}>Monthly Photo Counts</Title>
       <div>
         <Chart width={width} height={250} series={[data[0]]}>
           <Layer width="85%" height="85%" position="middle center">
@@ -61,7 +61,7 @@ export function EventCountMonthGraph() {
               labelStyle={{
                 textAnchor: "end",
                 dominantBaseline: "middle",
-                fill: "grey",
+                fill: colorScheme === "dark" ? "grey" : "black",
               }}
               labelAttributes={{ x: -15 }}
               labelFormat={(label: any) => label}
@@ -74,7 +74,7 @@ export function EventCountMonthGraph() {
               labelStyle={{
                 textAnchor: "middle",
                 dominantBaseline: "text-before-edge",
-                fill: "black",
+                fill: colorScheme === "dark" ? "grey" : "black",
               }}
               labelAttributes={{ y: 5 }}
             />
