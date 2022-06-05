@@ -1,8 +1,8 @@
+import { Loader, Text, Title } from "@mantine/core";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
 import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
-import { Header, Label, Loader, Segment } from "semantic-ui-react";
 
 import { fetchLocationTimeline } from "../../actions/utilActions";
 import { useAppDispatch, useAppSelector } from "../../store/store";
@@ -40,7 +40,7 @@ export function LocationDurationStackedBar() {
   if (fetchedLocationTimeline) {
     return (
       <div style={{ height: 280 }}>
-        <Header as="h3">{t("locationtimeline")}</Header>
+        <Title order={3}>{t("locationtimeline")}</Title>
         <div>
           <XYPlot width={width - 30} height={300} stackBy="x">
             <XAxis tickFormat={(v: any) => moment.unix(locationTimeline[0].start + v).format("YYYY-MM")} />
@@ -65,12 +65,12 @@ export function LocationDurationStackedBar() {
 
             {hintValue && (
               <Hint value={hintValue}>
-                <Label color="black">
+                <Text>
                   {hintValue.loc}
                   {` from ${moment.unix(hintValue.start).format("YYYY-MM-DD")} to ${moment
                     .unix(hintValue.end)
                     .format("YYYY-MM-DD")}`}
-                </Label>
+                </Text>
               </Hint>
             )}
           </XYPlot>
@@ -81,19 +81,15 @@ export function LocationDurationStackedBar() {
   if (fetchingLocationTimeline) {
     return (
       <div style={{ height: 280 }}>
-        <Header as="h3">{t("locationtimeline")}</Header>
-        <Segment style={{ height: 250 }} basic>
-          <Loader active />
-        </Segment>
+        <Title order={3}>{t("locationtimeline")}</Title>
+        <Loader />
       </div>
     );
   }
   return (
     <div style={{ height: 280 }}>
-      <Header as="h3">{t("locationtimeline")}</Header>
-      <Segment style={{ height: 250 }} basic>
-        <Label>{t("nodata")}</Label>
-      </Segment>
+      <Title order={3}>{t("locationtimeline")}</Title>
+      <Text>{t("nodata")}</Text>
     </div>
   );
 }
