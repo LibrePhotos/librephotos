@@ -1,7 +1,7 @@
+import { Group, Loader, Text, useMantineColorScheme } from "@mantine/core";
 import React, { useEffect } from "react";
 import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
-import { Loader } from "semantic-ui-react";
 
 import { fetchSocialGraph } from "../../actions/peopleActions";
 import { useAppDispatch, useAppSelector } from "../../store/store";
@@ -12,6 +12,7 @@ type Props = {
   height: number;
 };
 export function SocialGraph(props: Props) {
+  const { colorScheme } = useMantineColorScheme();
   const { observe, width } = useDimensions({
     onResize: ({ observe, unobserve, width, height, entry }) => {
       observe();
@@ -37,6 +38,7 @@ export function SocialGraph(props: Props) {
     minZoom: 0.1,
     node: {
       fontSize: 10,
+      fontColor: colorScheme === "dark" ? "white" : "black",
       size: 500,
       color: "lightblue",
       highlightFontSize: 15,
@@ -55,9 +57,14 @@ export function SocialGraph(props: Props) {
   } else {
     if (fetchingSocialGraph) {
       // To-Do: This doesn't show up for some reason
-      graph = <Loader active>{t("fetchingsocialgraph")}</Loader>;
+      graph = (
+        <Group>
+          <Loader />
+          <Text>{t("fetchingsocialgraph")}</Text>
+        </Group>
+      );
     }
-    graph = <p>{t("nosocialgraph")}</p>;
+    graph = <Text>{t("nosocialgraph")}</Text>;
   }
   return <div ref={observe}>{graph}</div>;
 }
