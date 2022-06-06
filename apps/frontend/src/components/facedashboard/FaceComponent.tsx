@@ -1,10 +1,9 @@
-import { Avatar, Box, Center } from "@mantine/core";
+import { Avatar, Box, Center, Indicator, Tooltip } from "@mantine/core";
 import _ from "lodash";
-import React from "react";
+import React, { useState } from "react";
 
 import { serverAddress } from "../../api_client/apiClient";
 import { PhotoIcon } from "./PhotoIcon";
-import { ProbabilityIcon } from "./ProbabiltyIcon";
 
 type Props = {
   cell: any;
@@ -17,8 +16,12 @@ type Props = {
 };
 
 export function FaceComponent(props: Props) {
-  const labelProbabilityIcon = <ProbabilityIcon probability={props.cell.person_label_probability} />;
+  const calculateProbabiltyColor = (labelProbability: number) =>
+    labelProbability > 0.9 ? "green" : labelProbability > 0.8 ? "yellow" : labelProbability > 0.7 ? "orange" : "red";
+
+  const labelProbabilityColor = calculateProbabiltyColor(props.cell.person_label_probability);
   const showPhotoIcon = <PhotoIcon photo={props.cell.photo} />;
+  const [tooltipOpened, setTooltipOpened] = useState(false);
   // TODO: janky shit going on in the next line!
   const faceImageSrc = `${serverAddress}/media/faces/${_.reverse(props.cell.image.split("/"))[0]}`;
   if (props.isScrollingFast) {
@@ -41,17 +44,32 @@ export function FaceComponent(props: Props) {
           },
         })}
       >
-        <Avatar
-          radius="xl"
-          onClick={(e: any) => {
-            props.handleClick(e, props.cell);
-          }}
-          src={faceImageSrc}
-          size={props.entrySquareSize - 30}
-        />
-        {props.activeItem === 1 && labelProbabilityIcon}
-
-        {showPhotoIcon}
+        <Center>
+          <Tooltip
+            opened={tooltipOpened && props.activeItem === 1}
+            label={`Confidence: ${(props.cell.person_label_probability * 100).toFixed(1)}%`}
+            position="bottom"
+            withArrow
+          >
+            <Indicator
+              color={labelProbabilityColor}
+              onMouseEnter={() => setTooltipOpened(true)}
+              onMouseLeave={() => setTooltipOpened(false)}
+              disabled={props.activeItem === 0}
+              size={15}
+            >
+              <Avatar
+                radius="xl"
+                onClick={(e: any) => {
+                  props.handleClick(e, props.cell);
+                }}
+                src={faceImageSrc}
+                size={props.entrySquareSize - 30}
+              />
+            </Indicator>
+          </Tooltip>
+          {showPhotoIcon}
+        </Center>
       </Box>
     );
   }
@@ -70,16 +88,32 @@ export function FaceComponent(props: Props) {
         },
       })}
     >
-      <Avatar
-        onClick={(e: any) => {
-          props.handleClick(e, props.cell);
-        }}
-        radius="xl"
-        src={faceImageSrc}
-        size={props.entrySquareSize - 10}
-      />
-      {props.activeItem === 1 && labelProbabilityIcon}
-      {showPhotoIcon}
+      <Center>
+        <Tooltip
+          opened={tooltipOpened && props.activeItem === 1}
+          label={`Confidence: ${(props.cell.person_label_probability * 100).toFixed(1)}%`}
+          position="bottom"
+        >
+          <Indicator
+            offset={10}
+            color={labelProbabilityColor}
+            onMouseEnter={() => setTooltipOpened(true)}
+            onMouseLeave={() => setTooltipOpened(false)}
+            disabled={props.activeItem === 0}
+            size={15}
+          >
+            <Avatar
+              onClick={(e: any) => {
+                props.handleClick(e, props.cell);
+              }}
+              radius="xl"
+              src={faceImageSrc}
+              size={props.entrySquareSize - 10}
+            />
+          </Indicator>
+        </Tooltip>
+        {showPhotoIcon}
+      </Center>
     </Box>
   );
 }
