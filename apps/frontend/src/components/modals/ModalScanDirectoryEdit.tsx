@@ -28,7 +28,8 @@ export function ModalScanDirectoryEdit(props: Props) {
   const { t } = useTranslation();
   const [pathDoesNotExist, setPathDoesNotExist] = useState(false);
 
-  const isNotNewPath = !userToEdit || userToEdit.scan_directory === newScanDirectory || newScanDirectory === "";
+  const isNotValidPath =
+    !userToEdit || pathDoesNotExist || userToEdit.scan_directory === newScanDirectory || newScanDirectory === "";
 
   useEffect(() => {
     if (auth.access && auth.access.is_admin) {
@@ -63,11 +64,9 @@ export function ModalScanDirectoryEdit(props: Props) {
     var result = false;
     treeData.forEach(folder => {
       if (path === folder.absolute_path) {
-        console.log("hello");
         result = result || true;
       }
       if (path.startsWith(folder.absolute_path)) {
-        console.log("maybe");
         const resultChildren = findPath(folder.children, path);
         result = result || resultChildren;
       }
@@ -137,7 +136,7 @@ export function ModalScanDirectoryEdit(props: Props) {
         <Grid.Col span={3}>
           {updateAndScan ? (
             <Button
-              disabled={isNotNewPath}
+              disabled={isNotValidPath}
               type="submit"
               color="green"
               onClick={() => {
@@ -157,7 +156,7 @@ export function ModalScanDirectoryEdit(props: Props) {
             </Button>
           ) : (
             <Button
-              disabled={isNotNewPath}
+              disabled={isNotValidPath}
               type="submit"
               color="green"
               onClick={() => {
