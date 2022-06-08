@@ -25,6 +25,7 @@ export function ModalScanDirectoryEdit(props: Props) {
   const { directoryTree } = useAppSelector(state => state.util);
   const inputRef = useRef<HTMLInputElement>(null);
   const { t } = useTranslation();
+  const isNotNewPath = !userToEdit || userToEdit.scan_directory === newScanDirectory || newScanDirectory === "";
 
   useEffect(() => {
     if (auth.access && auth.access.is_admin) {
@@ -107,6 +108,7 @@ export function ModalScanDirectoryEdit(props: Props) {
         <Grid.Col span={3}>
           {updateAndScan ? (
             <Button
+              disabled={isNotNewPath}
               type="submit"
               color="green"
               onClick={() => {
@@ -126,6 +128,7 @@ export function ModalScanDirectoryEdit(props: Props) {
             </Button>
           ) : (
             <Button
+              disabled={isNotNewPath}
               type="submit"
               color="green"
               onClick={() => {
