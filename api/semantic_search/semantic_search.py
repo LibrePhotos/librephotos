@@ -1,10 +1,11 @@
 import gc
 
 import numpy as np
-from PIL import Image
+import PIL
 from sentence_transformers import SentenceTransformer
 
 import ownphotos
+from api.util import logger
 
 dir_clip_ViT_B_32_model = ownphotos.settings.CLIP_ROOT
 
@@ -29,11 +30,20 @@ class SemanticSearch:
     def calculate_clip_embeddings(self, img_paths):
         if not self.model_is_loaded:
             self.load()
-
+        imgs = []
         if type(img_paths) is list:
-            imgs = list(map(Image.open, img_paths))
+            for path in img_paths:
+                try:
+                    img = PIL.Image.open(path)
+                    imgs.append(img)
+                except PIL.UnidentifiedImageError:
+                    logger.info(path)
         else:
-            imgs = [Image.open(img_paths)]
+            try:
+                img = PIL.Image.open(img_paths)
+                imgs.append(img)
+            except PIL.UnidentifiedImageError:
+                logger.info(img_paths)
 
         imgs_emb = self.model.encode(imgs, batch_size=32, convert_to_tensor=True)
 
