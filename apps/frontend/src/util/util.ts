@@ -22,7 +22,7 @@ export function adjustDateFormatForSingleGroup(group: DatePhotosGroup) {
   if (group.date != null) {
     group.date =
       DateTime.fromISO(group.date).toLocaleString(DateTime.DATETIME_MED) !== "Invalid DateTime"
-        ? DateTime.fromISO(group.date).setLocale(i18n.resolvedLanguage).toFormat("MMMM d yyyy, cccc")
+        ? DateTime.fromISO(group.date).setLocale(i18n.resolvedLanguage.replace("_", "-")).toFormat("MMMM d yyyy, cccc")
         : group.date;
   } else {
     group.date = i18n.t("sidemenu.withouttimestamp");
