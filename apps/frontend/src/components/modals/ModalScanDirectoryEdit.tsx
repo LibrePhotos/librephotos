@@ -1,4 +1,5 @@
 import { Button, Grid, Modal, Space, Text, TextInput, Title } from "@mantine/core";
+import { result } from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SortableTree from "react-sortable-tree";
@@ -25,6 +26,8 @@ export function ModalScanDirectoryEdit(props: Props) {
   const { directoryTree } = useAppSelector(state => state.util);
   const inputRef = useRef<HTMLInputElement>(null);
   const { t } = useTranslation();
+  const [pathDoesNotExist, setPathDoesNotExist] = useState(false);
+
   const isNotNewPath = !userToEdit || userToEdit.scan_directory === newScanDirectory || newScanDirectory === "";
 
   useEffect(() => {
@@ -55,6 +58,23 @@ export function ModalScanDirectoryEdit(props: Props) {
     }
     setScanDirectoryPlaceholder(t("modalscandirectoryedit.notset"));
   }, [newScanDirectory, userToEdit, t]);
+
+  const findPath = (treeData, path) => {
+    var result = false;
+    treeData.forEach(folder => {
+      if (path === folder.absolute_path) {
+        console.log("hello");
+        result = result || true;
+      }
+      if (path.startsWith(folder.absolute_path)) {
+        console.log("maybe");
+        const resultChildren = findPath(folder.children, path);
+        result = result || resultChildren;
+      }
+      return (result = result || false);
+    });
+    return result;
+  };
 
   const replacePath = (treeData, newData) => {
     const path = newData.absolute_path;
@@ -103,7 +123,16 @@ export function ModalScanDirectoryEdit(props: Props) {
       <Title order={6}>{t("modalscandirectoryedit.currentdirectory")} </Title>
       <Grid grow>
         <Grid.Col span={9}>
-          <TextInput ref={inputRef} placeholder={scanDirectoryPlaceholder} />
+          <TextInput
+            ref={inputRef}
+            error={pathDoesNotExist ? "Path does not exist" : ""}
+            onChange={v => {
+              setNewScanDirectory(v.currentTarget.value);
+              const result = !findPath(treeData, v.currentTarget.value);
+              setPathDoesNotExist(result);
+            }}
+            placeholder={scanDirectoryPlaceholder}
+          />
         </Grid.Col>
         <Grid.Col span={3}>
           {updateAndScan ? (
