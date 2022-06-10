@@ -1,4 +1,4 @@
-import { Button, Divider, Group, Modal, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Button, Divider, Group, Modal, Stack, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import _ from "lodash";
 import * as moment from "moment";
@@ -95,30 +95,33 @@ export const ModalAlbumEdit = (props: Props) => {
             filteredUserAlbumList.map(item => {
               console.log(item.cover_photos);
               return (
-                <Group>
-                  <Tile
-                    height={50}
-                    width={50}
-                    style={{ objectFit: "cover" }}
-                    image_hash={item.cover_photos[0].image_hash}
-                    video={item.cover_photos[0].video}
-                    onClick={() => {
-                      dispatch(addToUserAlbum(item.id, item.title, selectedImageHashes));
-                      onRequestClose();
-                    }}
-                  />
-                  <div>
-                    <Title order={4}>{item.title}</Title>
-                    <Text size="sm" color="dimmed">
-                      {t("modalalbum.items", { count: item.photo_count })}
-                      <br />
-                      {
-                        //@ts-ignore
-                        `Updated ${moment(item.created_on).fromNow()}`
-                      }
-                    </Text>
-                  </div>
-                </Group>
+                <UnstyledButton
+                  onClick={() => {
+                    dispatch(addToUserAlbum(item.id, item.title, selectedImageHashes));
+                    onRequestClose();
+                  }}
+                >
+                  <Group>
+                    <Tile
+                      height={50}
+                      width={50}
+                      style={{ objectFit: "cover" }}
+                      image_hash={item.cover_photos[0].image_hash}
+                      video={item.cover_photos[0].video}
+                    />
+                    <div>
+                      <Title order={4}>{item.title}</Title>
+                      <Text size="sm" color="dimmed">
+                        {t("modalalbum.items", { count: item.photo_count })}
+                        <br />
+                        {
+                          //@ts-ignore
+                          `Updated ${moment(item.created_on).fromNow()}`
+                        }
+                      </Text>
+                    </div>
+                  </Group>
+                </UnstyledButton>
               );
             })}
         </Stack>
