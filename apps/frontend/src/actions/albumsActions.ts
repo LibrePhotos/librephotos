@@ -1,7 +1,6 @@
-import { push } from "connected-react-router";
+import { showNotification } from "@mantine/notifications";
 import _ from "lodash";
 import type { Dispatch } from "react";
-import { notify } from "reapop";
 import { z } from "zod";
 
 import { Server } from "../api_client/apiClient";
@@ -133,29 +132,15 @@ export function createNewUserAlbum(title: string, image_hashes: string[]) {
         });
         dispatch(fetchUserAlbumsList());
         dispatch(
-          notify(
-            i18n.t("toasts.createnewalbum", {
+          showNotification({
+            message: i18n.t("toasts.createnewalbum", {
               numberOfPhotos: image_hashes.length,
               title: title,
             }),
-            {
-              title: i18n.t("toasts.createalbumtitle"),
-              status: "success",
-              dismissible: true,
-              dismissAfter: 3000,
-              position: "bottom-right",
-              buttons: [
-                {
-                  name: i18n.t("toasts.viewalbum"),
-                  primary: true,
-                  onClick: () => {
-                    dispatch(fetchUserAlbum(data.id));
-                    dispatch(push(`/useralbum/${data.id}/`));
-                  },
-                },
-              ],
-            }
-          )
+            title: i18n.t("toasts.createalbumtitle"),
+            color: "teal",
+            //status: "success",
+          })
         );
       })
       .catch(err => {
@@ -174,19 +159,15 @@ export function renameUserAlbum(albumID: string, albumTitle: string, newAlbumTit
         dispatch({ type: "RENAME_USER_ALBUM_FULFILLED", payload: albumID });
         dispatch(fetchUserAlbumsList());
         dispatch(
-          notify(
-            i18n.t("toasts.renamealbum", {
+          showNotification({
+            message: i18n.t("toasts.renamealbum", {
               albumTitle: albumTitle,
               newAlbumTitle: newAlbumTitle,
             }),
-            {
-              title: i18n.t("toasts.renamealbumtitle"),
-              status: "success",
-              dismissible: true,
-              dismissAfter: 3000,
-              position: "bottom-right",
-            }
-          )
+            title: i18n.t("toasts.renamealbumtitle"),
+            color: "teal",
+            // To-Do: Add Icon
+          })
         );
       })
       .catch(err => {
@@ -203,18 +184,13 @@ export function deleteUserAlbum(albumID: string, albumTitle: string) {
         dispatch({ type: "DELETE_USER_ALBUM_FULFILLED", payload: albumID });
         dispatch(fetchUserAlbumsList());
         dispatch(
-          notify(
-            i18n.t("toasts.deletealbum", {
+          showNotification({
+            message: i18n.t("toasts.deletealbum", {
               albumTitle: albumTitle,
             }),
-            {
-              title: i18n.t("toasts.deletealbumtitle"),
-              status: "success",
-              dismissible: true,
-              dismissAfter: 3000,
-              position: "bottom-right",
-            }
-          )
+            title: i18n.t("toasts.deletealbumtitle"),
+            color: "teal",
+          })
         );
       })
       .catch(err => {
@@ -236,19 +212,14 @@ export function removeFromUserAlbum(album_id: number, title: string, image_hashe
           payload: data,
         });
         dispatch(
-          notify(
-            i18n.t("toasts.removefromalbum", {
+          showNotification({
+            message: i18n.t("toasts.removefromalbum", {
               numberOfPhotos: image_hashes.length,
               title: title,
             }),
-            {
-              title: i18n.t("toasts.removefromalbumtitle"),
-              status: "success",
-              dismissible: true,
-              dismissAfter: 3000,
-              position: "bottom-right",
-            }
-          )
+            title: i18n.t("toasts.removefromalbumtitle"),
+            color: "teal",
+          })
         );
         dispatch(fetchUserAlbumsList());
         dispatch(fetchUserAlbum(album_id));
@@ -273,30 +244,14 @@ export function addToUserAlbum(album_id: number, title: string, image_hashes: st
           payload: data,
         });
         dispatch(
-          notify(
-            i18n.t("toasts.addtoalbum", {
+          showNotification({
+            message: i18n.t("toasts.addtoalbum", {
               numberOfPhotos: image_hashes.length,
               title: title,
             }),
-            {
-              title: i18n.t("toasts.addtoalbumtitle"),
-
-              status: "success",
-              dismissible: true,
-              dismissAfter: 3000,
-              position: "bottom-right",
-              buttons: [
-                {
-                  name: "View Album",
-                  primary: true,
-                  onClick: () => {
-                    dispatch(fetchUserAlbum(album_id));
-                    dispatch(push(`/useralbum/${album_id}/`));
-                  },
-                },
-              ],
-            }
-          )
+            title: i18n.t("toasts.addtoalbumtitle"),
+            color: "teal",
+          })
         );
         dispatch(fetchUserAlbumsList());
       })
@@ -481,22 +436,18 @@ export function setUserAlbumShared(album_id: number, target_user_id: string, val
 
         if (val_shared) {
           dispatch(
-            notify(i18n.t("toasts.sharingalbum"), {
+            showNotification({
+              message: i18n.t("toasts.sharingalbum"),
               title: i18n.t("toasts.sharingalbumtitle"),
-              status: "success",
-              dismissible: true,
-              dismissAfter: 3000,
-              position: "bottom-right",
+              color: "teal",
             })
           );
         } else {
           dispatch(
-            notify(i18n.t("toasts.unsharingalbum"), {
+            showNotification({
+              message: i18n.t("toasts.unsharingalbum"),
               title: i18n.t("toasts.unsharingalbumtitle"),
-              status: "success",
-              dismissible: true,
-              dismissAfter: 3000,
-              position: "bottom-right",
+              color: "teal",
             })
           );
         }

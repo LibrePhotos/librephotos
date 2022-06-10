@@ -1,4 +1,4 @@
-import { notify } from "reapop";
+import { showNotification } from "@mantine/notifications";
 
 import { Server } from "../api_client/apiClient";
 import i18n from "../i18n";
@@ -23,19 +23,14 @@ export function setFacesPersonLabel(faceIDs, personName) {
           payload: response.data.results,
         });
         dispatch(
-          notify(
-            i18n.t("toasts.addfacestoperson", {
+          showNotification({
+            message: i18n.t("toasts.addfacestoperson", {
               numberOfFaces: faceIDs.length,
               personName: personName,
             }),
-            {
-              title: i18n.t("toasts.addfacestopersontitle"),
-              status: "success",
-              dismissible: true,
-              dismissAfter: 3000,
-              position: "bottom-right",
-            }
-          )
+            title: i18n.t("toasts.addfacestopersontitle"),
+            color: "teal",
+          })
         );
       })
       .catch(err => {
@@ -55,18 +50,13 @@ export function deleteFaces(faceIDs) {
           payload: response.data.results,
         });
         dispatch(
-          notify(
-            i18n.t("toasts.deletefaces", {
+          showNotification({
+            message: i18n.t("toasts.deletefaces", {
               numberOfFaces: faceIDs.length,
             }),
-            {
-              title: i18n.t("toasts.deletefacestitle"),
-              status: "success",
-              dismissible: true,
-              dismissAfter: 3000,
-              position: "bottom-right",
-            }
-          )
+            title: i18n.t("toasts.deletefacestitle"),
+            color: "teal",
+          })
         );
       })
       .catch(err => {
@@ -85,12 +75,10 @@ export function trainFaces() {
     });
 
     dispatch(
-      notify(i18n.t("toasts.trainingstarted"), {
+      showNotification({
+        message: i18n.t("toasts.trainingstarted"),
         title: i18n.t("toasts.trainingstartedtitle"),
-        status: "success",
-        dismissible: true,
-        dismissAfter: 3000,
-        position: "bottom-right",
+        color: "teal",
       })
     );
     Server.get("trainfaces/", { timeout: 30000 })
@@ -116,12 +104,10 @@ export function rescanFaces() {
     });
 
     dispatch(
-      notify(i18n.t("toasts.rescanfaces"), {
+      showNotification({
+        message: i18n.t("toasts.rescanfaces"),
         title: i18n.t("toasts.rescanfacestitle"),
-        status: "success",
-        dismissible: true,
-        dismissAfter: 3000,
-        position: "bottom-right",
+        color: "teal",
       })
     );
     Server.get("scanfaces/", { timeout: 30000 })

@@ -1,4 +1,4 @@
-import { notify } from "reapop";
+import { showNotification } from "@mantine/notifications";
 
 import { Server } from "../api_client/apiClient";
 import i18n from "../i18n";
@@ -39,19 +39,14 @@ export function renamePerson(personId, personName, newPersonName) {
         dispatch({ type: "RENAME_PERSON_FULFILLED", payload: personId });
         fetchPeople(dispatch);
         dispatch(
-          notify(
-            i18n.t("toasts.renameperson", {
+          showNotification({
+            message: i18n.t("toasts.renameperson", {
               personName: personName,
               newPersonName: newPersonName,
             }),
-            {
-              title: i18n.t("toasts.renamepersontitle"),
-              status: "success",
-              dismissible: true,
-              dismissAfter: 3000,
-              position: "bottom-right",
-            }
-          )
+            title: i18n.t("toasts.renamepersontitle"),
+            color: "teal",
+          })
         );
       })
       .catch(err => {
@@ -69,12 +64,10 @@ export function deletePerson(person_id) {
         // To-Do: I should do something with the response
         fetchPeople(dispatch);
         dispatch(
-          notify(i18n.t("toasts.deleteperson"), {
+          showNotification({
+            message: i18n.t("toasts.deleteperson"),
             title: i18n.t("toasts.deletepersontitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "bottom-right",
+            color: "teal",
           })
         );
 
@@ -97,12 +90,10 @@ export function setAlbumCoverForPerson(person_id, photo_hash) {
         // To-Do: I should do something with the response
         dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON_FULFILLED" });
         dispatch(
-          notify(i18n.t("toasts.setcoverphoto"), {
+          showNotification({
+            message: i18n.t("toasts.setcoverphoto"),
             title: i18n.t("toasts.setcoverphototitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "bottom-right",
+            color: "teal",
           })
         );
         fetchPeople(dispatch);

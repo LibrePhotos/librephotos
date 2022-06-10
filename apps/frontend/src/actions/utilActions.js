@@ -1,4 +1,4 @@
-import { notify } from "reapop";
+import { showNotification } from "@mantine/notifications";
 
 import { api } from "../api_client/api";
 import { Server } from "../api_client/apiClient";
@@ -48,12 +48,10 @@ export function deleteJob(job_id, page = 1, page_size = 10) {
       .then(response => {
         dispatch(fetchJobList(page, page_size));
         dispatch({ type: "DELETE_JOB_FULFILLED", payload: response.data });
-        notify(i18n.t("toasts.deletejob", { id: job_id }), {
+        showNotification({
+          message: i18n.t("toasts.deletejob", { id: job_id }),
           title: i18n.t("toasts.deletejobtitle"),
-          status: "success",
-          dismissible: true,
-          dismissAfter: 3000,
-          position: "bottom-right",
+          color: "teal",
         });
       })
       .catch(error => {
@@ -165,12 +163,10 @@ export function updateAvatar(user, form_data) {
         dispatch(fetchUserList());
         dispatch(fetchNextcloudDirectoryTree("/"));
         dispatch(
-          notify(i18n.t("toasts.updateuser", { username: user.username }), {
+          showNotification({
+            message: i18n.t("toasts.updateuser", { username: user.username }),
             title: i18n.t("toasts.updateusertitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "bottom-right",
+            color: "teal",
           })
         );
         dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id)).refetch();
@@ -190,12 +186,10 @@ export function updateUser(user, dispatch) {
       dispatch(userActions.updateRules(response.data));
       //dispatch(fetchUserList());
       dispatch(
-        notify(i18n.t("toasts.updateuser", { username: user.username }), {
+        showNotification({
+          message: i18n.t("toasts.updateuser", { username: user.username }),
           title: i18n.t("toasts.updateusertitle"),
-          status: "success",
-          dismissible: true,
-          dismissAfter: 3000,
-          position: "bottom-right",
+          color: "teal",
         })
       );
       dispatch(fetchNextcloudDirectoryTree("/"));
@@ -214,12 +208,10 @@ export function updateUserAndScan(user) {
         dispatch(userActions.updateRules(response.data));
         dispatch(fetchUserList());
         dispatch(
-          notify(i18n.t("toasts.updateuser", { username: user.username }), {
+          showNotification({
+            message: i18n.t("toasts.updateuser", { username: user.username }),
             title: i18n.t("toasts.updateusertitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "bottom-right",
+            color: "teal",
           })
         );
         dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id)).refetch();
@@ -240,12 +232,10 @@ export function manageUpdateUser(user) {
         dispatch(userActions.updateRules(response.data));
         dispatch(fetchUserList());
         dispatch(
-          notify(i18n.t("toasts.updateuser", { username: user.username }), {
+          showNotification({
+            message: i18n.t("toasts.updateuser", { username: user.username }),
             title: i18n.t("toasts.updateusertitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "bottom-right",
+            color: "teal",
           })
         );
       })
@@ -263,18 +253,13 @@ export function fetchWorkerAvailability(prevRunningJob, dispatch) {
       const data = WorkerAvailability.optional().parse(response.data);
       if (prevRunningJob !== null && response.data.job_detail === null) {
         dispatch(
-          notify(
-            i18n.t("toasts.jobfinished", {
+          showNotification({
+            message: i18n.t("toasts.jobfinished", {
               job: prevRunningJob.job_type_str,
             }),
-            {
-              title: prevRunningJob.job_type_str,
-              status: "success",
-              dismissible: true,
-              dismissAfter: 3000,
-              position: "bottom-right",
-            }
-          )
+            title: prevRunningJob.job_type_str,
+            color: "teal",
+          })
         );
         if (prevRunningJob.job_type_str.toLowerCase() === "train faces") {
           dispatch(fetchLabeledFacesList());
@@ -319,12 +304,10 @@ export function deleteMissingPhotos() {
       .then(response => {
         const data = DeleteMissingPhotosResponse.parse(response.data);
         dispatch(
-          notify(i18n.t("toasts.deletemissingphotos"), {
+          showNotification({
+            message: i18n.t("toasts.deletemissingphotos"),
             title: i18n.t("toasts.deletemissingphotostitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "bottom-right",
+            color: "teal",
           })
         );
         dispatch({
@@ -351,12 +334,10 @@ export function generateEventAlbums() {
       .then(response => {
         const data = GenerateEventAlbumsResponse.parse(response.data);
         dispatch(
-          notify(i18n.t("toasts.generateeventalbums"), {
+          showNotification({
+            message: i18n.t("toasts.generateeventalbums"),
             title: i18n.t("toasts.generateeventalbumstitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "bottom-right",
+            color: "teal",
           })
         );
         dispatch({
@@ -384,12 +365,10 @@ export function generateEventAlbumTitles() {
       .then(response => {
         const data = GenerateEventAlbumsTitlesResponse.parse(response.data);
         dispatch(
-          notify(i18n.t("toasts.regenerateevents"), {
+          showNotification({
+            message: i18n.t("toasts.regenerateevents"),
             title: i18n.t("toasts.regenerateeventstitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "bottom-right",
+            color: "teal",
           })
         );
         dispatch({

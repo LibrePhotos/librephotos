@@ -1,3 +1,4 @@
+import { showNotification } from "@mantine/notifications";
 import _ from "lodash";
 import { Dispatch } from "redux";
 import { z } from "zod";
@@ -17,10 +18,6 @@ import {
   SharedFromMePhotoSchema,
   SimpleUser,
 } from "./photosActions.types";
-
-const reapop = require("reapop");
-
-const { notify } = reapop;
 
 export type UserPhotosGroup = {
   userId: number;
@@ -47,15 +44,12 @@ export function uploadPhotos(form_data: any, dispatch: Dispatch<any>) {
       "content-type": "multipart/form-data",
     },
   }).then((response: any) => {
-    dispatch(
-      notify("Upload successful", {
-        title: i18n.t("toasts.sharephototitle"),
-        status: "success",
-        dismissible: true,
-        dismissAfter: 3000,
-        position: "bottom-right",
-      })
-    );
+    showNotification({
+      //To-Do: Localization
+      message: "Upload successful",
+      title: i18n.t("toasts.sharephototitle"),
+      color: "teal",
+    });
   });
 }
 
@@ -101,15 +95,8 @@ export function setPhotosShared(image_hashes: string[], val_shared: boolean, tar
             numberOfPhotos: image_hashes.length,
           });
         }
-        dispatch(
-          notify(notificationMessage, {
-            title: i18n.t("toasts.sharephototitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "bottom-right",
-          })
-        );
+        showNotification({ message: notificationMessage, title: i18n.t("toasts.sharephototitle"), color: "teal" });
+
         if (image_hashes.length === 1) {
           dispatch(fetchPhotoDetail(image_hashes[0]));
         }
@@ -243,15 +230,12 @@ export function setPhotosPublic(image_hashes: string[], val_public: boolean) {
             numberOfPhotos: image_hashes.length,
           });
         }
-        dispatch(
-          notify(notificationMessage, {
-            title: i18n.t("toasts.setpublicphotostitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "bottom-right",
-          })
-        );
+        showNotification({
+          message: notificationMessage,
+          title: i18n.t("toasts.setpublicphotostitle"),
+          color: "teal",
+        });
+
         if (image_hashes.length === 1) {
           dispatch(fetchPhotoDetail(image_hashes[0]));
         }
@@ -291,15 +275,11 @@ export function setPhotosFavorite(image_hashes: string[], favorite: boolean) {
             numberOfPhotos: image_hashes.length,
           });
         }
-        dispatch(
-          notify(notificationMessage, {
-            title: i18n.t("toasts.setfavoritestitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "bottom-right",
-          })
-        );
+        showNotification({
+          message: notificationMessage,
+          title: i18n.t("toasts.setfavoritestitle"),
+          color: "teal",
+        });
       })
       .catch(err => {
         dispatch({ type: SET_PHOTOS_FAVORITE_REJECTED, payload: err });
@@ -331,15 +311,11 @@ export function finalPhotosDeleted(image_hashes: string[]) {
         const notificationMessage = i18n.t("toasts.finaldeletephoto", {
           numberOfPhotos: image_hashes.length,
         });
-        dispatch(
-          notify(notificationMessage, {
-            title: i18n.t("toasts.finaldeletephototitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "bottom-right",
-          })
-        );
+        showNotification({
+          message: notificationMessage,
+          title: i18n.t("toasts.finaldeletephototitle"),
+          color: "teal",
+        });
       })
       .catch(err => {
         dispatch({ type: PHOTOS_FINAL_DELETED_REJECTED, payload: err });
@@ -376,15 +352,11 @@ export function setPhotosDeleted(image_hashes: string[], deleted: boolean) {
             numberOfPhotos: image_hashes.length,
           });
         }
-        dispatch(
-          notify(notificationMessage, {
-            title: i18n.t("toasts.setdeletetitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "bottom-right",
-          })
-        );
+        showNotification({
+          message: notificationMessage,
+          title: i18n.t("toasts.setdeletetitle"),
+          color: "teal",
+        });
       })
       .catch(err => {
         dispatch({ type: SET_PHOTOS_DELETED_REJECTED, payload: err });
@@ -419,15 +391,11 @@ export function setPhotosHidden(image_hashes: string[], hidden: boolean) {
             numberOfPhotos: image_hashes.length,
           });
         }
-        dispatch(
-          notify(notificationMessage, {
-            title: i18n.t("toasts.sethidetitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "bottom-right",
-          })
-        );
+        showNotification({
+          message: notificationMessage,
+          title: i18n.t("toasts.sethidetitle"),
+          color: "teal",
+        });
         if (image_hashes.length === 1) {
           dispatch(fetchPhotoDetail(image_hashes[0]));
         }
@@ -446,15 +414,11 @@ export function scanPhotos() {
     Server.get(`scanphotos/`)
       .then(response => {
         const jobResponse = JobResponseSchema.parse(response.data);
-        dispatch(
-          notify(i18n.t("toasts.scanphotos"), {
-            title: i18n.t("toasts.scanphotostitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "bottom-right",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.scanphotos"),
+          title: i18n.t("toasts.scanphotostitle"),
+          color: "teal",
+        });
         dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
       })
       .catch(err => {
@@ -471,15 +435,11 @@ export function scanAllPhotos() {
     Server.get(`fullscanphotos/`)
       .then(response => {
         const jobResponse = JobResponseSchema.parse(response.data);
-        dispatch(
-          notify(i18n.t("toasts.fullscanphotos"), {
-            title: i18n.t("toasts.fullscanphotostitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "bottom-right",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.fullscanphotos"),
+          title: i18n.t("toasts.fullscanphotostitle"),
+          color: "teal",
+        });
         dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
       })
       .catch(err => {
@@ -496,15 +456,11 @@ export function scanNextcloudPhotos() {
     Server.get(`nextcloud/scanphotos/`)
       .then(response => {
         const jobResponse = JobResponseSchema.parse(response.data);
-        dispatch(
-          notify(i18n.t("toasts.scannextcloudphotos"), {
-            title: i18n.t("toasts.scannextcloudphotostitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "bottom-right",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.scannextcloudphotos"),
+          title: i18n.t("toasts.scannextcloudphotostitle"),
+          color: "teal",
+        });
         dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
       })
       .catch(err => {
@@ -611,15 +567,11 @@ export function editPhoto(image_hash: string, photo_details: any) {
     Server.patch(`photos/edit/${image_hash}/`, photo_details)
       .then(response => {
         dispatch({ type: "EDIT_PHOTO_FULFILLED" });
-        dispatch(
-          notify(i18n.t("toasts.editphoto"), {
-            title: i18n.t("toasts.editphototitle"),
-            status: "success",
-            dismissible: true,
-            dismissAfter: 3000,
-            position: "bottom-right",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.editphoto"),
+          title: i18n.t("toasts.editphototitle"),
+          color: "teal",
+        });
       })
       .catch(error => {
         dispatch({ type: "EDIT_PHOTO_REJECTED" });

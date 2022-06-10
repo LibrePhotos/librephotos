@@ -1,6 +1,6 @@
+import { showNotification } from "@mantine/notifications";
 import type { Middleware, MiddlewareAPI } from "@reduxjs/toolkit";
 import { isRejectedWithValue } from "@reduxjs/toolkit";
-import { notify } from "reapop";
 
 import { Endpoints } from "../../api_client/api";
 import i18n from "../../i18n";
@@ -22,15 +22,12 @@ export const errorMiddleware: Middleware =
               ? i18n.t(`login.error${error.field}`)
               : error.message;
 
-          dispatch(
-            notify(title, {
-              title: toUpperCase(error.field),
-              status: "error",
-              dismissible: true,
-              dismissAfter: 5000,
-              position: "bottom-center",
-            })
-          );
+          showNotification({
+            message: title,
+            title: toUpperCase(error.field),
+            color: "red",
+            //To-Do: Add Cross Icon
+          });
         });
       }
     }
