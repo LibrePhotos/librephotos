@@ -222,11 +222,11 @@ export function setPhotosPublic(image_hashes: string[], val_public: boolean) {
             updatedPhotos: updatedPhotos,
           },
         });
-        let notificationMessage = i18n.t("toasts.setphotopublic", {
+        let notificationMessage = i18n.t("toasts.addpublicphoto", {
           numberOfPhotos: image_hashes.length,
         });
         if (val_public) {
-          notificationMessage = i18n.t("toasts.removephotopublic", {
+          notificationMessage = i18n.t("toasts.removepublicphoto", {
             numberOfPhotos: image_hashes.length,
           });
         }

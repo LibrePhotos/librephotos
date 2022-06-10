@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import Lightbox from "react-image-lightbox";
 import "react-image-lightbox/style.css";
 import ReactPlayer from "react-player";
-import "react-virtualized/styles.css";
 
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppSelector } from "../../store/store";

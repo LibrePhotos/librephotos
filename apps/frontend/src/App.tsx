@@ -63,9 +63,7 @@ function App() {
     setColorScheme(nextColorScheme);
   };
   const showSidebar = useAppSelector(store => store.ui.showSidebar);
-  const dispatch = useAppDispatch();
   const location = useAppSelector(store => store.router.location);
-  const notifications = useAppSelector(store => store.notifications);
   const auth = useAppSelector(store => store.auth);
   //@ts-ignore
   const showMenubar = location.pathname && !noMenubarPaths.includes(location.pathname);
@@ -75,7 +73,7 @@ function App() {
       <ConnectedRouter history={appHistory}>
         <ColorSchemeProvider colorScheme={colorScheme} toggleColorScheme={toggleColorScheme}>
           <MantineProvider theme={{ colorScheme }} withGlobalStyles withNormalizeCSS>
-            <NotificationsProvider autoClose={3000}>
+            <NotificationsProvider autoClose={3000} zIndex={1001}>
               <AppShell
                 fixed
                 padding={0}

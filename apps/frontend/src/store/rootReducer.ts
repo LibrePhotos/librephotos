@@ -1,6 +1,5 @@
 import { combineReducers } from "@reduxjs/toolkit";
 import { connectRouter } from "connected-react-router";
-import { reducer as notificationsReducer } from "reapop";
 
 import { api } from "../api_client/api";
 import appHistory from "../history";
@@ -27,6 +26,5 @@ export const rootReducer = combineReducers({
   ui,
   pub,
   user,
-  notifications: notificationsReducer(),
   [api.reducerPath]: api.reducer,
 });
