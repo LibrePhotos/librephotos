@@ -1,6 +1,6 @@
 import six
 from django.core.cache import cache
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -48,18 +48,15 @@ class RecentlyAddedPhotoListViewSet(viewsets.ModelViewSet):
             .first()
             .added_on
         )
-        queryset = (
-            Photo.visible.filter(
-                Q(owner=self.request.user)
-                & Q(aspect_ratio__isnull=False)
-                & Q(
-                    added_on__year=latestDate.year,
-                    added_on__month=latestDate.month,
-                    added_on__day=latestDate.day,
-                )
+        queryset = Photo.visible.filter(
+            Q(owner=self.request.user)
+            & Q(aspect_ratio__isnull=False)
+            & Q(
+                added_on__year=latestDate.year,
+                added_on__month=latestDate.month,
+                added_on__day=latestDate.day,
             )
-            .order_by("-added_on")
-        )
+        ).order_by("-added_on")
         return queryset
 
     @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
@@ -179,7 +176,6 @@ class NoTimestampPhotoHashListViewSet(viewsets.ModelViewSet):
         return super(NoTimestampPhotoHashListViewSet, self).list(*args, **kwargs)
 
 
-@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class NoTimestampPhotoViewSet(viewsets.ModelViewSet):
     serializer_class = PigPhotoSerilizer
     pagination_class = RegularResultsSetPagination
@@ -187,15 +183,22 @@ class NoTimestampPhotoViewSet(viewsets.ModelViewSet):
     search_fields = ["search_captions", "search_location", "faces__person__name"]
 
     def get_queryset(self):
-        return Photo.visible.filter(
-            Q(exif_timestamp=None) & Q(owner=self.request.user)
-        ).order_by("added_on")
+        return (
+            Photo.visible.filter(Q(exif_timestamp=None) & Q(owner=self.request.user))
+            .prefetch_related(
+                Prefetch(
+                    "owner",
+                    queryset=User.objects.only(
+                        "id", "username", "first_name", "last_name"
+                    ),
+                ),
+            )
+            .order_by("added_on")
+        )
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(NoTimestampPhotoViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(NoTimestampPhotoViewSet, self).list(*args, **kwargs)
 
