@@ -375,6 +375,7 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                         "hidden",
                         "exif_timestamp",
                         "owner",
+                        "video_length",
                     )
                     .distinct(),
                 ),
