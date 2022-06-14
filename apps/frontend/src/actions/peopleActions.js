@@ -38,16 +38,14 @@ export function renamePerson(personId, personName, newPersonName) {
         // To-Do: I should do something with the response
         dispatch({ type: "RENAME_PERSON_FULFILLED", payload: personId });
         fetchPeople(dispatch);
-        dispatch(
-          showNotification({
-            message: i18n.t("toasts.renameperson", {
-              personName: personName,
-              newPersonName: newPersonName,
-            }),
-            title: i18n.t("toasts.renamepersontitle"),
-            color: "teal",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.renameperson", {
+            personName: personName,
+            newPersonName: newPersonName,
+          }),
+          title: i18n.t("toasts.renamepersontitle"),
+          color: "teal",
+        });
       })
       .catch(err => {
         console.log(err);
@@ -63,13 +61,11 @@ export function deletePerson(person_id) {
       .then(response => {
         // To-Do: I should do something with the response
         fetchPeople(dispatch);
-        dispatch(
-          showNotification({
-            message: i18n.t("toasts.deleteperson"),
-            title: i18n.t("toasts.deletepersontitle"),
-            color: "teal",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.deleteperson"),
+          title: i18n.t("toasts.deletepersontitle"),
+          color: "teal",
+        });
 
         dispatch({ type: "DELETE_PERSON_FULFILLED" });
       })
@@ -89,13 +85,12 @@ export function setAlbumCoverForPerson(person_id, photo_hash) {
       .then(response => {
         // To-Do: I should do something with the response
         dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON_FULFILLED" });
-        dispatch(
-          showNotification({
-            message: i18n.t("toasts.setcoverphoto"),
-            title: i18n.t("toasts.setcoverphototitle"),
-            color: "teal",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.setcoverphoto"),
+          title: i18n.t("toasts.setcoverphototitle"),
+          color: "teal",
+        });
+
         fetchPeople(dispatch);
       })
       .catch(err => {

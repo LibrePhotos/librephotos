@@ -22,16 +22,14 @@ export function setFacesPersonLabel(faceIDs, personName) {
           type: "SET_FACES_PERSON_LABEL_FULFILLED",
           payload: response.data.results,
         });
-        dispatch(
-          showNotification({
-            message: i18n.t("toasts.addfacestoperson", {
-              numberOfFaces: faceIDs.length,
-              personName: personName,
-            }),
-            title: i18n.t("toasts.addfacestopersontitle"),
-            color: "teal",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.addfacestoperson", {
+            numberOfFaces: faceIDs.length,
+            personName: personName,
+          }),
+          title: i18n.t("toasts.addfacestopersontitle"),
+          color: "teal",
+        });
       })
       .catch(err => {
         console.log(err);
@@ -49,15 +47,13 @@ export function deleteFaces(faceIDs) {
           type: "DELETE_FACES_FULFILLED",
           payload: response.data.results,
         });
-        dispatch(
-          showNotification({
-            message: i18n.t("toasts.deletefaces", {
-              numberOfFaces: faceIDs.length,
-            }),
-            title: i18n.t("toasts.deletefacestitle"),
-            color: "teal",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.deletefaces", {
+            numberOfFaces: faceIDs.length,
+          }),
+          title: i18n.t("toasts.deletefacestitle"),
+          color: "teal",
+        });
       })
       .catch(err => {
         console.log(err);
@@ -73,14 +69,11 @@ export function trainFaces() {
       type: "SET_WORKER_RUNNING_JOB",
       payload: { job_type_str: "Train Faces" },
     });
-
-    dispatch(
-      showNotification({
-        message: i18n.t("toasts.trainingstarted"),
-        title: i18n.t("toasts.trainingstartedtitle"),
-        color: "teal",
-      })
-    );
+    showNotification({
+      message: i18n.t("toasts.trainingstarted"),
+      title: i18n.t("toasts.trainingstartedtitle"),
+      color: "teal",
+    });
     Server.get("trainfaces/", { timeout: 30000 })
       .then(response => {
         const data = TrainFacesResponse.parse(response.data);
@@ -103,13 +96,12 @@ export function rescanFaces() {
       payload: { job_type_str: "Scan Faces" },
     });
 
-    dispatch(
-      showNotification({
-        message: i18n.t("toasts.rescanfaces"),
-        title: i18n.t("toasts.rescanfacestitle"),
-        color: "teal",
-      })
-    );
+    showNotification({
+      message: i18n.t("toasts.rescanfaces"),
+      title: i18n.t("toasts.rescanfacestitle"),
+      color: "teal",
+    });
+
     Server.get("scanfaces/", { timeout: 30000 })
       .then(response => {
         const data = ScanFacesResponse.parse(response.data);

@@ -162,13 +162,12 @@ export function updateAvatar(user, form_data) {
         dispatch(userActions.updateRules(response.data));
         dispatch(fetchUserList());
         dispatch(fetchNextcloudDirectoryTree("/"));
-        dispatch(
-          showNotification({
-            message: i18n.t("toasts.updateuser", { username: user.username }),
-            title: i18n.t("toasts.updateusertitle"),
-            color: "teal",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.updateuser", { username: user.username }),
+          title: i18n.t("toasts.updateusertitle"),
+          color: "teal",
+        });
+
         dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id)).refetch();
       })
       .catch(error => {
@@ -207,13 +206,12 @@ export function updateUserAndScan(user) {
         const data = ManageUser.parse(response.data);
         dispatch(userActions.updateRules(response.data));
         dispatch(fetchUserList());
-        dispatch(
-          showNotification({
-            message: i18n.t("toasts.updateuser", { username: user.username }),
-            title: i18n.t("toasts.updateusertitle"),
-            color: "teal",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.updateuser", { username: user.username }),
+          title: i18n.t("toasts.updateusertitle"),
+          color: "teal",
+        });
+
         dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id)).refetch();
         dispatch(scanPhotos());
       })
@@ -231,13 +229,11 @@ export function manageUpdateUser(user) {
         const data = ManageUser.parse(response.data);
         dispatch(userActions.updateRules(response.data));
         dispatch(fetchUserList());
-        dispatch(
-          showNotification({
-            message: i18n.t("toasts.updateuser", { username: user.username }),
-            title: i18n.t("toasts.updateusertitle"),
-            color: "teal",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.updateuser", { username: user.username }),
+          title: i18n.t("toasts.updateusertitle"),
+          color: "teal",
+        });
       })
       .catch(error => {
         console.log(error);
@@ -252,15 +248,14 @@ export function fetchWorkerAvailability(prevRunningJob, dispatch) {
     .then(response => {
       const data = WorkerAvailability.optional().parse(response.data);
       if (prevRunningJob !== null && response.data.job_detail === null) {
-        dispatch(
-          showNotification({
-            message: i18n.t("toasts.jobfinished", {
-              job: prevRunningJob.job_type_str,
-            }),
-            title: prevRunningJob.job_type_str,
-            color: "teal",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.jobfinished", {
+            job: prevRunningJob.job_type_str,
+          }),
+          title: prevRunningJob.job_type_str,
+          color: "teal",
+        });
+
         if (prevRunningJob.job_type_str.toLowerCase() === "train faces") {
           dispatch(fetchLabeledFacesList());
           dispatch(fetchInferredFacesList());
@@ -303,13 +298,12 @@ export function deleteMissingPhotos() {
     Server.get(`deletemissingphotos`)
       .then(response => {
         const data = DeleteMissingPhotosResponse.parse(response.data);
-        dispatch(
-          showNotification({
-            message: i18n.t("toasts.deletemissingphotos"),
-            title: i18n.t("toasts.deletemissingphotostitle"),
-            color: "teal",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.deletemissingphotos"),
+          title: i18n.t("toasts.deletemissingphotostitle"),
+          color: "teal",
+        });
+
         dispatch({
           type: "DELETE_MISSING_PHOTOS_FULFILLED",
           payload: response.data,
@@ -333,13 +327,12 @@ export function generateEventAlbums() {
     Server.get(`autoalbumgen/`)
       .then(response => {
         const data = GenerateEventAlbumsResponse.parse(response.data);
-        dispatch(
-          showNotification({
-            message: i18n.t("toasts.generateeventalbums"),
-            title: i18n.t("toasts.generateeventalbumstitle"),
-            color: "teal",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.generateeventalbums"),
+          title: i18n.t("toasts.generateeventalbumstitle"),
+          color: "teal",
+        });
+
         dispatch({
           type: "GENERATE_EVENT_ALBUMS_FULFILLED",
           payload: response.data,
@@ -364,13 +357,12 @@ export function generateEventAlbumTitles() {
     Server.get("autoalbumtitlegen/")
       .then(response => {
         const data = GenerateEventAlbumsTitlesResponse.parse(response.data);
-        dispatch(
-          showNotification({
-            message: i18n.t("toasts.regenerateevents"),
-            title: i18n.t("toasts.regenerateeventstitle"),
-            color: "teal",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.regenerateevents"),
+          title: i18n.t("toasts.regenerateeventstitle"),
+          color: "teal",
+        });
+
         dispatch({
           type: "GENERATE_EVENT_ALBUMS_TITLES_FULFILLED",
           payload: response.data,

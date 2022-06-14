@@ -131,17 +131,15 @@ export function createNewUserAlbum(title: string, image_hashes: string[]) {
           payload: data,
         });
         dispatch(fetchUserAlbumsList());
-        dispatch(
-          showNotification({
-            message: i18n.t("toasts.createnewalbum", {
-              numberOfPhotos: image_hashes.length,
-              title: title,
-            }),
-            title: i18n.t("toasts.createalbumtitle"),
-            color: "teal",
-            //status: "success",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.createnewalbum", {
+            numberOfPhotos: image_hashes.length,
+            title: title,
+          }),
+          title: i18n.t("toasts.createalbumtitle"),
+          color: "teal",
+          //status: "success",
+        });
       })
       .catch(err => {
         dispatch({ type: "CREATE_USER_ALBUMS_LIST_REJECTED", payload: err });
@@ -158,17 +156,15 @@ export function renameUserAlbum(albumID: string, albumTitle: string, newAlbumTit
       .then(response => {
         dispatch({ type: "RENAME_USER_ALBUM_FULFILLED", payload: albumID });
         dispatch(fetchUserAlbumsList());
-        dispatch(
-          showNotification({
-            message: i18n.t("toasts.renamealbum", {
-              albumTitle: albumTitle,
-              newAlbumTitle: newAlbumTitle,
-            }),
-            title: i18n.t("toasts.renamealbumtitle"),
-            color: "teal",
-            // To-Do: Add Icon
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.renamealbum", {
+            albumTitle: albumTitle,
+            newAlbumTitle: newAlbumTitle,
+          }),
+          title: i18n.t("toasts.renamealbumtitle"),
+          color: "teal",
+          // To-Do: Add Icon
+        });
       })
       .catch(err => {
         dispatch({ type: "RENAME_USER_ALBUM_REJECTED", payload: err });
@@ -183,15 +179,13 @@ export function deleteUserAlbum(albumID: string, albumTitle: string) {
       .then(response => {
         dispatch({ type: "DELETE_USER_ALBUM_FULFILLED", payload: albumID });
         dispatch(fetchUserAlbumsList());
-        dispatch(
-          showNotification({
-            message: i18n.t("toasts.deletealbum", {
-              albumTitle: albumTitle,
-            }),
-            title: i18n.t("toasts.deletealbumtitle"),
-            color: "teal",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.deletealbum", {
+            albumTitle: albumTitle,
+          }),
+          title: i18n.t("toasts.deletealbumtitle"),
+          color: "teal",
+        });
       })
       .catch(err => {
         dispatch({ type: "DELETE_USER_ALBUM_REJECTED", payload: err });
@@ -211,16 +205,15 @@ export function removeFromUserAlbum(album_id: number, title: string, image_hashe
           type: "REMOVE_USER_ALBUMS_LIST_FULFILLED",
           payload: data,
         });
-        dispatch(
-          showNotification({
-            message: i18n.t("toasts.removefromalbum", {
-              numberOfPhotos: image_hashes.length,
-              title: title,
-            }),
-            title: i18n.t("toasts.removefromalbumtitle"),
-            color: "teal",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.removefromalbum", {
+            numberOfPhotos: image_hashes.length,
+            title: title,
+          }),
+          title: i18n.t("toasts.removefromalbumtitle"),
+          color: "teal",
+        });
+
         dispatch(fetchUserAlbumsList());
         dispatch(fetchUserAlbum(album_id));
       })
@@ -243,16 +236,15 @@ export function addToUserAlbum(album_id: number, title: string, image_hashes: st
           type: "EDIT_USER_ALBUMS_LIST_FULFILLED",
           payload: data,
         });
-        dispatch(
-          showNotification({
-            message: i18n.t("toasts.addtoalbum", {
-              numberOfPhotos: image_hashes.length,
-              title: title,
-            }),
-            title: i18n.t("toasts.addtoalbumtitle"),
-            color: "teal",
-          })
-        );
+        showNotification({
+          message: i18n.t("toasts.addtoalbum", {
+            numberOfPhotos: image_hashes.length,
+            title: title,
+          }),
+          title: i18n.t("toasts.addtoalbumtitle"),
+          color: "teal",
+        });
+
         dispatch(fetchUserAlbumsList());
       })
       .catch(err => {
@@ -435,21 +427,17 @@ export function setUserAlbumShared(album_id: number, target_user_id: string, val
         dispatch(fetchUserAlbum(album_id));
 
         if (val_shared) {
-          dispatch(
-            showNotification({
-              message: i18n.t("toasts.sharingalbum"),
-              title: i18n.t("toasts.sharingalbumtitle"),
-              color: "teal",
-            })
-          );
+          showNotification({
+            message: i18n.t("toasts.sharingalbum"),
+            title: i18n.t("toasts.sharingalbumtitle"),
+            color: "teal",
+          });
         } else {
-          dispatch(
-            showNotification({
-              message: i18n.t("toasts.unsharingalbum"),
-              title: i18n.t("toasts.unsharingalbumtitle"),
-              color: "teal",
-            })
-          );
+          showNotification({
+            message: i18n.t("toasts.unsharingalbum"),
+            title: i18n.t("toasts.unsharingalbumtitle"),
+            color: "teal",
+          });
         }
       })
       .catch(err => {
