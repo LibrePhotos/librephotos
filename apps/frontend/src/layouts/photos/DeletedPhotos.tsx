@@ -1,6 +1,6 @@
-import _ from "lodash";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Trash } from "tabler-icons-react";
 
 import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
@@ -48,19 +48,14 @@ export function DeletedPhotos() {
     });
   };
 
-  const throttledGetAlbums = useCallback(
-    _.throttle(visibleItems => getAlbums(visibleItems), 500),
-    []
-  );
   return (
     <PhotoListView
-      showHidden={false}
       title={t("photos.deleted")}
       loading={fetchedPhotosetType !== PhotosetType.DELETED}
-      titleIconName="trash"
+      icon={<Trash size={50} />}
       isDateView
       photoset={photosGroupedByDate}
-      updateGroups={throttledGetAlbums}
+      updateGroups={getAlbums}
       idx2hash={photosFlat}
       selectable
     />

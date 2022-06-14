@@ -1,5 +1,4 @@
-import { throttle } from "lodash";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Star } from "tabler-icons-react";
 
@@ -16,7 +15,6 @@ type fetchedGroup = {
 
 export function FavoritePhotos() {
   const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(state => state.photos as PhotosState);
-  const { userSelfDetails } = useAppSelector(state => state.user);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
 
@@ -50,19 +48,14 @@ export function FavoritePhotos() {
     });
   };
 
-  const throttledGetAlbums = useCallback(
-    throttle(visibleItems => getAlbums(visibleItems), 500),
-    []
-  );
   return (
     <PhotoListView
-      showHidden={false}
       title={t("photos.favorite")}
       loading={fetchedPhotosetType !== PhotosetType.FAVORITES}
       icon={<Star size={50} />}
       isDateView
       photoset={photosGroupedByDate}
-      updateGroups={throttledGetAlbums}
+      updateGroups={getAlbums}
       idx2hash={photosFlat}
       selectable
     />

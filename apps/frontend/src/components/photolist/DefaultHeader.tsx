@@ -12,7 +12,6 @@ type Props = {
   loading: boolean;
   numPhotosetItems: number;
   numPhotos: number;
-  noResultsMessage: string;
   icon: ReactElement;
   title: string;
   additionalSubHeader: string;
@@ -50,17 +49,7 @@ export const DefaultHeader = (props: Props) => {
     return path === "/";
   };
 
-  const {
-    loading,
-    numPhotosetItems,
-    icon,
-    noResultsMessage,
-    numPhotos,
-    title,
-    additionalSubHeader,
-    date,
-    dayHeaderPrefix,
-  } = props;
+  const { loading, numPhotosetItems, icon, numPhotos, title, additionalSubHeader, date, dayHeaderPrefix } = props;
 
   if (loading || numPhotosetItems < 1) {
     return (
@@ -93,20 +82,6 @@ export const DefaultHeader = (props: Props) => {
             {loading ? <Loader size={25} /> : null}
           </Group>
         </Title>
-        {numPhotosetItems < 1 ? (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              height: window.innerHeight - TOP_MENU_HEIGHT - 60,
-            }}
-          >
-            <Title>{noResultsMessage}</Title>
-          </div>
-        ) : (
-          <div />
-        )}
         <ModalScanDirectoryEdit
           onRequestClose={() => {
             setModalOpen(false);

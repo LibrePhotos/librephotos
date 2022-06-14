@@ -1,5 +1,4 @@
-import _ from "lodash";
-import React, { useCallback, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Photo } from "tabler-icons-react";
 
@@ -30,11 +29,6 @@ export function NoTimestampPhotosView() {
     }
   };
 
-  const throttledGetImages = useCallback(
-    _.throttle(visibleItems => getImages(visibleItems), 500),
-    []
-  );
-
   return (
     <PhotoListView
       title={t("photos.notimestamp")}
@@ -44,7 +38,7 @@ export function NoTimestampPhotosView() {
       photoset={photosFlat}
       idx2hash={photosFlat}
       numberOfItems={numberOfPhotos}
-      updateItems={throttledGetImages}
+      updateItems={getImages}
       selectable
     />
   );

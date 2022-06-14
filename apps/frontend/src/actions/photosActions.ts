@@ -538,6 +538,7 @@ export function fetchNoTimestampPhotoPaginated(dispatch: AppDispatch, page: numb
       });
     })
     .catch(err => {
+      console.log(err);
       dispatch({
         type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED,
         payload: err,

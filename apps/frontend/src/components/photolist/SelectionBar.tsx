@@ -64,7 +64,6 @@ export const SelectionBar = (props: Props) => {
               leftIcon={<Check color={selectMode ? "green" : "gray"} />}
               color={selectMode ? "blue" : "gray"}
               onClick={() => {
-                console.log(selectMode);
                 updateSelectionState({
                   selectMode: !selectMode,
                 });

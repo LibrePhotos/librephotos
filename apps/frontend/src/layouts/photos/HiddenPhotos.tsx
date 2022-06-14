@@ -21,7 +21,6 @@ export function HiddenPhotos() {
 
   return (
     <PhotoListView
-      showHidden
       title={t("photos.hidden")}
       loading={fetchedPhotosetType !== PhotosetType.HIDDEN}
       icon={<EyeOff size={50} />}

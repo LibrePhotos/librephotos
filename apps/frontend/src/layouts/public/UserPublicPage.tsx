@@ -55,13 +55,9 @@ export function UserPublicPage(props: Props) {
     });
   };
 
-  const throttledGetAlbums = useCallback(
-    _.throttle(visibleItems => getAlbums(visibleItems), 500),
-    []
-  );
-
   return (
     <PhotoListView
+      //To-Do: Translate this
       title={
         auth.access && auth.access.name === props.match.params.username
           ? "Your public photos"
@@ -73,7 +69,7 @@ export function UserPublicPage(props: Props) {
       photoset={photosGroupedByDate}
       idx2hash={photosFlat}
       isPublic={auth.access === null || auth.access.name !== props.match.params.username}
-      updateGroups={throttledGetAlbums}
+      updateGroups={getAlbums}
       selectable
     />
   );

@@ -46,11 +46,6 @@ export function TimestampPhotos() {
     });
   };
 
-  const throttledGetAlbums = useCallback(
-    _.throttle(visibleItems => getAlbums(visibleItems), 500),
-    []
-  );
-
   return (
     <PhotoListView
       title={t("photos.photos")}
@@ -59,7 +54,7 @@ export function TimestampPhotos() {
       isDateView
       photoset={photosGroupedByDate}
       idx2hash={photosFlat}
-      updateGroups={throttledGetAlbums}
+      updateGroups={getAlbums}
       selectable
     />
   );
