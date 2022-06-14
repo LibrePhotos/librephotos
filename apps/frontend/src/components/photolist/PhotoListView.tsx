@@ -98,6 +98,13 @@ const PhotoListViewComponent = (props: Props) => {
     []
   );
 
+  const getUrl = useCallback((url, pxHeight) => {
+    if (pxHeight < 250) {
+      return `${serverAddress}/media/square_thumbnails_small/${url.split(";")[0]}`;
+    }
+    return `${serverAddress}/media/square_thumbnails/${url.split(";")[0]}`;
+  }, []);
+
   const updateSelectionState = newState => {
     const updatedState = { ...selectionState, ...newState };
     selectionStateRef.current = updatedState;
@@ -186,9 +193,8 @@ const PhotoListViewComponent = (props: Props) => {
     return idx2hashRef.current ? idx2hashRef.current.length : 0;
   };
 
-  const getPigImageData = () => {
-    return Array.isArray(photoset) ? photoset : [photoset];
-  };
+  const getPigImageData = Array.isArray(photoset) ? photoset : [photoset];
+
   closeLightboxIfImageIndexIsOutOfSync();
 
   let isUserAlbum = false;
@@ -283,29 +289,22 @@ const PhotoListViewComponent = (props: Props) => {
         )}
       </Box>
       {!loading && photoset && photoset.length > 0 ? (
-        <div>
-          <Pig
-            imageData={getPigImageData()}
-            selectable={selectable === undefined || selectable}
-            selectedItems={selectionState.selectedItems}
-            handleSelection={handleSelection}
-            handleClick={handleClick}
-            scaleOfImages={userSelfDetails.image_scale}
-            groupByDate={isDateView}
-            getUrl={(url, pxHeight) => {
-              if (pxHeight < 250) {
-                return `${serverAddress}/media/square_thumbnails_small/${url.split(";")[0]}`;
-              }
-              return `${serverAddress}/media/square_thumbnails/${url.split(";")[0]}`;
-            }}
-            toprightoverlay={FavoritedOverlay}
-            bottomleftoverlay={VideoOverlay}
-            numberOfItems={numberOfItems ? numberOfItems : idx2hash.length}
-            updateItems={updateItems ? throttledUpdateItems : () => {}}
-            updateGroups={updateGroups ? throttledUpdateGroups : () => {}}
-            bgColor="inherit"
-          />
-        </div>
+        <Pig
+          imageData={getPigImageData}
+          selectable={selectable === undefined || selectable}
+          selectedItems={selectionStateRef.current.selectedItems}
+          handleSelection={handleSelection}
+          handleClick={handleClick}
+          scaleOfImages={userSelfDetails.image_scale}
+          groupByDate={isDateView}
+          getUrl={getUrl}
+          toprightoverlay={FavoritedOverlay}
+          bottomleftoverlay={VideoOverlay}
+          numberOfItems={numberOfItems ? numberOfItems : idx2hashRef.current.length}
+          updateItems={updateItems ? throttledUpdateItems : () => {}}
+          updateGroups={updateGroups ? throttledUpdateGroups : () => {}}
+          bgColor="inherit"
+        />
       ) : (
         <div />
       )}
@@ -378,4 +377,6 @@ const PhotoListViewComponent = (props: Props) => {
   );
 };
 
-export const PhotoListView = React.memo(PhotoListViewComponent);
+export const PhotoListView = React.memo(PhotoListViewComponent, (prev, next) => {
+  return prev.loading === next.loading && prev.idx2hash === next.idx2hash;
+});
