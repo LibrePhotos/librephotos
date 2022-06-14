@@ -136,6 +136,8 @@ export const FaceDashboard = () => {
     if (selectedFaces.length > 0) {
       const ids = selectedFaces.map(face => face.face_id);
       dispatch(deleteFaces(ids));
+      setSelectedFaces([]);
+      setSelectMode(false);
     }
   };
 
@@ -214,6 +216,7 @@ export const FaceDashboard = () => {
         onRequestClose={() => {
           setModalPersonEditOpen(false);
           setSelectedFaces([]);
+          setSelectMode(false);
         }}
         selectedFaces={selectedFaces}
       />
