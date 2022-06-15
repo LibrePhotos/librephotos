@@ -34,7 +34,7 @@ export class AlbumThing extends Component {
     this.cellRenderer = this.cellRenderer.bind(this);
   }
 
-  componentWillUnount() {
+  componentWillUnmount() {
     window.removeEventListener("resize", this.calculateEntrySquareSize);
   }
 

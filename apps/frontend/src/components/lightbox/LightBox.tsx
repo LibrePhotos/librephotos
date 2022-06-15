@@ -26,7 +26,6 @@ type Props = {
 };
 
 export const LightBox = (props: Props) => {
-  const forceUpdate = useForceUpdate();
   const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
   const { photoDetails } = useAppSelector(store => store.photos);
 
@@ -43,15 +42,10 @@ export const LightBox = (props: Props) => {
 
   const closeSidepanel = () => {
     setLightBoxSidebarShow(!lightboxSidebarShow);
-    forceUpdate();
   };
 
   const getCurrentPhotodetail = () => {
     return photoDetails[lightboxImageId];
-  };
-
-  const isLoaded = () => {
-    return !photoDetails[lightboxImageId];
   };
 
   const getPreviousId = () => {
@@ -79,25 +73,21 @@ export const LightBox = (props: Props) => {
     return getCurrentPhotodetail().video;
   };
 
+  const getVideoComponent = id =>
+    isVideo() ? (
+      <ReactPlayer width="100%" height="100%" controls playing url={getVideoUrl(id)} progressInterval={100} />
+    ) : null;
+
   return (
     <div>
       <Lightbox
         // @ts-ignore
         mainSrc={!isVideo() ? getPictureUrl(lightboxImageId) : null}
-        nextSrc={getPictureUrl(getNextId())}
-        prevSrc={getPictureUrl(getPreviousId())}
-        mainCustomContent={
-          isVideo() ? (
-            <ReactPlayer
-              width="100%"
-              height="100%"
-              controls
-              playing
-              url={getVideoUrl(lightboxImageId)}
-              progressInterval={100}
-            />
-          ) : null
-        }
+        nextSrc={!isVideo() ? getPictureUrl(getNextId()) : undefined}
+        prevSrc={!isVideo() ? getPictureUrl(getPreviousId()) : undefined}
+        mainCustomContent={getVideoComponent(lightboxImageId)}
+        nextCustomContent={getVideoComponent(getNextId())}
+        prevCustomContent={getVideoComponent(getPreviousId())}
         imageLoadErrorMessage=""
         toolbarButtons={[
           <Toolbar
@@ -111,15 +101,12 @@ export const LightBox = (props: Props) => {
         onAfterOpen={() => {
           console.log("lightbox trying to fetch photo detail");
           onImageLoad();
-          forceUpdate();
         }}
         onMovePrevRequest={() => {
           onMovePrevRequest();
-          forceUpdate();
         }}
         onMoveNextRequest={() => {
           onMoveNextRequest();
-          forceUpdate();
         }}
         reactModalStyle={{
           content: {},
