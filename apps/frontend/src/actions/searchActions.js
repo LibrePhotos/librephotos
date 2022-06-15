@@ -18,7 +18,8 @@ export function searchPhotos(query) {
       dispatch({ type: SEARCH_PHOTOS, payload: query });
       Server.get(`photos/searchlist/?search=${query}`, { timeout: 100000 })
         .then(response => {
-          const data = DatePhotosGroupSchema.array().parse(response.data.results);
+          //To-Do: Handle flat list from semantic search
+          //const data = DatePhotosGroupSchema.array().parse(response.data.results);
           const photosGroupedByDate = response.data.results;
           adjustDateFormat(photosGroupedByDate);
           dispatch({
