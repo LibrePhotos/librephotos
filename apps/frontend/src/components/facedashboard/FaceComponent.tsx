@@ -33,14 +33,14 @@ export function FaceComponent(props: Props) {
       <Box
         sx={theme => ({
           display: "block",
-          backgroundColor: isSelected ? "rgba(174, 214, 241, 0.4)" : "transparent",
+          backgroundColor: isSelected ? "rgba(174, 214, 241, 0.7)" : "transparent",
           alignContent: "center",
           borderRadius: theme.radius.md,
           padding: 10,
           marginRight: 10,
           cursor: "pointer",
           "&:hover": {
-            backgroundColor: isSelected ? "rgba(174, 214, 241, 0.8)" : "rgba(174, 214, 241, 0.6)",
+            backgroundColor: isSelected ? "rgba(174, 214, 241, 0.95)" : "rgba(174, 214, 241, 0.7)",
           },
         })}
       >
@@ -84,7 +84,7 @@ export function FaceComponent(props: Props) {
         marginRight: 10,
         cursor: "pointer",
         "&:hover": {
-          backgroundColor: "rgba(174, 214, 241, 0.6)",
+          backgroundColor: "rgba(174, 214, 241, 0.7)",
         },
       })}
     >
