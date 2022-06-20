@@ -129,6 +129,9 @@ export const FaceDashboard = () => {
   };
 
   const changeSelectMode = () => {
+    if (selectMode) {
+      setSelectedFaces([]);
+    }
     setSelectMode(!selectMode);
   };
 
