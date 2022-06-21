@@ -1,5 +1,6 @@
 import { ActionIcon, Button, Group, Modal } from "@mantine/core";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowBackUp, Trash } from "tabler-icons-react";
 
 import { finalPhotosDeleted, setPhotosDeleted } from "../../actions/photosActions";
@@ -14,7 +15,7 @@ export const TrashcanActions = (props: Props) => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const dispatch = useAppDispatch();
   const { selectedItems, updateSelectionState } = props;
-
+  const { t } = useTranslation();
   const route = useAppSelector(store => store.router);
   return (
     <Group>
@@ -62,7 +63,7 @@ export const TrashcanActions = (props: Props) => {
               setOpenDeleteDialog(false);
             }}
           >
-            Cancel
+            {t("cancel")}
           </Button>
           <Button
             color="red"
@@ -76,7 +77,7 @@ export const TrashcanActions = (props: Props) => {
               setOpenDeleteDialog(false);
             }}
           >
-            Confirm
+            {t("confirm")}
           </Button>
         </Group>
       </Modal>
