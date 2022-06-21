@@ -91,6 +91,7 @@
     "scanoptions": "Scan Options",
     "sceneconfidence": "Scene Confidence",
     "confidencelevel": "Confidence Level",
+    "confidencepercentage": "Confidence: {{percentage}}%",
     "confidence": {
       "high": "High",
       "standard": "Standard",

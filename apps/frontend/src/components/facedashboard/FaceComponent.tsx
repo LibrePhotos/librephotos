@@ -1,4 +1,5 @@
 import { Avatar, Box, Center, Indicator, Tooltip } from "@mantine/core";
+import { t } from "i18next";
 import _ from "lodash";
 import React, { useState } from "react";
 
@@ -91,7 +92,9 @@ export function FaceComponent(props: Props) {
       <Center>
         <Tooltip
           opened={tooltipOpened && props.activeItem === 1}
-          label={`Confidence: ${(props.cell.person_label_probability * 100).toFixed(1)}%`}
+          label={t("confidencepercentage", {
+            percentage: (props.cell.person_label_probability * 100).toFixed(1),
+          })}
           position="bottom"
         >
           <Indicator
