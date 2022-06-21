@@ -45,8 +45,7 @@ export function uploadPhotos(form_data: any, dispatch: Dispatch<any>) {
     },
   }).then((response: any) => {
     showNotification({
-      //To-Do: Localization
-      message: "Upload successful",
+      message: i18n.t("toasts.uploadsuccess"),
       title: i18n.t("toasts.sharephototitle"),
       color: "teal",
     });

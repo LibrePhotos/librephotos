@@ -447,7 +447,8 @@
     "finaldeletephoto": "{{numberOfPhotos}} photo(s) were permanently deleted.",
     "finaldeletephototitle": "Delete Images",
     "editphoto": "Photo edited",
-    "editphototitle": "Edit photo"
+    "editphototitle": "Edit photo",
+    "uploadsuccess": "Upload successful"
   },
   "rules": {
     "1": "Local time from DATE_TIME_ORIGINAL exif tag",
