@@ -124,7 +124,8 @@
         "eventsalbumsdescription": "De backendserver zal eerst trachten foto's te groepen op basis van tijdstippen. Als twee opeenvolgende foto's binnen twaalf uur na elkaar zijn genomen, dan worden ze bestempeld als behorende bij dezelfde gebeurtenis. Na het groeperen wordt er automatisch een albumnaam samengesteld.",
         "missingphotosdescription": "LibrePhotos zal tijdens elke scan controleren of de bestanden nog op dezelfde locatie aanwezig zijn of verplaatst. Als ze ontbreken, dan worden ze als dusdanig aangemerkt.",
         "eventalbumsregeneratedescription": "Automatisch samengestelde albumnamen bevatten persoonsnamen. Als u de gezichtsherkenning getraind hebt na het samenstellen van gebeurtenisalbums, dan kunt u nieuwe namen genereren voor reeds bestaande albums om ze te koppelen aan de gezichten op de foto's.",
-        "transcodevideo": "Video's altijd converteren"
+        "transcodevideo": "Video's altijd converteren",
+        "confidencepercentage": "Zekerheid: {{percentage}}%"
     },
     "topmenu": {
         "profile": "Profiel",
@@ -428,7 +429,8 @@
         "hidephoto": "Er is/zijn {{numberOfPhotos}} foto('s) verborgen.",
         "finaldeletephototitle": "Afbeeldingen verwijderen",
         "editphoto": "De foto is bewerkt",
-        "editphototitle": "Foto bewerken"
+        "editphototitle": "Foto bewerken",
+        "uploadsuccess": "Het uploaden is voltooid"
     },
     "rename": "Naam wijzigen",
     "events": "Gebeurtenissen",
@@ -470,5 +472,9 @@
         "title": "Toevoegen aan album",
         "newalbum": "Nieuw album",
         "create": "Aanmaken"
-    }
+    },
+    "deleteface": "Gezichten verwijderen",
+    "deletefaceexplanation": "Door deze actie worden de gezichten en alle bijbehorende gegevens verwijderd. Dit kan niet ongedaan worden gemaakt.",
+    "cancel": "Annuleren",
+    "confirm": "Bevestigen"
 }
