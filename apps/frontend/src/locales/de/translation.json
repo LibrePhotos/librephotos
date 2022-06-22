@@ -125,7 +125,8 @@
         "metadata": "Metadaten-Optionen",
         "polish": "Polnisch",
         "dutch": "Niederländisch",
-        "profile": "Profil"
+        "profile": "Profil",
+        "confidencepercentage": "Vertrauen: {{percentage}} %"
     },
     "modalnextcloud": {
         "setdirectory": "Setze dein Nextcloud Scan Ordner",
@@ -433,7 +434,8 @@
         "finaldeletephototitle": "Bilder löschen",
         "setdeletetitle": "Bilder löschen",
         "editphototitle": "Foto bearbeiten",
-        "editphoto": "Foto bearbeitet"
+        "editphoto": "Foto bearbeitet",
+        "uploadsuccess": "Erfolgreich hochgeladen"
     },
     "rules": {
         "file_property": "Dateieigenschaft verwenden {{rule}}",
@@ -471,5 +473,9 @@
         "items": "{{count}} Element(e)",
         "selectedimages": "Ausgewählte(s) {{count}} Foto(s) hinzufügen zu …",
         "placeholder": "Albumtitel"
-    }
+    },
+    "confirm": "Bestätigen",
+    "deleteface": "Gesichter löschen",
+    "cancel": "Abbrechen",
+    "deletefaceexplanation": "Mit dieser Aktion werden die Flächen und alle zugehörigen Daten endgültig gelöscht. Diese Aktion kann nicht rückgängig gemacht werden."
 }
