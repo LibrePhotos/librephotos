@@ -92,14 +92,12 @@ export function LoginPage(): JSX.Element {
                 <Stack>
                   <TextInput
                     icon={<User />}
-                    label={t("login.username")}
                     placeholder={t("login.usernameplaceholder")}
                     name="username"
                     {...form.getInputProps("username")}
                   />
                   <PasswordInput
                     icon={<Lock />}
-                    label={t("login.password")}
                     placeholder={t("login.passwordplaceholder")}
                     name="password"
                     {...form.getInputProps("password")}
