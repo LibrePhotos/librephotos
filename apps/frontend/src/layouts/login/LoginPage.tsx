@@ -1,27 +1,51 @@
+import {
+  Button,
+  Card,
+  Center,
+  Group,
+  Image,
+  PasswordInput,
+  Stack,
+  TextInput,
+  Title,
+  useMantineColorScheme,
+} from "@mantine/core";
+import { useForm } from "@mantine/form";
 import type { FormEvent } from "react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useHistory } from "react-router-dom";
-import { Button, Divider, Form, Header, Image, Segment } from "semantic-ui-react";
+import { useHistory } from "react-router-dom";
+import { Lock, User } from "tabler-icons-react";
 
 import { fetchSiteSettings } from "../../actions/utilActions";
 import { useLoginMutation } from "../../api_client/api";
 import { authActions } from "../../store/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { selectSiteSettings } from "../../store/util/utilSelectors";
-import type { ISignInFormState } from "./loginUtils";
-import { validateSignInForm } from "./loginUtils";
-
-const initialFormState: ISignInFormState = { username: "", password: "" };
+import { isStringEmpty } from "../../util/stringUtils";
 
 export function LoginPage(): JSX.Element {
   const history = useHistory();
+
+  const { colorScheme } = useMantineColorScheme();
+  const dark = colorScheme === "dark";
+
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
 
   const siteSettings = useAppSelector(selectSiteSettings);
   const [login, { isSuccess, isLoading }] = useLoginMutation();
-  const [form, setForm] = useState<ISignInFormState>(initialFormState);
+  const form = useForm({
+    initialValues: {
+      username: "",
+      password: "",
+    },
+
+    validate: {
+      password: value => (isStringEmpty(value) ? null : "Password should not be empty"),
+      username: value => (isStringEmpty(value) ? null : "Username should not be empty"),
+    },
+  });
 
   useEffect(() => {
     dispatch(authActions.clearError());
@@ -36,7 +60,7 @@ export function LoginPage(): JSX.Element {
 
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    void login({ username: form.username.toLowerCase(), password: form.password });
+    void login({ username: form.values.username.toLowerCase(), password: form.values.password });
   }
 
   return (
@@ -49,79 +73,58 @@ export function LoginPage(): JSX.Element {
         width: "100%",
         height: "100%",
         overflowY: "auto",
-        backgroundColor: "#dddddd",
         backgroundSize: "cover",
       }}
     >
-      <div style={{ maxWidth: 500, padding: 20, margin: "0 auto" }}>
-        <div
-          style={{
-            maxWidth: 400,
-            textAlign: "center",
-            margin: "0 auto",
-            padding: 20,
-          }}
-        >
-          <Image src="/logo.png" size="tiny" verticalAlign="middle" />{" "}
+      <Stack align="center" justify="flex-end">
+        <Group>
+          <Image height={80} fit="contain" src={dark ? "/logo-white.png" : "/logo.png"} />
           <span style={{ paddingLeft: 5, fontSize: 18 }}>
             <b>{t("login.name")}</b>
           </span>
-        </div>
+        </Group>
+        <div style={{ width: 500, margin: "auto" }}>
+          <Card>
+            <Stack>
+              <Title order={3}>{t("login.login")}</Title>
 
-        <Segment attached>
-          <Header>{t("login.login")}</Header>
-
-          <Form onSubmit={onSubmit}>
-            <Form.Field>
-              <label>{t("login.username")}</label>
-              <Form.Input
-                icon="user"
-                placeholder={t("login.usernameplaceholder")}
-                name="username"
-                value={form.username}
-                onChange={(e, { value }) => setForm(ps => ({ ...ps, username: value }))}
-              />
-            </Form.Field>
-            <Form.Field>
-              <label>{t("login.password")}</label>
-              <Form.Input
-                icon="lock"
-                type="password"
-                placeholder={t("login.passwordplaceholder")}
-                name="password"
-                value={form.password}
-                onChange={(e, { value }) => setForm(ps => ({ ...ps, password: value }))}
-              />
-              <Divider />
-              <Form.Button fluid color="blue" content="Log in" />
-
-              {siteSettings.allow_registration && (
-                <div>
-                  <Divider />
-                  <Button
-                    disabled={!siteSettings.allow_registration || isLoading || validateSignInForm(form)}
-                    as={Link}
-                    to="/signup"
-                    fluid
-                    color="green"
-                    content={t("login.signup")}
+              <form onSubmit={onSubmit}>
+                <Stack>
+                  <TextInput
+                    icon={<User />}
+                    label={t("login.username")}
+                    placeholder={t("login.usernameplaceholder")}
+                    name="username"
+                    {...form.getInputProps("username")}
                   />
-                </div>
-              )}
-            </Form.Field>
-          </Form>
-        </Segment>
-      </div>
-      <div
-        style={{
-          maxWidth: 400,
-          textAlign: "center",
-          paddingTop: "10%",
-          margin: "0 auto",
-        }}
-      >
-        {t("login.tagline")}
-      </div>
+                  <PasswordInput
+                    icon={<Lock />}
+                    label={t("login.password")}
+                    placeholder={t("login.passwordplaceholder")}
+                    name="password"
+                    {...form.getInputProps("password")}
+                  />
+                  <Button variant="gradient" gradient={{ from: "#43cea2", to: "#185a9d" }} type="submit">
+                    Log in
+                  </Button>
+                  {siteSettings.allow_registration && (
+                    <Button
+                      disabled={!siteSettings.allow_registration || isLoading}
+                      component="a"
+                      href="/signup"
+                      variant="gradient"
+                      gradient={{ from: "#D38312", to: "#A83279" }}
+                    >
+                      {t("login.signup")}
+                    </Button>
+                  )}
+                </Stack>
+              </form>
+            </Stack>
+          </Card>
+        </div>
+        <Center>{t("login.tagline")}</Center>
+      </Stack>
     </div>
   );
 }

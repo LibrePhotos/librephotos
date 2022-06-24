@@ -39,6 +39,7 @@
     "@mantine/core": "^4.2.4",
     "@mantine/dates": "^4.2.4",
     "@mantine/hooks": "^4.2.4",
+    "@mantine/form": "^4.2.4",
     "@mantine/notifications": "^4.2.4",
     "@popperjs/core": "2.9.2",
     "@reduxjs/toolkit": "^1.8.0",
