@@ -125,7 +125,8 @@
         "sync": "Sincronizar metadatos con el disco",
         "polish": "Polaco",
         "dutch": "Alemán",
-        "profile": "Perfil"
+        "profile": "Perfil",
+        "confidencepercentage": "Confianza: {{percentage}}%"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de escaneo de Nextcloud",
@@ -433,7 +434,8 @@
         "finaldeletephoto": "{{numberOfPhotos}} la(s) foto(s) se eliminaron permanentemente.",
         "finaldeletephototitle": "Eliminar Imagenes",
         "editphoto": "Foto editada",
-        "editphototitle": "Editar foto"
+        "editphototitle": "Editar foto",
+        "uploadsuccess": "Subida exitosa"
     },
     "rules": {
         "report_tz": "Transformar a{{rule}}",
@@ -471,5 +473,9 @@
         "alreadexists": "El álbum {{title}} ya existe.",
         "placeholder": "Título del álbum",
         "selectedimages": "Añadir la(s) foto(s) seleccionada(s) {{count}} a…"
-    }
+    },
+    "cancel": "Cancelar",
+    "deletefaceexplanation": "Esta acción eliminará de forma permanente los rostros y todos sus datos asociados. Esta acción no se puede deshacer.",
+    "confirm": "Confirmar",
+    "deleteface": "Eliminar caras"
 }
