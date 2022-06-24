@@ -105,7 +105,7 @@ export function LoginPage(): JSX.Element {
                     {...form.getInputProps("password")}
                   />
                   <Button variant="gradient" gradient={{ from: "#43cea2", to: "#185a9d" }} type="submit">
-                    Log in
+                    {t("login.login")}
                   </Button>
                   {siteSettings.allow_registration && (
                     <Button
