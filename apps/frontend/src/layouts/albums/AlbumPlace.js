@@ -52,8 +52,6 @@ export class AlbumPlace extends Component {
       this.props.dispatch(fetchLocationClusters());
     }
 
-    console.log("Map was just set visible.");
-
     let resizeDone = false;
 
     // attempt resize 8 times; mapRef.current might be undefined
@@ -64,7 +62,6 @@ export class AlbumPlace extends Component {
             const map = this.mapRef.current.leafletElement;
             map.invalidateSize(true);
             resizeDone = true;
-            console.log("Map resized.");
           }
         }
       }, 1000 * (i + 1));
@@ -72,7 +69,6 @@ export class AlbumPlace extends Component {
   }
 
   onViewportChanged = viewport => {
-    console.log("Viewport changed, mapping new photo location: ", viewport.center);
     this.setState({ viewport });
 
     const map = this.mapRef.current.leafletElement;
@@ -107,7 +103,6 @@ export class AlbumPlace extends Component {
       return false;
     });
 
-    console.log(visibleMarkers);
     this.setState({
       visibleMarkers: visibleMarkers,
       visiblePlaceAlbums: _.sortBy(visiblePlaceAlbums, ["geolocation_level", "photo_count"]),

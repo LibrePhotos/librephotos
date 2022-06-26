@@ -99,7 +99,6 @@ export const LightBox = (props: Props) => {
         ]}
         onCloseRequest={onCloseRequest}
         onAfterOpen={() => {
-          console.log("lightbox trying to fetch photo detail");
           onImageLoad();
         }}
         onMovePrevRequest={() => {

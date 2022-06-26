@@ -42,8 +42,6 @@ export const LocationMap = (props: Props) => {
     </Marker>
   ));
 
-  console.log(markers);
-
   if (photosWithGPS.length > 0) {
     const zoom = 16;
     return (

@@ -1,7 +1,7 @@
 import { Box, Button, Group, Loader, Stack, Title } from "@mantine/core";
-import { push } from "connected-react-router";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { push } from "redux-first-history";
 import { Ballon } from "tabler-icons-react";
 
 import { fetchAutoAlbumsList, fetchUserAlbumsList } from "../../actions/albumsActions";

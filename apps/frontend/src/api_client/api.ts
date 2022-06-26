@@ -9,6 +9,7 @@ import type { RootState } from "../store/store";
 import type { IUploadOptions, IUploadResponse } from "../store/upload/upload.zod";
 import { UploadExistResponse, UploadResponse } from "../store/upload/upload.zod";
 import { IApiUserListResponse, IUser, UserSchema } from "../store/user/user.zod";
+import { IJobDetailSchema, IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
 
 export enum Endpoints {
   login = "login",
@@ -20,6 +21,7 @@ export enum Endpoints {
   uploadExists = "uploadExists",
   uploadFinished = "uploadFinished",
   upload = "upload",
+  worker = "worker",
 }
 
 const baseQuery = fetchBaseQuery({
@@ -123,6 +125,12 @@ export const api = createApi({
       }),
       transformResponse: (response: IUploadResponse) => UploadResponse.parse(response),
     }),
+    [Endpoints.worker]: builder.query<IWorkerAvailabilityResponse, IJobDetailSchema>({
+      query: () => ({
+        url: "/rqavailable/",
+        method: "GET",
+      }),
+    }),
   }),
 });
 export const {
@@ -134,4 +142,6 @@ export const {
   useFetchUserSelfDetailsQuery,
   useLoginMutation,
   useSignUpMutation,
+  useWorkerQuery,
+  useLazyWorkerQuery,
 } = api;

@@ -31,7 +31,7 @@ export function searchPhotos(query) {
           });
         })
         .catch(err => {
-          console.log(err);
+          console.error(err);
           dispatch({ type: SEARCH_PHOTOS_REJECTED, payload: err });
         });
     }
@@ -62,7 +62,7 @@ export function searchPeople(query) {
           });
         })
         .catch(err => {
-          console.log(err);
+          console.error(err);
           dispatch({ type: "SEARCH_PEOPLE_REJECTED", payload: err });
         });
     }
@@ -81,7 +81,7 @@ export function searchThingAlbums(query) {
         });
       })
       .catch(err => {
-        console.log(err);
+        console.error(err);
         dispatch({ type: "SEARCH_THING_ALBUMS_REJECTED", payload: err });
       });
   };
@@ -99,7 +99,7 @@ export function searchPlaceAlbums(query) {
         });
       })
       .catch(err => {
-        console.log(err);
+        console.error(err);
         dispatch({ type: "SEARCH_PLACE_ALBUMS_REJECTED", payload: err });
       });
   };

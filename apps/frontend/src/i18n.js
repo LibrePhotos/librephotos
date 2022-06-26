@@ -80,7 +80,7 @@ i18n
   // for all options read: https://www.i18next.com/overview/configuration-options
   .init({
     resources,
-    debug: true,
+    debug: process.env.NODE_ENV === "development",
     fallbackLng: "en",
     interpolation: {
       format: (value, format, lng) => {

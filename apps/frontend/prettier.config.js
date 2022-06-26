@@ -6,9 +6,10 @@ module.exports = {
   singleQuote: false,
   trailingComma: "es5",
   arrowParens: "avoid",
-  "importOrder": ["<THIRD_PARTY_MODULES>", "^[./]"],
-  "importOrderSeparation": true,
-  "importOrderSortSpecifiers": true,
+  plugins: [require.resolve("@trivago/prettier-plugin-sort-imports")],
+  importOrder: ["wdyr", "<THIRD_PARTY_MODULES>", "^[./]"],
+  importOrderSeparation: true,
+  importOrderSortSpecifiers: true,
   overrides: [
     {
       files: "*.{json,css,scss}",

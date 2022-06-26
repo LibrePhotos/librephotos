@@ -23,7 +23,7 @@ export function fetchPeople(dispatch) {
       });
     })
     .catch(err => {
-      console.log(err);
+      console.error(err);
       dispatch({ type: "FETCH_PEOPLE_REJECTED", payload: err });
     });
 }
@@ -48,7 +48,7 @@ export function renamePerson(personId, personName, newPersonName) {
         });
       })
       .catch(err => {
-        console.log(err);
+        console.error(err);
         dispatch({ type: "RENAME_PERSON_REJECTED", payload: err });
       });
   };
@@ -70,7 +70,7 @@ export function deletePerson(person_id) {
         dispatch({ type: "DELETE_PERSON_FULFILLED" });
       })
       .catch(err => {
-        console.log(err);
+        console.error(err);
         dispatch({ type: "DELETE_PERSON_REJECTED", payload: err });
       });
   };
@@ -94,7 +94,7 @@ export function setAlbumCoverForPerson(person_id, photo_hash) {
         fetchPeople(dispatch);
       })
       .catch(err => {
-        console.log(err);
+        console.error(err);
         dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON_REJECTED", payload: err });
       });
   };
@@ -111,7 +111,7 @@ export function fetchSocialGraph(dispatch) {
       });
     })
     .catch(err => {
-      console.log(err);
+      console.error(err);
       dispatch({ type: "FETCH_SOCIAL_GRAPH_REJECTED", payload: err });
     });
 }

@@ -1,34 +1,23 @@
 import { Indicator, Popover, Progress, Stack, Text } from "@mantine/core";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { fetchWorkerAvailability } from "../../actions/utilActions";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { useWorkerStatus } from "../../hooks/useWorkerStatus";
+import { IJobDetailSchema } from "../../store/worker/worker.zod";
 
-export const WorkerIndicator = () => {
-  const dispatch = useAppDispatch();
-  const workerRunningJob = useAppSelector(state => state.util.workerRunningJob);
-  const auth = useAppSelector(state => state.auth);
-  const [opened, setOpened] = useState(false);
-  const workerAvailability = useAppSelector(state => state.util.workerAvailability);
+interface IWorkerIndicator {
+  workerRunningJob: IJobDetailSchema;
+}
+
+function WorkerRunningJob({ workerRunningJob }: IWorkerIndicator) {
   const { t } = useTranslation();
 
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      if (auth.access) {
-        fetchWorkerAvailability(workerRunningJob, dispatch);
-      }
-    }, 2000);
-    return () => clearInterval(intervalId);
-  }, [auth, dispatch]);
-
-  let runningJobPopupProgress;
   if (workerRunningJob && workerRunningJob.result && workerRunningJob.result.progress) {
-    runningJobPopupProgress = (
+    return (
       <Stack>
         <Progress
-          value={(workerRunningJob.result.progress.current.toFixed(2) / workerRunningJob.result.progress.target) * 100}
-        ></Progress>
+          value={(+workerRunningJob.result.progress.current.toFixed(2) / workerRunningJob.result.progress.target) * 100}
+        />
         <Text size="sm" align="center">
           {workerRunningJob.result.progress.current} / {workerRunningJob.result.progress.target}
         </Text>
@@ -38,30 +27,49 @@ export const WorkerIndicator = () => {
       </Stack>
     );
   }
+  return <>{t("topmenu.busy")}</>;
+}
+
+export function WorkerIndicator() {
+  const { t } = useTranslation();
+  const { workerRunningJob, currentData } = useWorkerStatus();
+
+  const [canWorkerAcceptJob, setCanWorkerAcceptJob] = useState("red");
+  useEffect(() => {
+    setCanWorkerAcceptJob(
+      currentData?.queue_can_accept_job === undefined || currentData?.queue_can_accept_job === false ? "red" : "green"
+    );
+  }, [currentData?.queue_can_accept_job]);
+
+  const [opened, setOpened] = useState(false);
+  const openModalCallback = useCallback(() => {
+    setOpened(true);
+  }, []);
+
+  const closeModalCallback = useCallback(() => {
+    setOpened(false);
+  }, []);
+
   return (
     <Popover
       opened={opened}
       onClose={() => setOpened(false)}
       width={260}
       target={
-        <Indicator
-          onMouseEnter={() => setOpened(true)}
-          onMouseLeave={() => setOpened(false)}
-          color={!workerAvailability ? "red" : "green"}
-        >
-          <div></div>
+        <Indicator onMouseEnter={openModalCallback} onMouseLeave={closeModalCallback} color={canWorkerAcceptJob}>
+          <div />
         </Indicator>
       }
       position="bottom"
       withArrow
     >
       <Text size="sm">
-        {workerAvailability
-          ? t("topmenu.available")
-          : !workerAvailability && workerRunningJob
-          ? runningJobPopupProgress
-          : t("topmenu.busy")}
+        {currentData?.queue_can_accept_job ? (
+          t("topmenu.available")
+        ) : (
+          <WorkerRunningJob workerRunningJob={workerRunningJob} />
+        )}
       </Text>
     </Popover>
   );
-};
+}

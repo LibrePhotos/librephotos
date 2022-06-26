@@ -32,7 +32,7 @@ export function setFacesPersonLabel(faceIDs, personName) {
         });
       })
       .catch(err => {
-        console.log(err);
+        console.error(err);
       });
   };
 }
@@ -56,7 +56,7 @@ export function deleteFaces(faceIDs) {
         });
       })
       .catch(err => {
-        console.log(err);
+        console.error(err);
       });
   };
 }
@@ -80,7 +80,7 @@ export function trainFaces() {
         dispatch({ type: "TRAIN_FACES_FULFILLED", payload: response.data });
       })
       .catch(err => {
-        console.log(err);
+        console.error(err);
         dispatch({ type: "TRAIN_FACES_REJECTED", payload: err });
       });
   };
@@ -108,7 +108,7 @@ export function rescanFaces() {
         dispatch({ type: "TRAIN_FACES_FULFILLED", payload: response.data });
       })
       .catch(err => {
-        console.log(err);
+        console.error(err);
         dispatch({ type: "TRAIN_FACES_REJECTED", payload: err });
       });
   };
@@ -122,7 +122,7 @@ export function clusterFaces(dispatch) {
       dispatch({ type: "CLUSTER_FACES_FULFILLED", payload: response.data });
     })
     .catch(err => {
-      console.log(err);
+      console.error(err);
       dispatch({ type: "CLUSTER_FACES_REJECTED", payload: err });
     });
 }
@@ -139,7 +139,7 @@ export function fetchInferredFacesList() {
         });
       })
       .catch(err => {
-        console.log(err);
+        console.error(err);
         dispatch({ type: "FETCH_INFERRED_FACES_LIST_REJECTED", payload: err });
       });
   };
@@ -157,7 +157,7 @@ export function fetchLabeledFacesList() {
         });
       })
       .catch(err => {
-        console.log(err);
+        console.error(err);
         dispatch({ type: "FETCH_LABELED_FACES_LIST_REJECTED", payload: err });
       });
   };

@@ -1,9 +1,9 @@
-import { Box, Button, Group, Loader, Stack, Title } from "@mantine/core";
-import { push } from "connected-react-router";
+import { Button, Group, Stack, Title } from "@mantine/core";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { Album, Ballon } from "tabler-icons-react";
+import { push } from "redux-first-history";
+import { Album } from "tabler-icons-react";
 
 import { fetchAutoAlbumsList, fetchUserAlbumsList } from "../../actions/albumsActions";
 import { Tile } from "../../components/Tile";
@@ -41,7 +41,6 @@ export const AlbumViewer = () => {
       </Group>
       <Group>
         {albumsUserList.slice(0, 19).map(autoAlbum => {
-          console.log(autoAlbum);
           return (
             <Tile
               onClick={() => {
@@ -64,7 +63,6 @@ export const AlbumViewer = () => {
       </Group>
       <Group>
         {albumsAutoList.slice(0, 19).map(autoAlbum => {
-          console.log(autoAlbum);
           return (
             <Tile
               onClick={() => {

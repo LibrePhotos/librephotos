@@ -35,6 +35,7 @@ export const ChunkedUploadButton = () => {
         if (temporaryFileReader.result) {
           // @ts-ignore
           offset += temporaryFileReader.result.length;
+
           md5.update(
             // @ts-ignore
             CryptoJS.enc.Latin1.parse(temporaryFileReader.result)
@@ -145,7 +146,6 @@ export const ChunkedUploadButton = () => {
           }
           uploadFinished(file, uploadId);
         } else {
-          console.log("File already uploaded");
           currentUploadedFileSize += file.size;
           setCurrentSize(currentUploadedFileSize);
         }
@@ -154,13 +154,9 @@ export const ChunkedUploadButton = () => {
     },
   });
 
-  useEffect(() => {
-    console.log(`total size: ${totalSize}`);
-  }, [totalSize]);
+  useEffect(() => {}, [totalSize]);
 
-  useEffect(() => {
-    console.log(`current size: ${currentSize}`);
-  }, [currentSize]);
+  useEffect(() => {}, [currentSize]);
 
   if (siteSettings.allow_upload) {
     return (

@@ -1,28 +1,59 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
-import { routerMiddleware } from "connected-react-router";
+import { createBrowserHistory } from "history";
 import type { TypedUseSelectorHook } from "react-redux";
 import { useDispatch, useSelector } from "react-redux";
+import { combineReducers } from "redux";
+import { createReduxHistoryContext } from "redux-first-history";
 import { FLUSH, PAUSE, PERSIST, PURGE, REGISTER, REHYDRATE, persistStore } from "redux-persist";
 
 import { api } from "../api_client/api";
-import appHistory from "../history";
+import albums from "../reducers/albumsReducer";
+import faces from "../reducers/facesReducer";
+import people from "../reducers/peopleReducer";
+import photos from "../reducers/photosReducer";
+import pub from "../reducers/publicReducer";
+import search from "../reducers/searchReducer";
+import ui from "../reducers/uiReducer";
+import util from "../reducers/utilReducer";
+import { authReducer as auth } from "./auth/authSlice";
 import { errorMiddleware } from "./middleware/errorMiddleware";
-import { rootReducer } from "./rootReducer";
+import { userReducer as user } from "./user/userSlice";
+import { worker } from "./worker/workerSlice";
+
+const { createReduxHistory, routerMiddleware, routerReducer } = createReduxHistoryContext({
+  history: createBrowserHistory(),
+});
 
 export const store = configureStore({
-  reducer: rootReducer,
+  reducer: combineReducers({
+    router: routerReducer,
+    people,
+    faces,
+    albums,
+    util,
+    photos,
+    auth,
+    search,
+    ui,
+    pub,
+    user,
+    worker,
+    [api.reducerPath]: api.reducer,
+  }),
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({
       immutableCheck: false,
       serializableCheck: {
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
-    }).concat(routerMiddleware(appHistory), api.middleware, errorMiddleware),
+    }).concat(routerMiddleware, api.middleware, errorMiddleware),
 });
-persistStore(store);
 
+export const libreHistory = createReduxHistory(store);
+persistStore(store);
 setupListeners(store.dispatch);
+
 export const selectSelf = (state: RootState): RootState => state;
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

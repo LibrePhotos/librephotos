@@ -1,11 +1,11 @@
 import { Group, Image } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
-import { push } from "connected-react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import LazyLoad from "react-lazyload";
 import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
+import { push } from "redux-first-history";
 import { SettingsAutomation } from "tabler-icons-react";
 
 import { fetchAutoAlbumsList } from "../../actions/albumsActions";

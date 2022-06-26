@@ -372,7 +372,7 @@ export function fetchAlbumDateList(dispatch: AppDispatch, options: AlbumDateList
       });
     })
     .catch(err => {
-      console.log(err);
+      console.error(err);
       dispatch({ type: "FETCH_DATE_ALBUMS_LIST_REJECTED", payload: err });
     });
 }
@@ -412,7 +412,7 @@ export function fetchAlbumDate(dispatch: AppDispatch, options: AlbumDateOption) 
       });
     })
     .catch(err => {
-      console.log(err);
+      console.error(err);
       dispatch({ type: "FETCH_DATE_ALBUMS_RETRIEVE_REJECTED", payload: err });
     });
 }
@@ -429,7 +429,7 @@ export function fetchAlbumsAutoGalleries(dispatch: AppDispatch, album_id: string
       });
     })
     .catch(err => {
-      console.log(err);
+      console.error(err);
       dispatch({ type: "FETCH_AUTO_ALBUMS_RETRIEVE_REJECTED", payload: err });
     });
 }
@@ -467,7 +467,6 @@ export function setUserAlbumShared(album_id: number, target_user_id: string, val
       })
       .catch(err => {
         dispatch({ type: "SET_ALBUM_USER_SHARED_FULFILLED", payload: err });
-        console.log(err.content);
       });
   };
 }

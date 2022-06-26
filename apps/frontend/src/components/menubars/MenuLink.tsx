@@ -1,6 +1,6 @@
 import { Box, Stack, Text, ThemeIcon, UnstyledButton } from "@mantine/core";
-import { push } from "connected-react-router";
 import React from "react";
+import { push } from "redux-first-history";
 
 import { useAppDispatch } from "../../store/store";
 

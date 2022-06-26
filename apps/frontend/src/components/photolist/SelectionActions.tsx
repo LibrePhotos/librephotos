@@ -34,7 +34,7 @@ type Props = {
   selectedItems: any[];
   updateSelectionState: (any) => void;
   onSharePhotos: () => void;
-  setAlbumCover: (actionType: String) => void;
+  setAlbumCover: (actionType: string) => void;
   onShareAlbum: () => void;
   onAddToAlbum: () => void;
   title: string;

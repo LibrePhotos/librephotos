@@ -88,7 +88,6 @@ export default function reducer(
       return { ...state, fetchingAlbumsSharedFromMe: true };
     }
     case "FETCH_ALBUMS_SHARED_FROM_ME_FULFILLED": {
-      console.log(action.payload);
       return {
         ...state,
         fetchingAlbumsSharedFromMe: false,

@@ -83,8 +83,6 @@ const PhotoListViewComponent = (props: Props) => {
   const idx2hashRef = useRef(idx2hash);
   const dispatch = useAppDispatch();
 
-  console.log("rerendering");
-
   useEffect(() => {
     idx2hashRef.current = idx2hash;
   }, [idx2hash]);
@@ -114,7 +112,7 @@ const PhotoListViewComponent = (props: Props) => {
 
   const handleSelection = item => {
     var newSelectedItems = selectionStateRef.current.selectedItems;
-    console.log(selectionStateRef.current.selectedItems);
+
     if (newSelectedItems.find(selectedItem => selectedItem.id === item.id)) {
       newSelectedItems = newSelectedItems.filter(value => value.id !== item.id);
     } else {
@@ -152,8 +150,7 @@ const PhotoListViewComponent = (props: Props) => {
       }
       const indexOfCurrentlySelectedItem = idx2hashRef.current.findIndex(image => image.id === item.id);
       const indexOfLastSelectedItem = idx2hashRef.current.findIndex(image => image.id === lastSelectedElement.id);
-      console.log(indexOfCurrentlySelectedItem);
-      console.log(indexOfLastSelectedItem);
+
       if (indexOfCurrentlySelectedItem > indexOfLastSelectedItem) {
         handleSelections(idx2hashRef.current.slice(indexOfLastSelectedItem + 1, indexOfCurrentlySelectedItem + 1));
         return;

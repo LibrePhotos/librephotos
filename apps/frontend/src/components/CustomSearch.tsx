@@ -1,9 +1,9 @@
 import { Avatar, Button, Group, Loader, Menu, Popover, Stack, TextInput } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
-import { push } from "connected-react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { push } from "redux-first-history";
 import { Album, Map, Search, Tag } from "tabler-icons-react";
 
 import { fetchPlaceAlbumsList, fetchThingAlbumsList, fetchUserAlbumsList } from "../actions/albumsActions";
@@ -105,7 +105,7 @@ export const CustomSearch = () => {
 
   const handleChange = d => {
     setSearchText(d.currentTarget.value);
-    console.log(d.currentTarget);
+
     filterSearchSuggestions();
   };
 

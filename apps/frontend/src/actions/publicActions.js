@@ -13,7 +13,7 @@ export function fetchPublicUserList() {
         });
       })
       .catch(err => {
-        console.log(err);
+        console.error(err);
         dispatch({
           type: "FETCH_PUBLIC_USER_LIST_REJECTED",
         });
