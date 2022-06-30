@@ -435,7 +435,9 @@
         "finaldeletephototitle": "Eliminar Imagenes",
         "editphoto": "Foto editada",
         "editphototitle": "Editar foto",
-        "uploadsuccess": "Subida exitosa"
+        "uploadsuccess": "Subida exitosa",
+        "deletejobtitle": "Eliminar trabajo",
+        "deletejob": "El trabajo {{id}} eliminado."
     },
     "rules": {
         "report_tz": "Transformar a{{rule}}",
