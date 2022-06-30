@@ -439,6 +439,8 @@
     "updateuser": "{{username}}'s info updated",
     "updateusertitle": "Update user",
     "jobfinished": "{{job}} finished.",
+    "deletejob": "Job {{id}} deleted.",
+    "deletejobtitle": "Delete job",
     "deletemissingphotos": "Deleting missing photos…",
     "deletemissingphotostitle": "Delete Missing Photos",
     "generateeventalbums": "Generating event albums…",
