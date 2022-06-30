@@ -430,7 +430,9 @@
         "finaldeletephototitle": "Afbeeldingen verwijderen",
         "editphoto": "De foto is bewerkt",
         "editphototitle": "Foto bewerken",
-        "uploadsuccess": "Het uploaden is voltooid"
+        "uploadsuccess": "Het uploaden is voltooid",
+        "deletejob": "De taak ‘{{id}}’ is verwijderd.",
+        "deletejobtitle": "Taak verwijderen"
     },
     "rename": "Naam wijzigen",
     "events": "Gebeurtenissen",
