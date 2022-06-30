@@ -435,7 +435,9 @@
         "setdeletetitle": "Supprimer les images",
         "editphoto": "Photo modifiée",
         "editphototitle": "Modifier la photo",
-        "uploadsuccess": "Téléversement réussi"
+        "uploadsuccess": "Téléversement réussi",
+        "deletejob": "Travail {{id}} supprimé.",
+        "deletejobtitle": "Supprimer le travail"
     },
     "rules": {
         "file_property": "Utiliser la propriété du fichier {{rule}}",
