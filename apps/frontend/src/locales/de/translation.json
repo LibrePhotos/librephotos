@@ -435,7 +435,9 @@
         "setdeletetitle": "Bilder löschen",
         "editphototitle": "Foto bearbeiten",
         "editphoto": "Foto bearbeitet",
-        "uploadsuccess": "Erfolgreich hochgeladen"
+        "uploadsuccess": "Erfolgreich hochgeladen",
+        "deletejobtitle": "Auftrag löschen",
+        "deletejob": "Auftrag {{id}} gelöscht."
     },
     "rules": {
         "file_property": "Dateieigenschaft verwenden {{rule}}",
