@@ -67,7 +67,7 @@
     "lodash": "^4.17.10",
     "luxon": "^2.3.0",
     "material-icons-react": "^1.0.0",
-    "moment": "^2.22.2",
+    "moment": "^2.29.2",
     "moment-precise-range-plugin": "^1.3.0",
     "package.json": "^2.0.1",
     "patch-package": "^6.4.7",
