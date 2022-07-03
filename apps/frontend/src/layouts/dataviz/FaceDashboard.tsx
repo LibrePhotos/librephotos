@@ -1,5 +1,5 @@
 import { Stack } from "@mantine/core";
-import { useElementSize, useMediaQuery, useViewportSize } from "@mantine/hooks";
+import { useElementSize } from "@mantine/hooks";
 import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
@@ -11,12 +11,10 @@ import { HeaderComponent } from "../../components/facedashboard/HeaderComponent"
 import { TabComponent } from "../../components/facedashboard/TabComponent";
 import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
 import { useAppDispatch, useAppSelector } from "../../store/store";
-import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
 
 export const FaceDashboard = () => {
-  const { height } = useViewportSize();
-  const { ref, width } = useElementSize();
+  const { ref, width, height } = useElementSize();
   const [lastChecked, setLastChecked] = useState(null);
   const [activeItem, setActiveItem] = useState(0);
   const [entrySquareSize, setEntrySquareSize] = useState(200);
@@ -25,7 +23,6 @@ export const FaceDashboard = () => {
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
   const [modalPersonEditOpen, setModalPersonEditOpen] = useState(false);
 
-  const matches = useMediaQuery("(min-width: 700px)");
   const [inferredCellContents, setInferredCellContents] = useState<any[]>([]);
   const [labeledCellContents, setLabeledCellContents] = useState<any[]>([]);
   const [inferredGroupedByPersonList, setInferredGroupedByPersonList] = useState<any[]>([]);
@@ -179,41 +176,42 @@ export const FaceDashboard = () => {
     return <div key={key} style={style} />;
   };
   return (
-    <Stack ref={ref}>
-      <TabComponent
-        width={width}
-        activeTab={activeItem}
-        changeTab={changeTab}
-        fetchingLabeledFacesList={fetchingLabeledFacesList}
-        fetchingInferredFacesList={fetchingInferredFacesList}
-      />
-      <ButtonHeaderGroup
-        selectMode={selectMode}
-        selectedFaces={selectedFaces}
-        workerAvailability={workerAvailability}
-        workerRunningJob={workerRunningJob}
-        changeSelectMode={changeSelectMode}
-        addFaces={addFaces}
-        deleteFaces={deleteSelectedFaces}
-      />
-      <div>
-        <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
-          {() => (
+    <div style={{ display: "flex", flexFlow: "column", height: "100%" }}>
+      <Stack>
+        <TabComponent
+          width={width}
+          activeTab={activeItem}
+          changeTab={changeTab}
+          fetchingLabeledFacesList={fetchingLabeledFacesList}
+          fetchingInferredFacesList={fetchingInferredFacesList}
+        />
+        <ButtonHeaderGroup
+          selectMode={selectMode}
+          selectedFaces={selectedFaces}
+          workerAvailability={workerAvailability}
+          workerRunningJob={workerRunningJob}
+          changeSelectMode={changeSelectMode}
+          addFaces={addFaces}
+          deleteFaces={deleteSelectedFaces}
+        />
+      </Stack>
+      <div ref={ref} style={{ flexGrow: 1 }}>
+        <AutoSizer>
+          {({ height, width }) => (
             <Grid
-              style={{ outline: "none" }}
+              style={{ overflowX: "hidden" }}
               disableHeader={false}
               cellRenderer={cellRenderer}
               columnWidth={entrySquareSize}
               columnCount={numEntrySquaresPerRow}
-              height={height - TOP_MENU_HEIGHT - 40 - 40 - (matches ? 0 : 70)}
               rowHeight={entrySquareSize}
-              rowCount={activeItem === 0 ? labeledCellContents.length : inferredCellContents.length}
+              height={height}
               width={width}
+              rowCount={activeItem === 0 ? labeledCellContents.length : inferredCellContents.length}
             />
           )}
         </AutoSizer>
       </div>
-
       <ModalPersonEdit
         isOpen={modalPersonEditOpen}
         onRequestClose={() => {
@@ -223,6 +221,6 @@ export const FaceDashboard = () => {
         }}
         selectedFaces={selectedFaces}
       />
-    </Stack>
+    </div>
   );
 };

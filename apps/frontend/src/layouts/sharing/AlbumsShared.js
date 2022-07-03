@@ -2,7 +2,6 @@ import { Anchor, Image, Text } from "@mantine/core";
 import debounce from "lodash/debounce";
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
 import { Header, Icon, Loader } from "semantic-ui-react";
 
