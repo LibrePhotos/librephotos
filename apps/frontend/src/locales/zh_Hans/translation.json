@@ -124,7 +124,9 @@
         "metadata": "元数据选项",
         "sync": "将元数据同步到硬盘",
         "polish": "波兰语",
-        "dutch": "荷兰语"
+        "dutch": "荷兰语",
+        "confidencepercentage": "可信度： {{percentage}}%",
+        "profile": "个人资料"
     },
     "modalnextcloud": {
         "setdirectory": "设置Nextcloud扫描目录",
@@ -141,7 +143,9 @@
         "settings": "设置",
         "adminarea": "管理面板",
         "available": "已连接！您可以开始扫描照片、进行人脸识别、自动创建事件专辑或生成事件专辑标题。",
-        "running": "运行中"
+        "running": "运行中",
+        "profile": "个人资料",
+        "library": "图库"
     },
     "sidemenu": {
         "name": "LibrePhotos",
@@ -266,7 +270,8 @@
         "minimumconfidence": "最低置信度",
         "photocount": "照片数量",
         "joined": "注册于",
-        "notset": "未设置"
+        "notset": "未设置",
+        "remove": "移除"
     },
     "joblist": {
         "workerlogs": "操作日志",
@@ -429,7 +434,10 @@
         "finaldeletephototitle": "删除图片",
         "setdeletetitle": "删除图片",
         "editphoto": "照片已编辑",
-        "editphototitle": "编辑照片"
+        "editphototitle": "编辑照片",
+        "deletejobtitle": "删除任务",
+        "deletejob": "任务 {{id}} 已被删除。",
+        "uploadsuccess": "上传成功"
     },
     "rules": {
         "1": "提取exif中的DATE_TIME_ORIGINAL作为当地时间",
@@ -458,5 +466,18 @@
     "nofaces": "未检测到人脸",
     "nodata": "无数据",
     "nosocialgraph": "无社交图谱",
-    "locationtimeline": "地理时间轴"
+    "locationtimeline": "地理时间轴",
+    "modalalbum": {
+        "title": "添加到相册",
+        "newalbum": "新建相册",
+        "create": "创建",
+        "items": "{{count}}个项目",
+        "alreadexists": "相册{{title}}已经存在。",
+        "selectedimages": "将选定的 {{count}} 张照片添加到...",
+        "placeholder": "相册标题"
+    },
+    "deleteface": "删除面孔",
+    "deletefaceexplanation": "此操作将完全删除该人脸数据及相关的关联数据。此操作无法撤销。",
+    "confirm": "确认",
+    "cancel": "取消"
 }
