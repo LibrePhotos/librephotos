@@ -1,11 +1,10 @@
-import { Button, Group, Modal, Text, TextInput } from "@mantine/core";
-import { useResizeObserver, useViewportSize } from "@mantine/hooks";
+import { ActionIcon, Button, Group, Image, Menu, Modal, Text, TextInput } from "@mantine/core";
+import { useDisclosure, useResizeObserver, useViewportSize } from "@mantine/hooks";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
-import { Dropdown, Icon, Image, Label } from "semantic-ui-react";
-import { Users } from "tabler-icons-react";
+import { DotsVertical, Edit, Trash, Users } from "tabler-icons-react";
 
 import { deletePerson, fetchPeople, renamePerson } from "../../actions/peopleActions";
 import { Tile } from "../../components/Tile";
@@ -19,6 +18,7 @@ export const AlbumPeople = () => {
   const { width, height } = useViewportSize();
   const [entrySquareSize, setEntrySquareSize] = useState(200);
 
+  const [opened, handlers] = useDisclosure(false);
   const [numEntrySquaresPerRow, setNumEntrySquaresPerRow] = useState(0);
   const [openDeleteDialogState, setOpenDeleteDialogState] = useState(false);
   const [openRenameDialogState, setOpenRenameDialogState] = useState(false);
@@ -79,50 +79,57 @@ export const AlbumPeople = () => {
           <div style={{ padding: 5 }}>
             {people[albumPersonIndex].face_count > 0 ? (
               people[albumPersonIndex].text === "unknown" ? (
-                <Image
-                  height={entrySquareSize - 10}
-                  width={entrySquareSize - 10}
-                  as={Link}
-                  to={`/person/${people[albumPersonIndex].key}`}
-                  src="/unknown_user.jpg"
-                />
-              ) : (
                 <Link to={`/person/${people[albumPersonIndex].key}`}>
-                  <Tile
-                    video={people[albumPersonIndex].video === true}
-                    height={entrySquareSize - 10}
-                    width={entrySquareSize - 10}
-                    image_hash={people[albumPersonIndex].face_photo_url}
-                  />
+                  <Image height={entrySquareSize - 10} width={entrySquareSize - 10} src="/unknown_user.jpg" />
                 </Link>
+              ) : (
+                <div>
+                  <Link to={`/person/${people[albumPersonIndex].key}`}>
+                    <Tile
+                      video={people[albumPersonIndex].video === true}
+                      height={entrySquareSize - 10}
+                      width={entrySquareSize - 10}
+                      image_hash={people[albumPersonIndex].face_photo_url}
+                    />
+                  </Link>
+                  <Menu
+                    style={{ position: "absolute", top: 10, right: 10 }}
+                    control={
+                      <ActionIcon>
+                        <DotsVertical />
+                      </ActionIcon>
+                    }
+                  >
+                    <Menu.Item
+                      icon={<Edit />}
+                      onClick={() => openRenameDialog(people[albumPersonIndex].key, people[albumPersonIndex].text)}
+                    >
+                      {t("rename")}
+                    </Menu.Item>
+                    <Menu.Item
+                      icon={<Trash />}
+                      onClick={() => {
+                        openDeleteDialog(people[albumPersonIndex].key, people[albumPersonIndex].text);
+                      }}
+                    >
+                      {t("delete")}
+                    </Menu.Item>
+                  </Menu>
+                </div>
               )
             ) : (
               <Image height={entrySquareSize - 10} width={entrySquareSize - 10} src="/unknown_user.jpg" />
             )}
-            <Label style={{ backgroundColor: "transparent" }} attached="top right">
-              <Dropdown item icon={<Icon name="ellipsis vertical" />}>
-                <Dropdown.Menu>
-                  <Dropdown.Item
-                    icon="edit"
-                    onClick={() => openRenameDialog(people[albumPersonIndex].key, people[albumPersonIndex].text)}
-                    text={t("rename")}
-                  />
-                  <Dropdown.Item
-                    icon="delete"
-                    onClick={() => {
-                      openDeleteDialog(people[albumPersonIndex].key, people[albumPersonIndex].text);
-                    }}
-                    text={t("delete")}
-                  />
-                </Dropdown.Menu>
-              </Dropdown>
-            </Label>
           </div>
-          <div className="personCardName" style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
-            <b>{people[albumPersonIndex].text}</b> <br />
-            {t("numberofphotos", {
-              number: people[albumPersonIndex].face_count,
-            })}
+          <div style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
+            <Group position="apart">
+              <div>
+                <b>{people[albumPersonIndex].text}</b> <br />
+                {t("numberofphotos", {
+                  number: people[albumPersonIndex].face_count,
+                })}
+              </div>
+            </Group>
           </div>
         </div>
       );
