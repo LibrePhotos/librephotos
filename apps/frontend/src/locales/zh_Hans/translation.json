@@ -301,11 +301,11 @@
         "allow": "开放",
         "noallow": "关闭",
         "header": "用户注册",
-        "apikey": "你想在地图上看到你所有照片的拍摄地点吗（如果你的照片中存储了位置）？在这里获取一个 Mapbox API 密钥 https://account.mapbox.com/auth/signup/",
+        "apikey": "是否要在地图上展示照片的拍摄地点（如果照片中存储了位置）？需要注册并提供 Map box 的 API 密钥 https://account.mapbox.com/auth/signup/",
         "headerupload": "允许上传",
         "skippatterns": " 用逗号分隔欲忽略的模式列表（例如：群晖设备上的“@eaDir,#recycle”）",
         "headerapikey": "Mapbox API 密钥",
-        "heavyweight": "扫描图片时的工作线程数量。此设置会显著影响内存的使用。每个工作线程需要 800MB 的内存。根据你的意愿修改。默认为1。",
+        "heavyweight": "扫描图片时的工作线程数量，此设置会显著增加内存占用量，每个工作线程需要 800MB 内存，请根据需要自行修改，默认为1。",
         "headerheavyweight": "高负荷处理",
         "headerskippatterns": "忽略模式"
     },
