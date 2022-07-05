@@ -59,11 +59,11 @@
         "missingphotos": "丢失的照片",
         "missingphotosbutton": "移除已丢失的照片",
         "missingphotosdescription": "在每次扫描时，LibrePhotos都会检查文件是否仍在原来位置还是已被移动， 如找不到，则标记为已丢失。",
-        "eventsalbumsdescription": "后端服务器将首先按照拍摄时间对照片进行分组， 如果在 12 小时内连续拍摄两张照片，则认为两张照片来自同一事件， 以这种方式组织在一起后，系统将会自动为该专辑生成对应标题。",
+        "eventsalbumsdescription": "后端服务器将首先按照拍摄时间对照片进行分组， 如果连续的两张照片是在 12 小时内拍摄的，则认为两张照片来自同一事件， 以这种方式组织在一起后，系统将会自动为该专辑生成对应的标题。",
         "eventalbumsgenerate": "生成事件相册",
         "eventsalbums": "事件专辑",
         "eventalbumsregenerate": "重新生成事件标题",
-        "eventalbumsregeneratedescription": "自动生成的专辑标题中会包含人名， 如果您在制作事件专辑后重新训练了人脸识别功能，可以为该事件专辑生成新标题，以生成与照片中的人脸相关联的新名称。",
+        "eventalbumsregeneratedescription": "自动生成的专辑标题中会包含人名， 如果您在制作事件专辑后重新训练了人脸识别功能，则可以为该事件专辑重新生成标题，以反映照片中重训人脸后所关联的新人名。",
         "faces": "人脸",
         "people": "人物",
         "facesbutton": "训练人脸识别",
@@ -90,7 +90,7 @@
         },
         "semanticsearchupdate": "保存",
         "favorite": "喜爱选项",
-        "favoriteminimum": "标记为最喜欢图片的最低等级",
+        "favoriteminimum": "标记为最喜爱图片的最低等级",
         "favoriteoption": {
             "placeholder": "最低等级"
         },
@@ -142,7 +142,7 @@
         "logout": "注销",
         "settings": "设置",
         "adminarea": "管理面板",
-        "available": "已连接！您可以开始扫描照片、进行人脸识别、自动创建事件专辑或生成事件专辑标题。",
+        "available": "已连接！您可以开始扫描照片、识别人脸、自动创建事件专辑或生成事件专辑标题等操作。",
         "running": "运行中",
         "profile": "个人资料",
         "library": "图库"
@@ -440,14 +440,14 @@
         "uploadsuccess": "上传成功"
     },
     "rules": {
-        "1": "提取exif中的DATE_TIME_ORIGINAL作为当地时间",
+        "1": "提取EXIF中的DATE_TIME_ORIGINAL作为当地时间",
         "2": "使用UTC时间创建视频标签 + 使用 GPS 坐标计算时区",
         "3": "使用文件名假设时间是本地的",
         "4": "视频 UTC - 使用UTC时间作为本地时间（因为无法定位实际时区）",
         "source_tz": "从{{rule}}中转换过来",
         "report_tz": "转换到 {{rule}}",
         "rule_type": "规则类型：{{rule}}",
-        "exif_tag": "使用Exif标签 {{rule}}",
+        "exif_tag": "使用EXIF标签 {{rule}}",
         "file_property": "使用文件属性{{rule}}",
         "5": "从 WhatsApp 文件名中提取日期",
         "predefined_regexp": "使用预定义的正则表达式：{{rule}}",
@@ -477,7 +477,7 @@
         "placeholder": "相册标题"
     },
     "deleteface": "删除面孔",
-    "deletefaceexplanation": "此操作将完全删除该人脸数据及相关的关联数据。此操作无法撤销。",
+    "deletefaceexplanation": "此操作将完全删除该人脸数据及相关的关联数据，且无法撤销。",
     "confirm": "确认",
     "cancel": "取消"
 }
