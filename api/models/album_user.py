@@ -12,6 +12,13 @@ class AlbumUser(models.Model):
     owner = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None
     )
+    cover_photo = models.ForeignKey(
+        Photo,
+        related_name="album_user",
+        on_delete=models.PROTECT,
+        blank=False,
+        null=True,
+    )
 
     shared_to = models.ManyToManyField(User, related_name="album_user_shared_to")
 
@@ -19,7 +26,3 @@ class AlbumUser(models.Model):
 
     class Meta:
         unique_together = ("title", "owner")
-
-    @property
-    def cover_photos(self):
-        return self.photos.filter(hidden=False)[:4]

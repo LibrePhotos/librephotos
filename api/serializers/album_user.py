@@ -3,8 +3,8 @@ from django.core.cache import cache
 from rest_framework import serializers
 
 from api.models import AlbumUser, Photo
+from api.serializers.photos import PhotoSuperSimpleSerializer
 from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
-from api.serializers.serializers import PhotoHashListSerializer
 from api.serializers.serializers_serpy import GroupedPhotosSerializer
 from api.serializers.user import SimpleUserSerializer, SimpleUserSerializerSerpy
 from api.util import logger
@@ -52,7 +52,15 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AlbumUser
-        fields = ("id", "title", "photos", "created_on", "favorited", "removedPhotos")
+        fields = (
+            "id",
+            "title",
+            "photos",
+            "created_on",
+            "favorited",
+            "removedPhotos",
+            "cover_photo",
+        )
 
     def validate_photos(self, value):
         return [v.image_hash for v in value]
@@ -99,6 +107,11 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
 
             logger.info("Removed {} photos to user album {}".format(cnt, instance.id))
 
+        if "cover_photo" in validated_data.keys():
+            cover_photo = validated_data["cover_photo"]
+            instance.cover_photo = cover_photo
+            logger.info("Changed cover photo to {}".format(cover_photo))
+
         if "photos" in validated_data.keys():
             image_hashes = validated_data["photos"]
             photos = Photo.objects.in_bulk(image_hashes)
@@ -117,7 +130,7 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
 
 
 class AlbumUserListSerializer(serializers.ModelSerializer):
-    cover_photos = PhotoHashListSerializer(many=True, read_only=True)
+    cover_photo = serializers.SerializerMethodField()
     photo_count = serializers.SerializerMethodField()
     shared_to = SimpleUserSerializer(many=True, read_only=True)
     owner = SimpleUserSerializer(many=False, read_only=True)
@@ -126,7 +139,7 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
         model = AlbumUser
         fields = (
             "id",
-            "cover_photos",
+            "cover_photo",
             "created_on",
             "favorited",
             "title",
@@ -134,6 +147,11 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
             "owner",
             "photo_count",
         )
+
+    def get_cover_photo(self, obj):
+        if obj.cover_photo:
+            return PhotoSuperSimpleSerializer(obj.cover_photo).data
+        return PhotoSuperSimpleSerializer(obj.photos.first()).data
 
     def get_photo_count(self, obj):
         try:
