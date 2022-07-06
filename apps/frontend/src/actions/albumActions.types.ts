@@ -10,6 +10,16 @@ import {
   SimpleUserSchema,
 } from "./photosActions.types";
 
+export const PhotoSuperSimpleSchema = z.object({
+  image_hash: z.string(),
+  exif_timestamp: z.string(),
+  rating: z.number(),
+  geolocation_json: z.any(),
+  hidden: z.boolean(),
+  public: z.boolean(),
+  video: z.boolean(),
+});
+
 const AlbumInfoSchema = z.object({
   id: z.number(),
   title: z.string(),
@@ -25,7 +35,11 @@ const ThingAlbumSchema = z.object({
 });
 export type ThingAlbum = z.infer<typeof ThingAlbumSchema>;
 
-export const UserAlbumInfoSchema = AlbumInfoSchema.extend({
+export const UserAlbumInfoSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  cover_photo: PhotoSuperSimpleSchema,
+  photo_count: z.number(),
   owner: SimpleUserSchema,
   shared_to: SimpleUserSchema.array(),
   created_on: z.string(),

@@ -34,7 +34,7 @@ type Props = {
   selectedItems: any[];
   updateSelectionState: (any) => void;
   onSharePhotos: () => void;
-  setAlbumCover: () => void;
+  setAlbumCover: (actionType: String) => void;
   onShareAlbum: () => void;
   onAddToAlbum: () => void;
   title: string;
@@ -264,11 +264,23 @@ export const SelectionActions = (props: Props) => {
         <Menu.Label>{t("selectionactions.albumactions")}</Menu.Label>
 
         <Menu.Item
-          // @ts-ignore
-          disabled={!route.location.pathname.startsWith("/person/") || selectedItems.length !== 1}
+          disabled={
+            // @ts-ignore
+            (!route.location.pathname.startsWith("/person/") &&
+              // @ts-ignore
+              !route.location.pathname.startsWith("/useralbum/")) ||
+            selectedItems.length !== 1
+          }
           icon={<Photo />}
           onClick={() => {
-            setAlbumCover();
+            // @ts-ignore
+            if (route.location.pathname.startsWith("/person/")) {
+              setAlbumCover("person");
+            }
+            // @ts-ignore
+            if (route.location.pathname.startsWith("/useralbum/")) {
+              setAlbumCover("useralbum");
+            }
             updateSelectionState({
               selectMode: false,
               selectedItems: [],

@@ -92,10 +92,10 @@ export class AlbumUser extends Component {
           <div style={{ padding: 5 }}>
             <Link to={`/useralbum/${this.props.albumsUserList[albumUserIndex].id}`}>
               <Tile
-                video={this.props.albumsUserList[albumUserIndex].cover_photos[0].video === true}
+                video={this.props.albumsUserList[albumUserIndex].cover_photo.video === true}
                 height={this.state.entrySquareSize - 10}
                 width={this.state.entrySquareSize - 10}
-                image_hash={this.props.albumsUserList[albumUserIndex].cover_photos[0].image_hash}
+                image_hash={this.props.albumsUserList[albumUserIndex].cover_photo.image_hash}
               />
             </Link>
             <Label style={{ backgroundColor: "transparent" }} attached="top right">

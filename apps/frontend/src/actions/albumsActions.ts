@@ -81,6 +81,7 @@ export function fetchUserAlbumsList() {
     Server.get("albums/user/list/")
       .then(response => {
         const data = _FetchUserAlbumsListResponseSchema.parse(response.data);
+        console.log(data);
         const userAlbumInfoList: UserAlbumInfo[] = data.results;
         dispatch({
           type: "FETCH_USER_ALBUMS_LIST_FULFILLED",
@@ -88,6 +89,7 @@ export function fetchUserAlbumsList() {
         });
       })
       .catch(err => {
+        console.log(err);
         dispatch({ type: "FETCH_USER_ALBUMS_LIST_REJECTED", payload: err });
       });
   };
@@ -219,6 +221,29 @@ export function removeFromUserAlbum(album_id: number, title: string, image_hashe
       })
       .catch(err => {
         dispatch({ type: "REMOVE_USER_ALBUMS_LIST_REJECTED", payload: err });
+      });
+  };
+}
+
+export function setAlbumCoverForUserAlbum(album_id, photo_hash) {
+  return function (dispatch) {
+    dispatch({ type: "SET_ALBUM_COVER_FOR_USER_ALBUM" });
+    Server.patch(`albums/user/edit/${album_id}/`, {
+      cover_photo: photo_hash,
+    })
+      .then(response => {
+        // To-Do: I should do something with the response
+        dispatch({ type: "SET_ALBUM_COVER_FOR_USER_ALBUM_FULFILLED" });
+        showNotification({
+          message: i18n.t("toasts.setcoverphoto"),
+          title: i18n.t("toasts.setcoverphototitle"),
+          color: "teal",
+        });
+        dispatch(fetchUserAlbumsList());
+      })
+      .catch(err => {
+        console.log(err);
+        dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON_REJECTED", payload: err });
       });
   };
 }

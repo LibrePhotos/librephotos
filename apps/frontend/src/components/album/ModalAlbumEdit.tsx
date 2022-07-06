@@ -93,7 +93,6 @@ export const ModalAlbumEdit = (props: Props) => {
         <Stack style={{ height: matches ? "50vh" : "25vh", overflowY: "scroll" }}>
           {filteredUserAlbumList.length > 0 &&
             filteredUserAlbumList.map(item => {
-              console.log(item.cover_photos);
               return (
                 <UnstyledButton
                   onClick={() => {
@@ -106,8 +105,8 @@ export const ModalAlbumEdit = (props: Props) => {
                       height={50}
                       width={50}
                       style={{ objectFit: "cover" }}
-                      image_hash={item.cover_photos[0].image_hash}
-                      video={item.cover_photos[0].video}
+                      image_hash={item.cover_photo.image_hash}
+                      video={item.cover_photo.video}
                     />
                     <div>
                       <Title order={4}>{item.title}</Title>

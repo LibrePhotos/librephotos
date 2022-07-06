@@ -4,6 +4,7 @@ import _ from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Pig from "react-pig";
 
+import { setAlbumCoverForUserAlbum } from "../../actions/albumsActions";
 import { setAlbumCoverForPerson } from "../../actions/peopleActions";
 import { fetchPhotoDetail } from "../../actions/photosActions";
 import { serverAddress } from "../../api_client/apiClient";
@@ -268,9 +269,16 @@ const PhotoListViewComponent = (props: Props) => {
                       selectedItems={selectionState.selectedItems}
                       albumID={match ? match.params.albumID : undefined}
                       title={title}
-                      setAlbumCover={() => {
-                        // @ts-ignore
-                        dispatch(setAlbumCoverForPerson(match.params.albumID, selectedItems[0].id));
+                      setAlbumCover={actionType => {
+                        console.log(actionType);
+                        if (actionType === "person") {
+                          // @ts-ignore
+                          dispatch(setAlbumCoverForPerson(match.params.albumID, selectionState.selectedItems[0].id));
+                        }
+                        if (actionType === "useralbum") {
+                          // @ts-ignore
+                          dispatch(setAlbumCoverForUserAlbum(match.params.albumID, selectionState.selectedItems[0].id));
+                        }
                       }}
                       onSharePhotos={() => setModalSharePhotosOpen(true)}
                       onShareAlbum={() => setModalAlbumShareOpen(true)}
