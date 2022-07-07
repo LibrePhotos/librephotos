@@ -14,7 +14,7 @@ services:
     container_name: __proxy_name__
     restart: unless-stopped
     volumes:
-      - ${myPhotos}:/data
+      - ${scanDirectory}:/data
       - ${data}/protected_media:/protected_media
       - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
@@ -47,7 +47,7 @@ services:
     container_name: __backend_name__
     restart: unless-stopped
     volumes:
-      - ${myPhotos}:/data
+      - ${scanDirectory}:/data
       - ${data}/protected_media:/protected_media
       - ${data}/logs:/logs
       - ${data}/cache:/root/.cache
