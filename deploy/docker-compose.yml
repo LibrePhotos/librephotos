@@ -14,7 +14,7 @@ services:
     container_name: proxy
     restart: unless-stopped
     volumes:
-      - ${myPhotos}:/data
+      - ${scanDirectory}:/data
       - ${data}/protected_media:/protected_media
     ports:
       - ${httpPort}:80
@@ -52,7 +52,7 @@ services:
     container_name: backend
     restart: unless-stopped
     volumes:
-      - ${myPhotos}:/data
+      - ${scanDirectory}:/data
       - ${data}/protected_media:/protected_media
       - ${data}/logs:/logs
       - ${data}/cache:/root/.cache
