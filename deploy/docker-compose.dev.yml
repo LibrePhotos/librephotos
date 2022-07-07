@@ -23,7 +23,7 @@ services:
       dockerfile: Dockerfile
     container_name: proxy
     volumes:
-      - ${myPhotos}:/data
+      - ${scanDirectory}:/data
       - ${data}/protected_media:/protected_media
       - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
 
@@ -51,7 +51,7 @@ services:
         DEBUG: 1
     container_name: backend
     volumes:
-      - ${myPhotos}:/data
+      - ${scanDirectory}:/data
       - ${data}/protected_media:/protected_media
       - ${data}/logs:/logs
       - ${codedir}/librephotos:/code
