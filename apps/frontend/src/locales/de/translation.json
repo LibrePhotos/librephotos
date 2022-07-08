@@ -126,7 +126,7 @@
         "polish": "Polnisch",
         "dutch": "Niederländisch",
         "profile": "Profil",
-        "confidencepercentage": "Vertrauen: {{percentage}} %"
+        "confidencepercentage": "Vertrauen: {{percentage}}%"
     },
     "modalnextcloud": {
         "setdirectory": "Setze dein Nextcloud Scan Ordner",
