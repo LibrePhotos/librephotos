@@ -76,7 +76,7 @@ function App() {
             <NotificationsProvider autoClose={3000} zIndex={1001}>
               <AppShell
                 fixed
-                padding={0}
+                padding={5}
                 navbar={
                   showMenubar && showSidebar ? auth.access ? <SideMenuNarrow /> : <SideMenuNarrowPublic /> : <div />
                 }
