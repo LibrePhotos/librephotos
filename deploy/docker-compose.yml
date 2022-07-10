@@ -35,7 +35,7 @@ services:
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c random_page_cost=1.0
     #Checking health of Postgres db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${dbUser}"]
+      test: psql -U ${dbUser} -d ${dbName} -c "SELECT 1;"
       interval: 5s
       timeout: 5s
       retries: 5
