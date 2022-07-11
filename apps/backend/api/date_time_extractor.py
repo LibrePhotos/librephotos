@@ -241,8 +241,8 @@ class TimeExtractionRule:
     def _check_condition_filename(self, path):
         if "condition_filename" in self.params:
             return (
-                re.search(self.params["condition_filename"], pathlib.Path(path).name)
-                is not None
+                    re.search(self.params["condition_filename"], pathlib.Path(path).name)
+                    is not None
             )
         else:
             return True
@@ -271,13 +271,13 @@ class TimeExtractionRule:
 
     def _check_conditions(self, path, exif_tags, gps_lat, gps_lon):
         return (
-            self._check_condition_exif(exif_tags)
-            and self._check_condition_path(path)
-            and self._check_condition_filename(path)
+                self._check_condition_exif(exif_tags)
+                and self._check_condition_path(path)
+                and self._check_condition_filename(path)
         )
 
     def apply(
-        self, path, exif_tags, gps_lat, gps_lon, user_default_tz, user_defined_timestamp
+            self, path, exif_tags, gps_lat, gps_lon, user_default_tz, user_defined_timestamp
     ):
         if not self._check_conditions(path, exif_tags, gps_lat, gps_lon):
             return None
@@ -376,13 +376,15 @@ class TimeExtractionRule:
 
 def _check_gps_ok(lat, lon):
     return (
-        lat is not None
-        and lon is not None
-        and math.isfinite(lat)
-        and math.isfinite(lon)
-        and (lat != 0.0 or lon != 0.0)
+            lat is not None
+            and lon is not None
+            and math.isfinite(lat)
+            and math.isfinite(lon)
+            and (lat != 0.0 or lon != 0.0)
     )
 
+
+ALL_TIME_ZONES = pytz.all_timezones
 
 DEFAULT_RULES_PARAMS = [
     {
@@ -503,6 +505,7 @@ def _as_json(configs):
 
 DEFAULT_RULES_JSON = _as_json(DEFAULT_RULES_PARAMS)
 PREDEFINED_RULES_JSON = _as_json(PREDEFINED_RULES_PARAMS)
+ALL_TIME_ZONES_JSON = _as_json(ALL_TIME_ZONES)
 
 
 def as_rules(configs):
@@ -510,7 +513,7 @@ def as_rules(configs):
 
 
 def extract_local_date_time(
-    path, rules, exif_getter, gps_lat, gps_lon, user_default_tz, user_defined_timestamp
+        path, rules, exif_getter, gps_lat, gps_lon, user_default_tz, user_defined_timestamp
 ):
     required_tags = set()
     for rule in rules:
