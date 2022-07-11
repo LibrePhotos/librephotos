@@ -430,6 +430,22 @@ export function fetchLocationTimeline(dispatch) {
     });
 }
 
+export function fetchTimezoneList(dispatch) {
+  dispatch({ type: "FETCH_TIMEZONE_LIST" });
+  Server.get(`timezones/`)
+    .then(response => {
+      dispatch({
+        type: "FETCH_TIMEZONE_LIST_FULFILLED",
+        payload: response.data,
+      });
+    })
+      .catch(err => {
+        console.log(err);
+        dispatch({ type: "FETCH_TIMEZONE_LIST_REJECTED", payload: err });
+      });
+}
+
+
 export function fetchCountStats() {
   return function (dispatch) {
     dispatch({ type: "FETCH_COUNT_STATS" });

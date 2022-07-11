@@ -112,7 +112,9 @@
     "favoriteoption": {
       "placeholder": "Minimum rating"
     },
-    "metadata": "Metadata options",
+    "metadata": "Metadata Options",
+    "defaulttimezone": "Default timezone",
+    "timezoneexplain": "This timezone is used for calculating timestamps when translating to 'user_default'",
     "sync": "Synchronize metadata to disk",
     "favoritesyncoptions": {
       "off": "Off",
