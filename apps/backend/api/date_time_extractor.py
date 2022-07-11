@@ -384,6 +384,8 @@ def _check_gps_ok(lat, lon):
     )
 
 
+ALL_TIME_ZONES = pytz.all_timezones
+
 DEFAULT_RULES_PARAMS = [
     {
         "id": 14,
@@ -503,6 +505,7 @@ def _as_json(configs):
 
 DEFAULT_RULES_JSON = _as_json(DEFAULT_RULES_PARAMS)
 PREDEFINED_RULES_JSON = _as_json(PREDEFINED_RULES_PARAMS)
+ALL_TIME_ZONES_JSON = _as_json(ALL_TIME_ZONES)
 
 
 def as_rules(configs):
