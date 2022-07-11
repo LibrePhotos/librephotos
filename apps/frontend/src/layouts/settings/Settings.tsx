@@ -4,6 +4,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { Settings as SettingIcon } from "tabler-icons-react";
 
 import {
+  fetchTimezoneList,
   fetchCountStats,
   fetchJobList,
   fetchNextcloudDirectoryTree,
@@ -19,14 +20,17 @@ import { useAppDispatch, useAppSelector } from "../../store/store";
 export const Settings = () => {
   const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
   const userSelfDetailsRedux = useAppSelector(state => state.user.userSelfDetails);
+  const timezoneListRedux = useAppSelector(state => state.util.timezoneList);
   const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
   const [userSelfDetails, setUserSelfDetails] = useState(userSelfDetailsRedux);
+  const [timezoneList, setTimezoneList] = useState(timezoneListRedux);
   const [modalNextcloudScanDirectoryOpen, setModalNextcloudScanDirectoryOpen] = useState(false);
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
   const workerAvailability = useAppSelector(state => state.util.workerAvailability);
   const { t } = useTranslation();
   console.log(userSelfDetails);
+  
   // open update dialog, when user was edited
   useEffect(() => {
     if (JSON.stringify(userSelfDetailsRedux) !== JSON.stringify(userSelfDetails)) {
@@ -44,8 +48,13 @@ export const Settings = () => {
     if (auth.access.is_admin) {
       dispatch(fetchJobList());
     }
+    fetchTimezoneList(dispatch);
   }, []);
 
+  useEffect(() => {
+    setTimezoneList(timezoneListRedux);
+  }, [timezoneListRedux]);
+  
   useEffect(() => {
     setUserSelfDetails(userSelfDetailsRedux);
   }, [userSelfDetailsRedux]);
@@ -97,7 +106,7 @@ export const Settings = () => {
         ></Select>
       </Group>
       <Title order={3}>
-        <Trans i18nKey="settings.metadata">Metadata options</Trans>
+        <Trans i18nKey="settings.metadata">Metadata Options</Trans>
       </Title>
       <Group position="center">
         <Select
@@ -126,6 +135,17 @@ export const Settings = () => {
             { value: "4", label: "4" },
             { value: "5", label: "5" },
           ]}
+        ></Select>
+        <Select
+          label={t("settings.defaulttimezone")}
+          value={userSelfDetails.default_timezone}
+          placeholder={t("settings.defaulttimezone")}
+          searchable
+          title={t("settings.timezoneexplain")}
+          onChange={value => {
+            setUserSelfDetails({...userSelfDetails,default_timezone: value ? value: "UTC"})
+          }}
+          data={timezoneList}
         ></Select>
       </Group>
       <ConfigDatetime />

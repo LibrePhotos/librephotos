@@ -155,6 +155,15 @@
         "library": "Library",
         "adminarea": "Admin Area"
     },
+    "metadata": "Metadata Options",
+    "defaulttimezone": "Default timezone",
+    "timezoneexplain": "This timezone is used for converting timestamps to the user's default timezone",
+    "sync": "Synchronize metadata to disk",
+    "favoritesyncoptions": {
+      "off": "Off",
+      "sidecar": "Save to sidecar",
+      "mediafile": "Save to media file"
+    },
     "sidemenu": {
         "name": "LibrePhotos",
         "withtimestamp": "With Timestamp",
