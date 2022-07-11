@@ -114,7 +114,7 @@
     },
     "metadata": "Metadata Options",
     "defaulttimezone": "Default timezone",
-    "timezoneexplain": "This timezone is used for calculating timestamps when translating to 'user_default'",
+    "timezoneexplain": "This timezone is used for converting timestamps to the user's default timezone",
     "sync": "Synchronize metadata to disk",
     "favoritesyncoptions": {
       "off": "Off",
