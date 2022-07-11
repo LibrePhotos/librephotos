@@ -36,10 +36,10 @@ from api.views import (
     photos,
     search,
     sharing,
+    timezone,
     upload,
     user,
     views,
-    timezone,
 )
 from nextcloud import views as nextcloud_views
 
