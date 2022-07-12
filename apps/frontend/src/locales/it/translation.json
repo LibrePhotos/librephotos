@@ -23,7 +23,7 @@
         "change": "Cambia",
         "nextcloudheader": "Nextcloud",
         "credentials": "Credenziali",
-        "serveradressplaceholder": "https://...",
+        "serveradressplaceholder": "https://",
         "nextcloudusername": "Nome utente",
         "nextcloudusernameplaceholder": "Nome utente",
         "nextcloudcancel": "Annulla",
@@ -60,7 +60,8 @@
             "item2": "Se il percorso del file esiste, controlla se il file è stato modificato. Se è stato modificato, si esegue una nuova scansione dell'immagine. Se no, si salta."
         },
         "profile": "Profilo",
-        "dutch": "olandese"
+        "dutch": "olandese",
+        "polish": "polacco"
     },
     "joblist": {
         "queued": "In coda",
