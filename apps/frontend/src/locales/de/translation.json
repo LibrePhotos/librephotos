@@ -479,5 +479,14 @@
     "confirm": "Bestätigen",
     "deleteface": "Gesichter löschen",
     "cancel": "Abbrechen",
-    "deletefaceexplanation": "Mit dieser Aktion werden die Flächen und alle zugehörigen Daten endgültig gelöscht. Diese Aktion kann nicht rückgängig gemacht werden."
+    "deletefaceexplanation": "Mit dieser Aktion werden die Flächen und alle zugehörigen Daten endgültig gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "metadata": "Metadaten-Optionen",
+    "timezoneexplain": "Diese Zeitzone wird für die Konvertierung von Zeitstempeln in die Standardzeitzone des Benutzers verwendet",
+    "defaulttimezone": "Standard-Zeitzone",
+    "favoritesyncoptions": {
+        "off": "Aus",
+        "sidecar": "Im Beiwagen speichern",
+        "mediafile": "In Mediendatei speichern"
+    },
+    "sync": "Metadaten mit der Festplatte synchronisieren"
 }
