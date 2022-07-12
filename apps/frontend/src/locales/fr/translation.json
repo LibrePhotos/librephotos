@@ -479,5 +479,14 @@
     "deleteface": "Supprimer les visages",
     "confirm": "Confirmer",
     "cancel": "Annuler",
-    "deletefaceexplanation": "Cette action supprimera définitivement les visages et toutes les données qui leur sont associées. Cette action ne peut pas être annulée."
+    "deletefaceexplanation": "Cette action supprimera définitivement les visages et toutes les données qui leur sont associées. Cette action ne peut pas être annulée.",
+    "metadata": "Options de métadonnées",
+    "timezoneexplain": "Ce fuseau horaire est utilisé pour convertir les horodatages dans le fuseau horaire par défaut de l'utilisateur",
+    "favoritesyncoptions": {
+        "off": "Désactivé",
+        "sidecar": "Enregistrer dans le side-car",
+        "mediafile": "Enregistrer dans un fichier multimédia"
+    },
+    "defaulttimezone": "Fuseau horaire par défaut",
+    "sync": "Synchronisation des métadonnées sur le disque"
 }
