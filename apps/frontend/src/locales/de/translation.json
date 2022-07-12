@@ -485,7 +485,7 @@
     "defaulttimezone": "Standard-Zeitzone",
     "favoritesyncoptions": {
         "off": "Aus",
-        "sidecar": "Im Beiwagen speichern",
+        "sidecar": "Speichere in einer Sidecar",
         "mediafile": "In Mediendatei speichern"
     },
     "sync": "Metadaten mit der Festplatte synchronisieren"
