@@ -160,9 +160,9 @@
     "timezoneexplain": "This timezone is used for converting timestamps to the user's default timezone",
     "sync": "Synchronize metadata to disk",
     "favoritesyncoptions": {
-      "off": "Off",
-      "sidecar": "Save to sidecar",
-      "mediafile": "Save to media file"
+        "off": "Off",
+        "sidecar": "Save to sidecar",
+        "mediafile": "Save to media file"
     },
     "sidemenu": {
         "name": "LibrePhotos",
@@ -428,7 +428,7 @@
         "setcoverphoto": "Cover photo set",
         "setcoverphototitle": "Set cover photo",
         "sharephoto": "{{numberOfPhotos}} photo(s) were shared with {{username}}",
-        "unsharephoto": "{{numberOfPhotos}} photo(s) were shared with {{username}}",
+        "unsharephoto": "{{numberOfPhotos}} photo(s) were unshared with {{username}}",
         "sharephototitle": "Share photo",
         "addpublicphoto": "{{numberOfPhotos}} photo(s) were added to your public photos. Links to the photos were copied to the clipboard.",
         "removepublicphoto": "{{numberOfPhotos}} photo(s) were removed from your public photos.",
