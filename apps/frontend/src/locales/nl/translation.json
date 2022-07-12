@@ -76,7 +76,7 @@
             "none": "Geen"
         },
         "on": "Aan",
-        "metadata": "Metagegevens",
+        "metadata": "Metagegevensopties",
         "sync": "Metagegevens vastleggen op schijf",
         "favoritesyncoptions": {
             "sidecar": "Opslaan in sidecar",
@@ -478,5 +478,14 @@
     "deleteface": "Gezichten verwijderen",
     "deletefaceexplanation": "Door deze actie worden de gezichten en alle bijbehorende gegevens verwijderd. Dit kan niet ongedaan worden gemaakt.",
     "cancel": "Annuleren",
-    "confirm": "Bevestigen"
+    "confirm": "Bevestigen",
+    "metadata": "Metagegevensopties",
+    "sync": "Metagegevens synchroniseren naar schijf",
+    "favoritesyncoptions": {
+        "sidecar": "Opslaan in sidecar",
+        "mediafile": "Opslaan in mediabestand",
+        "off": "Uit"
+    },
+    "defaulttimezone": "Standaard tijdzone",
+    "timezoneexplain": "Deze tijdzone wodt gebruikt om tijdstempels om te zetten naar de tijdzone van de gebruiker"
 }
