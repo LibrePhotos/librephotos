@@ -1,6 +1,7 @@
 import {
   ActionIcon,
   Button,
+  Center,
   Dialog,
   Group,
   Select,
@@ -178,81 +179,93 @@ export const Profile = () => {
               setUserSelfDetails({ ...userSelfDetails, email: event.currentTarget.value });
             }}
           />
-          <Select
-            label={t("settings.language")}
-            placeholder={t("settings.language")}
-            //@ts-ignore
-            onChange={value => i18n.changeLanguage(value)}
-            searchable
-            maxDropdownHeight={280}
-            value={window.localStorage.i18nextLng}
-            data={[
-              {
-                value: "gb",
-                label: t("settings.english"),
-              },
-              {
-                value: "de",
-                label: t("settings.german"),
-              },
-              {
-                value: "es",
-                label: t("settings.spanish"),
-              },
-              {
-                value: "fr",
-                label: t("settings.french"),
-              },
-              {
-                value: "it",
-                label: t("settings.italian"),
-              },
-              {
-                value: "nb_NO",
-                label: t("settings.norwegianbokmal"),
-              },
-              {
-                value: "zh_Hans",
-                label: t("settings.simplifiedchinese"),
-              },
-              {
-                value: "ru",
-                label: t("settings.russian"),
-              },
-              {
-                value: "ja",
-                label: t("settings.japanese"),
-              },
-              {
-                value: "sv",
-                label: t("settings.swedish"),
-              },
-              {
-                value: "pl",
-                label: t("settings.polish"),
-              },
-              {
-                value: "nl",
-                label: t("settings.dutch"),
-              },
-              {
-                value: "cs",
-                label: t("settings.czech"),
-              },
-              {
-                value: "pt",
-                label: t("settings.portuguese"),
-              },
-              {
-                value: "fi",
-                label: t("settings.finnish"),
-              },
-              {
-                value: "eu",
-                label: t("settings.basque"),
-              },
-            ]}
-          />
+
+          <Group>
+            <Select
+              label={t("settings.language")}
+              placeholder={t("settings.language")}
+              //@ts-ignore
+              onChange={value => i18n.changeLanguage(value)}
+              searchable
+              maxDropdownHeight={280}
+              value={window.localStorage.i18nextLng}
+              data={[
+                {
+                  value: "gb",
+                  label: t("settings.english"),
+                },
+                {
+                  value: "de",
+                  label: t("settings.german"),
+                },
+                {
+                  value: "es",
+                  label: t("settings.spanish"),
+                },
+                {
+                  value: "fr",
+                  label: t("settings.french"),
+                },
+                {
+                  value: "it",
+                  label: t("settings.italian"),
+                },
+                {
+                  value: "nb_NO",
+                  label: t("settings.norwegianbokmal"),
+                },
+                {
+                  value: "zh_Hans",
+                  label: t("settings.simplifiedchinese"),
+                },
+                {
+                  value: "ru",
+                  label: t("settings.russian"),
+                },
+                {
+                  value: "ja",
+                  label: t("settings.japanese"),
+                },
+                {
+                  value: "sv",
+                  label: t("settings.swedish"),
+                },
+                {
+                  value: "pl",
+                  label: t("settings.polish"),
+                },
+                {
+                  value: "nl",
+                  label: t("settings.dutch"),
+                },
+                {
+                  value: "cs",
+                  label: t("settings.czech"),
+                },
+                {
+                  value: "pt",
+                  label: t("settings.portuguese"),
+                },
+                {
+                  value: "fi",
+                  label: t("settings.finnish"),
+                },
+                {
+                  value: "eu",
+                  label: t("settings.basque"),
+                },
+              ]}
+            />
+            <Button
+              style={{ marginTop: "28px" }}
+              component="a"
+              href="https://hosted.weblate.org/engage/librephotos/"
+              variant="gradient"
+              gradient={{ from: "#43cea2", to: "#185a9d" }}
+            >
+              {t("settings.helptranslating")}
+            </Button>
+          </Group>
           <Switch
             label={`${t("settings.thumbnailsize")}: ${
               userSelfDetails.image_scale === 1 ? t("settings.big") : t("settings.small")

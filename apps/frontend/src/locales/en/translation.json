@@ -57,6 +57,7 @@
         "small": "Small",
         "library": "Library",
         "photos": "Photos",
+        "helptranslating": "Help translating",
         "statusscanphotostrue": "Scanning photos (filesystem)",
         "statusscanphotosfalse": "Scan photos (filesystem)",
         "scannextcloudphotos": "Scan photos (Nextcloud)",
