@@ -125,7 +125,12 @@
         "missingphotosdescription": "LibrePhotos zal tijdens elke scan controleren of de bestanden nog op dezelfde locatie aanwezig zijn of verplaatst. Als ze ontbreken, dan worden ze als dusdanig aangemerkt.",
         "eventalbumsregeneratedescription": "Automatisch samengestelde albumnamen bevatten persoonsnamen. Als u de gezichtsherkenning getraind hebt na het samenstellen van gebeurtenisalbums, dan kunt u nieuwe namen genereren voor reeds bestaande albums om ze te koppelen aan de gezichten op de foto's.",
         "transcodevideo": "Video's altijd converteren",
-        "confidencepercentage": "Zekerheid: {{percentage}}%"
+        "confidencepercentage": "Zekerheid: {{percentage}}%",
+        "finnish": "Fins",
+        "portuguese": "Portugees",
+        "basque": "Baskisch",
+        "czech": "Tsjechisch",
+        "helptranslating": "Helpen met vertalen"
     },
     "topmenu": {
         "profile": "Profiel",
@@ -381,7 +386,7 @@
         "setcoverphoto": "De omslagfoto is ingesteld",
         "setcoverphototitle": "Instellen als omslagfoto",
         "sharephoto": "Er is/zijn {{numberOfPhotos}} foto('s) gedeeld met ‘{{username}}’",
-        "unsharephoto": "Er is/zijn {{numberOfPhotos}} foto('s) gedeeld met ‘{{username}}’",
+        "unsharephoto": "{{numberOfPhotos}} foto('s) worden niet meer gedeeld met ‘{{username}}’",
         "sharephototitle": "Foto delen",
         "removepublicphoto": "Er is/zijn {{numberOfPhotos}} foto('s) verwijderd uit uw openbare foto's.",
         "unfavoritephoto": "Er is/zijn {{numberOfPhotos}} foto('s) verwijderd uit uw favorieten.",
@@ -432,7 +437,9 @@
         "editphototitle": "Foto bewerken",
         "uploadsuccess": "Het uploaden is voltooid",
         "deletejob": "De taak ‘{{id}}’ is verwijderd.",
-        "deletejobtitle": "Taak verwijderen"
+        "deletejobtitle": "Taak verwijderen",
+        "scanuploadedphotos": "Bezig met scannen van geüploade foto's…",
+        "scanuploadedphotostitle": "Geüploade foto's scannen"
     },
     "rename": "Naam wijzigen",
     "events": "Gebeurtenissen",
