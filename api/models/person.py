@@ -11,10 +11,13 @@ utc = pytz.UTC
 
 
 class Person(models.Model):
+    KIND_USER = "USER"
+    KIND_CLUSTER = "CLUSTER"
+    KIND_UNKNOWN = "UNKNOWN"
     KIND_CHOICES = (
-        ("USER", "User Labelled"),
-        ("CLUSTER", "Cluster ID"),
-        ("UNKNOWN", "Unknown Person"),
+        (KIND_USER, "User Labelled"),
+        (KIND_CLUSTER, "Cluster ID"),
+        (KIND_UNKNOWN, "Unknown Person"),
     )
     name = models.CharField(blank=False, max_length=128)
     kind = models.CharField(choices=KIND_CHOICES, max_length=10)

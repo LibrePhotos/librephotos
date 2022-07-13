@@ -5,6 +5,7 @@ from django.dispatch import receiver
 
 from api.models.person import Person, get_unknown_person
 from api.models.photo import Photo
+import numpy as np
 
 
 class Face(models.Model):
@@ -29,6 +30,9 @@ class Face(models.Model):
 
     def __str__(self):
         return "%d" % self.id
+    
+    def get_encoding_array(self):
+        return np.frombuffer(bytes.fromhex(self.encoding))
 
 
 # From: https://stackoverflow.com/questions/16041232/django-delete-filefield
