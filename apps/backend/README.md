@@ -17,12 +17,14 @@
 
 Step-by-step installation instructions are available in our [documentation](https://docs.librephotos.com/1/)
 
-## Contributions
-- Development: Get started contributing in less than 30 minutes by following the [guide here](https://docs.librephotos.com/1/dev_install/)
-- Documentation: Contributing to it is as simple as submitting a pull request to the [documentation repository](https://github.com/LibrePhotos/librephotos.docs)
-- Testing: If you want to help find bugs, use the ```dev``` tag and update it regulary. If you find one, open an issue.
-- Outreach: Talk about LibrePhotos with other people and help them to get started too!
-- Translation: LibrePhotos uses [Weblate](https://weblate.org/) for its translations. Feel free to contribute or view existing translations at [weblate](https://hosted.weblate.org/engage/librephotos/).
+## How to help out
+- ⭐ **Star** this repository if you like this project!
+- 🚀 **Developing**: Get started in less than 30 minutes by following the [guide here](https://docs.librephotos.com/1/dev_install/)
+- 🗒️ **Documentation**: Improving the documentation is as simple as submitting a pull request [here](https://github.com/LibrePhotos/librephotos.docs)
+- 🧪 **Testing**: If you want to help find bugs, use the ```dev``` tag and update it regulary. If you find a bug, open an issue.
+- 🧑‍🤝‍🧑 **Outreach**: Talk about this project with other people and help them to get started too!
+- 🌐 **Translations**: Make LibrePhotos accessible to more people with [weblate](https://hosted.weblate.org/engage/librephotos/).
+- 💸 [**Donate**](https://github.com/sponsors/derneuere) to the developers of LibrePhotos
 
 ## Features
 
