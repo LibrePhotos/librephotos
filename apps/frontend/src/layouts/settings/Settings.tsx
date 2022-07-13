@@ -4,11 +4,11 @@ import { Trans, useTranslation } from "react-i18next";
 import { Settings as SettingIcon } from "tabler-icons-react";
 
 import {
-  fetchTimezoneList,
   fetchCountStats,
   fetchJobList,
   fetchNextcloudDirectoryTree,
   fetchSiteSettings,
+  fetchTimezoneList,
   updateUser,
 } from "../../actions/utilActions";
 import { api } from "../../api_client/api";
@@ -27,10 +27,9 @@ export const Settings = () => {
   const [modalNextcloudScanDirectoryOpen, setModalNextcloudScanDirectoryOpen] = useState(false);
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
-  const workerAvailability = useAppSelector(state => state.util.workerAvailability);
   const { t } = useTranslation();
   console.log(userSelfDetails);
-  
+
   // open update dialog, when user was edited
   useEffect(() => {
     if (JSON.stringify(userSelfDetailsRedux) !== JSON.stringify(userSelfDetails)) {
@@ -54,13 +53,11 @@ export const Settings = () => {
   useEffect(() => {
     setTimezoneList(timezoneListRedux);
   }, [timezoneListRedux]);
-  
+
   useEffect(() => {
     setUserSelfDetails(userSelfDetailsRedux);
   }, [userSelfDetailsRedux]);
 
-  let buttonsDisabled = !workerAvailability;
-  buttonsDisabled = false;
   if (avatarImgSrc === "/unknown_user.jpg") {
     if (userSelfDetails.avatar_url) {
       setAvatarImgSrc(serverAddress + userSelfDetails.avatar_url);
@@ -103,7 +100,7 @@ export const Settings = () => {
             { value: "10", label: t("settings.semanticsearch.top10") },
             { value: "0", label: t("settings.semanticsearch.top0") },
           ]}
-        ></Select>
+        />
       </Group>
       <Title order={3}>
         <Trans i18nKey="settings.metadata">Metadata Options</Trans>
@@ -120,7 +117,7 @@ export const Settings = () => {
             { value: "SIDECAR_FILE", label: t("settings.favoritesyncoptions.sidecar") },
             { value: "MEDIA_FILE", label: t("settings.favoritesyncoptions.mediafile") },
           ]}
-        ></Select>
+        />
         <Select
           label={t("settings.favoriteminimum")}
           value={userSelfDetails.favorite_min_rating.toString()}
@@ -135,18 +132,18 @@ export const Settings = () => {
             { value: "4", label: "4" },
             { value: "5", label: "5" },
           ]}
-        ></Select>
+        />
         <Select
-          label={t("settings.defaulttimezone")}
+          label={t("defaulttimezone")}
           value={userSelfDetails.default_timezone}
-          placeholder={t("settings.defaulttimezone")}
+          placeholder={t("defaulttimezone")}
           searchable
-          title={t("settings.timezoneexplain")}
+          title={t("timezoneexplain")}
           onChange={value => {
-            setUserSelfDetails({...userSelfDetails,default_timezone: value ? value: "UTC"})
+            setUserSelfDetails({ ...userSelfDetails, default_timezone: value ? value : "UTC" });
           }}
           data={timezoneList}
-        ></Select>
+        />
       </Group>
       <ConfigDatetime />
       <Title order={3}>
@@ -161,7 +158,7 @@ export const Settings = () => {
             transcode_videos: event.currentTarget.checked,
           });
         }}
-      ></Switch>
+      />
       <ModalNextcloudScanDirectoryEdit
         onRequestClose={() => {
           setModalNextcloudScanDirectoryOpen(false);
