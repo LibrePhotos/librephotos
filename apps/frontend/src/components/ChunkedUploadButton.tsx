@@ -34,7 +34,6 @@ export const ChunkedUploadButton = () => {
         if (temporaryFileReader.result) {
           // @ts-ignore
           offset += temporaryFileReader.result.length;
-          console.log(offset);
           md5.update(
             // @ts-ignore
             CryptoJS.enc.Latin1.parse(temporaryFileReader.result)
@@ -66,7 +65,7 @@ export const ChunkedUploadButton = () => {
     dispatch(api.endpoints.uploadFinished.initiate(formData));
   };
 
-  const calculateMD5Blob = (blob: Blob) => {
+  const calculateMD5Blob = async (blob: Blob) => {
     const reader = new FileReader();
     reader.readAsArrayBuffer(blob);
     reader.onload = () => {
@@ -85,7 +84,8 @@ export const ChunkedUploadButton = () => {
       formData.append("upload_id", uploadId);
     }
     formData.append("file", chunk);
-    formData.append("md5", calculateMD5Blob(chunk));
+    //FIX-ME: This is empty
+    formData.append("md5", await calculateMD5Blob(chunk));
     formData.append("offset", offset.toString());
     formData.append("user", userSelfDetails.id.toString());
     return dispatch(
@@ -99,10 +99,9 @@ export const ChunkedUploadButton = () => {
 
   const calculateChunks = (file: File, chunkSize: number) => {
     const chunks = Math.ceil(file.size / chunkSize);
-    const chunk = [];
+    const chunk = [] as Blob[];
     for (let i = 0; i < chunks; i++) {
       const chunkEnd = Math.min((i + 1) * chunkSize, file.size);
-      // @ts-ignore
       chunk.push(file.slice(i * chunkSize, chunkEnd));
     }
     return chunk;
@@ -119,8 +118,8 @@ export const ChunkedUploadButton = () => {
         totalSize += fileSize;
       });
       setTotalSize(totalSize);
-      const currentUploadedFileSizeStartValue = currentUploadedFileSize;
       for (const file of acceptedFiles) {
+        const currentUploadedFileSizeStartValue = currentUploadedFileSize;
         // Check if the upload already exists via the hash of the file
         const hash = (await calculateMD5(file)) + userSelfDetails.id;
         const isAlreadyUploaded = (await uploadExists(hash)).data;
@@ -137,14 +136,12 @@ export const ChunkedUploadButton = () => {
             }
             //To-Do: Handle Error
             if (chunks[offset / chunkSize]) {
-              // @ts-ignore
               currentUploadedFileSize += chunks[offset / chunkSize].size;
             } else {
               currentUploadedFileSize += file.size - (currentUploadedFileSize - currentUploadedFileSizeStartValue);
             }
             setCurrentSize(currentUploadedFileSize);
           }
-
           uploadFinished(file, uploadId);
         } else {
           console.log("File already uploaded");
