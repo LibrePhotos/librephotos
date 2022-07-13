@@ -3,15 +3,19 @@ import LanguageDetector from "i18next-browser-languagedetector";
 import { DateTime } from "luxon";
 import { initReactI18next } from "react-i18next";
 
+import translationCs from "./locales/cs/translation.json";
 import translationDe from "./locales/de/translation.json";
 import translationEn from "./locales/en/translation.json";
 import translationEs from "./locales/es/translation.json";
+import translationEu from "./locales/eu/translation.json";
+import translationFi from "./locales/fi/translation.json";
 import translationFr from "./locales/fr/translation.json";
 import translationIt from "./locales/it/translation.json";
 import translationJa from "./locales/ja/translation.json";
 import translationNb_NO from "./locales/nb_NO/translation.json";
 import translationNl from "./locales/nl/translation.json";
 import translationPl from "./locales/pl/translation.json";
+import translationPt from "./locales/pt/translation.json";
 import translationRu from "./locales/ru/translation.json";
 import translationSv from "./locales/sv/translation.json";
 import translationZh_Hans from "./locales/zh_Hans/translation.json";
@@ -52,6 +56,18 @@ const resources = {
   },
   nl: {
     translation: translationNl,
+  },
+  cs: {
+    translation: translationCs,
+  },
+  pt: {
+    translation: translationPt,
+  },
+  fi: {
+    translation: translationFi,
+  },
+  eu: {
+    translation: translationEu,
   },
 };
 i18n

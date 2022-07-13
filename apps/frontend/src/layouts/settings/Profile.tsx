@@ -235,6 +235,22 @@ export const Profile = () => {
                 value: "nl",
                 label: t("settings.dutch"),
               },
+              {
+                value: "cs",
+                label: t("settings.czech"),
+              },
+              {
+                value: "pt",
+                label: t("settings.portuguese"),
+              },
+              {
+                value: "fi",
+                label: t("settings.finnish"),
+              },
+              {
+                value: "eu",
+                label: t("settings.basque"),
+              },
             ]}
           />
           <Switch
