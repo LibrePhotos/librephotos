@@ -93,9 +93,9 @@
         "facesbutton": "Treinar Caras",
         "inferred": "Inferidas",
         "facessmall": "caras",
-        "facedashboard": "Painel de Faces",
+        "facedashboard": "Painel de caras",
         "confidencepercentage": "Convicção: {{percentage}}%",
-        "rescanfaces": "Reanalisar Faces",
+        "rescanfaces": "Reanalisar Caras",
         "scanoptions": "Opções de análise",
         "semanticsearchheader": "Resultados máximos de pesquisa semântica",
         "favoriteminimum": "Classificação de imagem mínima para que seja interpretada como favorita",
@@ -131,7 +131,12 @@
         "statusscanphotosfalse": "Analisar fotos (sistema de ficheiros)",
         "credentialspopup": "Usar palavra passe da aplicação",
         "missingphotos": "Fotos em falta",
-        "missingphotosdescription": "Em cada análise o LibrePhotos verifica se os ficheiros se mantêm no mesmo locar ou se foram movidos. Caso estejam em falta, serão marcados como tal."
+        "missingphotosdescription": "Em cada análise o LibrePhotos verifica se os ficheiros se mantêm no mesmo locar ou se foram movidos. Caso estejam em falta, serão marcados como tal.",
+        "finnish": "Terminar",
+        "basque": "Basco",
+        "czech": "Checo",
+        "portuguese": "Português",
+        "helptranslating": "Ajude a traduzir"
     },
     "sidemenu": {
         "myalbums": "Meus álbuns",
@@ -143,19 +148,19 @@
         "name": "LibrePhotos",
         "withtimestamp": "Com carimbo de data/hora",
         "withouttimestamp": "Sem carimbo de data/hora",
-        "datavizsmall": "Visualização de dados",
+        "datavizsmall": "Dados",
         "library": "Biblioteca",
         "favorites": "Favoritos",
         "mypublicphotos": "Minhas fotos públicas",
         "places": "Locais",
         "placetree": "Árvore de locais",
-        "facerecognition": "Reconhecimento de caras",
+        "facerecognition": "Caras",
         "dashboards": "Painéis de controlo",
         "recentlyadded": "Recentemente adicionado",
         "hidden": "Oculto",
         "photos": "Fotos",
         "people": "Pessoas",
-        "dataviz": "Visualização de dados",
+        "dataviz": "Dados",
         "timeline": "Linha de tempo",
         "socialgraph": "Gráfico social",
         "facecluster": "Aglomerados de caras",
@@ -355,7 +360,7 @@
         "selectedfaces": "{{number}} selecionadas",
         "explanationadding": "Adicionar a um ID de cara já existente ou criar um novo ID de cara",
         "explanationtraining": "Treinar um classificador e legendar caras automaticamente",
-        "explanationdeleting": "Eliminar a face e a sua miniatura"
+        "explanationdeleting": "Eliminar a cara e a sua miniatura"
     },
     "scan": "Analisar",
     "socialgraph": "Gráfico social",
@@ -398,7 +403,7 @@
         "setcoverphoto": "Foto de capa definida",
         "setcoverphototitle": "Definir foto de capa",
         "sharephoto": "{{numberOfPhotos}} fotos foram partilhadas com {{username}}",
-        "unsharephoto": "{{numberOfPhotos}} fotos foram partilhadas com {{username}}",
+        "unsharephoto": "{{numberOfPhotos}} fotos deixaram de ser partilhadas com {{username}}",
         "sharephototitle": "Partilhar foto",
         "addpublicphoto": "{{numberOfPhotos}} fotos foram adicionadas às suas fotos públicas. Links para as fotos foram copiadas para a área de transferência.",
         "removepublicphoto": "{{numberOfPhotos}} fotos foram removidas das suas fotos públicas.",
@@ -438,7 +443,9 @@
         "scannextcloudphotostitle": "Analisar fotos do Nextcloud",
         "generateeventalbumstitle": "Gerar álbuns de eventos",
         "recoverphoto": "{{numberOfPhotos}} fotos foram recuperadas.",
-        "deletephoto": "{{numberOfPhotos}} fotos foram eliminadas."
+        "deletephoto": "{{numberOfPhotos}} fotos foram eliminadas.",
+        "scanuploadedphotos": "A analisar fotos carregadas…",
+        "scanuploadedphotostitle": "Analisar fotos carregadas"
     },
     "deletefaceexplanation": "Esta ação vai permanentemente eliminar as caras e todos os seus dados associados. Esta ação não pode ser desfeita.",
     "rules": {
@@ -478,5 +485,14 @@
     "places": "Locais",
     "loading": "A carregar...",
     "confirm": "Confirmar",
-    "deleteface": "Eliminar caras"
+    "deleteface": "Eliminar caras",
+    "metadata": "Opções de metadados",
+    "defaulttimezone": "Fuso horário predefinido",
+    "favoritesyncoptions": {
+        "off": "Desligado",
+        "sidecar": "Guardar para sidecar",
+        "mediafile": "Guardar para ficheiro media"
+    },
+    "timezoneexplain": "Este fuso horário é usado para converter carimbos de data/hora para o fuso horário predefinido do utilizador",
+    "sync": "Sincronizar metadados para disco"
 }
