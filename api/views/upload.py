@@ -1,6 +1,8 @@
 import io
 import os
+import uuid
 
+import django_rq
 from chunked_upload.constants import http_status
 from chunked_upload.exceptions import ChunkedUploadError
 from chunked_upload.models import ChunkedUpload
@@ -94,4 +96,6 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                 ChunkedUpload, upload_id=request.POST.get("upload_id")
             )
             chunked_upload.delete(delete_file=True)
-            handle_new_image.delay(user, photo_path, "0")
+
+            # To-Do: Fix jobs not being queued / executed
+            django_rq.enqueue(handle_new_image, user, photo_path, uuid.uuid4())
