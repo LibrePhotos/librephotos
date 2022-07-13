@@ -317,7 +317,7 @@ def initialize_scan_process(*args, **kwargs):
 
 
 @job
-def scan_photos(user, full_scan, job_id):
+def scan_photos(user, full_scan, job_id, scan_directory):
     if not os.path.exists(
         os.path.join(ownphotos.settings.MEDIA_ROOT, "thumbnails_big")
     ):
@@ -340,7 +340,7 @@ def scan_photos(user, full_scan, job_id):
 
     try:
         photo_list = []
-        walk_directory(user.scan_directory, photo_list)
+        walk_directory(scan_directory, photo_list)
         files_found = len(photo_list)
         last_scan = (
             LongRunningJob.objects.filter(finished=True)
@@ -377,9 +377,7 @@ def scan_photos(user, full_scan, job_id):
             pool.starmap(photo_scanner, all)
 
         place365_instance.unload()
-        util.logger.info(
-            "Scanned {} files in : {}".format(files_found, user.scan_directory)
-        )
+        util.logger.info("Scanned {} files in : {}".format(files_found, scan_directory))
         api.models.album_thing.update()
         util.logger.info("Finished updating album things")
         exisisting_photos = Photo.objects.filter(owner=user.id)

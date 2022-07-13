@@ -218,6 +218,7 @@ urlpatterns = [
     url(r"^api/clusterfaces", dataviz.ClusterFaceView.as_view()),
     url(r"^api/socialgraph", dataviz.SocialGraphView.as_view()),
     url(r"^api/scanphotos", views.ScanPhotosView.as_view()),
+    url(r"^api/scanuploadedphotos", views.FullScanPhotosView.as_view()),
     url(r"^api/fullscanphotos", views.FullScanPhotosView.as_view()),
     url(r"^api/scanfaces", faces.ScanFacesView.as_view()),
     url(r"^api/deletemissingphotos", views.DeleteMissingPhotosView.as_view()),
