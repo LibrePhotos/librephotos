@@ -443,6 +443,8 @@
         "scanphotostitle": "Scan photos",
         "fullscanphotos": "Scanning photos (full)…",
         "fullscanphotostitle": "Scan Photos (full)",
+        "scanuploadedphotos": "Scanning uploaded photos…",
+        "scanuploadedphotostitle": "Scan uploaded Photos",
         "scannextcloudphotos": "Scan Nextcloud Photos started",
         "scannextcloudphotostitle": "Scan Nextcloud Photos",
         "updateuser": "{{username}}'s info updated",

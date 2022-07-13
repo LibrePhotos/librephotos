@@ -426,6 +426,27 @@ export function scanPhotos() {
   };
 }
 
+export function scanUploadedPhotos() {
+  return function (dispatch: Dispatch<any>) {
+    dispatch({ type: "SCAN_PHOTOS" });
+    dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
+
+    Server.get(`scanuploadedphotos/`)
+      .then(response => {
+        const jobResponse = JobResponseSchema.parse(response.data);
+        showNotification({
+          message: i18n.t("toasts.scanuploadedphotos"),
+          title: i18n.t("toasts.scanuploadedphotostitle"),
+          color: "teal",
+        });
+        dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
+      })
+      .catch(err => {
+        dispatch({ type: "SCAN_PHOTOS_REJECTED", payload: err });
+      });
+  };
+}
+
 export function scanAllPhotos() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "SCAN_PHOTOS" });

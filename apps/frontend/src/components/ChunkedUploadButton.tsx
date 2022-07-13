@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload } from "tabler-icons-react";
 
+import { scanUploadedPhotos } from "../actions/photosActions";
 import { api } from "../api_client/api";
 import { useAppDispatch, useAppSelector } from "../store/store";
 
@@ -149,6 +150,7 @@ export const ChunkedUploadButton = () => {
           setCurrentSize(currentUploadedFileSize);
         }
       }
+      dispatch(scanUploadedPhotos());
     },
   });
 
