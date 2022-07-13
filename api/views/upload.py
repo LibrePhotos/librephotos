@@ -1,8 +1,6 @@
 import io
 import os
-import uuid
 
-import django_rq
 from chunked_upload.constants import http_status
 from chunked_upload.exceptions import ChunkedUploadError
 from chunked_upload.models import ChunkedUpload
@@ -12,7 +10,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.response import Response
 
-from api.directory_watcher import calculate_hash_b64, handle_new_image
+from api.directory_watcher import calculate_hash_b64
 from api.models import Photo, User
 
 
@@ -86,16 +84,22 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                     user.scan_directory, "uploads", device, filename
                 )
             else:
-                photo_path = os.path.join(
-                    user.scan_directory, "uploads", device, image_hash
+                existing_photo_hash = calculate_hash_b64(
+                    os.path.join(user.scan_directory, "uploads", device, filename)
                 )
-            with open(photo_path, "wb") as f:
-                photo.seek(0)
-                f.write(photo.read())
+                if existing_photo_hash == image_hash:
+                    # File already exist, do not copy it in the upload folder
+                    photo_path = ""
+                else:
+                    photo_path = os.path.join(
+                        user.scan_directory, "uploads", device, image_hash
+                    )
+
+            if photo_path:
+                with open(photo_path, "wb") as f:
+                    photo.seek(0)
+                    f.write(photo.read())
             chunked_upload = get_object_or_404(
                 ChunkedUpload, upload_id=request.POST.get("upload_id")
             )
             chunked_upload.delete(delete_file=True)
-
-            # To-Do: Fix jobs not being queued / executed
-            django_rq.enqueue(handle_new_image, user, photo_path, uuid.uuid4())

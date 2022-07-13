@@ -237,7 +237,25 @@ class ScanPhotosView(APIView):
     def get(self, request, format=None):
         try:
             job_id = uuid.uuid4()
-            scan_photos.delay(request.user, False, job_id)
+            scan_photos.delay(request.user, False, job_id, request.user.scan_directory)
+            return Response({"status": True, "job_id": job_id})
+        except BaseException:
+            logger.exception("An Error occured")
+            return Response({"status": False})
+
+
+# To-Do: Allow for custom paths
+class SelectiveScanPhotosView(APIView):
+    def get(self, request, format=None):
+        # To-Do: Sanatize the scan_directory
+        try:
+            job_id = uuid.uuid4()
+            scan_photos.delay(
+                request.user,
+                False,
+                job_id,
+                os.path.join(request.user.scan_directory, "uploads", "web"),
+            )
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception("An Error occured")
@@ -248,7 +266,7 @@ class FullScanPhotosView(APIView):
     def get(self, request, format=None):
         try:
             job_id = uuid.uuid4()
-            scan_photos.delay(request.user, True, job_id)
+            scan_photos.delay(request.user, True, job_id, request.user.scan_directory)
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception("An Error occured")
