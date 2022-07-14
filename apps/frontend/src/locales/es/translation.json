@@ -126,7 +126,12 @@
         "polish": "Polaco",
         "dutch": "Alemán",
         "profile": "Perfil",
-        "confidencepercentage": "Confianza: {{percentage}}%"
+        "confidencepercentage": "Confianza: {{percentage}}%",
+        "finnish": "Finlandés",
+        "portuguese": "Portugués",
+        "basque": "Vasco",
+        "czech": "Checo",
+        "helptranslating": "Ayuda traduciendo"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de escaneo de Nextcloud",
@@ -437,7 +442,9 @@
         "editphototitle": "Editar foto",
         "uploadsuccess": "Subida exitosa",
         "deletejobtitle": "Eliminar trabajo",
-        "deletejob": "El trabajo {{id}} eliminado."
+        "deletejob": "El trabajo {{id}} eliminado.",
+        "scanuploadedphotos": "Escaneando fotos subidas…",
+        "scanuploadedphotostitle": "Escanear fotos cargadas"
     },
     "rules": {
         "report_tz": "Transformar a{{rule}}",
@@ -479,5 +486,14 @@
     "cancel": "Cancelar",
     "deletefaceexplanation": "Esta acción eliminará de forma permanente los rostros y todos sus datos asociados. Esta acción no se puede deshacer.",
     "confirm": "Confirmar",
-    "deleteface": "Eliminar caras"
+    "deleteface": "Eliminar caras",
+    "metadata": "Opciones de metadatos",
+    "defaulttimezone": "Zona horaria predeterminada",
+    "timezoneexplain": "Esta zona horaria se usa para convertir marcas de tiempo a la zona horaria predeterminada del usuario",
+    "favoritesyncoptions": {
+        "mediafile": "Guardar en archivo multimedia",
+        "off": "Apagado",
+        "sidecar": "Guardar en sidecar"
+    },
+    "sync": "Sincronizar metadatos con el disco"
 }
