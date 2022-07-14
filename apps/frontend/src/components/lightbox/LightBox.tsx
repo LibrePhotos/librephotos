@@ -9,7 +9,7 @@ import { useAppSelector } from "../../store/store";
 import { Sidebar } from "./Sidebar";
 import { Toolbar } from "./Toolbar";
 
-let LIGHTBOX_SIDEBAR_WIDTH = 335;
+let LIGHTBOX_SIDEBAR_WIDTH = 320;
 if (window.innerWidth < 600) {
   LIGHTBOX_SIDEBAR_WIDTH = window.innerWidth;
 }
