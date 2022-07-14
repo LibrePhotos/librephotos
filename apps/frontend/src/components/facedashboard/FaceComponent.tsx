@@ -48,7 +48,9 @@ export function FaceComponent(props: Props) {
         <Center>
           <Tooltip
             opened={tooltipOpened && props.activeItem === 1}
-            label={`Confidence: ${(props.cell.person_label_probability * 100).toFixed(1)}%`}
+            label={t("settings.confidencepercentage", {
+              percentage: (props.cell.person_label_probability * 100).toFixed(1),
+            })}
             position="bottom"
             withArrow
           >
@@ -92,7 +94,7 @@ export function FaceComponent(props: Props) {
       <Center>
         <Tooltip
           opened={tooltipOpened && props.activeItem === 1}
-          label={t("confidencepercentage", {
+          label={t("settings.confidencepercentage", {
             percentage: (props.cell.person_label_probability * 100).toFixed(1),
           })}
           position="bottom"
