@@ -223,7 +223,8 @@
         "newalbum": "Novo álbum",
         "placeholder": "Título do álbum",
         "create": "Criar",
-        "items": "{{count}} Item(s)"
+        "items": "{{count}} Item(s)",
+        "alreadyexists": "Álbum {{title}} já existe."
     },
     "lightbox": {
         "sidebar": {
