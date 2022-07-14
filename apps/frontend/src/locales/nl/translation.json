@@ -480,7 +480,8 @@
         "items": "{{count}} item(s)",
         "title": "Toevoegen aan album",
         "newalbum": "Nieuw album",
-        "create": "Aanmaken"
+        "create": "Aanmaken",
+        "alreadyexists": "Er is al een album genaamd “{{title}}”."
     },
     "deleteface": "Gezichten verwijderen",
     "deletefaceexplanation": "Door deze actie worden de gezichten en alle bijbehorende gegevens verwijderd. Dit kan niet ongedaan worden gemaakt.",
