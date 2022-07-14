@@ -40,11 +40,6 @@ export function LoginPage(): JSX.Element {
       username: "",
       password: "",
     },
-
-    validate: {
-      password: value => (isStringEmpty(value) ? null : "Password should not be empty"),
-      username: value => (isStringEmpty(value) ? null : "Username should not be empty"),
-    },
   });
 
   useEffect(() => {
@@ -91,12 +86,14 @@ export function LoginPage(): JSX.Element {
               <form onSubmit={onSubmit}>
                 <Stack>
                   <TextInput
+                    required
                     icon={<User />}
                     placeholder={t("login.usernameplaceholder")}
                     name="username"
                     {...form.getInputProps("username")}
                   />
                   <PasswordInput
+                    required
                     icon={<Lock />}
                     placeholder={t("login.passwordplaceholder")}
                     name="password"
