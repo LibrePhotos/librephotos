@@ -134,7 +134,7 @@
     },
     "modalalbum": {
         "title": "Add to Album",
-        "alreadexists": "Album {{title}} already exists.",
+        "alreadyexists": "Album {{title}} already exists.",
         "selectedimages": "Add selected {{count}} photo(s) to...",
         "newalbum": "New album",
         "placeholder": "Album title",
