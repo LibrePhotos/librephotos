@@ -3,6 +3,7 @@ from api.models.album_date import AlbumDate
 from api.models.album_place import AlbumPlace
 from api.models.album_thing import AlbumThing
 from api.models.album_user import AlbumUser
+from api.models.cluster import Cluster
 from api.models.face import Face
 from api.models.long_running_job import LongRunningJob
 from api.models.person import Person
@@ -15,6 +16,7 @@ __all__ = [
     "AlbumPlace",
     "AlbumThing",
     "AlbumUser",
+    "Cluster",
     "Face",
     "LongRunningJob",
     "Person",

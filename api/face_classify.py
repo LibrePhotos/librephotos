@@ -1,4 +1,5 @@
 import datetime
+import string
 import uuid
 
 import numpy as np
@@ -12,9 +13,12 @@ from django_rq import job
 from sklearn.cluster import DBSCAN
 from sklearn.decomposition import PCA
 from sklearn.neural_network import MLPClassifier
+from api.cluster_manager import ClusterManager
 
 from api.models import Face, LongRunningJob, Person
+from api.models.cluster import Cluster
 from api.models.person import get_or_create_person, get_unknown_person
+from api.models.user import User
 from api.serializers.serializers import FaceSerializer
 from api.util import logger
 
@@ -23,6 +27,7 @@ FACE_CLASSIFY_COLUMNS = [
     "person_label_is_inferred",
     "person_label_probability",
     "id",
+    "cluster",
 ]
 
 def cluster_faces(user, inferred=True):
@@ -57,6 +62,8 @@ def cluster_faces(user, inferred=True):
 
 @job
 def cluster_unlabeled_faces(user, job_id):
+    cluster_manager: ClusterManager = ClusterManager()
+
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
@@ -72,85 +79,9 @@ def cluster_unlabeled_faces(user, job_id):
     lrj.save()
 
     try:
-        delete_clustered_persons(user)
-        data = {
-            "known": {"encoding": [], "id": []},
-            "unknown": {"encoding": [], "id": []},
-        }
-        logger.info("Clustering unlabeled faces")
-        face:Face
-        for face in Face.objects.filter(photo__owner=user).prefetch_related("person"):
-            unknown = (
-                    face.person_label_is_inferred is not False
-                    or face.person.name == "unknown"
-            )
-            data_type = "unknown" if unknown else "known"
-            data[data_type]["encoding"].append(face.get_encoding_array())
-            data[data_type]["id"].append(face.id if unknown else face.person.id)
-
-        # creating DBSCAN object for clustering the encodings with the metric "euclidean"
-        clt = DBSCAN(metric="euclidean", min_samples=3)
-        clt.fit(np.array(data["unknown"]["encoding"]))
-        # determine the total number of unique faces found in the dataset
-        # clt.labels_ contains the label ID for all faces in our dataset (i.e., which cluster each face belongs to).
-        # To find the unique faces/unique label IDs, used NumPy’s unique function.
-        # The result is a list of unique labelIDs
-        labelIDs = np.unique(clt.labels_)
-        # we count the numUniqueFaces . There could potentially be a value of -1 in labelIDs — this value corresponds
-        # to the “outlier” class where a 128-d embedding was too far away from any other clusters to be added to it.
-        # “outliers” could either be worth examining or simply discarding based on the application of face clustering.
-        numUniqueFaces = len(np.where(labelIDs > -1)[0])
-        print("[INFO] # unique faces: {}".format(numUniqueFaces))
-        target_count = numUniqueFaces
-
-        commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
-
-        # loop over the unique face integers
-
-        face_stack = []
-        for labelID in labelIDs:
-            if labelID > -1:
-                if commit_time < datetime.datetime.now():
-                    lrj.result = {"progress": {"current": labelID + 1, "target": target_count}}
-                    lrj.save()
-                    commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
-                # find all indexes into the `data` array that belong to the
-                # current label ID
-                idxs = np.where(clt.labels_ == labelID)[0]
-
-                # Add a new person to the database for the current label ID
-                personName="Unknown " + str(labelID + 1)
-                new_person: Person = get_or_create_person(name=personName)
-                new_person.kind = Person.KIND_CLUSTER
-                new_person.cluster_id = labelID
-                new_person.account = user
-                new_person.save()
-
-                cluster_vectors = collect_vectors(clt, labelID, data)
-
-                mean_vector = find_mean_vector(cluster_vectors)
-                print("mean vector for labelID {}: {}".format(labelID, mean_vector))
-                n_dimension_stats = find_n_dimension_stats(cluster_vectors)
-                mean_distance = n_dimension_stats[0]
-                std_dev_distance = n_dimension_stats[1]
-                # loop over the sampled indexes
-                for i in idxs:
-                    new_person = Person.objects.filter(name=personName).first()
-                    # find the face id for the face in the current image
-                    face_id = data["unknown"]["id"][i]
-                    face:Face = Face.objects.filter(id=face_id).first()
-                    distance = math.dist(face.get_encoding_array(),mean_vector)
-                    z_score = abs(distance/mean_distance)
-
-                    face.person_id = new_person.id
-                    face.person_label_is_inferred = True
-                    face.person_label_probability = 1 - scipy.stats.norm.sf(z_score)
-                    print("mean: {}, distance: {}, z_score: {}, prob: {}".format(mean_distance,distance,z_score,face.person_label_probability))
-                    face_stack.append(face)
-                    if len(face_stack)>200:
-                        bulk_update(face_stack,update_fields=FACE_CLASSIFY_COLUMNS)
-                        face_stack = []
-        bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
+        delete_clustered_people()
+        delete_clusters(cluster_manager)
+        target_count: int = len(create_all_clusters(cluster_manager, user))
 
         lrj.finished = True
         lrj.failed = False
@@ -159,25 +90,61 @@ def cluster_unlabeled_faces(user, job_id):
         lrj.save()
         cache.clear()
         return True
-    except BaseException:
+ 
+    except BaseException as err:
         logger.exception("An error occurred")
+        print("[ERR] {}".format(err))
         lrj.failed = True
         lrj.finished = True
         lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
         lrj.save()
         return False
 
-def collect_vectors(clt, labelID, data):
-    idxs = np.where(clt.labels_ == labelID)[0]
-    all_vectors = []
-
-    for i in idxs:
-        face_id = data["unknown"]["id"][i]
-        face: Face = Face.objects.filter(id=face_id).first()
-        vector = face.get_encoding_array()
-        all_vectors.append(vector)
+def create_all_clusters(cluster_manager: ClusterManager, user: User, lrj: LongRunningJob = None) -> list[Cluster]:
+    all_clusters: list[Cluster] = []
+    face:Face
+    print("creating clusters")
     
-    return all_vectors
+    data = {
+        "all": {"encoding": [], "id": []},
+    }
+    for face in Face.objects.filter(photo__owner=user).prefetch_related("person"):
+        data["all"]["encoding"].append(face.get_encoding_array())
+        data["all"]["id"].append(face.id)
+
+    # creating DBSCAN object for clustering the encodings with the metric "euclidean"
+    clt = DBSCAN(metric="euclidean", min_samples=3)
+    
+    clt.fit(np.array(data["all"]["encoding"]))
+
+    labelIDs = np.unique(clt.labels_)
+    labelID: np.intp
+    commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
+    target_count = len(labelIDs)
+    count: int = 0
+
+    for labelID in labelIDs:
+        print("[INFO] Generating cluster for: {}".format(labelID))
+        count = count + 1
+        idxs = np.where(clt.labels_ == labelID)[0]
+        cluster_vectors = []
+        print("idxs: {}".format(idxs))
+        face_array: list[Face] = []
+        for i in idxs:
+            face_id = data["all"]["id"][i]
+            face = Face.objects.filter(id=face_id).first()
+            face_array.append(face)
+        new_clusters: list[Cluster] = cluster_manager.try_add_cluster(labelID, face_array)
+        
+        if commit_time < datetime.datetime.now() and lrj != None:
+            lrj.result = {"progress": {"current": count, "target": target_count}}
+            lrj.save()
+            commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
+
+        all_clusters.extend(new_clusters)
+    
+    return all_clusters
+
 
 def find_n_dimension_stats(all_vectors):
     mean_vector = find_mean_vector(all_vectors)
@@ -193,9 +160,15 @@ def find_n_dimension_stats(all_vectors):
 def find_mean_vector(all_vectors):
     return np.mean(a=all_vectors,axis=0, dtype=np.float64)
 
+def delete_clusters(cluster_manager: ClusterManager):
+    print("deleting clusters")
+    cluster:Cluster
+    for cluster in Cluster.objects.filter():
+        print("deleting cluster {}".format(cluster))
+        cluster_manager.delete_cluster(cluster)
 
-def delete_clustered_persons(user):
-    for person in Person.objects.filter(kind=Person.KIND_CLUSTER, account=user):
+def delete_clustered_people():
+    for person in Person.objects.filter(kind=Person.KIND_CLUSTER):
         for face in Face.objects.filter(person=person):
             face.person = get_unknown_person()
         person.delete()

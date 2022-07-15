@@ -27,7 +27,7 @@ class LongRunningJob(models.Model):
         (JOB_DELETE_MISSING_PHOTOS, "Delete Missing Photos"),
         (JOB_SCAN_FACES, "Scan Faces"),
         (JOB_CALCULATE_CLIP_EMBEDDINGS, "Calculate Clip Embeddings"),
-        (JOB_CLUSTER_UNLABELED_FACES, "Finding Unknown Faces"),
+        (JOB_CLUSTER_UNLABELED_FACES, "Group Unknown Faces"),
     )
 
     job_type = models.PositiveIntegerField(
