@@ -21,8 +21,6 @@ class Person(models.Model):
     )
     name = models.CharField(blank=False, max_length=128)
     kind = models.CharField(choices=KIND_CHOICES, max_length=10)
-    mean_face_encoding = models.TextField()
-    cluster_id = models.IntegerField(null=True)
     account = models.OneToOneField(
         User, on_delete=models.SET(get_deleted_user), default=None, null=True
     )
