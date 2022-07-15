@@ -211,6 +211,7 @@ urlpatterns = [
     url(r"^api/photosedit/hide", photos.SetPhotosHidden.as_view()),
     url(r"^api/photosedit/makepublic", photos.SetPhotosPublic.as_view()),
     url(r"^api/photosedit/share", photos.SetPhotosShared.as_view()),
+    url(r"^api/photosedit/saveusercaption", photos.SaveUserPhotoCaption.as_view()),
     url(r"^api/photosedit/generateim2txt", photos.GeneratePhotoCaption.as_view()),
     url(r"^api/useralbum/share", views.SetUserAlbumShared.as_view()),
     url(r"^api/trainfaces", faces.TrainFaceView.as_view()),

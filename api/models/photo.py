@@ -138,6 +138,25 @@ class Photo(models.Model):
                 self.image_paths[0], tags_to_write, use_sidecar=use_sidecar
             )
 
+    def _save_user_caption(self, caption, commit=True):
+        image_path = self.thumbnail_big.path
+        captions = self.captions_json
+        try:
+            captions["user"] = caption
+            self.captions_json = captions
+            if commit:
+                self.save()
+            util.logger.info(
+                "saved user caption for image %s. caption: %s"
+                % (image_path, caption)
+            )
+            return True
+        except Exception:
+            util.logger.warning(
+                "could not save user caption for image %s" % image_path
+            )
+            return False
+
     def _generate_md5(self):
         hash_md5 = hashlib.md5()
         with open(self.image_paths[0], "rb") as f:

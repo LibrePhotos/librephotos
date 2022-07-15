@@ -582,6 +582,26 @@ class SetPhotosPublic(APIView):
             }
         )
 
+class SaveUserPhotoCaption(APIView):
+    permission_classes = (IsOwnerOrReadOnly,)
+
+    def post(self, request, format=None):
+        if "caption" in self.request.query_params.keys():
+            caption = self.request.query_params["caption"]
+        else:
+            caption = ""
+        data = dict(request.data)
+        image_hash = data["image_hash"]
+
+        photo = Photo.objects.get(image_hash=image_hash)
+        if photo.owner != request.user:
+            return Response(
+                {"status": False, "message": "you are not the owner of this photo"},
+                status_code=400,
+            )
+        cache.clear()
+        res = photo._save_user_caption(caption)
+        return Response({"status": res})
 
 class GeneratePhotoCaption(APIView):
     permission_classes = (IsOwnerOrReadOnly,)
