@@ -126,7 +126,12 @@
         "polish": "波兰语",
         "dutch": "荷兰语",
         "confidencepercentage": "可信度： {{percentage}}%",
-        "profile": "个人资料"
+        "profile": "个人资料",
+        "portuguese": "葡萄牙语",
+        "finnish": "芬兰语",
+        "czech": "捷克语",
+        "helptranslating": "帮助翻译",
+        "basque": "巴斯克语"
     },
     "modalnextcloud": {
         "setdirectory": "设置Nextcloud扫描目录",
@@ -437,7 +442,9 @@
         "editphototitle": "编辑照片",
         "deletejobtitle": "删除任务",
         "deletejob": "任务 {{id}} 已被删除。",
-        "uploadsuccess": "上传成功"
+        "uploadsuccess": "上传成功",
+        "scanuploadedphotos": "正在扫描上载的照片…",
+        "scanuploadedphotostitle": "扫描上传的照片"
     },
     "rules": {
         "1": "提取EXIF中的DATE_TIME_ORIGINAL作为当地时间",
@@ -474,10 +481,17 @@
         "items": "{{count}}个项目",
         "alreadexists": "相册{{title}}已经存在。",
         "selectedimages": "将选定的 {{count}} 张照片添加到...",
-        "placeholder": "相册标题"
+        "placeholder": "相册标题",
+        "alreadyexists": "{{title}}相册已存在"
     },
     "deleteface": "删除面孔",
     "deletefaceexplanation": "此操作将完全删除该人脸数据及相关的关联数据，且无法撤销。",
     "confirm": "确认",
-    "cancel": "取消"
+    "cancel": "取消",
+    "favoritesyncoptions": {
+        "off": "关"
+    },
+    "defaulttimezone": "默认时区",
+    "timezoneexplain": "此时区用于将时间戳转换为用户的默认时区",
+    "sync": "同步元数据到磁盘"
 }
