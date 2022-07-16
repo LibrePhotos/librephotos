@@ -126,6 +126,7 @@ class PhotoSerializer(serializers.ModelSerializer):
             emptyArray = {
                 "im2txt": "",
                 "places365": {"attributes": [], "categories": [], "environment": []},
+                "user": "",
             }
             return emptyArray
 
