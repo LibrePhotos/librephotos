@@ -190,8 +190,8 @@
         "timeline": "Timeline",
         "socialgraph": "Social Graph",
         "facecluster": "Face Clusters",
-        "datavizsmall": "Data Viz",
-        "facerecognition": "Face Recognition",
+        "datavizsmall": "Data",
+        "facerecognition": "Faces",
         "library": "Library",
         "dashboards": "Dashboards",
         "sharing": "Sharing",
@@ -258,7 +258,7 @@
         "notimestamp": "Photos without Timestamps",
         "hidden": "Hidden Photos",
         "favorite": "Favorite Photos",
-        "deleted": "Trashcan"
+        "deleted": "Trash"
     },
     "login": {
         "name": "LibrePhotos",
@@ -372,7 +372,7 @@
         "selectedfaces": "{{number}} selected",
         "explanationadding": "Add to an existing face ID or create a new face ID",
         "explanationdeleting": "Delete the face and it's thumbnails",
-        "explanationtraining": "Train a classifier and automatically label faces"
+        "explanationtraining": "Identify similar faces and try to find matches"
     },
     "scan": "Scan",
     "socialgraph": "Social Graph",
@@ -422,8 +422,8 @@
         "addfacestopersontitle": "Add faces to person",
         "deletefaces": "{{numberOfFaces}} face(s) were deleted",
         "deletefacestitle": "Delete faces",
-        "trainingstarted": "Training started",
-        "trainingstartedtitle": "Face training",
+        "trainingstarted": "Analysis started",
+        "trainingstartedtitle": "Facial recognition",
         "rescanfaces": "Scanning started",
         "rescanfacestitle": "Face rescanning",
         "renameperson": "Person {{personName}} was successfully renamed to {{newPersonName}}",
