@@ -34,7 +34,7 @@ class Cluster(models.Model):
         current_person = ""
         for face in api.models.face.Face.objects.filter(cluster=self):
             person: Person = face.person
-            if person.name != "unknown" and face.person_label_is_inferred is not True:
+            if person.name != "unknown" and face.person_label_is_inferred is not True and person.kind != Person.KIND_CLUSTER:
                 if current_person != "" and person.name != current_person:
                     has_multiple = True
                     break
@@ -45,7 +45,7 @@ class Cluster(models.Model):
         face:api.models.face.Face
         for face in api.models.face.Face.objects.filter(cluster=self):
             person: Person = face.person
-            if person.name != "unknown" and face.person_label_is_inferred is not True:
+            if person.name != "unknown" and face.person_label_is_inferred is not True and person.kind != Person.KIND_CLUSTER:
                 return False
         return True
     

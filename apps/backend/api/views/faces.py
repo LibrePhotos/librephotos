@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.directory_watcher import scan_faces
-from api.face_classify import train_faces
+from api.face_classify import cluster_all_faces
 from api.models import Face
 from api.models.person import get_or_create_person
 from api.serializers.serializers import FaceListSerializer, FaceSerializer
@@ -30,7 +30,7 @@ class TrainFaceView(APIView):
     def get(self, request, format=None):
         try:
             job_id = uuid.uuid4()
-            train_faces.delay(request.user, job_id)
+            cluster_all_faces.delay(request.user, job_id)
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception()
