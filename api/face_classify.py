@@ -124,8 +124,6 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
     for labelID in labelIDs:
         print("[INFO] Generating cluster for: {}".format(labelID))
         idxs = np.where(clt.labels_ == labelID)[0]
-        cluster_vectors = []
-        print("idxs: {}".format(idxs))
         face_array: list[Face] = []
         for i in idxs:
             count = count + 1
