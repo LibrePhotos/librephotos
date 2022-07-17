@@ -148,7 +148,7 @@
         "autoalbums": "Automatisch samengestelde albums",
         "dataviz": "Gegevensinzicht",
         "placetree": "Locatie-inzicht",
-        "datavizsmall": "Gegevensinzicht",
+        "datavizsmall": "Gegevens",
         "library": "Verzameling",
         "hidden": "Verborgen",
         "socialgraph": "Sociale grafiek",
@@ -170,7 +170,7 @@
         "timeline": "Tijdlijn",
         "youshared": "Gedeeld met anderen",
         "sharedwithyou": "Gedeeld met mij",
-        "facerecognition": "Gezichtsherkenning",
+        "facerecognition": "Gezichten",
         "albums": "Albums"
     },
     "selectionbar": {
@@ -363,7 +363,7 @@
         "selectedfaces": "{{number}} geselecteerd",
         "explanationadding": "Toevoegen aan bestaand of nieuw gezicht",
         "explanationdeleting": "Gezicht en bijbehorende miniaturen verwijderen",
-        "explanationtraining": "Gezichtsherkenning trainen en gezichten automatisch labelen"
+        "explanationtraining": "Vergelijkbare gezichten zoeken"
     },
     "socialgraph": "Sociale grafiek",
     "faceclusterexplanation": "Personen met gelijkaardige gezichten dienen dichter op elkaar te worden gegroepeerd. Klik op een punt om een label te tonen.",
@@ -378,8 +378,8 @@
         "addtoalbumtitle": "Toevoegen aan album",
         "addfacestopersontitle": "Gezichten toekennen aan persoon",
         "deletefaces": "Er is/zijn {{numberOfFaces}} gezicht(en) verwijderd",
-        "trainingstarted": "De training is begonnen",
-        "trainingstartedtitle": "Gezichtstraining",
+        "trainingstarted": "De analyse is begonnen",
+        "trainingstartedtitle": "Gezichtsherkenning",
         "rescanfacestitle": "Opnieuw scannen",
         "renameperson": "De naam van ‘{{personName}}’ is gewijzigd in ‘{{newPersonName}}’",
         "renamepersontitle": "Naam wijzigen",
