@@ -1,8 +1,11 @@
 import math
+from pickle import GLOBAL
 import string
 import numpy as np
 
 from numpy import ndarray
+import scipy
+from sklearn.metrics import zero_one_loss
 
 from api.models.cluster import Cluster
 from api.models.face import Face
@@ -22,20 +25,23 @@ FACE_CLASSIFY_COLUMNS = [
     "cluster",
 ]
 class ClusterManager:
-    global_data_count: int = 0
-    global_mean_face_encoding: string = ""
+    @staticmethod
+    def get_global_data_count():
+        return Face.objects.count()
 
-    def __init__(self) -> None:
-        print("initializing ClusterManager")
-        face: Face
-        self.global_data_count = Face.objects.count()
-        face_encodings: list[ndarray] = []
-        for face in Face.objects.all():
-            face_encodings.append(face.get_encoding_array())
-        self.global_mean_face_encoding = Cluster.calculate_mean_face_encoding(face_encodings).tobytes().hex()
+    @staticmethod
+    def get_global_mean_encoding() -> string:
+        global_cluster: Cluster = ClusterManager.get_global_cluster()
+        return global_cluster.mean_face_encoding
 
-    def delete_cluster(self, cluster: Cluster):
-        unknown_cluster: Cluster = self.get_unknown_cluster()
+    @staticmethod
+    def get_global_mean_encoding_array() -> ndarray:
+        global_cluster: Cluster = ClusterManager.get_global_cluster()
+        return np.frombuffer(bytes.fromhex(global_cluster.mean_face_encoding))
+
+    @staticmethod
+    def delete_cluster(cluster: Cluster):
+        unknown_cluster: Cluster = ClusterManager.get_unknown_cluster()
         face: Face
         face_stack = []
         for face in Face.objects.filter(cluster=cluster):
@@ -45,7 +51,8 @@ class ClusterManager:
         
         cluster.delete()
     
-    def try_add_cluster(self, cluster_id: int, faces: list[Face]) -> list[Cluster]:
+    @staticmethod
+    def try_add_cluster(cluster_id: int, faces: list[Face]) -> list[Cluster]:
         added_clusters: list[Cluster] = []
         known_faces: list[Face] = []
         unknown_faces: list[Face] = []
@@ -64,7 +71,7 @@ class ClusterManager:
         if len(known_faces) == 0:
             new_cluster:Cluster
             if cluster_id == UNKNOWN_CLUSTER_ID:
-                new_cluster = self.get_unknown_cluster()
+                new_cluster = ClusterManager.get_unknown_cluster()
                 new_person = get_or_create_person(name="Other Unknown")
                 new_person.kind = Person.KIND_CLUSTER
                 new_person.save()
@@ -139,90 +146,110 @@ class ClusterManager:
         return added_clusters
 
 
-    def get_unknown_cluster(self) -> Cluster:
+    @staticmethod
+    def get_unknown_cluster() -> Cluster:
         unknown_cluster: Cluster = Cluster.get_or_create_cluster_by_id(UNKNOWN_CLUSTER_ID)
         if unknown_cluster.person == None:
             unknown_cluster.person = get_unknown_person()
         return unknown_cluster
+    
+    @staticmethod
+    def get_global_cluster() -> Cluster:
+        global_cluster: Cluster = Cluster.objects.filter(id=GLOBAL_CLUSTER_ID).first()
+        if global_cluster == None:
+            global_cluster = Cluster.get_or_create_cluster_by_id(GLOBAL_CLUSTER_ID)
+            face_encodings: list[ndarray] = []
+            for face in Face.objects.all():
+                face_encodings.append(face.get_encoding_array())
+            global_cluster.mean_face_encoding = Cluster.calculate_mean_face_encoding(face_encodings).tobytes().hex()
+            global_cluster.save()
+        return global_cluster
 
-    def split_cluster_if_needed(self, old_cluster: Cluster) -> list[Cluster]:
-        clusters_by_person: dict[int, Cluster] = dict()
-        new_clusters: list[Cluster] = []
-        unknown_faces: list[Face] = []
-        encoding_by_person: dict[int, list[np.ndarray]] = dict()
-        mean_encoding_by_cluster: dict[int, list[np.ndarray]] = dict()
-        if not old_cluster.has_multiple_people():
-            new_clusters.append(old_cluster)
-            return new_clusters
-
-        # Sort all faces in this cluster into unknown and known, by person
-        face_stack = []
-        face:Face
-        new_cluster: Cluster
-        idx: int = 0
-        for face in Face.objects.filter(cluster=old_cluster):
-            print("found face {} in cluster {}".format(face,face.cluster))
-            person:Person = face.person
-            if person.name != "unknown" and face.person_label_is_inferred is not True:
-                print("known face found! {}, person: {}".format(face,person.id))
-                print("keys: {}".format(clusters_by_person.keys()))
-                if person.id not in clusters_by_person.keys():
-                    print("adding new cluster: {}".format(idx+1))
-                    idx = idx + 1
-                    new_cluster = Cluster.get_or_create_cluster_by_name(old_cluster.name + "-" + str(idx), old_cluster.owner)
-                    new_cluster.owner = old_cluster.owner
-                    new_cluster.cluster_id = old_cluster.cluster_id
-                    new_cluster.person = person
-                    clusters_by_person[person.id] = new_cluster
-                    new_clusters.append(new_cluster)
-                    encoding_by_person[person.id] = []
-                else:
-                    print("using existing cluster")
-                    new_cluster = clusters_by_person[person.id]
-                face.cluster = new_cluster
-                face.person_label_is_inferred = False
-                face_stack.append(face)
-                face.save()
-                print("got here. person: {}".format(person.id))
-                encoding_by_person[person.id].append(face.get_encoding_array())
-                print("got after here")
+    @staticmethod
+    def update_face_probabilities(cluster: Cluster):
+        global_cluster: Cluster = ClusterManager.get_global_cluster()
+        cluster_centroid: ndarray = cluster.get_mean_encoding_array()
+        std_dev = cluster.std_dev_distance
+        mean_distance = cluster.mean_distance
+        face_stack: list[Face] = []
+        face: Face
+        for face in Face.objects.filter(cluster=cluster):
+            person: Person = face.person
+            if person.kind == Person.KIND_CLUSTER:
+                face.person_label_is_inferred = True
+            if std_dev == 0:
+                face.person_label_probability = 1.0
             else:
-                unknown_faces.append(face)
-        
-        print("before initial face saving")
-        bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
-        face_stack = []
-        print("finished initial face saving")
-        # Set initial metadata on the split clusters based on known faces
-        cluster: Cluster
-        for cluster in new_clusters:
-            cluster.set_metadata(encoding_by_person[cluster.person.id])
-            mean_encoding_by_cluster[cluster.id] = cluster.get_mean_encoding_array()
-        
-        print("finished setting initial cluster metadata")
-        # Loop over all unknown faces and find the closest "known" cluster
-        for face in unknown_faces:
-            closest_cluster: Cluster
-            min_distance: np.float64 = np.Infinity
-            encoding = face.get_encoding_array()
-            for cluster in new_clusters:
-                distance = math.dist(encoding, mean_encoding_by_cluster[cluster.id])
-                if distance < min_distance:
-                    closest_cluster = cluster
-            face.cluster = closest_cluster
-            face.person = closest_cluster.person
-            face.person_label_is_inferred = True
-            encoding_by_person[closest_cluster.person.id].append(encoding)
+                face_encoding = face.get_encoding_array()
+                distance = math.dist(cluster_centroid, face_encoding)
+                z_score = (distance - mean_distance) / std_dev
+                p_value = scipy.stats.norm.sf(abs(z_score))
+                print("distance: {}, stddev: {}, p_value: {}".format(distance,std_dev, p_value))
+                face.person_label_probability = 1 - p_value
             face_stack.append(face)
-            face.save()
         bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
-        print("finished second face saving")
-        # Update statistics again and save everything, since we've added more faces
-        for cluster in new_clusters:
-            cluster.set_metadata(encoding_by_person[cluster.person.id])
-            cluster.save()
-            
-        print("finished final statistics save")
-        # Finally, delete the old cluster since we don't need it anymore
-        old_cluster.delete()  
-        return new_clusters
+
+    @staticmethod
+    def add_faces_to_clusters(faces: list[Face], cluster: Cluster = None) -> bool:
+        if Cluster.objects.count() == 0:
+            return False
+
+        global_cluster = ClusterManager.get_global_cluster()
+        mean_encoding = ClusterManager.get_global_mean_encoding_array()
+        curr_size = ClusterManager.get_global_data_count()
+        face_list_by_cluster: dict[int, list[Face]] = dict()
+        cluster_encodings: list[ndarray]
+        target_cluster: Cluster
+        cluster_stack: list[Cluster] = []
+        face: Face
+        for face in faces:
+            encoding_array = face.get_encoding_array()
+            if cluster != None:
+                target_cluster = cluster
+            else:
+                min_distance = np.Infinity
+                one_cluster: Cluster
+                for one_cluster in Cluster.objects.all():
+                    distance = math.dist(one_cluster.get_mean_encoding_array(), encoding_array)
+                    if distance < min_distance:
+                        target_cluster = one_cluster
+                        min_distance = distance
+            if face_list_by_cluster[target_cluster.id] == {}:
+                face_list_by_cluster[target_cluster.id] = []
+                cluster_stack.append(target_cluster)
+            face_list_by_cluster[target_cluster.id].append(face)
+        
+        for id in face_list_by_cluster.keys():
+            target_cluster = Cluster.objects.get(id=id)[0]
+            cluster_encodings = []
+            for face in Face.objects.filter(cluster=target_cluster):
+                cluster_encodings.append(face.get_encoding_array())
+            for face in face_list_by_cluster[id]:
+                cluster_encodings.append(face.get_encoding_array())
+                face.cluster = target_cluster
+            target_cluster.set_metadata(cluster_encodings)
+            target_cluster.save()
+
+        bulk_update(faces, update_fields=FACE_CLASSIFY_COLUMNS)
+        for target_cluster in cluster_stack:
+            ClusterManager.update_face_probabilities(target_cluster)
+
+        total_encoding: ndarray = np.multiply(mean_encoding, curr_size)
+        for face in faces:
+            total_encoding = np.add(total_encoding, face.get_encoding_array())
+        curr_size = curr_size + len(faces)
+        mean_encoding = np.divide(total_encoding, curr_size)
+        global_cluster.mean_face_encoding = mean_encoding.tobytes().hex()
+        global_cluster.save()
+
+
+        
+        
+        
+
+        
+
+
+
+
+
