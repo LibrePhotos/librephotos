@@ -14,7 +14,7 @@ import { useForm } from "@mantine/form";
 import type { FormEvent } from "react";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Lock, User } from "tabler-icons-react";
 
 import { fetchSiteSettings } from "../../actions/utilActions";
@@ -29,7 +29,6 @@ export function LoginPage(): JSX.Element {
   const isAuth = useAppSelector(selectIsAuthenticated);
   const { colorScheme } = useMantineColorScheme();
   const dark = colorScheme === "dark";
-  const location = useLocation();
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
 
@@ -93,6 +92,7 @@ export function LoginPage(): JSX.Element {
                     icon={<User />}
                     placeholder={t("login.usernameplaceholder")}
                     name="username"
+                    /* eslint-disable-next-line react/jsx-props-no-spreading */
                     {...form.getInputProps("username")}
                   />
                   <PasswordInput
@@ -100,6 +100,7 @@ export function LoginPage(): JSX.Element {
                     icon={<Lock />}
                     placeholder={t("login.passwordplaceholder")}
                     name="password"
+                    /* eslint-disable-next-line react/jsx-props-no-spreading */
                     {...form.getInputProps("password")}
                   />
                   <Button variant="gradient" gradient={{ from: "#43cea2", to: "#185a9d" }} type="submit">
