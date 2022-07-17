@@ -126,7 +126,12 @@
         "polish": "polonais",
         "dutch": "néerlandais",
         "profile": "Profil",
-        "confidencepercentage": "Confiance : {{percentage}} %"
+        "confidencepercentage": "Confiance : {{percentage}} %",
+        "portuguese": "Portugais",
+        "basque": "Basque",
+        "finnish": "Finnois",
+        "czech": "Tchèque",
+        "helptranslating": "Aide à la traduction"
     },
     "modalnextcloud": {
         "setdirectory": "Définir votre répertoire de scan Nextcloud",
@@ -169,7 +174,7 @@
         "socialgraph": "Schéma social",
         "facecluster": "Groupes de visage",
         "datavizsmall": "Synthèse",
-        "facerecognition": "Reconnaissance de visages",
+        "facerecognition": "Visages",
         "library": "Bibliothèque",
         "dashboards": "Tableaux de bord",
         "sharing": "Partage",
@@ -415,7 +420,7 @@
         "rescanfaces": "Scan démarré",
         "rescanfacestitle": "rescan de visages",
         "setcoverphototitle": "Modifier la photo de couverture",
-        "unsharephoto": "{{numberOfPhotos}} photo(s) ont été partagées avec {{username}}",
+        "unsharephoto": "{{numberOfPhotos}} photo(s) ne sont plus partagées avec {{username}}",
         "setcoverphoto": "Photo de couverture définie",
         "sethidetitle": "Cacher",
         "scannextcloudphotostitle": "Scanner les photos Nextcloud",
@@ -437,7 +442,9 @@
         "editphototitle": "Modifier la photo",
         "uploadsuccess": "Téléversement réussi",
         "deletejob": "Travail {{id}} supprimé.",
-        "deletejobtitle": "Supprimer le travail"
+        "deletejobtitle": "Supprimer le travail",
+        "scanuploadedphotostitle": "Scan des photos téléchargées",
+        "scanuploadedphotos": "Scan des photos téléchargées…"
     },
     "rules": {
         "file_property": "Utiliser la propriété du fichier {{rule}}",
@@ -474,7 +481,8 @@
         "newalbum": "Nouvel album",
         "placeholder": "Titre de l'album",
         "items": "{{count}} élément(s)",
-        "create": "Créer"
+        "create": "Créer",
+        "alreadyexists": "L'album {{title}} existe déjà."
     },
     "deleteface": "Supprimer les visages",
     "confirm": "Confirmer",
