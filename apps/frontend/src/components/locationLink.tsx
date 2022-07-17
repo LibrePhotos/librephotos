@@ -29,7 +29,7 @@ type Props = {
   margin?: { top: number; left: number; right: number; bottom: number };
 };
 
-export const LocationLink = (props: Props) => {
+export function LocationLink(props: Props) {
   const [layout, setLayout] = useState("cartesian");
   const [orientation, setOrientation] = useState("horizontal");
   const [linkType, setLinkType] = useState("diagonal");
@@ -229,4 +229,4 @@ export const LocationLink = (props: Props) => {
       </svg>
     </div>
   );
-};
+}

@@ -47,7 +47,7 @@ type SelectionState = {
   selectMode: boolean;
 };
 
-const PhotoListViewComponent = (props: Props) => {
+function PhotoListViewComponent(props: Props) {
   const { height } = useViewportSize();
 
   const [lightboxImageIndex, setLightboxImageIndex] = useState(1);
@@ -111,7 +111,7 @@ const PhotoListViewComponent = (props: Props) => {
   };
 
   const handleSelection = item => {
-    var newSelectedItems = selectionStateRef.current.selectedItems;
+    let newSelectedItems = selectionStateRef.current.selectedItems;
 
     if (newSelectedItems.find(selectedItem => selectedItem.id === item.id)) {
       newSelectedItems = newSelectedItems.filter(value => value.id !== item.id);
@@ -126,7 +126,7 @@ const PhotoListViewComponent = (props: Props) => {
   };
 
   const handleSelections = items => {
-    var newSelectedItems = selectionStateRef.current.selectedItems;
+    let newSelectedItems = selectionStateRef.current.selectedItems;
     items.forEach(item => {
       if (newSelectedItems.find(selectedItem => selectedItem.id === item.id)) {
         newSelectedItems = newSelectedItems.filter(value => value.id !== item.id);
@@ -183,13 +183,9 @@ const PhotoListViewComponent = (props: Props) => {
     }
   };
 
-  const getNumPhotosetItems = () => {
-    return photoset ? photoset.length : 0;
-  };
+  const getNumPhotosetItems = () => (photoset ? photoset.length : 0);
 
-  const getNumPhotos = () => {
-    return idx2hashRef.current ? idx2hashRef.current.length : 0;
-  };
+  const getNumPhotos = () => (idx2hashRef.current ? idx2hashRef.current.length : 0);
 
   const getPigImageData = Array.isArray(photoset) ? photoset : [photoset];
 
@@ -218,12 +214,11 @@ const PhotoListViewComponent = (props: Props) => {
           top: 45,
         }}
       >
-        {header ? (
-          header
-        ) : (
+        {header || (
           <DefaultHeader
             // @ts-ignore
             route={route}
+            // @ts-ignore
             photoList={this}
             loading={loading}
             numPhotosetItems={getNumPhotosetItems()}
@@ -305,7 +300,7 @@ const PhotoListViewComponent = (props: Props) => {
           getUrl={getUrl}
           toprightoverlay={FavoritedOverlay}
           bottomleftoverlay={VideoOverlay}
-          numberOfItems={numberOfItems ? numberOfItems : idx2hashRef.current.length}
+          numberOfItems={numberOfItems || idx2hashRef.current.length}
           updateItems={updateItems ? throttledUpdateItems : () => {}}
           updateGroups={updateGroups ? throttledUpdateGroups : () => {}}
           bgColor="inherit"
@@ -326,7 +321,7 @@ const PhotoListViewComponent = (props: Props) => {
 
       {lightboxShow && (
         <LightBox
-          isPublic={isPublic ? true : false}
+          isPublic={!!isPublic}
           idx2hash={idx2hash}
           lightboxImageIndex={lightboxImageIndex}
           lightboxImageId={lightboxImageId}
@@ -379,8 +374,9 @@ const PhotoListViewComponent = (props: Props) => {
       )}
     </div>
   );
-};
+}
 
-export const PhotoListView = React.memo(PhotoListViewComponent, (prev, next) => {
-  return prev.loading === next.loading && prev.idx2hash === next.idx2hash;
-});
+export const PhotoListView = React.memo(
+  PhotoListViewComponent,
+  (prev, next) => prev.loading === next.loading && prev.idx2hash === next.idx2hash
+);

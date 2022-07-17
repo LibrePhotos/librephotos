@@ -14,7 +14,7 @@ import { HeaderComponent } from "./HeaderComponent";
 
 const SIDEBAR_WIDTH = 85;
 
-export const SharedWith = (album: any) => {
+export function SharedWith(album: any) {
   const [tooltipOpened, setTooltipOpened] = useState(false);
 
   return (
@@ -38,9 +38,9 @@ export const SharedWith = (album: any) => {
       </Stack>
     </Popover>
   );
-};
+}
 
-export const AlbumUser = () => {
+export function AlbumUser() {
   const { height } = useViewportSize();
   const [newAlbumTitle, setNewAlbumTitle] = useState("");
   const [albumID, setAlbumID] = useState("");
@@ -170,9 +170,13 @@ export const AlbumUser = () => {
           <Group>
             <TextInput
               error={
-                albumsUserList.map(el => el.title.toLowerCase().trim()).includes(newAlbumTitle.toLowerCase().trim())
-                  ? (t("useralbum.albumalreadyexists"), { name: newAlbumTitle.trim() })
-                  : ""
+                albumsUserList.map(el => el.title.toLowerCase().trim()).includes(newAlbumTitle.toLowerCase().trim()) ? (
+                  <>
+                    {t("useralbum.albumalreadyexists")}, {{ name: newAlbumTitle.trim() }}
+                  </>
+                ) : (
+                  ""
+                )
               }
               onChange={v => {
                 setNewAlbumTitle(v.currentTarget.value);
@@ -237,4 +241,4 @@ export const AlbumUser = () => {
       </AutoSizer>
     </div>
   );
-};
+}

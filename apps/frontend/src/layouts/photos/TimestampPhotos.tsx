@@ -18,7 +18,6 @@ export function TimestampPhotos() {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const [group, setGroup] = useState({} as fetchedGroup);
-
   useEffect(() => {
     if (group.id && group.page) {
       fetchAlbumDate(dispatch, {

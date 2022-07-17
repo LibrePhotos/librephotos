@@ -12,7 +12,7 @@ import {
 import { useForm } from "@mantine/form";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Lock, Mail, User } from "tabler-icons-react";
 
 import { api, useSignUpMutation } from "../../api_client/api";
@@ -30,7 +30,7 @@ export const initialFormState: ISignUpFormState = {
 
 export function FirstTimeSetupPage(): JSX.Element {
   const { t } = useTranslation();
-  const history = useHistory();
+  const navigate = useNavigate();
   const [signup, { isLoading, isSuccess }] = useSignUpMutation();
   const dispatch = useAppDispatch();
   const form = useForm({
@@ -54,9 +54,9 @@ export function FirstTimeSetupPage(): JSX.Element {
   useEffect(() => {
     if (isSuccess) {
       dispatch(api.endpoints.fetchUserList.initiate());
-      history.push("/");
+      navigate("/");
     }
-  }, [history, isSuccess]);
+  }, [navigate, isSuccess]);
 
   return (
     <div

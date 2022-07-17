@@ -9,7 +9,7 @@ import { scanUploadedPhotos } from "../actions/photosActions";
 import { api } from "../api_client/api";
 import { useAppDispatch, useAppSelector } from "../store/store";
 
-export const ChunkedUploadButton = () => {
+export function ChunkedUploadButton() {
   const [totalSize, setTotalSize] = useState(1);
   const [currentSize, setCurrentSize] = useState(1);
   const { userSelfDetails } = useAppSelector(state => state.user);
@@ -21,10 +21,10 @@ export const ChunkedUploadButton = () => {
 
   const calculateMD5 = async (file: File) => {
     const temporaryFileReader = new FileReader();
-    var fileSize = file.size;
-    var chunkSize = 25 * 1024 * 1024; // 25MB
-    var offset = 0;
-    var md5 = CryptoJS.algo.MD5.create();
+    const fileSize = file.size;
+    const chunkSize = 25 * 1024 * 1024; // 25MB
+    let offset = 0;
+    const md5 = CryptoJS.algo.MD5.create();
     return new Promise<string>((resolve, reject) => {
       temporaryFileReader.onerror = () => {
         temporaryFileReader.abort();
@@ -47,16 +47,14 @@ export const ChunkedUploadButton = () => {
         }
       };
       function readNext() {
-        var fileSlice = file.slice(offset, offset + chunkSize);
+        const fileSlice = file.slice(offset, offset + chunkSize);
         temporaryFileReader.readAsBinaryString(fileSlice);
       }
       readNext();
     });
   };
 
-  const uploadExists = async (hash: string) => {
-    return dispatch(api.endpoints.uploadExists.initiate(hash));
-  };
+  const uploadExists = async (hash: string) => dispatch(api.endpoints.uploadExists.initiate(hash));
 
   const uploadFinished = async (file: File, uploadId: string) => {
     const formData = new FormData();
@@ -80,13 +78,13 @@ export const ChunkedUploadButton = () => {
   };
 
   const uploadChunk = async (chunk: Blob, uploadId: string, offset: number) => {
-    //only send first chunk without upload id
+    // only send first chunk without upload id
     const formData = new FormData();
     if (uploadId) {
       formData.append("upload_id", uploadId);
     }
     formData.append("file", chunk);
-    //FIX-ME: This is empty
+    // FIX-ME: This is empty
     formData.append("md5", await calculateMD5Blob(chunk));
     formData.append("offset", offset.toString());
     formData.append("user", userSelfDetails.id.toString());
@@ -110,7 +108,10 @@ export const ChunkedUploadButton = () => {
   };
 
   const { getRootProps, getInputProps, open } = useDropzone({
-    accept: ["image/*", "video/*"],
+    accept: {
+      "image/*": [],
+      "video/*": [],
+    },
     noClick: true,
     noKeyboard: true,
     onDrop: async acceptedFiles => {
@@ -125,18 +126,18 @@ export const ChunkedUploadButton = () => {
         // Check if the upload already exists via the hash of the file
         const hash = (await calculateMD5(file)) + userSelfDetails.id;
         const isAlreadyUploaded = (await uploadExists(hash)).data;
-        var offset = 0;
-        var uploadId = "";
+        let offset = 0;
+        let uploadId = "";
         if (!isAlreadyUploaded) {
           const chunks = calculateChunks(file, chunkSize);
-          //To-Do: Handle Resume and Pause
+          // To-Do: Handle Resume and Pause
           for (let i = 0; i < chunks.length; i++) {
             const response = await uploadChunk(chunks[offset / chunkSize], uploadId, offset);
             if ("data" in response) {
               offset = response.data.offset;
               uploadId = response.data.upload_id;
             }
-            //To-Do: Handle Error
+            // To-Do: Handle Error
             if (chunks[offset / chunkSize]) {
               currentUploadedFileSize += chunks[offset / chunkSize].size;
             } else {
@@ -165,7 +166,7 @@ export const ChunkedUploadButton = () => {
           <input {...getInputProps()} />
           {currentSize / totalSize > 0.99 && (
             <ActionIcon color="gray" variant="light" loading={currentSize / totalSize < 1} onClick={open}>
-              <Upload></Upload>
+              <Upload />
             </ActionIcon>
           )}
 
@@ -184,4 +185,4 @@ export const ChunkedUploadButton = () => {
     );
   }
   return null;
-};
+}

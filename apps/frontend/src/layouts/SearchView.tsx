@@ -1,6 +1,6 @@
 import React from "react";
 // only needs to be imported once
-import { Redirect } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import "react-virtualized/styles.css";
 import { Search } from "tabler-icons-react";
 
@@ -8,7 +8,7 @@ import { PhotoListView } from "../components/photolist/PhotoListView";
 import { PhotosetType } from "../reducers/photosReducer";
 import { useAppSelector } from "../store/store";
 
-export const SearchView = () => {
+export function SearchView() {
   const user = useAppSelector(state => state.user.userSelfDetails);
   const photosFlat = useAppSelector(state => state.photos.photosFlat);
   const photosGroupedByDate = useAppSelector(state => state.photos.photosGroupedByDate);
@@ -17,7 +17,7 @@ export const SearchView = () => {
 
   if (!searchQuery) {
     // User hasn't searched for anything. Redirect to root.
-    return <Redirect to="/" />;
+    return <Navigate to="/" />;
   }
   // if semantic search is activated we get a flat array sorted by relevance
   // thats why we have to change the parameters
@@ -34,4 +34,4 @@ export const SearchView = () => {
       selectable
     />
   );
-};
+}

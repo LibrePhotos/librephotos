@@ -12,14 +12,15 @@ import {
 import { useForm } from "@mantine/form";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Lock, Mail, User } from "tabler-icons-react";
 
 import { useSignUpMutation } from "../../api_client/api";
 
 export function SignupPage(): JSX.Element {
   const { t } = useTranslation();
-  const history = useHistory();
+  const navigate = useNavigate();
+
   const form = useForm({
     initialValues: {
       username: "",
@@ -41,9 +42,9 @@ export function SignupPage(): JSX.Element {
 
   useEffect(() => {
     if (isSuccess) {
-      history.push("/");
+      navigate("/");
     }
-  }, [history, isSuccess]);
+  }, [navigate, isSuccess]);
 
   return (
     <div

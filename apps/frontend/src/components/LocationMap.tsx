@@ -1,5 +1,4 @@
 import { Box, Image, Loader } from "@mantine/core";
-import _ from "lodash";
 import React, { useEffect, useRef } from "react";
 import { Map, Marker, Popup, TileLayer } from "react-leaflet";
 
@@ -7,13 +6,13 @@ type Props = {
   photos: any[];
 };
 
-export const LocationMap = (props: Props) => {
+export function LocationMap(props: Props) {
   const mapRef = useRef<Map>(null);
 
   const height = "200px";
 
   useEffect(() => {
-    mapRef.current.leafletElement.invalidateSize();
+    mapRef.current?.leafletElement.invalidateSize();
   }, [height, props]);
 
   const photosWithGPS = props.photos.filter(photo => {
@@ -61,4 +60,4 @@ export const LocationMap = (props: Props) => {
       <Loader>Map loading...</Loader>
     </Box>
   );
-};
+}

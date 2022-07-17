@@ -45,8 +45,8 @@ export function uploadPhotos(form_data: any, dispatch: Dispatch<any>) {
     },
   }).then((response: any) => {
     showNotification({
-      message: i18n.t("toasts.uploadsuccess"),
-      title: i18n.t("toasts.sharephototitle"),
+      message: i18n.t<string>("toasts.uploadsuccess"),
+      title: i18n.t<string>("toasts.sharephototitle"),
       color: "teal",
     });
   });
@@ -85,17 +85,21 @@ export function setPhotosShared(image_hashes: string[], val_shared: boolean, tar
       target_user_id: target_user.id,
     })
       .then(response => {
-        let notificationMessage = i18n.t("toasts.unsharephoto", {
+        let notificationMessage = i18n.t<string>("toasts.unsharephoto", {
           username: target_user.username,
           numberOfPhotos: image_hashes.length,
         });
         if (val_shared) {
-          notificationMessage = i18n.t("toasts.sharephoto", {
+          notificationMessage = i18n.t<string>("toasts.sharephoto", {
             username: target_user.username,
             numberOfPhotos: image_hashes.length,
           });
         }
-        showNotification({ message: notificationMessage, title: i18n.t("toasts.sharephototitle"), color: "teal" });
+        showNotification({
+          message: notificationMessage,
+          title: i18n.t<string>("toasts.sharephototitle"),
+          color: "teal",
+        });
 
         if (image_hashes.length === 1) {
           dispatch(fetchPhotoDetail(image_hashes[0]));
@@ -223,17 +227,17 @@ export function setPhotosPublic(image_hashes: string[], val_public: boolean) {
             updatedPhotos: updatedPhotos,
           },
         });
-        let notificationMessage = i18n.t("toasts.removepublicphoto", {
+        let notificationMessage = i18n.t<string>("toasts.removepublicphoto", {
           numberOfPhotos: image_hashes.length,
         });
         if (val_public) {
-          notificationMessage = i18n.t("toasts.addpublicphoto", {
+          notificationMessage = i18n.t<string>("toasts.addpublicphoto", {
             numberOfPhotos: image_hashes.length,
           });
         }
         showNotification({
           message: notificationMessage,
-          title: i18n.t("toasts.setpublicphotostitle"),
+          title: i18n.t<string>("toasts.setpublicphotostitle"),
           color: "teal",
         });
 
@@ -269,17 +273,17 @@ export function setPhotosFavorite(image_hashes: string[], favorite: boolean) {
             updatedPhotos: updatedPhotos,
           },
         });
-        let notificationMessage = i18n.t("toasts.unfavoritephoto", {
+        let notificationMessage = i18n.t<string>("toasts.unfavoritephoto", {
           numberOfPhotos: image_hashes.length,
         });
         if (favorite) {
-          notificationMessage = i18n.t("toasts.favoritephoto", {
+          notificationMessage = i18n.t<string>("toasts.favoritephoto", {
             numberOfPhotos: image_hashes.length,
           });
         }
         showNotification({
           message: notificationMessage,
-          title: i18n.t("toasts.setfavoritestitle"),
+          title: i18n.t<string>("toasts.setfavoritestitle"),
           color: "teal",
         });
       })
@@ -311,12 +315,12 @@ export function finalPhotosDeleted(image_hashes: string[]) {
             updatedPhotos: updatedPhotos,
           },
         });
-        const notificationMessage = i18n.t("toasts.finaldeletephoto", {
+        const notificationMessage = i18n.t<string>("toasts.finaldeletephoto", {
           numberOfPhotos: image_hashes.length,
         });
         showNotification({
           message: notificationMessage,
-          title: i18n.t("toasts.finaldeletephototitle"),
+          title: i18n.t<string>("toasts.finaldeletephototitle"),
           color: "teal",
         });
       })
@@ -348,17 +352,17 @@ export function setPhotosDeleted(image_hashes: string[], deleted: boolean) {
             updatedPhotos: updatedPhotos,
           },
         });
-        let notificationMessage = i18n.t("toasts.recoverphoto", {
+        let notificationMessage = i18n.t<string>("toasts.recoverphoto", {
           numberOfPhotos: image_hashes.length,
         });
         if (deleted) {
-          notificationMessage = i18n.t("toasts.deletephoto", {
+          notificationMessage = i18n.t<string>("toasts.deletephoto", {
             numberOfPhotos: image_hashes.length,
           });
         }
         showNotification({
           message: notificationMessage,
-          title: i18n.t("toasts.setdeletetitle"),
+          title: i18n.t<string>("toasts.setdeletetitle"),
           color: "teal",
         });
       })
@@ -388,17 +392,17 @@ export function setPhotosHidden(image_hashes: string[], hidden: boolean) {
             updatedPhotos: updatedPhotos,
           },
         });
-        let notificationMessage = i18n.t("toasts.unhidephoto", {
+        let notificationMessage = i18n.t<string>("toasts.unhidephoto", {
           numberOfPhotos: image_hashes.length,
         });
         if (hidden) {
-          notificationMessage = i18n.t("toasts.hidephoto", {
+          notificationMessage = i18n.t<string>("toasts.hidephoto", {
             numberOfPhotos: image_hashes.length,
           });
         }
         showNotification({
           message: notificationMessage,
-          title: i18n.t("toasts.sethidetitle"),
+          title: i18n.t<string>("toasts.sethidetitle"),
           color: "teal",
         });
         if (image_hashes.length === 1) {
@@ -420,8 +424,8 @@ export function scanPhotos() {
       .then(response => {
         const jobResponse = JobResponseSchema.parse(response.data);
         showNotification({
-          message: i18n.t("toasts.scanphotos"),
-          title: i18n.t("toasts.scanphotostitle"),
+          message: i18n.t<string>("toasts.scanphotos"),
+          title: i18n.t<string>("toasts.scanphotostitle"),
           color: "teal",
         });
         dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
@@ -441,8 +445,8 @@ export function scanUploadedPhotos() {
       .then(response => {
         const jobResponse = JobResponseSchema.parse(response.data);
         showNotification({
-          message: i18n.t("toasts.scanuploadedphotos"),
-          title: i18n.t("toasts.scanuploadedphotostitle"),
+          message: i18n.t<string>("toasts.scanuploadedphotos"),
+          title: i18n.t<string>("toasts.scanuploadedphotostitle"),
           color: "teal",
         });
         dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
@@ -462,8 +466,8 @@ export function scanAllPhotos() {
       .then(response => {
         const jobResponse = JobResponseSchema.parse(response.data);
         showNotification({
-          message: i18n.t("toasts.fullscanphotos"),
-          title: i18n.t("toasts.fullscanphotostitle"),
+          message: i18n.t<string>("toasts.fullscanphotos"),
+          title: i18n.t<string>("toasts.fullscanphotostitle"),
           color: "teal",
         });
         dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
@@ -483,8 +487,8 @@ export function scanNextcloudPhotos() {
       .then(response => {
         const jobResponse = JobResponseSchema.parse(response.data);
         showNotification({
-          message: i18n.t("toasts.scannextcloudphotos"),
-          title: i18n.t("toasts.scannextcloudphotostitle"),
+          message: i18n.t<string>("toasts.scannextcloudphotos"),
+          title: i18n.t<string>("toasts.scannextcloudphotostitle"),
           color: "teal",
         });
         dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
@@ -595,8 +599,8 @@ export function editPhoto(image_hash: string, photo_details: any) {
       .then(response => {
         dispatch({ type: "EDIT_PHOTO_FULFILLED" });
         showNotification({
-          message: i18n.t("toasts.editphoto"),
-          title: i18n.t("toasts.editphototitle"),
+          message: i18n.t<string>("toasts.editphoto"),
+          title: i18n.t<string>("toasts.editphototitle"),
           color: "teal",
         });
       })

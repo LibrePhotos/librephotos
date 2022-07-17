@@ -89,6 +89,7 @@ i18n
         }
         return value;
       },
+      escapeValue: false,
     },
   });
 

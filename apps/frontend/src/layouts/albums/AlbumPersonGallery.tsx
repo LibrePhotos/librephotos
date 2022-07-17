@@ -1,6 +1,7 @@
 import _ from "lodash";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useParams } from "react-router-dom";
 import { User } from "tabler-icons-react";
 
 import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
@@ -14,17 +15,14 @@ type fetchedGroup = {
   page: number;
 };
 
-type Props = {
-  match: any;
-};
-
-export function AlbumPersonGallery(props: Props): JSX.Element {
+export function AlbumPersonGallery(): JSX.Element {
+  const { albumID, ...params } = useParams();
   const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(state => state.photos as PhotosState);
   const { people } = useAppSelector(state => state.people);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const [group, setGroup] = useState({} as fetchedGroup);
-  const person = people.filter((i: any) => i.key == props.match.params.albumID)[0];
+  const person = people.filter((i: any) => i.key === albumID)[0];
   const personname = person ? person.value : undefined;
 
   useEffect(() => {
@@ -33,18 +31,18 @@ export function AlbumPersonGallery(props: Props): JSX.Element {
         album_date_id: group.id,
         page: group.page,
         photosetType: PhotosetType.PERSON,
-        person_id: props.match.params.albumID,
+        person_id: albumID ? +albumID : undefined,
       });
     }
   }, [group.id, group.page]);
 
   useEffect(() => {
-    if (people.length == 0) {
+    if (people.length === 0) {
       fetchPeople(dispatch);
     }
     fetchAlbumDateList(dispatch, {
       photosetType: PhotosetType.PERSON,
-      person_id: props.match.params.albumID,
+      person_id: albumID ? +albumID : undefined,
     });
   }, [dispatch]); // Only run on first render
 
@@ -75,7 +73,7 @@ export function AlbumPersonGallery(props: Props): JSX.Element {
       idx2hash={photosFlat}
       updateGroups={throttledGetAlbums}
       selectable
-      match={props.match}
+      match={params}
     />
   );
 }

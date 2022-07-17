@@ -19,7 +19,7 @@ export const errorMiddleware: Middleware =
         errors.forEach(error => {
           const title =
             action.meta.arg.endpointName === Endpoints.login && i18n.exists(`login.error${error.field}`)
-              ? i18n.t(`login.error${error.field}`)
+              ? i18n.t<string>(`login.error${error.field}`)
               : error.message;
 
           showNotification({

@@ -25,7 +25,7 @@ export function adjustDateFormatForSingleGroup(group: DatePhotosGroup) {
         ? DateTime.fromISO(group.date).setLocale(i18n.resolvedLanguage.replace("_", "-")).toFormat("MMMM d yyyy, cccc")
         : group.date;
   } else {
-    group.date = i18n.t("sidemenu.withouttimestamp");
+    group.date = i18n.t<string>("sidemenu.withouttimestamp");
   }
 }
 

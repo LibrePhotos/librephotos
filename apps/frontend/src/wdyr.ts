@@ -7,7 +7,7 @@ if (process.env.NODE_ENV === "development") {
   // eslint-disable-next-line global-require
   const ReactRedux = require("react-redux");
   whyDidYouRender(React, {
-    trackAllPureComponents: process.env.REACT_APP_WDYR === "true",
-    trackExtraHooks: [[ReactRedux, "useSelector"]],
+    trackAllPureComponents: true,
+    trackExtraHooks: [[ReactRedux, "useAppSelector"]],
   });
 }

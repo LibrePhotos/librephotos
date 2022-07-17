@@ -1,14 +1,13 @@
 import { showNotification } from "@mantine/notifications";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useDispatch } from "react-redux";
 
 import { fetchAlbumDateList } from "../actions/albumsActions";
 import { fetchInferredFacesList, fetchLabeledFacesList } from "../actions/facesActions";
 import { fetchPeople } from "../actions/peopleActions";
 import { useWorkerQuery } from "../api_client/api";
 import { PhotosetType } from "../reducers/photosReducer";
-import { useAppSelector } from "../store/store";
+import { useAppDispatch, useAppSelector } from "../store/store";
 import { selectUserSelfDetails } from "../store/user/userSelectors";
 import { IJobDetailSchema, IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
 
@@ -16,7 +15,7 @@ export function useWorkerStatus(): {
   currentData: IWorkerAvailabilityResponse | undefined;
   workerRunningJob: IJobDetailSchema;
 } {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const workerRunningJob = useAppSelector(state => state.worker.job_detail);
   const user = useAppSelector(selectUserSelfDetails);

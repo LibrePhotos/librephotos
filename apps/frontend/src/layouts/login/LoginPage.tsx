@@ -14,22 +14,22 @@ import { useForm } from "@mantine/form";
 import type { FormEvent } from "react";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useHistory } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Lock, User } from "tabler-icons-react";
 
 import { fetchSiteSettings } from "../../actions/utilActions";
 import { useLoginMutation } from "../../api_client/api";
+import { selectIsAuthenticated } from "../../store/auth/authSelectors";
 import { authActions } from "../../store/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { selectSiteSettings } from "../../store/util/utilSelectors";
-import { isStringEmpty } from "../../util/stringUtils";
 
 export function LoginPage(): JSX.Element {
-  const history = useHistory();
-
+  const navigate = useNavigate();
+  const isAuth = useAppSelector(selectIsAuthenticated);
   const { colorScheme } = useMantineColorScheme();
   const dark = colorScheme === "dark";
-
+  const location = useLocation();
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
 
@@ -49,15 +49,18 @@ export function LoginPage(): JSX.Element {
 
   useEffect(() => {
     if (isSuccess) {
-      history.push("/");
+      navigate("/");
     }
-  }, [history, isSuccess]);
+  }, [navigate, isSuccess]);
 
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     void login({ username: form.values.username.toLowerCase(), password: form.values.password });
   }
 
+  if (isAuth) {
+    navigate("/");
+  }
   return (
     <div
       style={{
