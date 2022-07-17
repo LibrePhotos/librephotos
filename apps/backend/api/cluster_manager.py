@@ -1,11 +1,7 @@
 import math
-from pickle import GLOBAL
-import string
 import numpy as np
 
 from numpy import ndarray
-import scipy
-from sklearn.metrics import zero_one_loss
 
 from api.models.cluster import Cluster
 from api.models.face import Face
@@ -15,7 +11,6 @@ from bulk_update.helper import bulk_update
 
 
 UNKNOWN_CLUSTER_ID = -1
-GLOBAL_CLUSTER_ID = -2
 
 FACE_CLASSIFY_COLUMNS = [
     "person",
@@ -28,16 +23,6 @@ class ClusterManager:
     @staticmethod
     def get_global_data_count():
         return Face.objects.count()
-
-    @staticmethod
-    def get_global_mean_encoding() -> string:
-        global_cluster: Cluster = ClusterManager.get_global_cluster()
-        return global_cluster.mean_face_encoding
-
-    @staticmethod
-    def get_global_mean_encoding_array() -> ndarray:
-        global_cluster: Cluster = ClusterManager.get_global_cluster()
-        return np.frombuffer(bytes.fromhex(global_cluster.mean_face_encoding))
 
     @staticmethod
     def delete_cluster(cluster: Cluster):
@@ -58,8 +43,6 @@ class ClusterManager:
         unknown_faces: list[Face] = []
         face_stack: list[Face] = []
         encoding_by_person: dict[int, list[np.ndarray]] = dict()
-
-        print("Trying to add cluster {}: {}".format(cluster_id, faces))
 
         face:Face
         new_cluster: Cluster
@@ -152,51 +135,12 @@ class ClusterManager:
         if unknown_cluster.person == None:
             unknown_cluster.person = get_unknown_person()
         return unknown_cluster
-    
-    @staticmethod
-    def get_global_cluster() -> Cluster:
-        global_cluster: Cluster = Cluster.objects.filter(id=GLOBAL_CLUSTER_ID).first()
-        if global_cluster == None:
-            global_cluster = Cluster.get_or_create_cluster_by_id(GLOBAL_CLUSTER_ID)
-            face_encodings: list[ndarray] = []
-            for face in Face.objects.all():
-                face_encodings.append(face.get_encoding_array())
-            global_cluster.mean_face_encoding = Cluster.calculate_mean_face_encoding(face_encodings).tobytes().hex()
-            global_cluster.save()
-        return global_cluster
-
-    @staticmethod
-    def update_face_probabilities(cluster: Cluster):
-        global_cluster: Cluster = ClusterManager.get_global_cluster()
-        cluster_centroid: ndarray = cluster.get_mean_encoding_array()
-        std_dev = cluster.std_dev_distance
-        mean_distance = cluster.mean_distance
-        face_stack: list[Face] = []
-        face: Face
-        for face in Face.objects.filter(cluster=cluster):
-            person: Person = face.person
-            if person.kind == Person.KIND_CLUSTER:
-                face.person_label_is_inferred = True
-            if std_dev == 0:
-                face.person_label_probability = 1.0
-            else:
-                face_encoding = face.get_encoding_array()
-                distance = math.dist(cluster_centroid, face_encoding)
-                z_score = (distance - mean_distance) / std_dev
-                p_value = scipy.stats.norm.sf(abs(z_score))
-                print("distance: {}, stddev: {}, p_value: {}".format(distance,std_dev, p_value))
-                face.person_label_probability = 1 - p_value
-            face_stack.append(face)
-        bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
 
     @staticmethod
     def add_faces_to_clusters(faces: list[Face], cluster: Cluster = None) -> bool:
         if Cluster.objects.count() == 0:
             return False
 
-        global_cluster = ClusterManager.get_global_cluster()
-        mean_encoding = ClusterManager.get_global_mean_encoding_array()
-        curr_size = ClusterManager.get_global_data_count()
         face_list_by_cluster: dict[int, list[Face]] = dict()
         cluster_encodings: list[ndarray]
         target_cluster: Cluster
@@ -231,16 +175,6 @@ class ClusterManager:
             target_cluster.save()
 
         bulk_update(faces, update_fields=FACE_CLASSIFY_COLUMNS)
-        for target_cluster in cluster_stack:
-            ClusterManager.update_face_probabilities(target_cluster)
-
-        total_encoding: ndarray = np.multiply(mean_encoding, curr_size)
-        for face in faces:
-            total_encoding = np.add(total_encoding, face.get_encoding_array())
-        curr_size = curr_size + len(faces)
-        mean_encoding = np.divide(total_encoding, curr_size)
-        global_cluster.mean_face_encoding = mean_encoding.tobytes().hex()
-        global_cluster.save()
 
 
         

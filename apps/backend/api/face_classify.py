@@ -10,7 +10,7 @@ from django_rq import job
 from sklearn.cluster import DBSCAN
 from sklearn.decomposition import PCA
 from sklearn.neural_network import MLPClassifier
-from api.cluster_manager import GLOBAL_CLUSTER_ID, ClusterManager
+from api.cluster_manager import ClusterManager
 
 from api.models import Face, LongRunningJob, Person
 from api.models.cluster import Cluster
@@ -198,7 +198,7 @@ def train_faces(user, job_id) -> bool:
         # can't be classified into another group, i.e. that it should be classified that way
         cluster: Cluster
         for cluster in Cluster.objects.all():
-            if cluster.cluster_id != GLOBAL_CLUSTER_ID and cluster.person.kind == Person.KIND_CLUSTER:
+            if cluster.person.kind == Person.KIND_CLUSTER:
                 data["known"]["encoding"].append(cluster.get_mean_encoding_array())
                 data["known"]["id"].append(cluster.person.id)
 

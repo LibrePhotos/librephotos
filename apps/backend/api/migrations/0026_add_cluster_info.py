@@ -39,8 +39,6 @@ class Migration(migrations.Migration):
                 ('mean_face_encoding', models.TextField()),
                 ('cluster_id', models.IntegerField(null=True)),
                 ('name', models.TextField(null=True)),
-                ('std_dev_distance', models.FloatField(blank=True, null=True)),
-                ('mean_distance', models.FloatField(blank=True, null=True)),
                 ('person', models.ForeignKey(blank=True, null=True, on_delete=models.SET(api.models.person.get_unknown_person), related_name='clusters', to='api.person')),
             ],
         ),
