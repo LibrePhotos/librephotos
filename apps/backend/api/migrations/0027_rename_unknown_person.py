@@ -10,7 +10,7 @@ def migrate_unknown(apps, schema_editor):
         person.kind = api.models.person.Person.KIND_UNKNOWN
         person.save()
     except Person.DoesNotExist:
-        pass
+        api.models.person.get_unknown_person()
 
 def unmigrate_unknown(apps, schema_editor):
     Person = apps.get_model('api', 'Person')
