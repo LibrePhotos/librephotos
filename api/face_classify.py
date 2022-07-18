@@ -58,7 +58,12 @@ def cluster_faces(user, inferred=True):
 
 @job
 def cluster_all_faces(user, job_id) -> bool:
-
+    """Groups all faces into clusters for ease of labeling. It first deletes all
+    existing clusters, then regenerates them all. It will split clusters that have
+    more than one kind of labeled face.
+    :param user: the current user running the training
+    :param job_id: the background job ID
+    """
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
@@ -99,6 +104,10 @@ def cluster_all_faces(user, job_id) -> bool:
         return False
 
 def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
+    """Generate Cluster records for each different clustering of people
+    :param user: the current user
+    :param lrj: LongRunningJob to update, if needed
+    """
     all_clusters: list[Cluster] = []
     face:Face
     print("creating clusters")
@@ -122,7 +131,6 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
     count: int = 0
 
     for labelID in labelIDs:
-        print("[INFO] Generating cluster for: {}".format(labelID))
         idxs = np.where(clt.labels_ == labelID)[0]
         face_array: list[Face] = []
         for i in idxs:
@@ -143,12 +151,16 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
 
 
 def delete_clusters():
+    """Delete all existing Cluster records
+    """
     print("[INFO] deleting all clusters")
     cluster:Cluster
     for cluster in Cluster.objects.filter():
         ClusterManager.delete_cluster(cluster)
 
 def delete_clustered_people():
+    """Delete all existing Person records of type CLUSTER
+    """
     print("[INFO] deleting all clustered people")
     for person in Person.objects.filter(kind=Person.KIND_CLUSTER):
         for face in Face.objects.filter(person=person):
@@ -156,8 +168,15 @@ def delete_clustered_people():
         person.delete()
 
 @job
-def train_faces(user, job_id) -> bool:
-
+def train_faces(user: User, job_id) -> bool:
+    """Given existing Cluster records for all faces, determines the probability
+    that unknown faces belong to those Clusters. It takes any known, labeled faces
+    and adds the centroids of "unknown" clusters, assuming that those clusters
+    correspond to *some* face. It then trains a classifier on that data to use
+    in calculating the probabilities for unknown faces.
+    :param user: the current user running the training
+    :param job_id: the background job ID
+    """
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
