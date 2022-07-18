@@ -1,6 +1,7 @@
 from collections import Counter
 
 from django.db import models
+from api.models.person import Person
 
 import api.util as util
 from api.models.photo import Photo
@@ -76,7 +77,7 @@ class AlbumAuto(models.Model):
                     [
                         (k, v)
                         for k, v in cnts_people.most_common(2)
-                        if k.lower() != "unknown"
+                        if k.lower() != "unknown" and k.lower() != Person.UNKNOWN_PERSON_NAME
                     ]
                 ).keys()
                 if len(names) > 0:

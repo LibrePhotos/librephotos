@@ -404,7 +404,7 @@ def scan_photos(user, full_scan, job_id):
     return {"new_photo_count": added_photo_count, "status": lrj.failed is False}
 
 
-def face_scanner(photo, job_id):
+def face_scanner(photo: Photo, job_id):
     photo._extract_faces()
     with db.connection.cursor() as cursor:
         cursor.execute(

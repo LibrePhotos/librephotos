@@ -84,7 +84,7 @@ def cluster_all_faces(user, job_id) -> bool:
         lrj.result = {"progress": {"current": target_count, "target": target_count}}
         lrj.save()
         cache.clear()
-
+        
         train_job_id = uuid.uuid4()
         train_faces.delay(user, train_job_id)
         return True
@@ -111,7 +111,7 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
         data["all"]["id"].append(face.id)
 
     # creating DBSCAN object for clustering the encodings with the metric "euclidean"
-    clt = DBSCAN(metric="euclidean", min_samples=3)
+    clt = DBSCAN(metric="euclidean", min_samples=2)
     
     clt.fit(np.array(data["all"]["encoding"]))
 
@@ -192,7 +192,7 @@ def train_faces(user, job_id) -> bool:
 
         # Next, pretend all unknown face clusters are known and add their mean encoding. This allows us
         # to predict the likelihood of other unknown faces belonging to those simulated clusters. For 
-        # the "Other Unknown"-type cluster, we can still try to predict the probability that the face
+        # the "Unknown - Other"-type cluster, we can still try to predict the probability that the face
         # can't be classified into another group, i.e. that it should be classified that way
         cluster: Cluster
         for cluster in Cluster.objects.all():
