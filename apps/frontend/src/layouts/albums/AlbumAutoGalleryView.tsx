@@ -4,7 +4,7 @@ import _ from "lodash";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Calendar,  Map2,  SettingsAutomation, Users } from "tabler-icons-react";
+import { Calendar, Map2, SettingsAutomation, Users } from "tabler-icons-react";
 
 import { fetchAlbumsAutoGalleries } from "../../actions/albumsActions";
 import { fetchPhotoDetail } from "../../actions/photosActions";
@@ -143,7 +143,9 @@ export const AlbumAutoGalleryView = (props: Props) => {
                     <div>
                       <Title order={5}>{`Day ${i + 1} - ${moment(v[0]).format("MMMM Do YYYY")}`}</Title>
                       <Text color="dimmed">
-                        <Breadcrumbs separator="/">{_.uniq(locations).map(e => ({ key: e, content: e }))}</Breadcrumbs>
+                        <Breadcrumbs separator="/">
+                          <>{_.uniq(locations).map(e => ({ key: e, content: e }))}</>
+                        </Breadcrumbs>
                       </Text>
                     </div>
                   </Group>

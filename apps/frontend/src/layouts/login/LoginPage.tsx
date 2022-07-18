@@ -14,7 +14,7 @@ import { useForm } from "@mantine/form";
 import type { FormEvent } from "react";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Lock, User } from "tabler-icons-react";
 
 import { fetchSiteSettings } from "../../actions/utilActions";
@@ -31,9 +31,13 @@ export function LoginPage(): JSX.Element {
   const dark = colorScheme === "dark";
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
+  const location = useLocation();
+  console.info("location: ", location);
+  // @ts-ignore
+  const from = location.state?.from || "/";
 
   const siteSettings = useAppSelector(selectSiteSettings);
-  const [login, { isSuccess, isLoading }] = useLoginMutation();
+  const [login, { isLoading }] = useLoginMutation();
   const form = useForm({
     initialValues: {
       username: "",
@@ -46,19 +50,13 @@ export function LoginPage(): JSX.Element {
     fetchSiteSettings(dispatch);
   }, [dispatch]);
 
-  useEffect(() => {
-    if (isSuccess) {
-      navigate("/");
-    }
-  }, [navigate, isSuccess]);
-
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     void login({ username: form.values.username.toLowerCase(), password: form.values.password });
   }
 
   if (isAuth) {
-    navigate("/");
+    navigate(from);
   }
   return (
     <div

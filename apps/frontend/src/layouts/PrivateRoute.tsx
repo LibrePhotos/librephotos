@@ -1,15 +1,12 @@
 import React from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { selectIsAuthenticated } from "../store/auth/authSelectors";
 import { useAppSelector } from "../store/store";
 
-export function ProtectedRoute() {
+export function ProtectedRoutes() {
   const isAuth = useAppSelector(selectIsAuthenticated);
+  const { pathname } = useLocation();
 
-  if (!isAuth) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <Outlet />;
+  return isAuth ? <Outlet /> : <Navigate to="login" state={{ from: pathname }} replace />;
 }

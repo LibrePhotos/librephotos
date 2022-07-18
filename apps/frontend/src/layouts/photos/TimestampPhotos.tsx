@@ -1,5 +1,4 @@
-import _ from "lodash";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Photo } from "tabler-icons-react";
 
@@ -8,16 +7,16 @@ import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosState, PhotosetType } from "../../reducers/photosReducer";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
-type fetchedGroup = {
+interface IFetchedGroup {
   id: string;
   page: number;
-};
+}
 
 export function TimestampPhotos() {
   const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(state => state.photos as PhotosState);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  const [group, setGroup] = useState({} as fetchedGroup);
+  const [group, setGroup] = useState({} as IFetchedGroup);
   useEffect(() => {
     if (group.id && group.page) {
       fetchAlbumDate(dispatch, {
@@ -26,13 +25,13 @@ export function TimestampPhotos() {
         photosetType: PhotosetType.TIMESTAMP,
       });
     }
-  }, [group.id, group.page]);
+  }, [dispatch, group.id, group.page]);
 
   useEffect(() => {
     if (fetchedPhotosetType !== PhotosetType.TIMESTAMP) {
       fetchAlbumDateList(dispatch, { photosetType: PhotosetType.TIMESTAMP });
     }
-  }, [dispatch]); // Only run on first render
+  }, [dispatch]);
 
   const getAlbums = (visibleGroups: any) => {
     visibleGroups.forEach((group: any) => {

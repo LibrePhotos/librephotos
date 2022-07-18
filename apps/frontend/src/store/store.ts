@@ -23,6 +23,9 @@ import { worker } from "./worker/workerSlice";
 
 const { createReduxHistory, routerMiddleware, routerReducer } = createReduxHistoryContext({
   history: createBrowserHistory(),
+  reduxTravelling: true,
+  showHistoryAction: true,
+  savePreviousLocations: 100,
 });
 
 export const store = configureStore({

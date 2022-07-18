@@ -37,7 +37,7 @@ export function SortableItem({ item, addItem, addItemFunction, removeItemFunctio
                     <li>{t(`rules.${prop[0]}`, { rule: prop[1] })}</li>
                   ) : (
                     <li>
-                      {prop[0]}: {prop[1]}
+                      {prop[0] as string}: {prop[1] as string}
                     </li>
                   )
                 )}
