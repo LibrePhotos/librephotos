@@ -6,7 +6,7 @@ def migrate_unknown(apps, schema_editor):
     Person = apps.get_model('api', 'Person')
     try:
         person: Person = Person.objects.get(name="unknown")
-        person.name = "Unknown - Other"
+        person.name = api.models.person.Person.UNKNOWN_PERSON_NAME
         person.kind = api.models.person.Person.KIND_UNKNOWN
         person.save()
     except Person.DoesNotExist:
@@ -15,7 +15,7 @@ def migrate_unknown(apps, schema_editor):
 def unmigrate_unknown(apps, schema_editor):
     Person = apps.get_model('api', 'Person')
     try:
-        person: Person = Person.objects.get(name="Unknown - Other")
+        person: Person = Person.objects.get(name=api.models.person.Person.UNKNOWN_PERSON_NAME)
         person.name = "unknown"
         person.kind = ""
         person.save()
