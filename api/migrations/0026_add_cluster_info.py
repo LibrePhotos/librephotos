@@ -23,6 +23,11 @@ class Migration(migrations.Migration):
             model_name='person',
             name='cluster_id',
         ),
+        migrations.AlterField(
+            model_name='person',
+            name='mean_face_encoding',
+            field=models.TextField(default="default"),
+        ),
         migrations.RemoveField(
             model_name='person',
             name='mean_face_encoding',
