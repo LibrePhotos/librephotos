@@ -499,6 +499,8 @@ class Photo(models.Model):
                 unknown_person = api.models.person.get_unknown_person() 
             else:
                 unknown_person = qs_unknown_person[0]
+            
+            unknown_cluster: api.models.cluster.Cluster = api.cluster_manager.ClusterManager.get_unknown_cluster()
             image = np.array(PIL.Image.open(self.thumbnail_big.path))
 
             face_locations = []
@@ -547,6 +549,7 @@ class Photo(models.Model):
                         location_left=face_location[3],
                         encoding=face_encoding.tobytes().hex(),
                         person=unknown_person,
+                        cluster=unknown_cluster,
                     )
 
                     face_io = BytesIO()

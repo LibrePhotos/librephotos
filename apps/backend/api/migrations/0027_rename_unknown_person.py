@@ -4,13 +4,18 @@ import api.models.person
 
 def migrate_unknown(apps, schema_editor):
     Person = apps.get_model('api', 'Person')
+    person: Person
     try:
-        person: Person = Person.objects.get(name="unknown")
+        person = Person.objects.get(name="unknown")
         person.name = api.models.person.Person.UNKNOWN_PERSON_NAME
         person.kind = api.models.person.Person.KIND_UNKNOWN
         person.save()
     except Person.DoesNotExist:
         api.models.person.get_unknown_person()
+    Face = apps.get_model('api', 'Face')
+    face: Face
+    for face in Face.objects.filter(person=person):
+        face.cluster = api.cluster_manager.ClusterManager.get_unknown_person()
 
 def unmigrate_unknown(apps, schema_editor):
     Person = apps.get_model('api', 'Person')

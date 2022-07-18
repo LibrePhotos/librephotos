@@ -56,7 +56,6 @@ class ClusterManager:
             if cluster_id == UNKNOWN_CLUSTER_ID:
                 new_cluster = ClusterManager.get_unknown_cluster()
                 new_person = get_unknown_person()
-                new_cluster.name = "Other Unknown Cluster"
             else:
                 new_person = get_or_create_person(name="Unknown " + str(cluster_id+1))
                 new_person.kind = Person.KIND_CLUSTER
@@ -132,47 +131,9 @@ class ClusterManager:
         unknown_cluster: Cluster = Cluster.get_or_create_cluster_by_id(UNKNOWN_CLUSTER_ID)
         if unknown_cluster.person == None:
             unknown_cluster.person = get_unknown_person()
+            unknown_cluster.name = "Other Unknown Cluster"
+            unknown_cluster.save()
         return unknown_cluster
-
-    @staticmethod
-    def add_faces_to_clusters(faces: list[Face], cluster: Cluster = None) -> bool:
-        if Cluster.objects.count() == 0:
-            return False
-
-        face_list_by_cluster: dict[int, list[Face]] = dict()
-        cluster_encodings: list[ndarray]
-        target_cluster: Cluster
-        cluster_stack: list[Cluster] = []
-        face: Face
-        for face in faces:
-            encoding_array = face.get_encoding_array()
-            if cluster != None:
-                target_cluster = cluster
-            else:
-                min_distance = np.Infinity
-                one_cluster: Cluster
-                for one_cluster in Cluster.objects.all():
-                    distance = math.dist(one_cluster.get_mean_encoding_array(), encoding_array)
-                    if distance < min_distance:
-                        target_cluster = one_cluster
-                        min_distance = distance
-            if face_list_by_cluster[target_cluster.id] == {}:
-                face_list_by_cluster[target_cluster.id] = []
-                cluster_stack.append(target_cluster)
-            face_list_by_cluster[target_cluster.id].append(face)
-        
-        for id in face_list_by_cluster.keys():
-            target_cluster = Cluster.objects.get(id=id)[0]
-            cluster_encodings = []
-            for face in Face.objects.filter(cluster=target_cluster):
-                cluster_encodings.append(face.get_encoding_array())
-            for face in face_list_by_cluster[id]:
-                cluster_encodings.append(face.get_encoding_array())
-                face.cluster = target_cluster
-            target_cluster.set_metadata(cluster_encodings)
-            target_cluster.save()
-
-        bulk_update(faces, update_fields=FACE_CLASSIFY_COLUMNS)
 
 
         

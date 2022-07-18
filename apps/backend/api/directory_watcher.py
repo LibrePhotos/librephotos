@@ -3,9 +3,11 @@ import hashlib
 import os
 import stat
 from multiprocessing import Pool
+import uuid
 
 import magic
 import pytz
+from api.face_classify import cluster_all_faces
 import pyvips
 from constance import config as site_config
 from django import db
@@ -17,10 +19,12 @@ import api.models.album_thing
 import api.util as util
 import ownphotos.settings
 from api.batch_jobs import create_batch_job
-from api.models import Face, LongRunningJob, Photo
+from api.models import Face, LongRunningJob, Photo, photo
 from api.places365.places365 import place365_instance
 from api.thumbnails import isRawPicture
 
+
+AUTO_FACE_RETRAIN_THRESHOLD = 0.1
 
 def is_video(image_path):
     mime = magic.Magic(mime=True)
@@ -401,6 +405,9 @@ def scan_photos(user, full_scan, job_id):
     lrj.result["new_photo_count"] = added_photo_count
     lrj.save()
 
+    cluster_job_id = uuid.uuid4()
+    cluster_all_faces.delay(user, cluster_job_id)
+
     return {"new_photo_count": added_photo_count, "status": lrj.failed is False}
 
 
@@ -447,8 +454,9 @@ def scan_faces(user, job_id):
         with Pool(processes=site_config.HEAVYWEIGHT_PROCESS) as pool:
             pool.starmap(face_scanner, all)
 
-    except Exception:
+    except Exception as err:
         util.logger.exception("An error occured: ")
+        print("[ERR]: {}".format(err))
         lrj.failed = True
 
     added_face_count = Face.objects.count() - face_count_before
@@ -458,5 +466,8 @@ def scan_faces(user, job_id):
     lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
     lrj.result["new_face_count"] = added_face_count
     lrj.save()
+
+    cluster_job_id = uuid.uuid4()
+    cluster_all_faces.delay(user, cluster_job_id)
 
     return {"new_face_count": added_face_count, "status": lrj.failed is False}
