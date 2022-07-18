@@ -11,6 +11,7 @@ utc = pytz.UTC
 
 
 class Person(models.Model):
+    UNKNOWN_PERSON_NAME = "Unknown - Other"
     KIND_USER = "USER"
     KIND_CLUSTER = "CLUSTER"
     KIND_UNKNOWN = "UNKNOWN"
@@ -61,7 +62,11 @@ class Person(models.Model):
 
 
 def get_unknown_person():
-    return Person.objects.get_or_create(name="unknown")[0]
+    unknown_person: Person = Person.objects.get_or_create(name=Person.UNKNOWN_PERSON_NAME)[0]
+    if unknown_person.kind != Person.KIND_UNKNOWN:
+        unknown_person.kind = Person.KIND_UNKNOWN
+        unknown_person.save()
+    return unknown_person
 
 
 def get_or_create_person(name):

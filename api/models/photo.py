@@ -494,10 +494,9 @@ class Photo(models.Model):
         import face_recognition
 
         try:
-            qs_unknown_person = api.models.person.Person.objects.filter(name="unknown")
+            qs_unknown_person = api.models.person.Person.objects.filter(Q(name="unknown") | Q(name=api.models.person.Person.UNKNOWN_PERSON_NAME))
             if qs_unknown_person.count() == 0:
-                unknown_person = api.models.person.Person(name="unknown")
-                unknown_person.save()
+                unknown_person = api.models.person.get_unknown_person() 
             else:
                 unknown_person = qs_unknown_person[0]
             image = np.array(PIL.Image.open(self.thumbnail_big.path))

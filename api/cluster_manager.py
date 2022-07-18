@@ -47,7 +47,7 @@ class ClusterManager:
         face:Face
         new_cluster: Cluster
         for face in faces:
-            if face.person.name == "unknown" or face.person_label_is_inferred == True:
+            if face.person.name == "unknown" or face.person.name == Person.UNKNOWN_PERSON_NAME or face.person_label_is_inferred == True:
                 unknown_faces.append(face)
             else:
                 known_faces.append(face)
@@ -55,9 +55,7 @@ class ClusterManager:
             new_cluster:Cluster
             if cluster_id == UNKNOWN_CLUSTER_ID:
                 new_cluster = ClusterManager.get_unknown_cluster()
-                new_person = get_or_create_person(name="Other Unknown")
-                new_person.kind = Person.KIND_CLUSTER
-                new_person.save()
+                new_person = get_unknown_person()
                 new_cluster.name = "Other Unknown Cluster"
             else:
                 new_person = get_or_create_person(name="Unknown " + str(cluster_id+1))

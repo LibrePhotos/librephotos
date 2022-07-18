@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 from api.directory_watcher import scan_faces
 from api.face_classify import cluster_all_faces
 from api.models import Face
-from api.models.person import get_or_create_person
+from api.models.person import Person, get_or_create_person
 from api.serializers.serializers import FaceListSerializer, FaceSerializer
 from api.util import logger
 from api.views.pagination import HugeResultsSetPagination, StandardResultsSetPagination
@@ -81,7 +81,7 @@ class FaceLabeledListViewSet(viewsets.ModelViewSet):
         queryset = (
             Face.objects.filter(
                 Q(photo__hidden=False) & Q(photo__owner=self.request.user),
-                Q(person_label_is_inferred=False) | Q(person__name="unknown"),
+                Q(person_label_is_inferred=False) | Q(person__name=Person.UNKNOWN_PERSON_NAME),
             )
             .select_related("person")
             .order_by("id")
