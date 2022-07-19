@@ -6,8 +6,10 @@ from bulk_update.helper import bulk_update
 from api.models.cluster import Cluster
 from api.models.face import Face
 from api.models.person import Person, get_or_create_person, get_unknown_person
+from api.models.user import User, get_deleted_user
 
 UNKNOWN_CLUSTER_ID = -1
+UNKNOWN_CLUSTER_NAME = "Other Unknown Cluster"
 
 FACE_CLASSIFY_COLUMNS = [
     "person",
@@ -38,7 +40,9 @@ class ClusterManager:
         cluster.delete()
 
     @staticmethod
-    def try_add_cluster(cluster_id: int, faces: list[Face]) -> list[Cluster]:
+    def try_add_cluster(
+        user: User, cluster_id: int, faces: list[Face]
+    ) -> list[Cluster]:
         added_clusters: list[Cluster] = []
         known_faces: list[Face] = []
         unknown_faces: list[Face] = []
@@ -58,14 +62,18 @@ class ClusterManager:
                 known_faces.append(face)
         if len(known_faces) == 0:
             new_cluster: Cluster
+            new_person: Person
             if cluster_id == UNKNOWN_CLUSTER_ID:
                 new_cluster = ClusterManager.get_unknown_cluster()
                 new_person = get_unknown_person()
             else:
-                new_person = get_or_create_person(name="Unknown " + str(cluster_id + 1))
+                new_person = get_or_create_person(
+                    name="Unknown " + str(cluster_id + 1), cluster_owner=user
+                )
                 new_person.kind = Person.KIND_CLUSTER
+                new_person.cluster_owner = user
                 new_person.save()
-                new_cluster = Cluster.get_or_create_cluster_by_id(cluster_id)
+                new_cluster = Cluster.get_or_create_cluster_by_id(user, cluster_id)
                 new_cluster.name = "Cluster " + str(cluster_id)
 
             new_cluster.person = new_person
@@ -90,7 +98,7 @@ class ClusterManager:
                     print("adding new cluster: {}".format(idx + 1))
                     idx = idx + 1
                     new_cluster = Cluster.get_or_create_cluster_by_name(
-                        "Cluster " + str(cluster_id) + "-" + str(idx)
+                        user, "Cluster " + str(cluster_id) + "-" + str(idx)
                     )
                     new_cluster.cluster_id = cluster_id
                     new_cluster.person = face.person
@@ -141,10 +149,10 @@ class ClusterManager:
     @staticmethod
     def get_unknown_cluster() -> Cluster:
         unknown_cluster: Cluster = Cluster.get_or_create_cluster_by_id(
-            UNKNOWN_CLUSTER_ID
+            get_deleted_user(), UNKNOWN_CLUSTER_ID
         )
         if unknown_cluster.person is None:
             unknown_cluster.person = get_unknown_person()
-            unknown_cluster.name = "Other Unknown Cluster"
+            unknown_cluster.name = UNKNOWN_CLUSTER_NAME
             unknown_cluster.save()
         return unknown_cluster

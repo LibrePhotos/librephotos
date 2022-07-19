@@ -29,6 +29,14 @@ class Person(models.Model):
         Photo, related_name="person", on_delete=models.PROTECT, blank=False, null=True
     )
 
+    cluster_owner = models.ForeignKey(
+        User,
+        related_name="owner",
+        on_delete=models.SET(get_deleted_user),
+        default=None,
+        null=True,
+    )
+
     def __str__(self):
         return "%d" % self.id
 
@@ -71,5 +79,8 @@ def get_unknown_person():
     return unknown_person
 
 
-def get_or_create_person(name):
-    return Person.objects.get_or_create(name=name)[0]
+def get_or_create_person(name, cluster_owner: User = None):
+    if cluster_owner is not None:
+        return Person.objects.get_or_create(name=name, cluster_owner=cluster_owner)[0]
+    else:
+        return Person.objects.get_or_create(name=name)[0]

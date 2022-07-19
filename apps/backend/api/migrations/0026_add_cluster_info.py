@@ -2,6 +2,7 @@
 
 import django.db.models.deletion
 import django.db.models.manager
+from django.conf import settings
 from django.db import migrations, models
 
 import api.models.person
@@ -74,6 +75,15 @@ class Migration(migrations.Migration):
                         to="api.person",
                     ),
                 ),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        default=None,
+                        null=True,
+                        on_delete=models.SET(api.models.user.get_deleted_user),
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.AddField(
@@ -85,6 +95,17 @@ class Migration(migrations.Migration):
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="faces",
                 to="api.cluster",
+            ),
+        ),
+        migrations.AddField(
+            model_name="person",
+            name="cluster_owner",
+            field=models.ForeignKey(
+                default=None,
+                null=True,
+                related_name="owner",
+                on_delete=models.SET(api.models.user.get_deleted_user),
+                to=settings.AUTH_USER_MODEL,
             ),
         ),
     ]
