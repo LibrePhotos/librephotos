@@ -1,5 +1,6 @@
 import { Group, Stack, Tabs, Text, Title } from "@mantine/core";
 import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 
 import { fetchUserAlbumsSharedToMe } from "../../actions/albumsActions";
 import { fetchPhotosSharedToMe } from "../../actions/photosActions";
@@ -9,15 +10,11 @@ import { useAppDispatch, useAppSelector } from "../../store/store";
 import { AlbumsShared } from "./AlbumsShared";
 import { PhotosShared } from "./PhotosShared";
 
-type Props = {
-  match: any;
-};
-
-export const SharedToMe = (props: Props) => {
+export function SharedToMe() {
   const dispatch = useAppDispatch();
   const { albums } = useAppSelector(store => store);
   const { photosFlat, photosGroupedByUser, fetchedPhotosetType } = useAppSelector(store => store.photos);
-  const { match } = props;
+  const { which } = useParams();
   const [activeTab, setActiveTab] = useState(1);
 
   useEffect(() => {
@@ -45,7 +42,7 @@ export const SharedToMe = (props: Props) => {
       </Text>
     );
   };
-  const activeItem = match.params.which;
+  const activeItem = which;
 
   return (
     <Stack>
@@ -67,4 +64,4 @@ export const SharedToMe = (props: Props) => {
       </Tabs>
     </Stack>
   );
-};
+}

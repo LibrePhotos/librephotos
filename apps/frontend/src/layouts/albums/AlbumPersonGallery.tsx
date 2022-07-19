@@ -10,7 +10,7 @@ import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosState, PhotosetType } from "../../reducers/photosReducer";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
-type fetchedGroup = {
+type IFetchedGroup = {
   id: string;
   page: number;
 };
@@ -21,7 +21,7 @@ export function AlbumPersonGallery(): JSX.Element {
   const { people } = useAppSelector(state => state.people);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  const [group, setGroup] = useState({} as fetchedGroup);
+  const [group, setGroup] = useState({} as IFetchedGroup);
   const person = people.filter((i: any) => i.key === albumID)[0];
   const personname = person ? person.value : undefined;
 

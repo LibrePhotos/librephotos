@@ -44,7 +44,13 @@ module.exports = {
     "react/function-component-definition":"warn",
     "react/self-closing-comp":"warn",
     "react/no-deprecated":"warn",
-    "react/jsx-no-bind": "warn",
+    "react/jsx-no-bind": ["warn", {
+      "ignoreDOMComponents":true,
+      "ignoreRefs": true,
+      "allowArrowFunctions": true,
+      "allowFunctions": true,
+      "allowBind": true
+      }],
     "react/prop-types": "warn",
     "react/destructuring-assignment": "warn",
     "react/jsx-filename-extension": "warn",

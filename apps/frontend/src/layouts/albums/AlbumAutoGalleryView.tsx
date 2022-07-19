@@ -4,6 +4,7 @@ import _ from "lodash";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useParams } from "react-router-dom";
 import { Calendar, Map2, SettingsAutomation, Users } from "tabler-icons-react";
 
 import { fetchAlbumsAutoGalleries } from "../../actions/albumsActions";
@@ -18,9 +19,7 @@ import { HeaderComponent } from "./HeaderComponent";
 
 const SIDEBAR_WIDTH = 85;
 
-type Props = { match: any };
-
-export const AlbumAutoGalleryView = (props: Props) => {
+export function AlbumAutoGalleryView() {
   const { height, width } = useViewportSize();
   const [lightboxImageIndex, setLightboxImageIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -28,18 +27,10 @@ export const AlbumAutoGalleryView = (props: Props) => {
   const [entrySquareSize, setEntrySquareSize] = useState(200);
 
   const dispatch = useAppDispatch();
-  const { match } = props;
+  const { albumID } = useParams();
   const { albumsAutoGalleries, fetchingAlbumsAutoGalleries } = useAppSelector(store => store.albums);
   const { t } = useTranslation();
-  useEffect(() => {
-    fetchAlbumsAutoGalleries(dispatch, match.params.albumID);
-  }, []);
-
-  useEffect(() => {
-    calculateEntrySquareSize();
-  }, [height, width]);
-
-  const calculateEntrySquareSize = () => {
+  function calculateEntrySquareSize() {
     let numEntrySquaresPerRow = 10;
     if (width < 600) {
       numEntrySquaresPerRow = 2;
@@ -55,14 +46,22 @@ export const AlbumAutoGalleryView = (props: Props) => {
 
     const entrySquareSize = columnWidth / numEntrySquaresPerRow;
     setEntrySquareSize(entrySquareSize);
-  };
-  const getPhotoDetails = image_hash => {
+  }
+  function getPhotoDetails(image_hash) {
     dispatch(fetchPhotoDetail(image_hash));
-  };
+  }
+  useEffect(() => {
+    if (albumID) {
+      fetchAlbumsAutoGalleries(dispatch, albumID);
+    }
+  }, [albumID, dispatch]);
 
-  const { albumID } = match.params;
+  useEffect(() => {
+    calculateEntrySquareSize();
+  }, [height, width]);
+
   if (albumsAutoGalleries.hasOwnProperty(albumID) && !fetchingAlbumsAutoGalleries) {
-    const album = albumsAutoGalleries[match.params.albumID];
+    const album = albumID ? albumsAutoGalleries[albumID] : undefined;
     const photos = _.sortBy(album.photos, "exif_timestamp").map((el, idx) => ({ ...el, idx: idx }));
     const byDate = _.groupBy(_.sortBy(photos, "exif_timestamp"), photo => photo.exif_timestamp.split("T")[0]);
 
@@ -167,12 +166,14 @@ export const AlbumAutoGalleryView = (props: Props) => {
                   {v[1].map(photo => (
                     <div
                       onClick={() => {
-                        const indexOf = albumsAutoGalleries[match.params.albumID].photos
-                          .map(i => i.image_hash)
-                          .indexOf(photo.image_hash);
-                        console.log(indexOf);
-                        setLightboxOpen(true);
-                        setLightboxImageIndex(indexOf);
+                        if (albumID) {
+                          const indexOf = albumsAutoGalleries[albumID].photos
+                            .map(i => i.image_hash)
+                            .indexOf(photo.image_hash);
+                          console.log(indexOf);
+                          setLightboxOpen(true);
+                          setLightboxImageIndex(indexOf);
+                        }
                       }}
                       style={{
                         display: "inline-block",
@@ -197,29 +198,29 @@ export const AlbumAutoGalleryView = (props: Props) => {
           </div>
         </div>
 
-        {lightboxOpen && (
+        {lightboxOpen && albumID && (
           <LightBox
             isPublic={false}
-            idx2hash={albumsAutoGalleries[match.params.albumID].photos.map(i => i.image_hash)}
+            idx2hash={albumsAutoGalleries[albumID].photos.map(i => i.image_hash)}
             lightboxImageIndex={lightboxImageIndex}
-            lightboxImageId={albumsAutoGalleries[match.params.albumID].photos[lightboxImageIndex].image_hash}
+            lightboxImageId={albumsAutoGalleries[albumID].photos[lightboxImageIndex].image_hash}
             onCloseRequest={() => setLightboxOpen(false)}
             onImageLoad={() => {
-              getPhotoDetails(albumsAutoGalleries[match.params.albumID].photos[lightboxImageIndex].image_hash);
+              getPhotoDetails(albumsAutoGalleries[albumID].photos[lightboxImageIndex].image_hash);
             }}
             onMovePrevRequest={() => {
               const nextIndex =
-                (lightboxImageIndex + albumsAutoGalleries[match.params.albumID].photos.length - 1) %
-                albumsAutoGalleries[match.params.albumID].photos.length;
+                (lightboxImageIndex + albumsAutoGalleries[albumID].photos.length - 1) %
+                albumsAutoGalleries[albumID].photos.length;
               setLightboxImageIndex(nextIndex);
-              getPhotoDetails(albumsAutoGalleries[match.params.albumID].photos[nextIndex].image_hash);
+              getPhotoDetails(albumsAutoGalleries[albumID].photos[nextIndex].image_hash);
             }}
             onMoveNextRequest={() => {
               const nextIndex =
-                (lightboxImageIndex + albumsAutoGalleries[match.params.albumID].photos.length + 1) %
-                albumsAutoGalleries[match.params.albumID].photos.length;
+                (lightboxImageIndex + albumsAutoGalleries[albumID].photos.length + 1) %
+                albumsAutoGalleries[albumID].photos.length;
               setLightboxImageIndex(nextIndex);
-              getPhotoDetails(albumsAutoGalleries[match.params.albumID].photos[nextIndex].image_hash);
+              getPhotoDetails(albumsAutoGalleries[albumID].photos[nextIndex].image_hash);
             }}
           />
         )}
@@ -234,4 +235,4 @@ export const AlbumAutoGalleryView = (props: Props) => {
       </Title>
     </div>
   );
-};
+}

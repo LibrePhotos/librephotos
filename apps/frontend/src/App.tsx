@@ -17,6 +17,7 @@ import "./i18n";
 import { ProtectedRoutes } from "./layouts/PrivateRoute";
 import { SearchView } from "./layouts/SearchView";
 import { AlbumAuto } from "./layouts/albums/AlbumAuto";
+import { AlbumAutoGalleryView } from "./layouts/albums/AlbumAutoGalleryView";
 import { AlbumPeople } from "./layouts/albums/AlbumPeople";
 import { AlbumPersonGallery } from "./layouts/albums/AlbumPersonGallery";
 import { AlbumPlace } from "./layouts/albums/AlbumPlace";
@@ -43,6 +44,8 @@ import { AdminPage } from "./layouts/settings/AdminPage";
 import { Library } from "./layouts/settings/Library";
 import { Profile } from "./layouts/settings/Profile";
 import { Settings } from "./layouts/settings/Settings";
+import { SharedFromMe } from "./layouts/sharing/SharedFromMe";
+import { SharedToMe } from "./layouts/sharing/SharedToMe";
 import { selectIsAuthenticated } from "./store/auth/authSelectors";
 import { useAppSelector } from "./store/store";
 
@@ -109,19 +112,14 @@ export function App() {
                   <Route path="faces" element={<FaceDashboard />} />
                   <Route path="search" element={<SearchView />} />
                   <Route path="person/:albumID" element={<AlbumPersonGallery />} />
-                  {/* TODO Rewrite using react-router-v6 */}
                   <Route path="place/:albumID" element={<AlbumPlaceGallery />} />
-                  {/* TODO Rewrite using react-router-v6 */}
                   <Route path="thing/:albumID" element={<AlbumThingGallery />} />
-                  {/* TODO Rewrite using react-router-v6 */}
-                  {/* <Route path="event/:albumID" element={<AlbumAutoGalleryView />} /> */}
+                  <Route path="event/:albumID" element={<AlbumAutoGalleryView />} />
                   <Route path="explorer" element={<Explorer />} />
                   <Route path="albumviewer" element={<AlbumViewer />} />
                   <Route path="useralbum/:albumID" element={<AlbumUserGallery />} />
-                  {/* TODO Rewrite using react-router-v6 */}
-                  {/* <Route path="shared/tome/:which" element={<SharedToMe />} /> */}
-                  {/* /!* TODO Rewrite using react-router-v6 *!/ */}
-                  {/* /!* <Route path="shared/fromme/:which" element={<SharedFromMe />} /> *!/ */}
+                  <Route path="shared/tome/:which" element={<SharedToMe />} />
+                  <Route path="shared/fromme/:which" element={<SharedFromMe />} />
                   <Route path="admin" element={<AdminPage />} />
                   <Route path="map" element={<PhotoMap />} />
                   <Route path="placetree" element={<LocationTree />} />
