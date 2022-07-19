@@ -158,8 +158,9 @@ def delete_clusters():
     """Delete all existing Cluster records"""
     print("[INFO] deleting all clusters")
     cluster: Cluster
-    for cluster in Cluster.objects.filter():
-        ClusterManager.delete_cluster(cluster)
+    for cluster in Cluster.objects.all():
+        if cluster != ClusterManager.get_unknown_cluster():
+            ClusterManager.delete_cluster(cluster)
 
 
 def delete_clustered_people():

@@ -26,6 +26,8 @@ class ClusterManager:
     @staticmethod
     def delete_cluster(cluster: Cluster):
         unknown_cluster: Cluster = ClusterManager.get_unknown_cluster()
+        if unknown_cluster == cluster:
+            return
         face: Face
         face_stack = []
         for face in Face.objects.filter(cluster=cluster):
