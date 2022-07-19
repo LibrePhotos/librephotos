@@ -2,7 +2,6 @@ import math
 
 import numpy as np
 from bulk_update.helper import bulk_update
-from numpy import ndarray
 
 from api.models.cluster import Cluster
 from api.models.face import Face
@@ -50,7 +49,7 @@ class ClusterManager:
             if (
                 face.person.name == "unknown"
                 or face.person.name == Person.UNKNOWN_PERSON_NAME
-                or face.person_label_is_inferred == True
+                or face.person_label_is_inferred is True
             ):
                 unknown_faces.append(face)
             else:
@@ -142,7 +141,7 @@ class ClusterManager:
         unknown_cluster: Cluster = Cluster.get_or_create_cluster_by_id(
             UNKNOWN_CLUSTER_ID
         )
-        if unknown_cluster.person == None:
+        if unknown_cluster.person is None:
             unknown_cluster.person = get_unknown_person()
             unknown_cluster.name = "Other Unknown Cluster"
             unknown_cluster.save()
