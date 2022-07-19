@@ -19,7 +19,7 @@ import api.util as util
 import ownphotos.settings
 from api.batch_jobs import create_batch_job
 from api.face_classify import cluster_all_faces
-from api.models import Face, LongRunningJob, Photo, photo
+from api.models import Face, LongRunningJob, Photo
 from api.places365.places365 import place365_instance
 from api.thumbnails import isRawPicture
 
@@ -121,7 +121,7 @@ def handle_new_image(user, image_path, job_id):
             elapsed_times["md5"] = elapsed
 
             if not Photo.objects.filter(Q(image_hash=image_hash)).exists():
-                photo = Photo()
+                photo: Photo = Photo()
                 photo.image_paths.append(img_abs_path)
                 photo.owner = user
                 photo.image_hash = image_hash

@@ -144,7 +144,7 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
             labelID, face_array
         )
 
-        if commit_time < datetime.datetime.now() and lrj != None:
+        if commit_time < datetime.datetime.now() and lrj is not None:
             lrj.result = {"progress": {"current": count, "target": target_count}}
             lrj.save()
             commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)

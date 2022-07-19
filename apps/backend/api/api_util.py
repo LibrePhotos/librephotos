@@ -3,12 +3,9 @@ import random
 import stat
 from collections import Counter
 from datetime import datetime
-from itertools import groupby
 
 import numpy as np
-import pandas as pd
 import seaborn as sns
-from django.core.paginator import Paginator
 from django.db import connection
 from django.db.models import Count, Q
 from django.db.models.functions import TruncMonth
