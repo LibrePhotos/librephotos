@@ -80,8 +80,8 @@ def cluster_all_faces(user, job_id) -> bool:
     lrj.save()
 
     try:
-        delete_clustered_people()
-        delete_clusters()
+        delete_clustered_people(user)
+        delete_clusters(user)
         target_count: int = create_all_clusters(user)
 
         lrj.finished = True
@@ -141,7 +141,7 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
             face = Face.objects.filter(id=face_id).first()
             face_array.append(face)
         new_clusters: list[Cluster] = ClusterManager.try_add_cluster(
-            labelID, face_array
+            user, labelID, face_array
         )
 
         if commit_time < datetime.datetime.now() and lrj is not None:
@@ -154,19 +154,19 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
     return target_count
 
 
-def delete_clusters():
+def delete_clusters(user: User):
     """Delete all existing Cluster records"""
     print("[INFO] deleting all clusters")
     cluster: Cluster
-    for cluster in Cluster.objects.all():
+    for cluster in Cluster.objects.filter(owner=user):
         if cluster != ClusterManager.get_unknown_cluster():
             ClusterManager.delete_cluster(cluster)
 
 
-def delete_clustered_people():
+def delete_clustered_people(user: User):
     """Delete all existing Person records of type CLUSTER"""
     print("[INFO] deleting all clustered people")
-    for person in Person.objects.filter(kind=Person.KIND_CLUSTER):
+    for person in Person.objects.filter(kind=Person.KIND_CLUSTER, cluster_owner=user):
         for face in Face.objects.filter(person=person):
             face.person = get_unknown_person()
         person.delete()

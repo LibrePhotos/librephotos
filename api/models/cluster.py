@@ -2,6 +2,7 @@ import numpy as np
 from django.db import models
 
 from api.models.person import Person, get_unknown_person
+from api.models.user import User, get_deleted_user
 
 
 class Cluster(models.Model):
@@ -16,6 +17,10 @@ class Cluster(models.Model):
     cluster_id = models.IntegerField(null=True)
     name = models.TextField(null=True)
 
+    owner = models.ForeignKey(
+        User, on_delete=models.SET(get_deleted_user), default=None, null=True
+    )
+
     def __str__(self):
         return "%d" % self.id
 
@@ -28,12 +33,12 @@ class Cluster(models.Model):
         )
 
     @staticmethod
-    def get_or_create_cluster_by_name(name):
-        return Cluster.objects.get_or_create(name=name)[0]
+    def get_or_create_cluster_by_name(user: User, name):
+        return Cluster.objects.get_or_create(owner=user, name=name)[0]
 
     @staticmethod
-    def get_or_create_cluster_by_id(cluster_id: int):
-        return Cluster.objects.get_or_create(cluster_id=cluster_id)[0]
+    def get_or_create_cluster_by_id(user: User, cluster_id: int):
+        return Cluster.objects.get_or_create(owner=user, cluster_id=cluster_id)[0]
 
     @staticmethod
     def calculate_mean_face_encoding(all_encodings):
