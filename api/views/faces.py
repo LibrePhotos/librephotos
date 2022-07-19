@@ -81,7 +81,8 @@ class FaceLabeledListViewSet(viewsets.ModelViewSet):
         queryset = (
             Face.objects.filter(
                 Q(photo__hidden=False) & Q(photo__owner=self.request.user),
-                Q(person_label_is_inferred=False) | Q(person__name=Person.UNKNOWN_PERSON_NAME),
+                Q(person_label_is_inferred=False)
+                | Q(person__name=Person.UNKNOWN_PERSON_NAME),
             )
             .select_related("person")
             .order_by("id")

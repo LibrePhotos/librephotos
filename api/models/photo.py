@@ -494,13 +494,17 @@ class Photo(models.Model):
         import face_recognition
 
         try:
-            qs_unknown_person = api.models.person.Person.objects.filter(Q(name="unknown") | Q(name=api.models.person.Person.UNKNOWN_PERSON_NAME))
+            qs_unknown_person = api.models.person.Person.objects.filter(
+                Q(name="unknown") | Q(name=api.models.person.Person.UNKNOWN_PERSON_NAME)
+            )
             if qs_unknown_person.count() == 0:
-                unknown_person = api.models.person.get_unknown_person() 
+                unknown_person = api.models.person.get_unknown_person()
             else:
                 unknown_person = qs_unknown_person[0]
-            
-            unknown_cluster: api.models.cluster.Cluster = api.cluster_manager.ClusterManager.get_unknown_cluster()
+
+            unknown_cluster: api.models.cluster.Cluster = (
+                api.cluster_manager.ClusterManager.get_unknown_cluster()
+            )
             image = np.array(PIL.Image.open(self.thumbnail_big.path))
 
             face_locations = []

@@ -307,7 +307,10 @@ class FaceSerializer(serializers.ModelSerializer):
             p.save()
             instance.person = p
             logger.info("created person with name %s" % name)
-        if instance.person.name == "unknown" or instance.person.name == Person.UNKNOWN_PERSON_NAME:
+        if (
+            instance.person.name == "unknown"
+            or instance.person.name == Person.UNKNOWN_PERSON_NAME
+        ):
             instance.person_label_is_inferred = None
             instance.person_label_probability = 0.0
         else:

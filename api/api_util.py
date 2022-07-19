@@ -277,11 +277,18 @@ def get_count_stats(user):
     num_missing_photos = Photo.objects.filter(Q(owner=user) & Q(image_paths=[])).count()
     num_faces = Face.objects.filter(photo__owner=user).count()
     num_unknown_faces = Face.objects.filter(
-        (Q(person__name__exact="unknown") | Q(person__name__exact=Person.UNKNOWN_PERSON_NAME)) & Q(photo__owner=user)
+        (
+            Q(person__name__exact="unknown")
+            | Q(person__name__exact=Person.UNKNOWN_PERSON_NAME)
+        )
+        & Q(photo__owner=user)
     ).count()
     num_labeled_faces = Face.objects.filter(
         Q(person_label_is_inferred=False)
-        & ~(Q(person__name__exact="unknown") | Q(person__name__exact=Person.UNKNOWN_PERSON_NAME))
+        & ~(
+            Q(person__name__exact="unknown")
+            | Q(person__name__exact=Person.UNKNOWN_PERSON_NAME)
+        )
         & Q(photo__owner=user)
         & Q(photo__hidden=False)
     ).count()
