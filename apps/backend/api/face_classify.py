@@ -10,8 +10,8 @@ from django_rq import job
 from sklearn.cluster import DBSCAN
 from sklearn.decomposition import PCA
 from sklearn.neural_network import MLPClassifier
-from api.cluster_manager import ClusterManager
 
+from api.cluster_manager import ClusterManager
 from api.models import Face, LongRunningJob, Person
 from api.models.cluster import Cluster
 from api.models.person import get_unknown_person
@@ -26,6 +26,7 @@ FACE_CLASSIFY_COLUMNS = [
     "cluster",
 ]
 
+
 def cluster_faces(user, inferred=True):
     # for front end cluster visualization
     persons = [p.id for p in Person.objects.filter(faces__photo__owner=user).distinct()]
@@ -33,7 +34,7 @@ def cluster_faces(user, inferred=True):
 
     face_encoding = []
     faces = Face.objects.filter(photo__owner=user)
-    face:Face
+    face: Face
     for face in faces:
         if (not face.person_label_is_inferred) or inferred:
             face_encoding.append(face.get_encoding_array())
@@ -73,7 +74,7 @@ def cluster_all_faces(user, job_id) -> bool:
             job_id=job_id,
             queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
             started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            job_type=LongRunningJob.JOB_CLUSTER_ALL_FACES
+            job_type=LongRunningJob.JOB_CLUSTER_ALL_FACES,
         )
     lrj.result = {"progress": {"current": 0, "target": 1}}
     lrj.save()
@@ -89,11 +90,11 @@ def cluster_all_faces(user, job_id) -> bool:
         lrj.result = {"progress": {"current": target_count, "target": target_count}}
         lrj.save()
         cache.clear()
-        
+
         train_job_id = uuid.uuid4()
         train_faces.delay(user, train_job_id)
         return True
- 
+
     except BaseException as err:
         logger.exception("An error occurred")
         print("[ERR] {}".format(err))
@@ -103,15 +104,16 @@ def cluster_all_faces(user, job_id) -> bool:
         lrj.save()
         return False
 
+
 def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
     """Generate Cluster records for each different clustering of people
     :param user: the current user
     :param lrj: LongRunningJob to update, if needed
     """
     all_clusters: list[Cluster] = []
-    face:Face
+    face: Face
     print("creating clusters")
-    
+
     data = {
         "all": {"encoding": [], "id": []},
     }
@@ -121,7 +123,7 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
 
     # creating DBSCAN object for clustering the encodings with the metric "euclidean"
     clt = DBSCAN(metric="euclidean", min_samples=2)
-    
+
     clt.fit(np.array(data["all"]["encoding"]))
 
     labelIDs = np.unique(clt.labels_)
@@ -138,34 +140,36 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
             face_id = data["all"]["id"][i]
             face = Face.objects.filter(id=face_id).first()
             face_array.append(face)
-        new_clusters: list[Cluster] = ClusterManager.try_add_cluster(labelID, face_array)
-        
+        new_clusters: list[Cluster] = ClusterManager.try_add_cluster(
+            labelID, face_array
+        )
+
         if commit_time < datetime.datetime.now() and lrj != None:
             lrj.result = {"progress": {"current": count, "target": target_count}}
             lrj.save()
             commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
 
         all_clusters.extend(new_clusters)
-    
+
     return target_count
 
 
 def delete_clusters():
-    """Delete all existing Cluster records
-    """
+    """Delete all existing Cluster records"""
     print("[INFO] deleting all clusters")
-    cluster:Cluster
+    cluster: Cluster
     for cluster in Cluster.objects.filter():
         ClusterManager.delete_cluster(cluster)
 
+
 def delete_clustered_people():
-    """Delete all existing Person records of type CLUSTER
-    """
+    """Delete all existing Person records of type CLUSTER"""
     print("[INFO] deleting all clustered people")
     for person in Person.objects.filter(kind=Person.KIND_CLUSTER):
         for face in Face.objects.filter(person=person):
             face.person = get_unknown_person()
         person.delete()
+
 
 @job
 def train_faces(user: User, job_id) -> bool:
@@ -196,21 +200,19 @@ def train_faces(user: User, job_id) -> bool:
             "unknown": {"encoding": [], "id": []},
         }
         # First, sort all faces into known and unknown ones
-        face:Face
+        face: Face
         for face in Face.objects.filter(photo__owner=user).prefetch_related("person"):
             person: Person = face.person
             unknown = (
-                    face.person_label_is_inferred is not False
-                    or person.kind == Person.KIND_CLUSTER
+                face.person_label_is_inferred is not False
+                or person.kind == Person.KIND_CLUSTER
             )
             data_type = "unknown" if unknown else "known"
-            data[data_type]["encoding"].append(
-                face.get_encoding_array() 
-            )
+            data[data_type]["encoding"].append(face.get_encoding_array())
             data[data_type]["id"].append(face.id if unknown else face.person.id)
 
         # Next, pretend all unknown face clusters are known and add their mean encoding. This allows us
-        # to predict the likelihood of other unknown faces belonging to those simulated clusters. For 
+        # to predict the likelihood of other unknown faces belonging to those simulated clusters. For
         # the "Unknown - Other"-type cluster, we can still try to predict the probability that the face
         # can't be classified into another group, i.e. that it should be classified that way
         cluster: Cluster
@@ -227,7 +229,7 @@ def train_faces(user: User, job_id) -> bool:
             lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
             lrj.save()
         else:
-            
+
             # Fit the classifier based on the "known" faces, including the simulated clusters
             logger.debug("Before fitting")
             clf = MLPClassifier(
@@ -235,7 +237,7 @@ def train_faces(user: User, job_id) -> bool:
             ).fit(np.array(data["known"]["encoding"]), np.array(data["known"]["id"]))
             logger.debug("After fitting")
 
-            # Collect the probabilities for each unknown face. The probabilities returned 
+            # Collect the probabilities for each unknown face. The probabilities returned
             # are arrays in the same order as the people IDs in the original training set
             face_encodings_unknown_np = np.array(data["unknown"]["encoding"])
             probs = clf.predict_proba(face_encodings_unknown_np)
@@ -244,13 +246,12 @@ def train_faces(user: User, job_id) -> bool:
             commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
             face_stack = []
             for idx, (face_id, probability_array) in enumerate(
-                    zip(data["unknown"]["id"], probs)
+                zip(data["unknown"]["id"], probs)
             ):
                 face = Face.objects.get(id=face_id)
                 face.person_label_is_inferred = True
                 probability: np.float64
 
-                
                 # Find the probability in the probability array corresponding to the person
                 # that we currently believe the face is, even a simulated "unknown" person
                 for i, target in enumerate(clf.classes_):
@@ -260,9 +261,13 @@ def train_faces(user: User, job_id) -> bool:
                 face.person_label_probability = probability
                 face_stack.append(face)
                 if commit_time < datetime.datetime.now():
-                    lrj.result = {"progress": {"current": idx + 1, "target": target_count}}
+                    lrj.result = {
+                        "progress": {"current": idx + 1, "target": target_count}
+                    }
                     lrj.save()
-                    commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
+                    commit_time = datetime.datetime.now() + datetime.timedelta(
+                        seconds=5
+                    )
                 if len(face_stack) > 200:
                     bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
                     face_stack = []

@@ -62,7 +62,9 @@ class Person(models.Model):
 
 
 def get_unknown_person():
-    unknown_person: Person = Person.objects.get_or_create(name=Person.UNKNOWN_PERSON_NAME)[0]
+    unknown_person: Person = Person.objects.get_or_create(
+        name=Person.UNKNOWN_PERSON_NAME
+    )[0]
     if unknown_person.kind != Person.KIND_UNKNOWN:
         unknown_person.kind = Person.KIND_UNKNOWN
         unknown_person.save()

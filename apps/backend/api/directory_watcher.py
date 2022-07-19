@@ -2,12 +2,11 @@ import datetime
 import hashlib
 import os
 import stat
-from multiprocessing import Pool
 import uuid
+from multiprocessing import Pool
 
 import magic
 import pytz
-from api.face_classify import cluster_all_faces
 import pyvips
 from constance import config as site_config
 from django import db
@@ -19,12 +18,13 @@ import api.models.album_thing
 import api.util as util
 import ownphotos.settings
 from api.batch_jobs import create_batch_job
+from api.face_classify import cluster_all_faces
 from api.models import Face, LongRunningJob, Photo, photo
 from api.places365.places365 import place365_instance
 from api.thumbnails import isRawPicture
 
-
 AUTO_FACE_RETRAIN_THRESHOLD = 0.1
+
 
 def is_video(image_path):
     mime = magic.Magic(mime=True)
