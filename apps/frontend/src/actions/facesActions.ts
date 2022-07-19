@@ -11,7 +11,7 @@ import {
   TrainFacesResponse,
 } from "./facesActions.types";
 
-enum FacesActions {
+export enum FacesActions {
   SET_FACES_PERSON_LABEL = "set-faces-person-label",
   SET_FACES_PERSON_LABEL_FULFILLED = "set-faces-person-label-fulfilled",
   DELETE_FACES = "delete-faces",

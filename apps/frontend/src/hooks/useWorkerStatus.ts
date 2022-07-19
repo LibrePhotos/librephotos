@@ -1,9 +1,9 @@
 import { showNotification } from "@mantine/notifications";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { fetchAlbumDateList } from "../actions/albumsActions";
-import { fetchInferredFacesList, fetchLabeledFacesList } from "../actions/facesActions";
+import { FacesActions, fetchInferredFacesList, fetchLabeledFacesList } from "../actions/facesActions";
 import { fetchPeople } from "../actions/peopleActions";
 import { useWorkerQuery } from "../api_client/api";
 import { PhotosetType } from "../reducers/photosReducer";
@@ -18,11 +18,13 @@ export function useWorkerStatus(): {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const workerRunningJob = useAppSelector(state => state.worker.job_detail);
+  const [hadPreviousJob, setHadPreviousJob] = useState(false);
+
   const user = useAppSelector(selectUserSelfDetails);
   const { data: currentData } = useWorkerQuery(null, { pollingInterval: 2000 });
 
   useEffect(() => {
-    if (workerRunningJob !== undefined && currentData?.job_detail === null) {
+    if (hadPreviousJob && workerRunningJob !== undefined && currentData?.job_detail === null) {
       showNotification({
         message: t("toasts.jobfinished", {
           job: workerRunningJob?.job_type_str,
@@ -46,15 +48,20 @@ export function useWorkerStatus(): {
     }
 
     if (currentData?.job_detail) {
-      dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
+      dispatch({ type: FacesActions.SET_WORKER_AVAILABILITY, payload: false });
+      dispatch({
+        type: FacesActions.SET_WORKER_RUNNING_JOB,
+        payload: currentData?.job_detail,
+      });
     } else {
-      dispatch({ type: "SET_WORKER_AVAILABILITY", payload: true });
+      dispatch({ type: FacesActions.SET_WORKER_AVAILABILITY, payload: true });
     }
-    dispatch({
-      type: "SET_WORKER_RUNNING_JOB",
-      payload: currentData?.job_detail,
-    });
-  }, [currentData, dispatch, t, user.id, user.username, workerRunningJob]);
+  }, [currentData, dispatch, hadPreviousJob, t, user.id, user.username, workerRunningJob]);
 
+  useEffect(() => {
+    if (workerRunningJob) {
+      setHadPreviousJob(true);
+    }
+  }, [workerRunningJob]);
   return { workerRunningJob, currentData };
 }
