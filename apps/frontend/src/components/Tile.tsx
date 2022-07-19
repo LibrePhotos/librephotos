@@ -1,8 +1,9 @@
-import { Image } from "@mantine/core";
-import React, {CSSProperties} from "react";
-import type {CSSProperties, MouseEventHandler} from "react";
-import { serverAddress } from "../api_client/apiClient";
+import type { CSSProperties, MouseEventHandler } from "react";
+import React from "react";
 
+import { Image } from "@mantine/core";
+
+import { serverAddress } from "../api_client/apiClient";
 
 type DefaultProps = {
   style: CSSProperties;
