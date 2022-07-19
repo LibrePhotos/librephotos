@@ -217,7 +217,7 @@ def train_faces(user: User, job_id) -> bool:
         # the "Unknown - Other"-type cluster, we can still try to predict the probability that the face
         # can't be classified into another group, i.e. that it should be classified that way
         cluster: Cluster
-        for cluster in Cluster.objects.all():
+        for cluster in Cluster.objects.filter(owner=user):
             if cluster.person.kind == Person.KIND_CLUSTER:
                 data["known"]["encoding"].append(cluster.get_mean_encoding_array())
                 data["known"]["id"].append(cluster.person.id)
