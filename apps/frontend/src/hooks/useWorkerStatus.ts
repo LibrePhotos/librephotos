@@ -9,7 +9,7 @@ import { useWorkerQuery } from "../api_client/api";
 import { PhotosetType } from "../reducers/photosReducer";
 import { useAppDispatch, useAppSelector } from "../store/store";
 import { selectUserSelfDetails } from "../store/user/userSelectors";
-import { IJobDetailSchema, IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
+import type { IJobDetailSchema, IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
 
 export function useWorkerStatus(): {
   currentData: IWorkerAvailabilityResponse | undefined;

@@ -1,7 +1,8 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 import { api } from "../../api_client/api";
-import { IWorkerAvailabilityResponse, WorkerAvailabilityResponse } from "./worker.zod";
+import type { IWorkerAvailabilityResponse } from "./worker.zod";
+import { WorkerAvailabilityResponse } from "./worker.zod";
 
 const initialState: IWorkerAvailabilityResponse = {
   status: true,

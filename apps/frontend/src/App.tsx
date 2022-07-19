@@ -1,4 +1,5 @@
-import { AppShell, ColorScheme, ColorSchemeProvider, MantineProvider } from "@mantine/core";
+import type { ColorScheme } from "@mantine/core";
+import { AppShell, ColorSchemeProvider, MantineProvider } from "@mantine/core";
 import { NotificationsProvider } from "@mantine/notifications";
 import React, { useState } from "react";
 import { Cookies, CookiesProvider } from "react-cookie";

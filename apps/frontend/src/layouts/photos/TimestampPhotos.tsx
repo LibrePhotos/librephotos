@@ -4,7 +4,8 @@ import { Photo } from "tabler-icons-react";
 
 import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { PhotosState, PhotosetType } from "../../reducers/photosReducer";
+import type { PhotosState } from "../../reducers/photosReducer";
+import { PhotosetType } from "../../reducers/photosReducer";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 interface IFetchedGroup {

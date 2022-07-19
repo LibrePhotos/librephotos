@@ -1,23 +1,15 @@
 import { showNotification } from "@mantine/notifications";
 import _ from "lodash";
-import { Dispatch } from "redux";
+import type { Dispatch } from "redux";
 import { z } from "zod";
 
 import { Server } from "../api_client/apiClient";
 import i18n from "../i18n";
 import { PhotosetType } from "../reducers/photosReducer";
-import { AppDispatch } from "../store/store";
+import type { AppDispatch } from "../store/store";
 import { adjustDateFormat, getPhotosFlatFromGroupedByDate, getPhotosFlatFromGroupedByUser } from "../util/util";
-import {
-  DatePhotosGroup,
-  DatePhotosGroupSchema,
-  Photo,
-  PhotoSchema,
-  PigPhoto,
-  PigPhotoSchema,
-  SharedFromMePhotoSchema,
-  SimpleUser,
-} from "./photosActions.types";
+import type { DatePhotosGroup, Photo, PigPhoto, SimpleUser } from "./photosActions.types";
+import { DatePhotosGroupSchema, PhotoSchema, PigPhotoSchema, SharedFromMePhotoSchema } from "./photosActions.types";
 
 export type UserPhotosGroup = {
   userId: number;

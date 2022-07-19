@@ -1,7 +1,7 @@
 import { DateTime } from "luxon";
 
-import { UserPhotosGroup } from "../actions/photosActions";
-import { DatePhotosGroup, IncompleteDatePhotosGroup, PigPhoto } from "../actions/photosActions.types";
+import type { UserPhotosGroup } from "../actions/photosActions";
+import type { DatePhotosGroup, IncompleteDatePhotosGroup, PigPhoto } from "../actions/photosActions.types";
 import i18n from "../i18n";
 
 export const copyToClipboard = (str: string) => {

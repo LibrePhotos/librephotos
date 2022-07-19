@@ -7,7 +7,7 @@ module.exports = {
   trailingComma: "es5",
   arrowParens: "avoid",
   plugins: [require.resolve("@trivago/prettier-plugin-sort-imports")],
-  importOrder: ["wdyr", "react", "<THIRD_PARTY_MODULES>", "^[./]"],
+  importOrder: ["wdyr", "<THIRD_PARTY_MODULES>", "^[./]"],
   importOrderSeparation: true,
   importOrderSortSpecifiers: true,
   overrides: [

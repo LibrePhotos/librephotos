@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
-import { IJobDetailSchema } from "../../store/worker/worker.zod";
+import type { IJobDetailSchema } from "../../store/worker/worker.zod";
 
 interface IWorkerIndicator {
   workerRunningJob: IJobDetailSchema;

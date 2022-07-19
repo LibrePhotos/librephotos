@@ -1,5 +1,6 @@
 import { Button, Divider, Group, Loader, Menu, Text, Title } from "@mantine/core";
-import React, { ReactElement, useState } from "react";
+import type { ReactElement } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
 import { Calendar, ChevronDown, Clock, EyeOff, Globe, Star } from "tabler-icons-react";
@@ -19,7 +20,7 @@ type Props = {
   date: string;
 };
 
-export const DefaultHeader = (props: Props) => {
+export function DefaultHeader(props: Props) {
   const [modalOpen, setModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState({});
 
@@ -154,4 +155,4 @@ export const DefaultHeader = (props: Props) => {
       </Group>
     </Group>
   );
-};
+}

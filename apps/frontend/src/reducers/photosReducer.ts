@@ -1,6 +1,7 @@
-import { AnyAction } from "redux";
+import type { AnyAction } from "redux";
 
 import { FETCH_USER_ALBUM_FULFILLED, FETCH_USER_ALBUM_REJECTED } from "../actions/albumsActions";
+import type { UserPhotosGroup } from "../actions/photosActions";
 import {
   FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED,
   FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED,
@@ -15,9 +16,8 @@ import {
   SET_PHOTOS_FAVORITE_FULFILLED,
   SET_PHOTOS_HIDDEN_FULFILLED,
   SET_PHOTOS_PUBLIC_FULFILLED,
-  UserPhotosGroup,
 } from "../actions/photosActions";
-import { IncompleteDatePhotosGroup, Photo, PigPhoto } from "../actions/photosActions.types";
+import type { IncompleteDatePhotosGroup, Photo, PigPhoto } from "../actions/photosActions.types";
 import { SEARCH_PHOTOS_FULFILLED, SEARCH_PHOTOS_REJECTED } from "../actions/searchActions";
 import { addTempElementsToFlatList, getPhotosFlatFromGroupedByDate } from "../util/util";
 

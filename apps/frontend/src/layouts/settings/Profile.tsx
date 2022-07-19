@@ -1,7 +1,6 @@
 import {
   ActionIcon,
   Button,
-  Center,
   Dialog,
   Group,
   Select,
@@ -14,7 +13,8 @@ import {
 } from "@mantine/core";
 import React, { useEffect, useRef, useState } from "react";
 import AvatarEditor from "react-avatar-editor";
-import Dropzone, { DropzoneRef } from "react-dropzone";
+import type { DropzoneRef } from "react-dropzone";
+import Dropzone from "react-dropzone";
 import { Trans, useTranslation } from "react-i18next";
 import { MoonStars, Photo, Sun, Upload, User } from "tabler-icons-react";
 
@@ -23,7 +23,7 @@ import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
-export const Profile = () => {
+export function Profile() {
   const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
   const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
   const [userSelfDetails, setUserSelfDetails] = useState({} as any);
@@ -86,10 +86,10 @@ export const Profile = () => {
           >
             <Dropzone
               noClick
-              //@ts-ignore
+              // @ts-ignore
               style={{ width: 150, height: 150, borderRadius: 75 }}
               ref={node => {
-                //@ts-ignore
+                // @ts-ignore
                 dropzoneRef = node;
               }}
               onDrop={(accepted, rejected) => {
@@ -120,7 +120,7 @@ export const Profile = () => {
               <Button
                 size="sm"
                 onClick={() => {
-                  //@ts-ignore
+                  // @ts-ignore
                   dropzoneRef.open();
                 }}
               >
@@ -184,7 +184,7 @@ export const Profile = () => {
             <Select
               label={t("settings.language")}
               placeholder={t("settings.language")}
-              //@ts-ignore
+              // @ts-ignore
               onChange={value => i18n.changeLanguage(value)}
               searchable
               maxDropdownHeight={280}
@@ -286,7 +286,7 @@ export const Profile = () => {
             label={t("settings.scandirectory")}
             disabled
             placeholder={userSelfDetails.scan_directory}
-          ></TextInput>
+          />
         ) : null}
         <ActionIcon
           variant="outline"
@@ -334,4 +334,4 @@ export const Profile = () => {
       </Dialog>
     </Stack>
   );
-};
+}
