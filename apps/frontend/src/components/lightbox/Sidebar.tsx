@@ -1,9 +1,9 @@
 import { ActionIcon, Anchor, Avatar, Badge, Box, Button, Group, Stack, Text, Textarea, Title } from "@mantine/core";
-import { push } from "connected-react-router";
 import * as moment from "moment";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-virtualized/styles.css";
+import { push } from "redux-first-history";
 // only needs to be imported once
 import { Edit, File, Map2, Note, Photo, Tags, Users, X } from "tabler-icons-react";
 

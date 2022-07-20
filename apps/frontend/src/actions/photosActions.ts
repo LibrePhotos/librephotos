@@ -1,23 +1,15 @@
 import { showNotification } from "@mantine/notifications";
 import _ from "lodash";
-import { Dispatch } from "redux";
+import type { Dispatch } from "redux";
 import { z } from "zod";
 
 import { Server } from "../api_client/apiClient";
 import i18n from "../i18n";
 import { PhotosetType } from "../reducers/photosReducer";
-import { AppDispatch } from "../store/store";
+import type { AppDispatch } from "../store/store";
 import { adjustDateFormat, getPhotosFlatFromGroupedByDate, getPhotosFlatFromGroupedByUser } from "../util/util";
-import {
-  DatePhotosGroup,
-  DatePhotosGroupSchema,
-  Photo,
-  PhotoSchema,
-  PigPhoto,
-  PigPhotoSchema,
-  SharedFromMePhotoSchema,
-  SimpleUser,
-} from "./photosActions.types";
+import type { DatePhotosGroup, Photo, PigPhoto, SimpleUser } from "./photosActions.types";
+import { DatePhotosGroupSchema, PhotoSchema, PigPhotoSchema, SharedFromMePhotoSchema } from "./photosActions.types";
 
 export type UserPhotosGroup = {
   userId: number;
@@ -45,8 +37,8 @@ export function uploadPhotos(form_data: any, dispatch: Dispatch<any>) {
     },
   }).then((response: any) => {
     showNotification({
-      message: i18n.t("toasts.uploadsuccess"),
-      title: i18n.t("toasts.sharephototitle"),
+      message: i18n.t<string>("toasts.uploadsuccess"),
+      title: i18n.t<string>("toasts.sharephototitle"),
       color: "teal",
     });
   });
@@ -75,6 +67,7 @@ export function downloadPhotos(image_hashes: string[]) {
 }
 
 export const SET_PHOTOS_SHARED_FULFILLED = "SET_PHOTOS_SHARED_FULFILLED";
+
 export function setPhotosShared(image_hashes: string[], val_shared: boolean, target_user: SimpleUser) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "SET_PHOTOS_SHARED" });
@@ -84,17 +77,21 @@ export function setPhotosShared(image_hashes: string[], val_shared: boolean, tar
       target_user_id: target_user.id,
     })
       .then(response => {
-        let notificationMessage = i18n.t("toasts.unsharephoto", {
+        let notificationMessage = i18n.t<string>("toasts.unsharephoto", {
           username: target_user.username,
           numberOfPhotos: image_hashes.length,
         });
         if (val_shared) {
-          notificationMessage = i18n.t("toasts.sharephoto", {
+          notificationMessage = i18n.t<string>("toasts.sharephoto", {
             username: target_user.username,
             numberOfPhotos: image_hashes.length,
           });
         }
-        showNotification({ message: notificationMessage, title: i18n.t("toasts.sharephototitle"), color: "teal" });
+        showNotification({
+          message: notificationMessage,
+          title: i18n.t<string>("toasts.sharephototitle"),
+          color: "teal",
+        });
 
         if (image_hashes.length === 1) {
           dispatch(fetchPhotoDetail(image_hashes[0]));
@@ -138,6 +135,7 @@ export function fetchRecentlyAddedPhotos(dispatch: AppDispatch) {
 const _PigPhotoListResponseSchema = z.object({
   results: PigPhotoSchema.array(),
 });
+
 export function fetchPhotosSharedToMe() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: FETCH_PHOTOSET });
@@ -166,6 +164,7 @@ export function fetchPhotosSharedToMe() {
 const _PhotosSharedFromMeResponseSchema = z.object({
   results: SharedFromMePhotoSchema.array(),
 });
+
 export function fetchPhotosSharedFromMe() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: FETCH_PHOTOSET });
@@ -178,8 +177,6 @@ export function fetchPhotosSharedFromMe() {
             photos: el[1].map(item => item.photo),
           })
         );
-
-        console.log(sharedPhotosGroupedBySharedTo);
 
         dispatch({
           type: FETCH_PHOTOSET_FULFILLED,
@@ -203,6 +200,7 @@ const _PhotosUpdatedResponseSchema = z.object({
   not_updated: PhotoSchema.array(),
 });
 export const SET_PHOTOS_PUBLIC_FULFILLED = "SET_PHOTOS_PUBLIC_FULFILLED";
+
 export function setPhotosPublic(image_hashes: string[], val_public: boolean) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "SET_PHOTOS_PUBLIC" });
@@ -221,17 +219,17 @@ export function setPhotosPublic(image_hashes: string[], val_public: boolean) {
             updatedPhotos: updatedPhotos,
           },
         });
-        let notificationMessage = i18n.t("toasts.removepublicphoto", {
+        let notificationMessage = i18n.t<string>("toasts.removepublicphoto", {
           numberOfPhotos: image_hashes.length,
         });
         if (val_public) {
-          notificationMessage = i18n.t("toasts.addpublicphoto", {
+          notificationMessage = i18n.t<string>("toasts.addpublicphoto", {
             numberOfPhotos: image_hashes.length,
           });
         }
         showNotification({
           message: notificationMessage,
-          title: i18n.t("toasts.setpublicphotostitle"),
+          title: i18n.t<string>("toasts.setpublicphotostitle"),
           color: "teal",
         });
 
@@ -248,6 +246,7 @@ export function setPhotosPublic(image_hashes: string[], val_public: boolean) {
 export const SET_PHOTOS_FAVORITE = "SET_PHOTOS_FAVORITE";
 export const SET_PHOTOS_FAVORITE_FULFILLED = "SET_PHOTOS_FAVORITE_FULFILLED";
 export const SET_PHOTOS_FAVORITE_REJECTED = "SET_PHOTOS_FAVORITE_REJECTED";
+
 export function setPhotosFavorite(image_hashes: string[], favorite: boolean) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: SET_PHOTOS_FAVORITE });
@@ -266,17 +265,17 @@ export function setPhotosFavorite(image_hashes: string[], favorite: boolean) {
             updatedPhotos: updatedPhotos,
           },
         });
-        let notificationMessage = i18n.t("toasts.unfavoritephoto", {
+        let notificationMessage = i18n.t<string>("toasts.unfavoritephoto", {
           numberOfPhotos: image_hashes.length,
         });
         if (favorite) {
-          notificationMessage = i18n.t("toasts.favoritephoto", {
+          notificationMessage = i18n.t<string>("toasts.favoritephoto", {
             numberOfPhotos: image_hashes.length,
           });
         }
         showNotification({
           message: notificationMessage,
-          title: i18n.t("toasts.setfavoritestitle"),
+          title: i18n.t<string>("toasts.setfavoritestitle"),
           color: "teal",
         });
       })
@@ -289,6 +288,7 @@ export function setPhotosFavorite(image_hashes: string[], favorite: boolean) {
 export const PHOTOS_FINAL_DELETED = "PHOTOS_FINAL_DELETED";
 export const PHOTOS_FINAL_DELETED_FULFILLED = "PHOTOS_FINAL_DELETED_FULFILLED";
 export const PHOTOS_FINAL_DELETED_REJECTED = "PHOTOS_FINAL_DELETED_REJECTED";
+
 export function finalPhotosDeleted(image_hashes: string[]) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: PHOTOS_FINAL_DELETED });
@@ -307,12 +307,12 @@ export function finalPhotosDeleted(image_hashes: string[]) {
             updatedPhotos: updatedPhotos,
           },
         });
-        const notificationMessage = i18n.t("toasts.finaldeletephoto", {
+        const notificationMessage = i18n.t<string>("toasts.finaldeletephoto", {
           numberOfPhotos: image_hashes.length,
         });
         showNotification({
           message: notificationMessage,
-          title: i18n.t("toasts.finaldeletephototitle"),
+          title: i18n.t<string>("toasts.finaldeletephototitle"),
           color: "teal",
         });
       })
@@ -325,6 +325,7 @@ export function finalPhotosDeleted(image_hashes: string[]) {
 export const SET_PHOTOS_DELETED = "SET_PHOTOS_DELETED";
 export const SET_PHOTOS_DELETED_FULFILLED = "SET_PHOTOS_DELETED_FULFILLED";
 export const SET_PHOTOS_DELETED_REJECTED = "SET_PHOTOS_DELETED_REJECTED";
+
 export function setPhotosDeleted(image_hashes: string[], deleted: boolean) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: SET_PHOTOS_DELETED });
@@ -343,17 +344,17 @@ export function setPhotosDeleted(image_hashes: string[], deleted: boolean) {
             updatedPhotos: updatedPhotos,
           },
         });
-        let notificationMessage = i18n.t("toasts.recoverphoto", {
+        let notificationMessage = i18n.t<string>("toasts.recoverphoto", {
           numberOfPhotos: image_hashes.length,
         });
         if (deleted) {
-          notificationMessage = i18n.t("toasts.deletephoto", {
+          notificationMessage = i18n.t<string>("toasts.deletephoto", {
             numberOfPhotos: image_hashes.length,
           });
         }
         showNotification({
           message: notificationMessage,
-          title: i18n.t("toasts.setdeletetitle"),
+          title: i18n.t<string>("toasts.setdeletetitle"),
           color: "teal",
         });
       })
@@ -364,6 +365,7 @@ export function setPhotosDeleted(image_hashes: string[], deleted: boolean) {
 }
 
 export const SET_PHOTOS_HIDDEN_FULFILLED = "SET_PHOTOS_HIDDEN_FULFILLED";
+
 export function setPhotosHidden(image_hashes: string[], hidden: boolean) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "SET_PHOTOS_HIDDEN" });
@@ -382,17 +384,17 @@ export function setPhotosHidden(image_hashes: string[], hidden: boolean) {
             updatedPhotos: updatedPhotos,
           },
         });
-        let notificationMessage = i18n.t("toasts.unhidephoto", {
+        let notificationMessage = i18n.t<string>("toasts.unhidephoto", {
           numberOfPhotos: image_hashes.length,
         });
         if (hidden) {
-          notificationMessage = i18n.t("toasts.hidephoto", {
+          notificationMessage = i18n.t<string>("toasts.hidephoto", {
             numberOfPhotos: image_hashes.length,
           });
         }
         showNotification({
           message: notificationMessage,
-          title: i18n.t("toasts.sethidetitle"),
+          title: i18n.t<string>("toasts.sethidetitle"),
           color: "teal",
         });
         if (image_hashes.length === 1) {
@@ -414,8 +416,8 @@ export function scanPhotos() {
       .then(response => {
         const jobResponse = JobResponseSchema.parse(response.data);
         showNotification({
-          message: i18n.t("toasts.scanphotos"),
-          title: i18n.t("toasts.scanphotostitle"),
+          message: i18n.t<string>("toasts.scanphotos"),
+          title: i18n.t<string>("toasts.scanphotostitle"),
           color: "teal",
         });
         dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
@@ -435,8 +437,8 @@ export function scanUploadedPhotos() {
       .then(response => {
         const jobResponse = JobResponseSchema.parse(response.data);
         showNotification({
-          message: i18n.t("toasts.scanuploadedphotos"),
-          title: i18n.t("toasts.scanuploadedphotostitle"),
+          message: i18n.t<string>("toasts.scanuploadedphotos"),
+          title: i18n.t<string>("toasts.scanuploadedphotostitle"),
           color: "teal",
         });
         dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
@@ -456,8 +458,8 @@ export function scanAllPhotos() {
       .then(response => {
         const jobResponse = JobResponseSchema.parse(response.data);
         showNotification({
-          message: i18n.t("toasts.fullscanphotos"),
-          title: i18n.t("toasts.fullscanphotostitle"),
+          message: i18n.t<string>("toasts.fullscanphotos"),
+          title: i18n.t<string>("toasts.fullscanphotostitle"),
           color: "teal",
         });
         dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
@@ -477,8 +479,8 @@ export function scanNextcloudPhotos() {
       .then(response => {
         const jobResponse = JobResponseSchema.parse(response.data);
         showNotification({
-          message: i18n.t("toasts.scannextcloudphotos"),
-          title: i18n.t("toasts.scannextcloudphotostitle"),
+          message: i18n.t<string>("toasts.scannextcloudphotos"),
+          title: i18n.t<string>("toasts.scannextcloudphotostitle"),
           color: "teal",
         });
         dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
@@ -526,7 +528,7 @@ export function fetchPhotoDetail(image_hash: string) {
         });
       })
       .catch(err => {
-        console.log(err);
+        console.error(err);
         dispatch({ type: "FETCH_PHOTO_DETAIL_REJECTED", payload: err });
       });
   };
@@ -541,6 +543,7 @@ const _PaginatedPigPhotosSchema = z.object({
 export const FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED = "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED";
 export const FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED = "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED";
 export const FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED = "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED";
+
 export function fetchNoTimestampPhotoPaginated(dispatch: AppDispatch, page: number) {
   dispatch({ type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED });
   Server.get(`photos/notimestamp/?page=${page}`, { timeout: 100000 })
@@ -558,7 +561,7 @@ export function fetchNoTimestampPhotoPaginated(dispatch: AppDispatch, page: numb
       });
     })
     .catch(err => {
-      console.log(err);
+      console.error(err);
       dispatch({
         type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED,
         payload: err,
@@ -571,13 +574,12 @@ export function generatePhotoIm2txtCaption(image_hash: string) {
     dispatch({ type: "GENERATE_PHOTO_CAPTION" });
     Server.post("photosedit/generateim2txt", { image_hash: image_hash })
       .then(response => {
-        console.log(response);
         dispatch({ type: "GENERATE_PHOTO_CAPTION_FULFILLED" });
         dispatch(fetchPhotoDetail(image_hash));
       })
       .catch(error => {
         dispatch({ type: "GENERATE_PHOTO_CAPTION_REJECTED" });
-        console.log(error);
+        console.error(error);
       });
   };
 }
@@ -589,14 +591,14 @@ export function editPhoto(image_hash: string, photo_details: any) {
       .then(response => {
         dispatch({ type: "EDIT_PHOTO_FULFILLED" });
         showNotification({
-          message: i18n.t("toasts.editphoto"),
-          title: i18n.t("toasts.editphototitle"),
+          message: i18n.t<string>("toasts.editphoto"),
+          title: i18n.t<string>("toasts.editphototitle"),
           color: "teal",
         });
       })
       .catch(error => {
         dispatch({ type: "EDIT_PHOTO_REJECTED" });
-        console.log(error);
+        console.error(error);
       });
   };
 }

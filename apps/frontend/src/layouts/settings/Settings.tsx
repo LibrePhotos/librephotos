@@ -28,7 +28,6 @@ export const Settings = () => {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
   const { t } = useTranslation();
-  console.log(userSelfDetails);
 
   // open update dialog, when user was edited
   useEffect(() => {

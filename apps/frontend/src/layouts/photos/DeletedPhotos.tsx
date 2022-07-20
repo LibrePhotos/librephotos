@@ -37,7 +37,6 @@ export function DeletedPhotos() {
   }, [dispatch]); // Only run on first render
 
   const getAlbums = (visibleGroups: any) => {
-    console.log("visibleGroups", visibleGroups);
     visibleGroups.forEach((group: any) => {
       const visibleImages = group.items;
       if (visibleImages.filter((i: any) => i.isTemp && i.isTemp != undefined).length > 0) {

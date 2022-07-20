@@ -1,9 +1,9 @@
-import { AppShell, ColorScheme, ColorSchemeProvider, MantineProvider } from "@mantine/core";
+import type { ColorScheme } from "@mantine/core";
+import { AppShell, ColorSchemeProvider, MantineProvider } from "@mantine/core";
 import { NotificationsProvider } from "@mantine/notifications";
-import { ConnectedRouter } from "connected-react-router";
 import React, { useState } from "react";
-import { Cookies } from "react-cookie";
-import { Route, Switch } from "react-router-dom";
+import { Cookies, CookiesProvider } from "react-cookie";
+import { Route, Routes, useLocation } from "react-router-dom";
 import "semantic-ui-css/semantic.min.css";
 
 import "./App.css";
@@ -13,10 +13,9 @@ import { SideMenuNarrowPublic } from "./components/menubars/SideMenuNarrowPublic
 import { TopMenu } from "./components/menubars/TopMenu";
 import { TopMenuPublic } from "./components/menubars/TopMenuPublic";
 import { CountStats } from "./components/statistics";
-import Login from "./containers/login";
-import appHistory from "./history";
+import { Login } from "./containers/login";
 import "./i18n";
-import { PrivateRoute } from "./layouts/PrivateRoute";
+import { ProtectedRoutes } from "./layouts/PrivateRoute";
 import { SearchView } from "./layouts/SearchView";
 import { AlbumAuto } from "./layouts/albums/AlbumAuto";
 import { AlbumAutoGalleryView } from "./layouts/albums/AlbumAutoGalleryView";
@@ -48,122 +47,94 @@ import { Profile } from "./layouts/settings/Profile";
 import { Settings } from "./layouts/settings/Settings";
 import { SharedFromMe } from "./layouts/sharing/SharedFromMe";
 import { SharedToMe } from "./layouts/sharing/SharedToMe";
-import { useAppDispatch, useAppSelector } from "./store/store";
+import { selectIsAuthenticated } from "./store/auth/authSelectors";
+import { useAppSelector } from "./store/store";
 
 const noMenubarPaths = ["/signup", "/login"];
 
-function App() {
+export function App() {
   const cookies = new Cookies();
+  const showSidebar = useAppSelector(store => store.ui.showSidebar);
+  const isAuth = useAppSelector(selectIsAuthenticated);
   const [colorScheme, setColorScheme] = useState<ColorScheme>(
     cookies.get("mantine-color-scheme") ? cookies.get("mantine-color-scheme") : "light"
   );
-  const toggleColorScheme = value => {
+
+  function toggleColorScheme(value) {
     const nextColorScheme = value || (colorScheme === "dark" ? "light" : "dark");
     cookies.set("mantine-color-scheme", nextColorScheme);
     setColorScheme(nextColorScheme);
-  };
-  const showSidebar = useAppSelector(store => store.ui.showSidebar);
-  const location = useAppSelector(store => store.router.location);
-  const auth = useAppSelector(store => store.auth);
-  //@ts-ignore
-  const showMenubar = location.pathname && !noMenubarPaths.includes(location.pathname);
+  }
+
+  const { pathname } = useLocation();
+
+  // @ts-ignore
+  const showMenubar = pathname && !noMenubarPaths.includes(pathname);
 
   return (
-    <div>
-      <ConnectedRouter history={appHistory}>
-        <ColorSchemeProvider colorScheme={colorScheme} toggleColorScheme={toggleColorScheme}>
-          <MantineProvider theme={{ colorScheme }} withGlobalStyles withNormalizeCSS>
-            <NotificationsProvider autoClose={3000} zIndex={1001}>
-              <AppShell
-                fixed
-                padding={5}
-                navbar={
-                  showMenubar && showSidebar ? auth.access ? <SideMenuNarrow /> : <SideMenuNarrowPublic /> : <div />
-                }
-                header={showMenubar ? auth.access ? <TopMenu /> : <TopMenuPublic /> : <div />}
-                footer={<FooterMenu />}
-                styles={theme => ({
-                  main: { backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0] },
-                })}
-              >
-                <Switch>
-                  <PrivateRoute path="/" component={TimestampPhotos} exact />
-
-                  <Route path="/login" component={Login} />
-
-                  <Route path="/signup" component={SignupPage} />
-
-                  <Route path="/public/:username" component={props => <UserPublicPage {...props} />} />
-
-                  <Route path="/users" component={PublicUserList} />
-
-                  <Route path="/user/:username" component={props => <UserPublicPage {...props} />} />
-
-                  <PrivateRoute path="/things" component={AlbumThing} />
-
-                  <PrivateRoute path="/recent" component={RecentlyAddedPhotos} />
-
-                  <PrivateRoute path="/favorites" component={FavoritePhotos} />
-
-                  <PrivateRoute path="/deleted" component={DeletedPhotos} />
-
-                  <PrivateRoute path="/hidden" component={HiddenPhotos} />
-
-                  <PrivateRoute path="/notimestamp" component={NoTimestampPhotosView} />
-
-                  <PrivateRoute path="/useralbums" component={AlbumUser} />
-
-                  <PrivateRoute path="/places" component={AlbumPlace} />
-
-                  <PrivateRoute path="/people" component={AlbumPeople} />
-
-                  <PrivateRoute path="/events" component={AlbumAuto} />
-
-                  <PrivateRoute path="/statistics" component={Statistics} />
-
-                  <PrivateRoute path="/settings" component={Settings} />
-
-                  <PrivateRoute path="/profile" component={Profile} />
-
-                  <PrivateRoute path="/library" component={Library} />
-
-                  <PrivateRoute path="/faces" component={FaceDashboard} />
-
-                  <PrivateRoute path="/search" component={SearchView} />
-
-                  <PrivateRoute path="/person/:albumID" component={props => <AlbumPersonGallery {...props} />} />
-
-                  <PrivateRoute path="/place/:albumID" component={AlbumPlaceGallery} />
-
-                  <PrivateRoute path="/thing/:albumID" component={AlbumThingGallery} />
-
-                  <PrivateRoute path="/event/:albumID" component={AlbumAutoGalleryView} />
-
-                  <PrivateRoute path="/explorer" component={Explorer} />
-                  <PrivateRoute path="/albumviewer" component={AlbumViewer} />
-
-                  <PrivateRoute path="/useralbum/:albumID" component={AlbumUserGallery} />
-
-                  <PrivateRoute path="/shared/tome/:which" component={SharedToMe} />
-                  <PrivateRoute path="/shared/fromme/:which" component={SharedFromMe} />
-
-                  <PrivateRoute path="/admin" component={AdminPage} />
-
-                  <PrivateRoute path="/map" component={PhotoMap} />
-                  <PrivateRoute path="/placetree" component={LocationTree} />
-                  <PrivateRoute path="/wordclouds" component={WordClouds} />
-                  <PrivateRoute path="/timeline" component={Timeline} />
-                  <PrivateRoute path="/socialgraph" component={Graph} />
-                  <PrivateRoute path="/facescatter" component={FaceScatter} />
-                  <PrivateRoute path="/countstats" component={CountStats} />
-                </Switch>
-              </AppShell>
-            </NotificationsProvider>
-          </MantineProvider>
-        </ColorSchemeProvider>
-      </ConnectedRouter>
-    </div>
+    <CookiesProvider>
+      <ColorSchemeProvider colorScheme={colorScheme} toggleColorScheme={toggleColorScheme}>
+        <MantineProvider theme={{ colorScheme }} withGlobalStyles withNormalizeCSS>
+          <NotificationsProvider autoClose={3000} zIndex={1001}>
+            <AppShell
+              fixed
+              padding={5}
+              navbar={showMenubar && showSidebar ? isAuth ? <SideMenuNarrow /> : <SideMenuNarrowPublic /> : <div />}
+              header={showMenubar ? isAuth ? <TopMenu /> : <TopMenuPublic /> : <div />}
+              footer={<FooterMenu />}
+              styles={theme => ({
+                main: {
+                  backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0],
+                },
+              })}
+            >
+              <Routes>
+                <Route path="login" element={<Login />} />
+                <Route path="signup" element={<SignupPage />} />
+                <Route path="public/:username" element={<UserPublicPage />} />
+                <Route path="users" element={<PublicUserList />} />
+                <Route path="user/:username" element={<UserPublicPage />} />
+                <Route element={<ProtectedRoutes />}>
+                  <Route index element={<TimestampPhotos />} />
+                  <Route path="things" element={<AlbumThing />} />
+                  <Route path="recent" element={<RecentlyAddedPhotos />} />
+                  <Route path="favorites" element={<FavoritePhotos />} />
+                  <Route path="deleted" element={<DeletedPhotos />} />
+                  <Route path="hidden" element={<HiddenPhotos />} />
+                  <Route path="notimestamp" element={<NoTimestampPhotosView />} />
+                  <Route path="useralbums" element={<AlbumUser />} />
+                  <Route path="places" element={<AlbumPlace />} />
+                  <Route path="people" element={<AlbumPeople />} />
+                  <Route path="events" element={<AlbumAuto />} />
+                  <Route path="statistics" element={<Statistics />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="profile" element={<Profile />} />
+                  <Route path="library" element={<Library />} />
+                  <Route path="faces" element={<FaceDashboard />} />
+                  <Route path="search" element={<SearchView />} />
+                  <Route path="person/:albumID" element={<AlbumPersonGallery />} />
+                  <Route path="place/:albumID" element={<AlbumPlaceGallery />} />
+                  <Route path="thing/:albumID" element={<AlbumThingGallery />} />
+                  <Route path="event/:albumID" element={<AlbumAutoGalleryView />} />
+                  <Route path="explorer" element={<Explorer />} />
+                  <Route path="albumviewer" element={<AlbumViewer />} />
+                  <Route path="useralbum/:albumID" element={<AlbumUserGallery />} />
+                  <Route path="shared/tome/:which" element={<SharedToMe />} />
+                  <Route path="shared/fromme/:which" element={<SharedFromMe />} />
+                  <Route path="admin" element={<AdminPage />} />
+                  <Route path="map" element={<PhotoMap />} />
+                  <Route path="placetree" element={<LocationTree />} />
+                  <Route path="wordclouds" element={<WordClouds />} />
+                  <Route path="timeline" element={<Timeline />} />
+                  <Route path="socialgraph" element={<Graph />} />
+                  <Route path="facescatter" element={<FaceScatter />} />
+                  <Route path="countstats" element={<CountStats />} />
+                </Route>
+              </Routes>
+            </AppShell>
+          </NotificationsProvider>
+        </MantineProvider>
+      </ColorSchemeProvider>
+    </CookiesProvider>
   );
 }
-
-export default App;

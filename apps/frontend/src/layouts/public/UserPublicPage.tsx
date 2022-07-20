@@ -1,24 +1,22 @@
-import _ from "lodash";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useParams } from "react-router-dom";
 import { Globe } from "tabler-icons-react";
 
 import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { PhotosetType } from "../../reducers/photosReducer";
 import type { PhotosState } from "../../reducers/photosReducer";
+import { PhotosetType } from "../../reducers/photosReducer";
 import { useAppDispatch, useAppSelector } from "../../store/store";
-
-type Props = {
-  match: any;
-};
 
 type fetchedGroup = {
   id: string;
   page: number;
 };
 
-export function UserPublicPage(props: Props) {
+export function UserPublicPage() {
+  const params = useParams();
+
   const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(state => state.photos as PhotosState);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
@@ -31,7 +29,7 @@ export function UserPublicPage(props: Props) {
         album_date_id: group.id,
         page: group.page,
         photosetType: PhotosetType.PUBLIC,
-        username: props.match.params.username,
+        username: params.username,
       });
     }
   }, [group.id, group.page]);
@@ -39,12 +37,11 @@ export function UserPublicPage(props: Props) {
   useEffect(() => {
     fetchAlbumDateList(dispatch, {
       photosetType: PhotosetType.PUBLIC,
-      username: props.match.params.username,
+      username: params.username,
     });
   }, [dispatch]); // Only run on first render
 
   const getAlbums = (visibleGroups: any) => {
-    console.log("visibleGroups", visibleGroups);
     visibleGroups.forEach((group: any) => {
       const visibleImages = group.items;
       if (visibleImages.filter((i: any) => i.isTemp && i.isTemp != undefined).length > 0) {
@@ -59,16 +56,16 @@ export function UserPublicPage(props: Props) {
     <PhotoListView
       //To-Do: Translate this
       title={
-        auth.access && auth.access.name === props.match.params.username
+        auth.access && auth.access.name === params.username
           ? "Your public photos"
-          : `Public photos of ${props.match.params.username}`
+          : `Public photos of ${params.username}`
       }
       loading={fetchedPhotosetType !== PhotosetType.PUBLIC}
       icon={<Globe size={50} />}
       isDateView
       photoset={photosGroupedByDate}
       idx2hash={photosFlat}
-      isPublic={auth.access === null || auth.access.name !== props.match.params.username}
+      isPublic={auth.access === null || auth.access.name !== params.username}
       updateGroups={getAlbums}
       selectable
     />

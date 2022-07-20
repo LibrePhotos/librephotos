@@ -245,7 +245,6 @@ export const JobList = () => {
         page={activePage}
         total={Math.ceil(jobCount.toFixed(1) / pageSize)}
         onChange={newPage => {
-          console.log();
           //@ts-ignore
           setActivePage(newPage);
           dispatch(fetchJobList(newPage, pageSize));

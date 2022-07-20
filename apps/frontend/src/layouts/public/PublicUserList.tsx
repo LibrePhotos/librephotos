@@ -1,6 +1,6 @@
 import { Avatar, Button, Group, Stack, Text, Title } from "@mantine/core";
-import { push } from "connected-react-router";
 import React, { useEffect } from "react";
+import { push } from "redux-first-history";
 import { User } from "tabler-icons-react";
 
 import { fetchPublicUserList } from "../../actions/publicActions";

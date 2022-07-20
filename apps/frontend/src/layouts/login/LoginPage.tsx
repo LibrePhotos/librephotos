@@ -14,27 +14,30 @@ import { useForm } from "@mantine/form";
 import type { FormEvent } from "react";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useHistory } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Lock, User } from "tabler-icons-react";
 
 import { fetchSiteSettings } from "../../actions/utilActions";
 import { useLoginMutation } from "../../api_client/api";
+import { selectIsAuthenticated } from "../../store/auth/authSelectors";
 import { authActions } from "../../store/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { selectSiteSettings } from "../../store/util/utilSelectors";
-import { isStringEmpty } from "../../util/stringUtils";
 
 export function LoginPage(): JSX.Element {
-  const history = useHistory();
-
+  const navigate = useNavigate();
+  const isAuth = useAppSelector(selectIsAuthenticated);
   const { colorScheme } = useMantineColorScheme();
   const dark = colorScheme === "dark";
-
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
+  const location = useLocation();
+  console.info("location: ", location);
+  // @ts-ignore
+  const from = location.state?.from || "/";
 
   const siteSettings = useAppSelector(selectSiteSettings);
-  const [login, { isSuccess, isLoading }] = useLoginMutation();
+  const [login, { isLoading }] = useLoginMutation();
   const form = useForm({
     initialValues: {
       username: "",
@@ -47,17 +50,14 @@ export function LoginPage(): JSX.Element {
     fetchSiteSettings(dispatch);
   }, [dispatch]);
 
-  useEffect(() => {
-    if (isSuccess) {
-      history.push("/");
-    }
-  }, [history, isSuccess]);
-
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     void login({ username: form.values.username.toLowerCase(), password: form.values.password });
   }
 
+  if (isAuth) {
+    navigate(from);
+  }
   return (
     <div
       style={{
@@ -90,6 +90,7 @@ export function LoginPage(): JSX.Element {
                     icon={<User />}
                     placeholder={t("login.usernameplaceholder")}
                     name="username"
+                    /* eslint-disable-next-line react/jsx-props-no-spreading */
                     {...form.getInputProps("username")}
                   />
                   <PasswordInput
@@ -97,6 +98,7 @@ export function LoginPage(): JSX.Element {
                     icon={<Lock />}
                     placeholder={t("login.passwordplaceholder")}
                     name="password"
+                    /* eslint-disable-next-line react/jsx-props-no-spreading */
                     {...form.getInputProps("password")}
                   />
                   <Button variant="gradient" gradient={{ from: "#43cea2", to: "#185a9d" }} type="submit">

@@ -1,5 +1,6 @@
 import { Group, Stack, Tabs, Text, Title } from "@mantine/core";
 import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 
 import { fetchUserAlbumsSharedFromMe } from "../../actions/albumsActions";
 import { fetchPhotosSharedFromMe } from "../../actions/photosActions";
@@ -9,24 +10,20 @@ import { useAppDispatch, useAppSelector } from "../../store/store";
 import { AlbumsShared } from "./AlbumsShared";
 import { PhotosShared } from "./PhotosShared";
 
-type Props = {
-  match: any;
-};
-
-export const SharedFromMe = (props: Props) => {
+export function SharedFromMe() {
   const dispatch = useAppDispatch();
   const { albums } = useAppSelector(store => store);
   const { photosFlat, photosGroupedByUser, fetchedPhotosetType } = useAppSelector(store => store.photos);
-  const { match } = props;
+  const { which } = useParams();
   const [activeTab, setActiveTab] = useState(1);
-  
+
   useEffect(() => {
     if (fetchedPhotosetType !== PhotosetType.SHARED_BY_ME) {
       dispatch(fetchPublicUserList());
       dispatch(fetchPhotosSharedFromMe());
       dispatch(fetchUserAlbumsSharedFromMe());
     }
-  }, []);
+  }, [dispatch, fetchedPhotosetType]);
 
   const getSubHeader = activeItem => {
     if (activeItem === "photos") {
@@ -39,7 +36,7 @@ export const SharedFromMe = (props: Props) => {
     return <Text color="dimmed">You shared {albums.albumsSharedFromMe.length} albums</Text>;
   };
 
-  const activeItem = match.params.which;
+  const activeItem = which;
 
   return (
     <Stack>
@@ -61,4 +58,4 @@ export const SharedFromMe = (props: Props) => {
       </Tabs>
     </Stack>
   );
-};
+}

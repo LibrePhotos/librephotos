@@ -1,7 +1,7 @@
 import { DateTime } from "luxon";
 
-import { UserPhotosGroup } from "../actions/photosActions";
-import { DatePhotosGroup, IncompleteDatePhotosGroup, PigPhoto } from "../actions/photosActions.types";
+import type { UserPhotosGroup } from "../actions/photosActions";
+import type { DatePhotosGroup, IncompleteDatePhotosGroup, PigPhoto } from "../actions/photosActions.types";
 import i18n from "../i18n";
 
 export const copyToClipboard = (str: string) => {
@@ -25,7 +25,7 @@ export function adjustDateFormatForSingleGroup(group: DatePhotosGroup) {
         ? DateTime.fromISO(group.date).setLocale(i18n.resolvedLanguage.replace("_", "-")).toFormat("MMMM d yyyy, cccc")
         : group.date;
   } else {
-    group.date = i18n.t("sidemenu.withouttimestamp");
+    group.date = i18n.t<string>("sidemenu.withouttimestamp");
   }
 }
 

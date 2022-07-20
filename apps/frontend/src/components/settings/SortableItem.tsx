@@ -13,8 +13,8 @@ type Props = {
   addItemFunction?: (item: any) => void;
 };
 
-export function SortableItem(props: Props) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: props.id });
+export function SortableItem({ item, addItem, addItemFunction, removeItemFunction, id }: Props) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: id });
   const { t } = useTranslation();
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -27,25 +27,23 @@ export function SortableItem(props: Props) {
       <Card style={{ width: 325 }}>
         <Stack>
           <Card.Section>
-            <Title order={4}>
-              {t(`rules.${props.item.id}`) !== `rules.${props.item.id}` ? t(`rules.${props.item.id}`) : props.item.name}
-            </Title>
-            <Text color="dimmed">{t("rules.rule_type", { rule: props.item.rule_type })}</Text>
+            <Title order={4}>{t(`rules.${item.id}`) !== `rules.${item.id}` ? t(`rules.${item.id}`) : item.name}</Title>
+            <Text color="dimmed">{t("rules.rule_type", { rule: item.rule_type })}</Text>
             <Text>
-              {Object.entries(props.item)
+              {Object.entries(item)
                 .filter(i => i[0] !== "name" && i[0] !== "id" && i[0] !== "rule_type" && i[0] !== "transform_tz")
                 .map(prop =>
                   t(`rules.${prop[0]}`, { rule: prop[1] }) !== `rules.${prop[0]}` ? (
                     <li>{t(`rules.${prop[0]}`, { rule: prop[1] })}</li>
                   ) : (
                     <li>
-                      {prop[0]}: {prop[1]}
+                      {prop[0] as string}: {prop[1] as string}
                     </li>
                   )
                 )}
             </Text>
           </Card.Section>
-          {!props.addItem && (
+          {!addItem && (
             <div
               style={{
                 position: "absolute",
@@ -54,21 +52,21 @@ export function SortableItem(props: Props) {
                 padding: 5,
               }}
               onClick={() => {
-                if (props.removeItemFunction) {
-                  props.removeItemFunction(props.item);
+                if (removeItemFunction) {
+                  removeItemFunction(item);
                 }
               }}
             >
               <X />
             </div>
           )}
-          {props.addItem && (
+          {addItem && (
             <Card.Section>
               <Button
                 color="green"
                 onClick={() => {
-                  if (props.addItemFunction) {
-                    props.addItemFunction(props.item);
+                  if (addItemFunction) {
+                    addItemFunction(item);
                   }
                 }}
               >

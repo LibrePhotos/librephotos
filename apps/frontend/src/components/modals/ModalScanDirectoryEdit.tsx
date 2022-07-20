@@ -42,7 +42,7 @@ export function ModalScanDirectoryEdit(props: Props) {
       setTreeData(directoryTree);
     } else {
       const newData = replacePath(treeData, directoryTree[0]);
-      console.log(newData);
+
       // @ts-ignore
       setTreeData([...newData]);
     }
@@ -147,7 +147,7 @@ export function ModalScanDirectoryEdit(props: Props) {
                   ...userToEdit,
                   scan_directory: newScanDirectory,
                 };
-                console.log(newUserData);
+
                 dispatch(updateUserAndScan(newUserData));
                 onRequestClose();
               }}
@@ -167,7 +167,7 @@ export function ModalScanDirectoryEdit(props: Props) {
                   ...userToEdit,
                   scan_directory: newScanDirectory,
                 };
-                console.log(newUserData);
+
                 dispatch(manageUpdateUser(newUserData));
                 onRequestClose();
               }}

@@ -1,8 +1,8 @@
 import { Avatar, Button, Divider, Grid, Group, Header, Image, Menu } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { push } from "connected-react-router";
 import React, { useEffect } from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { push } from "redux-first-history";
 import { Adjustments, Book, ChevronDown, Logout, Menu2, Settings, User } from "tabler-icons-react";
 
 import { toggleSidebar } from "../../actions/uiActions";

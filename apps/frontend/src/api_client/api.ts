@@ -1,5 +1,6 @@
-import { FetchBaseQueryError } from "@reduxjs/toolkit/query";
-import { BaseQueryFn, FetchArgs, createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import type { BaseQueryFn, FetchArgs } from "@reduxjs/toolkit/query/react";
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Cookies } from "react-cookie";
 
 import type { IApiLoginPost, IApiLoginResponse, IApiUserSignUpPost } from "../store/auth/auth.zod";
@@ -8,7 +9,9 @@ import { tokenReceived } from "../store/auth/authSlice";
 import type { RootState } from "../store/store";
 import type { IUploadOptions, IUploadResponse } from "../store/upload/upload.zod";
 import { UploadExistResponse, UploadResponse } from "../store/upload/upload.zod";
-import { IApiUserListResponse, IUser, UserSchema } from "../store/user/user.zod";
+import type { IApiUserListResponse, IUser } from "../store/user/user.zod";
+import { UserSchema } from "../store/user/user.zod";
+import type { IJobDetailSchema, IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
 
 export enum Endpoints {
   login = "login",
@@ -20,6 +23,7 @@ export enum Endpoints {
   uploadExists = "uploadExists",
   uploadFinished = "uploadFinished",
   upload = "upload",
+  worker = "worker",
 }
 
 const baseQuery = fetchBaseQuery({
@@ -123,6 +127,12 @@ export const api = createApi({
       }),
       transformResponse: (response: IUploadResponse) => UploadResponse.parse(response),
     }),
+    [Endpoints.worker]: builder.query<IWorkerAvailabilityResponse, IJobDetailSchema>({
+      query: () => ({
+        url: "/rqavailable/",
+        method: "GET",
+      }),
+    }),
   }),
 });
 export const {
@@ -134,4 +144,6 @@ export const {
   useFetchUserSelfDetailsQuery,
   useLoginMutation,
   useSignUpMutation,
+  useWorkerQuery,
+  useLazyWorkerQuery,
 } = api;

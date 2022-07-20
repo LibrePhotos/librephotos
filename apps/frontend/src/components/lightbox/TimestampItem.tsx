@@ -27,7 +27,7 @@ export function TimestampItem(props: Props) {
   const onSubmit = (e: any) => {
     // To-Do: Use the user defined timezone
     const { photoDetail } = props;
-    console.log(timestamp.toISOString());
+
     photoDetail.exif_timestamp = timestamp.toISOString();
     const differentJson = { exif_timestamp: photoDetail.exif_timestamp };
     props.dispatch(editPhoto(props.photoDetail.image_hash, differentJson));

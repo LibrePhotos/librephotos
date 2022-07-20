@@ -12,7 +12,7 @@ const { Hint, XYPlot, XAxis, HorizontalBarSeries } = require("react-vis");
 type Hint = {
   y: number;
   x: number;
-  loc: String;
+  loc: string;
   start: number;
   end: number;
 };
