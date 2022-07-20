@@ -1,5 +1,4 @@
 import { Button, Grid, Modal, Space, Text, TextInput, Title } from "@mantine/core";
-import { result } from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SortableTree from "react-sortable-tree";
@@ -186,6 +185,7 @@ export function ModalScanDirectoryEdit(props: Props) {
           treeData={treeData}
           onChange={changedTreeData => setTreeData(changedTreeData)}
           theme={FileExplorerTheme}
+          isVirtualized={false}
           generateNodeProps={rowInfo => {
             const nodeProps = {
               onClick: event => nodeClicked(event, rowInfo),

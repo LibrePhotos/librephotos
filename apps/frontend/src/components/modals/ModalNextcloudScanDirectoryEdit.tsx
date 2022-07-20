@@ -94,6 +94,7 @@ export const ModalNextcloudScanDirectoryEdit = (props: Props) => {
             treeData={treeData}
             onChange={treeData => setTreeData(treeData)}
             theme={FileExplorerTheme}
+            isVirtualized={false}
             generateNodeProps={rowInfo => {
               const nodeProps = {
                 onClick: event => nodeClicked(event, rowInfo),

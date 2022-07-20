@@ -3,12 +3,8 @@ import { showNotification } from "@mantine/notifications";
 import { api } from "../api_client/api";
 import { Server } from "../api_client/apiClient";
 import i18n from "../i18n";
-import { logout } from "../store/auth/authSlice";
 import { ManageUser, UserSchema } from "../store/user/user.zod";
 import { userActions } from "../store/user/userSlice";
-import { fetchAlbumDateList } from "./albumsActions";
-import { fetchInferredFacesList, fetchLabeledFacesList } from "./facesActions";
-import { fetchPeople } from "./peopleActions";
 import { scanPhotos } from "./photosActions";
 import {
   CountStats,
@@ -23,7 +19,6 @@ import {
   SearchTermExamples,
   SiteSettings,
   WordCloudResponse,
-  WorkerAvailability,
 } from "./utilActions.types";
 
 export function fetchJobList(page, page_size = 10) {

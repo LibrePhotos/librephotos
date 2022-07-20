@@ -6,7 +6,6 @@ import { push } from "redux-first-history";
 import { Calendar, ChevronDown, Clock, EyeOff, Globe, Star } from "tabler-icons-react";
 
 import { useAppDispatch, useAppSelector } from "../../store/store";
-import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { ModalScanDirectoryEdit } from "../modals/ModalScanDirectoryEdit";
 
 type Props = {

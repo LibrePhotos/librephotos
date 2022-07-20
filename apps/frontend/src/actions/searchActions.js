@@ -1,10 +1,7 @@
-import _ from "lodash";
-
 import { Server } from "../api_client/apiClient";
 import { adjustDateFormat, getPhotosFlatFromGroupedByDate } from "../util/util";
 import { _FetchPlaceAlbumsListResponseSchema, _FetchThingAlbumsListResponseSchema } from "./albumActions.types";
 import { PersonList } from "./peopleActions.types";
-import { DatePhotosGroupSchema } from "./photosActions.types";
 
 export const SEARCH_EMPTY_QUERY_ERROR = "SEARCH_EMPTY_QUERY_ERROR";
 export const SEARCH_PHOTOS = "SEARCH_PHOTOS";
