@@ -2,9 +2,7 @@ import { z } from "zod";
 
 import { PersonSchema } from "./peopleActions.types";
 import {
-  DatePhotosGroup,
   DatePhotosGroupSchema,
-  IncompleteDatePhotosGroup,
   IncompleteDatePhotosGroupSchema,
   PhotoHashSchema,
   SimpleUserSchema,
