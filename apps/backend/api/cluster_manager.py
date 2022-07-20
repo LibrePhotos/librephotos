@@ -64,7 +64,7 @@ class ClusterManager:
                     face.get_encoding_array()
                 )
             Face.objects.filter(id__in=unknown_ids).update(
-                cluster=new_cluster, person=new_person, person_label_is_inferred=False
+                cluster=new_cluster, person=new_person, person_label_is_inferred=None
             )
         else:
             clusters_by_person: dict[int, Cluster] = dict()
@@ -124,7 +124,7 @@ class ClusterManager:
                         id__in=face_ids_by_cluster[new_cluster.id]
                     ).update(
                         cluster=new_cluster,
-                        person_label_is_inferred=False,
+                        person_label_is_inferred=None,
                         person=new_cluster.person,
                     )
                 else:

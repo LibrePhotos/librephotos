@@ -113,7 +113,7 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
     """
     all_clusters: list[Cluster] = []
     face: Face
-    print("creating clusters")
+    print("[INFO] Creating clusters")
 
     data = {
         "all": {"encoding": [], "id": []},
@@ -158,7 +158,7 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
 
 def delete_clusters(user: User):
     """Delete all existing Cluster records"""
-    print("[INFO] deleting all clusters")
+    print("[INFO] Deleting all clusters")
     unknown_cluster: Cluster = get_unknown_cluster()
     unknown_id: int = unknown_cluster.id
     Cluster.objects.filter(Q(owner=user) & ~Q(id=unknown_id)).delete()
@@ -166,7 +166,7 @@ def delete_clusters(user: User):
 
 def delete_clustered_people(user: User):
     """Delete all existing Person records of type CLUSTER"""
-    print("[INFO] deleting all clustered people")
+    print("[INFO] Deleting all clustered people")
     Person.objects.filter(kind=Person.KIND_CLUSTER, cluster_owner=user).delete()
 
 
