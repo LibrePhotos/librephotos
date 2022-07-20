@@ -4,7 +4,7 @@ import numpy as np
 from django.db import models
 from django.dispatch import receiver
 
-from api.models.cluster import Cluster
+from api.models.cluster import Cluster, get_unknown_cluster
 from api.models.person import Person, get_unknown_person
 from api.models.photo import Photo
 
@@ -21,7 +21,11 @@ class Face(models.Model):
     )
 
     cluster = models.ForeignKey(
-        Cluster, related_name="faces", on_delete=models.SET_NULL, blank=True, null=True
+        Cluster,
+        related_name="faces",
+        on_delete=models.SET(get_unknown_cluster),
+        blank=True,
+        null=True,
     )
     person_label_is_inferred = models.BooleanField(null=True, db_index=True)
     person_label_probability = models.FloatField(default=0.0, db_index=True)

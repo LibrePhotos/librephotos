@@ -6,12 +6,13 @@ import pytz
 import seaborn as sns
 from bulk_update.helper import bulk_update
 from django.core.cache import cache
+from django.db.models import Q
 from django_rq import job
 from sklearn.cluster import DBSCAN
 from sklearn.decomposition import PCA
 from sklearn.neural_network import MLPClassifier
 
-from api.cluster_manager import ClusterManager
+from api.cluster_manager import ClusterManager, get_unknown_cluster
 from api.models import Face, LongRunningJob, Person
 from api.models.cluster import Cluster
 from api.models.person import get_unknown_person
@@ -82,7 +83,7 @@ def cluster_all_faces(user, job_id) -> bool:
     try:
         delete_clustered_people(user)
         delete_clusters(user)
-        target_count: int = create_all_clusters(user)
+        target_count: int = create_all_clusters(user, lrj)
 
         lrj.finished = True
         lrj.failed = False
@@ -135,11 +136,12 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
     for labelID in labelIDs:
         idxs = np.where(clt.labels_ == labelID)[0]
         face_array: list[Face] = []
+        face_id_list: list[int] = []
         for i in idxs:
             count = count + 1
             face_id = data["all"]["id"][i]
-            face = Face.objects.filter(id=face_id).first()
-            face_array.append(face)
+            face_id_list.append(face_id)
+        face_array = Face.objects.filter(pk__in=face_id_list)
         new_clusters: list[Cluster] = ClusterManager.try_add_cluster(
             user, labelID, face_array
         )
@@ -157,19 +159,15 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
 def delete_clusters(user: User):
     """Delete all existing Cluster records"""
     print("[INFO] deleting all clusters")
-    cluster: Cluster
-    for cluster in Cluster.objects.filter(owner=user):
-        if cluster != ClusterManager.get_unknown_cluster():
-            ClusterManager.delete_cluster(cluster)
+    unknown_cluster: Cluster = get_unknown_cluster()
+    unknown_id: int = unknown_cluster.id
+    Cluster.objects.filter(Q(owner=user) & ~Q(id=unknown_id)).delete()
 
 
 def delete_clustered_people(user: User):
     """Delete all existing Person records of type CLUSTER"""
     print("[INFO] deleting all clustered people")
-    for person in Person.objects.filter(kind=Person.KIND_CLUSTER, cluster_owner=user):
-        for face in Face.objects.filter(person=person):
-            face.person = get_unknown_person()
-        person.delete()
+    Person.objects.filter(kind=Person.KIND_CLUSTER, cluster_owner=user).delete()
 
 
 @job
@@ -195,6 +193,7 @@ def train_faces(user: User, job_id) -> bool:
         )
     lrj.result = {"progress": {"current": 1, "target": 2}}
     lrj.save()
+    unknown_person: Person = get_unknown_person()
     try:
         data = {
             "known": {"encoding": [], "id": []},
@@ -202,7 +201,9 @@ def train_faces(user: User, job_id) -> bool:
         }
         # First, sort all faces into known and unknown ones
         face: Face
-        for face in Face.objects.filter(photo__owner=user).prefetch_related("person"):
+        for face in Face.objects.filter(
+            Q(photo__owner=user) & ~Q(person=unknown_person)
+        ).prefetch_related("person"):
             person: Person = face.person
             unknown = (
                 face.person_label_is_inferred is not False
@@ -251,7 +252,7 @@ def train_faces(user: User, job_id) -> bool:
             ):
                 face = Face.objects.get(id=face_id)
                 face.person_label_is_inferred = True
-                probability: np.float64
+                probability: np.float64 = 0
 
                 # Find the probability in the probability array corresponding to the person
                 # that we currently believe the face is, even a simulated "unknown" person
