@@ -4,6 +4,9 @@ from django.db import models
 from api.models.person import Person, get_unknown_person
 from api.models.user import User, get_deleted_user
 
+UNKNOWN_CLUSTER_ID = -1
+UNKNOWN_CLUSTER_NAME = "Other Unknown Cluster"
+
 
 class Cluster(models.Model):
     person = models.ForeignKey(
@@ -43,3 +46,14 @@ class Cluster(models.Model):
     @staticmethod
     def calculate_mean_face_encoding(all_encodings):
         return np.mean(a=all_encodings, axis=0, dtype=np.float64)
+
+
+def get_unknown_cluster() -> Cluster:
+    unknown_cluster: Cluster = Cluster.get_or_create_cluster_by_id(
+        get_deleted_user(), UNKNOWN_CLUSTER_ID
+    )
+    if unknown_cluster.person is None:
+        unknown_cluster.person = get_unknown_person()
+        unknown_cluster.name = UNKNOWN_CLUSTER_NAME
+        unknown_cluster.save()
+    return unknown_cluster
