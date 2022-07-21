@@ -503,7 +503,7 @@ class Photo(models.Model):
                 unknown_person = qs_unknown_person[0]
 
             unknown_cluster: api.models.cluster.Cluster = (
-                api.models.cluster.Cluster.get_unknown_cluster()
+                api.models.cluster.get_unknown_cluster()
             )
             image = np.array(PIL.Image.open(self.thumbnail_big.path))
 
