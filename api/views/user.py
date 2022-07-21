@@ -61,7 +61,7 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = (IsUserOrReadOnly,)
 
     def get_queryset(self):
-        queryset = User.objects.only(
+        queryset = User.objects.exclude(is_active=False).only(
             "id",
             "username",
             "email",
