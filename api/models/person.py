@@ -11,20 +11,30 @@ utc = pytz.UTC
 
 
 class Person(models.Model):
+    UNKNOWN_PERSON_NAME = "Unknown - Other"
+    KIND_USER = "USER"
+    KIND_CLUSTER = "CLUSTER"
+    KIND_UNKNOWN = "UNKNOWN"
     KIND_CHOICES = (
-        ("USER", "User Labelled"),
-        ("CLUSTER", "Cluster ID"),
-        ("UNKNOWN", "Unknown Person"),
+        (KIND_USER, "User Labelled"),
+        (KIND_CLUSTER, "Cluster ID"),
+        (KIND_UNKNOWN, "Unknown Person"),
     )
     name = models.CharField(blank=False, max_length=128)
     kind = models.CharField(choices=KIND_CHOICES, max_length=10)
-    mean_face_encoding = models.TextField()
-    cluster_id = models.IntegerField(null=True)
     account = models.OneToOneField(
         User, on_delete=models.SET(get_deleted_user), default=None, null=True
     )
     cover_photo = models.ForeignKey(
         Photo, related_name="person", on_delete=models.PROTECT, blank=False, null=True
+    )
+
+    cluster_owner = models.ForeignKey(
+        User,
+        related_name="owner",
+        on_delete=models.SET(get_deleted_user),
+        default=None,
+        null=True,
     )
 
     def __str__(self):
@@ -60,8 +70,17 @@ class Person(models.Model):
 
 
 def get_unknown_person():
-    return Person.objects.get_or_create(name="unknown")[0]
+    unknown_person: Person = Person.objects.get_or_create(
+        name=Person.UNKNOWN_PERSON_NAME
+    )[0]
+    if unknown_person.kind != Person.KIND_UNKNOWN:
+        unknown_person.kind = Person.KIND_UNKNOWN
+        unknown_person.save()
+    return unknown_person
 
 
-def get_or_create_person(name):
-    return Person.objects.get_or_create(name=name)[0]
+def get_or_create_person(name, cluster_owner: User = None):
+    if cluster_owner is not None:
+        return Person.objects.get_or_create(name=name, cluster_owner=cluster_owner)[0]
+    else:
+        return Person.objects.get_or_create(name=name)[0]
