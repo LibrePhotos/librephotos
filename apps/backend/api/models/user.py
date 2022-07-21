@@ -50,4 +50,8 @@ def get_admin_user():
 
 
 def get_deleted_user():
-    return User.objects.get_or_create(username="deleted")[0]
+    deleted_user: User = User.objects.get_or_create(username="deleted")[0]
+    if deleted_user.is_active is not False:
+        deleted_user.is_active = False
+        deleted_user.save()
+    return deleted_user

@@ -61,27 +61,31 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = (IsUserOrReadOnly,)
 
     def get_queryset(self):
-        queryset = User.objects.only(
-            "id",
-            "username",
-            "email",
-            "scan_directory",
-            "transcode_videos",
-            "confidence",
-            "semantic_search_topk",
-            "first_name",
-            "last_name",
-            "date_joined",
-            "avatar",
-            "nextcloud_server_address",
-            "nextcloud_username",
-            "nextcloud_scan_directory",
-            "favorite_min_rating",
-            "image_scale",
-            "save_metadata_to_disk",
-            "datetime_rules",
-            "default_timezone",
-        ).order_by("-last_login")
+        queryset = (
+            User.objects.exclude(is_active=False)
+            .only(
+                "id",
+                "username",
+                "email",
+                "scan_directory",
+                "transcode_videos",
+                "confidence",
+                "semantic_search_topk",
+                "first_name",
+                "last_name",
+                "date_joined",
+                "avatar",
+                "nextcloud_server_address",
+                "nextcloud_username",
+                "nextcloud_scan_directory",
+                "favorite_min_rating",
+                "image_scale",
+                "save_metadata_to_disk",
+                "datetime_rules",
+                "default_timezone",
+            )
+            .order_by("-last_login")
+        )
         return queryset
 
     def get_permissions(self):
