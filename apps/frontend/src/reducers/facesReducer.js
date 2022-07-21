@@ -1,3 +1,5 @@
+import { FacesActions } from "../actions/facesActions";
+
 export default function reducer(
   state = {
     faces: [],
@@ -103,17 +105,17 @@ export default function reducer(
     }
 
     // labeled faces
-    case "FETCH_LABELED_FACES_LIST": {
+    case FacesActions.FETCH_LABELED_FACES_LIST: {
       return { ...state, fetchingLabeledFacesList: true };
     }
-    case "FETCH_LABELED_FACES_LIST_REJECTED": {
+    case FacesActions.FETCH_LABELED_FACES_LIST_REJECTED: {
       return {
         ...state,
         fetchingLabeledFacesList: false,
         error: action.payload,
       };
     }
-    case "FETCH_LABELED_FACES_LIST_FULFILLED": {
+    case FacesActions.FETCH_LABELED_FACES_LIST_FULFILLED: {
       return {
         ...state,
         fetchingLabeledFacesList: false,
@@ -123,17 +125,17 @@ export default function reducer(
     }
 
     // inferred faces
-    case "FETCH_INFERRED_FACES_LIST": {
+    case FacesActions.FETCH_INFERRED_FACES_LIST: {
       return { ...state, fetchingInferredFacesList: true };
     }
-    case "FETCH_INFERRED_FACES_LIST_REJECTED": {
+    case FacesActions.FETCH_INFERRED_FACES_LIST_REJECTED: {
       return {
         ...state,
         fetchingInferredFacesList: false,
         error: action.payload,
       };
     }
-    case "FETCH_INFERRED_FACES_LIST_FULFILLED": {
+    case FacesActions.FETCH_INFERRED_FACES_LIST_FULFILLED: {
       return {
         ...state,
         fetchingInferredFacesList: false,
@@ -142,7 +144,7 @@ export default function reducer(
       };
     }
     // mass labeling faces
-    case "SET_FACES_PERSON_LABEL_FULFILLED": {
+    case FacesActions.SET_FACES_PERSON_LABEL_FULFILLED: {
       const justLabeledFaceIDs = action.payload.map(face => face.id);
 
       newInferredFacesList = state.inferredFacesList.filter(face => !justLabeledFaceIDs.includes(face.id));
@@ -160,7 +162,7 @@ export default function reducer(
     }
 
     // mass labeling faces
-    case "DELETE_FACES_FULFILLED": {
+    case FacesActions.DELETE_FACES_FULFILLED: {
       const justDeletedFaces = action.payload;
       newInferredFacesList = state.inferredFacesList.filter(face => !justDeletedFaces.includes(face.id));
       newLabeledFacesList = state.labeledFacesList.filter(face => !justDeletedFaces.includes(face.id));
@@ -173,13 +175,13 @@ export default function reducer(
     }
 
     // train faces
-    case "TRAIN_FACES": {
+    case FacesActions.TRAIN_FACES: {
       return { ...state, training: true };
     }
-    case "TRAIN_FACES_REJECTED": {
+    case FacesActions.TRAIN_FACES_REJECTED: {
       return { ...state, training: false, error: action.payload };
     }
-    case "TRAIN_FACES_FULFILLED": {
+    case FacesActions.TRAIN_FACES_FULFILLED: {
       return {
         ...state,
         training: false,
@@ -189,13 +191,13 @@ export default function reducer(
     }
 
     // train faces
-    case "CLUSTER_FACES": {
+    case FacesActions.CLUSTER_FACES: {
       return { ...state, clustering: true };
     }
-    case "CLUSTER_FACES_REJECTED": {
+    case FacesActions.CLUSTER_FACES_REJECTED: {
       return { ...state, clustering: false, error: action.payload };
     }
-    case "CLUSTER_FACES_FULFILLED": {
+    case FacesActions.CLUSTER_FACES_FULFILLED: {
       return {
         ...state,
         clustering: false,
@@ -203,15 +205,6 @@ export default function reducer(
         facesVis: action.payload,
       };
     }
-
-    // delete face
-    case "DELETE_FACE": {
-      return {
-        ...state,
-        faces: state.faces.filter(element => element.id !== action.payload),
-      };
-    }
-
     default: {
       return { ...state };
     }
