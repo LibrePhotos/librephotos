@@ -1,1 +1,6 @@
-{}
+{
+    "settings": {
+        "profile": "個人資料",
+        "header": "設定"
+    }
+}
