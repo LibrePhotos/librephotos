@@ -37,7 +37,7 @@ type Props = {
   updateItems?: any;
   date?: any;
   dayHeaderPrefix?: any;
-  match?: any;
+  params?: any;
   header?: any;
   additionalSubHeader?: any;
 };
@@ -75,7 +75,7 @@ function PhotoListViewComponent(props: Props) {
     updateItems,
     date,
     dayHeaderPrefix,
-    match,
+    params,
     header,
     additionalSubHeader,
   } = props;
@@ -259,17 +259,17 @@ function PhotoListViewComponent(props: Props) {
                   !route.location.pathname.startsWith("/deleted") && (
                     <SelectionActions
                       selectedItems={selectionState.selectedItems}
-                      albumID={match ? match.params.albumID : undefined}
+                      albumID={params ? params.albumID : undefined}
                       title={title}
                       setAlbumCover={actionType => {
                         console.log(actionType);
                         if (actionType === "person") {
                           // @ts-ignore
-                          dispatch(setAlbumCoverForPerson(match.params.albumID, selectionState.selectedItems[0].id));
+                          dispatch(setAlbumCoverForPerson(params.albumID, selectionState.selectedItems[0].id));
                         }
                         if (actionType === "useralbum") {
                           // @ts-ignore
-                          dispatch(setAlbumCoverForUserAlbum(match.params.albumID, selectionState.selectedItems[0].id));
+                          dispatch(setAlbumCoverForUserAlbum(params.albumID, selectionState.selectedItems[0].id));
                         }
                       }}
                       onSharePhotos={() => setModalSharePhotosOpen(true)}
@@ -368,7 +368,7 @@ function PhotoListViewComponent(props: Props) {
           onRequestClose={() => {
             setModalAlbumShareOpen(false);
           }}
-          match={match}
+          params={params}
           selectedImageHashes={selectionState.selectedItems.map(i => i.id)}
         />
       )}

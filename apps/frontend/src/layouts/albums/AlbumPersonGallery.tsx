@@ -74,7 +74,7 @@ export function AlbumPersonGallery(): JSX.Element {
       idx2hash={photosFlat}
       updateGroups={throttledGetAlbums}
       selectable
-      match={params}
+      params={params}
     />
   );
 }
