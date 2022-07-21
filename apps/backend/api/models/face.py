@@ -1,8 +1,10 @@
 import os
 
+import numpy as np
 from django.db import models
 from django.dispatch import receiver
 
+from api.models.cluster import Cluster, get_unknown_cluster
 from api.models.person import Person, get_unknown_person
 from api.models.photo import Photo
 
@@ -17,6 +19,14 @@ class Face(models.Model):
     person = models.ForeignKey(
         Person, on_delete=models.SET(get_unknown_person), related_name="faces"
     )
+
+    cluster = models.ForeignKey(
+        Cluster,
+        related_name="faces",
+        on_delete=models.SET(get_unknown_cluster),
+        blank=True,
+        null=True,
+    )
     person_label_is_inferred = models.BooleanField(null=True, db_index=True)
     person_label_probability = models.FloatField(default=0.0, db_index=True)
 
@@ -29,6 +39,9 @@ class Face(models.Model):
 
     def __str__(self):
         return "%d" % self.id
+
+    def get_encoding_array(self):
+        return np.frombuffer(bytes.fromhex(self.encoding))
 
 
 # From: https://stackoverflow.com/questions/16041232/django-delete-filefield
