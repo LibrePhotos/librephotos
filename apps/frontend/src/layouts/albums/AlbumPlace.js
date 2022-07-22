@@ -1,4 +1,5 @@
-import { Anchor, Image } from "@mantine/core";
+/* eslint-disable */
+import { Anchor, Image, Loader } from "@mantine/core";
 import _ from "lodash";
 import React, { Component } from "react";
 import { withTranslation } from "react-i18next";
@@ -7,14 +8,12 @@ import MarkerClusterGroup from "react-leaflet-markercluster";
 import { connect } from "react-redux";
 import { AutoSizer, Grid } from "react-virtualized";
 import { compose } from "redux";
-import { Flag, Loader } from "semantic-ui-react";
 import { Map2 } from "tabler-icons-react";
 
 import { fetchPlaceAlbumsList } from "../../actions/albumsActions";
 import { fetchLocationClusters } from "../../actions/utilActions";
 import { serverAddress } from "../../api_client/apiClient";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
-import { countryNames } from "../../util/countryNames";
 import { HeaderComponent } from "./HeaderComponent";
 
 const SIDEBAR_WIDTH = 85;
@@ -135,9 +134,9 @@ export class AlbumPlace extends Component {
   }
 
   preprocess() {
-    const markers = this.props.locationClusters.map(loc => {
+    const markers = this.props.locationClusters.map((loc, index) => {
       if (loc[0] !== 0) {
-        return <Marker position={[loc[0], loc[1]]} title={loc[2]} />;
+        return <Marker key={index} position={[loc[0], loc[1]]} title={loc[2]} />;
       }
       return <div />;
     });
@@ -179,8 +178,8 @@ export class AlbumPlace extends Component {
       return (
         <div key={key} style={style}>
           <div onClick={() => {}} style={{ padding: 5 }}>
-            {place[albumPlaceIndex].cover_photos.slice(0, 1).map(photo => (
-              <Anchor href={`/place/${place[albumPlaceIndex].id}/`}>
+            {place[albumPlaceIndex].cover_photos.slice(0, 1).map((photo, index) => (
+              <Anchor key={index} href={`/place/${place[albumPlaceIndex].id}/`}>
                 <Image
                   width={this.state.entrySquareSize - 10}
                   height={this.state.entrySquareSize - 10}
@@ -190,11 +189,6 @@ export class AlbumPlace extends Component {
             ))}
           </div>
           <div style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
-            {countryNames.includes(place[albumPlaceIndex].title.toLowerCase()) ? (
-              <Flag name={place[albumPlaceIndex].title.toLowerCase()} />
-            ) : (
-              ""
-            )}
             <b>{place[albumPlaceIndex].title}</b>
             <br />{" "}
             {this.props.t("numberofphotos", {
@@ -259,7 +253,7 @@ export class AlbumPlace extends Component {
     }
     return (
       <div style={{ height: this.props.height }}>
-        <Loader active>{this.props.t("placealbum.maploading")}</Loader>
+        <Loader>{this.props.t("placealbum.maploading")}</Loader>
       </div>
     );
   }
