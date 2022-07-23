@@ -1,7 +1,7 @@
 import { Group as GroupMantine, NativeSelect } from "@mantine/core";
-import { LinearGradient } from "@vx/gradient";
-import { Group } from "@vx/group";
-import { Tree } from "@vx/hierarchy";
+import { LinearGradient } from "@visx/gradient";
+import { Group } from "@visx/group";
+import { Tree } from "@visx/hierarchy";
 import {
   LinkHorizontal,
   LinkHorizontalCurve,
@@ -15,7 +15,7 @@ import {
   LinkVerticalCurve,
   LinkVerticalLine,
   LinkVerticalStep,
-} from "@vx/shape";
+} from "@visx/shape";
 import { hierarchy } from "d3-hierarchy";
 import { pointRadial } from "d3-shape";
 import React, { useEffect, useState } from "react";
@@ -39,10 +39,10 @@ export function LocationLink(props: Props) {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    if (!locationSunburst.children) {
-      dispatch(fetchLocationSunburst());
-    }
-  }, [locationSunburst]);
+    dispatch(fetchLocationSunburst());
+  }, []);
+
+  console.log(locationSunburst);
 
   const {
     width,
@@ -54,9 +54,6 @@ export function LocationLink(props: Props) {
       bottom: 20,
     },
   } = props;
-
-  if (width < 10) return null;
-  if (fetchedLocationSunburst) return null;
 
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
@@ -108,10 +105,8 @@ export function LocationLink(props: Props) {
           defaultValue={linkType}
         />
       </GroupMantine>
-
       <svg width={width} height={height}>
         <LinearGradient id="lg" from="#fd9b93" to="#fe6e9e" />
-        <rect width={width} height={height} rx={3} fill="#ffffff" />
         <Tree
           top={margin.top}
           left={margin.left}
@@ -119,112 +114,120 @@ export function LocationLink(props: Props) {
           size={[sizeWidth, sizeHeight]}
           separation={(a, b) => (a.parent === b.parent ? 1 : 0.5) / a.depth}
         >
-          {({ data }) => (
-            <Group top={origin.y} left={origin.x}>
-              {data.links().map((link, i) => {
-                let LinkComponent;
+          {tree => {
+            return (
+              <Group top={origin.y} left={origin.x}>
+                {tree.links().map((link, i) => {
+                  let LinkComponent;
 
-                if (layout === "polar") {
-                  if (linkType === "step") {
-                    LinkComponent = LinkRadialStep;
+                  if (layout === "polar") {
+                    if (linkType === "step") {
+                      LinkComponent = LinkRadialStep;
+                    } else if (linkType === "curve") {
+                      LinkComponent = LinkRadialCurve;
+                    } else if (linkType === "line") {
+                      LinkComponent = LinkRadialLine;
+                    } else {
+                      LinkComponent = LinkRadial;
+                    }
+                  } else if (orientation === "vertical") {
+                    if (linkType === "step") {
+                      LinkComponent = LinkVerticalStep;
+                    } else if (linkType === "curve") {
+                      LinkComponent = LinkVerticalCurve;
+                    } else if (linkType === "line") {
+                      LinkComponent = LinkVerticalLine;
+                    } else {
+                      LinkComponent = LinkVertical;
+                    }
+                  } else if (linkType === "step") {
+                    LinkComponent = LinkHorizontalStep;
                   } else if (linkType === "curve") {
-                    LinkComponent = LinkRadialCurve;
+                    LinkComponent = LinkHorizontalCurve;
                   } else if (linkType === "line") {
-                    LinkComponent = LinkRadialLine;
+                    LinkComponent = LinkHorizontalLine;
                   } else {
-                    LinkComponent = LinkRadial;
+                    LinkComponent = LinkHorizontal;
                   }
-                } else if (orientation === "vertical") {
-                  if (linkType === "step") {
-                    LinkComponent = LinkVerticalStep;
-                  } else if (linkType === "curve") {
-                    LinkComponent = LinkVerticalCurve;
-                  } else if (linkType === "line") {
-                    LinkComponent = LinkVerticalLine;
+
+                  return (
+                    <LinkComponent
+                      data={link}
+                      percent={stepPercent}
+                      stroke="grey"
+                      strokeWidth="2"
+                      fill="none"
+                      key={i}
+                    />
+                  );
+                })}
+
+                {tree.descendants().map((node, key) => {
+                  const width = 120;
+                  const height = 30;
+
+                  let top;
+                  let left;
+                  if (layout === "polar") {
+                    const [radialX, radialY] = pointRadial(node.x, node.y);
+                    top = radialY;
+                    left = radialX;
+                  } else if (orientation === "vertical") {
+                    top = node.y;
+                    left = node.x;
                   } else {
-                    LinkComponent = LinkVertical;
+                    top = node.x;
+                    left = node.y;
                   }
-                } else if (linkType === "step") {
-                  LinkComponent = LinkHorizontalStep;
-                } else if (linkType === "curve") {
-                  LinkComponent = LinkHorizontalCurve;
-                } else if (linkType === "line") {
-                  LinkComponent = LinkHorizontalLine;
-                } else {
-                  LinkComponent = LinkHorizontal;
-                }
 
-                return (
-                  <LinkComponent data={link} percent={stepPercent} stroke="grey" strokeWidth="2" fill="none" key={i} />
-                );
-              })}
-
-              {data.descendants().map((node, key) => {
-                const width = 120;
-                const height = 30;
-
-                let top;
-                let left;
-                if (layout === "polar") {
-                  const [radialX, radialY] = pointRadial(node.x, node.y);
-                  top = radialY;
-                  left = radialX;
-                } else if (orientation === "vertical") {
-                  top = node.y;
-                  left = node.x;
-                } else {
-                  top = node.x;
-                  left = node.y;
-                }
-
-                return (
-                  <Group top={top} left={left} key={key}>
-                    {node.depth === 0 && (
-                      <rect
-                        height={height}
-                        width={width}
-                        y={-height / 2}
-                        x={-width / 2}
-                        fill="#1b5a94"
-                        rx={5}
-                        stroke="#dddddd"
-                        onClick={() => {
-                          node.data.isExpanded = !node.data.isExpanded;
-                        }}
-                      />
-                    )}
-                    {node.depth !== 0 && (
-                      <rect
-                        height={height}
-                        width={width}
-                        y={-height / 2}
-                        x={-width / 2}
-                        fill={node.data.children ? "#1b6c94" : "#1b8594"}
-                        stroke={node.data.children ? "#dddddd" : "#dddddd"}
-                        strokeWidth={2}
-                        strokeDasharray={!node.data.children ? "0" : "0"}
-                        strokeOpacity={!node.data.children ? 1 : 1}
-                        rx={!node.data.children ? 5 : 5}
-                        onClick={() => {
-                          node.data.isExpanded = !node.data.isExpanded;
-                        }}
-                      />
-                    )}
-                    <text
-                      dy=".33em"
-                      fontSize={11}
-                      fontFamily="Arial"
-                      textAnchor="middle"
-                      style={{ pointerEvents: "none" }}
-                      fill={node.depth === 0 ? "white" : node.children ? "white" : "white"}
-                    >
-                      {node.data.name}
-                    </text>
-                  </Group>
-                );
-              })}
-            </Group>
-          )}
+                  return (
+                    <Group top={top} left={left} key={key}>
+                      {node.depth === 0 && (
+                        <rect
+                          height={height}
+                          width={width}
+                          y={height / 2}
+                          x={width / 2}
+                          fill="#1b5a94"
+                          rx={5}
+                          stroke="#dddddd"
+                          onClick={() => {
+                            node.data.isExpanded = !node.data.isExpanded;
+                          }}
+                        />
+                      )}
+                      {node.depth !== 0 && (
+                        <rect
+                          height={height}
+                          width={width}
+                          y={height / 2}
+                          x={width / 2}
+                          fill={node.data.children ? "#1b6c94" : "#1b8594"}
+                          stroke={node.data.children ? "#dddddd" : "#dddddd"}
+                          strokeWidth={2}
+                          strokeDasharray={!node.data.children ? "0" : "0"}
+                          strokeOpacity={!node.data.children ? 1 : 1}
+                          rx={!node.data.children ? 5 : 5}
+                          onClick={() => {
+                            node.data.isExpanded = !node.data.isExpanded;
+                          }}
+                        ></rect>
+                      )}
+                      <text
+                        y={height / 2 + 17}
+                        x={width / 2 + 15}
+                        fontSize={11}
+                        style={{ pointerEvents: "none" }}
+                        fill={node.depth === 0 ? "white" : node.children ? "white" : "white"}
+                      >
+                        {node.data.name}
+                      </text>
+                    </Group>
+                  );
+                })}
+              </Group>
+            );
+          }}
         </Tree>
       </svg>
     </div>
