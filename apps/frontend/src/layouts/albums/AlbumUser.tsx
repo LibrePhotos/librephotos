@@ -16,7 +16,7 @@ const SIDEBAR_WIDTH = 85;
 
 export function SharedWith(album: any) {
   const [tooltipOpened, setTooltipOpened] = useState(false);
-
+  //To-Do: Figure out, why album is an array / json
   return (
     <Popover
       opened={tooltipOpened}
@@ -25,15 +25,15 @@ export function SharedWith(album: any) {
       onClose={() => {
         setTooltipOpened(false);
       }}
-      target={<Users onClick={() => setTooltipOpened(o => !o)} />}
+      target={<Users size={20} onClick={() => setTooltipOpened(o => !o)} />}
     >
       <Stack>
         <Title order={5}>Shared with:</Title>
-        {album.shared_to.map(el => (
-          <div>
+        {album.album.shared_to.map(el => (
+          <Group>
             <User />
             <b>{el.username}</b>
-          </div>
+          </Group>
         ))}
       </Stack>
     </Popover>
@@ -102,7 +102,7 @@ export function AlbumUser() {
     if (albumUserIndex < albumsUserList.length) {
       return (
         <div key={key} style={style}>
-          <div style={{ padding: 5 }}>
+          <div style={{ padding: 5, height: entrySquareSize, width: entrySquareSize }}>
             <Link to={`/useralbum/${albumsUserList[albumUserIndex].id}`}>
               <Tile
                 video={albumsUserList[albumUserIndex].cover_photo.video === true}
@@ -139,10 +139,12 @@ export function AlbumUser() {
             </Menu>
           </div>
           <div className="personCardName" style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
-            {albumsUserList[albumUserIndex].shared_to.length > 0 && (
-              <SharedWith album={albumsUserList[albumUserIndex]} />
-            )}
-            <b>{albumsUserList[albumUserIndex].title}</b> <br />
+            <Group>
+              {albumsUserList[albumUserIndex].shared_to.length > 0 && (
+                <SharedWith album={albumsUserList[albumUserIndex]} />
+              )}
+              <b>{albumsUserList[albumUserIndex].title}</b>
+            </Group>
             {t("numberofphotos", {
               number: albumsUserList[albumUserIndex].photo_count,
             })}
