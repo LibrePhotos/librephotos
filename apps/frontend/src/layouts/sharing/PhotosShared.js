@@ -1,7 +1,8 @@
+/* eslint-disable */
+import { Loader, Stack, Text } from "@mantine/core";
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import { Header, Icon, Loader } from "semantic-ui-react";
-import { Photo } from "tabler-icons-react";
+import { Photo, Polaroid, User } from "tabler-icons-react";
 
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType } from "../../reducers/photosReducer";
@@ -22,18 +23,20 @@ class GroupHeader extends Component {
           paddingBottom: 15,
         }}
       >
-        <Header as="h3">
-          <Icon name="user circle outline" />
-          <Header.Content>
-            {displayName}
-            <Header.Subheader>
-              <Icon name="photo" />
+        <div style={{ display: "flex", textAlign: "left" }}>
+          <User size={36} style={{ margin: 5 }} />
+          <div>
+            <Text size="md" weight="bold">
+              {displayName}
+            </Text>
+            <Text size="xs" color="gray" style={{ display: "flex", alignItems: "center" }}>
+              <Polaroid size={16} style={{ marginRight: 5 }} />
               {this.props.isSharedToMe
                 ? `shared ${this.props.group.photos.length} photos with you`
                 : `you shared ${this.props.group.photos.length} photos`}
-            </Header.Subheader>
-          </Header.Content>
-        </Header>
+            </Text>
+          </div>
+        </div>
       </div>
     );
   }
@@ -52,7 +55,10 @@ export class PhotosShared extends Component {
     return (
       <div>
         {this.props.fetchedPhotosetType !== photosetType ? (
-          <Loader active>{loadingText}</Loader>
+          <Stack align="center">
+            <Loader />
+            {loadingText}
+          </Stack>
         ) : (
           this.props.photosGroupedByUser.map(group => (
             <PhotoListView

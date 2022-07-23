@@ -1,9 +1,10 @@
-import { Anchor, Image, Text } from "@mantine/core";
+/* eslint-disable */
+import { Anchor, Image, Loader, Stack, Text } from "@mantine/core";
 import debounce from "lodash/debounce";
 import React, { Component } from "react";
 import { connect } from "react-redux";
 import { AutoSizer, Grid } from "react-virtualized";
-import { Header, Icon, Loader } from "semantic-ui-react";
+import { Polaroid, User } from "tabler-icons-react";
 
 import { serverAddress } from "../../api_client/apiClient";
 import {
@@ -129,16 +130,18 @@ export class AlbumsShared extends Component {
               paddingLeft: 5,
             }}
           >
-            <Header as="h3">
-              <Icon name="user circle outline" />
-              <Header.Content>
-                {displayName}
-                <Header.Subheader>
-                  <Icon name="images" />
+            <div style={{ display: "flex" }}>
+              <User size={36} style={{ margin: 5 }} />
+              <div>
+                <Text size="md" weight="bold">
+                  {displayName}
+                </Text>
+                <Text size="xs" color="gray" style={{ display: "flex", alignItems: "center" }}>
+                  <Polaroid size={16} style={{ marginRight: 5 }} />
                   shared {cell.albums.length} albums with you
-                </Header.Subheader>
-              </Header.Content>
-            </Header>
+                </Text>
+              </div>
+            </div>
           </div>
         );
       }
@@ -149,7 +152,7 @@ export class AlbumsShared extends Component {
             <Image
               width={this.state.entrySquareSize - 2}
               height={this.state.entrySquareSize - 2}
-              src={`${serverAddress}/media/square_thumbnails/${cell.cover_photos[0].image_hash}`}
+              src={`${serverAddress}/media/square_thumbnails/${cell.cover_photo.image_hash}`}
             />
           </Anchor>
           <Text weight={700}>{cell.title}</Text>
@@ -178,10 +181,16 @@ export class AlbumsShared extends Component {
     return (
       <div>
         {this.props.albums.fetchingAlbumsSharedToMe && !this.props.albums.fetchedAlbumsSharedToMe && (
-          <Loader active>Loading albums shared with you...</Loader>
+          <Stack align="center">
+            <Loader />
+            Loading albums shared with you...
+          </Stack>
         )}
         {this.props.albums.fetchingAlbumsSharedFromMe && !this.props.albums.fetchedAlbumsSharedFromMe && (
-          <Loader active>Loading albums shared by you...</Loader>
+          <Stack align="center">
+            <Loader />
+            Loading albums shared by you...
+          </Stack>
         )}
 
         {this.state.albumGridContents.length === 0 && this.props.albums.fetchedAlbumsSharedToMe && (
