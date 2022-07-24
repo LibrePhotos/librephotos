@@ -28,7 +28,6 @@ export const FaceDashboard = () => {
   const [inferredGroupedByPersonList, setInferredGroupedByPersonList] = useState<any[]>([]);
   const [labeledGroupedByPersonList, setLabeledGroupedByPersonList] = useState<any[]>([]);
 
-  const { workerAvailability, workerRunningJob } = useAppSelector(store => store.util);
   const { inferredFacesList, labeledFacesList, fetchingLabeledFacesList, fetchingInferredFacesList } = useAppSelector(
     store => store.faces
   );
@@ -188,8 +187,6 @@ export const FaceDashboard = () => {
         <ButtonHeaderGroup
           selectMode={selectMode}
           selectedFaces={selectedFaces}
-          workerAvailability={workerAvailability}
-          workerRunningJob={workerRunningJob}
           changeSelectMode={changeSelectMode}
           addFaces={addFaces}
           deleteFaces={deleteSelectedFaces}
@@ -224,3 +221,5 @@ export const FaceDashboard = () => {
     </div>
   );
 };
+
+FaceDashboard.whyDidYouRender = true;

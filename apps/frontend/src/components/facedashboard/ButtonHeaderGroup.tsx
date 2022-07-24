@@ -5,19 +5,18 @@ import { Barbell, Plus, Trash } from "tabler-icons-react";
 
 import { trainFaces } from "../../actions/facesActions";
 import { finalPhotosDeleted } from "../../actions/photosActions";
-import { useAppDispatch } from "../../store/store";
+import { useAppDispatch, useAppSelector } from "../../store/store";
 
 type Props = {
   selectMode: boolean;
   selectedFaces: any;
-  workerAvailability: any;
-  workerRunningJob: any;
   changeSelectMode: () => void;
   addFaces: () => void;
   deleteFaces: () => void;
 };
 
 export function ButtonHeaderGroup(props: Props) {
+  const { queue_can_accept_job, job_detail } = useAppSelector(store => store.worker);
   const { t } = useTranslation();
 
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -58,8 +57,8 @@ export function ButtonHeaderGroup(props: Props) {
 
           <Tooltip label={t("facesdashboard.explanationtraining")}>
             <ActionIcon
-              disabled={!props.workerAvailability}
-              loading={props.workerRunningJob && props.workerRunningJob.job_type_str === "Train Faces"}
+              disabled={!queue_can_accept_job}
+              loading={job_detail && job_detail.job_type_str === "Train Faces"}
               color="blue"
               variant="light"
               onClick={() => {
