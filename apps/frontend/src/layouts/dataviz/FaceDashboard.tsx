@@ -13,7 +13,7 @@ import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
 
-export const FaceDashboard = () => {
+export const FaceDashboardComponent = () => {
   const { ref, width, height } = useElementSize();
   const [lastChecked, setLastChecked] = useState(null);
   const [activeItem, setActiveItem] = useState(0);
@@ -222,4 +222,4 @@ export const FaceDashboard = () => {
   );
 };
 
-FaceDashboard.whyDidYouRender = true;
+export const FaceDashboard = React.memo(FaceDashboardComponent);
