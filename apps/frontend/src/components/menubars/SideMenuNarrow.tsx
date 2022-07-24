@@ -1,134 +1,85 @@
-import { MediaQuery, Navbar } from "@mantine/core";
+import { Divider, Menu, Navbar } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
-import { Dropdown, Icon } from "semantic-ui-react";
-import { Album, ChartLine, FaceId, Photo, Trash, Users } from "tabler-icons-react";
+import { push } from "redux-first-history";
+import { ChevronRight } from "tabler-icons-react";
 
 import { selectAuthAccess, selectIsAuthenticated } from "../../store/auth/authSelectors";
-import { useAppSelector } from "../../store/store";
-import { MainLink } from "./MenuLink";
+import { useAppDispatch, useAppSelector } from "../../store/store";
+import { LEFT_MENU_WIDTH } from "../../ui-constants";
+import { getNavigationItems, navigationStyles } from "./navigation";
 
 export function SideMenuNarrow(): JSX.Element {
-  const isAuth = useAppSelector(selectIsAuthenticated);
-  const access = useAppSelector(selectAuthAccess);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const canAccess = useAppSelector(selectAuthAccess);
+  const dispatch = useAppDispatch();
+  const { classes, cx } = navigationStyles();
+  const [active, setActive] = useState('/');
 
-  const matches = useMediaQuery("(min-width: 700px)");
   const { t } = useTranslation();
+  const matches = useMediaQuery("(min-width: 700px)");
 
   if (!matches) {
-    return <div></div>;
+    return <div />;
   }
 
+  const links = getNavigationItems(t, isAuthenticated, canAccess).map(item => {
+    if (item.display === false) {
+      return null;
+    }
+
+    const link = (
+      <a
+        className={cx(classes.link, { [classes.linkActive]: item.link === active })}
+        href={item.link}
+        key={item.label}
+        onClick={event => {
+          event.preventDefault();
+          if (!item.submenu) {
+            setActive(item.link);
+            dispatch(push(item.link));
+          }
+        }}
+      >
+        <item.icon className={classes.linkIcon} color={item.color} size={33} />
+        <span style={{ flexGrow: 2 }}>{item.label}</span>
+        {item.submenu && <ChevronRight size={16} />}
+      </a>
+    );
+
+    if (item.submenu) {
+      return (
+        <Menu control={link} withArrow position="right" style={{ display: "block" }} gutter={0}>
+          {item.submenu.map(subitem => {
+            if (subitem.header) {
+              return <Menu.Label>{subitem.header}</Menu.Label>;
+            }
+            if (subitem.separator) {
+              return <Divider />;
+            }
+            const onClick = (event: { preventDefault: () => void }) => {
+              event.preventDefault();
+              setActive(item.link);
+              dispatch(push(subitem.link!));
+            };
+            const icon = <subitem.icon size={20} color={subitem.color} />;
+            return (
+              <Menu.Item onClick={onClick} icon={icon}>
+                {subitem.label}
+              </Menu.Item>
+            );
+          })}
+        </Menu>
+      );
+    }
+
+    return link;
+  });
+
   return (
-    <Navbar p="sm" hidden={false} width={{ base: 100 }}>
-      <Navbar.Section>
-        <MainLink icon={<Photo size={33}></Photo>} color="green" label={t("sidemenu.photos")} to="/" />
-      </Navbar.Section>
-      <Navbar.Section>
-        <Dropdown
-          pointing="left"
-          item
-          icon={<MainLink icon={<Album size={33}></Album>} color="blue" label={t("sidemenu.albums")} />}
-        >
-          <Dropdown.Menu>
-            <Dropdown.Header>{t("sidemenu.albums")}</Dropdown.Header>
-            <Dropdown.Item as={Link} to="/people">
-              <Icon name="users" />
-              {`  ${t("sidemenu.people")}`}
-            </Dropdown.Item>
-            <Dropdown.Item as={Link} to="/places">
-              <Icon name="map" />
-              {`  ${t("sidemenu.places")}`}
-            </Dropdown.Item>
-            <Dropdown.Item as={Link} to="/things">
-              <Icon name="tags" />
-              {`  ${t("sidemenu.things")}`}
-            </Dropdown.Item>
-            <Dropdown.Divider />
-            <Dropdown.Item as={Link} to="/useralbums">
-              <Icon name="bookmark" />
-              {`  ${t("sidemenu.myalbums")}`}
-            </Dropdown.Item>
-            <Dropdown.Item as={Link} to="/events">
-              <Icon name="wizard" />
-              {`  ${t("sidemenu.autoalbums")}`}
-            </Dropdown.Item>
-          </Dropdown.Menu>
-        </Dropdown>
-      </Navbar.Section>
-      <Navbar.Section>
-        <Dropdown
-          pointing="left"
-          item
-          icon={<MainLink icon={<ChartLine size={33}></ChartLine>} color="yellow" label={t("sidemenu.datavizsmall")} />}
-        >
-          <Dropdown.Menu>
-            <Dropdown.Header>
-              <div style={{ overflow: "visible" }}>{t("sidemenu.dataviz")}</div>
-            </Dropdown.Header>
-            <Dropdown.Item as={Link} to="/placetree">
-              <Icon name="sitemap" />
-              {`  ${t("sidemenu.placetree")}`}
-            </Dropdown.Item>
-
-            <Dropdown.Item as={Link} to="/wordclouds">
-              <Icon name="cloud" />
-              {`  ${t("sidemenu.wordclouds")}`}
-            </Dropdown.Item>
-
-            <Dropdown.Item as={Link} to="/timeline">
-              <Icon name="chart bar" />
-              {`  ${t("sidemenu.timeline")}`}
-            </Dropdown.Item>
-
-            <Dropdown.Item as={Link} to="/socialgraph">
-              <Icon name="share alternate" />
-              {`  ${t("sidemenu.socialgraph")}`}
-            </Dropdown.Item>
-
-            <Dropdown.Item as={Link} to="/facescatter">
-              <Icon name="user circle" />
-              {`  ${t("sidemenu.facecluster")}`}
-            </Dropdown.Item>
-          </Dropdown.Menu>
-        </Dropdown>
-      </Navbar.Section>
-      <Navbar.Section>
-        <MainLink icon={<FaceId size={33}></FaceId>} color="orange" label={t("sidemenu.facerecognition")} to="/faces" />
-      </Navbar.Section>
-      {isAuth && (
-        <Navbar.Section>
-          <Dropdown
-            pointing="left"
-            item
-            icon={<MainLink icon={<Users size={33}></Users>} color="red" label={t("sidemenu.sharing")} />}
-          >
-            <Dropdown.Menu>
-              <Dropdown.Header>{t("sidemenu.sharing")}</Dropdown.Header>
-
-              <Dropdown.Item disabled={!access} as={Link} to="/users/">
-                <Icon name="globe" />
-                {`  ${t("sidemenu.publicphotos")}`}
-              </Dropdown.Item>
-
-              <Dropdown.Item as={Link} to="/shared/fromme/photos/">
-                <Icon name="share" color="red" />
-                {`  ${t("sidemenu.youshared")}`}
-              </Dropdown.Item>
-
-              <Dropdown.Item as={Link} to="/shared/tome/photos/">
-                <Icon name="share" color="green" />
-                {`  ${t("sidemenu.sharedwithyou")}`}
-              </Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown>
-        </Navbar.Section>
-      )}
-      <Navbar.Section>
-        <MainLink icon={<Trash size={33}></Trash>} color="black" label={t("photos.deleted")} to="/deleted" />
-      </Navbar.Section>
+    <Navbar width={{ xs: LEFT_MENU_WIDTH }} pt="md">
+      <Navbar.Section grow>{links}</Navbar.Section>
     </Navbar>
   );
 }

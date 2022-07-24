@@ -4,12 +4,10 @@ import { NotificationsProvider } from "@mantine/notifications";
 import React, { useState } from "react";
 import { Cookies, CookiesProvider } from "react-cookie";
 import { Route, Routes, useLocation } from "react-router-dom";
-import "semantic-ui-css/semantic.min.css";
 
 import "./App.css";
 import { FooterMenu } from "./components/menubars/Footer";
 import { SideMenuNarrow } from "./components/menubars/SideMenuNarrow";
-import { SideMenuNarrowPublic } from "./components/menubars/SideMenuNarrowPublic";
 import { TopMenu } from "./components/menubars/TopMenu";
 import { TopMenuPublic } from "./components/menubars/TopMenuPublic";
 import { CountStats } from "./components/statistics";
@@ -68,8 +66,25 @@ export function App() {
 
   const { pathname } = useLocation();
 
-  // @ts-ignore
-  const showMenubar = pathname && !noMenubarPaths.includes(pathname);
+  const showMenubar = !!(pathname && !noMenubarPaths.includes(pathname));
+
+  const getNavBar = (showMenubar: boolean, showSidebar: boolean, isAuth: boolean) => {
+    if (showMenubar && showSidebar && isAuth) {
+      return <SideMenuNarrow />;
+    }
+    return <div />;
+  };
+
+  const getHeader = (showMenubar: boolean) => {
+    if (showMenubar) {
+      return isAuth ? <TopMenu /> : <TopMenuPublic />;
+    }
+    return <div />;
+  };
+
+  const getFooter = (isAuth: boolean) => {
+    return isAuth ? <FooterMenu /> : <div />;
+  };
 
   return (
     <CookiesProvider>
@@ -79,9 +94,9 @@ export function App() {
             <AppShell
               fixed
               padding={5}
-              navbar={showMenubar && showSidebar ? isAuth ? <SideMenuNarrow /> : <SideMenuNarrowPublic /> : <div />}
-              header={showMenubar ? isAuth ? <TopMenu /> : <TopMenuPublic /> : <div />}
-              footer={<FooterMenu />}
+              navbar={getNavBar(showMenubar, showSidebar, isAuth)}
+              header={getHeader(showMenubar)}
+              footer={getFooter(isAuth)}
               styles={theme => ({
                 main: {
                   backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0],

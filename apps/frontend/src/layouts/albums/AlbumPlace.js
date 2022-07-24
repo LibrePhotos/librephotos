@@ -13,10 +13,10 @@ import { Map2 } from "tabler-icons-react";
 import { fetchPlaceAlbumsList } from "../../actions/albumsActions";
 import { fetchLocationClusters } from "../../actions/utilActions";
 import { serverAddress } from "../../api_client/apiClient";
-import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
 import { HeaderComponent } from "./HeaderComponent";
 
-const SIDEBAR_WIDTH = 85;
+const SIDEBAR_WIDTH = LEFT_MENU_WIDTH;
 
 export class AlbumPlace extends Component {
   state = {

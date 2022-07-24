@@ -14,10 +14,10 @@ import { AlbumLocationMap } from "../../components/AlbumLocationMap";
 import { Tile } from "../../components/Tile";
 import { LightBox } from "../../components/lightbox/LightBox";
 import { useAppDispatch, useAppSelector } from "../../store/store";
-import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
 import { HeaderComponent } from "./HeaderComponent";
 
-const SIDEBAR_WIDTH = 85;
+const SIDEBAR_WIDTH = LEFT_MENU_WIDTH;
 
 export function AlbumAutoGalleryView() {
   const { height, width } = useViewportSize();
