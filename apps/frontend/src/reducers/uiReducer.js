@@ -1,3 +1,5 @@
+import { LEFT_MENU_WIDTH } from "../ui-constants";
+
 export default function reducer(
   state = {
     showSidebar: true,
@@ -11,7 +13,7 @@ export default function reducer(
   switch (action.type) {
     case "TOGGLE_SIDEBAR": {
       const showSidebar = !state.showSidebar;
-      const contentWidth = showSidebar ? window.innerWidth - 85 : window.innerWidth;
+      const contentWidth = showSidebar ? window.innerWidth - LEFT_MENU_WIDTH : window.innerWidth;
 
       return {
         ...state,

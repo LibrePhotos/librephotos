@@ -8,7 +8,6 @@ import "react-leaflet-markercluster/dist/styles.min.css";
 import { Provider } from "react-redux";
 import "react-vis/dist/style.css";
 import { HistoryRouter as Router } from "redux-first-history/rr6";
-import "semantic-ui-css/semantic.min.css";
 
 import { App } from "./App";
 import { libreHistory, store } from "./store/store";
