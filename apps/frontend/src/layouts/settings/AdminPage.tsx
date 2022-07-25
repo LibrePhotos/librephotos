@@ -1,16 +1,4 @@
-import {
-  Button,
-  Center,
-  Group,
-  Loader,
-  Pagination,
-  Popover,
-  Progress,
-  SimpleGrid,
-  Table,
-  Text,
-  Title,
-} from "@mantine/core";
+import { Button, Center, Group, Loader, Pagination, Popover, Progress, SimpleGrid, Table, Title } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
@@ -19,11 +7,15 @@ import { Adjustments, Ban, Check, Clock, Edit, Refresh } from "tabler-icons-reac
 
 import { deleteAllAutoAlbum } from "../../actions/albumsActions";
 import { deleteJob, fetchJobList, fetchSiteSettings, fetchUserList } from "../../actions/utilActions";
+import { IJobsResponseSchema, JobRequestSchema, JobsResponseSchema } from "../../actions/utilActions.types";
+import { useJobsQuery } from "../../api_client/api";
 import { ModalScanDirectoryEdit } from "../../components/modals/ModalScanDirectoryEdit";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { SiteSettings } from "./SiteSettings";
 
-export const AdminPage = () => {
+export function AdminPage() {
+  // const { currentData } = useJobsQuery();
+
   const [modalOpen, setModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState(null);
 
@@ -76,7 +68,7 @@ export const AdminPage = () => {
               <td>{user.username}</td>
               <td>
                 {
-                  //To-Do: Show a error when no scan directory is set
+                  // To-Do: Show a error when no scan directory is set
                 }
                 <Button
                   variant="subtle"
@@ -106,16 +98,16 @@ export const AdminPage = () => {
       />
     </SimpleGrid>
   );
-};
+}
 
-export const DeleteButton = job => {
+export function DeleteButton(job) {
   const [opened, setOpened] = useState(false);
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
 
-  const id = job.job.id;
+  const { id } = job.job;
   const page = job.activePage;
-  const pageSize = job.pageSize;
+  const { pageSize } = job;
 
   return (
     <Popover
@@ -141,19 +133,28 @@ export const DeleteButton = job => {
       <div style={{ display: "flex" }}>{t("joblist.removeexplanation")}</div>
     </Popover>
   );
-};
+}
 
-export const JobList = () => {
+export function JobList() {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const { jobList, jobCount, fetchingJobList } = useAppSelector(state => state.util);
   const [page, setPage] = useState(1);
   const [activePage, setActivePage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const { currentData, isLoading } = useJobsQuery({ page: activePage, pageSize }, { pollingInterval: 2000 });
 
+  const [jobs, setJobs] = useState<IJobsResponseSchema>();
+  useEffect(() => {
+    if (currentData) {
+      const parsed = JobsResponseSchema.parse(currentData);
+      setJobs(parsed);
+    }
+  }, [currentData]);
+  console.info("jobs: ", jobs);
   const matches = useMediaQuery("(min-width: 700px)");
   const auth = useAppSelector(state => state.auth);
-  //fetch job every two seconds
+  // // fetch job every two seconds
   useEffect(() => {
     const interval = setInterval(() => {
       if (auth.access.is_admin) {
@@ -237,7 +238,7 @@ export const JobList = () => {
                 )}
                 {matches && <td>{job.started_by.username}</td>}
                 <td>
-                  <DeleteButton job={job}></DeleteButton>
+                  <DeleteButton job={job} />
                 </td>
               </tr>
             );
@@ -248,11 +249,11 @@ export const JobList = () => {
         page={activePage}
         total={Math.ceil(jobCount.toFixed(1) / pageSize)}
         onChange={newPage => {
-          //@ts-ignore
+          // @ts-ignore
           setActivePage(newPage);
           dispatch(fetchJobList(newPage, pageSize));
         }}
       />
     </SimpleGrid>
   );
-};
+}

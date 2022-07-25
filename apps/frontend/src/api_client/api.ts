@@ -3,6 +3,7 @@ import type { BaseQueryFn, FetchArgs } from "@reduxjs/toolkit/query/react";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Cookies } from "react-cookie";
 
+import { IJobRequestSchema, IJobsResponseSchema } from "../actions/utilActions.types";
 import type { IApiLoginPost, IApiLoginResponse, IApiUserSignUpPost } from "../store/auth/auth.zod";
 // eslint-disable-next-line import/no-cycle
 import { tokenReceived } from "../store/auth/authSlice";
@@ -24,6 +25,7 @@ export enum Endpoints {
   uploadFinished = "uploadFinished",
   upload = "upload",
   worker = "worker",
+  jobs = "jobs",
 }
 
 const baseQuery = fetchBaseQuery({
@@ -133,8 +135,30 @@ export const api = createApi({
         method: "GET",
       }),
     }),
+    [Endpoints.jobs]: builder.query<IJobsResponseSchema, IJobRequestSchema>({
+      query: ({ pageSize = 10, page }) => ({
+        url: `jobs/?page_size=${pageSize}&page=${page}`,
+      }),
+    }),
   }),
 });
+
+/*
+export function fetchJobList(page, page_size = 10) {
+  return function (dispatch) {
+    dispatch({ type: "FETCH_JOB_LIST" });
+    Server.get(`jobs/?page_size=${page_size}&page=${page}`)
+      .then(response => {
+        const data = Job.array().parse(response.data.results);
+        dispatch({ type: "FETCH_JOB_LIST_FULFILLED", payload: response.data });
+      })
+      .catch(error => {
+        console.error(error);
+        dispatch({ type: "FETCH_JOB_LIST_REJECTED", payload: error });
+      });
+  };
+}
+ */
 export const {
   useLazyFetchUserListQuery,
   useLazyFetchPredefinedRulesQuery,
@@ -146,4 +170,6 @@ export const {
   useSignUpMutation,
   useWorkerQuery,
   useLazyWorkerQuery,
+  useJobsQuery,
+  useLazyJobsQuery,
 } = api;

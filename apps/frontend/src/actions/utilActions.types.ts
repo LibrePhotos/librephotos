@@ -16,6 +16,24 @@ export const Job = z.object({
   id: z.number(),
 });
 
+export const JobRequestSchema = z.object({
+  pageSize: z.number(),
+  page: z.number(),
+});
+
+export type IJobRequestSchema = z.infer<typeof JobRequestSchema>;
+
+export const JobsResponseSchema = z
+  .object({
+    count: z.number(),
+    next: z.string().nullable(),
+    previous: z.string().nullable(),
+    results: z.array(Job),
+  })
+  .optional();
+
+export type IJobsResponseSchema = z.infer<typeof JobsResponseSchema>;
+
 export const WorkerAvailability = z.object({
   job_detail: Job.nullable(),
   queue_can_accept_job: z.boolean(),
