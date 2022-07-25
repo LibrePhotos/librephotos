@@ -10,7 +10,7 @@ const initialState: IWorkerAvailabilityResponse = {
   queue_can_accept_job: false,
 };
 
-const workerSlicte = createSlice({
+const workerSlice = createSlice({
   name: "worker",
   initialState: initialState,
   reducers: {},
@@ -27,4 +27,4 @@ const workerSlicte = createSlice({
   },
 });
 
-export const worker = workerSlicte.reducer;
+export const worker = workerSlice.reducer;
