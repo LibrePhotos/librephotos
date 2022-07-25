@@ -29,7 +29,12 @@ export const FaceDashboardComponent = () => {
   const [labeledGroupedByPersonList, setLabeledGroupedByPersonList] = useState<any[]>([]);
 
   const { inferredFacesList, labeledFacesList, fetchingLabeledFacesList, fetchingInferredFacesList } = useAppSelector(
-    store => store.faces
+    store => store.faces, (prev, next) => {
+      return prev.inferredFacesList === next.inferredFacesList &&
+        prev.labeledFacesList === next.labeledFacesList &&
+        prev.fetchingLabeledFacesList == next.fetchingLabeledFacesList &&
+        prev.fetchingInferredFacesList == next.fetchingInferredFacesList 
+    }
   );
 
   const changeTab = number => setActiveItem(number);
@@ -174,6 +179,7 @@ export const FaceDashboardComponent = () => {
     }
     return <div key={key} style={style} />;
   };
+  
   return (
     <div style={{ display: "flex", flexFlow: "column", height: "100%" }}>
       <Stack>
