@@ -2,7 +2,6 @@ import { FacesActions } from "../actions/facesActions";
 
 export default function reducer(
   state = {
-    faces: [],
     fetching: false,
     fetched: false,
 
@@ -13,10 +12,6 @@ export default function reducer(
     inferredFaces: [],
     fetchingInferredFaces: false,
     fetchedInferredFaces: false,
-
-    facesList: [],
-    fetchingFacesList: false,
-    fetchedFacesList: false,
 
     labeledFacesList: [],
     fetchingLabeledFacesList: false,
@@ -40,21 +35,6 @@ export default function reducer(
   let newInferredFacesList;
   let newLabeledFacesList;
   switch (action.type) {
-    // all faces
-    case "FETCH_FACES": {
-      return { ...state, fetching: true };
-    }
-    case "FETCH_FACES_REJECTED": {
-      return { ...state, fetching: false, error: action.payload };
-    }
-    case "FETCH_FACES_FULFILLED": {
-      return {
-        ...state,
-        fetching: false,
-        fetched: true,
-        faces: action.payload,
-      };
-    }
 
     // labeled faces
     case "FETCH_LABELED_FACES": {
@@ -88,21 +68,6 @@ export default function reducer(
       };
     }
 
-    // fast list
-    case "FETCH_FACES_LIST": {
-      return { ...state, fetchingFacesList: true };
-    }
-    case "FETCH_FACES_LIST_REJECTED": {
-      return { ...state, fetchingFacesList: false, error: action.payload };
-    }
-    case "FETCH_FACES_LIST_FULFILLED": {
-      return {
-        ...state,
-        fetchingFacesList: false,
-        fetchedFacesList: true,
-        facesList: action.payload,
-      };
-    }
 
     // labeled faces
     case FacesActions.FETCH_LABELED_FACES_LIST: {
@@ -153,7 +118,6 @@ export default function reducer(
       action.payload.forEach(justLabeledFace => {
         newLabeledFacesList.push(justLabeledFace);
       });
-
       return {
         ...state,
         inferredFacesList: newInferredFacesList,
