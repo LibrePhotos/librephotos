@@ -122,6 +122,9 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
         data["all"]["encoding"].append(face.get_encoding_array())
         data["all"]["id"].append(face.id)
 
+    target_count = len(data["all"]["id"])
+    if target_count == 0:
+        return target_count
     # creating DBSCAN object for clustering the encodings with the metric "euclidean"
     clt = DBSCAN(metric="euclidean", min_samples=2)
 
@@ -130,7 +133,6 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
     labelIDs = np.unique(clt.labels_)
     labelID: np.intp
     commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
-    target_count = len(data["all"]["id"])
     count: int = 0
 
     for labelID in labelIDs:
@@ -241,40 +243,42 @@ def train_faces(user: User, job_id) -> bool:
 
             # Collect the probabilities for each unknown face. The probabilities returned
             # are arrays in the same order as the people IDs in the original training set
-            face_encodings_unknown_np = np.array(data["unknown"]["encoding"])
-            probs = clf.predict_proba(face_encodings_unknown_np)
             target_count = len(data["unknown"]["id"])
+            if target_count != 0:
+                face_encodings_unknown_np = np.array(data["unknown"]["encoding"])
+                probs = clf.predict_proba(face_encodings_unknown_np)
 
-            commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
-            face_stack = []
-            for idx, (face_id, probability_array) in enumerate(
-                zip(data["unknown"]["id"], probs)
-            ):
-                face = Face.objects.get(id=face_id)
-                face.person_label_is_inferred = True
-                probability: np.float64 = 0
+                commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
+                face_stack = []
+                for idx, (face_id, probability_array) in enumerate(
+                    zip(data["unknown"]["id"], probs)
+                ):
+                    face = Face.objects.get(id=face_id)
+                    face.person_label_is_inferred = True
+                    probability: np.float64 = 0
 
-                # Find the probability in the probability array corresponding to the person
-                # that we currently believe the face is, even a simulated "unknown" person
-                for i, target in enumerate(clf.classes_):
-                    if target == face.person.id:
-                        probability = probability_array[i]
-                        break
-                face.person_label_probability = probability
-                face_stack.append(face)
-                if commit_time < datetime.datetime.now():
-                    lrj.result = {
-                        "progress": {"current": idx + 1, "target": target_count}
-                    }
-                    lrj.save()
-                    commit_time = datetime.datetime.now() + datetime.timedelta(
-                        seconds=5
-                    )
-                if len(face_stack) > 200:
-                    bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
-                    face_stack = []
+                    # Find the probability in the probability array corresponding to the person
+                    # that we currently believe the face is, even a simulated "unknown" person
+                    for i, target in enumerate(clf.classes_):
+                        if target == face.person.id:
+                            probability = probability_array[i]
+                            break
+                    face.person_label_probability = probability
+                    face_stack.append(face)
+                    if commit_time < datetime.datetime.now():
+                        lrj.result = {
+                            "progress": {"current": idx + 1, "target": target_count}
+                        }
+                        lrj.save()
+                        commit_time = datetime.datetime.now() + datetime.timedelta(
+                            seconds=5
+                        )
+                    if len(face_stack) > 200:
+                        bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
+                        face_stack = []
 
-            bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
+                bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
+
             lrj.finished = True
             lrj.failed = False
             lrj.result = {"progress": {"current": target_count, "target": target_count}}
