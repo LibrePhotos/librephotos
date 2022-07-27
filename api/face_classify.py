@@ -278,7 +278,7 @@ def train_faces(user: User, job_id) -> bool:
                         face_stack = []
 
                 bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
-            
+
             lrj.finished = True
             lrj.failed = False
             lrj.result = {"progress": {"current": target_count, "target": target_count}}
