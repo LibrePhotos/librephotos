@@ -401,6 +401,7 @@
     "deleteface": "Delete faces",
     "confirm": "Confirm",
     "cancel": "Cancel",
+    "sponsorus": "Sponsor us",
     "deletefaceexplanation": "This action will permanently delete the faces and all its associated data. This action cannot be undone.",
     "toasts": {
         "createnewalbum": "{{numberOfPhotos}} photo(s) were added to the new {{title}} album",

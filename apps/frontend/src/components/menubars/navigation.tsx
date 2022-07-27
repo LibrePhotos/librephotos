@@ -1,4 +1,5 @@
 import { createStyles } from "@mantine/core";
+import type { Icon } from "tabler-icons-react";
 import {
   Album,
   Bookmark,
@@ -7,6 +8,7 @@ import {
   Cloud,
   Download,
   FaceId,
+  Heart,
   Map,
   MoodSmile,
   Photo,
@@ -33,7 +35,7 @@ type SubmenuItem = {
 type MenuItem = {
   label: string;
   link: string;
-  icon: any;
+  icon: Icon;
   color: string;
   display?: boolean;
   submenu?: Array<Partial<SubmenuItem>>;
@@ -65,7 +67,7 @@ export function getNavigationItems(
       label: t("sidemenu.datavizsmall"),
       link: "/placetree",
       icon: ChartLine,
-      color: "purple",
+      color: "yellow",
       submenu: [
         { header: t("sidemenu.dataviz") },
         { label: t("sidemenu.placetree"), link: "/placetree", icon: VectorTriangle },
@@ -90,6 +92,7 @@ export function getNavigationItems(
       ],
     },
     { label: t("photos.deleted"), link: "/deleted", icon: Trash, color: "black" },
+    { label: t("sponsorus"), link: "https://github.com/sponsors/derneuere", icon: Heart, color: "pink" },
   ];
 }
 
@@ -122,16 +125,11 @@ export const navigationStyles = createStyles((theme, _params, getRef) => {
       "&:hover": {
         backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
         color: theme.colorScheme === "dark" ? theme.white : theme.black,
-
-        [`& .${icon}`]: {
-          color: theme.colorScheme === "dark" ? theme.white : theme.black,
-        },
       },
     },
 
     linkIcon: {
       ref: icon,
-      color: theme.colorScheme === "dark" ? theme.colors.dark[2] : theme.colors.gray[6],
       marginRight: theme.spacing.sm,
     },
 
@@ -141,12 +139,7 @@ export const navigationStyles = createStyles((theme, _params, getRef) => {
           theme.colorScheme === "dark"
             ? theme.fn.rgba(theme.colors[theme.primaryColor][8], 0.25)
             : theme.colors[theme.primaryColor][0],
-        color: theme.colorScheme === "dark" ? theme.white : theme.colors[theme.primaryColor][7],
-        [`& .${icon}`]: {
-          color: theme.colors[theme.primaryColor][theme.colorScheme === "dark" ? 5 : 7],
-        },
       },
     },
   };
 });
-

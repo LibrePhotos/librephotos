@@ -1,9 +1,9 @@
-import { Divider, Menu, Navbar } from "@mantine/core";
+import { ActionIcon, Divider, Menu, Navbar } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
-import { ChevronRight } from "tabler-icons-react";
+import { ChevronRight, Heart } from "tabler-icons-react";
 
 import { selectAuthAccess, selectIsAuthenticated } from "../../store/auth/authSelectors";
 import { useAppDispatch, useAppSelector } from "../../store/store";
@@ -15,7 +15,7 @@ export function SideMenuNarrow(): JSX.Element {
   const canAccess = useAppSelector(selectAuthAccess);
   const dispatch = useAppDispatch();
   const { classes, cx } = navigationStyles();
-  const [active, setActive] = useState('/');
+  const [active, setActive] = useState("/");
 
   const { t } = useTranslation();
   const matches = useMediaQuery("(min-width: 700px)");
@@ -42,7 +42,9 @@ export function SideMenuNarrow(): JSX.Element {
           }
         }}
       >
-        <item.icon className={classes.linkIcon} color={item.color} size={33} />
+        <ActionIcon className={classes.linkIcon} color={item.color} variant="light">
+          <item.icon />
+        </ActionIcon>
         <span style={{ flexGrow: 2 }}>{item.label}</span>
         {item.submenu && <ChevronRight size={16} />}
       </a>
@@ -63,7 +65,11 @@ export function SideMenuNarrow(): JSX.Element {
               setActive(item.link);
               dispatch(push(subitem.link!));
             };
-            const icon = <subitem.icon size={20} color={subitem.color} />;
+            const icon = (
+              <ActionIcon color={subitem.color} variant="light">
+                <subitem.icon />
+              </ActionIcon>
+            );
             return (
               <Menu.Item onClick={onClick} icon={icon}>
                 {subitem.label}
