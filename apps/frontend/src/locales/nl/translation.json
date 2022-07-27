@@ -495,5 +495,6 @@
         "off": "Uit"
     },
     "defaulttimezone": "Standaard tijdzone",
-    "timezoneexplain": "Deze tijdzone wodt gebruikt om tijdstempels om te zetten naar de tijdzone van de gebruiker"
+    "timezoneexplain": "Deze tijdzone wodt gebruikt om tijdstempels om te zetten naar de tijdzone van de gebruiker",
+    "sponsorus": "Ondersteun ons"
 }
