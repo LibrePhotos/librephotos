@@ -5,6 +5,7 @@ from django.core.management.base import BaseCommand
 
 from api.directory_watcher import scan_photos
 from api.models import User
+from api.models.user import get_deleted_user
 from nextcloud.directory_watcher import scan_photos as scan_photos_nextcloud
 
 
@@ -30,8 +31,10 @@ class Command(BaseCommand):
             return
 
         # Directory scan
+        deleted_user: User = get_deleted_user()
         for user in User.objects.all():
-            scan_photos(user, options["full_scan"], uuid.uuid4())
+            if user != deleted_user:
+                scan_photos(user, options["full_scan"], uuid.uuid4(), user.scan_directory)
 
     def nextcloud_scan(self):
         for user in User.objects.all():
