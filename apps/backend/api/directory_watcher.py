@@ -321,7 +321,7 @@ def initialize_scan_process(*args, **kwargs):
 
 
 @job
-def scan_photos(user, full_scan, job_id, scan_directory):
+def scan_photos(user, full_scan, job_id, scan_directory=""):
     if not os.path.exists(
         os.path.join(ownphotos.settings.MEDIA_ROOT, "thumbnails_big")
     ):
@@ -343,6 +343,8 @@ def scan_photos(user, full_scan, job_id, scan_directory):
     photo_count_before = Photo.objects.count()
 
     try:
+        if scan_directory == "":
+            scan_directory = user.scan_directory
         photo_list = []
         walk_directory(scan_directory, photo_list)
         files_found = len(photo_list)
