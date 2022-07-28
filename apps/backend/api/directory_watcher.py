@@ -321,7 +321,7 @@ def initialize_scan_process(*args, **kwargs):
 
 
 @job
-def scan_photos(user, full_scan, job_id, scan_directory = ""):
+def scan_photos(user, full_scan, job_id, scan_directory=""):
     if not os.path.exists(
         os.path.join(ownphotos.settings.MEDIA_ROOT, "thumbnails_big")
     ):
