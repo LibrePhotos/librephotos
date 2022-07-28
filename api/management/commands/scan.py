@@ -31,7 +31,7 @@ class Command(BaseCommand):
 
         # Directory scan
         for user in User.objects.all():
-            scan_photos(user, options["full_scan"], uuid.uuid4())
+            scan_photos(user, options["full_scan"], uuid.uuid4(), user.scan_directory)
 
     def nextcloud_scan(self):
         for user in User.objects.all():
