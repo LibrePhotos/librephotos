@@ -496,5 +496,6 @@
     },
     "timezoneexplain": "Este fuso horário é usado para converter carimbos de data/hora para o fuso horário predefinido do utilizador",
     "sync": "Sincronizar metadados para disco",
-    "sponsorus": "Patrocine-nos"
+    "sponsorus": "Patrocine-nos",
+    "supportus": "Suporte-nos"
 }
