@@ -8,7 +8,6 @@ import {
   Cloud,
   Download,
   FaceId,
-  Heart,
   Map,
   MoodSmile,
   Photo,
@@ -92,7 +91,6 @@ export function getNavigationItems(
       ],
     },
     { label: t("photos.deleted"), link: "/deleted", icon: Trash, color: "black" },
-    { label: t("sponsorus"), link: "https://github.com/sponsors/derneuere", icon: Heart, color: "pink" },
   ];
 }
 
