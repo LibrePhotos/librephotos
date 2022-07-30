@@ -434,6 +434,27 @@ export function fetchAlbumsAutoGalleries(dispatch: AppDispatch, album_id: string
     });
 }
 
+export function deleteAutoAlbum(albumID: string, albumTitle: string) {
+  return function (dispatch: Dispatch<any>) {
+    dispatch({ type: "DELETE_AUTO_ALBUM" });
+    Server.delete(`/albums/auto/${albumID}`)
+      .then(response => {
+        dispatch({ type: "DELETE_AUTO_ALBUM_FULFILLED", payload: albumID });
+        dispatch(fetchAutoAlbumsList());
+        showNotification({
+          message: i18n.t<string>("toasts.deletealbum", {
+            albumTitle: albumTitle,
+          }),
+          title: i18n.t<string>("toasts.deletealbumtitle"),
+          color: "teal",
+        });
+      })
+      .catch(err => {
+        dispatch({ type: "DELETE_USER_ALBUM_REJECTED", payload: err });
+      });
+  };
+}
+
 // share user album
 export function setUserAlbumShared(album_id: number, target_user_id: string, val_shared: boolean) {
   return function (dispatch: Dispatch<any>) {
