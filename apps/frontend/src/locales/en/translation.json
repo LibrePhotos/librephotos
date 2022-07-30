@@ -293,7 +293,9 @@
     "photocount": "Photo Count",
     "joined": "Joined",
     "notset": "Not set",
-    "remove": "Remove"
+    "remove": "Remove",
+    "admintools": "Admin Tools",
+    "deleteallautoalbums": "Delete all auto created albums"
   },
   "joblist": {
     "workerlogs": "Worker Logs",
@@ -415,6 +417,8 @@
     "renamealbumtitle": "Rename Album",
     "deletealbum": "{{albumTitle}} deleted.",
     "deletealbumtitle": "Delete album",
+    "deleteallautoalbums": "All auto created albums deleted.",
+    "deleteallautoalbumstitle": "Delete all auto created albums",
     "removefromalbum": "{{numberOfPhotos}} photo(s) were successfully removed from album {{title}}",
     "removefromalbumtitle": "Remove from album",
     "addtoalbum": "{{numberOfPhotos}} photo(s) were added to the existing {{title}} album",

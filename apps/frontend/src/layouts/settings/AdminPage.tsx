@@ -54,8 +54,8 @@ export const AdminPage = () => {
       </Group>
       <Title order={3}>{t("adminarea.sitesettings")}</Title>
       <SiteSettings />
-      <Title order={3}>Admin Tools</Title>
-      <Button onClick={() => dispatch(deleteAllAutoAlbum())}>Delete all auto albums</Button>
+      <Title order={3}>{t("adminarea.admintools")}</Title>
+      <Button onClick={() => dispatch(deleteAllAutoAlbum())}>{t("adminarea.deleteallautoalbums")}</Button>
       <Title order={3}>
         {t("adminarea.users")}
         {fetchingUserList ? <Loader size="xs" /> : null}

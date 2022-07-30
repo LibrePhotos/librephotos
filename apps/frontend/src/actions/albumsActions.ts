@@ -463,8 +463,8 @@ export function deleteAllAutoAlbum() {
         dispatch({ type: "DELETE_ALL_AUTO_ALBUM_FULFILLED" });
         dispatch(fetchAutoAlbumsList());
         showNotification({
-          message: "All auto albums deleted",
-          title: "Auto albums deleted",
+          message: i18n.t<string>("toasts.deleteallautoalbums"),
+          title: i18n.t<string>("toasts.deleteallautoalbumstitle"),
           color: "teal",
         });
       })
