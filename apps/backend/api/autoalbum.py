@@ -189,6 +189,7 @@ def generate_event_albums(user, job_id):
     return 1
 
 
+# To-Do: This does not belong here
 @job
 def delete_missing_photos(user, job_id):
     if LongRunningJob.objects.filter(job_id=job_id).exists():
