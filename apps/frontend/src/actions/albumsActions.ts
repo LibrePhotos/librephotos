@@ -455,6 +455,25 @@ export function deleteAutoAlbum(albumID: string, albumTitle: string) {
   };
 }
 
+export function deleteAllAutoAlbum() {
+  return function (dispatch: Dispatch<any>) {
+    dispatch({ type: "DELETE_All_AUTO_ALBUM" });
+    Server.post(`/albums/auto/delete_all/`)
+      .then(response => {
+        dispatch({ type: "DELETE_ALL_AUTO_ALBUM_FULFILLED" });
+        dispatch(fetchAutoAlbumsList());
+        showNotification({
+          message: "All auto albums deleted",
+          title: "Auto albums deleted",
+          color: "teal",
+        });
+      })
+      .catch(err => {
+        dispatch({ type: "DELETE_ALL_AUTO_ALBUM_REJECTED", payload: err });
+      });
+  };
+}
+
 // share user album
 export function setUserAlbumShared(album_id: number, target_user_id: string, val_shared: boolean) {
   return function (dispatch: Dispatch<any>) {
