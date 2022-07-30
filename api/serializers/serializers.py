@@ -101,6 +101,18 @@ class PhotoSerializer(serializers.ModelSerializer):
             "similar_photos",
             "video",
             "owner",
+            "size",
+            "height",
+            "width",
+            "focal_length",
+            "fstop",
+            "iso",
+            "shutter_speed",
+            "lens",
+            "camera",
+            "focalLength35Equivalent",
+            "digitalZoomRatio",
+            "subjectDistance",
         )
 
     def get_similar_photos(self, obj):

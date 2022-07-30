@@ -171,6 +171,14 @@ def handle_new_image(user, image_path, job_id):
                         job_id, img_abs_path, elapsed
                     )
                 )
+                photo._extract_exif_data(True)
+                elapsed = (datetime.datetime.now() - start).total_seconds()
+                util.logger.info(
+                    "job {}: extract exif data: {}, elapsed: {}".format(
+                        job_id, img_abs_path, elapsed
+                    )
+                )
+
                 photo._extract_rating(True)
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
@@ -234,6 +242,7 @@ def rescan_image(user, image_path, job_id):
             photo._generate_thumbnail(True)
             photo._calculate_aspect_ratio(False)
             photo._geolocate_mapbox(True)
+            photo._extract_exif_data(True)
             photo._extract_date_time_from_exif(True)
             photo._add_location_to_album_dates()
             photo._extract_rating(True)
