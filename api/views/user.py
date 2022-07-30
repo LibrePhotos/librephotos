@@ -10,7 +10,7 @@ from api.api_util import path_to_dict
 from api.date_time_extractor import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
 from api.models import User
 from api.permissions import IsRegistrationAllowed, IsUserOrReadOnly
-from api.serializers.user import ManageUserSerializer, UserSerializer
+from api.serializers.user import DeleteUserSerializer, ManageUserSerializer, UserSerializer
 from api.util import logger
 from api.views.caching import (
     CACHE_TTL,
@@ -108,6 +108,13 @@ class UserViewSet(viewsets.ModelViewSet):
     def list(self, *args, **kwargs):
         return super(UserViewSet, self).list(*args, **kwargs)
 
+class DeleteUserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all().order_by("id")
+    serializer_class = DeleteUserSerializer
+    permission_classes = (IsAdminUser,)
+    
+    def destroy(self, request, pk=None, *args, **kwargs):
+        return super(DeleteUserViewSet, self).destroy(request, pk, *args, **kwargs)
 
 class ManageUserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by("-last_login")
