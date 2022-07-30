@@ -172,6 +172,23 @@ export function updateAvatar(user, form_data) {
   };
 }
 
+export function deleteUser(user, dispatch) {
+  const username = user.username;
+  Server.delete(`delete/user/${user.id}/`, user)
+    .then(response => {
+      dispatch(fetchUserList());
+      showNotification({
+        message: i18n.t("toasts.deleteuser", { username: username }),
+        title: i18n.t("toasts.deleteusertitle"),
+        color: "teal",
+      });
+    })
+    .catch(error => {
+      console.error(error);
+      dispatch({ type: "DELETE_USER_REJECTED", payload: error });
+    });
+}
+
 export function updateUser(user, dispatch) {
   Server.patch(`user/${user.id}/`, user)
     .then(response => {

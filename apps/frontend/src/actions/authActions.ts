@@ -1,7 +1,7 @@
 import { push } from "redux-first-history";
 
 import { Server } from "../api_client/apiClient";
-import { AppDispatch } from "../store/store";
+import type { AppDispatch } from "../store/store";
 import { fetchUserList } from "./utilActions";
 
 export const LOGIN_REQUEST = "@@auth/LOGIN_REQUEST";
@@ -19,7 +19,8 @@ export function signup(
   firstname: string,
   lastname: string,
   is_superuser: boolean,
-  dispatch: AppDispatch
+  dispatch: AppDispatch,
+  noPush: boolean = false
 ) {
   dispatch({ type: "SIGNUP" });
   Server.post("/user/", {
@@ -35,7 +36,9 @@ export function signup(
       dispatch({ type: "SIGNUP_FULFILLED", payload: response.data });
       // @ts-ignore
       dispatch(fetchUserList());
-      dispatch(push("/login"));
+      if (!noPush) {
+        dispatch(push("/login"));
+      }
     })
     .catch(err => {
       dispatch({ type: "SIGNUP_REJECTED", payload: err });

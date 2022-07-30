@@ -3,7 +3,7 @@ import type { BaseQueryFn, FetchArgs } from "@reduxjs/toolkit/query/react";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Cookies } from "react-cookie";
 
-import type { IApiLoginPost, IApiLoginResponse, IApiUserSignUpPost } from "../store/auth/auth.zod";
+import type { IApiDeleteUserPost, IApiLoginPost, IApiLoginResponse, IApiUserSignUpPost } from "../store/auth/auth.zod";
 // eslint-disable-next-line import/no-cycle
 import { tokenReceived } from "../store/auth/authSlice";
 import type { RootState } from "../store/store";
@@ -24,6 +24,7 @@ export enum Endpoints {
   uploadFinished = "uploadFinished",
   upload = "upload",
   worker = "worker",
+  deleteUser = "deleteUser",
 }
 
 const baseQuery = fetchBaseQuery({
@@ -81,6 +82,14 @@ export const api = createApi({
         method: "POST",
         body: body,
         url: "/user/",
+      }),
+      transformResponse: response => UserSchema.parse(response),
+    }),
+    [Endpoints.deleteUser]: builder.mutation<IUser, IApiDeleteUserPost>({
+      query: body => ({
+        method: "DELETE",
+        body: body,
+        url: "/delete/user/",
       }),
       transformResponse: response => UserSchema.parse(response),
     }),

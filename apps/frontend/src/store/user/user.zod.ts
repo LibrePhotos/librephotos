@@ -48,7 +48,11 @@ export const ManageUser = z.object({
   save_metadata_to_disk: z.string(),
   scan_directory: z.string(),
   semantic_search_topk: z.number(),
-  username: z.string(),
+  username: z.string().optional(),
+  email: z.string().nullable(),
+  first_name: z.string().nullable(),
+  last_name: z.string().nullable(),
+  password: z.string().optional(),
 });
 
 export const SimpleUser = z.object({

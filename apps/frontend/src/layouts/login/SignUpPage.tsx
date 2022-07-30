@@ -103,7 +103,7 @@ export function SignupPage(): JSX.Element {
                     required
                     icon={<User />}
                     placeholder={t("settings.lastnameplaceholder")}
-                    name="firstname"
+                    name="lastname"
                     {...form.getInputProps("lastname")}
                   />
                   <PasswordInput

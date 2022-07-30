@@ -310,8 +310,17 @@
         "running": "running",
         "removeexplanation": "Does not actually stop the job, only removes this entry from DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc."
     },
+    "modaluseredit": {
+        "header": "Edit User",
+        "explanation1": "When the user",
+        "explanation2": "clicks on the 'scan photos' button, photos in the directory that you specify here will be imported under the user's account",
+        "currentdirectory": "User's current directory",
+        "notset": "not set",
+        "update": "Update",
+        "explanation3": "Choose a directory from below"
+    },
     "modalscandirectoryedit": {
-        "header": "Set the scan directory for user",
+        "header": "Set Scan Directory",
         "explanation1": "When the user",
         "explanation2": "clicks on the 'scan photos' button, photos in the directory that you specify here will be imported under the user's account",
         "currentdirectory": "User's current directory",
@@ -470,7 +479,9 @@
         "finaldeletephototitle": "Delete Images",
         "editphoto": "Photo edited",
         "editphototitle": "Edit photo",
-        "uploadsuccess": "Upload successful"
+        "uploadsuccess": "Upload successful",
+        "deleteuser": "{{username}} deleted",
+        "deleteusertitle": "Delete user"
     },
     "rules": {
         "1": "Local time from DATE_TIME_ORIGINAL exif tag",
