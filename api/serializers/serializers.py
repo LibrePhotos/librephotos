@@ -440,6 +440,10 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
                     res.append(serialized_person)
         return res
 
+    def delete(self, validated_data, id):
+        album = AlbumAuto.objects.filter(id=id).get()
+        album.delete()
+
 
 class AlbumAutoListSerializer(serializers.ModelSerializer):
     photos = serializers.SerializerMethodField()
