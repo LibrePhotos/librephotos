@@ -89,6 +89,7 @@ router = routers.DefaultRouter()
 
 router.register(r"api/user", user.UserViewSet, basename="user")
 router.register(r"api/manage/user", user.ManageUserViewSet)
+router.register(r"api/delete/user", user.DeleteUserViewSet)
 
 router.register(
     r"api/albums/auto/list", album_auto.AlbumAutoListViewSet, basename="album_auto"

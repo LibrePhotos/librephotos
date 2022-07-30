@@ -9,6 +9,7 @@ from rest_framework.exceptions import ValidationError
 
 from api.batch_jobs import create_batch_job
 from api.models import LongRunningJob, Photo, User
+from api.models.user import get_deleted_user
 from api.serializers.photos import PhotoSuperSimpleSerializer
 from api.util import logger
 
@@ -212,10 +213,14 @@ class UserSerializer(serializers.ModelSerializer):
         except Exception:
             return None
 
+class DeleteUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = "__all__"
+
 
 class ManageUserSerializer(serializers.ModelSerializer):
     photo_count = serializers.SerializerMethodField()
-
     class Meta:
         model = get_user_model()
         fields = (
@@ -230,6 +235,10 @@ class ManageUserSerializer(serializers.ModelSerializer):
             "favorite_min_rating",
             "image_scale",
             "save_metadata_to_disk",
+            "email",
+            "first_name",
+            "last_name",
+            "password"
         )
         extra_kwargs = {
             "password": {"write_only": True},
@@ -238,16 +247,42 @@ class ManageUserSerializer(serializers.ModelSerializer):
     def get_photo_count(self, obj):
         return Photo.objects.filter(owner=obj).count()
 
-    def update(self, instance, validated_data):
+    def update(self, instance: User, validated_data):
+        if "password" in validated_data:
+            password = validated_data.pop("password")
+            if password != "":
+                instance.set_password(password)
+
         if "scan_directory" in validated_data:
             new_scan_directory = validated_data.pop("scan_directory")
             if os.path.exists(new_scan_directory):
                 instance.scan_directory = new_scan_directory
-                instance.save()
                 logger.info(
                     "Updated scan directory for user {}".format(instance.scan_directory)
                 )
             else:
                 raise ValidationError("Scan directory does not exist")
+        if "username" in validated_data:
+            username = validated_data.pop("username")
+            if username != "":
+                other_user = User.objects.filter(username=username).first()
+                if other_user != None and other_user != instance:
+                    raise ValidationError("User name is already taken")
+
+                instance.username = username
+        
+        if "email" in validated_data:
+            email = validated_data.pop("email")
+            instance.email = email
+       
+        if "first_name" in validated_data:
+            first_name = validated_data.pop("first_name")
+            instance.first_name = first_name
+        
+        if "last_name" in validated_data:
+            last_name = validated_data.pop("last_name")
+            instance.last_name = last_name
+        
+        instance.save()
         cache.clear()
         return instance
