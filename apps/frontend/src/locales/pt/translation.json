@@ -327,7 +327,9 @@
         "photos": "Fotos"
     },
     "autoalbum": {
-        "subtitle": "A mostrar {{ autoalbumlength }} albuns gerados automaticamente"
+        "subtitle": "A mostrar {{ autoalbumlength }} albuns gerados automaticamente",
+        "delete": "Eliminar álbum automático",
+        "deleteexplanation": "Isto irá eliminar o álbum automático. Tem a certeza?"
     },
     "autoalbumgallery": {
         "showmap": "Mostrar mapa",
