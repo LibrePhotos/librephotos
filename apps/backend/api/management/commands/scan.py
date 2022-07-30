@@ -38,6 +38,7 @@ class Command(BaseCommand):
                     user, options["full_scan"], uuid.uuid4(), user.scan_directory
                 )
 
+
     def nextcloud_scan(self):
         for user in User.objects.all():
             if not user.scan_directory:
