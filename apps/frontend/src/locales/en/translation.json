@@ -335,7 +335,9 @@
     "photos": "Photos"
   },
   "autoalbum": {
-    "subtitle": "Showing {{ autoalbumlength }} Auto created albums"
+    "subtitle": "Showing {{ autoalbumlength }} Auto created albums",
+    "delete": "Delete Auto Album",
+    "deleteexplanation": "This will delete the auto album. Are you sure?"
   },
   "autoalbumgallery": {
     "showmap": "Show Map",
@@ -343,6 +345,8 @@
   },
   "personalbum": {
     "numberofpeople": "{{peoplelength}} People",
+    "deleteperson": "Delete Person",
+    "deletepersondescription": "Do you really want to delete this person?",
     "renameperson": "Rename Person",
     "personalreadyexists": "Person {{name}} already exists.",
     "nameplaceholder": "Name"

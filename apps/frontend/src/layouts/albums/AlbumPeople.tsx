@@ -178,8 +178,12 @@ export const AlbumPeople = () => {
           </Button>
         </Group>
       </Modal>
-      <Modal opened={openDeleteDialogState} title="Delete Person" onClose={() => setOpenDeleteDialogState(false)}>
-        <Text size="sm">Do you really want to delete this person?</Text>
+      <Modal
+        opened={openDeleteDialogState}
+        title={t("personalbum.deleteperson")}
+        onClose={() => setOpenDeleteDialogState(false)}
+      >
+        <Text size="sm">{t("personalbum.deletepersondescription")}</Text>
         <Group>
           <Button
             onClick={() => {

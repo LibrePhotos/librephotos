@@ -132,11 +132,12 @@ export const AlbumAuto = () => {
           />
         )}
       </AutoSizer>
-      {
-        //To-Do: Add Locale
-      }
-      <Modal opened={openDeleteDialogState} title="Delete Auto Album" onClose={() => setOpenDeleteDialogState(false)}>
-        <Text size="sm">Do you really want to delete this auto album?</Text>
+      <Modal
+        opened={openDeleteDialogState}
+        title={t("autoalbum.delete")}
+        onClose={() => setOpenDeleteDialogState(false)}
+      >
+        <Text size="sm">{t("autoalbum.deleteexplanation")}</Text>
         <Group>
           <Button
             onClick={() => {
