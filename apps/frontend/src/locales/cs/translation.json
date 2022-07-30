@@ -245,7 +245,9 @@
         "notset": "Nenastaveno",
         "header": "Správa",
         "sitesettings": "Nastavení webu",
-        "users": "Uživatelé"
+        "users": "Uživatelé",
+        "admintools": "Administrační nástroje",
+        "deleteallautoalbums": "Smazat všechna automaticky vytvořená alba"
     },
     "joblist": {
         "workerlogs": "Logy procesů",
@@ -294,7 +296,9 @@
         "renameperson": "Přejmenovat osobu",
         "personalreadyexists": "Osoba {{name}} již existuje.",
         "nameplaceholder": "Jméno",
-        "numberofpeople": "{{peoplelength}} Lidí"
+        "numberofpeople": "{{peoplelength}} Lidí",
+        "deleteperson": "Smazat osobu",
+        "deletepersondescription": "Opravdu chcete smazat tuto osobu?"
     },
     "useralbum": {
         "albumalreadyexists": "Album {{name}} již existuje.",
@@ -391,7 +395,9 @@
         "jobfinished": "{{job}} dokončeno.",
         "regenerateevents": "Přegenerovávání názvů událostí…",
         "scanuploadedphotos": "Skenování nahraných fotografií…",
-        "scanuploadedphotostitle": "Skenovat nahrané fotografie"
+        "scanuploadedphotostitle": "Skenovat nahrané fotografie",
+        "deleteallautoalbumstitle": "Smazat všechna automaticky vytvořená alba",
+        "deleteallautoalbums": "Všechna automaticky vytvořená alba smazána."
     },
     "rules": {
         "1": "Místní čas ze značky exif DATE_TIME_ORIGINAL",
@@ -463,7 +469,9 @@
         "loading": "Načítání..."
     },
     "autoalbum": {
-        "subtitle": "Zobrazuje se {{ autoalbumlength }} automaticky vytvořených alb"
+        "subtitle": "Zobrazuje se {{ autoalbumlength }} automaticky vytvořených alb",
+        "delete": "Smazat automatické album",
+        "deleteexplanation": "Toto smaže automatické album. Jste si jisti?"
     },
     "autoalbumgallery": {
         "showmap": "Zobrazit mapu",
