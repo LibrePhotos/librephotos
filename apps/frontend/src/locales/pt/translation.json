@@ -339,7 +339,9 @@
         "numberofpeople": "{{peoplelength}} Pessoas",
         "renameperson": "Renomear pessoa",
         "personalreadyexists": "Pessoa chamada {{name}} já existe.",
-        "nameplaceholder": "Nome"
+        "nameplaceholder": "Nome",
+        "deleteperson": "Eliminar Pessoa",
+        "deletepersondescription": "De certeza que pretende eliminar esta pessoa?"
     },
     "placealbum": {
         "showingplaces": "A mostrar {{number}} locais no mapa",
