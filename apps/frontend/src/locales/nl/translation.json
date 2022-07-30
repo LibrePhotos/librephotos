@@ -267,7 +267,9 @@
         "minimumconfidence": "Minimaal herkenningsniveau",
         "notset": "Niet ingesteld",
         "username": "Gebruikersnaam",
-        "photocount": "Aantal foto's"
+        "photocount": "Aantal foto's",
+        "admintools": "Beheerdershulpmiddelen",
+        "deleteallautoalbums": "Alle automatisch samengestelde albums wissen"
     },
     "joblist": {
         "workerlogs": "Werklogboek",
@@ -340,13 +342,17 @@
         "photos": "Foto's"
     },
     "autoalbum": {
-        "subtitle": "Getoond: {{ autoalbumlength }} automatisch samengestelde albums"
+        "subtitle": "Getoond: {{ autoalbumlength }} automatisch samengestelde albums",
+        "deleteexplanation": "Hierdoor wordt het album permanent gewist. Weet je het zeker?",
+        "delete": "Automatisch album wissen"
     },
     "personalbum": {
         "numberofpeople": "{{peoplelength}} personen",
         "renameperson": "Persoonsnaam wijzigen",
         "personalreadyexists": "{{name}} bestaat al.",
-        "nameplaceholder": "Naam"
+        "nameplaceholder": "Naam",
+        "deletepersondescription": "Weet je zeker dat je deze persoon wilt verwijderen?",
+        "deleteperson": "Persoon verwijderen"
     },
     "thingalbum": {
         "showingthings": "Getoond: top {{number}} items"
@@ -439,7 +445,9 @@
         "deletejob": "De taak ‘{{id}}’ is verwijderd.",
         "deletejobtitle": "Taak verwijderen",
         "scanuploadedphotos": "Bezig met scannen van geüploade foto's…",
-        "scanuploadedphotostitle": "Geüploade foto's scannen"
+        "scanuploadedphotostitle": "Geüploade foto's scannen",
+        "deleteallautoalbums": "Alle automatisch samengestelde albums zijn gewist.",
+        "deleteallautoalbumstitle": "Alle automatisch samengestelde albums wissen"
     },
     "rename": "Naam wijzigen",
     "events": "Gebeurtenissen",
