@@ -1,9 +1,10 @@
 import django_rq
+from django.db.models import Prefetch
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.models import LongRunningJob
+from api.models import LongRunningJob, User
 from api.serializers.serializers import LongRunningJobSerializer
 from api.util import logger
 from api.views.pagination import TinyResultsSetPagination
@@ -22,7 +23,16 @@ def queue_can_accept_job():
 
 
 class LongRunningJobViewSet(viewsets.ModelViewSet):
-    queryset = LongRunningJob.objects.all().order_by("-started_at")
+    queryset = (
+        LongRunningJob.objects.prefetch_related(
+            Prefetch(
+                "started_by",
+                queryset=User.objects.only("id", "username", "first_name", "last_name"),
+            ),
+        )
+        .all()
+        .order_by("-started_at")
+    )
     serializer_class = LongRunningJobSerializer
     pagination_class = TinyResultsSetPagination
 
