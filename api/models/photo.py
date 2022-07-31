@@ -76,7 +76,7 @@ class Photo(models.Model):
     fstop = models.FloatField(blank=True, null=True)
     focal_length = models.FloatField(blank=True, null=True)
     iso = models.IntegerField(blank=True, null=True)
-    shutter_speed = models.FloatField(blank=True, null=True)
+    shutter_speed = models.TextField(blank=True, null=True)
     camera = models.TextField(blank=True, null=True)
     lens = models.TextField(blank=True, null=True)
     width = models.IntegerField(default=0)
