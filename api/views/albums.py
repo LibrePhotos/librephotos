@@ -108,6 +108,7 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
         return Response({"results": serializer.data})
 
 
+# To-Do: Uses too many queries
 class PersonViewSet(viewsets.ModelViewSet):
     serializer_class = PersonSerializer
     pagination_class = StandardResultsSetPagination
