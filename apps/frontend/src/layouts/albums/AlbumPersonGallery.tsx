@@ -23,7 +23,7 @@ export function AlbumPersonGallery(): JSX.Element {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const [group, setGroup] = useState({} as IFetchedGroup);
-  const person = people.filter((i: any) => i.key === albumID)[0];
+  const person = people.filter((i: any) => i.key == albumID)[0];
   const personname = person ? person.value : undefined;
 
   useEffect(() => {
