@@ -52,7 +52,6 @@ export function AlbumUserGallery() {
       isDateView
       photoset={photosGroupedByDate}
       idx2hash={photosFlat}
-      params={params}
       isPublic={isPublic}
       selectable
     />
