@@ -103,6 +103,10 @@ class UserSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         # user can only update the following
+        if "password" in validated_data:
+            password = validated_data.pop("password")
+            if password != "":
+                instance.set_password(password)
         if "avatar" in validated_data:
             instance.avatar = validated_data.pop("avatar")
             instance.save()
