@@ -8,10 +8,10 @@ import { Tags } from "tabler-icons-react";
 
 import { fetchThingAlbumsList } from "../../actions/albumsActions";
 import { Tile } from "../../components/Tile";
-import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
 import { HeaderComponent } from "./HeaderComponent";
 
-const SIDEBAR_WIDTH = 85;
+const SIDEBAR_WIDTH = LEFT_MENU_WIDTH;
 
 export class AlbumThing extends Component {
   constructor() {

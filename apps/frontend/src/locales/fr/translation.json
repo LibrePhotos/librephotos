@@ -276,7 +276,9 @@
         "photocount": "Nombre de photos (et vidéos)",
         "joined": "Enregistré depuis",
         "notset": "Non spécifié",
-        "remove": "Retirer"
+        "remove": "Retirer",
+        "deleteallautoalbums": "Supprimer tous les albums créés automatiquement",
+        "admintools": "Outils d'administration"
     },
     "joblist": {
         "workerlogs": "Journaux d’activité",
@@ -306,7 +308,9 @@
         "renameperson": "Renommer la personne",
         "personalreadyexists": "La personne {{name}} existe déjà.",
         "numberofpeople": "{{peoplelength}} personnes",
-        "nameplaceholder": "Nom"
+        "nameplaceholder": "Nom",
+        "deletepersondescription": "Voulez-vous vraiment supprimer cette personne ?",
+        "deleteperson": "Supprimer la personne"
     },
     "faces": "Visages",
     "events": "Évènements",
@@ -325,7 +329,9 @@
         "heavyweight": "Nombre de travailleurs, lors de la numérisation d'images. Ce paramètre peut affecter considérablement l'utilisation de la mémoire vive. Chaque travailleur a besoin de 800 Mo de mémoire vive. Changez à votre guise. La valeur par défaut est 1."
     },
     "autoalbum": {
-        "subtitle": "Affichage des {{ autoalbumlength }} albums créés automatiquement"
+        "subtitle": "Affichage des {{ autoalbumlength }} albums créés automatiquement",
+        "delete": "Supprimer l'album automatique",
+        "deleteexplanation": "Ceci supprimera l'album automatique. Êtes-vous sûr·e ?"
     },
     "countstats": {
         "photos": "Photos"
@@ -414,7 +420,7 @@
         "scanphotos": "Scan démarré",
         "scanphotostitle": "Scanner les photos",
         "fullscanphotos": "Numérisation des photos (complète)…",
-        "trainingstartedtitle": "Tentative d'association de visages",
+        "trainingstartedtitle": "Reconnaissance faciale",
         "removepublicphoto": "{{numberOfPhotos}} photo(s) ont été supprimées de vos photos publiques.",
         "addfacestoperson": "{{numberOfFaces}} visage(s) ont été étiquetés comme la personne {{personName}}",
         "rescanfaces": "Scan démarré",
@@ -443,8 +449,10 @@
         "uploadsuccess": "Téléversement réussi",
         "deletejob": "Travail {{id}} supprimé.",
         "deletejobtitle": "Supprimer le travail",
-        "scanuploadedphotostitle": "Scan des photos téléchargées",
-        "scanuploadedphotos": "Scan des photos téléchargées…"
+        "scanuploadedphotostitle": "Scan des photos téléversées",
+        "scanuploadedphotos": "Scan des photos téléversées…",
+        "deleteallautoalbums": "Tous les albums créés automatiquement ont été supprimés.",
+        "deleteallautoalbumstitle": "Supprimer tous les albums créés automatiquement"
     },
     "rules": {
         "file_property": "Utiliser la propriété du fichier {{rule}}",
@@ -496,5 +504,6 @@
         "mediafile": "Enregistrer dans un fichier multimédia"
     },
     "defaulttimezone": "Fuseau horaire par défaut",
-    "sync": "Synchronisation des métadonnées sur le disque"
+    "sync": "Synchronisation des métadonnées sur le disque",
+    "supportus": "Nous soutenir"
 }

@@ -9,10 +9,10 @@ import { DotsVertical, Edit, Trash, Users } from "tabler-icons-react";
 import { deletePerson, fetchPeople, renamePerson } from "../../actions/peopleActions";
 import { Tile } from "../../components/Tile";
 import { useAppDispatch, useAppSelector } from "../../store/store";
-import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
 import { HeaderComponent } from "./HeaderComponent";
 
-const SIDEBAR_WIDTH = 85;
+const SIDEBAR_WIDTH = LEFT_MENU_WIDTH;
 
 export const AlbumPeople = () => {
   const { width, height } = useViewportSize();
@@ -178,8 +178,12 @@ export const AlbumPeople = () => {
           </Button>
         </Group>
       </Modal>
-      <Modal opened={openDeleteDialogState} title="Delete Person" onClose={() => setOpenDeleteDialogState(false)}>
-        <Text size="sm">Do you really want to delete this person?</Text>
+      <Modal
+        opened={openDeleteDialogState}
+        title={t("personalbum.deleteperson")}
+        onClose={() => setOpenDeleteDialogState(false)}
+      >
+        <Text size="sm">{t("personalbum.deletepersondescription")}</Text>
         <Group>
           <Button
             onClick={() => {

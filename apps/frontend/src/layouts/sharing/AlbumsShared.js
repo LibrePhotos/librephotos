@@ -7,6 +7,7 @@ import { AutoSizer, Grid } from "react-virtualized";
 import { Polaroid, User } from "tabler-icons-react";
 
 import { serverAddress } from "../../api_client/apiClient";
+import { LEFT_MENU_WIDTH } from "../../ui-constants";
 import {
   calculateGridCellSize,
   calculateSharedAlbumGridCells,
@@ -15,7 +16,7 @@ import {
 import { SCROLL_DEBOUNCE_DURATION, ScrollSpeed } from "../../util/scrollUtils";
 
 const SPEED_THRESHOLD = 300;
-const SIDEBAR_WIDTH = 85;
+const SIDEBAR_WIDTH = LEFT_MENU_WIDTH;
 const DAY_HEADER_HEIGHT = 70;
 
 export class AlbumsShared extends Component {

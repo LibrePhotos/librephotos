@@ -1,4 +1,4 @@
-import { Group, Image } from "@mantine/core";
+import { ActionIcon, Button, Group, Image, Menu, Modal, Text } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -6,17 +6,17 @@ import LazyLoad from "react-lazyload";
 import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
 import { push } from "redux-first-history";
-import { SettingsAutomation } from "tabler-icons-react";
+import { DotsVertical, Edit, SettingsAutomation, Trash } from "tabler-icons-react";
 
-import { fetchAutoAlbumsList } from "../../actions/albumsActions";
+import { deleteAutoAlbum, fetchAutoAlbumsList } from "../../actions/albumsActions";
 import { searchPhotos } from "../../actions/searchActions";
 import { serverAddress } from "../../api_client/apiClient";
 import { Tile } from "../../components/Tile";
 import { useAppDispatch, useAppSelector } from "../../store/store";
-import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
 import { HeaderComponent } from "./HeaderComponent";
 
-const SIDEBAR_WIDTH = 85;
+const SIDEBAR_WIDTH = LEFT_MENU_WIDTH;
 
 export const AlbumAuto = () => {
   const { width, height } = useViewportSize();
@@ -25,6 +25,11 @@ export const AlbumAuto = () => {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const auth = useAppSelector(store => store.auth);
+
+  const [openDeleteDialogState, setOpenDeleteDialogState] = useState(false);
+  const [autoAlbumID, setAutoAlbumID] = useState("");
+  const [autoAlbumTitle, setAutoAlbumTitle] = useState("");
+
   const { albumsAutoList, fetchingAlbumsAutoList, fetchedAlbumsAutoList } = useAppSelector(store => store.albums);
   useEffect(() => {
     if (albumsAutoList.length === 0) {
@@ -50,6 +55,12 @@ export const AlbumAuto = () => {
     setNumEntrySquaresPerRow(numEntrySquaresPerRow);
   }, [width, height]);
 
+  const openDeleteDialog = (personID, personName) => {
+    setOpenDeleteDialogState(true);
+    setAutoAlbumID(personID);
+    setAutoAlbumTitle(personName);
+  };
+
   const cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
     const albumAutoIndex = rowIndex * numEntrySquaresPerRow + columnIndex;
     if (albumAutoIndex < albumsAutoList.length) {
@@ -64,6 +75,23 @@ export const AlbumAuto = () => {
                 image_hash={albumsAutoList[albumAutoIndex].photos.image_hash}
               />
             </Link>
+            <Menu
+              style={{ position: "absolute", top: 10, right: 10 }}
+              control={
+                <ActionIcon>
+                  <DotsVertical />
+                </ActionIcon>
+              }
+            >
+              <Menu.Item
+                icon={<Trash />}
+                onClick={() => {
+                  openDeleteDialog(albumsAutoList[albumAutoIndex].id, albumsAutoList[albumAutoIndex].title);
+                }}
+              >
+                {t("delete")}
+              </Menu.Item>
+            </Menu>
           </div>
           <div className="personCardName" style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
             <b>{albumsAutoList[albumAutoIndex].title}</b> <br />
@@ -104,6 +132,31 @@ export const AlbumAuto = () => {
           />
         )}
       </AutoSizer>
+      <Modal
+        opened={openDeleteDialogState}
+        title={t("autoalbum.delete")}
+        onClose={() => setOpenDeleteDialogState(false)}
+      >
+        <Text size="sm">{t("autoalbum.deleteexplanation")}</Text>
+        <Group>
+          <Button
+            onClick={() => {
+              setOpenDeleteDialogState(false);
+            }}
+          >
+            {t("cancel")}
+          </Button>
+          <Button
+            color="red"
+            onClick={() => {
+              dispatch(deleteAutoAlbum(autoAlbumID, autoAlbumTitle));
+              setOpenDeleteDialogState(false);
+            }}
+          >
+            {t("delete")}
+          </Button>
+        </Group>
+      </Modal>
     </div>
   );
 };
