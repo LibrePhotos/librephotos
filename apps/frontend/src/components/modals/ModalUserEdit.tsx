@@ -32,6 +32,7 @@ export function ModalUserEdit(props: Props) {
   const [userFirst, setUserFirst] = useState("");
   const [userLast, setUserLast] = useState("");
   const [userPassword, setUserPassword] = useState("");
+  const [newPasswordIsValid, setNewPasswordIsValid] = useState(true);
   
   const [isAdmin, setIsAdmin] = useState(false);
   const [scanDirectoryPlaceholder, setScanDirectoryPlaceholder] = useState("");
@@ -41,7 +42,6 @@ export function ModalUserEdit(props: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { t } = useTranslation();
   const [pathDoesNotExist, setPathDoesNotExist] = useState(false);
-  const [newPasswordIsValid, setNewPasswordIsValid] = useState(true);
   const [userNamePopOpen, setUserNamePopOpen] = useState(false);
   const [closing, setClosing] = useState(false);
 
@@ -219,7 +219,7 @@ export function ModalUserEdit(props: Props) {
   const onPasswordValidate = (pass: string, valid: boolean) => {
     setUserPassword(pass);
     setNewPasswordIsValid(valid);
-  }
+  };
 
   return (
     <Modal

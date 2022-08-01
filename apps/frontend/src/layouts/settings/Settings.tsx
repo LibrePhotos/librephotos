@@ -15,6 +15,7 @@ import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { ModalNextcloudScanDirectoryEdit } from "../../components/modals/ModalNextcloudScanDirectoryEdit";
 import { ConfigDatetime } from "../../components/settings/ConfigDatetime";
+import { PasswordEntry } from "../../components/settings/PasswordEntry";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 export const Settings = () => {
@@ -28,6 +29,17 @@ export const Settings = () => {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
   const { t } = useTranslation();
+
+  const onPasswordValidate = (pass: string, valid: boolean) => {
+    var newUserDetails = {...userSelfDetails};
+    if (pass && valid) {
+      newUserDetails.password = pass;
+    } else {
+      delete newUserDetails.password;
+    }
+
+    setUserSelfDetails({...newUserDetails});
+  };
 
   // open update dialog, when user was edited
   useEffect(() => {
@@ -74,7 +86,7 @@ export const Settings = () => {
       <Group position="center">
         <Select
           label={t("settings.sceneconfidence")}
-          value={userSelfDetails.confidence.toString()}
+          value={userSelfDetails.confidence}
           onChange={value => {
             setUserSelfDetails({ ...userSelfDetails, confidence: value ? parseFloat(value) : 0 });
           }}
@@ -89,7 +101,7 @@ export const Settings = () => {
         <Select
           label={t("settings.semanticsearchheader")}
           placeholder={t("settings.semanticsearch.placeholder")}
-          value={userSelfDetails.semantic_search_topk.toString()}
+          value={userSelfDetails.semantic_search_topk}
           onChange={value => {
             setUserSelfDetails({ ...userSelfDetails, semantic_search_topk: value ? parseInt(value) : 0 });
           }}
@@ -119,7 +131,7 @@ export const Settings = () => {
         />
         <Select
           label={t("settings.favoriteminimum")}
-          value={userSelfDetails.favorite_min_rating.toString()}
+          value={userSelfDetails.favorite_min_rating}
           placeholder={t("settings.favoriteoption.placeholder")}
           onChange={value => {
             setUserSelfDetails({ ...userSelfDetails, favorite_min_rating: value ? parseInt(value) : 3 });
@@ -142,6 +154,12 @@ export const Settings = () => {
             setUserSelfDetails({ ...userSelfDetails, default_timezone: value ? value : "UTC" });
           }}
           data={timezoneList}
+        />
+      </Group>
+      <Group position="center">
+        <PasswordEntry 
+          onValidate={onPasswordValidate}
+          createNew={false}
         />
       </Group>
       <ConfigDatetime />
@@ -173,7 +191,7 @@ export const Settings = () => {
         radius="md"
       >
         <Text size="sm" style={{ marginBottom: 10 }} weight={500}>
-          Save Changes?
+            <Trans i18nKey="settings.savechanges">Save changes?</Trans>
         </Text>
 
         <Group align="flex-end">
@@ -193,6 +211,7 @@ export const Settings = () => {
           <Button
             onClick={() => {
               setUserSelfDetails(userSelfDetails);
+              setIsOpenUpdateDialog(false);
             }}
             size="sm"
           >

@@ -125,6 +125,7 @@
       "mediafile": "Save to media file"
     },
     "favoriteupdate": "Update",
+    "savechanges": "Save changes?",
     "experimentaloptions": "Experimental options",
     "transcodevideo": "Always transcode videos",
     "on": "On",

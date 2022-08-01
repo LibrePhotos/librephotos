@@ -196,13 +196,11 @@ export function updateUser(user, dispatch) {
       dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id)).refetch();
       dispatch(userActions.updateRules(response.data));
       //dispatch(fetchUserList());
-      dispatch(
-        showNotification({
-          message: i18n.t("toasts.updateuser", { username: user.username }),
-          title: i18n.t("toasts.updateusertitle"),
-          color: "teal",
-        })
-      );
+      showNotification({
+        message: i18n.t("toasts.updateuser", { username: user.username }),
+        title: i18n.t("toasts.updateusertitle"),
+        color: "teal",
+      });
       dispatch(fetchNextcloudDirectoryTree("/"));
     })
     .catch(error => {

@@ -35,6 +35,7 @@ export const UserSchema = z.object({
   save_metadata_to_disk: z.string(),
   datetime_rules: z.string(),
   default_timezone: z.string(),
+  password: z.string().optional(),
 });
 
 export const ManageUser = z.object({
