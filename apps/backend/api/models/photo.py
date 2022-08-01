@@ -72,6 +72,18 @@ class Photo(models.Model):
     hidden = models.BooleanField(default=False, db_index=True)
     video = models.BooleanField(default=False)
     video_length = models.TextField(blank=True, null=True)
+    size = models.IntegerField(default=0)
+    fstop = models.FloatField(blank=True, null=True)
+    focal_length = models.FloatField(blank=True, null=True)
+    iso = models.IntegerField(blank=True, null=True)
+    shutter_speed = models.TextField(blank=True, null=True)
+    camera = models.TextField(blank=True, null=True)
+    lens = models.TextField(blank=True, null=True)
+    width = models.IntegerField(default=0)
+    height = models.IntegerField(default=0)
+    focalLength35Equivalent = models.IntegerField(blank=True, null=True)
+    subjectDistance = models.FloatField(blank=True, null=True)
+    digitalZoomRatio = models.FloatField(blank=True, null=True)
 
     owner = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None
@@ -476,6 +488,53 @@ class Photo(models.Model):
         )
         logger.debug(f"Extracted rating for {self.image_paths[0]}: {video_length}")
         self.video_length = video_length
+        if commit:
+            self.save()
+
+    def _extract_exif_data(self, commit=True):
+        (
+            size,
+            fstop,
+            focal_length,
+            iso,
+            shutter_speed,
+            camera,
+            lens,
+            width,
+            height,
+            focalLength35Equivalent,
+            subjectDistance,
+            digitalZoomRatio,
+        ) = get_metadata(  # noqa: E501
+            self.image_paths[0],
+            tags=[
+                Tags.FILE_SIZE,
+                Tags.FSTOP,
+                Tags.FOCAL_LENGTH,
+                Tags.ISO,
+                Tags.SHUTTER_SPEED,
+                Tags.CAMERA,
+                Tags.LENS,
+                Tags.IMAGE_WIDTH,
+                Tags.IMAGE_HEIGHT,
+                Tags.FOCAL_LENGTH_35MM,
+                Tags.SUBJECT_DISTANCE,
+                Tags.DIGITAL_ZOOM_RATIO,
+            ],
+            try_sidecar=True,
+        )
+        self.size = size
+        self.fstop = fstop
+        self.focal_length = focal_length
+        self.iso = iso
+        self.shutter_speed = shutter_speed
+        self.camera = camera
+        self.lens = lens
+        self.width = width
+        self.height = height
+        self.focalLength35Equivalent = focalLength35Equivalent
+        self.subjectDistance = subjectDistance
+        self.digitalZoomRatio = digitalZoomRatio
         if commit:
             self.save()
 
