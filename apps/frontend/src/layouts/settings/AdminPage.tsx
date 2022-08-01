@@ -80,7 +80,7 @@ const UserTable = () => {
   }, [dispatch]);
 
   const rows = userList.map((user) => (
-    <tr key={user.id}>
+    <tr key={user.username}>
       <td>
         <Button 
           size="xs" 
