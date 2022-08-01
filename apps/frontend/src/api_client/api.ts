@@ -136,29 +136,13 @@ export const api = createApi({
       }),
     }),
     [Endpoints.jobs]: builder.query<IJobsResponseSchema, IJobRequestSchema>({
-      query: ({ pageSize = 10, page }) => ({
+      query: ({ pageSize = 10, page = 0 }) => ({
         url: `jobs/?page_size=${pageSize}&page=${page}`,
       }),
     }),
   }),
 });
 
-/*
-export function fetchJobList(page, page_size = 10) {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_JOB_LIST" });
-    Server.get(`jobs/?page_size=${page_size}&page=${page}`)
-      .then(response => {
-        const data = Job.array().parse(response.data.results);
-        dispatch({ type: "FETCH_JOB_LIST_FULFILLED", payload: response.data });
-      })
-      .catch(error => {
-        console.error(error);
-        dispatch({ type: "FETCH_JOB_LIST_REJECTED", payload: error });
-      });
-  };
-}
- */
 export const {
   useLazyFetchUserListQuery,
   useLazyFetchPredefinedRulesQuery,
