@@ -19,8 +19,9 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Adjustments, Ban, Check, Clock, Edit, Trash, Refresh, Plus } from "tabler-icons-react";
 
-import { deleteJob, deleteUser, fetchJobList, fetchSiteSettings, fetchUserList } from "../../actions/utilActions";
 import { ModalUserEdit } from "../../components/modals/ModalUserEdit";
+import { deleteAllAutoAlbum } from "../../actions/albumsActions";
+import { deleteJob, deleteUser, fetchJobList, fetchSiteSettings, fetchUserList } from "../../actions/utilActions";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { SiteSettings } from "./SiteSettings";
 
@@ -50,6 +51,8 @@ export const AdminPage = () => {
       </Group>
       <Title order={3}>{t("adminarea.sitesettings")}</Title>
       <SiteSettings />
+      <Title order={3}>{t("adminarea.admintools")}</Title>
+      <Button onClick={() => dispatch(deleteAllAutoAlbum())}>{t("adminarea.deleteallautoalbums")}</Button>
       <Title order={3}>
         {t("adminarea.users")}
         {fetchingUserList ? <Loader size="xs" /> : null}

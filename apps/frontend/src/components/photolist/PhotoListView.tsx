@@ -3,6 +3,7 @@ import { useViewportSize } from "@mantine/hooks";
 import _ from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Pig from "react-pig";
+import { useParams } from "react-router-dom";
 
 import { setAlbumCoverForUserAlbum } from "../../actions/albumsActions";
 import { setAlbumCoverForPerson } from "../../actions/peopleActions";
@@ -37,7 +38,6 @@ type Props = {
   updateItems?: any;
   date?: any;
   dayHeaderPrefix?: any;
-  params?: any;
   header?: any;
   additionalSubHeader?: any;
 };
@@ -75,13 +75,13 @@ function PhotoListViewComponent(props: Props) {
     updateItems,
     date,
     dayHeaderPrefix,
-    params,
     header,
     additionalSubHeader,
   } = props;
 
   const idx2hashRef = useRef(idx2hash);
   const dispatch = useAppDispatch();
+  const params = useParams();
 
   useEffect(() => {
     idx2hashRef.current = idx2hash;
@@ -264,11 +264,9 @@ function PhotoListViewComponent(props: Props) {
                       setAlbumCover={actionType => {
                         console.log(actionType);
                         if (actionType === "person") {
-                          // @ts-ignore
                           dispatch(setAlbumCoverForPerson(params.albumID, selectionState.selectedItems[0].id));
                         }
                         if (actionType === "useralbum") {
-                          // @ts-ignore
                           dispatch(setAlbumCoverForUserAlbum(params.albumID, selectionState.selectedItems[0].id));
                         }
                       }}

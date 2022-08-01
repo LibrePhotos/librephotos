@@ -107,8 +107,6 @@
     "redux-persist-transform-filter": "0.0.20",
     "redux-thunk": "2.4.1",
     "rumble-charts": "4.0.0",
-    "semantic-ui-css": "npm:fomantic-ui-css@^2.8.8",
-    "semantic-ui-react": "2.1.3",
     "source-map-explorer": "2.5.2",
     "tabler-icons-react": "1.52.0",
     "zod": "3.17.3"

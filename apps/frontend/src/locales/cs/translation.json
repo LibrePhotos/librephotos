@@ -78,14 +78,14 @@
         "eventalbumsregenerate": "Přegenerovat názvy událostí",
         "eventalbumsregeneratedescription": "Automaticky generovaná alba mají v názvech jména lidí. Pokud jste si natrénovali klasifikátor tváří po vytvoření alb událostí, můžete vytvořit nové názvy pro již existující alba událostí, aby odrážely nová jména spojená s tvářemi na fotografiích.",
         "people": "Lidé",
-        "facesbutton": "Trénovat oblyčeje",
-        "faces": "Oblyčeje",
+        "facesbutton": "Trénovat obličeje",
+        "faces": "Obličeje",
         "inferred": "Odvozeno",
-        "facessmall": "oblyčeje",
+        "facessmall": "obličeje",
         "labeled": "Oštítkováno",
         "unknown": "Neznámý",
-        "facedashboard": "Správa oblyčejů",
-        "rescanfaces": "Přeskenovat oblyčeje",
+        "facedashboard": "Správa obličejů",
+        "rescanfaces": "Přeskenovat obličeje",
         "scanoptions": "Možnosti skenování",
         "sceneconfidence": "Skóre důvěryhodnosti scény",
         "confidencelevel": "Hodnota důvěry",
@@ -125,7 +125,12 @@
         "semanticsearchupdate": "Aktualizovat",
         "configdatetime": " Nastavte pravidla analýzy data a času",
         "experimentaloptions": "Experimentální nastavení",
-        "on": "Zapnuto"
+        "on": "Zapnuto",
+        "helptranslating": "Pomoci s překladem",
+        "finnish": "Finština",
+        "portuguese": "Portugalština",
+        "czech": "Čeština",
+        "basque": "Baskičtina"
     },
     "modalalbum": {
         "selectedimages": "Přidat vybrané fotografie ({{count}}) do...",
@@ -134,7 +139,8 @@
         "create": "Vytvořit",
         "items": "{{count}} Položka/y",
         "alreadexists": "Album {{title}} již existuje.",
-        "title": "Přidat do alba"
+        "title": "Přidat do alba",
+        "alreadyexists": "Album {{title}} již existuje."
     },
     "modalnextcloud": {
         "setdirectory": "Nastavte adresář skenování Nextcloud",
@@ -162,7 +168,7 @@
         "autoalbums": "Automaticky vytvořená alba",
         "myalbums": "Moje alba",
         "dataviz": "Vizualizace dat",
-        "datavizsmall": "Viz. dat",
+        "datavizsmall": "Data",
         "socialgraph": "Sociální graf",
         "facecluster": "Shluky obličejů",
         "recentlyadded": "Nedávno přidané",
@@ -176,7 +182,7 @@
         "placetree": "Strom umístění",
         "wordclouds": "Slovní mraky",
         "timeline": "Časová osa",
-        "facerecognition": "Rozpoznání oblyčeje",
+        "facerecognition": "Obličeje",
         "library": "Knihovna",
         "dashboards": "Dashboardy",
         "sharing": "Sdílení",
@@ -239,7 +245,9 @@
         "notset": "Nenastaveno",
         "header": "Správa",
         "sitesettings": "Nastavení webu",
-        "users": "Uživatelé"
+        "users": "Uživatelé",
+        "admintools": "Administrační nástroje",
+        "deleteallautoalbums": "Smazat všechna automaticky vytvořená alba"
     },
     "joblist": {
         "workerlogs": "Logy procesů",
@@ -258,7 +266,7 @@
     },
     "modalscandirectoryedit": {
         "explanation3": "Vyberte adresář níže",
-        "explanation2": "klikne na tlačítko \"skenovat fotografie\", fotografie v adresáři, který zde zadáte, budou importovány pod uživatelský účet",
+        "explanation2": "klikne na tlačítko \"skenovat fotografie\", fotografie ze zde vybraného adresáře budou importovány pod uživatelský účet",
         "currentdirectory": "Aktuální adresář uživatele",
         "notset": "nenastaveno",
         "update": "Aktualizovat",
@@ -288,7 +296,9 @@
         "renameperson": "Přejmenovat osobu",
         "personalreadyexists": "Osoba {{name}} již existuje.",
         "nameplaceholder": "Jméno",
-        "numberofpeople": "{{peoplelength}} Lidí"
+        "numberofpeople": "{{peoplelength}} Lidí",
+        "deleteperson": "Smazat osobu",
+        "deletepersondescription": "Opravdu chcete smazat tuto osobu?"
     },
     "useralbum": {
         "albumalreadyexists": "Album {{name}} již existuje.",
@@ -297,8 +307,8 @@
         "renamealbum": "Přejmenovat album"
     },
     "personedit": {
-        "labelfaces": "Označit oblyčeje",
-        "numberselected": "Označeno {{number}} oblyčej(ů) jako…",
+        "labelfaces": "Označit obličeje",
+        "numberselected": "Označeno {{number}} obličej(ů) jako…",
         "newperson": "Nová osoba",
         "personname": "Jméno osoby",
         "addperson": "Přidat osobu"
@@ -306,9 +316,9 @@
     "facesdashboard": {
         "explanationadding": "Přidejte k existujícímu ID obličeje nebo vytvořte nové ID obličeje",
         "selectedfaces": "{{number}} vybrán(o)",
-        "explanationtraining": "Trénujte klasifikátor a automaticky označujte obličeje",
+        "explanationtraining": "Rozpoznat podobné obličeje a zkusit najít shody",
         "explanationdeleting": "Smažte obličej a jeho miniatury",
-        "numberoffaces": "{{number}} Oblyčejů"
+        "numberoffaces": "{{number}} Obličejů"
     },
     "dataviz": "Vizualizace dat",
     "nosocialgraph": "Žádný sociální graf",
@@ -328,7 +338,7 @@
         "addfacestoperson": "{{numberOfFaces}} obličej(ů) bylo označeno jako osoba {{personName}}",
         "renameperson": "Osoba {{personName}} byla úspěšně přejmenována na {{newPersonName}}",
         "renamepersontitle": "Přejmenovat osobu",
-        "trainingstartedtitle": "Trénink tváří",
+        "trainingstartedtitle": "Rozpoznání obličejů",
         "rescanfaces": "Skenování bylo zahájeno",
         "rescanfacestitle": "Přeskenování tváří",
         "sharephototitle": "Sdílet fotografii",
@@ -367,7 +377,7 @@
         "sharingalbum": "Album sdíleno",
         "sharingalbumtitle": "Sdílet album",
         "unsharingalbum": "Sdílení alba bylo zrušeno",
-        "trainingstarted": "Trénování zahájeno",
+        "trainingstarted": "Analýza zahájena",
         "deleteperson": "Osoba smazána",
         "deletepersontitle": "Smazat osobu",
         "removepublicphoto": "{{numberOfPhotos}} fotografie(í) byla(o) odstraněna(o) z vašich veřejných fotografií.",
@@ -383,7 +393,11 @@
         "regenerateeventstitle": "Přegenerovat názvy událostí",
         "unsharingalbumtitle": "Zrušit sdílení alba",
         "jobfinished": "{{job}} dokončeno.",
-        "regenerateevents": "Přegenerovávání názvů událostí…"
+        "regenerateevents": "Přegenerovávání názvů událostí…",
+        "scanuploadedphotos": "Skenování nahraných fotografií…",
+        "scanuploadedphotostitle": "Skenovat nahrané fotografie",
+        "deleteallautoalbumstitle": "Smazat všechna automaticky vytvořená alba",
+        "deleteallautoalbums": "Všechna automaticky vytvořená alba smazána."
     },
     "rules": {
         "1": "Místní čas ze značky exif DATE_TIME_ORIGINAL",
@@ -455,7 +469,9 @@
         "loading": "Načítání..."
     },
     "autoalbum": {
-        "subtitle": "Zobrazuje se {{ autoalbumlength }} automaticky vytvořených alb"
+        "subtitle": "Zobrazuje se {{ autoalbumlength }} automaticky vytvořených alb",
+        "delete": "Smazat automatické album",
+        "deleteexplanation": "Toto smaže automatické album. Jste si jisti?"
     },
     "autoalbumgallery": {
         "showmap": "Zobrazit mapu",
@@ -463,7 +479,7 @@
     },
     "scan": "Skenovat",
     "socialgraph": "Sociální graf",
-    "nofaces": "Žádné oblyčeje",
+    "nofaces": "Žádné obličeje",
     "nodata": "Žádná data",
     "placetree": "Strom umístění",
     "wordclouds": "Slovní mraky",
@@ -487,5 +503,7 @@
         "photos": "Fotografie"
     },
     "facecluster": "Shluky obličejů",
-    "cancel": "Zrušit"
+    "cancel": "Zrušit",
+    "sponsorus": "Zasponzorujte nás",
+    "supportus": "Podpořte nás"
 }

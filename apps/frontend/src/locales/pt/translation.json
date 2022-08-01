@@ -285,7 +285,9 @@
         "photocount": "Número de fotos",
         "joined": "Aderiu",
         "remove": "Remover",
-        "notset": "Não definido"
+        "notset": "Não definido",
+        "admintools": "Ferramentas Administrativas",
+        "deleteallautoalbums": "Eliminar todos os álbuns criados automaticamente"
     },
     "joblist": {
         "workerlogs": "Registos de trabalhadores",
@@ -327,7 +329,9 @@
         "photos": "Fotos"
     },
     "autoalbum": {
-        "subtitle": "A mostrar {{ autoalbumlength }} albuns gerados automaticamente"
+        "subtitle": "A mostrar {{ autoalbumlength }} albuns gerados automaticamente",
+        "delete": "Eliminar álbum automático",
+        "deleteexplanation": "Isto irá eliminar o álbum automático. Tem a certeza?"
     },
     "autoalbumgallery": {
         "showmap": "Mostrar mapa",
@@ -337,7 +341,9 @@
         "numberofpeople": "{{peoplelength}} Pessoas",
         "renameperson": "Renomear pessoa",
         "personalreadyexists": "Pessoa chamada {{name}} já existe.",
-        "nameplaceholder": "Nome"
+        "nameplaceholder": "Nome",
+        "deleteperson": "Eliminar Pessoa",
+        "deletepersondescription": "De certeza que pretende eliminar esta pessoa?"
     },
     "placealbum": {
         "showingplaces": "A mostrar {{number}} locais no mapa",
@@ -446,7 +452,9 @@
         "recoverphoto": "{{numberOfPhotos}} fotos foram recuperadas.",
         "deletephoto": "{{numberOfPhotos}} fotos foram eliminadas.",
         "scanuploadedphotos": "A analisar fotos carregadas…",
-        "scanuploadedphotostitle": "Analisar fotos carregadas"
+        "scanuploadedphotostitle": "Analisar fotos carregadas",
+        "deleteallautoalbumstitle": "Eliminar todos os álbuns criados automaticamente",
+        "deleteallautoalbums": "Todos os álbuns criados automaticamente foram eliminados."
     },
     "deletefaceexplanation": "Esta ação vai permanentemente eliminar as caras e todos os seus dados associados. Esta ação não pode ser desfeita.",
     "rules": {
@@ -495,5 +503,7 @@
         "mediafile": "Guardar para ficheiro media"
     },
     "timezoneexplain": "Este fuso horário é usado para converter carimbos de data/hora para o fuso horário predefinido do utilizador",
-    "sync": "Sincronizar metadados para disco"
+    "sync": "Sincronizar metadados para disco",
+    "sponsorus": "Patrocine-nos",
+    "supportus": "Suporte-nos"
 }

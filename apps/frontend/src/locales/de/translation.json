@@ -126,7 +126,12 @@
         "polish": "Polnisch",
         "dutch": "Niederländisch",
         "profile": "Profil",
-        "confidencepercentage": "Vertrauen: {{percentage}}%"
+        "confidencepercentage": "Vertrauen: {{percentage}}%",
+        "portuguese": "Portugiesisch",
+        "finnish": "Finnisch",
+        "basque": "Baskisch",
+        "czech": "Tschechisch",
+        "helptranslating": "Hilfe beim Übersetzen"
     },
     "modalnextcloud": {
         "setdirectory": "Setze dein Nextcloud Scan Ordner",
@@ -168,8 +173,8 @@
         "timeline": "Zeitlinie",
         "socialgraph": "Sozialer Graph",
         "facecluster": "Cluster für Gesichter",
-        "datavizsmall": "Datenauswertung",
-        "facerecognition": "Gesichtserkennung",
+        "datavizsmall": "Daten",
+        "facerecognition": "Gesichter",
         "library": "Bibliothek",
         "dashboards": "Dashboards",
         "sharing": "Teilen",
@@ -271,7 +276,9 @@
         "photocount": "Anzahl Fotos",
         "joined": "Beigetreten",
         "notset": "Nicht gesetzt",
-        "remove": "Entfernen"
+        "remove": "Entfernen",
+        "admintools": "Verwaltungswerkzeuge",
+        "deleteallautoalbums": "Alle automatisch erstellten Alben löschen"
     },
     "joblist": {
         "workerlogs": "Arbeiterprotokolle",
@@ -313,7 +320,9 @@
         "photos": "Fotos"
     },
     "autoalbum": {
-        "subtitle": "Zeige {{ autoalbumlength }} automatisch erzeugte Alben"
+        "subtitle": "Zeige {{ autoalbumlength }} automatisch erzeugte Alben",
+        "deleteexplanation": "Dadurch wird das automatische Album gelöscht. Sind Sie sicher?",
+        "delete": "Automatisch erstelltes Album löschen"
     },
     "autoalbumgallery": {
         "showmap": "Zeige Karte",
@@ -323,7 +332,9 @@
         "numberofpeople": "{{peoplelength}} Personen",
         "renameperson": "Benenne Person um",
         "personalreadyexists": "Person {{name}} existiert bereits.",
-        "nameplaceholder": "Name"
+        "nameplaceholder": "Name",
+        "deleteperson": "Person löschen",
+        "deletepersondescription": "Wollen Sie diese Person wirklich löschen?"
     },
     "placealbum": {
         "showingplaces": "Zeige {{number}} Orte auf der Karte",
@@ -354,7 +365,7 @@
         "explanationdeleting": "Lösche das Gesicht und das Anzeigebild",
         "numberoffaces": "{{number}} Gesichter",
         "explanationadding": "Zu einer bestehenden Gesichts-ID hinzufügen oder eine neue Gesichts-ID erstellen",
-        "explanationtraining": "Einen Klassifikator trainieren und Gesichter automatisch kennzeichnen"
+        "explanationtraining": "Identifizieren Sie ähnliche Gesichter und versuchen Sie, Übereinstimmungen zu finden"
     },
     "personedit": {
         "addperson": "Füge Person hinzu",
@@ -411,13 +422,13 @@
         "unhidephoto": "{{numberOfPhotos}} Foto(s) nicht mehr verborgen.",
         "fullscanphotos": "Fotos scannen (vollständig)…",
         "addfacestoperson": "{{numberOfFaces}} Gesicht(er) wurde(n) der Person {{personName}} zugewiesen",
-        "trainingstartedtitle": "Gesichter trainieren",
+        "trainingstartedtitle": "Gesichtserkennung",
         "rescanfacestitle": "Gesichter erneut scannen",
-        "trainingstarted": "Training begonnen",
+        "trainingstarted": "Analyse begonnen",
         "rescanfaces": "Scan begonnen",
         "renamepersontitle": "Person umbenennen",
         "deletepersontitle": "Person löschen",
-        "unsharephoto": "{{numberOfPhotos}} Foto(s) nicht mehr mit {{username}} geteilt",
+        "unsharephoto": "{{numberOfPhotos}} Foto(s) wurden nicht geteilt mit {{username}}",
         "addpublicphoto": "{{numberOfPhotos}} Foto(s) wurde(n) zu öffentlichen Fotos hinzugefügt. Links zu Fotos wurden in Zwischenablage kopiert.",
         "scanphotostitle": "Fotos scannen",
         "scannextcloudphotostitle": "Scan Nextcloud-Fotos",
@@ -437,7 +448,11 @@
         "editphoto": "Foto bearbeitet",
         "uploadsuccess": "Erfolgreich hochgeladen",
         "deletejobtitle": "Auftrag löschen",
-        "deletejob": "Auftrag {{id}} gelöscht."
+        "deletejob": "Auftrag {{id}} gelöscht.",
+        "deleteallautoalbumstitle": "Alle automatisch erstellten Alben löschen",
+        "scanuploadedphotos": "Hochgeladene Fotos scannen werden gescannt …",
+        "deleteallautoalbums": "Alle automatisch erstellten Alben werden gelöscht.",
+        "scanuploadedphotostitle": "Hochgeladene Fotos scannen"
     },
     "rules": {
         "file_property": "Dateieigenschaft verwenden {{rule}}",
@@ -474,7 +489,8 @@
         "newalbum": "Neues Album",
         "items": "{{count}} Element(e)",
         "selectedimages": "Ausgewählte(s) {{count}} Foto(s) hinzufügen zu …",
-        "placeholder": "Albumtitel"
+        "placeholder": "Albumtitel",
+        "alreadyexists": "Das Album {{title}} existiert bereits."
     },
     "confirm": "Bestätigen",
     "deleteface": "Gesichter löschen",
@@ -488,5 +504,6 @@
         "sidecar": "Speichere in einer Sidecar",
         "mediafile": "In Mediendatei speichern"
     },
-    "sync": "Metadaten mit der Festplatte synchronisieren"
+    "sync": "Metadaten mit der Festplatte synchronisieren",
+    "supportus": "Uns unterstützen"
 }
