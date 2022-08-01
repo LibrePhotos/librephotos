@@ -9,7 +9,6 @@ from rest_framework.exceptions import ValidationError
 
 from api.batch_jobs import create_batch_job
 from api.models import LongRunningJob, Photo, User
-from api.models.user import get_deleted_user
 from api.serializers.photos import PhotoSuperSimpleSerializer
 from api.util import logger
 
@@ -242,6 +241,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
         )
         extra_kwargs = {
             "password": {"write_only": True},
+            "scan_directory": {"required": False},
         }
 
     def get_photo_count(self, obj):
@@ -255,34 +255,37 @@ class ManageUserSerializer(serializers.ModelSerializer):
 
         if "scan_directory" in validated_data:
             new_scan_directory = validated_data.pop("scan_directory")
-            if os.path.exists(new_scan_directory):
-                instance.scan_directory = new_scan_directory
-                logger.info(
-                    "Updated scan directory for user {}".format(instance.scan_directory)
-                )
-            else:
-                raise ValidationError("Scan directory does not exist")
+            if new_scan_directory != "":
+                if os.path.exists(new_scan_directory):
+                    instance.scan_directory = new_scan_directory
+                    logger.info(
+                        "Updated scan directory for user {}".format(
+                            instance.scan_directory
+                        )
+                    )
+                else:
+                    raise ValidationError("Scan directory does not exist")
         if "username" in validated_data:
             username = validated_data.pop("username")
             if username != "":
                 other_user = User.objects.filter(username=username).first()
-                if other_user != None and other_user != instance:
+                if other_user is not None and other_user != instance:
                     raise ValidationError("User name is already taken")
 
-                instance.username = username
-        
+            instance.username = username
+
         if "email" in validated_data:
             email = validated_data.pop("email")
             instance.email = email
-       
+
         if "first_name" in validated_data:
             first_name = validated_data.pop("first_name")
             instance.first_name = first_name
-        
+
         if "last_name" in validated_data:
             last_name = validated_data.pop("last_name")
             instance.last_name = last_name
-        
+
         instance.save()
         cache.clear()
         return instance
