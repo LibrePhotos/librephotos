@@ -101,6 +101,18 @@ class PhotoSerializer(serializers.ModelSerializer):
             "similar_photos",
             "video",
             "owner",
+            "size",
+            "height",
+            "width",
+            "focal_length",
+            "fstop",
+            "iso",
+            "shutter_speed",
+            "lens",
+            "camera",
+            "focalLength35Equivalent",
+            "digitalZoomRatio",
+            "subjectDistance",
         )
 
     def get_similar_photos(self, obj):
@@ -439,6 +451,10 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
                 if serialized_person not in res:
                     res.append(serialized_person)
         return res
+
+    def delete(self, validated_data, id):
+        album = AlbumAuto.objects.filter(id=id).get()
+        album.delete()
 
 
 class AlbumAutoListSerializer(serializers.ModelSerializer):

@@ -2,6 +2,7 @@ import uuid
 
 from django.db.models import Count, Prefetch, Q
 from rest_framework import filters, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -35,6 +36,11 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
             .only("id", "title", "timestamp", "created_on", "gps_lat", "gps_lon")
             .order_by("-timestamp")
         )
+
+    @action(detail=False, methods=["post"])
+    def delete_all(self, request):
+        AlbumAuto.objects.filter(owner=request.user).all().delete()
+        return Response("success")
 
     def retrieve(self, *args, **kwargs):
         return super(AlbumAutoViewSet, self).retrieve(*args, **kwargs)
