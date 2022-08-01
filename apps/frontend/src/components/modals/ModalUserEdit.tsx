@@ -8,6 +8,7 @@ import { signup } from "../../actions/authActions";
 
 import { fetchDirectoryTree, manageUpdateUser, updateUserAndScan } from "../../actions/utilActions";
 import { useAppDispatch, useAppSelector } from "../../store/store";
+import { PasswordEntry } from "../settings/PasswordEntry";
 
 type Props = {
   isOpen: boolean;
@@ -34,19 +35,15 @@ export function ModalUserEdit(props: Props) {
   
   const [isAdmin, setIsAdmin] = useState(false);
   const [scanDirectoryPlaceholder, setScanDirectoryPlaceholder] = useState("");
-  const [editPasswordMode, setEditPasswordMode] = useState(false);
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
   const { directoryTree } = useAppSelector(state => state.util);
   const inputRef = useRef<HTMLInputElement>(null);
   const { t } = useTranslation();
   const [pathDoesNotExist, setPathDoesNotExist] = useState(false);
-  const [newPasswordIsValid, setNewPasswordIsValid] = useState(true); 
-  const [newPassword, setNewPassword] = useState("");
-  const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
-  const [newPasswordError, setNewPasswordError] = useState("");
-  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+  const [newPasswordIsValid, setNewPasswordIsValid] = useState(true);
   const [userNamePopOpen, setUserNamePopOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
 
   const isNotValidPath =
     !userToEdit || pathDoesNotExist || userToEdit.scan_directory === newScanDirectory || newScanDirectory === "";
@@ -160,57 +157,23 @@ export function ModalUserEdit(props: Props) {
     }
   }
 
-  const validateAndUpdatePassword = (password, passwordConfirm, closing = false) => {
-    setConfirmPasswordError("");
-    setNewPasswordError("");
-    setNewPasswordIsValid(false);
-    setUserPassword("");
-  
-    if (password || passwordConfirm) {
-      if (password == passwordConfirm) {
-        setNewPasswordIsValid(true);
-        setUserPassword(password);
-        setNewPasswordError("");
-        setConfirmPasswordError("");
-      } else {
-        setNewPasswordIsValid(false);
-        setUserPassword("");
-        if (passwordConfirm !== "") {
-          setConfirmPasswordError("Passwords must match");
-        } else if (closing) {
-          setConfirmPasswordError("You must retype the password");
-        }
-      }
-    } else {
-      setUserPassword("");
-      if (editPasswordMode || createNew) {
-        setNewPasswordError("Password cannot be blank");
-      } else {
-        setNewPasswordIsValid(true);
-      }
-    }
-  };
-
   const clearStateAndClose = () => {
     setUserName("");
     setUserEmail("");
     setUserFirst("");
     setUserLast("");
-    setNewPassword("");
-    setNewPasswordConfirm("");
     setUserPassword("");
     setNewScanDirectory("");
 
-    setEditPasswordMode(false);
     setUserNameError("");
-    setNewPasswordError("");
     setUserEmailError("");
-    setConfirmPasswordError("");
+    setClosing(false);
     onRequestClose();
   }
+
   const validateAndClose = () => {
     var isValid = true;
-    validateAndUpdatePassword(newPassword, newPasswordConfirm, true);
+    setClosing(true);
     validateUsername(userName);
     validateEmail(userEmail);
     var newUserData = {...userToEdit};
@@ -234,7 +197,7 @@ export function ModalUserEdit(props: Props) {
         newUserData.username = userName;
       };
     }
-    if (userNameError || !newPasswordIsValid || newPasswordError || confirmPasswordError || userEmailError) {
+    if (userNameError || !newPasswordIsValid || userEmailError) {
       isValid = false;
     }
 
@@ -252,6 +215,10 @@ export function ModalUserEdit(props: Props) {
       dispatch(manageUpdateUser(newUserData));
     }
     clearStateAndClose();
+  }
+  const onPasswordValidate = (pass: string, valid: boolean) => {
+    setUserPassword(pass);
+    setNewPasswordIsValid(valid);
   }
 
   return (
@@ -340,51 +307,11 @@ export function ModalUserEdit(props: Props) {
             }}
           />
         </SimpleGrid>
-        <Stack spacing="xs">
-         
-          <Title order={6} style={{paddingTop: "15px"}}>
-            { createNew ? (
-              <Text>Set Password</Text>
-              ) : (
-                <Text>
-                  Change Password
-                  <Button variant="subtle"
-                    leftIcon={<Edit size={16} />}
-                    title="Change password"
-                    onClick={() => setEditPasswordMode(!editPasswordMode)}
-                  />
-                </Text>
-              )
-            }
-          </Title>
-          
-          <PasswordInput
-            icon={<Lock />}
-            placeholder={t("login.passwordplaceholder")}
-            name="password"
-            disabled={!editPasswordMode && !createNew}
-            required={editPasswordMode}
-            value={newPassword}
-            error={newPasswordError}
-            onChange={(event) => {
-              setNewPassword(event.currentTarget.value);
-              validateAndUpdatePassword(event.currentTarget.value, newPasswordConfirm);
-            }}
-          />
-          <PasswordInput
-            icon={<Lock />}
-            placeholder={t("login.confirmpasswordplaceholder")}
-            name="passwordConfirm"
-            disabled={!editPasswordMode && !createNew}
-            required={editPasswordMode}
-            value={newPasswordConfirm}
-            error={confirmPasswordError}
-            onChange={(event) => {
-              setNewPasswordConfirm(event.currentTarget.value);
-              validateAndUpdatePassword(newPassword, event.currentTarget.value);
-            }}
-          />
-        </Stack>
+        <PasswordEntry
+          createNew={createNew}
+          onValidate={onPasswordValidate} 
+          closing={closing}
+        />
       </Box>
 
       <Title order={5}>{t("modalscandirectoryedit.header")} </Title>
