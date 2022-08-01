@@ -166,13 +166,22 @@ const UserTable = () => {
 
 const confirmDeleteUserModal = (user, dispatch) =>  openConfirmModal({
   title: (
-    <Title>Please confirm your action</Title>
+    <Title order={5}>
+      <span style={{paddingRight: "5px"}}><Trash size={16} /></span>
+       Delete User
+    </Title>
   ),
+  size: "md",
   children: (
-    <Text size="sm">
-      This action is so important that you are required to confirm it with a modal. Please click
-      one of these buttons to proceed.
-    </Text>
+    <>
+      <Text size="sm">
+        You are about to delete the user "{user.username}". This will delete all associated data.
+      </Text>
+      <br/>
+      <Text size="sm" color="red">
+        This action cannot be undone.
+      </Text>
+    </>
   ),
   labels: { confirm: 'Accept', cancel: 'Cancel' },
   onConfirm: () => {

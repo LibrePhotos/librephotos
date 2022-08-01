@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Grid, Modal, PasswordInput, Space, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Alert, Box, Button, Grid, Modal, PasswordInput, Popover, SimpleGrid, Space, Stack, Text, TextInput, Title } from "@mantine/core";
 import React, { Fragment, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SortableTree from "react-sortable-tree";
@@ -27,6 +27,7 @@ export function ModalUserEdit(props: Props) {
   const [userName, setUserName] = useState("");
   const [userNameError, setUserNameError] = useState("");
   const [userEmail, setUserEmail] = useState("");
+  const [userEmailError, setUserEmailError] = useState("");
   const [userFirst, setUserFirst] = useState("");
   const [userLast, setUserLast] = useState("");
   const [userPassword, setUserPassword] = useState("");
@@ -43,6 +44,9 @@ export function ModalUserEdit(props: Props) {
   const [newPasswordIsValid, setNewPasswordIsValid] = useState(true); 
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
+  const [newPasswordError, setNewPasswordError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+  const [userNamePopOpen, setUserNamePopOpen] = useState(false);
 
   const isNotValidPath =
     !userToEdit || pathDoesNotExist || userToEdit.scan_directory === newScanDirectory || newScanDirectory === "";
@@ -70,7 +74,6 @@ export function ModalUserEdit(props: Props) {
     }
     if (newScanDirectory) {
       setScanDirectoryPlaceholder(newScanDirectory);
-      return;
     }
     if (userToEdit) {
       if (userToEdit.scan_directory) {
@@ -136,29 +139,121 @@ export function ModalUserEdit(props: Props) {
     if (!username) {
       error = "User name cannot be blank";
     } else {
-      userList.forEach(user => {
+      userList.every(user => {
         if (user.username == username && user.id != userToEdit.id) {
           error = "A user with that name already exists";
+          return false;
         }
+        return true;
       });
     }
     setUserNameError(error);
   }
 
-  const validateAndUpdatePassword = (password, passwordConfirm) => {
-    if (password && passwordConfirm) {
+  const validateEmail = (email) => {
+    setUserEmailError("");
+    // eslint-disable-next-line no-control-regex
+    const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
+
+    if (email && !emailRegex.test(email)) {
+      setUserEmailError("Enter a valid email address");
+    }
+  }
+
+  const validateAndUpdatePassword = (password, passwordConfirm, closing = false) => {
+    setConfirmPasswordError("");
+    setNewPasswordError("");
+    setNewPasswordIsValid(false);
+    setUserPassword("");
+  
+    if (password || passwordConfirm) {
       if (password == passwordConfirm) {
         setNewPasswordIsValid(true);
         setUserPassword(password);
+        setNewPasswordError("");
+        setConfirmPasswordError("");
       } else {
         setNewPasswordIsValid(false);
         setUserPassword("");
+        if (passwordConfirm !== "") {
+          setConfirmPasswordError("Passwords must match");
+        } else if (closing) {
+          setConfirmPasswordError("You must retype the password");
+        }
       }
     } else {
-      setNewPasswordIsValid(true);
       setUserPassword("");
+      if (editPasswordMode || createNew) {
+        setNewPasswordError("Password cannot be blank");
+      } else {
+        setNewPasswordIsValid(true);
+      }
     }
   };
+
+  const clearStateAndClose = () => {
+    setUserName("");
+    setUserEmail("");
+    setUserFirst("");
+    setUserLast("");
+    setNewPassword("");
+    setNewPasswordConfirm("");
+    setUserPassword("");
+    setNewScanDirectory("");
+
+    setEditPasswordMode(false);
+    setUserNameError("");
+    setNewPasswordError("");
+    setUserEmailError("");
+    setConfirmPasswordError("");
+    onRequestClose();
+  }
+  const validateAndClose = () => {
+    var isValid = true;
+    validateAndUpdatePassword(newPassword, newPasswordConfirm, true);
+    validateUsername(userName);
+    validateEmail(userEmail);
+    var newUserData = {...userToEdit};
+    if (createNew) {
+      if (userPassword && userName ) {
+        signup(userName, userPassword, userEmail, userFirst, userLast, false, dispatch, true, newScanDirectory);
+        clearStateAndClose();
+        return;
+      } else {
+        isValid = false;
+      }
+    } else { 
+      newUserData.email = userEmail;
+      newUserData.first_name = userFirst;
+      newUserData.last_name = userLast;
+
+      if (userPassword) {
+        newUserData.password = userPassword;
+      }
+      if (userName) {
+        newUserData.username = userName;
+      };
+    }
+    if (userNameError || !newPasswordIsValid || newPasswordError || confirmPasswordError || userEmailError) {
+      isValid = false;
+    }
+
+    if (!isValid) {
+      return;
+    }
+
+    if (newScanDirectory) {
+      newUserData.scan_directory = newScanDirectory;
+    } 
+
+    if (updateAndScan) {
+      dispatch(updateUserAndScan(newUserData));
+    } else {
+      dispatch(manageUpdateUser(newUserData));
+    }
+    clearStateAndClose();
+  }
+
   return (
     <Modal
       opened={isOpen}
@@ -166,77 +261,64 @@ export function ModalUserEdit(props: Props) {
       overflow="outside"
       size="xl"
       onClose={() => {
-        if (createNew) {
-          if (userPassword != "" && userName != "") {
-            signup(userName, userPassword, userEmail, userFirst, userLast, false, dispatch, true);
-          }
-        } else { 
-          var scan_directory = newScanDirectory;
-          if (scan_directory === "") {
-            scan_directory = userToEdit.scan_directory;
-          }
-          var newUserData = {
-            ...userToEdit,
-            scan_directory: scan_directory,
-            email: userEmail,
-            first_name: userFirst,
-            last_name: userLast,
-          };
-          if (userPassword != "") {
-            newUserData.password = userPassword;
-          }
-          if (userName != "") {
-            newUserData.username = userName;
-          };
-          
-          dispatch(manageUpdateUser(newUserData));
-        }
-        onRequestClose();
-        setNewPassword("");
-        setNewPasswordConfirm("");
-        setUserPassword("");
-        setEditPasswordMode(false);
-        setUserNameError("");
+        clearStateAndClose();
       }}
       title={
-        <Title order={4}>{createNew ? "Create Uuser" : t("modaluseredit.header")}</Title>
+        <Title order={4}>{createNew ? "Create User" : t("modaluseredit.header")}</Title>
       }
     >
       <Box sx={(theme) => ({
           paddingBottom: theme.spacing.md
         })}>
-        <Stack spacing="xs">
-          {isAdmin ?  
-            <Alert variant="outline" icon={<InfoCircle size={16}/>} color="gray">
-              You cannot edit the admin user name.
-            </Alert>: ""}
+        <SimpleGrid
+          cols={2}
+          spacing="xs"
+          breakpoints={[
+            { maxWidth: 600, cols: 1, spacing: 'sm' },
+          ]}
+        >
+          <Popover
+            opened={userNamePopOpen}
+            onMouseEnter={() => setUserNamePopOpen(isAdmin)}
+            onMouseLeave={() => setUserNamePopOpen(false)}
+            withArrow
+            position="top"
+            
+            target={
+              <TextInput
+                required
+                label="User Name"
+                icon={<User />}
+                disabled={isAdmin}
+                placeholder={t("login.usernameplaceholder")}
+                name="username"
+                value={userName}
+                error={userNameError}
+                onChange={(event) => {
+                  userToEdit.username = event.currentTarget.value;
+                  setUserName(userToEdit.username);
+                  validateUsername(event.currentTarget.value);
+                }}
+              />
+            }
+          >
+            { isAdmin ? "You cannot edit the admin user name" : ""}
+          </Popover>
           <TextInput
-            required
-            icon={<User />}
-            disabled={isAdmin}
-            placeholder={t("login.usernameplaceholder")}
-            name="username"
-            value={userName}
-            error={userNameError}
-            onChange={(event) => {
-              userToEdit.username = event.currentTarget.value;
-              setUserName(userToEdit.username);
-              validateUsername(event.currentTarget.value);
-            }}
-          />
-          <TextInput
-            required
+            label="Email"
             icon={<Mail />}
             placeholder={t("settings.emailplaceholder")}
             name="email"
             value={userEmail}
+            error={userEmailError}
             onChange={(event) => {
               userToEdit.email = event.currentTarget.value;
               setUserEmail(userToEdit.email);
+              validateEmail(userToEdit.email);
             }}
           />
           <TextInput
-            required
+            label="First Name"
             icon={<User />}
             placeholder={t("settings.firstnameplaceholder")}
             name="firstname"
@@ -247,7 +329,7 @@ export function ModalUserEdit(props: Props) {
             }}
           />
           <TextInput
-            required
+            label="Last Name"
             icon={<User />}
             placeholder={t("settings.lastnameplaceholder")}
             name="lastname"
@@ -257,17 +339,24 @@ export function ModalUserEdit(props: Props) {
               setUserLast(userToEdit.last_name);
             }}
           />
-          {
-          createNew ? "" : 
-          <Title order={5}>
-            Change Password
-            <Button variant="subtle"
-              leftIcon={<Edit size={16} />}
-              title="Change password"
-              onClick={() => setEditPasswordMode(!editPasswordMode)}
-            />
+        </SimpleGrid>
+        <Stack spacing="xs">
+         
+          <Title order={6} style={{paddingTop: "15px"}}>
+            { createNew ? (
+              <Text>Set Password</Text>
+              ) : (
+                <Text>
+                  Change Password
+                  <Button variant="subtle"
+                    leftIcon={<Edit size={16} />}
+                    title="Change password"
+                    onClick={() => setEditPasswordMode(!editPasswordMode)}
+                  />
+                </Text>
+              )
+            }
           </Title>
-          }
           
           <PasswordInput
             icon={<Lock />}
@@ -276,6 +365,7 @@ export function ModalUserEdit(props: Props) {
             disabled={!editPasswordMode && !createNew}
             required={editPasswordMode}
             value={newPassword}
+            error={newPasswordError}
             onChange={(event) => {
               setNewPassword(event.currentTarget.value);
               validateAndUpdatePassword(event.currentTarget.value, newPasswordConfirm);
@@ -288,7 +378,7 @@ export function ModalUserEdit(props: Props) {
             disabled={!editPasswordMode && !createNew}
             required={editPasswordMode}
             value={newPasswordConfirm}
-            error={ !newPasswordIsValid && editPasswordMode ? "Passwords must match": ""}
+            error={confirmPasswordError}
             onChange={(event) => {
               setNewPasswordConfirm(event.currentTarget.value);
               validateAndUpdatePassword(newPassword, event.currentTarget.value);
@@ -317,52 +407,9 @@ export function ModalUserEdit(props: Props) {
             placeholder={scanDirectoryPlaceholder}
           />
         </Grid.Col>
-        <Grid.Col span={3}>
-          {updateAndScan ? (
-            <Button
-              disabled={isNotValidPath}
-              type="submit"
-              color="green"
-              onClick={() => {
-                if (newScanDirectory === "") {
-                  setNewScanDirectory(userToEdit.scan_directory);
-                }
-                const newUserData = {
-                  ...userToEdit,
-                  scan_directory: newScanDirectory,
-                };
-
-                dispatch(updateUserAndScan(newUserData));
-                onRequestClose();
-              }}
-            >
-              {t("scan")}
-            </Button>
-          ) : (
-            <Button
-              disabled={isNotValidPath}
-              type="submit"
-              color="green"
-              onClick={() => {
-                if (newScanDirectory === "") {
-                  setNewScanDirectory(userToEdit.scan_directory);
-                }
-                const newUserData = {
-                  ...userToEdit,
-                  scan_directory: newScanDirectory,
-                };
-
-                dispatch(manageUpdateUser(newUserData));
-                onRequestClose();
-              }}
-            >
-              {t("modalscandirectoryedit.update")}
-            </Button>
-          )}
-        </Grid.Col>
       </Grid>
       <Title order={6}>{t("modalscandirectoryedit.explanation3")}</Title>
-      <div style={{ height: "250px", overflow: "auto" }}>
+      <div style={{ height: "150px", overflow: "auto" }}>
         <SortableTree
           innerStyle={{ outline: "none" }}
           canDrag={() => false}
@@ -382,6 +429,20 @@ export function ModalUserEdit(props: Props) {
             return nodeProps;
           }}
         />
+      </div>
+      <div style={{display: "flex", justifyContent: "flex-end"}}>
+        <Button
+          variant="default"
+          onClick={() => clearStateAndClose()}
+        >
+          Cancel
+        </Button>
+        <Space w="md"/>
+        <Button disabled={!true}
+          onClick={() => validateAndClose()}
+        >
+          Save
+        </Button>
       </div>
     </Modal>
   );

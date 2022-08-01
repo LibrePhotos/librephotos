@@ -20,14 +20,18 @@ export function signup(
   lastname: string,
   is_superuser: boolean,
   dispatch: AppDispatch,
-  noPush: boolean = false
+  noPush: boolean = false,
+  scan_directory: string = "initial"
 ) {
   dispatch({ type: "SIGNUP" });
+  if (!scan_directory) {
+    scan_directory = "initial"
+  }
   Server.post("/user/", {
     email: email,
     username: username,
     password: password,
-    scan_directory: "initial",
+    scan_directory: scan_directory,
     first_name: firstname,
     last_name: lastname,
     is_superuser: is_superuser,

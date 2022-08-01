@@ -87,7 +87,7 @@ export const api = createApi({
     }),
     [Endpoints.deleteUser]: builder.mutation<IUser, IApiDeleteUserPost>({
       query: body => ({
-        method: "DELETE",
+        method: "POST",
         body: body,
         url: "/delete/user/",
       }),
