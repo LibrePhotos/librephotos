@@ -1,11 +1,11 @@
 import { Button, Divider, Group, Loader, Menu, Text, Title } from "@mantine/core";
 import type { ReactElement } from "react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
 import { Calendar, ChevronDown, Clock, EyeOff, Globe, Star } from "tabler-icons-react";
-import { fetchUserList } from "../../actions/utilActions";
 
+import { fetchUserList } from "../../actions/utilActions";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
 
@@ -74,7 +74,7 @@ export function DefaultHeader(props: Props) {
                 <Button
                   color="green"
                   onClick={() => {
-                    setUserToEdit(user);
+                    setUserToEdit({ ...user });
                     setModalOpen(true);
                   }}
                 >
@@ -117,32 +117,32 @@ export function DefaultHeader(props: Props) {
                 </Title>
               }
             >
-                <Menu.Item icon={<Calendar color="green" size={14} />} onClick={() => dispatch(push("/"))}>
-                  {t("sidemenu.withtimestamp")}
-                </Menu.Item>
-                <Menu.Item icon={<Calendar color="red" size={14} />} onClick={() => dispatch(push("/notimestamp"))}>
-                  {t("sidemenu.withouttimestamp")}
-                </Menu.Item>
-                <Divider />
+              <Menu.Item icon={<Calendar color="green" size={14} />} onClick={() => dispatch(push("/"))}>
+                {t("sidemenu.withtimestamp")}
+              </Menu.Item>
+              <Menu.Item icon={<Calendar color="red" size={14} />} onClick={() => dispatch(push("/notimestamp"))}>
+                {t("sidemenu.withouttimestamp")}
+              </Menu.Item>
+              <Divider />
 
-                <Menu.Item icon={<Clock size={14} />} onClick={() => dispatch(push("/recent"))}>
-                  {t("sidemenu.recentlyadded")}
-                </Menu.Item>
-                <Divider />
+              <Menu.Item icon={<Clock size={14} />} onClick={() => dispatch(push("/recent"))}>
+                {t("sidemenu.recentlyadded")}
+              </Menu.Item>
+              <Divider />
 
-                <Menu.Item icon={<EyeOff color="red" size={14} />} onClick={() => dispatch(push("/hidden"))}>
-                  {t("sidemenu.hidden")}
-                </Menu.Item>
-                <Menu.Item icon={<Star color="yellow" size={14} />} onClick={() => dispatch(push("/favorites"))}>
-                  {t("sidemenu.favorites")}
-                </Menu.Item>
-                <Menu.Item
-                  icon={<Globe color="green" size={14} />}
-                  disabled={!auth.access}
-                  onClick={() => dispatch(push(auth.access ? `/user/${auth.access.name}` : "/"))}
-                >
-                  {t("sidemenu.mypublicphotos")}
-                </Menu.Item>
+              <Menu.Item icon={<EyeOff color="red" size={14} />} onClick={() => dispatch(push("/hidden"))}>
+                {t("sidemenu.hidden")}
+              </Menu.Item>
+              <Menu.Item icon={<Star color="yellow" size={14} />} onClick={() => dispatch(push("/favorites"))}>
+                {t("sidemenu.favorites")}
+              </Menu.Item>
+              <Menu.Item
+                icon={<Globe color="green" size={14} />}
+                disabled={!auth.access}
+                onClick={() => dispatch(push(auth.access ? `/user/${auth.access.name}` : "/"))}
+              >
+                {t("sidemenu.mypublicphotos")}
+              </Menu.Item>
             </Menu>
           ) : (
             <Title align="left" order={2}>

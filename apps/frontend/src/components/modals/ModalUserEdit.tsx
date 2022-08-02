@@ -205,6 +205,10 @@ export function ModalUserEdit(props: Props) {
       newUserData.scan_directory = newScanDirectory;
     }
 
+    if (!newUserData.scan_directory) {
+      delete newUserData.scan_directory;
+    }
+
     if (updateAndScan) {
       dispatch(updateUserAndScan(newUserData));
     } else {

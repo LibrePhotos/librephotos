@@ -223,7 +223,9 @@ export function updateUserAndScan(user) {
         });
 
         dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id)).refetch();
-        dispatch(scanPhotos());
+        if (user.scan_directory) {
+          dispatch(scanPhotos());
+        }
       })
       .catch(error => {
         console.error(error);
