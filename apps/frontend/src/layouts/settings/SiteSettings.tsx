@@ -6,20 +6,24 @@ import { setSiteSettings } from "../../actions/utilActions";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 export const SiteSettings = () => {
-  const [skipPatterns, setSkipPatterns] = useState([]);
+  const [skipPatterns, setSkipPatterns] = useState("");
   const [mapApiKey, setMapApiKey] = useState("");
-  const [heavyweightProcess, setHeavyweigthProcess] = useState(1);
+  const [heavyweightProcess, setHeavyweightProcess] = useState(1);
+  const [allowRegistration, setAllowRegistration] = useState(false);
+  const [allowUpload, setAllowUpload] = useState(false);
+  const dispatch = useAppDispatch();
+  const { t } = useTranslation();
 
   const siteSettings = useAppSelector(state => state.util.siteSettings);
 
   useEffect(() => {
     setSkipPatterns(siteSettings.skip_patterns);
     setMapApiKey(siteSettings.map_api_key);
-    setHeavyweigthProcess(siteSettings.heavyweight_process);
+    setHeavyweightProcess(siteSettings.heavyweight_process);
+    setAllowRegistration(siteSettings.allow_registration);
+    setAllowUpload(siteSettings.allow_upload);
   }, [siteSettings]);
 
-  const dispatch = useAppDispatch();
-  const { t } = useTranslation();
 
   const options = ["1", "2", "3"];
 
@@ -28,12 +32,12 @@ export const SiteSettings = () => {
       <Switch
         label={t("sitesettings.header")}
         onChange={() => dispatch(setSiteSettings({ allow_registration: !siteSettings.allow_registration }))}
-        checked={siteSettings.allow_registration}
+        checked={allowRegistration}
       />
       <Switch
         label={t("sitesettings.headerupload")}
         onChange={() => dispatch(setSiteSettings({ allow_upload: !siteSettings.allow_upload }))}
-        checked={siteSettings.allow_upload}
+        checked={allowUpload}
       />
       <TextInput
         style={{ maxWidth: 500 }}
@@ -75,14 +79,18 @@ export const SiteSettings = () => {
             dispatch(setSiteSettings({ heavyweight_process: e.currentTarget.value }));
           }
         }}
-        onBlur={() => dispatch(setSiteSettings({ heavyweight_process: heavyweightProcess }))}
+        onBlur={() => {
+          if (heavyweightProcess !== siteSettings.heavyweight_process) {
+            dispatch(setSiteSettings({ heavyweight_process: heavyweightProcess }));
+          }
+        }}
         onChange={e => {
           const re = /^[0-9\b]+$/;
 
           // if value is not blank, then test the regex
           if (e.target.value === "" || re.test(e.target.value)) {
             // @ts-ignore
-            setHeavyweigthProcess(e.currentTarget.value);
+            setHeavyweightProcess(e.currentTarget.value);
           }
         }}
       />

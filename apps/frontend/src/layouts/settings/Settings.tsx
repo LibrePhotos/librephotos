@@ -31,14 +31,14 @@ export const Settings = () => {
   const { t } = useTranslation();
 
   const onPasswordValidate = (pass: string, valid: boolean) => {
-    var newUserDetails = {...userSelfDetails};
+    var newUserDetails = { ...userSelfDetails };
     if (pass && valid) {
       newUserDetails.password = pass;
     } else {
       delete newUserDetails.password;
     }
 
-    setUserSelfDetails({...newUserDetails});
+    setUserSelfDetails({ ...newUserDetails });
   };
 
   // open update dialog, when user was edited
@@ -157,10 +157,7 @@ export const Settings = () => {
         />
       </Group>
       <Group position="center">
-        <PasswordEntry 
-          onValidate={onPasswordValidate}
-          createNew={false}
-        />
+        <PasswordEntry onValidate={onPasswordValidate} createNew={false} />
       </Group>
       <ConfigDatetime />
       <Title order={3}>
@@ -191,7 +188,7 @@ export const Settings = () => {
         radius="md"
       >
         <Text size="sm" style={{ marginBottom: 10 }} weight={500}>
-            <Trans i18nKey="settings.savechanges">Save changes?</Trans>
+          <Trans i18nKey="settings.savechanges">Save changes?</Trans>
         </Text>
 
         <Group align="flex-end">

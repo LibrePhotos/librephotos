@@ -34,7 +34,6 @@ export const AdminPage = () => {
   useEffect(() => {
     if (auth.access.is_admin) {
       fetchSiteSettings(dispatch);
-      dispatch(fetchJobList());
       dispatch(fetchUserList());
     }
   }, [auth.access, dispatch]);
@@ -236,13 +235,12 @@ export const JobList = () => {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const { jobList, jobCount, fetchingJobList } = useAppSelector(state => state.util);
-  const [page, setPage] = useState(1);
   const [activePage, setActivePage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const pageSize = 10;
 
   const matches = useMediaQuery("(min-width: 700px)");
   const auth = useAppSelector(state => state.auth);
-  //fetch job every two seconds
+  //fetch job every five seconds
   useEffect(() => {
     const interval = setInterval(() => {
       if (auth.access.is_admin) {
