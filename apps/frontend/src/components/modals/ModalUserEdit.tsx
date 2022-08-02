@@ -168,19 +168,20 @@ export function ModalUserEdit(props: Props) {
   };
 
   const validateAndClose = () => {
-    var isValid = true;
     setClosing(true);
     validateUsername(userName);
     validateEmail(userEmail);
     var newUserData = { ...userToEdit };
+
+    if (userNameError || !newPasswordIsValid || userEmailError) {
+      return;
+    }
     if (createNew) {
       if (userPassword && userName) {
         signup(userName, userPassword, userEmail, userFirst, userLast, false, dispatch, true, newScanDirectory);
         clearStateAndClose();
-        return;
-      } else {
-        isValid = false;
       }
+      return;
     } else {
       newUserData.email = userEmail;
       newUserData.first_name = userFirst;
@@ -192,13 +193,6 @@ export function ModalUserEdit(props: Props) {
       if (userName) {
         newUserData.username = userName;
       }
-    }
-    if (userNameError || !newPasswordIsValid || userEmailError) {
-      isValid = false;
-    }
-
-    if (!isValid) {
-      return;
     }
 
     if (newScanDirectory) {
