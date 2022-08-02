@@ -487,6 +487,8 @@
     "scannextcloudphotostitle": "Scan Nextcloud Photos",
     "updateuser": "{{username}}'s info updated",
     "updateusertitle": "Update user",
+    "deleteuser": "{{username}} deleted",
+    "deleteusertitle": "Delete user",
     "jobfinished": "{{job}} finished.",
     "deletejob": "Job {{id}} deleted.",
     "deletejobtitle": "Delete job",
