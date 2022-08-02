@@ -68,7 +68,7 @@ export function AdminPage() {
               <td>{user.username}</td>
               <td>
                 {
-                  // To-Do: Show a error when no scan directory is set
+                  // TODO: Show an error when no scan directory is set
                 }
                 <Button
                   variant="subtle"

@@ -3,7 +3,7 @@ import type { BaseQueryFn, FetchArgs } from "@reduxjs/toolkit/query/react";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Cookies } from "react-cookie";
 
-import { IJobRequestSchema, IJobsResponseSchema } from "../actions/utilActions.types";
+import type { IJobRequestSchema, IJobsResponseSchema } from "../actions/utilActions.types";
 import type { IApiLoginPost, IApiLoginResponse, IApiUserSignUpPost } from "../store/auth/auth.zod";
 // eslint-disable-next-line import/no-cycle
 import { tokenReceived } from "../store/auth/authSlice";

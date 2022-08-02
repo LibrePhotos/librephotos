@@ -10,6 +10,7 @@ import { JobsResponseSchema } from "../../actions/utilActions.types";
 import { useJobsQuery } from "../../api_client/api";
 import { useAppDispatch } from "../../store/store";
 import { DeleteJobButton } from "./DeleteJobButton";
+import { JobDuration } from "./JobDuration";
 import { JobIndicator } from "./JobIndicator";
 import { JobProgress } from "./JobProgress";
 
@@ -19,7 +20,7 @@ export function JobList() {
   const matches = useMediaQuery("(min-width: 700px)");
   const [jobCount, setJobCount] = useState(0);
   const [activePage, setActivePage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize] = useState(10);
   const [jobs, setJobs] = useState<IJobsResponseSchema>();
 
   const { currentData, isLoading } = useJobsQuery({ page: activePage, pageSize }, { pollingInterval: 2000 });
@@ -83,19 +84,14 @@ export function JobList() {
                 <td>
                   <JobProgress target={target} current={current} error={error} finished={finished} />
                 </td>
-                {matches && <td>{moment(queuedAt).fromNow()}</td>}
-                {matches && <td>{startedAt ? moment(startedAt).fromNow() : ""}</td>}
-
                 {matches && (
-                  <td>
-                    {finished
-                      ? // @ts-ignore
-                        moment.duration(moment(finishedAt) - moment(startedAt)).humanize()
-                      : startedAt
-                      ? t("joblist.running")
-                      : ""}
-                  </td>
+                  <>
+                    <td>{moment(queuedAt).fromNow()}</td>
+                    <td>{startedAt ? moment(startedAt).fromNow() : ""}</td>
+                  </>
                 )}
+
+                <JobDuration matches={matches} finished={finished} finishedAt={finishedAt} startedAt={startedAt} />
                 {matches && <td>{username}</td>}
                 <td>
                   <DeleteJobButton job={job} />
