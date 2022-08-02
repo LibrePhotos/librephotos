@@ -111,6 +111,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def list(self, *args, **kwargs):
         return super(UserViewSet, self).list(*args, **kwargs)
 
+
 class DeleteUserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by("id")
     serializer_class = DeleteUserSerializer

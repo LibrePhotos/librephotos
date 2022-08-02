@@ -6,68 +6,68 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0027_rename_unknown_person'),
+        ("api", "0027_rename_unknown_person"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='photo',
-            name='camera',
+            model_name="photo",
+            name="camera",
             field=models.TextField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='photo',
-            name='digitalZoomRatio',
+            model_name="photo",
+            name="digitalZoomRatio",
             field=models.FloatField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='photo',
-            name='focalLength35Equivalent',
+            model_name="photo",
+            name="focalLength35Equivalent",
             field=models.IntegerField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='photo',
-            name='focal_length',
+            model_name="photo",
+            name="focal_length",
             field=models.FloatField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='photo',
-            name='fstop',
+            model_name="photo",
+            name="fstop",
             field=models.FloatField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='photo',
-            name='height',
+            model_name="photo",
+            name="height",
             field=models.IntegerField(default=0),
         ),
         migrations.AddField(
-            model_name='photo',
-            name='iso',
+            model_name="photo",
+            name="iso",
             field=models.IntegerField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='photo',
-            name='lens',
+            model_name="photo",
+            name="lens",
             field=models.TextField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='photo',
-            name='shutter_speed',
+            model_name="photo",
+            name="shutter_speed",
             field=models.FloatField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='photo',
-            name='size',
+            model_name="photo",
+            name="size",
             field=models.IntegerField(default=0),
         ),
         migrations.AddField(
-            model_name='photo',
-            name='subjectDistance',
+            model_name="photo",
+            name="subjectDistance",
             field=models.FloatField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='photo',
-            name='width',
+            model_name="photo",
+            name="width",
             field=models.IntegerField(default=0),
         ),
     ]
