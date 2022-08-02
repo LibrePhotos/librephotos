@@ -62,7 +62,7 @@ export function ModalUserEdit(props: Props) {
   }, [directoryTree]);
 
   useEffect(() => {
-    if (createNew) {
+    if (createNew && !userToEdit) {
       userToEdit = {};
     }
     if (newScanDirectory) {

@@ -25,7 +25,7 @@ export function signup(
 ) {
   dispatch({ type: "SIGNUP" });
   if (!scan_directory) {
-    scan_directory = "initial"
+    scan_directory = "initial";
   }
   Server.post("/user/", {
     email: email,
