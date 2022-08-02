@@ -47,7 +47,7 @@ export function PasswordEntry(props: Props): JSX.Element {
   };
 
   return (
-    <Stack spacing="xs">
+    <Stack style={{ display: "flex", alignContent: "stretch" }} spacing="xs">
       <Title order={6} style={{ paddingTop: "15px" }}>
         {createNew ? (
           <Text>{t("settings.password.titlesetpassword")}</Text>

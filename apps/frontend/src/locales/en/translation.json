@@ -274,6 +274,7 @@
     "login": "Login",
     "username": "User Name",
     "usernameplaceholder": "Username",
+    "usernamelabel": "User name",
     "password": "Password",
     "passwordplaceholder": "Password",
     "confirmpassword": "Confirm Password",
@@ -327,6 +328,7 @@
   },
   "modaluseredit": {
     "header": "Edit User",
+    "createheader": "Create User",
     "errorusernameexists": "A user with that name already exists",
     "errorusernamecannotbeblank": "User name cannot be blank",
     "errorinvalidemail": "Enter a valid email address"

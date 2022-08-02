@@ -21,6 +21,7 @@ import { MoonStars, Photo, Sun, Upload, User } from "tabler-icons-react";
 import { updateAvatar, updateUser } from "../../actions/utilActions";
 import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
+import { PasswordEntry } from "../../components/settings/PasswordEntry";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 export function Profile() {
@@ -45,6 +46,17 @@ export function Profile() {
     return fetch(url)
       .then(res => res.arrayBuffer())
       .then(buf => new File([buf], filename, { type: mimeType }));
+  };
+
+  const onPasswordValidate = (pass: string, valid: boolean) => {
+    var newUserDetails = { ...userSelfDetails };
+    if (pass && valid) {
+      newUserDetails.password = pass;
+    } else {
+      delete newUserDetails.password;
+    }
+
+    setUserSelfDetails({ ...newUserDetails });
   };
 
   // open update dialog, when user was edited
@@ -266,6 +278,9 @@ export function Profile() {
               {t("settings.helptranslating")}
             </Button>
           </Group>
+
+          <PasswordEntry onValidate={onPasswordValidate} createNew={false} />
+
           <Switch
             label={`${t("settings.thumbnailsize")}: ${
               userSelfDetails.image_scale === 1 ? t("settings.big") : t("settings.small")

@@ -15,7 +15,6 @@ import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { ModalNextcloudScanDirectoryEdit } from "../../components/modals/ModalNextcloudScanDirectoryEdit";
 import { ConfigDatetime } from "../../components/settings/ConfigDatetime";
-import { PasswordEntry } from "../../components/settings/PasswordEntry";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 export const Settings = () => {
@@ -29,17 +28,6 @@ export const Settings = () => {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
   const { t } = useTranslation();
-
-  const onPasswordValidate = (pass: string, valid: boolean) => {
-    var newUserDetails = { ...userSelfDetails };
-    if (pass && valid) {
-      newUserDetails.password = pass;
-    } else {
-      delete newUserDetails.password;
-    }
-
-    setUserSelfDetails({ ...newUserDetails });
-  };
 
   // open update dialog, when user was edited
   useEffect(() => {
@@ -155,9 +143,6 @@ export const Settings = () => {
           }}
           data={timezoneList}
         />
-      </Group>
-      <Group position="center">
-        <PasswordEntry onValidate={onPasswordValidate} createNew={false} />
       </Group>
       <ConfigDatetime />
       <Title order={3}>

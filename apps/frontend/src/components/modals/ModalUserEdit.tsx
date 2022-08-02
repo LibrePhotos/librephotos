@@ -224,7 +224,7 @@ export function ModalUserEdit(props: Props) {
       onClose={() => {
         clearStateAndClose();
       }}
-      title={<Title order={4}>{createNew ? "Create User" : t("modaluseredit.header")}</Title>}
+      title={<Title order={4}>{createNew ? t("modaluseredit.createheader") : t("modaluseredit.header")}</Title>}
     >
       <Box
         sx={theme => ({
@@ -234,7 +234,7 @@ export function ModalUserEdit(props: Props) {
         <SimpleGrid cols={2} spacing="xs" breakpoints={[{ maxWidth: 600, cols: 1, spacing: "sm" }]}>
           <TextInput
             required
-            label="User Name"
+            label={t("login.usernamelabel")}
             icon={<User />}
             placeholder={t("login.usernameplaceholder")}
             name="username"
@@ -247,7 +247,7 @@ export function ModalUserEdit(props: Props) {
             }}
           />
           <TextInput
-            label="Email"
+            label={t("settings.email")}
             icon={<Mail />}
             placeholder={t("settings.emailplaceholder")}
             name="email"
@@ -260,7 +260,7 @@ export function ModalUserEdit(props: Props) {
             }}
           />
           <TextInput
-            label="First Name"
+            label={t("settings.firstname")}
             icon={<User />}
             placeholder={t("settings.firstnameplaceholder")}
             name="firstname"
@@ -271,7 +271,7 @@ export function ModalUserEdit(props: Props) {
             }}
           />
           <TextInput
-            label="Last Name"
+            label={t("settings.lastname")}
             icon={<User />}
             placeholder={t("settings.lastnameplaceholder")}
             name="lastname"
