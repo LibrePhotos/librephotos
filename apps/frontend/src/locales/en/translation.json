@@ -131,7 +131,15 @@
     "on": "On",
     "off": "Off",
     "experimentalupdate": "Update",
-    "configdatetime": " Set datetime parsing rules"
+    "configdatetime": " Set date & time parsing rules",
+    "password": {
+      "errormustmatch": "Passwords must match",
+      "errorcannotbeblank": "Password cannot be blank",
+      "errormustretype": "You must retype the password",
+      "titlechangepassword": "Change Password",
+      "titlesetpassword": "Set Password",
+      "tooltipeditbutton": "Click to change the password"
+    }
   },
   "modalalbum": {
     "title": "Add to Album",
@@ -296,7 +304,10 @@
     "notset": "Not set",
     "remove": "Remove",
     "admintools": "Admin Tools",
-    "deleteallautoalbums": "Delete all auto created albums"
+    "deleteallautoalbums": "Delete all auto created albums",
+    "deleteuserconfirmexplanation": "You are about to delete the following user: {{username}}. This will delete all associated data.",
+    "titledeleteuser": "Delete User",
+    "cannotbeundone": "This action cannot be undone."
   },
   "joblist": {
     "workerlogs": "Worker Logs",
@@ -314,13 +325,10 @@
     "removeexplanation": "Does not actually stop the job, only removes this entry from DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc."
   },
   "modaluseredit": {
-      "header": "Edit User",
-      "explanation1": "When the user",
-      "explanation2": "clicks on the 'scan photos' button, photos in the directory that you specify here will be imported under the user's account",
-      "currentdirectory": "User's current directory",
-      "notset": "not set",
-      "update": "Update",
-      "explanation3": "Choose a directory from below"
+    "header": "Edit User",
+    "errorusernameexists": "A user with that name already exists",
+    "errorusernamecannotbeblank": "User name cannot be blank",
+    "errorinvalidemail": "Enter a valid email address"
   },
   "modalscandirectoryedit": {
     "header": "Set the scan directory for user",
@@ -329,7 +337,8 @@
     "currentdirectory": "User's current directory",
     "notset": "not set",
     "update": "Update",
-    "explanation3": "Choose a directory from below"
+    "explanation3": "Choose a directory from below",
+    "pathdoesnotexist": "Path does not exist"
   },
   "sitesettings": {
     "header": "Allow user registration",

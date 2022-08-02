@@ -11,17 +11,17 @@ import {
   Table,
   Text,
   Title,
-} from "@mantine/core"; 
+} from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { openConfirmModal } from "@mantine/modals";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { Adjustments, Ban, Check, Clock, Edit, Trash, Refresh, Plus } from "tabler-icons-react";
+import { Trans, useTranslation } from "react-i18next";
+import { Adjustments, Ban, Check, Clock, Edit, Plus, Refresh, Trash } from "tabler-icons-react";
 
-import { ModalUserEdit } from "../../components/modals/ModalUserEdit";
 import { deleteAllAutoAlbum } from "../../actions/albumsActions";
 import { deleteJob, deleteUser, fetchJobList, fetchSiteSettings, fetchUserList } from "../../actions/utilActions";
+import { ModalUserEdit } from "../../components/modals/ModalUserEdit";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { SiteSettings } from "./SiteSettings";
 
@@ -56,7 +56,7 @@ export const AdminPage = () => {
         {t("adminarea.users")}
         {fetchingUserList ? <Loader size="xs" /> : null}
       </Title>
-      
+
       <UserTable />
       <JobList />
     </SimpleGrid>
@@ -78,13 +78,13 @@ const UserTable = () => {
     dispatch(fetchUserList());
   }, [dispatch]);
 
-  const rows = userList.map((user) => (
+  const rows = userList.map(user => (
     <tr key={user.username}>
       <td>
-        <Button 
-          size="xs" 
-          variant="subtle" 
-          compact 
+        <Button
+          size="xs"
+          variant="subtle"
+          compact
           title="Modify"
           leftIcon={<Edit />}
           onClick={() => {
@@ -93,14 +93,14 @@ const UserTable = () => {
             setUserModalOpen(true);
           }}
         />
-        
-        <Button 
-          size="xs" 
-          variant="subtle" 
-          color="red" 
-          compact 
+
+        <Button
+          size="xs"
+          variant="subtle"
+          color="red"
+          compact
           disabled={user.is_superuser}
-          title={user.is_superuser ? "Cannot delete admin user": "Delete"}
+          title={user.is_superuser ? "Cannot delete admin user" : "Delete"}
           leftIcon={<Trash />}
           onClick={() => {
             confirmDeleteUserModal(user, dispatch);
@@ -108,9 +108,7 @@ const UserTable = () => {
         />
       </td>
       <td>{user.username}</td>
-      <td>
-          {user.scan_directory ? user.scan_directory : t("adminarea.notset")}
-      </td>
+      <td>{user.scan_directory ? user.scan_directory : t("adminarea.notset")}</td>
       {matches && <td>{user.confidence ? user.confidence : t("adminarea.notset")}</td>}
       {matches && <td>{user.photo_count}</td>}
       {matches && <td>{moment(user.date_joined).fromNow()}</td>}
@@ -161,40 +159,44 @@ const UserTable = () => {
         isOpen={userModalOpen}
         createNew={createNewUser}
       />
-
     </>
   );
-}
+};
 
-const confirmDeleteUserModal = (user, dispatch) =>  openConfirmModal({
-  title: (
-    <Title order={5}>
-      <span style={{paddingRight: "5px"}}><Trash size={16} /></span>
-       Delete User
-    </Title>
-  ),
-  size: "md",
-  children: (
-    <>
-      <Text size="sm">
-        You are about to delete the user "{user.username}". This will delete all associated data.
-      </Text>
-      <br/>
-      <Text size="sm" color="red">
-        This action cannot be undone.
-      </Text>
-    </>
-  ),
-  labels: { confirm: 'Accept', cancel: 'Cancel' },
-  onConfirm: () => {
-    const id = user.id;
-    const username = user.username;
-    deleteUser({id: id, username: username}, dispatch);
-    dispatch(fetchUserList());
-  },
-  onCancel: () => {
-  }
-});
+const confirmDeleteUserModal = (user, dispatch) =>
+  openConfirmModal({
+    title: (
+      <Title order={5}>
+        <span style={{ paddingRight: "5px" }}>
+          <Trash size={16} />
+        </span>
+        <Trans i18nKey="adminarea.titledeleteuser">Delete User</Trans>
+      </Title>
+    ),
+    size: "md",
+    children: (
+      <>
+        <Text size="sm">
+          <Trans i18nKey="adminarea.deleteuserconfirmexplanation" username={user.username}>
+            You are about to delete the following user: {{ username: user.username }}. This will delete all associated
+            data.
+          </Trans>
+        </Text>
+        <br />
+        <Text size="sm" color="red">
+          <Trans i18nKey="adminarea.cannotbeundone">This action cannot be undone.</Trans>
+        </Text>
+      </>
+    ),
+    labels: { confirm: "Accept", cancel: "Cancel" },
+    onConfirm: () => {
+      const id = user.id;
+      const username = user.username;
+      deleteUser({ id: id, username: username }, dispatch);
+      dispatch(fetchUserList());
+    },
+    onCancel: () => {},
+  });
 
 export const DeleteButton = job => {
   const [opened, setOpened] = useState(false);
@@ -226,7 +228,7 @@ export const DeleteButton = job => {
         </Button>
       }
     >
-        <div style={{ display: "flex" }}>{t("joblist.removeexplanation")}</div>
+      <div style={{ display: "flex" }}>{t("joblist.removeexplanation")}</div>
     </Popover>
   );
 };
