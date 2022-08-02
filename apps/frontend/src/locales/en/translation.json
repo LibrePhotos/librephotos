@@ -307,7 +307,8 @@
     "deleteallautoalbums": "Delete all auto created albums",
     "deleteuserconfirmexplanation": "You are about to delete the following user: {{username}}. This will delete all associated data.",
     "titledeleteuser": "Delete User",
-    "cannotbeundone": "This action cannot be undone."
+    "cannotbeundone": "This action cannot be undone.",
+    "cannotdeleteadmin": "Cannot delete admin user"
   },
   "joblist": {
     "workerlogs": "Worker Logs",
@@ -426,6 +427,8 @@
   "deleteface": "Delete faces",
   "confirm": "Confirm",
   "cancel": "Cancel",
+  "save": "Save",
+  "modify": "Modify",
   "supportus": "Support us",
   "deletefaceexplanation": "This action will permanently delete the faces and all its associated data. This action cannot be undone.",
   "toasts": {

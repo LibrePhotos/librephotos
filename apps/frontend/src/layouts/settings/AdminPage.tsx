@@ -1,9 +1,9 @@
 import {
+  ActionIcon,
   Button,
   Center,
   Group,
   Loader,
-  Modal,
   Pagination,
   Popover,
   Progress,
@@ -81,31 +81,33 @@ const UserTable = () => {
   const rows = userList.map(user => (
     <tr key={user.username}>
       <td>
-        <Button
-          size="xs"
-          variant="subtle"
-          compact
-          title="Modify"
-          leftIcon={<Edit />}
-          onClick={() => {
-            setUserToEdit(user);
-            setCreateNewUser(false);
-            setUserModalOpen(true);
-          }}
-        />
+        <span style={{ display: "flex" }}>
+          <ActionIcon
+            variant="transparent"
+            color="blue"
+            title={t("modify")}
+            onClick={() => {
+              setUserToEdit(user);
+              setCreateNewUser(false);
+              setUserModalOpen(true);
+            }}
+          >
+            <Edit />
+          </ActionIcon>
 
-        <Button
-          size="xs"
-          variant="subtle"
-          color="red"
-          compact
-          disabled={user.is_superuser}
-          title={user.is_superuser ? "Cannot delete admin user" : "Delete"}
-          leftIcon={<Trash />}
-          onClick={() => {
-            confirmDeleteUserModal(user, dispatch);
-          }}
-        />
+          <ActionIcon
+            style={{ marginLeft: "5px" }}
+            variant="transparent"
+            color="red"
+            disabled={user.is_superuser}
+            title={user.is_superuser ? t("adminarea.cannotdeleteadmin") : t("delete")}
+            onClick={() => {
+              confirmDeleteUserModal(user, dispatch);
+            }}
+          >
+            <Trash />
+          </ActionIcon>
+        </span>
       </td>
       <td>{user.username}</td>
       <td>{user.scan_directory ? user.scan_directory : t("adminarea.notset")}</td>

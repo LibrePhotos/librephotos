@@ -1,7 +1,7 @@
-import { Button, PasswordInput, Stack, Text, Title } from "@mantine/core";
+import { ActionIcon, Button, PasswordInput, Space, Stack, Text, Title } from "@mantine/core";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Edit, Lock } from "tabler-icons-react";
+import { Lock, LockOpen } from "tabler-icons-react";
 
 type Props = {
   createNew?: boolean;
@@ -20,7 +20,7 @@ export function PasswordEntry(props: Props): JSX.Element {
 
   useEffect(() => {
     validateAndUpdatePassword(newPassword, newPasswordConfirm, closing);
-  }, [createNew, closing]);
+  }, [createNew, closing, editPasswordMode]);
 
   const validateAndUpdatePassword = (password, passwordConfirm, closing = false) => {
     setConfirmPasswordError("");
@@ -32,8 +32,6 @@ export function PasswordEntry(props: Props): JSX.Element {
       if (password == passwordConfirm) {
         validPassword = password;
         isValid = true;
-        setNewPasswordError("");
-        setConfirmPasswordError("");
       } else if (passwordConfirm !== "") {
         setConfirmPasswordError(t("settings.password.errormustmatch"));
       } else if (closing) {
@@ -54,17 +52,20 @@ export function PasswordEntry(props: Props): JSX.Element {
         {createNew ? (
           <Text>{t("settings.password.titlesetpassword")}</Text>
         ) : (
-          <Text>
+          <Text style={{ display: "flex", alignItems: "center" }}>
             {t("settings.password.titlechangepassword")}
-            <Button
-              variant="subtle"
-              leftIcon={<Edit size={16} />}
+            <ActionIcon
               title={t("settings.password.tooltipeditbutton")}
+              color="blue"
+              variant={editPasswordMode ? "outline" : "filled"}
+              component="span"
+              style={{ marginLeft: "5px" }}
               onClick={() => {
                 setEditPasswordMode(!editPasswordMode);
-                validateAndUpdatePassword(newPassword, newPasswordConfirm);
               }}
-            />
+            >
+              {editPasswordMode ? <LockOpen size={16} /> : <Lock size={16} />}
+            </ActionIcon>
           </Text>
         )}
       </Title>

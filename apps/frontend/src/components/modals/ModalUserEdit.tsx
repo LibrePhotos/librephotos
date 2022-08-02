@@ -330,11 +330,11 @@ export function ModalUserEdit(props: Props) {
       </div>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <Button variant="default" onClick={() => clearStateAndClose()}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Space w="md" />
         <Button disabled={!true} onClick={() => validateAndClose()}>
-          Save
+          {t("save")}
         </Button>
       </div>
     </Modal>
