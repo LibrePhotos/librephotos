@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0028_add_metadata_fields'),
+        ("api", "0028_add_metadata_fields"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='photo',
-            name='shutter_speed',
+            model_name="photo",
+            name="shutter_speed",
             field=models.TextField(blank=True, null=True),
         ),
     ]

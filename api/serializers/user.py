@@ -216,6 +216,7 @@ class UserSerializer(serializers.ModelSerializer):
         except Exception:
             return None
 
+
 class DeleteUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
@@ -224,6 +225,7 @@ class DeleteUserSerializer(serializers.ModelSerializer):
 
 class ManageUserSerializer(serializers.ModelSerializer):
     photo_count = serializers.SerializerMethodField()
+
     class Meta:
         model = get_user_model()
         fields = (
@@ -241,7 +243,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
             "email",
             "first_name",
             "last_name",
-            "password"
+            "password",
         )
         extra_kwargs = {
             "password": {"write_only": True},
