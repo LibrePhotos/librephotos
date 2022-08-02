@@ -87,7 +87,11 @@ class UserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         if "scan_directory" in validated_data.keys():
-            validated_data.pop("scan_directory")
+            if (
+                not self.context["request"].user.is_superuser
+                or validated_data["scan_directory"] == "initial"
+            ):
+                validated_data.pop("scan_directory")
         # make sure username is always lowercase
         if "username" in validated_data.keys():
             validated_data["username"] = validated_data["username"].lower()

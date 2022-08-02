@@ -94,7 +94,9 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action == "create":
-            self.permission_classes = [IsRegistrationAllowed | FirstTimeSetupPermission | IsAdminUser]
+            self.permission_classes = [
+                IsRegistrationAllowed | FirstTimeSetupPermission | IsAdminUser
+            ]
             cache.clear()
         elif self.action == "list":
             self.permission_classes = (AllowAny,)
