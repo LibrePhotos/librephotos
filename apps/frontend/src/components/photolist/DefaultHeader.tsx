@@ -98,6 +98,7 @@ export function DefaultHeader(props: Props) {
           updateAndScan
           userList={userList}
           createNew={false}
+          firstTimeSetup
         />
       </div>
     );

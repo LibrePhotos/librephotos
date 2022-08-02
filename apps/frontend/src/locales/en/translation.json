@@ -215,8 +215,8 @@
     "select": "Select all"
   },
   "defaultheader": {
-    "setup": "Looks like you still have to set up LibrePhotos.",
-    "gettingstarted": "Getting started",
+    "setup": "To begin using LibrePhotos, edit your user's scan directory.",
+    "gettingstarted": "Edit User",
     "loading": "Loading...",
     "noimages": "No images found",
     "days": "days",
@@ -279,7 +279,7 @@
     "passwordplaceholder": "Password",
     "confirmpassword": "Confirm Password",
     "confirmpasswordplaceholder": "Confirm Password",
-    "signup": "Sign up",
+    "signup": "Sign Up",
     "errorbackend": "No connection to backend server, try again in a few minutes.",
     "errorpassword": "Password may not be blank!",
     "errorusername": "Username may not be blank!",
@@ -341,7 +341,8 @@
     "notset": "not set",
     "update": "Update",
     "explanation3": "Choose a directory from below",
-    "pathdoesnotexist": "Path does not exist"
+    "pathdoesnotexist": "Path does not exist",
+    "mustspecifypath": "You must specify a scan directory"
   },
   "sitesettings": {
     "header": "Allow user registration",

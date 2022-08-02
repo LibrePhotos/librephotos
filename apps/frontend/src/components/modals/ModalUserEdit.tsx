@@ -18,10 +18,11 @@ type Props = {
   onRequestClose: () => void;
   userList: any;
   createNew: boolean;
+  firstTimeSetup?: boolean;
 };
 
 export function ModalUserEdit(props: Props) {
-  const { isOpen, updateAndScan, selectedNodeId, onRequestClose, userList, createNew } = props;
+  const { isOpen, updateAndScan, selectedNodeId, onRequestClose, userList, createNew, firstTimeSetup } = props;
   var userToEdit = props.userToEdit;
   const [newScanDirectory, setNewScanDirectory] = useState("");
   const [treeData, setTreeData] = useState([]);
@@ -42,6 +43,7 @@ export function ModalUserEdit(props: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { t } = useTranslation();
   const [pathDoesNotExist, setPathDoesNotExist] = useState(false);
+  const [pathError, setPathError] = useState("");
   const [closing, setClosing] = useState(false);
 
   useEffect(() => {
@@ -68,6 +70,7 @@ export function ModalUserEdit(props: Props) {
     if (newScanDirectory) {
       setScanDirectoryPlaceholder(newScanDirectory);
     }
+    validatePath(newScanDirectory);
     if (userToEdit) {
       if (userToEdit.scan_directory) {
         setScanDirectoryPlaceholder(userToEdit.scan_directory);
@@ -82,7 +85,7 @@ export function ModalUserEdit(props: Props) {
     } else {
       setScanDirectoryPlaceholder(t("modalscandirectoryedit.notset"));
     }
-  }, [isAdmin, newScanDirectory, userToEdit, t]);
+  }, [isAdmin, closing, newScanDirectory, userToEdit, t]);
 
   const findPath = (treeData, path) => {
     var result = false;
@@ -153,6 +156,21 @@ export function ModalUserEdit(props: Props) {
     }
   };
 
+  const validatePath = path => {
+    setPathError("");
+    if (firstTimeSetup && !path) {
+      setPathError(t("modalscandirectoryedit.mustspecifypath"));
+      return;
+    }
+    if (path) {
+      const result = !findPath(treeData, path);
+      setPathDoesNotExist(result);
+      if (result) {
+        setPathError(t("modalscandirectoryedit.pathdoesnotexist"));
+      }
+    }
+  };
+
   const clearStateAndClose = () => {
     setUserName("");
     setUserEmail("");
@@ -169,11 +187,21 @@ export function ModalUserEdit(props: Props) {
 
   const validateAndClose = () => {
     setClosing(true);
+
     validateUsername(userName);
     validateEmail(userEmail);
+    validatePath(newScanDirectory);
+
     var newUserData = { ...userToEdit };
 
-    if (userNameError || !newPasswordIsValid || userEmailError) {
+    if (newScanDirectory) {
+      newUserData.scan_directory = newScanDirectory;
+    }
+    if (!newUserData.scan_directory) {
+      delete newUserData.scan_directory;
+    }
+
+    if (userNameError || !newPasswordIsValid || userEmailError || pathError) {
       return;
     }
     if (createNew) {
@@ -193,14 +221,6 @@ export function ModalUserEdit(props: Props) {
       if (userName) {
         newUserData.username = userName;
       }
-    }
-
-    if (newScanDirectory) {
-      newUserData.scan_directory = newScanDirectory;
-    }
-
-    if (!newUserData.scan_directory) {
-      delete newUserData.scan_directory;
     }
 
     if (updateAndScan) {
@@ -291,16 +311,17 @@ export function ModalUserEdit(props: Props) {
         {t("modalscandirectoryedit.explanation2")}
       </Text>
       <Space h="md" />
-      <Title order={6}>{t("modalscandirectoryedit.currentdirectory")} </Title>
       <Grid grow>
         <Grid.Col span={9}>
           <TextInput
+            label={t("modalscandirectoryedit.currentdirectory")}
+            labelProps={{ style: { fontWeight: "bold" } }}
             ref={inputRef}
-            error={pathDoesNotExist ? t("modalscandirectoryedit.pathdoesnotexist") : ""}
+            error={pathError}
+            required={firstTimeSetup}
             onChange={v => {
               setNewScanDirectory(v.currentTarget.value);
-              const result = !findPath(treeData, v.currentTarget.value);
-              setPathDoesNotExist(result);
+              validatePath(v.currentTarget.value);
             }}
             placeholder={scanDirectoryPlaceholder}
           />
