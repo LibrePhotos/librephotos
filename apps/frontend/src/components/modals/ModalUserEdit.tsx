@@ -1,23 +1,9 @@
-import {
-  Alert,
-  Box,
-  Button,
-  Grid,
-  Modal,
-  PasswordInput,
-  Popover,
-  SimpleGrid,
-  Space,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-} from "@mantine/core";
-import React, { Fragment, useEffect, useRef, useState } from "react";
+import { Box, Button, Grid, Modal, SimpleGrid, Space, Text, TextInput, Title } from "@mantine/core";
+import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SortableTree from "react-sortable-tree";
 import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
-import { Edit, InfoCircle, Lock, Mail, User } from "tabler-icons-react";
+import { Mail, User } from "tabler-icons-react";
 
 import { signup } from "../../actions/authActions";
 import { fetchDirectoryTree, manageUpdateUser, updateUserAndScan } from "../../actions/utilActions";
@@ -56,11 +42,7 @@ export function ModalUserEdit(props: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { t } = useTranslation();
   const [pathDoesNotExist, setPathDoesNotExist] = useState(false);
-  const [userNamePopOpen, setUserNamePopOpen] = useState(false);
   const [closing, setClosing] = useState(false);
-
-  const isNotValidPath =
-    !userToEdit || pathDoesNotExist || userToEdit.scan_directory === newScanDirectory || newScanDirectory === "";
 
   useEffect(() => {
     if (auth.access && auth.access.is_admin) {
