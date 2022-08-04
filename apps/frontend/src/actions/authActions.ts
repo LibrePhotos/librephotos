@@ -1,8 +1,8 @@
 import { push } from "redux-first-history";
 
+import { api } from "../api_client/api";
 import { Server } from "../api_client/apiClient";
 import type { AppDispatch } from "../store/store";
-import { fetchUserList } from "./utilActions";
 
 export const LOGIN_REQUEST = "@@auth/LOGIN_REQUEST";
 export const LOGIN_SUCCESS = "@@auth/LOGIN_SUCCESS";
@@ -23,30 +23,24 @@ export function signup(
   noPush: boolean = false,
   scan_directory: string = "initial"
 ) {
-  dispatch({ type: "SIGNUP" });
   if (!scan_directory) {
     scan_directory = "initial";
   }
-  Server.post("/user/", {
-    email: email,
-    username: username,
-    password: password,
-    scan_directory: scan_directory,
-    first_name: firstname,
-    last_name: lastname,
-    is_superuser: is_superuser,
-  })
-    .then(response => {
-      dispatch({ type: "SIGNUP_FULFILLED", payload: response.data });
-      // @ts-ignore
-      dispatch(fetchUserList());
-      if (!noPush) {
-        dispatch(push("/login"));
-      }
+  dispatch(
+    api.endpoints.signUp.initiate({
+      username: username,
+      email: email,
+      password: password,
+      scan_directory: scan_directory,
+      first_name: firstname,
+      last_name: lastname,
+      is_superuser: is_superuser,
     })
-    .catch(err => {
-      dispatch({ type: "SIGNUP_REJECTED", payload: err });
-    });
+  ).then(() => {
+    if (!noPush) {
+      dispatch(push("/login"));
+    }
+  });
 }
 
 export function login(username: string, password: string, from: any, dispatch: AppDispatch) {

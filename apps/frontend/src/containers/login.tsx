@@ -1,9 +1,8 @@
-import React, { useEffect } from "react";
+import React from "react";
 
-import { fetchUserList } from "../actions/utilActions";
+import { useFetchUserListQuery } from "../api_client/api";
 import { FirstTimeSetupPage } from "../layouts/login/FirstTimeSetupPage";
 import { LoginPage } from "../layouts/login/LoginPage";
-import { useAppDispatch, useAppSelector } from "../store/store";
 
 export interface LocationState {
   from: {
@@ -12,14 +11,9 @@ export interface LocationState {
 }
 
 export function Login(): JSX.Element {
-  const { userList, fetchedUserList } = useAppSelector(state => state.util);
-  const dispatch = useAppDispatch();
+  const { data: userList, isLoading } = useFetchUserListQuery();
 
-  useEffect(() => {
-    dispatch(fetchUserList());
-  }, [dispatch]);
-
-  if (fetchedUserList && userList.length === 0) {
+  if (!isLoading && userList && userList.count == 0) {
     return (
       <div className="login-page">
         <FirstTimeSetupPage />

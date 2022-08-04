@@ -25,3 +25,4 @@ tags
 
 .eslintcache
 .env.development
+.vscode/settings.json

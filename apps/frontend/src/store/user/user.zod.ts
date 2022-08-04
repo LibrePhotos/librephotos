@@ -36,6 +36,7 @@ export const UserSchema = z.object({
   datetime_rules: z.string(),
   default_timezone: z.string(),
   password: z.string().optional(),
+  is_superuser: z.boolean().optional(),
 });
 
 export const ManageUser = z.object({
@@ -64,6 +65,7 @@ export const SimpleUser = z.object({
 });
 
 export type IUser = z.infer<typeof UserSchema>;
+export type IManageUser = z.infer<typeof ManageUser>;
 
 export const ApiUserListResponseSchema = z.object({
   count: z.number(),

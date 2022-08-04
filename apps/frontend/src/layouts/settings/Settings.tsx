@@ -173,7 +173,7 @@ export const Settings = () => {
         radius="md"
       >
         <Text size="sm" style={{ marginBottom: 10 }} weight={500}>
-          <Trans i18nKey="settings.savechanges">Save changes?</Trans>
+          {t("settings.savechanges")}
         </Text>
 
         <Group align="flex-end">

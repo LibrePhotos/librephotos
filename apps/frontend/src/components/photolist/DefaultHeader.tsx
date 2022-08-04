@@ -1,11 +1,11 @@
 import { Button, Divider, Group, Loader, Menu, Text, Title } from "@mantine/core";
 import type { ReactElement } from "react";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
 import { Calendar, ChevronDown, Clock, EyeOff, Globe, Star } from "tabler-icons-react";
 
-import { fetchUserList } from "../../actions/utilActions";
+import { useFetchUserListQuery } from "../../api_client/api";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
 
@@ -30,11 +30,7 @@ export function DefaultHeader(props: Props) {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
 
-  const { userList } = useAppSelector(state => state.util);
-
-  useEffect(() => {
-    dispatch(fetchUserList());
-  }, [dispatch]);
+  const { data: userList } = useFetchUserListQuery();
 
   // return true if it is a view with a dropdown
   const isMenuView = () => {

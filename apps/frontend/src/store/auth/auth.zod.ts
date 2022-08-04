@@ -38,9 +38,10 @@ export const ApiUserSignUpPostSchema = z.object({
   username: z.string(),
   password: z.string(),
   email: z.string(),
-  firstname: z.string(),
-  lastname: z.string(),
+  first_name: z.string(),
+  last_name: z.string(),
   is_superuser: z.boolean(),
+  scan_directory: z.string().optional(),
 });
 
 export const ApiLoginPostSchema = z.object({

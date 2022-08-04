@@ -15,24 +15,43 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Lock, Mail, User } from "tabler-icons-react";
 
-import { useSignUpMutation } from "../../api_client/api";
+import { useFetchUserListQuery, useSignUpMutation } from "../../api_client/api";
+import { EMAIL_REGEX } from "../../util/util";
 
 export function SignupPage(): JSX.Element {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { data: userList } = useFetchUserListQuery();
 
+  const validateUsername = username => {
+    var error = null;
+    if (!username) {
+      error = t("modaluseredit.errorusernamecannotbeblank");
+    } else if (userList && userList.results) {
+      userList.results.every(user => {
+        if (user.username == username) {
+          error = t("modaluseredit.errorusernameexists");
+          return false;
+        }
+        return true;
+      });
+    }
+    return error;
+  };
   const form = useForm({
     initialValues: {
       username: "",
       password: "",
-      firstname: "",
-      lastname: "",
+      first_name: "",
+      last_name: "",
       passwordConfirm: "",
       email: "",
     },
 
     validate: {
-      passwordConfirm: (value, values) => (value !== values.password ? "Passwords did not match" : null),
+      passwordConfirm: (value, values) => (value !== values.password ? t("settings.password.errormustmatch") : null),
+      email: value => (!EMAIL_REGEX.test(value) ? t("modaluseredit.errorinvalidemail") : null),
+      username: value => validateUsername(value),
     },
   });
   const [signup, { isSuccess, isLoading }] = useSignUpMutation();
@@ -73,8 +92,12 @@ export function SignupPage(): JSX.Element {
               <Title order={3}>{t("login.signup")}</Title>
               <form
                 onSubmit={form.onSubmit(values => {
-                  const { email, firstname, lastname, username, password } = values;
-                  void signup({ email, firstname, lastname, username, password, is_superuser: false });
+                  const result = form.validate();
+                  if (result.hasErrors) {
+                    return;
+                  }
+                  const { email, first_name, last_name, username, password } = values;
+                  void signup({ email, first_name, last_name, username, password, is_superuser: false });
                 })}
               >
                 <Stack>
@@ -97,14 +120,14 @@ export function SignupPage(): JSX.Element {
                     icon={<User />}
                     placeholder={t("settings.firstnameplaceholder")}
                     name="firstname"
-                    {...form.getInputProps("firstname")}
+                    {...form.getInputProps("first_name")}
                   />
                   <TextInput
                     required
                     icon={<User />}
                     placeholder={t("settings.lastnameplaceholder")}
                     name="lastname"
-                    {...form.getInputProps("lastname")}
+                    {...form.getInputProps("last_name")}
                   />
                   <PasswordInput
                     icon={<Lock />}

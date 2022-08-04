@@ -13,14 +13,15 @@ import {
   Title,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { openConfirmModal } from "@mantine/modals";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
-import { Trans, useTranslation } from "react-i18next";
+import { useTranslation } from "react-i18next";
 import { Adjustments, Ban, Check, Clock, Edit, Plus, Refresh, Trash } from "tabler-icons-react";
 
 import { deleteAllAutoAlbum } from "../../actions/albumsActions";
-import { deleteJob, deleteUser, fetchJobList, fetchSiteSettings, fetchUserList } from "../../actions/utilActions";
+import { deleteJob, fetchJobList, fetchSiteSettings } from "../../actions/utilActions";
+import { useFetchUserListQuery } from "../../api_client/api";
+import { ModalUserDelete } from "../../components/modals/ModalUserDelete";
 import { ModalUserEdit } from "../../components/modals/ModalUserEdit";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { SiteSettings } from "./SiteSettings";
@@ -34,7 +35,6 @@ export const AdminPage = () => {
   useEffect(() => {
     if (auth.access.is_admin) {
       fetchSiteSettings(dispatch);
-      dispatch(fetchUserList());
     }
   }, [auth.access, dispatch]);
 
@@ -65,57 +65,15 @@ export const AdminPage = () => {
 
 const UserTable = () => {
   const [userModalOpen, setUserModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState({});
+  const [userToDelete, setUserToDelete] = useState({});
   const [createNewUser, setCreateNewUser] = useState(false);
 
-  const dispatch = useAppDispatch();
-  const userList = useAppSelector(state => state.util.userList);
+  const { data: userList } = useFetchUserListQuery();
 
   const matches = useMediaQuery("(min-width: 700px)");
   const { t } = useTranslation();
-
-  useEffect(() => {
-    dispatch(fetchUserList());
-  }, [dispatch]);
-
-  const rows = userList.map(user => (
-    <tr key={user.username}>
-      <td>
-        <span style={{ display: "flex" }}>
-          <ActionIcon
-            variant="transparent"
-            color="blue"
-            title={t("modify")}
-            onClick={() => {
-              setUserToEdit(user);
-              setCreateNewUser(false);
-              setUserModalOpen(true);
-            }}
-          >
-            <Edit />
-          </ActionIcon>
-
-          <ActionIcon
-            style={{ marginLeft: "5px" }}
-            variant="transparent"
-            color="red"
-            disabled={user.is_superuser}
-            title={user.is_superuser ? t("adminarea.cannotdeleteadmin") : t("delete")}
-            onClick={() => {
-              confirmDeleteUserModal(user, dispatch);
-            }}
-          >
-            <Trash />
-          </ActionIcon>
-        </span>
-      </td>
-      <td>{user.username}</td>
-      <td>{user.scan_directory ? user.scan_directory : t("adminarea.notset")}</td>
-      {matches && <td>{user.confidence ? user.confidence : t("adminarea.notset")}</td>}
-      {matches && <td>{user.photo_count}</td>}
-      {matches && <td>{moment(user.date_joined).fromNow()}</td>}
-    </tr>
-  ));
 
   return (
     <>
@@ -131,7 +89,47 @@ const UserTable = () => {
           </tr>
         </thead>
         <tbody>
-          {rows}
+          {userList && userList.results
+            ? userList.results.map(user => (
+                <tr key={user.username}>
+                  <td>
+                    <span style={{ display: "flex" }}>
+                      <ActionIcon
+                        variant="transparent"
+                        color="blue"
+                        title={t("modify")}
+                        onClick={() => {
+                          setUserToEdit(user);
+                          setCreateNewUser(false);
+                          setUserModalOpen(true);
+                        }}
+                      >
+                        <Edit />
+                      </ActionIcon>
+
+                      <ActionIcon
+                        style={{ marginLeft: "5px" }}
+                        variant="transparent"
+                        color="red"
+                        disabled={user.is_superuser}
+                        title={user.is_superuser ? t("adminarea.cannotdeleteadmin") : t("delete")}
+                        onClick={() => {
+                          setUserToDelete(user);
+                          setDeleteModalOpen(true);
+                        }}
+                      >
+                        <Trash />
+                      </ActionIcon>
+                    </span>
+                  </td>
+                  <td>{user.username}</td>
+                  <td>{user.scan_directory ? user.scan_directory : t("adminarea.notset")}</td>
+                  {matches && <td>{user.confidence ? user.confidence : t("adminarea.notset")}</td>}
+                  {matches && <td>{user.photo_count}</td>}
+                  {matches && <td>{moment(user.date_joined).fromNow()}</td>}
+                </tr>
+              ))
+            : null}
           <tr>
             <td>
               <Button
@@ -144,7 +142,7 @@ const UserTable = () => {
                   setUserModalOpen(true);
                 }}
               >
-                Add New User
+                {t("adminarea.addnewuser")}
               </Button>
             </td>
           </tr>
@@ -154,51 +152,22 @@ const UserTable = () => {
       <ModalUserEdit
         onRequestClose={() => {
           setUserModalOpen(false);
-          dispatch(fetchUserList());
         }}
         userToEdit={userToEdit}
         userList={userList}
         isOpen={userModalOpen}
         createNew={createNewUser}
       />
+      <ModalUserDelete
+        onRequestClose={() => {
+          setDeleteModalOpen(false);
+        }}
+        isOpen={deleteModalOpen}
+        userToDelete={userToDelete}
+      />
     </>
   );
 };
-
-const confirmDeleteUserModal = (user, dispatch) =>
-  openConfirmModal({
-    title: (
-      <Title order={5}>
-        <span style={{ paddingRight: "5px" }}>
-          <Trash size={16} />
-        </span>
-        <Trans i18nKey="adminarea.titledeleteuser">Delete User</Trans>
-      </Title>
-    ),
-    size: "md",
-    children: (
-      <>
-        <Text size="sm">
-          <Trans i18nKey="adminarea.deleteuserconfirmexplanation" username={user.username}>
-            You are about to delete the following user: {{ username: user.username }}. This will delete all associated
-            data.
-          </Trans>
-        </Text>
-        <br />
-        <Text size="sm" color="red">
-          <Trans i18nKey="adminarea.cannotbeundone">This action cannot be undone.</Trans>
-        </Text>
-      </>
-    ),
-    labels: { confirm: "Accept", cancel: "Cancel" },
-    onConfirm: () => {
-      const id = user.id;
-      const username = user.username;
-      deleteUser({ id: id, username: username }, dispatch);
-      dispatch(fetchUserList());
-    },
-    onCancel: () => {},
-  });
 
 export const DeleteButton = job => {
   const [opened, setOpened] = useState(false);

@@ -11,6 +11,7 @@ import {
   Title,
   useMantineColorScheme,
 } from "@mantine/core";
+import _ from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import AvatarEditor from "react-avatar-editor";
 import type { DropzoneRef } from "react-dropzone";
@@ -61,7 +62,7 @@ export function Profile() {
 
   // open update dialog, when user was edited
   useEffect(() => {
-    if (JSON.stringify(userSelfDetailsRedux) !== JSON.stringify(userSelfDetails)) {
+    if (!_.isEqual(userSelfDetailsRedux, userSelfDetails)) {
       setIsOpenUpdateDialog(true);
     } else {
       setIsOpenUpdateDialog(false);

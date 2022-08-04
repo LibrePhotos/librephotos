@@ -309,7 +309,8 @@
     "deleteuserconfirmexplanation": "You are about to delete the following user: {{username}}. This will delete all associated data.",
     "titledeleteuser": "Delete User",
     "cannotbeundone": "This action cannot be undone.",
-    "cannotdeleteadmin": "Cannot delete admin user"
+    "cannotdeleteadmin": "Cannot delete admin user",
+    "addnewuser": "Add New User"
   },
   "joblist": {
     "workerlogs": "Worker Logs",
