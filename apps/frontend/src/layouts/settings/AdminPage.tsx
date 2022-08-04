@@ -16,12 +16,12 @@ import { useMediaQuery } from "@mantine/hooks";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Adjustments, Ban, Check, Clock, Edit, Plus, Refresh, Trash } from "tabler-icons-react";
+import { Adjustments, Edit, Plus, Trash } from "tabler-icons-react";
 
 import { deleteAllAutoAlbum } from "../../actions/albumsActions";
-import { deleteJob, fetchJobList, fetchSiteSettings } from "../../actions/utilActions";
-import { JobList } from "../../components/job/JobList";
+import { deleteJob, fetchSiteSettings } from "../../actions/utilActions";
 import { useFetchUserListQuery } from "../../api_client/api";
+import { JobList } from "../../components/job/JobList";
 import { ModalUserDelete } from "../../components/modals/ModalUserDelete";
 import { ModalUserEdit } from "../../components/modals/ModalUserEdit";
 import { useAppDispatch, useAppSelector } from "../../store/store";
@@ -171,153 +171,5 @@ const UserTable = () => {
         userToDelete={userToDelete}
       />
     </>
-  );
-};
-
-export const DeleteButton = job => {
-  const [opened, setOpened] = useState(false);
-  const { t } = useTranslation();
-  const dispatch = useAppDispatch();
-
-  const id = job.job.id;
-  const page = job.activePage;
-  const pageSize = job.pageSize;
-
-  return (
-    <Popover
-      opened={opened}
-      position="top"
-      placement="center"
-      withArrow
-      width={260}
-      onClose={() => setOpened(false)}
-      target={
-        <Button
-          onMouseEnter={() => setOpened(true)}
-          onMouseLeave={() => setOpened(false)}
-          onClick={() => {
-            dispatch(deleteJob(id, page, pageSize));
-          }}
-          color="red"
-        >
-          {t("adminarea.remove")}
-        </Button>
-      }
-    >
-      <div style={{ display: "flex" }}>{t("joblist.removeexplanation")}</div>
-    </Popover>
-  );
-};
-
-export const JobList = () => {
-  const dispatch = useAppDispatch();
-  const { t } = useTranslation();
-  const { jobList, jobCount, fetchingJobList } = useAppSelector(state => state.util);
-  const [activePage, setActivePage] = useState(1);
-  const pageSize = 10;
-
-  const matches = useMediaQuery("(min-width: 700px)");
-  const auth = useAppSelector(state => state.auth);
-  //fetch job every five seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (auth.access.is_admin) {
-        dispatch(fetchJobList(activePage, pageSize));
-      }
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [auth.access, activePage, pageSize, dispatch]);
-
-  return (
-    <SimpleGrid cols={1} spacing="xl">
-      <Title order={3}>
-        {t("joblist.workerlogs")} {fetchingJobList ? <Loader size="xs" /> : null}
-      </Title>
-      <Table striped highlightOnHover>
-        <thead>
-          <tr>
-            <th> {t("joblist.status")}</th>
-            <th> {t("joblist.jobtype")}</th>
-            <th> {t("joblist.progress")}</th>
-            {matches && <th> {t("joblist.queued")}</th>}
-            {matches && <th> {t("joblist.started")}</th>}
-            {matches && <th> {t("joblist.duration")}</th>}
-            {matches && <th> {t("joblist.startedby")}</th>}
-            <th> {t("joblist.delete")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {jobList.map(job => {
-            const jobSuccess = job.finished && !job.failed;
-            return (
-              // error={job.failed} warning={!job.finished_at}
-              <tr key={job.job_id}>
-                <td>
-                  {job.finished ? (
-                    job.failed ? (
-                      <Ban color="red" />
-                    ) : (
-                      <Check color="green" />
-                    )
-                  ) : job.started_at ? (
-                    <Refresh color="yellow" />
-                  ) : (
-                    <Clock color="blue" />
-                  )}
-                </td>
-                <td>{job.job_type_str}</td>
-                <td>
-                  {job.result.progress.target !== 0 && !job.finished ? (
-                    <div>
-                      <Progress
-                        size={30}
-                        value={(job.result.progress.current.toFixed(2) / job.result.progress.target) * 100}
-                      ></Progress>
-                      <Center>
-                        {`${job.result.progress.current} ${t("joblist.itemsprocessed")} (${(
-                          (job.result.progress.current.toFixed(2) / job.result.progress.target) *
-                          100
-                        ).toFixed(2)} %) `}
-                      </Center>
-                    </div>
-                  ) : job.finished ? (
-                    <div>
-                      <Progress size={30} color={job.error ? "red" : "green"} value={100} />
-                      <Center>{`${job.result.progress.current} ${t("joblist.itemsprocessed")} `}</Center>
-                    </div>
-                  ) : null}
-                </td>
-                {matches && <td>{moment(job.queued_at).fromNow()}</td>}
-                {matches && <td>{job.started_at ? moment(job.started_at).fromNow() : ""}</td>}
-
-                {matches && (
-                  <td>
-                    {job.finished
-                      ? // @ts-ignore
-                        moment.duration(moment(job.finished_at) - moment(job.started_at)).humanize()
-                      : job.started_at
-                      ? t("joblist.running")
-                      : ""}
-                  </td>
-                )}
-                {matches && <td>{job.started_by.username}</td>}
-                <td>
-                  <DeleteButton job={job}></DeleteButton>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </Table>
-      <Pagination
-        page={activePage}
-        total={Math.ceil(jobCount.toFixed(1) / pageSize)}
-        onChange={newPage => {
-          //@ts-ignore
-          setActivePage(newPage);
-          dispatch(fetchJobList(newPage, pageSize));
-        }}
-      />
-    </SimpleGrid>
   );
 };
