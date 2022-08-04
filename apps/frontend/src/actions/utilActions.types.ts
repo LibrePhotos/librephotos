@@ -12,9 +12,35 @@ export const Job = z.object({
   job_type: z.number(),
   job_type_str: z.string(),
   started_by: SimpleUser,
-  result: z.object({}),
+  error: z.any().optional(),
+  result: z.object({
+    progress: z.object({
+      current: z.number().optional(),
+      target: z.number().optional(),
+    }),
+  }),
   id: z.number(),
 });
+
+export type IJob = z.infer<typeof Job>;
+
+export const JobRequestSchema = z.object({
+  pageSize: z.number().optional(),
+  page: z.number().optional(),
+});
+
+export type IJobRequestSchema = z.infer<typeof JobRequestSchema>;
+
+export const JobsResponseSchema = z
+  .object({
+    count: z.number(),
+    next: z.string().nullable(),
+    previous: z.string().nullable(),
+    results: z.array(Job),
+  })
+  .optional();
+
+export type IJobsResponseSchema = z.infer<typeof JobsResponseSchema>;
 
 export const WorkerAvailability = z.object({
   job_detail: Job.nullable(),

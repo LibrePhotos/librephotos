@@ -3,7 +3,9 @@ import type { BaseQueryFn, FetchArgs } from "@reduxjs/toolkit/query/react";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Cookies } from "react-cookie";
 
+import type { IJobRequestSchema, IJobsResponseSchema } from "../actions/utilActions.types";
 import type { IApiDeleteUserPost, IApiLoginPost, IApiLoginResponse, IApiUserSignUpPost } from "../store/auth/auth.zod";
+
 // eslint-disable-next-line import/no-cycle
 import { tokenReceived } from "../store/auth/authSlice";
 import type { RootState } from "../store/store";
@@ -26,6 +28,7 @@ export enum Endpoints {
   worker = "worker",
   deleteUser = "deleteUser",
   manageUpdateUser = "manageUpdateUser",
+  jobs = "jobs",
 }
 
 const baseQuery = fetchBaseQuery({
@@ -155,8 +158,14 @@ export const api = createApi({
         method: "GET",
       }),
     }),
+    [Endpoints.jobs]: builder.query<IJobsResponseSchema, IJobRequestSchema>({
+      query: ({ pageSize = 10, page = 0 }) => ({
+        url: `jobs/?page_size=${pageSize}&page=${page}`,
+      }),
+    }),
   }),
 });
+
 export const {
   useLazyFetchUserListQuery,
   useLazyFetchPredefinedRulesQuery,
@@ -170,4 +179,6 @@ export const {
   useLazyWorkerQuery,
   useDeleteUserMutation,
   useManageUpdateUserMutation,
+  useJobsQuery,
+  useLazyJobsQuery,
 } = api;

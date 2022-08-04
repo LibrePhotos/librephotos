@@ -21,7 +21,7 @@ import {
   WordCloudResponse,
 } from "./utilActions.types";
 
-export function fetchJobList(page, page_size = 10) {
+export function fetchJobList(page = 1, page_size = 10) {
   return function (dispatch) {
     dispatch({ type: "FETCH_JOB_LIST" });
     Server.get(`jobs/?page_size=${page_size}&page=${page}`)

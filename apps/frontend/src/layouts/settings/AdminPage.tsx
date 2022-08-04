@@ -20,6 +20,7 @@ import { Adjustments, Ban, Check, Clock, Edit, Plus, Refresh, Trash } from "tabl
 
 import { deleteAllAutoAlbum } from "../../actions/albumsActions";
 import { deleteJob, fetchJobList, fetchSiteSettings } from "../../actions/utilActions";
+import { JobList } from "../../components/job/JobList";
 import { useFetchUserListQuery } from "../../api_client/api";
 import { ModalUserDelete } from "../../components/modals/ModalUserDelete";
 import { ModalUserEdit } from "../../components/modals/ModalUserEdit";
@@ -83,9 +84,13 @@ const UserTable = () => {
             <th>Add/Modify/Delete</th>
             <th>{t("adminarea.username")}</th>
             <th>{t("adminarea.scandirectory")}</th>
-            {matches && <th>{t("adminarea.minimumconfidence")}</th>}
-            {matches && <th>{t("adminarea.photocount")}</th>}
-            {matches && <th>{t("adminarea.joined")}</th>}
+            {matches && (
+              <>
+                <th>{t("adminarea.minimumconfidence")}</th>
+                <th>{t("adminarea.photocount")}</th>
+                <th>{t("adminarea.joined")}</th>
+              </>
+            )}
           </tr>
         </thead>
         <tbody>
