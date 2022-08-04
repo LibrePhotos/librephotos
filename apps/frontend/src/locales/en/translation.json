@@ -125,12 +125,21 @@
       "mediafile": "Save to media file"
     },
     "favoriteupdate": "Update",
+    "savechanges": "Save changes?",
     "experimentaloptions": "Experimental options",
     "transcodevideo": "Always transcode videos",
     "on": "On",
     "off": "Off",
     "experimentalupdate": "Update",
-    "configdatetime": " Set datetime parsing rules"
+    "configdatetime": " Set date & time parsing rules",
+    "password": {
+      "errormustmatch": "Passwords must match",
+      "errorcannotbeblank": "Password cannot be blank",
+      "errormustretype": "You must retype the password",
+      "titlechangepassword": "Change Password",
+      "titlesetpassword": "Set Password",
+      "tooltipeditbutton": "Click to change the password"
+    }
   },
   "modalalbum": {
     "title": "Add to Album",
@@ -206,8 +215,8 @@
     "select": "Select all"
   },
   "defaultheader": {
-    "setup": "Looks like you still have to set up LibrePhotos.",
-    "gettingstarted": "Getting started",
+    "setup": "To begin using LibrePhotos, edit your user's scan directory.",
+    "gettingstarted": "Edit User",
     "loading": "Loading...",
     "noimages": "No images found",
     "days": "days",
@@ -265,11 +274,12 @@
     "login": "Login",
     "username": "User Name",
     "usernameplaceholder": "Username",
+    "usernamelabel": "User name",
     "password": "Password",
     "passwordplaceholder": "Password",
     "confirmpassword": "Confirm Password",
     "confirmpasswordplaceholder": "Confirm Password",
-    "signup": "Sign up",
+    "signup": "Sign Up",
     "errorbackend": "No connection to backend server, try again in a few minutes.",
     "errorpassword": "Password may not be blank!",
     "errorusername": "Username may not be blank!",
@@ -295,7 +305,12 @@
     "notset": "Not set",
     "remove": "Remove",
     "admintools": "Admin Tools",
-    "deleteallautoalbums": "Delete all auto created albums"
+    "deleteallautoalbums": "Delete all auto created albums",
+    "deleteuserconfirmexplanation": "You are about to delete the following user: {{username}}. This will delete all associated data.",
+    "titledeleteuser": "Delete User",
+    "cannotbeundone": "This action cannot be undone.",
+    "cannotdeleteadmin": "Cannot delete admin user",
+    "addnewuser": "Add New User"
   },
   "joblist": {
     "workerlogs": "Worker Logs",
@@ -312,6 +327,13 @@
     "running": "running",
     "removeexplanation": "Does not actually stop the job, only removes this entry from DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc."
   },
+  "modaluseredit": {
+    "header": "Edit User",
+    "createheader": "Create User",
+    "errorusernameexists": "A user with that name already exists",
+    "errorusernamecannotbeblank": "User name cannot be blank",
+    "errorinvalidemail": "Enter a valid email address"
+  },
   "modalscandirectoryedit": {
     "header": "Set the scan directory for user",
     "explanation1": "When the user",
@@ -319,7 +341,9 @@
     "currentdirectory": "User's current directory",
     "notset": "not set",
     "update": "Update",
-    "explanation3": "Choose a directory from below"
+    "explanation3": "Choose a directory from below",
+    "pathdoesnotexist": "Path does not exist",
+    "mustspecifypath": "You must specify a scan directory"
   },
   "sitesettings": {
     "header": "Allow user registration",
@@ -407,6 +431,8 @@
   "deleteface": "Delete faces",
   "confirm": "Confirm",
   "cancel": "Cancel",
+  "save": "Save",
+  "modify": "Modify",
   "supportus": "Support us",
   "deletefaceexplanation": "This action will permanently delete the faces and all its associated data. This action cannot be undone.",
   "toasts": {
@@ -463,6 +489,8 @@
     "scannextcloudphotostitle": "Scan Nextcloud Photos",
     "updateuser": "{{username}}'s info updated",
     "updateusertitle": "Update user",
+    "deleteuser": "{{username}} deleted",
+    "deleteusertitle": "Delete user",
     "jobfinished": "{{job}} finished.",
     "deletejob": "Job {{id}} deleted.",
     "deletejobtitle": "Delete job",

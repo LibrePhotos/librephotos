@@ -53,7 +53,7 @@ export function ConfigDatetime(): JSX.Element {
         <SortableContext items={rules} strategy={verticalListSortingStrategy}>
           {rules.map((rule: any) => (
             <SortableItem
-              key={rule.id}
+              key={rules.indexOf(rule)}
               id={rule.id}
               item={rule}
               removeItemFunction={(itemToRemove: any) => {

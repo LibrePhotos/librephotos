@@ -90,25 +90,6 @@ export function fetchSiteSettings(dispatch) {
     });
 }
 
-// Todo: put this under userActions.js
-export function fetchUserList() {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_USER_LIST" });
-    Server.get("user/")
-      .then(response => {
-        const data = UserSchema.array().parse(response.data.results);
-        dispatch({
-          type: "FETCH_USER_LIST_FULFILLED",
-          payload: response.data.results,
-        });
-      })
-      .catch(error => {
-        console.error(error);
-        dispatch({ type: "FETCH_USER_LIST_REJECTED", payload: error });
-      });
-  };
-}
-
 export function fetchDirectoryTree(path) {
   return function (dispatch) {
     dispatch({ type: "FETCH_DIRECTORY_TREE" });
@@ -155,7 +136,7 @@ export function updateAvatar(user, form_data) {
       .then(response => {
         const data = UserSchema.parse(response.data);
         dispatch(userActions.updateRules(response.data));
-        dispatch(fetchUserList());
+        dispatch(api.endpoints.fetchUserList.initiate()).refetch();
         dispatch(fetchNextcloudDirectoryTree("/"));
         showNotification({
           message: i18n.t("toasts.updateuser", { username: user.username }),
@@ -178,14 +159,12 @@ export function updateUser(user, dispatch) {
       const data = UserSchema.parse(response.data);
       dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id)).refetch();
       dispatch(userActions.updateRules(response.data));
-      //dispatch(fetchUserList());
-      dispatch(
-        showNotification({
-          message: i18n.t("toasts.updateuser", { username: user.username }),
-          title: i18n.t("toasts.updateusertitle"),
-          color: "teal",
-        })
-      );
+      dispatch(api.endpoints.fetchUserList.initiate()).refetch();
+      showNotification({
+        message: i18n.t("toasts.updateuser", { username: user.username }),
+        title: i18n.t("toasts.updateusertitle"),
+        color: "teal",
+      });
       dispatch(fetchNextcloudDirectoryTree("/"));
     })
     .catch(error => {
@@ -200,7 +179,7 @@ export function updateUserAndScan(user) {
       .then(response => {
         const data = ManageUser.parse(response.data);
         dispatch(userActions.updateRules(response.data));
-        dispatch(fetchUserList());
+        dispatch(api.endpoints.fetchUserList.initiate()).refetch();
         showNotification({
           message: i18n.t("toasts.updateuser", { username: user.username }),
           title: i18n.t("toasts.updateusertitle"),
@@ -208,27 +187,9 @@ export function updateUserAndScan(user) {
         });
 
         dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id)).refetch();
-        dispatch(scanPhotos());
-      })
-      .catch(error => {
-        console.error(error);
-        dispatch({ type: "UPDATE_USER_REJECTED", payload: error });
-      });
-  };
-}
-
-export function manageUpdateUser(user) {
-  return function (dispatch) {
-    Server.patch(`manage/user/${user.id}/`, user)
-      .then(response => {
-        const data = ManageUser.parse(response.data);
-        dispatch(userActions.updateRules(response.data));
-        dispatch(fetchUserList());
-        showNotification({
-          message: i18n.t("toasts.updateuser", { username: user.username }),
-          title: i18n.t("toasts.updateusertitle"),
-          color: "teal",
-        });
+        if (user.scan_directory) {
+          dispatch(scanPhotos());
+        }
       })
       .catch(error => {
         console.error(error);

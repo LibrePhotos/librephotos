@@ -52,13 +52,14 @@ export function SideMenuNarrow(): JSX.Element {
 
     if (item.submenu) {
       return (
-        <Menu control={link} withArrow position="right" style={{ display: "block" }} gutter={0}>
+        <Menu key={item.label} control={link} withArrow position="right" style={{ display: "block" }} gutter={0}>
           {item.submenu.map(subitem => {
+            var idx = item.submenu?.indexOf(subitem);
             if (subitem.header) {
-              return <Menu.Label>{subitem.header}</Menu.Label>;
+              return <Menu.Label key={idx}>{subitem.header}</Menu.Label>;
             }
             if (subitem.separator) {
-              return <Divider />;
+              return <Divider key={idx} />;
             }
             const onClick = (event: { preventDefault: () => void }) => {
               event.preventDefault();
@@ -71,7 +72,7 @@ export function SideMenuNarrow(): JSX.Element {
               </ActionIcon>
             );
             return (
-              <Menu.Item onClick={onClick} icon={icon}>
+              <Menu.Item key={idx} onClick={onClick} icon={icon}>
                 {subitem.label}
               </Menu.Item>
             );

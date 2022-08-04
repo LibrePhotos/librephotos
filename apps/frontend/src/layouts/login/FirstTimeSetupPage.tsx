@@ -11,12 +11,14 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import React, { useEffect } from "react";
+import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Lock, Mail, User } from "tabler-icons-react";
 
-import { api, useSignUpMutation } from "../../api_client/api";
+import { api, useFetchUserListQuery, useSignUpMutation } from "../../api_client/api";
 import { useAppDispatch } from "../../store/store";
+import { EMAIL_REGEX } from "../../util/util";
 import type { ISignUpFormState } from "./loginUtils";
 
 export const initialFormState: ISignUpFormState = {
@@ -33,18 +35,21 @@ export function FirstTimeSetupPage(): JSX.Element {
   const navigate = useNavigate();
   const [signup, { isLoading, isSuccess }] = useSignUpMutation();
   const dispatch = useAppDispatch();
+  const { data: userList } = useFetchUserListQuery();
+
   const form = useForm({
     initialValues: {
       username: "",
       password: "",
-      firstname: "",
-      lastname: "",
+      first_name: "",
+      last_name: "",
       passwordConfirm: "",
       email: "",
     },
 
     validate: {
-      passwordConfirm: (value, values) => (value !== values.password ? "Passwords did not match" : null),
+      passwordConfirm: (value, values) => (value !== values.password ? t("settings.password.errormustmatch") : null),
+      email: value => (!EMAIL_REGEX.test(value) ? t("modaluseredit.errorinvalidemail") : null),
     },
   });
 
@@ -57,6 +62,16 @@ export function FirstTimeSetupPage(): JSX.Element {
       navigate("/");
     }
   }, [navigate, isSuccess]);
+
+  function onSubmit(event: FormEvent<HTMLFormElement>): void {
+    event.preventDefault();
+    const result = form.validate();
+    if (!result.hasErrors) {
+      const { email, first_name, last_name, password } = form.values;
+      const username = form.values.username.toLowerCase();
+      void signup({ email, first_name, last_name, username, password, is_superuser: true });
+    }
+  }
 
   return (
     <div
@@ -83,12 +98,7 @@ export function FirstTimeSetupPage(): JSX.Element {
           <Card>
             <Stack>
               <Title order={3}>{t("login.firsttimesetup")}</Title>
-              <form
-                onSubmit={form.onSubmit(values => {
-                  const { email, firstname, lastname, username, password } = values;
-                  void signup({ email, firstname, lastname, username, password, is_superuser: true });
-                })}
-              >
+              <form onSubmit={onSubmit}>
                 <Stack>
                   <TextInput
                     required
@@ -109,14 +119,14 @@ export function FirstTimeSetupPage(): JSX.Element {
                     icon={<User />}
                     placeholder={t("settings.firstnameplaceholder")}
                     name="firstname"
-                    {...form.getInputProps("firstname")}
+                    {...form.getInputProps("first_name")}
                   />
                   <TextInput
                     required
                     icon={<User />}
                     placeholder={t("settings.lastnameplaceholder")}
                     name="firstname"
-                    {...form.getInputProps("lastname")}
+                    {...form.getInputProps("last_name")}
                   />
                   <PasswordInput
                     icon={<Lock />}
@@ -132,7 +142,12 @@ export function FirstTimeSetupPage(): JSX.Element {
                     {...form.getInputProps("passwordConfirm")}
                   />
 
-                  <Button variant="gradient" gradient={{ from: "#D38312", to: "#A83279" }} type="submit">
+                  <Button
+                    variant="gradient"
+                    gradient={{ from: "#D38312", to: "#A83279" }}
+                    type="submit"
+                    disabled={isLoading}
+                  >
                     {t("login.signup")}
                   </Button>
                 </Stack>

@@ -5,8 +5,9 @@ import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
 import { Calendar, ChevronDown, Clock, EyeOff, Globe, Star } from "tabler-icons-react";
 
+import { useFetchUserListQuery } from "../../api_client/api";
 import { useAppDispatch, useAppSelector } from "../../store/store";
-import { ModalScanDirectoryEdit } from "../modals/ModalScanDirectoryEdit";
+import { ModalUserEdit } from "../modals/ModalUserEdit";
 
 type Props = {
   loading: boolean;
@@ -28,6 +29,8 @@ export function DefaultHeader(props: Props) {
   const route = useAppSelector(store => store.router);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
+
+  const { data: userList } = useFetchUserListQuery();
 
   // return true if it is a view with a dropdown
   const isMenuView = () => {
@@ -67,7 +70,7 @@ export function DefaultHeader(props: Props) {
                 <Button
                   color="green"
                   onClick={() => {
-                    setUserToEdit(user);
+                    setUserToEdit({ ...user });
                     setModalOpen(true);
                   }}
                 >
@@ -82,13 +85,16 @@ export function DefaultHeader(props: Props) {
             {loading ? <Loader size={25} /> : null}
           </Group>
         </Title>
-        <ModalScanDirectoryEdit
+        <ModalUserEdit
           onRequestClose={() => {
             setModalOpen(false);
           }}
           userToEdit={userToEdit}
           isOpen={modalOpen}
           updateAndScan
+          userList={userList}
+          createNew={false}
+          firstTimeSetup
         />
       </div>
     );

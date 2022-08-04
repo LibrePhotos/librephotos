@@ -35,6 +35,8 @@ export const UserSchema = z.object({
   save_metadata_to_disk: z.string(),
   datetime_rules: z.string(),
   default_timezone: z.string(),
+  password: z.string().optional(),
+  is_superuser: z.boolean().optional(),
 });
 
 export const ManageUser = z.object({
@@ -46,9 +48,13 @@ export const ManageUser = z.object({
   last_login: z.string().nullable(),
   photo_count: z.number(),
   save_metadata_to_disk: z.string(),
-  scan_directory: z.string(),
+  scan_directory: z.string().nullish(),
   semantic_search_topk: z.number(),
-  username: z.string(),
+  username: z.string().optional(),
+  email: z.string().nullable(),
+  first_name: z.string().nullable(),
+  last_name: z.string().nullable(),
+  password: z.string().optional(),
 });
 
 export const SimpleUser = z.object({
@@ -59,6 +65,7 @@ export const SimpleUser = z.object({
 });
 
 export type IUser = z.infer<typeof UserSchema>;
+export type IManageUser = z.infer<typeof ManageUser>;
 
 export const ApiUserListResponseSchema = z.object({
   count: z.number(),

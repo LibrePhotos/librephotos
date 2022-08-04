@@ -11,6 +11,7 @@ import {
   Title,
   useMantineColorScheme,
 } from "@mantine/core";
+import _ from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import AvatarEditor from "react-avatar-editor";
 import type { DropzoneRef } from "react-dropzone";
@@ -21,6 +22,7 @@ import { MoonStars, Photo, Sun, Upload, User } from "tabler-icons-react";
 import { updateAvatar, updateUser } from "../../actions/utilActions";
 import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
+import { PasswordEntry } from "../../components/settings/PasswordEntry";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 export function Profile() {
@@ -47,9 +49,20 @@ export function Profile() {
       .then(buf => new File([buf], filename, { type: mimeType }));
   };
 
+  const onPasswordValidate = (pass: string, valid: boolean) => {
+    var newUserDetails = { ...userSelfDetails };
+    if (pass && valid) {
+      newUserDetails.password = pass;
+    } else {
+      delete newUserDetails.password;
+    }
+
+    setUserSelfDetails({ ...newUserDetails });
+  };
+
   // open update dialog, when user was edited
   useEffect(() => {
-    if (JSON.stringify(userSelfDetailsRedux) !== JSON.stringify(userSelfDetails)) {
+    if (!_.isEqual(userSelfDetailsRedux, userSelfDetails)) {
       setIsOpenUpdateDialog(true);
     } else {
       setIsOpenUpdateDialog(false);
@@ -266,6 +279,9 @@ export function Profile() {
               {t("settings.helptranslating")}
             </Button>
           </Group>
+
+          <PasswordEntry onValidate={onPasswordValidate} createNew={false} />
+
           <Switch
             label={`${t("settings.thumbnailsize")}: ${
               userSelfDetails.image_scale === 1 ? t("settings.big") : t("settings.small")

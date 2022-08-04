@@ -1,6 +1,12 @@
 export default function reducer(
   state = {
-    siteSettings: {},
+    siteSettings: {
+      allow_registration: false,
+      allow_upload: false,
+      skip_patterns: "",
+      heavyweight_process: 1,
+      map_api_key: "",
+    },
     fetchingSiteSettings: false,
     fetchedSiteSettings: false,
 
@@ -269,7 +275,7 @@ export default function reducer(
       return {
         ...state,
         fetchingTimezones: false,
-        timezoneList:  JSON.parse(action.payload),
+        timezoneList: JSON.parse(action.payload),
       };
     }
     case "FETCH_COUNT_STATS": {

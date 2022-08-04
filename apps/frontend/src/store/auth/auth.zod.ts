@@ -38,9 +38,10 @@ export const ApiUserSignUpPostSchema = z.object({
   username: z.string(),
   password: z.string(),
   email: z.string(),
-  firstname: z.string(),
-  lastname: z.string(),
+  first_name: z.string(),
+  last_name: z.string(),
   is_superuser: z.boolean(),
+  scan_directory: z.string().optional(),
 });
 
 export const ApiLoginPostSchema = z.object({
@@ -53,11 +54,16 @@ const ApiLoginResponseSchema = z.object({
   access: z.string(),
 });
 
+const ApiDeleteUserSchema = z.object({
+  id: z.number(),
+});
+
 export const ApiRefreshPostSchema = z.object({ refresh: z.string() });
 
 export const ApiRefreshResponseSchema = z.object({ access: z.string() });
 
 export type IApiUserSignUpPost = z.infer<typeof ApiUserSignUpPostSchema>;
+export type IApiDeleteUserPost = z.infer<typeof ApiDeleteUserSchema>;
 export type IApiLoginPost = z.infer<typeof ApiLoginPostSchema>;
 export type IApiLoginResponse = z.infer<typeof ApiLoginResponseSchema>;
 export type IApiRefreshPost = z.infer<typeof ApiRefreshPostSchema>;

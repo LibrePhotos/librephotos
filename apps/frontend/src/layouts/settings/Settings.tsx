@@ -74,7 +74,7 @@ export const Settings = () => {
       <Group position="center">
         <Select
           label={t("settings.sceneconfidence")}
-          value={userSelfDetails.confidence.toString()}
+          value={userSelfDetails.confidence}
           onChange={value => {
             setUserSelfDetails({ ...userSelfDetails, confidence: value ? parseFloat(value) : 0 });
           }}
@@ -89,7 +89,7 @@ export const Settings = () => {
         <Select
           label={t("settings.semanticsearchheader")}
           placeholder={t("settings.semanticsearch.placeholder")}
-          value={userSelfDetails.semantic_search_topk.toString()}
+          value={userSelfDetails.semantic_search_topk}
           onChange={value => {
             setUserSelfDetails({ ...userSelfDetails, semantic_search_topk: value ? parseInt(value) : 0 });
           }}
@@ -119,7 +119,7 @@ export const Settings = () => {
         />
         <Select
           label={t("settings.favoriteminimum")}
-          value={userSelfDetails.favorite_min_rating.toString()}
+          value={userSelfDetails.favorite_min_rating}
           placeholder={t("settings.favoriteoption.placeholder")}
           onChange={value => {
             setUserSelfDetails({ ...userSelfDetails, favorite_min_rating: value ? parseInt(value) : 3 });
@@ -173,7 +173,7 @@ export const Settings = () => {
         radius="md"
       >
         <Text size="sm" style={{ marginBottom: 10 }} weight={500}>
-          Save Changes?
+          {t("settings.savechanges")}
         </Text>
 
         <Group align="flex-end">
@@ -193,6 +193,7 @@ export const Settings = () => {
           <Button
             onClick={() => {
               setUserSelfDetails(userSelfDetails);
+              setIsOpenUpdateDialog(false);
             }}
             size="sm"
           >

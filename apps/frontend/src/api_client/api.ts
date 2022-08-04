@@ -4,14 +4,15 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Cookies } from "react-cookie";
 
 import type { IJobRequestSchema, IJobsResponseSchema } from "../actions/utilActions.types";
-import type { IApiLoginPost, IApiLoginResponse, IApiUserSignUpPost } from "../store/auth/auth.zod";
+import type { IApiDeleteUserPost, IApiLoginPost, IApiLoginResponse, IApiUserSignUpPost } from "../store/auth/auth.zod";
+
 // eslint-disable-next-line import/no-cycle
 import { tokenReceived } from "../store/auth/authSlice";
 import type { RootState } from "../store/store";
 import type { IUploadOptions, IUploadResponse } from "../store/upload/upload.zod";
 import { UploadExistResponse, UploadResponse } from "../store/upload/upload.zod";
-import type { IApiUserListResponse, IUser } from "../store/user/user.zod";
-import { UserSchema } from "../store/user/user.zod";
+import type { IApiUserListResponse, IManageUser, IUser } from "../store/user/user.zod";
+import { ManageUser, UserSchema } from "../store/user/user.zod";
 import type { IJobDetailSchema, IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
 
 export enum Endpoints {
@@ -25,6 +26,8 @@ export enum Endpoints {
   uploadFinished = "uploadFinished",
   upload = "upload",
   worker = "worker",
+  deleteUser = "deleteUser",
+  manageUpdateUser = "manageUpdateUser",
   jobs = "jobs",
 }
 
@@ -77,6 +80,7 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
 export const api = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
+  tagTypes: ["UserList"],
   endpoints: builder => ({
     [Endpoints.signUp]: builder.mutation<IUser, IApiUserSignUpPost>({
       query: body => ({
@@ -85,6 +89,24 @@ export const api = createApi({
         url: "/user/",
       }),
       transformResponse: response => UserSchema.parse(response),
+      invalidatesTags: ["UserList"],
+    }),
+    [Endpoints.manageUpdateUser]: builder.mutation<IManageUser, IManageUser>({
+      query: body => ({
+        method: "PATCH",
+        body: body,
+        url: "/manage/user/" + body.id + "/",
+      }),
+      transformResponse: response => ManageUser.parse(response),
+      invalidatesTags: ["UserList"],
+    }),
+    [Endpoints.deleteUser]: builder.mutation<any, IApiDeleteUserPost>({
+      query: body => ({
+        method: "DELETE",
+        body: body,
+        url: "/delete/user/" + body.id,
+      }),
+      invalidatesTags: ["UserList"],
     }),
     [Endpoints.login]: builder.mutation<IApiLoginResponse, IApiLoginPost>({
       query: body => ({
@@ -106,6 +128,7 @@ export const api = createApi({
         url: "/user/",
         method: "GET",
       }),
+      providesTags: ["UserList"],
     }),
     [Endpoints.uploadExists]: builder.query<boolean, string>({
       query: hash => `/exists/${hash}`,
@@ -154,6 +177,8 @@ export const {
   useSignUpMutation,
   useWorkerQuery,
   useLazyWorkerQuery,
+  useDeleteUserMutation,
+  useManageUpdateUserMutation,
   useJobsQuery,
   useLazyJobsQuery,
 } = api;
