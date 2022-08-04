@@ -1,5 +1,6 @@
+from copy import deepcopy
 from django.core.cache import cache
-from rest_framework import permissions, viewsets
+from rest_framework import permissions, viewsets, status
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -87,6 +88,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 "save_metadata_to_disk",
                 "datetime_rules",
                 "default_timezone",
+                "is_superuser",
             )
             .order_by("id")
         )
@@ -109,15 +111,25 @@ class UserViewSet(viewsets.ModelViewSet):
     @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(UserViewSet, self).retrieve(*args, **kwargs)
-
+    
     def list(self, *args, **kwargs):
         return super(UserViewSet, self).list(*args, **kwargs)
-
 
 class DeleteUserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by("id")
     serializer_class = DeleteUserSerializer
     permission_classes = (IsAdminUser,)
+
+    def destroy(self, request, *args, **kwargs):
+        if not request.user.is_superuser:
+            return Response(status = status.HTTP_401_UNAUTHORIZED)
+        instance = self.get_object()
+
+        if instance.is_superuser:
+            return Response(status = status.HTTP_400_BAD_REQUEST)
+        
+        return super().destroy(request, *args, **kwargs)
+        
 
 
 class ManageUserViewSet(viewsets.ModelViewSet):
