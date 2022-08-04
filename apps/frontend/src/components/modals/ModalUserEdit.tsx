@@ -27,7 +27,7 @@ type Props = {
 
 export function ModalUserEdit(props: Props) {
   const { isOpen, updateAndScan, selectedNodeId, onRequestClose, userList, createNew, firstTimeSetup } = props;
-  let userToEdit = props.userToEdit;
+  const userToEdit = props.userToEdit;
   const [treeData, setTreeData] = useState([]);
   const [userPassword, setUserPassword] = useState("");
   const [newPasswordIsValid, setNewPasswordIsValid] = useState(true);
