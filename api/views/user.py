@@ -1,5 +1,5 @@
 from django.core.cache import cache
-from rest_framework import permissions, viewsets
+from rest_framework import permissions, status, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -10,7 +10,11 @@ from api.api_util import path_to_dict
 from api.date_time_extractor import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
 from api.models import User
 from api.permissions import IsRegistrationAllowed, IsUserOrReadOnly
-from api.serializers.user import ManageUserSerializer, UserSerializer
+from api.serializers.user import (
+    DeleteUserSerializer,
+    ManageUserSerializer,
+    UserSerializer,
+)
 from api.util import logger
 from api.views.caching import (
     CACHE_TTL,
@@ -83,14 +87,17 @@ class UserViewSet(viewsets.ModelViewSet):
                 "save_metadata_to_disk",
                 "datetime_rules",
                 "default_timezone",
+                "is_superuser",
             )
-            .order_by("-last_login")
+            .order_by("id")
         )
         return queryset
 
     def get_permissions(self):
         if self.action == "create":
-            self.permission_classes = [IsRegistrationAllowed | FirstTimeSetupPermission]
+            self.permission_classes = [
+                IsRegistrationAllowed | FirstTimeSetupPermission | IsAdminUser
+            ]
             cache.clear()
         elif self.action == "list":
             self.permission_classes = (AllowAny,)
@@ -104,13 +111,28 @@ class UserViewSet(viewsets.ModelViewSet):
     def retrieve(self, *args, **kwargs):
         return super(UserViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(UserViewSet, self).list(*args, **kwargs)
 
 
+class DeleteUserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all().order_by("id")
+    serializer_class = DeleteUserSerializer
+    permission_classes = (IsAdminUser,)
+
+    def destroy(self, request, *args, **kwargs):
+        if not request.user.is_superuser:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        instance = self.get_object()
+
+        if instance.is_superuser:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        return super().destroy(request, *args, **kwargs)
+
+
 class ManageUserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all().order_by("-last_login")
+    queryset = User.objects.all().order_by("id")
     serializer_class = ManageUserSerializer
     permission_classes = (IsAdminUser,)
 
