@@ -67,7 +67,8 @@ export function FirstTimeSetupPage(): JSX.Element {
     event.preventDefault();
     const result = form.validate();
     if (!result.hasErrors) {
-      const { email, first_name, last_name, username, password } = form.values;
+      const { email, first_name, last_name, password } = form.values;
+      const username = form.values.username.toLowerCase();
       void signup({ email, first_name, last_name, username, password, is_superuser: true });
     }
   }

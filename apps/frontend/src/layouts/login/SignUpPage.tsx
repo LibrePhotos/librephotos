@@ -29,7 +29,7 @@ export function SignupPage(): JSX.Element {
       error = t("modaluseredit.errorusernamecannotbeblank");
     } else if (userList && userList.results) {
       userList.results.every(user => {
-        if (user.username == username) {
+        if (user.username.toLowerCase() == username.toLowerCase()) {
           error = t("modaluseredit.errorusernameexists");
           return false;
         }
@@ -96,7 +96,8 @@ export function SignupPage(): JSX.Element {
                   if (result.hasErrors) {
                     return;
                   }
-                  const { email, first_name, last_name, username, password } = values;
+                  const { email, first_name, last_name, password } = values;
+                  const username = values.username.toLowerCase();
                   void signup({ email, first_name, last_name, username, password, is_superuser: false });
                 })}
               >

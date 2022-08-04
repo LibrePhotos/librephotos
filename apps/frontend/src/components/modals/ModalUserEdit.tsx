@@ -148,7 +148,7 @@ export function ModalUserEdit(props: Props) {
       error = t("modaluseredit.errorusernamecannotbeblank");
     } else if (userList && userList.results) {
       userList.results.every(user => {
-        if (user.username == username && user.id != userToEdit.id) {
+        if (user.username.toLowerCase() == username.toLowerCase() && user.id != userToEdit.id) {
           error = t("modaluseredit.errorusernameexists");
           return false;
         }
@@ -189,7 +189,7 @@ export function ModalUserEdit(props: Props) {
       return;
     }
     var { email, username, first_name, last_name, scan_directory } = form.values;
-
+    username = username.toLowerCase();
     var newUserData = { ...userToEdit };
 
     if (scan_directory) {
