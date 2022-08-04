@@ -48,7 +48,7 @@ export const ManageUser = z.object({
   last_login: z.string().nullable(),
   photo_count: z.number(),
   save_metadata_to_disk: z.string(),
-  scan_directory: z.string().optional().nullable(),
+  scan_directory: z.string().nullish(),
   semantic_search_topk: z.number(),
   username: z.string().optional(),
   email: z.string().nullable(),
