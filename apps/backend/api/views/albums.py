@@ -352,7 +352,9 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                 Q(owner=self.request.user)
                 & Q(photos__hidden=False)
                 & Q(photos__faces__person__id=self.request.query_params.get("person"))
-                & Q(photos__faces__person_label_probability__gte=Face.INFERRED_LABEL_THRESHOLD)
+                & Q(
+                    photos__faces__person_label_probability__gte=Face.INFERRED_LABEL_THRESHOLD
+                )
             )
             photo_qs = Photo.visible.filter(
                 Q(faces__person__id=self.request.query_params.get("person"))
@@ -453,14 +455,18 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
                             "person"
                         )
                     )
-                    & Q(photos__faces__person_label_probability__gte=Face.INFERRED_LABEL_THRESHOLD)
+                    & Q(
+                        photos__faces__person_label_probability__gte=Face.INFERRED_LABEL_THRESHOLD
+                    )
                 )
                 .prefetch_related(
                     Prefetch(
                         "photos",
                         queryset=Photo.visible.filter(
                             Q(faces__person__id=self.request.query_params.get("person"))
-                            & Q(faces__person_label_probability__gte=Face.INFERRED_LABEL_THRESHOLD)
+                            & Q(
+                                faces__person_label_probability__gte=Face.INFERRED_LABEL_THRESHOLD
+                            )
                         )
                         .order_by("-exif_timestamp")
                         .only(
