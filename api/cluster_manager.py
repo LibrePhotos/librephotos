@@ -15,7 +15,7 @@ class ClusterManager:
 
     @staticmethod
     def try_add_cluster(
-        user: User, cluster_id: int, faces: list[Face]
+        user: User, cluster_id: int, faces: list[Face], padLen: int = 1
     ) -> list[Cluster]:
         added_clusters: list[Cluster] = []
         known_faces: list[Face] = []
@@ -28,6 +28,7 @@ class ClusterManager:
         new_cluster: Cluster
         unknown_cluster: Cluster = get_unknown_cluster()
         unknown_person: Person = get_unknown_person()
+        labelStr = str(cluster_id + 1).zfill(padLen)
         for face in faces:
             if (
                 face.person.name == "unknown"
@@ -46,7 +47,7 @@ class ClusterManager:
                 new_person = unknown_person
             else:
                 new_person = get_or_create_person(
-                    name="Unknown " + str(cluster_id + 1), cluster_owner=user
+                    name="Unknown " + labelStr, cluster_owner=user
                 )
                 new_person.kind = Person.KIND_CLUSTER
                 new_person.cluster_owner = user
