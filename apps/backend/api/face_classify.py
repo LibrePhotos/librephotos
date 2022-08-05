@@ -1,6 +1,6 @@
 import datetime
 import uuid
-
+from hdbscan import HDBSCAN
 import numpy as np
 import pytz
 import seaborn as sns
@@ -126,7 +126,8 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
     if target_count == 0:
         return target_count
     # creating DBSCAN object for clustering the encodings with the metric "euclidean"
-    clt = DBSCAN(metric="euclidean", min_samples=2)
+    clt = HDBSCAN(min_cluster_size=2 ,metric="euclidean")
+    # clt = DBSCAN(metric="euclidean", min_samples=2)
 
     clt.fit(np.array(data["all"]["encoding"]))
 
