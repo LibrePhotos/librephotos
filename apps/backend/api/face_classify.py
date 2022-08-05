@@ -1,6 +1,6 @@
 import datetime
 import uuid
-from hdbscan import HDBSCAN
+
 import numpy as np
 import pytz
 import seaborn as sns
@@ -8,7 +8,7 @@ from bulk_update.helper import bulk_update
 from django.core.cache import cache
 from django.db.models import Q
 from django_rq import job
-from sklearn.cluster import DBSCAN
+from hdbscan import HDBSCAN
 from sklearn.decomposition import PCA
 from sklearn.neural_network import MLPClassifier
 
@@ -125,9 +125,8 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
     target_count = len(data["all"]["id"])
     if target_count == 0:
         return target_count
-    # creating DBSCAN object for clustering the encodings with the metric "euclidean"
-    clt = HDBSCAN(min_cluster_size=2 ,metric="euclidean")
-    # clt = DBSCAN(metric="euclidean", min_samples=2)
+    # creating HDBSCAN object for clustering the encodings with the metric "euclidean"
+    clt = HDBSCAN(min_cluster_size=2, metric="euclidean")
 
     clt.fit(np.array(data["all"]["encoding"]))
 
@@ -135,6 +134,7 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
     labelID: np.intp
     commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
     count: int = 0
+    maxLen: int = len(str(np.size(labelIDs)))
 
     for labelID in labelIDs:
         idxs = np.where(clt.labels_ == labelID)[0]
@@ -146,7 +146,7 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
             face_id_list.append(face_id)
         face_array = Face.objects.filter(pk__in=face_id_list)
         new_clusters: list[Cluster] = ClusterManager.try_add_cluster(
-            user, labelID, face_array
+            user, labelID, face_array, maxLen
         )
 
         if commit_time < datetime.datetime.now() and lrj is not None:
