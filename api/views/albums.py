@@ -118,10 +118,12 @@ class PersonViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = (
             Person.objects.filter(
-                Q(faces__photo__hidden=False)
+                ~Q(kind=Person.KIND_CLUSTER)
+                & ~Q(kind=Person.KIND_UNKNOWN)
+                & Q(faces__photo__hidden=False)
                 & Q(faces__photo__deleted=False)
                 & Q(faces__photo__owner=self.request.user)
-                & Q(faces__person_label_is_inferred=False)
+                & Q(faces__person_label_probability__gte=Face.INFERRED_LABEL_THRESHOLD)
             )
             .distinct()
             .annotate(viewable_face_count=Count("faces"))
@@ -350,11 +352,11 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                 Q(owner=self.request.user)
                 & Q(photos__hidden=False)
                 & Q(photos__faces__person__id=self.request.query_params.get("person"))
-                & Q(photos__faces__person_label_is_inferred=False)
+                & Q(photos__faces__person_label_probability__gte=Face.INFERRED_LABEL_THRESHOLD)
             )
             photo_qs = Photo.visible.filter(
                 Q(faces__person__id=self.request.query_params.get("person"))
-                & Q(faces__person_label_is_inferred=False)
+                & Q(faces__person_label_probability__gte=Face.INFERRED_LABEL_THRESHOLD)
             )
 
         qs = (
@@ -451,14 +453,14 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
                             "person"
                         )
                     )
-                    & Q(photos__faces__person_label_is_inferred=False)
+                    & Q(photos__faces__person_label_probability__gte=Face.INFERRED_LABEL_THRESHOLD)
                 )
                 .prefetch_related(
                     Prefetch(
                         "photos",
                         queryset=Photo.visible.filter(
                             Q(faces__person__id=self.request.query_params.get("person"))
-                            & Q(faces__person_label_is_inferred=False)
+                            & Q(faces__person_label_probability__gte=Face.INFERRED_LABEL_THRESHOLD)
                         )
                         .order_by("-exif_timestamp")
                         .only(
