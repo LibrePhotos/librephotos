@@ -254,7 +254,10 @@ def train_faces(user: User, job_id) -> bool:
                     zip(data["unknown"]["id"], probs)
                 ):
                     face = Face.objects.get(id=face_id)
-                    face.person_label_is_inferred = True
+                    if face.person is unknown_person:
+                        face.person_label_is_inferred = False
+                    else:
+                        face.person_label_is_inferred = True
                     probability: np.float64 = 0
 
                     # Find the probability in the probability array corresponding to the person
