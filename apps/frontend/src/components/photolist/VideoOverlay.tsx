@@ -26,9 +26,9 @@ const styles = createStyles(() => ({
 export function VideoOverlay({ item }: Props) {
   const { classes } = styles();
 
-  const getDuration = ({ video_length }) => {
-    <span className={classes.duration}>{Duration.fromObject({ seconds: video_length }).toFormat("mm:ss")}</span>;
-  };
+  function getDuration({ video_length }) {
+    return <span className={classes.duration}>{Duration.fromObject({ seconds: video_length }).toFormat("mm:ss")}</span>;
+  }
 
   if (item.type !== "video") {
     return <div />;
