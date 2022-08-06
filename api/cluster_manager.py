@@ -125,7 +125,7 @@ class ClusterManager:
                 face_ids_by_cluster[closest_cluster.id].append(face.id)
                 encoding_by_person[closest_cluster.person.id].append(encoding)
             for new_cluster in added_clusters:
-                if new_cluster.person is unknown_person:
+                if new_cluster is unknown_cluster:
                     Face.objects.filter(
                         id__in=face_ids_by_cluster[new_cluster.id]
                     ).update(
