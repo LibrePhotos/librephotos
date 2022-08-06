@@ -52,8 +52,9 @@ def get_unknown_cluster() -> Cluster:
     unknown_cluster: Cluster = Cluster.get_or_create_cluster_by_id(
         get_deleted_user(), UNKNOWN_CLUSTER_ID
     )
-    if unknown_cluster.person is None:
-        unknown_cluster.person = get_unknown_person()
+    unknown_person: Person = get_unknown_person()
+    if unknown_cluster.person is not unknown_person:
+        unknown_cluster.person = unknown_person
         unknown_cluster.name = UNKNOWN_CLUSTER_NAME
         unknown_cluster.save()
     return unknown_cluster
