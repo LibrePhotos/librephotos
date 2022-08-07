@@ -21,9 +21,9 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return (
             AlbumAuto.objects.prefetch_related(
-                "owner",
+                Prefetch("owner"),
                 Prefetch("photos", queryset=Photo.visible.all()),
-                "photos__faces",
+                Prefetch("photos__faces"),
                 Prefetch(
                     "photos__faces__person",
                     queryset=Person.objects.all().annotate(
@@ -48,6 +48,7 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
         return super(AlbumAutoViewSet, self).list(*args, **kwargs)
 
 
+# TODO: Prefetch only the cover_image or just add custom covers for auto album
 class AlbumAutoListViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumAutoListSerializer
     pagination_class = StandardResultsSetPagination
@@ -67,7 +68,6 @@ class AlbumAutoListViewSet(viewsets.ModelViewSet):
             )
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
             .order_by("-timestamp")
-            .prefetch_related("photos")
         )
 
     def retrieve(self, *args, **kwargs):
