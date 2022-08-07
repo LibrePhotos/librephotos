@@ -83,32 +83,34 @@ def generate_event_albums(user, job_id):
             .only("exif_timestamp")
         )
 
-        photos_with_timestamp = [
-            (photo.exif_timestamp, photo) for photo in photos if photo.exif_timestamp
-        ]
-
-        def group(photos_with_timestamp, dt=timedelta(hours=6)):
-            photos_with_timestamp = sorted(photos_with_timestamp, key=lambda x: x[0])
+        def group(photos, dt=timedelta(hours=6)):
+            photos_with_timestamp = sorted(photos, key=lambda p: p.exif_timestamp)
             groups = []
             for idx, photo in enumerate(photos_with_timestamp):
                 if len(groups) == 0:
                     groups.append([])
-                    groups[-1].append(photo[1])
+                    groups[-1].append(photo)
                 else:
-                    if photo[0] - groups[-1][-1].exif_timestamp < dt:
-                        groups[-1].append(photo[1])
+                    # Photos are sorted by timestamp, so we can just check the last photo of the last group
+                    # to see if it is within the time delta
+                    if photo.exif_timestamp - groups[-1][-1].exif_timestamp < dt:
+                        groups[-1].append(photo)
+                    # If the photo is not within the time delta, we create a new group
                     else:
                         groups.append([])
-                        groups[-1].append(photo[1])
-                logger.info("job {}: {}".format(job_id, idx))
+                        groups[-1].append(photo)
             return groups
 
-        groups = group(photos_with_timestamp, dt=timedelta(days=1, hours=12))
-        logger.info("job {}: made groups".format(job_id))
+        # Group images that are on the same 1 day and 12 hours interval
+        groups = group(photos, dt=timedelta(days=1, hours=12))
+        target_count = len(groups)
+        logger.info(
+            "job {}: made {} groups out of {} images".format(
+                job_id, target_count, len(photos)
+            )
+        )
 
         album_locations = []
-
-        target_count = len(groups)
 
         date_format = "%Y:%m:%d %H:%M:%S"
         for idx, group in enumerate(groups):
@@ -134,6 +136,9 @@ def generate_event_albums(user, job_id):
                     album.timestamp = key
                     album.save()
 
+                    logger.info(
+                        "job {}: generate auto album {}".format(job_id, album.id)
+                    )
                     locs = []
                     for item in items:
                         album.photos.add(item)
@@ -149,11 +154,10 @@ def generate_event_albums(user, job_id):
                         album_locations.append([])
                     album._generate_title()
                     album.save()
-                    logger.info(
-                        "job {}: generated auto album {}".format(job_id, album.id)
-                    )
+                    continue
                 if qs.count() == 1:
                     album = qs.first()
+                    logger.info("job {}: update auto album {}".format(job_id, album.id))
                     for item in items:
                         if item in album.photos.all():
                             continue
@@ -161,9 +165,7 @@ def generate_event_albums(user, job_id):
                         item.save()
                     album._generate_title()
                     album.save()
-                    logger.info(
-                        "job {}: updated auto album {}".format(job_id, album.id)
-                    )
+                    continue
                 if qs.count() > 1:
                     # To-Do: Merge both auto albums
                     logger.info(
@@ -171,6 +173,7 @@ def generate_event_albums(user, job_id):
                             job_id, key.strftime(date_format)
                         )
                     )
+                    continue
 
             lrj.result = {"progress": {"current": idx + 1, "target": target_count}}
             lrj.save()
