@@ -7,33 +7,32 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.autoalbum import generate_event_albums, regenerate_event_titles
-from api.models import AlbumAuto, Photo
+from api.models import AlbumAuto, Person, Photo
 from api.serializers.serializers import AlbumAutoListSerializer, AlbumAutoSerializer
 from api.util import logger
 from api.views.pagination import StandardResultsSetPagination
 
 
+# TODO: This is a fetches with too many queries. We need to optimize this.
 class AlbumAutoViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumAutoSerializer
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
         return (
-            AlbumAuto.objects.annotate(
-                photo_count=Count(
-                    "photos", filter=Q(photos__hidden=False), distinct=True
-                )
-            )
-            .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
-            .prefetch_related(
+            AlbumAuto.objects.prefetch_related(
+                "owner",
+                Prefetch("photos", queryset=Photo.visible.all()),
+                "photos__faces",
                 Prefetch(
-                    "photos",
-                    queryset=Photo.objects.filter(hidden=False).only(
-                        "image_hash", "public", "rating", "hidden", "exif_timestamp"
+                    "photos__faces__person",
+                    queryset=Person.objects.all().annotate(
+                        viewable_face_count=Count("faces")
                     ),
-                )
+                ),
             )
-            .only("id", "title", "timestamp", "created_on", "gps_lat", "gps_lon")
+            .annotate(photo_count=Count(("photos"), distinct=True))
+            .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
             .order_by("-timestamp")
         )
 
@@ -68,9 +67,7 @@ class AlbumAutoListViewSet(viewsets.ModelViewSet):
             )
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
             .order_by("-timestamp")
-            .prefetch_related(
-                Prefetch("photos", queryset=Photo.visible.only("image_hash", "video"))
-            )
+            .prefetch_related("photos")
         )
 
     def retrieve(self, *args, **kwargs):
