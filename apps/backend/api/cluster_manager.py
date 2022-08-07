@@ -73,7 +73,6 @@ class ClusterManager:
             idx: int = 0
             for face in known_faces:
                 if face.person.id not in clusters_by_person.keys():
-                    print("adding new cluster: {}".format(idx + 1))
                     idx = idx + 1
                     new_cluster = Cluster.get_or_create_cluster_by_name(
                         user, "Cluster " + str(cluster_id) + "-" + str(idx)
@@ -85,7 +84,6 @@ class ClusterManager:
                     encoding_by_person[face.person.id] = []
                     face_ids_by_cluster[new_cluster.id] = []
                 else:
-                    print("using existing cluster")
                     new_cluster = clusters_by_person[face.person.id]
                 encoding_by_person[face.person.id].append(face.get_encoding_array())
                 face_ids_by_cluster[new_cluster.id].append(face.id)
@@ -107,25 +105,33 @@ class ClusterManager:
 
             # Loop over all unknown faces and find the closest "known" cluster
             for face in unknown_faces:
-                closest_cluster: Cluster
-                min_distance: np.float64 = np.Infinity
                 encoding = face.get_encoding_array()
-                for new_cluster in added_clusters:
-                    distance = math.dist(
-                        encoding, mean_encoding_by_cluster[new_cluster.id]
-                    )
-                    if distance < min_distance:
-                        closest_cluster = new_cluster
-                        min_distance = distance
+                closest_cluster: Cluster
+                if cluster_id == UNKNOWN_CLUSTER_ID:
+                    closest_cluster = unknown_cluster
+                    if unknown_person.id not in clusters_by_person.keys():
+                        clusters_by_person[closest_cluster.person.id] = closest_cluster
+                        added_clusters.append(closest_cluster)
+                        encoding_by_person[closest_cluster.id] = []
+                        face_ids_by_cluster[closest_cluster.id] = []
+                else:
+                    min_distance: np.float64 = np.Infinity
+                    for new_cluster in added_clusters:
+                        distance = math.dist(
+                            encoding, mean_encoding_by_cluster[new_cluster.id]
+                        )
+                        if distance < min_distance:
+                            closest_cluster = new_cluster
+                            min_distance = distance
                 face_ids_by_cluster[closest_cluster.id].append(face.id)
                 encoding_by_person[closest_cluster.person.id].append(encoding)
             for new_cluster in added_clusters:
-                if new_cluster.person is unknown_person:
+                if new_cluster is unknown_cluster:
                     Face.objects.filter(
                         id__in=face_ids_by_cluster[new_cluster.id]
                     ).update(
                         cluster=new_cluster,
-                        person_label_is_inferred=None,
+                        person_label_is_inferred=False,
                         person=new_cluster.person,
                     )
                 else:
