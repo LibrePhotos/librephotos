@@ -20,6 +20,7 @@ Flask-Cors==3.0.9
 Flask-RESTful==0.3.6
 geopy==2.1.0
 gunicorn==20.1.0
+hdbscan==0.8.28
 matplotlib==3.3.2 
 networkx==2.6.3
 nltk==3.6.7
