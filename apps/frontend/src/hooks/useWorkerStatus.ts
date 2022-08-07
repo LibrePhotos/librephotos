@@ -23,11 +23,19 @@ export function useWorkerStatus(): {
   const user = useAppSelector(selectUserSelfDetails);
   const { data: currentData } = useWorkerQuery(null, { pollingInterval: 2000 });
 
+  const [previousJob, setPreviousJob] = useState(currentData);
+
+  useEffect(() => {
+    if (currentData?.job_detail?.job_id !== previousJob?.job_detail?.job_id) {
+      setPreviousJob(currentData);
+    }
+  }, [currentData, previousJob?.job_detail?.job_id]);
+
   useEffect(() => {
     if (hadPreviousJob && workerRunningJob !== undefined && currentData?.job_detail === null) {
       showNotification({
         message: t("toasts.jobfinished", {
-          job: workerRunningJob?.job_type_str,
+          job: previousJob?.job_detail?.job_type_str,
         }),
         title: workerRunningJob?.job_type_str,
         color: "teal",
@@ -56,7 +64,16 @@ export function useWorkerStatus(): {
     } else {
       dispatch({ type: FacesActions.SET_WORKER_AVAILABILITY, payload: true });
     }
-  }, [currentData, dispatch, hadPreviousJob, t, user.id, user.username, workerRunningJob]);
+  }, [
+    currentData,
+    dispatch,
+    hadPreviousJob,
+    previousJob?.job_detail?.job_type_str,
+    t,
+    user.id,
+    user.username,
+    workerRunningJob,
+  ]);
 
   useEffect(() => {
     if (workerRunningJob) {
