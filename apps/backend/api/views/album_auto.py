@@ -84,7 +84,7 @@ class RegenerateAutoAlbumTitles(APIView):
     def get(self, request, format=None):
         try:
             job_id = uuid.uuid4()
-            regenerate_event_titles.delay(user=request.user, job_id=job_id)
+            regenerate_event_titles.delay(request.user, job_id)
             return Response({"status": True, "job_id": job_id})
         except BaseException as e:
             logger.error(str(e))
