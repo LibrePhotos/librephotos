@@ -6,17 +6,22 @@ import { useDropzone } from "react-dropzone";
 import { Upload } from "tabler-icons-react";
 
 import { scanUploadedPhotos } from "../actions/photosActions";
+import { fetchSiteSettings } from "../actions/utilActions";
 import { api } from "../api_client/api";
 import { useAppDispatch, useAppSelector } from "../store/store";
+import { selectSiteSettings } from "../store/util/utilSelectors";
 
 export function ChunkedUploadButton() {
   const [totalSize, setTotalSize] = useState(1);
   const [currentSize, setCurrentSize] = useState(1);
   const { userSelfDetails } = useAppSelector(state => state.user);
-  const { siteSettings } = useAppSelector(state => state.util);
+  const siteSettings = useAppSelector(selectSiteSettings);
   const dispatch = useAppDispatch();
   const chunkSize = 1000000; // < 1MB chunks, because of default of nginx
 
+  useEffect(() => {
+    fetchSiteSettings(dispatch);
+  }, [dispatch]);
   let currentUploadedFileSize = 0;
 
   const calculateMD5 = async (file: File) => {
