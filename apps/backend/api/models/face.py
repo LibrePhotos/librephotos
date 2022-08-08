@@ -10,8 +10,6 @@ from api.models.photo import Photo
 
 
 class Face(models.Model):
-    INFERRED_LABEL_THRESHOLD = 0.90
-
     photo = models.ForeignKey(
         Photo, related_name="faces", on_delete=models.CASCADE, blank=False, null=True
     )
