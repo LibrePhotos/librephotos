@@ -1,4 +1,4 @@
-import { Loader, Text, Title } from "@mantine/core";
+import { Loader, Stack, Text, Title } from "@mantine/core";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
 import useDimensions from "react-cool-dimensions";
@@ -37,10 +37,12 @@ export function LocationDurationStackedBar() {
     }
   }, [dispatch]); // Only run on first render
 
-  if (fetchedLocationTimeline) {
-    return (
-      <div style={{ height: 280 }}>
-        <Title order={3}>{t("locationtimeline")}</Title>
+  return (
+    <Stack ref={observe}>
+      <Title order={3}>{t("locationtimeline")}</Title>
+      {!fetchedLocationTimeline && <Loader />}
+      {locationTimeline.length == 0 && fetchedLocationTimeline && <Text color="dimmed">{t("nodata")}</Text>}
+      {fetchedLocationTimeline && (
         <div>
           <XYPlot width={width - 30} height={300} stackBy="x">
             <XAxis tickFormat={(v: any) => moment.unix(locationTimeline[0].start + v).format("YYYY-MM")} />
@@ -75,22 +77,8 @@ export function LocationDurationStackedBar() {
             )}
           </XYPlot>
         </div>
-      </div>
-    );
-  }
-  if (fetchingLocationTimeline) {
-    return (
-      <div style={{ height: 280 }}>
-        <Title order={3}>{t("locationtimeline")}</Title>
-        <Loader />
-      </div>
-    );
-  }
-  return (
-    <div style={{ height: 280 }}>
-      <Title order={3}>{t("locationtimeline")}</Title>
-      <Text>{t("nodata")}</Text>
-    </div>
+      )}
+    </Stack>
   );
 }
 
