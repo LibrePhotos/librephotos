@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0029_change_to_text_field'),
+        ("api", "0029_change_to_text_field"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='user',
-            name='confidence_person',
+            model_name="user",
+            name="confidence_person",
             field=models.FloatField(default=0.9),
         ),
     ]
