@@ -123,7 +123,11 @@ class PersonViewSet(viewsets.ModelViewSet):
                 & Q(faces__photo__hidden=False)
                 & Q(faces__photo__deleted=False)
                 & Q(faces__photo__owner=self.request.user)
-                & Q(faces__person_label_probability__gte=F('faces__photo__owner__confidence_person'))
+                & Q(
+                    faces__person_label_probability__gte=F(
+                        "faces__photo__owner__confidence_person"
+                    )
+                )
             )
             .distinct()
             .annotate(viewable_face_count=Count("faces"))
@@ -353,12 +357,18 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                 & Q(photos__hidden=False)
                 & Q(photos__faces__person__id=self.request.query_params.get("person"))
                 & Q(
-                    photos__faces__person_label_probability__gte=F('photos__faces__photo__owner__confidence_person')
+                    photos__faces__person_label_probability__gte=F(
+                        "photos__faces__photo__owner__confidence_person"
+                    )
                 )
             )
             photo_qs = Photo.visible.filter(
                 Q(faces__person__id=self.request.query_params.get("person"))
-                & Q(faces__person_label_probability__gte=F('faces__photo__owner__confidence_person'))
+                & Q(
+                    faces__person_label_probability__gte=F(
+                        "faces__photo__owner__confidence_person"
+                    )
+                )
             )
 
         qs = (
@@ -456,7 +466,9 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
                         )
                     )
                     & Q(
-                        photos__faces__person_label_probability__gte=F('photos__faces__photo__owner__confidence_person')
+                        photos__faces__person_label_probability__gte=F(
+                            "photos__faces__photo__owner__confidence_person"
+                        )
                     )
                 )
                 .prefetch_related(
@@ -465,7 +477,9 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
                         queryset=Photo.visible.filter(
                             Q(faces__person__id=self.request.query_params.get("person"))
                             & Q(
-                                faces__person_label_probability__gte=F('faces__photo__owner__confidence_person')
+                                faces__person_label_probability__gte=F(
+                                    "faces__photo__owner__confidence_person"
+                                )
                             )
                         )
                         .order_by("-exif_timestamp")

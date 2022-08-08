@@ -153,7 +153,11 @@ class UserSerializer(serializers.ModelSerializer):
         if "confidence_person" in validated_data:
             instance.confidence_person = validated_data.pop("confidence_person")
             instance.save()
-            logger.info("Updated person album confidence for user {}".format(instance.confidence_person))
+            logger.info(
+                "Updated person album confidence for user {}".format(
+                    instance.confidence_person
+                )
+            )
         if "semantic_search_topk" in validated_data:
             new_semantic_search_topk = validated_data.pop("semantic_search_topk")
 
