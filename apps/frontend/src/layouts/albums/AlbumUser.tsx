@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Group, Menu, Modal, Popover, Stack, TextInput, Title } from "@mantine/core";
+import { ActionIcon, Button, Group, Menu, Modal, Popover, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -143,7 +143,9 @@ export function AlbumUser() {
               {albumsUserList[albumUserIndex].shared_to.length > 0 && (
                 <SharedWith album={albumsUserList[albumUserIndex]} />
               )}
-              <b>{albumsUserList[albumUserIndex].title}</b>
+              <Text weight="bold" lineClamp={1}>
+                {albumsUserList[albumUserIndex].title}
+              </Text>
             </Group>
             {t("numberofphotos", {
               number: albumsUserList[albumUserIndex].photo_count,
