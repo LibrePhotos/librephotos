@@ -74,6 +74,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 "scan_directory",
                 "transcode_videos",
                 "confidence",
+                "confidence_person",
                 "semantic_search_topk",
                 "first_name",
                 "last_name",
