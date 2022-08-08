@@ -17,6 +17,7 @@ export const UserSchema = z.object({
   email: z.string(),
   scan_directory: z.string().optional(),
   confidence: z.number(),
+  confidence_person: z.number(),
   transcode_videos: z.boolean(),
   semantic_search_topk: z.number(),
   first_name: z.string(),
