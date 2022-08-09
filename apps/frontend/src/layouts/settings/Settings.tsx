@@ -1,4 +1,4 @@
-import { Button, Dialog, Group, Select, Stack, Switch, Text, Title } from "@mantine/core";
+import { Button, Dialog, Group, NumberInput, Select, Stack, Switch, Text, Title } from "@mantine/core";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { Settings as SettingIcon } from "tabler-icons-react";
@@ -62,6 +62,7 @@ export const Settings = () => {
       setAvatarImgSrc(serverAddress + userSelfDetails.avatar_url);
     }
   }
+
   return (
     <Stack align="center" justify="flex-start">
       <Group spacing="xs">
@@ -144,6 +145,22 @@ export const Settings = () => {
           data={timezoneList}
         />
       </Group>
+      <Stack align="center">
+        <Title order={3}>{t("settings.albumoptions")}</Title>
+        <NumberInput
+          label={t("settings.inferredfacesconfidence")}
+          description={t("settings.inferredfacesconfidencehelp")}
+          min={0}
+          max={1.0}
+          placeholder="0.90"
+          precision={2}
+          value={userSelfDetails.confidence_person}
+          hideControls
+          onChange={value => {
+            setUserSelfDetails({ ...userSelfDetails, confidence_person: value });
+          }}
+        />
+      </Stack>
       <ConfigDatetime />
       <Title order={3}>
         <Trans i18nKey="settings.experimentaloptions">Experimental options</Trans>

@@ -103,6 +103,9 @@
       "low": "Low",
       "none": "None"
     },
+    "inferredfacesconfidence": "Inferred faces confidence",
+    "inferredfacesconfidencehelp": "Enter a confidence level between 0 and 1. For albums that display a person, inferred faces with a confidence level higher than this value will appear.",
+    "albumoptions": "Album Options",
     "semanticsearchheader": "Semantic Search Max Results",
     "semanticsearch": {
       "placeholder": "Semantic Search Results",

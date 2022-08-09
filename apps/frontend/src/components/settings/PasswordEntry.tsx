@@ -1,4 +1,4 @@
-import { ActionIcon, Button, PasswordInput, Space, Stack, Text, Title } from "@mantine/core";
+import { ActionIcon, Button, PasswordInput, Stack, Text, Title } from "@mantine/core";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Lock, LockOpen } from "tabler-icons-react";
