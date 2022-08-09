@@ -1,7 +1,7 @@
 import json
 
 from django.core.cache import cache
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Q
 from rest_framework import serializers
 
 from api.image_similarity import search_similar_image
@@ -231,7 +231,7 @@ class PersonSerializer(serializers.ModelSerializer):
         if first_face:
             return first_face.photo.video
         else:
-            return None
+            return False
 
     def create(self, validated_data):
         name = validated_data.pop("name")
@@ -434,17 +434,8 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
         )
 
     def get_people(self, obj):
-        photos = obj.photos.all().prefetch_related(
-            Prefetch(
-                "faces__person",
-                queryset=Person.objects.all().annotate(
-                    viewable_face_count=Count("faces")
-                ),
-            )
-        )
-
         res = []
-        for photo in photos:
+        for photo in obj.photos.all():
             faces = photo.faces.all()
             for face in faces:
                 serialized_person = PersonSerializer(face.person).data
