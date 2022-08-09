@@ -118,10 +118,16 @@ class PersonViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = (
             Person.objects.filter(
-                Q(faces__photo__hidden=False)
+                ~Q(kind=Person.KIND_CLUSTER)
+                & ~Q(kind=Person.KIND_UNKNOWN)
+                & Q(faces__photo__hidden=False)
                 & Q(faces__photo__deleted=False)
                 & Q(faces__photo__owner=self.request.user)
-                & Q(faces__person_label_is_inferred=False)
+                & Q(
+                    faces__person_label_probability__gte=F(
+                        "faces__photo__owner__confidence_person"
+                    )
+                )
             )
             .distinct()
             .annotate(viewable_face_count=Count("faces"))
@@ -350,11 +356,19 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                 Q(owner=self.request.user)
                 & Q(photos__hidden=False)
                 & Q(photos__faces__person__id=self.request.query_params.get("person"))
-                & Q(photos__faces__person_label_is_inferred=False)
+                & Q(
+                    photos__faces__person_label_probability__gte=F(
+                        "photos__faces__photo__owner__confidence_person"
+                    )
+                )
             )
             photo_qs = Photo.visible.filter(
                 Q(faces__person__id=self.request.query_params.get("person"))
-                & Q(faces__person_label_is_inferred=False)
+                & Q(
+                    faces__person_label_probability__gte=F(
+                        "faces__photo__owner__confidence_person"
+                    )
+                )
             )
         # Todo: Make this more performant by only using the photo queryset
         # That will be a breaking change, but will improve performance
@@ -446,7 +460,32 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
             return qs
         if self.request.query_params.get("person"):
             return (
-                AlbumDate.visible.filter(Q(owner=self.request.user))
+                AlbumDate.visible.filter(
+                    Q(owner=self.request.user)
+                    & Q(
+                        photos__faces__person__id=self.request.query_params.get(
+                            "person"
+                        )
+                    )
+                    & Q(
+                        photos__faces__person_label_probability__gte=F(
+                            "photos__faces__photo__owner__confidence_person"
+                        )
+                    )
+                )
+                .prefetch_related(
+                    Prefetch(
+                        "photos",
+                        queryset=Photo.visible.filter(
+                            Q(faces__person__id=self.request.query_params.get("person"))
+                            & Q(
+                                faces__person_label_probability__gte=F(
+                                    "faces__photo__owner__confidence_person"
+                                )
+                            )
+                        ),
+                    )
+                )
                 .annotate(
                     photo_count=Count(
                         "photos",
@@ -454,8 +493,7 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
                             photos__faces__person__id=self.request.query_params.get(
                                 "person"
                             )
-                        )
-                        & Q(photos__faces__person_label_is_inferred=False),
+                        ),
                         distinct=True,
                     )
                 )

@@ -14,6 +14,7 @@ def get_default_config_datetime_rules():  # This is a callable
 class User(AbstractUser):
     scan_directory = models.CharField(max_length=512, db_index=True)
     confidence = models.FloatField(default=0.1, db_index=True)
+    confidence_person = models.FloatField(default=0.9)
     image_scale = models.FloatField(default=1)
     semantic_search_topk = models.IntegerField(default=0)
     avatar = models.ImageField(upload_to="avatars", null=True)
