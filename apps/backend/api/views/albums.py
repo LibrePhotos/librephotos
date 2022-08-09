@@ -9,7 +9,16 @@ from rest_framework.response import Response
 from rest_framework_extensions.cache.decorators import cache_response
 
 from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
-from api.models import AlbumDate, AlbumPlace, AlbumThing, AlbumUser, Face, Person, Photo
+from api.models import (
+    AlbumDate,
+    AlbumPlace,
+    AlbumThing,
+    AlbumUser,
+    Face,
+    Person,
+    Photo,
+    User,
+)
 from api.serializers.album_user import AlbumUserListSerializer, AlbumUserSerializerSerpy
 from api.serializers.serializers import (
     AlbumPersonListSerializer,
@@ -347,12 +356,40 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                 Q(faces__person__id=self.request.query_params.get("person"))
                 & Q(faces__person_label_is_inferred=False)
             )
-
+        # Todo: Make this more performant by only using the photo queryset
+        # That will be a breaking change, but will improve performance
         qs = (
             qs.annotate(photo_count=Count("photos"))
             .filter(Q(photo_count__gt=0))
             .order_by("-date")
+            .prefetch_related(
+                Prefetch(
+                    "photos",
+                    queryset=photo_qs.order_by("-exif_timestamp")
+                    .only(
+                        "image_hash",
+                        "aspect_ratio",
+                        "video",
+                        "search_location",
+                        "dominant_color",
+                        "public",
+                        "rating",
+                        "hidden",
+                        "exif_timestamp",
+                        "owner",
+                        "video_length",
+                    )
+                    .distinct(),
+                ),
+                Prefetch(
+                    "photos__owner",
+                    queryset=User.objects.only(
+                        "id", "username", "first_name", "last_name"
+                    ),
+                ),
+            )
         )
+
         return qs
 
     def get_permissions(self):
