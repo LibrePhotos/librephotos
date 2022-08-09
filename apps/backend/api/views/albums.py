@@ -445,6 +445,10 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
                                 faces__person_label_probability__gte=F(
                                     "faces__photo__owner__confidence_person"
                                 )
+                            )
+                        ),
+                    )
+                )
                 .annotate(
                     photo_count=Count(
                         "photos",
@@ -452,7 +456,7 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
                             photos__faces__person__id=self.request.query_params.get(
                                 "person"
                             )
-                        )
+                        ),
                         distinct=True,
                     )
                 )
