@@ -444,30 +444,19 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
             return qs
         if self.request.query_params.get("person"):
             return (
-                AlbumDate.visible.filter(
-                    Q(owner=self.request.user)
-                    & Q(
-                        photos__faces__person__id=self.request.query_params.get(
-                            "person"
-                        )
-                    )
-                    & Q(photos__faces__person_label_is_inferred=False)
-                )
-                .prefetch_related(
-                    Prefetch(
+                AlbumDate.visible.filter(Q(owner=self.request.user))
+                .annotate(
+                    photo_count=Count(
                         "photos",
-                        queryset=Photo.visible.filter(
-                            Q(faces__person__id=self.request.query_params.get("person"))
-                            & Q(faces__person_label_is_inferred=False)
+                        filter=Q(
+                            photos__faces__person__id=self.request.query_params.get(
+                                "person"
+                            )
                         )
-                        .order_by("-exif_timestamp")
-                        .only(
-                            "image_hash",
-                        )
-                        .distinct(),
-                    ),
+                        & Q(photos__faces__person_label_is_inferred=False),
+                        distinct=True,
+                    )
                 )
-                .annotate(photo_count=Count("photos", distinct=True))
                 .filter(Q(photo_count__gt=0))
                 .order_by(F("date").desc(nulls_last=True))
             )
