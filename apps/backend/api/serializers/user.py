@@ -45,6 +45,7 @@ class UserSerializer(serializers.ModelSerializer):
             "last_name": {"required": False},
             "scan_directory": {"required": False},
             "confidence": {"required": False},
+            "confidence_person": {"required": False},
             "semantic_search_topk": {"required": False},
             "nextcloud_server_address": {"required": False},
             "nextcloud_username": {"required": False},
@@ -59,6 +60,7 @@ class UserSerializer(serializers.ModelSerializer):
             "email",
             "scan_directory",
             "confidence",
+            "confidence_person",
             "transcode_videos",
             "semantic_search_topk",
             "first_name",
@@ -148,6 +150,14 @@ class UserSerializer(serializers.ModelSerializer):
             instance.confidence = validated_data.pop("confidence")
             instance.save()
             logger.info("Updated confidence for user {}".format(instance.confidence))
+        if "confidence_person" in validated_data:
+            instance.confidence_person = validated_data.pop("confidence_person")
+            instance.save()
+            logger.info(
+                "Updated person album confidence for user {}".format(
+                    instance.confidence_person
+                )
+            )
         if "semantic_search_topk" in validated_data:
             new_semantic_search_topk = validated_data.pop("semantic_search_topk")
 
