@@ -145,7 +145,7 @@ function PhotoListViewComponent(props: Props) {
   const handleClick = (event: { shiftKey: any }, item: { id: any }) => {
     // if an image is selectable, then handle shift click
     if (selectable && event.shiftKey) {
-      const lastSelectedElement = selectionStateRef.current.selectedItems.slice(-1)[0];
+      const lastSelectedElement = selectionStateRef.current.selectedItems.at(-1);
       if (lastSelectedElement === undefined) {
         handleSelection(item);
         return;
