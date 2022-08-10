@@ -72,7 +72,7 @@ export const Sidebar = (props: Props) => {
             <File />
             <Title order={4}>{t("lightbox.sidebar.filepath")}</Title>
           </Group>
-          <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}.jpg`} target="_blank">
+          <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
             <Text size="sm">{photoDetail.image_path} </Text>
           </Anchor>
 
