@@ -504,7 +504,9 @@ class MediaAccessFullsizeOriginalView(APIView):
             # grant access if the requested photo is public
             if photo.public:
                 response = HttpResponse()
-                response["Content-Type"] = "image/jpeg"
+                mime = magic.Magic(mime=True)
+                filename = mime.from_file(photo.image_paths[0])
+                response["Content-Type"] = filename
                 response["X-Accel-Redirect"] = internal_path
                 return response
 
@@ -523,14 +525,18 @@ class MediaAccessFullsizeOriginalView(APIView):
             user = User.objects.filter(id=token["user_id"]).only("id").first()
             if photo.owner == user or user in photo.shared_to.all():
                 response = HttpResponse()
-                response["Content-Type"] = "image/jpeg"
+                mime = magic.Magic(mime=True)
+                filename = mime.from_file(photo.image_paths[0])
+                response["Content-Type"] = filename
                 response["X-Accel-Redirect"] = internal_path
                 return response
             else:
                 for album in photo.albumuser_set.only("shared_to"):
                     if user in album.shared_to.all():
                         response = HttpResponse()
-                        response["Content-Type"] = "image/jpeg"
+                        mime = magic.Magic(mime=True)
+                        filename = mime.from_file(photo.image_paths[0])
+                        response["Content-Type"] = filename
                         response["X-Accel-Redirect"] = internal_path
                         return response
             return HttpResponse(status=404)
