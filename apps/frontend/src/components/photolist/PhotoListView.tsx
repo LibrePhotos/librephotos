@@ -348,7 +348,7 @@ function PhotoListViewComponent(props: Props) {
           onRequestClose={() => {
             setModalAddToAlbumOpen(false);
           }}
-          selectedImageHashes={selectionState.selectedItems.map(i => i.id)}
+          selectedImages={selectionState.selectedItems}
         />
       )}
       {!isPublic && (

@@ -20,7 +20,7 @@ function fuzzy_match(str, pattern) {
 type Props = {
   isOpen: boolean;
   onRequestClose: () => void;
-  selectedImageHashes: any[];
+  selectedImages: any[];
 };
 
 export const ModalAlbumEdit = (props: Props) => {
@@ -28,8 +28,9 @@ export const ModalAlbumEdit = (props: Props) => {
   const matches = useMediaQuery("(min-width: 700px)");
   const { albumsUserList } = useAppSelector(store => store.albums);
   const dispatch = useAppDispatch();
-  const { isOpen, onRequestClose, selectedImageHashes } = props;
+  const { isOpen, onRequestClose, selectedImages } = props;
   const { t } = useTranslation();
+
   useEffect(() => {
     if (isOpen) {
       dispatch(fetchUserAlbumsList());
@@ -55,10 +56,16 @@ export const ModalAlbumEdit = (props: Props) => {
       }}
     >
       <Stack>
-        <Text color="dimmed">{t("modalalbum.selectedimages", { count: selectedImageHashes.length })}</Text>
+        <Text color="dimmed">{t("modalalbum.selectedimages", { count: selectedImages.length })}</Text>
         <Group>
-          {selectedImageHashes.map(image_hash => (
-            <Tile style={{ objectFit: "cover" }} height={40} width={40} image_hash={image_hash} />
+          {selectedImages.map(image => (
+            <Tile
+              style={{ objectFit: "cover" }}
+              height={40}
+              width={40}
+              image_hash={image.id}
+              video={image.type === "video"}
+            />
           ))}
         </Group>
         <Divider />
@@ -77,7 +84,12 @@ export const ModalAlbumEdit = (props: Props) => {
           ></TextInput>
           <Button
             onClick={() => {
-              dispatch(createNewUserAlbum(newAlbumTitle, selectedImageHashes));
+              dispatch(
+                createNewUserAlbum(
+                  newAlbumTitle,
+                  selectedImages.map(i => i.id)
+                )
+              );
               onRequestClose();
               setNewAlbumTitle("");
             }}
@@ -96,7 +108,13 @@ export const ModalAlbumEdit = (props: Props) => {
               return (
                 <UnstyledButton
                   onClick={() => {
-                    dispatch(addToUserAlbum(item.id, item.title, selectedImageHashes));
+                    dispatch(
+                      addToUserAlbum(
+                        item.id,
+                        item.title,
+                        selectedImages.map(i => i.id)
+                      )
+                    );
                     onRequestClose();
                   }}
                 >
