@@ -134,6 +134,7 @@ export function AlbumAutoGalleryView() {
                   }
                   return "";
                 });
+              const uniqueLocations = _.uniq(locations).map(location => <Text>{location}</Text>);
               return (
                 <div>
                   <Divider hidden />
@@ -142,9 +143,7 @@ export function AlbumAutoGalleryView() {
                     <div>
                       <Title order={5}>{`Day ${i + 1} - ${moment(v[0]).format("MMMM Do YYYY")}`}</Title>
                       <Text color="dimmed">
-                        <Breadcrumbs separator="/">
-                          <>{_.uniq(locations).map(e => ({ key: e, content: e }))}</>
-                        </Breadcrumbs>
+                        <Breadcrumbs separator="/">{uniqueLocations}</Breadcrumbs>
                       </Text>
                     </div>
                   </Group>
