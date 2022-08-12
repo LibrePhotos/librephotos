@@ -7,12 +7,7 @@ category: 2
 
 ## First steps after setting up
 
-You need to log in as the admin user, and set up the directory for the users. To do this, click the top right button,
-and go to `Admin Area`. On this page, it will show a list of users. Manually set the `Scan Directory` for the desired
-user. Only an admin can do this. Then, go to `Dashboard` > `Library` and click the green `Scan photos (file system)`
-button. If you have a Nextcloud instance, you can also input login details for it in the `Dashboard` > `Library` page.
-Once logged in (the little circle next to `Nextcloud Scan Directory` will be green), you can choose a top level
-directory in your logged in Nextcloud account. Once this has been configured, you can click the blue `Scan photos (Nextcloud)` button. This will copy the contents of the specified Nextcloud directory ([excluding videos](https://github.com/LibrePhotos/librephotos/issues/278)) to the local filesystem.
+On your first visit, you should see the first time setup. Fill out the details and login. The next step is to setup your scan directory. Click on the green button, which is on the photo site and fill out your scan directory. After saving your first scan should start.
 
 The basic idea is this:
 
@@ -24,3 +19,16 @@ The basic idea is this:
   - Any user can change their own Nextcloud endpoint, and choose a top level directory in the Nextcloud account.
 
 You can also enable automatic scanning of folders. You can read more [here]({% post_url user_guide/0000-02-02-auto_scan %}).
+
+## How to change your scan directory
+
+Click on your avatar in the top right, and go to `Admin Area`. On this page, it will show a list of users. Manually set the `Scan Directory` for the desired user. Only an admin can do this.
+
+## How to start a scan
+
+Click on your avatar in the top right , and go to `Library`. Click the green `Scan photos (file system)` button.
+
+## How to import photos from an exteranl NextCloud instance
+
+If you have a Nextcloud instance, you can also input login details for it in the `Dashboard` > `Library` page.
+Fill out the details for the Nextcloud section. Once logged in (the little circle next to `Nextcloud Scan Directory` will be green), you can choose a top level directory in your logged in Nextcloud account. Once this has been configured, you can click the blue `Scan photos (Nextcloud)` button. This will copy the contents of the specified Nextcloud directory ([excluding videos](https://github.com/LibrePhotos/librephotos/issues/278)) to the local filesystem.

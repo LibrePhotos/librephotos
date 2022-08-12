@@ -8,8 +8,8 @@ category: 5
 We developed our frontend with the following technologies:
 
 - React
-- Semantic UI
-- Redux
+- Mantine
+- Redux / Redux Toolkit
 - Axios
 
 ## ✨ Code Standards
@@ -26,6 +26,10 @@ React provides a debug tool, which you can download [here](https://chrome.google
 
 Redux also provides a debug tool, to debug the actions and states [here](https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd?hl=de)
 
+### WDYR
+
+[WDYR](https://github.com/welldone-software/why-did-you-render) explains to you why a component rerendered. To activate it, add WDYR=True to your development .env. For more detail look up the docs.
+
 ### REST API
 
 Our Rest API is documented with [Swagger](https://swagger.io/) and [ReDoc](https://redocly.github.io/redoc/). After you
@@ -38,6 +42,8 @@ localhost:3000/api/swagger
 ```
 localhost:3000/api/redoc
 ```
+
+Some APIs are not yet well documented as the generation of the swagger API throws error [Link](https://github.com/LibrePhotos/librephotos/issues/485)
 
 ## 🏙️ Structure
 
@@ -60,11 +66,9 @@ on what features are missing from the frontend.
 
 We currently are working on improving maintainability, by converting our code base to TypeScript.
 
-You can also work on other issues. Most of the files are too large and should be under 300 lines of code. To achieve that we can do multiple things:
+While alot of classes are already converted to TypeScript, there are still alot of anys in the codebase. You can help out by replacing them with types!
 
-- The layouts should be split into components
-- Functions that are used in multiple classes should be moved into utils
-- One file should only contain one class
+We also want to migrate from redux to redux-toolkit and redux-query.
 
 It would also be great if we could introduce some
 [test coverage and automated testing](https://create-react-app.dev/docs/running-tests/).

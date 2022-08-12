@@ -15,7 +15,7 @@ To change a face to a new person, click on the green plus button. Search for the
 
 ## Train faces
 
-If you click on the blue button in the face dashboard or if you click on the button "Train" in the settings tab, the system will try to match all unknown faces to already known faces. To see the recommendations go to the inferred tab in the face dashboard. There you can for each face the confidence of the match. If you want to confirm a recommended face, select the face and click on the green plus button to add it to the person.
+If you click on the blue button in the face dashboard or if you click on the button "Train" in the settings tab, the system will try to cluster unknown faces and will try to either match them to already known faces or create a new unknown person. To see the recommendations go to the inferred tab in the face dashboard. There you can for each face the confidence of the match. If you want to confirm a recommended face, select the face and click on the green plus button to add it to the person.
 
 ## Delete faces
 
@@ -32,7 +32,4 @@ After you first scan is finished, go to the face dashboard. Label a couple of fa
 ## Current limitations
 
 - You can only display up to 50000 faces. After that no more faces will be shown, but they are still in the system
-- It is not yet possible to cluster unknown faces to an unknown person
-- Only confirmed faces will be included in the person albums tab
-- It is not yet possible to only show matches with a certain confidence
 - There is no action yet, to just confirm faces in the inferred tab
