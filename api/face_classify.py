@@ -14,7 +14,7 @@ from sklearn.neural_network import MLPClassifier
 
 from api.cluster_manager import ClusterManager, get_unknown_cluster
 from api.models import Face, LongRunningJob, Person
-from api.models.cluster import Cluster
+from api.models.cluster import UNKNOWN_CLUSTER_ID, Cluster
 from api.models.person import get_unknown_person
 from api.models.user import User
 from api.util import logger
@@ -135,18 +135,31 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
     commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
     count: int = 0
     maxLen: int = len(str(np.size(labelIDs)))
+    sortedIndexes: dict[int, np.ndarray] = dict()
+    clusterCount: int = 0
+    clusterId: int
 
     for labelID in labelIDs:
         idxs = np.where(clt.labels_ == labelID)[0]
+        sortedIndexes[labelID] = idxs
+
+    for labelID in sorted(
+        sortedIndexes, key=lambda key: np.size(sortedIndexes[key]), reverse=True
+    ):
+        if labelID != UNKNOWN_CLUSTER_ID:
+            clusterCount = clusterCount + 1
+            clusterId = clusterCount
+        else:
+            clusterId = labelID
         face_array: list[Face] = []
         face_id_list: list[int] = []
-        for i in idxs:
+        for i in sortedIndexes[labelID]:
             count = count + 1
             face_id = data["all"]["id"][i]
             face_id_list.append(face_id)
         face_array = Face.objects.filter(pk__in=face_id_list)
         new_clusters: list[Cluster] = ClusterManager.try_add_cluster(
-            user, labelID, face_array, maxLen
+            user, clusterId, face_array, maxLen
         )
 
         if commit_time < datetime.datetime.now() and lrj is not None:
