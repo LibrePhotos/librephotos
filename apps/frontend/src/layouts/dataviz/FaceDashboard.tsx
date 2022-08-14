@@ -13,7 +13,7 @@ import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
 
-export const FaceDashboardComponent = () => {
+export const FaceDashboard = () => {
   const { ref, width, height } = useElementSize();
   const [lastChecked, setLastChecked] = useState(null);
   const [activeItem, setActiveItem] = useState(0);
@@ -29,11 +29,14 @@ export const FaceDashboardComponent = () => {
   const [labeledGroupedByPersonList, setLabeledGroupedByPersonList] = useState<any[]>([]);
 
   const { inferredFacesList, labeledFacesList, fetchingLabeledFacesList, fetchingInferredFacesList } = useAppSelector(
-    store => store.faces, (prev, next) => {
-      return prev.inferredFacesList === next.inferredFacesList &&
+    store => store.faces,
+    (prev, next) => {
+      return (
+        prev.inferredFacesList === next.inferredFacesList &&
         prev.labeledFacesList === next.labeledFacesList &&
         prev.fetchingLabeledFacesList == next.fetchingLabeledFacesList &&
-        prev.fetchingInferredFacesList == next.fetchingInferredFacesList 
+        prev.fetchingInferredFacesList == next.fetchingInferredFacesList
+      );
     }
   );
 
@@ -66,7 +69,7 @@ export const FaceDashboardComponent = () => {
     setLabeledCellContents(labeledCellContents);
     setInferredGroupedByPersonList(inferredGroupedByPersonList);
     setLabeledGroupedByPersonList(labeledGroupedByPersonList);
-  }, [inferredFacesList, labeledFacesList]);
+  }, [inferredFacesList, labeledFacesList, selectedFaces]);
 
   useEffect(() => {
     const { entrySquareSize, numEntrySquaresPerRow } = calculateFaceGridCellSize(width);
@@ -88,7 +91,7 @@ export const FaceDashboardComponent = () => {
       ).cellContents;
       setLabeledCellContents(labeledCellContents);
     }
-  }, [inferredGroupedByPersonList, labeledGroupedByPersonList, width]);
+  }, [inferredGroupedByPersonList, labeledGroupedByPersonList, selectedFaces, width]);
 
   const handleClick = (e, cell) => {
     if (!lastChecked) {
@@ -111,11 +114,28 @@ export const FaceDashboardComponent = () => {
       const facesToSelect = allFacesInCells
         .slice(Math.min(start, end), Math.max(start, end) + 1)
         .filter(i => i && i.id);
-      facesToSelect.forEach(face => onFaceSelect({ face_id: face.id, face_url: face.face_url }));
+      onFacesSelect(facesToSelect.map(i => ({ face_id: i.id, face_url: i.face_url })));
+      setLastChecked(cell);
       return;
     }
     onFaceSelect({ face_id: cell.id, face_url: cell.face_url });
     setLastChecked(cell);
+  };
+
+  const onFacesSelect = faces => {
+    // get duplicates of new faces and selected faces
+    const duplicates = faces.filter(face => selectedFaces.find(i => i.face_id === face.face_id));
+    // merge selected faces with new faces, filter both duplicates
+    const merged = _.uniqBy([...selectedFaces, ...faces], el => el.face_id);
+    // filter duplicates from new faces
+    const mergedAndFiltered = merged.filter(face => !duplicates.find(i => i.face_id === face.face_id));
+    // add the last selected face back to the start of the list when adding new faces
+    //@ts-ignore
+    const lastSelectedFace = { face_id: lastChecked.id, face_url: lastChecked.face_url };
+    const mergedAndFilteredAndLastSelected =
+      duplicates.length !== faces.length ? [lastSelectedFace, ...mergedAndFiltered] : mergedAndFiltered;
+    setSelectedFaces(mergedAndFilteredAndLastSelected);
+    setSelectMode(true);
   };
 
   const onFaceSelect = face => {
@@ -179,7 +199,7 @@ export const FaceDashboardComponent = () => {
     }
     return <div key={key} style={style} />;
   };
-  
+
   return (
     <div style={{ display: "flex", flexFlow: "column", height: "100%" }}>
       <Stack>
@@ -227,5 +247,3 @@ export const FaceDashboardComponent = () => {
     </div>
   );
 };
-
-export const FaceDashboard = React.memo(FaceDashboardComponent);
