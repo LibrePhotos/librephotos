@@ -2,7 +2,7 @@ FROM reallibrephotos/librephotos-base:dev
 
 # Build and install dlib
 WORKDIR /tmp/builds
-RUN git clone --depth 1 --branch 'v19.22' https://github.com/davisking/dlib.git && \
+RUN git clone --depth 1 --branch 'v19.24' https://github.com/davisking/dlib.git && \
     mkdir dlib/build && \
     cd dlib/build && \
     cmake .. -DDLIB_USE_CUDA=0 -DUSE_AVX_INSTRUCTIONS=0 -DLIB_NO_GUI_SUPPORT=0 && \
