@@ -70,7 +70,7 @@ RUN git clone https://github.com/LibRaw/LibRaw && \
 #Build and install imagemagick
 WORKDIR /tmp/builds
 ARG IMAGEMAGICK_VERSION=7.1.0-45
-RUN curl -SL https://www.imagemagick.org/download/releases/ImageMagick-${IMAGEMAGICK_VERSION}.tar.gz | tar -zx && \
+RUN curl -SL https://imagemagick.org/archive/ImageMagick-${IMAGEMAGICK_VERSION}.tar.gz | tar -zx && \
 	cd ImageMagick-${IMAGEMAGICK_VERSION} && \
 	./configure --with-modules && \
 	make install && \
