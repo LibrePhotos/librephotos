@@ -1,4 +1,4 @@
-FROM ubuntu:hirsute
+FROM ubuntu:jammy
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 
