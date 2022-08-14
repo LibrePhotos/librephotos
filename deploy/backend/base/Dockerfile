@@ -69,7 +69,7 @@ RUN git clone https://github.com/LibRaw/LibRaw && \
 
 #Build and install imagemagick
 WORKDIR /tmp/builds
-ARG IMAGEMAGICK_VERSION=7.1.0-17
+ARG IMAGEMAGICK_VERSION=7.1.0-45
 RUN curl -SL https://www.imagemagick.org/download/releases/ImageMagick-${IMAGEMAGICK_VERSION}.tar.gz | tar -zx && \
 	cd ImageMagick-${IMAGEMAGICK_VERSION} && \
 	./configure --with-modules && \
@@ -78,7 +78,7 @@ RUN curl -SL https://www.imagemagick.org/download/releases/ImageMagick-${IMAGEMA
 
 # Build and install libvips
 WORKDIR /tmp/builds
-ARG VIPSVERSION=8.11.0
+ARG VIPSVERSION=8.13.0
 RUN curl -SL https://github.com/libvips/libvips/releases/download/v${VIPSVERSION}/vips-${VIPSVERSION}.tar.gz | tar -xz \ 
 	&& cd vips-${VIPSVERSION} \ 
 	&& ./configure \ 
