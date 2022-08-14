@@ -1,4 +1,4 @@
-import { useForceUpdate } from "@mantine/hooks";
+import { useForceUpdate, useViewportSize } from "@mantine/hooks";
 import React, { useState } from "react";
 import Lightbox from "react-image-lightbox";
 import "react-image-lightbox/style.css";
@@ -8,11 +8,6 @@ import { serverAddress } from "../../api_client/apiClient";
 import { useAppSelector } from "../../store/store";
 import { Sidebar } from "./Sidebar";
 import { Toolbar } from "./Toolbar";
-
-let LIGHTBOX_SIDEBAR_WIDTH = 320;
-if (window.innerWidth < 600) {
-  LIGHTBOX_SIDEBAR_WIDTH = window.innerWidth;
-}
 
 type Props = {
   lightboxImageId: any;
@@ -24,11 +19,17 @@ type Props = {
   onMoveNextRequest: () => void;
   onImageLoad: () => void;
 };
+const SCROLLBAR_WIDTH = 15;
 
 export const LightBox = (props: Props) => {
   const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
   const { photoDetails } = useAppSelector(store => store.photos);
 
+  const { width } = useViewportSize();
+  let LIGHTBOX_SIDEBAR_WIDTH = 320;
+  if (width < 600) {
+    LIGHTBOX_SIDEBAR_WIDTH = width - SCROLLBAR_WIDTH;
+  }
   const {
     lightboxImageId,
     lightboxImageIndex,
@@ -111,7 +112,7 @@ export const LightBox = (props: Props) => {
           content: {},
           overlay: {
             right: lightboxSidebarShow ? LIGHTBOX_SIDEBAR_WIDTH : 0,
-            width: lightboxSidebarShow ? window.innerWidth - LIGHTBOX_SIDEBAR_WIDTH : window.innerWidth,
+            width: lightboxSidebarShow ? width - SCROLLBAR_WIDTH - LIGHTBOX_SIDEBAR_WIDTH : width,
           },
         }}
       />

@@ -1,4 +1,5 @@
 import { ActionIcon, Anchor, Avatar, Badge, Box, Button, Group, Stack, Text, Textarea, Title } from "@mantine/core";
+import { useViewportSize } from "@mantine/hooks";
 import * as moment from "moment";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,10 +17,6 @@ import { Tile } from "../Tile";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { TimestampItem } from "./TimestampItem";
 
-let LIGHTBOX_SIDEBAR_WIDTH = 320;
-if (window.innerWidth < 600) {
-  LIGHTBOX_SIDEBAR_WIDTH = window.innerWidth;
-}
 type Props = {
   isPublic: boolean;
   photoDetail: any;
@@ -33,6 +30,12 @@ export const Sidebar = (props: Props) => {
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
   const { generatingCaptionIm2txt } = useAppSelector(store => store.photos);
   const { photoDetail, isPublic, closeSidepanel } = props;
+  const { width } = useViewportSize();
+  const SCROLLBAR_WIDTH = 15;
+  let LIGHTBOX_SIDEBAR_WIDTH = 320;
+  if (width < 600) {
+    LIGHTBOX_SIDEBAR_WIDTH = width - SCROLLBAR_WIDTH;
+  }
   return (
     <Box
       sx={theme => ({
