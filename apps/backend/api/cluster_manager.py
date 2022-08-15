@@ -112,7 +112,7 @@ class ClusterManager:
                     if unknown_person.id not in clusters_by_person.keys():
                         clusters_by_person[closest_cluster.person.id] = closest_cluster
                         added_clusters.append(closest_cluster)
-                        encoding_by_person[closest_cluster.id] = []
+                        encoding_by_person[closest_cluster.person.id] = []
                         face_ids_by_cluster[closest_cluster.id] = []
                 else:
                     min_distance: np.float64 = np.Infinity
