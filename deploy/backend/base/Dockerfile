@@ -56,7 +56,7 @@ RUN apt-get update && \
     
 RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then pip3 install --no-cache-dir torch torchvision -f https://torch.kmtea.eu/whl/stable.html; else pip3 install --no-cache-dir torch torchvision; fi
 
-RUN pip3 install --no-cache-dir pyvips==2.2.1 cmake==3.21.2
+RUN pip3 install --no-cache-dir cmake==3.21.2
 
 #Build and install libraw
 WORKDIR /tmp/builds
