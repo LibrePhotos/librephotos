@@ -33,6 +33,7 @@ https://github.com/owncloud/pyocclient/archive/master.zip
 pytz==2020.1
 PyExifTool==0.4.9
 PyJWT==2.4.0
+pyvips==2.2.1
 rq==1.10.1
 six==1.15.0
 seaborn==0.11.0
