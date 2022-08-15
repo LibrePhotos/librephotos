@@ -10,17 +10,6 @@ RUN git clone --depth 1 --branch 'v19.24' https://github.com/davisking/dlib.git 
     cd /tmp/builds/dlib && \
     python3 setup.py install --no USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA --no USE_SSE4_INSTRUCTIONS  
 
-# Build and install faiss. Needs to be build for ARM 
-WORKDIR /tmp/builds
-RUN git clone --depth 1 --branch 'v1.7.1' https://github.com/facebookresearch/faiss.git && \
-	cd faiss  && \
-	cmake -B build . -DCMAKE_BUILD_TYPE=Release -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=ON -DFAISS_OPT_LEVEL=generic  && \
-	make -C build -j4 faiss && \
-	make -C build -j4 swigfaiss && \
-	cd build/faiss/python && \
-	python3 setup.py install && \
-	unzip /usr/local/lib/python3.10/dist-packages/faiss*.egg -d /usr/local/lib/python3.10/dist-packages/
-
 # Download pretrained models 
 WORKDIR /data_models
 RUN mkdir -p /root/.cache/torch/hub/checkpoints/ && \
