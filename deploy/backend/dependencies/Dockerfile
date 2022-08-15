@@ -12,7 +12,7 @@ RUN git clone --depth 1 --branch 'v19.24' https://github.com/davisking/dlib.git 
 
 # Build and install faiss. Needs to be build for ARM 
 WORKDIR /tmp/builds
-RUN git clone --depth 1 --branch 'v1.7.2' https://github.com/facebookresearch/faiss.git && \
+RUN git clone --depth 1 --branch 'v1.7.1' https://github.com/facebookresearch/faiss.git && \
 	cd faiss  && \
 	cmake -B build . -DCMAKE_BUILD_TYPE=Release -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=ON -DFAISS_OPT_LEVEL=generic  && \
 	make -C build -j4 faiss && \
