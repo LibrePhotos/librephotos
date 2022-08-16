@@ -18,4 +18,5 @@ RUN mkdir -p /root/.cache/torch/hub/checkpoints/ && \
 	curl -SL https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/clip-embeddings.tar.gz | tar -zxC /data_models/ && \
 	curl -SL https://download.pytorch.org/models/resnet152-b121ed2d.pth -o /root/.cache/torch/hub/checkpoints/resnet152-b121ed2d.pth
 
+# Remove build directory
 RUN rm -fr /tmp/*
