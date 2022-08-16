@@ -1,5 +1,6 @@
 import hashlib
 import json
+import numbers
 import os
 from fractions import Fraction
 from io import BytesIO
@@ -513,7 +514,7 @@ class Photo(models.Model):
                 Tags.FSTOP,
                 Tags.FOCAL_LENGTH,
                 Tags.ISO,
-                Tags.SHUTTER_SPEED,
+                Tags.EXPOSURE_TIME,
                 Tags.CAMERA,
                 Tags.LENS,
                 Tags.IMAGE_WIDTH,
@@ -535,8 +536,9 @@ class Photo(models.Model):
         self.width = width
         self.height = height
         self.focalLength35Equivalent = focalLength35Equivalent
-        self.subjectDistance = subjectDistance
-        if digitalZoomRatio and type(digitalZoomRatio) != "undef":
+        if subjectDistance and isinstance(digitalZoomRatio, numbers.Number):
+            self.subjectDistance = subjectDistance
+        if digitalZoomRatio and isinstance(digitalZoomRatio, numbers.Number):
             self.digitalZoomRatio = digitalZoomRatio
         if commit:
             self.save()
