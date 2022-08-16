@@ -7,51 +7,33 @@ assignees: ''
 
 ---
 
-# Before you create an issue make sure that:
+# 🛑 Before you create an issue make sure that:
 - Your issue is **strictly related to LibrePhotos** itself. Questions about setting up a reverse proxy belong in what ever reverse proxy you are using. 
 - You have read the [documentation](https://docs.librephotos.com) thoroughly.
 - You have searched for a similar issue among all the former issues (even closed ones).
 - You have tried to replicate the issue with a clean install of the project.
-
-
-When asking general "how to" questions:
-- Please do not open an issue here join us on the Discord server  [LibrePhotos](https://discord.gg/xwRvtSDGWb)
+- You have asked for help on our Discord server [LibrePhotos](https://discord.gg/xwRvtSDGWb) if your issue involves general "how to" questions
 
 **When Submitting please remove every thing above this line**
 
-## 🐛 Bug Report
 
-* [ ] I am including my log files in zip format.
-* [ ] I have looked for similar issues among all the former issues including closed ones.
+# 🐛 Bug Report
 
-### What Operating system and version is LibrePhotos running on:
+* [ ] 📁 I've Included a ZIP file containing my librephotos `log` files
+* [ ] ❌ I have looked for similar issues (including closed ones)
+* [ ] 🎬 (If applicable) I've provided pictures or links to videos that clearly demonstrate the issue 
 
-
-### What architecture is LibrePhotos running on:
-x64 or ARM
+## 📝 Description of issue:
 
 
-### How is LibrePhotos installed:
-Docker, Kubernetes, or .deb
+## 🔁 How can we reproduce it:
 
 
-### If running via Docker or Kubernetes please list version including docker-compose:
-
-
-### Are you running LibrePhotos on a virtual machine if so please list:
-
-
-### How is you picture library mounted on the host (or in the virtual machine):
-Local file system (Type), NFS, or SMB
-
-
-### Description of issue:
-
-
-### How can we reproduce it:
-
-
-#### Additional Information:
-
-* Include a ZIP file containing your `log` files.
-* Provide pictures or links to videos that clearly demonstrate the issue.
+## Please provide additional information:
+- 💻 Operating system: 
+- ⚙ Architecture (x86 or ARM): 
+- 🔢 Librephotos version: 
+- 📸 Librephotos installation method (Docker, Kubernetes, .deb, etc.): 
+    * 🐋 If Docker or Kubernets, provide docker-compose image tag:
+- 📁 How is you picture library mounted (Local file system (Type), NFS, SMB, etc.): 
+- ☁ If you are virtualizing librephotos, Virtualization platform (Proxmox, Xen, HyperV, etc.): 
