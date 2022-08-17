@@ -32,14 +32,14 @@ type Props = {
   photoset: any[];
   idx2hash: any[];
   selectable: boolean;
-  isPublic: boolean;
-  numberOfItems: number;
-  updateGroups: any;
-  updateItems: any;
-  date: any;
-  dayHeaderPrefix: any;
-  header: any;
-  additionalSubHeader: any;
+  isPublic?: boolean;
+  numberOfItems?: number;
+  updateGroups?: any;
+  updateItems?: any;
+  date?: any;
+  dayHeaderPrefix?: any;
+  header?: any;
+  additionalSubHeader?: any;
 };
 
 type SelectionState = {
@@ -375,6 +375,17 @@ function PhotoListViewComponent(props: Props) {
     </div>
   );
 }
+
+PhotoListViewComponent.defaultProps = {
+  isPublic: null,
+  numberOfItems: null,
+  updateItems: null,
+  date: null,
+  dayHeaderPrefix: null,
+  header: null,
+  additionalSubHeader: null,
+  updateGroups: null,
+};
 
 export const PhotoListView = React.memo(
   PhotoListViewComponent,
