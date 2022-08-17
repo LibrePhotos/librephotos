@@ -1,7 +1,6 @@
 import { Button, Grid, Group, Header, Image } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import React, { useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
 import { Menu2 } from "tabler-icons-react";
 
@@ -9,18 +8,16 @@ import { toggleSidebar } from "../../actions/uiActions";
 import { api } from "../../api_client/api";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
-export const TopMenuPublic = () => {
+export function TopMenuPublic() {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
-  const { t } = useTranslation();
-
   const matches = useMediaQuery("(min-width: 700px)");
 
   useEffect(() => {
     if (auth.access) {
       dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id));
     }
-  }, [auth.access]);
+  }, [auth.access, dispatch]);
 
   return (
     <Header height={45}>
@@ -39,7 +36,7 @@ export const TopMenuPublic = () => {
                   padding: 2,
                 }}
               >
-                <Image height={30} src="/logo-white.png" />
+                <Image height={30} width={30} src="/logo-white.png" />
               </Button>
             </Group>
           </Grid.Col>
@@ -58,4 +55,4 @@ export const TopMenuPublic = () => {
       </Grid>
     </Header>
   );
-};
+}
