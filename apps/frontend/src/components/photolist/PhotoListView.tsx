@@ -51,7 +51,7 @@ function PhotoListViewComponent(props: Props) {
   const { height } = useViewportSize();
 
   const [lightboxImageIndex, setLightboxImageIndex] = useState(1);
-  const [lightboxImageId, setLightboxImageId] = useState(undefined);
+  const [lightboxImageId, setLightboxImageId] = useState("");
   const [lightboxShow, setLightboxShow] = useState(false);
   const [modalAddToAlbumOpen, setModalAddToAlbumOpen] = useState(false);
   const [modalSharePhotosOpen, setModalSharePhotosOpen] = useState(false);
@@ -142,7 +142,7 @@ function PhotoListViewComponent(props: Props) {
     });
   };
 
-  const handleClick = (event: { shiftKey: any }, item: { id: any }) => {
+  const handleClick = (event: React.KeyboardEvent, item: { id: string }) => {
     // if an image is selectable, then handle shift click
     if (selectable && event.shiftKey) {
       const lastSelectedElement = selectionStateRef.current.selectedItems.at(-1);
