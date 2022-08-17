@@ -8,6 +8,23 @@ import { toggleSidebar } from "../../actions/uiActions";
 import { api } from "../../api_client/api";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
+type Props = {
+  onToggleSidebar: () => void;
+};
+
+export function TopMenuCommon({ onToggleSidebar }: Props) {
+  return (
+    <Grid.Col span={1}>
+      <Group>
+        <Menu2 onClick={onToggleSidebar} />
+        <Button color="dark" style={{ padding: 2 }}>
+          <Image height={30} width={30} src="/logo-white.png" />
+        </Button>
+      </Group>
+    </Grid.Col>
+  );
+}
+
 export function TopMenuPublic() {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
@@ -22,34 +39,10 @@ export function TopMenuPublic() {
   return (
     <Header height={45}>
       <Grid justify="space-between" grow style={{ padding: 5 }}>
-        {matches && (
-          <Grid.Col span={1}>
-            <Group>
-              <Menu2
-                onClick={() => {
-                  dispatch(toggleSidebar());
-                }}
-              />
-              <Button
-                color="dark"
-                style={{
-                  padding: 2,
-                }}
-              >
-                <Image height={30} width={30} src="/logo-white.png" />
-              </Button>
-            </Group>
-          </Grid.Col>
-        )}
+        {matches && <TopMenuCommon onToggleSidebar={() => dispatch(toggleSidebar())} />}
         <Grid.Col span={1}>
           <Group position="right">
-            <Button
-              onClick={() => {
-                dispatch(push("/login"));
-              }}
-            >
-              Login
-            </Button>
+            <Button onClick={() => dispatch(push("/login"))}>Login</Button>
           </Group>
         </Grid.Col>
       </Grid>
