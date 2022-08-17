@@ -3,7 +3,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import React, { useEffect } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
-import { Adjustments, Book, ChevronDown, Logout, Menu2, Settings, User } from "tabler-icons-react";
+import { Adjustments, Book, Logout, Menu2, Settings, User } from "tabler-icons-react";
 
 import { toggleSidebar } from "../../actions/uiActions";
 import { api } from "../../api_client/api";
@@ -14,7 +14,7 @@ import { ChunkedUploadButton } from "../ChunkedUploadButton";
 import { CustomSearch } from "../CustomSearch";
 import { WorkerIndicator } from "./WorkerIndicator";
 
-export const TopMenu = () => {
+export function TopMenu() {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
   const userSelfDetails = useAppSelector(state => state.user.userSelfDetails);
@@ -27,7 +27,7 @@ export const TopMenu = () => {
     if (auth.access) {
       dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id));
     }
-  }, [auth.access]);
+  }, [auth.access, dispatch]);
 
   return (
     <Header height={45}>
@@ -46,7 +46,7 @@ export const TopMenu = () => {
                   padding: 2,
                 }}
               >
-                <Image height={30} src="/logo-white.png" />
+                <Image height={30} width={30} src="/logo-white.png" />
               </Button>
             </Group>
           </Grid.Col>
@@ -103,4 +103,4 @@ export const TopMenu = () => {
       </Grid>
     </Header>
   );
-};
+}
