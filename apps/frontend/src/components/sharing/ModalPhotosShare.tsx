@@ -8,10 +8,10 @@ import { fetchPublicUserList } from "../../actions/publicActions";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
-function fuzzy_match(str, pattern) {
+function fuzzyMatch(str: string, pattern: string) {
   if (pattern.split("").length > 0) {
-    pattern = pattern.split("").reduce((a, b) => `${a}.*${b}`);
-    return new RegExp(pattern).test(str);
+    const expr = pattern.split("").reduce((a, b) => `${a}.*${b}`);
+    return new RegExp(expr).test(str);
   }
   return false;
 }
@@ -21,29 +21,29 @@ type Props = {
   isOpen: boolean;
   onRequestClose: () => void;
 };
-//To-Do: Add missing locales
-export const ModalPhotosShare = (props: Props) => {
+// To-Do: Add missing locales
+export function ModalPhotosShare(props: Props) {
   const [userNameFilter, setUserNameFilter] = useState("");
-  const [valShare, setValShare] = useState(false);
+  const [valShare] = useState(false);
 
   const { auth, pub } = useAppSelector(store => store);
   const dispatch = useAppDispatch();
 
   const { selectedImageHashes, isOpen, onRequestClose } = props;
-  let filteredUserList;
+  let filteredUserList: any[];
   if (userNameFilter.length > 0) {
     filteredUserList = pub.publicUserList.filter(
-      el =>
-        fuzzy_match(el.username.toLowerCase(), userNameFilter.toLowerCase()) ||
-        fuzzy_match(`${el.first_name.toLowerCase()} ${el.last_name.toLowerCase()}`, userNameFilter.toLowerCase())
+      (el: any) =>
+        fuzzyMatch(el.username.toLowerCase(), userNameFilter.toLowerCase()) ||
+        fuzzyMatch(`${el.first_name.toLowerCase()} ${el.last_name.toLowerCase()}`, userNameFilter.toLowerCase())
     );
   } else {
     filteredUserList = pub.publicUserList;
   }
-  filteredUserList = filteredUserList.filter(el => el.id !== auth.access.user_id);
+  filteredUserList = filteredUserList.filter((el: any) => el.id !== auth.access?.user_id);
 
   const selectedImageSrcs = selectedImageHashes.map(
-    image_hash => `${serverAddress}/media/square_thumbnails/${image_hash}`
+    (image_hash: string) => `${serverAddress}/media/square_thumbnails/${image_hash}`
   );
 
   useEffect(() => {
@@ -69,7 +69,7 @@ export const ModalPhotosShare = (props: Props) => {
         <Divider />
         <ScrollArea>
           <Group>
-            {selectedImageSrcs.slice(0, 100).map(image => (
+            {selectedImageSrcs.slice(0, 100).map((image: string) => (
               <Avatar key={`selected_image${image}`} size={40} src={image} />
             ))}
           </Group>
@@ -87,7 +87,7 @@ export const ModalPhotosShare = (props: Props) => {
         <ScrollArea>
           {filteredUserList.length > 0 &&
             filteredUserList.map(item => {
-              var displayName = item.username;
+              let displayName = item.username;
               if (item.first_name.length > 0 && item.last_name.length > 0) {
                 displayName = `${item.first_name} ${item.last_name}`;
               }
@@ -127,4 +127,4 @@ export const ModalPhotosShare = (props: Props) => {
       </Stack>
     </Modal>
   );
-};
+}
