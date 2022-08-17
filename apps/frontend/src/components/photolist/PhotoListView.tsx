@@ -20,7 +20,7 @@ import { FavoritedOverlay } from "./FavoritedOverlay";
 import { SelectionActions } from "./SelectionActions";
 import { SelectionBar } from "./SelectionBar";
 import { TrashcanActions } from "./TrashcanActions";
-import VideoOverlay from "./VideoOverlay";
+import { VideoOverlay } from "./VideoOverlay";
 
 const TIMELINE_SCROLL_WIDTH = 0;
 
@@ -51,7 +51,7 @@ function PhotoListViewComponent(props: Props) {
   const { height } = useViewportSize();
 
   const [lightboxImageIndex, setLightboxImageIndex] = useState(1);
-  const [lightboxImageId, setLightboxImageId] = useState(undefined);
+  const [lightboxImageId, setLightboxImageId] = useState("");
   const [lightboxShow, setLightboxShow] = useState(false);
   const [modalAddToAlbumOpen, setModalAddToAlbumOpen] = useState(false);
   const [modalSharePhotosOpen, setModalSharePhotosOpen] = useState(false);
@@ -87,30 +87,32 @@ function PhotoListViewComponent(props: Props) {
     idx2hashRef.current = idx2hash;
   }, [idx2hash]);
 
+  /* eslint-disable react-hooks/exhaustive-deps */
   const throttledUpdateGroups = useCallback(
     _.throttle(visibleItems => updateGroups(visibleItems), 500),
     []
   );
 
+  /* eslint-disable react-hooks/exhaustive-deps */
   const throttledUpdateItems = useCallback(
     _.throttle(visibleItems => updateItems(visibleItems), 500),
     []
   );
 
-  const getUrl = useCallback((url, pxHeight) => {
+  const getUrl = useCallback((url: string, pxHeight: number) => {
     if (pxHeight < 250) {
       return `${serverAddress}/media/square_thumbnails_small/${url.split(";")[0]}`;
     }
     return `${serverAddress}/media/square_thumbnails/${url.split(";")[0]}`;
   }, []);
 
-  const updateSelectionState = newState => {
+  const updateSelectionState = (newState: { selectedItems: any[]; selectMode: boolean }) => {
     const updatedState = { ...selectionState, ...newState };
     selectionStateRef.current = updatedState;
     setSelectionState(updatedState);
   };
 
-  const handleSelection = item => {
+  const handleSelection = (item: { id: string }) => {
     let newSelectedItems = selectionStateRef.current.selectedItems;
 
     if (newSelectedItems.find(selectedItem => selectedItem.id === item.id)) {
@@ -125,7 +127,7 @@ function PhotoListViewComponent(props: Props) {
     });
   };
 
-  const handleSelections = items => {
+  const handleSelections = (items: any[]) => {
     let newSelectedItems = selectionStateRef.current.selectedItems;
     items.forEach(item => {
       if (newSelectedItems.find(selectedItem => selectedItem.id === item.id)) {
@@ -140,10 +142,10 @@ function PhotoListViewComponent(props: Props) {
     });
   };
 
-  const handleClick = (event, item) => {
+  const handleClick = (event: React.KeyboardEvent, item: { id: string }) => {
     // if an image is selectable, then handle shift click
     if (selectable && event.shiftKey) {
-      const lastSelectedElement = selectionStateRef.current.selectedItems.slice(-1)[0];
+      const lastSelectedElement = selectionStateRef.current.selectedItems.at(-1);
       if (lastSelectedElement === undefined) {
         handleSelection(item);
         return;
@@ -163,13 +165,13 @@ function PhotoListViewComponent(props: Props) {
       return;
     }
 
-    const lightboxImageIndex = idx2hashRef.current.findIndex(image => image.id === item.id);
-    setLightboxImageIndex(lightboxImageIndex);
+    const index = idx2hashRef.current.findIndex(image => image.id === item.id);
+    setLightboxImageIndex(index);
     setLightboxImageId(item.id);
-    setLightboxShow(lightboxImageIndex >= 0);
+    setLightboxShow(index >= 0);
   };
 
-  const getPhotoDetails = image => {
+  const getPhotoDetails = (image: string) => {
     dispatch(fetchPhotoDetail(image));
   };
 
@@ -373,6 +375,17 @@ function PhotoListViewComponent(props: Props) {
     </div>
   );
 }
+
+PhotoListViewComponent.defaultProps = {
+  isPublic: null,
+  numberOfItems: null,
+  updateItems: null,
+  date: null,
+  dayHeaderPrefix: null,
+  header: null,
+  additionalSubHeader: null,
+  updateGroups: null,
+};
 
 export const PhotoListView = React.memo(
   PhotoListViewComponent,
