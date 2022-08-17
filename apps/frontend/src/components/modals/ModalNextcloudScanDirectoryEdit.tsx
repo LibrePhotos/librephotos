@@ -14,8 +14,9 @@ type Props = {
   onRequestClose: () => void;
 };
 
-export const ModalNextcloudScanDirectoryEdit = (props: Props) => {
+export function ModalNextcloudScanDirectoryEdit(props: Props) {
   const { t } = useTranslation();
+  const { selectedNodeId, isOpen, userToEdit, onRequestClose } = props;
   const [newScanDirectory, setNewScanDirectory] = useState("");
   const [treeData, setTreeData] = useState([]);
 
@@ -34,18 +35,27 @@ export const ModalNextcloudScanDirectoryEdit = (props: Props) => {
     }
   }, [auth.access, dispatch]);
 
-  const nodeClicked = (event, rowInfo) => {
-    //@ts-ignore
-    inputRef.current.inputRef.value = rowInfo.node.absolute_path;
+  const nodeClicked = (rowInfo: any) => {
+    inputRef.current!.value = rowInfo.node.absolute_path;
     setNewScanDirectory(rowInfo.node.absolute_path);
   };
 
+  function getInputPLaceholder() {
+    if (!userToEdit) {
+      return "...";
+    }
+    if (userToEdit.nextcloud_scan_directory !== "") {
+      return userToEdit.nextcloud_scan_directory;
+    }
+    return t("modalnextcloud.notset");
+  }
+
   return (
     <Modal
-      opened={props.isOpen}
+      opened={isOpen}
       centered
       onClose={() => {
-        props.onRequestClose();
+        onRequestClose();
         setNewScanDirectory("");
       }}
       title={<Title order={4}>{t("modalnextcloud.setdirectory")}</Title>}
@@ -55,16 +65,7 @@ export const ModalNextcloudScanDirectoryEdit = (props: Props) => {
         <Title order={5}>{t("modalnextcloud.currentdirectory")}</Title>
         <Grid grow>
           <Grid.Col span={9}>
-            <TextInput
-              ref={inputRef}
-              placeholder={
-                props.userToEdit
-                  ? props.userToEdit.nextcloud_scan_directory === ""
-                    ? t("modalnextcloud.notset")
-                    : props.userToEdit.nextcloud_scan_directory
-                  : "..."
-              }
-            ></TextInput>
+            <TextInput ref={inputRef} placeholder={getInputPLaceholder()} />
           </Grid.Col>
           <Grid.Col span={3}>
             <Button
@@ -72,12 +73,12 @@ export const ModalNextcloudScanDirectoryEdit = (props: Props) => {
               color="green"
               onClick={() => {
                 const newUserData = {
-                  ...props.userToEdit,
+                  ...userToEdit,
                   nextcloud_scan_directory: newScanDirectory,
                 };
                 const ud = newUserData;
                 updateUser(ud, dispatch);
-                props.onRequestClose();
+                onRequestClose();
               }}
             >
               {t("modalnextcloud.update")}
@@ -92,16 +93,15 @@ export const ModalNextcloudScanDirectoryEdit = (props: Props) => {
             canDrag={() => false}
             canDrop={() => false}
             treeData={treeData}
-            onChange={treeData => setTreeData(treeData)}
+            onChange={setTreeData}
             theme={FileExplorerTheme}
             isVirtualized={false}
-            generateNodeProps={rowInfo => {
+            generateNodeProps={(rowInfo: any) => {
               const nodeProps = {
-                onClick: event => nodeClicked(event, rowInfo),
+                onClick: () => nodeClicked(rowInfo),
               };
-              if (props.selectedNodeId === rowInfo.node.id) {
-                //@ts-ignore
-                nodeProps.className = "selected-node";
+              if (selectedNodeId === rowInfo.node.absolute_path) {
+                Object.defineProperty(nodeProps, "className", { value: "selected-node" });
               }
               return nodeProps;
             }}
@@ -110,4 +110,8 @@ export const ModalNextcloudScanDirectoryEdit = (props: Props) => {
       </Stack>
     </Modal>
   );
+}
+
+ModalNextcloudScanDirectoryEdit.defaultProps = {
+  selectedNodeId: null,
 };
