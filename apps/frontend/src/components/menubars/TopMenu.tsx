@@ -1,9 +1,9 @@
-import { Avatar, Button, Divider, Grid, Group, Header, Image, Menu } from "@mantine/core";
+import { Avatar, Divider, Grid, Group, Header, Menu } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import React, { useEffect } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
-import { Adjustments, Book, Logout, Menu2, Settings, User } from "tabler-icons-react";
+import { Adjustments, Book, Logout, Settings, User } from "tabler-icons-react";
 
 import { toggleSidebar } from "../../actions/uiActions";
 import { api } from "../../api_client/api";
@@ -12,6 +12,7 @@ import { logout } from "../../store/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { ChunkedUploadButton } from "../ChunkedUploadButton";
 import { CustomSearch } from "../CustomSearch";
+import { TopMenuCommon } from "./TopMenuPublic";
 import { WorkerIndicator } from "./WorkerIndicator";
 
 export function TopMenu() {
@@ -32,25 +33,7 @@ export function TopMenu() {
   return (
     <Header height={45}>
       <Grid justify="space-between" grow style={{ padding: 5 }}>
-        {matches && (
-          <Grid.Col span={1}>
-            <Group>
-              <Menu2
-                onClick={() => {
-                  dispatch(toggleSidebar());
-                }}
-              />
-              <Button
-                color="dark"
-                style={{
-                  padding: 2,
-                }}
-              >
-                <Image height={30} width={30} src="/logo-white.png" />
-              </Button>
-            </Group>
-          </Grid.Col>
-        )}
+        {matches && <TopMenuCommon onToggleSidebar={() => dispatch(toggleSidebar())} />}
         <Grid.Col span={3}>
           <CustomSearch />
         </Grid.Col>
