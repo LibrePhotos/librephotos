@@ -44,6 +44,7 @@ export const PhotoHashSchema = z.object({
 export const PeopleSchema = z.object({ name: z.string(), face_url: z.string(), face_id: z.number() });
 
 export const PhotoSchema = z.object({
+  camera: z.string().optional(),
   exif_gps_lat: z.number().nullable(),
   exif_gps_lon: z.number().nullable(),
   exif_timestamp: z.string().nullable(),
@@ -61,10 +62,21 @@ export const PhotoSchema = z.object({
   hidden: z.boolean(),
   public: z.boolean(),
   deleted: z.boolean(),
+  size: z.number(),
   shared_to: z.number().nullable().array(), // TODO: There are sometimes items in the array with value null. Why?!?
   similar_photos: z.object({ image_hash: z.string(), type: z.nativeEnum(MediaType) }).array(),
   video: z.boolean(),
   owner: SimpleUserSchema,
+  shutter_speed: z.string().optional(),
+  height: z.number().nullable(),
+  width: z.number().nullable(),
+  fstop: z.number().nullable(),
+  iso: z.number().nullable(),
+  focal_length: z.number().nullable(),
+  focalLength35Equivalent: z.number().nullable(),
+  subjectDistance: z.number().nullable(),
+  digitalZoomRatio: z.number().nullable(),
+  lens: z.string().nullable(),
 });
 export type Photo = z.infer<typeof PhotoSchema>;
 

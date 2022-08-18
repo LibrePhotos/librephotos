@@ -1,29 +1,30 @@
 import { ActionIcon, Anchor, Avatar, Badge, Box, Button, Group, Stack, Text, Textarea, Title } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
-import * as moment from "moment";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-virtualized/styles.css";
 import { push } from "redux-first-history";
 // only needs to be imported once
-import { Edit, File, Map2, Note, Photo, Tags, Users, X } from "tabler-icons-react";
+import { Edit, File, FileInfo, Map2, Note, Photo, Tags, Users, X } from "tabler-icons-react";
 
 import { generatePhotoIm2txtCaption } from "../../actions/photosActions";
+import type { Photo as PhotoType } from "../../actions/photosActions.types";
 import { searchPhotos } from "../../actions/searchActions";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { LocationMap } from "../LocationMap";
 import { Tile } from "../Tile";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
+import { FileInfoComponent } from "./FileInfoComponent";
 import { TimestampItem } from "./TimestampItem";
 
 type Props = {
   isPublic: boolean;
-  photoDetail: any;
+  photoDetail: PhotoType;
   closeSidepanel: () => void;
 };
 
-export const Sidebar = (props: Props) => {
+export function Sidebar(props: Props) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const [personEditOpen, setPersonEditOpen] = useState(false);
@@ -64,7 +65,7 @@ export const Sidebar = (props: Props) => {
                 closeSidepanel();
               }}
             >
-              <X></X>
+              <X />
             </ActionIcon>
           </Group>
           {/* Start Item Time Taken */}
@@ -110,7 +111,7 @@ export const Sidebar = (props: Props) => {
                 <Users />
                 <Title order={4}>{t("lightbox.sidebar.people")}</Title>
               </Group>
-              {photoDetail.people.map((nc, idx) => (
+              {photoDetail.people.map(nc => (
                 <Group position="center" spacing="xs">
                   <Button
                     variant="subtle"
@@ -143,7 +144,7 @@ export const Sidebar = (props: Props) => {
 
           <Stack>
             <Group>
-              <Note></Note>
+              <Note />
               <Title order={4}>{t("lightbox.sidebar.caption")}</Title>
             </Group>
             {false && photoDetail.captions_json.im2txt}
@@ -173,6 +174,34 @@ export const Sidebar = (props: Props) => {
           </Stack>
 
           {/* End Item Caption */}
+          {/* Exif Data */}
+          <Stack>
+            <Group>
+              <FileInfo />
+              <Title order={4}>Info</Title>
+            </Group>
+            {
+              // To-Do: Add locales for exif data
+            }
+            <FileInfoComponent description="Camera" info={photoDetail.camera?.toString()} />
+            <FileInfoComponent description="Lens" info={photoDetail.lens?.toString()} />
+            <FileInfoComponent description="Focal Length" info={`${Math.round(photoDetail.focal_length!)} mm`} />
+            <FileInfoComponent description="Aperture" info={`ƒ / ${photoDetail.fstop}`} />
+            <FileInfoComponent description="Exposure Time" info={`${photoDetail.shutter_speed} s`} />
+            <FileInfoComponent description="ISO" info={photoDetail.iso?.toString()} />
+            <FileInfoComponent description="Subject Distance" info={`${photoDetail.subjectDistance} m`} />
+            <FileInfoComponent description="Digital Zoom Ratio" info={photoDetail.digitalZoomRatio?.toString()} />
+            <FileInfoComponent
+              description="Focal Length 35mm Equivalent"
+              info={`${photoDetail.focalLength35Equivalent} mm`}
+            />
+            <FileInfoComponent description="Dimensions" info={`${photoDetail.height} x ${photoDetail.width}`} />
+            <FileInfoComponent
+              description="Size"
+              info={`${Math.round((photoDetail.size / 1024 / 1024) * 100) / 100} MB`}
+            />
+          </Stack>
+
           {/* Start Item Scene */}
           {photoDetail.captions_json.places365 && (
             <Stack>
@@ -182,7 +211,7 @@ export const Sidebar = (props: Props) => {
               </Group>
               <Text weight={700}>{t("lightbox.sidebar.attributes")}</Text>
               <Group>
-                {photoDetail.captions_json.places365.attributes.map((nc, idx) => (
+                {photoDetail.captions_json.places365.attributes.map(nc => (
                   <Badge
                     key={`lightbox_attribute_label_${photoDetail.image_hash}_${nc}`}
                     color="blue"
@@ -198,7 +227,7 @@ export const Sidebar = (props: Props) => {
 
               <Text weight={700}>{t("lightbox.sidebar.categories")}</Text>
               <Group>
-                {photoDetail.captions_json.places365.categories.map((nc, idx) => (
+                {photoDetail.captions_json.places365.categories.map(nc => (
                   <Badge
                     key={`lightbox_category_label_${photoDetail.image_hash}_${nc}`}
                     color="teal"
@@ -243,4 +272,4 @@ export const Sidebar = (props: Props) => {
       />
     </Box>
   );
-};
+}
