@@ -19,6 +19,7 @@ describe("email regex test", () => {
       "firstname-lastname@example.com",
       "1234567890@domain.com",
       "_______@example.com",
+      "valid.name@aa.bb.cc.dd.ee.ff.gg.hh.jj.com",
     ];
 
     validGoodEmailSamples.forEach(sample => {
@@ -34,6 +35,7 @@ describe("email regex test", () => {
       "very.unusual.“@”.unusual.com@example.com",
       'very.“(),:;<>[]”.VERY.“very@\\ "very”.unusual@strange.example.com',
       "“email”@example.com",
+      "valid.name@aa.bb.cc.dd.ee.ff.gg.hh.jj.ii.com",
     ];
 
     validBadEmailSamples.forEach(sample => {
