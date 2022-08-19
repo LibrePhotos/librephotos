@@ -44,7 +44,7 @@ export const PhotoHashSchema = z.object({
 export const PeopleSchema = z.object({ name: z.string(), face_url: z.string(), face_id: z.number() });
 
 export const PhotoSchema = z.object({
-  camera: z.string().optional(),
+  camera: z.string().nullable(),
   exif_gps_lat: z.number().nullable(),
   exif_gps_lon: z.number().nullable(),
   exif_timestamp: z.string().nullable(),
@@ -67,7 +67,7 @@ export const PhotoSchema = z.object({
   similar_photos: z.object({ image_hash: z.string(), type: z.nativeEnum(MediaType) }).array(),
   video: z.boolean(),
   owner: SimpleUserSchema,
-  shutter_speed: z.string().optional(),
+  shutter_speed: z.string().nullable(),
   height: z.number().nullable(),
   width: z.number().nullable(),
   fstop: z.number().nullable(),
