@@ -1,6 +1,7 @@
 FROM reallibrephotos/librephotos-base:dev
 
 # Build and install dlib
+# Compile it WITHOUT AVX and SSE4 instructions to ensure compatibility
 WORKDIR /tmp/builds
 RUN git clone --depth 1 --branch 'v19.24' https://github.com/davisking/dlib.git && \
     mkdir dlib/build && \
