@@ -3,7 +3,6 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_extensions.cache.decorators import cache_response
 
 import ownphotos.settings
 from api.api_util import path_to_dict
@@ -16,11 +15,6 @@ from api.serializers.user import (
     UserSerializer,
 )
 from api.util import logger
-from api.views.caching import (
-    CACHE_TTL,
-    CustomListKeyConstructor,
-    CustomObjectKeyConstructor,
-)
 
 
 class DefaultRulesView(APIView):
@@ -108,7 +102,6 @@ class UserViewSet(viewsets.ModelViewSet):
             self.permission_classes = (IsUserOrReadOnly,)
         return super(UserViewSet, self).get_permissions()
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(UserViewSet, self).retrieve(*args, **kwargs)
 
@@ -137,10 +130,8 @@ class ManageUserViewSet(viewsets.ModelViewSet):
     serializer_class = ManageUserSerializer
     permission_classes = (IsAdminUser,)
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(ManageUserViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(ManageUserViewSet, self).list(*args, **kwargs)

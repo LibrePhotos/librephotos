@@ -6,7 +6,6 @@ import uuid
 import zipfile
 
 import magic
-import six
 from constance import config as site_config
 from django.core.cache import cache
 from django.db.models import Count, Prefetch, Q
@@ -18,7 +17,6 @@ from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView, exception_handler
-from rest_framework_extensions.cache.decorators import cache_response
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
@@ -26,16 +24,10 @@ import ownphotos.settings
 from api.api_util import get_search_term_examples
 from api.autoalbum import delete_missing_photos
 from api.directory_watcher import scan_photos
-from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 from api.models import AlbumDate, AlbumUser, Photo, User
 from api.serializers.album_user import AlbumUserEditSerializer, AlbumUserListSerializer
 from api.serializers.serializers_serpy import PigAlbumDateSerializer
 from api.util import logger
-from api.views.caching import (
-    CACHE_TTL,
-    CustomListKeyConstructor,
-    CustomObjectKeyConstructor,
-)
 from api.views.pagination import StandardResultsSetPagination
 
 
@@ -89,11 +81,9 @@ class AlbumDateListWithPhotoHashViewSet(viewsets.ReadOnlyModelViewSet):
         )
         return qs
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(AlbumDateListWithPhotoHashViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         start = datetime.datetime.now()
         res = super(AlbumDateListWithPhotoHashViewSet, self).list(*args, **kwargs)
@@ -102,16 +92,13 @@ class AlbumDateListWithPhotoHashViewSet(viewsets.ReadOnlyModelViewSet):
         return res
 
 
-@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumUserEditViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumUserEditSerializer
     pagination_class = StandardResultsSetPagination
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(AlbumUserEditViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(AlbumUserEditViewSet, self).list(*args, **kwargs)
 
