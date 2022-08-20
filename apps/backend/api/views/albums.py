@@ -138,18 +138,24 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return (
-            AlbumThing.objects.filter(
-                Q(owner=self.request.user) & Q(photos__hidden=False)
+            AlbumThing.objects.filter(Q(owner=self.request.user))
+            .annotate(
+                photo_count=Count(
+                    "photos", filter=Q(photos__hidden=False), distinct=True
+                )
             )
-            .annotate(photo_count=Count("photos"))
             .filter(Q(photo_count__gt=0))
             .prefetch_related(
                 Prefetch(
                     "photos",
-                    queryset=Photo.objects.filter(hidden=False)
-                    .only("image_hash", "public", "rating", "hidden", "exif_timestamp")
-                    .order_by("-exif_timestamp"),
-                )
+                    queryset=Photo.visible.order_by("-exif_timestamp"),
+                ),
+                Prefetch(
+                    "photos__owner",
+                    queryset=User.objects.only(
+                        "id", "username", "first_name", "last_name"
+                    ),
+                ),
             )
         )
 
@@ -168,6 +174,7 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
         return Response({"results": serializer.data})
 
 
+# To-Do: Make album_cover an actual database field to improve performance
 class AlbumThingListViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumThingListSerializer
     pagination_class = StandardResultsSetPagination
@@ -176,10 +183,12 @@ class AlbumThingListViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return (
-            AlbumThing.objects.filter(
-                Q(owner=self.request.user) & Q(photos__hidden=False)
+            AlbumThing.objects.filter(Q(owner=self.request.user))
+            .annotate(
+                photo_count=Count(
+                    "photos", filter=Q(photos__hidden=False), distinct=True
+                )
             )
-            .annotate(photo_count=Count("photos"))
             .filter(Q(photo_count__gt=0))
             .order_by("-title")
         )
