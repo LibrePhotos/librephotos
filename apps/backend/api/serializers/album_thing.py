@@ -19,10 +19,10 @@ class GroupedThingPhotosSerializer(serializers.ModelSerializer):
             "grouped_photos",
         )
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         return str(obj.id)
 
-    def get_grouped_photos(self, obj):
+    def get_grouped_photos(self, obj) -> GroupedPhotosSerializer(many=True):
         grouped_photos = get_photos_ordered_by_date(obj.photos.all())
         res = GroupedPhotosSerializer(grouped_photos, many=True).data
         return res
@@ -44,5 +44,5 @@ class AlbumThingListSerializer(serializers.ModelSerializer):
         model = AlbumThing
         fields = ("id", "cover_photos", "title", "photo_count")
 
-    def get_photo_count(self, obj):
+    def get_photo_count(self, obj) -> int:
         return obj.photo_count

@@ -17,28 +17,28 @@ class IncompleteAlbumDateSerializer(serializers.ModelSerializer):
         model = AlbumDate
         fields = ("id", "date", "location", "incomplete", "numberOfItems", "items")
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         return str(obj.id)
 
-    def get_date(self, obj):
+    def get_date(self, obj) -> str:
         if obj.date:
             return obj.date.isoformat()
         else:
             return None
 
-    def get_items(self, obj):
+    def get_items(self, obj) -> list:
         return []
 
-    def get_incomplete(self, obj):
+    def get_incomplete(self, obj) -> bool:
         return True
 
-    def get_number_of_items(self, obj):
+    def get_number_of_items(self, obj) -> int:
         if obj and obj.photo_count:
             return obj.photo_count
         else:
             return 0
 
-    def get_location(self, obj):
+    def get_location(self, obj) -> str:
         if obj and obj.location:
             return obj.location["places"][0]
         else:
@@ -57,16 +57,16 @@ class AlbumDateSerializer(serializers.ModelSerializer):
         model = AlbumDate
         fields = ("id", "date", "location", "incomplete", "numberOfItems", "items")
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         return str(obj.id)
 
-    def get_date(self, obj):
+    def get_date(self, obj) -> str:
         if obj.date:
             return obj.date.isoformat()
         else:
             return None
 
-    def get_items(self, obj):
+    def get_items(self, obj) -> PigPhotoSerilizer(many=True):
         page_size = self.context["request"].query_params.get("size") or 100
         paginator = Paginator(obj.photos.all(), page_size)
         page_number = self.context["request"].query_params.get("page") or 1
@@ -74,16 +74,16 @@ class AlbumDateSerializer(serializers.ModelSerializer):
         serializer = PigPhotoSerilizer(photos, many=True)
         return serializer.data
 
-    def get_incomplete(self, obj):
+    def get_incomplete(self, obj) -> bool:
         return False
 
-    def get_number_of_items(self, obj):
+    def get_number_of_items(self, obj) -> int:
         if obj and obj.photo_count:
             return obj.photo_count
         else:
             return 0
 
-    def get_location(self, obj):
+    def get_location(self, obj) -> str:
         if obj and obj.location:
             return obj.location["places"][0]
         else:

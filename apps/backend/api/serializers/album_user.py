@@ -28,23 +28,23 @@ class AlbumUserSerializer(serializers.ModelSerializer):
         )
 
     # To-Do: Legacy defintion, should be a number instead
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         return str(obj.id)
 
-    def get_grouped_photos(self, obj):
+    def get_grouped_photos(self, obj) -> GroupedPhotosSerializer(many=True):
         grouped_photos = get_photos_ordered_by_date(
             obj.photos.all().order_by("-exif_timestamp")
         )
         res = GroupedPhotosSerializer(grouped_photos, many=True).data
         return res
 
-    def get_location(self, obj):
+    def get_location(self, obj) -> str:
         for photo in obj.photos.all():
             if photo and photo.search_location:
                 return photo.search_location
         return ""
 
-    def get_date(self, obj):
+    def get_date(self, obj) -> str:
         for photo in obj.photos.all():
             if photo and photo.exif_timestamp:
                 return photo.exif_timestamp
@@ -158,12 +158,12 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
             "photo_count",
         )
 
-    def get_cover_photo(self, obj):
+    def get_cover_photo(self, obj) -> PhotoSuperSimpleSerializer:
         if obj.cover_photo:
             return PhotoSuperSimpleSerializer(obj.cover_photo).data
         return PhotoSuperSimpleSerializer(obj.photos.first()).data
 
-    def get_photo_count(self, obj):
+    def get_photo_count(self, obj) -> int:
         try:
             return obj.photo_count
         except Exception:  # for when calling AlbumUserListSerializer(obj).data directly

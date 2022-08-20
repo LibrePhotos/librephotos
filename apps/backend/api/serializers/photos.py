@@ -54,47 +54,47 @@ class PigPhotoSerilizer(serializers.ModelSerializer):
             "owner",
         )
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         return obj.image_hash
 
-    def get_aspectRatio(self, obj):
+    def get_aspectRatio(self, obj) -> float:
         return obj.aspect_ratio
 
-    def get_url(self, obj):
+    def get_url(self, obj) -> str:
         return obj.image_hash
 
-    def get_location(self, obj):
+    def get_location(self, obj) -> str:
         if obj.search_location:
             return obj.search_location
         else:
             return ""
 
-    def get_date(self, obj):
+    def get_date(self, obj) -> str:
         if obj.exif_timestamp:
             return obj.exif_timestamp.isoformat()
         else:
             None
 
-    def get_video_length(self, obj):
+    def get_video_length(self, obj) -> int:
         if obj.video_length:
             return obj.video_length
         else:
             return ""
 
-    def get_birthTime(self, obj):
+    def get_birthTime(self, obj) -> str:
         if obj.exif_timestamp:
             return obj.exif_timestamp
         else:
             return ""
 
-    def get_dominantColor(self, obj):
+    def get_dominantColor(self, obj) -> str:
         if obj.dominant_color:
             dominant_color = obj.dominant_color[1:-1]
             return "#%02x%02x%02x" % tuple(map(int, dominant_color.split(", ")))
         else:
             return ""
 
-    def get_type(self, obj):
+    def get_type(self, obj) -> str:
         if obj.video:
             return "video"
         else:
@@ -110,13 +110,13 @@ class GroupedPhotosSerializer(serializers.ModelSerializer):
         model = Photo
         fields = ("date", "location", "items")
 
-    def get_date(self, obj):
+    def get_date(self, obj) -> str:
         return obj.date
 
-    def get_location(self, obj):
+    def get_location(self, obj) -> str:
         return obj.location
 
-    def get_items(self, obj):
+    def get_items(self, obj) -> PigPhotoSerilizer(many=True):
         return PigPhotoSerilizer(obj.photos, many=True).data
 
 
@@ -198,7 +198,7 @@ class PhotoSerializer(serializers.ModelSerializer):
             "subjectDistance",
         )
 
-    def get_similar_photos(self, obj):
+    def get_similar_photos(self, obj) -> list:
         res = search_similar_image(obj.owner, obj, threshold=90)
         arr = []
         if len(res) > 0:
@@ -214,7 +214,7 @@ class PhotoSerializer(serializers.ModelSerializer):
         else:
             return []
 
-    def get_captions_json(self, obj):
+    def get_captions_json(self, obj) -> dict:
         if obj.captions_json and len(obj.captions_json) > 0:
             return obj.captions_json
         else:
@@ -224,37 +224,37 @@ class PhotoSerializer(serializers.ModelSerializer):
             }
             return emptyArray
 
-    def get_image_path(self, obj):
+    def get_image_path(self, obj) -> str:
         try:
             return obj.image_paths[0]
         except Exception:
             return "Missing"
 
-    def get_square_thumbnail_url(self, obj):
+    def get_square_thumbnail_url(self, obj) -> str:
         try:
             return obj.square_thumbnail.url
         except Exception:
             return None
 
-    def get_small_square_thumbnail_url(self, obj):
+    def get_small_square_thumbnail_url(self, obj) -> str:
         try:
             return obj.square_thumbnail_small.url
         except Exception:
             return None
 
-    def get_big_thumbnail_url(self, obj):
+    def get_big_thumbnail_url(self, obj) -> str:
         try:
             return obj.thumbnail_big.url
         except Exception:
             return None
 
-    def get_geolocation(self, obj):
+    def get_geolocation(self, obj) -> dict:
         if obj.geolocation_json:
             return json.loads(obj.geolocation_json)
         else:
             return None
 
-    def get_people(self, obj):
+    def get_people(self, obj) -> list:
         return [
             {"name": f.person.name, "face_url": f.image.url, "face_id": f.id}
             for f in obj.faces.all()
@@ -269,5 +269,5 @@ class SharedFromMePhotoThroughSerializer(serializers.ModelSerializer):
         model = Photo.shared_to.through
         fields = ("user_id", "user", "photo")
 
-    def get_photo(self, obj):
+    def get_photo(self, obj) -> PigPhotoSerilizer:
         return PigPhotoSerilizer(obj.photo).data

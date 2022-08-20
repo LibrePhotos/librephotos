@@ -20,10 +20,10 @@ class GroupedPersonPhotosSerializer(serializers.ModelSerializer):
             "grouped_photos",
         )
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         return str(obj.id)
 
-    def get_grouped_photos(self, obj):
+    def get_grouped_photos(self, obj) -> GroupedPhotosSerializer(many=True):
         user = None
         request = self.context.get("request")
         if request and hasattr(request, "user"):
@@ -54,10 +54,10 @@ class PersonSerializer(serializers.ModelSerializer):
             "cover_photo",
         )
 
-    def get_face_count(self, obj):
+    def get_face_count(self, obj) -> int:
         return obj.viewable_face_count
 
-    def get_face_url(self, obj):
+    def get_face_url(self, obj) -> str:
         try:
             face = obj.faces.filter(
                 Q(person_label_is_inferred=False) & Q(photo__hidden=False)
@@ -66,7 +66,7 @@ class PersonSerializer(serializers.ModelSerializer):
         except Exception:
             return None
 
-    def get_face_photo_url(self, obj):
+    def get_face_photo_url(self, obj) -> str:
         if obj.cover_photo:
             return obj.cover_photo.image_hash
         first_face = obj.faces.filter(
@@ -77,7 +77,7 @@ class PersonSerializer(serializers.ModelSerializer):
         else:
             return None
 
-    def get_video(self, obj):
+    def get_video(self, obj) -> str:
         if obj.cover_photo:
             return obj.cover_photo.video
         first_face = obj.faces.filter(
@@ -132,17 +132,17 @@ class AlbumPersonListSerializer(serializers.ModelSerializer):
             "id",
         )
 
-    def get_photo_count(self, obj):
+    def get_photo_count(self, obj) -> int:
         return obj.filter(Q(person_label_is_inferred=False)).faces.count()
 
-    def get_cover_photo_url(self, obj):
+    def get_cover_photo_url(self, obj) -> str:
         first_face = obj.faces.filter(Q(person_label_is_inferred=False)).first()
         if first_face:
             return first_face.photo.square_thumbnail.url
         else:
             return None
 
-    def get_face_photo_url(self, obj):
+    def get_face_photo_url(self, obj) -> str:
         first_face = obj.faces.filter(Q(person_label_is_inferred=False)).first()
         if first_face:
             return first_face.photo.image.url

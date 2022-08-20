@@ -21,10 +21,10 @@ class FaceListSerializer(serializers.ModelSerializer):
             "person_name",
         )
 
-    def get_face_url(self, obj):
+    def get_face_url(self, obj) -> str:
         return obj.image.url
 
-    def get_person_name(self, obj):
+    def get_person_name(self, obj) -> str:
         return obj.person.name
 
 
@@ -43,7 +43,7 @@ class FaceSerializer(serializers.ModelSerializer):
             "person_label_is_inferred",
         )
 
-    def get_face_url(self, obj):
+    def get_face_url(self, obj) -> str:
         return obj.image.url
 
     def update(self, instance, validated_data):
