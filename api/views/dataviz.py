@@ -14,14 +14,12 @@ from api.social_graph import build_social_graph
 
 
 class ClusterFaceView(APIView):
-    # @cache_response(CACHE_TTL_VIZ)
     def get(self, request, format=None):
         res = cluster_faces(request.user)
         return Response(res)
 
 
 class SocialGraphView(APIView):
-    # @cache_response(CACHE_TTL_VIZ)
     def get(self, request, format=None):
         res = build_social_graph(request.user)
         return Response(res)
@@ -40,28 +38,24 @@ class LocationClustersView(APIView):
 
 
 class LocationSunburst(APIView):
-    # @cache_response(CACHE_TTL_VIZ)
     def get(self, request, format=None):
         res = get_location_sunburst(request.user)
         return Response(res)
 
 
 class LocationTimeline(APIView):
-    # @cache_response(CACHE_TTL_VIZ)
     def get(self, request, format=None):
         res = get_location_timeline(request.user)
         return Response(res)
 
 
 class PhotoMonthCountsView(APIView):
-    # @cache_response(CACHE_TTL_VIZ)
     def get(self, request, format=None):
         res = get_photo_month_counts(request.user)
         return Response(res)
 
 
 class SearchTermWordCloudView(APIView):
-    # @cache_response(CACHE_TTL_VIZ)
     def get(self, request, format=None):
         res = get_searchterms_wordcloud(request.user)
         return Response(res)

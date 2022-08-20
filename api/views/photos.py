@@ -1,13 +1,10 @@
-import six
 from django.core.cache import cache
 from django.db.models import Prefetch, Q
 from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_extensions.cache.decorators import cache_response
 
-from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 from api.models import Photo, User
 from api.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
 from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
@@ -24,11 +21,6 @@ from api.serializers.serializers_serpy import (
 )
 from api.serializers.serializers_serpy import PigPhotoSerilizer
 from api.util import logger
-from api.views.caching import (
-    CACHE_TTL,
-    CustomListKeyConstructor,
-    CustomObjectKeyConstructor,
-)
 from api.views.pagination import (
     HugeResultsSetPagination,
     RegularResultsSetPagination,
@@ -59,7 +51,6 @@ class RecentlyAddedPhotoListViewSet(viewsets.ModelViewSet):
         ).order_by("-added_on")
         return queryset
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         queryset = self.get_queryset()
         latestDate = (
@@ -89,7 +80,6 @@ class FavoritePhotoListViewset(viewsets.ModelViewSet):
             .order_by("-exif_timestamp")
         )
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(FavoritePhotoListViewset, self).retrieve(*args, **kwargs)
 
@@ -111,11 +101,9 @@ class HiddenPhotoListViewset(viewsets.ModelViewSet):
             .order_by("-exif_timestamp")
         )
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(HiddenPhotoListViewset, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, request):
         queryset = self.get_queryset()
         grouped_photos = get_photos_ordered_by_date(queryset)
@@ -143,11 +131,9 @@ class PublicPhotoListViewset(viewsets.ModelViewSet):
             .order_by("-exif_timestamp")
         )
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(PublicPhotoListViewset, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, request):
         queryset = self.get_queryset()
         grouped_photos = get_photos_ordered_by_date(queryset)
@@ -155,7 +141,6 @@ class PublicPhotoListViewset(viewsets.ModelViewSet):
         return Response({"results": serializer.data})
 
 
-@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class NoTimestampPhotoHashListViewSet(viewsets.ModelViewSet):
     serializer_class = PigPhotoSerilizer
     pagination_class = HugeResultsSetPagination
@@ -167,11 +152,9 @@ class NoTimestampPhotoHashListViewSet(viewsets.ModelViewSet):
             Q(exif_timestamp=None) & Q(owner=self.request.user)
         ).order_by("image_paths")
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(NoTimestampPhotoHashListViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(NoTimestampPhotoHashListViewSet, self).list(*args, **kwargs)
 
@@ -416,11 +399,9 @@ class PhotoHashListViewSet(viewsets.ModelViewSet):
             "-exif_timestamp"
         )
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(PhotoHashListViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(PhotoHashListViewSet, self).list(*args, **kwargs)
 
@@ -442,11 +423,9 @@ class PhotoSimpleListViewSet(viewsets.ModelViewSet):
             "-exif_timestamp"
         )
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(PhotoSimpleListViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(PhotoSimpleListViewSet, self).list(*args, **kwargs)
 
@@ -465,11 +444,9 @@ class PhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
         "image_paths",
     ]
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(PhotoSuperSimpleListViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, request):
         queryset = Photo.visible.only(
             "image_hash", "exif_timestamp", "rating", "public", "hidden"
