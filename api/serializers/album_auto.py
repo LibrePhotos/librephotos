@@ -24,7 +24,7 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
             "photos",
         )
 
-    def get_people(self, obj):
+    def get_people(self, obj) -> PersonSerializer(many=True):
         res = []
         for photo in obj.photos.all():
             faces = photo.faces.all()
@@ -54,13 +54,13 @@ class AlbumAutoListSerializer(serializers.ModelSerializer):
             "favorited",
         )
 
-    def get_photo_count(self, obj):
+    def get_photo_count(self, obj) -> int:
         try:
             return obj.photo_count
         except Exception:
             return obj.photos.count()
 
-    def get_photos(self, obj):
+    def get_photos(self, obj) -> PhotoHashListSerializer:
         try:
             return PhotoHashListSerializer(obj.photos.first()).data
         except Exception:

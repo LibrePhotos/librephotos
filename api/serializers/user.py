@@ -191,18 +191,18 @@ class UserSerializer(serializers.ModelSerializer):
             )
         return instance
 
-    def get_photo_count(self, obj):
+    def get_photo_count(self, obj) -> int:
         return Photo.objects.filter(owner=obj).count()
 
-    def get_public_photo_count(self, obj):
+    def get_public_photo_count(self, obj) -> int:
         return Photo.objects.filter(Q(owner=obj) & Q(public=True)).count()
 
-    def get_public_photo_samples(self, obj):
+    def get_public_photo_samples(self, obj) -> PhotoSuperSimpleSerializer(many=True):
         return PhotoSuperSimpleSerializer(
             Photo.objects.filter(Q(owner=obj) & Q(public=True))[:10], many=True
         ).data
 
-    def get_avatar_url(self, obj):
+    def get_avatar_url(self, obj) -> str:
         try:
             return obj.avatar.url
         except Exception:
@@ -242,7 +242,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
             "scan_directory": {"required": False},
         }
 
-    def get_photo_count(self, obj):
+    def get_photo_count(self, obj) -> int:
         return Photo.objects.filter(owner=obj).count()
 
     def update(self, instance: User, validated_data):
