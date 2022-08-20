@@ -1,14 +1,11 @@
 import datetime
 import re
 
-import six
 from django.db.models import Count, F, Prefetch, Q
 from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework_extensions.cache.decorators import cache_response
 
-from api.drf_optimize import OptimizeRelatedModelViewSetMetaclass
 from api.models import (
     AlbumDate,
     AlbumPlace,
@@ -36,18 +33,12 @@ from api.serializers.serializers_serpy import (
     PigIncompleteAlbumDateSerializer,
 )
 from api.util import logger
-from api.views.caching import (
-    CACHE_TTL,
-    CustomListKeyConstructor,
-    CustomObjectKeyConstructor,
-)
 from api.views.pagination import (
     RegularResultsSetPagination,
     StandardResultsSetPagination,
 )
 
 
-@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumPersonListViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumPersonListSerializer
     pagination_class = StandardResultsSetPagination
@@ -56,11 +47,9 @@ class AlbumPersonListViewSet(viewsets.ModelViewSet):
         # import pdb; pdb.set_trace()
         logger.info("Logging better than pdb in prod code")
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(AlbumPersonListViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(AlbumPersonListViewSet, self).list(*args, **kwargs)
 
@@ -143,7 +132,6 @@ class PersonViewSet(viewsets.ModelViewSet):
         return super(PersonViewSet, self).list(*args, **kwargs)
 
 
-@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumThingViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumThingSerializer
     pagination_class = StandardResultsSetPagination
@@ -165,7 +153,6 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
             )
         )
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         queryset = self.get_queryset()
         logger.warning(args[0].__str__())
@@ -174,7 +161,6 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
         serializer.context = {"request": self.request}
         return Response({"results": serializer.data})
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = GroupedThingPhotosSerializer(queryset, many=True)
@@ -182,7 +168,6 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
         return Response({"results": serializer.data})
 
 
-@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumThingListViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumThingListSerializer
     pagination_class = StandardResultsSetPagination
@@ -199,16 +184,13 @@ class AlbumThingListViewSet(viewsets.ModelViewSet):
             .order_by("-title")
         )
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(AlbumThingListViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(AlbumThingListViewSet, self).list(*args, **kwargs)
 
 
-@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumPlaceViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumPlaceSerializer
     pagination_class = StandardResultsSetPagination
@@ -231,7 +213,6 @@ class AlbumPlaceViewSet(viewsets.ModelViewSet):
             )
         )
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         queryset = self.get_queryset()
         logger.warning(args[0].__str__())
@@ -240,12 +221,10 @@ class AlbumPlaceViewSet(viewsets.ModelViewSet):
         serializer.context = {"request": self.request}
         return Response({"results": serializer.data})
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(AlbumPlaceViewSet, self).list(*args, **kwargs)
 
 
-@six.add_metaclass(OptimizeRelatedModelViewSetMetaclass)
 class AlbumPlaceListViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumPlaceListSerializer
     pagination_class = StandardResultsSetPagination
@@ -264,11 +243,9 @@ class AlbumPlaceListViewSet(viewsets.ModelViewSet):
             .order_by("title")
         )
 
-    @cache_response(CACHE_TTL, key_func=CustomObjectKeyConstructor())
     def retrieve(self, *args, **kwargs):
         return super(AlbumPlaceListViewSet, self).retrieve(*args, **kwargs)
 
-    @cache_response(CACHE_TTL, key_func=CustomListKeyConstructor())
     def list(self, *args, **kwargs):
         return super(AlbumPlaceListViewSet, self).list(*args, **kwargs)
 
