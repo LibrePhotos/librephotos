@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import pytz
-from django.core.cache import cache
 from django.db.models import Q
 from django_rq import job
 
@@ -226,7 +225,6 @@ def delete_missing_photos(user, job_id):
             faces = Face.objects.filter(photo=missing_photo)
             faces.delete()
         missing_photos.delete()
-        cache.clear()
 
         lrj.finished = True
         lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)

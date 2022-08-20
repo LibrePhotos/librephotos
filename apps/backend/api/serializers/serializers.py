@@ -1,6 +1,5 @@
 import json
 
-from django.core.cache import cache
 from django.db.models import Q
 from rest_framework import serializers
 
@@ -243,7 +242,6 @@ class PersonSerializer(serializers.ModelSerializer):
             new_person.name = name
             new_person.save()
             logger.info("created person {}" % new_person.id)
-            cache.clear()
             return new_person
 
     def update(self, instance, validated_data):
@@ -251,14 +249,12 @@ class PersonSerializer(serializers.ModelSerializer):
             new_name = validated_data.pop("newPersonName")
             instance.name = new_name
             instance.save()
-            cache.clear()
             return instance
         if "cover_photo" in validated_data.keys():
             image_hash = validated_data.pop("cover_photo")
             photo = Photo.objects.filter(image_hash=image_hash).first()
             instance.cover_photo = photo
             instance.save()
-            cache.clear()
             return instance
         return instance
 
@@ -331,7 +327,6 @@ class FaceSerializer(serializers.ModelSerializer):
         logger.info(
             "updated label for face %d to %s" % (instance.id, instance.person.name)
         )
-        cache.clear()
         instance.save()
         return instance
 

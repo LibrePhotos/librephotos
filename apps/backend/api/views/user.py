@@ -1,4 +1,3 @@
-from django.core.cache import cache
 from rest_framework import permissions, status, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
@@ -93,7 +92,6 @@ class UserViewSet(viewsets.ModelViewSet):
             self.permission_classes = [
                 IsRegistrationAllowed | FirstTimeSetupPermission | IsAdminUser
             ]
-            cache.clear()
         elif self.action == "list":
             self.permission_classes = (AllowAny,)
         elif self.request.method == "GET" or self.request.method == "POST":

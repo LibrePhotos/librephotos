@@ -1,6 +1,5 @@
 import uuid
 
-from django.core.cache import cache
 from django.db.models import Q
 from rest_framework import viewsets
 from rest_framework.response import Response
@@ -165,7 +164,6 @@ class SetFacePersonLabel(APIView):
                 updated.append(FaceListSerializer(face).data)
             else:
                 not_updated.append(FaceListSerializer(face).data)
-        cache.clear()
         return Response(
             {
                 "status": True,
@@ -189,7 +187,7 @@ class DeleteFaces(APIView):
                 face.delete()
             else:
                 not_deleted.append(face.id)
-        cache.clear()
+
         return Response(
             {
                 "status": True,
