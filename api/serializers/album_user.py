@@ -1,24 +1,38 @@
-import serpy
 from rest_framework import serializers
 
 from api.models import AlbumUser, Photo
 from api.serializers.photos import PhotoSuperSimpleSerializer
 from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
 from api.serializers.serializers_serpy import GroupedPhotosSerializer
-from api.serializers.user import SimpleUserSerializer, SimpleUserSerializerSerpy
+from api.serializers.user import SimpleUserSerializer
 from api.util import logger
 
 
-class AlbumUserSerializerSerpy(serpy.Serializer):
-    id = serpy.StrField()
-    title = serpy.StrField()
-    owner = SimpleUserSerializerSerpy()
-    shared_to = SimpleUserSerializerSerpy(many=True, call=True, attr="shared_to.all")
-    date = serpy.MethodField("get_date")
-    location = serpy.MethodField("get_location")
-    grouped_photos = serpy.MethodField("get_photos")
+class AlbumUserSerializer(serializers.ModelSerializer):
+    id = serializers.SerializerMethodField()
+    owner = SimpleUserSerializer(many=False, read_only=True)
+    shared_to = SimpleUserSerializer(many=True, read_only=True)
+    date = serializers.SerializerMethodField()
+    location = serializers.SerializerMethodField()
+    grouped_photos = serializers.SerializerMethodField()
 
-    def get_photos(self, obj):
+    class Meta:
+        model = AlbumUser
+        fields = (
+            "id",
+            "title",
+            "owner",
+            "shared_to",
+            "date",
+            "location",
+            "grouped_photos",
+        )
+
+    # To-Do: Legacy defintion, should be a number instead
+    def get_id(self, obj):
+        return str(obj.id)
+
+    def get_grouped_photos(self, obj):
         grouped_photos = get_photos_ordered_by_date(
             obj.photos.all().order_by("-exif_timestamp")
         )
