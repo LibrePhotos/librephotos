@@ -16,7 +16,7 @@ from api.models import (
     Photo,
     User,
 )
-from api.serializers.album_user import AlbumUserListSerializer, AlbumUserSerializerSerpy
+from api.serializers.album_user import AlbumUserListSerializer, AlbumUserSerializer
 from api.serializers.serializers import (
     AlbumPersonListSerializer,
     AlbumPlaceListSerializer,
@@ -260,7 +260,7 @@ class AlbumPlaceListViewSet(viewsets.ModelViewSet):
 
 
 class AlbumUserViewSet(viewsets.ModelViewSet):
-    serializer_class = AlbumUserSerializerSerpy
+    serializer_class = AlbumUserSerializer
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
