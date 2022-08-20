@@ -16,21 +16,25 @@ from api.models import (
     Photo,
     User,
 )
-from api.serializers.album_user import AlbumUserListSerializer, AlbumUserSerializer
-from api.serializers.serializers import (
-    AlbumPersonListSerializer,
+from api.serializers.album_date import (
+    AlbumDateSerializer,
+    IncompleteAlbumDateSerializer,
+)
+from api.serializers.album_place import (
     AlbumPlaceListSerializer,
     AlbumPlaceSerializer,
+    GroupedPlacePhotosSerializer,
+)
+from api.serializers.album_thing import (
     AlbumThingListSerializer,
     AlbumThingSerializer,
-    PersonSerializer,
-)
-from api.serializers.serializers_serpy import (
-    GroupedPersonPhotosSerializer,
-    GroupedPlacePhotosSerializer,
     GroupedThingPhotosSerializer,
-    PigAlbumDateSerializer,
-    PigIncompleteAlbumDateSerializer,
+)
+from api.serializers.album_user import AlbumUserListSerializer, AlbumUserSerializer
+from api.serializers.person import (
+    AlbumPersonListSerializer,
+    GroupedPersonPhotosSerializer,
+    PersonSerializer,
 )
 from api.util import logger
 from api.views.pagination import (
@@ -86,14 +90,16 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
         queryset = self.get_queryset()
         logger.warning(args[0].__str__())
         albumid = re.findall(r"\'(.+?)\'", args[0].__str__())[0].split("/")[-2]
-        serializer = GroupedPersonPhotosSerializer(queryset.filter(id=albumid).first())
-        serializer.context = {"request": self.request}
+        serializer = GroupedPersonPhotosSerializer(
+            queryset.filter(id=albumid).first(), context={"request": self.request}
+        )
         return Response({"results": serializer.data})
 
     def list(self, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = GroupedPersonPhotosSerializer(queryset, many=True)
-        serializer.context = {"request": self.request}
+        serializer = GroupedPersonPhotosSerializer(
+            queryset, many=True, context={"request": self.request}
+        )
         return Response({"results": serializer.data})
 
 
@@ -163,14 +169,16 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
         queryset = self.get_queryset()
         logger.warning(args[0].__str__())
         albumid = re.findall(r"\'(.+?)\'", args[0].__str__())[0].split("/")[-2]
-        serializer = GroupedThingPhotosSerializer(queryset.filter(id=albumid).first())
-        serializer.context = {"request": self.request}
+        serializer = GroupedThingPhotosSerializer(
+            queryset.filter(id=albumid).first(), context={"request": self.request}
+        )
         return Response({"results": serializer.data})
 
     def list(self, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = GroupedThingPhotosSerializer(queryset, many=True)
-        serializer.context = {"request": self.request}
+        serializer = GroupedThingPhotosSerializer(
+            queryset, many=True, context={"request": self.request}
+        )
         return Response({"results": serializer.data})
 
 
@@ -226,8 +234,9 @@ class AlbumPlaceViewSet(viewsets.ModelViewSet):
         queryset = self.get_queryset()
         logger.warning(args[0].__str__())
         albumid = re.findall(r"\'(.+?)\'", args[0].__str__())[0].split("/")[-2]
-        serializer = GroupedPlacePhotosSerializer(queryset.filter(id=albumid).first())
-        serializer.context = {"request": self.request}
+        serializer = GroupedPlacePhotosSerializer(
+            queryset.filter(id=albumid).first(), context={"request": self.request}
+        )
         return Response({"results": serializer.data})
 
     def list(self, *args, **kwargs):
@@ -306,7 +315,7 @@ class AlbumUserListViewSet(viewsets.ModelViewSet):
 
 
 class AlbumDateViewSet(viewsets.ModelViewSet):
-    serializer_class = PigAlbumDateSerializer
+    serializer_class = AlbumDateSerializer
     pagination_class = RegularResultsSetPagination
 
     def get_queryset(self):
@@ -402,8 +411,9 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
     def retrieve(self, *args, **kwargs):
         queryset = self.get_queryset()
         albumid = re.findall(r"\'(.+?)\'", args[0].__str__())[0].split("/")[-2]
-        serializer = PigAlbumDateSerializer(queryset.filter(id=albumid).first())
-        serializer.context = {"request": self.request}
+        serializer = AlbumDateSerializer(
+            queryset.filter(id=albumid).first(), context={"request": self.request}
+        )
         return Response({"results": serializer.data})
 
     def list(self, *args, **kwargs):
@@ -411,7 +421,7 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
 
 
 class AlbumDateListViewSet(viewsets.ModelViewSet):
-    serializer_class = PigIncompleteAlbumDateSerializer
+    serializer_class = IncompleteAlbumDateSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = [

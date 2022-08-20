@@ -1,4 +1,3 @@
-import datetime
 import io
 import os
 import subprocess
@@ -7,12 +6,11 @@ import zipfile
 
 import magic
 from constance import config as site_config
-from django.db.models import Count, Prefetch, Q
 from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
 from django.utils.decorators import method_decorator
 from django.utils.encoding import iri_to_uri
 from django.views.decorators.csrf import ensure_csrf_cookie
-from rest_framework import filters, viewsets
+from rest_framework import viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView, exception_handler
@@ -23,9 +21,8 @@ import ownphotos.settings
 from api.api_util import get_search_term_examples
 from api.autoalbum import delete_missing_photos
 from api.directory_watcher import scan_photos
-from api.models import AlbumDate, AlbumUser, Photo, User
+from api.models import AlbumUser, Photo, User
 from api.serializers.album_user import AlbumUserEditSerializer, AlbumUserListSerializer
-from api.serializers.serializers_serpy import PigAlbumDateSerializer
 from api.util import logger
 from api.views.pagination import StandardResultsSetPagination
 
@@ -47,48 +44,6 @@ def custom_exception_handler(exc, context):
         response.data = customized_response
 
     return response
-
-
-class AlbumDateListWithPhotoHashViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = PigAlbumDateSerializer
-    pagination_class = StandardResultsSetPagination
-    filter_backends = (filters.SearchFilter,)
-    ordering_fields = ("photos__exif_timestamp",)
-    search_fields = [
-        "photos__search_captions",
-        "photos__search_location",
-        "photos__faces__person__name",
-    ]
-
-    def get_queryset(self):
-        qs = (
-            AlbumDate.objects.filter(
-                Q(owner=self.request.user) & Q(photos__hidden=False)
-            )
-            .exclude(date=None)
-            .annotate(photo_count=Count("photos"))
-            .filter(Q(photo_count__gt=0))
-            .order_by("-date")
-            .prefetch_related(
-                Prefetch(
-                    "photos",
-                    queryset=Photo.visible.filter(Q(owner=self.request.user))
-                    .order_by("-exif_timestamp")
-                    .only("image_hash", "public", "exif_timestamp", "rating", "hidden"),
-                )
-            )
-        )
-        return qs
-
-    def retrieve(self, *args, **kwargs):
-        return super(AlbumDateListWithPhotoHashViewSet, self).retrieve(*args, **kwargs)
-
-    def list(self, *args, **kwargs):
-        start = datetime.datetime.now()
-        res = super(AlbumDateListWithPhotoHashViewSet, self).list(*args, **kwargs)
-        elapsed = (datetime.datetime.now() - start).total_seconds()
-        logger.info("querying & serializing took %.2f seconds" % elapsed)
-        return res
 
 
 class AlbumUserEditViewSet(viewsets.ModelViewSet):

@@ -19,7 +19,7 @@ from api.models import (
     Person,
     Photo,
 )
-from api.serializers.serializers import LongRunningJobSerializer
+from api.serializers.job import LongRunningJobSerializer
 from api.util import logger
 
 

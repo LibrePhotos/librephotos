@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 
 from api.autoalbum import generate_event_albums, regenerate_event_titles
 from api.models import AlbumAuto, Person, Photo
-from api.serializers.serializers import AlbumAutoListSerializer, AlbumAutoSerializer
+from api.serializers.album_auto import AlbumAutoListSerializer, AlbumAutoSerializer
 from api.util import logger
 from api.views.pagination import StandardResultsSetPagination
 

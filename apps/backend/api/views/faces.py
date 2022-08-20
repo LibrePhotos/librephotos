@@ -9,7 +9,7 @@ from api.directory_watcher import scan_faces
 from api.face_classify import cluster_all_faces
 from api.models import Face
 from api.models.person import Person, get_or_create_person
-from api.serializers.serializers import FaceListSerializer, FaceSerializer
+from api.serializers.face import FaceListSerializer, FaceSerializer
 from api.util import logger
 from api.views.pagination import HugeResultsSetPagination, StandardResultsSetPagination
 

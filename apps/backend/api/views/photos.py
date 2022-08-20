@@ -6,19 +6,15 @@ from rest_framework.views import APIView
 
 from api.models import Photo, User
 from api.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
-from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
-from api.serializers.serializers import (
+from api.serializers.photos import (
+    GroupedPhotosSerializer,
     PhotoEditSerializer,
     PhotoHashListSerializer,
     PhotoSerializer,
-    PhotoSimpleSerializer,
-    PhotoSuperSimpleSerializer,
+    PigPhotoSerilizer,
 )
-from api.serializers.serializers_serpy import GroupedPhotosSerializer
-from api.serializers.serializers_serpy import (
-    PhotoSuperSimpleSerializer as PhotoSuperSimpleSerializerSerpy,
-)
-from api.serializers.serializers_serpy import PigPhotoSerilizer
+from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
+from api.serializers.simple import PhotoSimpleSerializer, PhotoSuperSimpleSerializer
 from api.util import logger
 from api.views.pagination import (
     HugeResultsSetPagination,
@@ -436,7 +432,7 @@ class PhotoSimpleListViewSet(viewsets.ModelViewSet):
 class PhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
 
     queryset = Photo.visible.order_by("-exif_timestamp")
-    serializer_class = PhotoSuperSimpleSerializerSerpy
+    serializer_class = PhotoSuperSimpleSerializer
     pagination_class = HugeResultsSetPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = [

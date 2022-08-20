@@ -1,6 +1,5 @@
 import os
 
-import serpy
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework import serializers
@@ -8,26 +7,8 @@ from rest_framework.exceptions import ValidationError
 
 from api.batch_jobs import create_batch_job
 from api.models import LongRunningJob, Photo, User
-from api.serializers.photos import PhotoSuperSimpleSerializer
+from api.serializers.simple import PhotoSuperSimpleSerializer
 from api.util import logger
-
-
-class SimpleUserSerializerSerpy(serpy.Serializer):
-    id = serpy.IntField()
-    username = serpy.StrField()
-    first_name = serpy.StrField()
-    last_name = serpy.StrField()
-
-
-class SimpleUserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = (
-            "id",
-            "username",
-            "first_name",
-            "last_name",
-        )
 
 
 class UserSerializer(serializers.ModelSerializer):

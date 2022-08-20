@@ -1,10 +1,9 @@
 from rest_framework import serializers
 
 from api.models import AlbumUser, Photo
-from api.serializers.photos import PhotoSuperSimpleSerializer
+from api.serializers.photos import GroupedPhotosSerializer
 from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
-from api.serializers.serializers_serpy import GroupedPhotosSerializer
-from api.serializers.user import SimpleUserSerializer
+from api.serializers.simple import PhotoSuperSimpleSerializer, SimpleUserSerializer
 from api.util import logger
 
 

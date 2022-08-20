@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.models import LongRunningJob, User
-from api.serializers.serializers import LongRunningJobSerializer
+from api.serializers.job import LongRunningJobSerializer
 from api.util import logger
 from api.views.pagination import TinyResultsSetPagination
 
