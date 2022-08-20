@@ -40,15 +40,19 @@ class RecentlyAddedPhotoListViewSet(viewsets.ModelViewSet):
             .first()
             .added_on
         )
-        queryset = Photo.visible.filter(
-            Q(owner=self.request.user)
-            & Q(aspect_ratio__isnull=False)
-            & Q(
-                added_on__year=latestDate.year,
-                added_on__month=latestDate.month,
-                added_on__day=latestDate.day,
+        queryset = (
+            Photo.visible.filter(
+                Q(owner=self.request.user)
+                & Q(aspect_ratio__isnull=False)
+                & Q(
+                    added_on__year=latestDate.year,
+                    added_on__month=latestDate.month,
+                    added_on__day=latestDate.day,
+                )
             )
-        ).order_by("-added_on")
+            .prefetch_related("owner")
+            .order_by("-added_on")
+        )
         return queryset
 
     def list(self, *args, **kwargs):
