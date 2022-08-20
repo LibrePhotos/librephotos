@@ -8,7 +8,6 @@ from io import BytesIO
 import numpy as np
 import PIL
 from django.contrib.postgres.fields import ArrayField
-from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.db import models
 from django.db.models import Q
@@ -390,7 +389,7 @@ class Photo(models.Model):
                 date=None, owner=self.owner
             )
             album_date.photos.add(self)
-        cache.clear()
+
         if commit:
             self.save()
         album_date.save()
@@ -480,7 +479,6 @@ class Photo(models.Model):
             album_date.location = {"places": [city_name]}
         # Safe geolocation_json
         album_date.save()
-        cache.clear()
 
     def _extract_video_length(self, commit=True):
         if not self.video:
@@ -630,7 +628,7 @@ class Photo(models.Model):
                         self.image_hash, len(face_locations)
                     )
                 )
-            cache.clear()
+
         except IntegrityError:
             # When using multiple processes, then we can save at the same time, which leads to this error
             if self.image_paths != []:
@@ -670,7 +668,6 @@ class Photo(models.Model):
                     album_thing.photos.add(self)
                     album_thing.thing_type = "places365_category"
                     album_thing.save()
-        cache.clear()
 
     def _check_image_paths(self):
         exisiting_image_paths = []
@@ -711,5 +708,4 @@ class Photo(models.Model):
                 logger.info("Removing photo {}".format(path))
                 os.remove(path)
 
-        cache.clear()
         return self.delete()

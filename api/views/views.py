@@ -7,7 +7,6 @@ import zipfile
 
 import magic
 from constance import config as site_config
-from django.core.cache import cache
 from django.db.models import Count, Prefetch, Q
 from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
 from django.utils.decorators import method_decorator
@@ -206,7 +205,6 @@ class SetUserAlbumShared(APIView):
             )
 
         user_album_to_share.save()
-        cache.clear()
         return Response(AlbumUserListSerializer(user_album_to_share).data)
 
 

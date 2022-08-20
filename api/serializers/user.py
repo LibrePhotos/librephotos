@@ -2,7 +2,6 @@ import os
 
 import serpy
 from django.contrib.auth import get_user_model
-from django.core.cache import cache
 from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -104,7 +103,6 @@ class UserSerializer(serializers.ModelSerializer):
             else:
                 user = User.objects.create_user(**validated_data)
         logger.info("Created user {}".format(user.id))
-        cache.clear()
         return user
 
     def update(self, instance, validated_data):
@@ -210,7 +208,6 @@ class UserSerializer(serializers.ModelSerializer):
             logger.info(
                 "Updated default_timezone for user {}".format(instance.default_timezone)
             )
-        cache.clear()
         return instance
 
     def get_photo_count(self, obj):
@@ -307,5 +304,4 @@ class ManageUserSerializer(serializers.ModelSerializer):
             instance.last_name = last_name
 
         instance.save()
-        cache.clear()
         return instance

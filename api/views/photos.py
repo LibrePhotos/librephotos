@@ -1,4 +1,3 @@
-from django.core.cache import cache
 from django.db.models import Prefetch, Q
 from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
@@ -214,7 +213,7 @@ class SetPhotosDeleted(APIView):
                 updated.append(PhotoSerializer(photo).data)
             else:
                 not_updated.append(PhotoSerializer(photo).data)
-        cache.clear()
+
         if val_hidden:
             logger.info(
                 "{} photos were set hidden. {} photos were already deleted.".format(
@@ -269,7 +268,7 @@ class SetPhotosFavorite(APIView):
                     not_updated.append(PhotoSerializer(photo).data)
             else:
                 not_updated.append(PhotoSerializer(photo).data)
-        cache.clear()
+
         if val_favorite:
             logger.info(
                 "{} photos were added to favorites. {} photos were already in favorites.".format(
@@ -316,7 +315,7 @@ class SetPhotosHidden(APIView):
                 updated.append(PhotoSerializer(photo).data)
             else:
                 not_updated.append(PhotoSerializer(photo).data)
-        cache.clear()
+
         if val_hidden:
             logger.info(
                 "{} photos were set hidden. {} photos were already hidden.".format(
@@ -482,7 +481,7 @@ class SetPhotosShared(APIView):
         """
 
         ThroughModel = Photo.shared_to.through
-        cache.clear()
+
         if shared:
             already_existing = ThroughModel.objects.filter(
                 user_id=target_user_id, photo_id__in=image_hashes
@@ -540,7 +539,7 @@ class SetPhotosPublic(APIView):
                 updated.append(PhotoSerializer(photo).data)
             else:
                 not_updated.append(PhotoSerializer(photo).data)
-        cache.clear()
+
         if val_public:
             logger.info(
                 "{} photos were set public. {} photos were already public.".format(
@@ -577,7 +576,7 @@ class GeneratePhotoCaption(APIView):
                 {"status": False, "message": "you are not the owner of this photo"},
                 status_code=400,
             )
-        cache.clear()
+
         res = photo._generate_captions_im2txt()
         return Response({"status": res})
 
@@ -595,7 +594,7 @@ class DeletePhotos(APIView):
                 photo.manual_delete()
             else:
                 not_deleted.append(photo.image_hash)
-        cache.clear()
+
         return Response(
             {
                 "status": True,

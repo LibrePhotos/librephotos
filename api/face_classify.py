@@ -5,7 +5,6 @@ import numpy as np
 import pytz
 import seaborn as sns
 from bulk_update.helper import bulk_update
-from django.core.cache import cache
 from django.db.models import Q
 from django_rq import job
 from hdbscan import HDBSCAN
@@ -90,7 +89,6 @@ def cluster_all_faces(user, job_id) -> bool:
         lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
         lrj.result = {"progress": {"current": target_count, "target": target_count}}
         lrj.save()
-        cache.clear()
 
         train_job_id = uuid.uuid4()
         train_faces.delay(user, train_job_id)

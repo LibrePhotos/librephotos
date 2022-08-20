@@ -1,5 +1,4 @@
 import serpy
-from django.core.cache import cache
 from rest_framework import serializers
 
 from api.models import AlbumUser, Photo
@@ -83,7 +82,6 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         for pk, obj in photos.items():
             instance.photos.add(obj)
         instance.save()
-        cache.clear()
         logger.info(
             "Created user album {} with {} photos".format(instance.id, len(photos))
         )
@@ -124,7 +122,6 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
 
             logger.info("Added {} photos to user album {}".format(cnt, instance.id))
 
-        cache.clear()
         instance.save()
         return instance
 
