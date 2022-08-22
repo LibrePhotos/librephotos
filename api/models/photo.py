@@ -527,7 +527,7 @@ class Photo(models.Model):
         self.fstop = fstop
         self.focal_length = focal_length
         self.iso = iso
-        if shutter_speed:
+        if shutter_speed and isinstance(shutter_speed, numbers.Number):
             self.shutter_speed = str(Fraction(shutter_speed).limit_denominator(1000))
         self.camera = camera
         self.lens = lens
