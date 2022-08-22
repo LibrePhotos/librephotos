@@ -4,7 +4,7 @@ import React from "react";
 export function FileInfoComponent(props: { description: string; info: string | undefined }) {
   const { description, info } = props;
 
-  if (!info || info.includes("undefined") || info.includes("null")) return null;
+  if (!info || info.includes("undefined") || info.includes("null") || info.includes("0 mm")) return null;
 
   return (
     <Group>
