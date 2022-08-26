@@ -18,6 +18,9 @@ class Command(BaseCommand):
             "-f", "--full-scan", help=("Run full directory scan"), action="store_true"
         )
         parser_group.add_argument(
+            "-s", "--scan-files", help=("Scan a list of files"), nargs='+', default=[]
+        )
+        parser_group.add_argument(
             "-n",
             "--nextcloud",
             help=("Run nextcloud scan instead of directory scan"),
@@ -28,6 +31,23 @@ class Command(BaseCommand):
         # Nextcloud scan
         if options["nextcloud"]:
             self.nextcloud_scan()
+            return
+
+        # Add a single file.
+        if options["scan_files"]:
+            scan_files = options["scan_files"]
+            deleted_user: User = get_deleted_user()
+            for user in User.objects.all():
+                user_files = []
+                if user == deleted_user:
+                    continue
+                for scan_file in scan_files:
+                    if scan_file.startswith(user.scan_directory):
+                        user_files.append(scan_file)
+                if user_files:
+                    scan_photos(
+                        user, options["full_scan"], uuid.uuid4(), scan_files=user_files
+                    )
             return
 
         # Directory scan
