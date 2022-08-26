@@ -141,7 +141,7 @@ router.register(
 )
 router.register(
     r"api/photos/shared/fromme",
-    sharing.SharedFromMePhotoSuperSimpleListViewSet2,
+    sharing.SharedFromMePhotoSuperSimpleListViewSet,
     basename="photo",
 )
 
@@ -163,12 +163,6 @@ router.register(
     r"api/photos/recentlyadded", photos.RecentlyAddedPhotoListViewSet, basename="photo"
 )
 router.register(
-    r"api/photos/simplelist", photos.PhotoSimpleListViewSet, basename="photo"
-)
-router.register(
-    r"api/photos/list", photos.PhotoSuperSimpleListViewSet, basename="photo"
-)
-router.register(
     r"api/photos/favorites", photos.FavoritePhotoListViewset, basename="photo"
 )
 router.register(r"api/photos/hidden", photos.HiddenPhotoListViewset, basename="photo")
@@ -185,12 +179,6 @@ router.register(
 router.register(
     r"api/faces/labeled/list", faces.FaceLabeledListViewSet, basename="face"
 )
-
-router.register(r"api/faces/list", faces.FaceListViewSet, basename="face")
-
-router.register(r"api/faces/inferred", faces.FaceInferredViewSet, basename="face")
-router.register(r"api/faces/labeled", faces.FaceLabeledViewSet, basename="face")
-router.register(r"api/faces", faces.FaceViewSet)
 
 router.register(r"api/exists", upload.UploadPhotoExists, basename="exists")
 

@@ -7,24 +7,6 @@ from api.models import Photo
 from api.serializers.simple import SimpleUserSerializer
 
 
-class SharedPhotoSuperSimpleSerializer(serializers.ModelSerializer):
-    owner = SimpleUserSerializer()
-    shared_to = SimpleUserSerializer(many=True)
-
-    class Meta:
-        model = Photo
-        fields = (
-            "image_hash",
-            "rating",
-            "hidden",
-            "exif_timestamp",
-            "public",
-            "video",
-            "owner",
-            "shared_to",
-        )
-
-
 class PigPhotoSerilizer(serializers.ModelSerializer):
 
     id = serializers.SerializerMethodField()
