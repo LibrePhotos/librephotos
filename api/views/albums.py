@@ -37,22 +37,20 @@ from api.serializers.person import (
     PersonSerializer,
 )
 from api.util import logger
+from api.views.custom_api_view import ListViewSet
 from api.views.pagination import (
     RegularResultsSetPagination,
     StandardResultsSetPagination,
 )
 
 
-class AlbumPersonListViewSet(viewsets.ModelViewSet):
+class AlbumPersonListViewSet(ListViewSet):
     serializer_class = AlbumPersonListSerializer
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
         # import pdb; pdb.set_trace()
         logger.info("Logging better than pdb in prod code")
-
-    def retrieve(self, *args, **kwargs):
-        return super(AlbumPersonListViewSet, self).retrieve(*args, **kwargs)
 
     def list(self, *args, **kwargs):
         return super(AlbumPersonListViewSet, self).list(*args, **kwargs)
@@ -183,7 +181,7 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
 
 
 # To-Do: Make album_cover an actual database field to improve performance
-class AlbumThingListViewSet(viewsets.ModelViewSet):
+class AlbumThingListViewSet(ListViewSet):
     serializer_class = AlbumThingListSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
@@ -200,9 +198,6 @@ class AlbumThingListViewSet(viewsets.ModelViewSet):
             .filter(Q(photo_count__gt=0))
             .order_by("-title")
         )
-
-    def retrieve(self, *args, **kwargs):
-        return super(AlbumThingListViewSet, self).retrieve(*args, **kwargs)
 
     def list(self, *args, **kwargs):
         return super(AlbumThingListViewSet, self).list(*args, **kwargs)
@@ -243,7 +238,7 @@ class AlbumPlaceViewSet(viewsets.ModelViewSet):
         return super(AlbumPlaceViewSet, self).list(*args, **kwargs)
 
 
-class AlbumPlaceListViewSet(viewsets.ModelViewSet):
+class AlbumPlaceListViewSet(ListViewSet):
     serializer_class = AlbumPlaceListSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
@@ -260,9 +255,6 @@ class AlbumPlaceListViewSet(viewsets.ModelViewSet):
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
             .order_by("title")
         )
-
-    def retrieve(self, *args, **kwargs):
-        return super(AlbumPlaceListViewSet, self).retrieve(*args, **kwargs)
 
     def list(self, *args, **kwargs):
         return super(AlbumPlaceListViewSet, self).list(*args, **kwargs)
@@ -289,7 +281,7 @@ class AlbumUserViewSet(viewsets.ModelViewSet):
         return super(AlbumUserViewSet, self).list(*args, **kwargs)
 
 
-class AlbumUserListViewSet(viewsets.ModelViewSet):
+class AlbumUserListViewSet(ListViewSet):
     serializer_class = AlbumUserListSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
@@ -306,9 +298,6 @@ class AlbumUserListViewSet(viewsets.ModelViewSet):
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
             .order_by("title")
         )
-
-    def retrieve(self, *args, **kwargs):
-        return super(AlbumUserListViewSet, self).retrieve(*args, **kwargs)
 
     def list(self, *args, **kwargs):
         return super(AlbumUserListViewSet, self).list(*args, **kwargs)
@@ -420,7 +409,7 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         return super(AlbumDateViewSet, self).list(*args, **kwargs)
 
 
-class AlbumDateListViewSet(viewsets.ModelViewSet):
+class AlbumDateListViewSet(ListViewSet):
     serializer_class = IncompleteAlbumDateSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
@@ -511,9 +500,6 @@ class AlbumDateListViewSet(viewsets.ModelViewSet):
         else:
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
-
-    def retrieve(self, *args, **kwargs):
-        return super(AlbumDateListViewSet, self).retrieve(*args, **kwargs)
 
     def list(self, *args, **kwargs):
         start = datetime.datetime.now()

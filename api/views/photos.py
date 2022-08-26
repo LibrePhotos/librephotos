@@ -1,6 +1,6 @@
 from django.db.models import Prefetch, Q
 from rest_framework import filters, viewsets
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -9,13 +9,12 @@ from api.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
 from api.serializers.photos import (
     GroupedPhotosSerializer,
     PhotoEditSerializer,
-    PhotoHashListSerializer,
     PhotoSerializer,
     PigPhotoSerilizer,
 )
 from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
-from api.serializers.simple import PhotoSimpleSerializer, PhotoSuperSimpleSerializer
 from api.util import logger
+from api.views.custom_api_view import ListViewSet
 from api.views.pagination import (
     HugeResultsSetPagination,
     RegularResultsSetPagination,
@@ -23,7 +22,7 @@ from api.views.pagination import (
 )
 
 
-class RecentlyAddedPhotoListViewSet(viewsets.ModelViewSet):
+class RecentlyAddedPhotoListViewSet(ListViewSet):
     serializer_class = PigPhotoSerilizer
     pagination_class = HugeResultsSetPagination
 
@@ -63,7 +62,7 @@ class RecentlyAddedPhotoListViewSet(viewsets.ModelViewSet):
         return Response({"date": latestDate, "results": serializer.data})
 
 
-class FavoritePhotoListViewset(viewsets.ModelViewSet):
+class FavoritePhotoListViewset(viewsets.ViewSet):
     serializer_class = PigPhotoSerilizer
     pagination_class = HugeResultsSetPagination
 
@@ -79,9 +78,6 @@ class FavoritePhotoListViewset(viewsets.ModelViewSet):
             .order_by("-exif_timestamp")
         )
 
-    def retrieve(self, *args, **kwargs):
-        return super(FavoritePhotoListViewset, self).retrieve(*args, **kwargs)
-
     def list(self, request):
         queryset = self.get_queryset()
         grouped_photos = get_photos_ordered_by_date(queryset)
@@ -89,7 +85,7 @@ class FavoritePhotoListViewset(viewsets.ModelViewSet):
         return Response({"results": serializer.data})
 
 
-class HiddenPhotoListViewset(viewsets.ModelViewSet):
+class HiddenPhotoListViewset(viewsets.ViewSet):
     serializer_class = PigPhotoSerilizer
     pagination_class = HugeResultsSetPagination
 
@@ -100,9 +96,6 @@ class HiddenPhotoListViewset(viewsets.ModelViewSet):
             .order_by("-exif_timestamp")
         )
 
-    def retrieve(self, *args, **kwargs):
-        return super(HiddenPhotoListViewset, self).retrieve(*args, **kwargs)
-
     def list(self, request):
         queryset = self.get_queryset()
         grouped_photos = get_photos_ordered_by_date(queryset)
@@ -110,7 +103,7 @@ class HiddenPhotoListViewset(viewsets.ModelViewSet):
         return Response({"results": serializer.data})
 
 
-class PublicPhotoListViewset(viewsets.ModelViewSet):
+class PublicPhotoListViewset(viewsets.ViewSet):
     serializer_class = PigPhotoSerilizer
     pagination_class = HugeResultsSetPagination
     permission_classes = (AllowAny,)
@@ -130,9 +123,6 @@ class PublicPhotoListViewset(viewsets.ModelViewSet):
             .order_by("-exif_timestamp")
         )
 
-    def retrieve(self, *args, **kwargs):
-        return super(PublicPhotoListViewset, self).retrieve(*args, **kwargs)
-
     def list(self, request):
         queryset = self.get_queryset()
         grouped_photos = get_photos_ordered_by_date(queryset)
@@ -140,7 +130,7 @@ class PublicPhotoListViewset(viewsets.ModelViewSet):
         return Response({"results": serializer.data})
 
 
-class NoTimestampPhotoHashListViewSet(viewsets.ModelViewSet):
+class NoTimestampPhotoHashListViewSet(viewsets.ViewSet):
     serializer_class = PigPhotoSerilizer
     pagination_class = HugeResultsSetPagination
     filter_backends = (filters.SearchFilter,)
@@ -151,14 +141,11 @@ class NoTimestampPhotoHashListViewSet(viewsets.ModelViewSet):
             Q(exif_timestamp=None) & Q(owner=self.request.user)
         ).order_by("image_paths")
 
-    def retrieve(self, *args, **kwargs):
-        return super(NoTimestampPhotoHashListViewSet, self).retrieve(*args, **kwargs)
-
     def list(self, *args, **kwargs):
         return super(NoTimestampPhotoHashListViewSet, self).list(*args, **kwargs)
 
 
-class NoTimestampPhotoViewSet(viewsets.ModelViewSet):
+class NoTimestampPhotoViewSet(viewsets.ViewSet):
     serializer_class = PigPhotoSerilizer
     pagination_class = RegularResultsSetPagination
     filter_backends = (filters.SearchFilter,)
@@ -177,9 +164,6 @@ class NoTimestampPhotoViewSet(viewsets.ModelViewSet):
             )
             .order_by("added_on")
         )
-
-    def retrieve(self, *args, **kwargs):
-        return super(NoTimestampPhotoViewSet, self).retrieve(*args, **kwargs)
 
     def list(self, *args, **kwargs):
         return super(NoTimestampPhotoViewSet, self).list(*args, **kwargs)
@@ -378,80 +362,6 @@ class PhotoEditViewSet(viewsets.ModelViewSet):
 
     def list(self, *args, **kwargs):
         return super(PhotoEditViewSet, self).list(*args, **kwargs)
-
-
-class PhotoHashListViewSet(viewsets.ModelViewSet):
-    serializer_class = PhotoHashListSerializer
-    pagination_class = HugeResultsSetPagination
-    permission_classes = (IsAuthenticated,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = [
-        "search_captions",
-        "search_location",
-        "faces__person__name",
-        "exif_timestamp",
-        "image_paths",
-    ]
-
-    def get_queryset(self):
-        return Photo.visible.filter(Q(owner=self.request.user)).order_by(
-            "-exif_timestamp"
-        )
-
-    def retrieve(self, *args, **kwargs):
-        return super(PhotoHashListViewSet, self).retrieve(*args, **kwargs)
-
-    def list(self, *args, **kwargs):
-        return super(PhotoHashListViewSet, self).list(*args, **kwargs)
-
-
-class PhotoSimpleListViewSet(viewsets.ModelViewSet):
-    serializer_class = PhotoSimpleSerializer
-    pagination_class = HugeResultsSetPagination
-    filter_backends = (filters.SearchFilter,)
-    search_fields = [
-        "search_captions",
-        "search_location",
-        "faces__person__name",
-        "exif_timestamp",
-        "image_paths",
-    ]
-
-    def get_queryset(self):
-        return Photo.visible.filter(Q(owner=self.request.user)).order_by(
-            "-exif_timestamp"
-        )
-
-    def retrieve(self, *args, **kwargs):
-        return super(PhotoSimpleListViewSet, self).retrieve(*args, **kwargs)
-
-    def list(self, *args, **kwargs):
-        return super(PhotoSimpleListViewSet, self).list(*args, **kwargs)
-
-
-class PhotoSuperSimpleListViewSet(viewsets.ModelViewSet):
-
-    queryset = Photo.visible.order_by("-exif_timestamp")
-    serializer_class = PhotoSuperSimpleSerializer
-    pagination_class = HugeResultsSetPagination
-    filter_backends = (filters.SearchFilter,)
-    search_fields = [
-        "search_captions",
-        "search_location",
-        "faces__person__name",
-        "exif_timestamp",
-        "image_paths",
-    ]
-
-    def retrieve(self, *args, **kwargs):
-        return super(PhotoSuperSimpleListViewSet, self).retrieve(*args, **kwargs)
-
-    def list(self, request):
-        queryset = Photo.visible.only(
-            "image_hash", "exif_timestamp", "rating", "public", "hidden"
-        ).order_by("exif_timestamp")
-        serializer = PhotoSuperSimpleSerializer(queryset, many=True)
-        return Response({"results": serializer.data})
 
 
 class SetPhotosShared(APIView):

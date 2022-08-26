@@ -1,15 +1,15 @@
 from django.db.models import Prefetch, Q
-from rest_framework import viewsets
 from rest_framework.response import Response
 
 from api.filters import SemanticSearchFilter
 from api.models import Photo, User
 from api.serializers.photos import GroupedPhotosSerializer, PigPhotoSerilizer
 from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
+from api.views.custom_api_view import ListViewSet
 from api.views.pagination import HugeResultsSetPagination
 
 
-class SearchListViewSet(viewsets.ModelViewSet):
+class SearchListViewSet(ListViewSet):
     serializer_class = GroupedPhotosSerializer
     pagination_class = HugeResultsSetPagination
     filter_backends = (SemanticSearchFilter,)
@@ -27,9 +27,6 @@ class SearchListViewSet(viewsets.ModelViewSet):
         return Photo.visible.filter(Q(owner=self.request.user)).order_by(
             "-exif_timestamp"
         )
-
-    def retrieve(self, *args, **kwargs):
-        return super(SearchListViewSet, self).retrieve(*args, **kwargs)
 
     def list(self, request):
         if request.user.semantic_search_topk == 0:

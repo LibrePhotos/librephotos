@@ -10,6 +10,7 @@ from api.autoalbum import generate_event_albums, regenerate_event_titles
 from api.models import AlbumAuto, Person, Photo
 from api.serializers.album_auto import AlbumAutoListSerializer, AlbumAutoSerializer
 from api.util import logger
+from api.views.custom_api_view import ListViewSet
 from api.views.pagination import StandardResultsSetPagination
 
 
@@ -49,7 +50,7 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
 
 
 # TODO: Prefetch only the cover_image or just add custom covers for auto album
-class AlbumAutoListViewSet(viewsets.ModelViewSet):
+class AlbumAutoListViewSet(ListViewSet):
     serializer_class = AlbumAutoListSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
@@ -69,9 +70,6 @@ class AlbumAutoListViewSet(viewsets.ModelViewSet):
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
             .order_by("-timestamp")
         )
-
-    def retrieve(self, *args, **kwargs):
-        return super(AlbumAutoListViewSet, self).retrieve(*args, **kwargs)
 
     def list(self, *args, **kwargs):
         return super(AlbumAutoListViewSet, self).list(*args, **kwargs)
