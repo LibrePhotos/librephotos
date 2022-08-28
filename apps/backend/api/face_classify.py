@@ -209,10 +209,9 @@ def train_faces(user: User, job_id) -> bool:
     lrj.save()
     unknown_person: Person = get_unknown_person()
     try:
-        data = {
-            "known": {"encoding": [], "id": []},
-            "unknown": {"encoding": [], "id": []},
-        }
+        # Use two array, so that the first one gets thrown out, if it is no longer used.
+        data_known = {"encoding": [], "id": []}
+        data_unknown = {"encoding": [], "id": []}
         # First, sort all faces into known and unknown ones
         face: Face
         for face in Face.objects.filter(
@@ -223,9 +222,12 @@ def train_faces(user: User, job_id) -> bool:
                 face.person_label_is_inferred is not False
                 or person.kind == Person.KIND_CLUSTER
             )
-            data_type = "unknown" if unknown else "known"
-            data[data_type]["encoding"].append(face.get_encoding_array())
-            data[data_type]["id"].append(face.id if unknown else face.person.id)
+            if unknown:
+                data_unknown["encoding"].append(face.get_encoding_array())
+                data_unknown["id"].append(face.id if unknown else face.person.id)
+            else:
+                data_known["encoding"].append(face.get_encoding_array())
+                data_known["id"].append(face.id if unknown else face.person.id)
 
         # Next, pretend all unknown face clusters are known and add their mean encoding. This allows us
         # to predict the likelihood of other unknown faces belonging to those simulated clusters. For
@@ -234,65 +236,78 @@ def train_faces(user: User, job_id) -> bool:
         cluster: Cluster
         for cluster in Cluster.objects.filter(owner=user):
             if cluster.person.kind == Person.KIND_CLUSTER:
-                data["known"]["encoding"].append(cluster.get_mean_encoding_array())
-                data["known"]["id"].append(cluster.person.id)
+                data_known["encoding"].append(cluster.get_mean_encoding_array())
+                data_known["id"].append(cluster.person.id)
 
-        if len(data["known"]["id"]) == 0:
-            logger.debug("No labeled faces found")
+        if len(data_known["id"]) == 0:
+            logger.info("No labeled faces found")
             lrj.finished = True
             lrj.failed = False
             lrj.result = {"progress": {"current": 2, "target": 2}}
             lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
             lrj.save()
         else:
-
             # Fit the classifier based on the "known" faces, including the simulated clusters
-            logger.debug("Before fitting")
+            logger.info("Before fitting")
             clf = MLPClassifier(
                 solver="adam", alpha=1e-5, random_state=1, max_iter=1000
-            ).fit(np.array(data["known"]["encoding"]), np.array(data["known"]["id"]))
-            logger.debug("After fitting")
+            ).fit(np.array(data_known["encoding"]), np.array(data_known["id"]))
+            logger.info("After fitting")
 
             # Collect the probabilities for each unknown face. The probabilities returned
             # are arrays in the same order as the people IDs in the original training set
-            target_count = len(data["unknown"]["id"])
+            target_count = len(data_unknown["id"])
+            logger.info("Number of Cluster: {}".format(target_count))
             if target_count != 0:
-                face_encodings_unknown_np = np.array(data["unknown"]["encoding"])
-                probs = clf.predict_proba(face_encodings_unknown_np)
+                # Hacky way to split arrays into smaller arrays
+                pages_encoding = [
+                    data_unknown["encoding"][i : i + 100]
+                    for i in range(0, len(data_unknown["encoding"]), 100)
+                ]
+                pages_id = [
+                    data_unknown["id"][i : i + 100]
+                    for i in range(0, len(data_unknown["encoding"]), 100)
+                ]
+                for idx, page_data_unknown_encoding in enumerate(pages_encoding):
+                    page_data_unknown_id = pages_id[idx]
+                    face_encodings_unknown_np = np.array(page_data_unknown_encoding)
+                    probs = clf.predict_proba(face_encodings_unknown_np)
 
-                commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
-                face_stack = []
-                for idx, (face_id, probability_array) in enumerate(
-                    zip(data["unknown"]["id"], probs)
-                ):
-                    face = Face.objects.get(id=face_id)
-                    if face.person is unknown_person:
-                        face.person_label_is_inferred = False
-                    else:
-                        face.person_label_is_inferred = True
-                    probability: np.float64 = 0
+                    commit_time = datetime.datetime.now() + datetime.timedelta(
+                        seconds=5
+                    )
+                    face_stack = []
+                    for idx, (face_id, probability_array) in enumerate(
+                        zip(page_data_unknown_id, probs)
+                    ):
+                        face = Face.objects.get(id=face_id)
+                        if face.person is unknown_person:
+                            face.person_label_is_inferred = False
+                        else:
+                            face.person_label_is_inferred = True
+                        probability: np.float64 = 0
 
-                    # Find the probability in the probability array corresponding to the person
-                    # that we currently believe the face is, even a simulated "unknown" person
-                    for i, target in enumerate(clf.classes_):
-                        if target == face.person.id:
-                            probability = probability_array[i]
-                            break
-                    face.person_label_probability = probability
-                    face_stack.append(face)
-                    if commit_time < datetime.datetime.now():
-                        lrj.result = {
-                            "progress": {"current": idx + 1, "target": target_count}
-                        }
-                        lrj.save()
-                        commit_time = datetime.datetime.now() + datetime.timedelta(
-                            seconds=5
-                        )
-                    if len(face_stack) > 200:
-                        bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
-                        face_stack = []
+                        # Find the probability in the probability array corresponding to the person
+                        # that we currently believe the face is, even a simulated "unknown" person
+                        for i, target in enumerate(clf.classes_):
+                            if target == face.person.id:
+                                probability = probability_array[i]
+                                break
+                        face.person_label_probability = probability
+                        face_stack.append(face)
+                        if commit_time < datetime.datetime.now():
+                            lrj.result = {
+                                "progress": {"current": idx + 1, "target": target_count}
+                            }
+                            lrj.save()
+                            commit_time = datetime.datetime.now() + datetime.timedelta(
+                                seconds=5
+                            )
+                        if len(face_stack) > 200:
+                            bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
+                            face_stack = []
 
-                bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
+                    bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
 
             lrj.finished = True
             lrj.failed = False
