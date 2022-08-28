@@ -263,11 +263,7 @@ def rescan_image(user, image_path, job_id):
 
 
 def walk_directory(directory, callback):
-    if os.path.isfile(directory):
-        callback.append(directory)
-        return
     for file in os.scandir(directory):
-        print(f"file is {file}")
         fpath = os.path.join(directory, file)
         if not is_hidden(fpath) and not should_skip(fpath):
             if os.path.isdir(fpath):
@@ -278,7 +274,7 @@ def walk_directory(directory, callback):
 
 def walk_files(scan_files, callback):
     for fpath in scan_files:
-        if os.path.isfile(fpath) and not is_hidden(fpath) and not should_skip(fpath):
+        if os.path.isfile(fpath):
             callback.append(fpath)
 
 
@@ -369,8 +365,6 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
             walk_files(scan_files, photo_list)
         else:
             walk_directory(scan_directory, photo_list)
-        print(f"Photo list is {photo_list}")
-        return
         files_found = len(photo_list)
         last_scan = (
             LongRunningJob.objects.filter(finished=True)

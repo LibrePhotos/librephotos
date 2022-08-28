@@ -46,7 +46,7 @@ class Command(BaseCommand):
                         user_files.append(scan_file)
                 if user_files:
                     scan_photos(
-                        user, options["full_scan"], uuid.uuid4(), scan_files=user_files
+                        user, False, uuid.uuid4(), scan_files=user_files
                     )
             return
 
