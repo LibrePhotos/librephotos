@@ -411,7 +411,7 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
 
 class AlbumDateListViewSet(ListViewSet):
     serializer_class = IncompleteAlbumDateSerializer
-    pagination_class = StandardResultsSetPagination
+    pagination_class = None
     filter_backends = (filters.SearchFilter,)
     search_fields = [
         "photos__search_captions",
@@ -421,16 +421,30 @@ class AlbumDateListViewSet(ListViewSet):
 
     def get_queryset(self):
         if not self.request.user.is_anonymous:
-            qs = AlbumDate.visible.filter(Q(owner=self.request.user))
+            qs = AlbumDate.objects.filter(
+                Q(owner=self.request.user)
+                & Q(photos__owner=self.request.user)
+                & Q(photos__hidden=False)
+                & Q(photos__aspect_ratio__isnull=False)
+                & Q(photos__deleted=False)
+            )
         if self.request.query_params.get("favorite"):
             min_rating = self.request.user.favorite_min_rating
-            qs = AlbumDate.visible.filter(
-                Q(owner=self.request.user) & Q(photos__rating__gte=min_rating)
+            qs = AlbumDate.objects.filter(
+                Q(photos__hidden=False)
+                & Q(photos__aspect_ratio__isnull=False)
+                & Q(photos__deleted=False)
+                & Q(owner=self.request.user)
+                & Q(photos__rating__gte=min_rating)
             )
         if self.request.query_params.get("public"):
-            username = self.request.query_params.get("username")
-            qs = AlbumDate.visible.filter(
-                Q(owner__username=username) & Q(photos__public=True)
+            username = self.objects.query_params.get("username")
+            qs = AlbumDate.objects.filter(
+                Q(photos__hidden=False)
+                & Q(photos__aspect_ratio__isnull=False)
+                & Q(photos__deleted=False)
+                & Q(owner__username=username)
+                & Q(photos__public=True)
             )
 
         if self.request.query_params.get("deleted"):
@@ -444,9 +458,13 @@ class AlbumDateListViewSet(ListViewSet):
             )
             return qs
         if self.request.query_params.get("person"):
+
             return (
-                AlbumDate.visible.filter(
+                AlbumDate.objects.filter(
                     Q(owner=self.request.user)
+                    & Q(photos__hidden=False)
+                    & Q(photos__aspect_ratio__isnull=False)
+                    & Q(photos__deleted=False)
                     & Q(
                         photos__faces__person__id=self.request.query_params.get(
                             "person"
@@ -458,19 +476,6 @@ class AlbumDateListViewSet(ListViewSet):
                         )
                     )
                 )
-                .prefetch_related(
-                    Prefetch(
-                        "photos",
-                        queryset=Photo.visible.filter(
-                            Q(faces__person__id=self.request.query_params.get("person"))
-                            & Q(
-                                faces__person_label_probability__gte=F(
-                                    "faces__photo__owner__confidence_person"
-                                )
-                            )
-                        ),
-                    )
-                )
                 .annotate(
                     photo_count=Count(
                         "photos",
@@ -478,6 +483,9 @@ class AlbumDateListViewSet(ListViewSet):
                             photos__faces__person__id=self.request.query_params.get(
                                 "person"
                             )
+                        )
+                        & Q(
+                            photos__faces__person_label_probability__gte=self.request.user.confidence_person
                         ),
                         distinct=True,
                     )
@@ -487,7 +495,11 @@ class AlbumDateListViewSet(ListViewSet):
             )
 
         qs = (
-            qs.annotate(photo_count=Count("photos", distinct=True))
+            qs.annotate(
+                photo_count=Count(
+                    "photos", filter=Q(photos__owner=self.request.user), distinct=True
+                )
+            )
             .filter(Q(photo_count__gt=0))
             .order_by(F("date").desc(nulls_last=True))
         )
@@ -502,8 +514,5 @@ class AlbumDateListViewSet(ListViewSet):
         return [permission() for permission in permission_classes]
 
     def list(self, *args, **kwargs):
-        start = datetime.datetime.now()
-        res = super(AlbumDateListViewSet, self).list(*args, **kwargs)
-        elapsed = (datetime.datetime.now() - start).total_seconds()
-        logger.info("querying & serializing took %.2f seconds" % elapsed)
-        return res
+        serializer = IncompleteAlbumDateSerializer(self.get_queryset(), many=True)
+        return Response({"results": serializer.data})
