@@ -1,4 +1,5 @@
 from django.db.models import Prefetch, Q
+from drf_spectacular.utils import extend_schema
 from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
@@ -62,7 +63,7 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
         return Response({"date": latestDate, "results": serializer.data})
 
 
-class FavoritePhotoListViewset(viewsets.ViewSet):
+class FavoritePhotoListViewset(ListViewSet):
     serializer_class = PigPhotoSerilizer
     pagination_class = HugeResultsSetPagination
 
@@ -78,6 +79,10 @@ class FavoritePhotoListViewset(viewsets.ViewSet):
             .order_by("-exif_timestamp")
         )
 
+    @extend_schema(
+        deprecated=True,
+        description="Deprecated, because this is not paginated. Use api/albums/date/list?favorites=true and api/albums/date/<id>/?page=<page_number>&favorite=true instead",
+    )
     def list(self, request):
         queryset = self.get_queryset()
         grouped_photos = get_photos_ordered_by_date(queryset)
@@ -85,7 +90,7 @@ class FavoritePhotoListViewset(viewsets.ViewSet):
         return Response({"results": serializer.data})
 
 
-class HiddenPhotoListViewset(viewsets.ViewSet):
+class HiddenPhotoListViewset(ListViewSet):
     serializer_class = PigPhotoSerilizer
     pagination_class = HugeResultsSetPagination
 
@@ -96,6 +101,10 @@ class HiddenPhotoListViewset(viewsets.ViewSet):
             .order_by("-exif_timestamp")
         )
 
+    @extend_schema(
+        deprecated=True,
+        description="Deprecated, because this is not paginated. Use api/albums/date/list?hidden=true and api/albums/date/<id>/?page=<page_number>&hidden=true instead",
+    )
     def list(self, request):
         queryset = self.get_queryset()
         grouped_photos = get_photos_ordered_by_date(queryset)
@@ -103,7 +112,7 @@ class HiddenPhotoListViewset(viewsets.ViewSet):
         return Response({"results": serializer.data})
 
 
-class PublicPhotoListViewset(viewsets.ViewSet):
+class PublicPhotoListViewset(ListViewSet):
     serializer_class = PigPhotoSerilizer
     pagination_class = HugeResultsSetPagination
     permission_classes = (AllowAny,)
@@ -123,6 +132,10 @@ class PublicPhotoListViewset(viewsets.ViewSet):
             .order_by("-exif_timestamp")
         )
 
+    @extend_schema(
+        deprecated=True,
+        description="Deprecated, because this is not paginated. Use api/albums/date/list?public=true&username=<username> and api/albums/date/<id>/?page=<page_number>&public=true&username=<username> instead",
+    )
     def list(self, request):
         queryset = self.get_queryset()
         grouped_photos = get_photos_ordered_by_date(queryset)
@@ -130,7 +143,7 @@ class PublicPhotoListViewset(viewsets.ViewSet):
         return Response({"results": serializer.data})
 
 
-class NoTimestampPhotoHashListViewSet(viewsets.ViewSet):
+class NoTimestampPhotoHashListViewSet(ListViewSet):
     serializer_class = PigPhotoSerilizer
     pagination_class = HugeResultsSetPagination
     filter_backends = (filters.SearchFilter,)
@@ -141,11 +154,15 @@ class NoTimestampPhotoHashListViewSet(viewsets.ViewSet):
             Q(exif_timestamp=None) & Q(owner=self.request.user)
         ).order_by("image_paths")
 
+    @extend_schema(
+        deprecated=True,
+        description="Deprecated, because this is not paginated. Use api/photos/notimestamp?page=<page_number> instead",
+    )
     def list(self, *args, **kwargs):
         return super(NoTimestampPhotoHashListViewSet, self).list(*args, **kwargs)
 
 
-class NoTimestampPhotoViewSet(viewsets.ViewSet):
+class NoTimestampPhotoViewSet(ListViewSet):
     serializer_class = PigPhotoSerilizer
     pagination_class = RegularResultsSetPagination
     filter_backends = (filters.SearchFilter,)
