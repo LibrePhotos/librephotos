@@ -438,7 +438,7 @@ class AlbumDateListViewSet(ListViewSet):
                 & Q(photos__rating__gte=min_rating)
             )
         if self.request.query_params.get("public"):
-            username = self.objects.query_params.get("username")
+            username = self.request.query_params.get("username")
             qs = AlbumDate.objects.filter(
                 Q(photos__hidden=False)
                 & Q(photos__aspect_ratio__isnull=False)
