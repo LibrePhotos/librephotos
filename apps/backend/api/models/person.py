@@ -22,9 +22,6 @@ class Person(models.Model):
     )
     name = models.CharField(blank=False, max_length=128)
     kind = models.CharField(choices=KIND_CHOICES, max_length=10)
-    account = models.OneToOneField(
-        User, on_delete=models.SET(get_deleted_user), default=None, null=True
-    )
     cover_photo = models.ForeignKey(
         Photo, related_name="person", on_delete=models.PROTECT, blank=False, null=True
     )
@@ -79,8 +76,5 @@ def get_unknown_person():
     return unknown_person
 
 
-def get_or_create_person(name, cluster_owner: User = None):
-    if cluster_owner is not None:
-        return Person.objects.get_or_create(name=name, cluster_owner=cluster_owner)[0]
-    else:
-        return Person.objects.get_or_create(name=name)[0]
+def get_or_create_person(name, owner: User = None):
+    return Person.objects.get_or_create(name=name, cluster_owner=owner)[0]
