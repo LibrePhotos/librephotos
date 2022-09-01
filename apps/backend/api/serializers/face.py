@@ -1,6 +1,37 @@
 from rest_framework import serializers
 
-from api.models import Face
+from api.models import Face, Person
+
+
+class PersonFaceListSerializer(serializers.ModelSerializer):
+    face_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Face
+        fields = [
+            "id",
+            "image",
+            "face_url",
+            "photo",
+            "person_label_probability",
+        ]
+
+    def get_face_url(self, obj):
+        return obj.image.url
+
+
+class IncompletePersonFaceListSerializer(serializers.ModelSerializer):
+    face_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Person
+        fields = ["id", "name", "kind", "face_count"]
+
+    def get_face_count(self, obj) -> int:
+        if obj and obj.face_count:
+            return obj.face_count
+        else:
+            return 0
 
 
 class FaceListSerializer(serializers.ModelSerializer):
