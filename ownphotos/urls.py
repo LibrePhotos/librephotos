@@ -173,6 +173,12 @@ router.register(r"api/photos/public", photos.PublicPhotoListViewset, basename="p
 router.register(r"api/photos", photos.PhotoViewSet, basename="photo")
 
 router.register(
+    r"api/faces/incomplete", faces.FaceIncompleteListViewSet, basename="face"
+)
+
+router.register(r"api/faces", faces.FaceListView, basename="face")
+
+router.register(
     r"api/faces/inferred/list", faces.FaceInferredListViewSet, basename="face"
 )
 
