@@ -4,7 +4,7 @@ import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
 
-import { deleteFaces, fetchInferredFacesList, fetchLabeledFacesList } from "../../actions/facesActions";
+import { deleteFaces, fetchFaces, fetchInferredFacesList, fetchLabeledFacesList } from "../../actions/facesActions";
 import { ButtonHeaderGroup } from "../../components/facedashboard/ButtonHeaderGroup";
 import { FaceComponent } from "../../components/facedashboard/FaceComponent";
 import { HeaderComponent } from "../../components/facedashboard/HeaderComponent";
@@ -14,7 +14,8 @@ import { useAppDispatch, useAppSelector } from "../../store/store";
 import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
 
 export const FaceDashboard = () => {
-  const { ref, width, height } = useElementSize();
+  const { ref, width } = useElementSize();
+
   const [lastChecked, setLastChecked] = useState(null);
   const [activeItem, setActiveItem] = useState(0);
   const [entrySquareSize, setEntrySquareSize] = useState(200);
@@ -25,8 +26,8 @@ export const FaceDashboard = () => {
 
   const [inferredCellContents, setInferredCellContents] = useState<any[]>([]);
   const [labeledCellContents, setLabeledCellContents] = useState<any[]>([]);
-  const [inferredGroupedByPersonList, setInferredGroupedByPersonList] = useState<any[]>([]);
-  const [labeledGroupedByPersonList, setLabeledGroupedByPersonList] = useState<any[]>([]);
+
+  const [group, setGroup] = useState<any>({});
 
   const { inferredFacesList, labeledFacesList, fetchingLabeledFacesList, fetchingInferredFacesList } = useAppSelector(
     store => store.faces,
@@ -39,6 +40,34 @@ export const FaceDashboard = () => {
       );
     }
   );
+  useEffect(() => {
+    dispatch(fetchFaces(group.page, group.person, activeItem === 1));
+  }, [group]);
+
+  const getEndpointCell = (labeledCellContents, rowStopIndex, columnStopIndex) => {
+    if (labeledCellContents[rowStopIndex][columnStopIndex]) {
+      return labeledCellContents[rowStopIndex][columnStopIndex];
+    } else {
+      return getEndpointCell(labeledCellContents, rowStopIndex, columnStopIndex - 1);
+    }
+  };
+
+  const onSectionRendered = (params: any) => {
+    const cellContents = activeItem === 1 ? inferredCellContents : labeledCellContents;
+    const startPoint = cellContents[params.rowStartIndex][params.columnStartIndex];
+    const endPoint = getEndpointCell(cellContents, params.rowStopIndex, params.columnStopIndex);
+    //flatten labeledCellContents and find the range of cells that are in the viewport
+    const flatCellContents = _.flatten(cellContents);
+    const startIndex = flatCellContents.findIndex(cell => cell.id === startPoint.id && cell.person === endPoint.person);
+    const endIndex = flatCellContents.findIndex(cell => cell.id === endPoint.id && cell.person === endPoint.person);
+    //get the range of cells that are in the viewport
+    const visibleCells = flatCellContents.slice(startIndex, endIndex + 1);
+    if (visibleCells.filter((i: any) => i.isTemp).length > 0) {
+      const firstTempObject = visibleCells.filter((i: any) => i.isTemp)[0];
+      const page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
+      setGroup({ person: firstTempObject.person, page: page });
+    }
+  };
 
   const changeTab = number => setActiveItem(number);
   const dispatch = useAppDispatch();
@@ -49,26 +78,10 @@ export const FaceDashboard = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    const inferredGroupedByPerson = _.groupBy(inferredFacesList, el => el.person_name);
-    const inferredGroupedByPersonList = _.sortBy(_.toPairsIn(inferredGroupedByPerson), el => el[0]).map(el => ({
-      person_name: el[0],
-      faces: _.reverse(_.sortBy(el[1], el2 => el2.person_label_probability)),
-    }));
-
-    const labeledGroupedByPerson = _.groupBy(labeledFacesList, el => el.person_name);
-    const labeledGroupedByPersonList = _.sortBy(_.toPairsIn(labeledGroupedByPerson), el => el[0]).map(el => ({
-      person_name: el[0],
-      faces: el[1],
-    }));
-    const inferredCellContents = calculateFaceGridCells(
-      inferredGroupedByPersonList,
-      numEntrySquaresPerRow
-    ).cellContents;
-    const labeledCellContents = calculateFaceGridCells(labeledGroupedByPersonList, numEntrySquaresPerRow).cellContents;
+    const inferredCellContents = calculateFaceGridCells(inferredFacesList, numEntrySquaresPerRow).cellContents;
+    const labeledCellContents = calculateFaceGridCells(labeledFacesList, numEntrySquaresPerRow).cellContents;
     setInferredCellContents(inferredCellContents);
     setLabeledCellContents(labeledCellContents);
-    setInferredGroupedByPersonList(inferredGroupedByPersonList);
-    setLabeledGroupedByPersonList(labeledGroupedByPersonList);
   }, [inferredFacesList, labeledFacesList, selectedFaces]);
 
   useEffect(() => {
@@ -77,21 +90,15 @@ export const FaceDashboard = () => {
     setEntrySquareSize(entrySquareSize);
     setNumEntrySquaresPerRow(numEntrySquaresPerRow);
 
-    if (inferredGroupedByPersonList) {
-      const inferredCellContents = calculateFaceGridCells(
-        inferredGroupedByPersonList,
-        numEntrySquaresPerRow
-      ).cellContents;
+    if (inferredFacesList) {
+      const inferredCellContents = calculateFaceGridCells(inferredFacesList, numEntrySquaresPerRow).cellContents;
       setInferredCellContents(inferredCellContents);
     }
-    if (labeledGroupedByPersonList) {
-      const labeledCellContents = calculateFaceGridCells(
-        labeledGroupedByPersonList,
-        numEntrySquaresPerRow
-      ).cellContents;
+    if (labeledFacesList) {
+      const labeledCellContents = calculateFaceGridCells(labeledFacesList, numEntrySquaresPerRow).cellContents;
       setLabeledCellContents(labeledCellContents);
     }
-  }, [inferredGroupedByPersonList, labeledGroupedByPersonList, selectedFaces, width]);
+  }, [selectedFaces, width]);
 
   const handleClick = (e, cell) => {
     if (!lastChecked) {
@@ -172,17 +179,17 @@ export const FaceDashboard = () => {
   };
 
   const cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    let cell;
-    if (activeItem === 0) {
-      cell = labeledCellContents[rowIndex][columnIndex];
-    } else {
-      cell = inferredCellContents[rowIndex][columnIndex];
-    }
+    const cell =
+      activeItem === 0 ? labeledCellContents[rowIndex][columnIndex] : inferredCellContents[rowIndex][columnIndex];
 
     if (cell) {
-      if (!cell.image) {
+      if (cell.name) {
         return <HeaderComponent key={key} style={style} width={width} cell={cell} entrySquareSize={entrySquareSize} />;
       }
+      if (cell.isTemp) {
+        return <div key={key} style={{ ...style, height: entrySquareSize, width: entrySquareSize }} />;
+      }
+
       return (
         <div key={key} style={style}>
           <FaceComponent
@@ -228,6 +235,7 @@ export const FaceDashboard = () => {
               columnWidth={entrySquareSize}
               columnCount={numEntrySquaresPerRow}
               rowHeight={entrySquareSize}
+              onSectionRendered={onSectionRendered}
               height={height}
               width={width}
               rowCount={activeItem === 0 ? labeledCellContents.length : inferredCellContents.length}

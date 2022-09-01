@@ -35,7 +35,6 @@ export default function reducer(
   let newInferredFacesList;
   let newLabeledFacesList;
   switch (action.type) {
-
     // labeled faces
     case "FETCH_LABELED_FACES": {
       return { ...state, fetchingLabeledFaces: true };
@@ -67,7 +66,39 @@ export default function reducer(
         inferredFaces: action.payload,
       };
     }
-
+    // fetch faces
+    case FacesActions.FETCH_FACES: {
+      return { ...state, fetching: true };
+    }
+    case FacesActions.FETCH_FACES_REJECECTED: {
+      return { ...state, fetching: false, error: action.payload };
+    }
+    case FacesActions.FETCH_FACES_FULFILLED: {
+      const inferred = action.payload.inferred;
+      var personListToChange = inferred ? [...state.inferredFacesList] : [...state.labeledFacesList];
+      const personId = action.payload.person;
+      const indexToReplace = personListToChange.findIndex(person => person.id === personId);
+      const personToChange = personListToChange[indexToReplace];
+      const currentFaces = personToChange.faces;
+      const newFaces = action.payload.faces;
+      const updatedFaces = currentFaces
+        .slice(0, (action.payload.page - 1) * 100)
+        .concat(newFaces)
+        .concat(currentFaces.slice(action.payload.page * 100));
+      personToChange.faces = updatedFaces;
+      personListToChange[indexToReplace] = personToChange;
+      if (inferred) {
+        return {
+          ...state,
+          inferredFacesList: personListToChange,
+        };
+      } else {
+        return {
+          ...state,
+          labeledFacesList: personListToChange,
+        };
+      }
+    }
 
     // labeled faces
     case FacesActions.FETCH_LABELED_FACES_LIST: {
@@ -81,11 +112,22 @@ export default function reducer(
       };
     }
     case FacesActions.FETCH_LABELED_FACES_LIST_FULFILLED: {
+      const newFacesList = action.payload.map(person => {
+        person.faces = [];
+        for (let i = 0; i < person.face_count; i++) {
+          person.faces.push({
+            id: i,
+            person: person.id,
+            isTemp: true,
+          });
+        }
+        return person;
+      });
       return {
         ...state,
         fetchingLabeledFacesList: false,
         fetchedLabeledFacesList: true,
-        labeledFacesList: action.payload,
+        labeledFacesList: newFacesList,
       };
     }
 
@@ -101,11 +143,24 @@ export default function reducer(
       };
     }
     case FacesActions.FETCH_INFERRED_FACES_LIST_FULFILLED: {
+      // for each person add faces with empty attributes
+      const newFacesList = action.payload.map(person => {
+        person.faces = [];
+        for (let i = 0; i < person.face_count; i++) {
+          person.faces.push({
+            id: i,
+            person: person.id,
+            isTemp: true,
+          });
+        }
+        return person;
+      });
+
       return {
         ...state,
         fetchingInferredFacesList: false,
         fetchedInferredFacesList: true,
-        inferredFacesList: action.payload,
+        inferredFacesList: newFacesList,
       };
     }
     // mass labeling faces

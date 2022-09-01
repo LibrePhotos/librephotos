@@ -29,7 +29,7 @@ export function HeaderComponent(props: Props) {
           paddingLeft: 5,
         }}
       >
-        <Title>{cell.person_name}</Title>
+        <Title>{cell.name}</Title>
         <Text color="dimmed">
           {t("facesdashboard.numberoffaces", {
             number: cell.faces.length,

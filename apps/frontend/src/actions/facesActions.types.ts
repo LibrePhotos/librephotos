@@ -1,5 +1,24 @@
 import { z } from "zod";
 
+export const IncompletePersonFace = z.object({
+  id: z.number(),
+  name: z.string(),
+  kind: z.string(),
+  face_count: z.number(),
+});
+
+export const IncompletePersonFaceList = z.array(IncompletePersonFace);
+
+export const PersonFace = z.object({
+  id: z.number(),
+  image: z.string().nullable(),
+  face_url: z.string().nullable(),
+  photo: z.string(),
+  person_label_probability: z.number(),
+});
+
+export const PersonFaceList = z.array(PersonFace);
+
 export const Face = z.object({
   id: z.number(),
   image: z.string().nullable(),

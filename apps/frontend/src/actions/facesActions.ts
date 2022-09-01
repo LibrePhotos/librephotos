@@ -5,7 +5,8 @@ import i18n from "../i18n";
 import {
   ClusterFaces,
   DeleteFacesResponse,
-  FaceList,
+  IncompletePersonFaceList,
+  PersonFaceList,
   ScanFacesResponse,
   SetFacesLabelResponse,
   TrainFacesResponse,
@@ -24,6 +25,9 @@ export enum FacesActions {
   CLUSTER_FACES = "cluster-faces",
   CLUSTER_FACES_FULFILLED = "cluster-faces-fulfilled",
   CLUSTER_FACES_REJECTED = "cluster-faces-rejected",
+  FETCH_FACES = "fetch-faces",
+  FETCH_FACES_FULFILLED = "fetch-faces-fulfilled",
+  FETCH_FACES_REJECTED = "fetch-faces-rejected",
   FETCH_INFERRED_FACES_LIST = "fetch-inferred-faces-list",
   FETCH_INFERRED_FACES_LIST_FULFILLED = "fetch-inferred-faces-list-fulfilled",
   FETCH_INFERRED_FACES_LIST_REJECTED = "fetch-inferred-faces-list-rejected",
@@ -147,15 +151,36 @@ export function clusterFaces(dispatch) {
     });
 }
 
+export function fetchFaces(page: number, person: number, inferred: boolean) {
+  return function (dispatch) {
+    const pageParam = page ? `?page=${page}` : "";
+    const personParam = person ? `&person=${person}` : "";
+    const inferredParam = inferred ? `&inferred=${inferred}` : "";
+    dispatch({ type: FacesActions.FETCH_FACES });
+    Server.get(`faces/${pageParam}${personParam}${inferredParam}`)
+      .then(response => {
+        const data = PersonFaceList.parse(response.data.results);
+        dispatch({
+          type: FacesActions.FETCH_FACES_FULFILLED,
+          payload: { page: page, person: person, inferred: inferred, faces: response.data.results },
+        });
+      })
+      .catch(err => {
+        console.error(err);
+        dispatch({ type: FacesActions.FETCH_FACES_REJECTED, payload: err });
+      });
+  };
+}
+
 export function fetchInferredFacesList() {
   return function (dispatch) {
     dispatch({ type: FacesActions.FETCH_INFERRED_FACES_LIST });
-    Server.get("faces/inferred/list/")
+    Server.get("faces/incomplete/?inferred=true")
       .then(response => {
-        const data = FaceList.parse(response.data.results);
+        const data = IncompletePersonFaceList.parse(response.data);
         dispatch({
           type: FacesActions.FETCH_INFERRED_FACES_LIST_FULFILLED,
-          payload: response.data.results,
+          payload: response.data,
         });
       })
       .catch(err => {
@@ -168,12 +193,12 @@ export function fetchInferredFacesList() {
 export function fetchLabeledFacesList() {
   return function (dispatch) {
     dispatch({ type: FacesActions.FETCH_LABELED_FACES_LIST });
-    Server.get("faces/labeled/list/")
+    Server.get("faces/incomplete/?inferred=false")
       .then(response => {
-        const data = FaceList.parse(response.data.results);
+        const data = IncompletePersonFaceList.parse(response.data);
         dispatch({
           type: FacesActions.FETCH_LABELED_FACES_LIST_FULFILLED,
-          payload: response.data.results,
+          payload: response.data,
         });
       })
       .catch(err => {
