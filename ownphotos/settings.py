@@ -33,7 +33,29 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ["SECRET_KEY"]
+BASE_LOGS = os.environ.get("BASE_LOGS", "/logs/")
+SECRET_KEY = ""
+if os.environ.get("SECRET_KEY"):
+    SECRET_KEY = os.environ["SECRET_KEY"]
+    print("use SECRET_KEY from env")
+if not SECRET_KEY and os.path.exists(os.path.join(BASE_LOGS, "secret.key")):
+    # get secret key from log/secret.key
+    with open(os.path.join(BASE_LOGS, "secret.key"), "r") as f:
+        SECRET_KEY = f.read().strip()
+        print("use SECRET_KEY from file")
+if not SECRET_KEY:
+    # generate secret key and save it to log/secret.key
+    from django.core.management.utils import get_random_secret_key
+
+    # save to log/secret.key
+    with open(os.path.join(BASE_LOGS, "secret.key"), "w") as f:
+        f.write(get_random_secret_key())
+        print("generate SECRET_KEY and save to file")
+    # read from log/secret.key
+    with open(os.path.join(BASE_LOGS, "secret.key"), "r") as f:
+        SECRET_KEY = f.read().strip()
+        print("use SECRET_KEY from file")
+
 RQ_API_TOKEN = os.environ["SECRET_KEY"]
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DEBUG", "") == "1"
@@ -266,7 +288,6 @@ USE_TZ = True
 # Allow to define data folder like /var/lib/librephotos
 
 BASE_DATA = os.environ.get("BASE_DATA", "/")
-BASE_LOGS = os.environ.get("BASE_LOGS", "/logs/")
 PHOTOS = os.environ.get("PHOTOS", os.path.join(BASE_DATA, "data"))
 STATIC_URL = "api/static/"
 MEDIA_URL = "/media/"
