@@ -23,7 +23,7 @@ class Person(models.Model):
     name = models.CharField(blank=False, max_length=128)
     kind = models.CharField(choices=KIND_CHOICES, max_length=10)
     cover_photo = models.ForeignKey(
-        Photo, related_name="person", on_delete=models.PROTECT, blank=False, null=True
+        Photo, related_name="person", on_delete=models.SET_NULL, blank=False, null=True
     )
 
     cluster_owner = models.ForeignKey(
@@ -66,9 +66,9 @@ class Person(models.Model):
         return photos
 
 
-def get_unknown_person():
+def get_unknown_person(owner: User = None):
     unknown_person: Person = Person.objects.get_or_create(
-        name=Person.UNKNOWN_PERSON_NAME
+        name=Person.UNKNOWN_PERSON_NAME, cluster_owner=owner
     )[0]
     if unknown_person.kind != Person.KIND_UNKNOWN:
         unknown_person.kind = Person.KIND_UNKNOWN

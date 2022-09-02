@@ -560,7 +560,7 @@ class Photo(models.Model):
                 Q(name="unknown") | Q(name=api.models.person.Person.UNKNOWN_PERSON_NAME)
             )
             if qs_unknown_person.count() == 0:
-                unknown_person = api.models.person.get_unknown_person()
+                unknown_person = api.models.person.get_unknown_person(owner=self.owner)
             else:
                 unknown_person = qs_unknown_person[0]
 

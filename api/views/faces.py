@@ -158,9 +158,7 @@ class FaceLabeledListViewSet(ListViewSet):
 class SetFacePersonLabel(APIView):
     def post(self, request, format=None):
         data = dict(request.data)
-        person = get_or_create_person(
-            name=data["person_name"], cluster_owner=self.request.user
-        )
+        person = get_or_create_person(name=data["person_name"], owner=self.request.user)
         faces = Face.objects.in_bulk(data["face_ids"])
 
         updated = []

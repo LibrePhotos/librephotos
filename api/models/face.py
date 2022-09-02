@@ -17,7 +17,7 @@ class Face(models.Model):
     image_path = models.FilePathField()
 
     person = models.ForeignKey(
-        Person, on_delete=models.SET(get_unknown_person), related_name="faces"
+        Person, on_delete=models.DO_NOTHING, related_name="faces"
     )
 
     cluster = models.ForeignKey(
@@ -42,6 +42,11 @@ class Face(models.Model):
 
     def get_encoding_array(self):
         return np.frombuffer(bytes.fromhex(self.encoding))
+
+
+@receiver(models.signals.post_delete, sender=Person)
+def reset_person(sender, instance, **kwargs):
+    instance.faces.update(person=get_unknown_person(instance.cluster_owner))
 
 
 # From: https://stackoverflow.com/questions/16041232/django-delete-filefield
