@@ -27,7 +27,12 @@ export const FaceDashboard = () => {
   const [inferredCellContents, setInferredCellContents] = useState<any[]>([]);
   const [labeledCellContents, setLabeledCellContents] = useState<any[]>([]);
 
-  const [group, setGroup] = useState<any>({});
+  const [groups, setGroups] = useState<
+    {
+      page: number;
+      person: any;
+    }[]
+  >([]);
 
   const { inferredFacesList, labeledFacesList, fetchingLabeledFacesList, fetchingInferredFacesList } = useAppSelector(
     store => store.faces,
@@ -41,14 +46,19 @@ export const FaceDashboard = () => {
     }
   );
   useEffect(() => {
-    dispatch(fetchFaces(group.page, group.person, activeItem === 1));
-  }, [group]);
+    if (groups) {
+      groups.forEach(element => {
+        dispatch(fetchFaces(element.page, element.person, activeItem === 1));
+      });
+    }
+  }, [groups]);
 
-  const getEndpointCell = (labeledCellContents, rowStopIndex, columnStopIndex) => {
-    if (labeledCellContents[rowStopIndex][columnStopIndex]) {
-      return labeledCellContents[rowStopIndex][columnStopIndex];
+  // ensure that the endpoint is not undefined
+  const getEndpointCell = (cellContents, rowStopIndex, columnStopIndex) => {
+    if (cellContents[rowStopIndex][columnStopIndex]) {
+      return cellContents[rowStopIndex][columnStopIndex];
     } else {
-      return getEndpointCell(labeledCellContents, rowStopIndex, columnStopIndex - 1);
+      return getEndpointCell(cellContents, rowStopIndex, columnStopIndex - 1);
     }
   };
 
@@ -58,14 +68,22 @@ export const FaceDashboard = () => {
     const endPoint = getEndpointCell(cellContents, params.rowStopIndex, params.columnStopIndex);
     //flatten labeledCellContents and find the range of cells that are in the viewport
     const flatCellContents = _.flatten(cellContents);
-    const startIndex = flatCellContents.findIndex(cell => cell.id === startPoint.id && cell.person === endPoint.person);
-    const endIndex = flatCellContents.findIndex(cell => cell.id === endPoint.id && cell.person === endPoint.person);
+    const startIndex = flatCellContents.findIndex(cell => JSON.stringify(cell) === JSON.stringify(startPoint));
+    const endIndex = flatCellContents.findIndex(cell => JSON.stringify(cell) === JSON.stringify(endPoint));
+
     //get the range of cells that are in the viewport
     const visibleCells = flatCellContents.slice(startIndex, endIndex + 1);
-    if (visibleCells.filter((i: any) => i.isTemp).length > 0) {
-      const firstTempObject = visibleCells.filter((i: any) => i.isTemp)[0];
-      const page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
-      setGroup({ person: firstTempObject.person, page: page });
+    const relevantInfos = visibleCells
+      .filter((i: any) => i.isTemp)
+      .map((i: any) => {
+        const page = Math.ceil((parseInt(i.id) + 1) / 100);
+        return { page: page, person: i.person };
+      });
+    const uniqueGroups = _.uniqBy(relevantInfos, (e: any) => {
+      return e.page + " " + e.person;
+    });
+    if (uniqueGroups.length > 0) {
+      setGroups(uniqueGroups);
     }
   };
 
