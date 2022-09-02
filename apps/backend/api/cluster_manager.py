@@ -27,7 +27,7 @@ class ClusterManager:
         face: Face
         new_cluster: Cluster
         unknown_cluster: Cluster = get_unknown_cluster()
-        unknown_person: Person = get_unknown_person()
+        unknown_person: Person = get_unknown_person(owner=user)
         labelStr = str(cluster_id).zfill(padLen)
         for face in faces:
             if (

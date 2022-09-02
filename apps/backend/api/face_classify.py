@@ -207,7 +207,7 @@ def train_faces(user: User, job_id) -> bool:
         )
     lrj.result = {"progress": {"current": 1, "target": 2}}
     lrj.save()
-    unknown_person: Person = get_unknown_person()
+    unknown_person: Person = get_unknown_person(owner=user)
     try:
         # Use two array, so that the first one gets thrown out, if it is no longer used.
         data_known = {"encoding": [], "id": []}
