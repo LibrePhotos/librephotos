@@ -40,9 +40,9 @@ export const SetFacesLabelResponse = z.object({
 // To-Do: Should be siilar to SetFacesLabelResponse
 export const DeleteFacesResponse = z.object({
   status: z.boolean(),
-  results: z.array(z.number()),
-  deleted: z.array(z.number()),
-  not_deleted: z.array(z.number()),
+  results: z.array(z.string()),
+  deleted: z.array(z.string()),
+  not_deleted: z.array(z.string()),
 });
 
 export const TrainFacesResponse = z.object({

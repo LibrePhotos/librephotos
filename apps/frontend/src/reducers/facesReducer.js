@@ -165,14 +165,89 @@ export default function reducer(
     }
     // mass labeling faces
     case FacesActions.SET_FACES_PERSON_LABEL_FULFILLED: {
-      const justLabeledFaceIDs = action.payload.map(face => face.id);
-
-      newInferredFacesList = state.inferredFacesList.filter(face => !justLabeledFaceIDs.includes(face.id));
-      newLabeledFacesList = state.labeledFacesList.filter(face => !justLabeledFaceIDs.includes(face.id));
-
-      action.payload.forEach(justLabeledFace => {
-        newLabeledFacesList.push(justLabeledFace);
+      const facesToRemove = action.payload.results;
+      const facesToAdd = action.payload.results;
+      const newLabeledFacesList = [...state.labeledFacesList];
+      const newInferredFacesList = [...state.inferredFacesList];
+      facesToRemove.forEach(face => {
+        // find the person by finding the face and remove the face from it and update the list
+        const personToChange = newLabeledFacesList.find(
+          person => person.faces.filter(i => i.face_url == face.face_url).length > 0
+        );
+        if (personToChange) {
+          const indexToRemove = personToChange.faces.findIndex(f => f.id === face.id);
+          personToChange.faces.splice(indexToRemove, 1);
+          const indexToReplace = newLabeledFacesList.findIndex(person => person.id === personToChange.id);
+          if (personToChange.faces.length === 0) {
+            newLabeledFacesList.splice(indexToReplace, 1);
+          } else {
+            newLabeledFacesList[indexToReplace] = personToChange;
+          }
+        }
+        // same thing for inferred
+        const personToChangeInferred = newInferredFacesList.find(
+          person => person.faces.filter(i => i.face_url == face.face_url).length > 0
+        );
+        if (personToChangeInferred) {
+          const indexToRemoveInferred = personToChangeInferred.faces.findIndex(f => f.id === face.id);
+          personToChangeInferred.faces.splice(indexToRemoveInferred, 1);
+          const indexToReplaceInferred = newInferredFacesList.findIndex(
+            person => person.id === personToChangeInferred.id
+          );
+          if (personToChangeInferred.faces.length === 0) {
+            newInferredFacesList.splice(indexToReplaceInferred, 1);
+          } else {
+            newInferredFacesList[indexToReplaceInferred] = personToChangeInferred;
+          }
+        }
       });
+
+      facesToAdd.forEach(face => {
+        // find the person and add the face to it and update the list
+        const personToChange = newLabeledFacesList.find(person => person.id === face.person);
+        if (personToChange) {
+          personToChange.faces.push(face);
+          const indexToReplace = newLabeledFacesList.findIndex(person => person.id === face.person);
+          newLabeledFacesList[indexToReplace] = personToChange;
+        } else {
+          // add new person and new face
+          const newPerson = {
+            id: face.person,
+            name: face.person_name,
+            faces: [
+              {
+                id: face.id,
+                face_url: face.face_url,
+                image: face.image,
+                person_label_probability: 1,
+                photo: face.photo,
+              },
+            ],
+          };
+          newLabeledFacesList.push(newPerson);
+        }
+      });
+
+      // sort both lists by name
+      newLabeledFacesList.sort((a, b) => {
+        if (a.name < b.name) {
+          return -1;
+        }
+        if (a.name > b.name) {
+          return 1;
+        }
+        return 0;
+      });
+      newInferredFacesList.sort((a, b) => {
+        if (a.name < b.name) {
+          return -1;
+        }
+        if (a.name > b.name) {
+          return 1;
+        }
+        return 0;
+      });
+
       return {
         ...state,
         inferredFacesList: newInferredFacesList,
@@ -182,10 +257,43 @@ export default function reducer(
 
     // mass labeling faces
     case FacesActions.DELETE_FACES_FULFILLED: {
-      const justDeletedFaces = action.payload;
-      newInferredFacesList = state.inferredFacesList.filter(face => !justDeletedFaces.includes(face.id));
-      newLabeledFacesList = state.labeledFacesList.filter(face => !justDeletedFaces.includes(face.id));
-
+      const facesToRemove = action.payload;
+      console.log(facesToRemove);
+      const newLabeledFacesList = [...state.labeledFacesList];
+      const newInferredFacesList = [...state.inferredFacesList];
+      facesToRemove.forEach(face => {
+        // find the person by finding the face and remove the face from it and update the list
+        const personToChange = newLabeledFacesList.find(
+          person => person.faces.filter(i => i.face_url == face).length > 0
+        );
+        console.log(personToChange);
+        if (personToChange) {
+          const indexToRemove = personToChange.faces.findIndex(f => f.face_url === face);
+          personToChange.faces.splice(indexToRemove, 1);
+          const indexToReplace = newLabeledFacesList.findIndex(person => person.id === personToChange.id);
+          if (personToChange.faces.length === 0) {
+            newLabeledFacesList.splice(indexToReplace, 1);
+          } else {
+            newLabeledFacesList[indexToReplace] = personToChange;
+          }
+        }
+        // same thing for inferred
+        const personToChangeInferred = newInferredFacesList.find(
+          person => person.faces.filter(i => i.face_url == face).length > 0
+        );
+        if (personToChangeInferred) {
+          const indexToRemoveInferred = personToChangeInferred.faces.findIndex(f => f.face_url === face);
+          personToChangeInferred.faces.splice(indexToRemoveInferred, 1);
+          const indexToReplaceInferred = newInferredFacesList.findIndex(
+            person => person.id === personToChangeInferred.id
+          );
+          if (personToChangeInferred.faces.length === 0) {
+            newInferredFacesList.splice(indexToReplaceInferred, 1);
+          } else {
+            newInferredFacesList[indexToReplaceInferred] = personToChangeInferred;
+          }
+        }
+      });
       return {
         ...state,
         inferredFacesList: newInferredFacesList,

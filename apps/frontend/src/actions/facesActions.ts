@@ -44,7 +44,7 @@ export function setFacesPersonLabel(faceIDs, personName) {
         const data = SetFacesLabelResponse.parse(response.data);
         dispatch({
           type: FacesActions.SET_FACES_PERSON_LABEL_FULFILLED,
-          payload: response.data.results,
+          payload: response.data,
         });
         showNotification({
           message: i18n.t<string>("toasts.addfacestoperson", {
