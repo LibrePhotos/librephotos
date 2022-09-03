@@ -191,10 +191,10 @@ class DeleteFaces(APIView):
         not_deleted = []
         for face in faces.values():
             if face.photo.owner == request.user:
-                deleted.append(face.id)
+                deleted.append(face.image.url)
                 face.delete()
             else:
-                not_deleted.append(face.id)
+                not_deleted.append(face.image.url)
 
         return Response(
             {
