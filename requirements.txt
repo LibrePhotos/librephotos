@@ -1,4 +1,5 @@
 Django==3.1.14
+django-cachalot==2.5.2
 django-constance==2.7.0
 django-cors-headers==3.5.0
 django-chunked-upload==2.0.0

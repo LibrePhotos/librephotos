@@ -87,9 +87,13 @@ INSTALLED_APPS = [
     "chunked_upload",
     "django_extensions",
     "django_rq",
+    "cachalot",
     "constance",
     "constance.backends.database",
 ]
+
+if DEBUG:
+    CACHEALOT_ENABLED = False
 
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
 CONSTANCE_DATABASE_CACHE_BACKEND = "default"
