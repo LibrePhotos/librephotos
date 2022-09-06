@@ -64,8 +64,8 @@ export const FaceDashboard = () => {
 
   const onSectionRendered = (params: any) => {
     const cellContents = activeItem === 1 ? inferredCellContents : labeledCellContents;
-    const startPoint = cellContents[params.rowStartIndex][params.columnStartIndex];
-    const endPoint = getEndpointCell(cellContents, params.rowStopIndex, params.columnStopIndex);
+    const startPoint = cellContents[params.rowOverscanStartIndex][params.columnOverscanStartIndex];
+    const endPoint = getEndpointCell(cellContents, params.rowOverscanStopIndex, params.columnOverscanStopIndex);
     //flatten labeledCellContents and find the range of cells that are in the viewport
     const flatCellContents = _.flatten(cellContents);
     const startIndex = flatCellContents.findIndex(cell => JSON.stringify(cell) === JSON.stringify(startPoint));
