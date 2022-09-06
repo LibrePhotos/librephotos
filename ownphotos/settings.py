@@ -92,9 +92,6 @@ INSTALLED_APPS = [
     "constance.backends.database",
 ]
 
-if DEBUG:
-    CACHEALOT_ENABLED = False
-
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
 CONSTANCE_DATABASE_CACHE_BACKEND = "default"
 
@@ -176,6 +173,7 @@ MIDDLEWARE = [
 ]
 
 if DEBUG:
+    CACHEALOT_ENABLED = False
     MIDDLEWARE += ["silk.middleware.SilkyMiddleware"]
     INSTALLED_APPS += ["silk"]
     INSTALLED_APPS += ["drf_spectacular"]
