@@ -65,7 +65,7 @@ class FaceListView(ListViewSet):
                 conditional_filter,
             )
             .prefetch_related("photo")
-            .order_by("id")
+            .order_by("-person_label_probability", "id")
         )
 
     @extend_schema(
