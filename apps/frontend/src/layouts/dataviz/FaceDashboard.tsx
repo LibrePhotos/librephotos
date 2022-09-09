@@ -138,7 +138,7 @@ export const FaceDashboard = () => {
 
       const facesToSelect = allFacesInCells
         .slice(Math.min(start, end), Math.max(start, end) + 1)
-        .filter(i => i && i.id);
+        .filter(i => i && i.image);
       onFacesSelect(facesToSelect.map(i => ({ face_id: i.id, face_url: i.face_url })));
       setLastChecked(cell);
       return;
