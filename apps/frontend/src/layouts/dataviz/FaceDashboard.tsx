@@ -118,6 +118,10 @@ export const FaceDashboard = () => {
     }
   }, [selectedFaces, width]);
 
+  useEffect(() => {
+    setSelectMode(selectedFaces.length > 0);
+  }, [selectedFaces]);
+
   const handleClick = (e, cell) => {
     if (!lastChecked) {
       setLastChecked(cell);
@@ -160,25 +164,22 @@ export const FaceDashboard = () => {
     const mergedAndFilteredAndLastSelected =
       duplicates.length !== faces.length ? [lastSelectedFace, ...mergedAndFiltered] : mergedAndFiltered;
     setSelectedFaces(mergedAndFilteredAndLastSelected);
-    setSelectMode(true);
   };
 
   const onFaceSelect = face => {
     var tempSelectedFaces = selectedFaces;
-    if (tempSelectedFaces.map(face => face.face_id).includes(face.face_id)) {
-      tempSelectedFaces = tempSelectedFaces.filter(item => item.face_id !== face.face_id);
+    if (tempSelectedFaces.map(face => face.face_url).includes(face.face_url)) {
+      tempSelectedFaces = tempSelectedFaces.filter(item => item.face_url !== face.face_url);
     } else {
       tempSelectedFaces.push(face);
     }
-    setSelectedFaces(tempSelectedFaces);
-    setSelectMode(tempSelectedFaces.length > 0);
+    setSelectedFaces([...tempSelectedFaces]);
   };
 
   const changeSelectMode = () => {
     if (selectMode) {
       setSelectedFaces([]);
     }
-    setSelectMode(!selectMode);
   };
 
   const deleteSelectedFaces = () => {
@@ -186,7 +187,6 @@ export const FaceDashboard = () => {
       const ids = selectedFaces.map(face => face.face_id);
       dispatch(deleteFaces(ids));
       setSelectedFaces([]);
-      setSelectMode(false);
     }
   };
 
@@ -202,7 +202,17 @@ export const FaceDashboard = () => {
 
     if (cell) {
       if (cell.name) {
-        return <HeaderComponent key={key} style={style} width={width} cell={cell} entrySquareSize={entrySquareSize} />;
+        return (
+          <HeaderComponent
+            key={key}
+            style={style}
+            width={width}
+            cell={cell}
+            entrySquareSize={entrySquareSize}
+            selectedFaces={selectedFaces}
+            setSelectedFaces={setSelectedFaces}
+          />
+        );
       }
       if (cell.isTemp) {
         return <div key={key} style={{ ...style, height: entrySquareSize, width: entrySquareSize }} />;
@@ -266,7 +276,6 @@ export const FaceDashboard = () => {
         onRequestClose={() => {
           setModalPersonEditOpen(false);
           setSelectedFaces([]);
-          setSelectMode(false);
         }}
         selectedFaces={selectedFaces}
       />
