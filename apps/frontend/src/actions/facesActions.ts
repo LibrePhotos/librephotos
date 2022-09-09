@@ -61,6 +61,33 @@ export function setFacesPersonLabel(faceIDs, personName) {
   };
 }
 
+export function notThisPerson(faceIDs) {
+  return function (dispatch) {
+    dispatch({ type: FacesActions.SET_FACES_PERSON_LABEL });
+    Server.post("labelfaces/", {
+      person_name: "Unknown - Other",
+      face_ids: faceIDs,
+    })
+      .then(response => {
+        const data = SetFacesLabelResponse.parse(response.data);
+        dispatch({
+          type: FacesActions.SET_FACES_PERSON_LABEL_FULFILLED,
+          payload: response.data,
+        });
+        showNotification({
+          message: i18n.t<string>("toasts.removefacestoperson", {
+            numberOfFaces: faceIDs.length,
+          }),
+          title: i18n.t<string>("toasts.removefacestopersontitle"),
+          color: "teal",
+        });
+      })
+      .catch(err => {
+        console.error(err);
+      });
+  };
+}
+
 export function deleteFaces(faceIDs) {
   return function (dispatch) {
     dispatch({ type: FacesActions.DELETE_FACES });

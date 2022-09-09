@@ -1,10 +1,9 @@
 import { ActionIcon, Button, Group, Modal, Space, Stack, Switch, Tooltip } from "@mantine/core";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Barbell, Plus, Trash } from "tabler-icons-react";
+import { Barbell, Plus, Trash, UserOff } from "tabler-icons-react";
 
 import { trainFaces } from "../../actions/facesActions";
-import { finalPhotosDeleted } from "../../actions/photosActions";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 type Props = {
@@ -13,6 +12,7 @@ type Props = {
   changeSelectMode: () => void;
   addFaces: () => void;
   deleteFaces: () => void;
+  notThisPerson: () => void;
 };
 
 export function ButtonHeaderGroup(props: Props) {
@@ -43,6 +43,16 @@ export function ButtonHeaderGroup(props: Props) {
               onClick={props.addFaces}
             >
               <Plus></Plus>
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label={t("facesdashboard.notthisperson")}>
+            <ActionIcon
+              variant="light"
+              color="orange"
+              disabled={props.selectedFaces.length === 0}
+              onClick={() => props.notThisPerson()}
+            >
+              <UserOff></UserOff>
             </ActionIcon>
           </Tooltip>
           <Tooltip label={t("facesdashboard.explanationdeleting")}>

@@ -405,7 +405,8 @@
     "selectedfaces": "{{number}} selected",
     "explanationadding": "Add to an existing face ID or create a new face ID",
     "explanationdeleting": "Delete the face and it's thumbnails",
-    "explanationtraining": "Identify similar faces and try to find matches"
+    "explanationtraining": "Identify similar faces and try to find matches",
+    "notthisperson":  "Move the faces back to 'Unknown - Other'"
   },
   "scan": "Scan",
   "socialgraph": "Social Graph",
@@ -510,7 +511,9 @@
     "finaldeletephototitle": "Delete Images",
     "editphoto": "Photo edited",
     "editphototitle": "Edit photo",
-    "uploadsuccess": "Upload successful"
+    "uploadsuccess": "Upload successful",
+    "removefacestoperson": "{{numberOfFaces}} face(s) were moved to 'Unknown - Other'",
+    "removefacestopersontitle": "Remove faces from person"
   },
   "rules": {
     "1": "Local time from DATE_TIME_ORIGINAL exif tag",

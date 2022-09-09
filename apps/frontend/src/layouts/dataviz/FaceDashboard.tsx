@@ -4,7 +4,13 @@ import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
 
-import { deleteFaces, fetchFaces, fetchInferredFacesList, fetchLabeledFacesList } from "../../actions/facesActions";
+import {
+  deleteFaces,
+  fetchFaces,
+  fetchInferredFacesList,
+  fetchLabeledFacesList,
+  notThisPerson,
+} from "../../actions/facesActions";
 import { ButtonHeaderGroup } from "../../components/facedashboard/ButtonHeaderGroup";
 import { FaceComponent } from "../../components/facedashboard/FaceComponent";
 import { HeaderComponent } from "../../components/facedashboard/HeaderComponent";
@@ -196,6 +202,14 @@ export const FaceDashboard = () => {
     }
   };
 
+  const notThisPersonFunc = () => {
+    if (selectedFaces.length > 0) {
+      const ids = selectedFaces.map(face => face.face_id);
+      dispatch(notThisPerson(ids));
+      setSelectedFaces([]);
+    }
+  };
+
   const cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
     const cell =
       activeItem === 0 ? labeledCellContents[rowIndex][columnIndex] : inferredCellContents[rowIndex][columnIndex];
@@ -251,6 +265,7 @@ export const FaceDashboard = () => {
           changeSelectMode={changeSelectMode}
           addFaces={addFaces}
           deleteFaces={deleteSelectedFaces}
+          notThisPerson={notThisPersonFunc}
         />
       </Stack>
       <div ref={ref} style={{ flexGrow: 1 }}>
