@@ -17,6 +17,7 @@ import search from "../reducers/searchReducer";
 import ui from "../reducers/uiReducer";
 import util from "../reducers/utilReducer";
 import { authReducer as auth } from "./auth/authSlice";
+import { faceReducer as face } from "./faces/faceSlice";
 import { errorMiddleware } from "./middleware/errorMiddleware";
 import { userReducer as user } from "./user/userSlice";
 import { worker } from "./worker/workerSlice";
@@ -32,7 +33,7 @@ export const store = configureStore({
   reducer: combineReducers({
     router: routerReducer,
     people,
-    faces,
+    face,
     albums,
     util,
     photos,

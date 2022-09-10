@@ -10,7 +10,7 @@ import {
   ScanFacesResponse,
   SetFacesLabelResponse,
   TrainFacesResponse,
-} from "./facesActions.types";
+} from "../store/faces/facesActions.types";
 
 export enum FacesActions {
   SET_FACES_PERSON_LABEL = "set-faces-person-label",

@@ -11,6 +11,7 @@ import {
   fetchLabeledFacesList,
   notThisPerson,
 } from "../../actions/facesActions";
+import { api, useFetchFacesQuery, useFetchIncompleteFacesQuery } from "../../api_client/api";
 import { ButtonHeaderGroup } from "../../components/facedashboard/ButtonHeaderGroup";
 import { FaceComponent } from "../../components/facedashboard/FaceComponent";
 import { HeaderComponent } from "../../components/facedashboard/HeaderComponent";
@@ -33,6 +34,8 @@ export const FaceDashboard = () => {
   const [inferredCellContents, setInferredCellContents] = useState<any[]>([]);
   const [labeledCellContents, setLabeledCellContents] = useState<any[]>([]);
 
+  useFetchIncompleteFacesQuery({ inferred: false });
+  useFetchIncompleteFacesQuery({ inferred: true });
   const [groups, setGroups] = useState<
     {
       page: number;
@@ -41,7 +44,7 @@ export const FaceDashboard = () => {
   >([]);
 
   const { inferredFacesList, labeledFacesList, fetchingLabeledFacesList, fetchingInferredFacesList } = useAppSelector(
-    store => store.faces,
+    store => store.face,
     (prev, next) => {
       return (
         prev.inferredFacesList === next.inferredFacesList &&
@@ -54,7 +57,13 @@ export const FaceDashboard = () => {
   useEffect(() => {
     if (groups) {
       groups.forEach(element => {
-        dispatch(fetchFaces(element.page, element.person, activeItem === 1));
+        dispatch(
+          api.endpoints.fetchFaces.initiate({
+            person: element.person,
+            page: element.page,
+            inferred: activeItem === 1,
+          })
+        );
       });
     }
   }, [groups]);
@@ -95,11 +104,6 @@ export const FaceDashboard = () => {
 
   const changeTab = number => setActiveItem(number);
   const dispatch = useAppDispatch();
-
-  useEffect(() => {
-    dispatch(fetchInferredFacesList());
-    dispatch(fetchLabeledFacesList());
-  }, [dispatch]);
 
   useEffect(() => {
     const inferredCellContents = calculateFaceGridCells(inferredFacesList, numEntrySquaresPerRow).cellContents;

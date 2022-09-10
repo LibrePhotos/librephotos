@@ -5,14 +5,6 @@ export default function reducer(
     fetching: false,
     fetched: false,
 
-    labeledFaces: [],
-    fetchingLabeledFaces: false,
-    fetchedLabeledFaces: false,
-
-    inferredFaces: [],
-    fetchingInferredFaces: false,
-    fetchedInferredFaces: false,
-
     labeledFacesList: [],
     fetchingLabeledFacesList: false,
     fetchedLabeledFacesList: false,
@@ -32,40 +24,7 @@ export default function reducer(
   },
   action
 ) {
-  let newInferredFacesList;
-  let newLabeledFacesList;
   switch (action.type) {
-    // labeled faces
-    case "FETCH_LABELED_FACES": {
-      return { ...state, fetchingLabeledFaces: true };
-    }
-    case "FETCH_LABELED_FACES_REJECTED": {
-      return { ...state, fetchingLabeledFaces: false, error: action.payload };
-    }
-    case "FETCH_LABELED_FACES_FULFILLED": {
-      return {
-        ...state,
-        fetchingLabeledFaces: false,
-        fetchedLabeledFaces: true,
-        labeledFaces: action.payload,
-      };
-    }
-
-    // inferred faces
-    case "FETCH_INFERRED_FACES": {
-      return { ...state, fetchingInferredFaces: true };
-    }
-    case "FETCH_INFERRED_FACES_REJECTED": {
-      return { ...state, fetchingInferredFaces: false, error: action.payload };
-    }
-    case "FETCH_INFERRED_FACES_FULFILLED": {
-      return {
-        ...state,
-        fetchingInferredFaces: false,
-        fetchedInferredFaces: true,
-        inferredFaces: action.payload,
-      };
-    }
     // fetch faces
     case FacesActions.FETCH_FACES: {
       return { ...state, fetching: true };
