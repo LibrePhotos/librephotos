@@ -8,10 +8,18 @@ import type { IApiDeleteUserPost, IApiLoginPost, IApiLoginResponse, IApiUserSign
 // eslint-disable-next-line import/no-cycle
 import { tokenReceived } from "../store/auth/authSlice";
 import type {
+  IClusterFacesResponse,
+  IDeleteFacesRequest,
+  IDeleteFacesResponse,
   IIncompletePersonFaceListRequest,
   IIncompletePersonFaceListResponse,
+  INotThisPersonRequest,
   IPersonFaceListRequest,
   IPersonFaceListResponse,
+  IScanFacesResponse,
+  ISetFacesLabelRequest,
+  ISetFacesLabelResponse,
+  ITrainFacesResponse,
 } from "../store/faces/facesActions.types";
 import type { RootState } from "../store/store";
 import type { IUploadOptions, IUploadResponse } from "../store/upload/upload.zod";
@@ -36,6 +44,12 @@ export enum Endpoints {
   jobs = "jobs",
   incompleteFaces = "fetchIncompleteFaces",
   fetchFaces = "fetchFaces",
+  clusterFaces = "clusterFaces",
+  rescanFaces = "rescanFaces",
+  trainFaces = "trainFaces",
+  deleteFaces = "deleteFaces",
+  notThisPerson = "notThisPerson",
+  setFacesPersonLabel = "setFacesPersonLabel",
 }
 
 const baseQuery = fetchBaseQuery({
@@ -180,6 +194,35 @@ export const api = createApi({
         url: `faces/?person=${person}&page=${page}&inferred=${inferred}`,
       }),
     }),
+    [Endpoints.clusterFaces]: builder.query<IClusterFacesResponse, void>({
+      query: () => ({
+        url: "/clusterfaces",
+      }),
+    }),
+    [Endpoints.rescanFaces]: builder.query<IScanFacesResponse, void>({
+      query: () => ({
+        url: "/scanfaces",
+      }),
+    }),
+    [Endpoints.trainFaces]: builder.query<ITrainFacesResponse, void>({
+      query: () => ({
+        url: "/trainfaces",
+      }),
+    }),
+    [Endpoints.deleteFaces]: builder.mutation<IDeleteFacesResponse, IDeleteFacesRequest>({
+      query: ({ faceIds }) => ({
+        url: "/deletefaces",
+        method: "POST",
+        body: { face_ids: faceIds },
+      }),
+    }),
+    [Endpoints.setFacesPersonLabel]: builder.mutation<ISetFacesLabelResponse, ISetFacesLabelRequest>({
+      query: ({ faceIds, personName }) => ({
+        url: "/labelfaces",
+        method: "POST",
+        body: { person_name: personName, face_ids: faceIds },
+      }),
+    }),
   }),
 });
 
@@ -192,6 +235,11 @@ export const {
   useFetchUserSelfDetailsQuery,
   useFetchIncompleteFacesQuery,
   useFetchFacesQuery,
+  useSetFacesPersonLabelMutation,
+  useDeleteFacesMutation,
+  useTrainFacesQuery,
+  useRescanFacesQuery,
+  useClusterFacesQuery,
   useLoginMutation,
   useSignUpMutation,
   useWorkerQuery,

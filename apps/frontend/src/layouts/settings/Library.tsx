@@ -16,11 +16,11 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
+import { showNotification } from "@mantine/notifications";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { Book, Edit, ExternalLink, FaceId, QuestionMark, Refresh, RefreshDot, Tag, Trash } from "tabler-icons-react";
 
-import { rescanFaces, trainFaces } from "../../actions/facesActions";
 import { scanAllPhotos, scanNextcloudPhotos, scanPhotos } from "../../actions/photosActions";
 import {
   deleteMissingPhotos,
@@ -36,6 +36,7 @@ import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { ModalNextcloudScanDirectoryEdit } from "../../components/modals/ModalNextcloudScanDirectoryEdit";
 import { CountStats } from "../../components/statistics";
+import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 export const Library = () => {
@@ -327,7 +328,12 @@ export const Library = () => {
             <Divider />
             <Button
               onClick={() => {
-                dispatch(trainFaces());
+                dispatch(api.endpoints.trainFaces.initiate());
+                showNotification({
+                  message: i18n.t<string>("toasts.trainingstarted"),
+                  title: i18n.t<string>("toasts.trainingstartedtitle"),
+                  color: "teal",
+                });
               }}
               color="green"
             >
@@ -380,7 +386,12 @@ export const Library = () => {
             <Button
               color="green"
               onClick={() => {
-                dispatch(rescanFaces());
+                dispatch(api.endpoints.rescanFaces.initiate());
+                showNotification({
+                  message: i18n.t<string>("toasts.rescanfaces"),
+                  title: i18n.t<string>("toasts.rescanfacestitle"),
+                  color: "teal",
+                });
               }}
             >
               <FaceId />

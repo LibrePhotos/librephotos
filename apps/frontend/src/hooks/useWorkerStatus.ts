@@ -3,13 +3,17 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { fetchAlbumDateList } from "../actions/albumsActions";
-import { FacesActions, fetchInferredFacesList, fetchLabeledFacesList } from "../actions/facesActions";
 import { fetchPeople } from "../actions/peopleActions";
-import { useWorkerQuery } from "../api_client/api";
+import { api, useWorkerQuery } from "../api_client/api";
 import { PhotosetType } from "../reducers/photosReducer";
 import { useAppDispatch, useAppSelector } from "../store/store";
 import { selectUserSelfDetails } from "../store/user/userSelectors";
 import type { IJobDetailSchema, IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
+
+export enum WorkerState {
+  SET_WORKER_AVAILABILITY = "set-worker-availability",
+  SET_WORKER_RUNNING_JOB = "set-worker-running-job",
+}
 
 export function useWorkerStatus(): {
   currentData: IWorkerAvailabilityResponse | undefined;
@@ -42,8 +46,8 @@ export function useWorkerStatus(): {
       });
 
       if (workerRunningJob?.job_type_str.toLowerCase() === "train faces") {
-        dispatch(fetchLabeledFacesList());
-        dispatch(fetchInferredFacesList());
+        dispatch(api.endpoints.fetchIncompleteFaces.initiate({ inferred: false }));
+        dispatch(api.endpoints.fetchIncompleteFaces.initiate({ inferred: true }));
         fetchPeople(dispatch);
       }
       if (workerRunningJob?.job_type_str.toLowerCase() === "scan photos") {
@@ -56,13 +60,13 @@ export function useWorkerStatus(): {
     }
 
     if (currentData?.job_detail) {
-      dispatch({ type: FacesActions.SET_WORKER_AVAILABILITY, payload: false });
+      dispatch({ type: WorkerState.SET_WORKER_AVAILABILITY, payload: false });
       dispatch({
-        type: FacesActions.SET_WORKER_RUNNING_JOB,
+        type: WorkerState.SET_WORKER_RUNNING_JOB,
         payload: currentData?.job_detail,
       });
     } else {
-      dispatch({ type: FacesActions.SET_WORKER_AVAILABILITY, payload: true });
+      dispatch({ type: WorkerState.SET_WORKER_AVAILABILITY, payload: true });
     }
   }, [
     currentData,

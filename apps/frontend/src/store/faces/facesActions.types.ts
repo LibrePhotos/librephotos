@@ -73,6 +73,18 @@ export const Face = z.object({
 
 export const FaceList = z.array(Face);
 
+export type INotThisPersonRequest = z.infer<typeof NotThisPersonRequest>;
+export const NotThisPersonRequest = z.object({
+  faceIds: z.array(z.number()),
+});
+
+export type ISetFacesLabelRequest = z.infer<typeof SetFacesLabelRequest>;
+export const SetFacesLabelRequest = z.object({
+  faceIds: z.array(z.number()),
+  personName: z.string(),
+});
+
+export type ISetFacesLabelResponse = z.infer<typeof SetFacesLabelResponse>;
 export const SetFacesLabelResponse = z.object({
   status: z.boolean(),
   results: FaceList,
@@ -80,6 +92,12 @@ export const SetFacesLabelResponse = z.object({
   not_updated: FaceList,
 });
 
+export type IDeleteFacesRequest = z.infer<typeof DeleteFacesRequest>;
+export const DeleteFacesRequest = z.object({
+  faceIds: z.array(z.number()),
+});
+
+export type IDeleteFacesResponse = z.infer<typeof DeleteFacesResponse>;
 // To-Do: Should be siilar to SetFacesLabelResponse
 export const DeleteFacesResponse = z.object({
   status: z.boolean(),
@@ -88,12 +106,14 @@ export const DeleteFacesResponse = z.object({
   not_deleted: z.array(z.string()),
 });
 
+export type ITrainFacesResponse = z.infer<typeof TrainFacesResponse>;
 export const TrainFacesResponse = z.object({
   status: z.boolean(),
   // To-Do: Why is it not a number?!?!
   job_id: z.string().optional(),
 });
 
+export type IScanFacesResponse = z.infer<typeof ScanFacesResponse>;
 export const ScanFacesResponse = z.object({
   status: z.boolean(),
   // To-Do: Why is it not a number?!?!
@@ -117,5 +137,11 @@ export const ClusterFaceDatapoint = z.object({
 });
 
 export const ClusterFaces = z.array(ClusterFaceDatapoint);
+
+export type IClusterFacesResponse = z.infer<typeof ClusterFacesResponse>;
+export const ClusterFacesResponse = z.object({
+  status: z.boolean(),
+  data: ClusterFaces,
+});
 
 export const InferredFaces = FaceList;

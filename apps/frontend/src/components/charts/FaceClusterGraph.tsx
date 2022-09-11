@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 
-import { clusterFaces } from "../../actions/facesActions";
+import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
@@ -22,10 +22,10 @@ export function FaceClusterGraph(props: Props) {
     },
   });
   const dispatch = useAppDispatch();
-  const { facesVis, clustered, clustering } = useAppSelector(state => state.faces);
+  const { facesVis, clustered, clustering } = useAppSelector(state => state.face);
 
   useEffect(() => {
-    clusterFaces(dispatch);
+    dispatch(api.endpoints.clusterFaces.initiate());
   }, [dispatch]); // Only run on first render
 
   const person_names = [...new Set(facesVis.map((el: any) => el.person_name))];

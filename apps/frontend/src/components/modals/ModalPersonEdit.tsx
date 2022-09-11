@@ -1,12 +1,14 @@
 import { Avatar, Button, Divider, Group, Modal, ScrollArea, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
+import { showNotification } from "@mantine/notifications";
 import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { setFacesPersonLabel } from "../../actions/facesActions";
 import { fetchPeople } from "../../actions/peopleActions";
+import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
+import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 function fuzzy_match(str, pattern) {
@@ -92,7 +94,18 @@ export const ModalPersonEdit = (props: Props) => {
           />
           <Button
             onClick={() => {
-              dispatch(setFacesPersonLabel(selectedFaceIDs, newPersonName));
+              //@ts-ignore
+              dispatch(
+                api.endpoints.setFacesPersonLabel.initiate({ faceIds: selectedFaceIDs, personName: newPersonName })
+              );
+              showNotification({
+                message: i18n.t<string>("toasts.addfacestoperson", {
+                  numberOfFaces: selectedFaceIDs.length,
+                  personName: newPersonName,
+                }),
+                title: i18n.t<string>("toasts.addfacestopersontitle"),
+                color: "teal",
+              });
               onRequestClose();
               setNewPersonName("");
             }}
@@ -112,7 +125,17 @@ export const ModalPersonEdit = (props: Props) => {
                   <Title
                     order={4}
                     onClick={() => {
-                      dispatch(setFacesPersonLabel(selectedFaceIDs, item.text));
+                      dispatch(
+                        api.endpoints.setFacesPersonLabel.initiate({ faceIds: selectedFaceIDs, personName: item.text })
+                      );
+                      showNotification({
+                        message: i18n.t<string>("toasts.addfacestoperson", {
+                          numberOfFaces: selectedFaceIDs.length,
+                          personName: item.text,
+                        }),
+                        title: i18n.t<string>("toasts.addfacestopersontitle"),
+                        color: "teal",
+                      });
                       onRequestClose();
                     }}
                   >

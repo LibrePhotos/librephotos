@@ -1,22 +1,17 @@
 import { Stack } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
+import { showNotification } from "@mantine/notifications";
 import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
 
-import {
-  deleteFaces,
-  fetchFaces,
-  fetchInferredFacesList,
-  fetchLabeledFacesList,
-  notThisPerson,
-} from "../../actions/facesActions";
-import { api, useFetchFacesQuery, useFetchIncompleteFacesQuery } from "../../api_client/api";
+import { api, useFetchIncompleteFacesQuery } from "../../api_client/api";
 import { ButtonHeaderGroup } from "../../components/facedashboard/ButtonHeaderGroup";
 import { FaceComponent } from "../../components/facedashboard/FaceComponent";
 import { HeaderComponent } from "../../components/facedashboard/HeaderComponent";
 import { TabComponent } from "../../components/facedashboard/TabComponent";
 import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
+import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
 
@@ -195,7 +190,15 @@ export const FaceDashboard = () => {
   const deleteSelectedFaces = () => {
     if (selectedFaces.length > 0) {
       const ids = selectedFaces.map(face => face.face_id);
-      dispatch(deleteFaces(ids));
+      //@ts-ignore
+      dispatch(api.endpoints.deleteFaces.initiate({ faceIds: ids }));
+      showNotification({
+        message: i18n.t<string>("toasts.deletefaces", {
+          numberOfFaces: ids.length,
+        }),
+        title: i18n.t<string>("toasts.deletefacestitle"),
+        color: "teal",
+      });
       setSelectedFaces([]);
     }
   };
@@ -209,7 +212,15 @@ export const FaceDashboard = () => {
   const notThisPersonFunc = () => {
     if (selectedFaces.length > 0) {
       const ids = selectedFaces.map(face => face.face_id);
-      dispatch(notThisPerson(ids));
+      //@ts-ignore
+      dispatch(api.endpoints.setFacesPersonLabel.initiate({ faceIds: ids, personName: "Unknown - Other" }));
+      showNotification({
+        message: i18n.t<string>("toasts.removefacestoperson", {
+          numberOfFaces: ids.length,
+        }),
+        title: i18n.t<string>("toasts.removefacestopersontitle"),
+        color: "teal",
+      });
       setSelectedFaces([]);
     }
   };
