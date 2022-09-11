@@ -83,7 +83,6 @@ const faceSlice = createSlice({
       })
       .addMatcher(api.endpoints.deleteFaces.matchFulfilled, (state, { meta, payload }) => {
         const facesToRemove = payload.results;
-        console.log(facesToRemove);
         const newLabeledFacesList = state.labeledFacesList;
         const newInferredFacesList = state.inferredFacesList;
         facesToRemove.forEach(face => {
@@ -133,9 +132,7 @@ const faceSlice = createSlice({
         const facesToRemove = payload.results;
         const facesToAdd = payload.results;
         const newLabeledFacesList = state.labeledFacesList;
-        console.log(current(newLabeledFacesList));
         const newInferredFacesList = state.inferredFacesList;
-        console.log(facesToRemove);
         facesToRemove.forEach(face => {
           // find the person by finding the face and remove the face from it and update the list
           const personToChange = newLabeledFacesList.find(
@@ -213,22 +210,22 @@ const faceSlice = createSlice({
         // sort both lists by name
         newLabeledFacesList.sort((a, b) => {
           //@ts-ignore
-          if (a.name < b.name) {
+          if (a.name.toLowerCase() < b.name.toLowerCase()) {
             return -1;
           }
           //@ts-ignore
-          if (a.name > b.name) {
+          if (a.name.toLowerCase() > b.name.toLowerCase()) {
             return 1;
           }
           return 0;
         });
         newInferredFacesList.sort((a, b) => {
           //@ts-ignore
-          if (a.name < b.name) {
+          if (a.name.toLowerCase() < b.name.toLowerCase()) {
             return -1;
           }
           //@ts-ignore
-          if (a.name > b.name) {
+          if (a.name.toLowerCase() > b.name.toLowerCase()) {
             return 1;
           }
           return 0;
