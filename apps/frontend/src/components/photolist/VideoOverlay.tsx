@@ -37,7 +37,7 @@ export function VideoOverlay({ item }: Props) {
   return (
     <div className={classes.container}>
       <PlayerPlay />
-      {item.video_length !== "None" && getDuration(item)}
+      {item.video_length && item.video_length !== "None" && getDuration(item)}
     </div>
   );
 }
