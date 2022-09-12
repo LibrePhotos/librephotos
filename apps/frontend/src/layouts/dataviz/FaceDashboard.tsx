@@ -29,8 +29,9 @@ export const FaceDashboard = () => {
   const [inferredCellContents, setInferredCellContents] = useState<any[]>([]);
   const [labeledCellContents, setLabeledCellContents] = useState<any[]>([]);
 
-  useFetchIncompleteFacesQuery({ inferred: false });
-  useFetchIncompleteFacesQuery({ inferred: true });
+  const fetchingInferredFacesList = useFetchIncompleteFacesQuery({ inferred: false }).isFetching;
+  const fetchingLabeledFacesList = useFetchIncompleteFacesQuery({ inferred: true }).isFetching;
+
   const [groups, setGroups] = useState<
     {
       page: number;
@@ -38,15 +39,10 @@ export const FaceDashboard = () => {
     }[]
   >([]);
 
-  const { inferredFacesList, labeledFacesList, fetchingLabeledFacesList, fetchingInferredFacesList } = useAppSelector(
+  const { inferredFacesList, labeledFacesList } = useAppSelector(
     store => store.face,
     (prev, next) => {
-      return (
-        prev.inferredFacesList === next.inferredFacesList &&
-        prev.labeledFacesList === next.labeledFacesList &&
-        prev.fetchingLabeledFacesList == next.fetchingLabeledFacesList &&
-        prev.fetchingInferredFacesList == next.fetchingInferredFacesList
-      );
+      return prev.inferredFacesList === next.inferredFacesList && prev.labeledFacesList === next.labeledFacesList;
     }
   );
   useEffect(() => {
