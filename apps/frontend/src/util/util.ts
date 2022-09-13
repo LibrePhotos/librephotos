@@ -5,7 +5,7 @@ import type { UserPhotosGroup } from "../actions/photosActions";
 import type { DatePhotosGroup, IncompleteDatePhotosGroup, PigPhoto } from "../actions/photosActions.types";
 import i18n from "../i18n";
 
-export const EMAIL_REGEX = /^\w+[-.]?\w+\+?\w+[-.]?\w+@(\w+-?\w+\.){1,9}[a-z]{2,}$/;
+export const EMAIL_REGEX = /^\w+([-.]?\w+\+?\w+[-.]?\w+)?@(\w+-?\w+\.){1,9}[a-z]{2,}$/;
 
 export const copyToClipboard = (str: string) => {
   if (navigator.clipboard) {
