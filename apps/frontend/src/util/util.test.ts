@@ -20,6 +20,7 @@ describe("email regex test", () => {
       "1234567890@domain.com",
       "_______@example.com",
       "valid.name@aa.bb.cc.dd.ee.ff.gg.hh.jj.com",
+      "a@bcd.ef",
     ];
 
     validGoodEmailSamples.forEach(sample => {
