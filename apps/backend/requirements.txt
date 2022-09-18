@@ -38,6 +38,7 @@ pyvips==2.2.1
 rq==1.10.1
 seaborn==0.11.0
 sentence_transformers==1.2.0
+setuptools==57.5.0
 sklearn==0.0
 timezonefinder==5.2.0
 tqdm==4.51.0
