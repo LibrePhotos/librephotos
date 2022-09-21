@@ -87,7 +87,6 @@ INSTALLED_APPS = [
     "chunked_upload",
     "django_extensions",
     "django_rq",
-    "cachalot",
     "constance",
     "constance.backends.database",
 ]
@@ -173,7 +172,6 @@ MIDDLEWARE = [
 ]
 
 if DEBUG:
-    CACHEALOT_ENABLED = False
     MIDDLEWARE += ["silk.middleware.SilkyMiddleware"]
     INSTALLED_APPS += ["silk"]
     INSTALLED_APPS += ["drf_spectacular"]
