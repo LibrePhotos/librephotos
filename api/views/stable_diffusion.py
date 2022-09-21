@@ -30,9 +30,8 @@ def generate_image(user, job_id):
         )
         lrj.save()
     try:
-        pipe = StableDiffusionPipeline.from_pretrained(
-            os.path.join(ownphotos.settings.LOGS_ROOT, "/stable-diffusion-v1-4")
-        )
+
+        pipe = StableDiffusionPipeline.from_pretrained("/stable-diffusion")
         pipe = pipe.to("cpu")
 
         prompt = "a photo of an astronaut riding a horse on mars"
