@@ -11,7 +11,7 @@ RUN git clone --depth 1 --branch 'v19.24' https://github.com/davisking/dlib.git 
     cd /tmp/builds/dlib && \
     python3 setup.py install --no USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA --no USE_SSE4_INSTRUCTIONS  
 
-# Download pretrained models 
+# Download pretrained models
 WORKDIR /data_models
 RUN mkdir -p /root/.cache/torch/hub/checkpoints/ && \
 	curl -SL https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/places365.tar.gz | tar -zxC /data_models/ && \
