@@ -38,8 +38,10 @@ def generate_image(user, job_id):
 
         with autocast("cpu"):
             image = pipe(prompt)["sample"][0]
-        image.save(os.path.join(ownphotos.settings.LOGS_ROOT, "/stable-diffusion.jpg"))
+        image_path = os.path.join(ownphotos.settings.BASE_LOGS, "stable-diffusion.jpg")
+        image.save(image_path)
 
+        logger.info("Picture is in {}".format(image_path))
         lrj.finished = True
         lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
         lrj.save()
