@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Group, Stack, Title } from "@mantine/core";
+import { ActionIcon, Button, Group, Text } from "@mantine/core";
 import { DatePicker } from "@mantine/dates";
 import * as moment from "moment";
 import React, { useEffect, useState } from "react";
@@ -35,11 +35,8 @@ export function TimestampItem(props: Props) {
   };
 
   return (
-    <Stack>
-      <Group>
-        <Calendar />
-        <Title order={4}>{t("lightbox.sidebar.timetaken")}</Title>
-      </Group>
+    <Group>
+      <Calendar />
       {/* To-Do: Handle click on calender */}
       {editMode && (
         <Group>
@@ -53,17 +50,20 @@ export function TimestampItem(props: Props) {
         </Group>
       )}
       {!editMode && (
-        <Button
-          compact
-          color="dark"
-          variant="subtle"
-          onClick={() => setEditMode(!editMode)}
-          rightIcon={<Edit />}
-          size="sm"
-        >
-          {moment.utc(props.photoDetail.exif_timestamp).format("dddd, MMMM Do YYYY, h:mm a")}
-        </Button>
+        <div>
+          <Button color="dark" variant="subtle" onClick={() => setEditMode(!editMode)} rightIcon={<Edit />}>
+            <div>
+              {moment.utc(props.photoDetail.exif_timestamp).format("MMMM Do YYYY")}
+              <Text size="xs" color="dimmed">
+                {moment.utc(props.photoDetail.exif_timestamp).format("dddd, h:mm a")}
+              </Text>
+            </div>
+          </Button>
+        </div>
       )}
-    </Stack>
+      {
+        // To-Do: Show timezone of image
+      }
+    </Group>
   );
 }

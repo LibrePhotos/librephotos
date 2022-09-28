@@ -17,6 +17,7 @@ import { Tile } from "../Tile";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { FileInfoComponent } from "./FileInfoComponent";
 import { TimestampItem } from "./TimestampItem";
+import { VersionComponent } from "./VersionComponent";
 
 type Props = {
   isPublic: boolean;
@@ -72,14 +73,7 @@ export function Sidebar(props: Props) {
           <TimestampItem photoDetail={photoDetail} dispatch={dispatch} />
           {/* End Item Time Taken */}
           {/* Start Item File Path */}
-          <Group>
-            <File />
-            <Title order={4}>{t("lightbox.sidebar.filepath")}</Title>
-          </Group>
-          <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
-            <Text size="sm">{photoDetail.image_path} </Text>
-          </Anchor>
-
+          <VersionComponent photoDetail={photoDetail} />
           {/* End Item File Path */}
           {/* Start Item Location */}
 
@@ -175,32 +169,6 @@ export function Sidebar(props: Props) {
 
           {/* End Item Caption */}
           {/* Exif Data */}
-          <Stack>
-            <Group>
-              <FileInfo />
-              <Title order={4}>Info</Title>
-            </Group>
-            {
-              // To-Do: Add locales for exif data
-            }
-            <FileInfoComponent description="Camera" info={photoDetail.camera?.toString()} />
-            <FileInfoComponent description="Lens" info={photoDetail.lens?.toString()} />
-            <FileInfoComponent description="Focal Length" info={`${Math.round(photoDetail.focal_length!)} mm`} />
-            <FileInfoComponent description="Aperture" info={`ƒ / ${photoDetail.fstop}`} />
-            <FileInfoComponent description="Exposure Time" info={`${photoDetail.shutter_speed} s`} />
-            <FileInfoComponent description="ISO" info={photoDetail.iso?.toString()} />
-            <FileInfoComponent description="Subject Distance" info={`${photoDetail.subjectDistance} m`} />
-            <FileInfoComponent description="Digital Zoom Ratio" info={photoDetail.digitalZoomRatio?.toString()} />
-            <FileInfoComponent
-              description="Focal Length 35mm Equivalent"
-              info={`${photoDetail.focalLength35Equivalent} mm`}
-            />
-            <FileInfoComponent description="Dimensions" info={`${photoDetail.height} x ${photoDetail.width}`} />
-            <FileInfoComponent
-              description="Size"
-              info={`${Math.round((photoDetail.size / 1024 / 1024) * 100) / 100} MB`}
-            />
-          </Stack>
 
           {/* Start Item Scene */}
           {photoDetail.captions_json.places365 && (
