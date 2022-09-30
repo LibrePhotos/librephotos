@@ -10,7 +10,7 @@ from constance import config as site_config
 import ownphotos.settings
 
 logger = logging.getLogger("ownphotos")
-fomatter = logging.Formatter(
+formatter = logging.Formatter(
     "%(asctime)s : %(filename)s : %(funcName)s : %(lineno)s : %(levelname)s : %(message)s"
 )
 fileMaxByte = 256 * 1024 * 200  # 100MB
@@ -19,14 +19,14 @@ fileHandler = logging.handlers.RotatingFileHandler(
     maxBytes=fileMaxByte,
     backupCount=10,
 )
-fileHandler.setFormatter(fomatter)
+fileHandler.setFormatter(formatter)
 logger.addHandler(fileHandler)
 logger.setLevel(logging.INFO)
 
 
 def convert_to_degrees(values):
     """
-    Helper function to convert the GPS coordinates stored in the EXIF to degress in float format
+    Helper function to convert the GPS coordinates stored in the EXIF to degrees in float format
     :param value:
     :type value: exifread.utils.Ratio
     :rtype: float

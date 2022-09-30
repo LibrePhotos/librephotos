@@ -93,7 +93,7 @@ def create_new_album_thing_photo(cursor):
 
 
 def delete_album_thing_photo(cursor):
-    """This function delete photos form albums thing where thing disapears"""
+    """This function delete photos form albums thing where thing disappears"""
     SQL = """
         with {}
         delete

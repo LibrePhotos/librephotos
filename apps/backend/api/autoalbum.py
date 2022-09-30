@@ -50,7 +50,7 @@ def regenerate_event_titles(user, job_id):
         logger.info("job {}: updated lrj entry to db".format(job_id))
 
     except Exception:
-        logger.exception("An error occured")
+        logger.exception("An error occurred")
         lrj.failed = True
         lrj.finished = True
         lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
@@ -182,7 +182,7 @@ def generate_event_albums(user, job_id):
         lrj.save()
 
     except Exception:
-        logger.exception("An error occured")
+        logger.exception("An error occurred")
         lrj.failed = True
         lrj.finished = True
         lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
@@ -230,7 +230,7 @@ def delete_missing_photos(user, job_id):
         lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
         lrj.save()
     except Exception:
-        logger.exception("An error occured")
+        logger.exception("An error occurred")
         lrj.failed = True
         lrj.finished = True
         lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
