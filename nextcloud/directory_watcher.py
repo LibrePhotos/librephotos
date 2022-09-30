@@ -26,7 +26,7 @@ def isValidNCMedia(file_obj):
             or "heif" in filetype
         )
     except Exception:
-        util.logger.exception("An image throwed an exception")
+        util.logger.exception("An image thrown an exception")
         return False
 
 

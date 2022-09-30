@@ -23,7 +23,7 @@ for envvar in (
     "DB_PORT",
 ):
     if envvar not in os.environ:
-        raise NameError("Environnement variable not set :" + envvar)
+        raise NameError("Environment variable not set :" + envvar)
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -94,7 +94,7 @@ INSTALLED_APPS = [
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
 CONSTANCE_DATABASE_CACHE_BACKEND = "default"
 
-# Must be less or egal of nb core CPU ( Nearly 2GB per process)
+# Must be less or equal of nb core CPU ( Nearly 2GB per process)
 HEAVYWEIGHT_PROCESS_ENV = os.environ.get("HEAVYWEIGHT_PROCESS", "1")
 HEAVYWEIGHT_PROCESS = (
     int(HEAVYWEIGHT_PROCESS_ENV) if HEAVYWEIGHT_PROCESS_ENV.isnumeric() else 1
