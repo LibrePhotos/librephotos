@@ -180,7 +180,7 @@ class ScanPhotosView(APIView):
             scan_photos.delay(request.user, False, job_id, request.user.scan_directory)
             return Response({"status": True, "job_id": job_id})
         except BaseException:
-            logger.exception("An Error occured")
+            logger.exception("An Error occurred")
             return Response({"status": False})
 
 
@@ -198,7 +198,7 @@ class SelectiveScanPhotosView(APIView):
             )
             return Response({"status": True, "job_id": job_id})
         except BaseException:
-            logger.exception("An Error occured")
+            logger.exception("An Error occurred")
             return Response({"status": False})
 
 
@@ -209,7 +209,7 @@ class FullScanPhotosView(APIView):
             scan_photos.delay(request.user, True, job_id, request.user.scan_directory)
             return Response({"status": True, "job_id": job_id})
         except BaseException:
-            logger.exception("An Error occured")
+            logger.exception("An Error occurred")
             return Response({"status": False})
 
 
@@ -220,7 +220,7 @@ class DeleteMissingPhotosView(APIView):
             delete_missing_photos(request.user, job_id)
             return Response({"status": True, "job_id": job_id})
         except BaseException:
-            logger.exception("An Error occured")
+            logger.exception("An Error occurred")
             return Response({"status": False})
 
 

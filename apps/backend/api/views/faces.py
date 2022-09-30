@@ -27,7 +27,7 @@ class ScanFacesView(APIView):
             scan_faces.delay(request.user, job_id)
             return Response({"status": True, "job_id": job_id})
         except BaseException:
-            logger.exception("An Error occured")
+            logger.exception("An Error occurred")
             return Response({"status": False})
 
 
@@ -116,7 +116,7 @@ class FaceInferredListViewSet(ListViewSet):
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
-        # Todo: optimze query by only prefetching relevant models & fields
+        # Todo: optimize query by only prefetching relevant models & fields
         queryset = (
             Face.objects.filter(
                 Q(photo__hidden=False)
@@ -138,7 +138,7 @@ class FaceLabeledListViewSet(ListViewSet):
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
-        # Todo: optimze query by only prefetching relevant models & fields
+        # Todo: optimize query by only prefetching relevant models & fields
         queryset = (
             Face.objects.filter(
                 Q(photo__hidden=False) & Q(photo__owner=self.request.user),

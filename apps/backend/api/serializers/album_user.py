@@ -27,7 +27,7 @@ class AlbumUserSerializer(serializers.ModelSerializer):
             "grouped_photos",
         )
 
-    # To-Do: Legacy defintion, should be a number instead
+    # To-Do: Legacy definition, should be a number instead
     def get_id(self, obj) -> str:
         return str(obj.id)
 

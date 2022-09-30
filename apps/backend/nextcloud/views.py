@@ -45,5 +45,5 @@ class ScanPhotosView(APIView):
             scan_photos(request.user, job_id)
             return Response({"status": True, "job_id": job_id})
         except BaseException:
-            logger.exception("An Error occured")
+            logger.exception("An Error occurred")
             return Response({"status": False})
