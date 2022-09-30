@@ -403,7 +403,7 @@ def scan_photos(user, full_scan, job_id, scan_directory=""):
         util.logger.info("Finished checking paths")
         create_batch_job(LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS, user)
     except Exception:
-        util.logger.exception("An error occured: ")
+        util.logger.exception("An error occurred: ")
         lrj.failed = True
 
     added_photo_count = Photo.objects.count() - photo_count_before
@@ -464,7 +464,7 @@ def scan_faces(user, job_id):
             pool.starmap(face_scanner, all)
 
     except Exception as err:
-        util.logger.exception("An error occured: ")
+        util.logger.exception("An error occurred: ")
         print("[ERR]: {}".format(err))
         lrj.failed = True
 

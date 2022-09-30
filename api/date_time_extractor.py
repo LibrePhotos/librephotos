@@ -139,7 +139,7 @@ class TimeExtractionRule:
     - in that case this rule should also specify "source_tz" and "report_tz" settings where
     "source_tz" is describing the timezone that the rule is getting and "report_tz" is describing
     the timezone of the location where the photo/video was taken. Both "source_tz" and "report_tz"
-    should be one of the follwing:
+    should be one of the following:
       - "utc" - UTC timezone
       - "gps_timezonefinder" - the timezone of the GPS location associated with the photo/video
       - "server_local" - the timezone of the librephotos server - not very useful since we run docker containers in UTC timezone.
@@ -254,7 +254,7 @@ class TimeExtractionRule:
         tag_and_pattern = val.split("//", maxsplit=1)
         if len(tag_and_pattern) != 2:
             raise ValueError(
-                f"Value of condition_exif must contain '//' delimiter between tag name and patter: '{val}'"
+                f"Value of condition_exif must contain '//' delimiter between tag name and pattern: '{val}'"
             )
         tag, pattern = tag_and_pattern
         return tag, pattern
@@ -295,7 +295,7 @@ class TimeExtractionRule:
     def _get_tz(self, description, gps_lat, gps_lon, user_default_tz):
         """
         None is a valid timezone returned here (meaning that we want to use server local time).
-        This is why this function returns a tuple with the first element specifying sucesss of
+        This is why this function returns a tuple with the first element specifying success of
         determining the timezone, and the second element - the timezone itself.
         """
         if description == "gps_timezonefinder":
@@ -315,7 +315,7 @@ class TimeExtractionRule:
         elif description.startswith("name:"):
             return (True, pytz.timezone(description[5:]))
         else:
-            raise ValueError(f"Unkonwn tz description {description}")
+            raise ValueError(f"Unknown tz description {description}")
 
     def _transform_tz(self, dt, gps_lat, gps_lon, user_default_tz):
         if not dt:

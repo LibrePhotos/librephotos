@@ -61,7 +61,7 @@ def search_similar_image(user, photo, threshold=27):
 
 
 def build_image_similarity_index(user):
-    logger.info("builing similarity index for user {}".format(user.username))
+    logger.info("building similarity index for user {}".format(user.username))
     start = datetime.now()
     photos = (
         Photo.objects.filter(Q(hidden=False) & Q(owner=user))
@@ -87,4 +87,4 @@ def build_image_similarity_index(user):
         }
         requests.post(IMAGE_SIMILARITY_SERVER + "/build/", json=post_data)
     elapsed = (datetime.now() - start).total_seconds()
-    logger.info("builing similarity index took %.2f seconds" % elapsed)
+    logger.info("building similarity index took %.2f seconds" % elapsed)
