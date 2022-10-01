@@ -2,7 +2,10 @@
 <a href="https://hosted.weblate.org/engage/librephotos/">
 <img src="https://hosted.weblate.org/widgets/librephotos/-/librephotos-frontend/svg-badge.svg" alt="Translation status" />
 </a>
-<div style="text-align:center"><img width="100" src ="/public/logo-white.png"/></div>
+<div style="text-align:center">
+  <img width="100" src="/public/logo-white.png#gh-dark-mode-only" alt="Librephotos Logo"/>
+  <img width="100" src="/public/logo.png#gh-light-mode-only" alt="Librephotos Logo"/>
+</div>
 
 # LibrePhotos
 
