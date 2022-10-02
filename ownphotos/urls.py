@@ -216,6 +216,7 @@ urlpatterns = [
     url(r"^api/autoalbumgen", album_auto.AutoAlbumGenerateView.as_view()),
     url(r"^api/autoalbumtitlegen", album_auto.RegenerateAutoAlbumTitles.as_view()),
     url(r"^api/generateimage", stable_diffusion.StableDiffusionView.as_view()),
+    url(r"^api/generatealteredimage", stable_diffusion.StableDiffusionAlteredView.as_view()),
     url(r"^api/searchtermexamples", views.SearchTermExamples.as_view()),
     url(r"^api/locationsunburst", dataviz.LocationSunburst.as_view()),
     url(r"^api/locationtimeline", dataviz.LocationTimeline.as_view()),
