@@ -1,5 +1,6 @@
 import io
 import os
+import api.util as util
 
 from chunked_upload.constants import http_status
 from chunked_upload.exceptions import ChunkedUploadError
@@ -10,7 +11,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.response import Response
 
-from api.directory_watcher import calculate_hash_b64
+from api.directory_watcher import calculate_hash_b64, calculate_hash
 from api.models import Photo, User
 
 
@@ -84,15 +85,21 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                     user.scan_directory, "uploads", device, filename
                 )
             else:
-                existing_photo_hash = calculate_hash_b64(
+
+                existing_photo_hash = calculate_hash(user,
                     os.path.join(user.scan_directory, "uploads", device, filename)
                 )
+
+                file_name = os.path.splitext(os.path.basename(filename))[0]
+                file_name_extension = os.path.splitext(os.path.basename(filename))[1] 
+
                 if existing_photo_hash == image_hash:
                     # File already exist, do not copy it in the upload folder
+                    util.logger.info("Photo {} duplicated with hash {} ".format(filename, image_hash))
                     photo_path = ""
                 else:
                     photo_path = os.path.join(
-                        user.scan_directory, "uploads", device, image_hash
+                        user.scan_directory, "uploads", device, file_name+"_"+image_hash+file_name_extension
                     )
 
             if photo_path:
@@ -103,3 +110,6 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                 ChunkedUpload, upload_id=request.POST.get("upload_id")
             )
             chunked_upload.delete(delete_file=True)
+        else:
+            util.logger.info("Photo {} duplicated with hash {} ".format(filename, image_hash))
+ 
