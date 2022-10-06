@@ -1,10 +1,11 @@
-import { Anchor, Button, Group, Stack, Text } from "@mantine/core";
+import { Anchor, Button, Divider, Group, Stack, Text } from "@mantine/core";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Camera, Photo } from "tabler-icons-react";
 
 import type { Photo as PhotoType } from "../../actions/photosActions.types";
 import { serverAddress } from "../../api_client/apiClient";
+import { useAppDispatch } from "../../store/store";
 import { FileInfoComponent } from "./FileInfoComponent";
 
 export function VersionComponent(props: { photoDetail: PhotoType }) {
@@ -14,6 +15,10 @@ export function VersionComponent(props: { photoDetail: PhotoType }) {
   const [duplicates, setDuplicates] = useState<PhotoType[]>([]);
   const [otherVersions, setOtherVersions] = useState<PhotoType[]>([]);
   const { t } = useTranslation();
+
+  const dispatch = useAppDispatch();
+
+  const duplicatesString = photoDetail.image_path.slice(1);
 
   return (
     <Stack align="left">
@@ -26,7 +31,7 @@ export function VersionComponent(props: { photoDetail: PhotoType }) {
                 //To-Do: Fix oveflow
               }
               <Text weight={800} lineClamp={1}>
-                {photoDetail.image_path.substring(photoDetail.image_path.lastIndexOf("/") + 1)}
+                {photoDetail.image_path[0].substring(photoDetail.image_path[0].lastIndexOf("/") + 1)}
               </Text>
             </Anchor>
             <Group>
@@ -68,7 +73,7 @@ export function VersionComponent(props: { photoDetail: PhotoType }) {
             // To-Do: Add a type e.g. RAW, serial image, ai etc
             // To-Do: Make it more compact like immich
           }
-          <FileInfoComponent description="File Path" info={`${photoDetail.image_path}`} />
+          <FileInfoComponent description="File Path" info={`${photoDetail.image_path[0]}`} />
           <FileInfoComponent description="Subject Distance" info={`${photoDetail.subjectDistance} m`} />
           <FileInfoComponent description="Digital Zoom Ratio" info={photoDetail.digitalZoomRatio?.toString()} />
           <FileInfoComponent
@@ -79,6 +84,7 @@ export function VersionComponent(props: { photoDetail: PhotoType }) {
           {
             // To-Do: xmp should only be "Type: xmp" and the different file path if it's in a different folder
             // To-Do: Show if there is a jpeg to the raw file
+            // To-Do: Differentiate XMPs and duplicates in the backend
           }
           {otherVersions.length > 0 && <Text weight={800}>Other Versions</Text>}
           {
@@ -86,11 +92,22 @@ export function VersionComponent(props: { photoDetail: PhotoType }) {
             // To-Do: If it is serial images, show a thumbnail, type and file path. Should be selectable as the current version
             // To-Do: Same goes for stable diffusion images or upressed images
           }
-          {duplicates.length > 0 && <Text weight={800}>Duplicates</Text>}
-          {
-            // To-Do: Duplicate should only say "Type: Duplicate" and the different file path
-            // To-Do: If it's a duplicate, it should be possible to delete it
-          }
+          {duplicatesString.length > 0 && <Text weight={800}>Duplicates</Text>}
+          {duplicatesString.map(element => (
+            <Stack>
+              <FileInfoComponent description="File Path" info={`${element}`} />
+              {/** 
+              <Group>
+                  // To-Do: Change a path to the primary file
+                  // To-Do: Implement endpoint
+                <Button color="green">Change to primary</Button>
+                  // To-Do: Use a ActionIcon instead?
+                  // To-Do: Implement endpoint
+                <Button color="red">Delete</Button>
+              </Group>*/}
+              <Divider my="sm" />
+            </Stack>
+          ))}
         </Stack>
       )}
       <Button onClick={() => setShowMore(!showMore)} variant="subtle" size="xs" compact>

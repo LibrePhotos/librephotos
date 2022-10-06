@@ -57,7 +57,7 @@ export const PhotoSchema = z.object({
   exif_json: z.any().nullable(),
   people: PeopleSchema.array(),
   image_hash: z.string(),
-  image_path: z.string(),
+  image_path: z.string().array(),
   rating: z.number(),
   hidden: z.boolean(),
   public: z.boolean(),
