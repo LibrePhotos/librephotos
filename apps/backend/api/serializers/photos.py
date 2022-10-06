@@ -206,11 +206,11 @@ class PhotoSerializer(serializers.ModelSerializer):
             }
             return emptyArray
 
-    def get_image_path(self, obj) -> str:
+    def get_image_path(self, obj) -> list[str]:
         try:
-            return obj.image_paths[0]
+            return obj.image_paths
         except Exception:
-            return "Missing"
+            return ["Missing"]
 
     def get_square_thumbnail_url(self, obj) -> str:
         try:
