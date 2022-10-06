@@ -7,7 +7,7 @@ export function FileInfoComponent(props: { description?: string; info: string | 
   if (!info || info.includes("undefined") || info.includes("null") || info.includes("0 mm")) return null;
   if (!description) {
     return (
-      <Text size="xs" color="dimmed">
+      <Text size="xs" color="dimmed" lineClamp={1} style={{ maxWidth: 100 }}>
         {info}
       </Text>
     );

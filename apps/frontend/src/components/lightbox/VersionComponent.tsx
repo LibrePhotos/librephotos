@@ -1,4 +1,4 @@
-import { Anchor, Button, Divider, Group, Stack, Text } from "@mantine/core";
+import { Anchor, Button, Divider, Group, Stack, Text, TypographyStylesProvider } from "@mantine/core";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Camera, Photo } from "tabler-icons-react";
@@ -27,7 +27,7 @@ export function VersionComponent(props: { photoDetail: PhotoType }) {
           <Photo />
           <div>
             <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
-              <Text weight={800} lineClamp={1} style={{ width: 225 }}>
+              <Text weight={800} lineClamp={1} style={{ maxWidth: 225 }}>
                 {photoDetail.image_path[0].substring(photoDetail.image_path[0].lastIndexOf("/") + 1)}
               </Text>
             </Anchor>
@@ -42,9 +42,6 @@ export function VersionComponent(props: { photoDetail: PhotoType }) {
           </div>
         </Group>
       </Group>
-      {
-        //To-Do: Fix oveflow
-      }
       {photoDetail.camera && (
         <Group position="apart">
           <Group position="left">
