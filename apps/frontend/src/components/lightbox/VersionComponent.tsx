@@ -27,10 +27,7 @@ export function VersionComponent(props: { photoDetail: PhotoType }) {
           <Photo />
           <div>
             <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
-              {
-                //To-Do: Fix oveflow
-              }
-              <Text weight={800} lineClamp={1}>
+              <Text weight={800} lineClamp={1} style={{ width: 225 }}>
                 {photoDetail.image_path[0].substring(photoDetail.image_path[0].lastIndexOf("/") + 1)}
               </Text>
             </Anchor>
