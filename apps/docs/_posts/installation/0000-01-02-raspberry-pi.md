@@ -1,6 +1,6 @@
 ---
-title: "🍓 Raspbery Pi Installation"
-excerpt: "How to install a premeade image for the  Raspbery Pi "
+title: "🍓 Raspberry Pi Installation"
+excerpt: "How to install a premade image for the  Raspberry Pi"
 last_modified_at: 2022-03-31
 category: 1
 ---
@@ -16,7 +16,7 @@ An out of the box [Raspberry Pi](http://www.raspberrypi.org/) distro with [Libre
 
 ### 🗺️ Where to get it?
 
-You can use the [pi-imager](https://github.com/guysoft/pi-imager/releases) commuity raspberrypi imager here, unofficial section.
+You can use the [pi-imager](https://github.com/guysoft/pi-imager/releases) community raspberrypi imager here, unofficial section.
 
 Or download directly form the official mirror [here](http://unofficialpi.org/Distros/LibrePhotosOS)
 
