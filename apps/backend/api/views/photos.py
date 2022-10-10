@@ -1,6 +1,6 @@
 from django.db.models import Prefetch, Q
-from drf_spectacular.utils import extend_schema
-from rest_framework import filters, viewsets
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
+from rest_framework import filters, status, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -526,3 +526,27 @@ class DeletePhotos(APIView):
                 "deleted": deleted,
             }
         )
+
+
+class DeleteDuplicatePhotos(APIView):
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("image_hash", OpenApiTypes.STR),
+            OpenApiParameter("path", OpenApiTypes.STR),
+        ],
+    )
+    def delete(self, request):
+        data = dict(request.data)
+        logger.info(data)
+        photo = Photo.objects.filter(image_hash=data["image_hash"]).first()
+        duplicate_path = data["path"]
+
+        if not photo:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        result = photo.delete_duplicate(duplicate_path)
+        # To-Do: Give a better response, when it's a bad request
+        if result:
+            return Response(status=status.HTTP_200_OK)
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)

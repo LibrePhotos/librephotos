@@ -197,6 +197,7 @@ urlpatterns = [
     url(r"^api/labelfaces", faces.SetFacePersonLabel.as_view()),
     url(r"^api/deletefaces", faces.DeleteFaces.as_view()),
     url(r"^api/photosedit/delete", photos.DeletePhotos.as_view()),
+    url(r"^api/photosedit/duplicate/delete", photos.DeleteDuplicatePhotos.as_view()),
     url(r"^api/photosedit/setdeleted", photos.SetPhotosDeleted.as_view()),
     url(r"^api/photosedit/favorite", photos.SetPhotosFavorite.as_view()),
     url(r"^api/photosedit/hide", photos.SetPhotosHidden.as_view()),

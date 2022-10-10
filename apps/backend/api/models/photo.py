@@ -707,5 +707,21 @@ class Photo(models.Model):
             if os.path.isfile(path):
                 logger.info("Removing photo {}".format(path))
                 os.remove(path)
-
+        # To-Do: Handle wrong file permissions
         return self.delete()
+
+    def delete_duplicate(self, duplicate_path):
+        if duplicate_path not in self.image_paths:
+            logger.info("Path is not valid: {}".format(duplicate_path))
+            return False
+        if not os.path.isfile(duplicate_path):
+            logger.info("Path does not lead to a valid file: {}".format(duplicate_path))
+            self.image_paths.remove(duplicate_path)
+            self.save()
+            return False
+        # To-Do: Handle wrong file permissions
+        logger.info("Removing photo {}".format(duplicate_path))
+        os.remove(duplicate_path)
+        self.image_paths.remove(duplicate_path)
+        self.save()
+        return True
