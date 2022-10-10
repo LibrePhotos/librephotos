@@ -1,8 +1,9 @@
-import { Anchor, Button, Divider, Group, Stack, Text, TypographyStylesProvider } from "@mantine/core";
+import { Anchor, Button, Divider, Group, Modal, Stack, Text } from "@mantine/core";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Camera, Photo } from "tabler-icons-react";
 
+import { deleteDuplicateImage } from "../../actions/photosActions";
 import type { Photo as PhotoType } from "../../actions/photosActions.types";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppDispatch } from "../../store/store";
@@ -12,101 +13,144 @@ export function VersionComponent(props: { photoDetail: PhotoType }) {
   const { photoDetail } = props;
 
   const [showMore, setShowMore] = useState(false);
-  const [duplicates, setDuplicates] = useState<PhotoType[]>([]);
   const [otherVersions, setOtherVersions] = useState<PhotoType[]>([]);
+  const [openDeleteDialogState, setOpenDeleteDialogState] = useState(false);
+  const [imageHash, setImageHash] = useState("");
+  const [path, setPath] = useState("");
   const { t } = useTranslation();
+
+  const openDeleteDialog = (imageHash, path) => {
+    setOpenDeleteDialogState(true);
+    setImageHash(imageHash);
+    setPath(path);
+  };
 
   const dispatch = useAppDispatch();
 
-  const duplicatesString = photoDetail.image_path.slice(1);
+  const duplicates = photoDetail.image_path.slice(1);
 
   return (
-    <Stack align="left">
-      <Group position="apart">
-        <Group position="left">
-          <Photo />
-          <div>
-            <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
-              <Text weight={800} lineClamp={1} style={{ maxWidth: 225 }}>
-                {photoDetail.image_path[0].substring(photoDetail.image_path[0].lastIndexOf("/") + 1)}
-              </Text>
-            </Anchor>
-            <Group>
-              <FileInfoComponent info={`${photoDetail.height} x ${photoDetail.width}`} />
-              {Math.round((photoDetail.size / 1024 / 1024) * 100) / 100 < 1 ? (
-                <FileInfoComponent info={`${Math.round((photoDetail.size / 1024) * 100) / 100} KB`} />
-              ) : (
-                <FileInfoComponent info={`${Math.round((photoDetail.size / 1024 / 1024) * 100) / 100} MB`} />
-              )}
-            </Group>
-          </div>
-        </Group>
-      </Group>
-      {photoDetail.camera && (
+    <div>
+      <Stack align="left">
         <Group position="apart">
           <Group position="left">
-            <Camera />
+            <Photo />
             <div>
-              <Text weight={800}>{photoDetail.camera?.toString()}</Text>
-              <Group spacing="xs">
-                <FileInfoComponent info={photoDetail.lens?.toString()} />
-                <FileInfoComponent info={`${photoDetail.subjectDistance} m`} />
-                <FileInfoComponent info={`ƒ / ${photoDetail.fstop}`} />
-                <FileInfoComponent info={`${photoDetail.shutter_speed}`} />
-                <FileInfoComponent info={`${Math.round(photoDetail.focal_length!)} mm`} />
-                <FileInfoComponent info={`ISO${photoDetail.iso?.toString()}`} />
+              <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
+                <Text weight={800} lineClamp={1} style={{ maxWidth: 225 }}>
+                  {photoDetail.image_path[0].substring(photoDetail.image_path[0].lastIndexOf("/") + 1)}
+                </Text>
+              </Anchor>
+              <Group>
+                <FileInfoComponent info={`${photoDetail.height} x ${photoDetail.width}`} />
+                {Math.round((photoDetail.size / 1024 / 1024) * 100) / 100 < 1 ? (
+                  <FileInfoComponent info={`${Math.round((photoDetail.size / 1024) * 100) / 100} KB`} />
+                ) : (
+                  <FileInfoComponent info={`${Math.round((photoDetail.size / 1024 / 1024) * 100) / 100} MB`} />
+                )}
               </Group>
             </div>
           </Group>
         </Group>
-      )}
-      {showMore && (
-        <Stack>
-          {
-            // To-Do: Add locales for exif data
-            // To-Do: Add a type e.g. RAW, serial image, ai etc
-            // To-Do: Make it more compact like immich
-          }
-          <FileInfoComponent description="File Path" info={`${photoDetail.image_path[0]}`} />
-          <FileInfoComponent description="Subject Distance" info={`${photoDetail.subjectDistance} m`} />
-          <FileInfoComponent description="Digital Zoom Ratio" info={photoDetail.digitalZoomRatio?.toString()} />
-          <FileInfoComponent
-            description="Focal Length 35mm Equivalent"
-            info={`${photoDetail.focalLength35Equivalent} mm`}
-          />
+        {photoDetail.camera && (
+          <Group position="apart">
+            <Group position="left">
+              <Camera />
+              <div>
+                <Text weight={800}>{photoDetail.camera?.toString()}</Text>
+                <Group spacing="xs">
+                  <FileInfoComponent info={photoDetail.lens?.toString()} />
+                  <FileInfoComponent info={`${photoDetail.subjectDistance} m`} />
+                  <FileInfoComponent info={`ƒ / ${photoDetail.fstop}`} />
+                  <FileInfoComponent info={`${photoDetail.shutter_speed}`} />
+                  <FileInfoComponent info={`${Math.round(photoDetail.focal_length!)} mm`} />
+                  <FileInfoComponent info={`ISO${photoDetail.iso?.toString()}`} />
+                </Group>
+              </div>
+            </Group>
+          </Group>
+        )}
+        {showMore && (
+          <Stack>
+            {
+              // To-Do: Add locales for exif data
+              // To-Do: Add a type e.g. RAW, serial image, ai etc
+            }
+            <FileInfoComponent description="File Path" info={`${photoDetail.image_path[0]}`} />
+            <FileInfoComponent description="Subject Distance" info={`${photoDetail.subjectDistance} m`} />
+            <FileInfoComponent description="Digital Zoom Ratio" info={photoDetail.digitalZoomRatio?.toString()} />
+            <FileInfoComponent
+              description="Focal Length 35mm Equivalent"
+              info={`${photoDetail.focalLength35Equivalent} mm`}
+            />
 
-          {
-            // To-Do: xmp should only be "Type: xmp" and the different file path if it's in a different folder
-            // To-Do: Show if there is a jpeg to the raw file
-            // To-Do: Differentiate XMPs and duplicates in the backend
-          }
-          {otherVersions.length > 0 && <Text weight={800}>Other Versions</Text>}
-          {
-            // To-Do: If there is more then one version, show them here
-            // To-Do: If it is serial images, show a thumbnail, type and file path. Should be selectable as the current version
-            // To-Do: Same goes for stable diffusion images or upressed images
-          }
-          {duplicatesString.length > 0 && <Text weight={800}>Duplicates</Text>}
-          {duplicatesString.map(element => (
-            <Stack>
-              <FileInfoComponent description="File Path" info={`${element}`} />
-              {/** 
+            {
+              // To-Do: xmp should only be "Type: xmp" and the different file path if it's in a different folder
+              // To-Do: Show if there is a jpeg to the raw file
+              // To-Do: Differentiate XMPs and duplicates in the backend
+            }
+            {otherVersions.length > 0 && <Text weight={800}>Other Versions</Text>}
+            {
+              // To-Do: If there is more then one version, show them here
+              // To-Do: If it is serial images, show a thumbnail, type and file path. Should be selectable as the current version
+              // To-Do: Same goes for stable diffusion images or upressed images
+            }
+            {duplicates.length > 0 && <Text weight={800}>Duplicates</Text>}
+            {duplicates.map(element => (
+              <Stack>
+                <FileInfoComponent description="File Path" info={`${element}`} />
+                <Button color="red" onClick={() => openDeleteDialog(photoDetail.image_hash, element)}>
+                  {t("delete")}
+                </Button>
+                {/** 
               <Group>
                   // To-Do: Change a path to the primary file
                   // To-Do: Implement endpoint
                 <Button color="green">Change to primary</Button>
                   // To-Do: Use a ActionIcon instead?
                   // To-Do: Implement endpoint
-                <Button color="red">Delete</Button>
               </Group>*/}
-              <Divider my="sm" />
-            </Stack>
-          ))}
-        </Stack>
-      )}
-      <Button onClick={() => setShowMore(!showMore)} variant="subtle" size="xs" compact>
-        {showMore ? "Show Less" : "Show More"}
-      </Button>
-    </Stack>
+                <Divider my="sm" />
+              </Stack>
+            ))}
+          </Stack>
+        )}
+        <Button onClick={() => setShowMore(!showMore)} variant="subtle" size="xs" compact>
+          {showMore ? "Show Less" : "Show More"}
+        </Button>
+      </Stack>
+      {
+        // To-Do: Change locale for this
+      }
+      <Modal
+        opened={openDeleteDialogState}
+        title={t("personalbum.deleteperson")}
+        onClose={() => setOpenDeleteDialogState(false)}
+        zIndex={1000}
+      >
+        {
+          // To-Do: Change locale for this
+        }
+        <Text size="sm">{t("personalbum.deletepersondescription")}</Text>
+        <Group>
+          <Button
+            onClick={() => {
+              setOpenDeleteDialogState(false);
+            }}
+          >
+            {t("cancel")}
+          </Button>
+          <Button
+            color="red"
+            onClick={() => {
+              dispatch(deleteDuplicateImage(imageHash, path));
+              setOpenDeleteDialogState(false);
+            }}
+          >
+            {t("delete")}
+          </Button>
+        </Group>
+      </Modal>
+    </div>
   );
 }

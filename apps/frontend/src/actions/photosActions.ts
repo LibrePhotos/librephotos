@@ -322,6 +322,33 @@ export function finalPhotosDeleted(image_hashes: string[]) {
   };
 }
 
+export function deleteDuplicateImage(image_hash: string, path: string) {
+  return function (dispatch: Dispatch<any>) {
+    dispatch({ type: PHOTOS_FINAL_DELETED });
+    Server.delete(`/photosedit/duplicate/delete`, {
+      data: {
+        image_hash: image_hash,
+        path: path,
+      },
+    })
+      .then(response => {
+        // To-Do: Change locale for this
+        const notificationMessage = i18n.t<string>("toasts.finaldeletephoto", {
+          numberOfPhotos: 1,
+        });
+        // To-Do: Change locale for this
+        showNotification({
+          message: notificationMessage,
+          title: i18n.t<string>("toasts.finaldeletephototitle"),
+          color: "teal",
+        });
+      })
+      .catch(err => {
+        dispatch({ type: PHOTOS_FINAL_DELETED_REJECTED, payload: err });
+      });
+  };
+}
+
 export const SET_PHOTOS_DELETED = "SET_PHOTOS_DELETED";
 export const SET_PHOTOS_DELETED_FULFILLED = "SET_PHOTOS_DELETED_FULFILLED";
 export const SET_PHOTOS_DELETED_REJECTED = "SET_PHOTOS_DELETED_REJECTED";
