@@ -609,6 +609,7 @@ class Photo(models.Model):
                     face = api.models.face.Face(
                         image_path=image_path,
                         photo=self,
+                        timestamp=self.exif_timestamp,
                         location_top=face_location[0],
                         location_right=face_location[1],
                         location_bottom=face_location[2],
