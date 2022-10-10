@@ -15,6 +15,7 @@ class Face(models.Model):
     )
     image = models.ImageField(upload_to="faces", null=True)
     image_path = models.FilePathField()
+    timestamp = models.DateTimeField(blank=True, null=True, db_index=True)
 
     person = models.ForeignKey(
         Person, on_delete=models.DO_NOTHING, related_name="faces"
