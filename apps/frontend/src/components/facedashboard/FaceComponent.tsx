@@ -18,11 +18,15 @@ type Props = {
 };
 
 export function FaceComponent(props: Props) {
-  const tooltipLabel = () => (
-      <div>
-        {t<string>("settings.confidencepercentage", {
-              percentage: (props.cell.person_label_probability * 100).toFixed(1),
-            })}
+  const tooltipLabel = () => {
+      var confidencePercentage = '';
+      if (props.activeItem === 1) {
+        confidencePercentage = t<string>("settings.confidencepercentage", {
+          percentage: (props.cell.person_label_probability * 100).toFixed(1),
+        })
+      }
+      return (<div>
+        {confidencePercentage}
         <div>
           {(() => {if (DateTime.fromISO(props.cell.timestamp).isValid) {
               return DateTime.fromISO(props.cell.timestamp )
@@ -34,6 +38,7 @@ export function FaceComponent(props: Props) {
           }
         </div>
       </div>);
+  };
 
   const calculateProbabiltyColor = (labelProbability: number) =>
     labelProbability > 0.9 ? "green" : labelProbability > 0.8 ? "yellow" : labelProbability > 0.7 ? "orange" : "red";
@@ -65,7 +70,7 @@ export function FaceComponent(props: Props) {
       >
         <Center>
           <Tooltip
-            opened={tooltipOpened && props.activeItem === 1}
+            opened={tooltipOpened}
             label={tooltipLabel()}
             position="bottom"
             withArrow
@@ -109,14 +114,8 @@ export function FaceComponent(props: Props) {
     >
       <Center>
         <Tooltip
-          opened={tooltipOpened && props.activeItem === 1}
+          opened={tooltipOpened}
           label= {tooltipLabel()}
-
-/*
-          {t<string>("settings.confidencepercentage", {
-            percentage: (props.cell.person_label_probability * 100).toFixed(1),
-          })}
-*/
           position="bottom"
         >
           <Indicator
