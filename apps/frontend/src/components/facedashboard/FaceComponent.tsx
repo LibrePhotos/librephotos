@@ -19,7 +19,7 @@ type Props = {
 
 export function FaceComponent(props: Props) {
   const tooltipLabel = () => {
-      var confidencePercentage = '';
+      let confidencePercentage = '';
       if (props.activeItem === 1) {
         confidencePercentage = t<string>("settings.confidencepercentage", {
           percentage: (props.cell.person_label_probability * 100).toFixed(1),
