@@ -15,7 +15,6 @@ class Face(models.Model):
     )
     image = models.ImageField(upload_to="faces", null=True)
     image_path = models.FilePathField()
-    timestamp = models.DateTimeField(blank=True, null=True, db_index=True)
 
     person = models.ForeignKey(
         Person, on_delete=models.DO_NOTHING, related_name="faces"
@@ -38,11 +37,16 @@ class Face(models.Model):
 
     encoding = models.TextField()
 
+    @property
+    def timestamp(self):
+        return self.photo.exif_timestamp if self.photo else None
+
     def __str__(self):
         return "%d" % self.id
 
     def get_encoding_array(self):
         return np.frombuffer(bytes.fromhex(self.encoding))
+
 
 
 @receiver(models.signals.post_delete, sender=Person)
