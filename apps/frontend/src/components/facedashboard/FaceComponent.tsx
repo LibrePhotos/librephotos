@@ -1,11 +1,10 @@
 import { Avatar, Box, Center, Indicator, Tooltip } from "@mantine/core";
-import { t } from "i18next";
 import _ from "lodash";
 import React, { useState } from "react";
-import { DateTime } from 'luxon';
 import { serverAddress } from "../../api_client/apiClient";
 import { PhotoIcon } from "./PhotoIcon";
-import i18n from "../../i18n";
+import { FaceTooltip } from "./FaceTooltip";
+
 
 type Props = {
   cell: any;
@@ -18,28 +17,6 @@ type Props = {
 };
 
 export function FaceComponent(props: Props) {
-  const tooltipLabel = () => {
-      let confidencePercentage = '';
-      if (props.activeItem === 1) {
-        confidencePercentage = t<string>("settings.confidencepercentage", {
-          percentage: (props.cell.person_label_probability * 100).toFixed(1),
-        })
-      }
-      return (<div>
-        {confidencePercentage}
-        <div>
-          {(() => {if (DateTime.fromISO(props.cell.timestamp).isValid) {
-              return DateTime.fromISO(props.cell.timestamp )
-                .setLocale(i18n.resolvedLanguage.replace("_", "-"))
-                .toLocaleString(DateTime.DATETIME_MED)
-              }
-              return ''
-            })()
-          }
-        </div>
-      </div>);
-  };
-
   const calculateProbabiltyColor = (labelProbability: number) =>
     labelProbability > 0.9 ? "green" : labelProbability > 0.8 ? "yellow" : labelProbability > 0.7 ? "orange" : "red";
 
@@ -69,11 +46,10 @@ export function FaceComponent(props: Props) {
         })}
       >
         <Center>
-          <Tooltip
-            opened={tooltipOpened}
-            label={tooltipLabel()}
-            position="bottom"
-            withArrow
+          <FaceTooltip
+            tooltipOpened={tooltipOpened}
+            activeItem={props.activeItem}
+            cell={props.cell}
           >
             <Indicator
               color={labelProbabilityColor}
@@ -91,7 +67,7 @@ export function FaceComponent(props: Props) {
                 size={props.entrySquareSize - 30}
               />
             </Indicator>
-          </Tooltip>
+          </FaceTooltip>
           {showPhotoIcon}
         </Center>
       </Box>
@@ -113,10 +89,10 @@ export function FaceComponent(props: Props) {
       })}
     >
       <Center>
-        <Tooltip
-          opened={tooltipOpened}
-          label= {tooltipLabel()}
-          position="bottom"
+        <FaceTooltip
+            tooltipOpened={tooltipOpened}
+            activeItem={props.activeItem}
+            cell={props.cell}
         >
           <Indicator
             offset={10}
@@ -135,7 +111,7 @@ export function FaceComponent(props: Props) {
               size={props.entrySquareSize - 10}
             />
           </Indicator>
-        </Tooltip>
+        </FaceTooltip>
         {showPhotoIcon}
       </Center>
     </Box>
