@@ -1,4 +1,4 @@
-import { Avatar, Box, Center, Indicator, Tooltip } from "@mantine/core";
+import { Avatar, Box, Center, Indicator } from "@mantine/core";
 import _ from "lodash";
 import React, { useState } from "react";
 import { serverAddress } from "../../api_client/apiClient";

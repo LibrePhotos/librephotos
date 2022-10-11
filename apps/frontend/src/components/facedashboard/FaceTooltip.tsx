@@ -1,6 +1,6 @@
 import { Tooltip } from "@mantine/core";
 import { t } from "i18next";
-import React, { useState } from "react";
+import React from "react";
 import { DateTime } from 'luxon';
 import i18n from "../../i18n";
 
