@@ -48,7 +48,6 @@ class Face(models.Model):
         return np.frombuffer(bytes.fromhex(self.encoding))
 
 
-
 @receiver(models.signals.post_delete, sender=Person)
 def reset_person(sender, instance, **kwargs):
     instance.faces.update(person=get_unknown_person(instance.cluster_owner))
