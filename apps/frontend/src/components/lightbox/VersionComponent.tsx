@@ -44,7 +44,7 @@ export function VersionComponent(props: { photoDetail: PhotoType }) {
               <Group>
                 <FileInfoComponent info={`${photoDetail.height} x ${photoDetail.width}`} />
                 {Math.round((photoDetail.size / 1024 / 1024) * 100) / 100 < 1 ? (
-                  <FileInfoComponent info={`${Math.round((photoDetail.size / 1024) * 100) / 100} KB`} />
+                  <FileInfoComponent info={`${Math.round((photoDetail.size / 1024) * 100) / 100} kB`} />
                 ) : (
                   <FileInfoComponent info={`${Math.round((photoDetail.size / 1024 / 1024) * 100) / 100} MB`} />
                 )}
@@ -73,14 +73,16 @@ export function VersionComponent(props: { photoDetail: PhotoType }) {
         {showMore && (
           <Stack>
             {
-              // To-Do: Add locales for exif data
               // To-Do: Add a type e.g. RAW, serial image, ai etc
             }
-            <FileInfoComponent description="File Path" info={`${photoDetail.image_path[0]}`} />
-            <FileInfoComponent description="Subject Distance" info={`${photoDetail.subjectDistance} m`} />
-            <FileInfoComponent description="Digital Zoom Ratio" info={photoDetail.digitalZoomRatio?.toString()} />
+            <FileInfoComponent description={t("exif.filepath")} info={`${photoDetail.image_path[0]}`} />
+            <FileInfoComponent description={t("exif.subjectdistance")} info={`${photoDetail.subjectDistance} m`} />
             <FileInfoComponent
-              description="Focal Length 35mm Equivalent"
+              description={t("exif.digitalzoomratio")}
+              info={photoDetail.digitalZoomRatio?.toString()}
+            />
+            <FileInfoComponent
+              description={t("exif.focallengthin35mmfilm")}
               info={`${photoDetail.focalLength35Equivalent} mm`}
             />
 
@@ -89,16 +91,16 @@ export function VersionComponent(props: { photoDetail: PhotoType }) {
               // To-Do: Show if there is a jpeg to the raw file
               // To-Do: Differentiate XMPs and duplicates in the backend
             }
-            {otherVersions.length > 0 && <Text weight={800}>Other Versions</Text>}
+            {otherVersions.length > 0 && <Text weight={800}>{t("exif.otherversions")}</Text>}
             {
               // To-Do: If there is more then one version, show them here
               // To-Do: If it is serial images, show a thumbnail, type and file path. Should be selectable as the current version
               // To-Do: Same goes for stable diffusion images or upressed images
             }
-            {duplicates.length > 0 && <Text weight={800}>Duplicates</Text>}
+            {duplicates.length > 0 && <Text weight={800}>{t("exif.duplicates")}</Text>}
             {duplicates.map(element => (
               <Stack>
-                <FileInfoComponent description="File Path" info={`${element}`} />
+                <FileInfoComponent description={t("exif.filepath")} info={`${element}`} />
                 <Button color="red" onClick={() => openDeleteDialog(photoDetail.image_hash, element)}>
                   {t("delete")}
                 </Button>
@@ -116,22 +118,16 @@ export function VersionComponent(props: { photoDetail: PhotoType }) {
           </Stack>
         )}
         <Button onClick={() => setShowMore(!showMore)} variant="subtle" size="xs" compact>
-          {showMore ? "Show Less" : "Show More"}
+          {showMore ? t("exif.showless") : t("exif.showmore")}
         </Button>
       </Stack>
-      {
-        // To-Do: Change locale for this
-      }
       <Modal
         opened={openDeleteDialogState}
-        title={t("personalbum.deleteperson")}
+        title={t("exif.deleteduplicatetitle")}
         onClose={() => setOpenDeleteDialogState(false)}
         zIndex={1000}
       >
-        {
-          // To-Do: Change locale for this
-        }
-        <Text size="sm">{t("personalbum.deletepersondescription")}</Text>
+        <Text size="sm">{t("exif.deleteduplicate")}</Text>
         <Group>
           <Button
             onClick={() => {

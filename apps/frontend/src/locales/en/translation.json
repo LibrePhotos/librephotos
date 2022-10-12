@@ -263,6 +263,18 @@
       "similarphotos": "Similar Photos"
     }
   },
+  "exif":{
+    "filepath":"File Path",
+    "subjectdistance": "Subject Distance",
+    "digitalzoomratio": "Digital Zoom Ratio",
+    "focallengthin35mmfilm": "Focal Length 35mm Equivalent",
+    "otherversions": "Other Versions",
+    "duplicates": "Duplicates",
+    "showmore": "Show More",
+    "showless": "Show Less",
+    "deleteduplicatetitle": "Delete Duplicate",
+    "deleteduplicate": "Are you sure you want to delete this duplicate?"
+  },
   "photos": {
     "recentlyadded": "Recently Added",
     "addedon": "Added on ",
