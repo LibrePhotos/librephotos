@@ -1,10 +1,10 @@
-import { Avatar, Box, Center, Indicator, Tooltip } from "@mantine/core";
-import { t } from "i18next";
+import { Avatar, Box, Center, Indicator } from "@mantine/core";
 import _ from "lodash";
 import React, { useState } from "react";
-
 import { serverAddress } from "../../api_client/apiClient";
 import { PhotoIcon } from "./PhotoIcon";
+import { FaceTooltip } from "./FaceTooltip";
+
 
 type Props = {
   cell: any;
@@ -46,13 +46,10 @@ export function FaceComponent(props: Props) {
         })}
       >
         <Center>
-          <Tooltip
-            opened={tooltipOpened && props.activeItem === 1}
-            label={t<string>("settings.confidencepercentage", {
-              percentage: (props.cell.person_label_probability * 100).toFixed(1),
-            })}
-            position="bottom"
-            withArrow
+          <FaceTooltip
+            tooltipOpened={tooltipOpened}
+            activeItem={props.activeItem}
+            cell={props.cell}
           >
             <Indicator
               color={labelProbabilityColor}
@@ -70,7 +67,7 @@ export function FaceComponent(props: Props) {
                 size={props.entrySquareSize - 30}
               />
             </Indicator>
-          </Tooltip>
+          </FaceTooltip>
           {showPhotoIcon}
         </Center>
       </Box>
@@ -92,12 +89,10 @@ export function FaceComponent(props: Props) {
       })}
     >
       <Center>
-        <Tooltip
-          opened={tooltipOpened && props.activeItem === 1}
-          label={t<string>("settings.confidencepercentage", {
-            percentage: (props.cell.person_label_probability * 100).toFixed(1),
-          })}
-          position="bottom"
+        <FaceTooltip
+            tooltipOpened={tooltipOpened}
+            activeItem={props.activeItem}
+            cell={props.cell}
         >
           <Indicator
             offset={10}
@@ -116,7 +111,7 @@ export function FaceComponent(props: Props) {
               size={props.entrySquareSize - 10}
             />
           </Indicator>
-        </Tooltip>
+        </FaceTooltip>
         {showPhotoIcon}
       </Center>
     </Box>
