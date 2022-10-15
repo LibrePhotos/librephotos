@@ -37,6 +37,10 @@ class Face(models.Model):
 
     encoding = models.TextField()
 
+    @property
+    def timestamp(self):
+        return self.photo.exif_timestamp if self.photo else None
+
     def __str__(self):
         return "%d" % self.id
 
