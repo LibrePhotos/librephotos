@@ -10,7 +10,7 @@ import {
 
 export const PhotoSuperSimpleSchema = z.object({
   image_hash: z.string(),
-  exif_timestamp: z.string(),
+  exif_timestamp: z.string().nullable(),
   rating: z.number(),
   geolocation_json: z.any(),
   hidden: z.boolean(),

@@ -110,7 +110,6 @@ export function VersionComponent(props: { photoDetail: PhotoType }) {
                   // To-Do: Implement endpoint
                 <Button color="green">Change to primary</Button>
                   // To-Do: Use a ActionIcon instead?
-                  // To-Do: Implement endpoint
               </Group>*/}
                 <Divider my="sm" />
               </Stack>
