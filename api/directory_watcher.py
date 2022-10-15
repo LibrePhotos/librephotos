@@ -272,6 +272,12 @@ def walk_directory(directory, callback):
                 callback.append(fpath)
 
 
+def walk_files(scan_files, callback):
+    for fpath in scan_files:
+        if os.path.isfile(fpath):
+            callback.append(fpath)
+
+
 def _file_was_modified_after(filepath, time):
     try:
         modified = os.path.getmtime(filepath)
@@ -330,7 +336,7 @@ def initialize_scan_process(*args, **kwargs):
 
 
 @job
-def scan_photos(user, full_scan, job_id, scan_directory=""):
+def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
     if not os.path.exists(
         os.path.join(ownphotos.settings.MEDIA_ROOT, "thumbnails_big")
     ):
@@ -355,7 +361,10 @@ def scan_photos(user, full_scan, job_id, scan_directory=""):
         if scan_directory == "":
             scan_directory = user.scan_directory
         photo_list = []
-        walk_directory(scan_directory, photo_list)
+        if scan_files:
+            walk_files(scan_files, photo_list)
+        else:
+            walk_directory(scan_directory, photo_list)
         files_found = len(photo_list)
         last_scan = (
             LongRunningJob.objects.filter(finished=True)
