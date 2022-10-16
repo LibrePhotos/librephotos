@@ -1,9 +1,10 @@
 import { Button, Divider, Group, Modal, Stack, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import _ from "lodash";
-import * as moment from "moment";
+import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import i18n from "../../i18n";
 
 import { addToUserAlbum, createNewUserAlbum, fetchUserAlbumsList } from "../../actions/albumsActions";
 import { useAppDispatch, useAppSelector } from "../../store/store";
@@ -23,7 +24,7 @@ type Props = {
   selectedImages: any[];
 };
 
-export const ModalAlbumEdit = (props: Props) => {
+export function ModalAlbumEdit (props: Props) {
   const [newAlbumTitle, setNewAlbumTitle] = useState("");
   const matches = useMediaQuery("(min-width: 700px)");
   const { albumsUserList } = useAppSelector(store => store.albums);
@@ -35,7 +36,7 @@ export const ModalAlbumEdit = (props: Props) => {
     if (isOpen) {
       dispatch(fetchUserAlbumsList());
     }
-  }, [isOpen]);
+  }, [dispatch, isOpen]);
 
   let filteredUserAlbumList;
   if (newAlbumTitle.length > 0) {
@@ -81,7 +82,7 @@ export const ModalAlbumEdit = (props: Props) => {
               setNewAlbumTitle(v.currentTarget.value);
             }}
             placeholder={t("modalalbum.placeholder")}
-          ></TextInput>
+          />
           <Button
             onClick={() => {
               dispatch(
@@ -104,8 +105,7 @@ export const ModalAlbumEdit = (props: Props) => {
         <Divider />
         <Stack style={{ height: matches ? "50vh" : "25vh", overflowY: "scroll" }}>
           {filteredUserAlbumList.length > 0 &&
-            filteredUserAlbumList.map(item => {
-              return (
+            filteredUserAlbumList.map(item => (
                 <UnstyledButton
                   onClick={() => {
                     dispatch(
@@ -131,16 +131,14 @@ export const ModalAlbumEdit = (props: Props) => {
                       <Text size="sm" color="dimmed">
                         {t("modalalbum.items", { count: item.photo_count })}
                         <br />
-                        {
-                          //@ts-ignore
-                          `Updated ${moment(item.created_on).fromNow()}`
-                        }
+                        {t("modalalbum.updated")} {DateTime.fromISO(item.created_on).setLocale(i18n.resolvedLanguage.replace("_", "-")).toRelative()}
                       </Text>
                     </div>
                   </Group>
                 </UnstyledButton>
-              );
-            })}
+              )
+            )
+          }
         </Stack>
       </Stack>
     </Modal>

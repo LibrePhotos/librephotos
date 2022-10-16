@@ -129,6 +129,12 @@
     "cancel": "Avbryt",
     "choosedirectory": "Velg en mappe nedenfor"
   },
+  "modalphotosshare": {
+    "joined": "Sammenkoblet"
+  },
+  "modalalbumsshare": {
+    "joined": "Sammenkoblet"
+  },
   "topmenu": {
     "running": "Kjører",
     "available": "Arbeider tilgjengelig. Du kan starte å skanne flere bilder, utlede fjes-etiketter, opprette hendelsesalbum automatisk, eller generere albumtitler for hendelser automatisk.",
@@ -317,7 +323,8 @@
   },
   "autoalbumgallery": {
     "hidemap": "Skjul kart",
-    "showmap": "Vis kart"
+    "showmap": "Vis kart",
+    "day": "Dag {{day}}"
   },
   "sitesettings": {
     "allow": "Tillat",

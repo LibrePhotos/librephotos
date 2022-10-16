@@ -141,6 +141,12 @@
         "cancel": "Cancelar",
         "choosedirectory": "Elija un directorio de los siguientes"
     },
+    "modalphotosshare": {
+        "joined": "Ingresado"
+    },
+    "modalalbumsshare": {
+        "joined": "Ingresado"
+    },
     "topmenu": {
         "running": "Ejecutándose",
         "available": "¡Trabajador disponible! Puede comenzar a escanear más fotos, inferir etiquetas de caras, crear automáticamente álbumes de eventos o regenerar automáticamente los títulos de los álbumes de eventos.",
@@ -322,7 +328,8 @@
     },
     "autoalbumgallery": {
         "showmap": "Mostrar mapa",
-        "hidemap": "Ocultar mapa"
+        "hidemap": "Ocultar mapa",
+        "day": "Día {{day}}"
     },
     "personalbum": {
         "numberofpeople": "{{peoplelength}} Personas",
@@ -482,7 +489,8 @@
         "alreadexists": "El álbum {{title}} ya existe.",
         "placeholder": "Título del álbum",
         "selectedimages": "Añadir la(s) foto(s) seleccionada(s) {{count}} a…",
-        "alreadyexists": "El álbum {{title}} ya existe."
+        "alreadyexists": "El álbum {{title}} ya existe.",
+        "updated": "Actualizado"
     },
     "cancel": "Cancelar",
     "deletefaceexplanation": "Esta acción eliminará de forma permanente los rostros y todos sus datos asociados. Esta acción no se puede deshacer.",

@@ -87,6 +87,17 @@
         "header": "Imposta l'elenco di scansione per l'utente",
         "update": "Aggiorna"
     },
+    "modalphotosshare": {
+        "joined": "Unito/a"
+    },
+    "modalalbumsshare": {
+        "joined": "Unito/a"
+    },
+    "autoalbumgallery": {
+        "showmap": "Visualizza Mappa",
+        "hidemap": "Nascondi Mappa",
+        "day": "Giorno {{day}}"
+    },
     "countstats": {
         "photos": "Foto"
     },

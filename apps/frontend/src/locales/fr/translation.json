@@ -141,6 +141,12 @@
         "cancel": "Annuler",
         "choosedirectory": "Choisissez un des répertoires ci-dessous"
     },
+    "modalphotosshare": {
+        "joined": "Enregistré"
+    },
+    "modalalbumsshare": {
+        "joined": "Enregistré"
+    },
     "topmenu": {
         "running": "En cours",
         "available": "Je suis au repos ! Vous pouvez lancer une tâche, un scan, un traitement visages, albums évènement.",
@@ -338,7 +344,8 @@
     },
     "autoalbumgallery": {
         "showmap": "Afficher la carte",
-        "hidemap": "Masquer la carte"
+        "hidemap": "Masquer la carte",
+        "day": "Jour {{day}}"
     },
     "days": "Jours",
     "myalbums": "Mes albums",
@@ -489,6 +496,7 @@
         "newalbum": "Nouvel album",
         "placeholder": "Titre de l'album",
         "items": "{{count}} élément(s)",
+        "updated": "Mis à jour",
         "create": "Créer",
         "alreadyexists": "L'album {{title}} existe déjà."
     },

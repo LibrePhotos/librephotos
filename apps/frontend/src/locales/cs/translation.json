@@ -140,7 +140,8 @@
         "items": "{{count}} Položka/y",
         "alreadexists": "Album {{title}} již existuje.",
         "title": "Přidat do alba",
-        "alreadyexists": "Album {{title}} již existuje."
+        "alreadyexists": "Album {{title}} již existuje.",
+        "updated": "Aktualizováno"
     },
     "modalnextcloud": {
         "setdirectory": "Nastavte adresář skenování Nextcloud",
@@ -149,6 +150,12 @@
         "update": "Aktualizovat",
         "choosedirectory": "Vybrat složku níže",
         "cancel": "Zrušit"
+    },
+    "modalphotosshare": {
+        "joined": "Přidáno"
+    },
+    "modalalbumsshare": {
+        "joined": "Přidáno"
     },
     "topmenu": {
         "running": "Běží",
@@ -475,7 +482,8 @@
     },
     "autoalbumgallery": {
         "showmap": "Zobrazit mapu",
-        "hidemap": "Skrýt mapu"
+        "hidemap": "Skrýt mapu",
+        "day": "Den {{day}}"
     },
     "scan": "Skenovat",
     "socialgraph": "Sociální graf",
