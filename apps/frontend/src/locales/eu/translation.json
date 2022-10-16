@@ -180,7 +180,8 @@
         "newalbum": "Album berria",
         "placeholder": "Albumaren titulua",
         "create": "Sortu",
-        "items": "{{count}} elementu"
+        "items": "{{count}} elementu",
+        "updated": "Eguneratua"
     },
     "sidemenu": {
         "favorites": "Gogokoak",
@@ -352,7 +353,8 @@
     },
     "autoalbumgallery": {
         "showmap": "Erakutsi mapa",
-        "hidemap": "Ezkutatu mapa"
+        "hidemap": "Ezkutatu mapa",
+        "day": "Eguna {{day}}"
     },
     "placealbum": {
         "showingplaces": "{{number}} toki ikusgai mapan",
@@ -452,6 +454,12 @@
         "setdirectory": "Ezarri Nextcloud-eko azterketa-direktorioa",
         "update": "Eguneratu",
         "cancel": "Utzi"
+    },
+    "modalphotosshare": {
+        "joined": "Bat egin zuen"
+    },
+    "modalalbumsshare": {
+        "joined": "Bat egin zuen"
     },
     "defaultheader": {
         "noimages": "Ez da irudirik aurkitu",
