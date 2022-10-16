@@ -1,8 +1,9 @@
 import { Loader, Pagination, SimpleGrid, Table, Title } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import moment from "moment/moment";
+import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import i18n from "../../i18n";
 
 import { fetchJobList } from "../../actions/utilActions";
 import type { IJobsResponseSchema } from "../../actions/utilActions.types";
@@ -86,8 +87,8 @@ export function JobList() {
                 </td>
                 {matches && (
                   <>
-                    <td>{moment(queuedAt).fromNow()}</td>
-                    <td>{startedAt ? moment(startedAt).fromNow() : ""}</td>
+                    <td>{DateTime.fromISO(queuedAt).setLocale(i18n.resolvedLanguage.replace("_", "-")).toRelative() }</td>
+                    <td>{startedAt ? DateTime.fromISO(startedAt).setLocale(i18n.resolvedLanguage.replace("_", "-")).toRelative() : ""}</td>
                   </>
                 )}
 

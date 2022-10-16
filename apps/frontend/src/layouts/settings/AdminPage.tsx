@@ -13,10 +13,11 @@ import {
   Title,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import moment from "moment";
+import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Adjustments, Edit, Plus, Trash } from "tabler-icons-react";
+import i18n from "../../i18n";
 
 import { deleteAllAutoAlbum } from "../../actions/albumsActions";
 import { deleteJob, fetchSiteSettings } from "../../actions/utilActions";
@@ -27,7 +28,7 @@ import { ModalUserEdit } from "../../components/modals/ModalUserEdit";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { SiteSettings } from "./SiteSettings";
 
-export const AdminPage = () => {
+export function AdminPage () {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
   const fetchingUserList = useAppSelector(state => state.util.fetchingUserList);
@@ -64,7 +65,7 @@ export const AdminPage = () => {
   );
 };
 
-const UserTable = () => {
+function UserTable () {
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState({});
@@ -131,7 +132,7 @@ const UserTable = () => {
                   <td>{user.scan_directory ? user.scan_directory : t("adminarea.notset")}</td>
                   {matches && <td>{user.confidence ? user.confidence : t("adminarea.notset")}</td>}
                   {matches && <td>{user.photo_count}</td>}
-                  {matches && <td>{moment(user.date_joined).fromNow()}</td>}
+                  {matches && <td>{DateTime.fromISO(user.date_joined).setLocale(i18n.resolvedLanguage.replace("_", "-")).toRelative()}</td>}
                 </tr>
               ))
             : null}
