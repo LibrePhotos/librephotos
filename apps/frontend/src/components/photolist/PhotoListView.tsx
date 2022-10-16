@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import Pig from "react-pig";
 import { useParams } from "react-router-dom";
 
+import { adjustDateFormat } from "../../util/util";
 import { setAlbumCoverForUserAlbum } from "../../actions/albumsActions";
 import { setAlbumCoverForPerson } from "../../actions/peopleActions";
 import { fetchPhotoDetail } from "../../actions/photosActions";
@@ -198,6 +199,10 @@ function PhotoListViewComponent(props: Props) {
   // @ts-ignore
   if (route.location.pathname.startsWith("/useralbum/")) {
     isUserAlbum = true;
+  }
+
+  if (isDateView) {
+    adjustDateFormat(photoset);
   }
 
   return (

@@ -1,4 +1,3 @@
-import moment from "moment";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Clock } from "tabler-icons-react";
@@ -28,11 +27,7 @@ export function RecentlyAddedPhotos() {
       loading={fetchedPhotosetType !== PhotosetType.RECENTLY_ADDED}
       icon={<Clock size={50} />}
       isDateView={false}
-      date={
-        moment(recentlyAddedPhotosDate).format("MMM Do YYYY, dddd") !== "Invalid date"
-          ? moment(recentlyAddedPhotosDate).format("MMM Do YYYY, dddd")
-          : recentlyAddedPhotosDate
-      }
+      date={recentlyAddedPhotosDate}
       photoset={photosFlat}
       idx2hash={photosFlat}
       dayHeaderPrefix={t("photos.addedon")}
