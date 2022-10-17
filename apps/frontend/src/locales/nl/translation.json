@@ -130,7 +130,19 @@
         "portuguese": "Portugees",
         "basque": "Baskisch",
         "czech": "Tsjechisch",
-        "helptranslating": "Helpen met vertalen"
+        "helptranslating": "Helpen met vertalen",
+        "password": {
+            "errorcannotbeblank": "Voer een wachtwoord in",
+            "errormustretype": "Herhaal het wachtwoord",
+            "titlechangepassword": "Wachtwoord wijzigen",
+            "titlesetpassword": "Wachtwoord instellen",
+            "errormustmatch": "De wachtwoorden komen niet overeen",
+            "tooltipeditbutton": "Klik om het wachtwoord te wijzigen"
+        },
+        "inferredfacesconfidence": "Vertrouwde gezichten",
+        "albumoptions": "Albumopties",
+        "savechanges": "Wijzigingen opslaan?",
+        "inferredfacesconfidencehelp": "Voer een niveau tussen 0 en 1 in. Albums met foto's van personen met vertrouwde gezichten tonen de foto's indien de waarde hoger dan de opgegeven waarde ligt."
     },
     "topmenu": {
         "profile": "Profiel",
@@ -180,10 +192,10 @@
         "toggle": "Selectiemodus aan/uit"
     },
     "defaultheader": {
-        "setup": "Het lijkt er op dat LibrePhotos nog niet is ingesteld.",
+        "setup": "Voeg een te doorzoeken map toe om aan de slag te gaan met LibrePhotos.",
         "noimages": "Er zijn geen afbeeldingen aangetroffen",
         "photos": "foto's",
-        "gettingstarted": "Aan de slag",
+        "gettingstarted": "Gebruiker bewerken",
         "loading": "Bezig met laden…",
         "days": "dagen"
     },
@@ -250,7 +262,8 @@
         "name": "LibrePhotos",
         "login": "Inloggen",
         "confirmpasswordplaceholder": "Wachtwoord herhalen",
-        "errorusernameexists": "Er is al een gebruiker met deze gebruikersnaam."
+        "errorusernameexists": "Er is al een gebruiker met deze gebruikersnaam.",
+        "usernamelabel": "Gebruikersnaam"
     },
     "search": {
         "search": "Zoeken",
@@ -269,7 +282,12 @@
         "username": "Gebruikersnaam",
         "photocount": "Aantal foto's",
         "admintools": "Beheerdershulpmiddelen",
-        "deleteallautoalbums": "Alle automatisch samengestelde albums wissen"
+        "deleteallautoalbums": "Alle automatisch samengestelde albums wissen",
+        "deleteuserconfirmexplanation": "U staat op het punt om {{username}} te verwijderen. Alle bijbehorende gegevens worden eveneens verwijderd.",
+        "titledeleteuser": "Gebruiker verwijderen",
+        "cannotbeundone": "Let op: deze actie is onomkeerbaar.",
+        "cannotdeleteadmin": "De beheerder kan niet worden verwijderd",
+        "addnewuser": "Gebruiker toevoegen"
     },
     "joblist": {
         "workerlogs": "Werklogboek",
@@ -293,7 +311,9 @@
         "update": "Bijwerken",
         "explanation1": "Als de gebruiker",
         "header": "Stel de zoekmap in",
-        "explanation3": "Kies een map uit onderstaande lijst"
+        "explanation3": "Kies een map uit onderstaande lijst",
+        "pathdoesnotexist": "De locatie bestaat niet",
+        "mustspecifypath": "Geef een te doorzoeken map op"
     },
     "sitesettings": {
         "noallow": "Niet toestaan",
@@ -369,7 +389,8 @@
         "selectedfaces": "{{number}} geselecteerd",
         "explanationadding": "Toevoegen aan bestaand of nieuw gezicht",
         "explanationdeleting": "Gezicht en bijbehorende miniaturen verwijderen",
-        "explanationtraining": "Vergelijkbare gezichten zoeken"
+        "explanationtraining": "Vergelijkbare gezichten zoeken",
+        "notthisperson": "Gezichten verplaatsen naar ‘Onbekend - Overig’"
     },
     "socialgraph": "Sociale grafiek",
     "faceclusterexplanation": "Personen met gelijkaardige gezichten dienen dichter op elkaar te worden gegroepeerd. Klik op een punt om een label te tonen.",
@@ -447,7 +468,11 @@
         "scanuploadedphotos": "Bezig met scannen van geüploade foto's…",
         "scanuploadedphotostitle": "Geüploade foto's scannen",
         "deleteallautoalbums": "Alle automatisch samengestelde albums zijn gewist.",
-        "deleteallautoalbumstitle": "Alle automatisch samengestelde albums wissen"
+        "deleteallautoalbumstitle": "Alle automatisch samengestelde albums wissen",
+        "removefacestoperson": "Er is/zijn {{numberOfFaces}} gezicht(en) verplaatst naar ‘Onbekend - Overig’",
+        "deleteuser": "{{username}} is verwijderd",
+        "deleteusertitle": "Gebruiker verwijderen",
+        "removefacestopersontitle": "Gezichten van persoon verwijderen"
     },
     "rename": "Naam wijzigen",
     "events": "Gebeurtenissen",
@@ -505,5 +530,26 @@
     "defaulttimezone": "Standaard tijdzone",
     "timezoneexplain": "Deze tijdzone wodt gebruikt om tijdstempels om te zetten naar de tijdzone van de gebruiker",
     "sponsorus": "Ondersteun ons",
-    "supportus": "Ondersteun ons"
+    "supportus": "Ondersteun ons",
+    "exif": {
+        "showless": "Minder tonen",
+        "deleteduplicatetitle": "Duplicaat verwijderen",
+        "filepath": "Bestandslocatie",
+        "subjectdistance": "Onderwerpafstand",
+        "focallengthin35mmfilm": "Brandpuntafstand 35 mm",
+        "otherversions": "Andere versies",
+        "duplicates": "Duplicaten",
+        "showmore": "Meer tonen",
+        "deleteduplicate": "Weet je zeker dat je dit duplicaat wilt verwijderen?",
+        "digitalzoomratio": "Digitale zoomverhouding"
+    },
+    "modaluseredit": {
+        "header": "Gebruiker bewerken",
+        "createheader": "Gebruiker aanmaken",
+        "errorusernameexists": "Er is al een gebruiker met die naam",
+        "errorinvalidemail": "Voer een geldig e-mailadres in",
+        "errorusernamecannotbeblank": "Voer een gebruikersnaam in"
+    },
+    "save": "Opslaan",
+    "modify": "Bewerken"
 }
