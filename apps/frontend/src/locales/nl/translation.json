@@ -396,7 +396,8 @@
         "explanationadding": "Toevoegen aan bestaand of nieuw gezicht",
         "explanationdeleting": "Gezicht en bijbehorende miniaturen verwijderen",
         "explanationtraining": "Vergelijkbare gezichten zoeken",
-        "notthisperson": "Gezichten verplaatsen naar ‘Onbekend - Overig’"
+        "notthisperson": "Gezichten verplaatsen naar ‘Onbekend - Overig’",
+        "explanationvalidate": "Bevestig dat alle gezichten uit deze groep overeenkomen met de persoon in kwestie en voeg ze toe aan de overeenkomende id"
     },
     "socialgraph": "Sociale grafiek",
     "faceclusterexplanation": "Personen met gelijkaardige gezichten dienen dichter op elkaar te worden gegroepeerd. Klik op een punt om een label te tonen.",
@@ -559,5 +560,8 @@
         "errorusernamecannotbeblank": "Voer een gebruikersnaam in"
     },
     "save": "Opslaan",
-    "modify": "Bewerken"
+    "modify": "Bewerken",
+    "locationstimeline": {
+        "fromto": "{{location}} van {{start}} tot {{end}}"
+    }
 }
