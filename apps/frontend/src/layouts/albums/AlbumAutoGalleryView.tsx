@@ -1,11 +1,12 @@
 import { Avatar, AvatarsGroup, Breadcrumbs, Button, Divider, Group, Loader, Text, Title } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import _ from "lodash";
-import moment from "moment";
+import { DateTime  } from "luxon";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { Calendar, Map2, SettingsAutomation, Users } from "tabler-icons-react";
+import i18n from "../../i18n";
 
 import { fetchAlbumsAutoGalleries } from "../../actions/albumsActions";
 import { fetchPhotoDetail } from "../../actions/photosActions";
@@ -68,8 +69,8 @@ export function AlbumAutoGalleryView() {
     const subtitle = ` ${t("numberofphotos", {
       number: album.photos.length,
     })},
-        ${moment(album.photos[0].exif_timestamp).format("MMMM Do YYYY")} -
-        ${moment(album.photos[album.photos.length - 1].exif_timestamp).format(" MMMM Do YYYY")}`;
+        ${DateTime.fromISO(album.photos[0].exif_timestamp).setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString(DateTime.DATE_MED)} -
+        ${DateTime.fromISO(album.photos[album.photos.length - 1].exif_timestamp).setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString(DateTime.DATE_MED)}`;
     return (
       <div>
         <div style={{ paddingTop: 10, paddingRight: 5 }}>
@@ -141,7 +142,7 @@ export function AlbumAutoGalleryView() {
                   <Group>
                     <Calendar />
                     <div>
-                      <Title order={5}>{`Day ${i + 1} - ${moment(v[0]).format("MMMM Do YYYY")}`}</Title>
+                      <Title order={5}>{t("autoalbumgallery.day", {day: i + 1})} - {DateTime.fromISO(v[0]).setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString(DateTime.DATE_HUGE)}</Title>
                       <Text color="dimmed">
                         <Breadcrumbs separator="/">{uniqueLocations}</Breadcrumbs>
                       </Text>

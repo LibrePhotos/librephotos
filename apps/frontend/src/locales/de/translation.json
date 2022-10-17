@@ -141,6 +141,12 @@
         "cancel": "Abbrechen",
         "choosedirectory": "Wähle eine Ornder von unten aus"
     },
+    "modalphotosshare": {
+        "joined": "Beigetreten"
+    },
+    "modalalbumsshare": {
+        "joined": "Beigetreten"
+    },
     "topmenu": {
         "running": "Bearbeitet",
         "available": "Arbeiter verfügbar! Du kannst mehr Fotos scannen, Gesichter analysieren, Ereignis-Alben erstellen oder Titel für Ereignis-Alben neu generieren.",
@@ -326,7 +332,8 @@
     },
     "autoalbumgallery": {
         "showmap": "Zeige Karte",
-        "hidemap": "Verstecke Karte"
+        "hidemap": "Verstecke Karte",
+        "day": "Tag {{day}}"
     },
     "personalbum": {
         "numberofpeople": "{{peoplelength}} Personen",
@@ -490,7 +497,8 @@
         "items": "{{count}} Element(e)",
         "selectedimages": "Ausgewählte(s) {{count}} Foto(s) hinzufügen zu …",
         "placeholder": "Albumtitel",
-        "alreadyexists": "Das Album {{title}} existiert bereits."
+        "alreadyexists": "Das Album {{title}} existiert bereits.",
+        "updated": "Aktualisiert"
     },
     "confirm": "Bestätigen",
     "deleteface": "Gesichter löschen",

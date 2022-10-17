@@ -117,6 +117,11 @@
         "experimentaloptions": "Kokeelliset asetukset",
         "transcodevideo": "Transkoodaa videot aina"
     },
+    "autoalbumgallery": {
+        "showmap": "Näytä Kartta",
+        "hidemap": "Piilota Kartta",
+        "day": "Päivä {{day}}"
+    },
     "modalalbum": {
         "title": "Lisää albumiin",
         "alreadexists": "Albumi {{title}} on jo olemassa.",
@@ -124,12 +129,19 @@
         "newalbum": "Uusi albumi",
         "placeholder": "Albumin otsikko",
         "create": "Luo",
-        "items": "{{count}} kohde(tta)"
+        "items": "{{count}} kohde(tta)",
+        "updated": "Päivitetty"
     },
     "modalnextcloud": {
         "notset": "ei asetettu",
         "cancel": "Peruuta",
         "choosedirectory": "Valitse hakemisto alta"
+    },
+    "modalphotosshare": {
+        "joined": "Liittyi"
+    },
+    "modalalbumsshare": {
+        "joined": "Liittyi"
     },
     "topmenu": {
         "loggedin": "Kirjautuneena sisään",

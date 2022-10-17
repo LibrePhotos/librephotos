@@ -26,8 +26,8 @@ export const copyToClipboard = (str: string) => {
 export function adjustDateFormatForSingleGroup(group: DatePhotosGroup) {
   if (group.date != null) {
     group.date =
-      DateTime.fromISO(group.date).toLocaleString(DateTime.DATETIME_MED) !== "Invalid DateTime"
-        ? DateTime.fromISO(group.date).setLocale(i18n.resolvedLanguage.replace("_", "-")).toFormat("MMMM d yyyy, cccc")
+      DateTime.fromISO(group.date).isValid
+        ? DateTime.fromISO(group.date).setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString(DateTime.DATE_HUGE)
         : group.date;
   } else {
     group.date = i18n.t<string>("sidemenu.withouttimestamp");

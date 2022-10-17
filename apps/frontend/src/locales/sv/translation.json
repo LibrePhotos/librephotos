@@ -127,6 +127,9 @@
         "configdatetime": " Ange regler för tolkning av datumtid",
         "profile": "Profil"
     },
+    "modalalbum": {
+        "updated": "Uppdaterad"
+    },
     "modalnextcloud": {
         "setdirectory": "Ange lagringsplats i Nextcloud",
         "cancel": "Avbryt",
@@ -134,6 +137,12 @@
         "currentdirectory": "Nuvarande lagringsplats i Nextcloud",
         "update": "Uppdatera",
         "notset": "inte angiven"
+    },
+    "modalphotosshare": {
+        "joined": "Anslöt sig"
+    },
+    "modalalbumsshare": {
+        "joined": "Anslöt sig"
     },
     "topmenu": {
         "available": "Arbetare tillgänglig! Du kan börja söka efter fler bilder, tyda fler ansikten, generera händelsealbum eller generera namn på händelsealbum.",
@@ -304,7 +313,8 @@
     },
     "autoalbumgallery": {
         "showmap": "Visa karta",
-        "hidemap": "Dölj karta"
+        "hidemap": "Dölj karta",
+        "day": "Dag {{day}}"
     },
     "personalbum": {
         "personalreadyexists": "Person {{name}} finns redan.",

@@ -335,6 +335,12 @@
         "update": "Bijwerken",
         "cancel": "Annuleren"
     },
+    "modalphotosshare": {
+        "joined": "Deelgenomen"
+    },
+    "modalalbumsshare": {
+        "joined": "Deelgenomen"
+    },
     "rules": {
         "5": "Datum extraheren uit WhatsApp-bestandsnaam",
         "2": "Video-opnamedatumlabel in UTC en tijdzone berekenen op basis van gps-coördinaten",
@@ -496,7 +502,8 @@
     "myalbums": "Mijn albums",
     "autoalbumgallery": {
         "showmap": "Kaart tonen",
-        "hidemap": "Kaart verbergen"
+        "hidemap": "Kaart verbergen",
+        "day": "Dag {{day}}"
     },
     "scan": "Scannen",
     "dataviz": "Gegevensinzicht",
@@ -514,7 +521,8 @@
         "title": "Toevoegen aan album",
         "newalbum": "Nieuw album",
         "create": "Aanmaken",
-        "alreadyexists": "Er is al een album genaamd “{{title}}”."
+        "alreadyexists": "Er is al een album genaamd “{{title}}”.",
+        "updated": "Bijgewerkt"
     },
     "deleteface": "Gezichten verwijderen",
     "deletefaceexplanation": "Door deze actie worden de gezichten en alle bijbehorende gegevens verwijderd. Dit kan niet ongedaan worden gemaakt.",

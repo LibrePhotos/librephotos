@@ -153,6 +153,12 @@
         "cancel": "取消",
         "choosedirectory": "从下方选择目录"
     },
+    "modalphotosshare": {
+        "joined": "注册于"
+    },
+    "modalalbumsshare": {
+        "joined": "注册于"
+    },  
     "topmenu": {
         "busy": "忙碌中...",
         "loggedin": "登录为",
@@ -346,7 +352,8 @@
     },
     "autoalbumgallery": {
         "showmap": "显示地图",
-        "hidemap": "隐藏地图"
+        "hidemap": "隐藏地图",
+        "day": "天 {{day}}"
     },
     "personalbum": {
         "numberofpeople": "{{peoplelength}} 个人物",
@@ -515,7 +522,8 @@
         "alreadexists": "相册{{title}}已经存在。",
         "selectedimages": "将选定的 {{count}} 张照片添加到...",
         "placeholder": "相册标题",
-        "alreadyexists": "{{title}}相册已存在。"
+        "alreadyexists": "{{title}}相册已存在",
+        "updated": "更新"
     },
     "deleteface": "删除面孔",
     "deletefaceexplanation": "此操作将完全删除该人脸数据及相关的关联数据，且无法撤销。",

@@ -176,6 +176,12 @@
         "choosedirectory": "Escolher a diretoria da lista abaixo",
         "update": "Atualizar"
     },
+    "modalphotosshare": {
+        "joined": "Aderiu"
+    },
+    "modalalbumsshare": {
+        "joined": "Aderiu"
+    },
     "topmenu": {
         "available": "Trabalhador disponível! Pode começar a analisar mais fotos, inferir títulos para caras, criar álbuns de eventos automáticos ou regenerar títulos de álbuns de eventos automáticos.",
         "profile": "Perfil",
@@ -224,7 +230,8 @@
         "placeholder": "Título do álbum",
         "create": "Criar",
         "items": "{{count}} Item(s)",
-        "alreadyexists": "Álbum {{title}} já existe."
+        "alreadyexists": "Álbum {{title}} já existe.",
+        "updated": "Atualizado"
     },
     "lightbox": {
         "sidebar": {
@@ -335,7 +342,8 @@
     },
     "autoalbumgallery": {
         "showmap": "Mostrar mapa",
-        "hidemap": "Ocultar mapa"
+        "hidemap": "Ocultar mapa",
+        "day": "Dia {{day}}"
     },
     "personalbum": {
         "numberofpeople": "{{peoplelength}} Pessoas",

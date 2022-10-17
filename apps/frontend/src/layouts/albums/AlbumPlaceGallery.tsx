@@ -1,4 +1,3 @@
-import moment from "moment";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
@@ -17,15 +16,6 @@ export function AlbumPlaceGallery() {
   const fetchingAlbumsPlace = useAppSelector(store => store.albums.fetchingAlbumsPlace);
 
   const groupedPhotos = albumID ? albumsPlace[albumID] : undefined;
-  if (groupedPhotos) {
-    groupedPhotos.grouped_photos.forEach(
-      group =>
-        (group.date =
-          moment(group.date).format("MMM Do YYYY, dddd") !== "Invalid date"
-            ? moment(group.date).format("MMM Do YYYY, dddd")
-            : group.date)
-    );
-  }
 
   useEffect(() => {
     if (albumID) {

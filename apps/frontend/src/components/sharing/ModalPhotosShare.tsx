@@ -1,7 +1,9 @@
 import { ActionIcon, Avatar, Divider, Group, Modal, ScrollArea, Stack, Text, TextInput, Title } from "@mantine/core";
-import moment from "moment";
+import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import { Share, ShareOff } from "tabler-icons-react";
+import { useTranslation } from "react-i18next";
+import i18n from "../../i18n";
 
 import { setPhotosShared } from "../../actions/photosActions";
 import { fetchPublicUserList } from "../../actions/publicActions";
@@ -23,6 +25,7 @@ type Props = {
 };
 // To-Do: Add missing locales
 export function ModalPhotosShare(props: Props) {
+  const { t } = useTranslation();
   const [userNameFilter, setUserNameFilter] = useState("");
   const [valShare] = useState(false);
 
@@ -98,7 +101,7 @@ export function ModalPhotosShare(props: Props) {
                     <Stack spacing="xs">
                       <Title order={4}>{displayName}</Title>
                       <Text size="sm" color="dimmed">
-                        Joined {moment(item.date_joined).format("MMMM YYYY")}
+                        {t("modalphotosshare.joined")} {DateTime.fromISO(item.date_joined).setLocale(i18n.resolvedLanguage.replace("_", "-")).toRelative()}
                       </Text>
                     </Stack>
                   </Group>

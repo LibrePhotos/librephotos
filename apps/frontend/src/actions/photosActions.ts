@@ -7,7 +7,7 @@ import { Server } from "../api_client/apiClient";
 import i18n from "../i18n";
 import { PhotosetType } from "../reducers/photosReducer";
 import type { AppDispatch } from "../store/store";
-import { adjustDateFormat, getPhotosFlatFromGroupedByDate, getPhotosFlatFromGroupedByUser } from "../util/util";
+import { getPhotosFlatFromGroupedByDate, getPhotosFlatFromGroupedByUser } from "../util/util";
 import type { DatePhotosGroup, Photo, PigPhoto, SimpleUser } from "./photosActions.types";
 import { DatePhotosGroupSchema, PhotoSchema, PigPhotoSchema, SharedFromMePhotoSchema } from "./photosActions.types";
 
@@ -528,7 +528,6 @@ export function fetchHiddenPhotos(dispatch: AppDispatch) {
     .then(response => {
       const data = _FetchPhotosByDateSchema.parse(response.data);
       const photosGroupedByDate: DatePhotosGroup[] = data.results;
-      adjustDateFormat(photosGroupedByDate);
       dispatch({
         type: FETCH_PHOTOSET_FULFILLED,
         payload: {

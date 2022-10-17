@@ -1,11 +1,12 @@
 import { ActionIcon, Button, Group, Text } from "@mantine/core";
 import { DatePicker } from "@mantine/dates";
-import * as moment from "moment";
+import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-virtualized/styles.css";
 // only needs to be imported once
 import { Calendar, Check, Edit, X } from "tabler-icons-react";
+import i18n from "../../i18n";
 
 import { editPhoto } from "../../actions/photosActions";
 
@@ -53,9 +54,16 @@ export function TimestampItem(props: Props) {
         <div>
           <Button color="dark" variant="subtle" onClick={() => setEditMode(!editMode)} rightIcon={<Edit />}>
             <div>
-              {moment.utc(props.photoDetail.exif_timestamp).format("MMMM Do YYYY")}
+              {DateTime.fromISO(props.photoDetail.exif_timestamp).isValid
+                ? DateTime.fromISO(props.photoDetail.exif_timestamp).setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString(DateTime.DATE_MED)
+                : null}
               <Text size="xs" color="dimmed">
-                {moment.utc(props.photoDetail.exif_timestamp).format("dddd, h:mm a")}
+              {DateTime.fromISO(props.photoDetail.exif_timestamp).isValid
+                  ? DateTime.fromISO(props.photoDetail.exif_timestamp).setLocale(i18n.resolvedLanguage.replace("_", "-")).toFormat('cccc, ')
+                  : null} 
+              {DateTime.fromISO(props.photoDetail.exif_timestamp).isValid
+                  ? DateTime.fromISO(props.photoDetail.exif_timestamp).setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString(DateTime.TIME_SIMPLE)
+                  : null}
               </Text>
             </div>
           </Button>

@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
 import { Calendar, ChevronDown, Clock, EyeOff, Globe, Star } from "tabler-icons-react";
+import { DateTime } from 'luxon';
+import i18n from "../../i18n";
 
 import { useFetchUserListQuery } from "../../api_client/api";
 import { useAppDispatch, useAppSelector } from "../../store/store";
@@ -155,7 +157,11 @@ export function DefaultHeader(props: Props) {
       </Group>
       <Group position="right">
         <Text>
-          <b>{dayHeaderPrefix ? dayHeaderPrefix + date : date}</b>
+          <b>{dayHeaderPrefix}{
+            DateTime.fromISO(date).isValid
+            ? DateTime.fromISO(date).setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString(DateTime.DATE_HUGE)
+            : date
+          }</b>
         </Text>
       </Group>
     </Group>

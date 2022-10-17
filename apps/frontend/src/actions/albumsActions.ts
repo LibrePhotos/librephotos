@@ -9,8 +9,6 @@ import { PhotosetType } from "../reducers/photosReducer";
 import type { AppDispatch } from "../store/store";
 import {
   addTempElementsToGroups,
-  adjustDateFormat,
-  adjustDateFormatForSingleGroup,
   getPhotosFlatFromGroupedByDate,
 } from "../util/util";
 import type {
@@ -105,7 +103,6 @@ export function fetchUserAlbum(album_id: number) {
       .then(response => {
         const data = UserAlbumSchema.parse(response.data);
         const photosGroupedByDate: DatePhotosGroup[] = data.grouped_photos;
-        adjustDateFormat(photosGroupedByDate);
         const albumDetails: UserAlbumDetails = data;
         dispatch({
           type: FETCH_USER_ALBUM_FULFILLED,
@@ -360,7 +357,6 @@ export function fetchAlbumDateList(dispatch: AppDispatch, options: AlbumDateList
     .then(response => {
       const data = _FetchDateAlbumsListResponseSchema.parse(response.data);
       const photosGroupedByDate: IncompleteDatePhotosGroup[] = data.results;
-      adjustDateFormat(photosGroupedByDate);
       addTempElementsToGroups(photosGroupedByDate);
       dispatch({
         type: "FETCH_DATE_ALBUMS_LIST_FULFILLED",
@@ -402,7 +398,6 @@ export function fetchAlbumDate(dispatch: AppDispatch, options: AlbumDateOption) 
   )
     .then(response => {
       const datePhotosGroup: IncompleteDatePhotosGroup = IncompleteDatePhotosGroupSchema.parse(response.data.results);
-      adjustDateFormatForSingleGroup(datePhotosGroup);
       dispatch({
         type: "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED",
         payload: {

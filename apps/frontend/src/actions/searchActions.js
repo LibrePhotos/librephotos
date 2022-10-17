@@ -1,5 +1,5 @@
 import { Server } from "../api_client/apiClient";
-import { adjustDateFormat, getPhotosFlatFromGroupedByDate } from "../util/util";
+import { getPhotosFlatFromGroupedByDate } from "../util/util";
 import { _FetchPlaceAlbumsListResponseSchema, _FetchThingAlbumsListResponseSchema } from "./albumActions.types";
 import { PersonList } from "./peopleActions.types";
 
@@ -18,7 +18,6 @@ export function searchPhotos(query) {
           //To-Do: Handle flat list from semantic search
           //const data = DatePhotosGroupSchema.array().parse(response.data.results);
           const photosGroupedByDate = response.data.results;
-          adjustDateFormat(photosGroupedByDate);
           dispatch({
             type: SEARCH_PHOTOS_FULFILLED,
             payload: {

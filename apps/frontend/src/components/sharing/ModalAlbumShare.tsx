@@ -11,10 +11,11 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import moment from "moment";
+import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Share } from "tabler-icons-react";
+import i18n from "../../i18n";
 
 import { setUserAlbumShared } from "../../actions/albumsActions";
 import { fetchPublicUserList } from "../../actions/publicActions";
@@ -35,7 +36,7 @@ type Props = {
   selectedImageHashes: any;
 };
 //To-Do: Add missing locales
-export const ModalAlbumShare = (props: Props) => {
+export function ModalAlbumShare (props: Props) {
   const [userNameFilter, setUserNameFilter] = useState("");
   const [opened, setOpened] = useState(false);
 
@@ -117,7 +118,8 @@ export const ModalAlbumShare = (props: Props) => {
                       )}
                     </Group>
                   </Title>
-                  <Text>Joined {moment(item.date_joined).format("MMMM YYYY")}</Text>
+                  <Text size="sm" color="dimmed">
+                    {t("modalphotosshare.joined")} {DateTime.fromISO(item.date_joined).setLocale(i18n.resolvedLanguage.replace("_", "-")).toRelative()}</Text>
                   <Switch
                     checked={albumDetails.shared_to && albumDetails.shared_to.map(e => e.id).includes(item.id)}
                     onChange={event => {
