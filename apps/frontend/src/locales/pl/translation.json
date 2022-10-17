@@ -65,6 +65,55 @@
         "small": "Mała",
         "statusscanphotosfalse": "Skanuj zdjęcia (system plików)",
         "profile": "Profil",
-        "polish": "Polski"
+        "polish": "Polski",
+        "confidencepercentage": "Pewność: {{percentage}}%",
+        "faces": "Twarze",
+        "people": "Ludzie",
+        "inferred": "Wywnioskowane",
+        "facessmall": "twarze",
+        "labeled": "Oznaczone",
+        "unknown": "Nieznany",
+        "facedashboard": "Pulpit widoku twarzy",
+        "scanoptions": "Opcje skanowania",
+        "confidence": {
+            "high": "Wysoki",
+            "none": "Brak",
+            "standard": "Norma",
+            "low": "Niski"
+        },
+        "metadata": "Opcje metadanych",
+        "sync": "Synchronizuj metadane z dyskiem",
+        "favoritesyncoptions": {
+            "off": "Wyłączony",
+            "sidecar": "Zapisywanie do pliku sidecar",
+            "mediafile": "Zapisz do pliku multimedialnego"
+        },
+        "eventsalbumsdescription": "Serwer przetwarzający w tle najpierw pogrupuje zdjęcia według czasu wykonania. Jeśli dwa kolejne zdjęcia zostaną zrobione w odstępie 12 godzin od siebie, uważa się, że dwa zdjęcia pochodzą z tego samego wydarzenia. Po ułożeniu grup w ten sposób automatycznie generuje tytuł dla tego albumu.",
+        "eventalbumsregenerate": "Regeneruj tytuły wydarzeń",
+        "facesbutton": "Wytrenuj twarze",
+        "rescanfaces": "Ponownie zeskanuj twarze",
+        "sceneconfidence": "Pewność dla scen",
+        "confidencelevel": "Poziom zaufania",
+        "semanticsearchheader": "Maks. wyniki wyszukiwania semantycznego",
+        "semanticsearch": {
+            "placeholder": "Wyniki wyszukiwania semantycznego",
+            "top100": "Top 100",
+            "top50": "Top 50",
+            "top10": "Top 10",
+            "top0": "Wyłączone"
+        },
+        "semanticsearchupdate": "Aktualizacja",
+        "favorite": "Ulubione opcje",
+        "favoriteminimum": "Minimalna ocena zdjęcia do interpretacji jako ulubione",
+        "favoriteoption": {
+            "placeholder": "Minimalna ocena"
+        },
+        "favoriteupdate": "Aktualizacja",
+        "experimentaloptions": "Opcje eksperymentalne",
+        "inferredfacesconfidence": "Współczynnik ufności dla twarzy",
+        "albumoptions": "Opcje albumu",
+        "savechanges": "Zapisz zmiany?",
+        "eventalbumsregeneratedescription": "Albumy generowane automatycznie mają w tytułach nazwiska osób. Jeśli wytrenowałeś klasyfikator twarzy po utworzeniu albumów wydarzeń, możesz generować nowe tytuły dla już istniejących albumów wydarzeń, aby odzwierciedlić nowe nazwy powiązane z twarzami na zdjęciach.",
+        "inferredfacesconfidencehelp": "Wprowadź poziom ufności z zakresu od 0 do 1. W przypadku albumów zawierających osobę pojawią się wywnioskowane twarze o poziomie ufności wyższym niż ta wartość."
     }
 }
