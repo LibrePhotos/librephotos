@@ -534,7 +534,7 @@ class Photo(models.Model):
         self.width = width
         self.height = height
         self.focalLength35Equivalent = focalLength35Equivalent
-        if subjectDistance and isinstance(digitalZoomRatio, numbers.Number):
+        if subjectDistance and isinstance(subjectDistance, numbers.Number):
             self.subjectDistance = subjectDistance
         if digitalZoomRatio and isinstance(digitalZoomRatio, numbers.Number):
             self.digitalZoomRatio = digitalZoomRatio
