@@ -513,5 +513,9 @@
     },
     "defaulttimezone": "Fuseau horaire par défaut",
     "sync": "Synchronisation des métadonnées sur le disque",
-    "supportus": "Nous soutenir"
+    "supportus": "Nous soutenir",
+    "locationstimeline": {
+        "fromto": "{{location}} de {{start}} à {{end}}"
+    }
 }
+

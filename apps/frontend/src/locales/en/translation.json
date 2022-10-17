@@ -557,5 +557,8 @@
     "source_tz": "Transform from {{rule}}",
     "report_tz": "Transform to {{rule}}",
     "predefined_regexp": "Use predefined regular expression: {{rule}}"
+  },
+  "locationstimeline": {
+    "fromto": "{{location}} from {{start}} to {{end}}"
   }
 }
