@@ -233,6 +233,7 @@ export const FaceDashboard = () => {
             style={style}
             width={width}
             cell={cell}
+            alreadyLabeled={activeItem === 0}
             entrySquareSize={entrySquareSize}
             selectedFaces={selectedFaces}
             setSelectedFaces={setSelectedFaces}
