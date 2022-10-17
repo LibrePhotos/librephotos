@@ -76,7 +76,7 @@ export class AlbumsShared extends Component {
       ).cellContents;
     } else {
       albumGridContents = calculateSharedPhotoGridCells(
-        nextProps.albums.albumsSharedToMe,
+        nextProps.albums.albumsSharedFromMe,
         prevState.numEntrySquaresPerRow
       ).cellContents;
     }

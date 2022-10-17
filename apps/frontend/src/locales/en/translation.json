@@ -426,6 +426,7 @@
     "explanationadding": "Add to an existing face ID or create a new face ID",
     "explanationdeleting": "Delete the face and it's thumbnails",
     "explanationtraining": "Identify similar faces and try to find matches",
+    "explanationvalidate": "Confirm that all faces from this group match with this person and add them to the corresponding face ID",
     "notthisperson":  "Move the faces back to 'Unknown - Other'"
   },
   "scan": "Scan",

@@ -1,10 +1,16 @@
-import { Chip, Divider, Group, Stack, Text } from "@mantine/core";
+import { ActionIcon, Chip, Divider, Group, Stack, Text, Tooltip } from "@mantine/core";
+import { showNotification } from "@mantine/notifications";
 import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { UserCheck, } from "tabler-icons-react";
+import { api } from "../../api_client/api";
+import { useAppDispatch } from "../../store/store";
+import i18n from "../../i18n";
 
 type Props = {
   cell: any;
+  alreadyLabeled: boolean;
   width: number;
   style: any;
   key: any;
@@ -14,6 +20,7 @@ type Props = {
 };
 
 export function HeaderComponent(props: Props) {
+  const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const { cell, width } = props;
 
@@ -29,6 +36,22 @@ export function HeaderComponent(props: Props) {
       setSelectedFaces(remainingFaces);
     }
     setChecked(!checked);
+  };
+
+  const confirmFacesAssociation = (cell) => {
+      const facesToAddIDs = cell.faces.map(i => i.id);
+      const personName = cell.name;
+      dispatch(
+        api.endpoints.setFacesPersonLabel.initiate({ faceIds: facesToAddIDs, personName: personName })
+      );
+      showNotification({
+        message: i18n.t<string>("toasts.addfacestoperson", {
+          numberOfFaces: facesToAddIDs.length,
+          personName: personName,
+        }),
+        title: i18n.t<string>("toasts.addfacestopersontitle"),
+        color: "teal",
+      });
   };
 
   useEffect(() => {
@@ -54,6 +77,17 @@ export function HeaderComponent(props: Props) {
         <Chip variant="filled" radius="xs" size="lg" checked={checked} onChange={handleClick}>
           {cell.name}
         </Chip>
+        {!props.alreadyLabeled && !(props.cell.kind === 'CLUSTER') && <Tooltip label={t("facesdashboard.explanationvalidate")}>
+            <ActionIcon
+              variant="light"
+              color="green"
+              disabled={false}
+              onClick={() => confirmFacesAssociation(cell)}
+            >
+              <UserCheck />
+            </ActionIcon>
+          </Tooltip>
+        }
         <Text color="dimmed">
           {t("facesdashboard.numberoffaces", {
             number: cell.faces.length,
