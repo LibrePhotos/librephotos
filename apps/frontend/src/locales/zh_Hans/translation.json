@@ -1,10 +1,10 @@
 {
     "settings": {
         "account": "账户",
-        "uploadheader": "上传头像",
+        "uploadheader": "上传新头像",
         "image": "选择图片",
         "upload": "上传",
-        "filesize": "限定最大文件尺寸200 kB。",
+        "filesize": "允许的最大文件尺寸为 200 kB。",
         "accountinformation": "账户信息",
         "firstname": "名",
         "lastname": "姓",
@@ -12,9 +12,9 @@
         "email": "电子邮箱",
         "emailplaceholder": "电子邮箱",
         "language": "选择语言",
-        "german": "德语",
-        "english": "英语",
-        "spanish": "西班牙语",
+        "german": "German",
+        "english": "English",
+        "spanish": "Spanish",
         "updateaccountinformation": "保存用户设置",
         "cancel": "取消",
         "scandirectory": "扫描文件夹",
@@ -110,13 +110,13 @@
         "nextcloudpasswordplaceholder": "Nextcloud应用认证码",
         "firstnameplaceholder": "名",
         "nextcloudchange": "修改",
-        "french": "法语",
+        "french": "French",
         "sceneconfidence": "识别置信度",
         "favoriteupdate": "保存",
         "scanoptions": "扫描选项",
         "simplifiedchinese": "简体中文",
-        "norwegianbokmal": "挪威语",
-        "italian": "意大利语",
+        "norwegianbokmal": "Norwegian Bokml",
+        "italian": "Italian",
         "swedish": "Svenska",
         "japanese": "日本語",
         "russian": "Русский",
@@ -131,7 +131,19 @@
         "finnish": "芬兰语",
         "czech": "捷克语",
         "helptranslating": "帮助翻译",
-        "basque": "巴斯克语"
+        "basque": "Basque",
+        "savechanges": "保存更改？",
+        "albumoptions": "相册选项",
+        "inferredfacesconfidence": "人脸分析置信度",
+        "inferredfacesconfidencehelp": "输入介于 0 和 1 之间的可信度。对于显示人物的相册，将显示可信度高于此值的人脸。",
+        "password": {
+            "errormustmatch": "密码必须匹配",
+            "errorcannotbeblank": "密码不能为空",
+            "errormustretype": "你必须重新输入密码",
+            "titlechangepassword": "更改密码",
+            "titlesetpassword": "设置密码",
+            "tooltipeditbutton": "点击更改密码"
+        }
     },
     "modalnextcloud": {
         "setdirectory": "设置Nextcloud扫描目录",
@@ -179,7 +191,7 @@
         "publicphotos": "公开的照片",
         "youshared": "我共享的",
         "sharedwithyou": "共享给我的",
-        "facerecognition": "人脸识别",
+        "facerecognition": "人脸",
         "dataviz": "数据可视化"
     },
     "selectionbar": {
@@ -189,11 +201,11 @@
         "select": "全选"
     },
     "defaultheader": {
-        "gettingstarted": "开始使用",
+        "gettingstarted": "编辑用户",
         "loading": "加载中...",
         "days": "天",
         "photos": "照片",
-        "setup": "LibrePhotos 似乎还没有完成设置。",
+        "setup": "要开始使用 LibrePhotos，请设置用户的扫描目录。",
         "noimages": "未找到图片"
     },
     "selectionactions": {
@@ -259,7 +271,8 @@
         "username": "用户名",
         "errorusernameexists": "此用户名已存在。",
         "erroremail": "输入有效的电子邮件地址。",
-        "firsttimesetup": "初始设置"
+        "firsttimesetup": "初始设置",
+        "usernamelabel": "用户名"
     },
     "search": {
         "search": "搜索",
@@ -276,7 +289,14 @@
         "photocount": "照片数量",
         "joined": "注册于",
         "notset": "未设置",
-        "remove": "移除"
+        "remove": "移除",
+        "cannotbeundone": "此操作无法撤消。",
+        "deleteallautoalbums": "删除所有自动创建的相册",
+        "admintools": "管理员工具",
+        "deleteuserconfirmexplanation": "您即将删除以下用户：{{username}}。 这将删除所有相关数据。",
+        "titledeleteuser": "删除用户",
+        "cannotdeleteadmin": "无法删除管理员用户",
+        "addnewuser": "添加新用户"
     },
     "joblist": {
         "workerlogs": "操作日志",
@@ -300,7 +320,9 @@
         "currentdirectory": "用户的当前目录",
         "notset": "未设置",
         "update": "保存",
-        "explanation3": "从下方选择目录"
+        "explanation3": "从下方选择目录",
+        "pathdoesnotexist": "文件路径不存在",
+        "mustspecifypath": "您必须指定一个图片扫描目录"
     },
     "sitesettings": {
         "allow": "开放",
@@ -318,7 +340,9 @@
         "photos": "照片"
     },
     "autoalbum": {
-        "subtitle": "显示 {{ autoalbumlength }} 个自动生成的专辑"
+        "subtitle": "显示 {{ autoalbumlength }} 个自动生成的专辑",
+        "delete": "删除自动相册",
+        "deleteexplanation": "你确定删除自动相册吗？"
     },
     "autoalbumgallery": {
         "showmap": "显示地图",
@@ -328,7 +352,9 @@
         "numberofpeople": "{{peoplelength}} 个人物",
         "renameperson": "修改姓名",
         "personalreadyexists": "人物 {{name}} 已存在。",
-        "nameplaceholder": "姓名"
+        "nameplaceholder": "姓名",
+        "deleteperson": "删除人物",
+        "deletepersondescription": "你真的要删除这个人物吗？"
     },
     "placealbum": {
         "showingplaces": "在地图上显示 {{number}} 个地点",
@@ -355,7 +381,8 @@
         "selectedfaces": "已选择 {{number}} 个",
         "explanationadding": "添加到已存在的人脸ID或新建人脸ID",
         "explanationdeleting": "删除人脸及其缩略图",
-        "explanationtraining": "训练分类器自动标记人脸"
+        "explanationtraining": "识别相似的人脸并尝试匹配",
+        "notthisperson": "将人脸移回“未知 - 其他”"
     },
     "scan": "扫描",
     "socialgraph": "社交图谱",
@@ -379,10 +406,10 @@
     "toasts": {
         "createalbumtitle": "创建专辑",
         "addfacestopersontitle": "标记人脸",
-        "trainingstartedtitle": "训练人脸分类",
+        "trainingstartedtitle": "人脸识别",
         "rescanfacestitle": "重新扫描人脸",
         "deletepersontitle": "删除人物",
-        "deleteperson": "已删除的人物",
+        "deleteperson": "人物已删除",
         "setcoverphoto": "封面图片",
         "setcoverphototitle": "设置封面图片",
         "sharephototitle": "共享照片",
@@ -409,8 +436,8 @@
         "sharingalbumtitle": "共享专辑",
         "unsharingalbum": "未共享的专辑",
         "unsharingalbumtitle": "取消共享专辑",
-        "trainingstarted": "训练开始",
-        "unsharephoto": "已将 {{numberOfPhotos}} 张照片分享给 {{username}}",
+        "trainingstarted": "分析开始",
+        "unsharephoto": "已将 {{numberOfPhotos}} 张照片取消分享给 {{username}}",
         "createnewalbum": "已添加 {{numberOfPhotos}} 张照片到专辑 {{title}}",
         "fullscanphotostitle": "扫描图片（全盘）",
         "viewalbum": "查看专辑",
@@ -418,7 +445,7 @@
         "addfacestoperson": "已将 {{numberOfFaces}} 张人脸标记为 {{personName}}",
         "deletefaces": "已删除 {{numberOfFaces}} 张人脸",
         "deletefacestitle": "删除人脸",
-        "renameperson": "已将 {{personName}} 重命名为 {{newPersonName}}",
+        "renameperson": "已将人物 {{personName}} 重命名为 {{newPersonName}}",
         "rescanfaces": "扫描开始",
         "favoritephoto": "已将 {{numberOfPhotos}} 张照片添加到您最爱的照片。",
         "sharephoto": "已将 {{numberOfPhotos}} 张照片分享给 {{username}}",
@@ -444,7 +471,13 @@
         "deletejob": "任务 {{id}} 已被删除。",
         "uploadsuccess": "上传成功",
         "scanuploadedphotos": "正在扫描上载的照片…",
-        "scanuploadedphotostitle": "扫描上传的照片"
+        "scanuploadedphotostitle": "扫描上传的照片",
+        "removefacestopersontitle": "从人物中删除人脸",
+        "removefacestoperson": "{{numberOfFaces}} 个人脸已移至“未知 - 其他”",
+        "deleteallautoalbums": "所有自动创建的相册都已删除。",
+        "deleteallautoalbumstitle": "删除所有自动创建的相册",
+        "deleteuser": "{{username}}已删除",
+        "deleteusertitle": "删除用户"
     },
     "rules": {
         "1": "提取EXIF中的DATE_TIME_ORIGINAL作为当地时间",
@@ -482,16 +515,41 @@
         "alreadexists": "相册{{title}}已经存在。",
         "selectedimages": "将选定的 {{count}} 张照片添加到...",
         "placeholder": "相册标题",
-        "alreadyexists": "{{title}}相册已存在"
+        "alreadyexists": "{{title}}相册已存在。"
     },
     "deleteface": "删除面孔",
     "deletefaceexplanation": "此操作将完全删除该人脸数据及相关的关联数据，且无法撤销。",
     "confirm": "确认",
     "cancel": "取消",
     "favoritesyncoptions": {
-        "off": "关"
+        "off": "关",
+        "sidecar": "保存到Sidecar文件",
+        "mediafile": "保存到媒体文件"
     },
     "defaulttimezone": "默认时区",
     "timezoneexplain": "此时区用于将时间戳转换为用户的默认时区",
-    "sync": "同步元数据到磁盘"
+    "sync": "同步元数据到磁盘",
+    "exif": {
+        "filepath": "文件路径",
+        "digitalzoomratio": "数码变焦比",
+        "focallengthin35mmfilm": "等效焦距 35mm",
+        "otherversions": "其他版本",
+        "subjectdistance": "被摄体距离",
+        "duplicates": "重复项",
+        "showmore": "显示更多",
+        "deleteduplicate": "您确定要删除此重复项吗？",
+        "deleteduplicatetitle": "删除重复项",
+        "showless": "显示更少"
+    },
+    "save": "保存",
+    "metadata": "元数据选项",
+    "supportus": "支持我们",
+    "modaluseredit": {
+        "header": "编辑用户",
+        "createheader": "创建用户",
+        "errorusernameexists": "已存在同名用户",
+        "errorusernamecannotbeblank": "用户名不能为空",
+        "errorinvalidemail": "输入一个有效的电子邮件地址"
+    },
+    "modify": "调整"
 }
