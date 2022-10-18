@@ -8,7 +8,7 @@
         "accountinformation": "Informacje o koncie",
         "simplifiedchinese": "Chiński (uproszczony)",
         "russian": "Rosyjski",
-        "nextcloudpassword": "Nextcloud Hasło Aplikacji",
+        "nextcloudpassword": "Nextcloud hasło aplikacji",
         "nextcloudpasswordplaceholder": "Nextcloud hasło aplikacji",
         "nextcloudupdate": "Uaktualnij dane do logowania Nextcloud",
         "nextcloudloggedin": "Zalogowany do Nextcloud",
@@ -43,7 +43,7 @@
         "language": "Wybierz język",
         "italian": "Włoski",
         "cancel": "Anuluj",
-        "scandirectory": "Skanuj Katalog",
+        "scandirectory": "Skanuj katalog",
         "change": "Zmień",
         "english": "Angielski",
         "french": "Francuski",
@@ -57,7 +57,7 @@
         "nextcloudheader": "Nextcloud",
         "nextcloudusername": "Nazwa użytkownika",
         "credentials": "Dane logowania",
-        "nextcloudusernameplaceholder": "Nazwa Użytkownika",
+        "nextcloudusernameplaceholder": "Nazwa użytkownika",
         "nextcloudscandirectory": "Nextcloud Skanowanie Katalogu",
         "nextcloudcancel": "Anuluj",
         "nextcloudnotloggedin": "Niezalogowany do Nextcloud",
@@ -114,7 +114,7 @@
         "experimentaloptions": "Opcje eksperymentalne",
         "inferredfacesconfidence": "Współczynnik ufności dla twarzy",
         "albumoptions": "Opcje albumu",
-        "savechanges": "Zapisz zmiany?",
+        "savechanges": "Zapisać zmiany?",
         "eventalbumsregeneratedescription": "Albumy generowane automatycznie mają w tytułach nazwiska osób. Jeśli wytrenowałeś klasyfikator twarzy po utworzeniu albumów wydarzeń, możesz generować nowe tytuły dla już istniejących albumów wydarzeń, aby odzwierciedlić nowe nazwy powiązane z twarzami na zdjęciach.",
         "inferredfacesconfidencehelp": "Wprowadź poziom ufności z zakresu od 0 do 1. W przypadku albumów zawierających osobę pojawią się wywnioskowane twarze o poziomie ufności wyższym niż ta wartość.",
         "experimentalupdate": "Aktualizuj",
@@ -132,17 +132,17 @@
             "titlechangepassword": "Zmiana hasła"
         },
         "configdatetime": " Ustaw zasady przetwarzania czasu i daty",
-        "finnish": "fiński",
-        "portuguese": "portugalski",
-        "basque": "baskijski",
-        "czech": "czeski",
+        "finnish": "Fiński",
+        "portuguese": "Portugalski",
+        "basque": "Baskijski",
+        "czech": "Czeski",
         "statusrescanphotosfalse": "Przeskanuj wszystkie zdjęcia (system plików)",
         "missingphotos": "Brakujące zdjęcia",
         "off": "Wyłączony",
-        "helptranslating": "Pomóż tłumaczyć",
+        "helptranslating": "Pomóż w tłumaczeniu",
         "missingphotosbutton": "Usuń brakujące zdjęcia",
         "eventalbumsgenerate": "Wygeneruj albumy wydarzeń",
-        "dutch": "holenderski"
+        "dutch": "Holenderski"
     },
     "topmenu": {
         "loggedin": "Zalogowany jako",
@@ -336,9 +336,10 @@
         "placeholder": "Tytuł albumu",
         "title": "Dodaj do albumu",
         "create": "Stwórz",
-        "items": "{{count}} obiektów",
+        "items": "{{count}} obiekt(ów)",
         "alreadyexists": "Album {{title}} już istnieje.",
-        "selectedimages": "Dodaj {{count}} wybranych zdjęć do..."
+        "selectedimages": "Dodaj {{count}} wybranych zdjęć do...",
+        "updated": "Zaktualizowano {{duration}}"
     },
     "exif": {
         "deleteduplicate": "Czy jesteś pewny, że chcesz usunąć ten duplikat?",
@@ -439,7 +440,15 @@
         "trainingstarted": "Analiza rozpoczęta",
         "trainingstartedtitle": "Rozpoznawanie twarzy",
         "sharephoto": "{{numberOfPhotos}} zdjęć udostępniono użytkownikowi {{username}}",
-        "setpublicphotostitle": "Ustaw jako zdjęcia publiczne"
+        "setpublicphotostitle": "Ustaw jako zdjęcia publiczne",
+        "removefacestopersontitle": "Usuń twarze z osoby",
+        "deleteuser": "{{username}} usunięty",
+        "deleteusertitle": "Usuń użytkownika",
+        "deletemissingphotostitle": "Usuń brakujące zdjęcia",
+        "deletejob": "Zadanie {{id}} usunięte.",
+        "deletejobtitle": "Usuń zadanie",
+        "jobfinished": "{{job}} zakończone.",
+        "deletemissingphotos": "Usuwanie brakujących zdjęć…"
     },
     "personedit": {
         "labelfaces": "Opisz twarz",
@@ -463,7 +472,14 @@
         "13": "Użyj tagu Composite:GPSDateTime w strefie czasowej UTC (nie można ustalić właściwej strefy czasowej)",
         "15": "Lokalny czas z tagu EXIF:DateTime",
         "2": "Uzyskaj czas utworzenia wideo w UTC + ustal strefę czasową na podstawie koordynat GPS",
-        "10": "Czas utworzenia pliku w strefie czasowej UTC"
+        "10": "Czas utworzenia pliku w strefie czasowej UTC",
+        "1": "Czas lokalny z tagu exif DATE_TIME_ORIGINAL",
+        "report_tz": "Przekształć w {{rule}}",
+        "predefined_regexp": "Użyj predefiniowanego wyrażenia regularnego: {{rule}}",
+        "rule_type": "Typ reguły: {{rule}}",
+        "exif_tag": "Użyj Exiftag {{rule}}",
+        "file_property": "Użyj właściwości pliku {{rule}}",
+        "source_tz": "Przekształć z {{rule}}"
     },
     "facesdashboard": {
         "explanationtraining": "Zidentyfikuj podobne twarze i spróbuj znaleźć podobne",
@@ -536,5 +552,14 @@
     "dataviz": "Wizualizacja danych",
     "timeline": "Linia czasu",
     "cancel": "Anuluj",
-    "days": "Dni"
+    "days": "Dni",
+    "modalalbumsshare": {
+        "joined": "Dołączył"
+    },
+    "modalphotosshare": {
+        "joined": "Dołączył"
+    },
+    "locationstimeline": {
+        "fromto": "{{location}} od {{start}} do {{end}}"
+    }
 }
