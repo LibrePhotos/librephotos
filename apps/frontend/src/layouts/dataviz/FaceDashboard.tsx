@@ -258,7 +258,7 @@ export const FaceDashboard = () => {
         </div>
       );
     }
-    return <div key={key} style={style} />;
+    return null;
   };
 
   return (

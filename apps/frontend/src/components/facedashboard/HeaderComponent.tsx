@@ -77,7 +77,7 @@ export function HeaderComponent(props: Props) {
         <Chip variant="filled" radius="xs" size="lg" checked={checked} onChange={handleClick}>
           {cell.name}
         </Chip>
-        {!props.alreadyLabeled && !(props.cell.kind === 'CLUSTER') && <Tooltip label={t("facesdashboard.explanationvalidate")}>
+        {!props.alreadyLabeled && !(props.cell.kind === "CLUSTER" || props.cell.kind === "UNKNOWN") && <Tooltip label={t("facesdashboard.explanationvalidate")}>
             <ActionIcon
               variant="light"
               color="green"
