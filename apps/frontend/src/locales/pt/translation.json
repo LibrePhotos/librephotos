@@ -108,7 +108,7 @@
         "experimentaloptions": "Opções experimentais",
         "transcodevideo": "Sempre transcodificar vídeos",
         "on": "Ligado",
-        "configdatetime": " Definir regras de análise",
+        "configdatetime": " Definir regras de análise para datas e horas",
         "account": "Conta",
         "scandirectory": "Analisar Pasta",
         "nextcloudpassword": "Palavra passe da aplicação Nextcloud",
@@ -136,7 +136,19 @@
         "basque": "Basco",
         "czech": "Checo",
         "portuguese": "Português",
-        "helptranslating": "Ajude a traduzir"
+        "helptranslating": "Ajude a traduzir",
+        "albumoptions": "Opções de álbuns",
+        "savechanges": "Guardar alterações?",
+        "inferredfacesconfidence": "Confidência das caras inferidas",
+        "inferredfacesconfidencehelp": "Introduza um nível de confidência entre 0 e 1. Para álbuns que apresentam uma pessoa, surgirão as caras inferidas com um nível de confidência acima deste nível.",
+        "password": {
+            "errormustmatch": "Palavras passe têm de coincidir",
+            "errorcannotbeblank": "Palavra-passe tem de ser preenchida",
+            "errormustretype": "É necessário reintroduzir palavra-passe",
+            "titlechangepassword": "Alterar palavra-passe",
+            "titlesetpassword": "Definir palavra-passe",
+            "tooltipeditbutton": "Clique para alterar a palavra-passe"
+        }
     },
     "sidemenu": {
         "myalbums": "Meus álbuns",
@@ -195,8 +207,8 @@
     },
     "defaultheader": {
         "photos": "fotos",
-        "setup": "Parece que ainda tem que configurar o LibrePhotos.",
-        "gettingstarted": "Iniciar",
+        "setup": "Para começar a usar o LibrePhotos, defina a sua pasta de análise.",
+        "gettingstarted": "Editar utilizador",
         "loading": "A carregar...",
         "noimages": "Nenhuma imagem encontrada",
         "days": "dias"
@@ -231,7 +243,7 @@
         "create": "Criar",
         "items": "{{count}} Item(s)",
         "alreadyexists": "Álbum {{title}} já existe.",
-        "updated": "Atualizado"
+        "updated": "Atualizado {{duration}}"
     },
     "lightbox": {
         "sidebar": {
@@ -275,7 +287,8 @@
         "firsttimesetup": "Primeira configuração",
         "name": "LibrePhotos",
         "username": "Nome de utilizador",
-        "login": "Iniciar sessão"
+        "login": "Iniciar sessão",
+        "usernamelabel": "Nome de utilizador"
     },
     "search": {
         "search": "Pesquisar",
@@ -294,7 +307,12 @@
         "remove": "Remover",
         "notset": "Não definido",
         "admintools": "Ferramentas Administrativas",
-        "deleteallautoalbums": "Eliminar todos os álbuns criados automaticamente"
+        "deleteallautoalbums": "Eliminar todos os álbuns criados automaticamente",
+        "deleteuserconfirmexplanation": "Está prestes a eliminar o seguinte utilizador: {{username}}. Isto vai eliminar todos os dados associados.",
+        "titledeleteuser": "Eliminar utilizador",
+        "cannotbeundone": "Esta ação não pode ser revertida.",
+        "cannotdeleteadmin": "Não é permitido eliminar o administrador",
+        "addnewuser": "Adicionar novo utilizador"
     },
     "joblist": {
         "workerlogs": "Registos de trabalhadores",
@@ -318,7 +336,9 @@
         "update": "Atualizar",
         "explanation3": "Escolher a diretoria da lista abaixo",
         "explanation1": "Quando o utilizador",
-        "header": "Definir a diretoria de análise para este utilizador"
+        "header": "Definir a diretoria de análise para este utilizador",
+        "pathdoesnotexist": "Caminho não existe",
+        "mustspecifypath": "Tem de especificar um caminho de análise"
     },
     "sitesettings": {
         "header": "Permitir novos registos de utilizadores",
@@ -375,7 +395,9 @@
         "selectedfaces": "{{number}} selecionadas",
         "explanationadding": "Adicionar a um ID de cara já existente ou criar um novo ID de cara",
         "explanationtraining": "Identificar caras parecidas e tentar encontrar equivalentes",
-        "explanationdeleting": "Eliminar a cara e a sua miniatura"
+        "explanationdeleting": "Eliminar a cara e a sua miniatura",
+        "explanationvalidate": "Confirmar que todas as caras deste grupo coincidem com esta pessoa e adicioná-las ao ID de cara correspondente",
+        "notthisperson": "Mover as caras novamente para 'Desconhecido - Outro'"
     },
     "scan": "Analisar",
     "socialgraph": "Gráfico social",
@@ -434,7 +456,7 @@
         "uploadsuccess": "Carregamento bem sucedido",
         "addfacestoperson": "{{numberOfFaces}} caras foram legendadas como {{personName}}",
         "renamealbumtitle": "Renomear Álbum",
-        "deletefaces": "{{numberOfFaces}} caras foram eliminadas",
+        "deletefaces": "{{numberOfFaces}} cara(s) eliminada(s)",
         "scanphotostitle": "Analisar fotos",
         "deleteperson": "Pessoa eliminada",
         "rescanfacestitle": "Reanalisar caras",
@@ -462,7 +484,11 @@
         "scanuploadedphotos": "A analisar fotos carregadas…",
         "scanuploadedphotostitle": "Analisar fotos carregadas",
         "deleteallautoalbumstitle": "Eliminar todos os álbuns criados automaticamente",
-        "deleteallautoalbums": "Todos os álbuns criados automaticamente foram eliminados."
+        "deleteallautoalbums": "Todos os álbuns criados automaticamente foram eliminados.",
+        "deleteuser": "{{username}} eliminado",
+        "deleteusertitle": "Eliminar utilizador",
+        "removefacestoperson": "{{numberOfFaces}} cara(s) movida(s) para 'Desconhecido - Outro'",
+        "removefacestopersontitle": "Remover caras da pessoa"
     },
     "deletefaceexplanation": "Esta ação vai permanentemente eliminar as caras e todos os seus dados associados. Esta ação não pode ser desfeita.",
     "rules": {
@@ -513,5 +539,29 @@
     "timezoneexplain": "Este fuso horário é usado para converter carimbos de data/hora para o fuso horário predefinido do utilizador",
     "sync": "Sincronizar metadados para disco",
     "sponsorus": "Patrocine-nos",
-    "supportus": "Suporte-nos"
+    "supportus": "Suporte-nos",
+    "locationstimeline": {
+        "fromto": "{{location}} de {{start}} até {{end}}"
+    },
+    "exif": {
+        "filepath": "Caminho de ficheiro",
+        "subjectdistance": "Distância do sujeito",
+        "digitalzoomratio": "Rácio de zoom digital",
+        "focallengthin35mmfilm": "Distância focal equivalente a 35mm",
+        "duplicates": "Duplicados",
+        "showmore": "Mostrar mais",
+        "showless": "Mostrar menos",
+        "deleteduplicatetitle": "Eliminar duplicado",
+        "deleteduplicate": "Tem a certeza que pretende eliminar este duplicado?",
+        "otherversions": "Outras versões"
+    },
+    "modaluseredit": {
+        "createheader": "Criar utilizador",
+        "errorusernameexists": "Já existe um utilizador com o mesmo nome",
+        "errorusernamecannotbeblank": "Nome de utilizador tem de ser preenchido",
+        "errorinvalidemail": "Introduza um endereço de email válido",
+        "header": "Editar utilizador"
+    },
+    "save": "Guardar",
+    "modify": "Modificar"
 }
