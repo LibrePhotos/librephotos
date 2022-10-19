@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Group, Modal, Space, Stack, Switch, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Group, Modal, Stack, Switch, Tooltip } from "@mantine/core";
 import { showNotification } from "@mantine/notifications";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -17,9 +17,9 @@ type Props = {
   notThisPerson: () => void;
 };
 
-export function ButtonHeaderGroup(props: Props) {
-  const queue_can_accept_job = useAppSelector(store => store.worker.queue_can_accept_job);
-  const job_detail = useAppSelector(store => store.worker.job_detail);
+export function ButtonHeaderGroup({ selectMode, selectedFaces, changeSelectMode, addFaces, deleteFaces, notThisPerson }: Props) {
+  const queueCanAcceptJob = useAppSelector(store => store.worker.queue_can_accept_job);
+  const jobDetail = useAppSelector(store => store.worker.job_detail);
   const { t } = useTranslation();
 
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -30,10 +30,10 @@ export function ButtonHeaderGroup(props: Props) {
       <Group position="apart">
         <Switch
           label={t("facesdashboard.selectedfaces", {
-            number: props.selectedFaces.length,
+            number: selectedFaces.length,
           })}
-          checked={props.selectMode}
-          onClick={props.changeSelectMode}
+          checked={selectMode}
+          onClick={changeSelectMode}
         />
 
         <Group>
@@ -41,37 +41,37 @@ export function ButtonHeaderGroup(props: Props) {
             <ActionIcon
               variant="light"
               color="green"
-              disabled={props.selectedFaces.length === 0}
-              onClick={props.addFaces}
+              disabled={selectedFaces.length === 0}
+              onClick={addFaces}
             >
-              <Plus></Plus>
+              <Plus />
             </ActionIcon>
           </Tooltip>
           <Tooltip label={t("facesdashboard.notthisperson")}>
             <ActionIcon
               variant="light"
               color="orange"
-              disabled={props.selectedFaces.length === 0}
-              onClick={() => props.notThisPerson()}
+              disabled={selectedFaces.length === 0}
+              onClick={() => notThisPerson()}
             >
-              <UserOff></UserOff>
+              <UserOff />
             </ActionIcon>
           </Tooltip>
           <Tooltip label={t("facesdashboard.explanationdeleting")}>
             <ActionIcon
               variant="light"
               color="red"
-              disabled={props.selectedFaces.length === 0}
+              disabled={selectedFaces.length === 0}
               onClick={() => setOpenDeleteDialog(true)}
             >
-              <Trash></Trash>
+              <Trash />
             </ActionIcon>
           </Tooltip>
 
           <Tooltip label={t("facesdashboard.explanationtraining")}>
             <ActionIcon
-              disabled={!queue_can_accept_job}
-              loading={job_detail && job_detail.job_type_str === "Train Faces"}
+              disabled={!queueCanAcceptJob}
+              loading={jobDetail && jobDetail.job_type_str === "Train Faces"}
               color="blue"
               variant="light"
               onClick={() => {
@@ -83,7 +83,7 @@ export function ButtonHeaderGroup(props: Props) {
                 });
               }}
             >
-              <Barbell></Barbell>
+              <Barbell />
             </ActionIcon>
           </Tooltip>
         </Group>
@@ -103,7 +103,7 @@ export function ButtonHeaderGroup(props: Props) {
             <Button
               color="red"
               onClick={() => {
-                props.deleteFaces();
+                deleteFaces();
                 setOpenDeleteDialog(false);
               }}
             >

@@ -10,27 +10,27 @@ type Props = {
   fetchingInferredFacesList: boolean;
 };
 
-export function TabComponent(props: Props) {
+export function TabComponent({ activeTab, width, changeTab, fetchingLabeledFacesList, fetchingInferredFacesList }: Props) {
   const { t } = useTranslation();
 
   return (
-    <Tabs style={{ width: props.width }} active={props.activeTab} onTabChange={props.changeTab}>
+    <Tabs style={{ width: width }} active={activeTab} onTabChange={changeTab}>
       <Tabs.Tab
         label={
           <div>
-            {t("settings.labeled")} {props.fetchingLabeledFacesList ? <Loader size="sm" /> : null}
+            {t("settings.labeled")} {fetchingLabeledFacesList ? <Loader size="sm" /> : null}
           </div>
         }
         name="labeled"
-      ></Tabs.Tab>
+      />
       <Tabs.Tab
         name="inferred"
         label={
           <div>
-            {t("settings.inferred")} {props.fetchingInferredFacesList ? <Loader size="sm" /> : null}
+            {t("settings.inferred")} {fetchingInferredFacesList ? <Loader size="sm" /> : null}
           </div>
         }
-      ></Tabs.Tab>
+      />
     </Tabs>
   );
 }

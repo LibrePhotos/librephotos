@@ -11,7 +11,7 @@ type Props = {
   children?: React.ReactNode;
 };
 
-export function FaceTooltip({tooltipOpened, cell, activeItem, children}: Props) {
+export function FaceTooltip({ tooltipOpened, cell, activeItem, children }: Props) {
   const confidencePercentageLabel = activeItem === 1
   ? t<string>("settings.confidencepercentage", {percentage: (cell.person_label_probability * 100).toFixed(1),})
   : null;
@@ -44,3 +44,7 @@ export function FaceTooltip({tooltipOpened, cell, activeItem, children}: Props) 
     </Tooltip>
   );
 }
+
+FaceTooltip.defaultProps = {
+  children: null
+};
