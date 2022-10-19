@@ -4,13 +4,14 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
-import { Album, DotsVertical, Edit, Trash, User, Users } from "tabler-icons-react";
+import { Album, DotsVertical, Edit, Share, Trash, User, Users } from "tabler-icons-react";
 
 import { deleteUserAlbum, fetchUserAlbumsList, renameUserAlbum } from "../../actions/albumsActions";
 import { Tile } from "../../components/Tile";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
 import { HeaderComponent } from "./HeaderComponent";
+import { ModalAlbumShare } from "../../components/sharing/ModalAlbumShare";
 
 const SIDEBAR_WIDTH = LEFT_MENU_WIDTH;
 
@@ -47,6 +48,7 @@ export function AlbumUser() {
   const [albumTitle, setAlbumTitle] = useState("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
   const [entrySquareSize, setEntrySquareSize] = useState(200);
   const [numEntrySquaresPerRow, setNumEntrySquaresPerRow] = useState(1);
@@ -67,9 +69,17 @@ export function AlbumUser() {
     setAlbumTitle(albumTitle);
   };
 
+  const openShareDialog = (albumID: string, albumTitle: string) => {
+    setIsShareDialogOpen(true);
+    setAlbumID(albumID);
+    setAlbumTitle(albumTitle);
+  };
+  
   const closeDeleteDialog = () => setIsDeleteDialogOpen(false);
 
   const closeRenameDialog = () => setIsRenameDialogOpen(false);
+
+  const closeShareDialog = () => setIsShareDialogOpen(false);
 
   useEffect(() => {
     calculateEntrySquareSize();
@@ -127,6 +137,14 @@ export function AlbumUser() {
                 }
               >
                 {t("rename")}
+              </Menu.Item>
+              <Menu.Item
+                icon={<Share />}
+                onClick={() =>
+                  openShareDialog(albumsUserList[albumUserIndex].id, albumsUserList[albumUserIndex].title)
+                }
+              >
+                {t("sidemenu.sharing")}
               </Menu.Item>
               <Menu.Item
                 icon={<Trash />}
@@ -204,6 +222,13 @@ export function AlbumUser() {
           </Group>
         </div>
       </Modal>
+      <ModalAlbumShare
+        isOpen={isShareDialogOpen}
+        onRequestClose={() => {
+          closeShareDialog();
+        }}
+        albumID={albumID}
+      />
       <Modal opened={isDeleteDialogOpen} onClose={() => closeDeleteDialog()}>
         <Stack>
           {t("deletefaceexplanation")}

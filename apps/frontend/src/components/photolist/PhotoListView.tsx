@@ -373,8 +373,7 @@ function PhotoListViewComponent(props: Props) {
           onRequestClose={() => {
             setModalAlbumShareOpen(false);
           }}
-          params={params}
-          selectedImageHashes={selectionState.selectedItems.map(i => i.id)}
+          albumID={params && params.albumID ? params.albumID : ''}
         />
       )}
     </div>
