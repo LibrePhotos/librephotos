@@ -32,8 +32,7 @@ function fuzzy_match(str, pattern) {
 type Props = {
   isOpen: boolean;
   onRequestClose: () => void;
-  params: any;
-  selectedImageHashes: any;
+  albumID: string;
 };
 //To-Do: Add missing locales
 export function ModalAlbumShare (props: Props) {
@@ -45,7 +44,7 @@ export function ModalAlbumShare (props: Props) {
 
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  const { isOpen, onRequestClose, params, selectedImageHashes } = props;
+  const { isOpen, onRequestClose, albumID } = props;
 
   useEffect(() => {
     if (isOpen) {
@@ -99,7 +98,7 @@ export function ModalAlbumShare (props: Props) {
                   <Title
                     order={4}
                     onClick={() => {
-                      dispatch(setUserAlbumShared(parseInt(params.albumID, 10), item.id, true));
+                      dispatch(setUserAlbumShared(parseInt(albumID, 10), item.id, true));
                       onRequestClose();
                     }}
                   >
@@ -125,7 +124,7 @@ export function ModalAlbumShare (props: Props) {
                     onChange={event => {
                       dispatch(
                         setUserAlbumShared(
-                          parseInt(params.albumID, 10),
+                          parseInt(albumID, 10),
                           item.id,
                           !albumDetails.shared_to.map(e => e.id).includes(item.id)
                         )
