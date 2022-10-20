@@ -122,7 +122,7 @@
         "missingphotosdescription": "Przy każdym skanowaniu LibrePhotos sprawdzi czy pliki są w tej samej lokalizacji czy też zostały przeniesione. Jeśli będzie ich brakować zostaną oznaczone jako brakujące.",
         "eventsalbums": "Albumy wydarzeń",
         "on": "Włączony",
-        "transcodevideo": "Zawsze transkoduj wideo",
+        "transcodevideo": "Zawsze transkoduj filmy",
         "password": {
             "titlesetpassword": "Ustaw hasło",
             "errorcannotbeblank": "Hasło nie może być puste",
