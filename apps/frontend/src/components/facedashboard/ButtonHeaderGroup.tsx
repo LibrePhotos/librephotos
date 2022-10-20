@@ -1,6 +1,7 @@
-import { ActionIcon, Button, Group, Modal, Stack, Switch, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Divider, Group, Modal, SegmentedControl, Stack, Switch, Text, Tooltip } from "@mantine/core";
 import { showNotification } from "@mantine/notifications";
 import React, { useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import { Barbell, Plus, Trash, UserOff } from "tabler-icons-react";
 
@@ -11,13 +12,15 @@ import { useAppDispatch, useAppSelector } from "../../store/store";
 type Props = {
   selectMode: boolean;
   selectedFaces: any;
+  orderBy: string;
   changeSelectMode: () => void;
   addFaces: () => void;
   deleteFaces: () => void;
   notThisPerson: () => void;
+  setOrderBy: Dispatch<SetStateAction<string>>;
 };
 
-export function ButtonHeaderGroup({ selectMode, selectedFaces, changeSelectMode, addFaces, deleteFaces, notThisPerson }: Props) {
+export function ButtonHeaderGroup({ selectMode, selectedFaces, orderBy, changeSelectMode, addFaces, deleteFaces, notThisPerson, setOrderBy }: Props) {
   const queueCanAcceptJob = useAppSelector(store => store.worker.queue_can_accept_job);
   const jobDetail = useAppSelector(store => store.worker.job_detail);
   const { t } = useTranslation();
@@ -28,14 +31,27 @@ export function ButtonHeaderGroup({ selectMode, selectedFaces, changeSelectMode,
   return (
     <div>
       <Group position="apart">
-        <Switch
-          label={t("facesdashboard.selectedfaces", {
-            number: selectedFaces.length,
-          })}
-          checked={selectMode}
-          onClick={changeSelectMode}
-        />
-
+        <Group>
+          <Switch
+            label={t("facesdashboard.selectedfaces", {
+              number: selectedFaces.length,
+            })}
+            checked={selectMode}
+            onClick={changeSelectMode}
+          />
+          <Divider size="md" orientation="vertical" />
+          <Text size="sm" weight={500} mb={3}>
+            Sort by
+          </Text>
+          <SegmentedControl
+            value={orderBy}
+            onChange={setOrderBy}
+            data={[
+              { label: 'Confidence', value: 'confidence' },
+              { label: 'Date', value: 'date' }
+            ]}
+          />
+        </Group>
         <Group>
           <Tooltip label={t("facesdashboard.explanationadding")}>
             <ActionIcon

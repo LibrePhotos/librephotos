@@ -15,7 +15,7 @@ import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
 
-export const FaceDashboard = () => {
+export function FaceDashboard () {
   const { ref, width } = useElementSize();
 
   const [lastChecked, setLastChecked] = useState(null);
@@ -23,6 +23,7 @@ export const FaceDashboard = () => {
   const [entrySquareSize, setEntrySquareSize] = useState(200);
   const [numEntrySquaresPerRow, setNumEntrySquaresPerRow] = useState(10);
   const [selectMode, setSelectMode] = useState(false);
+  const [orderBy, setOrderBy] = useState('confidence');
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
   const [modalPersonEditOpen, setModalPersonEditOpen] = useState(false);
 
@@ -31,6 +32,7 @@ export const FaceDashboard = () => {
 
   const fetchingInferredFacesList = useFetchIncompleteFacesQuery({ inferred: false }).isFetching;
   const fetchingLabeledFacesList = useFetchIncompleteFacesQuery({ inferred: true }).isFetching;
+  const dispatch = useAppDispatch();
 
   const [groups, setGroups] = useState<
     {
@@ -53,11 +55,12 @@ export const FaceDashboard = () => {
             person: element.person,
             page: element.page,
             inferred: activeItem === 1,
+            orderby: orderBy
           })
         );
       });
     }
-  }, [groups]);
+  }, [activeItem, groups, orderBy]);
 
   // ensure that the endpoint is not undefined
   const getEndpointCell = (cellContents, rowStopIndex, columnStopIndex) => {
@@ -94,7 +97,6 @@ export const FaceDashboard = () => {
   };
 
   const changeTab = number => setActiveItem(number);
-  const dispatch = useAppDispatch();
 
   useEffect(() => {
     const inferredCellContents = calculateFaceGridCells(inferredFacesList, numEntrySquaresPerRow).cellContents;
@@ -278,6 +280,8 @@ export const FaceDashboard = () => {
           addFaces={addFaces}
           deleteFaces={deleteSelectedFaces}
           notThisPerson={notThisPersonFunc}
+          orderBy={orderBy}
+          setOrderBy={setOrderBy}
         />
       </Stack>
       <div ref={ref} style={{ flexGrow: 1 }}>

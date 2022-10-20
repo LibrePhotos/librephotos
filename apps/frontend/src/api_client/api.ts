@@ -190,8 +190,8 @@ export const api = createApi({
       }),
     }),
     [Endpoints.fetchFaces]: builder.query<IPersonFaceListResponse, IPersonFaceListRequest>({
-      query: ({ person, page = 0, inferred = false }) => ({
-        url: `faces/?person=${person}&page=${page}&inferred=${inferred}`,
+      query: ({ person, page = 0, inferred = false, orderby = 'confidence' }) => ({
+        url: `faces/?person=${person}&page=${page}&inferred=${inferred}&orderby=${orderby}`,
       }),
     }),
     [Endpoints.clusterFaces]: builder.query<IClusterFacesResponse, void>({

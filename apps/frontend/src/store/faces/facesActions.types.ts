@@ -46,6 +46,7 @@ export const PersonFaceListRequest = z.object({
   person: z.number(),
   page: z.number(),
   inferred: z.boolean(),
+  orderby: z.string(),
 });
 export type IPersonFaceListRequest = z.infer<typeof PersonFaceListRequest>;
 
