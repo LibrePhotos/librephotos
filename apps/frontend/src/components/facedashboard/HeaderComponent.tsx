@@ -19,13 +19,11 @@ type Props = {
   selectedFaces: any;
 };
 
-export function HeaderComponent(props: Props) {
+export function HeaderComponent({cell, alreadyLabeled, width, style, key, entrySquareSize, setSelectedFaces, selectedFaces }: Props) {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  const { cell, width } = props;
-
   const [checked, setChecked] = useState(false);
-  const { entrySquareSize, setSelectedFaces, selectedFaces } = props;
+
   const handleClick = () => {
     if (!checked) {
       const facesToAdd = cell.faces.map(i => ({ face_id: i.id, face_url: i.face_url }));
@@ -38,7 +36,7 @@ export function HeaderComponent(props: Props) {
     setChecked(!checked);
   };
 
-  const confirmFacesAssociation = (cell) => {
+  const confirmFacesAssociation = () => {
       const facesToAddIDs = cell.faces.map(i => i.id);
       const personName = cell.name;
       dispatch(
@@ -55,19 +53,19 @@ export function HeaderComponent(props: Props) {
   };
 
   useEffect(() => {
-    //deselect when no faces of the current group are selected
+    // deselect when no faces of the current group are selected
     const selectedFacesOfGroup = selectedFaces.filter(i => cell.faces.filter(j => j.id === i.face_id).length > 0);
     if (selectedFacesOfGroup.length === 0) {
       setChecked(false);
     }
-  }, [selectedFaces]);
+  }, [cell.faces, selectedFaces]);
 
   return (
     <Stack
-      key={props.key}
+      key={key}
       spacing="xs"
       style={{
-        ...props.style,
+        ...style,
         width: width,
         paddingTop: entrySquareSize / 2.0 - 35,
         height: entrySquareSize,
@@ -77,12 +75,12 @@ export function HeaderComponent(props: Props) {
         <Chip variant="filled" radius="xs" size="lg" checked={checked} onChange={handleClick}>
           {cell.name}
         </Chip>
-        {!props.alreadyLabeled && !(props.cell.kind === "CLUSTER" || props.cell.kind === "UNKNOWN") && <Tooltip label={t("facesdashboard.explanationvalidate")}>
+        {!alreadyLabeled && !(cell.kind === "CLUSTER" || cell.kind === "UNKNOWN") && <Tooltip label={t("facesdashboard.explanationvalidate")}>
             <ActionIcon
               variant="light"
               color="green"
               disabled={false}
-              onClick={() => confirmFacesAssociation(cell)}
+              onClick={() => confirmFacesAssociation()}
             >
               <UserCheck />
             </ActionIcon>

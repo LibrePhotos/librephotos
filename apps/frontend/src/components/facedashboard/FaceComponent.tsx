@@ -16,99 +16,69 @@ type Props = {
   handleClick: (e: any, cell: any) => void;
 };
 
-export function FaceComponent(props: Props) {
-  const calculateProbabiltyColor = (labelProbability: number) =>
-    labelProbability > 0.9 ? "green" : labelProbability > 0.8 ? "yellow" : labelProbability > 0.7 ? "orange" : "red";
+export function FaceComponent({ cell, isScrollingFast, selectMode, entrySquareSize, isSelected, activeItem, handleClick }: Props) {
+  const calculateProbabiltyColor = (labelProbability: number) => {
+    if (labelProbability > 0.9) return "green";
+    if (labelProbability > 0.8) return "yellow";
+    if (labelProbability > 0.7) return "orange";
+    return "red";
+  };
 
-  const labelProbabilityColor = calculateProbabiltyColor(props.cell.person_label_probability);
-  const showPhotoIcon = <PhotoIcon photo={props.cell.photo} />;
+  const labelProbabilityColor = calculateProbabiltyColor(cell.person_label_probability);
+  const showPhotoIcon = <PhotoIcon photo={cell.photo} />;
   const [tooltipOpened, setTooltipOpened] = useState(false);
   // TODO: janky shit going on in the next line!
-  const faceImageSrc = `${serverAddress}/media/faces/${_.reverse(props.cell.image.split("/"))[0]}`;
-  if (props.isScrollingFast) {
-    return <Avatar radius="xl" src="/thumbnail_placeholder.png" size={props.entrySquareSize - 10} />;
+  const faceImageSrc = `${serverAddress}/media/faces/${_.reverse(cell.image.split("/"))[0]}`;
+
+  let offset: number = 0;
+  let size: number = entrySquareSize - 10;
+  let padding: number = 0;
+  if (selectMode) {
+    // display smaller faces to distinguish between normal and select mode
+    offset = 10;
+    size = entrySquareSize - 30;
+    padding = 10;
   }
-  if (props.selectMode) {
-    const { isSelected } = props;
-    return (
-      <Box
-        sx={theme => ({
-          display: "block",
-          backgroundColor: isSelected ? "rgba(174, 214, 241, 0.7)" : "transparent",
-          alignContent: "center",
-          borderRadius: theme.radius.md,
-          padding: 10,
-          marginRight: 10,
-          cursor: "pointer",
-          "&:hover": {
-            backgroundColor: isSelected ? "rgba(174, 214, 241, 0.95)" : "rgba(174, 214, 241, 0.7)",
-          },
-        })}
-      >
-        <Center>
-          <FaceTooltip
-            tooltipOpened={tooltipOpened}
-            activeItem={props.activeItem}
-            cell={props.cell}
-          >
-            <Indicator
-              color={labelProbabilityColor}
-              onMouseEnter={() => setTooltipOpened(true)}
-              onMouseLeave={() => setTooltipOpened(false)}
-              disabled={props.activeItem === 0}
-              size={15}
-            >
-              <Avatar
-                radius="xl"
-                onClick={(e: any) => {
-                  props.handleClick(e, props.cell);
-                }}
-                src={faceImageSrc}
-                size={props.entrySquareSize - 30}
-              />
-            </Indicator>
-          </FaceTooltip>
-          {showPhotoIcon}
-        </Center>
-      </Box>
-    );
+
+  if (isScrollingFast) {
+    return <Avatar radius="xl" src="/thumbnail_placeholder.png" size={entrySquareSize - 10} />;
   }
   return (
     <Box
       sx={theme => ({
         display: "block",
-        backgroundColor: "transparent",
+        backgroundColor: isSelected ? "rgba(174, 214, 241, 0.7)" : "transparent",
         alignContent: "center",
         borderRadius: theme.radius.md,
-        padding: 0,
+        padding: padding,
         marginRight: 10,
         cursor: "pointer",
         "&:hover": {
-          backgroundColor: "rgba(174, 214, 241, 0.7)",
+          backgroundColor: isSelected ? "rgba(174, 214, 241, 0.95)" : "rgba(174, 214, 241, 0.7)",
         },
       })}
     >
       <Center>
         <FaceTooltip
             tooltipOpened={tooltipOpened}
-            activeItem={props.activeItem}
-            cell={props.cell}
+            activeItem={activeItem}
+            cell={cell}
         >
           <Indicator
-            offset={10}
+            offset={offset}
             color={labelProbabilityColor}
             onMouseEnter={() => setTooltipOpened(true)}
             onMouseLeave={() => setTooltipOpened(false)}
-            disabled={props.activeItem === 0}
+            disabled={activeItem === 0}
             size={15}
           >
             <Avatar
-              onClick={(e: any) => {
-                props.handleClick(e, props.cell);
-              }}
               radius="xl"
+              onClick={(e: any) => {
+                handleClick(e, cell);
+              }}
               src={faceImageSrc}
-              size={props.entrySquareSize - 10}
+              size={size}
             />
           </Indicator>
         </FaceTooltip>
