@@ -49,7 +49,7 @@ class FaceListView(ListViewSet):
     def get_queryset(self):
         personid = self.request.query_params.get("person")
         inferred = False
-        orderBy = ["-person_label_probability", "id"]
+        order_by = ["-person_label_probability", "id"]
         conditional_filter = Q(person_label_is_inferred=inferred) | Q(
             person__name=Person.UNKNOWN_PERSON_NAME
         )
@@ -61,7 +61,7 @@ class FaceListView(ListViewSet):
             conditional_filter = Q(person_label_is_inferred=inferred)
         if self.request.query_params.get("orderby"):
             if self.request.query_params.get("orderby").lower() == "date":
-                orderBy = ["photo__exif_timestamp", "-person_label_probability", "id"]
+                order_by = ["photo__exif_timestamp", "-person_label_probability", "id"]
         return (
             Face.objects.filter(
                 Q(photo__owner=self.request.user),
@@ -69,7 +69,7 @@ class FaceListView(ListViewSet):
                 conditional_filter,
             )
             .prefetch_related("photo")
-            .order_by(*orderBy)
+            .order_by(*order_by)
         )
 
     @extend_schema(
