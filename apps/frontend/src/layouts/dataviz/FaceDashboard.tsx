@@ -3,11 +3,11 @@ import { useElementSize, usePrevious } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 import _ from "lodash";
 import React, { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { AutoSizer, Grid } from "react-virtualized";
 
 import { api, useFetchIncompleteFacesQuery } from "../../api_client/api";
 import { ButtonHeaderGroup } from "../../components/facedashboard/ButtonHeaderGroup";
+import { CountersHeaderGroup } from "../../components/facedashboard/CountersHeaderGroup";
 import { FaceComponent } from "../../components/facedashboard/FaceComponent";
 import { HeaderComponent } from "../../components/facedashboard/HeaderComponent";
 import { TabComponent } from "../../components/facedashboard/TabComponent";
@@ -301,20 +301,9 @@ export function FaceDashboard () {
           fetchingLabeledFacesList={fetchingLabeledFacesList}
           fetchingInferredFacesList={fetchingInferredFacesList}
         />
-        <Group>
-          <Text size="sm">
-           {`${t("facesdashboard.groupscounter", {
-              count: activeTab === FacesTab.enum.labeled
-                ? labeledFacesList.length
-                : inferredFacesList.length
-            })}, ${t("facesdashboard.facescounter", {
-              count: activeTab === FacesTab.enum.labeled
-                ? labeledFacesList.map(i => i.face_count).reduce((a, b) => a + b, 0)
-                : inferredFacesList.map(i => i.face_count).reduce((a, b) => a + b, 0)
-            })}`
-          }
-          </Text>
-        </Group>
+        <CountersHeaderGroup
+          activeTab={activeItem}
+        />
         <ButtonHeaderGroup
           selectMode={selectMode}
           selectedFaces={selectedFaces}
