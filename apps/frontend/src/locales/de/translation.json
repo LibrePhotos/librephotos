@@ -524,7 +524,7 @@
         "selectedimages": "Ausgewählte(s) {{count}} Foto(s) hinzufügen zu …",
         "placeholder": "Albumtitel",
         "alreadyexists": "Das Album {{title}} existiert bereits.",
-        "updated": "Aktualisiert"
+        "updated": "{{duration}} aktualisiert"
     },
     "confirm": "Bestätigen",
     "deleteface": "Gesichter löschen",
