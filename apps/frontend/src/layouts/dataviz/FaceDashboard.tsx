@@ -47,7 +47,8 @@ export function FaceDashboard () {
       return prev.inferredFacesList === next.inferredFacesList && prev.labeledFacesList === next.labeledFacesList;
     }
   );
-  useEffect(() => {
+
+  const fetchGroupFaces = (force: boolean = true) => {
     if (groups) {
       groups.forEach(element => {
         dispatch(
@@ -56,11 +57,16 @@ export function FaceDashboard () {
             page: element.page,
             inferred: activeItem === 1,
             orderby: orderBy
-          })
+          }, {forceRefetch: force})
         );
       });
     }
-  }, [activeItem, groups, orderBy]);
+  };
+
+  useEffect(() => fetchGroupFaces(true), [activeItem, groups]);
+
+  useEffect(() => fetchGroupFaces(true), [orderBy]);
+
 
   // ensure that the endpoint is not undefined
   const getEndpointCell = (cellContents, rowStopIndex, columnStopIndex) => {
