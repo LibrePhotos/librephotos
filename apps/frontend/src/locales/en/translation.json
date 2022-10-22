@@ -435,7 +435,11 @@
     "notthisperson":  "Move the faces back to 'Unknown - Other'",
     "sortby": "Sort by",
     "sortbyconfidence": "Confidence",
-    "sortbydate": "Date"
+    "sortbydate": "Date",
+    "groupscounter_one": "{{count}} Group",
+    "groupscounter_other": "{{count}} Groups",
+    "facescounter_one": "{{count}} Face",
+    "facescounter_other": "{{count}} Faces"
   },
   "scan": "Scan",
   "socialgraph": "Social Graph",

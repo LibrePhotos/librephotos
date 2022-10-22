@@ -1,8 +1,9 @@
-import { Stack } from "@mantine/core";
+import { Group, Stack, Text } from "@mantine/core";
 import { useElementSize, usePrevious } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 import _ from "lodash";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AutoSizer, Grid } from "react-virtualized";
 
 import { api, useFetchIncompleteFacesQuery } from "../../api_client/api";
@@ -34,6 +35,7 @@ export function FaceDashboard () {
   const fetchingInferredFacesList = useFetchIncompleteFacesQuery({ inferred: false }).isFetching;
   const fetchingLabeledFacesList = useFetchIncompleteFacesQuery({ inferred: true }).isFetching;
   const dispatch = useAppDispatch();
+  const { t } = useTranslation();
 
   const [groups, setGroups] = useState<
     {
@@ -299,6 +301,20 @@ export function FaceDashboard () {
           fetchingLabeledFacesList={fetchingLabeledFacesList}
           fetchingInferredFacesList={fetchingInferredFacesList}
         />
+        <Group>
+          <Text size="sm">
+           {`${t("facesdashboard.groupscounter", {
+              count: activeTab === FacesTab.enum.labeled
+                ? labeledFacesList.length
+                : inferredFacesList.length
+            })}, ${t("facesdashboard.facescounter", {
+              count: activeTab === FacesTab.enum.labeled
+                ? labeledFacesList.map(i => i.face_count).reduce((a, b) => a + b, 0)
+                : inferredFacesList.map(i => i.face_count).reduce((a, b) => a + b, 0)
+            })}`
+          }
+          </Text>
+        </Group>
         <ButtonHeaderGroup
           selectMode={selectMode}
           selectedFaces={selectedFaces}

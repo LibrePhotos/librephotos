@@ -409,7 +409,11 @@
         "notthisperson": "Remettez les visages dans la catégorie « Inconnu - Autre »",
         "sortby": "Trier par",
         "sortbyconfidence": "Confiance",
-        "sortbydate": "Date"
+        "sortbydate": "Date",
+        "groupscounter_one": "{{count}} Groupe",
+        "groupscounter_other": "{{count}} Groupes",
+        "facescounter_one": "{{count}} Visage",
+        "facescounter_other": "{{count}} Visages"
     },
     "socialgraph": "Schéma social",
     "facecluster": "Groupes de visages",
