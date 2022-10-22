@@ -31,7 +31,7 @@ export function ButtonHeaderGroup({ selectMode, selectedFaces, orderBy, changeSe
   return (
     <div>
       <Group position="apart">
-        <Group>
+        <Group spacing="xs">
           <Switch
             label={t("facesdashboard.selectedfaces", {
               number: selectedFaces.length,
@@ -39,7 +39,7 @@ export function ButtonHeaderGroup({ selectMode, selectedFaces, orderBy, changeSe
             checked={selectMode}
             onClick={changeSelectMode}
           />
-          <Divider size="md" orientation="vertical" />
+          <Divider orientation="vertical" style={{height: "20px", marginTop:"10px"}}/>
           <Text size="sm" weight={500} mb={3}>
             {t("facesdashboard.sortby")}
           </Text>
