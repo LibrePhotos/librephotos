@@ -41,7 +41,7 @@ export function ButtonHeaderGroup({ selectMode, selectedFaces, orderBy, changeSe
           />
           <Divider size="md" orientation="vertical" />
           <Text size="sm" weight={500} mb={3}>
-            Sort by
+            {t("facesdashboard.sortby")}
           </Text>
           <SegmentedControl
             size="sm"

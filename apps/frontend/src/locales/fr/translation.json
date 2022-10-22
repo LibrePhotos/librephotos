@@ -381,6 +381,7 @@
         "explanationvalidate": "Confirmer que tous les visages dans ce groupe correspondent bien à cette personne et enregistrer l'association",
         "numberoffaces": "{{number}} visages",
         "explanationdeleting": "Supprimer le visage et ses vignettes",
+        "sortby": "Trier par",
         "sortbyconfidence": "Confiance",
         "sortbydate": "Date"
     },
