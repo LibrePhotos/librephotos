@@ -44,11 +44,14 @@ export function ButtonHeaderGroup({ selectMode, selectedFaces, orderBy, changeSe
             Sort by
           </Text>
           <SegmentedControl
+            size="sm"
             value={orderBy}
             onChange={setOrderBy}
             data={[
-              { label: 'Confidence', value: 'confidence' },
-              { label: 'Date', value: 'date' }
+              { label: t("facesdashboard.sortbyconfidence"),
+                value: 'confidence' },
+              { label: t("facesdashboard.sortbydate"),
+              value: 'date' }
             ]}
           />
         </Group>

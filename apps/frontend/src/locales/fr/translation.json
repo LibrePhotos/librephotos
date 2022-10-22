@@ -380,7 +380,9 @@
         "explanationtraining": "Lancer le traitement d'association des visages",
         "explanationvalidate": "Confirmer que tous les visages dans ce groupe correspondent bien à cette personne et enregistrer l'association",
         "numberoffaces": "{{number}} visages",
-        "explanationdeleting": "Supprimer le visage et ses vignettes"
+        "explanationdeleting": "Supprimer le visage et ses vignettes",
+        "sortbyconfidence": "Confiance",
+        "sortbydate": "Date"
     },
     "socialgraph": "Schéma social",
     "facecluster": "Groupes de visages",

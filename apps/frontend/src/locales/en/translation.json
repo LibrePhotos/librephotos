@@ -427,7 +427,9 @@
     "explanationdeleting": "Delete the face and it's thumbnails",
     "explanationtraining": "Identify similar faces and try to find matches",
     "explanationvalidate": "Confirm that all faces from this group match with this person and add them to the corresponding face ID",
-    "notthisperson":  "Move the faces back to 'Unknown - Other'"
+    "notthisperson":  "Move the faces back to 'Unknown - Other'",
+    "sortbyconfidence": "Confidence",
+    "sortbydate": "Date"
   },
   "scan": "Scan",
   "socialgraph": "Social Graph",
