@@ -58,7 +58,7 @@ export function HeaderComponent({cell, alreadyLabeled, width, style, key, entryS
     if (selectedFacesOfGroup.length === 0) {
       setChecked(false);
     }
-  }, [cell.faces, selectedFaces]);
+  }, [selectedFaces]);
 
   return (
     <Stack
