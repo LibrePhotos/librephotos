@@ -20,6 +20,9 @@ export function TimestampItem({photoDetail}: Props) {
   const [editMode, setEditMode] = useState(false);
 
   const { t } = useTranslation();
+  const lang = i18n.resolvedLanguage.replace("_", "-");
+  import(`dayjs/locale/${lang}.js`);
+
   const dispatch = useAppDispatch();
 
   const onChangeDate = (date: Date) => {
@@ -35,7 +38,6 @@ export function TimestampItem({photoDetail}: Props) {
     date.setFullYear(timestamp.getFullYear());
     setTimestamp(date);
   };
-
 
   const onSaveDateTime = (e: any) => {
     // To-Do: Use the user defined timezone
@@ -61,7 +63,7 @@ export function TimestampItem({photoDetail}: Props) {
             <Text>{t("lightbox.sidebar.editdatetime")}</Text>
           </Group>
           <Stack>
-            <DatePicker locale={i18n.resolvedLanguage.replace("_", "-")} value={timestamp} onChange={onChangeDate}/>
+            <DatePicker locale={lang} value={timestamp} onChange={onChangeDate}/>
             <TimeInput withSeconds value={timestamp} onChange={onChangeTime}/>
             <Group>
               <ActionIcon variant="light" color="green" onClick={onSaveDateTime}>
@@ -80,14 +82,14 @@ export function TimestampItem({photoDetail}: Props) {
           <Button color="dark" variant="subtle" onClick={() => setEditMode(!editMode)} rightIcon={<Edit />}>
             <div>
               {DateTime.fromISO(photoDetail.exif_timestamp).isValid
-                ? DateTime.fromISO(photoDetail.exif_timestamp).setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString(DateTime.DATE_MED)
+                ? DateTime.fromISO(photoDetail.exif_timestamp).setLocale(lang).toLocaleString(DateTime.DATE_MED)
                 : null}
               <Text size="xs" color="dimmed">
               {DateTime.fromISO(photoDetail.exif_timestamp).isValid
-                  ? DateTime.fromISO(photoDetail.exif_timestamp).setLocale(i18n.resolvedLanguage.replace("_", "-")).toFormat('cccc, ')
+                  ? DateTime.fromISO(photoDetail.exif_timestamp).setLocale(lang).toFormat('cccc, ')
                   : null} 
               {DateTime.fromISO(photoDetail.exif_timestamp).isValid
-                  ? DateTime.fromISO(photoDetail.exif_timestamp).setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString(DateTime.TIME_SIMPLE)
+                  ? DateTime.fromISO(photoDetail.exif_timestamp).setLocale(lang).toLocaleString(DateTime.TIME_SIMPLE)
                   : null}
               </Text>
             </div>
