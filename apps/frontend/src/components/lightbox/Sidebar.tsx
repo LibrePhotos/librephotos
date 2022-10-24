@@ -70,7 +70,7 @@ export function Sidebar(props: Props) {
             </ActionIcon>
           </Group>
           {/* Start Item Time Taken */}
-          <TimestampItem photoDetail={photoDetail} dispatch={dispatch} />
+          <TimestampItem photoDetail={photoDetail} />
           {/* End Item Time Taken */}
           {/* Start Item File Path */}
           <VersionComponent photoDetail={photoDetail} />
