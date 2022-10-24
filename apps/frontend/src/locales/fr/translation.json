@@ -120,7 +120,7 @@
         "japanese": "japonais",
         "swedish": "suédois",
         "russian": "russe",
-        "configdatetime": " Définir les règles d'analyse des dates",
+        "configdatetime": " Définir les règles d'analyse des dates et de l'heure",
         "metadata": "Options de métadonnées",
         "sync": "Synchronisation des métadonnées sur le disque",
         "polish": "polonais",
@@ -131,7 +131,19 @@
         "basque": "Basque",
         "finnish": "Finnois",
         "czech": "Tchèque",
-        "helptranslating": "Aide à la traduction"
+        "helptranslating": "Aide à la traduction",
+        "password": {
+            "errormustmatch": "Les mots de passe doivent correspondre",
+            "errorcannotbeblank": "Le mot de passe ne peut pas être vide",
+            "errormustretype": "Vous devez retaper le mot de passe",
+            "titlechangepassword": "Changer le mot de passe",
+            "titlesetpassword": "Définir le mot de passe",
+            "tooltipeditbutton": "Cliquez pour changer le mot de passe"
+        },
+        "inferredfacesconfidencehelp": "Saisissez un niveau de confiance entre 0 et 1. Pour les albums qui affichent une personne, les visages déduits dont le niveau de confiance est supérieur à cette valeur apparaîtront.",
+        "savechanges": "Enregistrer les changements ?",
+        "inferredfacesconfidence": "Confiance des visages déduits",
+        "albumoptions": "Options de l'album"
     },
     "modalnextcloud": {
         "setdirectory": "Définir votre répertoire de scan Nextcloud",
@@ -199,8 +211,8 @@
         "noimages": "Aucune image trouvée",
         "days": "jours",
         "photos": "photos",
-        "setup": "On dirait que vous devez encore configurer LibrePhotos.",
-        "gettingstarted": "Pour commencer"
+        "setup": "Pour commencer à utiliser LibrePhotos, éditez le répertoire de numérisation de votre utilisateur.",
+        "gettingstarted": "Modifier l'utilisateur"
     },
     "selectionactions": {
         "photoactions": "Actions sur les photos",
@@ -266,7 +278,8 @@
         "confirmpasswordplaceholder": "Confirmer le mot de passe",
         "errorusernameexists": "Un utilisateur avec ce nom d'utilisateur existe déjà.",
         "erroremail": "Saisissez une adresse courriel valide.",
-        "firsttimesetup": "Première configuration"
+        "firsttimesetup": "Première configuration",
+        "usernamelabel": "Nom d'utilisateur"
     },
     "search": {
         "search": "Recherche",
@@ -285,7 +298,12 @@
         "notset": "Non spécifié",
         "remove": "Retirer",
         "deleteallautoalbums": "Supprimer tous les albums créés automatiquement",
-        "admintools": "Outils d'administration"
+        "admintools": "Outils d'administration",
+        "cannotdeleteadmin": "Impossible de supprimer l'utilisateur admin",
+        "deleteuserconfirmexplanation": "Vous êtes sur le point de supprimer l'utilisateur suivant : {{username}}. Ceci supprimera toutes les données associées.",
+        "addnewuser": "Ajouter un nouvel utilisateur",
+        "titledeleteuser": "Supprimer l'utilisateur",
+        "cannotbeundone": "Cette action ne peut pas être annulée."
     },
     "joblist": {
         "workerlogs": "Journaux d’activité",
@@ -309,7 +327,9 @@
         "currentdirectory": "Répertoire actuel de scan de l’utilisateur",
         "notset": "non défini",
         "update": "Mettre à jour",
-        "explanation3": "Choisir le répertoire de scan"
+        "explanation3": "Choisir le répertoire de scan",
+        "pathdoesnotexist": "Le chemin n'existe pas",
+        "mustspecifypath": "Vous devez spécifier un répertoire d'analyse"
     },
     "personalbum": {
         "renameperson": "Renommer la personne",
@@ -381,7 +401,8 @@
         "explanationtraining": "Lancer le traitement d'association des visages",
         "explanationvalidate": "Confirmer que tous les visages dans ce groupe correspondent bien à cette personne et enregistrer l'association",
         "numberoffaces": "{{number}} visages",
-        "explanationdeleting": "Supprimer le visage et ses vignettes"
+        "explanationdeleting": "Supprimer le visage et ses vignettes",
+        "notthisperson": "Remettez les visages dans la catégorie « Inconnu - Autre »"
     },
     "socialgraph": "Schéma social",
     "facecluster": "Groupes de visages",
@@ -461,7 +482,11 @@
         "scanuploadedphotostitle": "Scan des photos téléversées",
         "scanuploadedphotos": "Scan des photos téléversées…",
         "deleteallautoalbums": "Tous les albums créés automatiquement ont été supprimés.",
-        "deleteallautoalbumstitle": "Supprimer tous les albums créés automatiquement"
+        "deleteallautoalbumstitle": "Supprimer tous les albums créés automatiquement",
+        "deleteusertitle": "Supprimer un utilisateur",
+        "deleteuser": "{{username}} supprimé",
+        "removefacestopersontitle": "Retirer les visages de la personne",
+        "removefacestoperson": "{{numberOfFaces}} le(s) visage(s) ont été déplacés vers « Inconnu - Autre »"
     },
     "rules": {
         "file_property": "Utiliser la propriété du fichier {{rule}}",
@@ -498,7 +523,7 @@
         "newalbum": "Nouvel album",
         "placeholder": "Titre de l'album",
         "items": "{{count}} élément(s)",
-        "updated": "Mis à jour",
+        "updated": "Mise à jour {{duration}}",
         "create": "Créer",
         "alreadyexists": "L'album {{title}} existe déjà."
     },
@@ -518,6 +543,26 @@
     "supportus": "Nous soutenir",
     "locationstimeline": {
         "fromto": "{{location}} de {{start}} à {{end}}"
-    }
+    },
+    "exif": {
+        "deleteduplicatetitle": "Supprimer les doublons",
+        "focallengthin35mmfilm": "Longueur focale équivalente à 35 mm",
+        "showmore": "Afficher plus",
+        "showless": "Afficher moins",
+        "otherversions": "Autres versions",
+        "filepath": "Chemin du fichier",
+        "subjectdistance": "Distance du sujet",
+        "digitalzoomratio": "Rapport du zoom numérique",
+        "duplicates": "Doublons",
+        "deleteduplicate": "Êtes-vous sûr·e de vouloir supprimer ce doublon ?"
+    },
+    "modaluseredit": {
+        "createheader": "Créer un utilisateur",
+        "errorinvalidemail": "Entrez une adresse électronique valide",
+        "header": "Modifier l'utilisateur",
+        "errorusernameexists": "Un utilisateur avec ce nom existe déjà",
+        "errorusernamecannotbeblank": "Le nom de l'utilisateur ne peut pas être vide"
+    },
+    "save": "Enregistrer",
+    "modify": "Modifier"
 }
-

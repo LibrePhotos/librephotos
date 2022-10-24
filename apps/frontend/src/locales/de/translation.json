@@ -524,7 +524,7 @@
         "selectedimages": "Ausgewählte(s) {{count}} Foto(s) hinzufügen zu …",
         "placeholder": "Albumtitel",
         "alreadyexists": "Das Album {{title}} existiert bereits.",
-        "updated": "Aktualisiert"
+        "updated": "{{duration}} aktualisiert"
     },
     "confirm": "Bestätigen",
     "deleteface": "Gesichter löschen",
@@ -542,7 +542,7 @@
     "supportus": "Uns unterstützen",
     "exif": {
         "subjectdistance": "Subjektentfernung",
-        "focallengthin35mmfilm": "Brennweite 35mm Äquivalent",
+        "focallengthin35mmfilm": "Brennweite 35 mm-Äquivalent",
         "otherversions": "Andere Versionen",
         "digitalzoomratio": "Digitalzoom",
         "filepath": "Dateipfad",
@@ -560,7 +560,7 @@
         "createheader": "Nutzer erstellen",
         "errorusernameexists": "Ein Nutzer mit diesem Namen existiert bereits",
         "errorusernamecannotbeblank": "Benutzername kann nicht leer sein",
-        "errorinvalidemail": "Gültige Email-Adresse erforderlich"
+        "errorinvalidemail": "Gültige E-Mail-Adresse erforderlich"
     },
     "save": "Speichern",
     "modify": "Bearbeiten"
