@@ -259,7 +259,8 @@
             "caption": "Legenda",
             "generate": "Gerar",
             "submit": "Submeter",
-            "categories": "Categorias"
+            "categories": "Categorias",
+            "editdatetime": "Editar hora e data"
         }
     },
     "photos": {
