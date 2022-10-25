@@ -234,7 +234,8 @@
             "generate": "Samenstellen",
             "categories": "Categorieën",
             "similarphotos": "Vergelijkbare foto's",
-            "attributes": "Kenmerken"
+            "attributes": "Kenmerken",
+            "editdatetime": "Datum en tijd aanpassen"
         }
     },
     "photos": {
@@ -523,7 +524,7 @@
         "newalbum": "Nieuw album",
         "create": "Aanmaken",
         "alreadyexists": "Er is al een album genaamd “{{title}}”.",
-        "updated": "Bijgewerkt"
+        "updated": "Bijgewerkt {{duration}}"
     },
     "deleteface": "Gezichten verwijderen",
     "deletefaceexplanation": "Door deze actie worden de gezichten en alle bijbehorende gegevens verwijderd. Dit kan niet ongedaan worden gemaakt.",

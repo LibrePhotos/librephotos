@@ -131,7 +131,19 @@
         "finnish": "Finnisch",
         "basque": "Baskisch",
         "czech": "Tschechisch",
-        "helptranslating": "Hilfe beim Übersetzen"
+        "helptranslating": "Beim Übersetzen helfen",
+        "inferredfacesconfidencehelp": "Vertrauenslevel zwischen 0 und 1 eingeben. In Alben mit einer Person werden hergeleitete Gesichter mit Vertrauenslevel höher als dieser Wert angezeigt.",
+        "inferredfacesconfidence": "Vertrauen hergeleitete Gesichter",
+        "albumoptions": "Album-Optionen",
+        "savechanges": "Änderungen speichern?",
+        "password": {
+            "errormustmatch": "Passwörter nicht gleich",
+            "errorcannotbeblank": "Passwort kann nicht leer sein",
+            "errormustretype": "Passwort erneut eingeben",
+            "titlechangepassword": "Passwort ändern",
+            "titlesetpassword": "Passwort ändern",
+            "tooltipeditbutton": "Klicken, um Passwort zu ändern"
+        }
     },
     "modalnextcloud": {
         "setdirectory": "Setze dein Nextcloud Scan Ordner",
@@ -199,8 +211,8 @@
         "noimages": "Keine Bilder gefunden",
         "days": "Tage",
         "photos": "Fotos",
-        "setup": "Es sieht so aus als musst du LibrePhotos noch aufsetzen.",
-        "gettingstarted": "Erste Schritte"
+        "setup": "Um zu beginnen, ändere den Scan-Ordner deines Nutzers.",
+        "gettingstarted": "Nutzer bearbeiten"
     },
     "selectionactions": {
         "photoactions": "Foto-Aktionen",
@@ -256,7 +268,7 @@
         "usernameplaceholder": "Nutzername",
         "password": "Passwort",
         "passwordplaceholder": "Passwort",
-        "signup": "Konto erstellen",
+        "signup": "Registrieren",
         "errorbackend": "Verbindung zum Backend Server fehlgeschlagen. Probiere es in ein paar Minuten nochmal.",
         "errorpassword": "Das Passwortfeld darf nicht leer sein!",
         "errorusername": "Das Nutzernamenfeld darf nicht leer sein!",
@@ -265,7 +277,8 @@
         "confirmpassword": "Passwort bestätigen",
         "errorusernameexists": "Ein Nutzer mit diesem Benutzernamen existiert bereits.",
         "erroremail": "Bitte gültige E-Mail-Adresse eingeben.",
-        "firsttimesetup": "Erstmalige Einrichtung"
+        "firsttimesetup": "Erstmalige Einrichtung",
+        "usernamelabel": "Benutzername"
     },
     "search": {
         "search": "Suche nach",
@@ -284,7 +297,12 @@
         "notset": "Nicht gesetzt",
         "remove": "Entfernen",
         "admintools": "Verwaltungswerkzeuge",
-        "deleteallautoalbums": "Alle automatisch erstellten Alben löschen"
+        "deleteallautoalbums": "Alle automatisch erstellten Alben löschen",
+        "titledeleteuser": "Nutzer löschen",
+        "cannotbeundone": "Diese Aktion ist irreversibel.",
+        "deleteuserconfirmexplanation": "Du bist dabei, den folgenden Nutzer zu löschen: {{username}}. Zugehörige Daten werden gelöscht.",
+        "cannotdeleteadmin": "Admin Nutzer kann nicht gelöscht werden",
+        "addnewuser": "Neuen Nutzer erstellen"
     },
     "joblist": {
         "workerlogs": "Arbeiterprotokolle",
@@ -308,7 +326,9 @@
         "currentdirectory": "Aktuelles Verzeichnis des Nutzers",
         "notset": "nicht gesetzt",
         "update": "Aktualisieren",
-        "explanation3": "Wähle ein Verzeichnis aus"
+        "explanation3": "Wähle ein Verzeichnis aus",
+        "mustspecifypath": "Bitte Scan-Ordner einstellen",
+        "pathdoesnotexist": "Pfad existiert nicht"
     },
     "sitesettings": {
         "header": "Erlaube Nutzerregistrierung",
@@ -372,7 +392,9 @@
         "explanationdeleting": "Lösche das Gesicht und das Anzeigebild",
         "numberoffaces": "{{number}} Gesichter",
         "explanationadding": "Zu einer bestehenden Gesichts-ID hinzufügen oder eine neue Gesichts-ID erstellen",
-        "explanationtraining": "Identifizieren Sie ähnliche Gesichter und versuchen Sie, Übereinstimmungen zu finden"
+        "explanationtraining": "Identifizieren Sie ähnliche Gesichter und versuchen Sie, Übereinstimmungen zu finden",
+        "explanationvalidate": "Bestätigt, dass alle Gesichter in dieser Gruppe zu dieser Person gehören. Fügt sie der entsprechenden Gesichts-ID hinzu",
+        "notthisperson": "Gesichter zurücksetzen auf 'Unknown - Other'"
     },
     "personedit": {
         "addperson": "Füge Person hinzu",
@@ -459,7 +481,11 @@
         "deleteallautoalbumstitle": "Alle automatisch erstellten Alben löschen",
         "scanuploadedphotos": "Hochgeladene Fotos scannen werden gescannt …",
         "deleteallautoalbums": "Alle automatisch erstellten Alben werden gelöscht.",
-        "scanuploadedphotostitle": "Hochgeladene Fotos scannen"
+        "scanuploadedphotostitle": "Hochgeladene Fotos scannen",
+        "deleteuser": "{{username}} gelöscht",
+        "deleteusertitle": "Nutzer löschen",
+        "removefacestoperson": "{{numberOfFaces}} Gesichter zurückgesetzt auf 'Unknown - Other'",
+        "removefacestopersontitle": "Gesichter aus Person entfernen"
     },
     "rules": {
         "file_property": "Dateieigenschaft verwenden {{rule}}",
@@ -498,7 +524,7 @@
         "selectedimages": "Ausgewählte(s) {{count}} Foto(s) hinzufügen zu …",
         "placeholder": "Albumtitel",
         "alreadyexists": "Das Album {{title}} existiert bereits.",
-        "updated": "Aktualisiert"
+        "updated": "{{duration}} aktualisiert"
     },
     "confirm": "Bestätigen",
     "deleteface": "Gesichter löschen",
@@ -513,5 +539,29 @@
         "mediafile": "In Mediendatei speichern"
     },
     "sync": "Metadaten mit der Festplatte synchronisieren",
-    "supportus": "Uns unterstützen"
+    "supportus": "Uns unterstützen",
+    "exif": {
+        "subjectdistance": "Subjektentfernung",
+        "focallengthin35mmfilm": "Brennweite 35 mm-Äquivalent",
+        "otherversions": "Andere Versionen",
+        "digitalzoomratio": "Digitalzoom",
+        "filepath": "Dateipfad",
+        "duplicates": "Duplikate",
+        "showmore": "Mehr zeigen",
+        "showless": "Weniger zeigen",
+        "deleteduplicatetitle": "Duplikat löschen",
+        "deleteduplicate": "Duplikat löschen?"
+    },
+    "locationstimeline": {
+        "fromto": "{{location}} von {{start}} bis {{end}}"
+    },
+    "modaluseredit": {
+        "header": "Nutzer bearbeiten",
+        "createheader": "Nutzer erstellen",
+        "errorusernameexists": "Ein Nutzer mit diesem Namen existiert bereits",
+        "errorusernamecannotbeblank": "Benutzername kann nicht leer sein",
+        "errorinvalidemail": "Gültige E-Mail-Adresse erforderlich"
+    },
+    "save": "Speichern",
+    "modify": "Bearbeiten"
 }

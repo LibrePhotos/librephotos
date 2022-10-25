@@ -267,7 +267,8 @@
       "scene": "Scene",
       "attributes": "Attributes",
       "categories": "Categories",
-      "similarphotos": "Similar Photos"
+      "similarphotos": "Similar Photos",
+      "editdatetime": "Edit date and time"
     }
   },
   "exif":{
