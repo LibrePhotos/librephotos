@@ -16,6 +16,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
@@ -41,8 +42,9 @@ import { useAppDispatch, useAppSelector } from "../../store/store";
 
 export const Library = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isOpenNextcloudExplanation, setIsOpenNextcloudExplanation] = useState(false);
-  const [isOpenCredentials, setIsOpenCredentials] = useState(false);
+  const [nextcloudAuthStatusPopup, { close: closeNextcloudAuthStatusPopup, open: openNextcloudAuthStatusPopup }] =
+    useDisclosure(false);
+  const [credentialsPopup, { close: closeCredentialsPopup, open: openCredentialsPopup }] = useDisclosure(false);
   const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
   const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
   const [userSelfDetails, setUserSelfDetails] = useState({} as any);
@@ -402,27 +404,23 @@ export const Library = () => {
       </SimpleGrid>
       <Divider />
       <Title order={3}>
-        <Popover
-          opened={isOpenNextcloudExplanation}
-          onClose={() => setIsOpenNextcloudExplanation(false)}
-          position="top"
-          placement="center"
-          withArrow
-          target={
+        <Popover opened={nextcloudAuthStatusPopup} position="top" withArrow>
+          <Popover.Target>
             <Group>
               <Indicator
                 inline
-                onMouseEnter={() => setIsOpenNextcloudExplanation(true)}
-                onMouseLeave={() => setIsOpenNextcloudExplanation(false)}
+                onMouseEnter={openNextcloudAuthStatusPopup}
+                onMouseLeave={closeNextcloudAuthStatusPopup}
                 color={fetchedNextcloudDirectoryTree ? "green" : "red"}
-              >
-                <div></div>
-              </Indicator>
+              ><></></Indicator>
               <Trans i18nKey="settings.nextcloudheader">Nextcloud</Trans>
             </Group>
-          }
-        >
-          {fetchedNextcloudDirectoryTree ? t("settings.nextcloudloggedin") : t("settings.nextcloudnotloggedin")}
+          </Popover.Target>
+          <Popover.Dropdown sx={{ pointerEvents: "none" }}>
+            <Text size="sm">
+              {fetchedNextcloudDirectoryTree ? t("settings.nextcloudloggedin") : t("settings.nextcloudnotloggedin")}
+            </Text>
+          </Popover.Dropdown>
         </Popover>
       </Title>
       <Stack>
@@ -449,23 +447,16 @@ export const Library = () => {
             }}
             type="password"
             label={
-              <Popover
-                position="top"
-                placement="center"
-                withArrow
-                opened={isOpenCredentials}
-                onClose={() => setIsOpenCredentials(false)}
-                target={
+              <Popover position="top" withArrow opened={credentialsPopup}>
+                <Popover.Target>
                   <Group>
                     {t("settings.nextcloudpassword")}
-                    <QuestionMark
-                      onMouseEnter={() => setIsOpenCredentials(true)}
-                      onMouseLeave={() => setIsOpenCredentials(false)}
-                    />
+                    <QuestionMark onMouseEnter={openCredentialsPopup} onMouseLeave={closeCredentialsPopup} />
                   </Group>
-                }
-              >
-                {t("settings.credentialspopup")}
+                </Popover.Target>
+                <Popover.Dropdown>
+                  <Text size="sm">{t("settings.credentialspopup")}</Text>
+                </Popover.Dropdown>
               </Popover>
             }
             placeholder={t("settings.nextcloudpasswordplaceholder")}

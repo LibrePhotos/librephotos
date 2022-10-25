@@ -1,4 +1,4 @@
-import { ActionIcon, Divider, Menu, Navbar } from "@mantine/core";
+import { ActionIcon, Menu, Navbar } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -52,31 +52,35 @@ export function SideMenuNarrow(): JSX.Element {
 
     if (item.submenu) {
       return (
-        <Menu key={item.label} control={link} withArrow position="right" style={{ display: "block" }} gutter={0}>
-          {item.submenu.map(subitem => {
-            var idx = item.submenu?.indexOf(subitem);
-            if (subitem.header) {
-              return <Menu.Label key={idx}>{subitem.header}</Menu.Label>;
-            }
-            if (subitem.separator) {
-              return <Divider key={idx} />;
-            }
-            const onClick = (event: { preventDefault: () => void }) => {
-              event.preventDefault();
-              setActive(item.link);
-              dispatch(push(subitem.link!));
-            };
-            const icon = (
-              <ActionIcon color={subitem.color} variant="light">
-                <subitem.icon />
-              </ActionIcon>
-            );
-            return (
-              <Menu.Item key={idx} onClick={onClick} icon={icon}>
-                {subitem.label}
-              </Menu.Item>
-            );
-          })}
+        <Menu key={item.label} withArrow position="right-start" width={200}>
+          <Menu.Target>{link}</Menu.Target>
+
+          <Menu.Dropdown>
+            {item.submenu.map(subitem => {
+              var idx = item.submenu?.indexOf(subitem);
+              if (subitem.header) {
+                return <Menu.Label key={idx}>{subitem.header}</Menu.Label>;
+              }
+              if (subitem.separator) {
+                return <Menu.Divider key={idx} />;
+              }
+              const onClick = (event: { preventDefault: () => void }) => {
+                event.preventDefault();
+                setActive(item.link);
+                dispatch(push(subitem.link!));
+              };
+              const icon = (
+                <ActionIcon color={subitem.color} variant="light">
+                  <subitem.icon />
+                </ActionIcon>
+              );
+              return (
+                <Menu.Item key={idx} onClick={onClick} icon={icon}>
+                  {subitem.label}
+                </Menu.Item>
+              );
+            })}
+          </Menu.Dropdown>
         </Menu>
       );
     }

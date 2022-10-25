@@ -28,16 +28,11 @@ export function JobList() {
 
   useEffect(() => {
     if (currentData) {
-      const parsed = JobsResponseSchema.parse(currentData);
-      setJobs(parsed);
+      const data = JobsResponseSchema.parse(currentData);
+      setJobs(data);
+      setJobCount(data!.count);
     }
   }, [currentData]);
-
-  useEffect(() => {
-    if (jobs) {
-      setJobCount(jobs.results.length);
-    }
-  }, [jobs]);
 
   return (
     <SimpleGrid cols={1} spacing="xl">

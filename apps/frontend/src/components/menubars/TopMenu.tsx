@@ -1,4 +1,4 @@
-import { Avatar, Divider, Grid, Group, Header, Menu } from "@mantine/core";
+import { Avatar, Grid, Group, Header, Menu } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import React, { useEffect } from "react";
 import { Trans, useTranslation } from "react-i18next";
@@ -11,7 +11,7 @@ import { serverAddress } from "../../api_client/apiClient";
 import { logout } from "../../store/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { ChunkedUploadButton } from "../ChunkedUploadButton";
-import { CustomSearch } from "../CustomSearch";
+import { SimpleSearch } from "../SimpleSearch";
 import { TopMenuCommon } from "./TopMenuPublic";
 import { WorkerIndicator } from "./WorkerIndicator";
 
@@ -31,20 +31,20 @@ export function TopMenu() {
   }, [auth.access, dispatch]);
 
   return (
-    <Header height={45}>
+    <Header height={45} px={10}>
       <Grid justify="space-between" grow style={{ padding: 5 }}>
         {matches && <TopMenuCommon onToggleSidebar={() => dispatch(toggleSidebar())} />}
         <Grid.Col span={3}>
-          <CustomSearch />
+          <SimpleSearch />
         </Grid.Col>
         <Grid.Col span={1}>
           <Group position="right">
             <ChunkedUploadButton />
             <WorkerIndicator />
-            <Menu
-              trigger="hover"
-              control={
-                <Group spacing="xs">
+
+            <Menu width={200}>
+              <Menu.Target>
+                <Group spacing="xs" style={{ cursor: "pointer" }}>
                   <Avatar
                     src={
                       userSelfDetails && userSelfDetails.avatar_url
@@ -56,30 +56,37 @@ export function TopMenu() {
                     radius="xl"
                   />
                 </Group>
-              }
-            >
-              <Menu.Label>
-                <Trans i18nKey="topmenu.loggedin">Logged in as</Trans> {auth.access ? auth.access.name : ""}
-              </Menu.Label>
-              <Menu.Item icon={<Book />} onClick={() => dispatch(push("/library"))}>
-                {t("topmenu.library")}
-              </Menu.Item>
-              <Menu.Item icon={<User />} onClick={() => dispatch(push("/profile"))}>
-                {t("topmenu.profile")}
-              </Menu.Item>
-              <Menu.Item icon={<Settings />} onClick={() => dispatch(push("/settings"))}>
-                {t("topmenu.settings")}
-              </Menu.Item>
-              {auth.access && auth.access.is_admin && <Divider />}
+              </Menu.Target>
 
-              {auth.access && auth.access.is_admin && (
-                <Menu.Item icon={<Adjustments />} onClick={() => dispatch(push("/admin"))}>
-                  {t("topmenu.adminarea")}
+              <Menu.Dropdown>
+                <Menu.Label>
+                  <Trans i18nKey="topmenu.loggedin">Logged in as</Trans> {auth.access ? auth.access.name : ""}
+                </Menu.Label>
+
+                <Menu.Item icon={<Book />} onClick={() => dispatch(push("/library"))}>
+                  {t("topmenu.library")}
                 </Menu.Item>
-              )}
-              <Menu.Item icon={<Logout />} onClick={() => dispatch(logout())}>
-                {t("topmenu.logout")}
-              </Menu.Item>
+
+                <Menu.Item icon={<User />} onClick={() => dispatch(push("/profile"))}>
+                  {t("topmenu.profile")}
+                </Menu.Item>
+
+                <Menu.Item icon={<Settings />} onClick={() => dispatch(push("/settings"))}>
+                  {t("topmenu.settings")}
+                </Menu.Item>
+
+                {auth.access && auth.access.is_admin && <Menu.Divider />}
+
+                {auth.access && auth.access.is_admin && (
+                  <Menu.Item icon={<Adjustments />} onClick={() => dispatch(push("/admin"))}>
+                    {t("topmenu.adminarea")}
+                  </Menu.Item>
+                )}
+
+                <Menu.Item icon={<Logout />} onClick={() => dispatch(logout())}>
+                  {t("topmenu.logout")}
+                </Menu.Item>
+              </Menu.Dropdown>
             </Menu>
           </Group>
         </Grid.Col>

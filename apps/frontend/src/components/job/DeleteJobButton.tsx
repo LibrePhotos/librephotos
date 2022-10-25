@@ -1,13 +1,13 @@
 import { Button, Popover } from "@mantine/core";
-import React, { useState } from "react";
+import { useDisclosure } from "@mantine/hooks";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { deleteJob } from "../../actions/utilActions";
 import { useAppDispatch } from "../../store/store";
 
-
 export function DeleteJobButton(job) {
-  const [opened, setOpened] = useState(false);
+  const [opened, { open, close }] = useDisclosure(false);
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
 
@@ -16,17 +16,11 @@ export function DeleteJobButton(job) {
   const { pageSize } = job;
 
   return (
-    <Popover
-      opened={opened}
-      position="top"
-      placement="center"
-      withArrow
-      width={260}
-      onClose={() => setOpened(false)}
-      target={
+    <Popover opened={opened} position="top" withArrow width={260}>
+      <Popover.Target>
         <Button
-          onMouseEnter={() => setOpened(true)}
-          onMouseLeave={() => setOpened(false)}
+          onMouseEnter={open}
+          onMouseLeave={close}
           onClick={() => {
             dispatch(deleteJob(id, page, pageSize));
           }}
@@ -34,9 +28,11 @@ export function DeleteJobButton(job) {
         >
           {t("adminarea.remove")}
         </Button>
-      }
-    >
-      <div style={{ display: "flex" }}>{t("joblist.removeexplanation")}</div>
+      </Popover.Target>
+
+      <Popover.Dropdown>
+        <div style={{ display: "flex" }}>{t("joblist.removeexplanation")}</div>
+      </Popover.Dropdown>
     </Popover>
   );
 }

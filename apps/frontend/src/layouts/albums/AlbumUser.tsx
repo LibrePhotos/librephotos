@@ -1,5 +1,5 @@
 import { ActionIcon, Button, Group, Menu, Modal, Popover, Stack, Text, TextInput, Title } from "@mantine/core";
-import { useViewportSize } from "@mantine/hooks";
+import { useDisclosure, useViewportSize } from "@mantine/hooks";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -16,27 +16,24 @@ import { ModalAlbumShare } from "../../components/sharing/ModalAlbumShare";
 const SIDEBAR_WIDTH = LEFT_MENU_WIDTH;
 
 export function SharedWith(album: any) {
-  const [tooltipOpened, setTooltipOpened] = useState(false);
+  const [opened, { toggle, close }] = useDisclosure(false);
   //To-Do: Figure out, why album is an array / json
   return (
-    <Popover
-      opened={tooltipOpened}
-      width={260}
-      position="bottom"
-      onClose={() => {
-        setTooltipOpened(false);
-      }}
-      target={<Users size={20} onClick={() => setTooltipOpened(o => !o)} />}
-    >
-      <Stack>
-        <Title order={5}>Shared with:</Title>
-        {album.album.shared_to.map(el => (
-          <Group>
-            <User />
-            <b>{el.username}</b>
-          </Group>
-        ))}
-      </Stack>
+    <Popover opened={opened} position="bottom" width={260} onClose={close}>
+      <Popover.Target>
+        <Users size={20} onClick={toggle} />
+      </Popover.Target>
+      <Popover.Dropdown>
+        <Stack>
+          <Title order={5}>Shared with:</Title>
+          {album.album.shared_to.map((el: { username: string }) => (
+            <Group>
+              <User />
+              <b>{el.username}</b>
+            </Group>
+          ))}
+        </Stack>
+      </Popover.Dropdown>
     </Popover>
   );
 }
@@ -122,39 +119,42 @@ export function AlbumUser() {
               />
             </Link>
 
-            <Menu
-              style={{ position: "absolute", top: 10, right: 10 }}
-              control={
-                <ActionIcon>
-                  <DotsVertical />
-                </ActionIcon>
-              }
-            >
-              <Menu.Item
-                icon={<Edit />}
-                onClick={() =>
-                  openRenameDialog(albumsUserList[albumUserIndex].id, albumsUserList[albumUserIndex].title)
-                }
-              >
-                {t("rename")}
-              </Menu.Item>
-              <Menu.Item
-                icon={<Share />}
-                onClick={() =>
-                  openShareDialog(albumsUserList[albumUserIndex].id, albumsUserList[albumUserIndex].title)
-                }
-              >
-                {t("sidemenu.sharing")}
-              </Menu.Item>
-              <Menu.Item
-                icon={<Trash />}
-                onClick={() => {
-                  openDeleteDialog(albumsUserList[albumUserIndex].id, albumsUserList[albumUserIndex].title);
-                }}
-              >
-                {t("delete")}
-              </Menu.Item>
-            </Menu>
+            <div style={{ position: "absolute", top: 10, right: 10 }}>
+              <Menu position="bottom-end">
+                <Menu.Target>
+                  <ActionIcon>
+                    <DotsVertical />
+                  </ActionIcon>
+                </Menu.Target>
+
+                <Menu.Dropdown>
+                  <Menu.Item
+                    icon={<Edit />}
+                    onClick={() =>
+                      openRenameDialog(albumsUserList[albumUserIndex].id, albumsUserList[albumUserIndex].title)
+                    }
+                  >
+                    {t("rename")}
+                  </Menu.Item>
+                  <Menu.Item
+                    icon={<Share />}
+                    onClick={() =>
+                      openShareDialog(albumsUserList[albumUserIndex].id, albumsUserList[albumUserIndex].title)
+                    }
+                  >
+                    {t("sidemenu.sharing")}
+                  </Menu.Item>
+                  <Menu.Item
+                    icon={<Trash />}
+                    onClick={() =>
+                      openDeleteDialog(albumsUserList[albumUserIndex].id, albumsUserList[albumUserIndex].title)
+                    }
+                  >
+                    {t("delete")}
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+            </div>
           </div>
           <div className="personCardName" style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
             <Group>

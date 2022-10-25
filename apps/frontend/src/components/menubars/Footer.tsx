@@ -33,29 +33,36 @@ export function FooterMenu(): JSX.Element {
       return null;
     }
 
-    const link = (
+    const icon = <item.icon className={classes.linkIcon} color={item.color} size={33} style={{ margin: 0 }} />;
+    const link = item.submenu ? (
+      <ActionIcon>{icon}</ActionIcon>
+    ) : (
       <ActionIcon component={Link} to={item.link}>
-        <item.icon className={classes.linkIcon} color={item.color} size={33} style={{ margin: 0 }} />
+        {icon}
       </ActionIcon>
     );
 
     if (item.submenu) {
       return (
-        <Menu control={link} withArrow position="top" placement="center" style={{ display: "block" }} gutter={0}>
-          {item.submenu.map(subitem => {
-            if (subitem.header) {
-              return <Menu.Label>{subitem.header}</Menu.Label>;
-            }
-            if (subitem.separator) {
-              return <Divider />;
-            }
-            const icon = <subitem.icon size={20} color={subitem.color} />;
-            return (
-              <Menu.Item icon={icon} onClick={() => dispatch(push(subitem.link!))}>
-                {subitem.label}
-              </Menu.Item>
-            );
-          })}
+        <Menu withArrow position="top" width={200}>
+          <Menu.Target>{link}</Menu.Target>
+
+          <Menu.Dropdown>
+            {item.submenu.map(subitem => {
+              if (subitem.header) {
+                return <Menu.Label>{subitem.header}</Menu.Label>;
+              }
+              if (subitem.separator) {
+                return <Divider />;
+              }
+              const icon = <subitem.icon size={20} color={subitem.color} />;
+              return (
+                <Menu.Item icon={icon} onClick={() => dispatch(push(subitem.link!))}>
+                  {subitem.label}
+                </Menu.Item>
+              );
+            })}
+          </Menu.Dropdown>
         </Menu>
       );
     }

@@ -1,5 +1,5 @@
 import { ActionIcon, Button, Group, Image, Menu, Modal, Text, TextInput } from "@mantine/core";
-import { useDisclosure, useResizeObserver, useViewportSize } from "@mantine/hooks";
+import { useResizeObserver, useViewportSize } from "@mantine/hooks";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -15,10 +15,9 @@ import { HeaderComponent } from "./HeaderComponent";
 const SIDEBAR_WIDTH = LEFT_MENU_WIDTH;
 
 export const AlbumPeople = () => {
-  const { width, height } = useViewportSize();
+  const { height } = useViewportSize();
   const [entrySquareSize, setEntrySquareSize] = useState(200);
 
-  const [opened, handlers] = useDisclosure(false);
   const [numEntrySquaresPerRow, setNumEntrySquaresPerRow] = useState(0);
   const [openDeleteDialogState, setOpenDeleteDialogState] = useState(false);
   const [openRenameDialogState, setOpenRenameDialogState] = useState(false);
@@ -29,12 +28,12 @@ export const AlbumPeople = () => {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
 
-  const openDeleteDialog = (personID, personName) => {
+  const openDeleteDialog = (personID: string, personName: string) => {
     setOpenDeleteDialogState(true);
     setPersonID(personID);
     setPersonName(personName);
   };
-  const openRenameDialog = (personID, personName) => {
+  const openRenameDialog = (personID: string, personName: string) => {
     setOpenRenameDialogState(true);
     setPersonID(personID);
     setPersonName(personName);
@@ -92,29 +91,31 @@ export const AlbumPeople = () => {
                       image_hash={people[albumPersonIndex].face_photo_url}
                     />
                   </Link>
-                  <Menu
-                    style={{ position: "absolute", top: 10, right: 10 }}
-                    control={
-                      <ActionIcon>
-                        <DotsVertical />
-                      </ActionIcon>
-                    }
-                  >
-                    <Menu.Item
-                      icon={<Edit />}
-                      onClick={() => openRenameDialog(people[albumPersonIndex].key, people[albumPersonIndex].text)}
-                    >
-                      {t("rename")}
-                    </Menu.Item>
-                    <Menu.Item
-                      icon={<Trash />}
-                      onClick={() => {
-                        openDeleteDialog(people[albumPersonIndex].key, people[albumPersonIndex].text);
-                      }}
-                    >
-                      {t("delete")}
-                    </Menu.Item>
-                  </Menu>
+
+                  <div style={{ position: "absolute", top: 10, right: 10 }}>
+                    <Menu position="bottom-end">
+                      <Menu.Target>
+                        <ActionIcon>
+                          <DotsVertical />
+                        </ActionIcon>
+                      </Menu.Target>
+
+                      <Menu.Dropdown>
+                        <Menu.Item
+                          icon={<Edit />}
+                          onClick={() => openRenameDialog(people[albumPersonIndex].key, people[albumPersonIndex].text)}
+                        >
+                          {t("rename")}
+                        </Menu.Item>
+                        <Menu.Item
+                          icon={<Trash />}
+                          onClick={() => openDeleteDialog(people[albumPersonIndex].key, people[albumPersonIndex].text)}
+                        >
+                          {t("delete")}
+                        </Menu.Item>
+                      </Menu.Dropdown>
+                    </Menu>
+                  </div>
                 </div>
               )
             ) : (
