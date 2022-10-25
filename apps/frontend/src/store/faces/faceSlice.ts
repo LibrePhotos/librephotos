@@ -1,7 +1,8 @@
+import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
 import { api } from "../../api_client/api";
-import type { ICompletePersonFace, ICompletePersonFaceList, IFacesState } from "./facesActions.types";
+import type { ICompletePersonFace, ICompletePersonFaceList, IFacesState, IPersonFace } from "./facesActions.types";
 
 const initialState: IFacesState = {
   labeledFacesList: [] as ICompletePersonFaceList[],
@@ -15,6 +16,41 @@ const initialState: IFacesState = {
   error: null,
 };
 
+const compareFacesConfidence = (a: IPersonFace, b: IPersonFace) => {
+  if (a.person_label_probability > b.person_label_probability)
+    return -1;
+  if (a.person_label_probability < b.person_label_probability)
+    return 1;
+  if (a.id < b.id)
+    return -1;
+  if (a.id > b.id)
+    return 1;
+  return 0;
+};
+
+const compareFacesDate = (a: IPersonFace, b: IPersonFace) => {
+  const dateA = new Date(a.timestamp || '');
+  const dateB = new Date(b.timestamp || '');
+  if (dateA.toString() === "Invalid Date" && dateB.toString() === "Invalid Date")
+    return compareFacesConfidence(a, b);             
+  if (dateA.toString() === "Invalid Date")
+    return 1;
+  if (dateB.toString() === "Invalid Date")
+    return -1;
+  if (dateA < dateB)
+    return -1;
+  if (dateA > dateB)
+    return 1;
+  return compareFacesConfidence(a, b);
+};
+
+const sortFaces = (faces, order) => {
+  if (order === "confidence")
+    faces.sort((a: IPersonFace, b: IPersonFace) => compareFacesConfidence(a, b));
+  else if (order === "date")
+    faces.sort((a: IPersonFace, b: IPersonFace) => compareFacesDate(a, b));
+};
+
 const faceSlice = createSlice({
   name: "face",
   initialState: initialState,
@@ -22,6 +58,10 @@ const faceSlice = createSlice({
     changeFacesOrderBy: (state, action: PayloadAction<string>) => {
       // @ts-ignore
       state.orderBy = action.payload;
+      // @ts-ignore
+      state.labeledFacesList.forEach(element => {sortFaces(element.faces, state.orderBy)});
+      // @ts-ignore
+      state.inferredFacesList.forEach(element => {sortFaces(element.faces, state.orderBy)});
     },
   },
   extraReducers: builder => {
@@ -55,20 +95,22 @@ const faceSlice = createSlice({
         const personId = meta.arg.originalArgs.person;
         //@ts-ignore
         const indexToReplace = personListToChange.findIndex(person => person.id === personId);
-        const personToChange = personListToChange[indexToReplace];
-        //@ts-ignore
-        const currentFaces = personToChange.faces;
-        //@ts-ignore
-        const newFaces = payload.results;
+        if (indexToReplace !== -1) {
+          const personToChange = personListToChange[indexToReplace];
+          //@ts-ignore
+          const currentFaces = personToChange.faces;
+          //@ts-ignore
+          const newFaces = payload.results;
 
-        const updatedFaces = currentFaces
-          .slice(0, (meta.arg.originalArgs.page - 1) * 100)
-          .concat(newFaces)
-          .concat(currentFaces.slice(meta.arg.originalArgs.page * 100));
+          const updatedFaces = currentFaces
+            .slice(0, (meta.arg.originalArgs.page - 1) * 100)
+            .concat(newFaces)
+            .concat(currentFaces.slice(meta.arg.originalArgs.page * 100));
 
-        //@ts-ignore
-        personToChange.faces = updatedFaces;
-        personListToChange[indexToReplace] = personToChange;
+          //@ts-ignore
+          personToChange.faces = updatedFaces;
+          personListToChange[indexToReplace] = personToChange;
+        }
       })
       //@ts-ignore
       .addMatcher(api.endpoints.clusterFaces.matchFulfilled, (state, { payload }) => {

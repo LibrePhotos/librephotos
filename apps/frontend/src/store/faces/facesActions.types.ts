@@ -35,7 +35,9 @@ export const PersonFace = z.object({
   person_label_probability: z.number(),
   isTemp: z.boolean().optional(),
   person: z.number().optional(),
+  timestamp: z.string().optional(),
 });
+export type IPersonFace = z.infer<typeof PersonFace>;
 
 export const PersonFaceListResponse = z.object({
   data: z.object({
