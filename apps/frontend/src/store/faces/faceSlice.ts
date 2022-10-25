@@ -1,4 +1,4 @@
-import { createSlice, current } from "@reduxjs/toolkit";
+import type { PayloadAction } from "@reduxjs/toolkit";
 
 import { api } from "../../api_client/api";
 import type { ICompletePersonFace, ICompletePersonFaceList, IFacesState } from "./facesActions.types";
@@ -11,13 +11,19 @@ const initialState: IFacesState = {
   trained: false,
   clustering: false,
   clustered: false,
+  orderBy: "confidence",
   error: null,
 };
 
 const faceSlice = createSlice({
   name: "face",
   initialState: initialState,
-  reducers: {},
+  reducers: {
+    changeFacesOrderBy: (state, action: PayloadAction<string>) => {
+      // @ts-ignore
+      state.orderBy = action.payload;
+    },
+  },
   extraReducers: builder => {
     builder
       //@ts-ignore

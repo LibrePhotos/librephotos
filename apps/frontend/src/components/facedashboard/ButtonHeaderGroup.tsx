@@ -1,33 +1,36 @@
 import { ActionIcon, Button, Divider, Group, Modal, SegmentedControl, Stack, Switch, Text, Tooltip } from "@mantine/core";
 import { showNotification } from "@mantine/notifications";
-import React, { useState } from "react";
-import type { Dispatch, SetStateAction } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Barbell, Plus, Trash, UserOff } from "tabler-icons-react";
 
 import { api } from "../../api_client/api";
 import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
+import { faceActions } from "../../store/faces/faceSlice";
 
 type Props = {
   selectMode: boolean;
   selectedFaces: any;
-  orderBy: string;
   changeSelectMode: () => void;
   addFaces: () => void;
   deleteFaces: () => void;
   notThisPerson: () => void;
-  setOrderBy: Dispatch<SetStateAction<string>>;
 };
 
-export function ButtonHeaderGroup({ selectMode, selectedFaces, orderBy, changeSelectMode, addFaces, deleteFaces, notThisPerson, setOrderBy }: Props) {
+export function ButtonHeaderGroup({ selectMode, selectedFaces, changeSelectMode, addFaces, deleteFaces, notThisPerson }: Props) {
   const queueCanAcceptJob = useAppSelector(store => store.worker.queue_can_accept_job);
   const jobDetail = useAppSelector(store => store.worker.job_detail);
+  const { orderBy } = useAppSelector(store => store.face);
   const { t } = useTranslation();
-
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-
+  const [sortBy, setSortBy] = useState(orderBy);
   const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    dispatch(faceActions.changeFacesOrderBy(sortBy));
+  }, [sortBy]);
+    
   return (
     <div>
       <Group position="apart">
@@ -45,8 +48,8 @@ export function ButtonHeaderGroup({ selectMode, selectedFaces, orderBy, changeSe
           </Text>
           <SegmentedControl
             size="sm"
-            value={orderBy}
-            onChange={setOrderBy}
+            value={sortBy}
+            onChange={setSortBy}
             data={[
               { label: t("facesdashboard.sortbyconfidence"),
                 value: 'confidence' },

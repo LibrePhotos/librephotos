@@ -23,7 +23,6 @@ export function FaceDashboard () {
   const [entrySquareSize, setEntrySquareSize] = useState(200);
   const [numEntrySquaresPerRow, setNumEntrySquaresPerRow] = useState(10);
   const [selectMode, setSelectMode] = useState(false);
-  const [orderBy, setOrderBy] = useState('confidence');
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
   const [modalPersonEditOpen, setModalPersonEditOpen] = useState(false);
 
@@ -48,7 +47,9 @@ export function FaceDashboard () {
     }
   );
 
-  const fetchGroupFaces = (force: boolean = true) => {
+  const { orderBy } = useAppSelector(store => store.face);
+
+  useEffect(() => {
     if (groups) {
       groups.forEach(element => {
         dispatch(
@@ -57,16 +58,11 @@ export function FaceDashboard () {
             page: element.page,
             inferred: activeItem === 1,
             orderby: orderBy
-          }, {forceRefetch: force})
+          })
         );
       });
     }
-  };
-
-  useEffect(() => fetchGroupFaces(true), [activeItem, groups]);
-
-  useEffect(() => fetchGroupFaces(true), [orderBy]);
-
+  }, [activeItem, groups]);
 
   // ensure that the endpoint is not undefined
   const getEndpointCell = (cellContents, rowStopIndex, columnStopIndex) => {
@@ -286,8 +282,6 @@ export function FaceDashboard () {
           addFaces={addFaces}
           deleteFaces={deleteSelectedFaces}
           notThisPerson={notThisPersonFunc}
-          orderBy={orderBy}
-          setOrderBy={setOrderBy}
         />
       </Stack>
       <div ref={ref} style={{ flexGrow: 1 }}>

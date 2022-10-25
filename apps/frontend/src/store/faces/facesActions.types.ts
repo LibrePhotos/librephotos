@@ -8,6 +8,7 @@ export type IFacesState = {
   trained: boolean;
   clustering: boolean;
   clustered: boolean;
+  orderBy: string;  
   error: any;
 };
 
