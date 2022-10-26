@@ -249,7 +249,8 @@
             "scene": "Szene",
             "attributes": "Attribute",
             "categories": "Kategorie",
-            "similarphotos": "Ähnliche Fotos"
+            "similarphotos": "Ähnliche Fotos",
+            "editdatetime": "Datum und Uhrzeit bearbeiten"
         }
     },
     "photos": {
