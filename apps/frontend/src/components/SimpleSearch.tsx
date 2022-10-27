@@ -1,5 +1,6 @@
 import { TextInput } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
+import { random } from "lodash";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
@@ -22,7 +23,7 @@ export function SimpleSearch() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const example = exampleSearchTerms[Math.floor(Math.random() * exampleSearchTerms.length)];
+      const example = exampleSearchTerms[Math.floor(random(0.1, 1) * exampleSearchTerms.length)];
       setSearchPlaceholder(`${t("search.search")} ${example}`);
     }, 5000);
     return () => {
@@ -50,4 +51,4 @@ export function SimpleSearch() {
       onKeyPress={search}
     />
   );
-};
+}
