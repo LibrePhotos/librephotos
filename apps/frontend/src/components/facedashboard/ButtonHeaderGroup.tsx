@@ -40,7 +40,7 @@ export function ButtonHeaderGroup({ selectMode, selectedFaces, changeSelectMode,
               number: selectedFaces.length,
             })}
             checked={selectMode}
-            onClick={changeSelectMode}
+            onChange={changeSelectMode}
           />
           <Divider orientation="vertical" style={{height: "20px", marginTop:"10px"}}/>
           <Text size="sm" weight={500} mb={3}>
