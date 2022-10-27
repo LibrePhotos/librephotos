@@ -59,8 +59,8 @@ class FaceListView(ListViewSet):
         ):
             inferred = True
             conditional_filter = Q(person_label_is_inferred=inferred)
-        if self.request.query_params.get("orderby"):
-            if self.request.query_params.get("orderby").lower() == "date":
+        if self.request.query_params.get("order_by"):
+            if self.request.query_params.get("order_by").lower() == "date":
                 order_by = ["photo__exif_timestamp", "-person_label_probability", "id"]
         return (
             Face.objects.filter(
@@ -76,6 +76,7 @@ class FaceListView(ListViewSet):
         parameters=[
             OpenApiParameter("person", OpenApiTypes.STR),
             OpenApiParameter("inferred", OpenApiTypes.BOOL),
+            OpenApiParameter("order_by", OpenApiTypes.STR),
         ],
     )
     def list(self, *args, **kwargs):
