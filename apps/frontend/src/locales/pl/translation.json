@@ -287,7 +287,8 @@
             "generate": "Wygeneruj",
             "cancel": "Anuluj",
             "scene": "Sceneria",
-            "submit": "Prześlij"
+            "submit": "Prześlij",
+            "editdatetime": "Edycja daty i godziny"
         }
     },
     "joblist": {
