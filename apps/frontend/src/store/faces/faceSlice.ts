@@ -51,13 +51,50 @@ const sortFaces = (faces, order) => {
     faces.sort((a: IPersonFace, b: IPersonFace) => compareFacesDate(a, b));
 };
 
+const clearPersonFacesIfNeeded = (person: ICompletePersonFace) => {
+  let needClear: boolean = false;
+  let personHasAlreadyLoadedFaces: boolean = false;
+  person.faces.every((face: IPersonFace) => {
+    if (!personHasAlreadyLoadedFaces && face.image != null) {
+      personHasAlreadyLoadedFaces = true;
+    }
+    if (personHasAlreadyLoadedFaces && face.image == null) {
+      needClear = true;
+      return false;
+    }
+    return true;
+  });
+  if (needClear) {
+    for (let i = 0; i < person.face_count; i++) {
+      if (person.faces[i].image !== null) {
+        // eslint-disable-next-line no-param-reassign
+        person.faces[i] = {
+          id: i,
+          image: null,
+          face_url: null,
+          photo: "",
+          person_label_probability: 1,
+          person: person.id,
+          isTemp: true,
+        };
+      }
+    }
+  }
+};
+
 const faceSlice = createSlice({
   name: "face",
   initialState: initialState,
   reducers: {
     changeFacesOrderBy: (state, action: PayloadAction<string>) => {
-      // @ts-ignore
+      // eslint-disable-next-line no-param-reassign
       state.orderBy = action.payload;
+      // If element contains some incomplete faces, we need to clear all faces
+      // @ts-ignore
+      state.labeledFacesList.forEach(element => clearPersonFacesIfNeeded(element));
+      // @ts-ignore
+      state.inferredFacesList.forEach(element => clearPersonFacesIfNeeded(element));
+      // Sort both lists according to new criteria
       // @ts-ignore
       state.labeledFacesList.forEach(element => {sortFaces(element.faces, state.orderBy)});
       // @ts-ignore

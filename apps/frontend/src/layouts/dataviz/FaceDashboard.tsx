@@ -51,15 +51,21 @@ export function FaceDashboard () {
 
   useEffect(() => {
     if (groups) {
+      const currentList = activeItem === 1 ? inferredFacesList : labeledFacesList;
       groups.forEach(element => {
+        let force = false;
+        const personIndex = currentList.findIndex(person => person.id === element.person);
+        // Force refetch for persons that have more than 100 faces as we can't be sure all faces were loaded when changing orderBy
+        if (personIndex !== -1 && currentList[personIndex].face_count > 100)
+          force = true;
         dispatch(
           api.endpoints.fetchFaces.initiate({
             person: element.person,
             page: element.page,
             inferred: activeItem === 1,
-            orderby: orderBy
-          })
-        );
+            orderBy: orderBy
+          }, {forceRefetch: force})
+        ).refetch();
       });
     }
   }, [activeItem, groups]);
@@ -68,31 +74,28 @@ export function FaceDashboard () {
   const getEndpointCell = (cellContents, rowStopIndex, columnStopIndex) => {
     if (cellContents[rowStopIndex][columnStopIndex]) {
       return cellContents[rowStopIndex][columnStopIndex];
-    } else {
-      return getEndpointCell(cellContents, rowStopIndex, columnStopIndex - 1);
     }
+    return getEndpointCell(cellContents, rowStopIndex, columnStopIndex - 1);
   };
 
   const onSectionRendered = (params: any) => {
     const cellContents = activeItem === 1 ? inferredCellContents : labeledCellContents;
     const startPoint = cellContents[params.rowOverscanStartIndex][params.columnOverscanStartIndex];
     const endPoint = getEndpointCell(cellContents, params.rowOverscanStopIndex, params.columnOverscanStopIndex);
-    //flatten labeledCellContents and find the range of cells that are in the viewport
+    // flatten labeledCellContents and find the range of cells that are in the viewport
     const flatCellContents = _.flatten(cellContents);
     const startIndex = flatCellContents.findIndex(cell => JSON.stringify(cell) === JSON.stringify(startPoint));
     const endIndex = flatCellContents.findIndex(cell => JSON.stringify(cell) === JSON.stringify(endPoint));
 
-    //get the range of cells that are in the viewport
+    // get the range of cells that are in the viewport
     const visibleCells = flatCellContents.slice(startIndex, endIndex + 1);
     const relevantInfos = visibleCells
       .filter((i: any) => i.isTemp)
       .map((i: any) => {
-        const page = Math.ceil((parseInt(i.id) + 1) / 100);
+        const page = Math.ceil((parseInt(i.id, 10) + 1) / 100);
         return { page: page, person: i.person };
       });
-    const uniqueGroups = _.uniqBy(relevantInfos, (e: any) => {
-      return e.page + " " + e.person;
-    });
+    const uniqueGroups = _.uniqBy(relevantInfos, (e: any) => `${e.page} ${e.person}`);
     if (uniqueGroups.length > 0) {
       setGroups(uniqueGroups);
     }
@@ -164,7 +167,7 @@ export function FaceDashboard () {
     // filter duplicates from new faces
     const mergedAndFiltered = merged.filter(face => !duplicates.find(i => i.face_id === face.face_id));
     // add the last selected face back to the start of the list when adding new faces
-    //@ts-ignore
+    // @ts-ignore
     const lastSelectedFace = { face_id: lastChecked.id, face_url: lastChecked.face_url };
     const mergedAndFilteredAndLastSelected =
       duplicates.length !== faces.length ? [lastSelectedFace, ...mergedAndFiltered] : mergedAndFiltered;
@@ -172,7 +175,7 @@ export function FaceDashboard () {
   };
 
   const onFaceSelect = face => {
-    var tempSelectedFaces = selectedFaces;
+    let tempSelectedFaces = selectedFaces;
     if (tempSelectedFaces.map(face => face.face_url).includes(face.face_url)) {
       tempSelectedFaces = tempSelectedFaces.filter(item => item.face_url !== face.face_url);
     } else {
@@ -190,7 +193,7 @@ export function FaceDashboard () {
   const deleteSelectedFaces = () => {
     if (selectedFaces.length > 0) {
       const ids = selectedFaces.map(face => face.face_id);
-      //@ts-ignore
+      // @ts-ignore
       dispatch(api.endpoints.deleteFaces.initiate({ faceIds: ids }));
       showNotification({
         message: i18n.t<string>("toasts.deletefaces", {
@@ -212,7 +215,7 @@ export function FaceDashboard () {
   const notThisPersonFunc = () => {
     if (selectedFaces.length > 0) {
       const ids = selectedFaces.map(face => face.face_id);
-      //@ts-ignore
+      // @ts-ignore
       dispatch(api.endpoints.setFacesPersonLabel.initiate({ faceIds: ids, personName: "Unknown - Other" }));
       showNotification({
         message: i18n.t<string>("toasts.removefacestoperson", {
