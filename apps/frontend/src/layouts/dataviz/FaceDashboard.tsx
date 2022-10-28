@@ -19,7 +19,7 @@ import type { IFacesTab } from "../../store/faces/facesActions.types";
 
 export function FaceDashboard () {
   const { ref, width } = useElementSize();
-  const [currentGridRow, setCurrentGridRow] = useState(0);
+  const [currentScrollPosition, setCurrentScrollPosition] = useState(0);
   const [lastChecked, setLastChecked] = useState(null);
   const [entrySquareSize, setEntrySquareSize] = useState(200);
   const [numEntrySquaresPerRow, setNumEntrySquaresPerRow] = useState(10);
@@ -55,13 +55,14 @@ export function FaceDashboard () {
           api.endpoints.fetchFaces.initiate({
             person: element.person,
             page: element.page,
-            inferred: activeTab === "inferred" ?  1 : 0,
+            inferred: activeTab === "inferred",
           })
         );
       });
     }
   }, [groups]);
 
+  // To-Do replace with mantine usePrevious hook when updating to mantine 5.6
   const usePrevious = (value) => {
     const ref = useRef();
     useEffect(() => {
@@ -74,23 +75,25 @@ export function FaceDashboard () {
   const previousTab: IFacesTab = usePrevious(activeTab);
   const [scrollTo, setScrollTo] = useState<number | null>(null);
   
-  const handleScroll = (params: any) => {
+  const handleGridScroll = (params: any) => {
     const {scrollTop} = params;
-    if (scrollTo !== null && scrollTop === scrollTo)
+    if (scrollTo !== null && scrollTop === scrollTo) {
       setScrollTo(null);
-      setCurrentGridRow(scrollTop);
-      console.log(`Current scroll position ${scrollTop}`);
+    }
+    setCurrentScrollPosition(scrollTop);
   };
   
   useEffect(() => {
-    dispatch(
-          faceActions.saveCurrentGridPosition({
-            tab: previousTab,
-            row: currentGridRow,
-          })
-    );
-    console.log(`Set scrollTo to ${tabs[activeTab].currentRow}`)
-    setScrollTo(tabs[activeTab].currentRow);
+    if (previousTab) {
+      dispatch(
+            faceActions.saveCurrentGridPosition({
+              tab: previousTab,
+              position: currentScrollPosition,
+            })
+      );
+    }
+    console.log(`Scrolling to ${activeTab} ${tabs[activeTab].scrollPosition}`)
+    setScrollTo(tabs[activeTab].scrollPosition);
   }, [activeTab]);
 
   // ensure that the endpoint is not undefined
@@ -110,8 +113,6 @@ export function FaceDashboard () {
     const flatCellContents = _.flatten(cellContents);
     const startIndex = flatCellContents.findIndex(cell => JSON.stringify(cell) === JSON.stringify(startPoint));
     const endIndex = flatCellContents.findIndex(cell => JSON.stringify(cell) === JSON.stringify(endPoint));
-//    setCurrentGridRow(params.scrollTop);
-//    console.log(`Current Grid row ${currentGridRow}`);
 
     //get the range of cells that are in the viewport
     const visibleCells = flatCellContents.slice(startIndex, endIndex + 1);
@@ -326,7 +327,7 @@ export function FaceDashboard () {
               width={width}
               rowCount={activeTab === 'labeled' ? labeledCellContents.length : inferredCellContents.length}
               scrollTop={scrollTo}
-              onScroll={handleScroll}
+              onScroll={handleGridScroll}
             />
           )}
         </AutoSizer>

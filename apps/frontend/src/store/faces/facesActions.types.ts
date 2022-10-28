@@ -61,7 +61,7 @@ export type IPersonFaceListResponse = z.infer<typeof CompletePersonFace>;
 export const PersonFaceListRequest = z.object({
   person: z.number(),
   page: z.number(),
-  inferred: z.number(),
+  inferred: z.boolean(),
 });
 export type IPersonFaceListRequest = z.infer<typeof PersonFaceListRequest>;
 

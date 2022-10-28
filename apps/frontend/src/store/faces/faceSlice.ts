@@ -13,7 +13,10 @@ const initialState: IFacesState = {
   clustered: false,
   error: null,
   activeTab: 'labeled',
-  tabs: {"labeled": {scrollPosition: 0}, "inferred": {scrollPosition: 0}} as ITabSettingsArray
+  tabs: {
+    "labeled": {scrollPosition: 0},
+    "inferred": {scrollPosition: 0}
+  } as ITabSettingsArray,
 };
 
 const faceSlice = createSlice({
@@ -25,13 +28,12 @@ const faceSlice = createSlice({
         activeTab: action.payload,
       }
     ),
-    saveCurrentGridPosition: (state, action: PayloadAction<{tab: IFacesTab, row: number}>) => {
-      const {tab, row} = action.payload;
-      console.log(`Saving position for ${tab} ${row}`);
+    saveCurrentGridPosition: (state, action: PayloadAction<{tab: IFacesTab, position: number}>) => {
+      const {tab, position} = action.payload;
+      console.log(`Saving position for ${tab} ${position}`);
       if (tab in state.tabs) {
-//        debugger;
         // @ts-ignore
-        state.tabs[tab].currentRow = row;
+        state.tabs[tab].scrollPosition = position;
       }
     },
 
@@ -62,7 +64,8 @@ const faceSlice = createSlice({
         };
       })
       .addMatcher(api.endpoints.fetchFaces.matchFulfilled, (state, { meta, payload }) => {
-        const personListToChange = state.activeTab === 'inferred' ? state.inferredFacesList : state.labeledFacesList;
+        const inferred = meta.arg.originalArgs.inferred;
+        const personListToChange = inferred ? state.inferredFacesList : state.labeledFacesList;
         const personId = meta.arg.originalArgs.person;
         //@ts-ignore
         const indexToReplace = personListToChange.findIndex(person => person.id === personId);
