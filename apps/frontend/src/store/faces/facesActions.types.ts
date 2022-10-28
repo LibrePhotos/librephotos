@@ -9,7 +9,22 @@ export type IFacesState = {
   clustering: boolean;
   clustered: boolean;
   error: any;
+  activeTab: IFacesTab;
+  tabs: ITabSettingsArray;
 };
+
+const FacesTab = z.enum(["labeled", "inferred"]);
+export type IFacesTab = z.infer<typeof FacesTab>;
+
+export const TabSettings = z.object({
+  scrollPosition: z.number(),
+});
+export type ITabSettings = z.infer<typeof TabSettings>;
+export const TabSettingsArray = z.record(
+  FacesTab,
+  TabSettings
+);
+export type ITabSettingsArray = z.infer<typeof TabSettingsArray>;
 
 export const IncompletePersonFace = z.object({
   id: z.number(),

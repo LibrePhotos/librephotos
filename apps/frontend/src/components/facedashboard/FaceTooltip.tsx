@@ -3,16 +3,18 @@ import { t } from "i18next";
 import React from "react";
 import { DateTime } from 'luxon';
 import i18n from "../../i18n";
+import { useAppSelector } from "../../store/store";
 
 type Props = {
   tooltipOpened: boolean;
   cell: any;
-  activeItem: number;
   children?: React.ReactNode;
 };
 
-export function FaceTooltip({ tooltipOpened, cell, activeItem, children }: Props) {
-  const confidencePercentageLabel = activeItem === 1
+export function FaceTooltip({ tooltipOpened, cell, children }: Props) {
+  const { activeTab } = useAppSelector(store => store.face);
+  
+  const confidencePercentageLabel = activeTab === "inferred"
   ? t<string>("settings.confidencepercentage", {percentage: (cell.person_label_probability * 100).toFixed(1),})
   : null;
 

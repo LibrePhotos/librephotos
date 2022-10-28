@@ -1,7 +1,7 @@
-import { createSlice, current } from "@reduxjs/toolkit";
-
+import { createSlice } from "@reduxjs/toolkit";
+import type { PayloadAction } from "@reduxjs/toolkit";
 import { api } from "../../api_client/api";
-import type { ICompletePersonFace, ICompletePersonFaceList, IFacesState } from "./facesActions.types";
+import type { ICompletePersonFace, ICompletePersonFaceList, IFacesState, IFacesTab, ITabSettingsArray } from "./facesActions.types";
 
 const initialState: IFacesState = {
   labeledFacesList: [] as ICompletePersonFaceList[],
@@ -12,12 +12,30 @@ const initialState: IFacesState = {
   clustering: false,
   clustered: false,
   error: null,
+  activeTab: "labeled",
+  tabs: {
+    "labeled": {scrollPosition: 0},
+    "inferred": {scrollPosition: 0}
+  } as ITabSettingsArray,
 };
 
 const faceSlice = createSlice({
   name: "face",
   initialState: initialState,
-  reducers: {},
+  reducers: {
+    changeTab: (state, action: PayloadAction<IFacesTab>) => (
+      {...state,
+        activeTab: action.payload,
+      }
+    ),
+    saveCurrentGridPosition: (state, action: PayloadAction<{tab: IFacesTab, position: number}>) => {
+      const {tab, position} = action.payload;
+      if (tab in state.tabs) {
+        // @ts-ignore
+        state.tabs[tab].scrollPosition = position;
+      }
+    },
+  },
   extraReducers: builder => {
     builder
       //@ts-ignore
@@ -45,7 +63,7 @@ const faceSlice = createSlice({
       })
       .addMatcher(api.endpoints.fetchFaces.matchFulfilled, (state, { meta, payload }) => {
         const inferred = meta.arg.originalArgs.inferred;
-        var personListToChange = inferred ? state.inferredFacesList : state.labeledFacesList;
+        const personListToChange = inferred ? state.inferredFacesList : state.labeledFacesList;
         const personId = meta.arg.originalArgs.person;
         //@ts-ignore
         const indexToReplace = personListToChange.findIndex(person => person.id === personId);

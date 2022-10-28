@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { serverAddress } from "../../api_client/apiClient";
 import { PhotoIcon } from "./PhotoIcon";
 import { FaceTooltip } from "./FaceTooltip";
+import { useAppSelector } from "../../store/store";
 
 
 type Props = {
@@ -12,11 +13,10 @@ type Props = {
   selectMode: boolean;
   entrySquareSize: number;
   isSelected: boolean;
-  activeItem: number;
   handleClick: (e: any, cell: any) => void;
 };
 
-export function FaceComponent({ cell, isScrollingFast, selectMode, entrySquareSize, isSelected, activeItem, handleClick }: Props) {
+export function FaceComponent({ cell, isScrollingFast, selectMode, entrySquareSize, isSelected, handleClick }: Props) {
   const calculateProbabiltyColor = (labelProbability: number) => {
     if (labelProbability > 0.9) return "green";
     if (labelProbability > 0.8) return "yellow";
@@ -27,6 +27,7 @@ export function FaceComponent({ cell, isScrollingFast, selectMode, entrySquareSi
   const labelProbabilityColor = calculateProbabiltyColor(cell.person_label_probability);
   const showPhotoIcon = <PhotoIcon photo={cell.photo} />;
   const [tooltipOpened, setTooltipOpened] = useState(false);
+  const { activeTab } = useAppSelector(store => store.face);
   // TODO: janky shit going on in the next line!
   const faceImageSrc = `${serverAddress}/media/faces/${_.reverse(cell.image.split("/"))[0]}`;
 
@@ -61,7 +62,6 @@ export function FaceComponent({ cell, isScrollingFast, selectMode, entrySquareSi
       <Center>
         <FaceTooltip
             tooltipOpened={tooltipOpened}
-            activeItem={activeItem}
             cell={cell}
         >
           <Indicator
@@ -69,7 +69,7 @@ export function FaceComponent({ cell, isScrollingFast, selectMode, entrySquareSi
             color={labelProbabilityColor}
             onMouseEnter={() => setTooltipOpened(true)}
             onMouseLeave={() => setTooltipOpened(false)}
-            disabled={activeItem === 0}
+            disabled={activeTab === "labeled"}
             size={15}
           >
             <Avatar
