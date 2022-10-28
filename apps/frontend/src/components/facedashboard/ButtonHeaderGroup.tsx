@@ -8,6 +8,7 @@ import { api } from "../../api_client/api";
 import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { faceActions } from "../../store/faces/faceSlice";
+import type { IFacesOrderOption } from "../../store/faces/facesActions.types";
 
 type Props = {
   selectMode: boolean;
@@ -24,13 +25,12 @@ export function ButtonHeaderGroup({ selectMode, selectedFaces, changeSelectMode,
   const { orderBy } = useAppSelector(store => store.face);
   const { t } = useTranslation();
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [sortBy, setSortBy] = useState(orderBy);
   const dispatch = useAppDispatch();
 
-  useEffect(() => {
-    dispatch(faceActions.changeFacesOrderBy(sortBy));
-  }, [sortBy]);
-    
+  const setOrderBy = (value: string) => {
+    dispatch(faceActions.changeFacesOrderBy(value as IFacesOrderOption));
+  }
+  
   return (
     <div>
       <Group position="apart">
@@ -48,8 +48,8 @@ export function ButtonHeaderGroup({ selectMode, selectedFaces, changeSelectMode,
           </Text>
           <SegmentedControl
             size="sm"
-            value={sortBy}
-            onChange={setSortBy}
+            value={orderBy}
+            onChange={setOrderBy}
             data={[
               { label: t("facesdashboard.sortbyconfidence"),
                 value: 'confidence' },

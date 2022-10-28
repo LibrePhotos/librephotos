@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
 import { api } from "../../api_client/api";
-import type { ICompletePersonFace, ICompletePersonFaceList, IFacesState, IPersonFace } from "./facesActions.types";
+import type { ICompletePersonFace, ICompletePersonFaceList, IFacesOrderOption, IFacesState, IPersonFace } from "./facesActions.types";
 
 const initialState: IFacesState = {
   labeledFacesList: [] as ICompletePersonFaceList[],
@@ -44,7 +44,7 @@ const compareFacesDate = (a: IPersonFace, b: IPersonFace) => {
   return compareFacesConfidence(a, b);
 };
 
-const sortFaces = (faces, order) => {
+const sortFaces = (faces, order: IFacesOrderOption) => {
   if (order === "confidence")
     faces.sort((a: IPersonFace, b: IPersonFace) => compareFacesConfidence(a, b));
   else if (order === "date")
@@ -86,7 +86,7 @@ const faceSlice = createSlice({
   name: "face",
   initialState: initialState,
   reducers: {
-    changeFacesOrderBy: (state, action: PayloadAction<string>) => {
+    changeFacesOrderBy: (state, action: PayloadAction<IFacesOrderOption>) => {
       // eslint-disable-next-line no-param-reassign
       state.orderBy = action.payload;
       // If element contains some incomplete faces, we need to clear all faces

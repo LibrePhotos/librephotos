@@ -8,9 +8,12 @@ export type IFacesState = {
   trained: boolean;
   clustering: boolean;
   clustered: boolean;
-  orderBy: string;  
+  orderBy: IFacesOrderOption;  
   error: any;
 };
+
+const FacesOrderOption = z.enum(["confidence", "date"]);
+export type IFacesOrderOption = z.infer<typeof FacesOrderOption>;
 
 export const IncompletePersonFace = z.object({
   id: z.number(),
@@ -49,7 +52,7 @@ export const PersonFaceListRequest = z.object({
   person: z.number(),
   page: z.number(),
   inferred: z.boolean(),
-  orderBy: z.string(),
+  orderBy: FacesOrderOption,
 });
 export type IPersonFaceListRequest = z.infer<typeof PersonFaceListRequest>;
 
