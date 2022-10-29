@@ -10,7 +10,22 @@ export type IFacesState = {
   clustered: boolean;
   orderBy: IFacesOrderOption;  
   error: any;
+  activeTab: IFacesTab;
+  tabs: ITabSettingsArray;
 };
+
+const FacesTab = z.enum(["labeled", "inferred"]);
+export type IFacesTab = z.infer<typeof FacesTab>;
+
+export const TabSettings = z.object({
+  scrollPosition: z.number(),
+});
+export type ITabSettings = z.infer<typeof TabSettings>;
+export const TabSettingsArray = z.record(
+  FacesTab,
+  TabSettings
+);
+export type ITabSettingsArray = z.infer<typeof TabSettingsArray>;
 
 const FacesOrderOption = z.enum(["confidence", "date"]);
 export type IFacesOrderOption = z.infer<typeof FacesOrderOption>;

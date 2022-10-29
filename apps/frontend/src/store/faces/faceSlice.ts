@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
 import { api } from "../../api_client/api";
-import type { ICompletePersonFace, ICompletePersonFaceList, IFacesOrderOption, IFacesState, IPersonFace } from "./facesActions.types";
+import type { ICompletePersonFace, ICompletePersonFaceList, IFacesOrderOption, IFacesState, IFacesTab, ITabSettingsArray, IPersonFace } from "./facesActions.types";
 
 const initialState: IFacesState = {
   labeledFacesList: [] as ICompletePersonFaceList[],
@@ -86,6 +86,18 @@ const faceSlice = createSlice({
   name: "face",
   initialState: initialState,
   reducers: {
+    changeTab: (state, action: PayloadAction<IFacesTab>) => (
+      {...state,
+        activeTab: action.payload,
+      }
+    ),
+    saveCurrentGridPosition: (state, action: PayloadAction<{tab: IFacesTab, position: number}>) => {
+      const {tab, position} = action.payload;
+      if (tab in state.tabs) {
+        // @ts-ignore
+        state.tabs[tab].scrollPosition = position;
+      }
+    },
     changeFacesOrderBy: (state, action: PayloadAction<IFacesOrderOption>) => {
       // eslint-disable-next-line no-param-reassign
       state.orderBy = action.payload;
@@ -128,7 +140,7 @@ const faceSlice = createSlice({
       })
       .addMatcher(api.endpoints.fetchFaces.matchFulfilled, (state, { meta, payload }) => {
         const inferred = meta.arg.originalArgs.inferred;
-        var personListToChange = inferred ? state.inferredFacesList : state.labeledFacesList;
+        const personListToChange = inferred ? state.inferredFacesList : state.labeledFacesList;
         const personId = meta.arg.originalArgs.person;
         //@ts-ignore
         const indexToReplace = personListToChange.findIndex(person => person.id === personId);
