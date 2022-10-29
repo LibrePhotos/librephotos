@@ -27,7 +27,7 @@ export const TabSettingsArray = z.record(
 );
 export type ITabSettingsArray = z.infer<typeof TabSettingsArray>;
 
-const FacesOrderOption = z.enum(["confidence", "date"]);
+export const FacesOrderOption = z.enum(["confidence", "date"]);
 export type IFacesOrderOption = z.infer<typeof FacesOrderOption>;
 
 export const IncompletePersonFace = z.object({

@@ -8,6 +8,7 @@ import { api } from "../../api_client/api";
 import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { faceActions } from "../../store/faces/faceSlice";
+import { FacesOrderOption } from "../../store/faces/facesActions.types";
 import type { IFacesOrderOption } from "../../store/faces/facesActions.types";
 
 type Props = {
@@ -52,9 +53,9 @@ export function ButtonHeaderGroup({ selectMode, selectedFaces, changeSelectMode,
             onChange={setOrderBy}
             data={[
               { label: t("facesdashboard.sortbyconfidence"),
-                value: 'confidence' },
+                value: FacesOrderOption.enum.confidence },
               { label: t("facesdashboard.sortbydate"),
-              value: 'date' }
+              value: FacesOrderOption.enum.date }
             ]}
           />
         </Group>

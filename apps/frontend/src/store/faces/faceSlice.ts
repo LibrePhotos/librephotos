@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
 import { api } from "../../api_client/api";
+import { FacesOrderOption, FacesTab } from "./facesActions.types";
 import type { ICompletePersonFace, ICompletePersonFaceList, IFacesOrderOption, IFacesState, IFacesTab, ITabSettingsArray, IPersonFace } from "./facesActions.types";
 
 const initialState: IFacesState = {
@@ -12,8 +13,13 @@ const initialState: IFacesState = {
   trained: false,
   clustering: false,
   clustered: false,
-  orderBy: "confidence",
+  orderBy: FacesOrderOption.enum.confidence,
   error: null,
+  activeTab: FacesTab.enum.labeled,
+  tabs: {
+    "labeled": {scrollPosition: 0},
+    "inferred": {scrollPosition: 0}
+  } as ITabSettingsArray,
 };
 
 const compareFacesConfidence = (a: IPersonFace, b: IPersonFace) => {
@@ -45,9 +51,9 @@ const compareFacesDate = (a: IPersonFace, b: IPersonFace) => {
 };
 
 const sortFaces = (faces, order: IFacesOrderOption) => {
-  if (order === "confidence")
+  if (order === FacesOrderOption.enum.confidence)
     faces.sort((a: IPersonFace, b: IPersonFace) => compareFacesConfidence(a, b));
-  else if (order === "date")
+  else if (order === FacesOrderOption.enum.date)
     faces.sort((a: IPersonFace, b: IPersonFace) => compareFacesDate(a, b));
 };
 
