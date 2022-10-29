@@ -3,7 +3,8 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useAppSelector, useAppDispatch } from "../../store/store";
 import { faceActions } from "../../store/faces/faceSlice";
-import { IFacesTab, FacesTab } from "../../store/faces/facesActions.types";
+import { FacesTab } from "../../store/faces/facesActions.types";
+import type {IFacesTab} from "../../store/faces/facesActions.types";
 
 type Props = {
   width: number;
