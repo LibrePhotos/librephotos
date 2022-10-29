@@ -112,11 +112,8 @@ export const CustomSearch = () => {
   const searchBarWidth = width - width / 2.2;
 
   return (
-    <Menu
-      style={{
-        width: searchBarWidth,
-      }}
-      control={
+    <Menu width={searchBarWidth}>
+      <Menu.Target>
         <TextInput
           icon={<Search size={14} />}
           onKeyPress={event => {
@@ -132,8 +129,9 @@ export const CustomSearch = () => {
           onChange={handleChange}
           placeholder={exampleSearchTerm}
         />
-      }
-    >
+      </Menu.Target>
+
+      {searchText && <Menu.Dropdown>
       {filteredExampleSearchTerms.length > 0 &&
         filteredExampleSearchTerms.slice(0, 2).map(el => (
           <Menu.Item
@@ -199,6 +197,7 @@ export const CustomSearch = () => {
           </Group>
         </Menu.Item>
       )}
+      </Menu.Dropdown>}
     </Menu>
   );
 };
@@ -212,7 +211,8 @@ const PersonAvatar = ({ person }) => {
       onClose={() => setOpened(false)}
       withArrow
       position="bottom"
-      target={
+    >
+      <Popover.Target>
         <Avatar
           component={Link}
           to={`/person/${person.key}`}
@@ -223,9 +223,11 @@ const PersonAvatar = ({ person }) => {
           radius="xl"
           src={serverAddress + person.face_url}
         />
-      }
-    >
-      {person.text}
+      </Popover.Target>
+
+      <Popover.Dropdown>
+        {person.text}
+      </Popover.Dropdown>
     </Popover>
   );
 };

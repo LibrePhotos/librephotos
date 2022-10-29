@@ -1,8 +1,8 @@
 import { Stack } from "@mantine/core";
-import { useElementSize } from "@mantine/hooks";
+import { useElementSize, usePrevious } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 import _ from "lodash";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
 
 import { api, useFetchIncompleteFacesQuery } from "../../api_client/api";
@@ -15,7 +15,7 @@ import i18n from "../../i18n";
 import { faceActions } from "../../store/faces/faceSlice";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
-import type { IFacesTab } from "../../store/faces/facesActions.types";
+import { FacesTab } from "../../store/faces/facesActions.types";
 
 export function FaceDashboard () {
   const { ref, width } = useElementSize();
@@ -65,22 +65,13 @@ export function FaceDashboard () {
           api.endpoints.fetchFaces.initiate({
             person: element.person,
             page: element.page,
-            inferred: activeTab === "inferred",
+            inferred: activeTab === FacesTab.enum.inferred,
             orderBy: orderBy
           }, {forceRefetch: force})
-        ).;
+        );
       });
     }
   }, [groups]);
-
-  // To-Do replace with mantine usePrevious hook when updating to mantine 5.6
-  const usePrevious = (value) => {
-    const ref = useRef();
-    useEffect(() => {
-      ref.current = value;
-    },[value]);
-    return ref.current;
-  };
 
   // @ts-ignore
   const previousTab: IFacesTab = usePrevious(activeTab);
@@ -115,7 +106,7 @@ export function FaceDashboard () {
   };
 
   const onSectionRendered = (params: any) => {
-    const cellContents = activeTab === 'labeled' ? labeledCellContents : inferredCellContents;
+    const cellContents = activeTab === FacesTab.enum.inferred? inferredCellContents : labeledCellContents;
     const startPoint = cellContents[params.rowOverscanStartIndex][params.columnOverscanStartIndex];
     const endPoint = getEndpointCell(cellContents, params.rowOverscanStopIndex, params.columnOverscanStopIndex);
     // flatten labeledCellContents and find the range of cells that are in the viewport
@@ -171,7 +162,7 @@ export function FaceDashboard () {
       return;
     }
     if (e.shiftKey) {
-      const currentCellsInRowFormat = activeTab === 'labeled' ? labeledCellContents : inferredCellContents;
+      const currentCellsInRowFormat = activeTab === FacesTab.enum.labeled ? labeledCellContents : inferredCellContents;
 
       const allFacesInCells = [] as any[];
       for (let i = 0; i < currentCellsInRowFormat.length; i++) {
@@ -263,8 +254,9 @@ export function FaceDashboard () {
   };
 
   const cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    const cell =
-      activeTab === "labeled" ? labeledCellContents[rowIndex][columnIndex] : inferredCellContents[rowIndex][columnIndex];
+    const cell = activeTab === FacesTab.enum.labeled
+      ? labeledCellContents[rowIndex][columnIndex]
+      : inferredCellContents[rowIndex][columnIndex];
 
     if (cell) {
       if (cell.name) {
@@ -330,7 +322,7 @@ export function FaceDashboard () {
               onSectionRendered={onSectionRendered}
               height={height}
               width={width}
-              rowCount={activeTab === 'labeled' ? labeledCellContents.length : inferredCellContents.length}
+              rowCount={activeTab === FacesTab.enum.labeled ? labeledCellContents.length : inferredCellContents.length}
               scrollTop={scrollTo}
               onScroll={handleGridScroll}
             />

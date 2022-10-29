@@ -1,5 +1,5 @@
 import { Group, Stack, Tabs, Text, Title } from "@mantine/core";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
 
 import { fetchUserAlbumsSharedToMe } from "../../actions/albumsActions";
@@ -15,7 +15,6 @@ export function SharedToMe() {
   const { albums } = useAppSelector(store => store);
   const { photosFlat, photosGroupedByUser, fetchedPhotosetType } = useAppSelector(store => store.photos);
   const { which } = useParams();
-  const [activeTab, setActiveTab] = useState(1);
 
   useEffect(() => {
     if (fetchedPhotosetType !== PhotosetType.SHARED_BY_ME) {
@@ -25,8 +24,8 @@ export function SharedToMe() {
     }
   }, []);
 
-  const getSubHeader = activeItem => {
-    if (activeItem === "photos") {
+  const getSubHeader = (item = "photos") => {
+    if (item === "photos") {
       return (
         <Text color="dimmed">
           {photosGroupedByUser.length} user(s) shared {photosFlat.length} photo(s) with you
@@ -42,25 +41,30 @@ export function SharedToMe() {
       </Text>
     );
   };
-  const activeItem = which;
 
   return (
     <Stack>
       <Group>
         <div>
-          <Title order={2}> {activeItem === "photos" ? "Photos" : "Albums"} others shared </Title>
+          <Title order={2}> {which === "photos" ? "Photos" : "Albums"} others shared </Title>
           <Text color="dimmed" size="sm">
-            {getSubHeader(activeItem)}
+            {getSubHeader(which)}
           </Text>
         </div>
       </Group>
-      <Tabs active={activeTab} onTabChange={setActiveTab}>
-        <Tabs.Tab label="Photos" name="photos">
-          <PhotosShared isSharedToMe />
-        </Tabs.Tab>
-        <Tabs.Tab label="Albums" name="albums">
-          <AlbumsShared isSharedToMe />
-        </Tabs.Tab>
+      <Tabs defaultValue="photos">
+        <Tabs.List>
+          <Tabs.Tab value="photos">Photos</Tabs.Tab>
+          <Tabs.Tab value="albums">Albums</Tabs.Tab>
+        </Tabs.List>
+
+        <Tabs.Panel value="photos">
+          <PhotosShared isSharedToMe={true} />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="albums">
+          <AlbumsShared isSharedToMe={true} />
+        </Tabs.Panel>
       </Tabs>
     </Stack>
   );

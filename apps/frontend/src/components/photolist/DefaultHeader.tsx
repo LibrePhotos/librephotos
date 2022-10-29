@@ -1,4 +1,4 @@
-import { Button, Divider, Group, Loader, Menu, Text, Title } from "@mantine/core";
+import { Button, Group, Loader, Menu, Text, Title } from "@mantine/core";
 import type { ReactElement } from "react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -108,40 +108,46 @@ export function DefaultHeader(props: Props) {
         {icon}
         <div>
           {auth.access && isMenuView() ? (
-            <Menu
-              trigger="hover"
-              control={
+            <Menu>
+              <Menu.Target>
                 <Title style={{ minWidth: 200 }} align="left" order={2}>
                   {title} <ChevronDown size={20} />
                 </Title>
-              }
-            >
-              <Menu.Item icon={<Calendar color="green" size={14} />} onClick={() => dispatch(push("/"))}>
-                {t("sidemenu.withtimestamp")}
-              </Menu.Item>
-              <Menu.Item icon={<Calendar color="red" size={14} />} onClick={() => dispatch(push("/notimestamp"))}>
-                {t("sidemenu.withouttimestamp")}
-              </Menu.Item>
-              <Divider />
+              </Menu.Target>
 
-              <Menu.Item icon={<Clock size={14} />} onClick={() => dispatch(push("/recent"))}>
-                {t("sidemenu.recentlyadded")}
-              </Menu.Item>
-              <Divider />
+              <Menu.Dropdown>
+                <Menu.Item icon={<Calendar color="green" size={14} />} onClick={() => dispatch(push("/"))}>
+                  {t("sidemenu.withtimestamp")}
+                </Menu.Item>
 
-              <Menu.Item icon={<EyeOff color="red" size={14} />} onClick={() => dispatch(push("/hidden"))}>
-                {t("sidemenu.hidden")}
-              </Menu.Item>
-              <Menu.Item icon={<Star color="yellow" size={14} />} onClick={() => dispatch(push("/favorites"))}>
-                {t("sidemenu.favorites")}
-              </Menu.Item>
-              <Menu.Item
-                icon={<Globe color="green" size={14} />}
-                disabled={!auth.access}
-                onClick={() => dispatch(push(auth.access ? `/user/${auth.access.name}` : "/"))}
-              >
-                {t("sidemenu.mypublicphotos")}
-              </Menu.Item>
+                <Menu.Item icon={<Calendar color="red" size={14} />} onClick={() => dispatch(push("/notimestamp"))}>
+                  {t("sidemenu.withouttimestamp")}
+                </Menu.Item>
+
+                <Menu.Divider />
+
+                <Menu.Item icon={<Clock size={14} />} onClick={() => dispatch(push("/recent"))}>
+                  {t("sidemenu.recentlyadded")}
+                </Menu.Item>
+
+                <Menu.Divider />
+
+                <Menu.Item icon={<EyeOff color="red" size={14} />} onClick={() => dispatch(push("/hidden"))}>
+                  {t("sidemenu.hidden")}
+                </Menu.Item>
+
+                <Menu.Item icon={<Star color="yellow" size={14} />} onClick={() => dispatch(push("/favorites"))}>
+                  {t("sidemenu.favorites")}
+                </Menu.Item>
+
+                <Menu.Item
+                  icon={<Globe color="green" size={14} />}
+                  disabled={!auth.access}
+                  onClick={() => dispatch(push(auth.access ? `/user/${auth.access.name}` : "/"))}
+                >
+                  {t("sidemenu.mypublicphotos")}
+                </Menu.Item>
+              </Menu.Dropdown>
             </Menu>
           ) : (
             <Title align="left" order={2}>

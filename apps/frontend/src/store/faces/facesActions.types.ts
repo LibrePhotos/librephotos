@@ -14,7 +14,7 @@ export type IFacesState = {
   tabs: ITabSettingsArray;
 };
 
-const FacesTab = z.enum(["labeled", "inferred"]);
+export const FacesTab = z.enum(["labeled", "inferred"]);
 export type IFacesTab = z.infer<typeof FacesTab>;
 
 export const TabSettings = z.object({

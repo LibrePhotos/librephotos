@@ -3,12 +3,12 @@ import { useMediaQuery } from "@mantine/hooks";
 import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import i18n from "../../i18n";
 
 import { fetchJobList } from "../../actions/utilActions";
 import type { IJobsResponseSchema } from "../../actions/utilActions.types";
 import { JobsResponseSchema } from "../../actions/utilActions.types";
 import { useJobsQuery } from "../../api_client/api";
+import i18n from "../../i18n";
 import { useAppDispatch } from "../../store/store";
 import { DeleteJobButton } from "./DeleteJobButton";
 import { JobDuration } from "./JobDuration";
@@ -28,16 +28,13 @@ export function JobList() {
 
   useEffect(() => {
     if (currentData) {
-      const parsed = JobsResponseSchema.parse(currentData);
-      setJobs(parsed);
+      const data = JobsResponseSchema.parse(currentData);
+      if (data) {
+        setJobs(data);
+        setJobCount(data.count);
+      }
     }
   }, [currentData]);
-
-  useEffect(() => {
-    if (jobs) {
-      setJobCount(jobs.results.length);
-    }
-  }, [jobs]);
 
   return (
     <SimpleGrid cols={1} spacing="xl">
@@ -87,8 +84,14 @@ export function JobList() {
                 </td>
                 {matches && (
                   <>
-                    <td>{DateTime.fromISO(queuedAt).setLocale(i18n.resolvedLanguage.replace("_", "-")).toRelative() }</td>
-                    <td>{startedAt ? DateTime.fromISO(startedAt).setLocale(i18n.resolvedLanguage.replace("_", "-")).toRelative() : ""}</td>
+                    <td>
+                      {DateTime.fromISO(queuedAt).setLocale(i18n.resolvedLanguage.replace("_", "-")).toRelative()}
+                    </td>
+                    <td>
+                      {startedAt
+                        ? DateTime.fromISO(startedAt).setLocale(i18n.resolvedLanguage.replace("_", "-")).toRelative()
+                        : ""}
+                    </td>
                   </>
                 )}
 
