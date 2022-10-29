@@ -3,7 +3,6 @@ import {
   Divider,
   Group,
   Modal,
-  Popover,
   ScrollArea,
   Stack,
   Switch,
@@ -13,13 +12,13 @@ import {
 } from "@mantine/core";
 import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { Share } from "tabler-icons-react";
 import i18n from "../../i18n";
 
 import { setUserAlbumShared } from "../../actions/albumsActions";
 import { fetchPublicUserList } from "../../actions/publicActions";
 import { useAppDispatch, useAppSelector } from "../../store/store";
+import { useTranslation } from "react-i18next";
 
 function fuzzy_match(str, pattern) {
   if (pattern.split("").length > 0) {
@@ -37,7 +36,6 @@ type Props = {
 //To-Do: Add missing locales
 export function ModalAlbumShare (props: Props) {
   const [userNameFilter, setUserNameFilter] = useState("");
-  const [opened, setOpened] = useState(false);
 
   const { pub, auth } = useAppSelector(store => store);
   const { albumDetails } = useAppSelector(store => store.albums);
@@ -86,12 +84,10 @@ export function ModalAlbumShare (props: Props) {
         <ScrollArea>
           {filteredUserList.length > 0 &&
             filteredUserList.map(item => {
-              let displayName;
-              if (item.first_name.length > 0 && item.last_name.length > 0) {
-                displayName = `${item.first_name} ${item.last_name}`;
-              } else {
-                displayName = item.username;
-              }
+              let displayName =
+                item.first_name.length > 0 && item.last_name.length > 0
+                  ? `${item.first_name} ${item.last_name}`
+                  : item.username;
               return (
                 <Group key={item.id}>
                   <Avatar radius="xl" size={60} src="/unknown_user.jpg" />
@@ -102,20 +98,12 @@ export function ModalAlbumShare (props: Props) {
                       onRequestClose();
                     }}
                   >
-                    <Group>
-                      {displayName}
-                      {albumDetails.shared_to && albumDetails.shared_to.map(e => e.id).includes(item.id) && (
-                        <Popover
-                          opened={opened}
-                          onClose={() => setOpened(false)}
-                          withArrow
-                          position="bottom"
-                          target={<Share />}
-                        >
-                          Share
-                        </Popover>
-                      )}
-                    </Group>
+                    {albumDetails.shared_to && albumDetails.shared_to.map(e => e.id).includes(item.id) && (
+                      <Group style={{ cursor: "pointer" }}>
+                        {displayName}
+                        <Share />
+                      </Group>
+                    )}
                   </Title>
                   <Text size="sm" color="dimmed">
                     {t("modalphotosshare.joined")} {DateTime.fromISO(item.date_joined).setLocale(i18n.resolvedLanguage.replace("_", "-")).toRelative()}</Text>

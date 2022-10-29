@@ -24,13 +24,12 @@ export const AlbumAuto = () => {
   const [numEntrySquaresPerRow, setNumEntrySquaresPerRow] = useState(0);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  const auth = useAppSelector(store => store.auth);
 
   const [openDeleteDialogState, setOpenDeleteDialogState] = useState(false);
   const [autoAlbumID, setAutoAlbumID] = useState("");
   const [autoAlbumTitle, setAutoAlbumTitle] = useState("");
+  const { albumsAutoList, fetchingAlbumsAutoList } = useAppSelector(store => store.albums);
 
-  const { albumsAutoList, fetchingAlbumsAutoList, fetchedAlbumsAutoList } = useAppSelector(store => store.albums);
   useEffect(() => {
     if (albumsAutoList.length === 0) {
       dispatch(fetchAutoAlbumsList());
@@ -75,23 +74,25 @@ export const AlbumAuto = () => {
                 image_hash={albumsAutoList[albumAutoIndex].photos.image_hash}
               />
             </Link>
-            <Menu
-              style={{ position: "absolute", top: 10, right: 10 }}
-              control={
-                <ActionIcon>
-                  <DotsVertical />
-                </ActionIcon>
-              }
-            >
-              <Menu.Item
-                icon={<Trash />}
-                onClick={() => {
-                  openDeleteDialog(albumsAutoList[albumAutoIndex].id, albumsAutoList[albumAutoIndex].title);
-                }}
-              >
-                {t("delete")}
-              </Menu.Item>
-            </Menu>
+            <div style={{ position: "absolute", top: 10, right: 10 }}>
+              <Menu position="bottom-end">
+                <Menu.Target>
+                  <ActionIcon>
+                    <DotsVertical />
+                  </ActionIcon>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Item
+                    icon={<Trash />}
+                    onClick={() =>
+                      openDeleteDialog(albumsAutoList[albumAutoIndex].id, albumsAutoList[albumAutoIndex].title)
+                    }
+                  >
+                    {t("delete")}
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+            </div>
           </div>
           <div className="personCardName" style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
             <b>{albumsAutoList[albumAutoIndex].title}</b> <br />

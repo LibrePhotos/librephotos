@@ -3,6 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useAppSelector, useAppDispatch } from "../../store/store";
 import { faceActions } from "../../store/faces/faceSlice";
+import { IFacesTab, FacesTab } from "../../store/faces/facesActions.types";
 
 type Props = {
   width: number;
@@ -13,34 +14,22 @@ type Props = {
 export function TabComponent({ width, fetchingLabeledFacesList, fetchingInferredFacesList }: Props) {
   const dispatch = useAppDispatch();
   const { activeTab } = useAppSelector(store => store.face);
-  const setActiveTab = (tabNumber: number) => {
-    if (tabNumber === 0)
-      dispatch(faceActions.changeTab("labeled"));
-    else if (tabNumber === 1)
-      dispatch(faceActions.changeTab("inferred"));
+  const changeTab = (tab: IFacesTab) => {
+    dispatch(faceActions.changeTab(tab));
   };
   const { t } = useTranslation();
 
   return (
-    <Tabs style={{ width: width }} active={activeTab} onTabChange={setActiveTab}>
-      <Tabs.Tab
-        name="labeled"
-        value="labeled"
-        label={
-          <div>
-            {t("settings.labeled")} {fetchingLabeledFacesList ? <Loader size="sm" /> : null}
-          </div>
-        }
-      />
-      <Tabs.Tab
-        name="inferred"
-        value="inferred"
-        label={
-          <div>
-            {t("settings.inferred")} {fetchingInferredFacesList ? <Loader size="sm" /> : null}
-          </div>
-        }
-      />
+    <Tabs defaultValue={activeTab} style={{ width }} onTabChange={changeTab}>
+      <Tabs.List>
+        <Tabs.Tab value={FacesTab.enum.labeled}>
+          {t("settings.labeled")} {fetchingLabeledFacesList ? <Loader size="sm" /> : null}
+        </Tabs.Tab>
+
+        <Tabs.Tab value={FacesTab.enum.inferred}>
+          {t("settings.inferred")} {fetchingInferredFacesList ? <Loader size="sm" /> : null}
+        </Tabs.Tab>
+      </Tabs.List>
     </Tabs>
   );
 }

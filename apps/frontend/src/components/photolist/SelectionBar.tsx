@@ -5,25 +5,21 @@ import { Check, Checks } from "tabler-icons-react";
 
 type Props = {
   selectMode: boolean;
-  updateSelectionState: (any) => void;
+  updateSelectionState: (arg0: any) => void;
   selectedItems: any[];
   idx2hash: any[];
 };
 
 export const SelectionBar = (props: Props) => {
+  const { t } = useTranslation();
+  const { selectMode, updateSelectionState, selectedItems, idx2hash } = props;
   const [openedAll, setOpenedAll] = useState(false);
   const [openedSelect, setOpenedSelect] = useState(false);
 
-  const { t } = useTranslation();
-
-  const { selectMode, updateSelectionState, selectedItems, idx2hash } = props;
   return (
     <Group spacing="xs">
-      <Popover
-        opened={openedAll}
-        onClose={() => setOpenedAll(false)}
-        withArrow
-        target={
+      <Popover opened={openedAll} withArrow withinPortal>
+        <Popover.Target>
           <ActionIcon
             onMouseEnter={() => setOpenedAll(true)}
             onMouseLeave={() => setOpenedAll(false)}
@@ -44,18 +40,16 @@ export const SelectionBar = (props: Props) => {
           >
             <Checks color={selectedItems.length === idx2hash.length ? "green" : "gray"} />
           </ActionIcon>
-        }
-      >
-        <Text size="sm">
-          {selectedItems.length === idx2hash.length ? t("selectionbar.deselect") : t("selectionbar.select")}
-        </Text>
+        </Popover.Target>
+        <Popover.Dropdown>
+          <Text size="sm">
+            {selectedItems.length === idx2hash.length ? t("selectionbar.deselect") : t("selectionbar.select")}
+          </Text>
+        </Popover.Dropdown>
       </Popover>
       <div style={{ paddingTop: 5 }}>
-        <Popover
-          opened={openedSelect}
-          onClose={() => setOpenedSelect(false)}
-          withArrow
-          target={
+        <Popover opened={openedSelect} withArrow>
+          <Popover.Target>
             <Button
               onMouseEnter={() => setOpenedSelect(true)}
               onMouseLeave={() => setOpenedSelect(false)}
@@ -77,9 +71,10 @@ export const SelectionBar = (props: Props) => {
             >
               {`${selectedItems.length} ${t("selectionbar.selected")}`}
             </Button>
-          }
-        >
-          <Text size="sm">{t("selectionbar.toggle")}</Text>
+          </Popover.Target>
+          <Popover.Dropdown>
+            <Text size="sm">{t("selectionbar.toggle")}</Text>
+          </Popover.Dropdown>
         </Popover>
       </div>
     </Group>
