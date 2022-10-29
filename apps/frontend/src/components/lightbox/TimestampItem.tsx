@@ -26,10 +26,12 @@ export function TimestampItem({photoDetail}: Props) {
   const dispatch = useAppDispatch();
 
   const onChangeDate = (date: Date) => {
+    if (date) {
     date.setHours(timestamp.getHours());
     date.setMinutes(timestamp.getMinutes());
     date.setSeconds(timestamp.getSeconds());
     setTimestamp(date);
+    }
   };
 
   const onChangeTime = (date: Date) => {
@@ -51,6 +53,20 @@ export function TimestampItem({photoDetail}: Props) {
     setTimestamp(new Date(photoDetail.exif_timestamp));
     setEditMode(false);
   }
+
+  const getDateTimeLabel = () => {
+    if (!photoDetail.exif_timestamp)
+      return "No timestamp";
+
+    const photoDateTime = DateTime.fromISO(photoDetail.exif_timestamp);
+    if (photoDateTime.isValid) {
+      const date = DateTime.fromISO(photoDetail.exif_timestamp).setLocale(lang).toLocaleString(DateTime.DATE_MED);
+      const dayOfWeek = DateTime.fromISO(photoDetail.exif_timestamp).setLocale(lang).toFormat("cccc");
+      const time = DateTime.fromISO(photoDetail.exif_timestamp).setLocale(lang).toLocaleString(DateTime.TIME_SIMPLE);
+      return (<div>{date} <Text size="xs" color="dimmed">{dayOfWeek}, {time}</Text></div>);
+    }
+    return "Invalid timestamp";
+  };
 
   return (
     <Group>
@@ -79,20 +95,8 @@ export function TimestampItem({photoDetail}: Props) {
       {!editMode && (
         <Group>
           <Calendar />
-          <Button color="dark" variant="subtle" onClick={() => setEditMode(!editMode)} rightIcon={<Edit />}>
-            <div>
-              {DateTime.fromISO(photoDetail.exif_timestamp).isValid
-                ? DateTime.fromISO(photoDetail.exif_timestamp).setLocale(lang).toLocaleString(DateTime.DATE_MED)
-                : null}
-              <Text size="xs" color="dimmed">
-              {DateTime.fromISO(photoDetail.exif_timestamp).isValid
-                  ? DateTime.fromISO(photoDetail.exif_timestamp).setLocale(lang).toFormat('cccc, ')
-                  : null} 
-              {DateTime.fromISO(photoDetail.exif_timestamp).isValid
-                  ? DateTime.fromISO(photoDetail.exif_timestamp).setLocale(lang).toLocaleString(DateTime.TIME_SIMPLE)
-                  : null}
-              </Text>
-            </div>
+          <Button color="dark" variant="subtle" onClick={() => setEditMode(!editMode)} rightIcon={<Edit size={17} />}>
+              {getDateTimeLabel()}
           </Button>
         </Group>
       )}
