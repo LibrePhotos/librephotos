@@ -71,7 +71,7 @@ const clearPersonFacesIfNeeded = (person: ICompletePersonFace) => {
     return true;
   });
   if (needClear) {
-    for (let i = 0; i < person.face_count; i++) {
+    for (let i = 0; i < person.faces.length; i += 1) {
       if (person.faces[i].image !== null) {
         // eslint-disable-next-line no-param-reassign
         person.faces[i] = {
