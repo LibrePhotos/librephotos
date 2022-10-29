@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-virtualized/styles.css";
 // only needs to be imported once
-import { Calendar, Check, Edit, X } from "tabler-icons-react";
+import { Calendar, CalendarOff, Check, Edit, X } from "tabler-icons-react";
 import { useAppDispatch } from "../../store/store";
 import i18n from "../../i18n";
 
@@ -27,10 +27,10 @@ export function TimestampItem({photoDetail}: Props) {
 
   const onChangeDate = (date: Date) => {
     if (date) {
-    date.setHours(timestamp.getHours());
-    date.setMinutes(timestamp.getMinutes());
-    date.setSeconds(timestamp.getSeconds());
-    setTimestamp(date);
+      date.setHours(timestamp.getHours());
+      date.setMinutes(timestamp.getMinutes());
+      date.setSeconds(timestamp.getSeconds());
+      setTimestamp(date);
     }
   };
 
@@ -44,6 +44,13 @@ export function TimestampItem({photoDetail}: Props) {
   const onSaveDateTime = (e: any) => {
     // To-Do: Use the user defined timezone
     photoDetail.exif_timestamp = timestamp.toISOString();
+    const differentJson = { exif_timestamp: photoDetail.exif_timestamp };
+    dispatch(editPhoto(photoDetail.image_hash, differentJson));
+    setEditMode(false);
+  };
+
+  const onRemoveDateTime = (e: any) => {
+    photoDetail.exif_timestamp = null;
     const differentJson = { exif_timestamp: photoDetail.exif_timestamp };
     dispatch(editPhoto(photoDetail.image_hash, differentJson));
     setEditMode(false);
@@ -81,12 +88,15 @@ export function TimestampItem({photoDetail}: Props) {
           <Stack>
             <DatePicker locale={lang} value={timestamp} onChange={onChangeDate}/>
             <TimeInput withSeconds value={timestamp} onChange={onChangeTime}/>
-            <Group>
-              <ActionIcon variant="light" color="green" onClick={onSaveDateTime}>
-                <Check />
+            <Group position="center">
+              <ActionIcon variant="light" color="red" onClick={onRemoveDateTime}>
+                <CalendarOff />
               </ActionIcon>
               <ActionIcon variant="light" onClick={onCancelDateTime} color="red">
                 <X />
+              </ActionIcon>
+              <ActionIcon variant="light" color="green" onClick={onSaveDateTime}>
+                <Check />
               </ActionIcon>
             </Group>
           </Stack>
