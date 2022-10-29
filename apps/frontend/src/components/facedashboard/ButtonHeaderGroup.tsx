@@ -1,6 +1,6 @@
 import { ActionIcon, Button, Divider, Group, Modal, SegmentedControl, Stack, Switch, Text, Tooltip } from "@mantine/core";
 import { showNotification } from "@mantine/notifications";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Barbell, Plus, Trash, UserOff } from "tabler-icons-react";
 
