@@ -5,12 +5,11 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { UserCheck, } from "tabler-icons-react";
 import { api } from "../../api_client/api";
-import { useAppDispatch } from "../../store/store";
+import { useAppDispatch, useAppSelector } from "../../store/store";
 import i18n from "../../i18n";
 
 type Props = {
   cell: any;
-  alreadyLabeled: boolean;
   width: number;
   style: any;
   key: any;
@@ -19,8 +18,9 @@ type Props = {
   selectedFaces: any;
 };
 
-export function HeaderComponent({cell, alreadyLabeled, width, style, key, entrySquareSize, setSelectedFaces, selectedFaces }: Props) {
-  const dispatch = useAppDispatch();
+export function HeaderComponent({cell, width, style, key, entrySquareSize, setSelectedFaces, selectedFaces }: Props) {
+  const { activeTab } = useAppSelector(store => store.face);
+    const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const [checked, setChecked] = useState(false);
 
@@ -75,7 +75,7 @@ export function HeaderComponent({cell, alreadyLabeled, width, style, key, entryS
         <Chip variant="filled" radius="xs" size="lg" checked={checked} onChange={handleClick}>
           {cell.name}
         </Chip>
-        {!alreadyLabeled && !(cell.kind === "CLUSTER" || cell.kind === "UNKNOWN") && <Tooltip label={t("facesdashboard.explanationvalidate")}>
+        {activeTab === "inferred" && !(cell.kind === "CLUSTER" || cell.kind === "UNKNOWN") && <Tooltip label={t("facesdashboard.explanationvalidate")}>
             <ActionIcon
               variant="light"
               color="green"

@@ -2,7 +2,7 @@ import { Stack } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 import _ from "lodash";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
 
 import { api, useFetchIncompleteFacesQuery } from "../../api_client/api";
@@ -12,14 +12,15 @@ import { HeaderComponent } from "../../components/facedashboard/HeaderComponent"
 import { TabComponent } from "../../components/facedashboard/TabComponent";
 import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
 import i18n from "../../i18n";
+import { faceActions } from "../../store/faces/faceSlice";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
+import type { IFacesTab } from "../../store/faces/facesActions.types";
 
-export const FaceDashboard = () => {
+export function FaceDashboard () {
   const { ref, width } = useElementSize();
-
+  const [currentScrollPosition, setCurrentScrollPosition] = useState(0);
   const [lastChecked, setLastChecked] = useState(null);
-  const [activeItem, setActiveItem] = useState(0);
   const [entrySquareSize, setEntrySquareSize] = useState(200);
   const [numEntrySquaresPerRow, setNumEntrySquaresPerRow] = useState(10);
   const [selectMode, setSelectMode] = useState(false);
@@ -39,6 +40,8 @@ export const FaceDashboard = () => {
     }[]
   >([]);
 
+  const { activeTab, tabs } = useAppSelector(store => store.face);
+
   const { inferredFacesList, labeledFacesList } = useAppSelector(
     store => store.face,
     (prev, next) => {
@@ -52,12 +55,45 @@ export const FaceDashboard = () => {
           api.endpoints.fetchFaces.initiate({
             person: element.person,
             page: element.page,
-            inferred: activeItem === 1,
+            inferred: activeTab === "inferred",
           })
         );
       });
     }
   }, [groups]);
+
+  // To-Do replace with mantine usePrevious hook when updating to mantine 5.6
+  const usePrevious = (value) => {
+    const ref = useRef();
+    useEffect(() => {
+      ref.current = value;
+    },[value]);
+    return ref.current;
+  };
+
+  // @ts-ignore
+  const previousTab: IFacesTab = usePrevious(activeTab);
+  const [scrollTo, setScrollTo] = useState<number | null>(null);
+  
+  const handleGridScroll = (params: any) => {
+    const {scrollTop} = params;
+    if (scrollTo !== null && scrollTop === scrollTo) {
+      setScrollTo(null);
+    }
+    setCurrentScrollPosition(scrollTop);
+  };
+  
+  useEffect(() => {
+    if (previousTab) {
+      dispatch(
+            faceActions.saveCurrentGridPosition({
+              tab: previousTab,
+              position: currentScrollPosition,
+            })
+      );
+    }
+    setScrollTo(tabs[activeTab].scrollPosition);
+  }, [activeTab]);
 
   // ensure that the endpoint is not undefined
   const getEndpointCell = (cellContents, rowStopIndex, columnStopIndex) => {
@@ -69,7 +105,7 @@ export const FaceDashboard = () => {
   };
 
   const onSectionRendered = (params: any) => {
-    const cellContents = activeItem === 1 ? inferredCellContents : labeledCellContents;
+    const cellContents = activeTab === 'labeled' ? labeledCellContents : inferredCellContents;
     const startPoint = cellContents[params.rowOverscanStartIndex][params.columnOverscanStartIndex];
     const endPoint = getEndpointCell(cellContents, params.rowOverscanStopIndex, params.columnOverscanStopIndex);
     //flatten labeledCellContents and find the range of cells that are in the viewport
@@ -93,7 +129,6 @@ export const FaceDashboard = () => {
     }
   };
 
-  const changeTab = number => setActiveItem(number);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -130,7 +165,7 @@ export const FaceDashboard = () => {
       return;
     }
     if (e.shiftKey) {
-      const currentCellsInRowFormat = activeItem === 0 ? labeledCellContents : inferredCellContents;
+      const currentCellsInRowFormat = activeTab === 'labeled' ? labeledCellContents : inferredCellContents;
 
       const allFacesInCells = [] as any[];
       for (let i = 0; i < currentCellsInRowFormat.length; i++) {
@@ -223,7 +258,7 @@ export const FaceDashboard = () => {
 
   const cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
     const cell =
-      activeItem === 0 ? labeledCellContents[rowIndex][columnIndex] : inferredCellContents[rowIndex][columnIndex];
+      activeTab === "labeled" ? labeledCellContents[rowIndex][columnIndex] : inferredCellContents[rowIndex][columnIndex];
 
     if (cell) {
       if (cell.name) {
@@ -233,7 +268,6 @@ export const FaceDashboard = () => {
             style={style}
             width={width}
             cell={cell}
-            alreadyLabeled={activeItem === 0}
             entrySquareSize={entrySquareSize}
             selectedFaces={selectedFaces}
             setSelectedFaces={setSelectedFaces}
@@ -252,7 +286,6 @@ export const FaceDashboard = () => {
             isScrollingFast={false}
             selectMode={selectMode}
             isSelected={selectedFaces.map(face => face.face_id).includes(cell.id)}
-            activeItem={activeItem}
             entrySquareSize={entrySquareSize}
           />
         </div>
@@ -266,8 +299,6 @@ export const FaceDashboard = () => {
       <Stack>
         <TabComponent
           width={width}
-          activeTab={activeItem}
-          changeTab={changeTab}
           fetchingLabeledFacesList={fetchingLabeledFacesList}
           fetchingInferredFacesList={fetchingInferredFacesList}
         />
@@ -293,7 +324,9 @@ export const FaceDashboard = () => {
               onSectionRendered={onSectionRendered}
               height={height}
               width={width}
-              rowCount={activeItem === 0 ? labeledCellContents.length : inferredCellContents.length}
+              rowCount={activeTab === 'labeled' ? labeledCellContents.length : inferredCellContents.length}
+              scrollTop={scrollTo}
+              onScroll={handleGridScroll}
             />
           )}
         </AutoSizer>
