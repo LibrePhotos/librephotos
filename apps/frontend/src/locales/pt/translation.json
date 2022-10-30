@@ -260,7 +260,11 @@
             "generate": "Gerar",
             "submit": "Submeter",
             "categories": "Categorias",
-            "editdatetime": "Editar hora e data"
+            "editdatetime": "Editar hora e data",
+            "withouttimestamp": "Sem carimbo de data/hora",
+            "invalidtimestamp": "Carimbo de data/hora invalido",
+            "removetimestamp": "Remover carimbo de data/hora",
+            "undotimestampmodification": "Anular alteração de carimbo de data/hora"
         }
     },
     "photos": {
