@@ -125,10 +125,23 @@
         "polish": "Polska",
         "dutch": "Tyska",
         "configdatetime": " Ange regler för tolkning av datumtid",
-        "profile": "Profil"
+        "profile": "Profil",
+        "helptranslating": "Hjälp till att översätta",
+        "savechanges": "Spara ändringar?",
+        "password": {
+            "errorcannotbeblank": "Lösenordet kan inte vara tomt",
+            "titlechangepassword": "Ändra lösenord"
+        },
+        "finnish": "Finska",
+        "czech": "Tjeckiska",
+        "portuguese": "Portugisiska",
+        "basque": "Baskiska"
     },
     "modalalbum": {
-        "updated": "Uppdaterad"
+        "updated": "Uppdaterad",
+        "newalbum": "Nytt album",
+        "alreadyexists": "Albumet {{title}} finns redan.",
+        "create": "Skapa"
     },
     "modalnextcloud": {
         "setdirectory": "Ange lagringsplats i Nextcloud",
@@ -182,7 +195,7 @@
         "places": "Platser",
         "things": "Saker",
         "datavizsmall": "Datavisualisering",
-        "facerecognition": "Ansiktsigenkänning",
+        "facerecognition": "Ansikten",
         "sharing": "Delade"
     },
     "selectionbar": {
@@ -193,7 +206,7 @@
     },
     "defaultheader": {
         "setup": "Det verkar som att du behöver konfigurera LibrePhotos.",
-        "gettingstarted": "Kom igång",
+        "gettingstarted": "Ändra användare",
         "loading": "Laddar...",
         "noimages": "Inga bilder hittade",
         "days": "dagar",
@@ -234,7 +247,8 @@
             "scene": "Vy",
             "attributes": "Attribut",
             "categories": "Kategorier",
-            "similarphotos": "Liknande bilder"
+            "similarphotos": "Liknande bilder",
+            "editdatetime": "Ändra datum och tid"
         }
     },
     "joblist": {
@@ -289,7 +303,8 @@
         "errorbackend": "Ingen anslutning till backend-servern, försök igen om några minuter.",
         "errorpassword": "Lösenordet får inte vara tomt!",
         "errorusername": "Användarnamnet får inte vara tomt!",
-        "firsttimesetup": "Inställningar vid första start"
+        "firsttimesetup": "Inställningar vid första start",
+        "usernamelabel": "Användarnamn"
     },
     "adminarea": {
         "header": "Administratörsområde",
@@ -300,7 +315,12 @@
         "photocount": "Antal bilder",
         "joined": "Anslöt sig",
         "notset": "Inte angivet",
-        "username": "Användarnamn"
+        "username": "Användarnamn",
+        "remove": "Ta bort",
+        "deleteuserconfirmexplanation": "Du håller på att ta bort följande användare: {{username}}. Detta kommer att ta bort all data kopplad till användaren.",
+        "titledeleteuser": "Ta bort användare",
+        "addnewuser": "Skapa ny användare",
+        "deleteallautoalbums": "Ta bort alla automatiskt skapade album"
     },
     "modalscandirectoryedit": {
         "explanation2": "klickar på knappen \"Genomsök bilder\", kommer bilder i katalogen som du anger här att importeras till användarens konto",
@@ -320,7 +340,8 @@
         "personalreadyexists": "Person {{name}} finns redan.",
         "nameplaceholder": "Namn",
         "numberofpeople": "{{peoplelength}} Personer",
-        "renameperson": "Döp om person"
+        "renameperson": "Döp om person",
+        "deleteperson": "Ta bort person"
     },
     "placealbum": {
         "showingplaces": "Visar {{number}} platser på kartan",
@@ -356,7 +377,7 @@
     "toasts": {
         "unsharephoto": "{{numberOfPhotos}} bild(er) delades med {{username}}",
         "deletefacestitle": "Ta bort ansikten",
-        "trainingstartedtitle": "Ansiktsträning",
+        "trainingstartedtitle": "Ansiktsigenkänning",
         "renameperson": "Person {{personName}} har bytt namn till {{newPersonName}}",
         "trainingstarted": "Träning startade",
         "sharephototitle": "Dela bild",
@@ -416,7 +437,13 @@
         "setdeletetitle": "Ta bort bilder",
         "recoverphoto": "{{numberOfPhotos}} bild(er) återställdes.",
         "finaldeletephoto": "{{numberOfPhotos}} bild(er) raderades permanent.",
-        "deletephoto": "{{numberOfPhotos}} bilder har tagits bort."
+        "deletephoto": "{{numberOfPhotos}} bilder har tagits bort.",
+        "uploadsuccess": "Lyckad uppladdning",
+        "deletejob": "Jobb {{id}} borttaget.",
+        "deletejobtitle": "Ta bort jobb",
+        "removefacestopersontitle": "Ta bort ansikten från person",
+        "deleteuser": "{{username}} borttagen",
+        "deleteusertitle": "Ta bort användare"
     },
     "facesdashboard": {
         "numberoffaces": "{{number}} ansikten",
@@ -471,5 +498,24 @@
     "nodata": "Ingen data",
     "fetchingsocialgraph": "Hämtar social graf …",
     "nosocialgraph": "Ingen social graf",
-    "locationtimeline": "Plats-tidslinje"
+    "locationtimeline": "Plats-tidslinje",
+    "defaulttimezone": "Förvald tidszon",
+    "cancel": "Avbryt",
+    "exif": {
+        "filepath": "Filsökväg",
+        "duplicates": "Duplikat",
+        "deleteduplicatetitle": "Ta bort duplikat",
+        "deleteduplicate": "Är du säker på att du vill ta bort detta duplikatet?",
+        "showmore": "Visa mer",
+        "showless": "Visa mindre"
+    },
+    "modaluseredit": {
+        "errorusernameexists": "En användare med samma namn finns redan",
+        "errorinvalidemail": "Ange en giltig e-postadress",
+        "errorusernamecannotbeblank": "Användarnamnet får inte vara tomt"
+    },
+    "confirm": "Bekräfta",
+    "save": "Spara",
+    "modify": "Ändra",
+    "supportus": "Stöd oss"
 }
