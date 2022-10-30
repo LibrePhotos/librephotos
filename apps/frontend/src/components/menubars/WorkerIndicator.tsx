@@ -38,7 +38,7 @@ export function WorkerIndicator() {
   const { workerRunningJob, currentData } = useWorkerStatus();
 
   useEffect(() => {
-    setWorkerColor(!!currentData?.queue_can_accept_job ? "green" : "red");
+    setWorkerColor(currentData?.queue_can_accept_job ? "green" : "red");
   }, [currentData?.queue_can_accept_job]);
 
   return (

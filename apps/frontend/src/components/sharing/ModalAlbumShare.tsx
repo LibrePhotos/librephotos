@@ -1,24 +1,13 @@
-import {
-  Avatar,
-  Divider,
-  Group,
-  Modal,
-  ScrollArea,
-  Stack,
-  Switch,
-  Text,
-  TextInput,
-  Title,
-} from "@mantine/core";
+import { Avatar, Divider, Group, Modal, ScrollArea, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
 import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Share } from "tabler-icons-react";
-import i18n from "../../i18n";
 
 import { setUserAlbumShared } from "../../actions/albumsActions";
 import { fetchPublicUserList } from "../../actions/publicActions";
+import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
-import { useTranslation } from "react-i18next";
 
 function fuzzy_match(str, pattern) {
   if (pattern.split("").length > 0) {
@@ -34,7 +23,7 @@ type Props = {
   albumID: string;
 };
 //To-Do: Add missing locales
-export function ModalAlbumShare (props: Props) {
+export function ModalAlbumShare(props: Props) {
   const [userNameFilter, setUserNameFilter] = useState("");
 
   const { pub, auth } = useAppSelector(store => store);
@@ -84,7 +73,7 @@ export function ModalAlbumShare (props: Props) {
         <ScrollArea>
           {filteredUserList.length > 0 &&
             filteredUserList.map(item => {
-              let displayName =
+              const displayName =
                 item.first_name.length > 0 && item.last_name.length > 0
                   ? `${item.first_name} ${item.last_name}`
                   : item.username;
@@ -106,7 +95,9 @@ export function ModalAlbumShare (props: Props) {
                     )}
                   </Title>
                   <Text size="sm" color="dimmed">
-                    {t("modalphotosshare.joined")} {DateTime.fromISO(item.date_joined).setLocale(i18n.resolvedLanguage.replace("_", "-")).toRelative()}</Text>
+                    {t("modalphotosshare.joined")}{" "}
+                    {DateTime.fromISO(item.date_joined).setLocale(i18n.resolvedLanguage.replace("_", "-")).toRelative()}
+                  </Text>
                   <Switch
                     checked={albumDetails.shared_to && albumDetails.shared_to.map(e => e.id).includes(item.id)}
                     onChange={event => {
@@ -126,4 +117,4 @@ export function ModalAlbumShare (props: Props) {
       </Stack>
     </Modal>
   );
-};
+}

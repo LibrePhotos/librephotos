@@ -59,11 +59,11 @@ export function SharedToMe() {
         </Tabs.List>
 
         <Tabs.Panel value="photos">
-          <PhotosShared isSharedToMe={true} />
+          <PhotosShared isSharedToMe />
         </Tabs.Panel>
 
         <Tabs.Panel value="albums">
-          <AlbumsShared isSharedToMe={true} />
+          <AlbumsShared isSharedToMe />
         </Tabs.Panel>
       </Tabs>
     </Stack>
