@@ -6,8 +6,8 @@ import { FacesOrderOption, FacesTab } from "./facesActions.types";
 import type { ICompletePersonFace, ICompletePersonFaceList, IFacesOrderOption, IFacesState, IFacesTab, ITabSettingsArray, IPersonFace } from "./facesActions.types";
 
 const initialState: IFacesState = {
-  labeledFacesList: [] as ICompletePersonFaceList[],
-  inferredFacesList: [] as ICompletePersonFaceList[],
+  labeledFacesList: [] as ICompletePersonFaceList,
+  inferredFacesList: [] as ICompletePersonFaceList,
   facesVis: [],
   training: false,
   trained: false,
@@ -108,24 +108,19 @@ const faceSlice = createSlice({
       // eslint-disable-next-line no-param-reassign
       state.orderBy = action.payload;
       // If element contains some incomplete faces, we need to clear all faces
-      // @ts-ignore
       state.labeledFacesList.forEach(element => clearPersonFacesIfNeeded(element));
-      // @ts-ignore
       state.inferredFacesList.forEach(element => clearPersonFacesIfNeeded(element));
       // Sort both lists according to new criteria
-      // @ts-ignore
       state.labeledFacesList.forEach(element => {sortFaces(element.faces, state.orderBy)});
-      // @ts-ignore
       state.inferredFacesList.forEach(element => {sortFaces(element.faces, state.orderBy)});
     },
   },
   extraReducers: builder => {
     builder
-      //@ts-ignore
       .addMatcher(api.endpoints.fetchIncompleteFaces.matchFulfilled, (state, { meta, payload }) => {
         const newFacesList: ICompletePersonFaceList = payload.map(person => {
           const completePersonFace: ICompletePersonFace = { ...person, faces: [] };
-          for (let i = 0; i < person.face_count; i++) {
+          for (let i = 0; i < person.face_count; i += 1) {
             completePersonFace.faces.push({
               id: i,
               image: null,
@@ -145,16 +140,15 @@ const faceSlice = createSlice({
         };
       })
       .addMatcher(api.endpoints.fetchFaces.matchFulfilled, (state, { meta, payload }) => {
+        // eslint-disable-next-line prefer-destructuring
         const inferred = meta.arg.originalArgs.inferred;
         const personListToChange = inferred ? state.inferredFacesList : state.labeledFacesList;
         const personId = meta.arg.originalArgs.person;
-        //@ts-ignore
         const indexToReplace = personListToChange.findIndex(person => person.id === personId);
         if (indexToReplace !== -1) {
           const personToChange = personListToChange[indexToReplace];
-          //@ts-ignore
           const currentFaces = personToChange.faces;
-          //@ts-ignore
+          // @ts-ignore
           const newFaces = payload.results;
 
           const updatedFaces = currentFaces
@@ -162,7 +156,6 @@ const faceSlice = createSlice({
             .concat(newFaces)
             .concat(currentFaces.slice(meta.arg.originalArgs.page * 100));
 
-          //@ts-ignore
           personToChange.faces = updatedFaces;
           personListToChange[indexToReplace] = personToChange;
         }
@@ -191,17 +184,12 @@ const faceSlice = createSlice({
         facesToRemove.forEach(face => {
           // find the person by finding the face and remove the face from it and update the list
           const personToChange = newLabeledFacesList.find(
-            //@ts-ignore
-            person => person.faces.filter(i => i.face_url == face).length > 0
+            person => person.faces.filter(i => i.face_url === face).length > 0
           );
           if (personToChange) {
-            //@ts-ignore
             const indexToRemove = personToChange.faces.findIndex(f => f.face_url === face);
-            //@ts-ignore
             personToChange.faces.splice(indexToRemove, 1);
-            //@ts-ignore
             const indexToReplace = newLabeledFacesList.findIndex(person => person.id === personToChange.id);
-            //@ts-ignore
             if (personToChange.faces.length === 0) {
               newLabeledFacesList.splice(indexToReplace, 1);
             } else {
@@ -210,19 +198,14 @@ const faceSlice = createSlice({
           }
           // same thing for inferred
           const personToChangeInferred = newInferredFacesList.find(
-            //@ts-ignore
             person => person.faces.filter(i => i.face_url == face).length > 0
           );
           if (personToChangeInferred) {
-            //@ts-ignore
             const indexToRemoveInferred = personToChangeInferred.faces.findIndex(f => f.face_url === face);
-            //@ts-ignore
             personToChangeInferred.faces.splice(indexToRemoveInferred, 1);
             const indexToReplaceInferred = newInferredFacesList.findIndex(
-              //@ts-ignore
               person => person.id === personToChangeInferred.id
             );
-            //@ts-ignore
             if (personToChangeInferred.faces.length === 0) {
               newInferredFacesList.splice(indexToReplaceInferred, 1);
             } else {
@@ -239,17 +222,12 @@ const faceSlice = createSlice({
         facesToRemove.forEach(face => {
           // find the person by finding the face and remove the face from it and update the list
           const personToChange = newLabeledFacesList.find(
-            //@ts-ignore
-            person => person.faces.filter(i => i.face_url == face.face_url).length > 0
+            person => person.faces.filter(i => i.face_url === face.face_url).length > 0
           );
           if (personToChange) {
-            //@ts-ignore
             const indexToRemove = personToChange.faces.findIndex(f => f.id === face.id);
-            //@ts-ignore
             personToChange.faces.splice(indexToRemove, 1);
-            //@ts-ignore
             const indexToReplace = newLabeledFacesList.findIndex(person => person.id === personToChange.id);
-            //@ts-ignore
             if (personToChange.faces.length === 0) {
               newLabeledFacesList.splice(indexToReplace, 1);
             } else {
@@ -258,19 +236,14 @@ const faceSlice = createSlice({
           }
           // same thing for inferred
           const personToChangeInferred = newInferredFacesList.find(
-            //@ts-ignore
-            person => person.faces.filter(i => i.face_url == face.face_url).length > 0
+            person => person.faces.filter(i => i.face_url === face.face_url).length > 0
           );
           if (personToChangeInferred) {
-            //@ts-ignore
             const indexToRemoveInferred = personToChangeInferred.faces.findIndex(f => f.id === face.id);
-            //@ts-ignore
             personToChangeInferred.faces.splice(indexToRemoveInferred, 1);
             const indexToReplaceInferred = newInferredFacesList.findIndex(
-              //@ts-ignore
               person => person.id === personToChangeInferred.id
             );
-            //@ts-ignore
             if (personToChangeInferred.faces.length === 0) {
               newInferredFacesList.splice(indexToReplaceInferred, 1);
             } else {
@@ -281,53 +254,47 @@ const faceSlice = createSlice({
 
         facesToAdd.forEach(face => {
           // find the person and add the face to it and update the list
-          //@ts-ignore
           const personToChange = newLabeledFacesList.find(person => person.id === face.person);
           if (personToChange) {
-            //@ts-ignore
             personToChange.faces.push(face);
-            //@ts-ignore
+            personToChange.face_count = personToChange.faces.length;
             const indexToReplace = newLabeledFacesList.findIndex(person => person.id === face.person);
             newLabeledFacesList[indexToReplace] = personToChange;
-          } else {
+          } else if (face.person && face.person_name) {
             // add new person and new face
-            const newPerson = {
+            const newPerson: ICompletePersonFace = {
               id: face.person,
               name: face.person_name,
               faces: [
                 {
                   id: face.id,
-                  //@ts-ignore
                   face_url: face.face_url,
                   image: face.image,
                   person_label_probability: 1,
                   photo: face.photo,
                 },
               ],
+              kind: "USER",
+              face_count: 1
             };
-            //@ts-ignore
             newLabeledFacesList.push(newPerson);
           }
         });
 
         // sort both lists by name
         newLabeledFacesList.sort((a, b) => {
-          //@ts-ignore
           if (a.name.toLowerCase() < b.name.toLowerCase()) {
             return -1;
           }
-          //@ts-ignore
           if (a.name.toLowerCase() > b.name.toLowerCase()) {
             return 1;
           }
           return 0;
         });
         newInferredFacesList.sort((a, b) => {
-          //@ts-ignore
           if (a.name.toLowerCase() < b.name.toLowerCase()) {
             return -1;
           }
-          //@ts-ignore
           if (a.name.toLowerCase() > b.name.toLowerCase()) {
             return 1;
           }

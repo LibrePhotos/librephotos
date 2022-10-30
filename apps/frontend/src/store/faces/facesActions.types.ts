@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 export type IFacesState = {
-  labeledFacesList: ICompletePersonFaceList[];
-  inferredFacesList: ICompletePersonFaceList[];
+  labeledFacesList: ICompletePersonFaceList;
+  inferredFacesList: ICompletePersonFaceList;
   facesVis: any[];
   training: boolean;
   trained: boolean;
@@ -38,12 +38,12 @@ export const IncompletePersonFace = z.object({
 });
 
 export const IncompletePersonFaceList = z.array(IncompletePersonFace);
-export type IIncompletePersonFaceListResponse = z.infer<typeof IncompletePersonFaceListResponse>;
-export type IIncompletePersonFaceListRequest = z.infer<typeof IncompletePersonFaceListRequest>;
 export const IncompletePersonFaceListResponse = IncompletePersonFaceList;
+export type IIncompletePersonFaceListResponse = z.infer<typeof IncompletePersonFaceListResponse>;
 export const IncompletePersonFaceListRequest = z.object({
   inferred: z.boolean(),
-});
+});export type IIncompletePersonFaceListRequest = z.infer<typeof IncompletePersonFaceListRequest>;
+
 
 export const PersonFace = z.object({
   id: z.number(),
@@ -53,6 +53,7 @@ export const PersonFace = z.object({
   person_label_probability: z.number(),
   isTemp: z.boolean().optional(),
   person: z.number().optional(),
+  person_name: z.string().optional(),
   timestamp: z.string().optional(),
 });
 export type IPersonFace = z.infer<typeof PersonFace>;
@@ -109,9 +110,9 @@ export const SetFacesLabelRequest = z.object({
 export type ISetFacesLabelResponse = z.infer<typeof SetFacesLabelResponse>;
 export const SetFacesLabelResponse = z.object({
   status: z.boolean(),
-  results: FaceList,
-  updated: FaceList,
-  not_updated: FaceList,
+  results: PersonFaceList,
+  updated: PersonFaceList,
+  not_updated: PersonFaceList,
 });
 
 export type IDeleteFacesRequest = z.infer<typeof DeleteFacesRequest>;

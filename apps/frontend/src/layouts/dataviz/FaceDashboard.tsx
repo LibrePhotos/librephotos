@@ -16,6 +16,7 @@ import { faceActions } from "../../store/faces/faceSlice";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
 import { FacesTab } from "../../store/faces/facesActions.types";
+import type { IFacesTab } from "../../store/faces/facesActions.types";
 
 export function FaceDashboard () {
   const { ref, width } = useElementSize();
@@ -54,7 +55,7 @@ export function FaceDashboard () {
 
   useEffect(() => {
     if (groups) {
-      const currentList = activeTab === "labeled" ?  labeledFacesList : inferredFacesList;
+      const currentList = activeTab === FacesTab.enum.labeled ?  labeledFacesList : inferredFacesList;
       groups.forEach(element => {
         let force = false;
         const personIndex = currentList.findIndex(person => person.id === element.person);
@@ -73,7 +74,7 @@ export function FaceDashboard () {
     }
   }, [groups]);
 
-  // @ts-ignore
+
   const previousTab: IFacesTab = usePrevious(activeTab);
   const [scrollTo, setScrollTo] = useState<number | null>(null);
   
@@ -106,7 +107,7 @@ export function FaceDashboard () {
   };
 
   const onSectionRendered = (params: any) => {
-    const cellContents = activeTab === FacesTab.enum.inferred? inferredCellContents : labeledCellContents;
+    const cellContents = activeTab === FacesTab.enum.labeled ? labeledCellContents: inferredCellContents;
     const startPoint = cellContents[params.rowOverscanStartIndex][params.columnOverscanStartIndex];
     const endPoint = getEndpointCell(cellContents, params.rowOverscanStopIndex, params.columnOverscanStopIndex);
     // flatten labeledCellContents and find the range of cells that are in the viewport
@@ -199,9 +200,9 @@ export function FaceDashboard () {
     setSelectedFaces(mergedAndFilteredAndLastSelected);
   };
 
-  const onFaceSelect = face => {
+  const onFaceSelect = (face) => {
     let tempSelectedFaces = selectedFaces;
-    if (tempSelectedFaces.map(face => face.face_url).includes(face.face_url)) {
+    if (tempSelectedFaces.map(f => f.face_url).includes(face.face_url)) {
       tempSelectedFaces = tempSelectedFaces.filter(item => item.face_url !== face.face_url);
     } else {
       tempSelectedFaces.push(face);
@@ -218,7 +219,6 @@ export function FaceDashboard () {
   const deleteSelectedFaces = () => {
     if (selectedFaces.length > 0) {
       const ids = selectedFaces.map(face => face.face_id);
-      // @ts-ignore
       dispatch(api.endpoints.deleteFaces.initiate({ faceIds: ids }));
       showNotification({
         message: i18n.t<string>("toasts.deletefaces", {
@@ -240,7 +240,6 @@ export function FaceDashboard () {
   const notThisPersonFunc = () => {
     if (selectedFaces.length > 0) {
       const ids = selectedFaces.map(face => face.face_id);
-      // @ts-ignore
       dispatch(api.endpoints.setFacesPersonLabel.initiate({ faceIds: ids, personName: "Unknown - Other" }));
       showNotification({
         message: i18n.t<string>("toasts.removefacestoperson", {
