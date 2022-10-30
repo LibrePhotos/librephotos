@@ -235,7 +235,11 @@
             "categories": "Categorieën",
             "similarphotos": "Vergelijkbare foto's",
             "attributes": "Kenmerken",
-            "editdatetime": "Datum en tijd aanpassen"
+            "editdatetime": "Datum en tijd aanpassen",
+            "withouttimestamp": "Zonder tijdstempel",
+            "invalidtimestamp": "Ongeldig tijdstempel",
+            "removetimestamp": "Tijdstempel verwijderen",
+            "undotimestampmodification": "Aanpassen van tijdstempel ongedaan maken"
         }
     },
     "photos": {
