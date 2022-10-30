@@ -1,11 +1,11 @@
-import { ActionIcon, Button, Group, Stack, Text } from "@mantine/core";
+import { ActionIcon, Button, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { DatePicker, TimeInput } from "@mantine/dates";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-virtualized/styles.css";
 // only needs to be imported once
-import { Calendar, CalendarOff, Check, Edit, X } from "tabler-icons-react";
+import { ArrowBackUp, Calendar, Check, Edit, X } from "tabler-icons-react";
 import { useAppDispatch } from "../../store/store";
 import i18n from "../../i18n";
 
@@ -16,7 +16,14 @@ type Props = {
 };
 
 export function TimestampItem({photoDetail}: Props) {
-  const [timestamp, setTimestamp] = useState(new Date(photoDetail.exif_timestamp));
+  const [timestamp, setTimestamp] = useState(
+    photoDetail.exif_timestamp === null
+    ? null
+    : new Date(photoDetail.exif_timestamp
+  ));
+  // savedTimestamp is used to cancel timestamp modification
+  const [savedTimestamp, setSavedTimestamp] = useState(timestamp);
+  const [previousSavedTimestamp, setPreviousSavedTimestamp] = useState(timestamp);
   const [editMode, setEditMode] = useState(false);
 
   const { t } = useTranslation();
@@ -26,44 +33,40 @@ export function TimestampItem({photoDetail}: Props) {
   const dispatch = useAppDispatch();
 
   const onChangeDate = (date: Date) => {
-    if (date) {
+    if (date && timestamp) {
       date.setHours(timestamp.getHours());
       date.setMinutes(timestamp.getMinutes());
       date.setSeconds(timestamp.getSeconds());
-      setTimestamp(date);
     }
+    setTimestamp(date);
   };
 
   const onChangeTime = (date: Date) => {
-    date.setDate(timestamp.getDate());
-    date.setMonth(timestamp.getMonth());
-    date.setFullYear(timestamp.getFullYear());
+    if (date && timestamp) {
+      date.setDate(timestamp.getDate());
+      date.setMonth(timestamp.getMonth());
+      date.setFullYear(timestamp.getFullYear());
+    }
     setTimestamp(date);
   };
 
   const onSaveDateTime = (e: any) => {
     // To-Do: Use the user defined timezone
-    photoDetail.exif_timestamp = timestamp.toISOString();
-    const differentJson = { exif_timestamp: photoDetail.exif_timestamp };
-    dispatch(editPhoto(photoDetail.image_hash, differentJson));
-    setEditMode(false);
-  };
-
-  const onRemoveDateTime = (e: any) => {
-    photoDetail.exif_timestamp = null;
+    photoDetail.exif_timestamp = timestamp === null ? null : timestamp.toISOString();
     const differentJson = { exif_timestamp: photoDetail.exif_timestamp };
     dispatch(editPhoto(photoDetail.image_hash, differentJson));
     setEditMode(false);
   };
 
   const onCancelDateTime = (e: any) => {
-    setTimestamp(new Date(photoDetail.exif_timestamp));
+    setTimestamp(savedTimestamp);
+    setSavedTimestamp(previousSavedTimestamp);
     setEditMode(false);
   }
 
   const getDateTimeLabel = () => {
     if (!photoDetail.exif_timestamp)
-      return "No timestamp";
+      return t("lightbox.sidebar.withouttimestamp");
 
     const photoDateTime = DateTime.fromISO(photoDetail.exif_timestamp);
     if (photoDateTime.isValid) {
@@ -72,8 +75,21 @@ export function TimestampItem({photoDetail}: Props) {
       const time = DateTime.fromISO(photoDetail.exif_timestamp).setLocale(lang).toLocaleString(DateTime.TIME_SIMPLE);
       return (<div>{date} <Text size="xs" color="dimmed">{dayOfWeek}, {time}</Text></div>);
     }
-    return "Invalid timestamp";
+    return "lightbox.sidebar.invalidtimestamp";
   };
+
+  const onActivateEditMode = () => {
+    setPreviousSavedTimestamp(savedTimestamp);
+    setSavedTimestamp(timestamp);
+    setEditMode(true);
+  };
+
+  const onUndoChangedTimestamp = () => {
+    photoDetail.exif_timestamp = savedTimestamp === null ? null : savedTimestamp.toISOString();
+    const differentJson = { exif_timestamp: photoDetail.exif_timestamp };
+    dispatch(editPhoto(photoDetail.image_hash, differentJson));
+    setTimestamp(savedTimestamp);
+  }
 
   return (
     <Group>
@@ -89,15 +105,16 @@ export function TimestampItem({photoDetail}: Props) {
             <DatePicker locale={lang} value={timestamp} onChange={onChangeDate}/>
             <TimeInput withSeconds value={timestamp} onChange={onChangeTime}/>
             <Group position="center">
-              <ActionIcon variant="light" color="red" onClick={onRemoveDateTime}>
-                <CalendarOff />
-              </ActionIcon>
-              <ActionIcon variant="light" onClick={onCancelDateTime} color="red">
-                <X />
-              </ActionIcon>
-              <ActionIcon variant="light" color="green" onClick={onSaveDateTime}>
-                <Check />
-              </ActionIcon>
+              <Tooltip label={t("lightbox.sidebar.cancel")}>
+                <ActionIcon variant="light" onClick={onCancelDateTime} color="red">
+                  <X />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label={t("lightbox.sidebar.submit")}>
+                <ActionIcon variant="light" color="green" onClick={onSaveDateTime}>
+                  <Check />
+                </ActionIcon>
+              </Tooltip>
             </Group>
           </Stack>
         </Stack>
@@ -105,9 +122,16 @@ export function TimestampItem({photoDetail}: Props) {
       {!editMode && (
         <Group>
           <Calendar />
-          <Button color="dark" variant="subtle" onClick={() => setEditMode(!editMode)} rightIcon={<Edit size={17} />}>
+          <Button color="dark" variant="subtle" onClick={onActivateEditMode} rightIcon={<Edit size={17} />}>
               {getDateTimeLabel()}
           </Button>
+          {savedTimestamp !== timestamp && (
+            <Tooltip label={t("lightbox.sidebar.undotimestampmodification")}>
+              <ActionIcon onClick={onUndoChangedTimestamp} color="dark">
+                <ArrowBackUp size={17} />
+              </ActionIcon>
+            </Tooltip>
+          )} 
         </Group>
       )}
       {

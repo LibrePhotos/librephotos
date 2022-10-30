@@ -250,7 +250,11 @@
             "attributes": "Attributs",
             "categories": "Catégories",
             "similarphotos": "Photos similaires",
-            "editdatetime": "Editer date et heure"
+            "editdatetime": "Editer date et heure",
+            "withouttimestamp": "Sans horodatage",
+            "invalidtimestamp": "Date invalide",
+            "removetimestamp": "Supprimer l'horodatage",
+            "undotimestampmodification": "Annuler la modificaiton de l'horodatage"
         }
     },
     "photos": {

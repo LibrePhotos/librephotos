@@ -268,7 +268,11 @@
       "attributes": "Attributes",
       "categories": "Categories",
       "similarphotos": "Similar Photos",
-      "editdatetime": "Edit date and time"
+      "editdatetime": "Edit date and time",
+      "withouttimestamp": "Without timestamp",
+      "invalidtimestamp": "Invalid timestamp",
+      "removetimestamp": "Remove timestamp",
+      "undotimestampmodification": "Undo timestamp modification"
     }
   },
   "exif":{
