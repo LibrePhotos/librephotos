@@ -412,7 +412,9 @@ export const Library = () => {
                 onMouseEnter={openNextcloudAuthStatusPopup}
                 onMouseLeave={closeNextcloudAuthStatusPopup}
                 color={fetchedNextcloudDirectoryTree ? "green" : "red"}
-              ><></></Indicator>
+              >
+                <div></div>
+              </Indicator>
               <Trans i18nKey="settings.nextcloudheader">Nextcloud</Trans>
             </Group>
           </Popover.Target>
