@@ -8,6 +8,7 @@ export type IFacesState = {
   trained: boolean;
   clustering: boolean;
   clustered: boolean;
+  orderBy: IFacesOrderOption;  
   error: any;
   activeTab: IFacesTab;
   tabs: ITabSettingsArray;
@@ -25,6 +26,9 @@ export const TabSettingsArray = z.record(
   TabSettings
 );
 export type ITabSettingsArray = z.infer<typeof TabSettingsArray>;
+
+export const FacesOrderOption = z.enum(["confidence", "date"]);
+export type IFacesOrderOption = z.infer<typeof FacesOrderOption>;
 
 export const IncompletePersonFace = z.object({
   id: z.number(),
@@ -49,7 +53,9 @@ export const PersonFace = z.object({
   person_label_probability: z.number(),
   isTemp: z.boolean().optional(),
   person: z.number().optional(),
+  timestamp: z.string().optional(),
 });
+export type IPersonFace = z.infer<typeof PersonFace>;
 
 export const PersonFaceListResponse = z.object({
   data: z.object({
@@ -61,6 +67,7 @@ export const PersonFaceListRequest = z.object({
   person: z.number(),
   page: z.number(),
   inferred: z.boolean(),
+  orderBy: FacesOrderOption,
 });
 export type IPersonFaceListRequest = z.infer<typeof PersonFaceListRequest>;
 

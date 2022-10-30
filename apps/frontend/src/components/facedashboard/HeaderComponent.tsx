@@ -20,7 +20,7 @@ type Props = {
 
 export function HeaderComponent({cell, width, style, key, entrySquareSize, setSelectedFaces, selectedFaces }: Props) {
   const { activeTab } = useAppSelector(store => store.face);
-    const dispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const [checked, setChecked] = useState(false);
 
@@ -58,7 +58,7 @@ export function HeaderComponent({cell, width, style, key, entrySquareSize, setSe
     if (selectedFacesOfGroup.length === 0) {
       setChecked(false);
     }
-  }, [cell.faces, selectedFaces]);
+  }, [selectedFaces]);
 
   return (
     <Stack
