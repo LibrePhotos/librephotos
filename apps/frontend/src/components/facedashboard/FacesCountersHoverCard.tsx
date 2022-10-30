@@ -1,18 +1,18 @@
-import { Group, Text } from "@mantine/core";
+import { HoverCard, Stack, Text } from "@mantine/core";
 import { t } from "i18next";
 import React, { useEffect, useState } from "react";
 import { useAppSelector } from "../../store/store";
+import { FacesTab } from "../../store/faces/facesActions.types";
+import type { IFacesTab } from "../../store/faces/facesActions.types";
 
 type Props = {
-  activeTab: number;
+  tab: IFacesTab;
+  children: React.ReactNode;
 };
 
-export function CountersHeaderGroup ({activeTab}: Props) {
+export function FacesCountersHoverCard ({ tab, children }: Props) {
   const { inferredFacesList, labeledFacesList } = useAppSelector(
-    store => store.face,
-    (prev, next) => {
-      return prev.inferredFacesList === next.inferredFacesList && prev.labeledFacesList === next.labeledFacesList;
-    }
+    store => store.face
   );
 
   const [labeledPersonsCount, setLabeledPersonsCount] = useState(0);
@@ -41,28 +41,52 @@ export function CountersHeaderGroup ({activeTab}: Props) {
     setInferredUnknownFacesCount(inferredFacesList.map(g => g.kind === "UNKNOWN" ? g.face_count : 0).reduce((a, b) => a + b, 0))
   }, [inferredFacesList]);
 
+
+  const getLabeledCounters = () => (
+    <Stack>
+      <Text size="sm">
+        {`${t("facesdashboard.personscounter", {count: labeledPersonsCount})}`} {`(${t("facesdashboard.facescounter", {count: labeledFacesCount})})`}
+      </Text>
+      {labeledUnknownFacesCount !== 0 && (
+        <Text size="sm">
+          {`${t("facesdashboard.unknownfacescounter", {count: labeledUnknownFacesCount})}`}
+        </Text>
+      )}
+    </Stack>
+  );
+
+  const getInferredCounters = () => (
+    <Stack>
+      <Text size="sm">
+        {`${t("facesdashboard.assumedpersonscounter", {count: inferredAssumedPersonsCount})}`} {`(${t("facesdashboard.facescounter", {count: inferredAssumedFacesCount})})`}
+      </Text>
+      <Text size="sm">
+        {`${t("facesdashboard.clusterscounter", {count: inferredClustersCount})}`} {`(${t("facesdashboard.facescounter", {count: inferredClusteredFacesCount})})`}
+      </Text>
+      {inferredUnknownFacesCount !== 0 && (
+        <Text size="sm">
+          {`${t("facesdashboard.unknownfacescounter", {count: inferredUnknownFacesCount})}`}
+        </Text>
+      )}
+    </Stack>
+  );
+
+  const getCountersContent = () => {
+    if (tab === FacesTab.enum.labeled)
+      return getLabeledCounters();
+    if (tab === FacesTab.enum.inferred)
+      return getInferredCounters();
+    return null;
+  };
+
   return (
-    <Group>
-    {activeTab === 0 && (
-      <Text align="left" color="dimmed">
-        {`${t("facesdashboard.personscounter", {count: labeledPersonsCount})}`}
-        {` (${t("facesdashboard.facescounter", {count: labeledFacesCount})})`}
-        {labeledUnknownFacesCount !== 0 &&
-          ` - ${t("facesdashboard.unknownfacescounter", {count: labeledUnknownFacesCount})}`
-        }
-      </Text>
-    )}
-    {activeTab === 1 && (
-      <Text align="left" color="dimmed">
-        {`${t("facesdashboard.assumedpersonscounter", {count: inferredAssumedPersonsCount})}`}
-        {` (${t("facesdashboard.facescounter", {count: inferredAssumedFacesCount})})`}
-        {` - ${t("facesdashboard.clusterscounter", {count: inferredClustersCount})}`}
-        {` (${t("facesdashboard.facescounter", {count: inferredClusteredFacesCount})})`}
-        {inferredUnknownFacesCount !== 0 &&
-          ` - ${t("facesdashboard.unknownfacescounter", {count: inferredUnknownFacesCount})}`
-        }
-      </Text>
-    )}
-    </Group>
+    <HoverCard shadow="md" openDelay={500}>
+      <HoverCard.Target>
+        {children}
+      </HoverCard.Target>
+      <HoverCard.Dropdown>
+        {getCountersContent()}
+      </HoverCard.Dropdown>  
+    </HoverCard>
   );
 }
