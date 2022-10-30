@@ -398,7 +398,10 @@
         "explanationdeleting": "Gezicht en bijbehorende miniaturen verwijderen",
         "explanationtraining": "Vergelijkbare gezichten zoeken",
         "notthisperson": "Gezichten verplaatsen naar ‘Onbekend - Overig’",
-        "explanationvalidate": "Bevestig dat alle gezichten uit deze groep overeenkomen met de persoon in kwestie en voeg ze toe aan de overeenkomende id"
+        "explanationvalidate": "Bevestig dat alle gezichten uit deze groep overeenkomen met de persoon in kwestie en voeg ze toe aan de overeenkomende id",
+        "sortby": "Sorteren op",
+        "sortbyconfidence": "Zekerheid",
+        "sortbydate": "Datum"
     },
     "socialgraph": "Sociale grafiek",
     "faceclusterexplanation": "Personen met gelijkaardige gezichten dienen dichter op elkaar te worden gegroepeerd. Klik op een punt om een label te tonen.",
