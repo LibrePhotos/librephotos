@@ -181,7 +181,7 @@
         "placeholder": "Albumaren titulua",
         "create": "Sortu",
         "items": "{{count}} elementu",
-        "updated": "Eguneratua"
+        "updated": "Eguneratua {{duration}}"
     },
     "sidemenu": {
         "favorites": "Gogokoak",
