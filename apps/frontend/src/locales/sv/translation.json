@@ -138,7 +138,7 @@
         "basque": "Baskiska"
     },
     "modalalbum": {
-        "updated": "Uppdaterad",
+        "updated": "Uppdaterad {{duration}}",
         "newalbum": "Nytt album",
         "alreadyexists": "Albumet {{title}} finns redan.",
         "create": "Skapa"
