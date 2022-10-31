@@ -490,7 +490,7 @@
         "placeholder": "Título del álbum",
         "selectedimages": "Añadir la(s) foto(s) seleccionada(s) {{count}} a…",
         "alreadyexists": "El álbum {{title}} ya existe.",
-        "updated": "Actualizado"
+        "updated": "Actualizado {{duration}}"
     },
     "cancel": "Cancelar",
     "deletefaceexplanation": "Esta acción eliminará de forma permanente los rostros y todos sus datos asociados. Esta acción no se puede deshacer.",
