@@ -141,7 +141,7 @@
         "alreadexists": "Album {{title}} již existuje.",
         "title": "Přidat do alba",
         "alreadyexists": "Album {{title}} již existuje.",
-        "updated": "Aktualizováno"
+        "updated": "Aktualizováno {{duration}}"
     },
     "modalnextcloud": {
         "setdirectory": "Nastavte adresář skenování Nextcloud",
