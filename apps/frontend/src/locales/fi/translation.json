@@ -130,7 +130,7 @@
         "placeholder": "Albumin otsikko",
         "create": "Luo",
         "items": "{{count}} kohde(tta)",
-        "updated": "Päivitetty"
+        "updated": "Päivitetty {{duration}}"
     },
     "modalnextcloud": {
         "notset": "ei asetettu",
