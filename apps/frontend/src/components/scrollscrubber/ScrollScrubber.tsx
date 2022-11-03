@@ -5,7 +5,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useState } from "react"
 import _ from "lodash";
 import type { MouseEvent, ReactNode } from "react";
 import { ScrollerType } from "./ScrollScrubberTypes.zod";
-import type { IScrollerData, IScrollerPositions, IScrollerType } from "./ScrollScrubberTypes.zod";
+import type { IScrollerData, IScrollerPosition, IScrollerType } from "./ScrollScrubberTypes.zod";
 import "./ScrollScrubber.css"
 
 type Props = {
@@ -22,8 +22,8 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
   const { ref, height } = useElementSize();
   const [scrollerWidth, setScrollerWidth] = useState(26);
   const [scrollerIsVisible, setScrollerIsVisible] = useState(false);
-  const [positions, setPositions] = useState<IScrollerPositions[]>([]);
-  const [markerPositions, setMarkerPositions] = useState<IScrollerPositions[]>([]);
+  const [positions, setPositions] = useState<IScrollerPosition[]>([]);
+  const [markerPositions, setMarkerPositions] = useState<IScrollerPosition[]>([]);
   const [dragMarkerY, setDragMarkerY] = useState(0);
   const [currentScrollPosMarkerY, setCurrentScrollPosMarkerY] = useState(0);
   const [currentLabel, setCurrentLabel] = useState("");
@@ -53,7 +53,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
     return NaN;
   };
 
-  const getLabelForScrollerY = (y: number): string => {
+  const getLabelForScrollerY = (y: number): string => {   
     if (y < height / 2) {
       const pos = positions.find(item => (y < item.scrollerY));
       if (typeof pos !== "undefined")
@@ -69,8 +69,8 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
     return '';
   };
 
-  const getAlphabetMarkers = useCallback((): IScrollerPositions[] => {
-    const alphabet: IScrollerPositions[] = [];
+  const getAlphabetMarkers = useCallback((): IScrollerPosition[] => {
+    const alphabet: IScrollerPosition[] = [];
     let currentLetter: string | null = null;
     positions.forEach(item => {
       let firstChar = _.deburr(item.label.charAt(0)).toUpperCase();
@@ -100,12 +100,12 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
    return alphabet;
   }, [positions])
 
-  const getDateMarkers = useCallback((): IScrollerPositions[] => {
+  const getDateMarkers = useCallback((): IScrollerPosition[] => {
     console.log("getDateMarkers not implemented");
     return positions;
   }, [positions]);
 
-  const getLabelsMarkers = useCallback((): IScrollerPositions[] => positions, [positions]);
+  const getLabelsMarkers = useCallback((): IScrollerPosition[] => positions, [positions]);
 
   useEffect(() => {
     let markersType = type;
@@ -121,7 +121,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
   }, [positions]);
 
   useLayoutEffect(() => {
-    const newPositions: IScrollerPositions[] = [];
+    const newPositions: IScrollerPosition[] = [];
     if (scrollPositions.length > 0) {
       scrollPositions.forEach(item => {
         newPositions.push({
