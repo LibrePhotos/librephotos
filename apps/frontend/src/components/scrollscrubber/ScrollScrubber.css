@@ -12,12 +12,11 @@
 
 .scrollscrubber {
   right: 0;
-  top: 150px; /* To-do determine top */
-  bottom: 0px; /* To-do determin bottom */
+  bottom: 0px;
   position: fixed;
   border-radius: 7px;
   user-select: none;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
   z-index: 101;
   background-image: linear-gradient(#c6c6c6, #c6c6c6);
   background-size: 2px 100%;

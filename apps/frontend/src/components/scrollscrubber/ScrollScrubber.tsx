@@ -19,7 +19,7 @@ type Props = {
 
 export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTargetY, scrollToY, children }: Props) {
   // ref and size of scrollscrubber
-  const { ref, height } = useElementSize();
+  const { ref, width, height } = useElementSize();
   const [scrollerWidth, setScrollerWidth] = useState(26);
   const [scrollerIsVisible, setScrollerIsVisible] = useState(false);
   const [positions, setPositions] = useState<IScrollerPosition[]>([]);
@@ -28,28 +28,30 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
   const [currentScrollPosMarkerY, setCurrentScrollPosMarkerY] = useState(0);
   const [currentLabel, setCurrentLabel] = useState("");
   const [cursor, setCursor] = useState("auto");
+  const [targetClientHeight, setTargetClientHeight] = useState(0);
+  const [offsetTop, setOffsetTop] = useState(0);
 
   const targetYToScrollerY = (y: number): number => {
     if (targetHeight > 0)
-      return (y * height / targetHeight);
+      return (y * height / (targetHeight - targetClientHeight));
     return NaN;
   };
 
   const scrollerYToTargetY = (y: number): number => {
     if (height > 0)
-      return (y * targetHeight / height);
+      return (y * (targetHeight - targetClientHeight) / height);
     return NaN;
   };
 
   const targetYToScrollerYPercentage = (y: number): number => {
     if (targetHeight > 0)
-      return (y * 100 / targetHeight);
+      return Math.min(y * 100 / (targetHeight - targetClientHeight), 100);
     return NaN;
   };
 
   const scrollerYToScrollerYPercentage = (y: number): number => {
     if (height > 0)
-      return (y * 100 / height);
+      return Math.min(y * 100 / height, 100);
     return NaN;
   };
 
@@ -135,7 +137,21 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
       newPositions.sort((a, b) => (a.targetY > b.targetY) ? 1 : -1);
     }
     setPositions(newPositions);   
-  }, [scrollPositions]);
+  }, [scrollPositions, targetClientHeight]);
+
+  useEffect(() => {
+    if (ref.current) {
+      let elmt = ref.current;
+      while (typeof elmt.parentElement !== "undefined") {
+        if (elmt.parentElement.offsetTop !== 0) {
+          setTargetClientHeight(elmt.parentElement.offsetHeight);
+          setOffsetTop(elmt.parentElement.offsetTop);
+          break;
+        }
+        elmt = elmt.parentElement;
+      }
+    }
+  }, [width, height]);
 
   const handleMouseOver = () => {
     setScrollerWidth(150);
@@ -266,7 +282,8 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
         style={{
           width: scrollerWidth,
           opacity: scrollerIsVisible ? 1 : 0,
-          cursor: cursor
+          cursor: cursor,
+          top: `${offsetTop}px`
         }}
         onMouseOver={()=>handleMouseOver()}
         onMouseOut={()=>handleMouseOut()}
