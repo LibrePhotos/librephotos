@@ -86,12 +86,13 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
           firstChar = ":-)"
         }
       }
-      if ( firstChar !== currentLetter) {
+      if ( firstChar !== currentLetter || item.label === "Unknown - Other") {
         currentLetter = firstChar;
+        const label = item.label === "Unknown - Other" ? item.label : currentLetter;
         // Only display letter if there is enough space with preivous letter
         if (alphabet.length < 1 || item.scrollerY - alphabet.slice(-1)[0].scrollerY > 15) {
           alphabet.push({
-            label: currentLetter,
+            label: label,
             targetY: item.targetY,
             scrollerY: item.scrollerY,
             scrollerYPercent: item.scrollerYPercent
