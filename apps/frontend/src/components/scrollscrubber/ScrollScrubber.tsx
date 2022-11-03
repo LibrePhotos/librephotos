@@ -55,12 +55,11 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
 
   const getLabelForScrollerY = (y: number): string => {
     if (y < height / 2) {
-      for (let i = 0; i < positions.length; i += 1) {
-        if (y < positions[i].scrollerY) {
-          return positions[i === 0 ? 0 : i - 1].label;
-        }
-      }
+      const pos = positions.find(item => (y < item.scrollerY));
+      if (typeof pos !== "undefined")
+      return pos.label
     } else {
+      // Search array from the end
       for (let i = positions.length - 1; i >= 0; i -= 1) {
         if (y >= positions[i].scrollerY) {
           return positions[i].label;
@@ -250,9 +249,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
       className="scrollscrubber-current-position"
       sx={theme => ({
         backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-        boxShadow: `0 0 0 4px ${theme.colorScheme === "dark"
-        ? theme.colors.green[6]
-        : theme.colors.green[6]}`
+        boxShadow: `0 0 0 4px ${theme.colors.green[6]}`
       })}
       style={{
         top: currentScrollPosMarkerY
