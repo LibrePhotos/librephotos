@@ -2,7 +2,7 @@ import { Stack } from "@mantine/core";
 import { useElementSize, usePrevious } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 import _ from "lodash";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
 
 import { api, useFetchIncompleteFacesQuery } from "../../api_client/api";
@@ -17,10 +17,16 @@ import { useAppDispatch, useAppSelector } from "../../store/store";
 import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
 import { FacesTab } from "../../store/faces/facesActions.types";
 import type { IFacesTab } from "../../store/faces/facesActions.types";
+import { ScrollScrubber } from "../../components/scrollscrubber/ScrollScrubber";
+import { ScrollerType } from "../../components/scrollscrubber/ScrollScrubberTypes.zod";
+import type { IScrollerData } from "../../components/scrollscrubber/ScrollScrubberTypes.zod";
 
 export function FaceDashboard () {
   const { ref, width } = useElementSize();
+  const gridRef = useRef<any>();
+  const [gridHeight, setGridHeight] = useState(200);
   const [currentScrollPosition, setCurrentScrollPosition] = useState(0);
+  const [dataForScrollIndicator, setDataForScrollIndicator] = useState<IScrollerData[]>([]);
   const [lastChecked, setLastChecked] = useState(null);
   const [entrySquareSize, setEntrySquareSize] = useState(200);
   const [numEntrySquaresPerRow, setNumEntrySquaresPerRow] = useState(10);
@@ -85,7 +91,7 @@ export function FaceDashboard () {
     }
     setCurrentScrollPosition(scrollTop);
   };
-  
+
   useEffect(() => {
     if (previousTab) {
       dispatch(
@@ -98,6 +104,10 @@ export function FaceDashboard () {
     setScrollTo(tabs[activeTab].scrollPosition);
   }, [activeTab]);
 
+  useEffect(() => {
+    setDataForScrollIndicator(getDataForScrollIndicator());
+  }, [activeTab, inferredFacesList, labeledFacesList, gridHeight]);
+
   // ensure that the endpoint is not undefined
   const getEndpointCell = (cellContents, rowStopIndex, columnStopIndex) => {
     if (cellContents[rowStopIndex][columnStopIndex]) {
@@ -107,6 +117,10 @@ export function FaceDashboard () {
   };
 
   const onSectionRendered = (params: any) => {
+    if (gridRef.current) {
+      // To-do find a better way to force update gridHeight for scrollscrubber
+      setGridHeight(gridRef.current.getTotalRowsHeight());
+    }
     const cellContents = activeTab === FacesTab.enum.labeled ? labeledCellContents: inferredCellContents;
     const startPoint = cellContents[params.rowOverscanStartIndex][params.columnOverscanStartIndex];
     const endPoint = getEndpointCell(cellContents, params.rowOverscanStopIndex, params.columnOverscanStopIndex);
@@ -252,6 +266,19 @@ export function FaceDashboard () {
     }
   };
 
+  const getDataForScrollIndicator = (): IScrollerData[] => {
+    const cellContents = activeTab === FacesTab.enum.labeled ? labeledCellContents: inferredCellContents;
+    let scrollPosition = 0;
+    const scrollPositions: IScrollerData[] = [];
+    cellContents.forEach(row => {
+      if (row[0].name) {
+        scrollPositions.push({label: row[0].name, targetY: scrollPosition});
+      }
+      scrollPosition += entrySquareSize;
+    });
+    return scrollPositions;
+  };
+
   const cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
     const cell = activeTab === FacesTab.enum.labeled
       ? labeledCellContents[rowIndex][columnIndex]
@@ -311,20 +338,30 @@ export function FaceDashboard () {
       <div ref={ref} style={{ flexGrow: 1 }}>
         <AutoSizer>
           {({ height, width }) => (
-            <Grid
-              style={{ overflowX: "hidden" }}
-              disableHeader={false}
-              cellRenderer={cellRenderer}
-              columnWidth={entrySquareSize}
-              columnCount={numEntrySquaresPerRow}
-              rowHeight={entrySquareSize}
-              onSectionRendered={onSectionRendered}
-              height={height}
-              width={width}
-              rowCount={activeTab === FacesTab.enum.labeled ? labeledCellContents.length : inferredCellContents.length}
-              scrollTop={scrollTo}
-              onScroll={handleGridScroll}
-            />
+            <ScrollScrubber
+              scrollPositions={dataForScrollIndicator}
+              currentTargetY={currentScrollPosition}
+              scrollToY={setScrollTo}
+              targetHeight={gridHeight}
+              type={ScrollerType.enum.alphabet}
+            >     
+              <Grid
+                ref={gridRef}
+                className="scrollscrubbertarget"
+                style={{ overflowX: "hidden" }}
+                disableHeader={false}
+                cellRenderer={cellRenderer}
+                columnWidth={entrySquareSize}
+                columnCount={numEntrySquaresPerRow}
+                rowHeight={entrySquareSize}
+                onSectionRendered={onSectionRendered}
+                height={height}
+                width={width}
+                rowCount={activeTab === FacesTab.enum.labeled ? labeledCellContents.length : inferredCellContents.length}
+                scrollTop={scrollTo}
+                onScroll={handleGridScroll}
+              />
+            </ScrollScrubber>
           )}
         </AutoSizer>
       </div>

@@ -1,0 +1,59 @@
+.scrollscrubbertarget {
+  overflow: auto;
+  height: 100%;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  position: relative;
+}
+ 
+.scrollscrubbertarget::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollscrubber {
+  right: 0;
+  top: 150px; /* To-do determine top */
+  bottom: 0px; /* To-do determin bottom */
+  position: fixed;
+  border-radius: 7px;
+  user-select: none;
+  z-index: 101;
+  background-image: linear-gradient(#c6c6c6, #c6c6c6);
+  background-size: 2px 100%;
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+.scrollscrubber-marker {
+  position: absolute;
+  right: 40px;
+  background-color: white;
+}
+
+.scrollscrubber-marker-line {
+  position: absolute;
+  right: 12px;
+  width: 20px;
+  height: 2px;
+}
+
+.scrollscrubber-current-position {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  /*background-color: white;*/
+  /*box-shadow: 0 0 0 4px teal;*/
+  position: absolute;
+  right: 10px;
+}
+
+.scrollscrubber-drag-position {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  /*background-color: white;*/
+  /*box-shadow: 0 0 0 4px black;*/
+  position: absolute;
+  right: 10px;
+  z-index: 105;
+}
