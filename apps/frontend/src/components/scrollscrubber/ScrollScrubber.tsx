@@ -71,23 +71,28 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
     return '';
   };
 
+  const getLetterForAlphabetMarker = (str: string): string => {
+    let firstChar = _.deburr(str.charAt(0)).toUpperCase();
+    if (firstChar === firstChar.toLowerCase()) {
+      // firstChar is not a letter
+      if (/^\d$/.test(firstChar)) {
+        // firstChar is a number
+        firstChar = "#"
+      } else {
+        // firstChar is not alphanumeric
+        firstChar = ":-)"
+      }
+    }
+    return firstChar;
+  };
+
   const getAlphabetMarkers = useCallback((): IScrollerPosition[] => {
     const alphabet: IScrollerPosition[] = [];
     let currentLetter: string | null = null;
     positions.forEach(item => {
-      let firstChar = _.deburr(item.label.charAt(0)).toUpperCase();
-      if (firstChar === firstChar.toLowerCase()) {
-        // firstChar is not a letter
-        if (/^\d$/.test(firstChar)) {
-          // firstChar is a number
-          firstChar = "#"
-        } else {
-          // firstChar is not alphanumeric
-          firstChar = ":-)"
-        }
-      }
-      if ( firstChar !== currentLetter || item.label === "Unknown - Other") {
-        currentLetter = firstChar;
+      const letter = getLetterForAlphabetMarker(item.label);
+      if ( letter !== currentLetter || item.label === "Unknown - Other") {
+        currentLetter = letter;
         const label = item.label === "Unknown - Other" ? item.label : currentLetter;
         // Only display letter if there is enough space with preivous letter
         if (alphabet.length < 1 || item.scrollerY - alphabet.slice(-1)[0].scrollerY > 15) {
