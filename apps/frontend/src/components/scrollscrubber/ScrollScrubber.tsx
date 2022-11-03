@@ -87,12 +87,15 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
       }
       if ( firstChar !== currentLetter) {
         currentLetter = firstChar;
-        alphabet.push({
-          label: currentLetter,
-          targetY: item.targetY,
-          scrollerY: item.scrollerY,
-          scrollerYPercent: item.scrollerYPercent
-        });
+        // Only display letter if there is enough space with preivous letter
+        if (alphabet.length < 1 || item.scrollerY - alphabet.slice(-1)[0].scrollerY > 15) {
+          alphabet.push({
+            label: currentLetter,
+            targetY: item.targetY,
+            scrollerY: item.scrollerY,
+            scrollerYPercent: item.scrollerYPercent
+          });
+        }
       }
    });
    return alphabet;
