@@ -61,7 +61,12 @@
         },
         "profile": "Profilo",
         "dutch": "olandese",
-        "polish": "polacco"
+        "polish": "polacco",
+        "finnish": "finlandese",
+        "portuguese": "portoghese",
+        "basque": "basco",
+        "helptranslating": "Aiutaci a tradurre",
+        "czech": "ceco"
     },
     "joblist": {
         "queued": "In coda",
@@ -158,5 +163,8 @@
     },
     "selectionactions": {
         "deleted": "Elimina"
+    },
+    "modaluseredit": {
+        "errorinvalidemail": "Inserisci un indirizzo e-mail valido"
     }
 }
