@@ -56,11 +56,11 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
   };
 
   const getLabelForScrollerY = (y: number): string => {   
-      for (let i = positions.length - 1; i >= 0; i -= 1) {
-        if (y >= positions[i].scrollerY) {
-          return positions[i].label;
-        }
+    for (let i = positions.length - 1; i >= 0; i -= 1) {
+      if (y >= positions[i].scrollerY) {
+        return positions[i].label;
       }
+    }
     return '';
   };
 
@@ -197,11 +197,16 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
           <Badge
             key={item.label}
             className="scrollscrubber-marker"
-            radius="md"
-            variant="outline"
             size="sm"
-            color="dark"
-            style= {{ top: `${item.scrollerYPercent - halfMarkerHeightInPercent}%`, cursor: "pointer" }}
+            style= {{
+              top: `${item.scrollerYPercent - halfMarkerHeightInPercent}%`,
+              cursor: "pointer"
+            }}
+            sx={theme => ({
+              backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[1],
+              color: theme.colorScheme === "dark" ? theme.colors.dark[0] : theme.colors.gray[7],
+              borderColor: theme.colorScheme === "dark" ? theme.colors.dark[3] : theme.colors.gray[3]
+            })}
             onClick={() => {scrollToY(item.targetY)}}
           >
             {item.label}
@@ -220,7 +225,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
             key={`line-${item.label}`}
             className="scrollscrubber-marker-line"
             sx={theme => ({
-              backgroundColor: theme.colorScheme === "dark" ? theme.colors.gray[0] : theme.colors.dark[6]
+              backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[2] : theme.colors.gray[6]
             })}
             style= {{ top: `${item.scrollerYPercent + halfMarkerLineHeightInPercent}%` }}
           />
@@ -235,14 +240,15 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
     >
       {currentLabel !== '' && ( 
         <Badge
-          radius="md"
-          variant="outline"
-          color="dark"
           size="lg"
           style={{
             position: "absolute",
-            backgroundColor: "white",
             right: "25px" }}
+          sx={theme => ({
+            backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[1],
+            color: theme.colorScheme === "dark" ? theme.colors.dark[0] : theme.colors.gray[7],
+            borderColor: theme.colorScheme === "dark" ? theme.colors.dark[3] : theme.colors.gray[3]
+          })}
         >
           {currentLabel}
         </Badge>
@@ -284,6 +290,17 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
           cursor: cursor,
           top: `${offsetTop}px`
         }}
+        sx={theme => ({
+          backgroundImage: `linear-gradient(${
+              theme.colorScheme === "dark"
+              ? theme.colors.dark[2]
+              : theme.colors.gray[6]
+            }, ${
+              theme.colorScheme === "dark"
+              ? theme.colors.dark[2]
+              : theme.colors.gray[6]
+            })`
+        })}
         onMouseOver={()=>handleMouseOver()}
         onMouseOut={()=>handleMouseOut()}
         onFocus={()=>handleMouseOver()}

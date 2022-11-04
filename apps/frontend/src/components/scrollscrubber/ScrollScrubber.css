@@ -13,13 +13,11 @@
 .scrollscrubber {
   right: 0;
   bottom: 0px;
-  position: fixed;
-  border-radius: 7px;
+  position: fixed!important;
   user-select: none;
   margin-bottom: 15px;
   z-index: 101;
-  background-image: linear-gradient(#c6c6c6, #c6c6c6);
-  background-size: 2px 100%;
+  background-size: 4px 100%;
   background-repeat: no-repeat;
   background-position: right 12px center;
 }
@@ -27,7 +25,6 @@
 .scrollscrubber-marker {
   position: absolute;
   right: 40px;
-  background-color: white;
 }
 
 .scrollscrubber-marker-line {
@@ -41,8 +38,6 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  /*background-color: white;*/
-  /*box-shadow: 0 0 0 4px teal;*/
   position: absolute;
   right: 10px;
 }
@@ -51,8 +46,6 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  /*background-color: white;*/
-  /*box-shadow: 0 0 0 4px black;*/
   position: absolute;
   right: 10px;
   z-index: 105;
