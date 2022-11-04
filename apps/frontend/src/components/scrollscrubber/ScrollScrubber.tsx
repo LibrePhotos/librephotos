@@ -56,18 +56,11 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
   };
 
   const getLabelForScrollerY = (y: number): string => {   
-    if (y < height / 2) {
-      const pos = positions.find(item => (y < item.scrollerY));
-      if (typeof pos !== "undefined")
-      return pos.label
-    } else {
-      // Search array from the end
       for (let i = positions.length - 1; i >= 0; i -= 1) {
         if (y >= positions[i].scrollerY) {
           return positions[i].label;
         }
       }
-    }
     return '';
   };
 
