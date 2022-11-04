@@ -239,7 +239,7 @@
         "sidebar": {
             "details": "Details",
             "timetaken": "Zeitpunkt der Aufnahme",
-            "filepath": "Dateiort",
+            "filepath": "Dateipfad",
             "location": "Ort",
             "caption": "Beschreibung",
             "people": "Personen",
@@ -250,7 +250,11 @@
             "attributes": "Attribute",
             "categories": "Kategorie",
             "similarphotos": "Ähnliche Fotos",
-            "editdatetime": "Datum und Uhrzeit bearbeiten"
+            "editdatetime": "Datum und Uhrzeit bearbeiten",
+            "withouttimestamp": "Ohne Zeitstempel",
+            "invalidtimestamp": "Ungültiger Zeitstempel",
+            "removetimestamp": "Zeitstempel entfernen",
+            "undotimestampmodification": "Änderung des Zeitstempels rückgängig machen"
         }
     },
     "photos": {
@@ -395,7 +399,10 @@
         "explanationadding": "Zu einer bestehenden Gesichts-ID hinzufügen oder eine neue Gesichts-ID erstellen",
         "explanationtraining": "Identifizieren Sie ähnliche Gesichter und versuchen Sie, Übereinstimmungen zu finden",
         "explanationvalidate": "Bestätigt, dass alle Gesichter in dieser Gruppe zu dieser Person gehören. Fügt sie der entsprechenden Gesichts-ID hinzu",
-        "notthisperson": "Gesichter zurücksetzen auf 'Unknown - Other'"
+        "notthisperson": "Gesichter zurücksetzen auf 'Unknown - Other'",
+        "sortby": "Sortieren nach",
+        "sortbyconfidence": "Vertrauen",
+        "sortbydate": "Datum"
     },
     "personedit": {
         "addperson": "Füge Person hinzu",
