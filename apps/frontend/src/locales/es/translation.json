@@ -284,7 +284,9 @@
         "photocount": "Número de fotos",
         "joined": "Ingresado",
         "notset": "No configurado",
-        "remove": "Eliminar"
+        "remove": "Eliminar",
+        "admintools": "Herramientas de administración",
+        "deleteallautoalbums": "Eliminar todos los álbumes creados automáticamente"
     },
     "joblist": {
         "workerlogs": "Registros de trabajadores",
