@@ -327,7 +327,8 @@
     },
     "autoalbum": {
         "subtitle": "Mostrando {{autoalbumlength}} álbumes creados automáticamente",
-        "delete": "Borrar Álbum Automático"
+        "delete": "Borrar Álbum Automático",
+        "deleteexplanation": "Esto eliminará el álbum automático. ¿Está seguro?"
     },
     "autoalbumgallery": {
         "showmap": "Mostrar mapa",
@@ -507,5 +508,6 @@
         "off": "Apagado",
         "sidecar": "Guardar en sidecar"
     },
-    "sync": "Sincronizar metadatos con el disco"
+    "sync": "Sincronizar metadatos con el disco",
+    "supportus": "Apóyanos"
 }
