@@ -340,7 +340,8 @@
         "renameperson": "Cambiar nombre de persona",
         "personalreadyexists": "La persona {{name}} ya existe.",
         "nameplaceholder": "Nombre",
-        "deleteperson": "Borrar Persona"
+        "deleteperson": "Borrar Persona",
+        "deletepersondescription": "¿Realmente quieres eliminar a esta persona?"
     },
     "placealbum": {
         "showingplaces": "Mostrando {{number}} lugares en el mapa",
