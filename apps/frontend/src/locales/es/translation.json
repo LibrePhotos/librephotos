@@ -131,7 +131,9 @@
         "portuguese": "Portugués",
         "basque": "Vasco",
         "czech": "Checo",
-        "helptranslating": "Ayuda traduciendo"
+        "helptranslating": "Ayuda traduciendo",
+        "albumoptions": "Opciones de Álbum",
+        "savechanges": "Guardar cambios?"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de escaneo de Nextcloud",
@@ -324,7 +326,8 @@
         "photos": "Fotos"
     },
     "autoalbum": {
-        "subtitle": "Mostrando {{autoalbumlength}} álbumes creados automáticamente"
+        "subtitle": "Mostrando {{autoalbumlength}} álbumes creados automáticamente",
+        "delete": "Borrar Álbum Automático"
     },
     "autoalbumgallery": {
         "showmap": "Mostrar mapa",
