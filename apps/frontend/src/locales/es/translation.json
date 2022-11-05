@@ -459,7 +459,8 @@
         "deletejobtitle": "Eliminar trabajo",
         "deletejob": "El trabajo {{id}} eliminado.",
         "scanuploadedphotos": "Escaneando fotos subidas…",
-        "scanuploadedphotostitle": "Escanear fotos cargadas"
+        "scanuploadedphotostitle": "Escanear fotos cargadas",
+        "deleteallautoalbums": "Todos los álbumes creados automáticamente se han eliminado."
     },
     "rules": {
         "report_tz": "Transformar a{{rule}}",
