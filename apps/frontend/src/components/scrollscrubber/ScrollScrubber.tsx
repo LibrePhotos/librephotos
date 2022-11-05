@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { Badge, Box, Group, Text } from "@mantine/core";
+import { Badge, Box, Group } from "@mantine/core";
 import { useElementSize, useMediaQuery } from "@mantine/hooks";
 import React, { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import _ from "lodash";
