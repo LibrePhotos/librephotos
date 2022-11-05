@@ -12,7 +12,6 @@
 
 .scrollscrubber {
   right: 0;
-  bottom: 0px;
   position: fixed!important;
   user-select: none;
   margin-bottom: 15px;

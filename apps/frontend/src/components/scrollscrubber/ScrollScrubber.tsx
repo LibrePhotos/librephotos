@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { Badge, Box, Group } from "@mantine/core";
-import { useElementSize } from "@mantine/hooks";
+import { Badge, Box, Group, Text } from "@mantine/core";
+import { useElementSize, useMediaQuery } from "@mantine/hooks";
 import React, { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import _ from "lodash";
 import type { MouseEvent, ReactNode } from "react";
@@ -20,6 +20,7 @@ type Props = {
 export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTargetY, scrollToY, children }: Props) {
   // ref and size of scrollscrubber
   const { ref, width, height } = useElementSize();
+  const matches = useMediaQuery("(min-width: 700px)");
   const [scrollerWidth, setScrollerWidth] = useState(26);
   const [scrollerIsVisible, setScrollerIsVisible] = useState(false);
   const [positions, setPositions] = useState<IScrollerPosition[]>([]);
@@ -288,7 +289,8 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
           width: scrollerWidth,
           opacity: scrollerIsVisible ? 1 : 0,
           cursor: cursor,
-          top: `${offsetTop}px`
+          top: `${offsetTop}px`,
+          bottom: matches ? "0": "50px",
         }}
         sx={theme => ({
           backgroundImage: `linear-gradient(${
