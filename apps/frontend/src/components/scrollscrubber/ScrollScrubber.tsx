@@ -188,8 +188,8 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
 
   const showScrollerScrubber = () => {
     if (!scrollerIsVisible) {
-    setScrollerIsVisible(true);
-    setCurrentScrollPosMarkerY(targetYToScrollerY(currentTargetY));
+      setScrollerIsVisible(true);
+      setCurrentScrollPosMarkerY(targetYToScrollerY(currentTargetY));
       startScrollerVisibilityTimer();
     } else {
       resetScrollerVisibilityTimer();
@@ -305,36 +305,36 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
     if (!dragMarkerIsVisible)
       return  null;
     return (
-    <Group style={{
-      position: "absolute",
-      right: 0,
-      top: dragMarkerY }}
-    >
-      {currentLabel !== '' && ( 
-        <Badge
-          size="lg"
-          style={{
-            position: "absolute",
-            right: "25px" }}
+      <Group style={{
+        position: "absolute",
+        right: 0,
+        top: dragMarkerY }}
+      >
+        {currentLabel !== '' && ( 
+          <Badge
+            size="lg"
+            style={{
+              position: "absolute",
+              right: "25px" }}
+            sx={theme => ({
+              backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[1],
+              color: theme.colorScheme === "dark" ? theme.colors.dark[0] : theme.colors.gray[7],
+              borderColor: theme.colorScheme === "dark" ? theme.colors.dark[3] : theme.colors.gray[3]
+            })}
+          >
+            {currentLabel}
+          </Badge>
+        )}
+        <Box
+          className="scrollscrubber-drag-position"
           sx={theme => ({
-            backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[1],
-            color: theme.colorScheme === "dark" ? theme.colors.dark[0] : theme.colors.gray[7],
-            borderColor: theme.colorScheme === "dark" ? theme.colors.dark[3] : theme.colors.gray[3]
+            backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+            boxShadow: `0 0 0 4px ${theme.colorScheme === "dark"
+            ? theme.colors.gray[0]
+            : theme.colors.dark[6]}`
           })}
-        >
-          {currentLabel}
-        </Badge>
-      )}
-      <Box
-        className="scrollscrubber-drag-position"
-        sx={theme => ({
-          backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-          boxShadow: `0 0 0 4px ${theme.colorScheme === "dark"
-          ? theme.colors.gray[0]
-          : theme.colors.dark[6]}`
-        })}
-      />
-    </Group>
+        />
+      </Group>
     )
   };
 
