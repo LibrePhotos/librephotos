@@ -26,6 +26,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
   const [positions, setPositions] = useState<IScrollerPosition[]>([]);
   const [markerPositions, setMarkerPositions] = useState<IScrollerPosition[]>([]);
   const [dragMarkerY, setDragMarkerY] = useState(0);
+  const [dragMarkerIsVisible, setDragMarkerIsVisible] = useState(false);
   const [currentScrollPosMarkerY, setCurrentScrollPosMarkerY] = useState(0);
   const [currentLabel, setCurrentLabel] = useState("");
   const [cursor, setCursor] = useState("auto");
@@ -205,10 +206,12 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
     const distanceFromRight = rect.right - e.clientX;
     if (distanceFromRight < 40) {
       setCursor("pointer");
+      setDragMarkerIsVisible(true);
       setCurrentLabel(getLabelForScrollerY(mouseY));
     }
     else {
       setCursor("auto");
+      setDragMarkerIsVisible(false);
       setCurrentLabel('');
     }
     setDragMarkerY(mouseY);
@@ -219,6 +222,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
     const mouseY = e.clientY - rect.top;
     const distanceFromRight = rect.right - e.clientX;
     if (distanceFromRight < 40) {
+      setCurrentScrollPosMarkerY(mouseY);
       scrollToY(scrollerYToTargetY(mouseY));
     }
   };
@@ -268,7 +272,10 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
       ).reduce((prev: ReactNode, curr: ReactNode) => [prev, ' ', curr]);
   }, [markerPositions, scrollerIsVisible]);
 
-  const renderGrabMarker = () => (
+  const renderDragMarker = () => {
+    if (!dragMarkerIsVisible)
+      return  null;
+    return (
     <Group style={{
       position: "absolute",
       right: 0,
@@ -299,7 +306,8 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
         })}
       />
     </Group>
-  );
+    )
+  };
 
   const renderCurrentScrollPosMarker = () => (
     <Box
@@ -343,7 +351,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
       >  
         {renderMarkers()}
         {renderMarkersLines()}
-        {renderGrabMarker()}
+        {renderDragMarker()}
         {renderCurrentScrollPosMarker()}
       </Box>
     </div>
