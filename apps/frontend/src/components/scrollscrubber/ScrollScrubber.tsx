@@ -247,7 +247,10 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
               color: theme.colorScheme === "dark" ? theme.colors.dark[0] : theme.colors.gray[7],
               borderColor: theme.colorScheme === "dark" ? theme.colors.dark[3] : theme.colors.gray[3]
             })}
-            onClick={() => {scrollToY(item.targetY)}}
+            onClick={() => {
+              setCurrentScrollPosMarkerY(item.scrollerY);
+              scrollToY(item.targetY)
+            }}
           >
             {item.label}
           </Badge>
