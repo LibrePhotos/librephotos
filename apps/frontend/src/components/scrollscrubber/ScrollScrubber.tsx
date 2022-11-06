@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Badge, Box, Group } from "@mantine/core";
 import { useElementSize, useMediaQuery } from "@mantine/hooks";
-import React, { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import _ from "lodash";
 import type { MouseEvent, ReactNode } from "react";
 import { ScrollerType } from "./ScrollScrubberTypes.zod";
@@ -20,8 +20,8 @@ type Props = {
 export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTargetY, scrollToY, children }: Props) {
   // ref and size of scrollscrubber
   const { ref, width, height } = useElementSize();
+  const scrollerVisibilityTimerRef: {current: NodeJS.Timeout | null } = useRef(null);
   const matches = useMediaQuery("(min-width: 700px)");
-  const [scrollerWidth, setScrollerWidth] = useState(26);
   const [scrollerIsVisible, setScrollerIsVisible] = useState(false);
   const [positions, setPositions] = useState<IScrollerPosition[]>([]);
   const [markerPositions, setMarkerPositions] = useState<IScrollerPosition[]>([]);
@@ -153,18 +153,53 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
     }
   }, [width, height]);
 
-  const handleMouseOver = () => {
-    setScrollerWidth(150);
-    setScrollerIsVisible(true);
-    setCurrentScrollPosMarkerY(targetYToScrollerY(currentTargetY));
+  const hideScrollScrubber = () => {
+    if (scrollerVisibilityTimerRef.current) {
+      clearTimeout(scrollerVisibilityTimerRef.current);
+    }
+    setScrollerIsVisible(false);
   };
 
-  const handleMouseOut = () => {
-    setScrollerIsVisible(false);
-    setScrollerWidth(26);
+  const startScrollerVisibilityTimer = () => {
+    if (scrollerVisibilityTimerRef.current === null) {
+      scrollerVisibilityTimerRef.current = setTimeout(hideScrollScrubber, 2500);
+    }
+  };
+
+  const resetScrollerVisibilityTimer = useMemo(() => (
+    _.throttle(() => {
+      if (scrollerVisibilityTimerRef.current) {
+        clearTimeout(scrollerVisibilityTimerRef.current);
+        scrollerVisibilityTimerRef.current = setTimeout(hideScrollScrubber, 2500);
+      }
+    }, 1000)
+  ), []);
+
+  // eslint-disable-next-line arrow-body-style
+  useEffect(() => {
+    // Clear scrollerVisibilityTimerRef on dismount
+    return () => {
+      if (scrollerVisibilityTimerRef.current) {
+        clearTimeout(scrollerVisibilityTimerRef.current); 
+    }};
+  }, []);
+
+  const showScrollerScrubber = () => {
+    if (!scrollerIsVisible) {
+    setScrollerIsVisible(true);
+    setCurrentScrollPosMarkerY(targetYToScrollerY(currentTargetY));
+      startScrollerVisibilityTimer();
+    } else {
+      resetScrollerVisibilityTimer();
+    }
+  };
+
+  const handleMouseEnter = () => {
+    showScrollerScrubber();
   };
 
   const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+    resetScrollerVisibilityTimer();
     const rect = e.currentTarget.getBoundingClientRect();
     const mouseY = e.clientY - rect.top;
     const distanceFromRight = rect.right - e.clientX;
@@ -286,7 +321,6 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
         ref={ref}
         className="scrollscrubber"
         style={{
-          width: scrollerWidth,
           opacity: scrollerIsVisible ? 1 : 0,
           cursor: cursor,
           top: `${offsetTop}px`,
@@ -303,10 +337,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
               : theme.colors.gray[6]
             })`
         })}
-        onMouseOver={()=>handleMouseOver()}
-        onMouseOut={()=>handleMouseOut()}
-        onFocus={()=>handleMouseOver()}
-        onBlur={()=>handleMouseOut()}
+        onMouseEnter={handleMouseEnter}
         onMouseMove={handleMouseMove}
         onClick={handleMouseClick}
       >  
