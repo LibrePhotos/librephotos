@@ -127,10 +127,17 @@
         "helptranslating": "Bistå oversettelsen",
         "savechanges": "Lagre endringer?",
         "password": {
-            "errormustmatch": "Passordene må samsvare"
+            "errormustmatch": "Passordene må samsvare",
+            "tooltipeditbutton": "Klikk for å endre passordet",
+            "errorcannotbeblank": "Passordet kan ikke stå tomt",
+            "titlechangepassword": "Endre passord",
+            "errormustretype": "Skriv inn passordet igjen",
+            "titlesetpassword": "Sett passord"
         },
         "profile": "Profil",
-        "polish": "Polsk"
+        "polish": "Polsk",
+        "metadata": "Metadata-alternativer",
+        "sync": "Synkroniser metadata til disk"
     },
     "modalnextcloud": {
         "setdirectory": "Sett din Nextcloud-skanningsmappe",
@@ -274,7 +281,11 @@
         "photocount": "Bildeantall",
         "notset": "Ikke satt",
         "minimumconfidence": "Minimums-sannsynlighetsnivå",
-        "joined": "Sammenkoblet"
+        "joined": "Sammenkoblet",
+        "titledeleteuser": "Slett bruker",
+        "cannotbeundone": "Denne handlingen kan ikke angres.",
+        "cannotdeleteadmin": "Kan ikke slette administratorbruker",
+        "addnewuser": "Legg til ny bruker"
     },
     "joblist": {
         "reload": "Last inn igjen",
@@ -452,7 +463,8 @@
         "source_tz": "Overfør fra {{rule}}",
         "exif_tag": "Bruk Exiftag {{rule}}",
         "report_tz": "Overfør til {{rule}}",
-        "predefined_regexp": "Bruk forhåndsdefinert regulært uttrykk: {{rule}}"
+        "predefined_regexp": "Bruk forhåndsdefinert regulært uttrykk: {{rule}}",
+        "rule_type": "Regeltype: {{rule}}"
     },
     "metadata": "Metadata-alternativer",
     "defaulttimezone": "Forvalgt tidssone",
@@ -482,5 +494,12 @@
     "nofaces": "Ingen fjes",
     "locationstimeline": {
         "fromto": "{{location}} fra {{start}} til {{end}}"
-    }
+    },
+    "modaluseredit": {
+        "errorusernamecannotbeblank": "Brukernavn må fylles ut",
+        "errorinvalidemail": "Skriv inn en gyldig e-postadresse",
+        "header": "Rediger bruker",
+        "createheader": "Opprett bruker"
+    },
+    "sync": "Synkroniser metadata til disk"
 }
