@@ -32,6 +32,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
   const [cursor, setCursor] = useState("auto");
   const [targetClientHeight, setTargetClientHeight] = useState(0);
   const [offsetTop, setOffsetTop] = useState(0);
+  const [previousTargetY, setPreviousTargetY] = useState(NaN);
 
   const targetYToScrollerY = (y: number): number => {
     if (targetHeight > 0)
@@ -226,6 +227,31 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
       scrollToY(scrollerYToTargetY(mouseY));
     }
   };
+
+  const DetectScrolling = (y: number, previousY: number) => {
+    if (!Number.isNaN(previousY)) {
+      const delta = Math.abs(previousY - y);
+      if (delta > 400) {
+        if (!scrollerIsVisible) {
+          showScrollerScrubber();
+        } else {
+          resetScrollerVisibilityTimer();
+        }
+      }
+    }
+    setPreviousTargetY(y);
+  };
+
+  const ThrottledDetectScrolling = useCallback(
+    _.throttle(DetectScrolling, 1000),
+    [scrollerIsVisible]
+  );
+
+  useEffect(() => {
+    if (ThrottledDetectScrolling) {
+      ThrottledDetectScrolling(currentTargetY, previousTargetY);
+    }
+  }, [currentTargetY]);
 
   const renderMarkers = useCallback(() => {
     if (!scrollerIsVisible || markerPositions.length === 0)
