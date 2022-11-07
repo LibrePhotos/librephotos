@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Badge, Box, Group } from "@mantine/core";
 import { useElementSize, useMediaQuery } from "@mantine/hooks";
-import React, { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import _ from "lodash";
 import type { MouseEvent, ReactNode } from "react";
 import { ScrollerType } from "./ScrollScrubberTypes.zod";
@@ -20,17 +20,19 @@ type Props = {
 export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTargetY, scrollToY, children }: Props) {
   // ref and size of scrollscrubber
   const { ref, width, height } = useElementSize();
+  const scrollerVisibilityTimerRef: {current: NodeJS.Timeout | null } = useRef(null);
   const matches = useMediaQuery("(min-width: 700px)");
-  const [scrollerWidth, setScrollerWidth] = useState(26);
   const [scrollerIsVisible, setScrollerIsVisible] = useState(false);
   const [positions, setPositions] = useState<IScrollerPosition[]>([]);
   const [markerPositions, setMarkerPositions] = useState<IScrollerPosition[]>([]);
   const [dragMarkerY, setDragMarkerY] = useState(0);
+  const [dragMarkerIsVisible, setDragMarkerIsVisible] = useState(false);
   const [currentScrollPosMarkerY, setCurrentScrollPosMarkerY] = useState(0);
   const [currentLabel, setCurrentLabel] = useState("");
   const [cursor, setCursor] = useState("auto");
   const [targetClientHeight, setTargetClientHeight] = useState(0);
   const [offsetTop, setOffsetTop] = useState(0);
+  const [previousTargetY, setPreviousTargetY] = useState(NaN);
 
   const targetYToScrollerY = (y: number): number => {
     if (targetHeight > 0)
@@ -153,27 +155,64 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
     }
   }, [width, height]);
 
-  const handleMouseOver = () => {
-    setScrollerWidth(150);
-    setScrollerIsVisible(true);
-    setCurrentScrollPosMarkerY(targetYToScrollerY(currentTargetY));
+  const hideScrollScrubber = () => {
+    if (scrollerVisibilityTimerRef.current) {
+      clearTimeout(scrollerVisibilityTimerRef.current);
+    }
+    setScrollerIsVisible(false);
   };
 
-  const handleMouseOut = () => {
-    setScrollerIsVisible(false);
-    setScrollerWidth(26);
+  const startScrollerVisibilityTimer = () => {
+    if (scrollerVisibilityTimerRef.current === null) {
+      scrollerVisibilityTimerRef.current = setTimeout(hideScrollScrubber, 2500);
+    }
+  };
+
+  const resetScrollerVisibilityTimer = useMemo(() => (
+    _.throttle(() => {
+      if (scrollerVisibilityTimerRef.current) {
+        clearTimeout(scrollerVisibilityTimerRef.current);
+        scrollerVisibilityTimerRef.current = setTimeout(hideScrollScrubber, 2500);
+      }
+    }, 1000)
+  ), []);
+
+  // eslint-disable-next-line arrow-body-style
+  useEffect(() => {
+    // Clear scrollerVisibilityTimerRef on dismount
+    return () => {
+      if (scrollerVisibilityTimerRef.current) {
+        clearTimeout(scrollerVisibilityTimerRef.current); 
+    }};
+  }, []);
+
+  const showScrollerScrubber = () => {
+    if (!scrollerIsVisible) {
+      setScrollerIsVisible(true);
+      setCurrentScrollPosMarkerY(targetYToScrollerY(currentTargetY));
+      startScrollerVisibilityTimer();
+    } else {
+      resetScrollerVisibilityTimer();
+    }
+  };
+
+  const handleMouseEnter = () => {
+    showScrollerScrubber();
   };
 
   const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+    resetScrollerVisibilityTimer();
     const rect = e.currentTarget.getBoundingClientRect();
     const mouseY = e.clientY - rect.top;
     const distanceFromRight = rect.right - e.clientX;
     if (distanceFromRight < 40) {
       setCursor("pointer");
+      setDragMarkerIsVisible(true);
       setCurrentLabel(getLabelForScrollerY(mouseY));
     }
     else {
       setCursor("auto");
+      setDragMarkerIsVisible(false);
       setCurrentLabel('');
     }
     setDragMarkerY(mouseY);
@@ -184,9 +223,35 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
     const mouseY = e.clientY - rect.top;
     const distanceFromRight = rect.right - e.clientX;
     if (distanceFromRight < 40) {
+      setCurrentScrollPosMarkerY(mouseY);
       scrollToY(scrollerYToTargetY(mouseY));
     }
   };
+
+  const DetectScrolling = (y: number, previousY: number) => {
+    if (!Number.isNaN(previousY)) {
+      const delta = Math.abs(previousY - y);
+      if (delta > 400) {
+        if (!scrollerIsVisible) {
+          showScrollerScrubber();
+        } else {
+          resetScrollerVisibilityTimer();
+        }
+      }
+    }
+    setPreviousTargetY(y);
+  };
+
+  const ThrottledDetectScrolling = useCallback(
+    _.throttle(DetectScrolling, 1000),
+    [scrollerIsVisible]
+  );
+
+  useEffect(() => {
+    if (ThrottledDetectScrolling) {
+      ThrottledDetectScrolling(currentTargetY, previousTargetY);
+    }
+  }, [currentTargetY]);
 
   const renderMarkers = useCallback(() => {
     if (!scrollerIsVisible || markerPositions.length === 0)
@@ -208,7 +273,10 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
               color: theme.colorScheme === "dark" ? theme.colors.dark[0] : theme.colors.gray[7],
               borderColor: theme.colorScheme === "dark" ? theme.colors.dark[3] : theme.colors.gray[3]
             })}
-            onClick={() => {scrollToY(item.targetY)}}
+            onClick={() => {
+              setCurrentScrollPosMarkerY(item.scrollerY);
+              scrollToY(item.targetY)
+            }}
           >
             {item.label}
           </Badge>
@@ -233,38 +301,42 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
       ).reduce((prev: ReactNode, curr: ReactNode) => [prev, ' ', curr]);
   }, [markerPositions, scrollerIsVisible]);
 
-  const renderGrabMarker = () => (
-    <Group style={{
-      position: "absolute",
-      right: 0,
-      top: dragMarkerY }}
-    >
-      {currentLabel !== '' && ( 
-        <Badge
-          size="lg"
-          style={{
-            position: "absolute",
-            right: "25px" }}
+  const renderDragMarker = () => {
+    if (!dragMarkerIsVisible)
+      return  null;
+    return (
+      <Group style={{
+        position: "absolute",
+        right: 0,
+        top: dragMarkerY }}
+      >
+        {currentLabel !== '' && ( 
+          <Badge
+            size="lg"
+            style={{
+              position: "absolute",
+              right: "25px" }}
+            sx={theme => ({
+              backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[1],
+              color: theme.colorScheme === "dark" ? theme.colors.dark[0] : theme.colors.gray[7],
+              borderColor: theme.colorScheme === "dark" ? theme.colors.dark[3] : theme.colors.gray[3]
+            })}
+          >
+            {currentLabel}
+          </Badge>
+        )}
+        <Box
+          className="scrollscrubber-drag-position"
           sx={theme => ({
-            backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[1],
-            color: theme.colorScheme === "dark" ? theme.colors.dark[0] : theme.colors.gray[7],
-            borderColor: theme.colorScheme === "dark" ? theme.colors.dark[3] : theme.colors.gray[3]
+            backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+            boxShadow: `0 0 0 4px ${theme.colorScheme === "dark"
+            ? theme.colors.gray[0]
+            : theme.colors.dark[6]}`
           })}
-        >
-          {currentLabel}
-        </Badge>
-      )}
-      <Box
-        className="scrollscrubber-drag-position"
-        sx={theme => ({
-          backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-          boxShadow: `0 0 0 4px ${theme.colorScheme === "dark"
-          ? theme.colors.gray[0]
-          : theme.colors.dark[6]}`
-        })}
-      />
-    </Group>
-  );
+        />
+      </Group>
+    )
+  };
 
   const renderCurrentScrollPosMarker = () => (
     <Box
@@ -286,7 +358,6 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
         ref={ref}
         className="scrollscrubber"
         style={{
-          width: scrollerWidth,
           opacity: scrollerIsVisible ? 1 : 0,
           cursor: cursor,
           top: `${offsetTop}px`,
@@ -303,16 +374,13 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
               : theme.colors.gray[6]
             })`
         })}
-        onMouseOver={()=>handleMouseOver()}
-        onMouseOut={()=>handleMouseOut()}
-        onFocus={()=>handleMouseOver()}
-        onBlur={()=>handleMouseOut()}
+        onMouseEnter={handleMouseEnter}
         onMouseMove={handleMouseMove}
         onClick={handleMouseClick}
       >  
         {renderMarkers()}
         {renderMarkersLines()}
-        {renderGrabMarker()}
+        {renderDragMarker()}
         {renderCurrentScrollPosMarker()}
       </Box>
     </div>

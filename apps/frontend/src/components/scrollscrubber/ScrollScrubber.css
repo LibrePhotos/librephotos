@@ -11,6 +11,7 @@
 }
 
 .scrollscrubber {
+  width: 32px;
   right: 0;
   position: fixed!important;
   user-select: none;
