@@ -133,7 +133,17 @@
         "czech": "Checo",
         "helptranslating": "Ayuda traduciendo",
         "albumoptions": "Opciones de Álbum",
-        "savechanges": "Guardar cambios?"
+        "savechanges": "Guardar cambios?",
+        "password": {
+            "tooltipeditbutton": "Haga clic para cambiar la contraseña",
+            "errormustmatch": "Las contraseñas deben coincidir",
+            "errorcannotbeblank": "La contraseña no puede estar en blanco",
+            "errormustretype": "Debes volver a escribir la contraseña",
+            "titlechangepassword": "Cambia la contraseña",
+            "titlesetpassword": "Establecer contraseña"
+        },
+        "inferredfacesconfidencehelp": "Ingrese un nivel de confianza entre 0 y 1. Para álbumes que muestren una persona, aparecerán rostros inferidos con un nivel de confianza superior a este valor.",
+        "inferredfacesconfidence": "Confianza de caras deducidas"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de escaneo de Nextcloud",
@@ -201,8 +211,8 @@
         "noimages": "No se encontraron imágenes",
         "days": "dias",
         "photos": "fotos",
-        "setup": "Parece que todavía tienes que configurar LibrePhotos.",
-        "gettingstarted": "Empezando"
+        "setup": "Para comenzar a usar LibrePhotos, edite el directorio de escaneo de su usuario.",
+        "gettingstarted": "Editar usuario"
     },
     "selectionactions": {
         "photoactions": "Acciones de fotos",
@@ -240,7 +250,11 @@
             "attributes": "Atributos",
             "categories": "Categorías",
             "similarphotos": "Fotos similares",
-            "editdatetime": "Editar fecha y hora"
+            "editdatetime": "Editar fecha y hora",
+            "invalidtimestamp": "Marca de tiempo inválida",
+            "withouttimestamp": "Sin marca de tiempo",
+            "removetimestamp": "Eliminar marca de tiempo",
+            "undotimestampmodification": "Deshacer modificación de marca de tiempo"
         }
     },
     "photos": {
@@ -268,7 +282,8 @@
         "confirmpasswordplaceholder": "Confirmar contraseña",
         "errorusernameexists": "Un usuario con ese nombre ya existe.",
         "erroremail": "Introduzca una dirección de correo electrónico válida.",
-        "firsttimesetup": "Configuración por primera vez"
+        "firsttimesetup": "Configuración por primera vez",
+        "usernamelabel": "Nombre de usuario"
     },
     "search": {
         "search": "Buscar",
@@ -287,7 +302,12 @@
         "notset": "No configurado",
         "remove": "Eliminar",
         "admintools": "Herramientas de administración",
-        "deleteallautoalbums": "Eliminar todos los álbumes automáticos"
+        "deleteallautoalbums": "Eliminar todos los álbumes automáticos",
+        "deleteuserconfirmexplanation": "Está a punto de eliminar al siguiente usuario: {{username}}. Esto eliminará todos los datos asociados.",
+        "cannotbeundone": "Esta acción no se puede deshacer.",
+        "cannotdeleteadmin": "No se puede eliminar el usuario administrador",
+        "addnewuser": "Agregar nuevo usuario",
+        "titledeleteuser": "Borrar usuario"
     },
     "joblist": {
         "workerlogs": "Registros de trabajadores",
@@ -311,14 +331,16 @@
         "currentdirectory": "Directorio actual del usuario",
         "notset": "no establecido",
         "update": "Actualizar",
-        "explanation3": "Elija un directorio de abajo"
+        "explanation3": "Elija un directorio de abajo",
+        "pathdoesnotexist": "La ruta no existe",
+        "mustspecifypath": "Debe especificar un directorio de escaneo"
     },
     "sitesettings": {
         "header": "Permitir el registro de usuarios",
         "allow": "Permitir",
         "noallow": "No permitir",
         "skippatterns": " Lista delimitada por comas de patrones para ignorar (p. ej., '@eaDir,#recycle' para dispositivos Synology)",
-        "apikey": "¿Quiere ver en un mapa dónde se tomaron todas sus fotos (si una ubicación está almacenada en sus fotos)? Obtenga una clave de API de Map Box https://account.mapbox.com/auth/signup/",
+        "apikey": "¿Quiere ver en un mapa dónde se tomaron todas sus fotos (si una ubicación está almacenada en sus fotos)? Obtenga una clave API de Map box https://account.mapbox.com/auth/signup/",
         "headerupload": "Permitir subir fotos",
         "headerskippatterns": "Omitir patrones",
         "headerapikey": "Clave API de Mapbox",
@@ -343,7 +365,7 @@
         "renameperson": "Cambiar nombre de persona",
         "personalreadyexists": "La persona {{name}} ya existe.",
         "nameplaceholder": "Nombre",
-        "deleteperson": "Borrar Persona",
+        "deleteperson": "Eliminar persona",
         "deletepersondescription": "¿Realmente quieres borrar a esta persona?"
     },
     "placealbum": {
@@ -377,7 +399,10 @@
         "explanationtraining": "Identifica caras similares e intenta encontrar coincidencias",
         "numberoffaces": "{{number}} Caras",
         "sortbydate": "Fecha",
-        "sortby": "Ordenar por"
+        "sortby": "Ordenar por",
+        "explanationvalidate": "Confirme que todas las caras de este grupo coincidan con esta persona y agréguelas a la ID de cara correspondiente",
+        "notthisperson": "Mueve las caras de nuevo a 'Desconocidos - Otros'",
+        "sortbyconfidence": "Confianza"
     },
     "scan": "Escanear",
     "socialgraph": "Gráfico social",
@@ -464,7 +489,11 @@
         "scanuploadedphotos": "Escaneando fotos subidas…",
         "scanuploadedphotostitle": "Escanear fotos cargadas",
         "deleteallautoalbums": "Se eliminaron todos los álbumes automáticos.",
-        "deleteusertitle": "Borrar usuario"
+        "deleteusertitle": "Borrar usuario",
+        "removefacestoperson": "{{numberOfFaces}} La(s) cara(s) se movieron a 'Desconocidos - Otros'",
+        "removefacestopersontitle": "Quitar caras de persona",
+        "deleteallautoalbumstitle": "Eliminar todos los álbumes creados automáticamente",
+        "deleteuser": "{{username}} eliminado"
     },
     "rules": {
         "report_tz": "Transformar a{{rule}}",
@@ -518,5 +547,29 @@
         "sidecar": "Guardar en sidecar"
     },
     "sync": "Sincronizar metadatos con el disco",
-    "supportus": "Apóyanos"
+    "supportus": "Apóyanos",
+    "save": "Guardar",
+    "exif": {
+        "filepath": "Ruta de archivo",
+        "subjectdistance": "Distancia del sujeto",
+        "digitalzoomratio": "Relación de zoom digital",
+        "showless": "Muestra menos",
+        "focallengthin35mmfilm": "Distancia focal equivalente a 35 mm",
+        "otherversions": "Otras versiones",
+        "duplicates": "Duplicados",
+        "showmore": "Mostrar más",
+        "deleteduplicatetitle": "Eliminar duplicado",
+        "deleteduplicate": "¿Está seguro de que desea eliminar este duplicado?"
+    },
+    "modaluseredit": {
+        "createheader": "Crear Usuario",
+        "errorusernameexists": "Ya existe un usuario con ese nombre",
+        "errorinvalidemail": "Introduzca una dirección de correo electrónico válida",
+        "errorusernamecannotbeblank": "Nombre de usuario no puede estar en blanco",
+        "header": "Editar Usuario"
+    },
+    "modify": "Modificar",
+    "locationstimeline": {
+        "fromto": "{{location}} de {{start}} a {{end}}"
+    }
 }
