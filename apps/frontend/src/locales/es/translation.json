@@ -340,7 +340,7 @@
         "allow": "Permitir",
         "noallow": "No permitir",
         "skippatterns": " Lista delimitada por comas de patrones para ignorar (p. ej., '@eaDir,#recycle' para dispositivos Synology)",
-        "apikey": "¿Quiere ver en un mapa dónde se tomaron todas sus fotos (si una ubicación está almacenada en sus fotos)? Obtenga una clave API de Map box https://account.mapbox.com/auth/signup/",
+        "apikey": "¿Quiere ver en un mapa dónde se tomaron todas sus fotos (si una ubicación está almacenada en sus fotos)? Obtenga una clave API de Mapbox https://account.mapbox.com/auth/signup/",
         "headerupload": "Permitir subir fotos",
         "headerskippatterns": "Omitir patrones",
         "headerapikey": "Clave API de Mapbox",
