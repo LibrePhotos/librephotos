@@ -165,8 +165,6 @@ function PhotoListViewComponent(props: Props) {
       setDataForScrollIndicator(getDataForScrollIndicator());
       // @ts-ignore
       gridHeight.current = pigRef.current.totalHeight;
-      // @ts-ignore
-      pigRef.current.containerRef?.current.scrollTo(0, 800);
     }
   // @ts-ignore
   }, [pigRef.current, pigRef.current?.totalHeight]);
