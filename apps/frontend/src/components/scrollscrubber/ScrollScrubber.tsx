@@ -32,7 +32,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
   const [cursor, setCursor] = useState("auto");
   const [targetClientHeight, setTargetClientHeight] = useState(0);
   const [offsetTop, setOffsetTop] = useState(0);
-  const [previousTargetY, setPreviousTargetY] = useState(NaN);
+  const previousTargetY = useRef(NaN);
 
   const targetYToScrollerY = (y: number): number => {
     if (targetHeight > 0)
@@ -141,18 +141,22 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
     setPositions(newPositions);   
   }, [scrollPositions, targetClientHeight]);
 
-  useEffect(() => {
+  const debouncedResize = useCallback(_.debounce(() => {
+    setTargetClientHeight(window.innerHeight);
     if (ref.current) {
       let elmt = ref.current;
       while (typeof elmt.parentElement !== "undefined") {
         if (elmt.parentElement.offsetTop !== 0) {
-          setTargetClientHeight(elmt.parentElement.offsetHeight);
           setOffsetTop(elmt.parentElement.offsetTop);
           break;
         }
         elmt = elmt.parentElement;
       }
     }
+  }, 500), []);
+
+  useEffect(() => {
+    debouncedResize();
   }, [width, height]);
 
   const hideScrollScrubber = () => {
@@ -239,7 +243,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
         }
       }
     }
-    setPreviousTargetY(y);
+    previousTargetY.current = y;
   };
 
   const ThrottledDetectScrolling = useCallback(
@@ -249,7 +253,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
 
   useEffect(() => {
     if (ThrottledDetectScrolling) {
-      ThrottledDetectScrolling(currentTargetY, previousTargetY);
+      ThrottledDetectScrolling(currentTargetY, previousTargetY.current);
     }
   }, [currentTargetY]);
 
