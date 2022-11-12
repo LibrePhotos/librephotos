@@ -82,6 +82,8 @@ export type Photo = z.infer<typeof PhotoSchema>;
 
 export const DatePhotosGroupSchema = z.object({
   date: z.string().nullable(),
+  year : z.number().nullable().optional(),
+  month : z.number().nullable().optional(),
   location: z.string().nullable(),
   items: PigPhotoSchema.array(),
 });

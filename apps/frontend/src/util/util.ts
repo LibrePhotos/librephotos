@@ -25,10 +25,12 @@ export const copyToClipboard = (str: string) => {
 /* eslint no-param-reassign: ["error", { "props": false }] */
 export function adjustDateFormatForSingleGroup(group: DatePhotosGroup) {
   if (group.date != null) {
-    group.date =
-      DateTime.fromISO(group.date).isValid
-        ? DateTime.fromISO(group.date).setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString(DateTime.DATE_HUGE)
-        : group.date;
+    const date = DateTime.fromISO(group.date);
+    if (date.isValid) {
+      group.year = date.year;
+      group.month = date.month;
+      group.date = date.setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString(DateTime.DATE_HUGE)
+    }
   } else {
     group.date = i18n.t<string>("sidemenu.withouttimestamp");
   }

@@ -15,7 +15,8 @@
   right: 0;
   position: fixed!important;
   user-select: none;
-  margin-bottom: 15px;
+  margin-top: 10px;
+  margin-bottom: 10px;
   z-index: 101;
   background-size: 4px 100%;
   background-repeat: no-repeat;

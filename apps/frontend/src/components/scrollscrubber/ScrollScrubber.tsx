@@ -3,10 +3,12 @@ import { Badge, Box, Group } from "@mantine/core";
 import { useElementSize, useMediaQuery } from "@mantine/hooks";
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import _ from "lodash";
+import { DateTime } from "luxon";
 import type { MouseEvent, ReactNode } from "react";
 import { ScrollerType } from "./ScrollScrubberTypes.zod";
 import type { IScrollerData, IScrollerPosition, IScrollerType } from "./ScrollScrubberTypes.zod";
 import "./ScrollScrubber.css"
+import i18n from "../../i18n";
 
 type Props = {
   type: IScrollerType, // Type of scroller marks to display
@@ -67,6 +69,8 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
     return '';
   };
 
+  const getLabelsMarkers = useCallback((): IScrollerPosition[] => positions, [positions]);
+
   const getLetterForAlphabetMarker = (str: string): string => {
     let firstChar = _.deburr(str.charAt(0)).toUpperCase();
     if (firstChar === firstChar.toLowerCase()) {
@@ -104,12 +108,40 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
    return alphabet;
   }, [positions])
 
-  const getDateMarkers = useCallback((): IScrollerPosition[] => {
-    console.log("getDateMarkers not implemented");
-    return positions;
-  }, [positions]);
+  const getLabelForDateMarker = (item: IScrollerPosition, type: string): string => {
+    if (type === "years" && item.year)
+      return item.year.toString();
+    if (type === "months" && item.month)
+      return item.month;
+    return item.label;
+  };
 
-  const getLabelsMarkers = useCallback((): IScrollerPosition[] => positions, [positions]);
+  const getDateMarkers = useCallback((type: string = "years"): IScrollerPosition[] => {
+    const dates: IScrollerPosition[] = [];
+    let countDifferentValues = 0;
+    let currentDate: string = "";
+    positions.forEach(item => {
+      const label = getLabelForDateMarker(item, type);
+      if ( label !== currentDate) {
+        currentDate = label;
+        countDifferentValues += 1;
+        if (dates.length < 1 || item.scrollerY - dates.slice(-1)[0].scrollerY > 15) {
+          dates.push({
+            label: currentDate,
+            targetY: item.targetY,
+            scrollerY: item.scrollerY,
+            scrollerYPercent: item.scrollerYPercent
+          });
+        }
+      };
+    });
+    if (countDifferentValues < 10) {
+      if (type === "years")
+        return getDateMarkers("months");
+      return getLabelsMarkers();
+    }
+    return dates;
+  }, [positions]);
 
   useEffect(() => {
     let markersType = type;
@@ -128,12 +160,21 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
     const newPositions: IScrollerPosition[] = [];
     if (scrollPositions.length > 0) {
       scrollPositions.forEach(item => {
-        newPositions.push({
+        const pos: IScrollerPosition = {
           label: item.label,
           targetY: item.targetY,
           scrollerY: targetYToScrollerY(item.targetY),
           scrollerYPercent: targetYToScrollerYPercentage(item.targetY)
-        });
+        } 
+        if (type === ScrollerType.enum.date) {
+          pos.year = item.year;
+          if (item.year && item.month) {
+            pos.month = DateTime.fromISO(`${item.year}-${item.month.toString().padStart(2, '0')}-01`)
+              .setLocale(i18n.resolvedLanguage.replace("_", "-"))
+              .toLocaleString({ year: 'numeric', month: 'short' });
+          }
+        }
+        newPositions.push(pos);
       });
       // Ensure positions are sorted by ascending targetY value
       newPositions.sort((a, b) => (a.targetY > b.targetY) ? 1 : -1);
@@ -354,6 +395,9 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
       }}
     />
   );
+
+  if (scrollPositions.length === 0 || targetClientHeight === 0)
+    return (<div>{children}</div>);
 
   return (
     <div>
