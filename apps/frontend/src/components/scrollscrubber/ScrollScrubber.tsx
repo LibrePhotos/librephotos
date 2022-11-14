@@ -273,7 +273,8 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
       setDragMarkerIsVisible(false);
       setCurrentLabel('');
     }
-    setDragMarkerY(mouseY);
+    // "+ 1" to match exactly currentScrollPosMarkerY on click
+    setDragMarkerY(mouseY + 1);
   };
 
   const handleMouseClick = (e: MouseEvent<HTMLDivElement>) => {
@@ -345,7 +346,6 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
     if (!scrollerIsVisible || markerPositions.length === 0)
       return null;
 
-    const halfMarkerLineHeightInPercent =  scrollerYToScrollerYPercentage(2);      
     return markerPositions.map<ReactNode>(
         item =>
           <Box
@@ -354,7 +354,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
             sx={theme => ({
               backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[2] : theme.colors.gray[6]
             })}
-            style= {{ top: `${item.scrollerYPercent + halfMarkerLineHeightInPercent}%` }}
+            style= {{ top: `${item.scrollerYPercent}%` }}
           />
       ).reduce((prev: ReactNode, curr: ReactNode) => [prev, ' ', curr]);
   }, [markerPositions, scrollerIsVisible]);

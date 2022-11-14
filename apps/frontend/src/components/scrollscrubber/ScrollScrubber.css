@@ -26,6 +26,7 @@
 .scrollscrubber-marker {
   position: absolute;
   right: 40px;
+  margin-top: -2px;
 }
 
 .scrollscrubber-marker-line {
@@ -41,6 +42,7 @@
   border-radius: 50%;
   position: absolute;
   right: 10px;
+  margin-top: -2px;
 }
 
 .scrollscrubber-drag-position {
