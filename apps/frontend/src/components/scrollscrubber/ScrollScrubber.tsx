@@ -69,7 +69,20 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
     return '';
   };
 
-  const getLabelsMarkers = useCallback((): IScrollerPosition[] => positions, [positions]);
+  const getLabelsMarkers = useCallback((): IScrollerPosition[] => {
+    const markers: IScrollerPosition[] = [];
+    positions.forEach(item => {
+      if (markers.length < 1 || item.scrollerY - markers.slice(-1)[0].scrollerY > 15) {
+        markers.push({
+          label: item.label,
+          targetY: item.targetY,
+          scrollerY: item.scrollerY,
+          scrollerYPercent: item.scrollerYPercent
+        });
+      }
+    });
+    return markers;
+  }, [positions]);
 
   const getLetterForAlphabetMarker = (str: string): string => {
     let firstChar = _.deburr(str.charAt(0)).toUpperCase();
