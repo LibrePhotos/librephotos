@@ -14,12 +14,11 @@ type Props = {
   type: IScrollerType, // Type of scroller marks to display
   scrollPositions: IScrollerData[], // Array of positions to show on the scroller (label and Y position on target scrollable area)
   targetHeight: number, // Height of the target scrollable area 
-  currentTargetY: number, // current scroll position off target scrollable area
   scrollToY: (number) => void, // Callback function that scrolls to a given Y position on target element
   children: ReactNode | null, // Target element must be one of the children nodes
 };
 
-export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTargetY, scrollToY, children }: Props) {
+export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY, children }: Props) {
   // ref and size of scrollscrubber
   const { ref, width, height } = useElementSize();
   const scrollerVisibilityTimerRef: {current: NodeJS.Timeout | null } = useRef(null);
@@ -34,7 +33,8 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
   const [cursor, setCursor] = useState("auto");
   const [targetClientHeight, setTargetClientHeight] = useState(0);
   const [offsetTop, setOffsetTop] = useState(0);
-  const previousTargetY = useRef(NaN);
+  const previousScrollPosition = useRef(NaN);
+  const targetRef = useRef<Element | null>(null);
 
   const targetYToScrollerY = (y: number): number => {
     if (targetHeight > 0)
@@ -216,6 +216,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
   const hideScrollScrubber = () => {
     if (scrollerVisibilityTimerRef.current) {
       clearTimeout(scrollerVisibilityTimerRef.current);
+      scrollerVisibilityTimerRef.current = null;
     }
     setScrollerIsVisible(false);
   };
@@ -237,17 +238,18 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
 
   // eslint-disable-next-line arrow-body-style
   useEffect(() => {
+    targetRef.current = document.getElementsByClassName("scrollscrubbertarget")?.item(0);
     // Clear scrollerVisibilityTimerRef on dismount
     return () => {
       if (scrollerVisibilityTimerRef.current) {
-        clearTimeout(scrollerVisibilityTimerRef.current); 
+        clearTimeout(scrollerVisibilityTimerRef.current);
+        scrollerVisibilityTimerRef.current = null;
     }};
   }, []);
 
   const showScrollerScrubber = () => {
     if (!scrollerIsVisible) {
       setScrollerIsVisible(true);
-      setCurrentScrollPosMarkerY(targetYToScrollerY(currentTargetY));
       startScrollerVisibilityTimer();
     } else {
       resetScrollerVisibilityTimer();
@@ -287,10 +289,10 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
     }
   };
 
-  const DetectScrolling = (y: number, previousY: number) => {
+  const detectScrolling = (y: number, previousY: number) => {
     if (!Number.isNaN(previousY)) {
       const delta = Math.abs(previousY - y);
-      if (delta > 400) {
+      if (delta > 600) {
         if (!scrollerIsVisible) {
           showScrollerScrubber();
         } else {
@@ -298,19 +300,30 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
         }
       }
     }
-    previousTargetY.current = y;
+    previousScrollPosition.current = y;
   };
 
-  const ThrottledDetectScrolling = useCallback(
-    _.throttle(DetectScrolling, 1000),
+  const throttledDetectScrolling = useCallback(
+    _.throttle(detectScrolling, 1000),
     [scrollerIsVisible]
   );
 
+  const debouncedUpdateCurrentPosMarker = useCallback(
+    _.throttle(setCurrentScrollPosMarkerY, 250),
+    []
+  );
+
   useEffect(() => {
-    if (ThrottledDetectScrolling) {
-      ThrottledDetectScrolling(currentTargetY, previousTargetY.current);
+    if (window.scrollY > 0) {
+      debouncedUpdateCurrentPosMarker(targetYToScrollerY(window.scrollY));
+      throttledDetectScrolling(window.scrollY, previousScrollPosition.current);
+    } else if (targetRef.current) {
+      debouncedUpdateCurrentPosMarker(targetYToScrollerY(targetRef.current.scrollTop));
+      throttledDetectScrolling(targetRef.current.scrollTop, previousScrollPosition.current);
+    } else {
+      debouncedUpdateCurrentPosMarker(0);
     }
-  }, [currentTargetY]);
+  }, [window.scrollY, targetRef.current?.scrollTop]);
 
   const renderMarkers = useCallback(() => {
     if (!scrollerIsVisible || markerPositions.length === 0)
@@ -345,7 +358,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
   const renderMarkersLines = useCallback(() => {
     if (!scrollerIsVisible || markerPositions.length === 0)
       return null;
-
+    
     return markerPositions.map<ReactNode>(
         item =>
           <Box
@@ -360,7 +373,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
   }, [markerPositions, scrollerIsVisible]);
 
   const renderDragMarker = () => {
-    if (!dragMarkerIsVisible)
+    if (!scrollerIsVisible || !dragMarkerIsVisible)
       return  null;
     return (
       <Group style={{
@@ -396,18 +409,22 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
     )
   };
 
-  const renderCurrentScrollPosMarker = () => (
-    <Box
-      className="scrollscrubber-current-position"
-      sx={theme => ({
-        backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-        boxShadow: `0 0 0 4px ${theme.colors.green[6]}`
-      })}
-      style={{
-        top: currentScrollPosMarkerY
-      }}
-    />
-  );
+  const renderCurrentScrollPosMarker = () => {
+    if (!scrollerIsVisible)
+      return  null;
+    return (
+      <Box
+        className="scrollscrubber-current-position"
+        sx={theme => ({
+          backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+          boxShadow: `0 0 0 4px ${theme.colors.green[6]}`
+        })}
+        style={{
+          top: currentScrollPosMarkerY
+        }}
+      />
+    );
+  };
 
   if (scrollPositions.length === 0 || targetClientHeight === 0)
     return (<div>{children}</div>);
@@ -415,35 +432,35 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
   return (
     <div>
       {children}
-      <Box
-        ref={ref}
-        className="scrollscrubber"
-        style={{
-          opacity: scrollerIsVisible ? 1 : 0,
-          cursor: cursor,
-          top: `${offsetTop}px`,
-          bottom: matches ? "0": "50px",
-        }}
-        sx={theme => ({
-          backgroundImage: `linear-gradient(${
-              theme.colorScheme === "dark"
-              ? theme.colors.dark[2]
-              : theme.colors.gray[6]
-            }, ${
-              theme.colorScheme === "dark"
-              ? theme.colors.dark[2]
-              : theme.colors.gray[6]
-            })`
-        })}
-        onMouseEnter={handleMouseEnter}
-        onMouseMove={handleMouseMove}
-        onClick={handleMouseClick}
-      >  
-        {renderMarkers()}
-        {renderMarkersLines()}
-        {renderDragMarker()}
-        {renderCurrentScrollPosMarker()}
-      </Box>
+        <Box
+          ref={ref}
+          className="scrollscrubber"
+          style={{
+            opacity: scrollerIsVisible ? 1 : 0,
+            cursor: cursor,
+            top: `${offsetTop}px`,
+            bottom: matches ? "0": "50px",
+          }}
+          sx={theme => ({
+            backgroundImage: `linear-gradient(${
+                theme.colorScheme === "dark"
+                ? theme.colors.dark[2]
+                : theme.colors.gray[6]
+              }, ${
+                theme.colorScheme === "dark"
+                ? theme.colors.dark[2]
+                : theme.colors.gray[6]
+              })`
+          })}
+          onMouseEnter={handleMouseEnter}
+          onMouseMove={handleMouseMove}
+          onClick={handleMouseClick}
+        >  
+          {renderMarkers()}
+          {renderMarkersLines()}
+          {renderDragMarker()}
+          {renderCurrentScrollPosMarker()}
+        </Box>
     </div>
   );
 }

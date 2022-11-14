@@ -63,7 +63,6 @@ function PhotoListViewComponent(props: Props) {
   const [selectionState, setSelectionState] = useState<SelectionState>({ selectedItems: [], selectMode: false });
   const selectionStateRef = useRef(selectionState);
   const [dataForScrollIndicator, setDataForScrollIndicator] = useState<IScrollerData[]>([]);
-  const [currentScrollPosition, setCurrentScrollPosition] = useState(0);
   const gridHeight = useRef(200);
 
   const route = useAppSelector(store => store.router);
@@ -168,14 +167,6 @@ function PhotoListViewComponent(props: Props) {
     }
   // @ts-ignore
   }, [pigRef.current, pigRef.current?.totalHeight]);
-
-  const getCurrentScrollPosition = _.debounce(() => {
-    setCurrentScrollPosition(window.scrollY);
-  }, 300);
-
-  useEffect(() => {
-    getCurrentScrollPosition();
-  }, [window.scrollY]);
 
   const scrollToY = (y: number) => {
     window.scrollTo(0, y);
@@ -333,7 +324,6 @@ function PhotoListViewComponent(props: Props) {
       {!loading && photoset && photoset.length > 0 ? (
           <ScrollScrubber
           scrollPositions={dataForScrollIndicator}
-          currentTargetY={currentScrollPosition}
           scrollToY={scrollToY}
           targetHeight={gridHeight.current}
           type={ScrollerType.enum.date}
