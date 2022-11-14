@@ -38,7 +38,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
 
   const targetYToScrollerY = (y: number): number => {
     if (targetHeight > 0)
-      return (y * height / (targetHeight - targetClientHeight));
+      return Math.min(y * height / (targetHeight - targetClientHeight), height);
     return NaN;
   };
 
@@ -261,7 +261,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
   const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
     resetScrollerVisibilityTimer();
     const rect = e.currentTarget.getBoundingClientRect();
-    const mouseY = e.clientY - rect.top;
+    const mouseY = Math.max(Math.min(e.clientY - rect.top, rect.height), 0);
     const distanceFromRight = rect.right - e.clientX;
     if (distanceFromRight < 40) {
       setCursor("pointer");
@@ -279,7 +279,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, currentTar
 
   const handleMouseClick = (e: MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const mouseY = e.clientY - rect.top;
+    const mouseY = Math.max(Math.min(e.clientY - rect.top, rect.height), 0);
     const distanceFromRight = rect.right - e.clientX;
     if (distanceFromRight < 40) {
       setCurrentScrollPosMarkerY(mouseY);
