@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Badge, Box, Group } from "@mantine/core";
 import { useElementSize, useMediaQuery } from "@mantine/hooks";
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import _ from "lodash";
 import { DateTime } from "luxon";
 import type { MouseEvent, ReactNode } from "react";
@@ -121,20 +121,20 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
    return alphabet;
   }, [positions])
 
-  const getLabelForDateMarker = (item: IScrollerPosition, type: string): string => {
-    if (type === "years" && item.year)
+  const getLabelForDateMarker = (item: IScrollerPosition, dateType: string): string => {
+    if (dateType === "years" && item.year)
       return item.year.toString();
-    if (type === "months" && item.month)
+    if (dateType === "months" && item.month)
       return item.month;
     return item.label;
   };
 
-  const getDateMarkers = useCallback((type: string = "years"): IScrollerPosition[] => {
+  const getDateMarkers = useCallback((dateType: string = "years"): IScrollerPosition[] => {
     const dates: IScrollerPosition[] = [];
     let countDifferentValues = 0;
     let currentDate: string = "";
     positions.forEach(item => {
-      const label = getLabelForDateMarker(item, type);
+      const label = getLabelForDateMarker(item, dateType);
       if ( label !== currentDate) {
         currentDate = label;
         countDifferentValues += 1;
@@ -149,7 +149,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
       };
     });
     if (countDifferentValues < 10) {
-      if (type === "years")
+      if (dateType === "years")
         return getDateMarkers("months");
       return getLabelsMarkers();
     }
@@ -433,10 +433,11 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     );
   };
 
- // do not display Scrollscubber if there is less than 2 positions (this is useless in this case)
- if (targetClientHeight === 0 || scrollPositions.length < 2)
+  // do not display Scrollscubber if there is less than 2 positions (this is useless in this case)
+  if (targetClientHeight === 0 || scrollPositions.length < 2) {
     return (<div>{children}</div>);
-
+  }
+  
   return (
     <div>
       {children}
