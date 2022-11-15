@@ -441,6 +441,20 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     <div>
       {children}
         <Box
+          className="scrollscrubber-background-layer"
+          style={{
+            opacity: scrollerIsVisible ? 0.9 : 0,
+            top: `${offsetTop}px`,
+            bottom: matches ? "0": "50px",
+          }}
+          sx={theme => ({
+            backgroundColor: theme.colorScheme === "dark"
+              ? theme.colors.dark[8]
+              : theme.colors.gray[0]
+            })
+          }
+        />
+        <Box
           ref={ref}
           className="scrollscrubber"
           style={{

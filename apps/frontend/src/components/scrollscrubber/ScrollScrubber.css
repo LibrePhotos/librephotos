@@ -23,6 +23,14 @@
   background-position: right 12px center;
 }
 
+.scrollscrubber-background-layer {
+  width: 32px;
+  right: 0;
+  position: fixed!important;
+  opacity: 0.9;
+  z-index: 100;
+}
+
 .scrollscrubber-marker {
   position: absolute;
   right: 40px;
