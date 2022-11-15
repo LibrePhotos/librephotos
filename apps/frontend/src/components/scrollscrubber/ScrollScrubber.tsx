@@ -426,7 +426,8 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     );
   };
 
-  if (scrollPositions.length === 0 || targetClientHeight === 0)
+ // do not display Scrollscubber if there is less than 2 positions (this is useless in this case)
+ if (targetClientHeight === 0 || scrollPositions.length < 2)
     return (<div>{children}</div>);
 
   return (
