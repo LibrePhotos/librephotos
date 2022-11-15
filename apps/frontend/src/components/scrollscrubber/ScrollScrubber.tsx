@@ -2,7 +2,7 @@
 import { Badge, Box, Group } from "@mantine/core";
 import { useElementSize, useMediaQuery } from "@mantine/hooks";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import _, { reduce } from "lodash";
+import _ from "lodash";
 import { DateTime } from "luxon";
 import type { MouseEvent, ReactNode } from "react";
 import { ScrollerType } from "./ScrollScrubberTypes.zod";
