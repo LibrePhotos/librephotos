@@ -340,7 +340,6 @@ export function FaceDashboard () {
           {({ height, width }) => (
             <ScrollScrubber
               scrollPositions={dataForScrollIndicator}
-              currentTargetY={currentScrollPosition}
               scrollToY={setScrollTo}
               targetHeight={gridHeight}
               type={ScrollerType.enum.alphabet}

@@ -22,6 +22,9 @@ import { SelectionActions } from "./SelectionActions";
 import { SelectionBar } from "./SelectionBar";
 import { TrashcanActions } from "./TrashcanActions";
 import { VideoOverlay } from "./VideoOverlay";
+import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
+import { ScrollerType } from "../scrollscrubber/ScrollScrubberTypes.zod";
+import type { IScrollerData } from "../scrollscrubber/ScrollScrubberTypes.zod";
 
 const TIMELINE_SCROLL_WIDTH = 0;
 
@@ -50,7 +53,7 @@ type SelectionState = {
 
 function PhotoListViewComponent(props: Props) {
   const { height } = useViewportSize();
-
+  const pigRef = useRef();
   const [lightboxImageIndex, setLightboxImageIndex] = useState(1);
   const [lightboxImageId, setLightboxImageId] = useState("");
   const [lightboxShow, setLightboxShow] = useState(false);
@@ -59,6 +62,8 @@ function PhotoListViewComponent(props: Props) {
   const [modalAlbumShareOpen, setModalAlbumShareOpen] = useState(false);
   const [selectionState, setSelectionState] = useState<SelectionState>({ selectedItems: [], selectMode: false });
   const selectionStateRef = useRef(selectionState);
+  const [dataForScrollIndicator, setDataForScrollIndicator] = useState<IScrollerData[]>([]);
+  const gridHeight = useRef(200);
 
   const route = useAppSelector(store => store.router);
   const userSelfDetails = useAppSelector(store => store.user.userSelfDetails);
@@ -141,6 +146,30 @@ function PhotoListViewComponent(props: Props) {
       selectedItems: newSelectedItems,
       selectMode: newSelectedItems.length > 0,
     });
+  };
+
+  const getDataForScrollIndicator = (): IScrollerData[] => {
+    const scrollPositions: IScrollerData[] = [];
+    if (pigRef.current) {
+      // @ts-ignore
+      pigRef.current.imageData.forEach((group: DatePhotosGroupSchema) => {
+        scrollPositions.push({label: group.date, targetY: group.groupTranslateY, year: group.year, month: group.month});
+      });
+    }
+    return scrollPositions;
+  };
+
+  useEffect(() => {
+    if (!loading && pigRef.current) {
+      setDataForScrollIndicator(getDataForScrollIndicator());
+      // @ts-ignore
+      gridHeight.current = pigRef.current.totalHeight;
+    }
+  // @ts-ignore
+  }, [loading, pigRef.current?.totalHeight]);
+
+  const scrollToY = (y: number) => {
+    window.scrollTo(0, y);
   };
 
   const handleClick = (event: React.KeyboardEvent, item: { id: string }) => {
@@ -269,7 +298,6 @@ function PhotoListViewComponent(props: Props) {
                       albumID={params ? params.albumID : undefined}
                       title={title}
                       setAlbumCover={actionType => {
-                        console.log(actionType);
                         if (actionType === "person") {
                           dispatch(setAlbumCoverForPerson(params.albumID, selectionState.selectedItems[0].id));
                         }
@@ -294,22 +322,31 @@ function PhotoListViewComponent(props: Props) {
         )}
       </Box>
       {!loading && photoset && photoset.length > 0 ? (
-        <Pig
-          imageData={getPigImageData}
-          selectable={selectable === undefined || selectable}
-          selectedItems={selectionStateRef.current.selectedItems}
-          handleSelection={handleSelection}
-          handleClick={handleClick}
-          scaleOfImages={userSelfDetails.image_scale}
-          groupByDate={isDateView}
-          getUrl={getUrl}
-          toprightoverlay={FavoritedOverlay}
-          bottomleftoverlay={VideoOverlay}
-          numberOfItems={numberOfItems || idx2hashRef.current.length}
-          updateItems={updateItems ? throttledUpdateItems : () => {}}
-          updateGroups={updateGroups ? throttledUpdateGroups : () => {}}
-          bgColor="inherit"
-        />
+          <ScrollScrubber
+          scrollPositions={dataForScrollIndicator}
+          scrollToY={scrollToY}
+          targetHeight={gridHeight.current}
+          type={ScrollerType.enum.date}
+        >
+          <Pig
+            ref={pigRef}
+            className="scrollscrubbertarget"
+            imageData={getPigImageData}
+            selectable={selectable === undefined || selectable}
+            selectedItems={selectionStateRef.current.selectedItems}
+            handleSelection={handleSelection}
+            handleClick={handleClick}
+            scaleOfImages={userSelfDetails.image_scale}
+            groupByDate={isDateView}
+            getUrl={getUrl}
+            toprightoverlay={FavoritedOverlay}
+            bottomleftoverlay={VideoOverlay}
+            numberOfItems={numberOfItems || idx2hashRef.current.length}
+            updateItems={updateItems ? throttledUpdateItems : () => {}}
+            updateGroups={updateGroups ? throttledUpdateGroups : () => {}}
+            bgColor="inherit"
+          />
+        </ScrollScrubber>
       ) : (
         <div />
       )}
