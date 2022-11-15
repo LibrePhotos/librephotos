@@ -35,7 +35,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
   const [offsetTop, setOffsetTop] = useState(0);
   const previousScrollPosition = useRef(NaN);
   const targetRef = useRef<Element | null>(null);
-
+  
   const targetYToScrollerY = (y: number): number => {
     if (targetHeight > 0)
       return Math.min(y * height / (targetHeight - targetClientHeight), height);
@@ -169,7 +169,10 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
       setMarkerPositions(getLabelsMarkers());
   }, [positions]);
 
-  useLayoutEffect(() => {
+  const determinePositionsCoordinates = () => {
+    if (ref.current)
+      ref.current.height = targetClientHeight;
+
     const newPositions: IScrollerPosition[] = [];
     if (scrollPositions.length > 0) {
       scrollPositions.forEach(item => {
@@ -192,8 +195,12 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
       // Ensure positions are sorted by ascending targetY value
       newPositions.sort((a, b) => (a.targetY > b.targetY) ? 1 : -1);
     }
-    setPositions(newPositions);   
-  }, [scrollPositions, targetClientHeight]);
+    setPositions(newPositions);
+  }
+
+  useEffect(() => {
+    determinePositionsCoordinates();
+  }, [scrollPositions, targetClientHeight, height, type]);
 
   const debouncedResize = useCallback(_.debounce(() => {
     setTargetClientHeight(window.innerHeight);

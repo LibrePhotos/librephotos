@@ -160,13 +160,13 @@ function PhotoListViewComponent(props: Props) {
   };
 
   useEffect(() => {
-    if (pigRef.current) {
+    if (!loading && pigRef.current) {
       setDataForScrollIndicator(getDataForScrollIndicator());
       // @ts-ignore
       gridHeight.current = pigRef.current.totalHeight;
     }
   // @ts-ignore
-  }, [pigRef.current, pigRef.current?.totalHeight]);
+  }, [loading, pigRef.current?.totalHeight]);
 
   const scrollToY = (y: number) => {
     window.scrollTo(0, y);
