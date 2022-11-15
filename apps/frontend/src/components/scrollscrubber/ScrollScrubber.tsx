@@ -2,7 +2,7 @@
 import { Badge, Box, Group } from "@mantine/core";
 import { useElementSize, useMediaQuery } from "@mantine/hooks";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import _ from "lodash";
+import _, { reduce } from "lodash";
 import { DateTime } from "luxon";
 import type { MouseEvent, ReactNode } from "react";
 import { ScrollerType } from "./ScrollScrubberTypes.zod";
@@ -272,7 +272,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     const rect = e.currentTarget.getBoundingClientRect();
     const mouseY = Math.max(Math.min(e.clientY - rect.top, rect.height), 0);
     const distanceFromRight = rect.right - e.clientX;
-    if (distanceFromRight < 40) {
+    if (distanceFromRight < 30) {
       setCursor("pointer");
       setDragMarkerIsVisible(true);
       setCurrentLabel(getLabelForScrollerY(mouseY));
@@ -290,7 +290,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     const rect = e.currentTarget.getBoundingClientRect();
     const mouseY = Math.max(Math.min(e.clientY - rect.top, rect.height), 0);
     const distanceFromRight = rect.right - e.clientX;
-    if (distanceFromRight < 40) {
+    if (distanceFromRight < 30) {
       setCurrentScrollPosMarkerY(mouseY);
       scrollToY(scrollerYToTargetY(mouseY));
     }
@@ -370,9 +370,13 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
         item =>
           <Box
             key={`line-${item.label}`}
-            className="scrollscrubber-marker-line"
-            sx={theme => ({
-              backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[2] : theme.colors.gray[6]
+            className="scrollscrubber-marker-dot"
+            sx={
+              theme => ({
+                backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+                boxShadow: `0 0 0 2px ${theme.colorScheme === "dark"
+                ? theme.colors.dark[2]
+                : theme.colors.gray[6]}`
             })}
             style= {{ top: `${item.scrollerYPercent}%` }}
           />

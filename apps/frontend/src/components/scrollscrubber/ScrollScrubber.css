@@ -11,7 +11,7 @@
 }
 
 .scrollscrubber {
-  width: 32px;
+  width: 28px;
   right: 0;
   position: fixed!important;
   user-select: none;
@@ -24,7 +24,7 @@
 }
 
 .scrollscrubber-background-layer {
-  width: 32px;
+  width: 28px;
   right: 0;
   position: fixed!important;
   opacity: 0.9;
@@ -33,15 +33,17 @@
 
 .scrollscrubber-marker {
   position: absolute;
-  right: 40px;
+  right: 30px;
   margin-top: -2px;
 }
 
-.scrollscrubber-marker-line {
+.scrollscrubber-marker-dot {
   position: absolute;
   right: 12px;
-  width: 20px;
-  height: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  margin-top: -2px;
 }
 
 .scrollscrubber-current-position {
@@ -49,7 +51,7 @@
   height: 6px;
   border-radius: 50%;
   position: absolute;
-  right: 10px;
+  right: 11px;
   margin-top: -2px;
 }
 
@@ -58,6 +60,6 @@
   height: 6px;
   border-radius: 50%;
   position: absolute;
-  right: 10px;
+  right: 11px;
   z-index: 105;
 }
