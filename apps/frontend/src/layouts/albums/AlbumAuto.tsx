@@ -1,5 +1,6 @@
 import { ActionIcon, Button, Group, Image, Menu, Modal, Text } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
+import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import LazyLoad from "react-lazyload";
@@ -12,6 +13,7 @@ import { deleteAutoAlbum, fetchAutoAlbumsList } from "../../actions/albumsAction
 import { searchPhotos } from "../../actions/searchActions";
 import { serverAddress } from "../../api_client/apiClient";
 import { Tile } from "../../components/Tile";
+import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
 import { HeaderComponent } from "./HeaderComponent";
@@ -63,6 +65,10 @@ export const AlbumAuto = () => {
   const cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
     const albumAutoIndex = rowIndex * numEntrySquaresPerRow + columnIndex;
     if (albumAutoIndex < albumsAutoList.length) {
+      const dateTimeLabel = DateTime.fromISO(albumsAutoList[albumAutoIndex].timestamp).isValid
+      ? DateTime.fromISO(albumsAutoList[albumAutoIndex].timestamp).setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString(DateTime.DATE_MED)
+      : null;
+    
       return (
         <div key={key} style={style}>
           <div onClick={() => {}} style={{ padding: 5 }}>
@@ -96,6 +102,7 @@ export const AlbumAuto = () => {
           </div>
           <div className="personCardName" style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
             <b>{albumsAutoList[albumAutoIndex].title}</b> <br />
+            {dateTimeLabel ? `${dateTimeLabel} - `:""}
             {t("numberofphotos", {
               number: albumsAutoList[albumAutoIndex].photo_count,
             })}
