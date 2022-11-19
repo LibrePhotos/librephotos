@@ -130,7 +130,19 @@
         "finnish": "Finština",
         "portuguese": "Portugalština",
         "czech": "Čeština",
-        "basque": "Baskičtina"
+        "basque": "Baskičtina",
+        "password": {
+            "titlechangepassword": "Změnit heslo",
+            "tooltipeditbutton": "Kliknout pro změnu hesla",
+            "errorcannotbeblank": "Heslo nesmí být prázdné",
+            "errormustmatch": "Hesla se musí shodovat",
+            "errormustretype": "Musíte zopakovat heslo",
+            "titlesetpassword": "Nastavit heslo"
+        },
+        "ukrainian": "Ukrajinština",
+        "vietnamese": "Vietnamština",
+        "savechanges": "Uložit změny?",
+        "traditionalchinese": "Čínština (tradiční)"
     },
     "modalalbum": {
         "selectedimages": "Přidat vybrané fotografie ({{count}}) do...",
@@ -141,7 +153,7 @@
         "alreadexists": "Album {{title}} již existuje.",
         "title": "Přidat do alba",
         "alreadyexists": "Album {{title}} již existuje.",
-        "updated": "Aktualizováno {{duration}}"
+        "updated": "Aktualizace {{duration}}"
     },
     "modalnextcloud": {
         "setdirectory": "Nastavte adresář skenování Nextcloud",
@@ -221,7 +233,12 @@
             "caption": "Titulek",
             "people": "Lidé",
             "timetaken": "Čas pořízení",
-            "submit": "Odeslat"
+            "submit": "Odeslat",
+            "editdatetime": "Upravit datum a čas",
+            "withouttimestamp": "Bez časového razítka",
+            "invalidtimestamp": "Neplatné časové razítko",
+            "removetimestamp": "Odstranit časové razítko",
+            "undotimestampmodification": "Vrátit úpravu časového razítka"
         }
     },
     "login": {
@@ -240,7 +257,8 @@
         "firsttimesetup": "První nastavení",
         "name": "LibrePhotos",
         "errorusername": "Uživatelské jméno nesmí být prázdné!",
-        "tagline": "Pohodlné místo pro vaše fotografie."
+        "tagline": "Pohodlné místo pro vaše fotografie.",
+        "usernamelabel": "Uživatelské jméno"
     },
     "adminarea": {
         "remove": "Odstranit",
@@ -254,7 +272,12 @@
         "sitesettings": "Nastavení webu",
         "users": "Uživatelé",
         "admintools": "Administrační nástroje",
-        "deleteallautoalbums": "Smazat všechna automaticky vytvořená alba"
+        "deleteallautoalbums": "Smazat všechna automaticky vytvořená alba",
+        "deleteuserconfirmexplanation": "Chystáte se smazat tohoto uživatele: {{username}}. To smaže také všechna přidružená data.",
+        "cannotbeundone": "Tuto akci nelze vrátit.",
+        "titledeleteuser": "Smazat uživatele",
+        "cannotdeleteadmin": "Nelze smazat účet administrátora",
+        "addnewuser": "Přidat nový účet"
     },
     "joblist": {
         "workerlogs": "Logy procesů",
@@ -273,12 +296,14 @@
     },
     "modalscandirectoryedit": {
         "explanation3": "Vyberte adresář níže",
-        "explanation2": "klikne na tlačítko \"skenovat fotografie\", fotografie ze zde vybraného adresáře budou importovány pod uživatelský účet",
+        "explanation2": "klikne na tlačítko \"skenovat fotografie\", fotografie z vybraného adresáře budou importovány pod uživatelský účet",
         "currentdirectory": "Aktuální adresář uživatele",
         "notset": "nenastaveno",
         "update": "Aktualizovat",
         "header": "Nastavit adresář ke skenování pro uživatele",
-        "explanation1": "Když uživatel"
+        "explanation1": "Když uživatel",
+        "mustspecifypath": "Musíte vybrat adresář ke skenování",
+        "pathdoesnotexist": "Cesta neexistuje"
     },
     "sitesettings": {
         "noallow": "Zakázat",
@@ -325,7 +350,12 @@
         "selectedfaces": "{{number}} vybrán(o)",
         "explanationtraining": "Rozpoznat podobné obličeje a zkusit najít shody",
         "explanationdeleting": "Smažte obličej a jeho miniatury",
-        "numberoffaces": "{{number}} Obličejů"
+        "numberoffaces": "{{number}} Obličejů",
+        "notthisperson": "Přesunout obličeje zpět do skupiny 'Neznámé - Ostatní'",
+        "explanationvalidate": "Potvrďte že všechny obličeje ze skupiny odpovídají této osobě a přidejte je k odpovídajícímu ID obličeje",
+        "sortbydate": "Datum",
+        "sortby": "Řadit podle",
+        "sortbyconfidence": "Jistota"
     },
     "dataviz": "Vizualizace dat",
     "nosocialgraph": "Žádný sociální graf",
@@ -404,7 +434,11 @@
         "scanuploadedphotos": "Skenování nahraných fotografií…",
         "scanuploadedphotostitle": "Skenovat nahrané fotografie",
         "deleteallautoalbumstitle": "Smazat všechna automaticky vytvořená alba",
-        "deleteallautoalbums": "Všechna automaticky vytvořená alba smazána."
+        "deleteallautoalbums": "Všechna automaticky vytvořená alba smazána.",
+        "removefacestopersontitle": "Odstranit obličete od osoby",
+        "deleteuser": "{{username}} smazán",
+        "deleteusertitle": "Vymazat uživatele",
+        "removefacestoperson": "{{numberOfFaces}} obličej(ů) přesunuto do 'Neznámé - Ostatní'"
     },
     "rules": {
         "1": "Místní čas ze značky exif DATE_TIME_ORIGINAL",
@@ -442,12 +476,12 @@
         "select": "Vybrat vše"
     },
     "defaultheader": {
-        "gettingstarted": "Začínáme",
+        "gettingstarted": "Upravit uživatele",
         "loading": "Nahrávání...",
         "noimages": "Nenalezeny žádné obrázky",
         "days": "dny",
         "photos": "fotografie",
-        "setup": "Zdá se, že stále musíte nastavit LibrePhotos."
+        "setup": "Před používáním LibrePhotos, nastavte svůj adresář ke skenování."
     },
     "selectionactions": {
         "photoactions": "Akce pro fotografie",
@@ -513,5 +547,28 @@
     "facecluster": "Shluky obličejů",
     "cancel": "Zrušit",
     "sponsorus": "Zasponzorujte nás",
-    "supportus": "Podpořte nás"
+    "supportus": "Podpořte nás",
+    "exif": {
+        "filepath": "Cesta souboru",
+        "subjectdistance": "Vzdálenost objektu",
+        "duplicates": "Duplikáty",
+        "otherversions": "Ostatní verze",
+        "showmore": "Zobrazit více",
+        "deleteduplicate": "Opravdu chcete smazat tento duplikát?",
+        "digitalzoomratio": "Poměr digitálního zoomu",
+        "showless": "Zobrazit méně",
+        "deleteduplicatetitle": "Smazat duplikát"
+    },
+    "save": "Uložit",
+    "modify": "Upravit",
+    "modaluseredit": {
+        "createheader": "Vytvořit uživatele",
+        "errorusernameexists": "Uživatel se stejným jménem již existuje",
+        "header": "Upravit účet",
+        "errorinvalidemail": "Zadejte platnou e-mailovou adresu",
+        "errorusernamecannotbeblank": "Jméno uživatele nemůže být prázdné"
+    },
+    "locationstimeline": {
+        "fromto": "{{location}} od {{start}} do {{end}}"
+    }
 }
