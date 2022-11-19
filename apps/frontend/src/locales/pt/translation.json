@@ -148,7 +148,9 @@
             "titlechangepassword": "Alterar palavra-passe",
             "titlesetpassword": "Definir palavra-passe",
             "tooltipeditbutton": "Clique para alterar a palavra-passe"
-        }
+        },
+        "ukrainian": "Ucraniano",
+        "vietnamese": "Vietnamita"
     },
     "sidemenu": {
         "myalbums": "Meus álbuns",
