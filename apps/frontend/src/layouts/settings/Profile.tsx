@@ -271,6 +271,10 @@ export function Profile() {
                   value: "uk",
                   label: t("settings.ukrainian"),
                 },
+                {
+                  value: "vi",
+                  label: t("settings.vietnamese"),
+                },
               ]}
             />
             <Button

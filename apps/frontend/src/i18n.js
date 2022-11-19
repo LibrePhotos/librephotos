@@ -19,6 +19,7 @@ import translationPt from "./locales/pt/translation.json";
 import translationRu from "./locales/ru/translation.json";
 import translationSv from "./locales/sv/translation.json";
 import translationUK from "./locales/uk/translation.json";
+import translationVi from "./locales/vi/translation.json";
 import translationZh_Hans from "./locales/zh_Hans/translation.json";
 
 const resources = {
@@ -72,6 +73,9 @@ const resources = {
   },
   uk: {
     translation: translationUK,
+  },
+  vi: {
+    translation: translationVi,
   },
 };
 i18n
