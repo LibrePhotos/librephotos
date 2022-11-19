@@ -11,7 +11,7 @@ import { serverAddress } from "../../api_client/apiClient";
 import { logout } from "../../store/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { ChunkedUploadButton } from "../ChunkedUploadButton";
-import { SimpleSearch } from "../SimpleSearch";
+import { CustomSearch } from "../CustomSearch";
 import { TopMenuCommon } from "./TopMenuPublic";
 import { WorkerIndicator } from "./WorkerIndicator";
 
@@ -19,9 +19,7 @@ export function TopMenu() {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
   const userSelfDetails = useAppSelector(state => state.user.userSelfDetails);
-
   const { t } = useTranslation();
-
   const matches = useMediaQuery("(min-width: 700px)");
 
   useEffect(() => {
@@ -35,7 +33,7 @@ export function TopMenu() {
       <Grid justify="space-between" grow style={{ padding: 5 }}>
         {matches && <TopMenuCommon onToggleSidebar={() => dispatch(toggleSidebar())} />}
         <Grid.Col span={3}>
-          <SimpleSearch />
+          <CustomSearch />
         </Grid.Col>
         <Grid.Col span={1}>
           <Group position="right">

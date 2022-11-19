@@ -1,233 +1,193 @@
-import { Avatar, Button, Group, Loader, Menu, Popover, Stack, TextInput } from "@mantine/core";
+import { Autocomplete, Group, Text, createStyles } from "@mantine/core";
+import type { AutocompleteItem } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
-import React, { useEffect, useState } from "react";
+import { random } from "lodash";
+import React, { cloneElement, forwardRef, useCallback, useEffect, useState } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
 import { push } from "redux-first-history";
-import { Album, Map, Search, Tag } from "tabler-icons-react";
+import { Album, Map, Search, Tag, X } from "tabler-icons-react";
 
 import { fetchPlaceAlbumsList, fetchThingAlbumsList, fetchUserAlbumsList } from "../actions/albumsActions";
 import { fetchPeople } from "../actions/peopleActions";
-import { searchPeople, searchPhotos, searchPlaceAlbums, searchThingAlbums } from "../actions/searchActions";
+import { searchPhotos } from "../actions/searchActions";
 import { fetchExampleSearchTerms } from "../actions/utilActions";
-import { SearchTermExamples } from "../actions/utilActions.types";
-import { serverAddress } from "../api_client/apiClient";
 import { useAppDispatch, useAppSelector } from "../store/store";
 
-const ENTER_KEY = 13;
-
-function fuzzy_match(str, pattern) {
-  if (pattern.split("").length > 0) {
-    pattern = pattern.split("").reduce((a, b) => `${a}.*${b}`);
-    return new RegExp(pattern).test(str);
-  }
-  return false;
+enum SuggestionType {
+  EXAMPLE,
+  PLACE_ALBUM,
+  THING_ALBUM,
+  USER_ALBUM,
 }
 
-export const CustomSearch = () => {
-  const { t } = useTranslation();
-  const [searchText, setSearchText] = useState("");
-  const { width } = useViewportSize();
-  const [exampleSearchTerm, setExampleSearchTerm] = useState("");
-  const [filteredExampleSearchTerms, setFilteredExampleSearchTerms] = useState<any[]>([]);
-  const [filteredSuggestedPeople, setFilteredSuggestedPeople] = useState<any[]>([]);
-  const [filteredSuggestedPlaces, setFilteredSuggestedPlaces] = useState<any[]>([]);
-  const [filteredSuggestedThings, setFilteredSuggestedThings] = useState<any[]>([]);
-  const [filteredSuggestedUserAlbums, setFilteredSuggestedUserAlbums] = useState<any[]>([]);
-  const exampleSearchTerms = useAppSelector(store => store.util.exampleSearchTerms);
-  const people = useAppSelector(store => store.people.people);
-  const { albumsThingList, albumsUserList, albumsPlaceList } = useAppSelector(store => store.albums);
+interface SearchSuggestion {
+  value: string;
+  icon: ReactNode;
+  [key: string]: any;
+}
 
+function fuzzyMatch(query: string, value: string) {
+  if (query.split("").length > 0) {
+    const expression = query
+      .toLowerCase()
+      .replaceAll("s+", "")
+      .split("")
+      .reduce((a, b) => `${a}.*${b}`);
+    return new RegExp(expression).test(value.toLowerCase());
+  }
+  return true;
+}
+
+function toExampleSuggestion(item: string) {
+  return { value: item, type: SuggestionType.EXAMPLE };
+}
+
+function toPlaceSuggestion(item: any) {
+  return { value: item.title, icon: <Map />, type: SuggestionType.PLACE_ALBUM, id: item.id };
+}
+
+function toThingSuggestion(item: any) {
+  return { value: item.title, icon: <Tag />, type: SuggestionType.THING_ALBUM, id: item.id };
+}
+
+function toUserAlbumSuggestion(item: any) {
+  return { value: item.title, icon: <Album />, type: SuggestionType.USER_ALBUM, id: item.id };
+}
+
+const SearchSuggestionItem = forwardRef<HTMLDivElement, SearchSuggestion>(
+  ({ icon = <Search />, value, ...rest }: SearchSuggestion, ref) => (
+    /* eslint-disable react/jsx-props-no-spreading */
+    <div ref={ref} {...rest}>
+      <Group noWrap>
+        {cloneElement(icon as React.ReactElement<any>, { size: 14 })}
+        <Text>{value}</Text>
+      </Group>
+    </div>
+  )
+);
+
+export const useStyles = createStyles(() => ({
+  clear: {
+    color: "#333",
+    cursor: "pointer",
+  },
+  icon: {
+    color: "#333",
+  },
+}));
+
+export function CustomSearch() {
+  const { t } = useTranslation();
+  const { classes } = useStyles();
+  const { width } = useViewportSize();
   const dispatch = useAppDispatch();
+  const [value, setValue] = useState("");
+  const [searchSuggestions, setSearchSuggestions] = useState<Array<AutocompleteItem>>([]);
+  const [searchPlaceholder, setSearchPlaceholder] = useState("");
+  const searchExamples = useAppSelector(store => store.util.exampleSearchTerms);
+  const people = useAppSelector(store => store.people.people);
+  const placeAlbums = useAppSelector(store => store.albums.albumsPlaceList);
+  const thingAlbums = useAppSelector(store => store.albums.albumsThingList);
+  const userAlbums = useAppSelector(store => store.albums.albumsUserList);
+  const searchBarWidth = width - width / 2.2;
+
+  const filterSearch = useCallback(
+    (query: string = "") => {
+      setValue(query);
+      setSearchSuggestions([
+        ...searchExamples
+          .filter((item: string) => fuzzyMatch(query, item))
+          .slice(0, 2)
+          .map(toExampleSuggestion),
+        ...placeAlbums
+          .filter((item: any) => fuzzyMatch(query, item.title))
+          .slice(0, 2)
+          .map(toPlaceSuggestion),
+        ...thingAlbums
+          .filter((item: any) => fuzzyMatch(query, item.title))
+          .slice(0, 2)
+          .map(toThingSuggestion),
+        ...userAlbums
+          .filter((item: any) => fuzzyMatch(query, item.title))
+          .slice(0, 2)
+          .map(toUserAlbumSuggestion),
+      ]);
+    },
+    [placeAlbums, searchExamples, thingAlbums, userAlbums]
+  );
+
+  function search(item: AutocompleteItem) {
+    switch (item.type) {
+      case undefined:
+      case SuggestionType.EXAMPLE:
+        dispatch(searchPhotos(item.value));
+        dispatch(push("/search"));
+        break;
+      case SuggestionType.USER_ALBUM:
+        dispatch(push(`/useralbum/${item.id}`));
+        break;
+      case SuggestionType.PLACE_ALBUM:
+        dispatch(push(`/place/${item.id}`));
+        break;
+      case SuggestionType.THING_ALBUM:
+        dispatch(push(`/thing/${item.id}`));
+        break;
+      default:
+        break;
+    }
+  }
+
+  function onKeyPress(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.code === "Enter") {
+      search({ value: event.currentTarget.value, icon: undefined });
+    }
+  }
 
   useEffect(() => {
     dispatch(fetchExampleSearchTerms());
-  }, []);
+    dispatch(fetchPlaceAlbumsList());
+    dispatch(fetchThingAlbumsList());
+    dispatch(fetchUserAlbumsList());
+    fetchPeople(dispatch);
+  }, [dispatch]);
+
+  useEffect(() => {
+    filterSearch();
+  }, [searchExamples, placeAlbums, thingAlbums, userAlbums, people, filterSearch]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const example = exampleSearchTerms[Math.floor(Math.random() * exampleSearchTerms.length)];
-      const searchTerm = example ? `${t("search.search")} ${example}` : t("search.default");
-      setExampleSearchTerm(searchTerm ? searchTerm : "");
+      const example = searchExamples[Math.floor(random(0.1, 1) * searchExamples.length)];
+      setSearchPlaceholder(`${t("search.search")} ${example}`);
     }, 5000);
-    return () => {
-      clearInterval(interval);
-    };
-  }, [exampleSearchTerms]);
-
-  useEffect(() => {
-    if (searchText) {
-      if (people.length == 0) {
-        fetchPeople(dispatch);
-      }
-      if (albumsPlaceList.length == 0) {
-        dispatch(fetchPlaceAlbumsList());
-      }
-      if (albumsThingList.length == 0) {
-        dispatch(fetchThingAlbumsList());
-      }
-      if (albumsUserList.length == 0) {
-        dispatch(fetchUserAlbumsList());
-      }
-    }
-  }, [searchText]);
-
-  const filterSearchSuggestions = () => {
-    if (searchText.trim().length === 0) {
-      var filteredExampleSearchTerms = [];
-      var filteredSuggestedPeople = [];
-      var filteredSuggestedPlaces = [];
-      var filteredSuggestedThings = [];
-      var filteredSuggestedUserAlbums = [];
-    } else {
-      filteredExampleSearchTerms = exampleSearchTerms.filter(el =>
-        fuzzy_match(el.toLowerCase(), searchText.toLowerCase())
-      );
-      filteredSuggestedPeople = people.filter(person =>
-        fuzzy_match(person.text.toLowerCase(), searchText.toLowerCase())
-      );
-      filteredSuggestedPlaces = albumsPlaceList.filter(place =>
-        fuzzy_match(place.title.toLowerCase(), searchText.toLowerCase())
-      );
-      filteredSuggestedThings = albumsThingList.filter(thing =>
-        fuzzy_match(thing.title.toLowerCase(), searchText.toLowerCase())
-      );
-      filteredSuggestedUserAlbums = albumsUserList.filter(album =>
-        fuzzy_match(album.title.toLowerCase(), searchText.toLowerCase())
-      );
-    }
-    setFilteredExampleSearchTerms(filteredExampleSearchTerms);
-    setFilteredSuggestedPeople(filteredSuggestedPeople);
-    setFilteredSuggestedPlaces(filteredSuggestedPlaces);
-    setFilteredSuggestedThings(filteredSuggestedThings);
-    setFilteredSuggestedUserAlbums(filteredSuggestedUserAlbums);
-  };
-
-  const handleChange = d => {
-    setSearchText(d.currentTarget.value);
-
-    filterSearchSuggestions();
-  };
-
-  const searchBarWidth = width - width / 2.2;
+    return () => clearInterval(interval);
+  }, [t, searchExamples]);
 
   return (
-    <Menu width={searchBarWidth}>
-      <Menu.Target>
-        <TextInput
-          icon={<Search size={14} />}
-          onKeyPress={event => {
-            switch (event.key) {
-              case "Enter":
-                dispatch(searchPhotos(searchText));
-                dispatch(push("/search"));
-                break;
-              default:
-                break;
-            }
-          }}
-          onChange={handleChange}
-          placeholder={exampleSearchTerm}
-        />
-      </Menu.Target>
-
-      {searchText && <Menu.Dropdown>
-      {filteredExampleSearchTerms.length > 0 &&
-        filteredExampleSearchTerms.slice(0, 2).map(el => (
-          <Menu.Item
-            component={Link}
-            to="/search"
-            icon={<Search size={14} />}
-            key={`suggestion_${el}`}
+    <Autocomplete
+      width={searchBarWidth}
+      data={searchSuggestions}
+      icon={<Search size={14} className={classes.icon} />}
+      placeholder={searchPlaceholder}
+      itemComponent={SearchSuggestionItem}
+      limit={8}
+      value={value}
+      onChange={e => filterSearch(e)}
+      onItemSubmit={e => search(e)}
+      onKeyPress={e => onKeyPress(e)}
+      rightSection={
+        value ? (
+          <X
+            className={classes.clear}
+            size={13}
             onClick={() => {
-              dispatch(searchPhotos(el));
-              dispatch(searchPeople(el));
-              dispatch(searchThingAlbums(el));
-              dispatch(searchPlaceAlbums(el));
+              setValue("");
+              filterSearch();
             }}
-          >
-            {el}
-          </Menu.Item>
-        ))}
-      {filteredSuggestedUserAlbums.length > 0 &&
-        filteredSuggestedUserAlbums.slice(0, 2).map(album => (
-          <Menu.Item
-            component={Link}
-            to={`/useralbum/${album.id}`}
-            icon={<Album size={14} />}
-            key={`suggestion_place_${album.title}`}
-          >
-            {album.title}
-          </Menu.Item>
-        ))}
-      {filteredSuggestedPlaces.length > 0 &&
-        filteredSuggestedPlaces.slice(0, 2).map(place => (
-          <Menu.Item
-            component={Link}
-            to={`/place/${place.id}`}
-            icon={<Map size={14} />}
-            key={`suggestion_place_${place.title}`}
-          >
-            {place.title}
-          </Menu.Item>
-        ))}
-      {filteredSuggestedThings.length > 0 &&
-        filteredSuggestedThings.slice(0, 2).map(thing => (
-          <Menu.Item
-            component={Link}
-            to={`/thing/${thing.id}`}
-            icon={<Tag size={14} />}
-            key={`suggestion_thing_${thing.title}`}
-          >
-            {thing.title}
-          </Menu.Item>
-        ))}
-      {filteredSuggestedPeople.length > 0 && (
-        <Group>
-          {filteredSuggestedPeople.map(person => (
-            <PersonAvatar person={person} key={`suggestion_person_${person.text}`} />
-          ))}
-        </Group>
-      )}
-      {albumsThingList.length == 0 && searchText.length > 0 && (
-        <Menu.Item icon={<Search size={14} />}>
-          <Group>
-            <Loader size={14} />
-            {t("search.loading")}
-          </Group>
-        </Menu.Item>
-      )}
-      </Menu.Dropdown>}
-    </Menu>
+          />
+        ) : null
+      }
+    />
   );
-};
-
-const PersonAvatar = ({ person }) => {
-  const [opened, setOpened] = useState(false);
-
-  return (
-    <Popover
-      opened={opened}
-      onClose={() => setOpened(false)}
-      withArrow
-      position="bottom"
-    >
-      <Popover.Target>
-        <Avatar
-          component={Link}
-          to={`/person/${person.key}`}
-          onMouseEnter={() => setOpened(true)}
-          onMouseLeave={() => setOpened(false)}
-          key={`suggestion_person_${person.key}`}
-          size={50}
-          radius="xl"
-          src={serverAddress + person.face_url}
-        />
-      </Popover.Target>
-
-      <Popover.Dropdown>
-        {person.text}
-      </Popover.Dropdown>
-    </Popover>
-  );
-};
+}
