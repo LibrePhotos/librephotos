@@ -232,6 +232,10 @@ export function Profile() {
                   label: t("settings.simplifiedchinese"),
                 },
                 {
+                  value: "zh_Hant",
+                  label: t("settings.traditionalchinese"),
+                },
+                {
                   value: "ru",
                   label: t("settings.russian"),
                 },

@@ -21,6 +21,7 @@ import translationSv from "./locales/sv/translation.json";
 import translationUK from "./locales/uk/translation.json";
 import translationVi from "./locales/vi/translation.json";
 import translationZh_Hans from "./locales/zh_Hans/translation.json";
+import translationZh_Hant from "./locales/zh_Hant/translation.json";
 
 const resources = {
   en: {
@@ -40,6 +41,9 @@ const resources = {
   },
   nb_NO: {
     translation: translationNb_NO,
+  },
+  zh_Hant: {
+    translation: translationZh_Hant,
   },
   zh_Hans: {
     translation: translationZh_Hans,
