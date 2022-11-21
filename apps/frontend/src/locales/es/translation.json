@@ -143,7 +143,10 @@
             "titlesetpassword": "Establecer contraseña"
         },
         "inferredfacesconfidencehelp": "Ingrese un nivel de confianza entre 0 y 1. Para álbumes que muestren una persona, aparecerán rostros inferidos con un nivel de confianza superior a este valor.",
-        "inferredfacesconfidence": "Confianza de caras deducidas"
+        "inferredfacesconfidence": "Confianza de caras deducidas",
+        "traditionalchinese": "Chino (Tradicional)",
+        "ukrainian": "Ucraniano",
+        "vietnamese": "Vietnamita"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de escaneo de Nextcloud",
