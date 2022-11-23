@@ -142,7 +142,10 @@
         "helptranslating": "Pomóż w tłumaczeniu",
         "missingphotosbutton": "Usuń brakujące zdjęcia",
         "eventalbumsgenerate": "Wygeneruj albumy wydarzeń",
-        "dutch": "Holenderski"
+        "dutch": "Holenderski",
+        "traditionalchinese": "Chiński (tradycyjny)",
+        "ukrainian": "Ukraiński",
+        "vietnamese": "Wietnamski"
     },
     "topmenu": {
         "loggedin": "Zalogowany jako",
@@ -288,7 +291,11 @@
             "cancel": "Anuluj",
             "scene": "Sceneria",
             "submit": "Prześlij",
-            "editdatetime": "Edycja daty i godziny"
+            "editdatetime": "Edycja daty i godziny",
+            "undotimestampmodification": "Cofnij modyfikację sygnatury czasowej",
+            "withouttimestamp": "Bez znacznika czasu",
+            "invalidtimestamp": "Nieprawidłowy znacznik czasu",
+            "removetimestamp": "Usuwanie sygnatury czasowej"
         }
     },
     "joblist": {
@@ -489,7 +496,9 @@
         "explanationadding": "Dodaj do istniejącego identyfikatora twarzy lub utwórz nowy identyfikator",
         "explanationdeleting": "Usuń twarz i jej miniatury",
         "explanationvalidate": "Potwierdź, że wszystkie twarze z tej grupy należą do tej samej osoby i dodaj je do odpowiedniego identyfikatora twarzy",
-        "notthisperson": "Przesuń twarze z powrotem do \"Nieznany - Inny\""
+        "notthisperson": "Przesuń twarze z powrotem do \"Nieznany - Inny\"",
+        "sortbyconfidence": "Pewność",
+        "sortby": "Sortuj według"
     },
     "scan": "Skanuj",
     "placealbum": {
