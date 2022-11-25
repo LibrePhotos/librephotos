@@ -498,7 +498,8 @@
         "explanationvalidate": "Potwierdź, że wszystkie twarze z tej grupy należą do tej samej osoby i dodaj je do odpowiedniego identyfikatora twarzy",
         "notthisperson": "Przesuń twarze z powrotem do \"Nieznany - Inny\"",
         "sortbyconfidence": "Pewność",
-        "sortby": "Sortuj według"
+        "sortby": "Sortuj według",
+        "sortbydate": "Data"
     },
     "scan": "Skanuj",
     "placealbum": {
