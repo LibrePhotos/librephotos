@@ -132,6 +132,51 @@
     "modalalbum": {
         "title": "Добавить в Альбом",
         "alreadyexists": "Альбом {{title}} уже существует.",
-        "selectedimages": "Добавить выбранные ({{count}}) фотографии в..."
+        "selectedimages": "Добавить выбранные фотографии ({{count}}) в...",
+        "updated": "Обновлено {{duration}}",
+        "placeholder": "Название альбома",
+        "create": "Создать",
+        "items": "{{count}} элементов"
+    },
+    "topmenu": {
+        "profile": "Профиль",
+        "library": "Библиотека",
+        "settings": "Настройки",
+        "adminarea": "Кабинет администратора",
+        "logout": "Выйти"
+    },
+    "sidemenu": {
+        "autoalbums": "Автоматически созданные альбомы",
+        "sharedwithyou": "Поделились с вами",
+        "timeline": "Хронология",
+        "youshared": "Вы поделились",
+        "favorites": "Избранное",
+        "mypublicphotos": "Мои общедоступные фото",
+        "photos": "Фото",
+        "albums": "Альбомы",
+        "people": "Люди",
+        "places": "Места",
+        "things": "Объекты",
+        "myalbums": "Мои альбомы",
+        "dataviz": "Визуализация данных",
+        "placetree": "Дерево мест",
+        "wordclouds": "Облака слов",
+        "socialgraph": "Социальный граф",
+        "facecluster": "Скопления внешностей",
+        "datavizsmall": "Данные",
+        "facerecognition": "Лица",
+        "library": "Библиотека",
+        "name": "LibrePhotos",
+        "dashboards": "Панель управления",
+        "publicphotos": "Общедоступные фото",
+        "sharing": "Общий доступ"
+    },
+    "metadata": "Параметры метаданных",
+    "modalnextcloud": {
+        "notset": "не установлена",
+        "update": "Обновить",
+        "cancel": "Отмена",
+        "currentdirectory": "Текущая директория Nextcloud",
+        "setdirectory": "Установить директорию Nextcloud"
     }
 }
