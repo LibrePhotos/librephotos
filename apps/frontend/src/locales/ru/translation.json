@@ -136,7 +136,8 @@
         "updated": "Обновлено {{duration}}",
         "placeholder": "Название альбома",
         "create": "Создать",
-        "items": "{{count}} элементов"
+        "items": "{{count}} элементов",
+        "newalbum": "Новый альбом"
     },
     "topmenu": {
         "profile": "Профиль",
