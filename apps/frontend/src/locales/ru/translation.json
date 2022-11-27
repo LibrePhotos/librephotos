@@ -93,7 +93,9 @@
         "helptranslating": "Помочь с переводом",
         "confidencepercentage": "Уверенность: {{percentage}}%",
         "confidence": {
-            "standard": "Обычный"
+            "standard": "Обычный",
+            "high": "Высокий",
+            "low": "Низкий"
         }
     }
 }
