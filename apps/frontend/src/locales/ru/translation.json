@@ -109,6 +109,7 @@
             "top100": "Топ 100",
             "top50": "Топ 50"
         },
-        "semanticsearchupdate": "Обновить"
+        "semanticsearchupdate": "Обновить",
+        "favorite": "Настройки избранного"
     }
 }
