@@ -119,6 +119,14 @@
         "sync": "Сохранять метаданные на диск",
         "favoritesyncoptions": {
             "off": "Отключить"
+        },
+        "password": {
+            "errormustmatch": "Пароли должны совпадать",
+            "errorcannotbeblank": "Пароль не может быть пустым",
+            "errormustretype": "Введите тот же пароль во второе поле",
+            "titlechangepassword": "Изменить пароль",
+            "titlesetpassword": "Установить пароль",
+            "tooltipeditbutton": "Нажмите, чтобы изменить пароль"
         }
     },
     "modalalbum": {
