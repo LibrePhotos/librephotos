@@ -88,6 +88,12 @@
         "nextcloudpasswordplaceholder": "Пароль Nextcloud",
         "nextcloudupdate": "Обновить учетные данные Nextcloud",
         "nextcloudscandirectory": "Сканируемый каталог для Nextcloud",
-        "nextcloudloggedin": "Вход в Nextcloud"
+        "nextcloudloggedin": "Вход в Nextcloud",
+        "confidencelevel": "Уровень уверенности",
+        "helptranslating": "Помочь с переводом",
+        "confidencepercentage": "Уверенность: {{percentage}}%",
+        "confidence": {
+            "standard": "Обычный"
+        }
     }
 }
