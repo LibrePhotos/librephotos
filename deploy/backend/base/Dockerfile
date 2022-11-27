@@ -7,7 +7,9 @@ RUN apt-get update \
   && apt-get install -y python3-pip python3-dev \
   && cd /usr/local/bin \
   && ln -s /usr/bin/python3 python \
-  && pip3 install --upgrade pip
+  && pip3 install --upgrade pip \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
 
 # system packages installation
 RUN apt-get update && \
@@ -66,7 +68,8 @@ RUN git clone https://github.com/LibRaw/LibRaw && \
 	autoreconf --install && \
 	./configure && \
 	make && \
-	make install
+	make install && \
+        rm -rf /tmp/builds/*
 
 #Build and install imagemagick
 WORKDIR /tmp/builds
@@ -75,7 +78,8 @@ RUN curl -SL https://imagemagick.org/archive/releases/ImageMagick-${IMAGEMAGICK_
 	cd ImageMagick-${IMAGEMAGICK_VERSION} && \
 	./configure --with-modules && \
 	make install && \
-	ldconfig /usr/local/lib
+	ldconfig /usr/local/lib && \
+        rm -rf /tmp/builds/*
 
 # Build and install libvips
 WORKDIR /tmp/builds
@@ -85,4 +89,5 @@ RUN curl -SL https://github.com/libvips/libvips/releases/download/v${VIPSVERSION
 	&& ./configure \ 
 	&& make V=0 \ 
 	&& make install \ 
-	&& ldconfig
+        && ldconfig \
+        && rm -rf /tmp/builds/*
