@@ -60,7 +60,7 @@ class Command(BaseCommand):
 
     def nextcloud_scan(self):
         for user in User.objects.all():
-            if not user.scan_directory:
+            if not user.nextcloud_scan_directory:
                 print(
                     f"Skipping nextcloud scan for user {user.username}. No scan directory configured."
                 )
