@@ -1,15 +1,14 @@
 import { LEFT_MENU_WIDTH } from "../ui-constants";
 
-export default function reducer(
-  state = {
-    showSidebar: true,
-    showLightbox: false,
-    contentWidth: window.innerWidth - 20,
-    gridType: "loose",
-    error: null,
-  },
-  action
-) {
+const initialState = {
+  showSidebar: true,
+  showLightbox: false,
+  contentWidth: window.innerWidth - 20,
+  gridType: "loose",
+  error: null,
+};
+
+export default function reducer(state = initialState, action) {
   switch (action.type) {
     case "TOGGLE_SIDEBAR": {
       const showSidebar = !state.showSidebar;
@@ -37,6 +36,9 @@ export default function reducer(
     case "SET_GRID_TYPE": {
       return { ...state, gridType: action.payload };
     }
+
+    case "auth/logout":
+      return { ...initialState };
 
     default: {
       return { ...state };

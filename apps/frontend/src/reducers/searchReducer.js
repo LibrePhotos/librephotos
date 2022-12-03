@@ -1,23 +1,22 @@
 import { SEARCH_EMPTY_QUERY_ERROR, SEARCH_PHOTOS, SEARCH_PHOTOS_REJECTED } from "../actions/searchActions";
 
-export default function reducer(
-  state = {
-    searchPeopleRes: [],
-    searchPlaceAlbumsRes: [],
-    searchThingAlbumsRes: [],
+const initialState = {
+  searchPeopleRes: [],
+  searchPlaceAlbumsRes: [],
+  searchThingAlbumsRes: [],
 
-    searchingPeople: false,
-    searchedPeople: false,
-    searchingThingAlbums: false,
-    searchedThingAlbums: false,
-    searchingPlaceAlbums: false,
-    searchedPlaceAlbums: false,
+  searchingPeople: false,
+  searchedPeople: false,
+  searchingThingAlbums: false,
+  searchedThingAlbums: false,
+  searchingPlaceAlbums: false,
+  searchedPlaceAlbums: false,
 
-    error: null,
-    query: "",
-  },
-  action
-) {
+  error: null,
+  query: "",
+};
+
+export default function reducer(state = initialState, action) {
   switch (action.type) {
     case SEARCH_EMPTY_QUERY_ERROR: {
       return { ...state, error: "Search query cannot be empty!" };
@@ -75,6 +74,9 @@ export default function reducer(
     case "SEARCH_PLACE_ALBUMS_REJECTED": {
       return { ...state, searchingPlaceAlbums: false, error: action.payload };
     }
+
+    case "auth/logout":
+      return { ...initialState };
 
     default: {
       return { ...state };

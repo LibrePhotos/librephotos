@@ -1,17 +1,16 @@
-export default function reducer(
-  state = {
-    userDetails: {},
-    fetchingUserDetails: false,
-    fetchedUserDetails: false,
-    defaultRules: undefined,
-    userSelfDetails: {},
-    fetchingUserSelfDetails: false,
-    fetchedUserSelfDetails: false,
+const initialState = {
+  userDetails: {},
+  fetchingUserDetails: false,
+  fetchedUserDetails: false,
+  defaultRules: undefined,
+  userSelfDetails: {},
+  fetchingUserSelfDetails: false,
+  fetchedUserSelfDetails: false,
 
-    error: null,
-  },
-  action
-) {
+  error: null,
+};
+
+export default function reducer(state = initialState, action) {
   switch (action.type) {
     case "FETCH_USER_SELF_DETAILS": {
       return { ...state, fetchingUserSelfDetails: true };
@@ -56,6 +55,9 @@ export default function reducer(
         defaultRules: JSON.parse(action.payload ? action.payload : "[]"),
       };
     }
+
+    case "auth/logout":
+      return { ...initialState };
 
     default: {
       return { ...state };

@@ -1,68 +1,66 @@
 import { FETCH_USER_ALBUM_FULFILLED, FETCH_USER_ALBUM_REJECTED } from "../actions/albumsActions";
 
-export default function reducer(
-  state = {
-    albumsUserList: [],
-    fetchingAlbumsUserList: false,
-    fetchedAlbumsUserList: false,
+const initialState = {
+  albumsUserList: [],
+  fetchingAlbumsUserList: false,
+  fetchedAlbumsUserList: false,
 
-    albumDetails: {},
+  albumDetails: {},
 
-    fetchingAlbumsPeople: false,
-    fetchedAlbumsPeople: false,
+  fetchingAlbumsPeople: false,
+  fetchedAlbumsPeople: false,
 
-    albumsAuto: [],
-    fetchingAlbumsAuto: false,
-    fetchedAlbumsAuto: false,
+  albumsAuto: [],
+  fetchingAlbumsAuto: false,
+  fetchedAlbumsAuto: false,
 
-    generatingAlbumsAuto: false,
-    generatedAlbumsAuto: false,
+  generatingAlbumsAuto: false,
+  generatedAlbumsAuto: false,
 
-    albumsAutoList: [],
-    fetchingAlbumsAutoList: false,
-    fetchedAlbumsAutoList: false,
+  albumsAutoList: [],
+  fetchingAlbumsAutoList: false,
+  fetchedAlbumsAutoList: false,
 
-    albumsAutoGalleries: {},
-    fetchingAlbumsAutoGalleries: false,
-    fetchedAlbumsAutoGalleries: false,
+  albumsAutoGalleries: {},
+  fetchingAlbumsAutoGalleries: false,
+  fetchedAlbumsAutoGalleries: false,
 
-    albumsDateList: [],
-    fetchingAlbumsDateList: false,
-    fetchedAlbumsDateList: false,
+  albumsDateList: [],
+  fetchingAlbumsDateList: false,
+  fetchedAlbumsDateList: false,
 
-    albumsDateGalleries: {},
-    fetchingAlbumsDateGalleries: false,
-    fetchedAlbumsDateGalleries: false,
+  albumsDateGalleries: {},
+  fetchingAlbumsDateGalleries: false,
+  fetchedAlbumsDateGalleries: false,
 
-    albumsThingList: [],
-    fetchingAlbumsThingList: false,
-    fetchedAlbumsThingList: false,
+  albumsThingList: [],
+  fetchingAlbumsThingList: false,
+  fetchedAlbumsThingList: false,
 
-    albumsPlaceList: [],
-    albumsPlaceListGroupedByGeolocationLevel: {},
-    fetchingAlbumsPlaceList: false,
-    fetchedAlbumsPlaceList: false,
+  albumsPlaceList: [],
+  albumsPlaceListGroupedByGeolocationLevel: {},
+  fetchingAlbumsPlaceList: false,
+  fetchedAlbumsPlaceList: false,
 
-    albumsPlace: {},
-    fetchingAlbumsPlace: false,
-    fetchedAlbumsPlace: false,
+  albumsPlace: {},
+  fetchingAlbumsPlace: false,
+  fetchedAlbumsPlace: false,
 
-    albumsThing: {},
-    fetchingAlbumsThing: false,
-    fetchedAlbumsThing: false,
+  albumsThing: {},
+  fetchingAlbumsThing: false,
+  fetchedAlbumsThing: false,
 
-    albumsSharedToMe: [],
-    fetchingAlbumsSharedToMe: false,
-    fetchedAlbumsSharedToMe: false,
+  albumsSharedToMe: [],
+  fetchingAlbumsSharedToMe: false,
+  fetchedAlbumsSharedToMe: false,
 
-    albumsSharedFromMe: [],
-    fetchingAlbumsSharedFromMe: false,
-    fetchedAlbumsSharedFromMe: false,
+  albumsSharedFromMe: [],
+  fetchingAlbumsSharedFromMe: false,
+  fetchedAlbumsSharedFromMe: false,
 
-    error: null,
-  },
-  action
-) {
+  error: null,
+};
+export default function reducer(state = initialState, action) {
   let new_album;
   switch (action.type) {
     case "FETCH_ALBUMS_SHARED_TO_ME": {
@@ -310,6 +308,9 @@ export default function reducer(
         albumsAutoList: new_album_list,
       };
     }
+
+    case "auth/logout":
+      return { ...initialState };
 
     default: {
       return { ...state };

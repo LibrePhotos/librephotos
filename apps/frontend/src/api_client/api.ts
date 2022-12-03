@@ -3,6 +3,7 @@ import type { BaseQueryFn, FetchArgs } from "@reduxjs/toolkit/query/react";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Cookies } from "react-cookie";
 
+import type { BaseQueryResult } from "@reduxjs/toolkit/dist/query/baseQueryTypes";
 import type { IJobRequestSchema, IJobsResponseSchema } from "../actions/utilActions.types";
 import type { IApiDeleteUserPost, IApiLoginPost, IApiLoginResponse, IApiUserSignUpPost } from "../store/auth/auth.zod";
 // eslint-disable-next-line import/no-cycle
@@ -27,6 +28,7 @@ import { UploadExistResponse, UploadResponse } from "../store/upload/upload.zod"
 import type { IApiUserListResponse, IManageUser, IUser } from "../store/user/user.zod";
 import { ManageUser, UserSchema } from "../store/user/user.zod";
 import type { IJobDetailSchema, IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
+import {Server} from "./apiClient";
 
 export enum Endpoints {
   login = "login",
@@ -116,7 +118,7 @@ export const api = createApi({
       query: body => ({
         method: "PATCH",
         body: body,
-        url: "/manage/user/" + body.id + "/",
+        url: `/manage/user/${body.id}/`,
       }),
       transformResponse: response => ManageUser.parse(response),
       invalidatesTags: ["UserList"],
@@ -125,7 +127,7 @@ export const api = createApi({
       query: body => ({
         method: "DELETE",
         body: body,
-        url: "/delete/user/" + body.id,
+        url: `/delete/user/${body.id}`,
       }),
       invalidatesTags: ["UserList"],
     }),
@@ -135,6 +137,10 @@ export const api = createApi({
         method: "POST",
         body: body,
       }),
+      transformResponse: (result: BaseQueryResult<any>) => {
+        Server.defaults.headers.common.Authorization = `Bearer ${result.access}`
+        return result;
+      }
     }),
     [Endpoints.fetchPredefinedRules]: builder.query<any[], void>({
       query: () => "/predefinedrules/",
