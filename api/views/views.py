@@ -3,8 +3,8 @@ import os
 import subprocess
 import uuid
 import zipfile
-import jsonschema
 
+import jsonschema
 import magic
 from constance import config as site_config
 from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
@@ -23,10 +23,10 @@ from api.api_util import get_search_term_examples
 from api.autoalbum import delete_missing_photos
 from api.directory_watcher import scan_photos
 from api.models import AlbumUser, Photo, User
+from api.schemas.site_settings import site_settings_schema
 from api.serializers.album_user import AlbumUserEditSerializer, AlbumUserListSerializer
 from api.util import logger
 from api.views.pagination import StandardResultsSetPagination
-from api.schemas.site_settings import site_settings_schema
 
 
 def custom_exception_handler(exc, context):

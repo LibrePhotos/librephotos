@@ -12,6 +12,6 @@ site_settings_schema = {
         "allow_upload": {"type": "boolean"},
         "skip_patterns": {"type": "string"},
         "heavyweight_process": {"type": "number"},
-        "map_api_key": {"type": "string"}
-    }
+        "map_api_key": {"type": "string"},
+    },
 }
