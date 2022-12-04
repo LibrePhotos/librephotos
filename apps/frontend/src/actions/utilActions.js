@@ -17,7 +17,6 @@ import {
   LocationTimeline,
   PhotoMonthCount,
   SearchTermExamples,
-  SiteSettings,
   WordCloudResponse,
 } from "./utilActions.types";
 
