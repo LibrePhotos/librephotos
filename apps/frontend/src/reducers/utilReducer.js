@@ -1,76 +1,75 @@
-export default function reducer(
-  state = {
-    siteSettings: {
-      allow_registration: false,
-      allow_upload: false,
-      skip_patterns: "",
-      heavyweight_process: 1,
-      map_api_key: "",
-    },
-    fetchingSiteSettings: false,
-    fetchedSiteSettings: false,
-
-    countStats: {},
-    fetchingCountStats: false,
-    fetchedCountStats: false,
-
-    photoMonthCounts: [],
-    fetchingPhotoMonthCounts: false,
-    fetchedPhotoMonthCounts: false,
-
-    statusPhotoScan: { status: true },
-    statusAutoAlbumProcessing: { status: true },
-
-    generatingAutoAlbums: false,
-
-    deleteMissingPhotos: false,
-
-    locationClusters: [],
-    fetchingLocationClusters: false,
-    fetchedLocationClusters: false,
-
-    wordCloud: {},
-    fetchingWordCloud: false,
-    fetchedWordCloud: false,
-
-    exampleSearchTerms: [],
-    fetchingExampleSearchTerms: false,
-    fetchedExampleSearchTerms: false,
-
-    locationSunburst: { name: "Loading..." },
-    fetchingLocationSunburst: false,
-    fetchedLocationSunburst: false,
-
-    locationTimeline: [],
-    fetchingLocationTimeline: false,
-    fetchedLocationTimeline: false,
-
-    workerAvailability: false,
-    workerRunningJob: null,
-
-    userList: [],
-    fetchingUserList: false,
-    fetchedUserList: false,
-
-    directoryTree: [],
-    fetchingDirectoryTree: false,
-    fetchedDirectoryTree: false,
-
-    nextcloudDirectoryTree: [],
-    fetchingNextcloudDirectoryTree: false,
-    fetchedNextcloudDirectoryTree: false,
-
-    jobList: [],
-    jobCount: 0,
-    fetchingJobList: false,
-    fetchedJobList: false,
-
-    error: null,
-    fetchingTimezones: false,
-    timezoneList: [],
+const initialState = {
+  siteSettings: {
+    allow_registration: false,
+    allow_upload: false,
+    skip_patterns: "",
+    heavyweight_process: 1,
+    map_api_key: "",
   },
-  action
-) {
+  fetchingSiteSettings: false,
+  fetchedSiteSettings: false,
+
+  countStats: {},
+  fetchingCountStats: false,
+  fetchedCountStats: false,
+
+  photoMonthCounts: [],
+  fetchingPhotoMonthCounts: false,
+  fetchedPhotoMonthCounts: false,
+
+  statusPhotoScan: { status: true },
+  statusAutoAlbumProcessing: { status: true },
+
+  generatingAutoAlbums: false,
+
+  deleteMissingPhotos: false,
+
+  locationClusters: [],
+  fetchingLocationClusters: false,
+  fetchedLocationClusters: false,
+
+  wordCloud: {},
+  fetchingWordCloud: false,
+  fetchedWordCloud: false,
+
+  exampleSearchTerms: [],
+  fetchingExampleSearchTerms: false,
+  fetchedExampleSearchTerms: false,
+
+  locationSunburst: { name: "Loading..." },
+  fetchingLocationSunburst: false,
+  fetchedLocationSunburst: false,
+
+  locationTimeline: [],
+  fetchingLocationTimeline: false,
+  fetchedLocationTimeline: false,
+
+  workerAvailability: false,
+  workerRunningJob: null,
+
+  userList: [],
+  fetchingUserList: false,
+  fetchedUserList: false,
+
+  directoryTree: [],
+  fetchingDirectoryTree: false,
+  fetchedDirectoryTree: false,
+
+  nextcloudDirectoryTree: [],
+  fetchingNextcloudDirectoryTree: false,
+  fetchedNextcloudDirectoryTree: false,
+
+  jobList: [],
+  jobCount: 0,
+  fetchingJobList: false,
+  fetchedJobList: false,
+
+  error: null,
+  fetchingTimezones: false,
+  timezoneList: [],
+};
+
+export default function reducer(state = initialState, action) {
   switch (action.type) {
     case "FETCH_JOB_LIST": {
       return {
@@ -383,6 +382,9 @@ export default function reducer(
         statusAutoAlbumProcessing: action.payload,
       };
     }
+
+    case "auth/logout":
+      return { ...initialState };
 
     default: {
       return { ...state };

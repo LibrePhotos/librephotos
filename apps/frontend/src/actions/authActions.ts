@@ -73,6 +73,6 @@ export function refreshAccessToken(token: any, dispatch: AppDispatch) {
 }
 
 export function logout(dispatch: AppDispatch) {
-  dispatch({ type: "LOGOUT" });
+  dispatch({ type: "auth/logout" });
 }
 export {};

@@ -1,17 +1,16 @@
-export default function reducer(
-  state = {
-    people: [],
-    socialGraph: {},
-    fetching: false,
-    fetched: false,
-    adding: false,
-    added: false,
-    error: null,
-    fetchingSocialGraph: false,
-    fetchedSocialGraph: false,
-  },
-  action
-) {
+const initialState = {
+  people: [],
+  socialGraph: {},
+  fetching: false,
+  fetched: false,
+  adding: false,
+  added: false,
+  error: null,
+  fetchingSocialGraph: false,
+  fetchedSocialGraph: false,
+};
+
+export default function reducer(state = initialState, action) {
   switch (action.type) {
     case "FETCH_PEOPLE": {
       return { ...state, fetching: true };
@@ -66,6 +65,9 @@ export default function reducer(
         socialGraph: action.payload,
       };
     }
+
+    case "auth/logout":
+      return { ...initialState };
 
     default: {
       return { ...state };

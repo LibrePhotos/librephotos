@@ -350,9 +350,10 @@ export default function photosReducer(state = initialPhotosState, action: AnyAct
     case FETCH_USER_ALBUM_REJECTED: {
       return resetPhotos(state, action.payload);
     }
-    case "LOGOUT": {
-      return resetPhotos(state, action.payload);
-    }
+
+    case "auth/logout":
+      return { ...initialPhotosState };
+
     default: {
       return { ...state };
     }

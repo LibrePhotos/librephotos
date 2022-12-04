@@ -1,11 +1,13 @@
-export default function reducer(
-  state = {
-    publicUserList: [],
-    fetchingPublicUserList: false,
-    fetchedPublicUserList: false,
+const initialState = {
+  publicUserList: [],
+  fetchingPublicUserList: false,
+  fetchedPublicUserList: false,
 
-    error: null,
-  },
+  error: null,
+};
+
+export default function reducer(
+  state = initialState,
   action
 ) {
   switch (action.type) {
@@ -23,6 +25,9 @@ export default function reducer(
         publicUserList: action.payload,
       };
     }
+
+    case "auth/logout":
+      return { ...initialState };
 
     default: {
       return { ...state };
