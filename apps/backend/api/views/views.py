@@ -3,6 +3,7 @@ import os
 import subprocess
 import uuid
 import zipfile
+import jsonschema
 
 import magic
 from constance import config as site_config
@@ -25,6 +26,7 @@ from api.models import AlbumUser, Photo, User
 from api.serializers.album_user import AlbumUserEditSerializer, AlbumUserListSerializer
 from api.util import logger
 from api.views.pagination import StandardResultsSetPagination
+from api.schemas.site_settings import site_settings_schema
 
 
 def custom_exception_handler(exc, context):
@@ -81,6 +83,7 @@ class SiteSettingsView(APIView):
         return Response(out)
 
     def post(self, request, format=None):
+        jsonschema.validate(request.data, site_settings_schema)
         if "allow_registration" in request.data.keys():
             site_config.ALLOW_REGISTRATION = request.data["allow_registration"]
         if "allow_upload" in request.data.keys():
@@ -88,16 +91,7 @@ class SiteSettingsView(APIView):
         if "skip_patterns" in request.data.keys():
             site_config.SKIP_PATTERNS = request.data["skip_patterns"]
         if "heavyweight_process" in request.data.keys():
-            HEAVYWEIGHT_PROCESS_ENV = request.data["heavyweight_process"]
-            HEAVYWEIGHT_PROCESS = (
-                int(HEAVYWEIGHT_PROCESS_ENV)
-                if HEAVYWEIGHT_PROCESS_ENV.isnumeric()
-                else 1
-            )
-            site_config.HEAVYWEIGHT_PROCESS = HEAVYWEIGHT_PROCESS
-        if "map_api_key" in request.data.keys():
-            site_config.MAP_API_KEY = request.data["map_api_key"]
-
+            site_config.HEAVYWEIGHT_PROCESS = request.data["heavyweight_process"]
         return self.get(request, format=format)
 
 
