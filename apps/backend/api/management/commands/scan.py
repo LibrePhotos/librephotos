@@ -18,7 +18,7 @@ class Command(BaseCommand):
             "-f", "--full-scan", help=("Run full directory scan"), action="store_true"
         )
         parser_group.add_argument(
-            "-s", "--scan-files", help=("Scan a list of files"), nargs='+', default=[]
+            "-s", "--scan-files", help=("Scan a list of files"), nargs="+", default=[]
         )
         parser_group.add_argument(
             "-n",
@@ -45,9 +45,7 @@ class Command(BaseCommand):
                     if scan_file.startswith(user.scan_directory):
                         user_files.append(scan_file)
                 if user_files:
-                    scan_photos(
-                        user, False, uuid.uuid4(), scan_files=user_files
-                    )
+                    scan_photos(user, False, uuid.uuid4(), scan_files=user_files)
             return
 
         # Directory scan
