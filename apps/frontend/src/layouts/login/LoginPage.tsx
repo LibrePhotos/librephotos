@@ -17,7 +17,6 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Lock, User } from "tabler-icons-react";
 
-import { fetchSiteSettings } from "../../actions/utilActions";
 import { useLoginMutation } from "../../api_client/api";
 import { selectIsAuthenticated } from "../../store/auth/authSelectors";
 import { authActions } from "../../store/auth/authSlice";
@@ -47,7 +46,6 @@ export function LoginPage(): JSX.Element {
 
   useEffect(() => {
     dispatch(authActions.clearError());
-    fetchSiteSettings(dispatch);
   }, [dispatch]);
 
   function onSubmit(event: FormEvent<HTMLFormElement>): void {

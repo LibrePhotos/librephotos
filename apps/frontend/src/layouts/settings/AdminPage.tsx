@@ -1,71 +1,20 @@
-import {
-  ActionIcon,
-  Button,
-  Center,
-  Group,
-  Loader,
-  Pagination,
-  Popover,
-  Progress,
-  SimpleGrid,
-  Table,
-  Text,
-  Title,
-} from "@mantine/core";
+import { ActionIcon, Button, Group, Loader, SimpleGrid, Table, Title } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { DateTime } from "luxon";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Adjustments, Edit, Plus, Trash } from "tabler-icons-react";
-import i18n from "../../i18n";
 
 import { deleteAllAutoAlbum } from "../../actions/albumsActions";
-import { deleteJob, fetchSiteSettings } from "../../actions/utilActions";
 import { useFetchUserListQuery } from "../../api_client/api";
 import { JobList } from "../../components/job/JobList";
 import { ModalUserDelete } from "../../components/modals/ModalUserDelete";
 import { ModalUserEdit } from "../../components/modals/ModalUserEdit";
+import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { SiteSettings } from "./SiteSettings";
 
-export function AdminPage () {
-  const dispatch = useAppDispatch();
-  const auth = useAppSelector(state => state.auth);
-  const fetchingUserList = useAppSelector(state => state.util.fetchingUserList);
-  const { t } = useTranslation();
-
-  useEffect(() => {
-    if (auth.access.is_admin) {
-      fetchSiteSettings(dispatch);
-    }
-  }, [auth.access, dispatch]);
-
-  if (!auth.access.is_admin) {
-    return <div>Unauthorized</div>;
-  }
-
-  return (
-    <SimpleGrid cols={1} spacing="xl">
-      <Group spacing="xs">
-        <Adjustments size={35} />
-        <Title order={2}>{t("adminarea.header")}</Title>
-      </Group>
-      <Title order={3}>{t("adminarea.sitesettings")}</Title>
-      <SiteSettings />
-      <Title order={3}>{t("adminarea.admintools")}</Title>
-      <Button onClick={() => dispatch(deleteAllAutoAlbum())}>{t("adminarea.deleteallautoalbums")}</Button>
-      <Title order={3}>
-        {t("adminarea.users")}
-        {fetchingUserList ? <Loader size="xs" /> : null}
-      </Title>
-
-      <UserTable />
-      <JobList />
-    </SimpleGrid>
-  );
-};
-
-function UserTable () {
+function UserTable() {
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState({});
@@ -132,7 +81,13 @@ function UserTable () {
                   <td>{user.scan_directory ? user.scan_directory : t("adminarea.notset")}</td>
                   {matches && <td>{user.confidence ? user.confidence : t("adminarea.notset")}</td>}
                   {matches && <td>{user.photo_count}</td>}
-                  {matches && <td>{DateTime.fromISO(user.date_joined).setLocale(i18n.resolvedLanguage.replace("_", "-")).toRelative()}</td>}
+                  {matches && (
+                    <td>
+                      {DateTime.fromISO(user.date_joined)
+                        .setLocale(i18n.resolvedLanguage.replace("_", "-"))
+                        .toRelative()}
+                    </td>
+                  )}
                 </tr>
               ))
             : null}
@@ -173,4 +128,35 @@ function UserTable () {
       />
     </>
   );
-};
+}
+
+export function AdminPage() {
+  const dispatch = useAppDispatch();
+  const auth = useAppSelector(state => state.auth);
+  const fetchingUserList = useAppSelector(state => state.util.fetchingUserList);
+  const { t } = useTranslation();
+
+  if (!auth.access.is_admin) {
+    return <div>Unauthorized</div>;
+  }
+
+  return (
+    <SimpleGrid cols={1} spacing="xl">
+      <Group spacing="xs">
+        <Adjustments size={35} />
+        <Title order={2}>{t("adminarea.header")}</Title>
+      </Group>
+      <Title order={3}>{t("adminarea.sitesettings")}</Title>
+      <SiteSettings />
+      <Title order={3}>{t("adminarea.admintools")}</Title>
+      <Button onClick={() => dispatch(deleteAllAutoAlbum())}>{t("adminarea.deleteallautoalbums")}</Button>
+      <Title order={3}>
+        {t("adminarea.users")}
+        {fetchingUserList ? <Loader size="xs" /> : null}
+      </Title>
+
+      <UserTable />
+      <JobList />
+    </SimpleGrid>
+  );
+}

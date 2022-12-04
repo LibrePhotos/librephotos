@@ -56,40 +56,6 @@ export function deleteJob(job_id, page = 1, page_size = 10) {
   };
 }
 
-export function setSiteSettings(siteSettings) {
-  return function (dispatch) {
-    dispatch({ type: "SET_SITE_SETTINGS" });
-    Server.post("sitesettings/", siteSettings)
-      .then(response => {
-        const data = SiteSettings.parse(response.data);
-        dispatch({
-          type: "SET_SITE_SETTINGS_FULFILLED",
-          payload: response.data,
-        });
-      })
-      .catch(error => {
-        console.error(error);
-        dispatch({ type: "SET_SITE_SETTINGS_REJECTED", payload: error });
-      });
-  };
-}
-
-export function fetchSiteSettings(dispatch) {
-  dispatch({ type: "FETCH_SITE_SETTINGS" });
-  Server.get("sitesettings/")
-    .then(response => {
-      const data = SiteSettings.parse(response.data);
-      dispatch({
-        type: "FETCH_SITE_SETTINGS_FULFILLED",
-        payload: response.data,
-      });
-    })
-    .catch(error => {
-      console.error(error);
-      dispatch({ type: "FETCH_SITE_SETTINGS_REJECTED", payload: error });
-    });
-}
-
 export function fetchDirectoryTree(path) {
   return function (dispatch) {
     dispatch({ type: "FETCH_DIRECTORY_TREE" });
