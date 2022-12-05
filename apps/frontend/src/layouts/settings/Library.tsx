@@ -28,7 +28,6 @@ import {
   fetchCountStats,
   fetchJobList,
   fetchNextcloudDirectoryTree,
-  fetchSiteSettings,
   generateEventAlbumTitles,
   generateEventAlbums,
   updateUser,
@@ -40,7 +39,7 @@ import { CountStats } from "../../components/statistics";
 import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
-export const Library = () => {
+export function Library() {
   const [isOpen, setIsOpen] = useState(false);
   const [nextcloudAuthStatusPopup, { close: closeNextcloudAuthStatusPopup, open: openNextcloudAuthStatusPopup }] =
     useDisclosure(false);
@@ -90,20 +89,17 @@ export const Library = () => {
 
   useEffect(() => {
     dispatch(fetchCountStats());
-    fetchSiteSettings(dispatch);
     dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id));
     dispatch(fetchNextcloudDirectoryTree("/"));
     if (auth.access.is_admin) {
       dispatch(fetchJobList());
     }
-  }, []);
+  }, [auth.access.is_admin, auth.access.user_id, dispatch]);
 
   useEffect(() => {
     setUserSelfDetails(userSelfDetailsRedux);
   }, [userSelfDetailsRedux]);
 
-  let buttonsDisabled = !workerAvailability;
-  buttonsDisabled = false;
   if (avatarImgSrc === "/unknown_user.jpg") {
     if (userSelfDetails.avatar_url) {
       setAvatarImgSrc(serverAddress + userSelfDetails.avatar_url);
@@ -140,10 +136,10 @@ export const Library = () => {
         >
           <Stack>
             <Title order={5}>
-              {util.countStats.num_photos} <Trans i18nKey="settings.photos">Photos</Trans>
+              {+util.countStats.num_photos} <Trans i18nKey="settings.photos">Photos</Trans>
             </Title>
             <Divider />
-            <Button color="green" onClick={onPhotoScanButtonClick} disabled={buttonsDisabled}>
+            <Button color="green" onClick={onPhotoScanButtonClick} disabled={!workerAvailability}>
               {statusPhotoScan.status && statusPhotoScan.added ? <Loader /> : null}
               {statusPhotoScan.added
                 ? `${t("settings.statusscanphotostrue")}(${statusPhotoScan.added}/${statusPhotoScan.to_add})`
@@ -154,7 +150,7 @@ export const Library = () => {
               onClick={() => {
                 dispatch(scanNextcloudPhotos());
               }}
-              disabled={!fetchedNextcloudDirectoryTree || buttonsDisabled || !userSelfDetails.nextcloud_scan_directory}
+              disabled={!fetchedNextcloudDirectoryTree || !workerAvailability || !userSelfDetails.nextcloud_scan_directory}
               color="blue"
             >
               <Refresh />
@@ -210,7 +206,7 @@ export const Library = () => {
                 </Trans>
               </List.Item>
             </List>
-            <Button color="green" onClick={onPhotoFullScanButtonClick} disabled={buttonsDisabled}>
+            <Button color="green" onClick={onPhotoFullScanButtonClick} disabled={!workerAvailability}>
               {statusPhotoScan.status && statusPhotoScan.added ? <Loader /> : null}
               {statusPhotoScan.added
                 ? `${t("settings.statusrescanphotostrue")}(${statusPhotoScan.added}/${statusPhotoScan.to_add})`
@@ -232,16 +228,16 @@ export const Library = () => {
         >
           <Stack>
             <Title order={5}>
-              {util.countStats.num_missing_photos} <Trans i18nKey="settings.missingphotos">Missing Photos</Trans>
+              {+util.countStats.num_missing_photos} <Trans i18nKey="settings.missingphotos">Missing Photos</Trans>
             </Title>
             <Divider />
-            <Button onClick={open} disabled={false && buttonsDisabled} color="red">
+            <Button onClick={open} disabled={!workerAvailability} color="red">
               <Trash />
               <Trans i18nKey="settings.missingphotosbutton">Remove missing photos</Trans>
             </Button>
             <Modal opened={isOpen} title={t("settings.missingphotosbutton")} onClose={close}>
               <Stack spacing="xl">
-                This action will delete all missing photos and it's metadata from the database.
+                This action will delete all missing photos and it&apos;s metadata from the database.
                 <Group>
                   <Button onClick={close}>Cancel</Button>
                   <Button color="red" onClick={onDeleteMissingPhotosButtonClick}>
@@ -274,10 +270,10 @@ export const Library = () => {
         >
           <Stack>
             <Title order={5}>
-              {util.countStats.num_albumauto} <Trans i18nKey="settings.eventsalbums">Event Albums</Trans>
+              {+util.countStats.num_albumauto} <Trans i18nKey="settings.eventsalbums">Event Albums</Trans>
             </Title>
             <Divider />
-            <Button onClick={onGenerateEventAlbumsButtonClick} disabled={false && buttonsDisabled} color="green">
+            <Button onClick={onGenerateEventAlbumsButtonClick} disabled={!workerAvailability} color="green">
               <RefreshDot />
               <Trans i18nKey="settings.eventalbumsgenerate">Generate Event Albums</Trans>
             </Button>
@@ -294,7 +290,7 @@ export const Library = () => {
               onClick={() => {
                 dispatch(generateEventAlbumTitles());
               }}
-              disabled={false && buttonsDisabled}
+              disabled={!workerAvailability}
               color="green"
             >
               <RefreshDot />
@@ -324,8 +320,8 @@ export const Library = () => {
         >
           <Stack>
             <Title order={5}>
-              {util.countStats.num_faces} <Trans i18nKey="settings.faces">Faces</Trans>, {util.countStats.num_people}{" "}
-              <Trans i18nKey="settings.people">People</Trans>
+              {+util.countStats.num_faces} <Trans i18nKey="settings.faces">Faces</Trans>,
+              {+util.countStats.num_people} <Trans i18nKey="settings.people">People</Trans>
             </Title>
             <Divider />
             <Button
@@ -413,7 +409,7 @@ export const Library = () => {
                 onMouseLeave={closeNextcloudAuthStatusPopup}
                 color={fetchedNextcloudDirectoryTree ? "green" : "red"}
               >
-                <div></div>
+                <div/>
               </Indicator>
               <Trans i18nKey="settings.nextcloudheader">Nextcloud</Trans>
             </Group>
@@ -433,7 +429,7 @@ export const Library = () => {
           value={userSelfDetails.nextcloud_server_address}
           label={t("settings.serveradress")}
           placeholder={t("settings.serveradressplaceholder")}
-        ></TextInput>
+        />
         <Group>
           <TextInput
             onChange={event => {
@@ -442,7 +438,7 @@ export const Library = () => {
             label={t("settings.nextcloudusername")}
             placeholder={t("settings.nextcloudusernameplaceholder")}
             value={userSelfDetails.nextcloud_username}
-          ></TextInput>
+          />
           <TextInput
             onChange={event => {
               setUserSelfDetails({ ...userSelfDetails, nextcloud_app_password: event.currentTarget.value });
@@ -523,4 +519,4 @@ export const Library = () => {
       </Dialog>
     </Stack>
   );
-};
+}

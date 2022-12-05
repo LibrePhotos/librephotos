@@ -6,22 +6,18 @@ import { useDropzone } from "react-dropzone";
 import { Upload } from "tabler-icons-react";
 
 import { scanUploadedPhotos } from "../actions/photosActions";
-import { fetchSiteSettings } from "../actions/utilActions";
 import { api } from "../api_client/api";
+import { useGetSettingsQuery } from "../api_client/site-settings";
 import { useAppDispatch, useAppSelector } from "../store/store";
-import { selectSiteSettings } from "../store/util/utilSelectors";
 
 export function ChunkedUploadButton() {
   const [totalSize, setTotalSize] = useState(1);
   const [currentSize, setCurrentSize] = useState(1);
   const { userSelfDetails } = useAppSelector(state => state.user);
-  const siteSettings = useAppSelector(selectSiteSettings);
+  const { data: settings } = useGetSettingsQuery();
   const dispatch = useAppDispatch();
   const chunkSize = 1000000; // < 1MB chunks, because of default of nginx
 
-  useEffect(() => {
-    fetchSiteSettings(dispatch);
-  }, [dispatch]);
   let currentUploadedFileSize = 0;
 
   const calculateMD5 = async (file: File) => {
@@ -164,7 +160,7 @@ export function ChunkedUploadButton() {
 
   useEffect(() => {}, [currentSize]);
 
-  if (siteSettings.allow_upload) {
+  if (settings?.allow_upload) {
     return (
       <div style={{ width: "50px" }}>
         <div {...getRootProps({ className: "dropzone" })}>

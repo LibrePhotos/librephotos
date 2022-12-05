@@ -14,7 +14,6 @@ import type {
   IDeleteFacesResponse,
   IIncompletePersonFaceListRequest,
   IIncompletePersonFaceListResponse,
-  INotThisPersonRequest,
   IPersonFaceListRequest,
   IPersonFaceListResponse,
   IScanFacesResponse,
@@ -73,7 +72,7 @@ const baseQuery = fetchBaseQuery({
   },
 });
 
-const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
+export const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
   args,
   api,
   extraOptions
@@ -118,7 +117,7 @@ export const api = createApi({
       query: body => ({
         method: "PATCH",
         body: body,
-        url: `/manage/user/${body.id}/`,
+        url: `/manage/user/${body.id}`,
       }),
       transformResponse: response => ManageUser.parse(response),
       invalidatesTags: ["UserList"],
@@ -196,7 +195,7 @@ export const api = createApi({
       }),
     }),
     [Endpoints.fetchFaces]: builder.query<IPersonFaceListResponse, IPersonFaceListRequest>({
-      query: ({ person, page = 0, inferred = false, orderBy = 'confidence' }) => ({
+      query: ({ person, page = 0, inferred = false, orderBy = "confidence" }) => ({
         url: `faces/?person=${person}&page=${page}&inferred=${inferred}&order_by=${orderBy}`,
       }),
     }),

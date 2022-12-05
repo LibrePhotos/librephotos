@@ -7,7 +7,6 @@ import {
   fetchCountStats,
   fetchJobList,
   fetchNextcloudDirectoryTree,
-  fetchSiteSettings,
   fetchTimezoneList,
   updateUser,
 } from "../../actions/utilActions";
@@ -17,7 +16,7 @@ import { ModalNextcloudScanDirectoryEdit } from "../../components/modals/ModalNe
 import { ConfigDatetime } from "../../components/settings/ConfigDatetime";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
-export const Settings = () => {
+export function Settings() {
   const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
   const userSelfDetailsRedux = useAppSelector(state => state.user.userSelfDetails);
   const timezoneListRedux = useAppSelector(state => state.util.timezoneList);
@@ -40,14 +39,13 @@ export const Settings = () => {
 
   useEffect(() => {
     dispatch(fetchCountStats());
-    fetchSiteSettings(dispatch);
     dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id)).refetch();
     dispatch(fetchNextcloudDirectoryTree("/"));
     if (auth.access.is_admin) {
       dispatch(fetchJobList());
     }
     fetchTimezoneList(dispatch);
-  }, []);
+  }, [auth.access.is_admin, auth.access.user_id, dispatch]);
 
   useEffect(() => {
     setTimezoneList(timezoneListRedux);
@@ -92,7 +90,7 @@ export const Settings = () => {
           placeholder={t("settings.semanticsearch.placeholder")}
           value={userSelfDetails.semantic_search_topk}
           onChange={value => {
-            setUserSelfDetails({ ...userSelfDetails, semantic_search_topk: value ? parseInt(value) : 0 });
+            setUserSelfDetails({ ...userSelfDetails, semantic_search_topk: value ? +value : 0 });
           }}
           data={[
             { value: "100", label: t("settings.semanticsearch.top100") },
@@ -110,7 +108,7 @@ export const Settings = () => {
           label={t("settings.sync")}
           value={userSelfDetails.save_metadata_to_disk}
           onChange={value => {
-            setUserSelfDetails({ ...userSelfDetails, save_metadata_to_disk: value ? value : "OFF" });
+            setUserSelfDetails({ ...userSelfDetails, save_metadata_to_disk: value || "OFF" });
           }}
           data={[
             { value: "OFF", label: t("settings.favoritesyncoptions.off") },
@@ -123,7 +121,7 @@ export const Settings = () => {
           value={userSelfDetails.favorite_min_rating}
           placeholder={t("settings.favoriteoption.placeholder")}
           onChange={value => {
-            setUserSelfDetails({ ...userSelfDetails, favorite_min_rating: value ? parseInt(value) : 3 });
+            setUserSelfDetails({ ...userSelfDetails, favorite_min_rating: value ? +value : 3 });
           }}
           data={[
             { value: "1", label: "1" },
@@ -140,7 +138,7 @@ export const Settings = () => {
           searchable
           title={t("timezoneexplain")}
           onChange={value => {
-            setUserSelfDetails({ ...userSelfDetails, default_timezone: value ? value : "UTC" });
+            setUserSelfDetails({ ...userSelfDetails, default_timezone: value || "UTC" });
           }}
           data={timezoneList}
         />
@@ -220,4 +218,4 @@ export const Settings = () => {
       </Dialog>
     </Stack>
   );
-};
+}
