@@ -127,10 +127,10 @@
         "dutch": "néerlandais",
         "profile": "Profil",
         "confidencepercentage": "Confiance : {{percentage}} %",
-        "portuguese": "Portugais",
-        "basque": "Basque",
-        "finnish": "Finnois",
-        "czech": "Tchèque",
+        "portuguese": "portugais",
+        "basque": "basque",
+        "finnish": "finnois",
+        "czech": "tchèque",
         "helptranslating": "Aide à la traduction",
         "password": {
             "errormustmatch": "Les mots de passe doivent correspondre",
@@ -143,7 +143,10 @@
         "inferredfacesconfidencehelp": "Saisissez un niveau de confiance entre 0 et 1. Pour les albums qui affichent une personne, les visages déduits dont le niveau de confiance est supérieur à cette valeur apparaîtront.",
         "savechanges": "Enregistrer les changements ?",
         "inferredfacesconfidence": "Confiance des visages déduits",
-        "albumoptions": "Options de l'album"
+        "albumoptions": "Options de l'album",
+        "traditionalchinese": "chinois (traditionnel)",
+        "ukrainian": "ukrainien",
+        "vietnamese": "vietnamien"
     },
     "modalnextcloud": {
         "setdirectory": "Définir votre répertoire de scan Nextcloud",
