@@ -32,7 +32,7 @@ import {
   generateEventAlbums,
   updateUser,
 } from "../../actions/utilActions";
-import { api } from "../../api_client/api";
+import { api, useWorkerQuery } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { ModalNextcloudScanDirectoryEdit } from "../../components/modals/ModalNextcloudScanDirectoryEdit";
 import { CountStats } from "../../components/statistics";
@@ -51,9 +51,8 @@ export function Library() {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
   const userSelfDetailsRedux = useAppSelector(state => state.user.userSelfDetails);
-  // TODO(sickelap): update workerAvailability correctly in the store
-  // const workerAvailability = useAppSelector(state => state.util.workerAvailability);
-  const workerAvailability = true;
+  const { data: worker } = useWorkerQuery(null);
+  const [workerAvailability, setWorkerAvailability] = useState(false);
   const fetchedNextcloudDirectoryTree = useAppSelector(state => state.util.fetchedNextcloudDirectoryTree);
   const util = useAppSelector(state => state.util);
   const statusPhotoScan = useAppSelector(state => state.util.statusPhotoScan);
@@ -102,11 +101,18 @@ export function Library() {
     setUserSelfDetails(userSelfDetailsRedux);
   }, [userSelfDetailsRedux]);
 
+  useEffect(() => {
+    if (worker) {
+      setWorkerAvailability(worker.queue_can_accept_job);
+    }
+  }, [worker]);
+
   if (avatarImgSrc === "/unknown_user.jpg") {
     if (userSelfDetails.avatar_url) {
       setAvatarImgSrc(serverAddress + userSelfDetails.avatar_url);
     }
   }
+
   return (
     <Stack align="center" justify="flex-start">
       <Group spacing="xs">
@@ -329,6 +335,7 @@ export function Library() {
             </Title>
             <Divider />
             <Button
+              disabled={!workerAvailability}
               onClick={() => {
                 dispatch(api.endpoints.trainFaces.initiate());
                 showNotification({
@@ -387,6 +394,7 @@ export function Library() {
             <Divider hidden />
             <Button
               color="green"
+              disabled={!workerAvailability}
               onClick={() => {
                 dispatch(api.endpoints.rescanFaces.initiate());
                 showNotification({
