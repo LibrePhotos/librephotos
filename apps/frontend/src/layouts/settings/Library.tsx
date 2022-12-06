@@ -51,7 +51,9 @@ export function Library() {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
   const userSelfDetailsRedux = useAppSelector(state => state.user.userSelfDetails);
-  const workerAvailability = useAppSelector(state => state.util.workerAvailability);
+  // TODO(sickelap): update workerAvailability correctly in the store
+  // const workerAvailability = useAppSelector(state => state.util.workerAvailability);
+  const workerAvailability = true;
   const fetchedNextcloudDirectoryTree = useAppSelector(state => state.util.fetchedNextcloudDirectoryTree);
   const util = useAppSelector(state => state.util);
   const statusPhotoScan = useAppSelector(state => state.util.statusPhotoScan);
@@ -150,7 +152,9 @@ export function Library() {
               onClick={() => {
                 dispatch(scanNextcloudPhotos());
               }}
-              disabled={!fetchedNextcloudDirectoryTree || !workerAvailability || !userSelfDetails.nextcloud_scan_directory}
+              disabled={
+                !fetchedNextcloudDirectoryTree || !workerAvailability || !userSelfDetails.nextcloud_scan_directory
+              }
               color="blue"
             >
               <Refresh />
@@ -320,8 +324,8 @@ export function Library() {
         >
           <Stack>
             <Title order={5}>
-              {+util.countStats.num_faces} <Trans i18nKey="settings.faces">Faces</Trans>,
-              {+util.countStats.num_people} <Trans i18nKey="settings.people">People</Trans>
+              {+util.countStats.num_faces} <Trans i18nKey="settings.faces">Faces</Trans>,{+util.countStats.num_people}{" "}
+              <Trans i18nKey="settings.people">People</Trans>
             </Title>
             <Divider />
             <Button
@@ -409,7 +413,7 @@ export function Library() {
                 onMouseLeave={closeNextcloudAuthStatusPopup}
                 color={fetchedNextcloudDirectoryTree ? "green" : "red"}
               >
-                <div/>
+                <div />
               </Indicator>
               <Trans i18nKey="settings.nextcloudheader">Nextcloud</Trans>
             </Group>
