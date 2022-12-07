@@ -139,7 +139,8 @@
         "vietnamese": "Вьетнамский",
         "favoriteupdate": "Обновить",
         "experimentaloptions": "Экспериментальные опции",
-        "transcodevideo": "Всегда перекодировать видео"
+        "transcodevideo": "Всегда перекодировать видео",
+        "on": "Включить"
     },
     "modalalbum": {
         "title": "Добавить в Альбом",
