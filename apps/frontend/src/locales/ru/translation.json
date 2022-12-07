@@ -143,7 +143,7 @@
         "on": "Включить",
         "off": "Выключить",
         "experimentalupdate": "Обновить",
-        "configdatetime": " Установить правила синтаксического анализа даты и времени"
+        "configdatetime": " Установить правила определения даты и времени"
     },
     "modalalbum": {
         "title": "Добавить в Альбом",
@@ -160,7 +160,10 @@
         "library": "Библиотека",
         "settings": "Настройки",
         "adminarea": "Кабинет администратора",
-        "logout": "Выйти"
+        "logout": "Выйти",
+        "loggedin": "Вы вошли как",
+        "busy": "Занят...",
+        "available": "Обработчик доступен! Вы можете запустить поиск фото, распознавание лиц, создание альбомов событий и их названий."
     },
     "sidemenu": {
         "autoalbums": "Автоматически созданные альбомы",
@@ -179,12 +182,12 @@
         "placetree": "Дерево мест",
         "wordclouds": "Облака слов",
         "socialgraph": "Социальный граф",
-        "facecluster": "Скопления внешностей",
+        "facecluster": "Группировки внешностей",
         "datavizsmall": "Данные",
         "facerecognition": "Лица",
         "library": "Библиотека",
         "name": "LibrePhotos",
-        "dashboards": "Панель управления",
+        "dashboards": "Панели управления",
         "publicphotos": "Общедоступные фото",
         "sharing": "Общий доступ"
     },
@@ -194,7 +197,8 @@
         "update": "Обновить",
         "cancel": "Отмена",
         "currentdirectory": "Текущая директория Nextcloud",
-        "setdirectory": "Установить директорию Nextcloud"
+        "setdirectory": "Установить директорию Nextcloud",
+        "choosedirectory": "Выберите директорию"
     },
     "lightbox": {
         "sidebar": {
@@ -214,7 +218,8 @@
             "invalidtimestamp": "Недействительная временная метка",
             "removetimestamp": "Удалить временную метку",
             "categories": "Категории",
-            "similarphotos": "Схожие фото"
+            "similarphotos": "Схожие фото",
+            "timetaken": "Время съёмки"
         }
     },
     "login": {
@@ -274,6 +279,63 @@
     },
     "selectionactions": {
         "removephotosdescription": "Удалить выбранные фотографии из текущего альбома",
-        "album": "Альбом"
+        "album": "Альбом",
+        "unhide": "Не скрывать",
+        "hide": "Скрыть",
+        "selected": "выбрано",
+        "photoactions": "Действия с фото",
+        "deleted": "Удалить",
+        "download": "Скачать",
+        "makeprivate": "Сделать приватным",
+        "removephotos": "Изъять из альбома",
+        "favorite": "В избранное",
+        "unfavorite": "Удалить из избранного",
+        "makepublic": "Сделать общедоступным",
+        "sharing": "Общий доступ",
+        "albumactions": "Действия с альбомом",
+        "albumcover": "На обложку альбома"
+    },
+    "defaultheader": {
+        "photos": "фото",
+        "gettingstarted": "Редактировать пользователя",
+        "days": "дней",
+        "loading": "Загрузка...",
+        "noimages": "Изображений не найдено",
+        "setup": "Чтобы начать работу с LibrePhotos, выберите каталог сканирования для вашего пользователя."
+    },
+    "selectionbar": {
+        "deselect": "Убрать выделение со всех",
+        "selected": "выбрано",
+        "toggle": "Переключить режим выделения",
+        "select": "Выбрать все"
+    },
+    "modalscandirectoryedit": {
+        "header": "Установить директорию сканирования для пользователя",
+        "currentdirectory": "Текущая директория пользователя",
+        "update": "Обновить",
+        "explanation1": "Когда пользователь",
+        "explanation2": "нажимает на кнопку \"сканировать фотографии\", фотографии в указанной здесь директории будут прикреплены к его учетной записи",
+        "notset": "не установлена",
+        "explanation3": "Выберите директорию",
+        "pathdoesnotexist": "Нет такой директории",
+        "mustspecifypath": "Укажите директорию"
+    },
+    "sitesettings": {
+        "headerskippatterns": "",
+        "headerupload": "Разрешить загрузку файлов на сервер",
+        "noallow": "Запретить",
+        "header": "Разрешить создание новых пользователей",
+        "allow": "Разрешить"
+    },
+    "defaulttimezone": "Часовой пояс по умолчанию",
+    "modalalbumsshare": {
+        "joined": "Присоединился"
+    },
+    "modalphotosshare": {
+        "joined": "Присоединился"
+    },
+    "autoalbumgallery": {
+        "hidemap": "Скрыть карту",
+        "showmap": "Показать карту"
     }
 }
