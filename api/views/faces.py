@@ -32,7 +32,8 @@ class ScanFacesView(APIView):
 
 
 class TrainFaceView(APIView):
-    def get(self, request, format=None):
+    @staticmethod
+    def _train_faces(request):
         try:
             job_id = uuid.uuid4()
             cluster_all_faces.delay(request.user, job_id)
@@ -40,6 +41,13 @@ class TrainFaceView(APIView):
         except BaseException:
             logger.exception()
             return Response({"status": False})
+
+    @extend_schema(deprecated=True)
+    def get(self, request, format=None):
+        return self._train_faces(request)
+
+    def post(self, request, format=None):
+        return self._train_faces(request)
 
 
 class FaceListView(ListViewSet):
