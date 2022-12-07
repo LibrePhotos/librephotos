@@ -136,7 +136,10 @@
         "savechanges": "Сохранить изменения?",
         "czech": "Чешский",
         "ukrainian": "Украинский",
-        "vietnamese": "Вьетнамский"
+        "vietnamese": "Вьетнамский",
+        "favoriteupdate": "Обновить",
+        "experimentaloptions": "Экспериментальные опции",
+        "transcodevideo": "Всегда перекодировать видео"
     },
     "modalalbum": {
         "title": "Добавить в Альбом",
