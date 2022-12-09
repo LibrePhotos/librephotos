@@ -12,25 +12,25 @@ http {
     listen 80;
     
     location / {
-      # React routes are entirely on the App side in the web broswer
+      # React routes are entirely on the App side in the web browser
       # Always proxy to root with the same page request when nginx 404s
       error_page 404 /;
       proxy_intercept_errors on;
-      proxy_set_header Host $host;
-      proxy_pass http://__frontend_name__:3000/;
+      proxy_set_header Host ${VAR_PREFIX}host;
+      proxy_pass http://${FRONTEND_NAME}:3000/;
     }
     location ~ ^/(api|media)/ {
-      proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header Host __backend_name__;
+      proxy_set_header X-Forwarded-Proto ${VAR_PREFIX}scheme;
+      proxy_set_header X-Real-IP ${VAR_PREFIX}remote_addr;
+      proxy_set_header Host ${BACKEND_NAME};
       include uwsgi_params;
-      proxy_pass http://__backend_name__:8001;
+      proxy_pass http://${BACKEND_NAME}:8001;
     }
     # needed for webpack-dev-server
     location /ws {
-      proxy_pass http://__frontend_name__:3000;
+      proxy_pass http://${FRONTEND_NAME}:3000;
       proxy_http_version 1.1;
-      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Upgrade ${VAR_PREFIX}http_upgrade;
       proxy_set_header Connection "upgrade";
     }
     # Django media
@@ -40,7 +40,7 @@ http {
     }
 
     location /static/drf-yasg {
-        proxy_pass http://__backend_name__:8001;  
+        proxy_pass http://${BACKEND_NAME}:8001;
     }
 
     location /data  {

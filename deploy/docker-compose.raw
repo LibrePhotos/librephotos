@@ -16,7 +16,6 @@ services:
     volumes:
       - ${scanDirectory}:/data
       - ${data}/protected_media:/protected_media
-      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
       - ${httpPort}:80
     depends_on:
@@ -34,13 +33,16 @@ services:
     volumes:
       - ${data}/db:/var/lib/postgresql/data
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c random_page_cost=1.0
+    healthcheck:
+      test: psql -U ${dbUser} -d ${dbName} -c "SELECT 1;"
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   __frontend_name__:
     image: reallibrephotos/librephotos-frontend:${tag}
     container_name: __frontend_name__
     restart: unless-stopped
-    depends_on:
-      - __backend_name__
 
   __backend_name__:
     image: reallibrephotos/librephotos:${tag}
@@ -51,13 +53,12 @@ services:
       - ${data}/protected_media:/protected_media
       - ${data}/logs:/logs
       - ${data}/cache:/root/.cache
-
     environment:
-      - SECRET_KEY=${shhhhKey}
+      - SECRET_KEY=${shhhhKey:-}
       - BACKEND_HOST=__backend_name__
-      - ADMIN_EMAIL=${adminEmail}
-      - ADMIN_USERNAME=${userName}
-      - ADMIN_PASSWORD=${userPass}
+      - ADMIN_EMAIL=${adminEmail:-admin@localhost}
+      - ADMIN_USERNAME=${userName:-admin}
+      - ADMIN_PASSWORD=${userPass:-admin}
       - DB_BACKEND=postgresql
       - DB_NAME=${dbName}
       - DB_USER=${dbUser}
@@ -66,18 +67,24 @@ services:
       - DB_PORT=5432
       - REDIS_HOST=__redis_name__
       - REDIS_PORT=6379
-      - MAPBOX_API_KEY=${mapApiKey}
-      - WEB_CONCURRENCY=${gunniWorkers}
-      - SKIP_PATTERNS=${skipPatterns}
-      - ALLOW_UPLOAD=${allowUpload}
+      - MAPBOX_API_KEY=${mapApiKey:-}
+      - WEB_CONCURRENCY=${gunniWorkers:-1}
+      - SKIP_PATTERNS=${skipPatterns:-}
+      - ALLOW_UPLOAD=${allowUpload:-false}
       - DEBUG=0
       - HEAVYWEIGHT_PROCESS=${HEAVYWEIGHT_PROCESS}
-
-    # Wait for Postgres
     depends_on:
-      - __db_name__
+      __db_name__:
+        condition: service_healthy
+      __redis_name__:
+        condition: service_healthy
 
   __redis_name__:
     image: redis:6
     container_name: __redis_name__
     restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 12

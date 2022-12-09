@@ -25,7 +25,6 @@ services:
     volumes:
       - ${scanDirectory}:/data
       - ${data}/protected_media:/protected_media
-      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
 
   frontend:
     tty: true
@@ -54,8 +53,8 @@ services:
       - ${scanDirectory}:/data
       - ${data}/protected_media:/protected_media
       - ${data}/logs:/logs
-      - ${codedir}/librephotos:/code
       - ${data}/cache:/root/.cache
+      - ${codedir}/librephotos:/code
       - ./vscode/server-extensions:/root/.vscode-server/extensions
       - ./vscode/server-insiders-extensions:/root/.vscode-server-insiders/extensions
       - ./vscode/settings.json:/code/.vscode/settings.json

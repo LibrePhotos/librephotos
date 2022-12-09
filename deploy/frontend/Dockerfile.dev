@@ -2,7 +2,7 @@ FROM node:13-slim
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
-RUN apt-get update && apt-get install git -y
+RUN apt-get update && apt-get install git curl bash -y
 EXPOSE 3000
 COPY entrypoint.sh /entrypoint.sh
 CMD ["/entrypoint.sh"]
