@@ -1,0 +1,137 @@
+networks:
+  e2e:
+
+volumes:
+  e2e_db:
+  e2e_cache:
+  e2e_logs:
+  e2e_protected_media:
+  e2e_scan_directory:
+
+services:
+  e2e-__proxy_name__:
+    image: reallibrephotos/librephotos-proxy:${tag}
+    container_name: e2e-__proxy_name__
+    restart: unless-stopped
+    environment:
+      BACKEND_NAME: e2e-__backend_name__
+      FRONTEND_NAME: e2e-__frontend_name__
+    volumes:
+      - e2e_scan_directory:/data
+      - e2e_protected_media:/protected_media
+    ports:
+      - 8080:80
+    healthcheck:
+      test: curl -sI localhost | grep HTTP | grep 200
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    depends_on:
+      e2e-__backend_name__:
+        condition: service_healthy
+      e2e-__frontend_name__:
+        condition: service_healthy
+    networks:
+      - e2e
+
+  e2e-__db_name__:
+    image: postgres:13
+    container_name: e2e-__db_name__
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${dbUser}
+      - POSTGRES_PASSWORD=${dbPass}
+      - POSTGRES_DB=${dbName}
+    volumes:
+      - e2e_db:/var/lib/postgresql/data
+    healthcheck:
+      test: psql -U ${dbUser} -d ${dbName} -c "SELECT 1;"
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - e2e
+
+  e2e-__frontend_name__:
+    container_name: e2e-__frontend_name__
+    environment:
+      - DEBUG=1
+      - WDS_SOCKET_PORT=0 # needed for webpack-dev-server
+    tty: true
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    volumes:
+      - ${codedir}/librephotos-frontend:/usr/src/app
+    healthcheck:
+      test: curl -sI localhost:3000 | grep HTTP | grep 200
+      interval: 5s
+      timeout: 5s
+      retries: 24
+    depends_on:
+      e2e-__backend_name__:
+        condition: service_healthy
+    networks:
+      - e2e
+
+  e2e-__backend_name__:
+    container_name: e2e-__backend_name__
+    tty: true
+    stdin_open: true
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        DEBUG: 1
+    restart: unless-stopped
+    volumes:
+      - ${codedir}/librephotos:/code
+      - e2e_scan_directory:/data
+      - e2e_protected_media:/protected_media
+      - e2e_logs:/logs
+      - e2e_cache:/root/.cache
+    environment:
+      - SECRET_KEY=${shhhhKey:-}
+      - BACKEND_HOST=e2e-__backend_name__
+      - ADMIN_EMAIL=${adminEmail:-admin@localhost}
+      - ADMIN_USERNAME=${userName:-admin}
+      - ADMIN_PASSWORD=${userPass:-admin}
+      - DB_BACKEND=postgresql
+      - DB_NAME=${dbName}
+      - DB_USER=${dbUser}
+      - DB_PASS=${dbPass}
+      - DB_HOST=e2e-__db_name__
+      - DB_PORT=5432
+      - REDIS_HOST=e2e-__redis_name__
+      - REDIS_PORT=6379
+      - MAPBOX_API_KEY=${mapApiKey:-}
+      - WEB_CONCURRENCY=${gunniWorkers:-1}
+      - SKIP_PATTERNS=${skipPatterns:-}
+      - ALLOW_UPLOAD=${allowUpload:-true}
+      - DEBUG=1
+      - HEAVYWEIGHT_PROCESS=${HEAVYWEIGHT_PROCESS:-1}
+    healthcheck:
+      test: curl -sI localhost:8001 | grep HTTP | grep 401
+      interval: 5s
+      timeout: 5s
+      retries: 24
+    depends_on:
+      e2e-__db_name__:
+        condition: service_healthy
+      e2e-__redis_name__:
+        condition: service_healthy
+    networks:
+      - e2e
+
+  e2e-__redis_name__:
+    image: redis:6
+    container_name: e2e-__redis_name__
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - e2e
