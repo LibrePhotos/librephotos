@@ -145,7 +145,8 @@
         "inferredfacesconfidencehelp": "Voer een niveau tussen 0 en 1 in. Albums met foto's van personen met vertrouwde gezichten tonen de foto's indien de waarde hoger dan de opgegeven waarde ligt.",
         "ukrainian": "Oekraïens",
         "vietnamese": "Vietnamees",
-        "traditionalchinese": "Chinees (Traditioneel)"
+        "traditionalchinese": "Chinees (Traditioneel)",
+        "togglecolorscheme": "Thema aanpassen"
     },
     "topmenu": {
         "profile": "Profiel",
