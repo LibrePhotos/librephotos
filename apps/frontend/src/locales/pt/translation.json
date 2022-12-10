@@ -151,7 +151,8 @@
         },
         "ukrainian": "Ucraniano",
         "vietnamese": "Vietnamita",
-        "traditionalchinese": "Chinês (Tradicional)"
+        "traditionalchinese": "Chinês (Tradicional)",
+        "togglecolorscheme": "Trocar esquema de cores"
     },
     "sidemenu": {
         "myalbums": "Meus álbuns",
