@@ -320,7 +320,7 @@ export function Profile() {
           variant="outline"
           color={dark ? "yellow" : "blue"}
           onClick={() => toggleColorScheme()}
-          title="Toggle color scheme"
+          title={t("settings.togglecolorscheme")}
         >
           {dark ? <Sun size={18} /> : <MoonStars size={18} />}
         </ActionIcon>
