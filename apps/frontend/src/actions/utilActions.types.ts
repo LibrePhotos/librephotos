@@ -42,28 +42,14 @@ export const JobsResponseSchema = z
 
 export type IJobsResponseSchema = z.infer<typeof JobsResponseSchema>;
 
-export const WorkerAvailability = z.object({
-  job_detail: Job.nullable(),
-  queue_can_accept_job: z.boolean(),
-  status: z.boolean(),
-});
-
-export const SiteSettings = z.object({
-  allow_registration: z.boolean(),
-  allow_upload: z.boolean(),
-  skip_patterns: z.string(),
-  heavyweight_process: z.number(),
-  map_api_key: z.string(),
-});
-
-interface DirTree {
+interface DirTreeItem {
   title: string;
   absolutePath?: string;
-  children?: DirTree[];
+  children?: DirTreeItem[];
 }
 
 // cast to z.ZodType<Category>
-export const DirTree: z.ZodType<DirTree> = z.lazy(() =>
+export const DirTree: z.ZodType<DirTreeItem> = z.lazy(() =>
   z.object({
     title: z.string(),
     absolutePath: z.string().optional(),
@@ -91,13 +77,13 @@ export const GenerateEventAlbumsTitlesResponse = z.object({
 
 export const SearchTermExamples = z.array(z.string());
 
-interface LocationSunburst {
+interface LocationSunburstItem {
   name: string;
   hex?: string;
-  children?: LocationSunburst[];
+  children?: LocationSunburstItem[];
 }
 
-export const LocationSunburst: z.ZodType<LocationSunburst> = z.lazy(() =>
+export const LocationSunburst: z.ZodType<LocationSunburstItem> = z.lazy(() =>
   z.object({
     name: z.string(),
     hex: z.string().optional(),
