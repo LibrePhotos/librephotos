@@ -1,9 +1,9 @@
+import type { BaseQueryResult } from "@reduxjs/toolkit/dist/query/baseQueryTypes";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import type { BaseQueryFn, FetchArgs } from "@reduxjs/toolkit/query/react";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Cookies } from "react-cookie";
 
-import type { BaseQueryResult } from "@reduxjs/toolkit/dist/query/baseQueryTypes";
 import type { IJobRequestSchema, IJobsResponseSchema } from "../actions/utilActions.types";
 import type { IApiDeleteUserPost, IApiLoginPost, IApiLoginResponse, IApiUserSignUpPost } from "../store/auth/auth.zod";
 // eslint-disable-next-line import/no-cycle
@@ -27,7 +27,8 @@ import { UploadExistResponse, UploadResponse } from "../store/upload/upload.zod"
 import type { IApiUserListResponse, IManageUser, IUser } from "../store/user/user.zod";
 import { ManageUser, UserSchema } from "../store/user/user.zod";
 import type { IJobDetailSchema, IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
-import {Server} from "./apiClient";
+// eslint-disable-next-line import/no-cycle
+import { Server } from "./apiClient";
 
 export enum Endpoints {
   login = "login",
@@ -137,9 +138,9 @@ export const api = createApi({
         body: body,
       }),
       transformResponse: (result: BaseQueryResult<any>) => {
-        Server.defaults.headers.common.Authorization = `Bearer ${result.access}`
+        Server.defaults.headers.common.Authorization = `Bearer ${result.access}`;
         return result;
-      }
+      },
     }),
     [Endpoints.fetchPredefinedRules]: builder.query<any[], void>({
       query: () => "/predefinedrules/",
@@ -209,9 +210,10 @@ export const api = createApi({
         url: "/scanfaces",
       }),
     }),
-    [Endpoints.trainFaces]: builder.query<ITrainFacesResponse, void>({
+    [Endpoints.trainFaces]: builder.mutation<ITrainFacesResponse, void>({
       query: () => ({
         url: "/trainfaces",
+        method: "POST",
       }),
     }),
     [Endpoints.deleteFaces]: builder.mutation<IDeleteFacesResponse, IDeleteFacesRequest>({
@@ -242,7 +244,6 @@ export const {
   useFetchFacesQuery,
   useSetFacesPersonLabelMutation,
   useDeleteFacesMutation,
-  useTrainFacesQuery,
   useRescanFacesQuery,
   useClusterFacesQuery,
   useLoginMutation,
