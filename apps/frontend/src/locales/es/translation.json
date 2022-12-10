@@ -146,7 +146,8 @@
         "inferredfacesconfidence": "Confianza de caras deducidas",
         "traditionalchinese": "Chino (Tradicional)",
         "ukrainian": "Ucraniano",
-        "vietnamese": "Vietnamita"
+        "vietnamese": "Vietnamita",
+        "togglecolorscheme": "Alternar el esquema de color"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de escaneo de Nextcloud",
