@@ -21,6 +21,7 @@ describe("email regex test", () => {
       "_______@example.com",
       "valid.name@aa.bb.cc.dd.ee.ff.gg.hh.jj.com",
       "a@bcd.ef",
+      "first.m.last@domain.com",
     ];
 
     validGoodEmailSamples.forEach(sample => {
