@@ -13,6 +13,7 @@ import { fetchPeople } from "../actions/peopleActions";
 import { searchPhotos } from "../actions/searchActions";
 import { fetchExampleSearchTerms } from "../actions/utilActions";
 import { useAppDispatch, useAppSelector } from "../store/store";
+import { fuzzyMatch } from "../util/util";
 
 enum SuggestionType {
   EXAMPLE,
@@ -25,18 +26,6 @@ interface SearchSuggestion {
   value: string;
   icon: ReactNode;
   [key: string]: any;
-}
-
-function fuzzyMatch(query: string, value: string) {
-  if (query.split("").length > 0) {
-    const expression = query
-      .toLowerCase()
-      .replaceAll("s+", "")
-      .split("")
-      .reduce((a, b) => `${a}.*${b}`);
-    return new RegExp(expression).test(value.toLowerCase());
-  }
-  return true;
 }
 
 function toExampleSuggestion(item: string) {
@@ -60,7 +49,7 @@ const SearchSuggestionItem = forwardRef<HTMLDivElement, SearchSuggestion>(
     /* eslint-disable react/jsx-props-no-spreading */
     <div ref={ref} {...rest}>
       <Group noWrap>
-        {cloneElement(icon as React.ReactElement<any>, { size: 14 })}
+        {cloneElement(icon as React.ReactElement, { size: 14 })}
         <Text>{value}</Text>
       </Group>
     </div>
@@ -138,7 +127,7 @@ export function CustomSearch() {
     }
   }
 
-  function onKeyPress(event: KeyboardEvent<HTMLInputElement>) {
+  function onKeyUp(event: KeyboardEvent<HTMLInputElement>) {
     if (event.code === "Enter") {
       search({ value: event.currentTarget.value, icon: undefined });
     }
@@ -175,7 +164,7 @@ export function CustomSearch() {
       value={value}
       onChange={e => filterSearch(e)}
       onItemSubmit={e => search(e)}
-      onKeyPress={e => onKeyPress(e)}
+      onKeyUp={e => onKeyUp(e)}
       rightSection={
         value ? (
           <X

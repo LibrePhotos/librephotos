@@ -8,21 +8,14 @@ import { setUserAlbumShared } from "../../actions/albumsActions";
 import { fetchPublicUserList } from "../../actions/publicActions";
 import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
-
-function fuzzy_match(str, pattern) {
-  if (pattern.split("").length > 0) {
-    pattern = pattern.split("").reduce((a, b) => `${a}.*${b}`);
-    return new RegExp(pattern).test(str);
-  }
-  return false;
-}
+import { fuzzyMatch } from "../../util/util";
 
 type Props = {
   isOpen: boolean;
   onRequestClose: () => void;
   albumID: string;
 };
-//To-Do: Add missing locales
+// To-Do: Add missing locales
 export function ModalAlbumShare(props: Props) {
   const [userNameFilter, setUserNameFilter] = useState("");
 
@@ -42,9 +35,7 @@ export function ModalAlbumShare(props: Props) {
   let filteredUserList;
   if (userNameFilter.length > 0) {
     filteredUserList = pub.publicUserList.filter(
-      el =>
-        fuzzy_match(el.username.toLowerCase(), userNameFilter.toLowerCase()) ||
-        fuzzy_match(`${el.first_name.toLowerCase()} ${el.last_name.toLowerCase()}`, userNameFilter.toLowerCase())
+      el => fuzzyMatch(el.username, userNameFilter) || fuzzyMatch(`${el.first_name} ${el.last_name}`, userNameFilter)
     );
   } else {
     filteredUserList = pub.publicUserList;
@@ -100,7 +91,7 @@ export function ModalAlbumShare(props: Props) {
                   </Text>
                   <Switch
                     checked={albumDetails.shared_to && albumDetails.shared_to.map(e => e.id).includes(item.id)}
-                    onChange={event => {
+                    onChange={() => {
                       dispatch(
                         setUserAlbumShared(
                           parseInt(albumID, 10),

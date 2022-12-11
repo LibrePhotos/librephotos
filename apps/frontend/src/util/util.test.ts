@@ -1,4 +1,4 @@
-import { EMAIL_REGEX } from "./util";
+import { EMAIL_REGEX, fuzzyMatch } from "./util";
 
 describe("email regex test", () => {
   test("good samples should match", () => {
@@ -69,6 +69,31 @@ describe("email regex test", () => {
 
     invalidBadEmailSamples.forEach(sample => {
       expect(EMAIL_REGEX.test(sample)).toBeFalsy();
+    });
+  });
+});
+
+describe("fuzzyMatch", () => {
+  test("matches", () => {
+    const matches = [
+      { value: "Dinosaur", query: "Dinosaur", result: true },
+      { value: "Kraken", query: "KRAKEN", result: true },
+      { value: "ELEPHANT", query: "elephant", result: true },
+      { value: "Dinosaur", query: "dino", result: true },
+      { value: "Dinosaur", query: "saur", result: true },
+      { value: "Dinosaur", query: "INO", result: true },
+      { value: "Dino saur", query: "nosa", result: true },
+      { value: "var{var}", query: "{var", result: true },
+      { value: "$dollar", query: "$dol", result: true },
+      { value: "many*many", query: "many*m", result: true },
+      { value: "what's up?", query: "what?", result: true },
+      { value: "Dinosaur", query: "abr", result: false },
+      { value: "Dinosaur", query: "sauron", result: false },
+      { value: "what?", query: "what's up?", result: false },
+    ];
+
+    matches.forEach(item => {
+      expect(fuzzyMatch(item.query, item.value)).toBe(item.result);
     });
   });
 });

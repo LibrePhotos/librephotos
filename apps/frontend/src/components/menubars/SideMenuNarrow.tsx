@@ -42,7 +42,7 @@ export function SideMenuNarrow(): JSX.Element {
           }
         }}
       >
-        <ActionIcon className={classes.linkIcon} color={item.color} variant="light">
+        <ActionIcon component="span" className={classes.linkIcon} color={item.color} variant="light">
           <item.icon />
         </ActionIcon>
         <span style={{ flexGrow: 2 }}>{item.label}</span>
@@ -57,7 +57,7 @@ export function SideMenuNarrow(): JSX.Element {
 
           <Menu.Dropdown>
             {item.submenu.map(subitem => {
-              var idx = item.submenu?.indexOf(subitem);
+              const idx = item.submenu?.indexOf(subitem);
               if (subitem.header) {
                 return <Menu.Label key={idx}>{subitem.header}</Menu.Label>;
               }
@@ -70,7 +70,7 @@ export function SideMenuNarrow(): JSX.Element {
                 dispatch(push(subitem.link!));
               };
               const icon = (
-                <ActionIcon color={subitem.color} variant="light">
+                <ActionIcon component="span" color={subitem.color} variant="light">
                   <subitem.icon />
                 </ActionIcon>
               );
