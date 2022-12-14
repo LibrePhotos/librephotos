@@ -18,5 +18,5 @@
     "sourceMap": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["./src", "./cypress", "./cypress.config.js"]
+  "include": ["./src"]
 }
