@@ -1,7 +1,6 @@
 import { Avatar, Button, Divider, Group, Modal, ScrollArea, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
-import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -10,17 +9,7 @@ import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
-
-function fuzzy_match(str, pattern) {
-  if (pattern.split("").length > 0) {
-    pattern = pattern
-      .split("")
-      .map(a => _.escapeRegExp(a))
-      .reduce((a, b) => `${a}.*${b}`);
-    return new RegExp(pattern).test(str);
-  }
-  return false;
-}
+import { fuzzyMatch } from "../../util/util";
 
 type Props = {
   isOpen: boolean;
@@ -28,7 +17,7 @@ type Props = {
   selectedFaces: any[];
 };
 
-export const ModalPersonEdit = (props: Props) => {
+export function ModalPersonEdit(props: Props) {
   const [newPersonName, setNewPersonName] = useState("");
 
   const matches = useMediaQuery("(min-width: 700px)");
@@ -40,7 +29,7 @@ export const ModalPersonEdit = (props: Props) => {
   let filteredPeopleList = people;
 
   if (newPersonName.length > 0) {
-    filteredPeopleList = people.filter(el => fuzzy_match(el.text.toLowerCase(), newPersonName.toLowerCase()));
+    filteredPeopleList = people.filter(el => fuzzyMatch(el.text, newPersonName));
   }
 
   const selectedImageIDs = selectedFaces.map(face => face.face_url);
@@ -51,6 +40,10 @@ export const ModalPersonEdit = (props: Props) => {
       fetchPeople(dispatch);
     }
   }, [isOpen, dispatch]);
+
+  function personExist(name: string) {
+    return people.map(person => person.text.toLowerCase().trim()).includes(name.toLowerCase().trim());
+  }
 
   return (
     <Modal
@@ -81,11 +74,7 @@ export const ModalPersonEdit = (props: Props) => {
         <Group>
           <TextInput
             error={
-              people.map(el => el.text.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())
-                ? t("personalbum.personalreadyexists", {
-                    name: newPersonName.trim(),
-                  })
-                : ""
+              personExist(newPersonName) ? t("personalbum.personalreadyexists", { name: newPersonName.trim() }) : ""
             }
             onChange={v => {
               setNewPersonName(v.currentTarget.value);
@@ -94,7 +83,6 @@ export const ModalPersonEdit = (props: Props) => {
           />
           <Button
             onClick={() => {
-              //@ts-ignore
               dispatch(
                 api.endpoints.setFacesPersonLabel.initiate({ faceIds: selectedFaceIDs, personName: newPersonName })
               );
@@ -109,7 +97,7 @@ export const ModalPersonEdit = (props: Props) => {
               onRequestClose();
               setNewPersonName("");
             }}
-            disabled={people.map(el => el.text.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())}
+            disabled={personExist(newPersonName)}
             type="submit"
           >
             {t("personedit.addperson")}
@@ -119,7 +107,7 @@ export const ModalPersonEdit = (props: Props) => {
         <Stack style={{ height: matches ? "50vh" : "25vh", overflowY: "scroll" }}>
           {filteredPeopleList.length > 0 &&
             filteredPeopleList.map(item => (
-              <Group key={item.id}>
+              <Group key={item.key}>
                 <Avatar radius="xl" size={60} src={serverAddress + item.face_url} />
                 <div>
                   <Title
@@ -153,4 +141,4 @@ export const ModalPersonEdit = (props: Props) => {
       </Stack>
     </Modal>
   );
-};
+}

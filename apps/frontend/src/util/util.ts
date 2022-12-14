@@ -1,4 +1,5 @@
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
+import _ from "lodash";
 import { DateTime } from "luxon";
 
 import type { UserPhotosGroup } from "../actions/photosActions";
@@ -29,7 +30,7 @@ export function adjustDateFormatForSingleGroup(group: DatePhotosGroup) {
     if (date.isValid) {
       group.year = date.year;
       group.month = date.month;
-      group.date = date.setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString(DateTime.DATE_HUGE)
+      group.date = date.setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString(DateTime.DATE_HUGE);
     }
   } else {
     group.date = i18n.t<string>("sidemenu.withouttimestamp");
@@ -74,4 +75,17 @@ export function addTempElementsToFlatList(photosCount: number) {
 
 export function getPhotosFlatFromGroupedByUser(photosGroupedByUser: UserPhotosGroup[]) {
   return photosGroupedByUser.flatMap(el => el.photos);
+}
+
+export function fuzzyMatch(query: string, value: string): boolean {
+  if (query.split("").length > 0) {
+    const expression = query
+      .toLowerCase()
+      .replace(/\s/g, "")
+      .split("")
+      .map(a => _.escapeRegExp(a))
+      .reduce((a, b) => `${a}.*${b}`);
+    return new RegExp(expression).test(value.toLowerCase());
+  }
+  return true;
 }

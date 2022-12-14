@@ -1,3 +1,4 @@
+/* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 import { Stack } from "@mantine/core";
 import { useElementSize, usePrevious } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
@@ -11,17 +12,17 @@ import { FaceComponent } from "../../components/facedashboard/FaceComponent";
 import { HeaderComponent } from "../../components/facedashboard/HeaderComponent";
 import { TabComponent } from "../../components/facedashboard/TabComponent";
 import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
-import i18n from "../../i18n";
-import { faceActions } from "../../store/faces/faceSlice";
-import { useAppDispatch, useAppSelector } from "../../store/store";
-import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
-import { FacesTab } from "../../store/faces/facesActions.types";
-import type { IFacesTab } from "../../store/faces/facesActions.types";
 import { ScrollScrubber } from "../../components/scrollscrubber/ScrollScrubber";
 import { ScrollerType } from "../../components/scrollscrubber/ScrollScrubberTypes.zod";
 import type { IScrollerData } from "../../components/scrollscrubber/ScrollScrubberTypes.zod";
+import i18n from "../../i18n";
+import { faceActions } from "../../store/faces/faceSlice";
+import { FacesTab } from "../../store/faces/facesActions.types";
+import type { IFacesTab } from "../../store/faces/facesActions.types";
+import { useAppDispatch, useAppSelector } from "../../store/store";
+import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
 
-export function FaceDashboard () {
+export function FaceDashboard() {
   const { ref, width } = useElementSize();
   const gridRef = useRef<any>();
   const [gridHeight, setGridHeight] = useState(200);
@@ -52,40 +53,39 @@ export function FaceDashboard () {
 
   const { inferredFacesList, labeledFacesList } = useAppSelector(
     store => store.face,
-    (prev, next) => {
-      return prev.inferredFacesList === next.inferredFacesList && prev.labeledFacesList === next.labeledFacesList;
-    }
+    (prev, next) => prev.inferredFacesList === next.inferredFacesList && prev.labeledFacesList === next.labeledFacesList
   );
 
   const { orderBy } = useAppSelector(store => store.face);
 
   useEffect(() => {
     if (groups) {
-      const currentList = activeTab === FacesTab.enum.labeled ?  labeledFacesList : inferredFacesList;
+      const currentList = activeTab === FacesTab.enum.labeled ? labeledFacesList : inferredFacesList;
       groups.forEach(element => {
         let force = false;
         const personIndex = currentList.findIndex(person => person.id === element.person);
         // Force refetch for persons that have more than 100 faces as we can't be sure all faces were loaded when changing orderBy
-        if (personIndex !== -1 && currentList[personIndex].face_count > 100)
-          force = true;
+        if (personIndex !== -1 && currentList[personIndex].face_count > 100) force = true;
         dispatch(
-          api.endpoints.fetchFaces.initiate({
-            person: element.person,
-            page: element.page,
-            inferred: activeTab === FacesTab.enum.inferred,
-            orderBy: orderBy
-          }, {forceRefetch: force})
+          api.endpoints.fetchFaces.initiate(
+            {
+              person: element.person,
+              page: element.page,
+              inferred: activeTab === FacesTab.enum.inferred,
+              orderBy: orderBy,
+            },
+            { forceRefetch: force }
+          )
         );
       });
     }
-  }, [groups]);
-
+  }, [activeTab, dispatch, groups, inferredFacesList, labeledFacesList, orderBy]);
 
   const previousTab: IFacesTab = usePrevious(activeTab);
   const [scrollTo, setScrollTo] = useState<number | null>(null);
-  
+
   const handleGridScroll = (params: any) => {
-    const {scrollTop} = params;
+    const { scrollTop } = params;
     if (scrollTo !== null && scrollTop === scrollTo) {
       setScrollTo(null);
     }
@@ -95,18 +95,35 @@ export function FaceDashboard () {
   useEffect(() => {
     if (previousTab) {
       dispatch(
-            faceActions.saveCurrentGridPosition({
-              tab: previousTab,
-              position: currentScrollPosition,
-            })
+        faceActions.saveCurrentGridPosition({
+          tab: previousTab,
+          position: currentScrollPosition,
+        })
       );
     }
     setScrollTo(tabs[activeTab].scrollPosition);
-  }, [activeTab]);
+  }, [activeTab, currentScrollPosition, dispatch, previousTab, tabs]);
 
   useEffect(() => {
-    setDataForScrollIndicator(getDataForScrollIndicator());
-  }, [activeTab, inferredFacesList, labeledFacesList, gridHeight]);
+    const cellContents = activeTab === FacesTab.enum.labeled ? labeledCellContents : inferredCellContents;
+    let scrollPosition = 0;
+    const scrollPositions: IScrollerData[] = [];
+    cellContents.forEach(row => {
+      if (row[0].name) {
+        scrollPositions.push({ label: row[0].name, targetY: scrollPosition });
+      }
+      scrollPosition += entrySquareSize;
+    });
+    setDataForScrollIndicator(scrollPositions);
+  }, [
+    activeTab,
+    inferredFacesList,
+    labeledFacesList,
+    gridHeight,
+    labeledCellContents,
+    inferredCellContents,
+    entrySquareSize,
+  ]);
 
   // ensure that the endpoint is not undefined
   const getEndpointCell = (cellContents, rowStopIndex, columnStopIndex) => {
@@ -121,7 +138,7 @@ export function FaceDashboard () {
       // To-do find a better way to force update gridHeight for scrollscrubber
       setGridHeight(gridRef.current.getTotalRowsHeight());
     }
-    const cellContents = activeTab === FacesTab.enum.labeled ? labeledCellContents: inferredCellContents;
+    const cellContents = activeTab === FacesTab.enum.labeled ? labeledCellContents : inferredCellContents;
     const startPoint = cellContents[params.rowOverscanStartIndex][params.columnOverscanStartIndex];
     const endPoint = getEndpointCell(cellContents, params.rowOverscanStopIndex, params.columnOverscanStopIndex);
     // flatten labeledCellContents and find the range of cells that are in the viewport
@@ -144,31 +161,56 @@ export function FaceDashboard () {
   };
 
   useEffect(() => {
-    const inferredCellContents = calculateFaceGridCells(inferredFacesList, numEntrySquaresPerRow).cellContents;
-    const labeledCellContents = calculateFaceGridCells(labeledFacesList, numEntrySquaresPerRow).cellContents;
-    setInferredCellContents(inferredCellContents);
-    setLabeledCellContents(labeledCellContents);
-  }, [inferredFacesList, labeledFacesList, selectedFaces]);
+    const inferredContents = calculateFaceGridCells(inferredFacesList, numEntrySquaresPerRow).cellContents;
+    const labeledContents = calculateFaceGridCells(labeledFacesList, numEntrySquaresPerRow).cellContents;
+    setInferredCellContents(inferredContents);
+    setLabeledCellContents(labeledContents);
+  }, [inferredFacesList, labeledFacesList, numEntrySquaresPerRow, selectedFaces]);
 
   useEffect(() => {
-    const { entrySquareSize, numEntrySquaresPerRow } = calculateFaceGridCellSize(width);
+    const { entrySquareSize: squareSize, numEntrySquaresPerRow: squaresPerRow } = calculateFaceGridCellSize(width);
 
-    setEntrySquareSize(entrySquareSize);
-    setNumEntrySquaresPerRow(numEntrySquaresPerRow);
+    setEntrySquareSize(squareSize);
+    setNumEntrySquaresPerRow(squaresPerRow);
 
     if (inferredFacesList) {
-      const inferredCellContents = calculateFaceGridCells(inferredFacesList, numEntrySquaresPerRow).cellContents;
-      setInferredCellContents(inferredCellContents);
+      const inferredContents = calculateFaceGridCells(inferredFacesList, squaresPerRow).cellContents;
+      setInferredCellContents(inferredContents);
     }
     if (labeledFacesList) {
-      const labeledCellContents = calculateFaceGridCells(labeledFacesList, numEntrySquaresPerRow).cellContents;
-      setLabeledCellContents(labeledCellContents);
+      const labeledContents = calculateFaceGridCells(labeledFacesList, squaresPerRow).cellContents;
+      setLabeledCellContents(labeledContents);
     }
-  }, [selectedFaces, width]);
+  }, [inferredFacesList, labeledFacesList, selectedFaces, width]);
 
   useEffect(() => {
     setSelectMode(selectedFaces.length > 0);
   }, [selectedFaces]);
+
+  const onFacesSelect = faces => {
+    // get duplicates of new faces and selected faces
+    const duplicates = faces.filter(face => selectedFaces.find(i => i.face_id === face.face_id));
+    // merge selected faces with new faces, filter both duplicates
+    const merged = _.uniqBy([...selectedFaces, ...faces], el => el.face_id);
+    // filter duplicates from new faces
+    const mergedAndFiltered = merged.filter(face => !duplicates.find(i => i.face_id === face.face_id));
+    // add the last selected face back to the start of the list when adding new faces
+    // @ts-ignore
+    const lastSelectedFace = { face_id: lastChecked.id, face_url: lastChecked.face_url };
+    const mergedAndFilteredAndLastSelected =
+      duplicates.length !== faces.length ? [lastSelectedFace, ...mergedAndFiltered] : mergedAndFiltered;
+    setSelectedFaces(mergedAndFilteredAndLastSelected);
+  };
+
+  const onFaceSelect = face => {
+    let tempSelectedFaces = selectedFaces;
+    if (tempSelectedFaces.map(f => f.face_url).includes(face.face_url)) {
+      tempSelectedFaces = tempSelectedFaces.filter(item => item.face_url !== face.face_url);
+    } else {
+      tempSelectedFaces.push(face);
+    }
+    setSelectedFaces([...tempSelectedFaces]);
+  };
 
   const handleClick = (e, cell) => {
     if (!lastChecked) {
@@ -197,31 +239,6 @@ export function FaceDashboard () {
     }
     onFaceSelect({ face_id: cell.id, face_url: cell.face_url });
     setLastChecked(cell);
-  };
-
-  const onFacesSelect = faces => {
-    // get duplicates of new faces and selected faces
-    const duplicates = faces.filter(face => selectedFaces.find(i => i.face_id === face.face_id));
-    // merge selected faces with new faces, filter both duplicates
-    const merged = _.uniqBy([...selectedFaces, ...faces], el => el.face_id);
-    // filter duplicates from new faces
-    const mergedAndFiltered = merged.filter(face => !duplicates.find(i => i.face_id === face.face_id));
-    // add the last selected face back to the start of the list when adding new faces
-    // @ts-ignore
-    const lastSelectedFace = { face_id: lastChecked.id, face_url: lastChecked.face_url };
-    const mergedAndFilteredAndLastSelected =
-      duplicates.length !== faces.length ? [lastSelectedFace, ...mergedAndFiltered] : mergedAndFiltered;
-    setSelectedFaces(mergedAndFilteredAndLastSelected);
-  };
-
-  const onFaceSelect = (face) => {
-    let tempSelectedFaces = selectedFaces;
-    if (tempSelectedFaces.map(f => f.face_url).includes(face.face_url)) {
-      tempSelectedFaces = tempSelectedFaces.filter(item => item.face_url !== face.face_url);
-    } else {
-      tempSelectedFaces.push(face);
-    }
-    setSelectedFaces([...tempSelectedFaces]);
   };
 
   const changeSelectMode = () => {
@@ -266,36 +283,25 @@ export function FaceDashboard () {
     }
   };
 
-  const getDataForScrollIndicator = (): IScrollerData[] => {
-    const cellContents = activeTab === FacesTab.enum.labeled ? labeledCellContents: inferredCellContents;
-    let scrollPosition = 0;
-    const scrollPositions: IScrollerData[] = [];
-    cellContents.forEach(row => {
-      if (row[0].name) {
-        scrollPositions.push({label: row[0].name, targetY: scrollPosition});
-      }
-      scrollPosition += entrySquareSize;
-    });
-    return scrollPositions;
-  };
-
   const cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    const cell = activeTab === FacesTab.enum.labeled
-      ? labeledCellContents[rowIndex][columnIndex]
-      : inferredCellContents[rowIndex][columnIndex];
+    const cell =
+      activeTab === FacesTab.enum.labeled
+        ? labeledCellContents[rowIndex][columnIndex]
+        : inferredCellContents[rowIndex][columnIndex];
 
     if (cell) {
       if (cell.name) {
         return (
-          <HeaderComponent
-            key={key}
-            style={style}
-            width={width}
-            cell={cell}
-            entrySquareSize={entrySquareSize}
-            selectedFaces={selectedFaces}
-            setSelectedFaces={setSelectedFaces}
-          />
+          <React.Fragment key={key}>
+            <HeaderComponent
+              style={style}
+              width={width}
+              cell={cell}
+              entrySquareSize={entrySquareSize}
+              selectedFaces={selectedFaces}
+              setSelectedFaces={setSelectedFaces}
+            />
+          </React.Fragment>
         );
       }
       if (cell.isTemp) {
@@ -337,13 +343,13 @@ export function FaceDashboard () {
       </Stack>
       <div ref={ref} style={{ flexGrow: 1 }}>
         <AutoSizer>
-          {({ height, width }) => (
+          {({ height, width: gridWidth }) => (
             <ScrollScrubber
               scrollPositions={dataForScrollIndicator}
               scrollToY={setScrollTo}
               targetHeight={gridHeight}
               type={ScrollerType.enum.alphabet}
-            >     
+            >
               <Grid
                 ref={gridRef}
                 className="scrollscrubbertarget"
@@ -355,8 +361,10 @@ export function FaceDashboard () {
                 rowHeight={entrySquareSize}
                 onSectionRendered={onSectionRendered}
                 height={height}
-                width={width}
-                rowCount={activeTab === FacesTab.enum.labeled ? labeledCellContents.length : inferredCellContents.length}
+                width={gridWidth}
+                rowCount={
+                  activeTab === FacesTab.enum.labeled ? labeledCellContents.length : inferredCellContents.length
+                }
                 scrollTop={scrollTo}
                 onScroll={handleGridScroll}
               />
@@ -374,4 +382,4 @@ export function FaceDashboard () {
       />
     </div>
   );
-};
+}

@@ -6,13 +6,13 @@ import { User } from "tabler-icons-react";
 import { fetchPublicUserList } from "../../actions/publicActions";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
-export const PublicUserList = () => {
+export function PublicUserList() {
   const dispatch = useAppDispatch();
   const pub = useAppSelector(store => store.pub);
 
   useEffect(() => {
     dispatch(fetchPublicUserList());
-  }, []);
+  }, [dispatch]);
 
   return (
     <Stack align="flex-start">
@@ -25,7 +25,7 @@ export const PublicUserList = () => {
           <Text color="dimmed">Showing {pub.publicUserList.length} users</Text>
         </div>
       </Title>
-      {pub.publicUserList.map((el, idx) => {
+      {pub.publicUserList.map(el => {
         let displayName;
         if (el.first_name.length > 0 && el.last_name.length > 0) {
           displayName = `${el.first_name} ${el.last_name}`;
@@ -35,6 +35,7 @@ export const PublicUserList = () => {
 
         return (
           <Button
+            key={el.id}
             variant="subtle"
             style={{
               height: 42,
@@ -55,4 +56,4 @@ export const PublicUserList = () => {
       })}
     </Stack>
   );
-};
+}

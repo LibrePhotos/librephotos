@@ -3,14 +3,14 @@ import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
-import i18n from "../../i18n";
 
 import { fetchLocationTimeline } from "../../actions/utilActions";
+import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 const { Hint, XYPlot, XAxis, HorizontalBarSeries } = require("react-vis");
 
-type Hint = {
+type HintProps = {
   y: number;
   x: number;
   loc: string;
@@ -20,16 +20,16 @@ type Hint = {
 
 export function LocationDurationStackedBar() {
   const { observe, width } = useDimensions({
-    onResize: ({ observe, unobserve, width, height, entry }) => {
-      observe();
-      unobserve(); // To stop observing the current target element
+    onResize: ({ observe: observeFn, unobserve: unobserveFn }) => {
+      observeFn();
+      unobserveFn(); // To stop observing the current target element
     },
     useBorderBoxSize: true, // Tell the hook to measure based on the border-box size, default is false
-    polyfill: ResizeObserver, // Use polyfill to make this feature works on more browsers);
+    polyfill: ResizeObserver, // Use polyfill to make this feature works on more browsers
   });
   const dispatch = useAppDispatch();
-  const { locationTimeline, fetchingLocationTimeline, fetchedLocationTimeline } = useAppSelector(state => state.util);
-  const [hintValue, setHintValue] = useState<Hint>({} as Hint);
+  const { locationTimeline, fetchedLocationTimeline } = useAppSelector(state => state.util);
+  const [hintValue, setHintValue] = useState<HintProps>({} as HintProps);
 
   const { t } = useTranslation();
   useEffect(() => {
@@ -37,13 +37,17 @@ export function LocationDurationStackedBar() {
       fetchLocationTimeline(dispatch);
     }
   }, [dispatch, fetchedLocationTimeline]); // Only run on first render
-  
-  const getLocationFromToLabel = (loc: string | undefined, start: number | undefined, end: number | undefined ) => {
-    if (typeof start === 'number' && typeof end === 'number') { 
-      return t("locationstimeline.fromto",{
+
+  const getLocationFromToLabel = (loc: string | undefined, start: number | undefined, end: number | undefined) => {
+    if (typeof start === "number" && typeof end === "number") {
+      return t("locationstimeline.fromto", {
         location: loc,
-        start: DateTime.fromSeconds(start).setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString({ year: 'numeric', month: 'short' }),
-        end: DateTime.fromSeconds(end).setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString({ year: 'numeric', month: 'short' })
+        start: DateTime.fromSeconds(start)
+          .setLocale(i18n.resolvedLanguage.replace("_", "-"))
+          .toLocaleString({ year: "numeric", month: "short" }),
+        end: DateTime.fromSeconds(end)
+          .setLocale(i18n.resolvedLanguage.replace("_", "-"))
+          .toLocaleString({ year: "numeric", month: "short" }),
       });
     }
     return null;
@@ -57,14 +61,19 @@ export function LocationDurationStackedBar() {
       {fetchedLocationTimeline && (
         <div>
           <XYPlot width={width - 30} height={300} stackBy="x">
-            <XAxis tickFormat={(v: any) => DateTime.fromSeconds(parseFloat(locationTimeline[0].start + v)).setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString({ year: 'numeric', month: '2-digit' })} />
+            <XAxis
+              tickFormat={(v: any) =>
+                DateTime.fromSeconds(parseFloat(locationTimeline[0].start + v))
+                  .setLocale(i18n.resolvedLanguage.replace("_", "-"))
+                  .toLocaleString({ year: "numeric", month: "2-digit" })
+              }
+            />
 
             {locationTimeline.map((el: any) => (
               <HorizontalBarSeries
-                onValueMouseOver={(d: any, info: any) => {
-                  setHintValue(d);
-                }}
-                style={{ fill: el.color, stroke: el.color}}
+                key={(el.loc + el.start + el.end).toString("base64")}
+                onValueMouseOver={(d: HintProps) => setHintValue(d)}
+                style={{ fill: el.color, stroke: el.color }}
                 data={[
                   {
                     y: 1,
@@ -79,9 +88,7 @@ export function LocationDurationStackedBar() {
 
             {hintValue && (
               <Hint value={hintValue}>
-                <Text color="black">
-                  {getLocationFromToLabel(hintValue.loc, hintValue.start, hintValue.end)}
-                </Text>
+                <Text color="black">{getLocationFromToLabel(hintValue.loc, hintValue.start, hintValue.end)}</Text>
               </Hint>
             )}
           </XYPlot>
@@ -90,5 +97,3 @@ export function LocationDurationStackedBar() {
     </Stack>
   );
 }
-
-export default LocationDurationStackedBar;

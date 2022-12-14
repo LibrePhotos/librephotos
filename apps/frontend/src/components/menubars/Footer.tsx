@@ -29,35 +29,38 @@ export function FooterMenu(): JSX.Element {
   navigationItems.push({ label: t("supportus"), link: SUPPORT_LINK, icon: Heart, color: "pink" });
 
   const links = navigationItems.map(item => {
+    const key = item.label;
+
     if (item.display === false) {
       return null;
     }
 
     const icon = <item.icon className={classes.linkIcon} color={item.color} size={33} style={{ margin: 0 }} />;
     const link = item.submenu ? (
-      <ActionIcon>{icon}</ActionIcon>
+      <ActionIcon key={key}>{icon}</ActionIcon>
     ) : (
-      <ActionIcon component={Link} to={item.link}>
+      <ActionIcon key={key} component={Link} to={item.link}>
         {icon}
       </ActionIcon>
     );
 
     if (item.submenu) {
       return (
-        <Menu withArrow position="top" width={200}>
+        <Menu withArrow position="top" width={200} key={key}>
           <Menu.Target>{link}</Menu.Target>
 
           <Menu.Dropdown>
             {item.submenu.map(subitem => {
+              const subkey = `sub-${subitem.label}`;
               if (subitem.header) {
-                return <Menu.Label>{subitem.header}</Menu.Label>;
+                return <Menu.Label key={subkey}>{subitem.header}</Menu.Label>;
               }
               if (subitem.separator) {
-                return <Divider />;
+                return <Divider key={subkey} />;
               }
-              const icon = <subitem.icon size={20} color={subitem.color} />;
+              const submenuIcon = <subitem.icon size={20} color={subitem.color} />;
               return (
-                <Menu.Item icon={icon} onClick={() => dispatch(push(subitem.link!))}>
+                <Menu.Item key={subkey} icon={submenuIcon} onClick={() => dispatch(push(subitem.link!))}>
                   {subitem.label}
                 </Menu.Item>
               );

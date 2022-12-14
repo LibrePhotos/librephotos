@@ -8,16 +8,16 @@ import { Album, DotsVertical, Edit, Share, Trash, User, Users } from "tabler-ico
 
 import { deleteUserAlbum, fetchUserAlbumsList, renameUserAlbum } from "../../actions/albumsActions";
 import { Tile } from "../../components/Tile";
+import { ModalAlbumShare } from "../../components/sharing/ModalAlbumShare";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
 import { HeaderComponent } from "./HeaderComponent";
-import { ModalAlbumShare } from "../../components/sharing/ModalAlbumShare";
 
 const SIDEBAR_WIDTH = LEFT_MENU_WIDTH;
 
-export function SharedWith(album: any) {
+export function SharedWith({ album }: any) {
   const [opened, { toggle, close }] = useDisclosure(false);
-  //To-Do: Figure out, why album is an array / json
+  // To-Do: Figure out, why album is an array / json
   return (
     <Popover opened={opened} position="bottom" width={260} onClose={close}>
       <Popover.Target>
@@ -26,8 +26,8 @@ export function SharedWith(album: any) {
       <Popover.Dropdown>
         <Stack>
           <Title order={5}>Shared with:</Title>
-          {album.album.shared_to.map((el: { username: string }) => (
-            <Group>
+          {album.shared_to.map((el: { username: string }) => (
+            <Group key={el.username}>
               <User />
               <b>{el.username}</b>
             </Group>
@@ -54,55 +54,55 @@ export function AlbumUser() {
 
   const { albumsUserList, fetchingAlbumsUserList } = useAppSelector(store => store.albums);
 
-  const openDeleteDialog = (albumID: string, albumTitle: string) => {
+  const openDeleteDialog = (id: string, title: string) => {
     setIsDeleteDialogOpen(true);
-    setAlbumID(albumID);
-    setAlbumTitle(albumTitle);
+    setAlbumID(id);
+    setAlbumTitle(title);
   };
 
-  const openRenameDialog = (albumID: string, albumTitle: string) => {
+  const openRenameDialog = (id: string, title: string) => {
     setIsRenameDialogOpen(true);
-    setAlbumID(albumID);
-    setAlbumTitle(albumTitle);
+    setAlbumID(id);
+    setAlbumTitle(title);
   };
 
-  const openShareDialog = (albumID: string, albumTitle: string) => {
+  const openShareDialog = (id: string, title: string) => {
     setIsShareDialogOpen(true);
-    setAlbumID(albumID);
-    setAlbumTitle(albumTitle);
+    setAlbumID(id);
+    setAlbumTitle(title);
   };
-  
+
   const closeDeleteDialog = () => setIsDeleteDialogOpen(false);
 
   const closeRenameDialog = () => setIsRenameDialogOpen(false);
 
   const closeShareDialog = () => setIsShareDialogOpen(false);
 
+  const calculateEntrySquareSize = () => {
+    let squaresPerRow = 6;
+    if (window.innerWidth < 600) {
+      squaresPerRow = 2;
+    } else if (window.innerWidth < 800) {
+      squaresPerRow = 3;
+    } else if (window.innerWidth < 1000) {
+      squaresPerRow = 4;
+    } else if (window.innerWidth < 1200) {
+      squaresPerRow = 5;
+    }
+
+    const columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15;
+
+    const squareSize = columnWidth / squaresPerRow;
+    setEntrySquareSize(squareSize);
+    setNumEntrySquaresPerRow(squaresPerRow);
+  };
+
   useEffect(() => {
     calculateEntrySquareSize();
     if (albumsUserList.length === 0) {
       dispatch(fetchUserAlbumsList());
     }
-  }, []);
-
-  const calculateEntrySquareSize = () => {
-    let numEntrySquaresPerRow = 6;
-    if (window.innerWidth < 600) {
-      numEntrySquaresPerRow = 2;
-    } else if (window.innerWidth < 800) {
-      numEntrySquaresPerRow = 3;
-    } else if (window.innerWidth < 1000) {
-      numEntrySquaresPerRow = 4;
-    } else if (window.innerWidth < 1200) {
-      numEntrySquaresPerRow = 5;
-    }
-
-    const columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15;
-
-    const entrySquareSize = columnWidth / numEntrySquaresPerRow;
-    setEntrySquareSize(entrySquareSize);
-    setNumEntrySquaresPerRow(numEntrySquaresPerRow);
-  };
+  }, [albumsUserList.length, dispatch]);
 
   const cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
     const albumUserIndex = rowIndex * numEntrySquaresPerRow + columnIndex;
@@ -263,7 +263,7 @@ export function AlbumUser() {
             columnCount={numEntrySquaresPerRow}
             height={height - TOP_MENU_HEIGHT - 60}
             rowHeight={entrySquareSize + 60}
-            rowCount={Math.ceil(albumsUserList.length / numEntrySquaresPerRow).toFixed(1)}
+            rowCount={Math.ceil(albumsUserList.length / numEntrySquaresPerRow)}
             width={width}
           />
         )}
