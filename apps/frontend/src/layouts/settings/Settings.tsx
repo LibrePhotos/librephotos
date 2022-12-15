@@ -73,9 +73,9 @@ export function Settings() {
       <Group position="center">
         <Select
           label={t("settings.sceneconfidence")}
-          value={userSelfDetails.confidence}
+          value={userSelfDetails.confidence?.toString()}
           onChange={value => {
-            setUserSelfDetails({ ...userSelfDetails, confidence: value ? parseFloat(value) : 0 });
+            setUserSelfDetails({ ...userSelfDetails, confidence: value || "0" });
           }}
           placeholder={t("settings.confidencelevel")}
           data={[
@@ -88,9 +88,9 @@ export function Settings() {
         <Select
           label={t("settings.semanticsearchheader")}
           placeholder={t("settings.semanticsearch.placeholder")}
-          value={userSelfDetails.semantic_search_topk}
+          value={userSelfDetails.semantic_search_topk?.toString()}
           onChange={value => {
-            setUserSelfDetails({ ...userSelfDetails, semantic_search_topk: value ? +value : 0 });
+            setUserSelfDetails({ ...userSelfDetails, semantic_search_topk: value || "0" });
           }}
           data={[
             { value: "100", label: t("settings.semanticsearch.top100") },
@@ -118,10 +118,10 @@ export function Settings() {
         />
         <Select
           label={t("settings.favoriteminimum")}
-          value={userSelfDetails.favorite_min_rating}
+          value={userSelfDetails.favorite_min_rating?.toString()}
           placeholder={t("settings.favoriteoption.placeholder")}
           onChange={value => {
-            setUserSelfDetails({ ...userSelfDetails, favorite_min_rating: value ? +value : 3 });
+            setUserSelfDetails({ ...userSelfDetails, favorite_min_rating: value || "3" });
           }}
           data={[
             { value: "1", label: "1" },

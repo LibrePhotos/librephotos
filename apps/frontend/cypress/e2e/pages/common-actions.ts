@@ -1,3 +1,4 @@
+/// <reference types="cypress" />
 export class CommonActions {
   visit(path: string) {
     cy.visit(path);
