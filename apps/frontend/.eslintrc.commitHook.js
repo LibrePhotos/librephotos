@@ -1,7 +1,7 @@
 module.exports = {
-  "extends": ["airbnb", "airbnb-typescript", "airbnb/hooks" ,"prettier"],
-  "plugins": ["prettier"],
-  "rules": {
+  extends: ["airbnb", "airbnb-typescript", "airbnb/hooks", "prettier"],
+  plugins: ["prettier"],
+  rules: {
     "prettier/prettier": "error",
     "no-unused-vars": "error",
     "no-console": "off",
@@ -9,11 +9,11 @@ module.exports = {
     "no-process-exit": "off",
     "object-shorthand": "off",
     "class-methods-use-this": "off",
-    "import/prefer-default-export":"off",
-    "import/no-default-export":"error",
-    "no-void":"off"
+    "import/prefer-default-export": "off",
+    "import/no-default-export": "error",
+    "no-void": "off",
   },
-    parserOptions: {
-        project: "./tsconfig.json"
-    }
+  parserOptions: {
+    project: "./tsconfig.eslint.json",
+  },
 };

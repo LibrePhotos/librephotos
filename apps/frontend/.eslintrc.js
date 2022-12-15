@@ -80,6 +80,6 @@ module.exports = {
     "@typescript-eslint/consistent-type-imports": ["error", { prefer: "type-imports", disallowTypeAnnotations: true }],
   },
   parserOptions: {
-    project: "./tsconfig.json",
+    project: "./tsconfig.eslint.json",
   },
 };
