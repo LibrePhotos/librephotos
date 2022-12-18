@@ -13,7 +13,7 @@ import {
 import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { ModalNextcloudScanDirectoryEdit } from "../../components/modals/ModalNextcloudScanDirectoryEdit";
-import { ConfigDatetime } from "../../components/settings/ConfigDatetime";
+import { ConfigDateTime } from "../../components/settings/ConfigDateTime";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 export function Settings() {
@@ -159,7 +159,14 @@ export function Settings() {
           }}
         />
       </Stack>
-      <ConfigDatetime />
+      <Stack align="center">
+        <ConfigDateTime
+          value={userSelfDetails.datetime_rules}
+          onChange={value => {
+            setUserSelfDetails({ ...userSelfDetails, datetime_rules: value || "[]" });
+          }}
+        />
+      </Stack>
       <Title order={3}>
         <Trans i18nKey="settings.experimentaloptions">Experimental options</Trans>
       </Title>
@@ -207,7 +214,7 @@ export function Settings() {
           </Button>
           <Button
             onClick={() => {
-              setUserSelfDetails(userSelfDetails);
+              setUserSelfDetails(userSelfDetailsRedux);
               setIsOpenUpdateDialog(false);
             }}
             size="sm"

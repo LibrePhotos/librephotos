@@ -1,54 +1,88 @@
-import { Modal, Stack, Text, Title } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
+import { ActionIcon, Modal, ScrollArea, Table, Text, TextInput, Title } from "@mantine/core";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { CirclePlus, Search } from "tabler-icons-react";
 
-import { useFetchPredefinedRulesQuery } from "../../api_client/api";
-import { useAppSelector } from "../../store/store";
-import { selectUserSelfDetails } from "../../store/user/userSelectors";
-import { SortableItem } from "../settings/SortableItem";
+import { fuzzyMatch } from "../../util/util";
+import { getRuleExtraInfo, useDateTimeSettingsStyles } from "../settings/date-time-settings";
+import type { DateTimeRule } from "../settings/date-time.zod";
 
 type Props = {
-  isOpen: boolean;
-  onRequestClose: () => void;
-  addItemFunction: (item: any) => void;
+  opened: boolean;
+  onClose: () => void;
+  onAddRules: (item: any) => void;
+  availableRules: DateTimeRule[];
 };
 
-export function ModalConfigDatetime(props: Props) {
-  const [possibleOptions, setPossibleOptions] = useState<Array<any>>([]);
-  const { isLoading, isError, data } = useFetchPredefinedRulesQuery();
+function searchRules(query: string) {
+  return function (rule: DateTimeRule) {
+    return fuzzyMatch(query, rule.name) || fuzzyMatch(query, rule.rule_type);
+  };
+}
 
-  const matches = useMediaQuery("(min-width: 700px)");
-  const { datetime_rules } = useAppSelector(selectUserSelfDetails);
-  const rules = JSON.parse(datetime_rules || "[]");
-  // make sure rules have ids
-  rules.forEach((rule: any, index: any) => {
-    if (!rule.id) {
-      rule.id = index;
-    }
-  });
+export function ModalConfigDatetime({ opened, onClose, availableRules, onAddRules }: Props) {
+  const { t } = useTranslation();
+  const { classes } = useDateTimeSettingsStyles();
+  const [filter, setFilter] = useState("");
+  const [rulesToAdd, setRulesToAdd] = useState<DateTimeRule[]>([]);
+  const appendRule = rule => setRulesToAdd([...rulesToAdd, rule]);
+  const ignoreSelectedRules = rule => !rulesToAdd.find(r => r.id === rule.id);
 
   useEffect(() => {
-    if (!isLoading && !isError && data !== undefined) {
-      setPossibleOptions(data.filter((i: any) => rules.filter((x: any) => x.id == i.id).length == 0));
+    /**
+     * collect rules to add and submit them to the parent when closing the modal
+     */
+    if (!opened && rulesToAdd.length) {
+      onAddRules(rulesToAdd);
+      setRulesToAdd([]);
     }
-  }, [isLoading]);
+  }, [rulesToAdd, opened, onAddRules]);
+
+  const rules = availableRules
+    .filter(searchRules(filter))
+    .filter(ignoreSelectedRules)
+    .map(rule => (
+      <tr key={rule.name} className={classes.item}>
+        <td>
+          <strong>
+            {rule.name} (ID:{rule.id})
+          </strong>
+          <div className={classes.rule_type}>{t("rules.rule_type", { rule: rule.rule_type })}</div>
+          {getRuleExtraInfo(rule, t)}
+        </td>
+        <td width={40}>
+          <ActionIcon onClick={() => appendRule(rule)}>
+            <CirclePlus color="green" />
+          </ActionIcon>
+        </td>
+      </tr>
+    ));
+
+  const handleFilterRules = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = event.currentTarget;
+    setFilter(value);
+  };
 
   return (
     <Modal
-      opened={props.isOpen}
+      opened={opened}
+      size="xl"
       title={<Title order={3}>Choose a new rule to add</Title>}
-      onClose={() => {
-        props.onRequestClose();
-      }}
+      onClose={() => onClose()}
     >
-      <Stack>
-        <Text color="dimmed">Choose a rule, that will parse the date from a certain field or attribute.</Text>
-        <Title order={5}>Rules:</Title>
-        {possibleOptions &&
-          possibleOptions.map((rule: any) => (
-            <SortableItem key={rule.id} id={rule.id} item={rule} addItem addItemFunction={props.addItemFunction} />
-          ))}
-      </Stack>
+      <Text color="dimmed">Choose a rule, that will parse the date from a certain field or attribute.</Text>
+      <ScrollArea>
+        <TextInput
+          placeholder="Find rules by name or type..."
+          mb="md"
+          icon={<Search size={14} />}
+          value={filter}
+          onChange={e => handleFilterRules(e)}
+        />
+        <Table>
+          <tbody>{rules}</tbody>
+        </Table>
+      </ScrollArea>
     </Modal>
   );
 }
