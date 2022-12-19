@@ -146,7 +146,8 @@
       "titlechangepassword": "Change Password",
       "titlesetpassword": "Set Password",
       "tooltipeditbutton": "Click to change the password"
-    }
+    },
+    "add_rule": "Add Rule"
   },
   "modalalbum": {
     "title": "Add to Album",
@@ -279,8 +280,8 @@
       "undotimestampmodification": "Undo timestamp modification"
     }
   },
-  "exif":{
-    "filepath":"File Path",
+  "exif": {
+    "filepath": "File Path",
     "subjectdistance": "Subject Distance",
     "digitalzoomratio": "Digital Zoom Ratio",
     "focallengthin35mmfilm": "Focal Length 35mm Equivalent",
@@ -436,7 +437,7 @@
     "explanationdeleting": "Delete the face and it's thumbnails",
     "explanationtraining": "Identify similar faces and try to find matches",
     "explanationvalidate": "Confirm that all faces from this group match with this person and add them to the corresponding face ID",
-    "notthisperson":  "Move the faces back to 'Unknown - Other'",
+    "notthisperson": "Move the faces back to 'Unknown - Other'",
     "sortby": "Sort by",
     "sortbyconfidence": "Confidence",
     "sortbydate": "Date"
@@ -565,8 +566,8 @@
     "14": "Timestamp set by user",
     "15": "Local time from EXIF:DateTime exif tag",
     "rule_type": "Rule Type: {{rule}}",
-    "exif_tag": "Use Exiftag {{rule}}",
-    "file_property": "Use file property {{rule}}",
+    "exif_tag": "Use EXIF tag: {{rule}}",
+    "file_property": "Use file property: {{rule}}",
     "source_tz": "Transform from {{rule}}",
     "report_tz": "Transform to {{rule}}",
     "predefined_regexp": "Use predefined regular expression: {{rule}}"
