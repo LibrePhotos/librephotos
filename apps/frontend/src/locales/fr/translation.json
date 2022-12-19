@@ -146,7 +146,8 @@
         "albumoptions": "Options de l'album",
         "traditionalchinese": "chinois (traditionnel)",
         "ukrainian": "ukrainien",
-        "vietnamese": "vietnamien"
+        "vietnamese": "vietnamien",
+        "togglecolorscheme": "Basculer le jeu de couleurs"
     },
     "modalnextcloud": {
         "setdirectory": "Définir votre répertoire de scan Nextcloud",
