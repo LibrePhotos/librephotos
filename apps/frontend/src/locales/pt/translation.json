@@ -152,7 +152,8 @@
         "ukrainian": "Ucraniano",
         "vietnamese": "Vietnamita",
         "traditionalchinese": "Chinês (Tradicional)",
-        "togglecolorscheme": "Trocar esquema de cores"
+        "togglecolorscheme": "Trocar esquema de cores",
+        "add_rule": "Adicionar regra"
     },
     "sidemenu": {
         "myalbums": "Meus álbuns",
@@ -513,13 +514,13 @@
         "11": "Usar composto: tag GPSDateTime e encontrar fuso horário através das coordenadas GPS",
         "13": "Usar composto: tag GPSDateTime no fuso horário UTC (não é possível descobrir o fuso horário real)",
         "15": "Hora local do EXIF: tag exif DateTime",
-        "file_property": "Usar propriedade do ficheiro {{rule}}",
+        "file_property": "Usar propriedade do ficheiro: {{rule}}",
         "predefined_regexp": "Usar expressão regular predefinida: {{rule}}",
         "3": "Utilizando o nome do ficheiro e assumindo que a hora é local",
         "2": "Obter tag de criação do vídeo em UTC e descobrir fuso horário através das coordenadas GPS",
         "6": "Data/hora de criação do vídeo no fuso horário UTC (não é possível encontrar o fuso horário real)",
         "12": "Usar composto: tag GPSDateTime no fuso horário predefinido do utilizador (não é possível descobrir o fuso horário real)",
-        "exif_tag": "Usar tag Exif {{rule}}",
+        "exif_tag": "Usar tag EXIF {{rule}}",
         "7": "Data/hora de modificação do ficheiro no fuso horário predefinido do utilizador",
         "report_tz": "Transformar para {{rule}}",
         "14": "Carimbo de data/hora definido pelo utilizador",
