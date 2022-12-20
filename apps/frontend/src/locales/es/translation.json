@@ -147,7 +147,8 @@
         "traditionalchinese": "Chino (Tradicional)",
         "ukrainian": "Ucraniano",
         "vietnamese": "Vietnamita",
-        "togglecolorscheme": "Alternar el esquema de color"
+        "togglecolorscheme": "Alternar el esquema de color",
+        "add_rule": "Añadir regla"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de escaneo de Nextcloud",
@@ -501,9 +502,9 @@
     },
     "rules": {
         "report_tz": "Transformar a{{rule}}",
-        "file_property": "Usar propiedad de archivo {{rule}}",
+        "file_property": "Usar propiedad de archivo: {{rule}}",
         "source_tz": "Transformar de {{rule}}",
-        "exif_tag": "Usar Exiftag: {{rule}}",
+        "exif_tag": "Usar etiqueta EXIF: {{rule}}",
         "2": "Obtenga la etiqueta de creación de video en UTC + descubra la zona horaria usando las coordenadas GPS",
         "rule_type": "Tipo de regla: {{rule}}",
         "1": "Hora local desde la etiqueta exif DATE_TIME_ORIGINAL",
