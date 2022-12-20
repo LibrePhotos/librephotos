@@ -102,7 +102,8 @@ export function FaceDashboard() {
       );
     }
     setScrollTo(tabs[activeTab].scrollPosition);
-  }, [activeTab, currentScrollPosition, dispatch, previousTab, tabs]);
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [activeTab, dispatch, previousTab, tabs]);
 
   useEffect(() => {
     const cellContents = activeTab === FacesTab.enum.labeled ? labeledCellContents : inferredCellContents;
