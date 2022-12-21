@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime
 
@@ -7,6 +8,7 @@ from django_rq import get_worker
 from rest_framework.test import APIClient
 
 from api.api_util import get_search_term_examples
+from api.date_time_extractor import DEFAULT_RULES_PARAMS, OTHER_RULES_PARAMS
 
 # from api.directory_watcher import scan_photos
 from api.models import AlbumAuto, User
@@ -257,7 +259,6 @@ class ScanPhotosTestCase(TestCase):
 
         # set scan directories for each user as admin
         for idx, (user_id, client) in enumerate(zip(user_ids, self.client_users)):
-
             user_scan_directory = os.path.join(samplephotos_dir, "test{}".format(idx))
             self.assertNotEqual(user_scan_directory, "")
             patch_res = self.client_admin.patch(
@@ -342,3 +343,39 @@ class ScanPhotosTestCase(TestCase):
                 "/api/albums/thing/%d/" % album["id"]
             )
             self.assertEqual(thing_album_retrieve_res.status_code, 200)
+
+
+class PredefinedRulesTest(TestCase):
+    def setUp(self):
+        User.objects.create_superuser(
+            "test_admin", "test_admin@test.com", "test_password"
+        )
+        self.client = APIClient()
+        auth_res = self.client.post(
+            "/api/auth/token/obtain/",
+            {"username": "test_admin", "password": "test_password"},
+        )
+        self.client.credentials(
+            HTTP_AUTHORIZATION="Bearer " + auth_res.json()["access"]
+        )
+
+    def test_predefined_rules(self):
+        response = self.client.get("/api/predefinedrules/")
+        self.assertEqual(200, response.status_code)
+        data = response.json()
+        self.assertIsInstance(data, str)
+        rules = json.loads(data)
+        self.assertIsInstance(rules, list)
+        self.assertEqual(15, len(rules))
+
+    def test_default_rules(self):
+        response = self.client.get("/api/predefinedrules/")
+        rules = json.loads(response.json())
+        default_rules = list(filter(lambda x: x["is_default"], rules))
+        self.assertListEqual(DEFAULT_RULES_PARAMS, default_rules)
+
+    def test_other_rules(self):
+        response = self.client.get("/api/predefinedrules/")
+        rules = json.loads(response.json())
+        other_rules = list(filter(lambda x: not x["is_default"], rules))
+        self.assertListEqual(OTHER_RULES_PARAMS, other_rules)

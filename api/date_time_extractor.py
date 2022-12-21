@@ -444,7 +444,7 @@ DEFAULT_RULES_PARAMS = [
     },
 ]
 
-PREDEFINED_RULES_PARAMS = DEFAULT_RULES_PARAMS + [
+OTHER_RULES_PARAMS = [
     {
         "id": 6,
         "name": "Video creation datetime in UTC timezone (can't find out actual timezone)",
@@ -497,6 +497,21 @@ PREDEFINED_RULES_PARAMS = DEFAULT_RULES_PARAMS + [
         "exif_tag": Tags.GPS_DATE_TIME,
     },
 ]
+
+
+def set_as_default_rule(rule):
+    rule["is_default"] = True
+    return rule
+
+
+def set_as_other_rule(rule):
+    rule["is_default"] = False
+    return rule
+
+
+PREDEFINED_RULES_PARAMS = list(map(set_as_default_rule, DEFAULT_RULES_PARAMS)) + list(
+    map(set_as_other_rule, OTHER_RULES_PARAMS)
+)
 
 
 def _as_json(configs):
