@@ -56,9 +56,9 @@ services:
     environment:
       - SECRET_KEY=${shhhhKey:-}
       - BACKEND_HOST=__backend_name__
-      - ADMIN_EMAIL=${adminEmail:-admin@localhost}
-      - ADMIN_USERNAME=${userName:-admin}
-      - ADMIN_PASSWORD=${userPass:-admin}
+      - ADMIN_EMAIL=${adminEmail:-}
+      - ADMIN_USERNAME=${userName:-}
+      - ADMIN_PASSWORD=${userPass:-}
       - DB_BACKEND=postgresql
       - DB_NAME=${dbName}
       - DB_USER=${dbUser}
@@ -72,7 +72,7 @@ services:
       - SKIP_PATTERNS=${skipPatterns:-}
       - ALLOW_UPLOAD=${allowUpload:-false}
       - DEBUG=0
-      - HEAVYWEIGHT_PROCESS=${HEAVYWEIGHT_PROCESS}
+      - HEAVYWEIGHT_PROCESS=${HEAVYWEIGHT_PROCESS:-}
     depends_on:
       __db_name__:
         condition: service_healthy
