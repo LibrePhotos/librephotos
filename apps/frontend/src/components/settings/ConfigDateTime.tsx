@@ -101,7 +101,7 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
     <>
       <Title order={3}>{t("settings.configdatetime")}</Title>
 
-      <Group position="right">
+      <Group>
         <Button color="green" leftIcon={<CodePlus />} onClick={open} style={{ marginBottom: 10 }}>
           {t("settings.add_rule")}
         </Button>
