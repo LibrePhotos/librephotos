@@ -143,7 +143,12 @@
             "titlechangepassword": "Passwort ändern",
             "titlesetpassword": "Passwort ändern",
             "tooltipeditbutton": "Klicken, um Passwort zu ändern"
-        }
+        },
+        "add_rule": "Regel hinzufügen",
+        "togglecolorscheme": "Farbschema umschalten",
+        "ukrainian": "Ukrainisch",
+        "traditionalchinese": "Chinesisch (Traditionell)",
+        "vietnamese": "Vietnamesisch"
     },
     "modalnextcloud": {
         "setdirectory": "Setze dein Nextcloud Scan Ordner",
@@ -496,14 +501,14 @@
         "removefacestopersontitle": "Gesichter aus Person entfernen"
     },
     "rules": {
-        "file_property": "Dateieigenschaft verwenden {{rule}}",
+        "file_property": "Dateieigenschaft verwenden: {{rule}}",
         "1": "Ortszeit aus DATE_TIME_ORIGINAL-Exif-Tag",
         "source_tz": "Transformiere von {{rule}}",
         "2": "Erfasse Video-Erstellungsdatum in UTC + bestimme Zeitzone über GPS-Koordinaten",
         "3": "Verwende Dateiname (lokale Zeit vorausgesetzt)",
         "4": "Video UTC - verwende lokale Zeit in UTC (da tatsächliche Zeitzone nicht bestimmt werden kann)",
         "rule_type": "Regeltyp: {{rule}}",
-        "exif_tag": "Verwende Exif-Tag {{rule}}",
+        "exif_tag": "Verwende EXIF-Tag: {{rule}}",
         "report_tz": "Transformiere nach {{rule}}",
         "5": "Datum mit WhatsApp-Dateinamen extrahieren",
         "6": "Datum der Videoerstellung in UTC-Zeitzone (kann die aktuelle Zeitzone nicht herausfinden)",
