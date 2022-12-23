@@ -3,6 +3,7 @@ import { z } from "zod";
 const BaseDateTimeProps = z.object({
   id: z.number(),
   name: z.string(),
+  is_default: z.boolean(),
 });
 
 const TransformTimezoneProps = BaseDateTimeProps.extend({

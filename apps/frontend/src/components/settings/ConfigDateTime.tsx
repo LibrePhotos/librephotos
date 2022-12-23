@@ -1,9 +1,9 @@
-import { Button, CloseButton, ScrollArea, Table, Title } from "@mantine/core";
+import { Button, CloseButton, Group, ScrollArea, Table, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import React, { useEffect, useState } from "react";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { useTranslation } from "react-i18next";
-import { CodePlus } from "tabler-icons-react";
+import { ArrowBackUp, CodePlus } from "tabler-icons-react";
 
 import { useFetchPredefinedRulesQuery } from "../../api_client/api";
 import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
@@ -26,6 +26,7 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
   const { data: allRules } = useFetchPredefinedRulesQuery();
   const [userRules, setUserRules] = useState<DateTimeRule[]>([]);
   const [availableRules, setAvailableRules] = useState<DateTimeRule[]>([]);
+  const [resetButtonDisabled, setResetButtonDisabled] = useState(true);
   const [opened, { open, close }] = useDisclosure(false);
 
   useEffect(() => {
@@ -35,9 +36,16 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
   }, [value]);
 
   useEffect(() => {
-    if (allRules && allRules.length && userRules.length) {
+    if (!allRules || !userRules) {
+      return;
+    }
+
+    if (allRules.length && userRules.length) {
       setAvailableRules(allRules.filter(rule => !userRules.find(r => r.id === rule.id)));
     }
+
+    const defaultRules = allRules.filter(rule => rule.is_default);
+    setResetButtonDisabled(JSON.stringify(userRules) === JSON.stringify(defaultRules));
   }, [allRules, userRules]);
 
   function addRules(newRules: DateTimeRule[]) {
@@ -57,6 +65,16 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
     [tmp[from], tmp[to]] = [tmp[to], tmp[from]];
     setUserRules(tmp);
     onChange(JSON.stringify(tmp));
+  }
+
+  function resetToDefaultRules() {
+    if (!allRules) {
+      return;
+    }
+
+    const defaultRules = allRules.filter(rule => rule.is_default);
+    setUserRules(defaultRules);
+    onChange(JSON.stringify(defaultRules));
   }
 
   const items = userRules.map((rule, index) => (
@@ -83,9 +101,21 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
     <>
       <Title order={3}>{t("settings.configdatetime")}</Title>
 
-      <Button color="green" leftIcon={<CodePlus />} onClick={open} style={{ marginBottom: 10 }}>
-        {t("settings.add_rule")}
-      </Button>
+      <Group>
+        <Button color="green" leftIcon={<CodePlus />} onClick={open} style={{ marginBottom: 10 }}>
+          {t("settings.add_rule")}
+        </Button>
+
+        <Button
+          color={resetButtonDisabled ? "gray" : "red"}
+          disabled={resetButtonDisabled}
+          leftIcon={<ArrowBackUp />}
+          onClick={() => resetToDefaultRules()}
+          style={{ marginBottom: 10 }}
+        >
+          Reset To Defaults
+        </Button>
+      </Group>
 
       <ScrollArea>
         <DragDropContext onDragEnd={result => reorderRules(result.destination?.index || 0, result.source.index)}>
