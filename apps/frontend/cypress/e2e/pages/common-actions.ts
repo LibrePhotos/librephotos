@@ -1,8 +1,14 @@
 /// <reference types="cypress" />
-export class CommonActions {
-  visit(path: string) {
-    cy.visit(path);
+/// <reference path="../../support/commands.ts" />
+
+export abstract class CommonActions {
+  abstract path: string;
+
+  visit() {
+    cy.visit(this.path);
   }
+
+  abstract isActivePage();
 
   locationShouldBe(expectedLocation: string) {
     cy.location().should(location => {
@@ -11,6 +17,9 @@ export class CommonActions {
   }
 
   pressButton(label: string) {
-    cy.get("button .mantine-Button-label").should("have.text", label).click();
+    cy.get("button > div.mantine-Button-inner > span.mantine-Button-label")
+      .should("have.text", label)
+      .parentsUntil("button")
+      .click();
   }
 }

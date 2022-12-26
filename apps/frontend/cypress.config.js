@@ -19,7 +19,7 @@ export default defineConfig({
     baseUrl: "http://localhost:8080",
     setupNodeEvents,
     specPattern: "**/*.feature",
-    supportFile: false,
+    supportFile: "cypress/support/e2e.ts",
     video: false,
     viewportWidth: 1024,
     viewportHeight: 768,
