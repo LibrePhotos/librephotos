@@ -36,7 +36,7 @@ export const useDateTimeSettingsStyles = createStyles(theme => ({
 }));
 
 export function getRuleExtraInfo(rule: DateTimeRule, t: (s: string, o: Object) => string) {
-  const ignoredProps = ["name", "id", "rule_type", "transform_tz"];
+  const ignoredProps = ["name", "id", "rule_type", "transform_tz", "is_default"];
   return (
     <>
       {Object.entries(rule)

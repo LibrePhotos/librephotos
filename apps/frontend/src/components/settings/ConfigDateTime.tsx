@@ -45,7 +45,7 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
     }
 
     const defaultRules = allRules.filter(rule => rule.is_default);
-    setResetButtonDisabled(JSON.stringify(userRules) === JSON.stringify(defaultRules));
+    setResetButtonDisabled(JSON.stringify(userRules.map(r => r.id)) === JSON.stringify(defaultRules.map(r => r.id)));
   }, [allRules, userRules]);
 
   function addRules(newRules: DateTimeRule[]) {
