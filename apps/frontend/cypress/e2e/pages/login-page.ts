@@ -1,22 +1,9 @@
 import { CommonActions } from "./common-actions";
 
-export class LoginPage {
+export class LoginPage extends CommonActions {
   path = "/login";
 
-  common: CommonActions;
-
-  constructor() {
-    this.common = new CommonActions();
-  }
-
-  visit() {
-    this.common.visit(this.path);
-  }
-
-  isCurrent() {
-    cy.location().should(location => {
-      expect(location.pathname).to.eq(this.path);
-    });
+  isActivePage() {
     cy.get("h3").should("contain.text", "Login");
   }
 
@@ -38,10 +25,15 @@ export class LoginPage {
     });
   }
 
-  loggedInAsAdmin() {
+  clickLoginButton() {
+    this.pressButton("Login");
+  }
+
+  login(username: string, password: string) {
     this.visit();
-    this.enterPassword("admin");
-    this.enterUsername("admin");
-    this.common.pressButton("Login");
+    this.isActivePage();
+    this.enterUsername(username);
+    this.enterPassword(password);
+    this.pressButton("Login");
   }
 }
