@@ -1,3 +1,4 @@
+import type { DateTimeRule } from "../../../src/components/settings/date-time.zod";
 import { userDefaults } from "../fixtures/user_defaults";
 import { CommonActions } from "./common-actions";
 
@@ -19,6 +20,8 @@ export class UserSettingsPage extends CommonActions {
     "Inferred faces confidence": PropTypes.INPUT,
     "Always transcode videos": PropTypes.SWITCH,
   };
+
+  defaultDateTimeRules: DateTimeRule[] = JSON.parse(userDefaults.datetime_rules).filter(rule => rule.is_default);
 
   isActivePage() {
     cy.get("h2").should("have.text", "Settings");
@@ -90,5 +93,55 @@ export class UserSettingsPage extends CommonActions {
         });
       });
     });
+  }
+
+  deleteRule(id: number) {
+    cy.get("table > tbody")
+      .find("strong")
+      .contains(`(ID:${id})`)
+      .parentsUntil("tr")
+      .parent()
+      .find(`button[title="Delete rule"]`)
+      .click();
+  }
+
+  shouldNotContainRule(id: number) {
+    cy.get("table > tbody").find("strong").contains(`(ID:${id})`).should("not.exist");
+  }
+
+  shouldContainRule(id: number) {
+    cy.get("table > tbody").find("strong").contains(`(ID:${id})`).should("exist");
+  }
+
+  defaultDateTimeRulesDisplayedCorrectly() {
+    cy.get("h3")
+      .contains("Set date & time parsing rules")
+      .parent()
+      .within(() => {
+        this.defaultDateTimeRules.forEach((rule, index) => this.expectedRuleAtIndex(index, rule.id));
+      });
+  }
+
+  private expectedRuleAtIndex(index: number, id: number) {
+    const rule = this.defaultDateTimeRules.find(r => r.id === id)!;
+    const ignoreRuleProps = ["name", "id", "rule_type", "transform_tz", "is_default"];
+
+    cy.get("table > tbody > tr")
+      .eq(index)
+      .children()
+      .first()
+      .within(() => {
+        cy.get("strong").should("contain.text", rule.name);
+        cy.get("div").should("contain.text", `Rule Type: ${rule.rule_type}`);
+
+        /**
+         * Checking for extra props that **should** be present programmatically is difficult because of labels are translated
+         * Let's assume for now that they are displayed correctly :)
+         * Instead, let's check for props that should not be displayed (which is easier as they are not translated)
+         */
+        ignoreRuleProps.forEach(prop => {
+          cy.get("div").should("not.contain.text", `${prop}:`);
+        });
+      });
   }
 }

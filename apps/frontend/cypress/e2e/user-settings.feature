@@ -44,3 +44,26 @@ Feature: User Settings
       | Default timezone                              | UTC             |
       | Inferred faces confidence                     | 0.90            |
       | Always transcode videos                       | off             |
+
+  Scenario: Date time rules are displayed correctly
+    Given I am logged in as admin
+    And user has default settings
+    And I navigate to user settings
+    Then I should see default date time rules displayed correctly
+
+  Scenario: Successfully save date time rules after removing rule
+    Given I am logged in as admin
+    And user has default settings
+    And I navigate to user settings
+    When I delete rule with ID "1"
+    And I save changes
+    Then date time rules should not contain rule with ID "1"
+
+  Scenario: Cancel updated date time rules
+    Given I am logged in as admin
+    And user has default settings
+    And I navigate to user settings
+    When I delete rule with ID "15"
+    Then date time rules should not contain rule with ID "15"
+    When I cancel saving changes
+    Then date time rules should contain rule with ID "15"
