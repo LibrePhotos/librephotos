@@ -60,7 +60,7 @@ export function App() {
 
   function toggleColorScheme(value) {
     const nextColorScheme = value || (colorScheme === "dark" ? "light" : "dark");
-    cookies.set("mantine-color-scheme", nextColorScheme);
+    cookies.set("mantine-color-scheme", nextColorScheme, { maxAge: 60 * 60 * 24 * 356 });
     setColorScheme(nextColorScheme);
   }
 
@@ -68,27 +68,25 @@ export function App() {
 
   const showMenubar = !!(pathname && !noMenubarPaths.includes(pathname));
 
-  const getNavBar = (showMenubar: boolean, showSidebar: boolean, isAuth: boolean) => {
-    if (showMenubar && showSidebar && isAuth) {
+  const getNavBar = (isMenubarVisible: boolean, isSidebarVisible: boolean, isAuthenticated: boolean) => {
+    if (isMenubarVisible && isSidebarVisible && isAuthenticated) {
       return <SideMenuNarrow />;
     }
     return <div />;
   };
 
-  const getHeader = (showMenubar: boolean) => {
-    if (showMenubar) {
-      return isAuth ? <TopMenu /> : <TopMenuPublic />;
+  const getHeader = (isMenubarVisible: boolean) => {
+    if (!isMenubarVisible) {
+      return <div />;
     }
-    return <div />;
+    return isAuth ? <TopMenu /> : <TopMenuPublic />;
   };
 
-  const getFooter = (isAuth: boolean) => {
-    return isAuth ? <FooterMenu /> : <div />;
-  };
+  const getFooter = (isAuthenticated: boolean) => (isAuthenticated ? <FooterMenu /> : <div />);
 
   return (
     <CookiesProvider>
-      <ColorSchemeProvider colorScheme={colorScheme} toggleColorScheme={toggleColorScheme}>
+      <ColorSchemeProvider colorScheme={colorScheme} toggleColorScheme={value => toggleColorScheme(value)}>
         <MantineProvider theme={{ colorScheme }} withGlobalStyles withNormalizeCSS>
           <NotificationsProvider autoClose={3000} zIndex={1001}>
             <AppShell
