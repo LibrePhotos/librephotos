@@ -1,7 +1,7 @@
 import type { ColorScheme } from "@mantine/core";
 import { AppShell, ColorSchemeProvider, MantineProvider } from "@mantine/core";
 import { NotificationsProvider } from "@mantine/notifications";
-import React, { useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Cookies, CookiesProvider } from "react-cookie";
 import { Route, Routes, useLocation } from "react-router-dom";
 
@@ -51,40 +51,41 @@ import { useAppSelector } from "./store/store";
 const noMenubarPaths = ["/signup", "/login"];
 
 export function App() {
-  const cookies = new Cookies();
+  const cookies = useMemo(() => new Cookies(), []);
   const showSidebar = useAppSelector(store => store.ui.showSidebar);
   const isAuth = useAppSelector(selectIsAuthenticated);
   const [colorScheme, setColorScheme] = useState<ColorScheme>(
     cookies.get("mantine-color-scheme") ? cookies.get("mantine-color-scheme") : "light"
   );
 
-  function toggleColorScheme(value) {
-    const nextColorScheme = value || (colorScheme === "dark" ? "light" : "dark");
-    cookies.set("mantine-color-scheme", nextColorScheme);
-    setColorScheme(nextColorScheme);
-  }
+  const toggleColorScheme = useCallback(
+    value => {
+      const nextColorScheme = value || (colorScheme === "dark" ? "light" : "dark");
+      cookies.set("mantine-color-scheme", nextColorScheme, { maxAge: 60 * 60 * 24 * 356 });
+      setColorScheme(nextColorScheme);
+    },
+    [colorScheme, cookies]
+  );
 
   const { pathname } = useLocation();
 
   const showMenubar = !!(pathname && !noMenubarPaths.includes(pathname));
 
-  const getNavBar = (showMenubar: boolean, showSidebar: boolean, isAuth: boolean) => {
-    if (showMenubar && showSidebar && isAuth) {
+  const getNavBar = (isMenubarVisible: boolean, isSidebarVisible: boolean, isAuthenticated: boolean) => {
+    if (isMenubarVisible && isSidebarVisible && isAuthenticated) {
       return <SideMenuNarrow />;
     }
     return <div />;
   };
 
-  const getHeader = (showMenubar: boolean) => {
-    if (showMenubar) {
-      return isAuth ? <TopMenu /> : <TopMenuPublic />;
+  const getHeader = (isMenubarVisible: boolean) => {
+    if (!isMenubarVisible) {
+      return <div />;
     }
-    return <div />;
+    return isAuth ? <TopMenu /> : <TopMenuPublic />;
   };
 
-  const getFooter = (isAuth: boolean) => {
-    return isAuth ? <FooterMenu /> : <div />;
-  };
+  const getFooter = (isAuthenticated: boolean) => (isAuthenticated ? <FooterMenu /> : <div />);
 
   return (
     <CookiesProvider>
