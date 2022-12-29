@@ -34,3 +34,15 @@ When(/^I cancel saving changes$/, () => userSettingsPage.cancelChanges());
 Then(/^I should see update success notification$/, () => userSettingsPage.notificationIsVisible());
 
 Given(/^user has default settings$/, () => userSettingsPage.resetSettingsToDefaults());
+
+Then(/^I should see default date time rules displayed correctly$/, () =>
+  userSettingsPage.defaultDateTimeRulesDisplayedCorrectly()
+);
+
+When(/^I delete rule with ID "([^"]*)"$/, (id: number) => userSettingsPage.deleteRule(id));
+
+Then(/^date time rules should not contain rule with ID "([^"]*)"$/, (id: number) =>
+  userSettingsPage.shouldNotContainRule(id)
+);
+
+Then(/^date time rules should contain rule with ID "([^"]*)"$/, (id: number) => userSettingsPage.shouldContainRule(id));
