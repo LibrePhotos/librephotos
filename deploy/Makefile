@@ -5,7 +5,15 @@ REPLACE_NAMES=sed 's/__backend_name__/$(BACKEND_CONT_NAME)/g; s/__frontend_name_
 
 default: build
 
+build-dev: build-base build-dependencies
+
 build: build-backend build-frontend build-proxy
+
+build-base:
+	docker build -t reallibrephotos/librephotos-base:dev backend/base --no-cache
+
+build-dependencies:
+	docker build -t reallibrephotos/librephotos-dependencies:dev backend/dependencies --no-cache
 
 build-backend:
 	docker build -t reallibrephotos/librephotos:latest backend
