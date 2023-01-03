@@ -29,7 +29,7 @@ export function ModalPersonEdit(props: Props) {
   let filteredPeopleList = people;
 
   if (newPersonName.length > 0) {
-    filteredPeopleList = people.filter(el => fuzzyMatch(el.text, newPersonName));
+    filteredPeopleList = people.filter(el => fuzzyMatch(newPersonName, el.text));
   }
 
   const selectedImageIDs = selectedFaces.map(face => face.face_url);
