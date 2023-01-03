@@ -216,6 +216,11 @@
   padding: 0 10px;
 }
 
+.login-form {
+  width: min(500px, 90%);
+  margin: auto;
+}
+
 .fp-wrapper {
   width: 100%;
   display: flex;
@@ -228,3 +233,4 @@
 .fp-panel-main {
   width: 100% - 175px;
 }
+

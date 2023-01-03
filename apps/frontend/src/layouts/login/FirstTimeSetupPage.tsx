@@ -94,7 +94,7 @@ export function FirstTimeSetupPage(): JSX.Element {
           </span>
         </Group>
 
-        <div style={{ width: 500, margin: "auto" }}>
+        <div className="login-form">
           <Card>
             <Stack>
               <Title order={3}>{t("login.firsttimesetup")}</Title>
