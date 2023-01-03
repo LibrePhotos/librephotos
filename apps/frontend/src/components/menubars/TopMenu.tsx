@@ -36,7 +36,7 @@ export function TopMenu() {
           <CustomSearch />
         </Grid.Col>
         <Grid.Col span={1}>
-          <Group position="right">
+          <Group position="right" style={{ height: "100%" }}>
             <ChunkedUploadButton />
             <WorkerIndicator />
 
