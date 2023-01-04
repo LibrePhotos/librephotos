@@ -88,13 +88,13 @@ export function FirstTimeSetupPage(): JSX.Element {
     >
       <Stack align="center" justify="flex-end">
         <Group>
-          <Image height={80} fit="contain" src={dark ? "/logo-white.png" : "/logo.png"} />
+          <Image height={80} width={80} fit="contain" src={dark ? "/logo-white.png" : "/logo.png"} />
           <span style={{ paddingLeft: 5, fontSize: 18 }}>
             <b>{t("login.name")}</b>
           </span>
         </Group>
 
-        <div style={{ width: 500, margin: "auto" }}>
+        <div className="login-form">
           <Card>
             <Stack>
               <Title order={3}>{t("login.firsttimesetup")}</Title>

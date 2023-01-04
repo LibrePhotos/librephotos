@@ -76,7 +76,7 @@ export function LoginPage(): JSX.Element {
             <b>{t("login.name")}</b>
           </span>
         </Group>
-        <div style={{ width: 500, margin: "auto" }}>
+        <div className="login-form">
           <Card>
             <Stack>
               <Title order={3}>{t("login.login")}</Title>
