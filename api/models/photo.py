@@ -18,6 +18,7 @@ import api.models
 import api.util as util
 from api.exif_tags import Tags
 from api.im2txt.sample import im2txt
+from api.models.file import File
 from api.models.user import User, get_deleted_user
 from api.places365.places365 import place365_instance
 from api.semantic_search.semantic_search import semantic_search_instance
@@ -41,11 +42,16 @@ class VisiblePhotoManager(models.Manager):
 
 
 class Photo(models.Model):
-    image_paths = models.JSONField(default=list)
     image_hash = models.CharField(primary_key=True, max_length=64, null=False)
-
+    files = models.ManyToManyField(File)
+    main_file = models.ForeignKey(
+        File,
+        related_name="main_photo",
+        on_delete=models.PROTECT,
+        blank=False,
+        null=True,
+    )
     thumbnail_big = models.ImageField(upload_to="thumbnails_big")
-
     square_thumbnail = models.ImageField(upload_to="square_thumbnails")
     square_thumbnail_small = models.ImageField(upload_to="square_thumbnails_small")
 
@@ -148,16 +154,8 @@ class Photo(models.Model):
             tags_to_write[Tags.DATE_TIME] = self.timestamp
         if tags_to_write:
             util.write_metadata(
-                self.image_paths[0], tags_to_write, use_sidecar=use_sidecar
+                self.main_file, tags_to_write, use_sidecar=use_sidecar
             )
-
-    def _generate_md5(self):
-        hash_md5 = hashlib.md5()
-        with open(self.image_paths[0], "rb") as f:
-            for chunk in iter(lambda: f.read(4096), b""):
-                hash_md5.update(chunk)
-        self.image_hash = hash_md5.hexdigest() + str(self.owner.id)
-        self.save()
 
     def _generate_captions_im2txt(self, commit=True):
         image_path = self.thumbnail_big.path
@@ -242,7 +240,7 @@ class Photo(models.Model):
         if not doesStaticThumbnailExists("thumbnails_big", self.image_hash):
             if not self.video:
                 createThumbnail(
-                    inputPath=self.image_paths[0],
+                    inputPath=self.main_file.path,
                     outputHeight=1080,
                     outputPath="thumbnails_big",
                     hash=self.image_hash,
@@ -250,7 +248,7 @@ class Photo(models.Model):
                 )
             else:
                 createThumbnailForVideo(
-                    inputPath=self.image_paths[0],
+                    inputPath=self.main_file.path,
                     outputPath="thumbnails_big",
                     hash=self.image_hash,
                     fileType=".webp",
@@ -260,7 +258,7 @@ class Photo(models.Model):
             "square_thumbnails", self.image_hash
         ):
             createThumbnail(
-                inputPath=self.image_paths[0],
+                inputPath=self.main_file.path,
                 outputHeight=500,
                 outputPath="square_thumbnails",
                 hash=self.image_hash,
@@ -270,7 +268,7 @@ class Photo(models.Model):
             "square_thumbnails", self.image_hash
         ):
             createAnimatedThumbnail(
-                inputPath=self.image_paths[0],
+                inputPath=self.main_file.path,
                 outputHeight=500,
                 outputPath="square_thumbnails",
                 hash=self.image_hash,
@@ -281,7 +279,7 @@ class Photo(models.Model):
             "square_thumbnails_small", self.image_hash
         ):
             createThumbnail(
-                inputPath=self.image_paths[0],
+                inputPath=self.main_file.path,
                 outputHeight=250,
                 outputPath="square_thumbnails_small",
                 hash=self.image_hash,
@@ -291,7 +289,7 @@ class Photo(models.Model):
             "square_thumbnails_small", self.image_hash
         ):
             createAnimatedThumbnail(
-                inputPath=self.image_paths[0],
+                inputPath=self.main_file.path,
                 outputHeight=250,
                 outputPath="square_thumbnails_small",
                 hash=self.image_hash,
@@ -356,11 +354,11 @@ class Photo(models.Model):
 
     def _extract_date_time_from_exif(self, commit=True):
         def exif_getter(tags):
-            return get_metadata(self.image_paths[0], tags=tags, try_sidecar=True)
+            return get_metadata(self.main_file.path, tags=tags, try_sidecar=True)
 
         datetime_config = json.loads(self.owner.datetime_rules)
         extracted_local_time = date_time_extractor.extract_local_date_time(
-            self.image_paths[0],
+            self.main_file.path,
             date_time_extractor.as_rules(datetime_config),
             exif_getter,
             self.exif_gps_lat,
@@ -398,7 +396,7 @@ class Photo(models.Model):
         old_gps_lat = self.exif_gps_lat
         old_gps_lon = self.exif_gps_lon
         new_gps_lat, new_gps_lon = get_metadata(
-            self.image_paths[0],
+            self.main_file.path,
             tags=[Tags.LATITUDE, Tags.LONGITUDE],
             try_sidecar=True,
         )
@@ -484,9 +482,9 @@ class Photo(models.Model):
         if not self.video:
             return
         (video_length,) = get_metadata(
-            self.image_paths[0], tags=[Tags.QUICKTIME_DURATION], try_sidecar=True
+            self.main_file.path, tags=[Tags.QUICKTIME_DURATION], try_sidecar=True
         )
-        logger.debug(f"Extracted rating for {self.image_paths[0]}: {video_length}")
+        logger.debug(f"Extracted rating for {self.main_file.path}: {video_length}")
         self.video_length = video_length
         if commit:
             self.save()
@@ -506,7 +504,7 @@ class Photo(models.Model):
             subjectDistance,
             digitalZoomRatio,
         ) = get_metadata(  # noqa: E501
-            self.image_paths[0],
+            self.main_file.path,
             tags=[
                 Tags.FILE_SIZE,
                 Tags.FSTOP,
@@ -543,11 +541,11 @@ class Photo(models.Model):
 
     def _extract_rating(self, commit=True):
         (rating,) = get_metadata(
-            self.image_paths[0], tags=[Tags.RATING], try_sidecar=True
+            self.main_file.path, tags=[Tags.RATING], try_sidecar=True
         )
         if rating is not None:
             # Only change rating if the tag was found
-            logger.debug(f"Extracted rating for {self.image_paths[0]}: {rating}")
+            logger.debug(f"Extracted rating for {self.main_file.path}: {rating}")
             self.rating = rating
             if commit:
                 self.save(save_metadata=False)
@@ -574,7 +572,7 @@ class Photo(models.Model):
                 face_locations = face_recognition.face_locations(image)
             except Exception:
                 logger.debug(
-                    f"Can't extract face information on photo: {self.image_paths[0]}"
+                    f"Can't extract face information on photo: {self.main_file.path}"
                 )
 
             if len(face_locations) > 0:
@@ -631,15 +629,15 @@ class Photo(models.Model):
 
         except IntegrityError:
             # When using multiple processes, then we can save at the same time, which leads to this error
-            if self.image_paths != []:
+            if self.files.count() > 0:
                 # print out the location of the image only if we have a path
-                logger.info("image {}: rescan face failed".format(self.image_paths[0]))
+                logger.info("image {}: rescan face failed".format(self.main_file.path))
             if not second_try:
                 self._extract_faces(True)
             else:
-                if self.image_paths != []:
+                if self.files.count() > 0:
                     logger.error(
-                        "image {}: rescan face failed".format(self.image_paths[0])
+                        "image {}: rescan face failed".format(self.main_file.path)
                     )
                 else:
                     logger.error("image {}: rescan face failed".format(self))
@@ -669,12 +667,10 @@ class Photo(models.Model):
                     album_thing.thing_type = "places365_category"
                     album_thing.save()
 
-    def _check_image_paths(self):
-        exisiting_image_paths = []
-        for image_path in self.image_paths:
-            if os.path.exists(image_path):
-                exisiting_image_paths.append(image_path)
-        self.image_paths = exisiting_image_paths
+    def _check_files(self):
+        for file in self.files:
+            if not os.path.exists(file.path):
+                self.files.remove(file)
         self.save()
 
     def _get_dominant_color(self, palette_size=16):
@@ -697,31 +693,32 @@ class Photo(models.Model):
             self.dominant_color = dominant_color
             self.save()
         except Exception:
-            print("Cannot calculate dominant color {} object".format(self))
+            logger.info("Cannot calculate dominant color {} object".format(self))
 
     def __str__(self):
         return "%s" % self.image_hash
 
     def manual_delete(self):
-        for path in self.image_paths:
-            if os.path.isfile(path):
-                logger.info("Removing photo {}".format(path))
-                os.remove(path)
+        for file in self.files:
+            if os.path.isfile(file.path):
+                logger.info("Removing photo {}".format(file.path))
+                os.remove(file.path)
         # To-Do: Handle wrong file permissions
         return self.delete()
 
     def delete_duplicate(self, duplicate_path):
-        if duplicate_path not in self.image_paths:
-            logger.info("Path is not valid: {}".format(duplicate_path))
-            return False
-        if not os.path.isfile(duplicate_path):
-            logger.info("Path does not lead to a valid file: {}".format(duplicate_path))
-            self.image_paths.remove(duplicate_path)
-            self.save()
-            return False
         # To-Do: Handle wrong file permissions
-        logger.info("Removing photo {}".format(duplicate_path))
-        os.remove(duplicate_path)
-        self.image_paths.remove(duplicate_path)
-        self.save()
-        return True
+        for file in self.files:
+            if file.path == duplicate_path:
+                if not os.path.isfile(duplicate_path):
+                    logger.info("Path does not lead to a valid file: {}".format(duplicate_path))
+                    self.files.remove(file)
+                    self.save()
+                    return False
+                logger.info("Removing photo {}".format(duplicate_path))
+                os.remove(duplicate_path)
+                self.files.remove(file)
+                self.save()
+                return True
+        logger.info("Path is not valid: {}".format(duplicate_path))
+        return False
