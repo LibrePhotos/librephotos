@@ -3,29 +3,18 @@ import { useDisclosure } from "@mantine/hooks";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { deleteJob } from "../../actions/utilActions";
-import { useAppDispatch } from "../../store/store";
+import type { Job } from "../../api_client/admin-jobs";
+import { useDeleteJobMutation } from "../../api_client/admin-jobs";
 
-export function DeleteJobButton(job) {
+export function DeleteJobButton({ job }: { job: Job }) {
   const [opened, { open, close }] = useDisclosure(false);
   const { t } = useTranslation();
-  const dispatch = useAppDispatch();
-
-  const { id } = job.job;
-  const page = job.activePage;
-  const { pageSize } = job;
+  const [deleteJob] = useDeleteJobMutation();
 
   return (
     <Popover opened={opened} position="top" withArrow width={260}>
       <Popover.Target>
-        <Button
-          onMouseEnter={open}
-          onMouseLeave={close}
-          onClick={() => {
-            dispatch(deleteJob(id, page, pageSize));
-          }}
-          color="red"
-        >
+        <Button onMouseEnter={open} onMouseLeave={close} onClick={() => deleteJob(job.id)} color="red">
           {t("adminarea.remove")}
         </Button>
       </Popover.Target>

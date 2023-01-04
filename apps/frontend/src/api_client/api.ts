@@ -4,7 +4,6 @@ import type { BaseQueryFn, FetchArgs } from "@reduxjs/toolkit/query/react";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Cookies } from "react-cookie";
 
-import type { IJobRequestSchema, IJobsResponseSchema } from "../actions/utilActions.types";
 import type { IApiDeleteUserPost, IApiLoginPost, IApiLoginResponse, IApiUserSignUpPost } from "../store/auth/auth.zod";
 // eslint-disable-next-line import/no-cycle
 import { tokenReceived } from "../store/auth/authSlice";
@@ -185,11 +184,6 @@ export const api = createApi({
         method: "GET",
       }),
     }),
-    [Endpoints.jobs]: builder.query<IJobsResponseSchema, IJobRequestSchema>({
-      query: ({ pageSize = 10, page = 0 }) => ({
-        url: `jobs/?page_size=${pageSize}&page=${page}`,
-      }),
-    }),
     [Endpoints.incompleteFaces]: builder.query<IIncompletePersonFaceListResponse, IIncompletePersonFaceListRequest>({
       query: ({ inferred = false }) => ({
         url: `faces/incomplete/?inferred=${inferred}`,
@@ -252,6 +246,4 @@ export const {
   useLazyWorkerQuery,
   useDeleteUserMutation,
   useManageUpdateUserMutation,
-  useJobsQuery,
-  useLazyJobsQuery,
 } = api;
