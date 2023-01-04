@@ -11,8 +11,8 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 
 import api.util as util
-from api.directory_watcher import calculate_hash, calculate_hash_b64
 from api.models import Photo, User
+from api.models.file import calculate_hash, calculate_hash_b64
 
 
 class UploadPhotoExists(viewsets.ViewSet):

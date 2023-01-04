@@ -1,13 +1,10 @@
 import datetime
-import hashlib
 import os
 import stat
 import uuid
 from multiprocessing import Pool
 
-import magic
 import pytz
-import pyvips
 from constance import config as site_config
 from django import db
 from django.core.paginator import Paginator
@@ -19,51 +16,14 @@ import api.util as util
 import ownphotos.settings
 from api.batch_jobs import create_batch_job
 from api.face_classify import cluster_all_faces
-from api.models import Face, LongRunningJob, Photo
+from api.models import Face, File, LongRunningJob, Photo
+from api.models.file import calculate_hash, is_valid_media, is_video
 from api.places365.places365 import place365_instance
-from api.thumbnails import isRawPicture
 
 AUTO_FACE_RETRAIN_THRESHOLD = 0.1
 
 
-def is_video(image_path):
-    mime = magic.Magic(mime=True)
-    filename = mime.from_file(image_path)
-    return filename.find("video") != -1
-
-
-def is_valid_media(image_path):
-    if is_video(image_path):
-        return True
-    if isRawPicture(image_path):
-        return True
-    try:
-        pyvips.Image.thumbnail(
-            image_path, 10000, height=200, size=pyvips.enums.Size.DOWN
-        )
-        return True
-    except Exception as e:
-        util.logger.info("Could not handle {}, because {}".format(image_path, str(e)))
-        return False
-
-
-def calculate_hash(user, image_path):
-    hash_md5 = hashlib.md5()
-    with open(image_path, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest() + str(user.id)
-
-
-def calculate_hash_b64(user, content):
-    hash_md5 = hashlib.md5()
-    with content as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest() + str(user.id)
-
-
-def should_skip(filepath):
+def should_skip(path):
     if not site_config.SKIP_PATTERNS:
         return False
 
@@ -71,33 +31,35 @@ def should_skip(filepath):
     skip_list = skip_patterns.split(",")
     skip_list = map(str.strip, skip_list)
 
-    res = [ele for ele in skip_list if (ele in filepath)]
+    res = [ele for ele in skip_list if (ele in path)]
     return bool(res)
 
 
 if os.name == "Windows":
 
-    def is_hidden(filepath):
-        name = os.path.basename(os.path.abspath(filepath))
-        return name.startswith(".") or has_hidden_attribute(filepath)
+    def is_hidden(path):
+        name = os.path.basename(os.path.abspath(path))
+        return name.startswith(".") or has_hidden_attribute(path)
 
-    def has_hidden_attribute(filepath):
+    def has_hidden_attribute(path):
         try:
             return bool(
-                os.stat(filepath).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN
+                os.stat(path).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN
             )
         except Exception:
             return False
 
 else:
 
-    def is_hidden(filepath):
-        return os.path.basename(filepath).startswith(".")
+    def is_hidden(path):
+        return os.path.basename(path).startswith(".")
 
 
 @job
-def handle_new_image(user, image_path, job_id):
-    if is_valid_media(image_path):
+def handle_new_image(user, path, job_id):
+    
+
+    if is_valid_media(path):
         try:
             elapsed_times = {
                 "md5": None,
@@ -112,70 +74,76 @@ def handle_new_image(user, image_path, job_id):
                 "album_thing": None,
             }
 
-            img_abs_path = image_path
-            util.logger.info("job {}: handling image {}".format(job_id, img_abs_path))
+            
+            util.logger.info("job {}: handling image {}".format(job_id, path))
 
             start = datetime.datetime.now()
-            image_hash = calculate_hash(user, image_path)
+            hash = calculate_hash(user, path)
             elapsed = (datetime.datetime.now() - start).total_seconds()
             elapsed_times["md5"] = elapsed
 
-            if not Photo.objects.filter(Q(image_hash=image_hash)).exists():
+            if not Photo.objects.filter(Q(image_hash=hash)).exists():
+                file: File = File()
+                file.path = path
+                file.hash = calculate_hash(user, path)
+                file._find_out_type()
+                file.save()
                 photo: Photo = Photo()
-                photo.image_paths.append(img_abs_path)
+                photo.files.append(file)
+                photo.main_file = file
                 photo.owner = user
-                photo.image_hash = image_hash
+                photo.image_hash = hash
                 photo.added_on = datetime.datetime.now().replace(tzinfo=pytz.utc)
                 photo.geolocation_json = {}
-                photo.video = is_video(img_abs_path)
+                photo.video = is_video(path)
                 start = datetime.datetime.now()
                 photo._generate_thumbnail(True)
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
                     "job {}: generate thumbnails: {}, elapsed: {}".format(
-                        job_id, img_abs_path, elapsed
+                        job_id, path, elapsed
                     )
                 )
                 photo._calculate_aspect_ratio(False)
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
                     "job {}: calculate aspect ratio: {}, elapsed: {}".format(
-                        job_id, img_abs_path, elapsed
+                        job_id, path, elapsed
                     )
                 )
                 photo._generate_captions(False)
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
                     "job {}: generate caption: {}, elapsed: {}".format(
-                        job_id, img_abs_path, elapsed
+                        job_id, path, elapsed
                     )
                 )
                 photo._geolocate_mapbox(True)
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
                     "job {}: geolocate: {}, elapsed: {}".format(
-                        job_id, img_abs_path, elapsed
+                        job_id, path, elapsed
                     )
                 )
                 photo._extract_date_time_from_exif(True)
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
                     "job {}: extract date time: {}, elapsed: {}".format(
-                        job_id, img_abs_path, elapsed
+                        job_id, path, elapsed
                     )
                 )
                 photo._add_location_to_album_dates()
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
                     "job {}: add location to album dates: {}, elapsed: {}".format(
-                        job_id, img_abs_path, elapsed
+                        job_id, path, elapsed
                     )
                 )
                 photo._extract_exif_data(True)
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
                     "job {}: extract exif data: {}, elapsed: {}".format(
-                        job_id, img_abs_path, elapsed
+                        job_id, path, elapsed
                     )
                 )
 
@@ -183,62 +151,67 @@ def handle_new_image(user, image_path, job_id):
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
                     "job {}: extract rating: {}, elapsed: {}".format(
-                        job_id, img_abs_path, elapsed
+                        job_id, path, elapsed
                     )
                 )
                 photo._extract_video_length(True)
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
                     "job {}: extract video length: {}, elapsed: {}".format(
-                        job_id, img_abs_path, elapsed
+                        job_id, path, elapsed
                     )
                 )
                 photo._extract_faces()
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
                     "job {}: extract faces: {}, elapsed: {}".format(
-                        job_id, img_abs_path, elapsed
+                        job_id, path, elapsed
                     )
                 )
                 photo._get_dominant_color()
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
                     "job {}: image processed: {}, elapsed: {}".format(
-                        job_id, img_abs_path, elapsed
+                        job_id, path, elapsed
                     )
                 )
 
                 if photo.image_hash == "":
                     util.logger.warning(
                         "job {}: image hash is an empty string. File path: {}".format(
-                            job_id, photo.image_path
+                            job_id, path
                         )
                     )
             else:
-                photo = Photo.objects.filter(Q(image_hash=image_hash)).first()
-                photo.image_paths.append(img_abs_path)
+                file: File = File()
+                file.path = path
+                file.hash = calculate_hash(user, path)
+                file._find_out_type()
+                file.save()
+                photo = Photo.objects.filter(Q(image_hash=hash)).first()
+                photo.files.append(file)
                 photo.save()
-                photo._check_image_paths()
+                photo._check_files()
                 util.logger.warning(
-                    "job {}: file {} exists already".format(job_id, image_path)
+                    "job {}: file {} exists already".format(job_id, path)
                 )
         except Exception as e:
             try:
                 util.logger.exception(
                     "job {}: could not load image {}. reason: {}".format(
-                        job_id, image_path, str(e)
+                        job_id, path, str(e)
                     )
                 )
             except Exception:
                 util.logger.exception(
-                    "job {}: could not load image {}".format(job_id, image_path)
+                    "job {}: could not load image {}".format(job_id, path)
                 )
 
 
-def rescan_image(user, image_path, job_id):
+def rescan_image(user, path, job_id):
     try:
-        if is_valid_media(image_path):
-            photo = Photo.objects.filter(Q(image_paths__contains=image_path)).get()
+        if is_valid_media(path):
+            photo = Photo.objects.filter(Q(files__path__contains=path)).get()
             photo._generate_thumbnail(True)
             photo._calculate_aspect_ratio(False)
             photo._geolocate_mapbox(True)
@@ -253,12 +226,12 @@ def rescan_image(user, image_path, job_id):
         try:
             util.logger.exception(
                 "job {}: could not load image {}. reason: {}".format(
-                    job_id, image_path, str(e)
+                    job_id, path, str(e)
                 )
             )
         except Exception:
             util.logger.exception(
-                "job {}: could not load image {}".format(job_id, image_path)
+                "job {}: could not load image {}".format(job_id, path)
             )
 
 
@@ -287,7 +260,7 @@ def _file_was_modified_after(filepath, time):
 
 
 def photo_scanner(user, last_scan, full_scan, path, job_id):
-    if Photo.objects.filter(image_paths__contains=path).exists():
+    if Photo.objects.filter(files__path__contains=path).exists():
         files_to_check = [path]
         files_to_check.extend(util.get_sidecar_files_in_priority_order(path))
         if (
@@ -408,7 +381,7 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
         paginator = Paginator(exisisting_photos, 5000)
         for page in range(1, paginator.num_pages + 1):
             for existing_photo in paginator.page(page).object_list:
-                existing_photo._check_image_paths()
+                existing_photo._check_files()
         util.logger.info("Finished checking paths")
         create_batch_job(LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS, user)
     except Exception:

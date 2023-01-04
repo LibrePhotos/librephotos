@@ -208,7 +208,10 @@ class PhotoSerializer(serializers.ModelSerializer):
 
     def get_image_path(self, obj) -> list[str]:
         try:
-            return obj.image_paths
+            paths = []
+            for file in obj.files.all():
+                paths.append(file.path)
+            return paths
         except Exception:
             return ["Missing"]
 

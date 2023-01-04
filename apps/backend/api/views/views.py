@@ -341,10 +341,10 @@ class MediaAccessFullsizeOriginalView(APIView):
         if photo.video:
             # This is probably very slow -> Save the mime type when scanning
             mime = magic.Magic(mime=True)
-            filename = mime.from_file(photo.image_paths[0])
+            filename = mime.from_file(photo.main_file.path)
             if transcode_videos:
                 response = StreamingHttpResponse(
-                    gen(VideoTranscoder(photo.image_paths[0])),
+                    gen(VideoTranscoder(photo.main_file.path)),
                     content_type="video/mp4",
                 )
                 return response
@@ -352,7 +352,7 @@ class MediaAccessFullsizeOriginalView(APIView):
                 response = HttpResponse()
                 response["Content-Type"] = filename
                 response["X-Accel-Redirect"] = iri_to_uri(
-                    photo.image_paths[0].replace(
+                    photo.main_file.path.replace(
                         ownphotos.settings.DATA_ROOT, "/original"
                     )
                 )
@@ -429,19 +429,19 @@ class MediaAccessFullsizeOriginalView(APIView):
             except Photo.DoesNotExist:
                 return HttpResponse(status=404)
 
-            if photo.image_paths[0].startswith("/nextcloud_media/"):
-                internal_path = photo.image_paths[0].replace(
+            if photo.main_file.path.startswith("/nextcloud_media/"):
+                internal_path = photo.main_file.path.replace(
                     "/nextcloud_media/", "/nextcloud_original/"
                 )
-                internal_path = "/nextcloud_original" + photo.image_paths[0][21:]
-            if photo.image_paths[0].startswith("/data/"):
-                internal_path = "/original" + photo.image_paths[0][5:]
+                internal_path = "/nextcloud_original" + photo.main_file.path[21:]
+            if photo.main_file.path.startswith("/data/"):
+                internal_path = "/original" + photo.main_file.path[5:]
 
             # grant access if the requested photo is public
             if photo.public:
                 response = HttpResponse()
                 mime = magic.Magic(mime=True)
-                filename = mime.from_file(photo.image_paths[0])
+                filename = mime.from_file(photo.main_file.path)
                 response["Content-Type"] = filename
                 response["X-Accel-Redirect"] = internal_path
                 return response
@@ -462,7 +462,7 @@ class MediaAccessFullsizeOriginalView(APIView):
             if photo.owner == user or user in photo.shared_to.all():
                 response = HttpResponse()
                 mime = magic.Magic(mime=True)
-                filename = mime.from_file(photo.image_paths[0])
+                filename = mime.from_file(photo.main_file.path)
                 response["Content-Type"] = filename
                 response["X-Accel-Redirect"] = internal_path
                 return response
@@ -471,7 +471,7 @@ class MediaAccessFullsizeOriginalView(APIView):
                     if user in album.shared_to.all():
                         response = HttpResponse()
                         mime = magic.Magic(mime=True)
-                        filename = mime.from_file(photo.image_paths[0])
+                        filename = mime.from_file(photo.main_file.path)
                         response["Content-Type"] = filename
                         response["X-Accel-Redirect"] = internal_path
                         return response
@@ -492,7 +492,7 @@ class ZipListPhotosView(APIView):
             mf = io.BytesIO()
             photos_name = {}
             for photo in photos.values():
-                photo_name = os.path.basename(photo.image_paths[0])
+                photo_name = os.path.basename(photo.main_file.path)
                 if photo_name in photos_name:
                     photos_name[photo_name] = photos_name[photo_name] + 1
                     photo_name = str(photos_name[photo_name]) + "-" + photo_name
@@ -501,7 +501,7 @@ class ZipListPhotosView(APIView):
                 with zipfile.ZipFile(
                     mf, mode="a", compression=zipfile.ZIP_DEFLATED
                 ) as zf:
-                    zf.write(photo.image_paths[0], arcname=photo_name)
+                    zf.write(photo.main_file.path, arcname=photo_name)
             return HttpResponse(
                 mf.getvalue(), content_type="application/x-zip-compressed"
             )

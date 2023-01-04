@@ -5,6 +5,7 @@ from api.models.album_thing import AlbumThing
 from api.models.album_user import AlbumUser
 from api.models.cluster import Cluster
 from api.models.face import Face
+from api.models.file import File
 from api.models.long_running_job import LongRunningJob
 from api.models.person import Person
 from api.models.photo import Photo
@@ -22,4 +23,5 @@ __all__ = [
     "Person",
     "Photo",
     "User",
+    "File"
 ]

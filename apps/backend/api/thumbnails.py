@@ -5,54 +5,11 @@ import pyvips
 from wand.image import Image
 
 import ownphotos.settings
-
-
-def isRawPicture(path):
-    fileextension = os.path.splitext(path)[1]
-    rawformats = [
-        ".RWZ",
-        ".CR2",
-        ".NRW",
-        ".EIP",
-        ".RAF",
-        ".ERF",
-        ".RW2",
-        ".NEF",
-        ".ARW",
-        ".K25",
-        ".DNG",
-        ".SRF",
-        ".DCR",
-        ".RAW",
-        ".CRW",
-        ".BAY",
-        ".3FR",
-        ".CS1",
-        ".MEF",
-        ".ORF",
-        ".ARI",
-        ".SR2",
-        ".KDC",
-        ".MOS",
-        ".MFW",
-        ".FFF",
-        ".CR3",
-        ".SRW",
-        ".RWL",
-        ".J6I",
-        ".KC2",
-        ".X3F",
-        ".MRW",
-        ".IIQ",
-        ".PEF",
-        ".CXI",
-        ".MDC",
-    ]
-    return fileextension.upper() in rawformats
+from api.models.file import is_raw
 
 
 def createThumbnail(inputPath, outputHeight, outputPath, hash, fileType):
-    if isRawPicture(inputPath):
+    if is_raw(inputPath):
         if "thumbnails_big" in outputPath:
             completePath = os.path.join(
                 ownphotos.settings.MEDIA_ROOT, outputPath, hash + fileType

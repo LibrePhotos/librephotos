@@ -151,7 +151,7 @@ def write_metadata(media_file, tags, use_sidecar=True):
     if not et.running:
         et.start()
         terminate_et = True
-
+    # To-Do: Replace with new File Structure
     if use_sidecar:
         file_path = get_sidecar_files_in_priority_order(media_file)[0]
     else:

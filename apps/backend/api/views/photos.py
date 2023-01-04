@@ -152,7 +152,7 @@ class NoTimestampPhotoHashListViewSet(ListViewSet):
     def get_queryset(self):
         return Photo.visible.filter(
             Q(exif_timestamp=None) & Q(owner=self.request.user)
-        ).order_by("image_paths")
+        ).order_by("main_file__path")
 
     @extend_schema(
         deprecated=True,
@@ -344,7 +344,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
         "search_location",
         "faces__person__name",
         "exif_timestamp",
-        "image_paths",
+        "main_file__path",
     ]
 
     def get_permissions(self):
