@@ -22,7 +22,7 @@
         "nextcloudheader": "Nextcloud",
         "credentials": "认证信息",
         "credentialspopup": "使用应用认证码",
-        "serveradress": "服务地址",
+        "serveradress": "服务器地址",
         "nextcloudusername": "用户名",
         "nextcloudusernameplaceholder": "用户名",
         "nextcloudpassword": "Nextcloud应用认证码",
@@ -60,14 +60,14 @@
         "missingphotosbutton": "移除已丢失的照片",
         "missingphotosdescription": "在每次扫描时，LibrePhotos都会检查文件是否仍在原来位置还是已被移动， 如找不到，则标记为已丢失。",
         "eventsalbumsdescription": "后端服务器将首先按照拍摄时间对照片进行分组， 如果连续的两张照片是在 12 小时内拍摄的，则认为两张照片来自同一事件， 以这种方式组织在一起后，系统将会自动为该专辑生成对应的标题。",
-        "eventalbumsgenerate": "生成事件相册",
+        "eventalbumsgenerate": "生成事件专辑",
         "eventsalbums": "事件专辑",
         "eventalbumsregenerate": "重新生成事件标题",
-        "eventalbumsregeneratedescription": "自动生成的专辑标题中会包含人名， 如果您在制作事件专辑后重新训练了人脸识别功能，则可以为该事件专辑重新生成标题，以反映照片中重训人脸后所关联的新人名。",
+        "eventalbumsregeneratedescription": "自动生成的专辑标题中会包含人名， 如果您在生成事件专辑后重新训练了人脸识别功能，则可以为该事件专辑重新生成标题，以反映照片中重训人脸后所关联的新人名。",
         "faces": "人脸",
         "people": "人物",
         "facesbutton": "训练人脸识别",
-        "inferred": "已推测",
+        "inferred": "已识别",
         "facessmall": "张人脸",
         "labeled": "已确认",
         "unknown": "未确认",
@@ -130,12 +130,12 @@
         "portuguese": "葡萄牙语",
         "finnish": "芬兰语",
         "czech": "捷克语",
-        "helptranslating": "帮助翻译",
+        "helptranslating": "协助翻译",
         "basque": "Basque",
         "savechanges": "保存更改？",
         "albumoptions": "相册选项",
-        "inferredfacesconfidence": "人脸分析置信度",
-        "inferredfacesconfidencehelp": "输入介于 0 和 1 之间的可信度。对于显示人物的相册，将显示可信度高于此值的人脸。",
+        "inferredfacesconfidence": "人脸识别置信度",
+        "inferredfacesconfidencehelp": "输入介于 0 和 1 之间的置信度。对于显示人物的相册，将显示置信度高于此值的人脸。",
         "password": {
             "errormustmatch": "密码必须匹配",
             "errorcannotbeblank": "密码不能为空",
@@ -143,7 +143,12 @@
             "titlechangepassword": "更改密码",
             "titlesetpassword": "设置密码",
             "tooltipeditbutton": "点击更改密码"
-        }
+        },
+        "ukrainian": "Ukrainian",
+        "traditionalchinese": "繁体中文",
+        "add_rule": "添加规则",
+        "togglecolorscheme": "切换配色方案",
+        "vietnamese": "Vietnamese"
     },
     "modalnextcloud": {
         "setdirectory": "设置Nextcloud扫描目录",
@@ -249,7 +254,12 @@
             "filepath": "文件路径",
             "people": "人物",
             "submit": "提交",
-            "caption": "照片描述"
+            "caption": "照片描述",
+            "editdatetime": "编辑日期及时间",
+            "withouttimestamp": "不带时间戳",
+            "invalidtimestamp": "无效的时间戳",
+            "removetimestamp": "移除时间戳",
+            "undotimestampmodification": "撤销时间戳修改"
         }
     },
     "photos": {
@@ -333,7 +343,7 @@
     "sitesettings": {
         "allow": "开放",
         "noallow": "关闭",
-        "header": "用户注册",
+        "header": "允许用户注册",
         "apikey": "是否要在地图上展示照片的拍摄地点（如果照片中存储了位置）？需要注册并提供 Map box 的 API 密钥 https://account.mapbox.com/auth/signup/",
         "headerupload": "允许上传",
         "skippatterns": " 用逗号分隔欲忽略的模式列表（例如：群晖设备上的“@eaDir,#recycle”）",
@@ -389,7 +399,11 @@
         "explanationadding": "添加到已存在的人脸ID或新建人脸ID",
         "explanationdeleting": "删除人脸及其缩略图",
         "explanationtraining": "识别相似的人脸并尝试匹配",
-        "notthisperson": "将人脸移回“未知 - 其他”"
+        "notthisperson": "将人脸移回“未知 - 其他”",
+        "sortbydate": "日期",
+        "sortbyconfidence": "置信度",
+        "sortby": "排序方式",
+        "explanationvalidate": "确认本组人脸与人物完全匹配，并添加到对应的人脸ID"
     },
     "scan": "扫描",
     "socialgraph": "社交图谱",
@@ -495,7 +509,7 @@
         "report_tz": "转换到 {{rule}}",
         "rule_type": "规则类型：{{rule}}",
         "exif_tag": "使用EXIF标签 {{rule}}",
-        "file_property": "使用文件属性{{rule}}",
+        "file_property": "使用文件属性：{{rule}}",
         "5": "从 WhatsApp 文件名中提取日期",
         "predefined_regexp": "使用预定义的正则表达式：{{rule}}",
         "6": "设定视频创建时间为UTC时区（无法确定实际时区时）",
@@ -523,7 +537,7 @@
         "selectedimages": "将选定的 {{count}} 张照片添加到...",
         "placeholder": "相册标题",
         "alreadyexists": "{{title}}相册已存在",
-        "updated": "{{duration}} 更新"
+        "updated": "{{duration}} 前更新"
     },
     "deleteface": "删除面孔",
     "deletefaceexplanation": "此操作将完全删除该人脸数据及相关的关联数据，且无法撤销。",
@@ -559,5 +573,8 @@
         "errorusernamecannotbeblank": "用户名不能为空",
         "errorinvalidemail": "输入一个有效的电子邮件地址"
     },
-    "modify": "调整"
+    "modify": "修改",
+    "locationstimeline": {
+        "fromto": "{{location}} 从 {{start}} 至 {{end}}"
+    }
 }
