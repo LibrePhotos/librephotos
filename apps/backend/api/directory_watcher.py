@@ -43,9 +43,7 @@ if os.name == "Windows":
 
     def has_hidden_attribute(path):
         try:
-            return bool(
-                os.stat(path).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN
-            )
+            return bool(os.stat(path).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
         except Exception:
             return False
 
@@ -57,7 +55,6 @@ else:
 
 @job
 def handle_new_image(user, path, job_id):
-    
 
     if is_valid_media(path):
         try:
@@ -74,7 +71,6 @@ def handle_new_image(user, path, job_id):
                 "album_thing": None,
             }
 
-            
             util.logger.info("job {}: handling image {}".format(job_id, path))
 
             start = datetime.datetime.now()
@@ -83,21 +79,25 @@ def handle_new_image(user, path, job_id):
             elapsed_times["md5"] = elapsed
 
             if not Photo.objects.filter(Q(image_hash=hash)).exists():
+                photo: Photo = Photo()
+                photo.image_hash = hash
+                photo.owner = user
+                photo.added_on = datetime.datetime.now().replace(tzinfo=pytz.utc)
+                photo.geolocation_json = {}
+                photo.video = is_video(path)
+                photo.save()
+
                 file: File = File()
                 file.path = path
                 file.hash = calculate_hash(user, path)
                 file._find_out_type()
                 file.save()
-                photo: Photo = Photo()
+
                 photo.files.add(file)
                 photo.main_file = file
-                photo.owner = user
-                photo.image_hash = hash
-                photo.added_on = datetime.datetime.now().replace(tzinfo=pytz.utc)
-                photo.geolocation_json = {}
-                photo.video = is_video(path)
-                start = datetime.datetime.now()
+
                 photo._generate_thumbnail(True)
+                start = datetime.datetime.now()
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
                     "job {}: generate thumbnails: {}, elapsed: {}".format(
@@ -121,9 +121,7 @@ def handle_new_image(user, path, job_id):
                 photo._geolocate_mapbox(True)
                 elapsed = (datetime.datetime.now() - start).total_seconds()
                 util.logger.info(
-                    "job {}: geolocate: {}, elapsed: {}".format(
-                        job_id, path, elapsed
-                    )
+                    "job {}: geolocate: {}, elapsed: {}".format(job_id, path, elapsed)
                 )
                 photo._extract_date_time_from_exif(True)
                 elapsed = (datetime.datetime.now() - start).total_seconds()
