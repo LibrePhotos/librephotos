@@ -25,7 +25,8 @@ class File(models.Model):
 
     hash = models.CharField(primary_key=True, max_length=64, null=False)
     path = models.TextField(blank=True, null=True)
-    type = models.PositiveIntegerField(blank=True,
+    type = models.PositiveIntegerField(
+        blank=True,
         choices=FILE_TYPES,
     )
     missing = models.BooleanField(default=False)
@@ -45,6 +46,7 @@ def is_video(path):
     mime = magic.Magic(mime=True)
     filename = mime.from_file(path)
     return filename.find("video") != -1
+
 
 def is_raw(path):
     fileextension = os.path.splitext(path)[1]
@@ -97,17 +99,17 @@ def is_metadata(path):
     ]
     return fileextension.upper() in rawformats
 
+
 def is_valid_media(path):
     if is_video(path) or is_raw(path) or is_metadata(path):
         return True
     try:
-        pyvips.Image.thumbnail(
-            path, 10000, height=200, size=pyvips.enums.Size.DOWN
-        )
+        pyvips.Image.thumbnail(path, 10000, height=200, size=pyvips.enums.Size.DOWN)
         return True
     except Exception as e:
         util.logger.info("Could not handle {}, because {}".format(path, str(e)))
         return False
+
 
 def calculate_hash(user, path):
     hash_md5 = hashlib.md5()
