@@ -10,7 +10,7 @@ interface DirTreeItem {
 export const DirTree: z.ZodType<DirTreeItem> = z.lazy(() =>
   z.object({
     title: z.string(),
-    absolutePath: z.string().optional(),
+    absolute_path: z.string().optional(),
     children: z.array(DirTree).optional(),
   })
 );

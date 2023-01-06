@@ -117,7 +117,7 @@ export const api = createApi({
       query: body => ({
         method: "PATCH",
         body: body,
-        url: `/manage/user/${body.id}`,
+        url: `/manage/user/${body.id}/`,
       }),
       transformResponse: response => ManageUser.parse(response),
       invalidatesTags: ["UserList"],
@@ -126,7 +126,7 @@ export const api = createApi({
       query: body => ({
         method: "DELETE",
         body: body,
-        url: `/delete/user/${body.id}`,
+        url: `/delete/user/${body.id}/`,
       }),
       invalidatesTags: ["UserList"],
     }),
