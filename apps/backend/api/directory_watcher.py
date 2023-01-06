@@ -89,7 +89,7 @@ def handle_new_image(user, path, job_id):
                 file._find_out_type()
                 file.save()
                 photo: Photo = Photo()
-                photo.files.append(file)
+                photo.files.add(file)
                 photo.main_file = file
                 photo.owner = user
                 photo.image_hash = hash
@@ -189,7 +189,7 @@ def handle_new_image(user, path, job_id):
                 file._find_out_type()
                 file.save()
                 photo = Photo.objects.filter(Q(image_hash=hash)).first()
-                photo.files.append(file)
+                photo.files.add(file)
                 photo.save()
                 photo._check_files()
                 util.logger.warning(
