@@ -1,4 +1,3 @@
-import hashlib
 import json
 import numbers
 import os
@@ -153,9 +152,7 @@ class Photo(models.Model):
             # To-Do: Only works for files and not for the sidecar file
             tags_to_write[Tags.DATE_TIME] = self.timestamp
         if tags_to_write:
-            util.write_metadata(
-                self.main_file, tags_to_write, use_sidecar=use_sidecar
-            )
+            util.write_metadata(self.main_file, tags_to_write, use_sidecar=use_sidecar)
 
     def _generate_captions_im2txt(self, commit=True):
         image_path = self.thumbnail_big.path
@@ -711,7 +708,9 @@ class Photo(models.Model):
         for file in self.files:
             if file.path == duplicate_path:
                 if not os.path.isfile(duplicate_path):
-                    logger.info("Path does not lead to a valid file: {}".format(duplicate_path))
+                    logger.info(
+                        "Path does not lead to a valid file: {}".format(duplicate_path)
+                    )
                     self.files.remove(file)
                     self.save()
                     return False

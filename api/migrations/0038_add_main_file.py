@@ -1,14 +1,13 @@
-import os
-
 from django.db import migrations
 
-from api.models.file import calculate_hash, is_metadata, is_raw, is_video
+from api.models.file import is_metadata, is_raw, is_video
 
 IMAGE = 1
 VIDEO = 2
 METADATA_FILE = 3
 RAW_FILE = 4
 UNKNOWN = 5
+
 
 def find_out_type(path):
     if is_raw(path):

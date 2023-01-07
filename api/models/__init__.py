@@ -23,5 +23,5 @@ __all__ = [
     "Person",
     "Photo",
     "User",
-    "File"
+    "File",
 ]

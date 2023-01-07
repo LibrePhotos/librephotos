@@ -6,18 +6,27 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0035_add_files_model'),
+        ("api", "0035_add_files_model"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='file',
-            name='missing',
+            model_name="file",
+            name="missing",
             field=models.BooleanField(default=False),
         ),
         migrations.AlterField(
-            model_name='file',
-            name='type',
-            field=models.PositiveIntegerField(blank=True, choices=[(1, 'Image'), (2, 'Video'), (3, 'Metadata File e.g. XMP'), (4, 'Raw File'), (5, 'Unknown')]),
+            model_name="file",
+            name="type",
+            field=models.PositiveIntegerField(
+                blank=True,
+                choices=[
+                    (1, "Image"),
+                    (2, "Video"),
+                    (3, "Metadata File e.g. XMP"),
+                    (4, "Raw File"),
+                    (5, "Unknown"),
+                ],
+            ),
         ),
     ]
