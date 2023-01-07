@@ -6,12 +6,12 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0038_add_main_file'),
+        ("api", "0038_add_main_file"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='photo',
-            name='image_paths',
+            model_name="photo",
+            name="image_paths",
         ),
     ]
