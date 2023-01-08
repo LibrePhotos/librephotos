@@ -1,4 +1,4 @@
-import { Button, Card, Container, Dialog, Flex, Group, NumberInput, Radio, Select, Stack, Switch, Text, Title } from "@mantine/core";
+import { Button, Card, Container, Dialog, Flex, Group, NumberInput, Radio, Select, Space, Stack, Switch, Text, Title } from "@mantine/core";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { Settings as SettingIcon } from "tabler-icons-react";
@@ -178,6 +178,7 @@ export function Settings() {
             }}
           />
         </Card>
+        <Space h="xl" />
       </Stack>
       <ModalNextcloudScanDirectoryEdit
         onRequestClose={() => {
