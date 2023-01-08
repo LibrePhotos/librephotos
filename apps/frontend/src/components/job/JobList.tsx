@@ -56,7 +56,7 @@ export function JobList() {
           {jobs?.results.map(job => (
             <tr key={job.job_id}>
               <td>
-                <JobIndicator job={job} />
+                <JobIndicator job={Object.create(job)} />
               </td>
               <td>{job.job_type_str}</td>
               <td>

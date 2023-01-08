@@ -25,7 +25,7 @@ import type { IUploadOptions, IUploadResponse } from "../store/upload/upload.zod
 import { UploadExistResponse, UploadResponse } from "../store/upload/upload.zod";
 import type { IApiUserListResponse, IManageUser, IUser } from "../store/user/user.zod";
 import { ManageUser, UserSchema } from "../store/user/user.zod";
-import type { IJobDetailSchema, IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
+import type { IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
 // eslint-disable-next-line import/no-cycle
 import { Server } from "./apiClient";
 
@@ -178,7 +178,7 @@ export const api = createApi({
       }),
       transformResponse: (response: IUploadResponse) => UploadResponse.parse(response),
     }),
-    [Endpoints.worker]: builder.query<IWorkerAvailabilityResponse, IJobDetailSchema>({
+    [Endpoints.worker]: builder.query<IWorkerAvailabilityResponse, void>({
       query: () => ({
         url: "/rqavailable/",
         method: "GET",

@@ -25,7 +25,7 @@ export function useWorkerStatus(): {
   const [hadPreviousJob, setHadPreviousJob] = useState(false);
 
   const user = useAppSelector(selectUserSelfDetails);
-  const { data: currentData } = useWorkerQuery(null, { pollingInterval: 2000 });
+  const { data: currentData } = useWorkerQuery(undefined, { pollingInterval: 2000 });
 
   const [previousJob, setPreviousJob] = useState(currentData);
 
