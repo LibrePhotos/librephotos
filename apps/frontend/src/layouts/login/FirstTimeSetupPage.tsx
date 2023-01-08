@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Lock, Mail, User } from "tabler-icons-react";
 
-import { api, useFetchUserListQuery, useSignUpMutation } from "../../api_client/api";
+import { api, useSignUpMutation } from "../../api_client/api";
 import { useAppDispatch } from "../../store/store";
 import { EMAIL_REGEX } from "../../util/util";
 import type { ISignUpFormState } from "./loginUtils";
@@ -35,7 +35,6 @@ export function FirstTimeSetupPage(): JSX.Element {
   const navigate = useNavigate();
   const [signup, { isLoading, isSuccess }] = useSignUpMutation();
   const dispatch = useAppDispatch();
-  const { data: userList } = useFetchUserListQuery();
 
   const form = useForm({
     initialValues: {

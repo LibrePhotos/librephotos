@@ -1,6 +1,6 @@
 import React from "react";
 
-import { useFetchUserListQuery } from "../api_client/api";
+import { useIsFirstTimeSetupQuery } from "../api_client/api";
 import { FirstTimeSetupPage } from "../layouts/login/FirstTimeSetupPage";
 import { LoginPage } from "../layouts/login/LoginPage";
 
@@ -11,9 +11,8 @@ export interface LocationState {
 }
 
 export function Login(): JSX.Element {
-  const { data: userList, isLoading } = useFetchUserListQuery();
-
-  if (!isLoading && userList && userList.count == 0) {
+  const { data: isFirstTimeSetup, isLoading } = useIsFirstTimeSetupQuery();
+  if (!isLoading && isFirstTimeSetup) {
     return (
       <div className="login-page">
         <FirstTimeSetupPage />

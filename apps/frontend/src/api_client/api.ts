@@ -44,6 +44,7 @@ export enum Endpoints {
   manageUpdateUser = "manageUpdateUser",
   jobs = "jobs",
   incompleteFaces = "fetchIncompleteFaces",
+  isFirstTimeSetup = "isFirstTimeSetup",
   fetchFaces = "fetchFaces",
   clusterFaces = "clusterFaces",
   rescanFaces = "rescanFaces",
@@ -102,7 +103,7 @@ export const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, Fetch
 export const api = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["UserList"],
+  tagTypes: ["UserList", "FirstTimeSetup"],
   endpoints: builder => ({
     [Endpoints.signUp]: builder.mutation<IUser, IApiUserSignUpPost>({
       query: body => ({
@@ -111,7 +112,7 @@ export const api = createApi({
         url: "/user/",
       }),
       transformResponse: response => UserSchema.parse(response),
-      invalidatesTags: ["UserList"],
+      invalidatesTags: ["FirstTimeSetup"],
     }),
     [Endpoints.manageUpdateUser]: builder.mutation<IManageUser, IManageUser>({
       query: body => ({
@@ -140,6 +141,16 @@ export const api = createApi({
         Server.defaults.headers.common.Authorization = `Bearer ${result.access}`;
         return result;
       },
+    }),
+    [Endpoints.isFirstTimeSetup]: builder.query<boolean, void>({
+      query: () => ({
+        url: "/firsttimesetup/",
+        method: "GET",
+      }),
+      transformResponse: (response: any) => {
+        return response.isFirstTimeSetup;
+      },
+      providesTags: ["FirstTimeSetup"],
     }),
     [Endpoints.fetchPredefinedRules]: builder.query<any[], void>({
       query: () => "/predefinedrules/",
@@ -246,4 +257,5 @@ export const {
   useLazyWorkerQuery,
   useDeleteUserMutation,
   useManageUpdateUserMutation,
+  useIsFirstTimeSetupQuery,
 } = api;

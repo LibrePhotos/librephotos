@@ -15,26 +15,17 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Lock, Mail, User } from "tabler-icons-react";
 
-import { useFetchUserListQuery, useSignUpMutation } from "../../api_client/api";
+import { useSignUpMutation } from "../../api_client/api";
 import { EMAIL_REGEX } from "../../util/util";
 
 export function SignupPage(): JSX.Element {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { data: userList } = useFetchUserListQuery();
 
   const validateUsername = username => {
     var error = null;
     if (!username) {
       error = t("modaluseredit.errorusernamecannotbeblank");
-    } else if (userList && userList.results) {
-      userList.results.every(user => {
-        if (user.username.toLowerCase() == username.toLowerCase()) {
-          error = t("modaluseredit.errorusernameexists");
-          return false;
-        }
-        return true;
-      });
     }
     return error;
   };
