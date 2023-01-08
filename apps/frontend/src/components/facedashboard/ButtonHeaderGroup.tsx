@@ -41,7 +41,7 @@ export function ButtonHeaderGroup({
 }: Props) {
   const [queueCanAcceptJob, setQueueCanAcceptJob] = useState(false);
   const [jobType, setJobType] = useState("");
-  const { data: worker } = useWorkerQuery(null);
+  const { data: worker } = useWorkerQuery();
   const { orderBy } = useAppSelector(store => store.face);
   const { t } = useTranslation();
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
