@@ -1,47 +1,5 @@
 import { z } from "zod";
 
-import { SimpleUser } from "../store/user/user.zod";
-
-export const Job = z.object({
-  job_id: z.string(),
-  queued_at: z.string(),
-  started_at: z.string().nullable(),
-  finished_at: z.string().nullable(),
-  finished: z.boolean(),
-  failed: z.boolean(),
-  job_type: z.number(),
-  job_type_str: z.string(),
-  started_by: SimpleUser,
-  error: z.any().optional(),
-  result: z.object({
-    progress: z.object({
-      current: z.number().optional(),
-      target: z.number().optional(),
-    }),
-  }),
-  id: z.number(),
-});
-
-export type IJob = z.infer<typeof Job>;
-
-export const JobRequestSchema = z.object({
-  pageSize: z.number().optional(),
-  page: z.number().optional(),
-});
-
-export type IJobRequestSchema = z.infer<typeof JobRequestSchema>;
-
-export const JobsResponseSchema = z
-  .object({
-    count: z.number(),
-    next: z.string().nullable(),
-    previous: z.string().nullable(),
-    results: z.array(Job),
-  })
-  .optional();
-
-export type IJobsResponseSchema = z.infer<typeof JobsResponseSchema>;
-
 interface DirTreeItem {
   title: string;
   absolutePath?: string;
@@ -52,7 +10,7 @@ interface DirTreeItem {
 export const DirTree: z.ZodType<DirTreeItem> = z.lazy(() =>
   z.object({
     title: z.string(),
-    absolutePath: z.string().optional(),
+    absolute_path: z.string().optional(),
     children: z.array(DirTree).optional(),
   })
 );

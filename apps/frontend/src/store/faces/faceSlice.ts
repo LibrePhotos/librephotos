@@ -195,6 +195,7 @@ const faceSlice = createSlice({
             } else {
               newLabeledFacesList[indexToReplace] = personToChange;
             }
+            personToChange.face_count = personToChange.faces.length;
           }
           // same thing for inferred
           const personToChangeInferred = newInferredFacesList.find(
@@ -211,6 +212,7 @@ const faceSlice = createSlice({
             } else {
               newInferredFacesList[indexToReplaceInferred] = personToChangeInferred;
             }
+            personToChangeInferred.face_count = personToChangeInferred.faces.length;
           }
         });
       })
@@ -233,6 +235,7 @@ const faceSlice = createSlice({
             } else {
               newLabeledFacesList[indexToReplace] = personToChange;
             }
+            personToChange.face_count = personToChange.faces.length;
           }
           // same thing for inferred
           const personToChangeInferred = newInferredFacesList.find(
@@ -249,6 +252,7 @@ const faceSlice = createSlice({
             } else {
               newInferredFacesList[indexToReplaceInferred] = personToChangeInferred;
             }
+            personToChangeInferred.face_count = personToChangeInferred.faces.length;
           }
         });
 

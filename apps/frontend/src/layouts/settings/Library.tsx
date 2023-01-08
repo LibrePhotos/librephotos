@@ -26,7 +26,6 @@ import { scanAllPhotos, scanNextcloudPhotos, scanPhotos } from "../../actions/ph
 import {
   deleteMissingPhotos,
   fetchCountStats,
-  fetchJobList,
   fetchNextcloudDirectoryTree,
   generateEventAlbumTitles,
   generateEventAlbums,
@@ -51,7 +50,7 @@ export function Library() {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
   const userSelfDetailsRedux = useAppSelector(state => state.user.userSelfDetails);
-  const { data: worker } = useWorkerQuery(null);
+  const { data: worker } = useWorkerQuery();
   const [workerAvailability, setWorkerAvailability] = useState(false);
   const fetchedNextcloudDirectoryTree = useAppSelector(state => state.util.fetchedNextcloudDirectoryTree);
   const util = useAppSelector(state => state.util);
@@ -92,10 +91,7 @@ export function Library() {
     dispatch(fetchCountStats());
     dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id));
     dispatch(fetchNextcloudDirectoryTree("/"));
-    if (auth.access.is_admin) {
-      dispatch(fetchJobList());
-    }
-  }, [auth.access.is_admin, auth.access.user_id, dispatch]);
+  }, [auth.access.user_id, dispatch]);
 
   useEffect(() => {
     setUserSelfDetails(userSelfDetailsRedux);

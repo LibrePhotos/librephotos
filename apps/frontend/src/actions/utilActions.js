@@ -12,48 +12,12 @@ import {
   DirTree,
   GenerateEventAlbumsResponse,
   GenerateEventAlbumsTitlesResponse,
-  Job,
   LocationSunburst,
   LocationTimeline,
   PhotoMonthCount,
   SearchTermExamples,
   WordCloudResponse,
 } from "./utilActions.types";
-
-export function fetchJobList(page = 1, page_size = 10) {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_JOB_LIST" });
-    Server.get(`jobs/?page_size=${page_size}&page=${page}`)
-      .then(response => {
-        const data = Job.array().parse(response.data.results);
-        dispatch({ type: "FETCH_JOB_LIST_FULFILLED", payload: response.data });
-      })
-      .catch(error => {
-        console.error(error);
-        dispatch({ type: "FETCH_JOB_LIST_REJECTED", payload: error });
-      });
-  };
-}
-
-export function deleteJob(job_id, page = 1, page_size = 10) {
-  return function (dispatch) {
-    dispatch({ type: "DELETE_JOB" });
-    Server.delete(`jobs/${job_id}`)
-      .then(response => {
-        dispatch(fetchJobList(page, page_size));
-        dispatch({ type: "DELETE_JOB_FULFILLED", payload: response.data });
-        showNotification({
-          message: i18n.t("toasts.deletejob", { id: job_id }),
-          title: i18n.t("toasts.deletejobtitle"),
-          color: "teal",
-        });
-      })
-      .catch(error => {
-        console.error(error);
-        dispatch({ type: "DELETE_JOB_REJECTED", payload: error });
-      });
-  };
-}
 
 export function fetchDirectoryTree(path) {
   return function (dispatch) {
@@ -63,7 +27,7 @@ export function fetchDirectoryTree(path) {
         const data = DirTree.array().parse(response.data);
         dispatch({
           type: "FETCH_DIRECTORY_TREE_FULFILLED",
-          payload: response.data,
+          payload: data,
         });
       })
       .catch(error => {
@@ -100,7 +64,7 @@ export function updateAvatar(user, form_data) {
     Server.patch(`user/${user.id}/`, form_data)
       .then(response => {
         const data = UserSchema.parse(response.data);
-        dispatch(userActions.updateRules(response.data));
+        dispatch(userActions.updateRules(data));
         dispatch(api.endpoints.fetchUserList.initiate()).refetch();
         dispatch(fetchNextcloudDirectoryTree("/"));
         showNotification({
@@ -123,7 +87,7 @@ export function updateUser(user, dispatch) {
     .then(response => {
       const data = UserSchema.parse(response.data);
       dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id)).refetch();
-      dispatch(userActions.updateRules(response.data));
+      dispatch(userActions.updateRules(data));
       dispatch(api.endpoints.fetchUserList.initiate()).refetch();
       showNotification({
         message: i18n.t("toasts.updateuser", { username: user.username }),
@@ -142,7 +106,7 @@ export function updateUserAndScan(user) {
   return function (dispatch) {
     Server.patch(`manage/user/${user.id}/`, user)
       .then(response => {
-        const data = ManageUser.parse(response.data);
+        ManageUser.parse(response.data);
         dispatch(userActions.updateRules(response.data));
         dispatch(api.endpoints.fetchUserList.initiate()).refetch();
         showNotification({
@@ -182,7 +146,7 @@ export function deleteMissingPhotos() {
 
         dispatch({
           type: "DELETE_MISSING_PHOTOS_FULFILLED",
-          payload: response.data,
+          payload: data,
         });
       })
       .catch(err => {
@@ -211,7 +175,7 @@ export function generateEventAlbums() {
 
         dispatch({
           type: "GENERATE_EVENT_ALBUMS_FULFILLED",
-          payload: response.data,
+          payload: data,
         });
       })
       .catch(err => {
@@ -241,7 +205,7 @@ export function generateEventAlbumTitles() {
 
         dispatch({
           type: "GENERATE_EVENT_ALBUMS_TITLES_FULFILLED",
-          payload: response.data,
+          payload: data,
         });
       })
       .catch(err => {
@@ -262,7 +226,7 @@ export function fetchExampleSearchTerms() {
         const data = SearchTermExamples.parse(response.data.results);
         dispatch({
           type: "FETCH_EXAMPLE_SEARCH_TERMS_FULFILLED",
-          payload: response.data.results,
+          payload: data,
         });
       })
       .catch(err => {
@@ -280,7 +244,7 @@ export function fetchLocationSunburst() {
         const data = LocationSunburst.parse(response.data);
         dispatch({
           type: "FETCH_LOCATION_SUNBURST_FULFILLED",
-          payload: response.data,
+          payload: data,
         });
       })
       .catch(err => {
@@ -297,7 +261,7 @@ export function fetchLocationTimeline(dispatch) {
       const data = LocationTimeline.parse(response.data);
       dispatch({
         type: "FETCH_LOCATION_TIMELINE_FULFILLED",
-        payload: response.data,
+        payload: data,
       });
     })
     .catch(err => {
@@ -329,7 +293,7 @@ export function fetchCountStats() {
         const data = CountStats.parse(response.data);
         dispatch({
           type: "FETCH_COUNT_STATS_FULFILLED",
-          payload: response.data,
+          payload: data,
         });
       })
       .catch(err => {
@@ -364,7 +328,7 @@ export function fetchPhotoMonthCounts(dispatch) {
       const data = PhotoMonthCount.array().parse(response.data);
       dispatch({
         type: "FETCH_PHOTO_MONTH_COUNTS_FULFILLED",
-        payload: response.data,
+        payload: data,
       });
     })
     .catch(err => {
@@ -378,7 +342,7 @@ export function fetchWordCloud(dispatch) {
   Server.get(`wordcloud/`)
     .then(response => {
       const data = WordCloudResponse.parse(response.data);
-      dispatch({ type: "FETCH_WORDCLOUD_FULFILLED", payload: response.data });
+      dispatch({ type: "FETCH_WORDCLOUD_FULFILLED", payload: data });
     })
     .catch(err => {
       console.error(err);

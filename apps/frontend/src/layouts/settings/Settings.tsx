@@ -3,15 +3,8 @@ import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { Settings as SettingIcon } from "tabler-icons-react";
 
-import {
-  fetchCountStats,
-  fetchJobList,
-  fetchNextcloudDirectoryTree,
-  fetchTimezoneList,
-  updateUser,
-} from "../../actions/utilActions";
+import { fetchCountStats, fetchNextcloudDirectoryTree, fetchTimezoneList, updateUser } from "../../actions/utilActions";
 import { api } from "../../api_client/api";
-import { serverAddress } from "../../api_client/apiClient";
 import { ModalNextcloudScanDirectoryEdit } from "../../components/modals/ModalNextcloudScanDirectoryEdit";
 import { ConfigDateTime } from "../../components/settings/ConfigDateTime";
 import { useAppDispatch, useAppSelector } from "../../store/store";
@@ -20,7 +13,6 @@ export function Settings() {
   const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
   const userSelfDetailsRedux = useAppSelector(state => state.user.userSelfDetails);
   const timezoneListRedux = useAppSelector(state => state.util.timezoneList);
-  const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
   const [userSelfDetails, setUserSelfDetails] = useState(userSelfDetailsRedux);
   const [timezoneList, setTimezoneList] = useState(timezoneListRedux);
   const [modalNextcloudScanDirectoryOpen, setModalNextcloudScanDirectoryOpen] = useState(false);
@@ -41,11 +33,8 @@ export function Settings() {
     dispatch(fetchCountStats());
     dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id)).refetch();
     dispatch(fetchNextcloudDirectoryTree("/"));
-    if (auth.access.is_admin) {
-      dispatch(fetchJobList());
-    }
     fetchTimezoneList(dispatch);
-  }, [auth.access.is_admin, auth.access.user_id, dispatch]);
+  }, [auth.access.user_id, dispatch]);
 
   useEffect(() => {
     setTimezoneList(timezoneListRedux);
@@ -54,12 +43,6 @@ export function Settings() {
   useEffect(() => {
     setUserSelfDetails(userSelfDetailsRedux);
   }, [userSelfDetailsRedux]);
-
-  if (avatarImgSrc === "/unknown_user.jpg") {
-    if (userSelfDetails.avatar_url) {
-      setAvatarImgSrc(serverAddress + userSelfDetails.avatar_url);
-    }
-  }
 
   return (
     <Container>

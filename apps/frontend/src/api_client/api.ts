@@ -4,7 +4,6 @@ import type { BaseQueryFn, FetchArgs } from "@reduxjs/toolkit/query/react";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Cookies } from "react-cookie";
 
-import type { IJobRequestSchema, IJobsResponseSchema } from "../actions/utilActions.types";
 import type { IApiDeleteUserPost, IApiLoginPost, IApiLoginResponse, IApiUserSignUpPost } from "../store/auth/auth.zod";
 // eslint-disable-next-line import/no-cycle
 import { tokenReceived } from "../store/auth/authSlice";
@@ -26,7 +25,7 @@ import type { IUploadOptions, IUploadResponse } from "../store/upload/upload.zod
 import { UploadExistResponse, UploadResponse } from "../store/upload/upload.zod";
 import type { IApiUserListResponse, IManageUser, IUser } from "../store/user/user.zod";
 import { ManageUser, UserSchema } from "../store/user/user.zod";
-import type { IJobDetailSchema, IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
+import type { IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
 // eslint-disable-next-line import/no-cycle
 import { Server } from "./apiClient";
 
@@ -118,7 +117,7 @@ export const api = createApi({
       query: body => ({
         method: "PATCH",
         body: body,
-        url: `/manage/user/${body.id}`,
+        url: `/manage/user/${body.id}/`,
       }),
       transformResponse: response => ManageUser.parse(response),
       invalidatesTags: ["UserList"],
@@ -127,7 +126,7 @@ export const api = createApi({
       query: body => ({
         method: "DELETE",
         body: body,
-        url: `/delete/user/${body.id}`,
+        url: `/delete/user/${body.id}/`,
       }),
       invalidatesTags: ["UserList"],
     }),
@@ -179,15 +178,10 @@ export const api = createApi({
       }),
       transformResponse: (response: IUploadResponse) => UploadResponse.parse(response),
     }),
-    [Endpoints.worker]: builder.query<IWorkerAvailabilityResponse, IJobDetailSchema>({
+    [Endpoints.worker]: builder.query<IWorkerAvailabilityResponse, void>({
       query: () => ({
         url: "/rqavailable/",
         method: "GET",
-      }),
-    }),
-    [Endpoints.jobs]: builder.query<IJobsResponseSchema, IJobRequestSchema>({
-      query: ({ pageSize = 10, page = 0 }) => ({
-        url: `jobs/?page_size=${pageSize}&page=${page}`,
       }),
     }),
     [Endpoints.incompleteFaces]: builder.query<IIncompletePersonFaceListResponse, IIncompletePersonFaceListRequest>({
@@ -252,6 +246,4 @@ export const {
   useLazyWorkerQuery,
   useDeleteUserMutation,
   useManageUpdateUserMutation,
-  useJobsQuery,
-  useLazyJobsQuery,
 } = api;
