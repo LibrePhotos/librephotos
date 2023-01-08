@@ -14,12 +14,20 @@ Cypress.Commands.add("switch", (label: string, state: "on" | "off") => {
   cy.get("label").contains(label).parentsUntil(".mantine-Switch-root").find(selector).parent().click().wait(500);
 });
 
+Cypress.Commands.add("selectRadio", (label: string, value: string) => {
+  cy.get("div.mantine-RadioGroup-label").contains(label).parent().find("label").contains(value).click().wait(500);
+});
+
 declare global {
   namespace Cypress {
     interface Chainable {
       selectOption(label: string, value: string): Chainable<Element>;
+
       enterInputValue(label: string, value: string): Chainable<Element>;
+
       switch(label: string, state: "on" | "off"): Chainable<Element>;
+
+      selectRadio(label: string, value: string): Chainable<Element>;
     }
   }
 }
