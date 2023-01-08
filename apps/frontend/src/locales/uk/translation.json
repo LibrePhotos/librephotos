@@ -525,7 +525,19 @@
         "explanationadding": "Додати до наявного або створити новий ID обличчя",
         "notthisperson": "Перемістіть обличчя назад до «Невідомо – інше»",
         "sortbyconfidence": "Впевненість",
-        "explanationvalidate": "Переконайтеся, що всі обличчя з цієї групи збігаються з цією особою, і додайте їх до відповідного ID обличчя"
+        "explanationvalidate": "Переконайтеся, що всі обличчя з цієї групи збігаються з цією особою, і додайте їх до відповідного ID обличчя",
+        "clusterscounter_other": "{{count}} скупчень",
+        "personscounter_other": "{{count}} осіб",
+        "facescounter_one": "{{count}} обличчя",
+        "unknownfacescounter_other": "{{count}} невідомих облич",
+        "clusterscounter_one": "{{count}} скупчення",
+        "personscounter_one": "{{count}} особа",
+        "assumedpersonscounter_one": "{{count}} припущена особа",
+        "assumedpersonscounter_other": "{{count}} припущених осіб",
+        "facescounter_other": "{{count}} облич",
+        "clusteredfacescounter_one": "{{count}} скупчення облич",
+        "clusteredfacescounter_other": "{{count}} скупчень облич",
+        "unknownfacescounter_one": "{{count}} невідоме обличчя"
     },
     "personedit": {
         "personname": "Ім'я особи",
