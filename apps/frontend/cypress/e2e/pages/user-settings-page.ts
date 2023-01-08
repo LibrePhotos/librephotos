@@ -6,16 +6,17 @@ enum PropTypes {
   SELECT,
   INPUT,
   SWITCH,
+  RADIO,
 }
 
 export class UserSettingsPage extends CommonActions {
   path = "/settings";
 
   properties = {
-    "Scene Confidence": PropTypes.SELECT,
-    "Semantic Search Max Results": PropTypes.SELECT,
-    "Synchronize metadata to disk": PropTypes.SELECT,
-    "Minimum image rating to interpret as favorite": PropTypes.SELECT,
+    "Scene Confidence": PropTypes.RADIO,
+    "Semantic Search Max Results": PropTypes.RADIO,
+    "Synchronize metadata to disk": PropTypes.RADIO,
+    "Minimum image rating to interpret as favorite": PropTypes.RADIO,
     "Default timezone": PropTypes.SELECT,
     "Inferred faces confidence": PropTypes.INPUT,
     "Always transcode videos": PropTypes.SWITCH,
@@ -24,7 +25,7 @@ export class UserSettingsPage extends CommonActions {
   defaultDateTimeRules: DateTimeRule[] = JSON.parse(userDefaults.datetime_rules).filter(rule => rule.is_default);
 
   isActivePage() {
-    cy.get("h2").should("have.text", "Settings");
+    cy.get("h1").should("have.text", "Settings").wait(500);
   }
 
   changePropertyValue(label: string, value: string) {
@@ -41,6 +42,10 @@ export class UserSettingsPage extends CommonActions {
         cy.switch(label, value as any);
         break;
 
+      case PropTypes.RADIO:
+        cy.selectRadio(label, value);
+        break;
+
       default:
         throw new Error("Unknown property type");
     }
@@ -49,19 +54,31 @@ export class UserSettingsPage extends CommonActions {
   notificationIsVisible() {}
 
   propertyHasValue(label: string, value: string) {
-    const root = cy.get("label").contains(label).parent();
-
     switch (this.properties[label]) {
       case PropTypes.SELECT:
       case PropTypes.INPUT:
-        root.find("input").should("have.value", value);
+        cy.get("label").contains(label).parent().find("input").should("have.value", value);
         break;
 
       case PropTypes.SWITCH:
-        root
+        cy.get("label")
+          .contains(label)
+          .parent()
           .parent()
           .find("input")
-          .should(value === "checked" ? "be.checked" : "not.be.checked");
+          .should(value === "on" ? "be.checked" : "not.be.checked");
+        break;
+
+      case PropTypes.RADIO:
+        cy.get("div.mantine-RadioGroup-label")
+          .contains(label)
+          .siblings()
+          .find("label")
+          .contains(value)
+          .parent()
+          .parent()
+          .find("input")
+          .should("be.checked");
         break;
 
       default:
@@ -114,7 +131,7 @@ export class UserSettingsPage extends CommonActions {
   }
 
   defaultDateTimeRulesDisplayedCorrectly() {
-    cy.get("h3")
+    cy.get("h4")
       .contains("Set date & time parsing rules")
       .parent()
       .within(() => {
