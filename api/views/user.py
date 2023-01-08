@@ -1,5 +1,5 @@
 from rest_framework import permissions, status, viewsets
-from rest_framework.permissions import AllowAny, IsAdminUser
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -43,6 +43,15 @@ class RootPathTreeView(APIView):
             logger.exception(str(e))
             return Response({"message": str(e)})
 
+class IsFirstTimeSetupView(APIView):
+    permission_classes = (AllowAny,)
+
+    def get(self, request, format=None):
+        try:
+            return Response({"isFirstTimeSetup": not User.objects.filter(is_superuser=True).exists()})
+        except Exception as e:
+            logger.exception(str(e))
+            return Response({"message": str(e)})
 
 class FirstTimeSetupPermission(permissions.BasePermission):
     message = "Check if the first time setup is done"
@@ -55,7 +64,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     serializer_class = UserSerializer
 
-    permission_classes = (IsUserOrReadOnly,)
+    permission_classes = (IsAdminUser,)
 
     def get_queryset(self):
         queryset = (
@@ -92,13 +101,14 @@ class UserViewSet(viewsets.ModelViewSet):
             self.permission_classes = [
                 IsRegistrationAllowed | FirstTimeSetupPermission | IsAdminUser
             ]
-        elif self.action == "list":
+        if self.request.method == "POST":
             self.permission_classes = (AllowAny,)
-        elif self.request.method == "GET" or self.request.method == "POST":
-            self.permission_classes = (AllowAny,)
-        else:
-            self.permission_classes = (IsUserOrReadOnly,)
         return super(UserViewSet, self).get_permissions()
+
+    def create(self, request, *args, **kwargs):
+        if User.objects.filter(is_superuser=True).exists() and not request.user.is_superuser:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        return super(UserViewSet, self).create(request, *args, **kwargs)
 
     def retrieve(self, *args, **kwargs):
         return super(UserViewSet, self).retrieve(*args, **kwargs)
