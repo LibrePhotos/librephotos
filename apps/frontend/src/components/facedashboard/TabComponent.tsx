@@ -1,7 +1,8 @@
-import { Loader, Tabs } from "@mantine/core";
+import { Group, Loader, Tabs } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useAppSelector, useAppDispatch } from "../../store/store";
+import { FacesCountersHoverCard } from "./FacesCountersHoverCard";
 import { faceActions } from "../../store/faces/faceSlice";
 import { FacesTab } from "../../store/faces/facesActions.types";
 import type {IFacesTab} from "../../store/faces/facesActions.types";
@@ -21,16 +22,21 @@ export function TabComponent({ width, fetchingLabeledFacesList, fetchingInferred
   const { t } = useTranslation();
 
   return (
-    <Tabs defaultValue={activeTab} style={{ width }} onTabChange={changeTab}>
-      <Tabs.List>
-        <Tabs.Tab value={FacesTab.enum.labeled}>
-          {t("settings.labeled")} {fetchingLabeledFacesList ? <Loader size="sm" /> : null}
-        </Tabs.Tab>
-
-        <Tabs.Tab value={FacesTab.enum.inferred}>
-          {t("settings.inferred")} {fetchingInferredFacesList ? <Loader size="sm" /> : null}
-        </Tabs.Tab>
-      </Tabs.List>
-    </Tabs>
+    <Group position="apart">
+      <Tabs defaultValue={activeTab} style={{ width }} onTabChange={changeTab}>
+        <Tabs.List>
+          <FacesCountersHoverCard tab={FacesTab.enum.labeled}>
+            <Tabs.Tab value={FacesTab.enum.labeled}>
+              {t("settings.labeled")} {fetchingLabeledFacesList ? <Loader size="sm" /> : null}
+            </Tabs.Tab>
+          </FacesCountersHoverCard>
+          <FacesCountersHoverCard tab={FacesTab.enum.inferred}>
+            <Tabs.Tab value={FacesTab.enum.inferred}>
+              {t("settings.inferred")} {fetchingInferredFacesList ? <Loader size="sm" /> : null}
+            </Tabs.Tab>
+          </FacesCountersHoverCard>
+        </Tabs.List>
+      </Tabs>
+    </Group>
   );
 }
