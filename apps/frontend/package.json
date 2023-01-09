@@ -67,7 +67,7 @@
     "leaflet": "1.7.1",
     "leaflet.markercluster": "^1.3.0",
     "lodash": "4.17.21",
-    "luxon": "3.0.1",
+    "luxon": "3.2.1",
     "material-icons-react": "1.0.4",
     "package.json": "2.0.1",
     "patch-package": "6.4.7",
