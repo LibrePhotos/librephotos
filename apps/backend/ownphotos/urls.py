@@ -193,7 +193,6 @@ urlpatterns = [
     url(r"^", include(router.urls)),
     url(r"^admin/", admin.site.urls),
     url(r"^api/sitesettings", views.SiteSettingsView.as_view()),
-    url(r"^api/firsttimesetup", user.IsFirstTimeSetupView.as_view()),
     url(r"^api/dirtree", user.RootPathTreeView.as_view()),
     url(r"^api/labelfaces", faces.SetFacePersonLabel.as_view()),
     url(r"^api/deletefaces", faces.DeleteFaces.as_view()),

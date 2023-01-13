@@ -209,6 +209,51 @@ class UserSerializer(serializers.ModelSerializer):
             return None
 
 
+class PublicUserSerializer(serializers.ModelSerializer):
+    public_photo_count = serializers.SerializerMethodField()
+    public_photo_samples = serializers.SerializerMethodField()
+    avatar_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "avatar_url",
+            "username",
+            "first_name",
+            "last_name",
+            "public_photo_count",
+            "public_photo_samples",
+        )
+
+    def get_public_photo_count(self, obj) -> int:
+        return Photo.objects.filter(Q(owner=obj) & Q(public=True)).count()
+
+    def get_public_photo_samples(self, obj) -> PhotoSuperSimpleSerializer(many=True):
+        return PhotoSuperSimpleSerializer(
+            Photo.objects.filter(Q(owner=obj) & Q(public=True))[:10], many=True
+        ).data
+
+    def get_avatar_url(self, obj) -> str | None:
+        try:
+            return obj.avatar.url
+        except ValueError:
+            return None
+
+
+class SignupUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "public_sharing",
+        )
+
+
 class DeleteUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
