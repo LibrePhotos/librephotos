@@ -1,5 +1,5 @@
-from rest_framework import permissions, status, viewsets
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework import status, viewsets
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -7,10 +7,12 @@ import ownphotos.settings
 from api.api_util import path_to_dict
 from api.date_time_extractor import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
 from api.models import User
-from api.permissions import IsRegistrationAllowed, IsUserOrReadOnly
+from api.permissions import IsAdminOrFirstTimeSetupOrRegistrationAllowed, IsAdminOrSelf
 from api.serializers.user import (
     DeleteUserSerializer,
     ManageUserSerializer,
+    PublicUserSerializer,
+    SignupUserSerializer,
     UserSerializer,
 )
 from api.util import logger
@@ -43,29 +45,8 @@ class RootPathTreeView(APIView):
             logger.exception(str(e))
             return Response({"message": str(e)})
 
-class IsFirstTimeSetupView(APIView):
-    permission_classes = (AllowAny,)
-
-    def get(self, request, format=None):
-        try:
-            return Response({"isFirstTimeSetup": not User.objects.filter(is_superuser=True).exists()})
-        except Exception as e:
-            logger.exception(str(e))
-            return Response({"message": str(e)})
-
-class FirstTimeSetupPermission(permissions.BasePermission):
-    message = "Check if the first time setup is done"
-
-    def has_permission(self, request, view):
-        return not User.objects.filter(is_superuser=True).exists()
-
 
 class UserViewSet(viewsets.ModelViewSet):
-
-    serializer_class = UserSerializer
-
-    permission_classes = (IsAdminUser,)
-
     def get_queryset(self):
         queryset = (
             User.objects.exclude(is_active=False)
@@ -91,30 +72,30 @@ class UserViewSet(viewsets.ModelViewSet):
                 "datetime_rules",
                 "default_timezone",
                 "is_superuser",
+                "public_sharing",
             )
             .order_by("id")
         )
+        if not self.request.user.is_authenticated:
+            return queryset.exclude(public_sharing=False)
         return queryset
 
+    def get_serializer_class(self):
+        if self.action == "create" and not self.request.user.is_staff:
+            return SignupUserSerializer
+        if not self.request.user.is_authenticated:
+            return PublicUserSerializer
+        return UserSerializer
+
     def get_permissions(self):
+        permission_classes = [IsAdminUser]
         if self.action == "create":
-            self.permission_classes = [
-                IsRegistrationAllowed | FirstTimeSetupPermission | IsAdminUser
-            ]
-        if self.request.method == "POST":
-            self.permission_classes = (AllowAny,)
-        return super(UserViewSet, self).get_permissions()
-
-    def create(self, request, *args, **kwargs):
-        if User.objects.filter(is_superuser=True).exists() and not request.user.is_superuser:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-        return super(UserViewSet, self).create(request, *args, **kwargs)
-
-    def retrieve(self, *args, **kwargs):
-        return super(UserViewSet, self).retrieve(*args, **kwargs)
-
-    def list(self, *args, **kwargs):
-        return super(UserViewSet, self).list(*args, **kwargs)
+            permission_classes = [IsAdminOrFirstTimeSetupOrRegistrationAllowed]
+        elif self.action in ["list", "retrieve"]:
+            permission_classes = [AllowAny]
+        elif self.action in ["update", "partial_update"]:
+            permission_classes = [IsAdminOrSelf]
+        return [p() for p in permission_classes]
 
 
 class DeleteUserViewSet(viewsets.ModelViewSet):

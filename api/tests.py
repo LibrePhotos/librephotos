@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 
 import pytz
+from constance.test import override_config
 from django.test import TestCase
 from django_rq import get_worker
 from rest_framework.test import APIClient
@@ -379,3 +380,205 @@ class PredefinedRulesTest(TestCase):
         rules = json.loads(response.json())
         other_rules = list(filter(lambda x: not x["is_default"], rules))
         self.assertListEqual(OTHER_RULES_PARAMS, other_rules)
+
+
+class UserTest(TestCase):
+    public_user_properties = [
+        "id",
+        "avatar_url",
+        "username",
+        "first_name",
+        "last_name",
+        "public_photo_count",
+        "public_photo_samples",
+    ]
+
+    private_user_properties = [
+        "id",
+        "username",
+        "email",
+        "scan_directory",
+        "confidence",
+        "confidence_person",
+        "transcode_videos",
+        "semantic_search_topk",
+        "first_name",
+        "public_photo_samples",
+        "last_name",
+        "public_photo_count",
+        "date_joined",
+        "avatar",
+        "is_superuser",
+        "photo_count",
+        "nextcloud_server_address",
+        "nextcloud_username",
+        "nextcloud_scan_directory",
+        "avatar_url",
+        "favorite_min_rating",
+        "image_scale",
+        "save_metadata_to_disk",
+        "datetime_rules",
+        "default_timezone",
+    ]
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = User.objects.create(
+            username="admin",
+            first_name="Super",
+            last_name="Admin",
+            email="admin@test.com",
+            password="password1",
+            is_superuser=True,
+            is_staff=True,
+        )
+        self.user1 = User.objects.create(
+            username="user1",
+            first_name="Firstname1",
+            last_name="Lastname1",
+            email="user2@test.com",
+            password="password1",
+            public_sharing=True,
+        )
+        self.user2 = User.objects.create(
+            username="user2",
+            first_name="Firstname2",
+            last_name="Lastname2",
+            email="user2@test.com",
+            password="password2",
+        )
+
+    def test_public_user_list_count(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get("/api/user/")
+        data = response.json()
+        self.assertEquals(
+            len(User.objects.filter(public_sharing=True)), len(data["results"])
+        )
+
+    def test_public_user_list_properties(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get("/api/user/")
+        data = response.json()
+        for user in data["results"]:
+            self.assertEqual(len(self.public_user_properties), len(user.keys()))
+            for key in self.public_user_properties:
+                self.assertTrue(key in user, f"user does not have key: {key}")
+
+    def test_authenticated_user_list_count(self):
+        self.client.force_authenticate(user=self.user1)
+        response = self.client.get("/api/user/")
+        data = response.json()
+        self.assertEquals(len(User.objects.all()), len(data["results"]))
+
+    def test_authenticated_user_list_properties(self):
+        self.client.force_authenticate(user=self.user1)
+        response = self.client.get("/api/user/")
+        data = response.json()
+        for user in data["results"]:
+            self.assertEqual(len(self.private_user_properties), len(user.keys()))
+            for key in self.private_user_properties:
+                self.assertTrue(key in user, f"user does not have key: {key}")
+
+    def test_user_update_self(self):
+        self.client.force_authenticate(user=self.user1)
+        response = self.client.patch(
+            f"/api/user/{self.user1.id}/", data={"first_name": "Updated"}
+        )
+        self.assertEqual(200, response.status_code)
+
+    def test_public_update_user(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.patch(
+            f"/api/user/{self.user1.id}/", data={"first_name": "Updated"}
+        )
+        self.assertEqual(401, response.status_code)
+
+    def test_public_delete_user(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.delete(f"/api/user/{self.user1.id}/")
+        self.assertEqual(401, response.status_code)
+
+    @override_config(ALLOW_REGISTRATION=False)
+    def test_public_user_create_successful_on_first_setup(self):
+        User.objects.all().delete()
+        self.client.force_authenticate(user=None)
+        data = {
+            "username": "super-admin",
+            "first_name": "Super",
+            "last_name": "Admin",
+            "email": "super-admin@test.com",
+            "password": "super-password",
+        }
+        response = self.client.post("/api/user/", data=data)
+        self.assertEqual(201, response.status_code)
+        self.assertEqual(1, len(User.objects.all()))
+
+    @override_config(ALLOW_REGISTRATION=True)
+    def test_public_user_create_successful_when_registration_enabled(self):
+        self.client.force_authenticate(user=None)
+        data = {
+            "username": "new-user",
+            "first_name": "NewFirstname",
+            "last_name": "NewLastname",
+            "email": "new-user@test.com",
+            "password": "new-password",
+            "public_sharing": True,
+        }
+        response = self.client.post("/api/user/", data=data)
+        self.assertEqual(201, response.status_code)
+        user = User.objects.get(username="new-user")
+        self.assertEqual("new-user", user.username)
+        self.assertEqual("new-user@test.com", user.email)
+        self.assertEqual("NewFirstname", user.first_name)
+        self.assertEqual("NewLastname", user.last_name)
+        self.assertEqual(True, user.public_sharing)
+
+    @override_config(ALLOW_REGISTRATION=False)
+    def test_public_user_create_fails_when_registration_disabled(self):
+        self.client.force_authenticate(user=None)
+        data = {
+            "username": "another-user",
+            "first_name": "NewFirstname",
+            "last_name": "NewLastname",
+            "email": "another-user@test.com",
+            "password": "new-password",
+            "public_sharing": True,
+        }
+        response = self.client.post("/api/user/", data=data)
+        # because IsAdminOrFirstTimeSetupOrRegistrationAllowed is **global** permission
+        # on UserViewSet, we are returning 401 and not 403
+        self.assertEqual(401, response.status_code)
+
+    def test_user_update_another_user(self):
+        self.client.force_authenticate(user=self.user1)
+        response = self.client.patch(
+            f"/api/user/{self.user2.id}/", data={"first_name": "Updated"}
+        )
+        self.assertEqual(403, response.status_code)
+
+    def test_user_delete_another_user(self):
+        self.client.force_authenticate(user=self.user1)
+        response = self.client.delete(f"/api/user/{self.user2.id}/")
+        self.assertEqual(403, response.status_code)
+
+    def test_admin_create_user(self):
+        self.client.force_authenticate(user=self.admin)
+        data = {
+            "username": "new-user",
+            "password": "password1",
+        }
+        response = self.client.post("/api/user/", data=data)
+        self.assertEqual(201, response.status_code)
+
+    def test_admin_partial_update_user(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.patch(
+            f"/api/user/{self.user1.id}/", data={"first_name": "Updated"}
+        )
+        self.assertEqual(200, response.status_code)
+
+    def test_admin_delete_user(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.delete(f"/api/user/{self.user1.id}/")
+        self.assertEqual(204, response.status_code)
