@@ -44,6 +44,7 @@ class User(AbstractUser):
         choices=[(x, x) for x in pytz.all_timezones],
         default="UTC",
     )
+    public_sharing = models.BooleanField(default=False)
 
 
 def get_admin_user():
