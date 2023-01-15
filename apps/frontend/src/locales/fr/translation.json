@@ -147,7 +147,8 @@
         "traditionalchinese": "chinois (traditionnel)",
         "ukrainian": "ukrainien",
         "vietnamese": "vietnamien",
-        "togglecolorscheme": "Basculer le jeu de couleurs"
+        "togglecolorscheme": "Basculer le jeu de couleurs",
+        "add_rule": "Ajouter une règle"
     },
     "modalnextcloud": {
         "setdirectory": "Définir votre répertoire de scan Nextcloud",
