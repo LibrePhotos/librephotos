@@ -1,4 +1,4 @@
-import { Autocomplete, Group, Text, createStyles } from "@mantine/core";
+import { Autocomplete, Group, Text, createStyles, Avatar } from "@mantine/core";
 import type { AutocompleteItem } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { random } from "lodash";
@@ -20,6 +20,7 @@ enum SuggestionType {
   PLACE_ALBUM,
   THING_ALBUM,
   USER_ALBUM,
+  PEOPLE
 }
 
 interface SearchSuggestion {
@@ -44,12 +45,16 @@ function toUserAlbumSuggestion(item: any) {
   return { value: item.title, icon: <Album />, type: SuggestionType.USER_ALBUM, id: item.id };
 }
 
+function toPeopleSuggestion(item: any) {
+  return { value: item.value, icon: <Avatar src={item.face_url} alt={item.value} size="xl"/>, type: SuggestionType.PEOPLE, id: item.key };
+}
+
 const SearchSuggestionItem = forwardRef<HTMLDivElement, SearchSuggestion>(
   ({ icon = <Search />, value, ...rest }: SearchSuggestion, ref) => (
     /* eslint-disable react/jsx-props-no-spreading */
     <div ref={ref} {...rest}>
       <Group noWrap>
-        {cloneElement(icon as React.ReactElement, { size: 14 })}
+        {cloneElement(icon as React.ReactElement, { size: 20 })}
         <Text>{value}</Text>
       </Group>
     </div>
@@ -101,9 +106,13 @@ export function CustomSearch() {
           .filter((item: any) => fuzzyMatch(query, item.title))
           .slice(0, 2)
           .map(toUserAlbumSuggestion),
+        ...people
+          .filter((item: any) => fuzzyMatch(query, item.value))
+          .slice(0, 2)
+          .map(toPeopleSuggestion),
       ]);
     },
-    [placeAlbums, searchExamples, thingAlbums, userAlbums]
+    [placeAlbums, searchExamples, thingAlbums, userAlbums, people]
   );
 
   function search(item: AutocompleteItem) {
@@ -121,6 +130,9 @@ export function CustomSearch() {
         break;
       case SuggestionType.THING_ALBUM:
         dispatch(push(`/thing/${item.id}`));
+        break;
+      case SuggestionType.PEOPLE:
+        dispatch(push(`/person/${item.id}`));
         break;
       default:
         break;
@@ -160,7 +172,7 @@ export function CustomSearch() {
       icon={<Search size={14} className={classes.icon} />}
       placeholder={searchPlaceholder}
       itemComponent={SearchSuggestionItem}
-      limit={8}
+      limit={10}
       value={value}
       onChange={e => filterSearch(e)}
       onItemSubmit={e => search(e)}
