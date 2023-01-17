@@ -56,7 +56,12 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
     
-RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then pip3 install --no-cache-dir torch torchvision -f https://torch.kmtea.eu/whl/stable.html; else pip3 install --no-cache-dir torch torchvision; fi
+RUN \
+if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
+  pip3 install --no-cache-dir torch torchvision -f https://torch.kmtea.eu/whl/stable.html; \
+else \
+  pip3 install --no-cache-dir torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu; \
+fi
 
 RUN pip3 install --no-cache-dir cmake==3.21.2
 
