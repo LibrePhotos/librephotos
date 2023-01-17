@@ -665,9 +665,11 @@ class Photo(models.Model):
                     album_thing.save()
 
     def _check_files(self):
-        for file in self.files:
+        for file in self.files.all():
             if not os.path.exists(file.path):
                 self.files.remove(file)
+                file.missing = true
+                file.save()
         self.save()
 
     def _get_dominant_color(self, palette_size=16):
@@ -696,28 +698,31 @@ class Photo(models.Model):
         return "%s" % self.image_hash
 
     def manual_delete(self):
-        for file in self.files:
+        for file in self.files.all():
             if os.path.isfile(file.path):
                 logger.info("Removing photo {}".format(file.path))
                 os.remove(file.path)
+                file.delete()
         # To-Do: Handle wrong file permissions
         return self.delete()
 
     def delete_duplicate(self, duplicate_path):
         # To-Do: Handle wrong file permissions
-        for file in self.files:
+        for file in self.files.all():
             if file.path == duplicate_path:
                 if not os.path.isfile(duplicate_path):
                     logger.info(
                         "Path does not lead to a valid file: {}".format(duplicate_path)
                     )
                     self.files.remove(file)
+                    file.delete()
                     self.save()
                     return False
                 logger.info("Removing photo {}".format(duplicate_path))
                 os.remove(duplicate_path)
                 self.files.remove(file)
                 self.save()
+                file.delete()
                 return True
         logger.info("Path is not valid: {}".format(duplicate_path))
         return False
