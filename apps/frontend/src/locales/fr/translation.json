@@ -513,10 +513,10 @@
         "removefacestoperson": "{{numberOfFaces}} le(s) visage(s) ont été déplacés vers « Inconnu - Autre »"
     },
     "rules": {
-        "file_property": "Utiliser la propriété du fichier {{rule}}",
+        "file_property": "Utiliser la propriété du fichier : {{rule}}",
         "report_tz": "Transformer en {{rule}}",
         "source_tz": "Transformer depuis {{rule}}",
-        "exif_tag": "Utiliser Exiftag {{rule}}",
+        "exif_tag": "Utilisez la balise EXIF : {{rule}}",
         "2": "Obtenir la balise de création de la vidéo en UTC + déterminer le fuseau horaire à l'aide des coordonnées GPS",
         "4": "Vidéo UTC – indique l'heure locale en UTC (puisque nous ne pouvons pas connaître le fuseau horaire réel)",
         "rule_type": "Type de règle : {{rule}}",
