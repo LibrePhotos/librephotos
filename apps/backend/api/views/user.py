@@ -46,6 +46,11 @@ class RootPathTreeView(APIView):
             return Response({"message": str(e)})
 
 
+class IsFirstTimeSetupView(APIView):
+    def get(self, request):
+        return Response({"isFirstTimeSetup": not User.objects.filter(is_superuser=True).exists()})
+
+
 class UserViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = (
