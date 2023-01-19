@@ -47,6 +47,8 @@ class RootPathTreeView(APIView):
 
 
 class IsFirstTimeSetupView(APIView):
+    permission_classes = (AllowAny,)
+    
     def get(self, request):
         return Response(
             {"isFirstTimeSetup": not User.objects.filter(is_superuser=True).exists()}
