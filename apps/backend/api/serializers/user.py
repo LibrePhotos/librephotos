@@ -62,6 +62,7 @@ class UserSerializer(serializers.ModelSerializer):
             "save_metadata_to_disk",
             "datetime_rules",
             "default_timezone",
+            "public_sharing",
         )
 
     def validate_nextcloud_app_password(self, value):
