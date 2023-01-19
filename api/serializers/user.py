@@ -5,7 +5,6 @@ from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from api import util
 from api.batch_jobs import create_batch_job
 from api.models import LongRunningJob, Photo, User
 from api.serializers.simple import PhotoSuperSimpleSerializer
