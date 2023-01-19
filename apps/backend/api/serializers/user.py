@@ -202,7 +202,7 @@ class UserSerializer(serializers.ModelSerializer):
             Photo.objects.filter(Q(owner=obj) & Q(public=True))[:10], many=True
         ).data
 
-    def get_avatar_url(self, obj) -> str:
+    def get_avatar_url(self, obj) -> str or None:
         try:
             return obj.avatar.url
         except Exception:
@@ -234,7 +234,7 @@ class PublicUserSerializer(serializers.ModelSerializer):
             Photo.objects.filter(Q(owner=obj) & Q(public=True))[:10], many=True
         ).data
 
-    def get_avatar_url(self, obj) -> str | None:
+    def get_avatar_url(self, obj) -> str or None:
         try:
             return obj.avatar.url
         except ValueError:
