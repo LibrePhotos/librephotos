@@ -596,7 +596,7 @@ class UserTest(TestCase):
         self.client.force_authenticate(user=self.user1)
         response = self.client.get("/api/firsttimesetup/")
         data = response.json()
-        self.assertEqual(True, data['isFirstTimeSetup'])
+        self.assertEqual(True, data["isFirstTimeSetup"])
 
     def test_not_first_time_setup(self):
         self.client.force_authenticate(user=None)
@@ -612,4 +612,4 @@ class UserTest(TestCase):
         self.client.force_authenticate(user=user)
         response = self.client.get("/api/firsttimesetup/")
         data = response.json()
-        self.assertEqual(False, data['isFirstTimeSetup'])
+        self.assertEqual(False, data["isFirstTimeSetup"])
