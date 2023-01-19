@@ -254,7 +254,6 @@ class SignupUserSerializer(serializers.ModelSerializer):
             "email",
             "first_name",
             "last_name",
-            "public_sharing",
         )
 
 
