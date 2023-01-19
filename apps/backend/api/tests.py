@@ -524,7 +524,6 @@ class UserTest(TestCase):
             "last_name": "NewLastname",
             "email": "new-user@test.com",
             "password": "new-password",
-            "public_sharing": True,
         }
         response = self.client.post("/api/user/", data=data)
         self.assertEqual(201, response.status_code)
@@ -533,7 +532,6 @@ class UserTest(TestCase):
         self.assertEqual("new-user@test.com", user.email)
         self.assertEqual("NewFirstname", user.first_name)
         self.assertEqual("NewLastname", user.last_name)
-        self.assertEqual(True, user.public_sharing)
 
     @override_config(ALLOW_REGISTRATION=False)
     def test_public_user_create_fails_when_registration_disabled(self):
@@ -583,3 +581,35 @@ class UserTest(TestCase):
         self.client.force_authenticate(user=self.admin)
         response = self.client.delete(f"/api/user/{self.user1.id}/")
         self.assertEqual(204, response.status_code)
+
+    def test_first_time_setup(self):
+        User.objects.all().delete()
+        self.client.force_authenticate(user=None)
+        data = {
+            "username": self.user1.username,
+            "first_name": self.user1.first_name,
+            "last_name": self.user1.last_name,
+            "email": self.user1.email,
+            "password": self.user1.password,
+        }
+        self.client.post("/api/user/", data=data)
+        self.client.force_authenticate(user=self.user1)
+        response = self.client.get("/api/firsttimesetup/")
+        data = response.json()
+        self.assertEqual(True, data['isFirstTimeSetup'])
+
+    def test_not_first_time_setup(self):
+        self.client.force_authenticate(user=None)
+        data = {
+            "username": "user-name",
+            "first_name": "First",
+            "last_name": "Last",
+            "email": "user-email@test.com",
+            "password": "user-password",
+        }
+        self.client.post("/api/user/", data=data)
+        user = User.objects.get(username="user-name")
+        self.client.force_authenticate(user=user)
+        response = self.client.get("/api/firsttimesetup/")
+        data = response.json()
+        self.assertEqual(False, data['isFirstTimeSetup'])
