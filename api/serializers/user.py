@@ -5,6 +5,7 @@ from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
+from api import util
 from api.batch_jobs import create_batch_job
 from api.models import LongRunningJob, Photo, User
 from api.serializers.simple import PhotoSuperSimpleSerializer
@@ -190,6 +191,9 @@ class UserSerializer(serializers.ModelSerializer):
             logger.info(
                 "Updated default_timezone for user {}".format(instance.default_timezone)
             )
+        if "public_sharing" in validated_data:
+            instance.public_sharing = validated_data.pop("public_sharing")
+            instance.save()
         return instance
 
     def get_photo_count(self, obj) -> int:
