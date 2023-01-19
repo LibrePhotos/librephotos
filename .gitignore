@@ -132,6 +132,9 @@ venv.bak/
 .vs/
 .vscode/
 
+# IntelliJ
+.idea/
+
 # mkdocs documentation
 /site
 

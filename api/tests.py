@@ -419,6 +419,7 @@ class UserTest(TestCase):
         "save_metadata_to_disk",
         "datetime_rules",
         "default_timezone",
+        "public_sharing",
     ]
 
     def setUp(self):
