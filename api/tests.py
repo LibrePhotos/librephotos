@@ -1,5 +1,7 @@
 import json
 import os
+import random
+import string
 from datetime import datetime
 
 import pytz
@@ -422,6 +424,9 @@ class UserTest(TestCase):
         "public_sharing",
     ]
 
+    def get_random_string(self):
+        return "".join(random.choice(string.ascii_letters) for _ in range(10))
+
     def setUp(self):
         self.client = APIClient()
         self.admin = User.objects.create(
@@ -429,7 +434,7 @@ class UserTest(TestCase):
             first_name="Super",
             last_name="Admin",
             email="admin@test.com",
-            password="password1",
+            password=self.get_random_string(),
             is_superuser=True,
             is_staff=True,
         )
@@ -438,7 +443,7 @@ class UserTest(TestCase):
             first_name="Firstname1",
             last_name="Lastname1",
             email="user2@test.com",
-            password="password1",
+            password=self.get_random_string(),
             public_sharing=True,
         )
         self.user2 = User.objects.create(
@@ -446,7 +451,7 @@ class UserTest(TestCase):
             first_name="Firstname2",
             last_name="Lastname2",
             email="user2@test.com",
-            password="password2",
+            password=self.get_random_string(),
         )
 
     def test_public_user_list_count(self):
@@ -509,7 +514,7 @@ class UserTest(TestCase):
             "first_name": "Super",
             "last_name": "Admin",
             "email": "super-admin@test.com",
-            "password": "super-password",
+            "password": self.get_random_string(),
         }
         response = self.client.post("/api/user/", data=data)
         self.assertEqual(201, response.status_code)
@@ -523,7 +528,7 @@ class UserTest(TestCase):
             "first_name": "NewFirstname",
             "last_name": "NewLastname",
             "email": "new-user@test.com",
-            "password": "new-password",
+            "password": self.get_random_string(),
         }
         response = self.client.post("/api/user/", data=data)
         self.assertEqual(201, response.status_code)
@@ -541,7 +546,7 @@ class UserTest(TestCase):
             "first_name": "Bart",
             "last_name": "Simpson",
             "email": "bart@test.com",
-            "password": "Cowabunga",
+            "password": self.get_random_string(),
         }
         signup_response = self.client.post("/api/user/", data=user)
         self.assertEqual(201, signup_response.status_code)
@@ -563,7 +568,7 @@ class UserTest(TestCase):
             "first_name": "NewFirstname",
             "last_name": "NewLastname",
             "email": "another-user@test.com",
-            "password": "new-password",
+            "password": self.get_random_string(),
         }
         response = self.client.post("/api/user/", data=data)
         # because IsAdminOrFirstTimeSetupOrRegistrationAllowed is **global** permission
@@ -578,7 +583,7 @@ class UserTest(TestCase):
             "first_name": "Firstname3",
             "last_name": "Lastname3",
             "email": "user3@test.com",
-            "password": "password3",
+            "password": self.get_random_string(),
             "is_superuser": True,
         }
         response = self.client.post("/api/user/", data=data)
@@ -602,7 +607,7 @@ class UserTest(TestCase):
         self.client.force_authenticate(user=self.admin)
         data = {
             "username": "new-user",
-            "password": "password1",
+            "password": self.get_random_string(),
         }
         response = self.client.post("/api/user/", data=data)
         self.assertEqual(201, response.status_code)
@@ -628,7 +633,7 @@ class UserTest(TestCase):
             "first_name": self.user1.first_name,
             "last_name": self.user1.last_name,
             "email": self.user1.email,
-            "password": self.user1.password,
+            "password": self.get_random_string(),
         }
         response = self.client.post("/api/user/", data=data)
         self.assertEqual(201, response.status_code)
@@ -647,7 +652,7 @@ class UserTest(TestCase):
             "first_name": "First",
             "last_name": "Last",
             "email": "user-email@test.com",
-            "password": "user-password",
+            "password": self.get_random_string(),
         }
         signup_response = self.client.post("/api/user/", data=data)
         self.assertEqual(201, signup_response.status_code)
