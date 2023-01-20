@@ -425,7 +425,8 @@ class UserTest(TestCase):
     ]
 
     def get_random_string(self):
-        return "".join(random.choice(string.ascii_letters) for _ in range(10))
+        letters = random.choice(string.ascii_letters)  # Sensitive
+        return "".join(letters for _ in range(10))
 
     def setUp(self):
         self.client = APIClient()
