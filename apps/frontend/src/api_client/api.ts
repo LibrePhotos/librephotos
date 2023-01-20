@@ -4,7 +4,14 @@ import type { BaseQueryFn, FetchArgs } from "@reduxjs/toolkit/query/react";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Cookies } from "react-cookie";
 
-import type { IApiDeleteUserPost, IApiLoginPost, IApiLoginResponse, IApiUserSignUpPost } from "../store/auth/auth.zod";
+import type {
+  IApiDeleteUserPost,
+  IApiLoginPost,
+  IApiLoginResponse,
+  UserSignupRequest,
+  UserSignupResponse,
+} from "../store/auth/auth.zod";
+import { UserSignupResponseSchema } from "../store/auth/auth.zod";
 // eslint-disable-next-line import/no-cycle
 import { tokenReceived } from "../store/auth/authSlice";
 import type {
@@ -105,13 +112,13 @@ export const api = createApi({
   baseQuery: baseQueryWithReauth,
   tagTypes: ["UserList", "FirstTimeSetup"],
   endpoints: builder => ({
-    [Endpoints.signUp]: builder.mutation<IUser, IApiUserSignUpPost>({
+    [Endpoints.signUp]: builder.mutation<UserSignupResponse, UserSignupRequest>({
       query: body => ({
         method: "POST",
         body: body,
         url: "/user/",
       }),
-      transformResponse: response => UserSchema.parse(response),
+      transformResponse: response => UserSignupResponseSchema.parse(response),
       invalidatesTags: ["FirstTimeSetup"],
     }),
     [Endpoints.manageUpdateUser]: builder.mutation<IManageUser, IManageUser>({
@@ -147,9 +154,7 @@ export const api = createApi({
         url: "/firsttimesetup/",
         method: "GET",
       }),
-      transformResponse: (response: any) => {
-        return response.isFirstTimeSetup;
-      },
+      transformResponse: (response: any) => response.isFirstTimeSetup,
       providesTags: ["FirstTimeSetup"],
     }),
     [Endpoints.fetchPredefinedRules]: builder.query<any[], void>({

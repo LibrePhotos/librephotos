@@ -34,14 +34,19 @@ export const AuthStateSchema = z.object({
   error: AuthErrorSchema.nullable(),
 });
 
-export const ApiUserSignUpPostSchema = z.object({
+export const UserSignupRequestSchema = z.object({
   username: z.string(),
   password: z.string(),
   email: z.string(),
   first_name: z.string(),
   last_name: z.string(),
-  is_superuser: z.boolean(),
-  scan_directory: z.string().optional(),
+});
+
+export const UserSignupResponseSchema = z.object({
+  username: z.string(),
+  email: z.string(),
+  first_name: z.string(),
+  last_name: z.string(),
 });
 
 export const ApiLoginPostSchema = z.object({
@@ -62,7 +67,8 @@ export const ApiRefreshPostSchema = z.object({ refresh: z.string() });
 
 export const ApiRefreshResponseSchema = z.object({ access: z.string() });
 
-export type IApiUserSignUpPost = z.infer<typeof ApiUserSignUpPostSchema>;
+export type UserSignupRequest = z.infer<typeof UserSignupRequestSchema>;
+export type UserSignupResponse = z.infer<typeof UserSignupResponseSchema>;
 export type IApiDeleteUserPost = z.infer<typeof ApiDeleteUserSchema>;
 export type IApiLoginPost = z.infer<typeof ApiLoginPostSchema>;
 export type IApiLoginResponse = z.infer<typeof ApiLoginResponseSchema>;

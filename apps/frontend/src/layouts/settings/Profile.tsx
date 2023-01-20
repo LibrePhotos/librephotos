@@ -36,21 +36,23 @@ export function Profile() {
 
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
   const dark = colorScheme === "dark";
-  let editor = useRef(null);
+  let editorRef = useRef(null);
 
-  const setEditorRef = newEditor => (editor = newEditor);
+  const setEditorRef = ref => {
+    editorRef = ref;
+  };
 
   let dropzoneRef = React.useRef<DropzoneRef>();
 
-  const urltoFile = (url, filename, mimeType) => {
-    mimeType = mimeType || (url.match(/^data:([^;]+);/) || "")[1];
+  const urlToFile = (url, filename, mimeType) => {
+    const type = mimeType || (url.match(/^data:([^;]+);/) || "")[1];
     return fetch(url)
       .then(res => res.arrayBuffer())
-      .then(buf => new File([buf], filename, { type: mimeType }));
+      .then(buf => new File([buf], filename, { type }));
   };
 
   const onPasswordValidate = (pass: string, valid: boolean) => {
-    var newUserDetails = { ...userSelfDetails };
+    const newUserDetails = { ...userSelfDetails };
     if (pass && valid) {
       newUserDetails.password = pass;
     } else {
@@ -71,7 +73,7 @@ export function Profile() {
 
   useEffect(() => {
     dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id)).refetch();
-  }, []);
+  }, [auth.access.user_id, dispatch]);
 
   useEffect(() => {
     setUserSelfDetails(userSelfDetailsRedux);
@@ -105,12 +107,14 @@ export function Profile() {
                 // @ts-ignore
                 dropzoneRef = node;
               }}
-              onDrop={(accepted, rejected) => {
+              onDrop={accepted => {
                 setAvatarImgSrc(URL.createObjectURL(accepted[0]));
               }}
             >
               {({ getRootProps, getInputProps }) => (
+                // eslint-disable-next-line react/jsx-props-no-spreading
                 <div {...getRootProps()}>
+                  {/* eslint-disable-next-line react/jsx-props-no-spreading */}
                   <input {...getInputProps()} />
                   <AvatarEditor ref={setEditorRef} width={150} height={150} border={0} image={avatarImgSrc} />
                 </div>
@@ -144,15 +148,15 @@ export function Profile() {
                 size="sm"
                 color="green"
                 onClick={() => {
-                  const form_data = new FormData();
+                  const formData = new FormData();
                   // @ts-ignore
-                  urltoFile(
+                  urlToFile(
                     // @ts-ignore
-                    editor.getImageScaledToCanvas().toDataURL(),
+                    editorRef.getImageScaledToCanvas().toDataURL(),
                     `${userSelfDetails.first_name}avatar.png`
                   ).then(file => {
-                    form_data.append("avatar", file, `${userSelfDetails.first_name}avatar.png`);
-                    dispatch(updateAvatar(userSelfDetails, form_data));
+                    formData.append("avatar", file, `${userSelfDetails.first_name}avatar.png`);
+                    dispatch(updateAvatar(userSelfDetails, formData));
                   });
                 }}
               >
@@ -306,6 +310,12 @@ export function Profile() {
               }
             }}
             checked={userSelfDetails.image_scale === 1}
+          />
+
+          <Switch
+            label={`${t("settings.public_sharing")} ${userSelfDetails.public_sharing ? t("enabled") : t("disabled")}`}
+            onChange={event => setUserSelfDetails({ ...userSelfDetails, public_sharing: event.currentTarget.checked })}
+            checked={userSelfDetails.public_sharing}
           />
         </Stack>{" "}
         {auth.isAdmin ? (
