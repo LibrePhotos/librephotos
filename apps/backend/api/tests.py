@@ -533,6 +533,28 @@ class UserTest(TestCase):
         self.assertEqual("NewFirstname", user.first_name)
         self.assertEqual("NewLastname", user.last_name)
 
+    @override_config(ALLOW_REGISTRATION=True)
+    def test_after_registration_user_can_authenticate(self):
+        self.client.force_authenticate(user=None)
+        user = {
+            "username": "bart",
+            "first_name": "Bart",
+            "last_name": "Simpson",
+            "email": "bart@test.com",
+            "password": "Cowabunga",
+        }
+        signup_response = self.client.post("/api/user/", data=user)
+        self.assertEqual(201, signup_response.status_code)
+        login_payload = {
+            "username": user["username"],
+            "password": user["password"],
+        }
+        response = self.client.post("/api/auth/token/obtain/", data=login_payload)
+        self.assertEqual(200, response.status_code)
+        data = response.json()
+        self.assertTrue("access" in data.keys())
+        self.assertTrue("refresh" in data.keys())
+
     @override_config(ALLOW_REGISTRATION=False)
     def test_public_user_create_fails_when_registration_disabled(self):
         self.client.force_authenticate(user=None)
@@ -542,12 +564,27 @@ class UserTest(TestCase):
             "last_name": "NewLastname",
             "email": "another-user@test.com",
             "password": "new-password",
-            "public_sharing": True,
         }
         response = self.client.post("/api/user/", data=data)
         # because IsAdminOrFirstTimeSetupOrRegistrationAllowed is **global** permission
         # on UserViewSet, we are returning 401 and not 403
         self.assertEqual(401, response.status_code)
+
+    @override_config(ALLOW_REGISTRATION=True)
+    def test_not_first_setup_create_admin_should_create_regular_user(self):
+        self.client.force_authenticate(user=None)
+        data = {
+            "username": "user3",
+            "first_name": "Firstname3",
+            "last_name": "Lastname3",
+            "email": "user3@test.com",
+            "password": "password3",
+            "is_superuser": True,
+        }
+        response = self.client.post("/api/user/", data=data)
+        self.assertEqual(201, response.status_code)
+        user = User.objects.get(username="user3")
+        self.assertEqual(False, user.is_superuser)
 
     def test_user_update_another_user(self):
         self.client.force_authenticate(user=self.user1)
@@ -582,7 +619,8 @@ class UserTest(TestCase):
         response = self.client.delete(f"/api/user/{self.user1.id}/")
         self.assertEqual(204, response.status_code)
 
-    def test_first_time_setup(self):
+    @override_config(ALLOW_REGISTRATION=False)
+    def test_first_time_setup_creates_user_when_registration_is_disabled(self):
         User.objects.all().delete()
         self.client.force_authenticate(user=None)
         data = {
@@ -592,12 +630,16 @@ class UserTest(TestCase):
             "email": self.user1.email,
             "password": self.user1.password,
         }
-        self.client.post("/api/user/", data=data)
-        self.client.force_authenticate(user=self.user1)
+        response = self.client.post("/api/user/", data=data)
+        self.assertEqual(201, response.status_code)
+
+    def test_first_time_setup(self):
+        User.objects.all().delete()
         response = self.client.get("/api/firsttimesetup/")
         data = response.json()
         self.assertEqual(True, data["isFirstTimeSetup"])
 
+    @override_config(ALLOW_REGISTRATION=True)
     def test_not_first_time_setup(self):
         self.client.force_authenticate(user=None)
         data = {
@@ -607,7 +649,8 @@ class UserTest(TestCase):
             "email": "user-email@test.com",
             "password": "user-password",
         }
-        self.client.post("/api/user/", data=data)
+        signup_response = self.client.post("/api/user/", data=data)
+        self.assertEqual(201, signup_response.status_code)
         user = User.objects.get(username="user-name")
         self.client.force_authenticate(user=user)
         response = self.client.get("/api/firsttimesetup/")

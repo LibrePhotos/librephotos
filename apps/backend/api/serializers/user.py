@@ -248,13 +248,35 @@ class PublicUserSerializer(serializers.ModelSerializer):
 class SignupUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
+        extra_kwargs = {
+            "username": {"required": True},
+            "password": {
+                "write_only": True,
+                "required": True,
+                "min_length": 3,  # configurable min password length?
+            },
+            "email": {"required": True},
+            "first_name": {"required": True},
+            "last_name": {"required": True},
+            "is_superuser": {"write_only": True},
+        }
         fields = (
-            "id",
             "username",
+            "password",
             "email",
             "first_name",
             "last_name",
+            "is_superuser",
         )
+
+    def create(self, validated_data):
+        should_be_superuser = User.objects.count() == 0
+        user = super().create(validated_data)
+        user.set_password(validated_data.pop("password"))
+        user.is_staff = should_be_superuser
+        user.is_superuser = should_be_superuser
+        user.save()
+        return user
 
 
 class DeleteUserSerializer(serializers.ModelSerializer):
