@@ -1,7 +1,6 @@
 import json
 import os
-import random
-import string
+import secrets
 from datetime import datetime
 
 import pytz
@@ -425,8 +424,7 @@ class UserTest(TestCase):
     ]
 
     def get_random_string(self):
-        letters = random.choice(string.ascii_letters)  # Sensitive
-        return "".join(letters for _ in range(10))
+        return secrets.token_urlsafe(10)
 
     def setUp(self):
         self.client = APIClient()
