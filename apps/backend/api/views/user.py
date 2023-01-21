@@ -46,6 +46,15 @@ class RootPathTreeView(APIView):
             return Response({"message": str(e)})
 
 
+class IsFirstTimeSetupView(APIView):
+    permission_classes = (AllowAny,)
+
+    def get(self, request):
+        return Response(
+            {"isFirstTimeSetup": not User.objects.filter(is_superuser=True).exists()}
+        )
+
+
 class UserViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = (
@@ -81,7 +90,7 @@ class UserViewSet(viewsets.ModelViewSet):
         return queryset
 
     def get_serializer_class(self):
-        if self.action == "create" and not self.request.user.is_staff:
+        if not self.request.user.is_authenticated and self.action == "create":
             return SignupUserSerializer
         if not self.request.user.is_authenticated:
             return PublicUserSerializer
