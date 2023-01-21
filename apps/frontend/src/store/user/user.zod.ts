@@ -38,6 +38,7 @@ export const UserSchema = z.object({
   default_timezone: z.string(),
   password: z.string().optional(),
   is_superuser: z.boolean().optional(),
+  public_sharing: z.boolean(),
 });
 
 export const ManageUser = z.object({
@@ -56,6 +57,7 @@ export const ManageUser = z.object({
   first_name: z.string().nullable(),
   last_name: z.string().nullable(),
   password: z.string().optional(),
+  public_sharing: z.boolean(),
 });
 
 export const SimpleUser = z.object({

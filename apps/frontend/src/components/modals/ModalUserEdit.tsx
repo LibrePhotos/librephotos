@@ -26,8 +26,8 @@ type Props = {
 };
 
 export function ModalUserEdit(props: Props) {
-  const { isOpen, updateAndScan, selectedNodeId, onRequestClose, userList, createNew, firstTimeSetup } = props;
-  const userToEdit = props.userToEdit;
+  const { isOpen, updateAndScan, selectedNodeId, onRequestClose, userList, createNew, firstTimeSetup, userToEdit } =
+    props;
   const [treeData, setTreeData] = useState([]);
   const [userPassword, setUserPassword] = useState("");
   const [newPasswordIsValid, setNewPasswordIsValid] = useState(true);
@@ -205,10 +205,8 @@ export function ModalUserEdit(props: Props) {
           username: username,
           password: userPassword,
           email: email,
-          is_superuser: false,
           first_name: first_name,
           last_name: last_name,
-          scan_directory: scan_directory ? scan_directory : "initial",
         });
         clearStateAndClose();
       }
