@@ -668,7 +668,7 @@ class Photo(models.Model):
         for file in self.files.all():
             if not os.path.exists(file.path):
                 self.files.remove(file)
-                file.missing = true
+                file.missing = True
                 file.save()
         self.save()
 
