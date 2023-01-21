@@ -148,7 +148,8 @@
         "ukrainian": "Ucraniano",
         "vietnamese": "Vietnamita",
         "togglecolorscheme": "Alternar el esquema de color",
-        "add_rule": "Añadir regla"
+        "add_rule": "Añadir regla",
+        "public_sharing": "Compartir públicamente"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de detección de Nextcloud",
