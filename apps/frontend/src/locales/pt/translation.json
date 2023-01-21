@@ -153,7 +153,8 @@
         "vietnamese": "Vietnamita",
         "traditionalchinese": "Chinês (Tradicional)",
         "togglecolorscheme": "Trocar esquema de cores",
-        "add_rule": "Adicionar regra"
+        "add_rule": "Adicionar regra",
+        "public_sharing": "Partilha pública"
     },
     "sidemenu": {
         "myalbums": "Meus álbuns",
