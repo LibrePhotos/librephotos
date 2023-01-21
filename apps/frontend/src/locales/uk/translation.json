@@ -147,7 +147,8 @@
         "vietnamese": "В’єтнамська",
         "traditionalchinese": "Китайська (традиційна)",
         "togglecolorscheme": "Перемкнути колірну схему",
-        "add_rule": "Додати правило"
+        "add_rule": "Додати правило",
+        "public_sharing": "Загальнодоступне поширення"
     },
     "modalalbum": {
         "create": "Створити",
