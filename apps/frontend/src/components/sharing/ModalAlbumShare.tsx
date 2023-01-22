@@ -35,7 +35,7 @@ export function ModalAlbumShare(props: Props) {
   let filteredUserList;
   if (userNameFilter.length > 0) {
     filteredUserList = pub.publicUserList.filter(
-      el => fuzzyMatch(el.username, userNameFilter) || fuzzyMatch(`${el.first_name} ${el.last_name}`, userNameFilter)
+      el => fuzzyMatch(userNameFilter, el.username) || fuzzyMatch(userNameFilter, `${el.first_name} ${el.last_name}`)
     );
   } else {
     filteredUserList = pub.publicUserList;
