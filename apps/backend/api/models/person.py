@@ -68,7 +68,7 @@ class Person(models.Model):
 
 def get_unknown_person(owner: User = None):
     unknown_person: Person = Person.objects.get_or_create(
-        name=Person.UNKNOWN_PERSON_NAME, cluster_owner=owner
+        name=Person.UNKNOWN_PERSON_NAME, cluster_owner=owner, kind=Person.KIND_UNKNOWN
     )[0]
     if unknown_person.kind != Person.KIND_UNKNOWN:
         unknown_person.kind = Person.KIND_UNKNOWN
@@ -76,5 +76,5 @@ def get_unknown_person(owner: User = None):
     return unknown_person
 
 
-def get_or_create_person(name, owner: User = None):
-    return Person.objects.get_or_create(name=name, cluster_owner=owner)[0]
+def get_or_create_person(name, owner: User = None, kind: str = Person.KIND_UNKNOWN):
+    return Person.objects.get_or_create(name=name, cluster_owner=owner, kind=kind)[0]

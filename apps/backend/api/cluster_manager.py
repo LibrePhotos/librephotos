@@ -47,9 +47,8 @@ class ClusterManager:
                 new_person = unknown_person
             else:
                 new_person = get_or_create_person(
-                    name="Unknown " + labelStr, owner=user
+                    name="Unknown " + labelStr, owner=user, kind=Person.KIND_CLUSTER
                 )
-                new_person.kind = Person.KIND_CLUSTER
                 new_person.cluster_owner = user
                 new_person.save()
                 new_cluster = Cluster.get_or_create_cluster_by_id(user, cluster_id)
