@@ -7,10 +7,7 @@ import { Server } from "../api_client/apiClient";
 import i18n from "../i18n";
 import { PhotosetType } from "../reducers/photosReducer";
 import type { AppDispatch } from "../store/store";
-import {
-  addTempElementsToGroups,
-  getPhotosFlatFromGroupedByDate,
-} from "../util/util";
+import { addTempElementsToGroups, getPhotosFlatFromGroupedByDate } from "../util/util";
 import type {
   AlbumInfo,
   AutoAlbum,
@@ -79,7 +76,6 @@ export function fetchUserAlbumsList() {
     Server.get("albums/user/list/")
       .then(response => {
         const data = _FetchUserAlbumsListResponseSchema.parse(response.data);
-        console.log(data);
         const userAlbumInfoList: UserAlbumInfo[] = data.results;
         dispatch({
           type: "FETCH_USER_ALBUMS_LIST_FULFILLED",
