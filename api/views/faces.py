@@ -171,7 +171,19 @@ class FaceLabeledListViewSet(ListViewSet):
 class SetFacePersonLabel(APIView):
     def post(self, request, format=None):
         data = dict(request.data)
-        person = get_or_create_person(name=data["person_name"], owner=self.request.user)
+        if data["person_name"] == Person.UNKNOWN_PERSON_NAME:
+            # We do this to unlabel a face
+            # TODO: this is a hack, we should have a better way to handle this
+            #       maybe a separate endpoint for setting unknown person labels?
+            person = get_or_create_person(
+                name=data["person_name"],
+                owner=self.request.user,
+                kind=Person.KIND_UNKNOWN,
+            )
+        else:
+            person = get_or_create_person(
+                name=data["person_name"], owner=self.request.user, kind=Person.KIND_USER
+            )
         faces = Face.objects.in_bulk(data["face_ids"])
 
         updated = []
