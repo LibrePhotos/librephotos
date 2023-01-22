@@ -84,6 +84,8 @@ class UserSerializer(serializers.ModelSerializer):
                 user = User.objects.create_superuser(**validated_data)
             else:
                 user = User.objects.create_user(**validated_data)
+        else:
+            user = User.objects.create_user(**validated_data)
         logger.info("Created user {}".format(user.id))
         return user
 
