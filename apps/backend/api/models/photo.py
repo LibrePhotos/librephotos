@@ -132,10 +132,10 @@ class Photo(models.Model):
             if value != getattr(self, field_name)
         ]
         user = User.objects.get(username=self.owner)
-        if save_metadata and user.save_metadata_to_disk != User.SaveMetadataToDisk.OFF:
+        if save_metadata and user.save_metadata_to_disk != User.SaveMetadata.OFF:
             self._save_metadata(
                 modified_fields,
-                user.save_metadata_to_disk == User.SaveMetadataToDisk.SIDECAR_FILE,
+                user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE,
             )
         return super().save(
             force_insert=force_insert,
