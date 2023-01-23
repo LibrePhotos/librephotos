@@ -148,7 +148,8 @@
         "togglecolorscheme": "Farbschema umschalten",
         "ukrainian": "Ukrainisch",
         "traditionalchinese": "Chinesisch (Traditionell)",
-        "vietnamese": "Vietnamesisch"
+        "vietnamese": "Vietnamesisch",
+        "public_sharing": "Öffentliches Teilen"
     },
     "modalnextcloud": {
         "setdirectory": "Setze dein Nextcloud Scan Ordner",
