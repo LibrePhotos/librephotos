@@ -10,6 +10,7 @@ import {
   Modal,
   Popover,
   SimpleGrid,
+  Space,
   Stack,
   Table,
   Text,
@@ -26,20 +27,20 @@ import { scanAllPhotos, scanNextcloudPhotos, scanPhotos } from "../../actions/ph
 import {
   deleteMissingPhotos,
   fetchCountStats,
-  fetchNextcloudDirectoryTree,
   generateEventAlbumTitles,
   generateEventAlbums,
   updateUser,
 } from "../../actions/utilActions";
 import { api, useWorkerQuery } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
+import { useLazyFetchNextcloudDirsQuery } from "../../api_client/nextcloud";
 import { ModalNextcloudScanDirectoryEdit } from "../../components/modals/ModalNextcloudScanDirectoryEdit";
 import { CountStats } from "../../components/statistics";
 import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 export function Library() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, { open, close }] = useDisclosure(false);
   const [nextcloudAuthStatusPopup, { close: closeNextcloudAuthStatusPopup, open: openNextcloudAuthStatusPopup }] =
     useDisclosure(false);
   const [credentialsPopup, { close: closeCredentialsPopup, open: openCredentialsPopup }] = useDisclosure(false);
@@ -52,14 +53,10 @@ export function Library() {
   const userSelfDetailsRedux = useAppSelector(state => state.user.userSelfDetails);
   const { data: worker } = useWorkerQuery();
   const [workerAvailability, setWorkerAvailability] = useState(false);
-  const fetchedNextcloudDirectoryTree = useAppSelector(state => state.util.fetchedNextcloudDirectoryTree);
   const util = useAppSelector(state => state.util);
   const statusPhotoScan = useAppSelector(state => state.util.statusPhotoScan);
   const { t } = useTranslation();
-
-  const open = () => setIsOpen(true);
-
-  const close = () => setIsOpen(false);
+  const [fetchNextcloudDirs, { isFetching: isNextcloudFetching }] = useLazyFetchNextcloudDirsQuery();
 
   const onPhotoScanButtonClick = () => {
     dispatch(scanPhotos());
@@ -90,8 +87,8 @@ export function Library() {
   useEffect(() => {
     dispatch(fetchCountStats());
     dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id));
-    dispatch(fetchNextcloudDirectoryTree("/"));
-  }, [auth.access.user_id, dispatch]);
+    fetchNextcloudDirs(undefined, true);
+  }, [auth.access.user_id, dispatch, fetchNextcloudDirs]);
 
   useEffect(() => {
     setUserSelfDetails(userSelfDetailsRedux);
@@ -154,9 +151,7 @@ export function Library() {
               onClick={() => {
                 dispatch(scanNextcloudPhotos());
               }}
-              disabled={
-                !fetchedNextcloudDirectoryTree || !workerAvailability || !userSelfDetails.nextcloud_scan_directory
-              }
+              disabled={isNextcloudFetching || !workerAvailability || !userSelfDetails.nextcloud_scan_directory}
               color="blue"
             >
               <Refresh />
@@ -415,7 +410,7 @@ export function Library() {
                 inline
                 onMouseEnter={openNextcloudAuthStatusPopup}
                 onMouseLeave={closeNextcloudAuthStatusPopup}
-                color={fetchedNextcloudDirectoryTree ? "green" : "red"}
+                color={!isNextcloudFetching ? "green" : "red"}
               >
                 <div />
               </Indicator>
@@ -424,7 +419,7 @@ export function Library() {
           </Popover.Target>
           <Popover.Dropdown sx={{ pointerEvents: "none" }}>
             <Text size="sm">
-              {fetchedNextcloudDirectoryTree ? t("settings.nextcloudloggedin") : t("settings.nextcloudnotloggedin")}
+              {!isNextcloudFetching ? t("settings.nextcloudloggedin") : t("settings.nextcloudnotloggedin")}
             </Text>
           </Popover.Dropdown>
         </Popover>
@@ -474,7 +469,7 @@ export function Library() {
         <Button
           variant="subtle"
           leftIcon={<Edit />}
-          disabled={!fetchedNextcloudDirectoryTree}
+          disabled={isNextcloudFetching}
           onClick={() => {
             setModalNextcloudScanDirectoryOpen(true);
           }}
@@ -482,12 +477,19 @@ export function Library() {
           {userSelfDetails.nextcloud_scan_directory ? userSelfDetails.nextcloud_scan_directory : t("adminarea.notset")}
         </Button>
       </Group>
+      <Space h="xl" />
       <ModalNextcloudScanDirectoryEdit
-        onRequestClose={() => {
+        path={userSelfDetails.nextcloud_scan_directory}
+        isOpen={modalNextcloudScanDirectoryOpen}
+        onChange={path =>
+          setUserSelfDetails({
+            ...userSelfDetails,
+            nextcloud_scan_directory: path,
+          })
+        }
+        onClose={() => {
           setModalNextcloudScanDirectoryOpen(false);
         }}
-        userToEdit={userSelfDetails}
-        isOpen={modalNextcloudScanDirectoryOpen}
       />
       <Dialog
         opened={isOpenUpdateDialog}

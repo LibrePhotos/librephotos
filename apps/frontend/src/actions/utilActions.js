@@ -66,14 +66,13 @@ export function updateAvatar(user, form_data) {
         const data = UserSchema.parse(response.data);
         dispatch(userActions.updateRules(data));
         dispatch(api.endpoints.fetchUserList.initiate()).refetch();
-        dispatch(fetchNextcloudDirectoryTree("/"));
+        dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id)).refetch();
+        dispatch(api.endpoints.fetchNextcloudDirs.initiate()).refetch();
         showNotification({
           message: i18n.t("toasts.updateuser", { username: user.username }),
           title: i18n.t("toasts.updateusertitle"),
           color: "teal",
         });
-
-        dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id)).refetch();
       })
       .catch(error => {
         console.error(error);
@@ -89,12 +88,12 @@ export function updateUser(user, dispatch) {
       dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id)).refetch();
       dispatch(userActions.updateRules(data));
       dispatch(api.endpoints.fetchUserList.initiate()).refetch();
+      dispatch(api.endpoints.fetchNextcloudDirs.initiate()).refetch();
       showNotification({
         message: i18n.t("toasts.updateuser", { username: user.username }),
         title: i18n.t("toasts.updateusertitle"),
         color: "teal",
       });
-      dispatch(fetchNextcloudDirectoryTree("/"));
     })
     .catch(error => {
       console.error(error);
