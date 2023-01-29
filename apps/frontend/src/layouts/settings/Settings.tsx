@@ -1,11 +1,25 @@
-import { Button, Card, Container, Dialog, Flex, Group, NumberInput, Radio, Select, Space, Stack, Switch, Text, Title } from "@mantine/core";
+import {
+  Button,
+  Card,
+  Container,
+  Dialog,
+  Flex,
+  Group,
+  NumberInput,
+  Radio,
+  Select,
+  Space,
+  Stack,
+  Switch,
+  Text,
+  Title,
+} from "@mantine/core";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { Settings as SettingIcon } from "tabler-icons-react";
 
-import { fetchCountStats, fetchNextcloudDirectoryTree, fetchTimezoneList, updateUser } from "../../actions/utilActions";
+import { fetchCountStats, fetchTimezoneList, updateUser } from "../../actions/utilActions";
 import { api } from "../../api_client/api";
-import { ModalNextcloudScanDirectoryEdit } from "../../components/modals/ModalNextcloudScanDirectoryEdit";
 import { ConfigDateTime } from "../../components/settings/ConfigDateTime";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
@@ -15,7 +29,6 @@ export function Settings() {
   const timezoneListRedux = useAppSelector(state => state.util.timezoneList);
   const [userSelfDetails, setUserSelfDetails] = useState(userSelfDetailsRedux);
   const [timezoneList, setTimezoneList] = useState(timezoneListRedux);
-  const [modalNextcloudScanDirectoryOpen, setModalNextcloudScanDirectoryOpen] = useState(false);
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
   const { t } = useTranslation();
@@ -32,7 +45,6 @@ export function Settings() {
   useEffect(() => {
     dispatch(fetchCountStats());
     dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id)).refetch();
-    dispatch(fetchNextcloudDirectoryTree("/"));
     fetchTimezoneList(dispatch);
   }, [auth.access.user_id, dispatch]);
 
@@ -46,13 +58,13 @@ export function Settings() {
 
   return (
     <Container>
-      <Group spacing="xs" sx={{'marginBottom': 20, 'marginTop': 40}}>
+      <Group spacing="xs" sx={{ marginBottom: 20, marginTop: 40 }}>
         <SettingIcon size={35} />
         <Title order={1}>{t("settings.header")}</Title>
       </Group>
       <Stack>
         <Card shadow="md">
-          <Title order={4} sx={{'marginBottom': 16}}>
+          <Title order={4} sx={{ marginBottom: 16 }}>
             <Trans i18nKey="settings.scanoptions">Scan Options</Trans>
           </Title>
           <Flex align="left" direction="column" gap={16}>
@@ -61,8 +73,9 @@ export function Settings() {
               label={t("settings.sceneconfidence")}
               value={userSelfDetails.confidence?.toString() || "0"}
               onChange={value => {
-              setUserSelfDetails({ ...userSelfDetails, confidence: value || "0" });
-            }}>
+                setUserSelfDetails({ ...userSelfDetails, confidence: value || "0" });
+              }}
+            >
               <Radio value="0.5" label={t("settings.confidence.high")} />
               <Radio value="0.1" label={t("settings.confidence.standard")} />
               <Radio value="0.05" label={t("settings.confidence.low")} />
@@ -73,8 +86,9 @@ export function Settings() {
               description={t("settings.semanticsearch.placeholder")}
               value={userSelfDetails.semantic_search_topk?.toString()}
               onChange={value => {
-              setUserSelfDetails({ ...userSelfDetails, semantic_search_topk: value || "0" });
-            }}>
+                setUserSelfDetails({ ...userSelfDetails, semantic_search_topk: value || "0" });
+              }}
+            >
               <Radio value="100" label={t("settings.semanticsearch.top100")} />
               <Radio value="50" label={t("settings.semanticsearch.top50")} />
               <Radio value="10" label={t("settings.semanticsearch.top10")} />
@@ -83,7 +97,7 @@ export function Settings() {
           </Flex>
         </Card>
         <Card shadow="md">
-          <Title order={4} sx={{'marginBottom': 16}}>
+          <Title order={4} sx={{ marginBottom: 16 }}>
             <Trans i18nKey="settings.metadata">Metadata</Trans>
           </Title>
           <Flex align="left" direction="column" gap={16}>
@@ -91,8 +105,9 @@ export function Settings() {
               label={t("settings.sync")}
               value={userSelfDetails.save_metadata_to_disk}
               onChange={value => {
-              setUserSelfDetails({ ...userSelfDetails, save_metadata_to_disk: value || "OFF" });
-            }}>
+                setUserSelfDetails({ ...userSelfDetails, save_metadata_to_disk: value || "OFF" });
+              }}
+            >
               <Radio value="OFF" label={t("settings.favoritesyncoptions.off")} />
               <Radio value="SIDECAR_FILE" label={t("settings.favoritesyncoptions.sidecar")} />
               <Radio value="MEDIA_FILE" label={t("settings.favoritesyncoptions.mediafile")} />
@@ -101,8 +116,9 @@ export function Settings() {
               label={t("settings.favoriteminimum")}
               value={userSelfDetails.favorite_min_rating?.toString()}
               onChange={value => {
-              setUserSelfDetails({ ...userSelfDetails, favorite_min_rating: value || "3" });
-            }}>
+                setUserSelfDetails({ ...userSelfDetails, favorite_min_rating: value || "3" });
+              }}
+            >
               <Radio value="1" label="1" />
               <Radio value="2" label="2" />
               <Radio value="3" label="3" />
@@ -123,7 +139,9 @@ export function Settings() {
           </Flex>
         </Card>
         <Card shadow="md">
-          <Title order={4} sx={{'marginBottom': 16}}>{t("settings.albumoptions")}</Title>
+          <Title order={4} sx={{ marginBottom: 16 }}>
+            {t("settings.albumoptions")}
+          </Title>
           <NumberInput
             label={t("settings.inferredfacesconfidence")}
             description={t("settings.inferredfacesconfidencehelp")}
@@ -147,7 +165,7 @@ export function Settings() {
           />
         </Card>
         <Card shadow="md">
-          <Title order={4} sx={{'marginBottom': 16}}>
+          <Title order={4} sx={{ marginBottom: 16 }}>
             <Trans i18nKey="settings.experimentaloptions">Experimental options</Trans>
           </Title>
           <Switch
@@ -163,13 +181,6 @@ export function Settings() {
         </Card>
         <Space h="xl" />
       </Stack>
-      <ModalNextcloudScanDirectoryEdit
-        onRequestClose={() => {
-          setModalNextcloudScanDirectoryOpen(false);
-        }}
-        userToEdit={userSelfDetails}
-        isOpen={modalNextcloudScanDirectoryOpen}
-      />
       <Dialog
         opened={isOpenUpdateDialog}
         withCloseButton
