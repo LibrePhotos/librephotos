@@ -55,7 +55,7 @@ class PigPhotoSerilizer(serializers.ModelSerializer):
         if obj.exif_timestamp:
             return obj.exif_timestamp.isoformat()
         else:
-            None
+            return ""
 
     def get_video_length(self, obj) -> int:
         if obj.video_length:
