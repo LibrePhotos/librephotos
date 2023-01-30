@@ -179,3 +179,7 @@ api/places365/*.tar.gz
 *.db
 media*
 protected_media
+
+# Vim
+*.swp
+*.swo
