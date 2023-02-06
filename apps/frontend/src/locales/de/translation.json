@@ -196,7 +196,7 @@
         "wordclouds": "Wortwolke",
         "timeline": "Zeitlinie",
         "socialgraph": "Sozialer Graph",
-        "facecluster": "Cluster für Gesichter",
+        "facecluster": "Gruppierte Gesichter",
         "datavizsmall": "Daten",
         "facerecognition": "Gesichter",
         "library": "Bibliothek",
@@ -416,7 +416,11 @@
         "assumedpersonscounter_one": "{{count}} abgeleitete Person",
         "facescounter_one": "{{count}} Gesicht",
         "facescounter_other": "{{count}} Gesichter",
-        "unknownfacescounter_one": "{{count}} unbekanntes Gesicht"
+        "unknownfacescounter_one": "{{count}} unbekanntes Gesicht",
+        "clusterscounter_one": "{{count}} Gruppe",
+        "clusterscounter_other": "{{count}} Gruppen",
+        "clusteredfacescounter_one": "{{count}} Gruppiertes Gesicht",
+        "clusteredfacescounter_other": "{{count}} Gruppierte Gesichter"
     },
     "personedit": {
         "addperson": "Füge Person hinzu",
@@ -432,7 +436,7 @@
     "wordclouds": "Wortwolken",
     "timeline": "Zeitleiste",
     "socialgraph": "Sozialer Graph",
-    "facecluster": "Gesichtsgruppen",
+    "facecluster": "Gruppierte Gesichter",
     "toasts": {
         "createnewalbum": "{{numberOfPhotos}} Fotos wurden zu neuem Album {{title}} hinzugefügt",
         "createalbumtitle": "Erstelle Album",
