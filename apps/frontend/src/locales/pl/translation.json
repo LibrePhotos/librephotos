@@ -147,7 +147,8 @@
         "ukrainian": "Ukraiński",
         "vietnamese": "Wietnamski",
         "add_rule": "Dodaj regułę",
-        "togglecolorscheme": "Przełącz schemat kolorów"
+        "togglecolorscheme": "Przełącz schemat kolorów",
+        "public_sharing": "Udostępnianie publiczne"
     },
     "topmenu": {
         "loggedin": "Zalogowany jako",
@@ -501,7 +502,19 @@
         "notthisperson": "Przesuń twarze z powrotem do \"Nieznany - Inny\"",
         "sortbyconfidence": "Pewność",
         "sortby": "Sortuj według",
-        "sortbydate": "Data"
+        "sortbydate": "Data",
+        "clusteredfacescounter_one": "{{count}} twarzy w klastrze",
+        "clusterscounter_one": "Klaster {{count}}",
+        "clusterscounter_other": "{{count}} Klastrów",
+        "personscounter_one": "{{count}} Osoba",
+        "personscounter_other": "{{count}} Osób",
+        "assumedpersonscounter_one": "{{count}} przypuszczalnych osób",
+        "assumedpersonscounter_other": "{{count}} przypuszczalnych osób",
+        "facescounter_one": "{{count}} twarz/y",
+        "facescounter_other": "{{count}} twarz/y",
+        "clusteredfacescounter_other": "{{count}} twarzy w klastrze",
+        "unknownfacescounter_one": "{{count}} Nieznana twarz",
+        "unknownfacescounter_other": "{{count}} Nieznane twarze"
     },
     "scan": "Skanuj",
     "placealbum": {
