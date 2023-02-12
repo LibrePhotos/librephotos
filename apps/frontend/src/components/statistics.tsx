@@ -1,4 +1,4 @@
-import { Button, Group, Title } from "@mantine/core";
+import { Button, Card, Group, Text, Title } from "@mantine/core";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Calendar, FaceId, Photo, SettingsAutomation, Users } from "tabler-icons-react";
@@ -16,51 +16,46 @@ export const CountStats = () => {
   }, []);
 
   return (
-    <Group position="apart">
-      <div>
-        <Title align="center">{countStats.num_photos}</Title>
-        <Group position="center">
-          <Button variant="subtle" color="dark" leftIcon={<Photo size={20} />}>
-            {t("countstats.photos")}
-          </Button>
+    <Group grow>
+      <Card shadow="xs">
+        <Title align="left">{countStats.num_photos}</Title>
+        <Group position="left" spacing="xs">
+          <Photo />
+          <Text>{t("countstats.photos")}</Text>
         </Group>
-      </div>
+      </Card>
 
-      <div>
-        <Title align="center">{countStats.num_people}</Title>
-        <Group position="center">
-          <Button variant="subtle" color="dark" leftIcon={<Users size={20} />}>
-            {t("people")}
-          </Button>
+      <Card shadow="xs">
+        <Title align="left">{countStats.num_people}</Title>
+        <Group position="left" spacing="xs">
+          <Users />
+          <Text> {t("people")}</Text>
         </Group>
-      </div>
+      </Card>
 
-      <div>
-        <Title align="center">{countStats.num_faces}</Title>
-        <Group position="center">
-          <Button variant="subtle" color="dark" leftIcon={<FaceId size={20} />}>
-            {t("faces")}
-          </Button>
+      <Card shadow="xs">
+        <Title align="left">{countStats.num_faces}</Title>
+        <Group position="left" spacing="xs">
+          <FaceId />
+          <Text> {t("faces")}</Text>
         </Group>
-      </div>
+      </Card>
 
-      <div>
-        <Title align="center">{countStats.num_albumauto}</Title>
-        <Group position="center">
-          <Button variant="subtle" color="dark" leftIcon={<SettingsAutomation size={20} />}>
-            {t("events")}
-          </Button>
+      <Card shadow="xs">
+        <Title align="left">{countStats.num_albumauto}</Title>
+        <Group position="left" spacing="xs">
+          <SettingsAutomation />
+          <Text>{t("events")}</Text>
         </Group>
-      </div>
+      </Card>
 
-      <div>
-        <Title align="center">{countStats.num_albumdate}</Title>
-        <Group position="center">
-          <Button variant="subtle" color="dark" leftIcon={<Calendar size={20} />}>
-            {t("days")}
-          </Button>
+      <Card shadow="xs">
+        <Title align="left">{countStats.num_albumdate}</Title>
+        <Group position="left" spacing="xs">
+          <Calendar />
+          <Text>{t("days")}</Text>
         </Group>
-      </div>
+      </Card>
     </Group>
   );
 };

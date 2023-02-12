@@ -27,7 +27,17 @@ import { useDisclosure } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { Book, Edit, ExternalLink, FaceId, QuestionMark, Refresh, RefreshDot, Tag, InfoCircle } from "tabler-icons-react";
+import {
+  Book,
+  Edit,
+  ExternalLink,
+  FaceId,
+  InfoCircle,
+  QuestionMark,
+  Refresh,
+  RefreshDot,
+  Tag,
+} from "tabler-icons-react";
 
 import { scanAllPhotos, scanNextcloudPhotos, scanPhotos } from "../../actions/photosActions";
 import {
@@ -116,22 +126,22 @@ export function Library() {
   return (
     <Container>
       <Flex align="baseline" justify="space-between">
-      <Group spacing="xs" sx={{ marginBottom: 20, marginTop: 40 }}>
-        <Book size={35} />
-        <Title order={1}>{t("settings.library")}</Title>
-      </Group>
-      <ActionIcon color="green">
-          <InfoCircle onClick={()=> setIsOpenHelp(!isOpenHelp)}/>
+        <Group spacing="xs" sx={{ marginBottom: 20, marginTop: 40 }}>
+          <Book size={35} />
+          <Title order={1}>{t("settings.library")}</Title>
+        </Group>
+        <ActionIcon color="green" variant="outline" radius="xl">
+          <QuestionMark onClick={() => setIsOpenHelp(!isOpenHelp)} />
         </ActionIcon>
       </Flex>
 
       <Stack>
         <CountStats />
-        <Divider hidden />
+        <Space h="2rem" />
         <Card shadow="md">
           <Stack>
-            <Title order={5}>
-              {+util.countStats.num_photos} <Trans i18nKey="settings.photos">Photos</Trans>
+            <Title order={4} sx={{ marginBottom: 16 }}>
+              <Trans i18nKey="settings.photos">Photos</Trans>
               {+util.countStats.num_missing_photos > 0 && (
                 <HoverCard width={280} shadow="md">
                   <HoverCard.Target>
@@ -159,7 +169,6 @@ export function Library() {
                 </Stack>
               </Modal>
             </Title>
-            <Divider />
             <Group>
               <Button onClick={onPhotoScanButtonClick} disabled={!workerAvailability} leftIcon={<Refresh />}>
                 {statusPhotoScan.status && statusPhotoScan.added ? <Loader /> : null}
@@ -168,16 +177,7 @@ export function Library() {
                   : t("settings.statusscanphotosfalse")}
               </Button>
 
-              <Button
-                onClick={() => {
-                  dispatch(scanNextcloudPhotos());
-                }}
-                disabled={isNextcloudFetching || !workerAvailability || !userSelfDetails.nextcloud_scan_directory}
-                color="blue"
-                leftIcon={<Refresh />}
-              >
-                <Trans i18nKey="settings.scannextcloudphotos">Scan photos (Nextcloud)</Trans>
-              </Button>
+
               <Button onClick={onPhotoFullScanButtonClick} disabled={!workerAvailability} leftIcon={<Refresh />}>
                 {statusPhotoScan.status && statusPhotoScan.added ? <Loader /> : null}
                 {statusPhotoScan.added
@@ -240,66 +240,88 @@ export function Library() {
           </Stack>
         </Card>
         <Card shadow="md">
-          <Stack>
-            <Title order={5}>
-              {+util.countStats.num_albumauto} <Trans i18nKey="settings.eventsalbums">Event Albums</Trans>
-            </Title>
-            <Divider />
-            <Button onClick={onGenerateEventAlbumsButtonClick} disabled={!workerAvailability} leftIcon={<RefreshDot />}>
-              <Trans i18nKey="settings.eventalbumsgenerate">Generate Event Albums</Trans>
-            </Button>
-            <Divider hidden />
-            <p>
-              <Trans i18nKey="settings.eventsalbumsdescription">
-                The backend server will first group photos by time taken. If two consecutive photos are taken within 12
-                hours of each other, the two photos are considered to be from the same event. After groups are put
-                together in this way, it automatically generates a title for this album.
-              </Trans>
-            </p>
-            <Divider />
-            <Button
-              onClick={() => {
-                dispatch(generateEventAlbumTitles());
-              }}
-              disabled={!workerAvailability}
-              leftIcon={<RefreshDot />}
-            >
-              <Trans i18nKey="settings.eventalbumsregenerate">Regenerate Event Titles</Trans>
-            </Button>
-            <Divider hidden />
-            <p>
-              <Trans i18nKey="settings.eventalbumsregeneratedescription">
-                Automatically generated albums have names of people in the titles. If you trained your face classifier
-                after making event albums, you can generate new titles for already existing event albums to reflect the
-                new names associated with the faces in photos.
-              </Trans>
-            </p>
-          </Stack>
+          <Title order={4} sx={{ marginBottom: 16 }}>
+            <Trans i18nKey="settings.eventsalbums">Event Albums</Trans>
+          </Title>
+          <Group>
+            <Stack align="flex-start">
+              <Button
+                onClick={onGenerateEventAlbumsButtonClick}
+                disabled={!workerAvailability}
+                leftIcon={<RefreshDot />}
+              >
+                <Trans i18nKey="settings.eventalbumsgenerate">Generate Event Albums</Trans>
+              </Button>
+              <Divider hidden />
+              <Collapse in={isOpenHelp}>
+                <Trans i18nKey="settings.eventsalbumsdescription">
+                  The backend server will first group photos by time taken. If two consecutive photos are taken within
+                  12 hours of each other, the two photos are considered to be from the same event. After groups are put
+                  together in this way, it automatically generates a title for this album.
+                </Trans>
+              </Collapse>
+            </Stack>
+            <Stack align="flex-start">
+              <Button
+                onClick={() => {
+                  dispatch(generateEventAlbumTitles());
+                }}
+                disabled={!workerAvailability}
+                leftIcon={<RefreshDot />}
+              >
+                <Trans i18nKey="settings.eventalbumsregenerate">Regenerate Event Titles</Trans>
+              </Button>
+              <Collapse in={isOpenHelp}>
+                <Trans i18nKey="settings.eventalbumsregeneratedescription">
+                  Automatically generated albums have names of people in the titles. If you trained your face classifier
+                  after making event albums, you can generate new titles for already existing event albums to reflect
+                  the new names associated with the faces in photos.
+                </Trans>
+              </Collapse>
+            </Stack>
+          </Group>
         </Card>
         <Card shadow="md">
-          <Stack>
-            <Title order={5}>
-              {+util.countStats.num_faces} <Trans i18nKey="settings.faces">Faces</Trans>, {+util.countStats.num_people}{" "}
-              <Trans i18nKey="settings.people">People</Trans>
-            </Title>
-            <Divider />
+        <Title order={4} sx={{ marginBottom: 16 }}>
+                <Trans i18nKey="settings.faces">Faces</Trans> & <Trans i18nKey="settings.people">People</Trans>
+              </Title>
+          <Group>
+            <Stack>
+
+              <Group>
+              <Button
+                disabled={!workerAvailability}
+                onClick={() => {
+                  dispatch(api.endpoints.trainFaces.initiate());
+                  showNotification({
+                    message: i18n.t<string>("toasts.trainingstarted"),
+                    title: i18n.t<string>("toasts.trainingstartedtitle"),
+                    color: "teal",
+                  });
+                }}
+                leftIcon={<FaceId />}
+              >
+                <Trans i18nKey="settings.facesbutton">Train Faces</Trans>
+              </Button>
+              <Button leftIcon={<ExternalLink size={14} />} component="a" href="/faces">
+              {t("settings.facedashboard")}
+            </Button>
             <Button
+              color="green"
               disabled={!workerAvailability}
               onClick={() => {
-                dispatch(api.endpoints.trainFaces.initiate());
+                dispatch(api.endpoints.rescanFaces.initiate());
                 showNotification({
-                  message: i18n.t<string>("toasts.trainingstarted"),
-                  title: i18n.t<string>("toasts.trainingstartedtitle"),
+                  message: i18n.t<string>("toasts.rescanfaces"),
+                  title: i18n.t<string>("toasts.rescanfacestitle"),
                   color: "teal",
                 });
               }}
-              color="green"
               leftIcon={<FaceId />}
             >
-              <Trans i18nKey="settings.facesbutton">Train Faces</Trans>
-            </Button>
-            <Divider hidden />
-
+              <Trans i18nKey="settings.rescanfaces">Rescan Faces</Trans>
+            </Button></Group>
+            </Stack>
             <Table striped highlightOnHover>
               <tbody>
                 <tr>
@@ -337,31 +359,11 @@ export function Library() {
                 </tr>
               </tbody>
             </Table>
-            <Divider hidden />
-            <Button leftIcon={<ExternalLink size={14} />} component="a" href="/faces">
-              {t("settings.facedashboard")}
-            </Button>
-            <Divider hidden />
-            <Button
-              color="green"
-              disabled={!workerAvailability}
-              onClick={() => {
-                dispatch(api.endpoints.rescanFaces.initiate());
-                showNotification({
-                  message: i18n.t<string>("toasts.rescanfaces"),
-                  title: i18n.t<string>("toasts.rescanfacestitle"),
-                  color: "teal",
-                });
-              }}
-              leftIcon={<FaceId />}
-            >
-              <Trans i18nKey="settings.rescanfaces">Rescan Faces</Trans>
-            </Button>
-          </Stack>
+          </Group>
         </Card>
         <Divider hidden />
         <Card shadow="md">
-          <Title order={4}>
+          <Title order={4} sx={{ marginBottom: 16 }}>
             <Popover opened={nextcloudAuthStatusPopup} position="top" withArrow>
               <Popover.Target>
                 <Group>
@@ -424,9 +426,8 @@ export function Library() {
               />
             </Group>
           </Stack>{" "}
-          <Group grow>
+          <Group>
             <Button
-              variant="subtle"
               leftIcon={<Edit />}
               disabled={isNextcloudFetching}
               onClick={() => {
@@ -437,6 +438,16 @@ export function Library() {
                 ? userSelfDetails.nextcloud_scan_directory
                 : t("adminarea.notset")}
             </Button>
+            <Button
+                onClick={() => {
+                  dispatch(scanNextcloudPhotos());
+                }}
+                disabled={isNextcloudFetching || !workerAvailability || !userSelfDetails.nextcloud_scan_directory}
+                color="blue"
+                leftIcon={<Refresh />}
+              >
+                <Trans i18nKey="settings.scannextcloudphotos">Scan photos (Nextcloud)</Trans>
+              </Button>
           </Group>
           <Space h="xl" />
           <ModalNextcloudScanDirectoryEdit
@@ -491,6 +502,7 @@ export function Library() {
           </Group>
         </Dialog>
       </Stack>
+      <Space h="xl" />
     </Container>
   );
 }
