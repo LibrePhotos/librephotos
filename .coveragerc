@@ -1,0 +1,11 @@
+[run]
+branch = True
+
+[report]
+skip_covered = True
+skip_empty = True
+# show_missing = True
+
+[html]
+skip_covered = True
+skip_empty = True
