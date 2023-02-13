@@ -13,9 +13,7 @@ services:
     image: reallibrephotos/librephotos-proxy:${tag}
     container_name: e2e-__proxy_name__
     restart: unless-stopped
-    environment:
-      BACKEND_NAME: e2e-__backend_name__
-      FRONTEND_NAME: e2e-__frontend_name__
+    command: /bin/bash -c "sed -ri 's/(__backend_name__|__frontend_name__)/e2e-\1/' /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
     volumes:
       - e2e_scan_directory:/data
       - e2e_protected_media:/protected_media
