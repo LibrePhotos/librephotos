@@ -8,6 +8,7 @@ pylint==2.6.0
 pylint-django==2.4.4
 flake8==3.8.4
 pre-commit==2.14.0
+coverage==7.1.0
 
 # REMOVED
 # yarg==0.1.9
