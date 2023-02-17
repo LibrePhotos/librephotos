@@ -1,5 +1,5 @@
 ipdb==0.10.3
-ipython==8.0.1
+ipython==8.10.0
 ipython-genutils==0.2.0
 Pygments==2.7.4
 prompt-toolkit==3.0.8
