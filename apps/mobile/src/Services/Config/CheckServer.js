@@ -10,7 +10,6 @@ export const preprocessserver = server => {
   if (serverName.endsWith('/')) {
     serverName = serverName.substring(0, serverName.length - 1)
   }
-  console.log(serverName)
   return serverName
 }
 
@@ -29,11 +28,11 @@ export default async serverName => {
       },
     )
     .then(response => {
-      console.log(response)
       return true
     })
     .catch(e => {
       return typeof e.response !== 'undefined' && e.response.status === 401
     })
+
   return res
 }
