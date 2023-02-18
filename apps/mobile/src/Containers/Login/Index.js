@@ -42,7 +42,7 @@ const IndexLoginContainer = () => {
   const dispatch = useDispatch()
 
   const login = evt => {
-    lowerCaseUserName = username.toLowerCase() // backend only excepts lower case usernames
+    const lowerCaseUserName = username.toLowerCase() // backend only excepts lower case usernames
     dispatch(LoginUser.action({ server, lowerCaseUserName, password }))
   }
 
