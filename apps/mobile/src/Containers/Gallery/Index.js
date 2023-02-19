@@ -44,10 +44,10 @@ const GalleryContainer = () => {
     console.log('Fetching Category: ' + category)
     switch (category) {
       case CategoryType.PhotosByDate:
-        dispatch(FetchPhotosWithoutDate.action({ page: 1 }))
+        dispatch(FetchAlbumByDate.action())
         break
       case CategoryType.PhotosWithoutDate:
-        dispatch(FetchAlbumByDate.action())
+        dispatch(FetchPhotosWithoutDate.action({ page: 1 }))
         break
       case CategoryType.Recent:
         dispatch(FetchRecentlyAdded.action())
