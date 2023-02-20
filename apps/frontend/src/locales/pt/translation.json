@@ -164,8 +164,8 @@
         "things": "Coisas",
         "wordclouds": "Nuvem de palavras",
         "name": "LibrePhotos",
-        "withtimestamp": "Com carimbo de data/hora",
-        "withouttimestamp": "Sem carimbo de data/hora",
+        "withtimestamp": "Com etiqueta de data/hora",
+        "withouttimestamp": "Sem etiqueta de data/hora",
         "datavizsmall": "Dados",
         "library": "Biblioteca",
         "favorites": "Favoritos",
@@ -267,10 +267,10 @@
             "submit": "Submeter",
             "categories": "Categorias",
             "editdatetime": "Editar hora e data",
-            "withouttimestamp": "Sem carimbo de data/hora",
-            "invalidtimestamp": "Carimbo de data/hora invalido",
-            "removetimestamp": "Remover carimbo de data/hora",
-            "undotimestampmodification": "Anular alteração de carimbo de data/hora"
+            "withouttimestamp": "Sem etiqueta de data/hora",
+            "invalidtimestamp": "Etiqueta de data/hora inválida",
+            "removetimestamp": "Remover etiqueta de data/hora",
+            "undotimestampmodification": "Anular alteração de etiqueta de data/hora"
         }
     },
     "photos": {
@@ -278,7 +278,7 @@
         "addedon": "Adicionado em ",
         "photos": "Fotos",
         "hidden": "Fotos ocultas",
-        "notimestamp": "Fotos sem carimbos de data/hora",
+        "notimestamp": "Fotos sem etiqueta de data/hora",
         "favorite": "Fotos favoritas",
         "deleted": "Lixo"
     },
@@ -536,7 +536,7 @@
         "exif_tag": "Usar tag EXIF {{rule}}",
         "7": "Data/hora de modificação do ficheiro no fuso horário predefinido do utilizador",
         "report_tz": "Transformar para {{rule}}",
-        "14": "Carimbo de data/hora definido pelo utilizador",
+        "14": "Etiqueta de data/hora definida pelo utilizador",
         "source_tz": "Transformar da regra {{rule}}",
         "rule_type": "Tipo de regra: {{rule}}"
     },
@@ -562,7 +562,7 @@
         "sidecar": "Guardar para sidecar",
         "mediafile": "Guardar para ficheiro media"
     },
-    "timezoneexplain": "Este fuso horário é usado para converter carimbos de data/hora para o fuso horário predefinido do utilizador",
+    "timezoneexplain": "Este fuso horário é usado para converter etiquetas de data/hora para o fuso horário predefinido do utilizador",
     "sync": "Sincronizar metadados para disco",
     "sponsorus": "Patrocine-nos",
     "supportus": "Suporte-nos",
