@@ -1,4 +1,22 @@
 import { imageGridReducer } from './ImageGridReducer'
+import { PermissionsAndroid, Platform } from 'react-native'
+import { CameraRoll } from '@react-native-camera-roll/camera-roll'
+import moment from 'moment'
+
+async function hasAndroidPermission() {
+  const permission =
+    Platform.Version >= 33
+      ? PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
+      : PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE
+
+  const hasPermission = await PermissionsAndroid.check(permission)
+  if (hasPermission) {
+    return true
+  }
+
+  const status = await PermissionsAndroid.request(permission)
+  return status === 'granted'
+}
 
 export function addTempElementsToGroups(photosGroupedByDate) {
   photosGroupedByDate.forEach(group => {
@@ -12,12 +30,15 @@ export function addTempElementsToGroups(photosGroupedByDate) {
   })
 }
 
-export const photoMapper = photosResult => {
+export const photoMapper = async photosResult => {
+  if (Platform.OS === 'android' && !(await hasAndroidPermission())) {
+    return
+  }
   if (typeof photosResult === 'undefined' || photosResult.length < 1) {
     return []
   }
   addTempElementsToGroups(photosResult)
-  let finalmap = photosResult.map(item => {
+  var finalmap = photosResult.map(item => {
     return {
       id: item.id,
       title: item.date,
@@ -26,6 +47,64 @@ export const photoMapper = photosResult => {
       numberOfItems: item.numberOfItems,
     }
   })
-
-  return finalmap
+  // load images from CameraRoll
+  // TODO: Figure out how to load all images from CameraRoll
+  const mergedPhotos = CameraRoll.getPhotos({
+    first: 100,
+    assetType: 'Photos',
+  })
+    .then(r => {
+      console.log('r', r)
+      r.edges.forEach(item => {
+        // add to a given date or add new date
+        let date = moment.unix(item.node.timestamp).format('YYYY-MM-DD')
+        // check if date exists within finalmap
+        let index = finalmap.findIndex(x => x.title === date)
+        if (index === -1) {
+          const newPhoto = {
+            id: item.node.image.uri,
+            aspectRatio: item.node.image.width / item.node.image.height,
+            isTemp: false,
+            type: 'cameraroll',
+            url: item.node.image.uri,
+            video_length: '',
+            date: moment.unix(item.node.timestamp),
+            birth_date: moment.unix(item.node.timestamp),
+            location: '',
+          }
+          const newAlbumDate = {
+            id: date,
+            title: date,
+            data: [newPhoto],
+            incomplete: false,
+            numberOfItems: 1,
+          }
+          finalmap = [...finalmap, newAlbumDate]
+          finalmap.sort((a, b) => {
+            return new Date(b.title) - new Date(a.title)
+          })
+        }
+        // To-Do: Test this
+        // add to existing date
+        else {
+          finalmap[index].data.push({
+            id: item.node.image.uri,
+            aspectRatio: item.node.image.width / item.node.image.height,
+            isTemp: false,
+            type: 'cameraroll',
+            url: item.node.image.uri,
+            video_length: '',
+            date: item.node.timestamp,
+            birth_date: item.node.timestamp,
+            location: '',
+          })
+          finalmap[index].numberOfItems += 1
+        }
+      })
+      return finalmap
+    })
+    .catch(err => {
+      console.log(err)
+    })
+  return mergedPhotos
 }

@@ -68,18 +68,23 @@ const ImageGrid = ({
         onPress={() => handleImagePress(item, index, section)}
       >
         {!item.isTemp && (
+          //To-Do: Show icon for local and remote images
           <Image
             style={Layout.fullSize}
-            source={{
-              uri:
-                getConfig(config.baseurl).MEDIA_URL +
-                '/square_thumbnails/' +
-                item.url,
-              method: 'GET',
-              headers: {
-                Authorization: 'Bearer ' + authToken,
-              },
-            }}
+            source={
+              item.type === 'cameraroll'
+                ? { uri: item.url }
+                : {
+                    uri:
+                      getConfig(config.baseurl).MEDIA_URL +
+                      '/square_thumbnails/' +
+                      item.url,
+                    method: 'GET',
+                    headers: {
+                      Authorization: 'Bearer ' + authToken,
+                    },
+                  }
+            }
             onError={handleImageLoadFail}
           />
         )}
@@ -114,16 +119,20 @@ const ImageGrid = ({
         >
           <Image
             style={Layout.fullSize}
-            source={{
-              uri:
-                getConfig(config.baseurl).MEDIA_URL +
-                '/thumbnails_big/' +
-                item.url,
-              method: 'GET',
-              headers: {
-                Authorization: 'Bearer ' + authToken,
-              },
-            }}
+            source={
+              item.type === 'cameraroll'
+                ? { uri: item.url }
+                : {
+                    uri:
+                      getConfig(config.baseurl).MEDIA_URL +
+                      '/thumbnails_big/' +
+                      item.url,
+                    method: 'GET',
+                    headers: {
+                      Authorization: 'Bearer ' + authToken,
+                    },
+                  }
+            }
             resizeMode={'contain'}
             onError={handleImageLoadFail}
           />
