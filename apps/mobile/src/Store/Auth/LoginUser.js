@@ -15,12 +15,12 @@ export default {
     'auth/loginUser',
     async ({ server, username, password }, { dispatch }) => {
       const baseurl = preprocessserver(server)
-
+      console.log(server, username, password, baseurl)
       await api
         .post(
           '/auth/token/obtain/',
           {
-            username: username.trim(),
+            username: username.toLowerCase().trim(), // backend only excepts lower case usernames
             password: password,
           },
           {

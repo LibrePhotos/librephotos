@@ -42,8 +42,7 @@ const IndexLoginContainer = () => {
   const dispatch = useDispatch()
 
   const login = evt => {
-    const lowerCaseUserName = username.toLowerCase() // backend only excepts lower case usernames
-    dispatch(LoginUser.action({ server, lowerCaseUserName, password }))
+    dispatch(LoginUser.action({ server, username, password }))
   }
 
   const error = useSelector(state => state.auth.error)

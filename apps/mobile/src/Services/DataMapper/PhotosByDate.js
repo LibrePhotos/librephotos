@@ -30,6 +30,20 @@ export function addTempElementsToGroups(photosGroupedByDate) {
   })
 }
 
+export const camerarollPhotoMapper = item => {
+  return {
+    id: item.node.image.uri,
+    aspectRatio: item.node.image.width / item.node.image.height,
+    isTemp: false,
+    type: 'cameraroll',
+    url: item.node.image.uri,
+    video_length: '',
+    date: moment.unix(item.node.timestamp),
+    birth_date: moment.unix(item.node.timestamp),
+    location: '',
+  }
+}
+
 export const photoMapper = async photosResult => {
   if (Platform.OS === 'android' && !(await hasAndroidPermission())) {
     return
@@ -61,17 +75,7 @@ export const photoMapper = async photosResult => {
         // check if date exists within finalmap
         let index = finalmap.findIndex(x => x.title === date)
         if (index === -1) {
-          const newPhoto = {
-            id: item.node.image.uri,
-            aspectRatio: item.node.image.width / item.node.image.height,
-            isTemp: false,
-            type: 'cameraroll',
-            url: item.node.image.uri,
-            video_length: '',
-            date: moment.unix(item.node.timestamp),
-            birth_date: moment.unix(item.node.timestamp),
-            location: '',
-          }
+          const newPhoto = camerarollPhotoMapper(item)
           const newAlbumDate = {
             id: date,
             title: date,
@@ -87,18 +91,10 @@ export const photoMapper = async photosResult => {
         // To-Do: Test this
         // add to existing date
         else {
-          finalmap[index].data.push({
-            id: item.node.image.uri,
-            aspectRatio: item.node.image.width / item.node.image.height,
-            isTemp: false,
-            type: 'cameraroll',
-            url: item.node.image.uri,
-            video_length: '',
-            date: item.node.timestamp,
-            birth_date: item.node.timestamp,
-            location: '',
-          })
-          finalmap[index].numberOfItems += 1
+          var changedAlbumDate = finalmap[index]
+          changedAlbumDate.data = [...data, camerarollPhotoMapper(item)]
+          changedAlbumDate.numberOfItems += 1
+          finalmap = [...finalmap, changedAlbumDate]
         }
       })
       return finalmap
