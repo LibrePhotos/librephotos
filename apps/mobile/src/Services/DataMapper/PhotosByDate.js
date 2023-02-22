@@ -88,11 +88,13 @@ export const photoMapper = async photosResult => {
             return new Date(b.title) - new Date(a.title)
           })
         }
-        // To-Do: Test this
         // add to existing date
         else {
           var changedAlbumDate = finalmap[index]
-          changedAlbumDate.data = [...data, camerarollPhotoMapper(item)]
+          changedAlbumDate.data = [
+            ...changedAlbumDate.data,
+            camerarollPhotoMapper(item),
+          ]
           changedAlbumDate.numberOfItems += 1
           finalmap = [...finalmap, changedAlbumDate]
         }
