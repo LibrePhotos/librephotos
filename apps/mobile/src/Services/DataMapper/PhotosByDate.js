@@ -3,6 +3,7 @@ import { PermissionsAndroid, Platform } from 'react-native'
 import { CameraRoll } from '@react-native-camera-roll/camera-roll'
 import moment from 'moment'
 
+//To-Do: Add a popup to ask for permission
 async function hasAndroidPermission() {
   const permission =
     Platform.Version >= 33
@@ -89,6 +90,7 @@ export const photoMapper = async photosResult => {
           })
         }
         // add to existing date
+        // Todo: Check if file already exists by comparing id
         else {
           var changedAlbumDate = finalmap[index]
           changedAlbumDate.data = [

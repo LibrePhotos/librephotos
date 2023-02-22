@@ -7,7 +7,7 @@ import { getConfig } from '../Config'
 import NoResultsError from './NoResultsError'
 import { updateToken } from '../Services/Auth'
 import PagerView from 'react-native-pager-view'
-import reactotron from 'reactotron-react-native'
+import Icon from 'react-native-vector-icons/Feather'
 import FetchPhotosWithoutDate from '../Store/Album/FetchPhotosWithoutDate'
 
 import { useDispatch } from 'react-redux'
@@ -68,25 +68,40 @@ const ImageGrid = ({
         onPress={() => handleImagePress(item, index, section)}
       >
         {!item.isTemp && (
-          //To-Do: Show icon for local and remote images
-          <Image
-            style={Layout.fullSize}
-            source={
-              item.type === 'cameraroll'
-                ? { uri: item.url }
-                : {
-                    uri:
-                      getConfig(config.baseurl).MEDIA_URL +
-                      '/square_thumbnails/' +
-                      item.url,
-                    method: 'GET',
-                    headers: {
-                      Authorization: 'Bearer ' + authToken,
-                    },
-                  }
+          <View>
+            <Icon
+              name={item.type === 'cameraroll' ? 'cloud-off' : 'cloud'}
+              size={20}
+              color={'rgba(0,0,0,0.5)'}
+              style={{
+                position: 'absolute',
+                bottom: 2,
+                right: 3,
+                zIndex: 1,
+              }}
+            />
+            {
+              //To-Do: Show icon for local and remote images
             }
-            onError={handleImageLoadFail}
-          />
+            <Image
+              style={Layout.fullSize}
+              source={
+                item.type === 'cameraroll'
+                  ? { uri: item.url }
+                  : {
+                      uri:
+                        getConfig(config.baseurl).MEDIA_URL +
+                        '/square_thumbnails/' +
+                        item.url,
+                      method: 'GET',
+                      headers: {
+                        Authorization: 'Bearer ' + authToken,
+                      },
+                    }
+              }
+              onError={handleImageLoadFail}
+            />
+          </View>
         )}
         {item.isTemp && <View style={Layout.fullSize} />}
       </Pressable>
