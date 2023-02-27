@@ -97,7 +97,6 @@ export const photoMapper = async photosResult => {
             camerarollPhotoMapper(item),
           ]
           changedAlbumDate.numberOfItems += 1
-          finalmap = [...finalmap, changedAlbumDate]
         }
       })
       return finalmap
@@ -105,6 +104,5 @@ export const photoMapper = async photosResult => {
     .catch(err => {
       console.log(err)
     })
-  console.log(mergedPhotos)
   return mergedPhotos
 }
