@@ -1,5 +1,4 @@
-import { store } from '@/Store/index'
-import { extractBaseUrl } from '../Config'
+import { useAppSelector } from '@/Store/store'
 
 export const albumPeopleMapper = albumPeopleResult => {
   if (
@@ -14,7 +13,7 @@ export const albumPeopleMapper = albumPeopleResult => {
       id: item.id,
       title: item.name,
       url:
-        extractBaseUrl(store.getState()) +
+        useAppSelector(store => store.config.baseurl) +
         '/media/square_thumbnails/' +
         item.face_photo_url.replace('.webp', ''),
     }

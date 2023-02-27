@@ -5,6 +5,7 @@ import {
 } from '@thecodingmachine/redux-toolkit-wrapper'
 import api from '@/Services'
 import { photoMapper } from '../../Services/DataMapper/PhotosByDate'
+import { store } from '../store'
 
 export default {
   initialState: buildAsyncState(),
@@ -15,6 +16,11 @@ export default {
       })
       .then(response => {
         return photoMapper(response.data?.results)
+      })
+      .catch(error => {
+        console.log(error)
+        console.log('Error while fetching photos')
+        return []
       })
   }),
   reducers: buildAsyncReducers({ itemKey: 'albumByDate' }), // We do not want to modify some item by default

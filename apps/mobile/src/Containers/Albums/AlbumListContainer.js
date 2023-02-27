@@ -5,7 +5,6 @@ import { Box, Pressable, Image, Text } from 'native-base'
 import { useNavigation } from '@react-navigation/native'
 import { useTheme } from '@/Theme'
 import { TopBar } from '@/Components'
-import { updateToken } from '@/Services/Auth'
 
 const AlbumListContainer = ({
   route: {
@@ -48,9 +47,7 @@ const AlbumListContainer = ({
               }}
               alt="Image"
               borderRadius={10}
-              onError={() => {
-                updateToken()
-              }}
+              onError={() => {}}
             />
           </Box>
           <Text

@@ -1,5 +1,4 @@
-import { store } from '@/Store/index'
-import { getConfigFromState } from '../Config'
+import { useAppSelector } from '@/Store/store'
 
 export const albumThingsMapper = albumThingsResult => {
   if (
@@ -22,8 +21,8 @@ export const albumThingsMapper = albumThingsResult => {
       title: item.title,
       photos: photos,
       url:
-        getConfigFromState(store.getState()).MEDIA_URL +
-        '/square_thumbnails/' +
+        useAppSelector(store => store.config.baseurl) +
+        '/media/square_thumbnails/' +
         item.cover_photos[0].image_hash,
     }
   })

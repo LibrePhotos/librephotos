@@ -3,7 +3,7 @@ import {
   buildAsyncActions,
   buildAsyncReducers,
 } from '@thecodingmachine/redux-toolkit-wrapper'
-import { store } from '@/Store'
+import { store } from '@/Store/store'
 import { navigateAndSimpleReset } from '@/Navigators/Root'
 import DefaultTheme from '@/Store/Theme/DefaultTheme'
 

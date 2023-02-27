@@ -3,7 +3,7 @@ import React from 'react'
 import { Provider } from 'react-redux'
 import { PersistGate } from 'redux-persist/lib/integration/react'
 import { NativeBaseProvider } from 'native-base'
-import { store, persistor } from '@/Store'
+import { store, persistor } from '@/Store/store'
 import { ApplicationNavigator } from '@/Navigators'
 import './Translations'
 if (__DEV__) {

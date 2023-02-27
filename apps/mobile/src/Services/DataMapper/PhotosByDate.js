@@ -39,8 +39,8 @@ export const camerarollPhotoMapper = item => {
     type: 'cameraroll',
     url: item.node.image.uri,
     video_length: '',
-    date: moment.unix(item.node.timestamp),
-    birth_date: moment.unix(item.node.timestamp),
+    date: moment.unix(item.node.timestamp).unix(),
+    birth_date: moment.unix(item.node.timestamp).unix(),
     location: '',
   }
 }
@@ -69,7 +69,6 @@ export const photoMapper = async photosResult => {
     assetType: 'Photos',
   })
     .then(r => {
-      console.log('r', r)
       r.edges.forEach(item => {
         // add to a given date or add new date
         let date = moment.unix(item.node.timestamp).format('YYYY-MM-DD')
@@ -106,5 +105,6 @@ export const photoMapper = async photosResult => {
     .catch(err => {
       console.log(err)
     })
+  console.log(mergedPhotos)
   return mergedPhotos
 }

@@ -5,7 +5,6 @@ import { Box, Image, Text, HStack } from 'native-base'
 import Ionicons from 'react-native-vector-icons/Ionicons'
 import { useTheme } from '@/Theme'
 import { useNavigation } from '@react-navigation/native'
-import { updateToken } from '../Services/Auth'
 
 const PreviewTile = ({
   icon,
@@ -51,9 +50,6 @@ const PreviewTile = ({
               }}
               alt="Image"
               borderRadius={7}
-              onError={() => {
-                updateToken()
-              }}
             />
           </Box>
           <Text

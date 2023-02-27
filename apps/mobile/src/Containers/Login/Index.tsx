@@ -10,15 +10,23 @@ import {
   Stack,
   ScrollView,
   FormControl,
+  Text,
 } from 'native-base'
 import Ionicons from 'react-native-vector-icons/Ionicons'
-import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/Theme'
-import LoginUser from '@/Store/Auth/LoginUser'
 import { Brand } from '@/Components'
 import { navigateAndSimpleReset } from '@/Navigators/Root'
+// To-Do: Replace this with a new API call
 import { CheckServerService } from '../../Services/Config'
+
+import { useLoginMutation } from '@/Store/api'
+import {
+  selectIsAuthenticated,
+  selectAuthErrors,
+} from '@/Store/Auth/authSelectors'
+import { useAppDispatch, useAppSelector } from '@/Store/store'
+import { changeBaseurl, configActions } from '@/Store/Config/configSlice'
 
 const IndexLoginContainer = () => {
   const { Colors, Layout, Gutters } = useTheme()
@@ -31,25 +39,41 @@ const IndexLoginContainer = () => {
 
   const [isValidServer, setValidServer] = useState(false)
   const [isValidating, setServerValidation] = useState(false)
-  const isLoggedin = useSelector(state => state.auth.isLoggedin)
 
+  const isLoggedin = useAppSelector(selectIsAuthenticated)
+  const [login, { isLoading }] = useLoginMutation()
   useEffect(() => {
     if (isLoggedin) {
       navigateAndSimpleReset('Main')
     }
   }, [isLoggedin])
 
-  const dispatch = useDispatch()
+  const preprocessserver = (serverInput: string) => {
+    let serverName = serverInput.trim().toLowerCase()
 
-  const login = evt => {
-    dispatch(LoginUser.action({ server, username, password }))
+    if (
+      !serverName.startsWith('http://') &&
+      !serverName.startsWith('https://')
+    ) {
+      serverName = 'http://' + serverName
+    }
+
+    if (serverName.endsWith('/')) {
+      serverName = serverName.substring(0, serverName.length - 1)
+    }
+    return serverName
   }
 
-  const error = useSelector(state => state.auth.error)
+  const loginOnClick = (_evt: any) => {
+    changeBaseurl({ baseurl: preprocessserver(server) })
+    login({ username, password })
+  }
+
+  const error = useAppSelector(selectAuthErrors)
 
   useEffect(() => {
     setServerValidation(true)
-    CheckServerService(server).then(isValid => {
+    CheckServerService(preprocessserver(server)).then(isValid => {
       setValidServer(isValid)
       setServerValidation(false)
     })
@@ -68,9 +92,7 @@ const IndexLoginContainer = () => {
         {error && error.data && error.data.detail && (
           <Alert status="danger" w="100%" style={[Gutters.largeVMargin]}>
             <Alert.Icon />
-            <Alert.Title flexShrink={1}>
-              {error.data.detail?.toString()}
-            </Alert.Title>
+            <Text flexShrink={1}>{error.data.detail?.toString()}</Text>
           </Alert>
         )}
 
@@ -83,7 +105,7 @@ const IndexLoginContainer = () => {
               <FormControl.Label>Server Name</FormControl.Label>
               <Input
                 onChangeText={setServer}
-                autoCompleteType={'off'}
+                autoComplete={'off'}
                 autoCorrect={false}
                 autoCapitalize={'none'}
                 value={server}
@@ -130,7 +152,7 @@ const IndexLoginContainer = () => {
                 value={username}
                 autoCapitalize={'none'}
                 color={Colors.text}
-                placeholder={t('auth.label.username')}
+                placeholder={t('auth.label.username')?.toString()}
                 placeholderTextColor={Colors.textLight}
               />
               {/* <FormControl.HelperText>
@@ -148,7 +170,7 @@ const IndexLoginContainer = () => {
               <Input
                 onChangeText={setPassword}
                 value={password}
-                placeholder={t('auth.label.password')}
+                placeholder={t('auth.label.password')?.toString()}
                 color={Colors.text}
                 type="password"
                 placeholderTextColor={Colors.textLight}
@@ -163,8 +185,8 @@ const IndexLoginContainer = () => {
           </FormControl>
 
           <Button
-            onPress={login}
-            isLoading={useSelector(state => state.auth.loading)}
+            onPress={loginOnClick}
+            isLoading={isLoading}
             colorScheme={Colors.primaryNB}
             style={[Gutters.largeTMargin]}
           >

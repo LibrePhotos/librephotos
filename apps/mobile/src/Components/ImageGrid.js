@@ -5,7 +5,6 @@ import ReactNativeZoomableView from '@dudigital/react-native-zoomable-view/src/R
 import { useTheme } from '@/Theme'
 import { getConfig } from '../Config'
 import NoResultsError from './NoResultsError'
-import { updateToken } from '../Services/Auth'
 import PagerView from 'react-native-pager-view'
 import Icon from 'react-native-vector-icons/Feather'
 import FetchPhotosWithoutDate from '../Store/Album/FetchPhotosWithoutDate'
@@ -46,10 +45,6 @@ const ImageGrid = ({
   const handleImagePress = (item, index, section) => {
     setZoomViewVisible(true)
     setCurrImage({ item, index, section })
-  }
-
-  const handleImageLoadFail = () => {
-    updateToken()
   }
 
   const handleZoomChange = (evt, gestureState, zoomState) => {
@@ -99,7 +94,6 @@ const ImageGrid = ({
                       },
                     }
               }
-              onError={handleImageLoadFail}
             />
           </View>
         )}
@@ -149,7 +143,6 @@ const ImageGrid = ({
                   }
             }
             resizeMode={'contain'}
-            onError={handleImageLoadFail}
           />
         </ReactNativeZoomableView>
       </View>
