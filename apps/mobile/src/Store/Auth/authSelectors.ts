@@ -1,7 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit'
 
 import type { RootState } from '../store'
-// eslint-disable-next-line import/no-cycle
 import { selectSelf } from '../store'
 import { isTokenExpired } from '../util/auth'
 

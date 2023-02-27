@@ -1,13 +1,12 @@
 import axios from 'axios'
 import handleError from '@/Services/utils/handleError'
-import { store, useAppDispatch } from '@/Store/store'
+import { store } from '@/Store/store'
 import { isRefreshTokenExpired } from '@/Store/Auth/authSelectors'
 import { tokenReceived } from '@/Store/Auth/authSlice'
 
 const instance = axios.create({
   headers: {
     Accept: 'application/json',
-    // 'Content-Type': 'application/json',
   },
   timeout: 500,
   withCredentials: true,
@@ -15,13 +14,10 @@ const instance = axios.create({
   xsrfCookieName: 'csrftoken',
 })
 
-instance.interceptors.request.use(
-  request => {
-    request.baseURL = store.getState().config.baseurl + '/api'
-    return request
-  },
-  error => {},
-)
+instance.interceptors.request.use(request => {
+  request.baseURL = store.getState().config.baseurl + '/api'
+  return request
+})
 
 instance.interceptors.response.use(
   response => response,
@@ -34,7 +30,7 @@ instance.interceptors.response.use(
     ) {
       originalRequest._retry = true
       const { auth } = store.getState()
-      const refreshToken = auth.refresh.token
+      const refreshToken = auth.refresh?.token
       return instance
         .post('/auth/token/refresh/', {
           refresh: refreshToken,

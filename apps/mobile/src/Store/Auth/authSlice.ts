@@ -1,6 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit'
 import jwtDecode from 'jwt-decode'
-// eslint-disable-next-line import/no-cycle
 import { api } from '../api'
 import { AuthErrorSchema } from './auth.zod'
 import type { IAuthState, IToken } from './auth.zod'

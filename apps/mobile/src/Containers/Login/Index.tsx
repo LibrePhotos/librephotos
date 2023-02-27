@@ -25,8 +25,8 @@ import {
   selectIsAuthenticated,
   selectAuthErrors,
 } from '@/Store/Auth/authSelectors'
-import { useAppDispatch, useAppSelector } from '@/Store/store'
-import { changeBaseurl, configActions } from '@/Store/Config/configSlice'
+import { useAppSelector } from '@/Store/store'
+import { changeBaseurl } from '@/Store/Config/configSlice'
 
 const IndexLoginContainer = () => {
   const { Colors, Layout, Gutters } = useTheme()
