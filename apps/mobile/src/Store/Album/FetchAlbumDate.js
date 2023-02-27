@@ -5,7 +5,6 @@ import {
 } from '@thecodingmachine/redux-toolkit-wrapper'
 import api from '@/Services'
 import ReplaceAlbumDate from './ReplaceAlbumDate'
-import reactotron from 'reactotron-react-native'
 
 export default {
   initialState: buildAsyncState(),

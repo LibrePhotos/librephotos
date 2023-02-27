@@ -5,7 +5,6 @@ import {
 } from '@thecodingmachine/redux-toolkit-wrapper'
 import api from '@/Services'
 import { photoMapper } from '../../Services/DataMapper/PhotosByDate'
-import { store } from '../store'
 
 export default {
   initialState: buildAsyncState(),

@@ -1,7 +1,6 @@
 import React from 'react'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import {
-  UnderConstructionContainer,
   IndexSearchContainer,
   GalleryContainer,
   AlbumContainer,
@@ -15,16 +14,6 @@ const Tab = createBottomTabNavigator()
 const MainNavigator = () => {
   return (
     <Tab.Navigator>
-      <Tab.Screen
-        name="Home"
-        component={UnderConstructionContainer}
-        options={{
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="home" color={color} size={size} />
-          ),
-        }}
-      />
       <Tab.Screen
         name="Photos"
         component={GalleryContainer}
