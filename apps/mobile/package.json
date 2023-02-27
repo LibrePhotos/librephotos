@@ -78,6 +78,7 @@
     "identity-obj-proxy": "^3.0.0",
     "jest": "^29.4.3",
     "metro-react-native-babel-preset": "^0.75.1",
+    "prettier": "^2.8.4",
     "react-native-version": "^4.0.0",
     "react-test-renderer": "18.2.0",
     "reactotron-react-native": "5.0.3",
