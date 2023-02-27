@@ -31,10 +31,18 @@ const initialState: IFacesState = {
 }
 
 const compareFacesConfidence = (a: IPersonFace, b: IPersonFace) => {
-  if (a.person_label_probability > b.person_label_probability) return -1
-  if (a.person_label_probability < b.person_label_probability) return 1
-  if (a.id < b.id) return -1
-  if (a.id > b.id) return 1
+  if (a.person_label_probability > b.person_label_probability) {
+    return -1
+  }
+  if (a.person_label_probability < b.person_label_probability) {
+    return 1
+  }
+  if (a.id < b.id) {
+    return -1
+  }
+  if (a.id > b.id) {
+    return 1
+  }
   return 0
 }
 
@@ -44,20 +52,30 @@ const compareFacesDate = (a: IPersonFace, b: IPersonFace) => {
   if (
     dateA.toString() === 'Invalid Date' &&
     dateB.toString() === 'Invalid Date'
-  )
+  ) {
     return compareFacesConfidence(a, b)
-  if (dateA.toString() === 'Invalid Date') return 1
-  if (dateB.toString() === 'Invalid Date') return -1
-  if (dateA < dateB) return -1
-  if (dateA > dateB) return 1
+  }
+  if (dateA.toString() === 'Invalid Date') {
+    return 1
+  }
+  if (dateB.toString() === 'Invalid Date') {
+    return -1
+  }
+  if (dateA < dateB) {
+    return -1
+  }
+  if (dateA > dateB) {
+    return 1
+  }
   return compareFacesConfidence(a, b)
 }
 
 const sortFaces = (faces, order: IFacesOrderOption) => {
-  if (order === FacesOrderOption.enum.confidence)
+  if (order === FacesOrderOption.enum.confidence) {
     faces.sort((a: IPersonFace, b: IPersonFace) => compareFacesConfidence(a, b))
-  else if (order === FacesOrderOption.enum.date)
+  } else if (order === FacesOrderOption.enum.date) {
     faces.sort((a: IPersonFace, b: IPersonFace) => compareFacesDate(a, b))
+  }
 }
 
 const clearPersonFacesIfNeeded = (person: ICompletePersonFace) => {
@@ -76,7 +94,6 @@ const clearPersonFacesIfNeeded = (person: ICompletePersonFace) => {
   if (needClear) {
     for (let i = 0; i < person.faces.length; i += 1) {
       if (person.faces[i].image !== null) {
-        // eslint-disable-next-line no-param-reassign
         person.faces[i] = {
           id: i,
           image: null,
@@ -110,7 +127,6 @@ const faceSlice = createSlice({
       }
     },
     changeFacesOrderBy: (state, action: PayloadAction<IFacesOrderOption>) => {
-      // eslint-disable-next-line no-param-reassign
       state.orderBy = action.payload
       // If element contains some incomplete faces, we need to clear all faces
       state.labeledFacesList.forEach(element =>
@@ -165,7 +181,6 @@ const faceSlice = createSlice({
       .addMatcher(
         api.endpoints.fetchFaces.matchFulfilled,
         (state, { meta, payload }) => {
-          // eslint-disable-next-line prefer-destructuring
           const inferred = meta.arg.originalArgs.inferred
           const personListToChange = inferred
             ? state.inferredFacesList
@@ -215,7 +230,7 @@ const faceSlice = createSlice({
       )
       .addMatcher(
         api.endpoints.deleteFaces.matchFulfilled,
-        (state, { meta, payload }) => {
+        (state, { payload }) => {
           const facesToRemove = payload.results
           const newLabeledFacesList = state.labeledFacesList
           const newInferredFacesList = state.inferredFacesList
@@ -265,7 +280,7 @@ const faceSlice = createSlice({
       )
       .addMatcher(
         api.endpoints.setFacesPersonLabel.matchFulfilled,
-        (state, { meta, payload }) => {
+        (state, { payload }) => {
           const facesToRemove = payload.results
           const facesToAdd = payload.results
           const newLabeledFacesList = state.labeledFacesList

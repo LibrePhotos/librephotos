@@ -1,5 +1,5 @@
-import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
-import { z } from "zod";
+import type { FetchBaseQueryError } from '@reduxjs/toolkit/query'
+import { z } from 'zod'
 
 export const PublicPhotoSampleSchema = z.object({
   image_hash: z.string(),
@@ -8,8 +8,8 @@ export const PublicPhotoSampleSchema = z.object({
   exif_timestamp: z.string(),
   public: z.boolean(),
   video: z.boolean(),
-});
-export type IPublicPhotoSample = z.infer<typeof PublicPhotoSampleSchema>;
+})
+export type IPublicPhotoSample = z.infer<typeof PublicPhotoSampleSchema>
 
 export const UserSchema = z.object({
   id: z.number(),
@@ -39,7 +39,7 @@ export const UserSchema = z.object({
   password: z.string().optional(),
   is_superuser: z.boolean().optional(),
   public_sharing: z.boolean(),
-});
+})
 
 export const ManageUser = z.object({
   confidence: z.number(),
@@ -58,28 +58,28 @@ export const ManageUser = z.object({
   last_name: z.string().nullable(),
   password: z.string().optional(),
   public_sharing: z.boolean(),
-});
+})
 
 export const SimpleUser = z.object({
   id: z.number(),
   username: z.string(),
   first_name: z.string(),
   last_name: z.string(),
-});
+})
 
-export type IUser = z.infer<typeof UserSchema>;
-export type IManageUser = z.infer<typeof ManageUser>;
+export type IUser = z.infer<typeof UserSchema>
+export type IManageUser = z.infer<typeof ManageUser>
 
 export const ApiUserListResponseSchema = z.object({
   count: z.number(),
   next: z.string().nullable(),
   previous: z.string().nullable(),
   results: z.array(UserSchema),
-});
+})
 
-export type IApiUserListResponse = z.infer<typeof ApiUserListResponseSchema>;
+export type IApiUserListResponse = z.infer<typeof ApiUserListResponseSchema>
 
 export type IUserState = {
-  userSelfDetails: IUser;
-  error: Error | FetchBaseQueryError | string | null | undefined;
-};
+  userSelfDetails: IUser
+  error: Error | FetchBaseQueryError | string | null | undefined
+}

@@ -7,7 +7,7 @@
     "ios": "react-native run-ios",
     "start": "react-native start",
     "test": "jest",
-    "lint": "eslint .",
+    "lint": "eslint --fix .",
     "type-check": "tsc --build plugins/typescript/template/tsconfig.json",
     "postversion": "react-native-version"
   },

@@ -5,7 +5,7 @@ import { Endpoints } from '../api'
 import { AuthErrorSchema } from '../Auth/auth.zod'
 
 export const errorMiddleware: Middleware =
-  ({ dispatch }: MiddlewareAPI) =>
+  ({}: MiddlewareAPI) =>
   next =>
   action => {
     if (isRejectedWithValue(action)) {
@@ -19,6 +19,5 @@ export const errorMiddleware: Middleware =
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return next(action)
   }

@@ -14,7 +14,6 @@ import type {
   IApiRefreshResponse,
 } from '../Store/Auth/auth.zod'
 import { UserSignupResponseSchema } from '../Store/Auth/auth.zod'
-// eslint-disable-next-line import/no-cycle
 import { tokenReceived } from '../Store/Auth/authSlice'
 import type {
   IClusterFacesResponse,
@@ -42,7 +41,6 @@ import type {
 } from '../Store/User/user.zod'
 import { ManageUser, UserSchema } from '../Store/User/user.zod'
 import type { IWorkerAvailabilityResponse } from '../Store/Worker/worker.zod'
-// eslint-disable-next-line import/no-cycle
 import Server from '../Services/index'
 
 export enum Endpoints {
