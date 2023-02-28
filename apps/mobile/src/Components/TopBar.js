@@ -6,11 +6,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useTheme } from '@/Theme'
 import { useNavigation } from '@react-navigation/native'
 
-const TopBar = ({
-  title = 'LibrePhotos',
-  showBack = false,
-  showMenu = false,
-}) => {
+const TopBar = ({ showBack = false, showMenu = false }) => {
   const { Colors } = useTheme()
   const navigation = useNavigation()
 
@@ -21,23 +17,24 @@ const TopBar = ({
   const darkMode = isDark === null ? colorScheme === 'dark' : isDark
   const statusBarStyle = darkMode ? 'light-content' : 'dark-content'
 
+  if (!showBack && !showMenu) {
+    return null
+  }
+
   return (
     <>
       <StatusBar
         backgroundColor={Colors.screenBackground}
         barStyle={statusBarStyle}
       />
-
-      {/* <Box safeAreaTop backgroundColor="#6200ee" /> */}
-
       <HStack
         bg={Colors.screenBackground}
-        px={1}
-        py={3}
+        px={0}
+        py={0}
         justifyContent="space-between"
         alignItems="center"
       >
-        <HStack space={1} alignItems="center">
+        <HStack space={0} alignItems="center">
           {showBack ? (
             <IconButton
               icon={
@@ -55,12 +52,7 @@ const TopBar = ({
             />
           )}
         </HStack>
-        <HStack space={4} alignItems="center">
-          <Text color={Colors.text} fontSize={20} fontWeight="bold">
-            {title}
-          </Text>
-        </HStack>
-        <HStack space={2}>
+        <HStack space={1}>
           {showMenu ? (
             <IconButton
               icon={

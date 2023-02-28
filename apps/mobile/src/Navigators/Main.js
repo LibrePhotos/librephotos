@@ -13,7 +13,7 @@ const Tab = createBottomTabNavigator()
 // @refresh reset
 const MainNavigator = () => {
   return (
-    <Tab.Navigator>
+    <Tab.Navigator screenOptions={{ headerShown: false }}>
       <Tab.Screen
         name="Photos"
         component={GalleryContainer}

@@ -100,7 +100,7 @@ const ApplicationNavigator = () => {
         <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} />
         <Stack.Navigator
           screenOptions={{
-            headerMode: 'false',
+            headerShown: false,
           }}
         >
           <Stack.Screen name="Startup" component={IndexStartupContainer} />
