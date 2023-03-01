@@ -53,7 +53,6 @@ const persistConfig = {
 }
 
 const persistedReducer = persistReducer(persistConfig, reducers)
-console.log('Persisted Reducer', persistedReducer)
 export const store = configureStore({
   reducer: persistedReducer,
   middleware: getDefaultMiddleware => {
