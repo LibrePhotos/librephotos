@@ -14,7 +14,7 @@ export const errorMiddleware: Middleware =
           data: { errors },
         } = AuthErrorSchema.parse(action.payload)
         errors.forEach(error => {
-          console.log('Error: ' + error)
+          console.log('Error: ' + JSON.stringify(error))
         })
       }
     }
