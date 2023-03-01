@@ -67,46 +67,50 @@ export enum Endpoints {
   notThisPerson = 'notThisPerson',
   setFacesPersonLabel = 'setFacesPersonLabel',
 }
-const baseQuery = fetchBaseQuery({
-  baseUrl: '/api/',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  credentials: 'include',
 
-  prepareHeaders: (headers, { getState, endpoint }) => {
-    // To-Do: Check this
-    CookieManager.get((getState() as RootState).config.baseurl).then(res => {
-      res.csrftoken && headers.set('X-CSRFToken', res.csrftoken.value)
-    })
-    const { user } = getState() as RootState
-    const { access } = (getState() as RootState).auth
-    if (access !== null && user && endpoint !== 'refresh') {
-      r
-      headers.set('Authorization', `Bearer ${access.token}`)
-    }
-    return headers
-  },
-})
+const baseQuery: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = async (args, api, extraOptions) => {
+  const baseUrl = (api.getState() as RootState).config.baseurl
+  const rawBaseQuery = fetchBaseQuery({
+    baseUrl: baseUrl + '/api/',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+
+    prepareHeaders: (headers, { getState, endpoint }) => {
+      // To-Do: Check this
+      CookieManager.get((getState() as RootState).config.baseurl).then(res => {
+        res.csrftoken && headers.set('X-CSRFToken', res.csrftoken.value)
+      })
+      const { user } = getState() as RootState
+      const { access } = (getState() as RootState).auth
+      if (access !== null && user && endpoint !== 'refresh') {
+        headers.set('Authorization', `Bearer ${access.token}`)
+      }
+      return headers
+    },
+  })
+  return rawBaseQuery(args, api, extraOptions)
+}
 
 export const baseQueryWithReauth: BaseQueryFn<
   string | FetchArgs,
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
-  // set the base url dynamically
-  const baseUrl = (api.getState() as RootState).config.baseurl + '/api/'
-  const rawBaseQuery = fetchBaseQuery({ baseUrl })
-  let result = await rawBaseQuery(args, api, extraOptions)
-
+  let result = await baseQuery(args, api, extraOptions)
   if (result.error && result.error.status === 401) {
     // try to get a new token
-    const refreshToken: string = (api.getState() as RootState).auth?.refresh
-      ?.token
+    const refreshToken: string | undefined = (api.getState() as RootState).auth
+      ?.refresh?.token
     if (refreshToken) {
       const refreshResult = await baseQuery(
         {
-          url: '/auth/token/refresh/',
+          url: 'auth/token/refresh/',
           method: 'POST',
           body: { refresh: refreshToken },
         },
