@@ -12,7 +12,7 @@ export const myAlbumMapper = myAlbumResult => {
       url:
         useAppSelector(store => store.config.baseurl) +
         '/media/square_thumbnails/' +
-        item.cover_photos[0].image_hash,
+        item.cover_photo.image_hash,
     }
   })
 
