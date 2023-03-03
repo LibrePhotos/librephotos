@@ -19,7 +19,7 @@ const config = {
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
   organizationName: "LibrePhotos", // Usually your GitHub org/user name.
-  projectName: "librephotos", // Usually your repo name.
+  projectName: "librephotos.docs", // Usually your repo name.
 
   onBrokenLinks: "throw",
   onBrokenMarkdownLinks: "warn",
