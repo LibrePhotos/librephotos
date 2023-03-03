@@ -6,3 +6,5 @@ apply from: file("../node_modules/@react-native-community/cli-platform-android/n
 include ':app'
 include ':@react-native-camera-roll_camera-roll'
 project(':@react-native-camera-roll_camera-roll').projectDir = new File(rootProject.projectDir, 	'../node_modules/@react-native-camera-roll/camera-roll/android')
+include ':react-native-file-access'
+project(':react-native-file-access').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-file-access/android')

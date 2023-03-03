@@ -78,19 +78,25 @@ const baseQuery: BaseQueryFn<
     baseUrl: baseUrl + '/api/',
     headers: {
       'Content-Type': 'application/json',
+      'X-CSRFToken': '',
     },
     credentials: 'include',
 
-    prepareHeaders: (headers, { getState, endpoint }) => {
-      // To-Do: Check this
-      CookieManager.get((getState() as RootState).config.baseurl).then(res => {
-        res.csrftoken && headers.set('X-CSRFToken', res.csrftoken.value)
-      })
+    prepareHeaders: async (headers, { getState, endpoint }) => {
+      const cookies = await CookieManager.get(
+        (getState() as RootState).config.baseurl,
+      )
+
+      if (cookies.csrftoken) {
+        headers.set('X-CSRFToken', cookies.csrftoken.value)
+      }
+
       const { user } = getState() as RootState
       const { access } = (getState() as RootState).auth
       if (access !== null && user && endpoint !== 'refresh') {
         headers.set('Authorization', `Bearer ${access.token}`)
       }
+
       return headers
     },
   })
@@ -215,22 +221,38 @@ export const api = createApi({
       query: form_data => ({
         url: '/upload/complete/',
         method: 'POST',
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
         body: form_data,
       }),
+
+      transformErrorResponse: (error: any) => {
+        console.log(error)
+        return error
+      },
     }),
     [Endpoints.upload]: builder.mutation<IUploadResponse, IUploadOptions>({
-      query: options => ({
-        url: '/upload/',
-        method: 'POST',
-        body: options.form_data,
-        headers: {
-          'Content-Range': `bytes ${options.offset}-${
-            options.offset + options.chunk_size - 1
-          }/${options.chunk_size}`,
-        },
-      }),
-      transformResponse: (response: IUploadResponse) =>
-        UploadResponse.parse(response),
+      query: options => {
+        const request = {
+          url: '/upload/',
+          method: 'POST',
+          body: options.form_data,
+          headers: {
+            'Content-Range': `bytes ${options.offset}-${
+              options.offset + options.chunk_size - 1
+            }/${options.chunk_size}`,
+          },
+        }
+        return request
+      },
+      transformResponse: (response: IUploadResponse) => {
+        return UploadResponse.parse(response)
+      },
+      transformErrorResponse: (error: any) => {
+        console.log(error)
+        return error
+      },
     }),
     [Endpoints.worker]: builder.query<IWorkerAvailabilityResponse, void>({
       query: () => ({

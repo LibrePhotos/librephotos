@@ -1,116 +1,130 @@
-import CryptoJS from 'crypto-js'
-import MD5 from 'crypto-js/md5'
 import React, { useEffect, useState } from 'react'
 import { View } from 'react-native'
 import { ProgressView } from '@react-native-community/progress-view'
-import scanUploadedPhotos from '../Store/Upload/ScanUploadedPhotos'
-import { api } from '../Store/api'
-import { useGetSettingsQuery } from '../api_client/site-settings'
+import { api, useFetchUserSelfDetailsQuery } from '../Store/api'
+import { useGetSettingsQuery } from '../Store/Settings/site-settings'
 import { useAppDispatch, useAppSelector } from '../Store/store'
 import Icon from 'react-native-vector-icons/Feather'
+import Server from '../Services'
+import type { Dispatch } from 'redux'
+import { FileSystem } from 'react-native-file-access'
+import ReactNativeBlobUtil from 'react-native-blob-util'
+import CookieManager from '@react-native-cookies/cookies'
 
-export function ChunkedUploadButton() {
+export function scanUploadedPhotos() {
+  return function (dispatch: Dispatch<any>) {
+    dispatch({ type: 'SCAN_PHOTOS' })
+    dispatch({ type: 'SET_WORKER_AVAILABILITY', payload: false })
+
+    Server.get('scanuploadedphotos/')
+      .then(response => {
+        dispatch({ type: 'SCAN_PHOTOS_FULFILLED', payload: response.data })
+      })
+      .catch(err => {
+        dispatch({ type: 'SCAN_PHOTOS_REJECTED', payload: err })
+      })
+  }
+}
+
+type ChunkedUploadButtonProps = {
+  image: any
+}
+
+export function ChunkedUploadButton(props: ChunkedUploadButtonProps) {
   const [totalSize, setTotalSize] = useState(1)
   const [currentSize, setCurrentSize] = useState(1)
-  const { userSelfDetails } = useAppSelector(state => state.user)
+
   const { data: settings } = useGetSettingsQuery()
+  const { auth, config } = useAppSelector(state => state)
   const dispatch = useAppDispatch()
+
+  const { image } = props
+
+  const { data: userSelfDetails } = useFetchUserSelfDetailsQuery(
+    // @ts-ignore
+    auth.access.user_id.toString(),
+  )
+
   const chunkSize = 1000000 // < 1MB chunks, because of default of nginx
 
   let currentUploadedFileSize = 0
 
-  // To-Do: Figure out why File type does not exist, maybe react-dropzone type
-  const calculateMD5 = async (file: any) => {
-    const temporaryFileReader = new FileReader()
-    const fileSize = file.size
-    const chunkSize = 25 * 1024 * 1024 // 25MB
-    let offset = 0
-    const md5 = CryptoJS.algo.MD5.create()
-    return new Promise<string>((resolve, reject) => {
-      temporaryFileReader.onerror = () => {
-        temporaryFileReader.abort()
-        reject(console.log("Can't read file"))
-      }
-
-      temporaryFileReader.onload = () => {
-        if (temporaryFileReader.result) {
-          // @ts-ignore
-          offset += temporaryFileReader.result.length
-
-          md5.update(
-            // @ts-ignore
-            CryptoJS.enc.Latin1.parse(temporaryFileReader.result),
-          )
-          if (offset >= fileSize) {
-            resolve(md5.finalize().toString(CryptoJS.enc.Hex))
-          }
-          readNext()
-        }
-      }
-      function readNext() {
-        const fileSlice = file.slice(offset, offset + chunkSize)
-        // To-Do: Figure out why readAsBinaryString does not exist
-        temporaryFileReader.readAsArrayBuffer(fileSlice)
-      }
-      readNext()
-    })
-  }
-
   const uploadExists = async (hash: string) =>
     dispatch(api.endpoints.uploadExists.initiate(hash))
 
-  const uploadFinished = async (file: any, uploadId: string) => {
+  const uploadFinished = async (
+    fileName: string,
+    md5: string,
+    uploadId: string,
+  ) => {
     const formData = new FormData()
     formData.append('upload_id', uploadId)
-    formData.append('md5', await calculateMD5(file))
-    formData.append('user', userSelfDetails.id.toString())
-    formData.append('filename', file.name)
+    formData.append('md5', md5)
+    formData.append('user', userSelfDetails?.id.toString())
+    formData.append('filename', fileName)
     dispatch(api.endpoints.uploadFinished.initiate(formData))
   }
 
-  const calculateMD5Blob = async (blob: Blob) => {
-    const reader = new FileReader()
-    reader.readAsArrayBuffer(blob)
-    reader.onload = () => {
-      const buffer = reader.result
-      // @ts-ignore
-      const md5 = MD5(buffer).toString()
-      return md5
-    }
-    return ''
-  }
-
-  const uploadChunk = async (chunk: Blob, uploadId: string, offset: number) => {
+  const uploadChunk = async (chunk: any, uploadId: string, offset: number) => {
     // only send first chunk without upload id
     const formData = new FormData()
     if (uploadId) {
       formData.append('upload_id', uploadId)
     }
-    formData.append('file', chunk)
+    const cookies = await CookieManager.get(config.baseurl)
+
+    formData.append('file', {
+      uri: chunk._ref,
+      type: 'application/octet-stream',
+      name: 'blob',
+    })
+
     // FIX-ME: This is empty
-    formData.append('md5', await calculateMD5Blob(chunk))
+    formData.append('md5', '')
     formData.append('offset', offset.toString())
-    formData.append('user', userSelfDetails.id.toString())
-    return dispatch(
-      api.endpoints.upload.initiate({
-        form_data: formData,
-        offset: offset,
-        chunk_size: chunk.size,
-      }),
-    )
+    formData.append('user', userSelfDetails?.id.toString())
+    console.log('formData', formData)
+    const result = await Server.post('upload/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'X-CSRFToken': cookies.csrftoken.value,
+      },
+      transformRequest: data => {
+        return data
+      },
+    }).then(result => result)
+    return result
   }
 
-  const calculateChunks = (file: any, chunkSize: number) => {
+  const calculateChunks = async (file: any, chunkSize: number) => {
     const chunks = Math.ceil(file.size / chunkSize)
     const chunk = [] as Blob[]
     for (let i = 0; i < chunks; i++) {
       const chunkEnd = Math.min((i + 1) * chunkSize, file.size)
-      chunk.push(file.slice(i * chunkSize, chunkEnd))
+      /**  To-Do: Test big files
+      var blob = await file
+        .slice(i * chunkSize, chunkEnd)
+        // @ts-ignore
+        .onCreated(blob => blob)
+      chunk.push(blob)
+      */
     }
+
+    chunk.push(file)
     return chunk
   }
 
-  const onDrop = async (acceptedFiles: any[]) => {
+  const onPress = async () => {
+    // To-Do: Clean this up
+    const fileMD5 = await FileSystem.hash(image.url, 'MD5')
+    const fileStat = await FileSystem.stat(image.url)
+    const acceptedFiles = [] as any[]
+
+    const Blob = ReactNativeBlobUtil.polyfill.Blob
+    // This works, but the type system is broken for whatever reason
+    // @ts-ignore
+    const file = await Blob.build(ReactNativeBlobUtil.wrap(image.url))
+    acceptedFiles.push(file)
     let totalSize = 0
     acceptedFiles.forEach(file => {
       const fileSize = file.size
@@ -119,13 +133,14 @@ export function ChunkedUploadButton() {
     setTotalSize(totalSize)
     for (const file of acceptedFiles) {
       const currentUploadedFileSizeStartValue = currentUploadedFileSize
+      console.log('Current File: ' + fileStat.filename)
       // Check if the upload already exists via the hash of the file
-      const hash = (await calculateMD5(file)) + userSelfDetails.id
+      const hash = fileMD5 + userSelfDetails?.id
       const isAlreadyUploaded = (await uploadExists(hash)).data
       let offset = 0
       let uploadId = ''
       if (!isAlreadyUploaded) {
-        const chunks = calculateChunks(file, chunkSize)
+        const chunks = await calculateChunks(file, chunkSize)
         // To-Do: Handle Resume and Pause
         for (let i = 0; i < chunks.length; i++) {
           const response = await uploadChunk(
@@ -147,42 +162,43 @@ export function ChunkedUploadButton() {
           }
           setCurrentSize(currentUploadedFileSize)
         }
-        uploadFinished(file, uploadId)
+        uploadFinished(fileStat.filename, fileMD5, uploadId)
       } else {
         currentUploadedFileSize += file.size
         setCurrentSize(currentUploadedFileSize)
       }
     }
+    // To-Do: dispatch an update for the image, that it is now uploaded
     dispatch(scanUploadedPhotos())
   }
 
   useEffect(() => {}, [totalSize])
 
   useEffect(() => {}, [currentSize])
-
+  // To-Do: Only allow upload, if it is a local image only
   if (settings?.allow_upload) {
     return (
-      <View style={{ width: '50px' }}>
+      <View>
         {currentSize / totalSize > 0.99 && (
-          <Icon.Button name={'upload'} size={20} onPress={onDrop} />
+          <Icon.Button
+            backgroundColor="rgba(52, 52, 52, 0.0)"
+            iconStyle={{ marginRight: 0 }}
+            name={'upload'}
+            size={20}
+            onPress={onPress}
+          />
         )}
-        {
-          //To-Do: Implement loading indicator
-        }
         {currentSize / totalSize < 1 && (
+          // To-Do: Check how this looks and make it pretty
           <ProgressView
             progress={(currentSize / totalSize) * 100}
-            style={{
-              width: '100%',
-              margin: '0',
-              marginTop: '5px',
-            }}
             progressTintColor="orange"
             trackTintColor="blue"
           />
         )}
       </View>
     )
+  } else {
+    return null
   }
-  return null
 }

@@ -170,7 +170,7 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-
+    implementation project(':react-native-file-access')
     implementation project(':@react-native-camera-roll_camera-roll')
 }
 

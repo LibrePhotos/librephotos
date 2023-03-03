@@ -10,6 +10,8 @@ import Icon from 'react-native-vector-icons/Feather'
 import FetchPhotosWithoutDate from '../Store/Album/FetchPhotosWithoutDate'
 
 import { useDispatch } from 'react-redux'
+import { ChunkedUploadButton } from './ChunkedUploadButton'
+
 const ImageGrid = ({
   data,
   numColumns = 3,
@@ -75,9 +77,6 @@ const ImageGrid = ({
                 zIndex: 1,
               }}
             />
-            {
-              //To-Do: Show icon for local and remote images
-            }
             <Image
               style={Layout.fullSize}
               source={
@@ -105,6 +104,33 @@ const ImageGrid = ({
   const renderViewPagerItem = (item, index, arr) => {
     return (
       <View style={[Layout.fill]} key={index}>
+        {
+          // add action buttons on the top of the image
+        }
+        <View
+          style={[
+            Layout.row,
+            Layout.justifyContentSpaceBetween,
+            Layout.alignItemsCenter,
+            Layout.paddingHorizontal,
+            Layout.paddingTop,
+            {
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              zIndex: 1,
+            },
+          ]}
+        >
+          <Icon.Button
+            name={'x'}
+            size={20}
+            backgroundColor="rgba(52, 52, 52, 0.0)"
+            iconStyle={{ marginRight: 0 }}
+            onPress={() => setZoomViewVisible(false)}
+          />
+          <ChunkedUploadButton image={item} />
+        </View>
         <ReactNativeZoomableView
           maxZoom={2}
           minZoom={1}
