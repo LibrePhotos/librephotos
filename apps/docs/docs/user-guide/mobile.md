@@ -10,10 +10,10 @@ sidebar_position: 5
 
 It aims to become a full featured photo album replacement, including features like offline support, backup and sync etc.
 
-The app is currently in closed beta on the Google Play store. Contact me kurosavvas on (gitter)[https://gitter.im/uhuruphotos/] or (discord)[https://discord.gg/xwRvtSDGWb] for access.
+The app is currently in closed beta on the Google Play store. Contact me kurosavvas on [gitter](https://gitter.im/uhuruphotos/) or [discord](https://discord.gg/xwRvtSDGWb) for access.
 
 ## LibrePhotos Mobile
 
-[LibrePhotos Mobile](https://github.com/LibrePhotos/librephotos-mobile) is the offical app, which is at the proof-of-concept stage. It's writte in react-native and in the future will share more code with the frontend.
+[LibrePhotos Mobile](https://github.com/LibrePhotos/librephotos-mobile) is the offical app, which is at the proof-of-concept stage. It's written in react-native and in the future will share more code with the frontend.
 
-You can download the .apk [here](https://github.com/LibrePhotos/librephotos-mobile/releases/tag/v1.0.3). It is technically possible to compile it to also work on iOS, but nobody steped up to do that yet.
+You can download the .apk [here](https://github.com/LibrePhotos/librephotos-mobile/releases/tag/v1.0.3). It is technically possible to compile it to also work on iOS, but nobody stepped up to do that yet.

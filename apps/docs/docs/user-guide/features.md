@@ -114,7 +114,7 @@ sidebar_position: 6
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
-        <td>x256 videos</td>
+        <td>x265 videos</td>
         <p hidden>LibrePhotos</p>    <td>❌</td>
         <p hidden>Photoview</p>      <td>✔️</td>
         <p hidden>PhotoPrism</p>     <td>✔️</td>
@@ -148,7 +148,7 @@ sidebar_position: 6
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
-        <td>Searh by horizontal scrolling</td>
+        <td>Search by horizontal scrolling</td>
         <p hidden>LibrePhotos</p>    <td>✔️</td>
         <p hidden>Photoview</p>      <td>❌</td>
         <p hidden>PhotoPrism</p>     <td>❌</td>
