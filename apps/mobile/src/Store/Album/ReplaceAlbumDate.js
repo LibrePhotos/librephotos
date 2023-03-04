@@ -21,6 +21,8 @@ export default {
       item => item.type === 'cameraroll',
     )
     var loadedItems = payload.datePhotosGroup.items
+    // To-Do: Does not handle files, which have a differend date according to the server
+    // Maybe just do a exist check instead
     localItems = localItems.map(localItem => {
       var loadedItem = loadedItems.find(
         loadedItem => loadedItem.id === localItem.id,

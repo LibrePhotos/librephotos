@@ -129,7 +129,7 @@ const ImageGrid = ({
           ]}
         >
           <Icon.Button
-            name={'x'}
+            name={'close'}
             size={20}
             backgroundColor="rgba(52, 52, 52, 0.0)"
             iconStyle={{ marginRight: 0 }}
