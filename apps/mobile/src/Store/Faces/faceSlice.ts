@@ -257,7 +257,8 @@ const faceSlice = createSlice({
             }
             // same thing for inferred
             const personToChangeInferred = newInferredFacesList.find(
-              person => person.faces.filter(i => i.face_url == face).length > 0,
+              person =>
+                person.faces.filter(i => i.face_url === face).length > 0,
             )
             if (personToChangeInferred) {
               const indexToRemoveInferred =

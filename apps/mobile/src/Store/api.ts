@@ -226,11 +226,6 @@ export const api = createApi({
         },
         body: form_data,
       }),
-
-      transformErrorResponse: (error: any) => {
-        console.log(error)
-        return error
-      },
     }),
     [Endpoints.upload]: builder.mutation<IUploadResponse, IUploadOptions>({
       query: options => {
@@ -248,10 +243,6 @@ export const api = createApi({
       },
       transformResponse: (response: IUploadResponse) => {
         return UploadResponse.parse(response)
-      },
-      transformErrorResponse: (error: any) => {
-        console.log(error)
-        return error
       },
     }),
     [Endpoints.worker]: builder.query<IWorkerAvailabilityResponse, void>({

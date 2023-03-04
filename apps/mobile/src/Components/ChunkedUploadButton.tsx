@@ -71,10 +71,11 @@ export function ChunkedUploadButton(props: ChunkedUploadButtonProps) {
     if (uploadId) {
       formData.append('upload_id', uploadId)
     }
+    // To-Do: cookies should be in server file
     const cookies = await CookieManager.get(config.baseurl)
 
     formData.append('file', {
-      uri: chunk._ref,
+      uri: 'file://' + chunk._ref,
       type: 'application/octet-stream',
       name: 'blob',
     })
@@ -83,7 +84,6 @@ export function ChunkedUploadButton(props: ChunkedUploadButtonProps) {
     formData.append('md5', '')
     formData.append('offset', offset.toString())
     formData.append('user', userSelfDetails?.id.toString())
-    console.log('formData', formData)
     const result = await Server.post('upload/', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -92,25 +92,25 @@ export function ChunkedUploadButton(props: ChunkedUploadButtonProps) {
       transformRequest: data => {
         return data
       },
-    }).then(result => result)
+    }).then(response => response)
     return result
   }
 
-  const calculateChunks = async (file: any, chunkSize: number) => {
+  const calculateChunks = async (file: any) => {
     const chunks = Math.ceil(file.size / chunkSize)
-    const chunk = [] as Blob[]
+    const chunk = [] as any[]
     for (let i = 0; i < chunks; i++) {
       const chunkEnd = Math.min((i + 1) * chunkSize, file.size)
-      /**  To-Do: Test big files
-      var blob = await file
-        .slice(i * chunkSize, chunkEnd)
-        // @ts-ignore
-        .onCreated(blob => blob)
+      var blob = await new Promise(res => {
+        file
+          .slice(i * chunkSize, chunkEnd)
+          // @ts-ignore
+          .onCreated(blob => {
+            res(blob)
+          })
+      }).then(blob => blob)
       chunk.push(blob)
-      */
     }
-
-    chunk.push(file)
     return chunk
   }
 
@@ -123,14 +123,9 @@ export function ChunkedUploadButton(props: ChunkedUploadButtonProps) {
     const Blob = ReactNativeBlobUtil.polyfill.Blob
     // This works, but the type system is broken for whatever reason
     // @ts-ignore
-    const file = await Blob.build(ReactNativeBlobUtil.wrap(image.url))
-    acceptedFiles.push(file)
-    let totalSize = 0
-    acceptedFiles.forEach(file => {
-      const fileSize = file.size
-      totalSize += fileSize
-    })
-    setTotalSize(totalSize)
+    const selectedFile = await Blob.build(ReactNativeBlobUtil.wrap(image.url))
+    acceptedFiles.push(selectedFile)
+    setTotalSize(acceptedFiles.map(file => file.size).reduce((a, b) => a + b))
     for (const file of acceptedFiles) {
       const currentUploadedFileSizeStartValue = currentUploadedFileSize
       console.log('Current File: ' + fileStat.filename)
@@ -140,7 +135,7 @@ export function ChunkedUploadButton(props: ChunkedUploadButtonProps) {
       let offset = 0
       let uploadId = ''
       if (!isAlreadyUploaded) {
-        const chunks = await calculateChunks(file, chunkSize)
+        const chunks = await calculateChunks(file)
         // To-Do: Handle Resume and Pause
         for (let i = 0; i < chunks.length; i++) {
           const response = await uploadChunk(
