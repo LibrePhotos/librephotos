@@ -24,11 +24,16 @@ class PredefinedRulesTest(TestCase):
         self.assertIsInstance(rules, list)
         self.assertEqual(15, len(rules))
 
-    def test_default_rules(self):
+    def test_default_rules_on_predefined_rules_endpoint(self):
         response = self.client.get("/api/predefinedrules/")
         rules = json.loads(response.json())
         default_rules = list(filter(lambda x: x["is_default"], rules))
         self.assertListEqual(DEFAULT_RULES_PARAMS, default_rules)
+
+    def test_default_rules_endpoint(self):
+        response = self.client.get("/api/defaultrules/")
+        rules = json.loads(response.json())
+        self.assertListEqual(DEFAULT_RULES_PARAMS, rules)
 
     def test_other_rules(self):
         response = self.client.get("/api/predefinedrules/")
