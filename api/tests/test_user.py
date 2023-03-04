@@ -3,7 +3,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.models import User
-from api.tests.utils import create_password
+from api.tests.utils import create_test_user, create_user_details
 
 
 class UserTest(TestCase):
@@ -48,33 +48,12 @@ class UserTest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.admin = User.objects.create(
-            username="admin",
-            first_name="Super",
-            last_name="Admin",
-            email="admin@test.com",
-            password=create_password(),
-            is_superuser=True,
-            is_staff=True,
-        )
-        self.user1 = User.objects.create(
-            username="user1",
-            first_name="Firstname1",
-            last_name="Lastname1",
-            email="user2@test.com",
-            password=create_password(),
-            public_sharing=True,
-        )
-        self.user2 = User.objects.create(
-            username="user2",
-            first_name="Firstname2",
-            last_name="Lastname2",
-            email="user2@test.com",
-            password=create_password(),
-        )
+        self.client.force_authenticate(user=None)
+        self.admin = create_test_user(is_admin=True)
+        self.user1 = create_test_user(public_sharing=True)
+        self.user2 = create_test_user()
 
     def test_public_user_list_count(self):
-        self.client.force_authenticate(user=None)
         response = self.client.get("/api/user/")
         data = response.json()
         self.assertEquals(
@@ -82,7 +61,6 @@ class UserTest(TestCase):
         )
 
     def test_public_user_list_properties(self):
-        self.client.force_authenticate(user=None)
         response = self.client.get("/api/user/")
         data = response.json()
         for user in data["results"]:
@@ -113,14 +91,12 @@ class UserTest(TestCase):
         self.assertEqual(200, response.status_code)
 
     def test_public_update_user(self):
-        self.client.force_authenticate(user=None)
         response = self.client.patch(
             f"/api/user/{self.user1.id}/", data={"first_name": "Updated"}
         )
         self.assertEqual(401, response.status_code)
 
     def test_public_delete_user(self):
-        self.client.force_authenticate(user=None)
         response = self.client.delete(f"/api/user/{self.user1.id}/")
         self.assertEqual(401, response.status_code)
 
@@ -128,47 +104,27 @@ class UserTest(TestCase):
     def test_public_user_create_successful_on_first_setup(self):
         User.objects.all().delete()
         self.client.force_authenticate(user=None)
-        data = {
-            "username": "super-admin",
-            "first_name": "Super",
-            "last_name": "Admin",
-            "email": "super-admin@test.com",
-            "password": create_password(),
-        }
+        data = create_user_details()
         response = self.client.post("/api/user/", data=data)
         self.assertEqual(201, response.status_code)
         self.assertEqual(1, len(User.objects.all()))
-        user = User.objects.get(username="super-admin")
+        user = User.objects.get(username=data["username"])
         self.assertTrue(user.is_superuser)
 
     @override_config(ALLOW_REGISTRATION=True)
     def test_public_user_create_successful_when_registration_enabled(self):
-        self.client.force_authenticate(user=None)
-        data = {
-            "username": "new-user",
-            "first_name": "NewFirstname",
-            "last_name": "NewLastname",
-            "email": "new-user@test.com",
-            "password": create_password(),
-        }
+        data = create_user_details()
         response = self.client.post("/api/user/", data=data)
         self.assertEqual(201, response.status_code)
-        user = User.objects.get(username="new-user")
-        self.assertEqual("new-user", user.username)
-        self.assertEqual("new-user@test.com", user.email)
-        self.assertEqual("NewFirstname", user.first_name)
-        self.assertEqual("NewLastname", user.last_name)
+        user = User.objects.get(username=data["username"])
+        self.assertEqual(data["username"], user.username)
+        self.assertEqual(data["email"], user.email)
+        self.assertEqual(data["first_name"], user.first_name)
+        self.assertEqual(data["last_name"], user.last_name)
 
     @override_config(ALLOW_REGISTRATION=True)
     def test_after_registration_user_can_authenticate(self):
-        self.client.force_authenticate(user=None)
-        user = {
-            "username": "bart",
-            "first_name": "Bart",
-            "last_name": "Simpson",
-            "email": "bart@test.com",
-            "password": create_password(),
-        }
+        user = create_user_details()
         signup_response = self.client.post("/api/user/", data=user)
         self.assertEqual(201, signup_response.status_code)
         login_payload = {
@@ -183,33 +139,17 @@ class UserTest(TestCase):
 
     @override_config(ALLOW_REGISTRATION=False)
     def test_public_user_create_fails_when_registration_disabled(self):
-        self.client.force_authenticate(user=None)
-        data = {
-            "username": "another-user",
-            "first_name": "NewFirstname",
-            "last_name": "NewLastname",
-            "email": "another-user@test.com",
-            "password": create_password(),
-        }
-        response = self.client.post("/api/user/", data=data)
+        response = self.client.post("/api/user/", data=create_user_details())
         # because IsAdminOrFirstTimeSetupOrRegistrationAllowed is **global** permission
         # on UserViewSet, we are returning 401 and not 403
         self.assertEqual(401, response.status_code)
 
     @override_config(ALLOW_REGISTRATION=True)
     def test_not_first_setup_create_admin_should_create_regular_user(self):
-        self.client.force_authenticate(user=None)
-        data = {
-            "username": "user3",
-            "first_name": "Firstname3",
-            "last_name": "Lastname3",
-            "email": "user3@test.com",
-            "password": create_password(),
-            "is_superuser": True,
-        }
+        data = create_user_details(is_admin=True)
         response = self.client.post("/api/user/", data=data)
         self.assertEqual(201, response.status_code)
-        user = User.objects.get(username="user3")
+        user = User.objects.get(username=data["username"])
         self.assertEqual(False, user.is_superuser)
 
     def test_user_update_another_user(self):
@@ -226,11 +166,7 @@ class UserTest(TestCase):
 
     def test_admin_create_user(self):
         self.client.force_authenticate(user=self.admin)
-        data = {
-            "username": "new-user",
-            "password": create_password(),
-        }
-        response = self.client.post("/api/user/", data=data)
+        response = self.client.post("/api/user/", data=create_user_details())
         self.assertEqual(201, response.status_code)
 
     def test_admin_partial_update_user(self):
@@ -248,15 +184,7 @@ class UserTest(TestCase):
     @override_config(ALLOW_REGISTRATION=False)
     def test_first_time_setup_creates_user_when_registration_is_disabled(self):
         User.objects.all().delete()
-        self.client.force_authenticate(user=None)
-        data = {
-            "username": self.user1.username,
-            "first_name": self.user1.first_name,
-            "last_name": self.user1.last_name,
-            "email": self.user1.email,
-            "password": create_password(),
-        }
-        response = self.client.post("/api/user/", data=data)
+        response = self.client.post("/api/user/", data=create_user_details())
         self.assertEqual(201, response.status_code)
 
     def test_first_time_setup(self):
@@ -267,17 +195,10 @@ class UserTest(TestCase):
 
     @override_config(ALLOW_REGISTRATION=True)
     def test_not_first_time_setup(self):
-        self.client.force_authenticate(user=None)
-        data = {
-            "username": "user-name",
-            "first_name": "First",
-            "last_name": "Last",
-            "email": "user-email@test.com",
-            "password": create_password(),
-        }
+        data = create_user_details()
         signup_response = self.client.post("/api/user/", data=data)
         self.assertEqual(201, signup_response.status_code)
-        user = User.objects.get(username="user-name")
+        user = User.objects.get(username=data["username"])
         self.client.force_authenticate(user=user)
         response = self.client.get("/api/firsttimesetup/")
         data = response.json()
