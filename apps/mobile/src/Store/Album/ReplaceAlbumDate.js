@@ -16,14 +16,31 @@ export default {
         ...state,
       }
     }
-    var items = groupToChange.data.filter(item => item.temp)
-    var nonTempItems = groupToChange.data.filter(item => !item.temp)
+    var items = groupToChange.data.filter(item => item.type !== 'cameraroll')
+    var localItems = groupToChange.data.filter(
+      item => item.type === 'cameraroll',
+    )
     var loadedItems = payload.datePhotosGroup.items
+    localItems = localItems.map(localItem => {
+      var loadedItem = loadedItems.find(
+        loadedItem => loadedItem.id === localItem.id,
+      )
+      if (loadedItem) {
+        localItem.type = 'synced'
+        return localItem
+      } else {
+        return localItem
+      }
+    })
+    loadedItems = loadedItems.filter(
+      loadedItem =>
+        !localItems.find(localItem => localItem.id === loadedItem.id),
+    )
     var updatedItems = items
       .slice(0, (page - 1) * 100)
       .concat(loadedItems)
       .concat(items.slice(page * 100))
-      .concat(nonTempItems)
+      .concat(localItems)
 
     updatedItems = updatedItems.sort((a, b) => {
       return new Date(b.date) - new Date(a.date)

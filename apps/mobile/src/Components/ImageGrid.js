@@ -6,7 +6,7 @@ import { useTheme } from '@/Theme'
 import { getConfig } from '../Config'
 import NoResultsError from './NoResultsError'
 import PagerView from 'react-native-pager-view'
-import Icon from 'react-native-vector-icons/Feather'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import FetchPhotosWithoutDate from '../Store/Album/FetchPhotosWithoutDate'
 
 import { useDispatch } from 'react-redux'
@@ -67,7 +67,13 @@ const ImageGrid = ({
         {!item.isTemp && (
           <View>
             <Icon
-              name={item.type === 'cameraroll' ? 'cloud-off' : 'cloud'}
+              name={
+                item.type === 'cameraroll'
+                  ? 'cloud-upload-outline'
+                  : item.type === 'synced'
+                  ? 'cloud-check-outline'
+                  : 'cloud-outline'
+              }
               size={20}
               color={'rgba(0,0,0,0.5)'}
               style={{
@@ -80,7 +86,7 @@ const ImageGrid = ({
             <Image
               style={Layout.fullSize}
               source={
-                item.type === 'cameraroll'
+                item.type === 'cameraroll' || item.type === 'synced'
                   ? { uri: item.url }
                   : {
                       uri:
@@ -155,7 +161,7 @@ const ImageGrid = ({
           <Image
             style={Layout.fullSize}
             source={
-              item.type === 'cameraroll'
+              item.type === 'cameraroll' || item.type === 'synced'
                 ? { uri: item.url }
                 : {
                     uri:
