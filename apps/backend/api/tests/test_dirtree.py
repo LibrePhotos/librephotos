@@ -18,6 +18,20 @@ class DirTreeTest(TestCase):
         response = self.client.get("/api/dirtree/")
         self.assertEqual(200, response.status_code)
 
+    def test_should_retrieve_dir_listing_by_path(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get("/api/dirtree/?path=/")
+        self.assertEqual(200, response.status_code)
+
+    def test_should_fail_when_listing_with_invalid_path(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get("/api/dirtree/?path=/does_not_exist")
+        data = response.json()
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            data["message"], "[Errno 2] No such file or directory: '/does_not_exist'"
+        )
+
     def test_regular_user_is_not_allowed_to_retrieve_dirtree(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.get("/api/dirtree/")
