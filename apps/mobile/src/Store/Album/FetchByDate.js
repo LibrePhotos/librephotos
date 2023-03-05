@@ -9,7 +9,6 @@ import { photoMapper } from '../../Services/DataMapper/PhotosByDate'
 export default {
   initialState: buildAsyncState(),
   action: buildAsyncActions('album/fetchByDate', async (args, k) => {
-    // To-Do: Figure out why this loads twice
     return await api
       .get('/albums/date/list/', {
         timeout: 10000,

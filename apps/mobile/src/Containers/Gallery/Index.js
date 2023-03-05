@@ -62,12 +62,7 @@ const GalleryContainer = () => {
         dispatch(FetchHidden.action())
         break
     }
-  }, [dispatch, category])
-
-  useEffect(() => {
-    dispatch(FetchAlbumByDate.action())
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [category, dispatch])
 
   const renderButton = (index, buttonCategory) => {
     return (
