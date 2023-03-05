@@ -15,7 +15,7 @@
 
 ## Installation
 
-Step-by-step installation instructions are available in our [documentation](https://docs.librephotos.com/1/)
+Step-by-step installation instructions are available in our [documentation](https://docs.librephotos.com/docs/installation/)
 
 ## How to help out
 - ⭐ **Star** this repository if you like this project!
