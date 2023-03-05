@@ -12,6 +12,7 @@ import FetchPublic from '@/Store/Album/FetchPublic'
 import TimelineList from '@/Components/TimelineList'
 import { TopBar } from '@/Components'
 import ImageGrid from '@/Components/ImageGrid'
+import { loadLocalImages } from '@/Store/LocalImages/LocalImagesSlice'
 
 const CategoryType = {
   PhotosByDate: 'With Timestamp',
@@ -44,6 +45,7 @@ const GalleryContainer = () => {
     console.log('Fetching Category: ' + category)
     switch (category) {
       case CategoryType.PhotosByDate:
+        dispatch(loadLocalImages())
         dispatch(FetchAlbumByDate.action())
         break
       case CategoryType.PhotosWithoutDate:

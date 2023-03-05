@@ -22,6 +22,7 @@ import { faceReducer as face } from './Faces/faceSlice'
 import { configReducer as config } from './Config/configSlice'
 import { errorMiddleware } from './middleware/errorMiddleware'
 import { userReducer as user } from './User/userSlice'
+import { localImagesReducer as localImages } from './LocalImages/LocalImagesSlice'
 import { worker } from './Worker/workerSlice'
 
 import album from './Album'
@@ -43,13 +44,14 @@ const reducers = combineReducers({
   startup,
   search,
   theme,
+  localImages,
   [api.reducerPath]: api.reducer,
 })
 
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
-  whitelist: ['auth', 'config', 'theme'],
+  whitelist: ['auth', 'config', 'theme', 'localImages'],
 }
 
 const persistedReducer = persistReducer(persistConfig, reducers)

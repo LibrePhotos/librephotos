@@ -1,5 +1,4 @@
 import { createAction } from '@reduxjs/toolkit'
-
 export default {
   initialState: {},
   action: createAction('album/replaceAlbumDate'),
@@ -16,10 +15,8 @@ export default {
         ...state,
       }
     }
-    var items = groupToChange.data.filter(item => item.type !== 'cameraroll')
-    var localItems = groupToChange.data.filter(
-      item => item.type === 'cameraroll',
-    )
+    var items = groupToChange.data.filter(item => !item.syncStatus)
+    var localItems = groupToChange.data.filter(item => item.syncStatus)
     var loadedItems = payload.datePhotosGroup.items
     // To-Do: Does not handle files, which have a differend date according to the server
     // Maybe just do a exist check instead
@@ -28,7 +25,7 @@ export default {
         loadedItem => loadedItem.id === localItem.id,
       )
       if (loadedItem) {
-        localItem.type = 'synced'
+        localItem.syncStatus = 'synced'
         return localItem
       } else {
         return localItem

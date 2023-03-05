@@ -68,9 +68,9 @@ const ImageGrid = ({
           <View>
             <Icon
               name={
-                item.type === 'cameraroll'
+                item.syncStatus === 'local'
                   ? 'cloud-upload-outline'
-                  : item.type === 'synced'
+                  : item.syncStatus === 'synced'
                   ? 'cloud-check-outline'
                   : 'cloud-outline'
               }
@@ -86,7 +86,7 @@ const ImageGrid = ({
             <Image
               style={Layout.fullSize}
               source={
-                item.type === 'cameraroll' || item.type === 'synced'
+                item.syncStatus
                   ? { uri: item.url }
                   : {
                       uri:
@@ -161,7 +161,7 @@ const ImageGrid = ({
           <Image
             style={Layout.fullSize}
             source={
-              item.type === 'cameraroll' || item.type === 'synced'
+              item.syncStatus
                 ? { uri: item.url }
                 : {
                     uri:
