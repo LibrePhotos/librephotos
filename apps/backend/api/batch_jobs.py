@@ -58,7 +58,8 @@ def batch_calculate_clip_embedding(job_id, user):
             )
             valid_objs = []
             for obj in objs:
-                if os.path.exists(obj.thumbnail_big.path):
+                # Thumbnail could have been deleted
+                if obj.thumbnail_big and os.path.exists(obj.thumbnail_big.path):
                     valid_objs.append(obj)
             imgs = list(map(lambda obj: obj.thumbnail_big.path, valid_objs))
             if len(valid_objs) == 0:
@@ -85,3 +86,7 @@ def batch_calculate_clip_embedding(job_id, user):
 
     except Exception as e:
         util.logger.error("Error in batch_calculate_clip_embedding: {}".format(e))
+        lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
+        lrj.finished = True
+        lrj.failed = True
+        lrj.save()
