@@ -208,7 +208,7 @@ def delete_missing_photos(user, job_id):
         )
         lrj.save()
     try:
-        missing_photos = Photo.objects.filter(Q(owner=user) & Q(files=[]))
+        missing_photos = Photo.objects.filter(Q(owner=user) & Q(files=None))
         for missing_photo in missing_photos:
             album_dates = AlbumDate.objects.filter(photos=missing_photo)
             for album_date in album_dates:
