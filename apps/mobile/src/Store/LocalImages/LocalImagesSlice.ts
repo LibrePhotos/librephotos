@@ -58,14 +58,23 @@ export const loadLocalImages = createAsyncThunk(
       start_cursor: undefined,
       end_cursor: undefined,
     }
+    console.log('Loading local images')
+    console.log(
+      'Last fetch: ',
+      lastFetch ? moment.unix(lastFetch).format('YYYY-MM-DD') : 'Never',
+    )
     // load images from CameraRoll
     // To-Do: Check on phone
     while (page_info.has_next_page) {
       page_info = await CameraRoll.getPhotos({
         first: 100,
         after: page_info.end_cursor,
+        // only load images that are newer than the last fetch
+        fromTime: lastFetch ? lastFetch : undefined,
+        toTime: lastFetch ? moment().unix() : undefined,
         assetType: 'Photos',
       }).then(async r => {
+        console.log('Number of new items: ', r.edges.length)
         const currentPage = await Promise.all(
           r.edges.map(item => {
             return camerarollPhotoMapper(item)
@@ -92,6 +101,10 @@ const localImagesSlice = createSlice({
         ...state,
       }
     },
+    reset: state => {
+      console.log('Resetting local images')
+      return initialState
+    },
   },
   extraReducers: builder => {
     builder.addCase(loadLocalImages.pending, state => {
@@ -101,15 +114,15 @@ const localImagesSlice = createSlice({
       }
     })
     builder.addCase(loadLocalImages.fulfilled, (state, { payload }) => {
-      // To-Do: Only load new data :)
       return {
         ...state,
-        images: payload,
+        images: [...state.images, ...payload],
         lastFetch: moment().unix(),
         isLoading: false,
       }
     })
     builder.addCase(loadLocalImages.rejected, state => {
+      console.log('Error loading local images')
       return {
         ...state,
         isLoading: false,
@@ -121,7 +134,7 @@ const localImagesSlice = createSlice({
 //To-Do: Add a popup to ask for permission
 async function hasAndroidPermission() {
   const permission =
-    Platform.Version >= 33
+    (Platform.Version as number) >= 33
       ? PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
       : PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE
 
@@ -136,4 +149,4 @@ async function hasAndroidPermission() {
 
 export const { actions: localImagesActions, reducer: localImagesReducer } =
   localImagesSlice
-export const { loadNewImages, syncImages } = localImagesActions
+export const { syncImages, reset } = localImagesActions

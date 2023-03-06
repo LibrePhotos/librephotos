@@ -14,6 +14,7 @@ import { version } from '../../../package.json'
 import { OptionToggle } from './OptionToggle'
 import { configActions } from '@/Store/Config/configSlice'
 import { useAppDispatch } from '@/Store/store'
+import { reset } from '@/Store/LocalImages/LocalImagesSlice'
 
 const SettingsContainer = () => {
   const { Colors, Layout, Gutters } = useTheme()
@@ -89,6 +90,13 @@ const SettingsContainer = () => {
               subTitle="Logout and clear all data."
               onPress={() => logoutClick()}
             />
+            <OptionButton
+              title="Reset Local Images"
+              subTitle="Reset Local Images, if an error occured"
+              onPress={() => {
+                dispatch(reset())
+              }}
+            ></OptionButton>
           </VStack>
 
           <SettingSubHeader subHeading={'LibrePhotos Server'} />
