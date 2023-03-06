@@ -94,14 +94,14 @@ const localImagesSlice = createSlice({
   name: 'localImages',
   initialState: initialState,
   reducers: {
-    syncImages: (state, { payload }) => {
+    syncImages: state => {
       // To-Do: Update the syncStatus of the images to synced
       // based on the payload
       return {
         ...state,
       }
     },
-    reset: state => {
+    reset: () => {
       console.log('Resetting local images')
       return initialState
     },
