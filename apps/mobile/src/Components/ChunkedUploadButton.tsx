@@ -170,8 +170,7 @@ export function ChunkedUploadButton(props: ChunkedUploadButtonProps) {
   useEffect(() => {}, [totalSize])
 
   useEffect(() => {}, [currentSize])
-  // To-Do: Only allow upload, if it is a local image only
-  if (settings?.allow_upload) {
+  if (settings?.allow_upload && image.syncStatus == 'local') {
     return (
       <View>
         {currentSize / totalSize > 0.99 && (
