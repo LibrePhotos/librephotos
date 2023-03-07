@@ -18,22 +18,22 @@ def create_photos(number_of_photos=1, **kwargs):
     return result
 
 
-class DeletePhotosTest(TestCase):
+class FavoritePhotosTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user1 = create_test_user()
         self.user2 = create_test_user()
         self.client.force_authenticate(user=self.user1)
 
-    def test_tag_my_photos_for_removal(self):
+    def test_hide_my_photos(self):
         now = timezone.now()
         photos = create_photos(number_of_photos=3, owner=self.user1, added_on=now)
         image_hashes = [str(p) for p in photos]
 
-        payload = {"image_hashes": image_hashes, "deleted": True}
+        payload = {"image_hashes": image_hashes, "hidden": True}
         headers = {"Content-Type": "application/json"}
         response = self.client.post(
-            "/api/photosedit/setdeleted/", format="json", data=payload, headers=headers
+            "/api/photosedit/hide/", format="json", data=payload, headers=headers
         )
         data = response.json()
 
@@ -42,17 +42,17 @@ class DeletePhotosTest(TestCase):
         self.assertEqual(3, len(data["updated"]))
         self.assertEqual(0, len(data["not_updated"]))
 
-    def test_untag_my_photos_for_removal(self):
+    def test_untag_my_photos_as_favorite(self):
         now = timezone.now()
         photos = create_photos(
-            number_of_photos=1, owner=self.user1, added_on=now, deleted=True
+            number_of_photos=1, owner=self.user1, added_on=now, hidden=True
         ) + create_photos(number_of_photos=2, owner=self.user1, added_on=now)
         image_hashes = [str(p) for p in photos]
 
-        payload = {"image_hashes": image_hashes, "deleted": False}
+        payload = {"image_hashes": image_hashes, "hidden": False}
         headers = {"Content-Type": "application/json"}
         response = self.client.post(
-            "/api/photosedit/setdeleted/", format="json", data=payload, headers=headers
+            "/api/photosedit/hide/", format="json", data=payload, headers=headers
         )
         data = response.json()
 
@@ -61,15 +61,15 @@ class DeletePhotosTest(TestCase):
         self.assertEqual(1, len(data["updated"]))
         self.assertEqual(2, len(data["not_updated"]))
 
-    def test_tag_photos_of_other_user_for_removal(self):
+    def test_tag_photos_of_other_user_as_favorite(self):
         now = timezone.now()
         photos = create_photos(number_of_photos=2, owner=self.user2, added_on=now)
         image_hashes = [str(p) for p in photos]
 
-        payload = {"image_hashes": image_hashes, "deleted": True}
+        payload = {"image_hashes": image_hashes, "hidden": True}
         headers = {"Content-Type": "application/json"}
         response = self.client.post(
-            "/api/photosedit/setdeleted/", format="json", data=payload, headers=headers
+            "/api/photosedit/hide/", format="json", data=payload, headers=headers
         )
         data = response.json()
 
@@ -79,11 +79,11 @@ class DeletePhotosTest(TestCase):
         self.assertEqual(2, len(data["not_updated"]))
 
     @patch("api.util.logger.warning", autospec=True)
-    def test_delete_nonexistent_photo(self, logger):
-        payload = {"image_hashes": ["nonexistent_photo"], "deleted": True}
+    def test_tag_nonexistent_photo_as_favorite(self, logger):
+        payload = {"image_hashes": ["nonexistent_photo"], "hidden": True}
         headers = {"Content-Type": "application/json"}
         response = self.client.post(
-            "/api/photosedit/setdeleted/", format="json", data=payload, headers=headers
+            "/api/photosedit/hide/", format="json", data=payload, headers=headers
         )
         data = response.json()
 
