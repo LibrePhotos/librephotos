@@ -79,7 +79,7 @@ class DeletePhotosTest(TestCase):
         self.assertEqual(2, len(data["not_updated"]))
 
     @patch("api.util.logger.warning", autospec=True)
-    def test_delete_nonexistent_photo(self, logger):
+    def test_tag_for_removal_nonexistent_photo(self, logger):
         payload = {"image_hashes": ["nonexistent_photo"], "deleted": True}
         headers = {"Content-Type": "application/json"}
         response = self.client.post(
@@ -94,3 +94,44 @@ class DeletePhotosTest(TestCase):
         logger.assert_called_with(
             "Could not set photo nonexistent_photo to hidden. It does not exist."
         )
+
+    def test_delete_tagged_photos_for_removal(self):
+        now = timezone.now()
+        photos_to_delete = create_photos(
+            number_of_photos=2, owner=self.user1, added_on=now, deleted=True
+        )
+        photos_to_not_delete = create_photos(
+            number_of_photos=3, owner=self.user1, added_on=now
+        )
+        image_hashes = [str(p) for p in photos_to_delete + photos_to_not_delete]
+
+        payload = {"image_hashes": image_hashes}
+        headers = {"Content-Type": "application/json"}
+        response = self.client.delete(
+            "/api/photosedit/delete/", format="json", data=payload, headers=headers
+        )
+        data = response.json()
+
+        self.assertTrue(data["status"])
+        self.assertEqual(2, len(data["results"]))
+        self.assertEqual(2, len(data["deleted"]))
+        self.assertEqual(3, len(data["not_deleted"]))
+
+    def test_delete_tagged_photos_of_other_user_for_removal(self):
+        now = timezone.now()
+        photos_to_delete = create_photos(
+            number_of_photos=5, owner=self.user2, added_on=now, deleted=True
+        )
+        image_hashes = [str(p) for p in photos_to_delete]
+
+        payload = {"image_hashes": image_hashes}
+        headers = {"Content-Type": "application/json"}
+        response = self.client.delete(
+            "/api/photosedit/delete/", format="json", data=payload, headers=headers
+        )
+        data = response.json()
+
+        self.assertTrue(data["status"])
+        self.assertEqual(0, len(data["results"]))
+        self.assertEqual(0, len(data["deleted"]))
+        self.assertEqual(5, len(data["not_deleted"]))
