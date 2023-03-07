@@ -12,7 +12,7 @@ def create_password():
 
 
 def create_user_details(is_admin=False):
-    data = {
+    return {
         "username": fake.user_name(),
         "first_name": fake.first_name(),
         "last_name": fake.last_name(),
@@ -20,12 +20,9 @@ def create_user_details(is_admin=False):
         "password": create_password(),
         "is_superuser": is_admin,
     }
-    if is_admin:
-        data["is_superuser"] = True
-    return data
 
 
-def create_test_user(is_admin=False, public_sharing=False):
+def create_test_user(is_admin=False, public_sharing=False, **kwargs):
     return User.objects.create(
         username=fake.user_name(),
         first_name=fake.first_name(),
@@ -35,4 +32,5 @@ def create_test_user(is_admin=False, public_sharing=False):
         public_sharing=public_sharing,
         is_superuser=is_admin,
         is_staff=is_admin,
+        **kwargs,
     )
