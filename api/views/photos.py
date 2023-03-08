@@ -501,7 +501,7 @@ class GeneratePhotoCaption(APIView):
         if photo.owner != request.user:
             return Response(
                 {"status": False, "message": "you are not the owner of this photo"},
-                status_code=400,
+                status=400,
             )
 
         res = photo._generate_captions_im2txt()
