@@ -23,6 +23,7 @@ import { configReducer as config } from './Config/configSlice'
 import { errorMiddleware } from './middleware/errorMiddleware'
 import { userReducer as user } from './User/userSlice'
 import { localImagesReducer as localImages } from './LocalImages/LocalImagesSlice'
+import { uploadReducer as upload } from './Upload/UploadSlice'
 import { worker } from './Worker/workerSlice'
 
 import album from './Album'
@@ -45,6 +46,7 @@ const reducers = combineReducers({
   search,
   theme,
   localImages,
+  upload,
   [api.reducerPath]: api.reducer,
 })
 

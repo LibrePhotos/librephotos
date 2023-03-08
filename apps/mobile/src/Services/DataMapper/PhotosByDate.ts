@@ -1,5 +1,6 @@
 import { imageGridReducer } from './ImageGridReducer'
 import { RootState, store } from '../../Store/store'
+import { SyncStatus } from '../../Store/LocalImages/LocalImages.zod'
 
 export function addTempElementsToGroups(photosGroupedByDate) {
   photosGroupedByDate.forEach(group => {
@@ -40,7 +41,7 @@ export const photoMapper = photosResult => {
       const newAlbumDate = {
         id: date,
         title: date,
-        data: photo,
+        data: [photo],
         incomplete: false,
         numberOfItems: 1,
       }
@@ -54,7 +55,9 @@ export const photoMapper = photosResult => {
     else {
       var changedAlbumDate = finalmap[index]
       changedAlbumDate.data = [...changedAlbumDate.data, photo]
-      changedAlbumDate.numberOfItems += 1
+      if (photo.syncStatus === SyncStatus.LOCAL) {
+        changedAlbumDate.numberOfItems += 1
+      }
     }
   })
 

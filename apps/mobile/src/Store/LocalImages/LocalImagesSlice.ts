@@ -14,6 +14,7 @@ import {
   CameraRoll,
   PhotoIdentifier,
 } from '@react-native-camera-roll/camera-roll'
+import { api } from '../api'
 
 const initialState: LocalImagesState = {
   images: [] as LocalImages,
@@ -45,6 +46,23 @@ type PageInfo = {
   end_cursor?: string | undefined
 }
 
+export const checkIfLocalImagesAreSynced = createAsyncThunk(
+  'localImages/checkIfLocalImagesAreSynced',
+  async (_, apiThunk) => {
+    const dispatch = apiThunk.dispatch
+    const localImages = (store.getState() as RootState).localImages.images
+
+    localImages.map(async image => {
+      const result = await dispatch(
+        api.endpoints.uploadExists.initiate(image.id),
+      )
+      if (result.data) {
+        dispatch(localImageSynced(image))
+      }
+    })
+  },
+)
+
 export const loadLocalImages = createAsyncThunk(
   'localImages/loadLocalImages',
   async () => {
@@ -70,22 +88,29 @@ export const loadLocalImages = createAsyncThunk(
         first: 100,
         after: page_info.end_cursor,
         // only load images that are newer than the last fetch
-        fromTime: lastFetch ? lastFetch : undefined,
-        toTime: lastFetch ? moment().unix() : undefined,
+        // To-Do. This broken somehow
+        // fromTime: lastFetch,
+        // toTime: moment().unix(),
         assetType: 'Photos',
       }).then(async r => {
-        console.log('Number of new items: ', r.edges.length)
         const currentPage = await Promise.all(
           r.edges.map(item => {
-            return camerarollPhotoMapper(item)
+            // To-Do: This shoud work, but it should be done with getPhotos tbh...
+            if (!lastFetch || item.node.timestamp > lastFetch) {
+              return camerarollPhotoMapper(item)
+            }
           }),
         ).catch(err => {
           console.log(err)
         })
-        photos = [...photos, ...currentPage]
+        //filter all undefined values
+        const newPhotos = currentPage.filter(item => item !== undefined)
+        console.log('Number of new items: ', newPhotos.length)
+        photos = [...photos, ...newPhotos]
         return r.page_info
       })
     }
+
     return photos
   },
 )
@@ -94,12 +119,12 @@ const localImagesSlice = createSlice({
   name: 'localImages',
   initialState: initialState,
   reducers: {
-    syncImages: state => {
-      // To-Do: Update the syncStatus of the images to synced
-      // based on the payload
-      return {
-        ...state,
+    localImageSynced: (state, { payload }) => {
+      const index = state.images.findIndex(image => image.id === payload.id)
+      if (index === -1) {
+        return state
       }
+      state.images[index].syncStatus = SyncStatus.SYNCED
     },
     reset: () => {
       console.log('Resetting local images')
@@ -116,12 +141,14 @@ const localImagesSlice = createSlice({
     builder.addCase(loadLocalImages.fulfilled, (state, { payload }) => {
       return {
         ...state,
+        // To-Do: Add this again when lastFetch works correctly
         images: [...state.images, ...payload],
-        lastFetch: moment().unix(),
+        lastFetch: payload.length > 0 ? moment().unix() : state.lastFetch,
         isLoading: false,
       }
     })
     builder.addCase(loadLocalImages.rejected, state => {
+      console.log(state.images)
       console.log('Error loading local images')
       return {
         ...state,
@@ -149,4 +176,4 @@ async function hasAndroidPermission() {
 
 export const { actions: localImagesActions, reducer: localImagesReducer } =
   localImagesSlice
-export const { syncImages, reset } = localImagesActions
+export const { localImageSynced, reset } = localImagesActions

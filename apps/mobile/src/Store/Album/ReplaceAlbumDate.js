@@ -1,4 +1,5 @@
 import { createAction } from '@reduxjs/toolkit'
+
 export default {
   initialState: {},
   action: createAction('album/replaceAlbumDate'),

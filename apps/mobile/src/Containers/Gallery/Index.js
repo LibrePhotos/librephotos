@@ -12,7 +12,10 @@ import FetchPublic from '@/Store/Album/FetchPublic'
 import TimelineList from '@/Components/TimelineList'
 import { TopBar } from '@/Components'
 import ImageGrid from '@/Components/ImageGrid'
-import { loadLocalImages } from '@/Store/LocalImages/LocalImagesSlice'
+import {
+  loadLocalImages,
+  checkIfLocalImagesAreSynced,
+} from '@/Store/LocalImages/LocalImagesSlice'
 
 const CategoryType = {
   PhotosByDate: 'With Timestamp',
@@ -45,6 +48,8 @@ const GalleryContainer = () => {
     console.log('Fetching Category: ' + category)
     switch (category) {
       case CategoryType.PhotosByDate:
+        // To-Do: Figure out how to reload when new local images are added
+        dispatch(checkIfLocalImagesAreSynced())
         dispatch(loadLocalImages())
         dispatch(FetchAlbumByDate.action())
         break

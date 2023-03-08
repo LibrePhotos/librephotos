@@ -20,7 +20,6 @@ const ImageGrid = ({
   refreshing = false,
 }) => {
   const { Common, Layout } = useTheme()
-
   const [zoomViewVisible, setZoomViewVisible] = useState(false)
   const [isImageZoomed, setImageZoomed] = useState(false)
   const [currImage, setCurrImage] = useState({ item: {} })
@@ -136,6 +135,10 @@ const ImageGrid = ({
             onPress={() => setZoomViewVisible(false)}
           />
           <ChunkedUploadButton image={item} />
+          {
+            // To-Do: Add a button to delete the image
+            // To-Do: Add a button to download the image
+          }
         </View>
         <ReactNativeZoomableView
           maxZoom={2}
