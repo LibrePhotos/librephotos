@@ -59,7 +59,7 @@ const uploadSlice = createSlice({
         isUploading: true,
       }
     })
-    builder.addCase(uploadImages.fulfilled, (state, { payload }) => {
+    builder.addCase(uploadImages.fulfilled, state => {
       return {
         ...state,
         isUploading: false,

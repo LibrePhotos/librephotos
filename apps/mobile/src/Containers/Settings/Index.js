@@ -96,7 +96,7 @@ const SettingsContainer = () => {
               onPress={() => {
                 dispatch(reset())
               }}
-            ></OptionButton>
+            />
           </VStack>
 
           <SettingSubHeader subHeading={'LibrePhotos Server'} />
