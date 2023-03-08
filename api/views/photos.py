@@ -378,10 +378,14 @@ class PhotoEditViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Photo.visible.filter(Q(owner=self.request.user))
 
-    def retrieve(self, *args, **kwargs):
+    def retrieve(
+        self, *args, **kwargs
+    ):  # pragma: no cover TODO(sickelap): remove unused code
         return super(PhotoEditViewSet, self).retrieve(*args, **kwargs)
 
-    def list(self, *args, **kwargs):
+    def list(
+        self, *args, **kwargs
+    ):  # pragma: no cover TODO(sickelap): remove unused code
         return super(PhotoEditViewSet, self).list(*args, **kwargs)
 
 
