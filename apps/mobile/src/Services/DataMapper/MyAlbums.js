@@ -1,4 +1,4 @@
-import { useAppSelector } from '@/Store/store'
+import { store } from '@/Store/store'
 
 export const myAlbumMapper = myAlbumResult => {
   if (typeof myAlbumResult === 'undefined' || myAlbumResult.length < 1) {
@@ -10,7 +10,7 @@ export const myAlbumMapper = myAlbumResult => {
       id: item.id,
       title: item.title,
       url:
-        useAppSelector(store => store.config.baseurl) +
+        store.getState().config.baseurl +
         '/media/square_thumbnails/' +
         item.cover_photo.image_hash,
     }
