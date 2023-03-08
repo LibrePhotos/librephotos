@@ -120,11 +120,15 @@ const localImagesSlice = createSlice({
   initialState: initialState,
   reducers: {
     localImageSynced: (state, { payload }) => {
-      const index = state.images.findIndex(image => image.id === payload.id)
-      if (index === -1) {
-        return state
+      console.log('Local image synced: ' + payload.id)
+      return {
+        ...state,
+        images: state.images.map(image =>
+          image.id === payload.id
+            ? { ...image, syncStatus: SyncStatus.SYNCED }
+            : image,
+        ),
       }
-      state.images[index].syncStatus = SyncStatus.SYNCED
     },
     reset: () => {
       console.log('Resetting local images')

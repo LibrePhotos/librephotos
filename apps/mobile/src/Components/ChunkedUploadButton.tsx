@@ -21,6 +21,7 @@ export function ChunkedUploadButton(props: ChunkedUploadButtonProps) {
     const images = []
     images.push(image)
     dispatch(uploadImages(images))
+    image.syncStatus = 'synced'
   }
   if (settings?.allow_upload && image.syncStatus == 'local') {
     return (

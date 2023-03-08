@@ -12,6 +12,7 @@ import FetchPublic from '@/Store/Album/FetchPublic'
 import TimelineList from '@/Components/TimelineList'
 import { TopBar } from '@/Components'
 import ImageGrid from '@/Components/ImageGrid'
+import { selectAlbumDateWithLocalImages } from '@/Store/Album/Selectors'
 import {
   loadLocalImages,
   checkIfLocalImagesAreSynced,
@@ -31,7 +32,7 @@ const GalleryContainer = () => {
   const dispatch = useDispatch()
 
   const albums = useSelector(state => state.album)
-  const albumByDate = useSelector(state => state.album.albumByDate)
+  const photosByDate = useSelector(selectAlbumDateWithLocalImages)
   const albumWithoutDate = useSelector(state => state.album.albumWithoutDate)
   const albumRecentlyAdded = useSelector(
     state => state.album.albumRecentlyAdded,
@@ -39,7 +40,6 @@ const GalleryContainer = () => {
   const albumFavourites = useSelector(state => state.album.albumFavourites)
   const albumPublic = useSelector(state => state.album.albumPublic)
   const albumHidden = useSelector(state => state.album.albumHidden)
-  const photosByDate = albumByDate
   const photosWithoutDate = albumWithoutDate
 
   const [category, setCategory] = useState(CategoryType.PhotosByDate)
@@ -49,8 +49,8 @@ const GalleryContainer = () => {
     switch (category) {
       case CategoryType.PhotosByDate:
         // To-Do: Figure out how to reload when new local images are added
-        dispatch(checkIfLocalImagesAreSynced())
         dispatch(loadLocalImages())
+        dispatch(checkIfLocalImagesAreSynced())
         dispatch(FetchAlbumByDate.action())
         break
       case CategoryType.PhotosWithoutDate:
