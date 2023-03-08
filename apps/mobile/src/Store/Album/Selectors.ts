@@ -41,6 +41,19 @@ export const selectAlbumDateWithLocalImages = createSelector(
       }
       return albumWithLocalPhotos
     })
+    // remove temp elements in the number of synced local images on the same day
+    albumWithLocalPhotos.forEach(albumDate => {
+      const numberOfSyncedItems = albumDate.data.filter(
+        photo => photo.syncStatus === SyncStatus.SYNCED,
+      ).length
+      const allTempElements = albumDate.data
+        .filter(photo => photo.isTemp === true)
+        .slice(0, numberOfSyncedItems)
+      albumDate.data = albumDate.data.filter(
+        photo => allTempElements.indexOf(photo) === -1,
+      )
+    })
+
     return albumWithLocalPhotos
   },
 )
