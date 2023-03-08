@@ -52,14 +52,16 @@ export const checkIfLocalImagesAreSynced = createAsyncThunk(
     const dispatch = apiThunk.dispatch
     const localImages = (store.getState() as RootState).localImages.images
 
-    localImages.map(async image => {
-      const result = await dispatch(
-        api.endpoints.uploadExists.initiate(image.id),
-      )
-      if (result.data) {
-        dispatch(localImageSynced(image))
-      }
-    })
+    localImages
+      .filter(image => image.syncStatus !== SyncStatus.SYNCED)
+      .map(async image => {
+        const result = await dispatch(
+          api.endpoints.uploadExists.initiate(image.id),
+        )
+        if (result.data) {
+          dispatch(localImageSynced(image))
+        }
+      })
   },
 )
 
