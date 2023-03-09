@@ -6,11 +6,11 @@ import Icon from 'react-native-vector-icons/Feather'
 import { uploadImages } from '../Store/Upload/UploadSlice'
 import { Spinner } from 'native-base'
 
-type ChunkedUploadButtonProps = {
+type UploadButtonProps = {
   image: any
 }
 
-export function ChunkedUploadButton(props: ChunkedUploadButtonProps) {
+export function UploadButton(props: UploadButtonProps) {
   const { data: settings } = useGetSettingsQuery()
   const { isUploading } = useAppSelector(state => state.upload)
   const dispatch = useAppDispatch()

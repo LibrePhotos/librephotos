@@ -10,7 +10,8 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import FetchPhotosWithoutDate from '../Store/Album/FetchPhotosWithoutDate'
 
 import { useDispatch } from 'react-redux'
-import { ChunkedUploadButton } from './ChunkedUploadButton'
+import { UploadButton } from './UploadButton'
+import { DownloadButton } from './DownloadButton'
 
 const ImageGrid = ({
   data,
@@ -134,11 +135,8 @@ const ImageGrid = ({
             iconStyle={{ marginRight: 0 }}
             onPress={() => setZoomViewVisible(false)}
           />
-          <ChunkedUploadButton image={item} />
-          {
-            // To-Do: Add a button to delete the image
-            // To-Do: Add a button to download the image
-          }
+          <UploadButton image={item} />
+          <DownloadButton image={item} />
         </View>
         <ReactNativeZoomableView
           maxZoom={2}

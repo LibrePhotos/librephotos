@@ -9,6 +9,7 @@ import ReactNativeBlobUtil from 'react-native-blob-util'
 import Server from '../../Services'
 import CookieManager from '@react-native-cookies/cookies'
 import { localImageSynced } from '../LocalImages/LocalImagesSlice'
+
 const initialState: UploadState = {
   total: 1,
   current: 1,
