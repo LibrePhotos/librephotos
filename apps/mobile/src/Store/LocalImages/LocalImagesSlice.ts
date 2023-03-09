@@ -68,7 +68,7 @@ export const checkIfLocalImagesAreSynced = createAsyncThunk(
 export const loadLocalImages = createAsyncThunk(
   'localImages/loadLocalImages',
   async () => {
-    if (Platform.OS === 'android' && !(await hasAndroidPermission())) {
+    if (Platform.OS === 'android' && !(await hasReadAndroidPermission())) {
       return
     }
     const lastFetch = (store.getState() as RootState).localImages.lastFetch
@@ -117,6 +117,33 @@ export const loadLocalImages = createAsyncThunk(
   },
 )
 
+export const removeBackedUpImages = createAsyncThunk(
+  'localImages/removeBackedUpImages',
+  async (_, apiThunk) => {
+    //To-Do: Ask for manage files permission somehow, maybe ask them by hand or something
+    //if (Platform.OS === 'android' && !(await hasWriteAndroidPermission())) {
+    //  return
+    //}
+    const dispatch = apiThunk.dispatch
+    const localImages = (store.getState() as RootState).localImages.images
+    const deletedImages = [] as LocalImage[]
+    for (const image of localImages) {
+      console.log('Checking if image is synced: ' + image.id)
+      console.log('Sync status: ' + image.syncStatus)
+      if (image.syncStatus === SyncStatus.SYNCED) {
+        const result = await dispatch(
+          api.endpoints.uploadExists.initiate(image.id),
+        )
+        if (result.data) {
+          deletedImages.push(image)
+        }
+      }
+    }
+    CameraRoll.deletePhotos(deletedImages.map(image => image.url))
+    return deletedImages
+  },
+)
+
 const localImagesSlice = createSlice({
   name: 'localImages',
   initialState: initialState,
@@ -138,6 +165,16 @@ const localImagesSlice = createSlice({
     },
   },
   extraReducers: builder => {
+    builder.addCase(removeBackedUpImages.fulfilled, (state, { payload }) => {
+      console.log('Removing backed up images: ' + payload.length)
+
+      return {
+        ...state,
+        images: state.images.filter(
+          image => !payload.some(deletedImage => deletedImage.id === image.id),
+        ),
+      }
+    })
     builder.addCase(loadLocalImages.pending, state => {
       return {
         ...state,
@@ -164,8 +201,7 @@ const localImagesSlice = createSlice({
   },
 })
 
-//To-Do: Add a popup to ask for permission
-async function hasAndroidPermission() {
+async function hasReadAndroidPermission() {
   const permission =
     (Platform.Version as number) >= 33
       ? PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES

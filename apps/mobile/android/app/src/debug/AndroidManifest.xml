@@ -4,14 +4,15 @@
 
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29"/>
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
     <application
             android:usesCleartextTraffic="true"
-            tools:targetApi="28"
+            tools:targetApi="30"
             tools:ignore="GoogleAppIndexingWarning"
-            android:requestLegacyExternalStorage="true">
+           >
         <activity android:name="com.facebook.react.devsupport.DevSettingsActivity" />
     </application>
 </manifest>

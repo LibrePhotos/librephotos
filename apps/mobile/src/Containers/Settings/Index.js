@@ -1,6 +1,14 @@
 import React from 'react'
 import { View } from 'react-native'
-import { Divider, useToast, ScrollView, VStack } from 'native-base'
+import {
+  Divider,
+  useToast,
+  ScrollView,
+  VStack,
+  Text,
+  Box,
+  Flex,
+} from 'native-base'
 import { useTheme } from '@/Theme'
 import { useSelector } from 'react-redux'
 import { useNavigation } from '@react-navigation/core'
@@ -14,7 +22,11 @@ import { version } from '../../../package.json'
 import { OptionToggle } from './OptionToggle'
 import { configActions } from '@/Store/Config/configSlice'
 import { useAppDispatch } from '@/Store/store'
-import { reset } from '@/Store/LocalImages/LocalImagesSlice'
+import {
+  reset,
+  removeBackedUpImages,
+} from '@/Store/LocalImages/LocalImagesSlice'
+import { SyncStatus } from '@/Store/LocalImages/LocalImages.zod'
 
 const SettingsContainer = () => {
   const { Colors, Layout, Gutters } = useTheme()
@@ -25,7 +37,7 @@ const SettingsContainer = () => {
   const logging = useSelector(state => state.config.logging)
   const theme = useSelector(state => state.theme.darkMode)
   const user = useSelector(state => state.auth.access)
-
+  const localImages = useSelector(state => state.localImages.images)
   const mapTheme = darkMode => {
     if (darkMode == null) {
       return 'System Default'
@@ -89,6 +101,49 @@ const SettingsContainer = () => {
               title="Logout"
               subTitle="Logout and clear all data."
               onPress={() => logoutClick()}
+            />
+          </VStack>
+
+          <SettingSubHeader subHeading={'Syncing'} />
+          <Box alignItems="center">
+            <Flex direction="row" h="58" p="4">
+              <Box alignItems="center">
+                <Text>Local</Text>
+                <Text>
+                  {
+                    localImages.filter(i => i.syncStatus === SyncStatus.LOCAL)
+                      .length
+                  }
+                </Text>
+              </Box>
+              <Divider thickness="2" mx="2" orientation="vertical" />
+              <Box alignItems="center">
+                <Text>Syncing</Text>
+                <Text>
+                  {
+                    localImages.filter(i => i.syncStatus === SyncStatus.SYNCING)
+                      .length
+                  }
+                </Text>
+              </Box>
+              <Divider thickness="2" mx="2" orientation="vertical" />
+
+              <Box alignItems="center">
+                <Text>Synced</Text>
+                <Text>
+                  {
+                    localImages.filter(i => i.syncStatus === SyncStatus.SYNCED)
+                      .length
+                  }
+                </Text>
+              </Box>
+            </Flex>
+          </Box>
+          <VStack divider={<Divider bg={Colors.textMuted} />}>
+            <OptionButton
+              title="Remove backed up images"
+              subTitle="Remove backed up images from local storage"
+              onPress={() => dispatch(removeBackedUpImages())}
             />
             <OptionButton
               title="Reset Local Images"
