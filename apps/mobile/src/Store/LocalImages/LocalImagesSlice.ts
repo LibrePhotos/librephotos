@@ -6,6 +6,7 @@ import {
   MediaType,
   SyncStatus,
 } from './LocalImages.zod'
+import { uploadImages } from '../Upload/UploadSlice'
 import moment from 'moment'
 import { FileSystem } from 'react-native-file-access'
 import { RootState, store } from '../../Store/store'
@@ -139,8 +140,25 @@ export const removeBackedUpImages = createAsyncThunk(
         }
       }
     }
-    CameraRoll.deletePhotos(deletedImages.map(image => image.url))
+    if (deletedImages.length > 0) {
+      CameraRoll.deletePhotos(deletedImages.map(image => image.url))
+    }
     return deletedImages
+  },
+)
+
+export const syncAllLocalImages = createAsyncThunk(
+  'localImages/syncAllLocalImages',
+  async (_, apiThunk) => {
+    const dispatch = apiThunk.dispatch
+    await dispatch(checkIfLocalImagesAreSynced())
+    const localImages = (store.getState() as RootState).localImages.images
+    const nonSyncedImages = localImages.filter(
+      image => image.syncStatus !== SyncStatus.SYNCED,
+    )
+    if (nonSyncedImages.length > 0) {
+      await dispatch(uploadImages(nonSyncedImages))
+    }
   },
 )
 
@@ -167,7 +185,6 @@ const localImagesSlice = createSlice({
   extraReducers: builder => {
     builder.addCase(removeBackedUpImages.fulfilled, (state, { payload }) => {
       console.log('Removing backed up images: ' + payload.length)
-
       return {
         ...state,
         images: state.images.filter(

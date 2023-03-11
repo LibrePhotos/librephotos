@@ -8,6 +8,7 @@ import {
   Text,
   Box,
   Flex,
+  Spinner,
 } from 'native-base'
 import { useTheme } from '@/Theme'
 import { useSelector } from 'react-redux'
@@ -25,6 +26,7 @@ import { useAppDispatch } from '@/Store/store'
 import {
   reset,
   removeBackedUpImages,
+  syncAllLocalImages,
 } from '@/Store/LocalImages/LocalImagesSlice'
 import { SyncStatus } from '@/Store/LocalImages/LocalImages.zod'
 
@@ -38,6 +40,8 @@ const SettingsContainer = () => {
   const theme = useSelector(state => state.theme.darkMode)
   const user = useSelector(state => state.auth.access)
   const localImages = useSelector(state => state.localImages.images)
+  const { current, total, isUploading } = useSelector(state => state.upload)
+
   const mapTheme = darkMode => {
     if (darkMode == null) {
       return 'System Default'
@@ -105,6 +109,25 @@ const SettingsContainer = () => {
           </VStack>
 
           <SettingSubHeader subHeading={'Syncing'} />
+          <VStack divider={<Divider bg={Colors.textMuted} />}>
+            {isUploading && (
+              <Box alignItems="center">
+                <Spinner />{' '}
+                <Text>
+                  {total > 1
+                    ? `Uploading ${Math.round((current / total) * 100)}%`
+                    : 'Uploading 0%'}
+                </Text>
+              </Box>
+            )}
+            {!isUploading && (
+              <OptionButton
+                title="Sync all images"
+                subTitle="Upload all local images to the server"
+                onPress={() => dispatch(syncAllLocalImages())}
+              />
+            )}
+          </VStack>
           <Box alignItems="center">
             <Flex direction="row" h="58" p="4">
               <Box alignItems="center">

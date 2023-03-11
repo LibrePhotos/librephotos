@@ -68,7 +68,7 @@ const uploadSlice = createSlice({
     })
     builder.addCase(uploadImages.rejected, (state, action) => {
       console.log('Error uploading images')
-      console.log(action)
+      console.log(JSON.stringify(action))
       return {
         ...state,
         isUploading: false,
@@ -78,8 +78,6 @@ const uploadSlice = createSlice({
 })
 
 const chunkSize = 1000000 // < 1MB chunks, because of default of nginx
-
-let currentUploadedFileSize = 0
 
 const uploadExists = async (hash: string, dispatch: any) =>
   dispatch(api.endpoints.uploadExists.initiate(hash))
@@ -105,6 +103,7 @@ const uploadChunk = async (
   offset: number,
   baseurl: string,
   user_id: number,
+  file_size: number,
 ) => {
   // only send first chunk without upload id
   const formData = new FormData()
@@ -120,6 +119,10 @@ const uploadChunk = async (
     name: 'blob',
   })
 
+  const currentChunkSize = await FileSystem.stat(chunk._ref).then(fileStat => {
+    return fileStat.size
+  })
+
   // FIX-ME: This is empty
   formData.append('md5', '')
   formData.append('offset', offset.toString())
@@ -128,6 +131,9 @@ const uploadChunk = async (
     headers: {
       'Content-Type': 'multipart/form-data',
       'X-CSRFToken': cookies.csrftoken.value,
+      'Content-Range': `bytes ${offset}-${
+        offset + currentChunkSize - 1
+      }/${file_size}`,
     },
     transformRequest: data => {
       return data
@@ -165,6 +171,7 @@ export const uploadImages = createAsyncThunk(
     dispatch(
       setTotalSize(fileStats.map(file => file.size).reduce((a, b) => a + b)),
     )
+    let currentUploadedFileSize = 0
     const user_id = (thunkAPI.getState() as RootState).auth.access?.user_id
     const baseurl = (thunkAPI.getState() as RootState).config.baseurl
     for (const file of files) {
@@ -190,6 +197,7 @@ export const uploadImages = createAsyncThunk(
             offset,
             baseurl,
             user_id ? user_id : 0,
+            fileStat.size,
           )
           if ('data' in response) {
             offset = response.data.offset
@@ -197,10 +205,14 @@ export const uploadImages = createAsyncThunk(
           }
           // To-Do: Handle Error
           if (chunks[offset / chunkSize]) {
-            currentUploadedFileSize += chunks[offset / chunkSize].size
+            const fileStat = await FileSystem.stat(
+              chunks[offset / chunkSize]._ref,
+            )
+            currentUploadedFileSize += fileStat.size
           } else {
+            const fileStat = await FileSystem.stat(file.url)
             currentUploadedFileSize +=
-              file.size -
+              fileStat.size -
               (currentUploadedFileSize - currentUploadedFileSizeStartValue)
           }
           dispatch(setCurrentSize(currentUploadedFileSize))
@@ -216,7 +228,8 @@ export const uploadImages = createAsyncThunk(
         dispatch(localImageSynced(file))
       } else {
         console.log('File already uploaded')
-        currentUploadedFileSize += file.size
+        const fileStat = await FileSystem.stat(file.url)
+        currentUploadedFileSize += fileStat.size
         dispatch(setCurrentSize(currentUploadedFileSize))
         dispatch(localImageSynced(file))
       }
