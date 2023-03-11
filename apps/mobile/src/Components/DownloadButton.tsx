@@ -1,8 +1,7 @@
 import React from 'react'
 import { View } from 'react-native'
-import { useAppDispatch, useAppSelector } from '../Store/store'
+import { useAppSelector } from '../Store/store'
 import Icon from 'react-native-vector-icons/Feather'
-import { Spinner } from 'native-base'
 import ReactNativeBlobUtil from 'react-native-blob-util'
 
 type DownloadButtonProps = {

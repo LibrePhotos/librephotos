@@ -51,7 +51,7 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
     )
   }
 
-  const onCheckViewableItems = ({ viewableItems, changed }) => {
+  const onCheckViewableItems = ({ viewableItems }) => {
     getAlbums(viewableItems)
   }
 
@@ -72,7 +72,7 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
     setGroups(fetchableGroups)
   }
 
-  const renderSectionListItem = ({ item, index, section, seperators }) => {
+  const renderSectionListItem = ({ index, section }) => {
     if (index % COLUMNS !== 0) {
       return null
     }
