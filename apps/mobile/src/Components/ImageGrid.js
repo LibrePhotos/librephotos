@@ -210,7 +210,6 @@ const ImageGrid = ({
           numColumns={COLUMNS}
           data={data}
           renderItem={renderPhoto}
-          //To-Do: Broken!
           onViewableItemsChanged={onViewRef.current}
           viewabilityConfig={viewConfigRef.current}
         />

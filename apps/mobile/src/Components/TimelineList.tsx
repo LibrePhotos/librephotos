@@ -8,24 +8,31 @@ import { NoResultsError } from '.'
 import ImageGrid from './ImageGrid'
 import FetchAlbumDate from '../Store/Album/FetchAlbumDate'
 
+type Group = {
+  id: string
+  page: number
+}
+
 const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
   const { Colors, Gutters } = useTheme()
   const dispatch = useDispatch()
   const COLUMNS = 90
 
-  const [group, setGroup] = useState({})
+  const [groups, setGroups] = useState([] as Group[])
 
   useEffect(() => {
-    if (group.id && group.page) {
-      dispatch(
-        FetchAlbumDate.action({
-          album_date_id: group.id,
-          page: group.page,
-          photosetType: 'timestamp',
-        }),
-      )
-    }
-  }, [group.id, group.page, dispatch])
+    groups.forEach(group => {
+      if (group.id && group.page) {
+        dispatch(
+          FetchAlbumDate.action({
+            album_date_id: group.id,
+            page: group.page,
+            photosetType: 'timestamp',
+          }),
+        )
+      }
+    })
+  }, [groups, dispatch])
 
   const renderSectionHeader = ({ section: { title } }) => {
     return (
@@ -49,6 +56,7 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
   }
 
   const getAlbums = visibleGroups => {
+    const fetchableGroups = [] as Group[]
     visibleGroups.forEach(input => {
       var group = input.item
       var visibleImages = group.data
@@ -58,9 +66,10 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
       ) {
         var firstTempObject = visibleImages.filter(i => i.isTemp)[0]
         var page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100)
-        setGroup({ id: group.id, page: page })
+        fetchableGroups.push({ id: group.id, page: page })
       }
     })
+    setGroups(fetchableGroups)
   }
 
   const renderSectionListItem = ({ item, index, section, seperators }) => {
@@ -91,7 +100,8 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
           sections={data}
           onViewableItemsChanged={onCheckViewableItems}
           viewabilityConfig={{
-            itemVisiblePercentThreshold: 50, //means if 50% of the item is visible
+            waitForInteraction: false,
+            itemVisiblePercentThreshold: 1,
           }}
         />
       )}
