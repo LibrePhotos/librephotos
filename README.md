@@ -19,7 +19,7 @@ Step-by-step installation instructions are available in our [documentation](http
 
 ## How to help out
 - ⭐ **Star** this repository if you like this project!
-- 🚀 **Developing**: Get started in less than 30 minutes by following the [guide here](https://docs.librephotos.com/1/dev_install/)
+- 🚀 **Developing**: Get started in less than 30 minutes by following [this guide](https://docs.librephotos.com/docs/development/dev-install).
 - 🗒️ **Documentation**: Improving the documentation is as simple as submitting a pull request [here](https://github.com/LibrePhotos/librephotos.docs)
 - 🧪 **Testing**: If you want to help find bugs, use the ```dev``` tag and update it regularly. If you find a bug, open an issue.
 - 🧑‍🤝‍🧑 **Outreach**: Talk about this project with other people and help them to get started too!
