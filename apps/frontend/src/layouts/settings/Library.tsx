@@ -13,12 +13,14 @@ import {
   HoverCard,
   List,
   Loader,
+  Menu,
   Modal,
   Space,
   Stack,
   Text,
   TextInput,
   Title,
+  createStyles,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
@@ -28,11 +30,13 @@ import {
   Book,
   BrandNextcloud,
   Check,
+  ChevronDown,
   FaceId,
   Folder,
   QuestionMark,
   Refresh,
   RefreshDot,
+  Scan,
   X,
 } from "tabler-icons-react";
 
@@ -51,6 +55,20 @@ import { ModalNextcloudScanDirectoryEdit } from "../../components/modals/ModalNe
 import { CountStats } from "../../components/statistics";
 import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
+
+const useStyles = createStyles(theme => ({
+  button: {
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+
+  menuControl: {
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+    border: 0,
+    borderLeft: `1px solid ${theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.white}`,
+  },
+}));
 
 export function Library() {
   const [isOpen, { open, close }] = useDisclosure(false);
@@ -71,6 +89,7 @@ export function Library() {
   const statusPhotoScan = useAppSelector(state => state.util.statusPhotoScan);
   const { t } = useTranslation();
   const [fetchNextcloudDirs, { isFetching: isNextcloudFetching }] = useLazyFetchNextcloudDirsQuery();
+  const { classes, theme } = useStyles();
 
   const onPhotoScanButtonClick = () => {
     dispatch(scanPhotos());
@@ -165,57 +184,54 @@ export function Library() {
             <Grid>
               <Grid.Col span={10}>
                 <Stack spacing={0}>
-                  <Text>Scan Library</Text>
+                  <Group>
+                    <Text>Scan Library</Text>
+                    <ActionIcon radius="xl" variant="light" size="xs">
+                      <QuestionMark onClick={() => setIsOpenNextcloudHelp(!isOpenNextcloudHelp)} />
+                    </ActionIcon>
+                  </Group>
                   <Text fz="sm" color="dimmed">
                     {t("settings.scanphotosdescription")}
                   </Text>
                 </Stack>
               </Grid.Col>
               <Grid.Col span={2}>
-                <Button
-                  onClick={onPhotoScanButtonClick}
-                  disabled={!workerAvailability}
-                  leftIcon={<Refresh />}
-                  variant="subtle"
-                >
-                  {statusPhotoScan.status && statusPhotoScan.added ? <Loader /> : null}
-                  {statusPhotoScan.added
-                    ? `${t("settings.statusscanphotostrue")}(${statusPhotoScan.added}/${statusPhotoScan.to_add})`
-                    : t("settings.statusscanphotosfalse")}
-                </Button>
-              </Grid.Col>
-            </Grid>
-            <Divider />
-            <Grid>
-              <Grid.Col span={10}>
-                <Stack spacing={0}>
-                  <Group>
-                    <Text>Force local library rescan</Text>
-                    <ActionIcon radius="xl" variant="light" size="xs">
-                      <QuestionMark onClick={() => setIsOpenNextcloudHelp(!isOpenNextcloudHelp)} />
-                    </ActionIcon>
-                  </Group>
-                  <Text fz="sm" color="dimmed">
-                    {t("settings.rescanphotosdescription")}
-                  </Text>
-                </Stack>
-              </Grid.Col>
-              <Grid.Col span={2}>
-                <Button
-                  onClick={onPhotoFullScanButtonClick}
-                  disabled={!workerAvailability}
-                  leftIcon={<Refresh />}
-                  variant="subtle"
-                >
-                  {statusPhotoScan.status && statusPhotoScan.added ? <Loader /> : null}
-                  {statusPhotoScan.added
-                    ? `${t("settings.statusrescanphotostrue")}(${statusPhotoScan.added}/${statusPhotoScan.to_add})`
-                    : t("settings.statusrescanphotosfalse")}
-                </Button>
+                <Group noWrap spacing={0}>
+                  <Button
+                    onClick={onPhotoScanButtonClick}
+                    disabled={!workerAvailability}
+                    leftIcon={<Refresh />}
+                    variant="filled"
+                    className={classes.button}
+                  >
+                    {statusPhotoScan.status && statusPhotoScan.added ? <Loader /> : null}
+                    {statusPhotoScan.added
+                      ? `${t("settings.statusscanphotostrue")}(${statusPhotoScan.added}/${statusPhotoScan.to_add})`
+                      : t("settings.statusscanphotosfalse")}
+                  </Button>
+                  <Menu transition="pop" position="bottom-end" withinPortal>
+                    <Menu.Target>
+                      <ActionIcon variant="filled" color="blue" size={36} className={classes.menuControl}>
+                        <ChevronDown size="1rem" />
+                      </ActionIcon>
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                      <Menu.Item icon={<Refresh size="1rem" />} onClick={onPhotoFullScanButtonClick}>
+                        {statusPhotoScan.status && statusPhotoScan.added ? <Loader /> : null}
+                        {statusPhotoScan.added
+                          ? `${t("settings.statusrescanphotostrue")}(${statusPhotoScan.added}/${
+                              statusPhotoScan.to_add
+                            })`
+                          : t("settings.statusrescanphotosfalse")}
+                      </Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
+                </Group>
               </Grid.Col>
             </Grid>
 
             <Collapse in={isOpenNextcloudHelp}>
+              <Text fz="lg">Rescan will reprocess your entire library through the following tasks: </Text>
               <List>
                 <List.Item>
                   <Trans i18nKey="settings.scannextclouddescription.item1">
