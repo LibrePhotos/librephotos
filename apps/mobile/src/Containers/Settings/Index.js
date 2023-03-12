@@ -131,8 +131,8 @@ const SettingsContainer = () => {
           <Box alignItems="center">
             <Flex direction="row" h="58" p="4">
               <Box alignItems="center">
-                <Text>Local</Text>
-                <Text>
+                <Text color={Colors.text}>Local</Text>
+                <Text color={Colors.text}>
                   {
                     localImages.filter(i => i.syncStatus === SyncStatus.LOCAL)
                       .length
@@ -141,8 +141,8 @@ const SettingsContainer = () => {
               </Box>
               <Divider thickness="2" mx="2" orientation="vertical" />
               <Box alignItems="center">
-                <Text>Syncing</Text>
-                <Text>
+                <Text color={Colors.text}>Syncing</Text>
+                <Text color={Colors.text}>
                   {
                     localImages.filter(i => i.syncStatus === SyncStatus.SYNCING)
                       .length
@@ -152,8 +152,8 @@ const SettingsContainer = () => {
               <Divider thickness="2" mx="2" orientation="vertical" />
 
               <Box alignItems="center">
-                <Text>Synced</Text>
-                <Text>
+                <Text color={Colors.text}>Synced</Text>
+                <Text color={Colors.text}>
                   {
                     localImages.filter(i => i.syncStatus === SyncStatus.SYNCED)
                       .length
