@@ -207,9 +207,9 @@ const localImagesSlice = createSlice({
         isLoading: false,
       }
     })
-    builder.addCase(loadLocalImages.rejected, state => {
-      console.log(state.images)
-      console.log('Error loading local images')
+    builder.addCase(loadLocalImages.rejected, (state, action) => {
+      console.log('Error loading local images: ' + action.error.message)
+      console.log(JSON.stringify(action))
       return {
         ...state,
         isLoading: false,

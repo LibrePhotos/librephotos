@@ -61,7 +61,7 @@ const ApplicationNavigator = () => {
       RNShake.addListener(() => {
         FileLogger.getLogFilePaths().then(console.log.bind(this, 'Log Files:'))
         FileLogger.sendLogFilesByEmail({
-          to: 'bugreports@akshay-naik.com',
+          to: 'faridani-rad@gmail.com',
           subject: 'Bug Report',
           body: emailTemplate + '\n\nDescribe your bug: ',
         })
