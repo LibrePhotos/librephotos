@@ -16,7 +16,7 @@ class GroupedPersonPhotosSerializer(serializers.ModelSerializer):
         model = Person
         fields = (
             "id",
-            "title",
+            "name",
             "grouped_photos",
         )
 
