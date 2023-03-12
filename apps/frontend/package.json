@@ -109,7 +109,7 @@
     "redux-thunk": "2.4.1",
     "rumble-charts": "4.0.0",
     "source-map-explorer": "2.5.2",
-    "tabler-icons-react": "1.52.0",
+    "tabler-icons-react": "1.56.0",
     "zod": "3.17.3"
   },
   "devDependencies": {
