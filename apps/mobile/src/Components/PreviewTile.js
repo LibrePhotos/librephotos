@@ -16,7 +16,7 @@ const PreviewTile = ({
 }) => {
   const { Colors, Layout, Common, Gutters } = useTheme()
   const navigation = useNavigation()
-  const authToken = useSelector(state => state.auth.access.token)
+  const authToken = useSelector(state => state.auth.access?.token)
 
   const handleItemPress = (item, index, section) => {
     photos(item)

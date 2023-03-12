@@ -25,7 +25,7 @@ const ImageGrid = ({
   const [isImageZoomed, setImageZoomed] = useState(false)
   const [currImage, setCurrImage] = useState({ item: {} })
 
-  const authToken = useSelector(state => state.auth.access.token)
+  const authToken = useSelector(state => state.auth.access?.token)
   const config = useSelector(state => state.config)
 
   const dispatch = useDispatch()

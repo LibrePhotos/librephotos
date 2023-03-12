@@ -13,7 +13,7 @@ const AlbumListContainer = ({
 }) => {
   const { Common, Colors, Gutters, Layout } = useTheme()
   const navigation = useNavigation()
-  const authToken = useSelector(state => state.auth.access.token)
+  const authToken = useSelector(state => state.auth.access?.token)
 
   const handleItemPress = (item, index) => {
     photos(item)

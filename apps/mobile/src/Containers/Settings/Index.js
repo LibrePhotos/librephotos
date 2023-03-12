@@ -38,7 +38,7 @@ const SettingsContainer = () => {
   const baseurl = useSelector(state => state.config.baseurl)
   const logging = useSelector(state => state.config.logging)
   const theme = useSelector(state => state.theme.darkMode)
-  const user = useSelector(state => state.auth.access)
+  const user = useSelector(state => state.auth?.access)
   const localImages = useSelector(state => state.localImages.images)
   const { current, total, isUploading } = useSelector(state => state.upload)
 
