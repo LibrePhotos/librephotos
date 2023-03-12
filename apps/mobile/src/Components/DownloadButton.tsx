@@ -16,23 +16,13 @@ export function DownloadButton(props: DownloadButtonProps) {
 
   const onPress = async () => {
     let image_url = baseurl + '/media/photos/' + image.id
-    console.log('Downloading image: ' + image.id)
-    console.log('Downloading image from: ' + image_url)
     await ReactNativeBlobUtil.config({
       fileCache: true,
     })
-      .fetch(
-        'GET',
-        image_url,
-        {
-          Authorization: 'Bearer ' + access.token,
-          Accept: 'application/octet-stream',
-        },
-        JSON.stringify(dat),
-      )
+      .fetch('GET', image_url, {
+        Authorization: 'Bearer ' + access.token,
+      })
       .then(async res => {
-        console.log(res)
-        console.log('Image downloaded to: ' + res.path())
         let result = await ReactNativeBlobUtil.MediaCollection.copyToMediaStore(
           {
             name: image.id + '.jpg', // name of the file
