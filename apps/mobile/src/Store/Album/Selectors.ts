@@ -1,9 +1,10 @@
 import { createSelector } from '@reduxjs/toolkit'
 import { SyncStatus } from '../LocalImages/LocalImages.zod'
+import type { RootState } from '../../Store/store'
 
 export const selectAlbumDateWithLocalImages = createSelector(
-  state => state.album.albumByDate,
-  state => state.localImages.images,
+  (state: RootState) => state.album.albumByDate,
+  (state: RootState) => state.localImages.images,
   (albumByDate, localPhotos) => {
     let albumWithLocalPhotos = albumByDate
     localPhotos.forEach(photo => {

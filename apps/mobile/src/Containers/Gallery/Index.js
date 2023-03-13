@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { View } from 'react-native'
 import { Button, HStack, ScrollView } from 'native-base'
@@ -32,7 +32,8 @@ const GalleryContainer = () => {
   const dispatch = useDispatch()
 
   const albums = useSelector(state => state.album)
-  const photosByDate = useSelector(selectAlbumDateWithLocalImages)
+  const memoizedSelector = useMemo(() => selectAlbumDateWithLocalImages, [])
+  const photosByDate = useSelector(memoizedSelector)
   const albumWithoutDate = useSelector(state => state.album.albumWithoutDate)
   const albumRecentlyAdded = useSelector(
     state => state.album.albumRecentlyAdded,
