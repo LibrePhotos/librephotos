@@ -50,7 +50,7 @@ const GalleryContainer = () => {
       case CategoryType.PhotosByDate:
         // To-Do: Figure out how to reload when new local images are added
         dispatch(loadLocalImages())
-        dispatch(checkIfLocalImagesAreSynced())
+        // dispatch(checkIfLocalImagesAreSynced())
         dispatch(FetchAlbumByDate.action())
         break
       case CategoryType.PhotosWithoutDate:
