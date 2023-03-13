@@ -53,16 +53,17 @@ export const checkIfLocalImagesAreSynced = createAsyncThunk(
     const dispatch = apiThunk.dispatch
     const localImages = (store.getState() as RootState).localImages.images
 
-    localImages
-      .filter(image => image.syncStatus !== SyncStatus.SYNCED)
-      .map(async image => {
-        const result = await dispatch(
-          api.endpoints.uploadExists.initiate(image.id),
-        )
-        if (result.data) {
-          dispatch(localImageSynced(image))
-        }
-      })
+    localImages.map(async image => {
+      const result = await dispatch(
+        api.endpoints.uploadExists.initiate(image.id),
+      )
+      // To-Do: Check this more efficiently
+      if (result.data) {
+        dispatch(localImageSynced(image))
+      } else {
+        dispatch(localImageNotSynced(image))
+      }
+    })
   },
 )
 
@@ -181,6 +182,17 @@ const localImagesSlice = createSlice({
         ),
       }
     },
+    localImageNotSynced: (state, { payload }) => {
+      console.log('Local image not synced: ' + payload.id)
+      return {
+        ...state,
+        images: state.images.map(image =>
+          image.id === payload.id
+            ? { ...image, syncStatus: SyncStatus.LOCAL }
+            : image,
+        ),
+      }
+    },
     reset: () => {
       console.log('Resetting local images')
       return initialState
@@ -239,4 +251,5 @@ async function hasReadAndroidPermission() {
 
 export const { actions: localImagesActions, reducer: localImagesReducer } =
   localImagesSlice
-export const { localImageSynced, reset } = localImagesActions
+export const { localImageSynced, localImageNotSynced, reset } =
+  localImagesActions
