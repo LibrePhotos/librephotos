@@ -25,7 +25,7 @@ import {
   selectIsAuthenticated,
   selectAuthErrors,
 } from '@/Store/Auth/authSelectors'
-import { useAppSelector } from '@/Store/store'
+import { useAppSelector, useAppDispatch } from '@/Store/store'
 import { changeBaseurl } from '@/Store/Config/configSlice'
 
 const IndexLoginContainer = () => {
@@ -42,20 +42,22 @@ const IndexLoginContainer = () => {
 
   const isLoggedin = useAppSelector(selectIsAuthenticated)
   const [login, { isLoading }] = useLoginMutation()
+  const dispatch = useAppDispatch()
+
   useEffect(() => {
     if (isLoggedin) {
       navigateAndSimpleReset('Main')
     }
   }, [isLoggedin])
 
-  const preprocessserver = (serverInput: string) => {
+  const preprocessserver = (serverInput: string, secure: boolean) => {
     let serverName = serverInput.trim().toLowerCase()
 
     if (
       !serverName.startsWith('http://') &&
       !serverName.startsWith('https://')
     ) {
-      serverName = 'http://' + serverName
+      serverName = 'http' + (secure ? 's' : '') + '://' + serverName
     }
 
     if (serverName.endsWith('/')) {
@@ -65,7 +67,6 @@ const IndexLoginContainer = () => {
   }
 
   const loginOnClick = (_evt: any) => {
-    changeBaseurl({ baseurl: preprocessserver(server) })
     login({ username, password })
   }
 
@@ -73,9 +74,22 @@ const IndexLoginContainer = () => {
 
   useEffect(() => {
     setServerValidation(true)
-    CheckServerService(preprocessserver(server)).then(isValid => {
-      setValidServer(isValid)
-      setServerValidation(false)
+    CheckServerService(preprocessserver(server, false)).then(isValid => {
+      if (!isValid) {
+        CheckServerService(preprocessserver(server, true)).then(isValid => {
+          setValidServer(isValid)
+          setServerValidation(false)
+          const serverName = preprocessserver(server, true)
+          if (isValid) {
+            dispatch(changeBaseurl({ baseurl: serverName }))
+          }
+        })
+      } else {
+        setValidServer(isValid)
+        setServerValidation(false)
+        const serverName = preprocessserver(server, false)
+        dispatch(changeBaseurl({ baseurl: serverName }))
+      }
     })
   }, [server])
 
