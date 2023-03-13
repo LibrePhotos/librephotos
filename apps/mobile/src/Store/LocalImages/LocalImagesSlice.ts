@@ -66,6 +66,10 @@ export const checkIfLocalImagesAreSynced = createAsyncThunk(
   },
 )
 
+type PageInfoWithNoValidPhotos = PageInfo & {
+  no_valid_photos: boolean
+}
+
 export const loadLocalImages = createAsyncThunk(
   'localImages/loadLocalImages',
   async () => {
@@ -74,10 +78,11 @@ export const loadLocalImages = createAsyncThunk(
     }
     const lastFetch = (store.getState() as RootState).localImages.lastFetch
     var photos = [] as LocalImages
-    var page_info: PageInfo = {
+    var page_info: PageInfoWithNoValidPhotos = {
       has_next_page: true,
       start_cursor: undefined,
       end_cursor: undefined,
+      no_valid_photos: false,
     }
     console.log('Loading local images')
     console.log(
@@ -85,8 +90,7 @@ export const loadLocalImages = createAsyncThunk(
       lastFetch ? moment.unix(lastFetch).format('YYYY-MM-DD') : 'Never',
     )
     // load images from CameraRoll
-    // To-Do: Check on phone
-    while (page_info.has_next_page) {
+    while (page_info.has_next_page && !page_info.no_valid_photos) {
       page_info = await CameraRoll.getPhotos({
         first: 100,
         after: page_info.end_cursor,
@@ -110,7 +114,7 @@ export const loadLocalImages = createAsyncThunk(
         const newPhotos = currentPage.filter(item => item !== undefined)
         console.log('Number of new items: ', newPhotos.length)
         photos = [...photos, ...newPhotos]
-        return r.page_info
+        return { ...r.page_info, no_valid_photos: newPhotos.length === 0 }
       })
     }
 
