@@ -6,7 +6,7 @@ export const selectAlbumDateWithLocalImages = createSelector(
   (state: RootState) => state.album.albumByDate,
   (state: RootState) => state.localImages.images,
   (albumByDate, localPhotos) => {
-    let albumWithLocalPhotos = albumByDate
+    let albumWithLocalPhotos = [...albumByDate]
     localPhotos.forEach(photo => {
       let date = photo.birthTime
       // check if date exists within finalmap
