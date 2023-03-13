@@ -3,7 +3,7 @@ import secrets
 from django.utils import timezone
 from faker import Faker
 
-from api.models import Photo, User
+from api.models import File, Photo, User
 
 fake = Faker()
 
@@ -48,6 +48,12 @@ def create_test_photo(**kwargs):
 
 def create_test_photos(number_of_photos=1, **kwargs):
     return [create_test_photo(**kwargs) for _ in range(0, number_of_photos)]
+
+
+def create_test_file(**kwargs):
+    file = File(type=File.IMAGE, **kwargs)
+    file.save()
+    return file
 
 
 def share_test_photos(photo_ids, user):
