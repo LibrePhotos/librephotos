@@ -91,6 +91,7 @@ const IndexLoginContainer = () => {
         dispatch(changeBaseurl({ baseurl: serverName }))
       }
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [server])
 
   return (
