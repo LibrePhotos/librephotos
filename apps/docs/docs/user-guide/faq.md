@@ -43,17 +43,17 @@ Current thread 0x00007fc998cf8640 (most recent call first):
 
 ### Solution:
 
-This is a problem with proxmox, More specifically with the way CPU was emulated. By default Qemu in Proxmox uses its own CPU type kvm64, which has a reduced CPU flags set, to guaranteed that it works everywhere. This means that necessary flags like SSE and AVX are absent, which causes the Fatal Python error: Illegal instruction error.
+This is a problem with proxmox, More specifically with the way the CPU was emulated. By default, QEMU in Proxmox uses its own CPU type kvm64, which has a reduced CPU flags set, to guaranteed that it works everywhere. This means that necessary flags like SSE and AVX are absent, which causes the Fatal Python error: Illegal instruction error.
 
-To fix this one must either manually edit the .conf file and add the flags needed to the kvm64 CPU type, or pick a different method of CPU emulation.
+To fix this, one must either manually edit the .conf file and add the flags needed to the kvm64 CPU type, or pick a different method of CPU emulation.
 
-To add the flags edit the xxx.conf file located in /etc/pve/qemu-server/ where xxx is the id of the VM. Manual can be found here: https://pve.proxmox.com/wiki/Manual:_qm.conf
+To add the flags, edit the xxx.conf file located in /etc/pve/qemu-server/ where xxx is the ID of the VM. The manual can be found here: https://pve.proxmox.com/wiki/Manual:_qm.conf
 
-If you don't care about live migration and moving VMs between nodes, the much easier option is to just change the CPU type to Host. With Host option VM will match the CPU type of the host machine.
+If you don't care about live migration and moving VMs between nodes, the much easier option is to just change the CPU type to Host. With the Host option, the VM will match the CPU type of the host machine.
 
 ### Steps for Proxmox 6.4:
 
 Select your VM and then Hardware tab.
 {% include figure image_path="/assets/images/135711616-14903f44-2bdc-4830-82e9-a29562f75762.png" alt="Select your VM and then Hardware tab" %}
-Then double click on Processors or select it and click Edit:
-{% include figure image_path="/assets/images/135711657-3cdc2600-2368-440c-af75-00313c8c8997.png" alt="Then double click on Processors or select it and click Edit"  %}
+Then double-click on Processors or select it and click Edit:
+{% include figure image_path="/assets/images/135711657-3cdc2600-2368-440c-af75-00313c8c8997.png" alt="Then double-click on Processors or select it and click Edit"  %}

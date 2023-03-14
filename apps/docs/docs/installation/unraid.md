@@ -1,6 +1,6 @@
 ---
 title: "📦 unRAID"
-excerpt: "How to install Libre Photos on Unraid using Docker Compose."
+excerpt: "How to install LibrePhotos on Unraid using Docker Compose."
 sidebar_position: 3
 ---
 
@@ -35,16 +35,16 @@ Download this file and save it as .env:
 wget -O .env https://raw.githubusercontent.com/LibrePhotos/librephotos-docker/main/librephotos.env
 ```
 
-​Download this file to same directory but keep the original name:
+​Download this file to the same directory, but keep the original name:
 
 ```bash
 wget https://raw.githubusercontent.com/LibrePhotos/librephotos-docker/main/docker-compose.yml
 ```
 
-You'll need to edit the .env file with paths to your photos (myPhotos) and possibly the timeZone variable. Optionally you'll want to grab a mapbox API key as documented in the file. Keep note of the default http port, 3000.
-You should have LibrePhotos accessible after a few minutes of boot-up on unraidip:3000 unless you changed this in the .env file. The username is admin & the password is admin unless you changed them in the .env file. It is recommended you change the admin username and password if LibrePhotos is going to be publicly accessible. This is done via the .env file.
+You'll need to edit the .env file with paths to your photos (myPhotos) and possibly the timeZone variable. Optionally, you'll want to grab a mapbox API key as documented in the file. Keep note of the default HTTP port, 3000.
+You should have LibrePhotos accessible after a few minutes of boot-up on unraidip:3000 unless you changed this in the .env file. The username is admin & the password is admin, unless you changed them in the .env file. It is recommended you change the admin username and password if LibrePhotos is going to be publicly accessible. This is done via the .env file.
 
-​Once done you can fire up the containers by typing:
+​Once done, you can fire up the containers by typing:
 
 ```bash
 docker-compose up -d
@@ -64,14 +64,14 @@ docker ps | grep librephoto
 
 Finally, you can access the UI by going to http://unraidip:3000
 
-First thing you'll want to do in the UI is go to the drop down menu located at the top right under avatar and select Admin Area.
+The first thing you'll want to do in the UI is go to the drop-down menu located at the top right under avatar and select Admin Area.
 
 You'll need to set your "Scan Directory" which should be /data.
 
-Go back to the drop down and select Settings. Scroll to the bottom and select Scan photos from bottom left. You'll see some activity on your server as the photos are being processed. You can check on them by going to Photos on the top left of the UI and select recently added.
+Go back to the drop-down and select Settings. Scroll to the bottom and select Scan photos from bottom left. You'll see some activity on your server as the photos are being processed. You can check on them by going to Photos on the top left of the UI and select recently added.
 ​
 
-You can also monitor progress from shell prompt by tailing this file:
+Furthermore, you can also monitor progress from shell prompt by tailing this file:
 
 ```bash
 tail -f librephotos_logs/ownphotos.log
@@ -83,7 +83,7 @@ To shut everything down:
 docker-compose down
 ```
 
-If you want to grab any updates you can type:
+If you want to grab any updates, you can type:
 
 ```bash
 docker-compose pull
@@ -91,9 +91,9 @@ docker-compose pull
 
 ## docker-compose issues when rebooting
 
-After a reboot docker-compose is not installed anymore, since unRAID loads everything from ram. Someone created a Docker Compose Manager app in the Apps catalog for unRAID. This makes sure docker-compose is installed everytime you reboot unRAID and they are currently working on a WebGUI.
+After a reboot, docker-compose is not installed anymore, since unRAID loads everything from ram. Someone created a Docker Compose Manager app in the Apps catalog for unRAID. This makes sure docker-compose is installed every time you reboot unRAID, and they are currently working on a Web GUI.
 
-Thanks to [u/Tusc00](https://old.reddit.com/user/Tusc00) and Martijn (Spiek90) for this [write up](https://old.reddit.com/r/unRAID/comments/knaniy/librephotos/goeyy4l/)!
+Thanks to [u/Tusc00](https://old.reddit.com/user/Tusc00) and Martijn (Spiek90) for this [write-up](https://old.reddit.com/r/unRAID/comments/knaniy/librephotos/goeyy4l/)!
 
 ## Next Steps
 
