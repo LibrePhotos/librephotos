@@ -1,6 +1,6 @@
 ---
 title: "🐋 Docker"
-excerpt: "How to install Libre Photos using Docker and Docker Compose."
+excerpt: "How to install LibrePhotos using Docker and Docker Compose."
 sidebar_position: 1
 ---
 
@@ -10,12 +10,12 @@ We recommend you use docker compose as this matches the demo and development env
 
 ### Compatibility
 
-You need a x86 or a ARM64 processor, and it is recommended to have 4GBs of RAM. Due to limited ram & processing power ARM64 will not be as fast.
+You need an x86 or ARM64 processor, and it is recommended to have 4GBs of RAM. Due to limited memory & processing power, ARM64 will not be as fast.
 
 ### Size
 
 You will need at least 10 GB of HDD Space for the docker images. It needs that space because of the machine learning
-models. Librephotos will also create a database and thumbnails which will need additional space.
+models. Librephotos will also create a database and thumbnails, which will need additional space.
 
 ### 🚀 Installation
 
@@ -64,4 +64,4 @@ Replace the first part that is in brackets with the actual location of the folde
 sudo docker run -v <photos>:/var/lib/librephotos/photos/ -v <thumbnails>:/var/lib/librephotos/data/protected_media -v <logs>:/var/log/librephotos/ -v <db>:/var/lib/postgresql/data -p 3000:80 -d reallibrephotos/singleton
 ```
 
-If you run into any permission issue add `-e FIXPERMISSIONS=true` or change the permission to allow read/write/exectute for others of your photos folder.
+If you run into any permission issue, add `-e FIXPERMISSIONS=true` or change the permission to allow read/write/execute your photo folder to other users.

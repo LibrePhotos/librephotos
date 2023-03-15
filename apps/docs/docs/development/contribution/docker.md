@@ -7,4 +7,4 @@ category: 5
 
 ## ✨ Code Standards
 
-If you want to change something up or simplify a dockerfile, please make sure it works on all platforms.
+If you want to change something up or simplify a Dockerfile, please make sure it works on all platforms.

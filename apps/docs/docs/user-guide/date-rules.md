@@ -16,36 +16,35 @@ The logic for extracting local time is described as a list of rules that should 
 one after another until one rule is able to extract date time (or until all rules are tried
 without success).
 
-If a rule can't fetch the time (e.g. the exif tag value is not present or path doesn't match
+If a rule can't fetch the time (e.g. the EXIF tag value is not present or the path doesn't match
 the rule) then that rule is considered to be not applicable.
 
 ### Figuring out the timezone
 
 Some sources of data might give us very rich information, e.g. timestamp + timezone,
-but others only allow to get local time (without knowing real timestamp).
+but others only allow getting local time (without knowing real timestamp).
 
-For historical reason it is expected to have a timestamp and a timezone.
+For historical reasons, it is expected to have a timestamp and a timezone.
 
-In some cases it is known that the local time the rule would obtain is not in the desired
-timezone. E.g. video datetime tag QuickTime:CreateDate is by standard written in UTC rather
-than local time. For such cases each rule can optionally have setting "transform_tz" set to "1" - in that case this rule should also specify "source_tz" and "report_tz" settings where
+In some cases, it is known that the local time the rule would obtain is not in the desired
+timezone. E.g. video date time tag QuickTime:CreateDate is by standard written in UTC rather than local time. For such cases, each rule can optionally have setting "transform_tz" set to "1" - in that case this rule should also specify "source_tz" and "report_tz" settings where
 "source_tz" is describing the timezone that the rule is getting and "report_tz" is describing
 the timezone of the location where the photo/video was taken. Both "source_tz" and "report_tz"
-should be one of the follwing:
+should be one of the following:
 
 - "utc" - UTC timezone
 - "gps_timezonefinder" - the timezone of the GPS location associated with the photo/video - "name:<timezone_name>"
 - the timezone with the name <timezone_name>
 
-If either "source_tz" or "report_tz" could not be obtained the rule is considered to be not applicable.
+If either "source_tz" or "report_tz" could not be obtained, the rule is considered to be not applicable.
 
 ### The different rule types
 
-Currently supported rule types:
+Currently, supported rule types:
 
 - "exif" - local time is taken using exif tag params["exif_tag"] as obtained with exiftool
 - "path" - time is taken from the filename using a regular expression matching
-- "fs" - time is taken from file property. Since these are unix timestamps without timezones
+- "fs" - time is taken from file property. Since these are UNIX timestamps without timezones
   they are always translated to local time using UTC.
 - "user defined" - the date time defined by the user from the frontend
 
@@ -53,11 +52,11 @@ Currently supported rule types:
 
 ### Adding optional rules
 
-To add a new rule, go to settings and navigate to the datetime parsing rules. Click on the button "Add rule". You can now add optional rules like using the modified time or the create time from the file.
+To add a new rule, go to settings and navigate to the date time parsing rules. Click on the button "Add rule". You can now add optional rules like using the modified time or to create time from the file.
 
 ### Changing the order
 
-The top rules gets applied first and the bottom rules gets applied last. To change the order drag and drop one of the cards and save them by clicking on update.
+The top rules will be applied first, and the bottom rules be applied last. To change the order, drag and drop one of the cards and save them by clicking on update.
 
 ### Applying the rules
 

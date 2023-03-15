@@ -6,7 +6,7 @@ sidebar_position: 1
 
 ## First steps after setting up
 
-On your first visit, you should see the first time setup. Fill out the details and login. The next step is to setup your scan directory. Click on the green button, which is on the photo site and fill out your scan directory. After saving your first scan should start.
+On your first visit, you should see the first time setup. Fill out the details and login. The next step is to set up your scan directory. Click on the green button, which is on the photo site, and fill out your scan directory. After saving, your first scan should start.
 
 The basic idea is this:
 
@@ -25,9 +25,9 @@ Click on your avatar in the top right, and go to `Admin Area`. On this page, it 
 
 ## How to start a scan
 
-Click on your avatar in the top right , and go to `Library`. Click the green `Scan photos (file system)` button.
+Click on your avatar in the top right, and go to `Library`. Click the green `Scan photos (file system)` button.
 
-## How to import photos from an external NextCloud instance
+## How to import photos from an external Nextcloud instance
 
 If you have a Nextcloud instance, you can also input login details for it in the `Dashboard` > `Library` page.
 Fill out the details for the Nextcloud section. Once logged in (the little circle next to `Nextcloud Scan Directory` will be green), you can choose a top level directory in your logged in Nextcloud account. Once this has been configured, you can click the blue `Scan photos (Nextcloud)` button. This will copy the contents of the specified Nextcloud directory ([excluding videos](https://github.com/LibrePhotos/librephotos/issues/278)) to the local filesystem.

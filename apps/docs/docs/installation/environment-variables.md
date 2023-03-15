@@ -25,7 +25,7 @@ If the user wishes to re-use an existing instance of Redis that has password aut
 
 ### Old environment variables
 
-These are now site settings. If you set these values, they will act as the default on the first set up.
+These are now site settings. If you set these values, they will act as the default on the first set-up.
 
 ```bash
 # Comma delimited list of patterns to ignore (e.g. "@eaDir,#recycle" for synology devices)

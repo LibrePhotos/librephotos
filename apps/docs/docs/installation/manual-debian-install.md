@@ -8,9 +8,9 @@ LibrePhotos can be installed locally on Debian-based operating systems with syst
 
 ## Notes
 
-We currently only support nginx. If you want something custom adapt the script to your liking.
-We do not support a remote postgresql server yet.
-If REDIS present on the system AND connection to it through socket, change socket permissions to 770. librephotos user will be added to redis group.
+We currently only support nginx. If you want something custom, adapt the script to your liking.
+We do not support a remote PostgreSQL server yet.
+If REDIS present on the system AND connection to it through socket, change socket permissions to 770, user 'librephotos' will be added to group 'redis' automatically.
 
 ## Compatibility
 
@@ -33,7 +33,7 @@ sudo apt install git -y
 
 ### Debian like distribution
 
-Execute the following commands as root. Edit the begining of the script, and execute. This will create systemuser 'librephotos', creates directories, installs necessary software, creates database and automaGically writes some variables to librephotos-backend.env file.
+Execute the following commands as root. Edit the beginning of the script, and execute. This will create system user 'librephotos', creates directories, installs necessary software, creates database and automatically writes some variables to librephotos-backend.env file.
 
 ```
 sudo su
@@ -66,7 +66,7 @@ librephotos-frontend
 
 ### librephotos-cli
 
-As root you can use
+As root, you can use
 
 ```
 librephotos-cli build_similarity_index
@@ -75,8 +75,10 @@ librephotos-cli clear_cache
 
 ### Video are not playing
 
-This is a permissions issue. The subdirectories need others read and execute permissions and the video files need others read permissions. This is true even if everything is owned by librephotos:librephotos
+This is a permissions issue. The subdirectories need others read and execute permissions, and the video files need others read permissions. This is true even if everything is owned by librephotos:librephotos
 
 ## Next Steps
 
 Next, take a look at the [first steps after setup]({% post_url user_guide/0000-02-01-first_steps %}).
+
+

@@ -28,7 +28,7 @@ git clone https://github.com/LibrePhotos/librephotos.git
 git clone https://github.com/LibrePhotos/librephotos-docker.git
 ```
 
-### Setting up in Windows
+### Setting up on Windows
 
 In PowerShell:
 
@@ -43,7 +43,7 @@ git clone https://github.com/LibrePhotos/librephotos-docker.git
 ### Configuring the environment
 
 Set the needed variables in .env (take librephotos.env as model). Make sure you set the `codedir` variable that tells
-docker where your source folders are. this should be the same path as used to clone your repos.
+docker, where your source folders are. This should be the same path as used to clone your repos.
 
 Run `docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d`
 
@@ -72,7 +72,7 @@ in your Dockerfile folder, which is `/dev/librephotos/librephotos-docker` in our
 
 Visual Studio Code will open and ask you if you want to reopen it in the container. If you do, it will create the images
 from scratch (first time you do it can take a couple of minutes), and you will have the same Python interpreter
-LibrePhotos uses internally - and hence the same installed libraries in auto completion, and the same development
+LibrePhotos uses internally - and hence the same installed libraries in auto-completion, and the same development
 environment, will be shared by all devs. This includes tools like [isort](https://pycqa.github.io/isort/),
 [flake8](https://flake8.pycqa.org/en/latest/) and [pylint](https://www.pylint.org/).
 

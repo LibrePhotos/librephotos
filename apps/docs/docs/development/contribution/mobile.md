@@ -16,18 +16,18 @@ Open-Source Android and iOS Mobile Application for the [LibrePhotos](https://git
 
 ### 📱 Android
 
-1. Download the Latest Build from [Releases](https://github.com/LibrePhotos/librephotos-mobile/releases).
+1. Download the Latest Build from [releases](https://github.com/LibrePhotos/librephotos-mobile/releases).
 2. Install the APK
 
 ### 🍎 iOS
 
-Currently there are no automated build for IOS. You will need to builds the app from source. Follow the instructions in the next section.
+Currently, there are no automated builds for IOS. You will need to build the app from source. Follow the instructions in the next section.
 
 ### 🔨 Build from Source
 
 You also need to install the dependencies required by React Native: [Environment Setup](https://reactnative.dev/docs/environment-setup)
 
-Once the dependencies are setup, you can run the project as follows:
+Once the dependencies are set up, you can run the project as follows:
 
 1. `npm install -g yarn`
 2. `yarn install`
@@ -35,11 +35,11 @@ Once the dependencies are setup, you can run the project as follows:
 
 ## 🐛 Debugging
 
-For debugging we use [reactotron](https://github.com/infinitered/reactotron/)
+For debugging, we use [reactotron](https://github.com/infinitered/reactotron/)
 
 ### Enable File Logging
 
-Logging to phone's local file system can be enabled/disabled from the Settings page.
+Logging to the phone's local file system can be enabled/disabled from the Settings page.
 Logs are stored in the cache directory of the phone.
 For Android: `/storage/emulated/0/Android/data/com.librephotosmobile/cache/logs/`
 
