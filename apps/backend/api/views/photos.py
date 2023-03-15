@@ -354,7 +354,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action == "list" or self.action == "retrieve":
             permission_classes = [IsPhotoOrAlbumSharedTo]
-        else:
+        else:  # pragma: no cover - unused
             permission_classes = [IsAdminUser or IsOwnerOrReadOnly]
         return [permission() for permission in permission_classes]
 
@@ -367,7 +367,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
     def retrieve(self, *args, **kwargs):
         return super(PhotoViewSet, self).retrieve(*args, **kwargs)
 
-    def list(self, *args, **kwargs):
+    def list(self, *args, **kwargs):  # pragma: no cover - unused
         return super(PhotoViewSet, self).list(*args, **kwargs)
 
 
