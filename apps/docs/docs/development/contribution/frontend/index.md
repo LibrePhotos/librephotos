@@ -58,17 +58,3 @@ Some APIs are not yet well documented, as the generation of the swagger API thro
 - [api_client](https://github.com/LibrePhotos/librephotos-frontend/tree/dev/src/api_client) is just a simple Axios
   client
 - In [util](https://github.com/LibrePhotos/librephotos-frontend/tree/dev/src/util) you can find miscellaneous functions.
-
-## To-Do
-
-You can look into the issues [here](https://github.com/LibrePhotos/librephotos/issues?q=is%3Aopen+is%3Aissue+label%3Afrontend),
-on what features are missing from the frontend.
-
-We currently are working on improving maintainability, by converting our code base to TypeScript.
-
-While a lot of classes are already converted to TypeScript, there are still a lot of any's in the codebase. You can help out by replacing them with types!
-
-We are in the process of migrating from Redux to redux-toolkit and redux-query.
-
-It would also be great if we could introduce some
-[test coverage and automated testing](https://create-react-app.dev/docs/running-tests/).
