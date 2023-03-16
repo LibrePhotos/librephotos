@@ -78,8 +78,8 @@ const ImageGrid = ({
               color={'rgba(0,0,0,0.5)'}
               style={{
                 position: 'absolute',
-                bottom: 2,
-                right: 3,
+                bottom: 0,
+                right: 20,
                 zIndex: 1,
               }}
             />

@@ -96,7 +96,7 @@ export const loadLocalImages = createAsyncThunk(
         first: 100,
         after: page_info.end_cursor,
         // only load images that are newer than the last fetch
-        // To-Do. This broken somehow
+        // To-Do: This broken somehow
         // fromTime: lastFetch,
         // toTime: moment().unix(),
         assetType: 'Photos',
