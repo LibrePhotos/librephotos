@@ -6,6 +6,7 @@
  */
 import * as React from 'react'
 import { CommonActions } from '@react-navigation/native'
+import { convertAbsoluteToRem } from 'native-base/lib/typescript/theme/tools'
 
 export const navigationRef = React.createRef()
 
@@ -14,6 +15,7 @@ export function navigate(name, params) {
 }
 
 export function navigateAndReset(routes = [], index = 0) {
+  console.log('navigateAndReset', routes, index)
   navigationRef.current?.dispatch(
     CommonActions.reset({
       index,
@@ -23,6 +25,7 @@ export function navigateAndReset(routes = [], index = 0) {
 }
 
 export function navigateAndSimpleReset(name, index = 0) {
+  console.log('navigateAndSimpleReset', name, index)
   navigationRef.current?.dispatch(
     CommonActions.reset({
       index,

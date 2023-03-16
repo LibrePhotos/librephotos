@@ -16,8 +16,7 @@ export default {
   initialState: {},
   action: createAction('album/replaceFlatList'),
   reducers(state, { payload }) {
-    reactotron.log(payload)
-    reactotron.log(state)
+    console.log('replaceFlatList')
     var fetched_page = payload.fetchedPage
     var photos_count = payload.photosCount
     var current_photos = [...state.albumWithoutDate]
@@ -28,7 +27,6 @@ export default {
       .slice(0, (fetched_page - 1) * 100)
       .concat(payload.photosFlat)
       .concat(current_photos.slice(fetched_page * 100))
-    reactotron.log(newPhotosFlat)
     state.albumWithoutDate = newPhotosFlat
   },
 }

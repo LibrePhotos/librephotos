@@ -12,6 +12,7 @@ import FetchPhotosWithoutDate from '../Store/Album/FetchPhotosWithoutDate'
 import { useDispatch } from 'react-redux'
 import { UploadButton } from './UploadButton'
 import { DownloadButton } from './DownloadButton'
+import { FlashList } from '@shopify/flash-list'
 
 const ImageGrid = ({
   data,
@@ -60,7 +61,6 @@ const ImageGrid = ({
   const renderPhoto = ({ item, index, section, seperators }) => {
     return (
       <Pressable
-        key={index}
         style={[Common.timeline.photoItem]}
         onPress={() => handleImagePress(item, index, section)}
       >
@@ -83,8 +83,11 @@ const ImageGrid = ({
                 zIndex: 1,
               }}
             />
+            {
+              // To-Do: this is weird but it works
+            }
             <Image
-              style={Layout.fullSize}
+              style={{ width: '300%', height: '100%' }}
               source={
                 item.syncStatus
                   ? { uri: item.url }
@@ -201,15 +204,16 @@ const ImageGrid = ({
   const viewConfigRef = React.useRef({ viewAreaCoveragePercentThreshold: 50 })
 
   return (
-    <>
+    <View style={{ height: '100%', width: '100%' }}>
       {data && data.length > 0 && (
-        <FlatList
+        <FlashList
           refreshing={refreshing}
           onRefresh={onRefresh}
           keyExtractor={(item, index) => index}
           numColumns={COLUMNS}
           data={data}
           renderItem={renderPhoto}
+          estimatedItemSize={data.length}
           onViewableItemsChanged={onViewRef.current}
           viewabilityConfig={viewConfigRef.current}
         />
@@ -237,7 +241,7 @@ const ImageGrid = ({
           {data && data.length > 0 && data.map(renderViewPagerItem)}
         </PagerView>
       </Modal>
-    </>
+    </View>
   )
 }
 

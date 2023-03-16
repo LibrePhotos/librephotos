@@ -12,6 +12,7 @@ export default {
   action: buildAsyncActions(
     'startup/init',
     async (args, { state, dispatch }) => {
+      console.log('Startup init')
       // Timeout to fake waiting some process
       // Remove it, or keep it if you want display a beautiful splash screen ;)
       // await new Promise(resolve => setTimeout(resolve, 1000))
