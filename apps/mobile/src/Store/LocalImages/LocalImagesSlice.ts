@@ -184,6 +184,14 @@ const localImagesSlice = createSlice({
     },
     localImageNotSynced: (state, { payload }) => {
       console.log('Local image not synced: ' + payload.id)
+      // only update if changed
+      if (
+        state.images.find(image => image.id === payload.id)?.syncStatus ===
+        SyncStatus.LOCAL
+      ) {
+        return state
+      }
+
       return {
         ...state,
         images: state.images.map(image =>

@@ -5,7 +5,8 @@ import { Text } from 'native-base'
 import moment from 'moment'
 import { useTheme } from '@/Theme'
 import { NoResultsError } from '.'
-import ImageGrid from './ImageGrid'
+import { PhotoComponent } from './PhotoComponent'
+import { LightBox } from './LightBox'
 import FetchAlbumDate from '../Store/Album/FetchAlbumDate'
 import { FlashList } from '@shopify/flash-list'
 
@@ -19,6 +20,20 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
   const dispatch = useDispatch()
 
   const [groups, setGroups] = useState([] as Group[])
+  const [lightBoxVisible, setLightBoxVisible] = useState(false)
+  const [currImage, setCurrImage] = useState({ item: {} })
+
+  // add group.id to all group.data items
+  const dataWithIds = data.map(group => {
+    return {
+      ...group,
+      data: group.data.map(item => {
+        return { ...item, groupId: group.id }
+      }),
+    }
+  })
+
+  const flatData = dataWithIds.flatMap(group => [group.title, ...group.data])
 
   useEffect(() => {
     groups.forEach(group => {
@@ -34,48 +49,70 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
     })
   }, [groups, dispatch])
 
+  const handleImagePress = (item, index, section) => {
+    setLightBoxVisible(true)
+    setCurrImage({ item, index, section })
+  }
+
+  const onClose = () => {
+    setLightBoxVisible(!lightBoxVisible)
+  }
+
   const renderSection = (item: any) => {
+    const title =
+      item.item === 'No timestamp'
+        ? 'No Timestamp'
+        : moment(item.item).format('LL')
+    const subtitle = moment(item.item).fromNow()
     return (
       <View style={[Gutters.regularHMargin, Gutters.smallVMargin]}>
         <Text fontSize={'xl'} color={Colors.text}>
-          {item.title === 'No timestamp'
-            ? 'No Timestamp'
-            : moment(item.title).format('LL')}
+          {title}
         </Text>
         {item.title !== 'No timestamp' && (
           <Text italic fontSize={'sm'} color={Colors.textMuted}>
-            {moment(item.title).fromNow()}
+            {subtitle}
           </Text>
         )}
-        <ImageGrid data={item.data} />
       </View>
     )
+  }
+
+  const renderPhoto = (input: any) => {
+    return <PhotoComponent input={input} handleImagePress={handleImagePress} />
   }
 
   const onCheckViewableItems = ({ viewableItems }) => {
     getAlbums(viewableItems)
   }
 
-  const getAlbums = visibleGroups => {
+  const getAlbums = visibleElements => {
     const fetchableGroups = [] as Group[]
-    visibleGroups.forEach(input => {
-      var group = input.item
-      var visibleImages = group.data
-      if (
-        visibleImages &&
-        visibleImages.filter(i => i.isTemp && i.isTemp !== undefined).length > 0
-      ) {
-        var firstTempObject = visibleImages.filter(i => i.isTemp)[0]
-        var page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100)
-        fetchableGroups.push({ id: group.id, page: page })
+    const visibleItems = visibleElements.map(i => i.item)
+    const tempElements = visibleItems.filter(
+      i => i != null && i.isTemp && i.isTemp !== undefined,
+    )
+    const groupBasedOnId = tempElements.reduce((acc, curr) => {
+      if (acc.findIndex(i => i.id === curr.groupId) === -1) {
+        acc.push({ id: curr.groupId, data: [curr] })
+      } else {
+        acc[acc.findIndex(i => i.id === curr.groupId)].data.push(curr)
       }
+      return acc
+    }, [])
+
+    groupBasedOnId.forEach(item => {
+      var visibleImages = item.data
+      var firstTempObject = visibleImages.filter(i => i.isTemp)[0]
+      var page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100)
+      fetchableGroups.push({ id: item.id, page: page })
     })
     setGroups(fetchableGroups)
   }
 
   return (
     <>
-      {data && data.length > 0 && (
+      {flatData && flatData.length > 0 && (
         <View
           style={[
             {
@@ -86,13 +123,23 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
           ]}
         >
           <FlashList
-            data={data}
+            data={flatData}
             onRefresh={onRefresh}
             refreshing={refreshing}
-            renderItem={({ item }) => {
-              return renderSection(item)
+            numColumns={3}
+            renderItem={input => {
+              if (typeof input.item === 'string' || input.item == null) {
+                return renderSection(input)
+              } else {
+                return renderPhoto(input)
+              }
             }}
-            estimatedItemSize={data.length}
+            overrideItemLayout={(layout, item, index, maxColumns) => {
+              if (typeof item === 'string' || item == null) {
+                layout.span = maxColumns
+              }
+            }}
+            estimatedItemSize={flatData.length}
             onViewableItemsChanged={onCheckViewableItems}
           />
         </View>
@@ -100,6 +147,13 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
       {data.length < 1 && (
         <NoResultsError onRefresh={onRefresh} refreshing={refreshing} />
       )}
+
+      <LightBox
+        data={data.find(i => i.title === currImage.item.groupId)?.data}
+        isVisible={lightBoxVisible}
+        currImage={currImage}
+        onClose={onClose}
+      />
     </>
   )
 }
