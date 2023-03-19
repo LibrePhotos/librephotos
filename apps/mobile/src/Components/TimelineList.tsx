@@ -70,12 +70,11 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
    * @param section The section the item is in.
    */
   const handleImagePress = (item, index, section) => {
-    const itemInGroup = data
-      .find(i => i.title === item.groupId)
-      .data.find(i => i.id === item.id)
-    const indexBasedOnGroup = data
-      .find(i => i.title === item.groupId)
-      ?.data.indexOf(itemInGroup)
+    const relevantGroup = data.find(i => i.title === item.groupId)
+      ? data.find(i => i.title === item.groupId)
+      : data.find(i => i.id === item.groupId)
+    const itemInGroup = relevantGroup.data.find(i => i.id === item.id)
+    const indexBasedOnGroup = relevantGroup.data.indexOf(itemInGroup)
     setLightBoxVisible(true)
     setCurrImage({ item, index: indexBasedOnGroup, section })
   }
@@ -200,7 +199,11 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
       )}
 
       <LightBox
-        data={data.find(i => i.title === currImage.item.groupId)?.data}
+        data={
+          data.find(i => i.title === currImage.item.groupId)
+            ? data.find(i => i.title === currImage.item.groupId)?.data
+            : data.find(i => i.id === currImage.item.groupId)?.data
+        }
         isVisible={lightBoxVisible}
         currImage={currImage}
         onClose={onClose}

@@ -37,10 +37,9 @@ export const LightBoxComponent = (props: Input) => {
   const authToken = useAppSelector(state => state.auth.access?.token)
   const config = useAppSelector(state => state.config)
   /**
-
-Function to handle changes in zoom level.
-@param zoomState - The state of the zoom.
-*/
+  Function to handle changes in zoom level.
+  @param zoomState - The state of the zoom.
+  */
   const handleZoomChange = zoomState => {
     if (zoomState.zoomLevel !== 1) {
       setImageZoomed(true)
