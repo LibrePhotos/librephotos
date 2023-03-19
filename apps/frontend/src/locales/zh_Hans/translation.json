@@ -406,7 +406,13 @@
         "sortby": "排序方式",
         "explanationvalidate": "确认本组人脸与人物完全匹配，并添加到对应的人脸ID",
         "personscounter_one": "{{count}}个人物",
-        "personscounter_other": "{{count}}个人物"
+        "personscounter_other": "{{count}}个人物",
+        "clusterscounter_one": "{{count}} 个集群",
+        "clusterscounter_other": "{{count}} 个集群",
+        "assumedpersonscounter_one": "{{count}} 个已推断的人",
+        "assumedpersonscounter_other": "{{count}} 个已推断的人",
+        "facescounter_one": "{{count}} 张人脸",
+        "facescounter_other": "{{count}} 张人脸"
     },
     "scan": "扫描",
     "socialgraph": "社交图谱",
