@@ -33,7 +33,7 @@ export const LightBoxComponent = (props: Input) => {
   }
 
   return (
-    <View style={[Layout.fill]} key={index}>
+    <View style={[Layout.fill]} key={item.id}>
       <View
         style={[
           Layout.row,
@@ -117,6 +117,7 @@ export const LightBox = (props: LightBoxProps) => {
   const renderViewPagerItem = (item, index, arr) => {
     return (
       <LightBoxComponent
+        key={item.id}
         item={item}
         index={index}
         arr={arr}
@@ -134,13 +135,16 @@ export const LightBox = (props: LightBoxProps) => {
         onClose()
       }}
     >
-      {currImage && currImage.index && data && data.length > 0 && (
+      {currImage && data && data.length > 0 && (
         <PagerView
           style={[Layout.fill]}
           scrollEnabled={!isImageZoomed}
           initialPage={currImage.index}
         >
-          {data.map(renderViewPagerItem)}
+          {
+            // To-Do: This is slow, when there are many images
+            data.map(renderViewPagerItem)
+          }
         </PagerView>
       )}
     </Modal>

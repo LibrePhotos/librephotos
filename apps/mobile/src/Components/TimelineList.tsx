@@ -50,8 +50,14 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
   }, [groups, dispatch])
 
   const handleImagePress = (item, index, section) => {
+    const itemInData = data
+      .find(i => i.title === item.groupId)
+      .data.find(i => i.id === item.id)
+    const acutalIndex = data
+      .find(i => i.title === item.groupId)
+      ?.data.indexOf(itemInData)
     setLightBoxVisible(true)
-    setCurrImage({ item, index, section })
+    setCurrImage({ item, index: acutalIndex, section })
   }
 
   const onClose = () => {
