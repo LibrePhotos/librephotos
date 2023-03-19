@@ -10,11 +10,21 @@ import { LightBox } from './LightBox'
 import FetchAlbumDate from '../Store/Album/FetchAlbumDate'
 import { FlashList } from '@shopify/flash-list'
 
+/**
+ * Represents a group with an ID and a page number.
+ */
 type Group = {
   id: string
   page: number
 }
 
+/**
+ * Renders a timeline list component with the provided data.
+ * @param data An array of groups with a title, an array of data items, and an ID.
+ * @param onRefresh A function to be called when the list is refreshed.
+ * @param refreshing A boolean indicating whether the list is currently being refreshed.
+ * @returns A React component that renders a timeline list.
+ */
 const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
   const { Colors, Gutters } = useTheme()
   const dispatch = useDispatch()
@@ -23,7 +33,11 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
   const [lightBoxVisible, setLightBoxVisible] = useState(false)
   const [currImage, setCurrImage] = useState({ item: {} })
 
-  // add group.id to all group.data items
+  /**
+   * Adds a group ID to all data items in each group of data.
+   * @param group An object representing a group of data items.
+   * @returns An object representing the group with its data items' IDs updated.
+   */
   const dataWithIds = data.map(group => {
     return {
       ...group,
@@ -49,22 +63,36 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
     })
   }, [groups, dispatch])
 
+  /**
+   * Handles the press event for an image in the list.
+   * @param item An object representing the data item that was pressed.
+   * @param index The index of the item in the list.
+   * @param section The section the item is in.
+   */
   const handleImagePress = (item, index, section) => {
-    const itemInData = data
+    const itemInGroup = data
       .find(i => i.title === item.groupId)
       .data.find(i => i.id === item.id)
-    const acutalIndex = data
+    const indexBasedOnGroup = data
       .find(i => i.title === item.groupId)
-      ?.data.indexOf(itemInData)
+      ?.data.indexOf(itemInGroup)
     setLightBoxVisible(true)
-    setCurrImage({ item, index: acutalIndex, section })
+    setCurrImage({ item, index: indexBasedOnGroup, section })
   }
 
+  /**
+   * Sets the visibility of the lightbox to the opposite of its current state.
+   */
   const onClose = () => {
     setLightBoxVisible(!lightBoxVisible)
   }
 
-  const renderSection = (item: any) => {
+  /**
+   * Renders the header of the list.
+   * @param item An object representing the section to render.
+   * @returns A React component that renders the section.
+   */
+  const renderHeader = (item: any) => {
     const title =
       item.item === 'No timestamp'
         ? 'No Timestamp'
@@ -84,15 +112,20 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
     )
   }
 
-  const renderPhoto = (input: any) => {
+  /**
+   * Renders a photo component based on input and a function to handle image press.
+   * @param input The input for the photo component.
+   * @returns A PhotoComponent with the given input and handleImagePress function.
+   */
+  const renderPhoto = (input: any): JSX.Element => {
     return <PhotoComponent input={input} handleImagePress={handleImagePress} />
   }
 
-  const onCheckViewableItems = ({ viewableItems }) => {
-    getAlbums(viewableItems)
-  }
-
-  const getAlbums = visibleElements => {
+  /**
+   * Finds the fetchable groups of the visible elements.
+   * @param visibleElements The visible elements.
+   */
+  const findFetchableGroups = (visibleElements: any[]): void => {
     const fetchableGroups = [] as Group[]
     const visibleItems = visibleElements.map(i => i.item)
     const tempElements = visibleItems.filter(
@@ -116,6 +149,18 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
     setGroups(fetchableGroups)
   }
 
+  /**
+   * Handles the viewable items.
+   * @param viewableItems The viewable items.
+   */
+  const onCheckViewableItems = ({
+    viewableItems,
+  }: {
+    viewableItems: any[]
+  }): void => {
+    findFetchableGroups(viewableItems)
+  }
+
   return (
     <>
       {flatData && flatData.length > 0 && (
@@ -135,7 +180,7 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
             numColumns={3}
             renderItem={input => {
               if (typeof input.item === 'string' || input.item == null) {
-                return renderSection(input)
+                return renderHeader(input)
               } else {
                 return renderPhoto(input)
               }

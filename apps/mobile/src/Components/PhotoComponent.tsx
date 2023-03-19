@@ -5,17 +5,33 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '@/Theme'
 import { useAppSelector } from '@/Store/store'
 
+/**
+ * Input object for the PhotoComponent component
+ * @property {any} item - The item to be displayed
+ * @property {number} index - The index of the item in the list
+ * @property {any} section - The section that the item belongs to
+ */
 type Input = {
   item: any
   index: number
   section: any
 }
 
+/**
+ * Props object for the PhotoComponent component
+ * @property {Input} input - The input object for the component
+ * @property {(item: any, index: number, section: any) => void} handleImagePress - The callback function to be called when the image is pressed
+ */
 type Props = {
   input: Input
   handleImagePress: (item: any, index: number, section: any) => void
 }
 
+/**
+ * Component to display a photo
+ * @param {Props} props - The props object for the component
+ * @returns The PhotoComponent component
+ */
 export const PhotoComponent = (props: Props) => {
   const { input, handleImagePress } = props
   const { item, index, section } = input
@@ -24,6 +40,7 @@ export const PhotoComponent = (props: Props) => {
   const config = useAppSelector(state => state.config)
 
   const authToken = useAppSelector(state => state.auth.access?.token)
+
   return (
     <Pressable
       style={[Common.timeline.photoItem]}

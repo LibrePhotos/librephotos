@@ -10,12 +10,19 @@ import Server from '../../Services'
 import CookieManager from '@react-native-cookies/cookies'
 import { localImageSynced } from '../LocalImages/LocalImagesSlice'
 
+/**
+ * The initial state of the upload slice
+ */
 const initialState: UploadState = {
   total: 1,
   current: 1,
   isUploading: false,
 }
 
+/**
+ * Dispatches a scan photos action to the server and sets worker availability
+ * @returns a function that dispatches actions to the redux store
+ */
 export function scanUploadedPhotos() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: 'SCAN_PHOTOS' })
@@ -31,41 +38,75 @@ export function scanUploadedPhotos() {
   }
 }
 
+/**
+ * The upload slice, containing reducers and extra reducers
+ */
 const uploadSlice = createSlice({
   name: 'uploadSlice',
   initialState: initialState,
   reducers: {
+    /**
+     * Sets the current size of the upload state
+     * @param state - The current state of the upload slice
+     * @param action - The action object containing the new current size
+     * @returns The updated state of the upload slice
+     */
     setCurrentSize: (state, action) => {
       return {
         ...state,
         current: action.payload,
       }
     },
+    /**
+     * Sets the total size of the upload state
+     * @param state - The current state of the upload slice
+     * @param action - The action object containing the new total size
+     * @returns The updated state of the upload slice
+     */
     setTotalSize: (state, action) => {
       return {
         ...state,
         total: action.payload,
       }
     },
-
+    /**
+     * Resets the upload slice to its initial state
+     * @returns The initial state of the upload slice
+     */
     reset: () => {
       console.log('Resetting upload')
       return initialState
     },
   },
   extraReducers: builder => {
+    /**
+     * Handles the pending state of the uploadImages promise
+     * @param state - The current state of the upload slice
+     * @returns The updated state of the upload slice
+     */
     builder.addCase(uploadImages.pending, state => {
       return {
         ...state,
         isUploading: true,
       }
     })
+    /**
+     * Handles the fulfilled state of the uploadImages promise
+     * @param state - The current state of the upload slice
+     * @returns The updated state of the upload slice
+     */
     builder.addCase(uploadImages.fulfilled, state => {
       return {
         ...state,
         isUploading: false,
       }
     })
+    /**
+     * Handles the rejected state of the uploadImages promise
+     * @param state - The current state of the upload slice
+     * @param action - The action object containing the error information
+     * @returns The updated state of the upload slice
+     */
     builder.addCase(uploadImages.rejected, (state, action) => {
       console.log('Error uploading images')
       console.log(JSON.stringify(action))
@@ -77,18 +118,37 @@ const uploadSlice = createSlice({
   },
 })
 
+/**
+ * The chunk size to use for uploading files.
+ */
 const chunkSize = 1000000 // < 1MB chunks, because of default of nginx
 
-const uploadExists = async (hash: string, dispatch: any) =>
+/**
+ * Checks if an upload exists on the server.
+ *
+ * @param hash - The hash of the file to check.
+ * @param dispatch - The dispatch function for API requests.
+ * @returns A promise that resolves with the upload status of the file.
+ */
+const uploadExists = async (hash: string, dispatch: any): Promise<any> =>
   dispatch(api.endpoints.uploadExists.initiate(hash))
 
+/**
+ * Sends a request to the server to finalize an upload.
+ *
+ * @param fileName - The name of the file being uploaded.
+ * @param md5 - The MD5 checksum of the file being uploaded.
+ * @param uploadId - The ID of the upload.
+ * @param user_id - The ID of the user initiating the upload.
+ * @param dispatch - The dispatch function for API requests.
+ */
 const uploadFinished = async (
   fileName: string,
   md5: string,
   uploadId: string,
   user_id: number,
   dispatch: any,
-) => {
+): Promise<void> => {
   const formData = new FormData()
   formData.append('upload_id', uploadId)
   formData.append('md5', md5)
@@ -97,6 +157,17 @@ const uploadFinished = async (
   dispatch(api.endpoints.uploadFinished.initiate(formData))
 }
 
+/**
+ * Uploads a chunk of a file to the server.
+ *
+ * @param chunk - The chunk of the file to upload.
+ * @param uploadId - The ID of the upload.
+ * @param offset - The offset of the chunk in the file.
+ * @param baseurl - The base URL for the server.
+ * @param user_id - The ID of the user initiating the upload.
+ * @param file_size - The size of the file being uploaded.
+ * @returns A promise that resolves with the server response to the upload request.
+ */
 const uploadChunk = async (
   chunk: any,
   uploadId: string,
@@ -104,7 +175,7 @@ const uploadChunk = async (
   baseurl: string,
   user_id: number,
   file_size: number,
-) => {
+): Promise<any> => {
   // only send first chunk without upload id
   const formData = new FormData()
   if (uploadId) {
@@ -142,6 +213,11 @@ const uploadChunk = async (
   return result
 }
 
+/**
+ * Calculates the number of chunks and returns an array of file blobs
+ * @param file - The file to calculate the chunks for
+ * @returns An array of file blobs
+ */
 const calculateChunks = async (file: any) => {
   const chunks = Math.ceil(file.size / chunkSize)
   const chunk = [] as any[]
@@ -160,6 +236,12 @@ const calculateChunks = async (file: any) => {
   return chunk
 }
 
+/**
+ * Uploads an array of images asynchronously
+ * @param files - The array of files to upload
+ * @param thunkAPI - The ThunkAPI object
+ * @returns The thunk function
+ */
 export const uploadImages = createAsyncThunk(
   'upload/uploadImages',
   async (files: any[], thunkAPI) => {
