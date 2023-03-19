@@ -19,7 +19,7 @@ type Input = {
 }
 
 export const LightBoxComponent = (props: Input) => {
-  const { item, index, setImageZoomed, onClose } = props
+  const { item, setImageZoomed, onClose } = props
   const { Layout } = useTheme()
   const authToken = useAppSelector(state => state.auth.access?.token)
   const config = useAppSelector(state => state.config)
