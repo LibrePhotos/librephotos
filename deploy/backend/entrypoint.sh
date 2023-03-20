@@ -1,6 +1,12 @@
 #! /bin/bash
 export PYTHONUNBUFFERED=TRUE
 export PYTHONFAULTHANDLER=1
+
+if [[ "$(uname -m)" == "arm"* ]]; then
+  export OPENBLAS_CORETYPE=ARMV8
+  echo "ARM architecture detected. OPENBLAS_CORETYPE set to ARMV8"
+fi
+
 mkdir -p /logs
 python image_similarity/main.py 2>&1 | tee /logs/gunicorn_image_similarity.log &
 python manage.py showmigrations | tee /logs/show_migrate.log
