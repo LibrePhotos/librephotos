@@ -101,7 +101,7 @@ sidebar_position: 6
         <p hidden>LibrePhotos</p>    <td>❌</td>
         <p hidden>Photoview</p>      <td>✔️</td>
         <p hidden>PhotoPrism</p>     <td>✔️</td>
-        <p hidden>Immich</p>         <td>❌</td>
+        <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>❌</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>❔</td>
