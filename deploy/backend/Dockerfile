@@ -1,4 +1,4 @@
-FROM reallibrephotos/librephotos-dependencies:dev
+FROM reallibrephotos/librephotos-base:dev
 # actual project
 ARG DEBUG
 WORKDIR /code
