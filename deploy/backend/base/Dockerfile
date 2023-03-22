@@ -51,8 +51,7 @@ RUN apt-get update && \
 		pkg-config \ 
 		rustc \ 
 		libtinfo5 \
-		swig \
-		libjxl && \
+		swig && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
     
