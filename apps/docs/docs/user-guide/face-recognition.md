@@ -27,8 +27,3 @@ Some user deleted all the faces with the delete face action. To get the faces ag
 ## Workflow
 
 After the first scan finished, go to the face dashboard. Label a couple of faces per person. Then train the faces with the blue button. Check if the inferred faces are accurate and add a couple of the inferred faces to the labels. Train the faces again. You will get the best results if all the persons in the pictures are known and when every label has at least a couple of faces.
-
-## Current limitations
-
-- You can only display up to 50000 faces. After that no more faces will be shown, but they are still in the system
-- There is no action yet, to just confirm faces in the inferred tab

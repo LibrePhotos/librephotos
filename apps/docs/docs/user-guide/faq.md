@@ -57,3 +57,7 @@ Select your VM and then Hardware tab.
 {% include figure image_path="/assets/images/135711616-14903f44-2bdc-4830-82e9-a29562f75762.png" alt="Select your VM and then Hardware tab" %}
 Then double-click on Processors or select it and click Edit:
 {% include figure image_path="/assets/images/135711657-3cdc2600-2368-440c-af75-00313c8c8997.png" alt="Then double-click on Processors or select it and click Edit"  %}
+
+## error decoding 'Volumes[0]': invalid spec: :/data: empty section between colons / "The "scanDirectory" variable is not set. Defaulting to a blank string."
+
+This error usually means, that you forgot to rename the librephotos.env to .env
