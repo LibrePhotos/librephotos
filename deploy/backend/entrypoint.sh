@@ -2,7 +2,7 @@
 export PYTHONUNBUFFERED=TRUE
 export PYTHONFAULTHANDLER=1
 
-if [[ "$(uname -m)" == "arm"* ]]; then
+if [[ "$(uname -m)" == "aarch64"* ]]; then
   export OPENBLAS_CORETYPE=ARMV8
   echo "ARM architecture detected. OPENBLAS_CORETYPE set to ARMV8"
 fi
