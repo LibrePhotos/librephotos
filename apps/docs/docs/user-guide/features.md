@@ -59,7 +59,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -76,7 +76,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -93,7 +93,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -110,7 +110,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -127,7 +127,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -144,7 +144,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -161,7 +161,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>❌</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -178,7 +178,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -195,7 +195,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -212,7 +212,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -229,7 +229,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -246,7 +246,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -263,7 +263,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -280,7 +280,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -297,7 +297,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -314,7 +314,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -331,7 +331,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -348,7 +348,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -365,7 +365,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -382,7 +382,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -399,7 +399,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -450,7 +450,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -467,7 +467,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -484,7 +484,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -518,7 +518,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -535,7 +535,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -552,7 +552,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -569,7 +569,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -586,7 +586,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -620,7 +620,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -637,7 +637,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -654,7 +654,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>N/A</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -671,7 +671,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>N/A</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -705,7 +705,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>N/A</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -756,7 +756,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>SaaS</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -807,7 +807,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>❌</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -824,7 +824,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -841,7 +841,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -858,7 +858,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>❌</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr><tr>
         <td>PWA</td>
@@ -891,7 +891,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>N/A</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -908,7 +908,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>❌</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -925,7 +925,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -943,7 +943,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>Google EULA</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -960,7 +960,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>N/A</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -977,7 +977,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -994,7 +994,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -1011,7 +1011,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>❌</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
@@ -1028,7 +1028,7 @@ sidebar_position: 6
         <p hidden>Photostructure</p> <td>❔</td>
         <p hidden>PiGallery2</p>     <td>❔</td>
         <p hidden>Lychee</p>         <td>❔</td>
-        <p hidden>Google Photos</p>  <td>❔</td>
+        <p hidden>Google Photos</p>  <td>❌</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
 </table>
