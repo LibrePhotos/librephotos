@@ -1,6 +1,6 @@
 import re
 
-from django.db.models import Count, F, Prefetch, Q
+from django.db.models import Count, F, OuterRef, Prefetch, Q, Subquery
 from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -43,6 +43,7 @@ from api.views.pagination import (
 )
 
 
+# To-Do: Not used as far as I can tell
 class AlbumPersonListViewSet(ListViewSet):
     serializer_class = AlbumPersonListSerializer
     pagination_class = StandardResultsSetPagination
@@ -54,7 +55,7 @@ class AlbumPersonListViewSet(ListViewSet):
     def list(self, *args, **kwargs):
         return super(AlbumPersonListViewSet, self).list(*args, **kwargs)
 
-
+# To-Do: Not used as far as I can tell, only in mobile app
 class AlbumPersonViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return (
@@ -100,7 +101,6 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
         return Response({"results": serializer.data})
 
 
-# To-Do: Uses too many queries
 class PersonViewSet(viewsets.ModelViewSet):
     serializer_class = PersonSerializer
     pagination_class = StandardResultsSetPagination
@@ -122,9 +122,39 @@ class PersonViewSet(viewsets.ModelViewSet):
                 )
             )
             .distinct()
-            .annotate(viewable_face_count=Count("faces"))
-            .filter(Q(viewable_face_count__gt=0))
-            .order_by("name")
+            .annotate(
+                viewable_face_count=Count("faces"),
+                face_url=Subquery(
+                    Face.objects.filter(
+                        person=OuterRef("pk"),
+                        photo__hidden=False,
+                        photo__deleted=False,
+                        photo__owner=self.request.user,
+                    )
+                    .order_by("id") 
+                    .values("image")[:1]   
+                ),
+                face_photo_url=Subquery(
+                    Photo.objects.filter(
+                        faces__person=OuterRef("pk"),
+                        hidden=False,
+                        deleted=False,
+                        owner=self.request.user,
+                    )
+                    .order_by("added_on")
+                    .values("image_hash")[:1]
+                ),
+                video=Subquery(
+                    Photo.objects.filter(
+                        faces__person=OuterRef("pk"),
+                        hidden=False,
+                        deleted=False,
+                        owner=self.request.user,
+                     )
+                    .order_by("added_on")
+                    .values("video")[:1]
+                ),
+            ) 
         )
         return qs
 
