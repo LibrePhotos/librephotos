@@ -58,35 +58,17 @@ class PersonSerializer(serializers.ModelSerializer):
         return obj.viewable_face_count
 
     def get_face_url(self, obj) -> str:
-        try:
-            face = obj.faces.filter(
-                Q(person_label_is_inferred=False) & Q(photo__hidden=False)
-            ).first()
-            return face.image.url
-        except Exception:
-            return None
+        return "/media/" + obj.face_url
 
     def get_face_photo_url(self, obj) -> str:
         if obj.cover_photo:
             return obj.cover_photo.image_hash
-        first_face = obj.faces.filter(
-            Q(person_label_is_inferred=False) & Q(photo__hidden=False)
-        ).first()
-        if first_face:
-            return first_face.photo.image_hash
-        else:
-            return None
+        return obj.face_photo_url
 
     def get_video(self, obj) -> str:
         if obj.cover_photo:
             return obj.cover_photo.video
-        first_face = obj.faces.filter(
-            Q(person_label_is_inferred=False) & Q(photo__hidden=False)
-        ).first()
-        if first_face:
-            return first_face.photo.video
-        else:
-            return False
+        return obj.video
 
     def create(self, validated_data):
         name = validated_data.pop("name")
