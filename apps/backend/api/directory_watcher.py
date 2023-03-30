@@ -8,7 +8,7 @@ import pytz
 from constance import config as site_config
 from django import db
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django_rq import job
 
 import api.models.album_thing
@@ -17,7 +17,13 @@ import ownphotos.settings
 from api.batch_jobs import create_batch_job
 from api.face_classify import cluster_all_faces
 from api.models import Face, File, LongRunningJob, Photo
-from api.models.file import calculate_hash, is_valid_media, is_video
+from api.models.file import (
+    calculate_hash,
+    extract_embedded_media,
+    has_embedded_media,
+    is_valid_media,
+    is_video,
+)
 from api.places365.places365 import place365_instance
 
 AUTO_FACE_RETRAIN_THRESHOLD = 0.1
@@ -78,7 +84,14 @@ def handle_new_image(user, path, job_id):
         elapsed = (datetime.datetime.now() - start).total_seconds()
         elapsed_times["md5"] = elapsed
 
-        if not Photo.objects.filter(Q(image_hash=hash)).exists():
+        if File.embedded_media.through.objects.filter(Q(to_file_id=hash)).exists():
+            util.logger.warning(
+                "job {}: embedded content file found {}".format(job_id, path)
+            )
+            return
+
+        photos: QuerySet[Photo] = Photo.objects.filter(Q(image_hash=hash))
+        if not photos.exists():
             photo: Photo = Photo()
             photo.image_hash = hash
             photo.owner = user
@@ -87,11 +100,12 @@ def handle_new_image(user, path, job_id):
             photo.video = is_video(path)
             photo.save()
 
-            file: File = File()
-            file.path = path
-            file.hash = calculate_hash(user, path)
-            file._find_out_type()
-            file.save()
+            file = File.create(path, user)
+            if has_embedded_media(path):
+                em_path = extract_embedded_media(path)
+                if em_path:
+                    em_file = File.create(em_path, user)
+                    file.embedded_media.add(em_file)
 
             photo.files.add(file)
             photo.main_file = file
@@ -175,16 +189,14 @@ def handle_new_image(user, path, job_id):
                     )
                 )
         else:
-            file: File = File()
-            file.path = path
-            file.hash = hash
-            file._find_out_type()
-            file.save()
-            photo = Photo.objects.filter(Q(image_hash=hash)).first()
+            file = File.create(path, user)
+            photo = photos.first()
             photo.files.add(file)
             photo.save()
             photo._check_files()
-            util.logger.warning("job {}: file {} exists already".format(job_id, path))
+            util.logger.warning(
+                "job {}: file {} exists already".format(job_id, path)
+            )
     except Exception as e:
         try:
             util.logger.exception(
