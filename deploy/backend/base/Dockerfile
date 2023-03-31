@@ -1,4 +1,4 @@
-FROM ubuntu:jammy
+FROM ubuntu:lunar
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -51,6 +51,8 @@ RUN apt-get update && \
 		pkg-config \ 
 		rustc \ 
 		libtinfo5 \
+		libjxl-dev \
+		libvips-dev \
 		swig && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -59,7 +61,7 @@ RUN pip3 install --no-cache-dir torch torchvision --extra-index-url https://down
 
 RUN pip3 install --no-cache-dir cmake==3.21.2
 
-#Build and install libraw
+#Build and install libraw, supports more RAW image types
 WORKDIR /tmp/builds
 RUN git clone https://github.com/LibRaw/LibRaw && \
 	cd LibRaw && \ 
@@ -70,7 +72,7 @@ RUN git clone https://github.com/LibRaw/LibRaw && \
 	make install && \
         rm -rf /tmp/builds/*
 
-#Build and install imagemagick
+#Build and install imagemagick to use current libraw
 WORKDIR /tmp/builds
 ARG IMAGEMAGICK_VERSION=7.1.1-4
 RUN curl -SL https://imagemagick.org/archive/releases/ImageMagick-${IMAGEMAGICK_VERSION}.tar.xz | tar -xJf- && \
@@ -79,17 +81,6 @@ RUN curl -SL https://imagemagick.org/archive/releases/ImageMagick-${IMAGEMAGICK_
 	make install && \
 	ldconfig /usr/local/lib && \
         rm -rf /tmp/builds/*
-
-# Build and install libvips
-WORKDIR /tmp/builds
-ARG VIPSVERSION=8.13.0
-RUN curl -SL https://github.com/libvips/libvips/releases/download/v${VIPSVERSION}/vips-${VIPSVERSION}.tar.gz | tar -xz \ 
-	&& cd vips-${VIPSVERSION} \ 
-	&& ./configure \ 
-	&& make V=0 \ 
-	&& make install \ 
-        && ldconfig \
-        && rm -rf /tmp/builds/*
 
 # Build and install dlib
 # Compile it WITHOUT AVX and SSE4 instructions to ensure compatibility
