@@ -57,9 +57,9 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
     
-RUN pip3 install --no-cache-dir torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu
+RUN pip3 install --no-cache-dir --break-system-packages torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu
 
-RUN pip3 install --no-cache-dir cmake==3.21.2
+RUN pip3 install --no-cache-dir --break-system-packages cmake==3.21.2
 
 #Build and install libraw, supports more RAW image types
 WORKDIR /tmp/builds
