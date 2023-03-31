@@ -316,6 +316,8 @@ CORS_ALLOW_CREDENTIALS = True
 
 IMAGE_SIMILARITY_SERVER = "http://localhost:8002"
 
+# Make this configurable
+CSRF_TRUSTED_ORIGINS = ["http://localhost:3000"]
 
 LOGGING = {
     "version": 1,
