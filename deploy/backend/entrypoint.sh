@@ -8,6 +8,7 @@ if [[ "$(uname -m)" == "aarch64"* ]]; then
 fi
 
 mkdir -p /logs
+python manage.py collectstatic --no-input
 python image_similarity/main.py 2>&1 | tee /logs/gunicorn_image_similarity.log &
 python manage.py showmigrations | tee /logs/show_migrate.log
 python manage.py migrate | tee /logs/command_migrate.log
