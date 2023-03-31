@@ -5,21 +5,20 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 Examples:
 Function views
     1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  url(r'^$', views.home, name='home')
+    2. Add a URL to urlpatterns:  re_path(r'^$', views.home, name='home')
 Class-based views
     1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  url(r'^$', Home.as_view(), name='home')
+    2. Add a URL to urlpatterns:  re_path(r'^$', Home.as_view(), name='home')
 Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
-    2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
+    2. Add a URL to urlpatterns:  re_path(r'^blog/', include('blog.urls'))
 """
 
 from constance import config as site_config
 from django.conf import settings
-from django.conf.urls import url
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include
+from django.urls import include, re_path
 from rest_framework import routers
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
@@ -190,64 +189,64 @@ router.register(r"api/exists", upload.UploadPhotoExists, basename="exists")
 
 router.register(r"api/jobs", jobs.LongRunningJobViewSet)
 urlpatterns = [
-    url(r"^", include(router.urls)),
-    url(r"^admin/", admin.site.urls),
-    url(r"^api/sitesettings", views.SiteSettingsView.as_view()),
-    url(r"^api/firsttimesetup", user.IsFirstTimeSetupView.as_view()),
-    url(r"^api/dirtree", user.RootPathTreeView.as_view()),
-    url(r"^api/labelfaces", faces.SetFacePersonLabel.as_view()),
-    url(r"^api/deletefaces", faces.DeleteFaces.as_view()),
-    url(r"^api/photosedit/delete", photos.DeletePhotos.as_view()),
-    url(r"^api/photosedit/duplicate/delete", photos.DeleteDuplicatePhotos.as_view()),
-    url(r"^api/photosedit/setdeleted", photos.SetPhotosDeleted.as_view()),
-    url(r"^api/photosedit/favorite", photos.SetPhotosFavorite.as_view()),
-    url(r"^api/photosedit/hide", photos.SetPhotosHidden.as_view()),
-    url(r"^api/photosedit/makepublic", photos.SetPhotosPublic.as_view()),
-    url(r"^api/photosedit/share", photos.SetPhotosShared.as_view()),
-    url(r"^api/photosedit/generateim2txt", photos.GeneratePhotoCaption.as_view()),
-    url(r"^api/useralbum/share", views.SetUserAlbumShared.as_view()),
-    url(r"^api/trainfaces", faces.TrainFaceView.as_view()),
-    url(r"^api/clusterfaces", dataviz.ClusterFaceView.as_view()),
-    url(r"^api/socialgraph", dataviz.SocialGraphView.as_view()),
-    url(r"^api/scanphotos", views.ScanPhotosView.as_view()),
-    url(r"^api/scanuploadedphotos", views.FullScanPhotosView.as_view()),
-    url(r"^api/fullscanphotos", views.FullScanPhotosView.as_view()),
-    url(r"^api/scanfaces", faces.ScanFacesView.as_view()),
-    url(r"^api/deletemissingphotos", views.DeleteMissingPhotosView.as_view()),
-    url(r"^api/autoalbumgen", album_auto.AutoAlbumGenerateView.as_view()),
-    url(r"^api/autoalbumtitlegen", album_auto.RegenerateAutoAlbumTitles.as_view()),
-    url(r"^api/searchtermexamples", views.SearchTermExamples.as_view()),
-    url(r"^api/locationsunburst", dataviz.LocationSunburst.as_view()),
-    url(r"^api/locationtimeline", dataviz.LocationTimeline.as_view()),
-    url(r"^api/defaultrules", user.DefaultRulesView.as_view()),
-    url(r"^api/predefinedrules", user.PredefinedRulesView.as_view()),
-    url(r"^api/stats", dataviz.StatsView.as_view()),
-    url(r"^api/locclust", dataviz.LocationClustersView.as_view()),
-    url(r"^api/photomonthcounts", dataviz.PhotoMonthCountsView.as_view()),
-    url(r"^api/wordcloud", dataviz.SearchTermWordCloudView.as_view()),
-    url(r"^api/auth/token/obtain/$", TokenObtainPairView.as_view()),
-    url(r"^api/auth/token/refresh/$", TokenRefreshView.as_view()),
-    url(
+    re_path(r"^", include(router.urls)),
+    re_path(r"^admin/", admin.site.urls),
+    re_path(r"^api/sitesettings", views.SiteSettingsView.as_view()),
+    re_path(r"^api/firsttimesetup", user.IsFirstTimeSetupView.as_view()),
+    re_path(r"^api/dirtree", user.RootPathTreeView.as_view()),
+    re_path(r"^api/labelfaces", faces.SetFacePersonLabel.as_view()),
+    re_path(r"^api/deletefaces", faces.DeleteFaces.as_view()),
+    re_path(r"^api/photosedit/delete", photos.DeletePhotos.as_view()),
+    re_path(r"^api/photosedit/duplicate/delete", photos.DeleteDuplicatePhotos.as_view()),
+    re_path(r"^api/photosedit/setdeleted", photos.SetPhotosDeleted.as_view()),
+    re_path(r"^api/photosedit/favorite", photos.SetPhotosFavorite.as_view()),
+    re_path(r"^api/photosedit/hide", photos.SetPhotosHidden.as_view()),
+    re_path(r"^api/photosedit/makepublic", photos.SetPhotosPublic.as_view()),
+    re_path(r"^api/photosedit/share", photos.SetPhotosShared.as_view()),
+    re_path(r"^api/photosedit/generateim2txt", photos.GeneratePhotoCaption.as_view()),
+    re_path(r"^api/useralbum/share", views.SetUserAlbumShared.as_view()),
+    re_path(r"^api/trainfaces", faces.TrainFaceView.as_view()),
+    re_path(r"^api/clusterfaces", dataviz.ClusterFaceView.as_view()),
+    re_path(r"^api/socialgraph", dataviz.SocialGraphView.as_view()),
+    re_path(r"^api/scanphotos", views.ScanPhotosView.as_view()),
+    re_path(r"^api/scanuploadedphotos", views.FullScanPhotosView.as_view()),
+    re_path(r"^api/fullscanphotos", views.FullScanPhotosView.as_view()),
+    re_path(r"^api/scanfaces", faces.ScanFacesView.as_view()),
+    re_path(r"^api/deletemissingphotos", views.DeleteMissingPhotosView.as_view()),
+    re_path(r"^api/autoalbumgen", album_auto.AutoAlbumGenerateView.as_view()),
+    re_path(r"^api/autoalbumtitlegen", album_auto.RegenerateAutoAlbumTitles.as_view()),
+    re_path(r"^api/searchtermexamples", views.SearchTermExamples.as_view()),
+    re_path(r"^api/locationsunburst", dataviz.LocationSunburst.as_view()),
+    re_path(r"^api/locationtimeline", dataviz.LocationTimeline.as_view()),
+    re_path(r"^api/defaultrules", user.DefaultRulesView.as_view()),
+    re_path(r"^api/predefinedrules", user.PredefinedRulesView.as_view()),
+    re_path(r"^api/stats", dataviz.StatsView.as_view()),
+    re_path(r"^api/locclust", dataviz.LocationClustersView.as_view()),
+    re_path(r"^api/photomonthcounts", dataviz.PhotoMonthCountsView.as_view()),
+    re_path(r"^api/wordcloud", dataviz.SearchTermWordCloudView.as_view()),
+    re_path(r"^api/auth/token/obtain/$", TokenObtainPairView.as_view()),
+    re_path(r"^api/auth/token/refresh/$", TokenRefreshView.as_view()),
+    re_path(
         r"^media/(?P<path>.*)/(?P<fname>.*)",
         views.MediaAccessFullsizeOriginalView.as_view(),
         name="media",
     ),
-    url(r"^api/rqavailable/$", jobs.QueueAvailabilityView.as_view()),
-    url(r"^api/rqjobstat/$", jobs.RQJobStatView.as_view()),
-    url(r"^api/rqjoblist/$", jobs.ListAllRQJobsView.as_view()),
-    url(r"^api/nextcloud/listdir", nextcloud_views.ListDir.as_view()),
-    url(r"^api/nextcloud/scanphotos", nextcloud_views.ScanPhotosView.as_view()),
-    url(r"^api/photos/download", views.ZipListPhotosView.as_view()),
-    url(r"^api/timezones", timezone.TimeZoneView.as_view()),
+    re_path(r"^api/rqavailable/$", jobs.QueueAvailabilityView.as_view()),
+    re_path(r"^api/rqjobstat/$", jobs.RQJobStatView.as_view()),
+    re_path(r"^api/rqjoblist/$", jobs.ListAllRQJobsView.as_view()),
+    re_path(r"^api/nextcloud/listdir", nextcloud_views.ListDir.as_view()),
+    re_path(r"^api/nextcloud/scanphotos", nextcloud_views.ScanPhotosView.as_view()),
+    re_path(r"^api/photos/download", views.ZipListPhotosView.as_view()),
+    re_path(r"^api/timezones", timezone.TimeZoneView.as_view()),
 ]
-urlpatterns += [url("api/django-rq/", include("django_rq.urls"))]
+urlpatterns += [re_path("api/django-rq/", include("django_rq.urls"))]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if site_config.ALLOW_UPLOAD:
     urlpatterns += [
-        url(r"api/upload/complete/", upload.UploadPhotosChunkedComplete.as_view())
+        re_path(r"api/upload/complete/", upload.UploadPhotosChunkedComplete.as_view())
     ]
-    urlpatterns += [url(r"api/upload/", upload.UploadPhotosChunked.as_view())]
+    urlpatterns += [re_path(r"api/upload/", upload.UploadPhotosChunked.as_view())]
 
 
 if settings.DEBUG:
@@ -257,9 +256,9 @@ if settings.DEBUG:
         SpectacularSwaggerView,
     )
 
-    urlpatterns += [url(r"^api/silk/", include("silk.urls", namespace="silk"))]
+    urlpatterns += [re_path(r"^api/silk/", include("silk.urls", namespace="silk"))]
     urlpatterns += [
-        url(r"^api/schema", SpectacularAPIView.as_view(), name="schema"),
-        url(r"^api/swagger", SpectacularSwaggerView.as_view(), name="swagger-ui"),
-        url(r"^api/redoc", SpectacularRedocView.as_view(), name="redoc"),
+        re_path(r"^api/schema", SpectacularAPIView.as_view(), name="schema"),
+        re_path(r"^api/swagger", SpectacularSwaggerView.as_view(), name="swagger-ui"),
+        re_path(r"^api/redoc", SpectacularRedocView.as_view(), name="redoc"),
     ]
