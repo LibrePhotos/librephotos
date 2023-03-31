@@ -10,7 +10,7 @@ django-redis==4.12.1
 django-rq==2.7.0
 django-bulk-update
 django-silk==4.2.0
-djangorestframework==3.12.4
+djangorestframework==3.14.0
 djangorestframework-simplejwt==5.2.2
 drf-extensions==0.7.0
 drf-spectacular==0.21.2
