@@ -22,10 +22,6 @@ class AlbumThing(models.Model):
             )
         ]
 
-    @property
-    def cover_photos(self):
-        return self.photos.filter(hidden=False)[:4]
-
     def __str__(self):
         return "%d: %s" % (self.id, self.title)
 

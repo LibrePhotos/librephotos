@@ -217,14 +217,13 @@ class AlbumThingListViewSet(ListViewSet):
     search_fields = ["title"]
 
     def get_queryset(self):
-        return (
-            AlbumThing.objects.filter(Q(owner=self.request.user))
-            .annotate(
-                photo_count=Count(
-                    "photos", filter=Q(photos__hidden=False), distinct=True
-                )
-            )
-            .filter(Q(photo_count__gt=0))
+        cover_photos_query = Photo.objects.filter(hidden=False)
+        
+        return ( 
+            AlbumThing.objects.filter(owner=self.request.user)
+            .annotate(photo_count=Count('photos', filter=Q(photos__hidden=False), distinct=True))
+            .prefetch_related(Prefetch('photos', queryset=cover_photos_query[:4], to_attr='cover_photos'))
+            .filter(photo_count__gt=0)
             .order_by("-title")
         )
 
