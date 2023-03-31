@@ -6,7 +6,7 @@ django-cryptography==1.1
 django-extensions==3.0.9
 django-filter==2.4.0
 django-picklefield==3.0.1
-django-rediscd==4.12.1
+django-redis==4.12.1
 django-rq==2.7.0
 django-bulk-update
 django-silk==4.2.0
@@ -26,7 +26,7 @@ matplotlib==3.3.2
 networkx==2.6.3
 nltk==3.6.7
 markupsafe==2.0.1
-Pillow==9.3.0sud
+Pillow==9.4.0
 psycopg2==2.8.6
 pycocotools==2.0.2
 https://github.com/owncloud/pyocclient/archive/master.zip
