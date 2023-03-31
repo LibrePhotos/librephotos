@@ -10,6 +10,9 @@ __pycache__/
 Dockerfile
 entrypoint.sh
 
+# Static assets
+static/
+
 # Nuitka
 manage.build/
 manage.dist/
