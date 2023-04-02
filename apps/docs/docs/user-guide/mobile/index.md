@@ -6,11 +6,11 @@ sidebar_position: 5
 
 ## UhuruPhotos
 
-[UhuruPhotos](https://github.com/savvasdalkitsis/uhuruphotos-android) is a native Android client for LibrePhotos, written using the latest Android technologies. It is the most feature complete app for LibrePhotos.
+[UhuruPhotos](https://uhuru.photos/) is a native Android client for LibrePhotos, written using the latest Android technologies. It is the most feature complete app for LibrePhotos.
 
 It aims to become a full-featured photo album replacement, including features like offline support, backup and sync etc.
 
-The app is currently in closed beta on the Google Play Store. Contact me kurosavvas on [gitter](https://gitter.im/uhuruphotos/) or [discord](https://discord.gg/xwRvtSDGWb) for access.
+The app is currently in closed beta on the Google Play Store. Contact [the author](https://github.com/savvasdalkitsis/) on [gitter](https://app.gitter.im/#/room/#uhuruphotos:gitter.im) or [discord](https://discord.gg/xwRvtSDGWb) for access.
 
 ## LibrePhotos Mobile
 
