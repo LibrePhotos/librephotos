@@ -1,6 +1,6 @@
 [tool.black]
 line-length = 88
-target-version = ['py38']
+target-version = ['py311']
 include = '\.pyi?$' # all files that end with .py or .pyi
 
 [tool.pylint.master]

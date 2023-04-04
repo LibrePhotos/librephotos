@@ -8,6 +8,7 @@ from django.db import models
 import api.util as util
 
 
+# To-Do: add owner to file
 class File(models.Model):
     IMAGE = 1
     VIDEO = 2

@@ -12,6 +12,7 @@ from api.models import (
     AlbumThing,
     AlbumUser,
     Face,
+    File,
     LongRunningJob,
     Photo,
 )
@@ -208,7 +209,9 @@ def delete_missing_photos(user, job_id):
         )
         lrj.save()
     try:
-        missing_photos = Photo.objects.filter(Q(owner=user) & Q(files=None))
+        missing_photos = Photo.objects.filter(
+            Q(owner=user) & Q(files=None) | Q(main_file=None)
+        )
         for missing_photo in missing_photos:
             album_dates = AlbumDate.objects.filter(photos=missing_photo)
             for album_date in album_dates:
@@ -224,7 +227,12 @@ def delete_missing_photos(user, job_id):
                 album_user.photos.remove(missing_photo)
             faces = Face.objects.filter(photo=missing_photo)
             faces.delete()
+            # To-Do: Remove thumbnails
+
         missing_photos.delete()
+
+        missing_files = File.objects.filter(Q(hash__endswith=user) & Q(missing=True))
+        missing_files.delete()
 
         lrj.finished = True
         lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
