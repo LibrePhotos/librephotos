@@ -15,7 +15,7 @@ class AlbumUser(models.Model):
     cover_photo = models.ForeignKey(
         Photo,
         related_name="album_user",
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         blank=False,
         null=True,
     )

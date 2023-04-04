@@ -46,7 +46,7 @@ class Photo(models.Model):
     main_file = models.ForeignKey(
         File,
         related_name="main_photo",
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         blank=False,
         null=True,
     )
@@ -666,7 +666,7 @@ class Photo(models.Model):
 
     def _check_files(self):
         for file in self.files.all():
-            if not os.path.exists(file.path):
+            if not file.path or not os.path.exists(file.path):
                 self.files.remove(file)
                 file.missing = True
                 file.save()
