@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("api", "0009_add_aspect_ratio"),
         ("api", "0009_add_clip_embedding_field"),

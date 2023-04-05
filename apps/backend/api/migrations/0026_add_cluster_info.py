@@ -9,7 +9,6 @@ import api.models.person
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("api", "0025_add_cover_photo"),
     ]

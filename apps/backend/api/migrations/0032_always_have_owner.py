@@ -18,7 +18,6 @@ def remove_cluster_owner(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("api", "0031_remove_account"),
     ]

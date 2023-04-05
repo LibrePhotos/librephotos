@@ -7,7 +7,6 @@ import api.models.long_running_job
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("api", "0012_add_favorite_min_rating"),
     ]
