@@ -62,6 +62,6 @@ class AlbumAutoListSerializer(serializers.ModelSerializer):
 
     def get_photos(self, obj) -> PhotoHashListSerializer:
         try:
-            return PhotoHashListSerializer(obj.photos.first()).data
+            return PhotoHashListSerializer(obj.cover_photo[0]).data
         except Exception:
             return ""
