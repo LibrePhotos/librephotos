@@ -37,25 +37,29 @@ class SemanticSearch:
                     img = PIL.Image.open(path)
                     imgs.append(img)
                 except PIL.UnidentifiedImageError:
-                    logger.info(path)
+                    logger.info("Error loading image: {}".format(path))
         else:
             try:
                 img = PIL.Image.open(img_paths)
                 imgs.append(img)
             except PIL.UnidentifiedImageError:
-                logger.info(img_paths)
+                logger.info("Error loading image: {}".format(img_paths))
 
-        imgs_emb = self.model.encode(imgs, batch_size=32, convert_to_tensor=True)
+        try:
+            imgs_emb = self.model.encode(imgs, batch_size=32, convert_to_tensor=True)
 
-        if type(img_paths) is list:
-            magnitudes = map(np.linalg.norm, imgs_emb)
+            if type(img_paths) is list:
+                magnitudes = map(np.linalg.norm, imgs_emb)
 
-            return imgs_emb, magnitudes
-        else:
-            img_emb = imgs_emb[0].tolist()
-            magnitude = np.linalg.norm(img_emb)
+                return imgs_emb, magnitudes
+            else:
+                img_emb = imgs_emb[0].tolist()
+                magnitude = np.linalg.norm(img_emb)
 
-            return img_emb, magnitude
+                return img_emb, magnitude
+        except Exception as e:
+            logger.error("Error in calculating clip embeddings: {}".format(e))
+            raise e
 
     def calculate_query_embeddings(self, query):
         if not self.model_is_loaded:

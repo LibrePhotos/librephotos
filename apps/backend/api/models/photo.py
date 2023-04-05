@@ -200,11 +200,9 @@ class Photo(models.Model):
                 )
 
     def _generate_captions(self, commit):
-        image_path = self.thumbnail_big.path
-        captions = {}
-
-        # places365
         try:
+            image_path = self.thumbnail_big.path
+            captions = {}
             confidence = self.owner.confidence
             res_places365 = place365_instance.inference_places365(
                 image_path, confidence
@@ -228,84 +226,91 @@ class Photo(models.Model):
             util.logger.info(
                 "generated places365 captions for image %s." % (image_path)
             )
-        except Exception:
+        except Exception as e:
             util.logger.exception(
-                "could not generate places365 captions for image %s" % image_path
+                "could not generate captions for image %s" % image_path
             )
+            raise e
 
     def _generate_thumbnail(self, commit=True):
-        if not doesStaticThumbnailExists("thumbnails_big", self.image_hash):
-            if not self.video:
+        try:
+            if not doesStaticThumbnailExists("thumbnails_big", self.image_hash):
+                if not self.video:
+                    createThumbnail(
+                        inputPath=self.main_file.path,
+                        outputHeight=1080,
+                        outputPath="thumbnails_big",
+                        hash=self.image_hash,
+                        fileType=".webp",
+                    )
+                else:
+                    createThumbnailForVideo(
+                        inputPath=self.main_file.path,
+                        outputPath="thumbnails_big",
+                        hash=self.image_hash,
+                        fileType=".webp",
+                    )
+
+            if not self.video and not doesStaticThumbnailExists(
+                "square_thumbnails", self.image_hash
+            ):
                 createThumbnail(
                     inputPath=self.main_file.path,
-                    outputHeight=1080,
-                    outputPath="thumbnails_big",
+                    outputHeight=500,
+                    outputPath="square_thumbnails",
                     hash=self.image_hash,
                     fileType=".webp",
                 )
-            else:
-                createThumbnailForVideo(
+            if self.video and not doesVideoThumbnailExists(
+                "square_thumbnails", self.image_hash
+            ):
+                createAnimatedThumbnail(
                     inputPath=self.main_file.path,
-                    outputPath="thumbnails_big",
+                    outputHeight=500,
+                    outputPath="square_thumbnails",
+                    hash=self.image_hash,
+                    fileType=".mp4",
+                )
+
+            if not self.video and not doesStaticThumbnailExists(
+                "square_thumbnails_small", self.image_hash
+            ):
+                createThumbnail(
+                    inputPath=self.main_file.path,
+                    outputHeight=250,
+                    outputPath="square_thumbnails_small",
                     hash=self.image_hash,
                     fileType=".webp",
                 )
-
-        if not self.video and not doesStaticThumbnailExists(
-            "square_thumbnails", self.image_hash
-        ):
-            createThumbnail(
-                inputPath=self.main_file.path,
-                outputHeight=500,
-                outputPath="square_thumbnails",
-                hash=self.image_hash,
-                fileType=".webp",
+            if self.video and not doesVideoThumbnailExists(
+                "square_thumbnails_small", self.image_hash
+            ):
+                createAnimatedThumbnail(
+                    inputPath=self.main_file.path,
+                    outputHeight=250,
+                    outputPath="square_thumbnails_small",
+                    hash=self.image_hash,
+                    fileType=".mp4",
+                )
+            filetype = ".webp"
+            if self.video:
+                filetype = ".mp4"
+            self.thumbnail_big.name = os.path.join(
+                "thumbnails_big", self.image_hash + ".webp"
+            ).strip()
+            self.square_thumbnail.name = os.path.join(
+                "square_thumbnails", self.image_hash + filetype
+            ).strip()
+            self.square_thumbnail_small.name = os.path.join(
+                "square_thumbnails_small", self.image_hash + filetype
+            ).strip()
+            if commit:
+                self.save()
+        except Exception as e:
+            util.logger.exception(
+                "could not generate thumbnail for image %s" % self.main_file.path
             )
-        if self.video and not doesVideoThumbnailExists(
-            "square_thumbnails", self.image_hash
-        ):
-            createAnimatedThumbnail(
-                inputPath=self.main_file.path,
-                outputHeight=500,
-                outputPath="square_thumbnails",
-                hash=self.image_hash,
-                fileType=".mp4",
-            )
-
-        if not self.video and not doesStaticThumbnailExists(
-            "square_thumbnails_small", self.image_hash
-        ):
-            createThumbnail(
-                inputPath=self.main_file.path,
-                outputHeight=250,
-                outputPath="square_thumbnails_small",
-                hash=self.image_hash,
-                fileType=".webp",
-            )
-        if self.video and not doesVideoThumbnailExists(
-            "square_thumbnails_small", self.image_hash
-        ):
-            createAnimatedThumbnail(
-                inputPath=self.main_file.path,
-                outputHeight=250,
-                outputPath="square_thumbnails_small",
-                hash=self.image_hash,
-                fileType=".mp4",
-            )
-        filetype = ".webp"
-        if self.video:
-            filetype = ".mp4"
-        self.thumbnail_big.name = os.path.join(
-            "thumbnails_big", self.image_hash + ".webp"
-        ).strip()
-        self.square_thumbnail.name = os.path.join(
-            "square_thumbnails", self.image_hash + filetype
-        ).strip()
-        self.square_thumbnail_small.name = os.path.join(
-            "square_thumbnails_small", self.image_hash + filetype
-        ).strip()
-        if commit:
-            self.save()
+            raise e
 
     def _find_album_place(self):
         return api.models.album_place.AlbumPlace.objects.filter(
@@ -339,15 +344,22 @@ class Photo(models.Model):
         return old_album_date
 
     def _calculate_aspect_ratio(self, commit=True):
-        height, width = get_metadata(
-            self.thumbnail_big.path,
-            tags=[Tags.IMAGE_HEIGHT, Tags.IMAGE_WIDTH],
-            try_sidecar=False,
-        )
-        self.aspect_ratio = round(width / height, 2)
+        try:
+            height, width = get_metadata(
+                self.thumbnail_big.path,
+                tags=[Tags.IMAGE_HEIGHT, Tags.IMAGE_WIDTH],
+                try_sidecar=False,
+            )
+            self.aspect_ratio = round(width / height, 2)
 
-        if commit:
-            self.save()
+            if commit:
+                self.save()
+        except Exception as e:
+            util.logger.exception(
+                "could not calculate aspect ratio for image %s"
+                % self.thumbnail_big.path
+            )
+            raise e
 
     def _extract_date_time_from_exif(self, commit=True):
         def exif_getter(tags):
@@ -420,9 +432,9 @@ class Photo(models.Model):
                 return
             if "features" not in res.keys():
                 return
-        except Exception:
+        except Exception as e:
             util.logger.exception("something went wrong with geolocating")
-            return
+            raise e
 
         self.geolocation_json = res
 
@@ -638,6 +650,9 @@ class Photo(models.Model):
                     )
                 else:
                     logger.error("image {}: rescan face failed".format(self))
+        except Exception as e:
+            logger.error("image {}: scan face failed".format(self))
+            raise e
 
     def _add_to_album_thing(self):
         if (

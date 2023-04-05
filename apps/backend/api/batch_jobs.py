@@ -48,14 +48,18 @@ def batch_calculate_clip_embedding(job_id, user):
     BATCH_SIZE = 64
     util.logger.info("Using threads: {}".format(torch.get_num_threads()))
 
-    try:
-        done_count = 0
-        while done_count < count:
+    done_count = 0
+    while done_count < count:
+        try:
             objs = list(
                 Photo.objects.filter(Q(owner=user) & Q(clip_embeddings__isnull=True))[
                     :BATCH_SIZE
                 ]
             )
+            done_count += len(objs)
+
+            if len(objs) == 0:
+                break
             valid_objs = []
             for obj in objs:
                 # Thumbnail could have been deleted
@@ -63,7 +67,7 @@ def batch_calculate_clip_embedding(job_id, user):
                     valid_objs.append(obj)
             imgs = list(map(lambda obj: obj.thumbnail_big.path, valid_objs))
             if len(valid_objs) == 0:
-                break
+                continue
 
             imgs_emb, magnitudes = semantic_search_instance.calculate_clip_embeddings(
                 imgs
@@ -73,20 +77,14 @@ def batch_calculate_clip_embedding(job_id, user):
                 obj.clip_embeddings = img_emb.tolist()
                 obj.clip_embeddings_magnitude = magnitude
                 obj.save()
-                done_count += 1
+        except Exception as e:
+            util.logger.error("Error calculating clip embeddings: {}".format(e))
 
-            lrj.result = {"progress": {"current": done_count, "target": count}}
-            lrj.save()
+        lrj.result = {"progress": {"current": done_count, "target": count}}
+        lrj.save()
 
         semantic_search_instance.unload()
         build_image_similarity_index(user)
         lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
         lrj.finished = True
-        lrj.save()
-
-    except Exception as e:
-        util.logger.error("Error in batch_calculate_clip_embedding: {}".format(e))
-        lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
-        lrj.finished = True
-        lrj.failed = True
         lrj.save()
