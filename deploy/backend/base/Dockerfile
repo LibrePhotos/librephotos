@@ -49,7 +49,8 @@ RUN apt-get update && \
 		libwebp-dev \
 		libxrender-dev \
 		pkg-config \ 
-		rustc \ 
+		rustc \
+		cargo \
 		libtinfo5 \
 		libjxl-dev \
 		libvips-dev \
