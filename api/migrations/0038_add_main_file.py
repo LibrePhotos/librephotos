@@ -35,7 +35,6 @@ def remove_main_file(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("api", "0037_migrate_to_files"),
     ]

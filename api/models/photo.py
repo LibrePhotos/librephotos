@@ -78,7 +78,7 @@ class Photo(models.Model):
     hidden = models.BooleanField(default=False, db_index=True)
     video = models.BooleanField(default=False)
     video_length = models.TextField(blank=True, null=True)
-    size = models.IntegerField(default=0)
+    size = models.BigIntegerField(default=0)
     fstop = models.FloatField(blank=True, null=True)
     focal_length = models.FloatField(blank=True, null=True)
     iso = models.IntegerField(blank=True, null=True)

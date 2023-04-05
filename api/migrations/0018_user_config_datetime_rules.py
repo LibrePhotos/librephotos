@@ -6,7 +6,6 @@ import api.models.user
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("api", "0017_add_cover_photo"),
     ]

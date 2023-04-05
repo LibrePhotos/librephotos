@@ -60,7 +60,6 @@ def remove_files(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("api", "0036_handle_missing_files"),
     ]

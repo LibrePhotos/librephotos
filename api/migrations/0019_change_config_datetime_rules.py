@@ -6,7 +6,6 @@ import api.models.user
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("api", "0018_user_config_datetime_rules"),
     ]

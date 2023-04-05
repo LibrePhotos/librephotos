@@ -18,7 +18,6 @@ def rating_to_favorited(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("api", "0011_a_add_rating"),
     ]

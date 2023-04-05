@@ -30,7 +30,6 @@ def unmigrate_unknown(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("api", "0026_add_cluster_info"),
     ]
