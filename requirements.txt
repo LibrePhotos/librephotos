@@ -22,7 +22,7 @@ Flask-RESTful==0.3.9
 geopy==2.1.0
 gunicorn==20.1.0
 hdbscan==0.8.29
-matplotlib==3.3.2 
+matplotlib==3.7.1
 networkx==2.6.3
 nltk==3.6.7
 markupsafe==2.0.1
@@ -37,7 +37,7 @@ PyJWT==2.4.0
 pyvips==2.2.1
 rq==1.13.0
 seaborn==0.11.0
-sentence_transformers==1.2.0
+sentence_transformers==2.2.2
 sklearn==0.0
 timezonefinder==5.2.0
 tqdm==4.51.0
