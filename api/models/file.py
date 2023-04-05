@@ -44,9 +44,13 @@ class File(models.Model):
 
 
 def is_video(path):
-    mime = magic.Magic(mime=True)
-    filename = mime.from_file(path)
-    return filename.find("video") != -1
+    try:
+        mime = magic.Magic(mime=True)
+        filename = mime.from_file(path)
+        return filename.find("video") != -1
+    except Exception:
+        util.logger.error("Error while checking if file is video: %s" % path)
+        raise False
 
 
 def is_raw(path):
@@ -113,11 +117,15 @@ def is_valid_media(path):
 
 
 def calculate_hash(user, path):
-    hash_md5 = hashlib.md5()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest() + str(user.id)
+    try:
+        hash_md5 = hashlib.md5()
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+        return hash_md5.hexdigest() + str(user.id)
+    except Exception as e:
+        util.logger.error("Could not calculate hash for file {}".format(path))
+        raise e
 
 
 def calculate_hash_b64(user, content):

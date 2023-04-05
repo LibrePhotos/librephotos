@@ -183,8 +183,9 @@ class Places365:
                 )
 
             return res
-        except Exception:
-            logger.exception("Error:")
+        except Exception as e:
+            logger("Error in Places365 inference")
+            raise e
 
 
 place365_instance = Places365()

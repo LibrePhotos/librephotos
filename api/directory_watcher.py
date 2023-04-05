@@ -55,155 +55,147 @@ else:
 
 @job
 def handle_new_image(user, path, job_id):
+    if not is_valid_media(path):
+        return
+    try:
+        elapsed_times = {
+            "md5": None,
+            "thumbnails": None,
+            "captions": None,
+            "image_save": None,
+            "exif": None,
+            "geolocation": None,
+            "faces": None,
+            "album_place": None,
+            "album_date": None,
+            "album_thing": None,
+        }
 
-    if is_valid_media(path):
-        try:
-            elapsed_times = {
-                "md5": None,
-                "thumbnails": None,
-                "captions": None,
-                "image_save": None,
-                "exif": None,
-                "geolocation": None,
-                "faces": None,
-                "album_place": None,
-                "album_date": None,
-                "album_thing": None,
-            }
+        util.logger.info("job {}: handling image {}".format(job_id, path))
 
-            util.logger.info("job {}: handling image {}".format(job_id, path))
+        start = datetime.datetime.now()
+        hash = calculate_hash(user, path)
+        elapsed = (datetime.datetime.now() - start).total_seconds()
+        elapsed_times["md5"] = elapsed
 
+        if not Photo.objects.filter(Q(image_hash=hash)).exists():
+            photo: Photo = Photo()
+            photo.image_hash = hash
+            photo.owner = user
+            photo.added_on = datetime.datetime.now().replace(tzinfo=pytz.utc)
+            photo.geolocation_json = {}
+            photo.video = is_video(path)
+            photo.save()
+
+            file: File = File()
+            file.path = path
+            file.hash = calculate_hash(user, path)
+            file._find_out_type()
+            file.save()
+
+            photo.files.add(file)
+            photo.main_file = file
+
+            photo._generate_thumbnail(True)
             start = datetime.datetime.now()
-            hash = calculate_hash(user, path)
             elapsed = (datetime.datetime.now() - start).total_seconds()
-            elapsed_times["md5"] = elapsed
+            util.logger.info(
+                "job {}: generate thumbnails: {}, elapsed: {}".format(
+                    job_id, path, elapsed
+                )
+            )
+            photo._calculate_aspect_ratio(False)
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info(
+                "job {}: calculate aspect ratio: {}, elapsed: {}".format(
+                    job_id, path, elapsed
+                )
+            )
+            photo._generate_captions(False)
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info(
+                "job {}: generate caption: {}, elapsed: {}".format(
+                    job_id, path, elapsed
+                )
+            )
+            photo._geolocate_mapbox(True)
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info(
+                "job {}: geolocate: {}, elapsed: {}".format(job_id, path, elapsed)
+            )
+            photo._extract_date_time_from_exif(True)
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info(
+                "job {}: extract date time: {}, elapsed: {}".format(
+                    job_id, path, elapsed
+                )
+            )
+            photo._add_location_to_album_dates()
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info(
+                "job {}: add location to album dates: {}, elapsed: {}".format(
+                    job_id, path, elapsed
+                )
+            )
+            photo._extract_exif_data(True)
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info(
+                "job {}: extract exif data: {}, elapsed: {}".format(
+                    job_id, path, elapsed
+                )
+            )
 
-            if not Photo.objects.filter(Q(image_hash=hash)).exists():
-                photo: Photo = Photo()
-                photo.image_hash = hash
-                photo.owner = user
-                photo.added_on = datetime.datetime.now().replace(tzinfo=pytz.utc)
-                photo.geolocation_json = {}
-                photo.video = is_video(path)
-                photo.save()
+            photo._extract_rating(True)
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info(
+                "job {}: extract rating: {}, elapsed: {}".format(job_id, path, elapsed)
+            )
+            photo._extract_video_length(True)
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info(
+                "job {}: extract video length: {}, elapsed: {}".format(
+                    job_id, path, elapsed
+                )
+            )
+            photo._extract_faces()
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info(
+                "job {}: extract faces: {}, elapsed: {}".format(job_id, path, elapsed)
+            )
+            photo._get_dominant_color()
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info(
+                "job {}: image processed: {}, elapsed: {}".format(job_id, path, elapsed)
+            )
 
-                file: File = File()
-                file.path = path
-                file.hash = calculate_hash(user, path)
-                file._find_out_type()
-                file.save()
-
-                photo.files.add(file)
-                photo.main_file = file
-
-                photo._generate_thumbnail(True)
-                start = datetime.datetime.now()
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                util.logger.info(
-                    "job {}: generate thumbnails: {}, elapsed: {}".format(
-                        job_id, path, elapsed
-                    )
-                )
-                photo._calculate_aspect_ratio(False)
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                util.logger.info(
-                    "job {}: calculate aspect ratio: {}, elapsed: {}".format(
-                        job_id, path, elapsed
-                    )
-                )
-                photo._generate_captions(False)
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                util.logger.info(
-                    "job {}: generate caption: {}, elapsed: {}".format(
-                        job_id, path, elapsed
-                    )
-                )
-                photo._geolocate_mapbox(True)
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                util.logger.info(
-                    "job {}: geolocate: {}, elapsed: {}".format(job_id, path, elapsed)
-                )
-                photo._extract_date_time_from_exif(True)
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                util.logger.info(
-                    "job {}: extract date time: {}, elapsed: {}".format(
-                        job_id, path, elapsed
-                    )
-                )
-                photo._add_location_to_album_dates()
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                util.logger.info(
-                    "job {}: add location to album dates: {}, elapsed: {}".format(
-                        job_id, path, elapsed
-                    )
-                )
-                photo._extract_exif_data(True)
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                util.logger.info(
-                    "job {}: extract exif data: {}, elapsed: {}".format(
-                        job_id, path, elapsed
-                    )
-                )
-
-                photo._extract_rating(True)
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                util.logger.info(
-                    "job {}: extract rating: {}, elapsed: {}".format(
-                        job_id, path, elapsed
-                    )
-                )
-                photo._extract_video_length(True)
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                util.logger.info(
-                    "job {}: extract video length: {}, elapsed: {}".format(
-                        job_id, path, elapsed
-                    )
-                )
-                photo._extract_faces()
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                util.logger.info(
-                    "job {}: extract faces: {}, elapsed: {}".format(
-                        job_id, path, elapsed
-                    )
-                )
-                photo._get_dominant_color()
-                elapsed = (datetime.datetime.now() - start).total_seconds()
-                util.logger.info(
-                    "job {}: image processed: {}, elapsed: {}".format(
-                        job_id, path, elapsed
-                    )
-                )
-
-                if photo.image_hash == "":
-                    util.logger.warning(
-                        "job {}: image hash is an empty string. File path: {}".format(
-                            job_id, path
-                        )
-                    )
-            else:
-                file: File = File()
-                file.path = path
-                file.hash = calculate_hash(user, path)
-                file._find_out_type()
-                file.save()
-                photo = Photo.objects.filter(Q(image_hash=hash)).first()
-                photo.files.add(file)
-                photo.save()
-                photo._check_files()
+            if photo.image_hash == "":
                 util.logger.warning(
-                    "job {}: file {} exists already".format(job_id, path)
-                )
-        except Exception as e:
-            try:
-                util.logger.exception(
-                    "job {}: could not load image {}. reason: {}".format(
-                        job_id, path, str(e)
+                    "job {}: image hash is an empty string. File path: {}".format(
+                        job_id, path
                     )
                 )
-            except Exception:
-                util.logger.exception(
-                    "job {}: could not load image {}".format(job_id, path)
+        else:
+            file: File = File()
+            file.path = path
+            file.hash = calculate_hash(user, path)
+            file._find_out_type()
+            file.save()
+            photo = Photo.objects.filter(Q(image_hash=hash)).first()
+            photo.files.add(file)
+            photo.save()
+            photo._check_files()
+            util.logger.warning("job {}: file {} exists already".format(job_id, path))
+    except Exception as e:
+        try:
+            util.logger.exception(
+                "job {}: could not load image {}. reason: {}".format(
+                    job_id, path, str(e)
                 )
+            )
+        except Exception:
+            util.logger.exception(
+                "job {}: could not load image {}".format(job_id, path)
+            )
 
 
 def rescan_image(user, path, job_id):
