@@ -61,6 +61,8 @@ def path_to_dict(path, recurse=2):
         ]
     else:
         d["children"] = []
+    # sort children by title alphabetically (case insensitive)
+    d["children"] = sorted(d["children"], key=lambda k: k["title"].lower())
     return d
 
 
@@ -459,7 +461,6 @@ def get_photo_month_counts(user):
     ]
 
     if len(all_months) > 0:
-
         first_month = min(all_months)
         last_month = max(all_months)
 
