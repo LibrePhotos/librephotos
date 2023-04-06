@@ -1,4 +1,5 @@
 from django.test import TestCase
+from pyfakefs.fake_filesystem_unittest import Patcher
 from rest_framework.test import APIClient
 
 from api.models import User
@@ -33,14 +34,21 @@ class DirTreeTest(TestCase):
         )
 
     def test_children_list_should_be_alphabetical_case_insensitive(self):
-        self.client.force_authenticate(user=self.admin)
-        response = self.client.get("/api/dirtree/")
-        data = response.json()
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(data["children"][0]["name"], "a")
-        self.assertEqual(data["children"][1]["name"], "A")
-        self.assertEqual(data["children"][2]["name"], "b")
-        self.assertEqual(data["children"][3]["name"], "B")
+        with Patcher() as patcher:
+            patcher.fs.create_dir("/data")
+            patcher.fs.create_dir("/data/Z")
+            patcher.fs.create_dir("/data/a")
+            patcher.fs.create_dir("/data/X")
+            patcher.fs.create_dir("/data/b")
+
+            self.client.force_authenticate(user=self.admin)
+            response = self.client.get("/api/dirtree/")
+            data = response.json()[0]
+            self.assertEqual(200, response.status_code)
+            self.assertEqual(data["children"][0]["title"], "a")
+            self.assertEqual(data["children"][1]["title"], "b")
+            self.assertEqual(data["children"][2]["title"], "X")
+            self.assertEqual(data["children"][3]["title"], "Z")
 
     def test_regular_user_is_not_allowed_to_retrieve_dirtree(self):
         self.client.force_authenticate(user=self.user)
