@@ -32,6 +32,16 @@ class DirTreeTest(TestCase):
             data["message"], "[Errno 2] No such file or directory: '/does_not_exist'"
         )
 
+    def test_children_list_should_be_alphabetical_case_insensitive(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get("/api/dirtree/")
+        data = response.json()
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(data["children"][0]["name"], "a")
+        self.assertEqual(data["children"][1]["name"], "A")
+        self.assertEqual(data["children"][2]["name"], "b")
+        self.assertEqual(data["children"][3]["name"], "B")
+
     def test_regular_user_is_not_allowed_to_retrieve_dirtree(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.get("/api/dirtree/")
