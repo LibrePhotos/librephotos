@@ -82,6 +82,7 @@ def cluster_all_faces(user, job_id) -> bool:
     try:
         delete_clustered_people(user)
         delete_clusters(user)
+        delete_persons_without_faces()
         target_count: int = create_all_clusters(user, lrj)
 
         lrj.finished = True
@@ -168,6 +169,12 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
         all_clusters.extend(new_clusters)
 
     return target_count
+
+
+def delete_persons_without_faces():
+    """Delete all existing Person records that have no associated Face records"""
+    print("[INFO] Deleting all people without faces")
+    Person.objects.filter(faces=None, kind=Person.KIND_USER).delete()
 
 
 def delete_clusters(user: User):
