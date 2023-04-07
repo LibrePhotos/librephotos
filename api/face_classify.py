@@ -11,11 +11,11 @@ from hdbscan import HDBSCAN
 from sklearn.decomposition import PCA
 from sklearn.neural_network import MLPClassifier
 
-from api.cluster_manager import ClusterManager, get_unknown_cluster
+from api.cluster_manager import ClusterManager
 from api.models import Face, LongRunningJob, Person
 from api.models.cluster import UNKNOWN_CLUSTER_ID, Cluster
 from api.models.person import get_unknown_person
-from api.models.user import User
+from api.models.user import User, get_deleted_user
 from api.util import logger
 
 FACE_CLASSIFY_COLUMNS = [
@@ -173,15 +173,17 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
 def delete_clusters(user: User):
     """Delete all existing Cluster records"""
     print("[INFO] Deleting all clusters")
-    unknown_cluster: Cluster = get_unknown_cluster()
-    unknown_id: int = unknown_cluster.id
-    Cluster.objects.filter(Q(owner=user) & ~Q(id=unknown_id)).delete()
+    Cluster.objects.filter(Q(owner=user)).delete()
+    Cluster.objects.filter(Q(owner=None)).delete()
+    Cluster.objects.filter(Q(owner=get_deleted_user())).delete()
 
 
 def delete_clustered_people(user: User):
     """Delete all existing Person records of type CLUSTER"""
     print("[INFO] Deleting all clustered people")
     Person.objects.filter(kind=Person.KIND_CLUSTER, cluster_owner=user).delete()
+    Person.objects.filter(cluster_owner=None).delete()
+    Person.objects.filter(cluster_owner=get_deleted_user()).delete()
 
 
 @job

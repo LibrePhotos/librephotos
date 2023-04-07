@@ -5,7 +5,7 @@ from django.db import models
 from django.db.models import Prefetch
 
 from api.models.photo import Photo
-from api.models.user import User, get_deleted_user
+from api.models.user import User
 
 utc = pytz.UTC
 
@@ -29,7 +29,7 @@ class Person(models.Model):
     cluster_owner = models.ForeignKey(
         User,
         related_name="owner",
-        on_delete=models.SET(get_deleted_user),
+        on_delete=models.SET_NULL,
         default=None,
         null=True,
     )
@@ -66,7 +66,7 @@ class Person(models.Model):
         return photos
 
 
-def get_unknown_person(owner: User = None):
+def get_unknown_person(owner: User):
     unknown_person: Person = Person.objects.get_or_create(
         name=Person.UNKNOWN_PERSON_NAME, cluster_owner=owner, kind=Person.KIND_UNKNOWN
     )[0]
