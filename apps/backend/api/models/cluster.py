@@ -1,8 +1,10 @@
 import numpy as np
+from django.core.exceptions import MultipleObjectsReturned
 from django.db import models
 
 from api.models.person import Person, get_unknown_person
 from api.models.user import User, get_deleted_user
+from api.util import logger
 
 UNKNOWN_CLUSTER_ID = -1
 UNKNOWN_CLUSTER_NAME = "Other Unknown Cluster"
@@ -11,7 +13,7 @@ UNKNOWN_CLUSTER_NAME = "Other Unknown Cluster"
 class Cluster(models.Model):
     person = models.ForeignKey(
         Person,
-        on_delete=models.SET(get_unknown_person),
+        on_delete=models.SET_NULL,
         related_name="clusters",
         blank=True,
         null=True,
@@ -41,18 +43,24 @@ class Cluster(models.Model):
 
     @staticmethod
     def get_or_create_cluster_by_id(user: User, cluster_id: int):
-        return Cluster.objects.get_or_create(owner=user, cluster_id=cluster_id)[0]
+        try:
+            return Cluster.objects.get_or_create(owner=user, cluster_id=cluster_id)[0]
+        except MultipleObjectsReturned:
+            logger.error(
+                "Multiple clusters found with id %d. Choosing first one" % cluster_id
+            )
+            return Cluster.objects.filter(owner=user, cluster_id=cluster_id).first()
 
     @staticmethod
     def calculate_mean_face_encoding(all_encodings):
         return np.mean(a=all_encodings, axis=0, dtype=np.float64)
 
 
-def get_unknown_cluster() -> Cluster:
+def get_unknown_cluster(user: User) -> Cluster:
+    unknown_person: Person = get_unknown_person(user)
     unknown_cluster: Cluster = Cluster.get_or_create_cluster_by_id(
-        get_deleted_user(), UNKNOWN_CLUSTER_ID
+        user, UNKNOWN_CLUSTER_ID
     )
-    unknown_person: Person = get_unknown_person()
     if unknown_cluster.person is not unknown_person:
         unknown_cluster.person = unknown_person
         unknown_cluster.name = UNKNOWN_CLUSTER_NAME
