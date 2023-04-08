@@ -160,7 +160,9 @@
         "rescanfaces": "Berraztertu aurpegiak",
         "semanticsearchheader": "Bilaketa semantikoaren gehienezko emaitzak",
         "favorite": "Gogokoen aukerak",
-        "semanticsearchupdate": "Eguneratu"
+        "semanticsearchupdate": "Eguneratu",
+        "basque": "Euskara",
+        "helptranslating": "Lagundu itzultzen"
     },
     "topmenu": {
         "available": "Argazki gehiago aztertzen has zaitezke, aurpegiak etiketatzen, momentuen albumak automatikoki sortzen, edo automatikoki sortutako albumen tituluak birsortzen.",
