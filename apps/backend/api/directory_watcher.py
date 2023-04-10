@@ -201,7 +201,7 @@ def handle_new_image(user, path, job_id):
 def rescan_image(user, path, job_id):
     try:
         if is_valid_media(path):
-            photo = Photo.objects.filter(Q(files__path__contains=path)).get()
+            photo = Photo.objects.filter(Q(files__path=path)).get()
             photo._generate_thumbnail(True)
             photo._calculate_aspect_ratio(False)
             photo._geolocate_mapbox(True)
@@ -250,7 +250,7 @@ def _file_was_modified_after(filepath, time):
 
 
 def photo_scanner(user, last_scan, full_scan, path, job_id):
-    if Photo.objects.filter(files__path__contains=path).exists():
+    if Photo.objects.filter(files__path=path).exists():
         files_to_check = [path]
         files_to_check.extend(util.get_sidecar_files_in_priority_order(path))
         if (
