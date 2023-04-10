@@ -7,6 +7,9 @@ from django.db import models
 
 import api.util as util
 
+# Most optimal value for performance/memory. Found here:
+# https://stackoverflow.com/questions/17731660/hashlib-optimal-size-of-chunks-to-be-used-in-md5-update
+BUFFER_SIZE = 65536
 
 # To-Do: add owner to file
 class File(models.Model):
@@ -120,7 +123,7 @@ def calculate_hash(user, path):
     try:
         hash_md5 = hashlib.md5()
         with open(path, "rb") as f:
-            for chunk in iter(lambda: f.read(4096), b""):
+            for chunk in iter(lambda: f.read(BUFFER_SIZE), b""):
                 hash_md5.update(chunk)
         return hash_md5.hexdigest() + str(user.id)
     except Exception as e:
@@ -131,6 +134,6 @@ def calculate_hash(user, path):
 def calculate_hash_b64(user, content):
     hash_md5 = hashlib.md5()
     with content as f:
-        for chunk in iter(lambda: f.read(4096), b""):
+        for chunk in iter(lambda: f.read(BUFFER_SIZE), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest() + str(user.id)
