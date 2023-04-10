@@ -1,4 +1,7 @@
+from unittest.mock import patch
+
 from constance.test import override_config
+from django.core.management import call_command
 from django.test import TestCase
 from rest_framework.test import APIClient
 
@@ -99,6 +102,15 @@ class UserTest(TestCase):
     def test_public_delete_user(self):
         response = self.client.delete(f"/api/user/{self.user1.id}/")
         self.assertEqual(401, response.status_code)
+
+    @override_config(ALLOW_REGISTRATION=False)
+    def test_super_user_create_with_command(self):
+        with patch.dict("os.environ", {"ADMIN_PASSWORD": "demo1234"}):
+            User.objects.all().delete()
+            call_command("createadmin", "demo", "demo@test.com")
+            self.assertEqual(2, len(User.objects.all()))
+            user = User.objects.get(username="admin")
+            self.assertTrue(user.is_superuser)
 
     @override_config(ALLOW_REGISTRATION=False)
     def test_public_user_create_successful_on_first_setup(self):
