@@ -177,7 +177,7 @@ def handle_new_image(user, path, job_id):
         else:
             file: File = File()
             file.path = path
-            file.hash = calculate_hash(user, path)
+            file.hash = hash
             file._find_out_type()
             file.save()
             photo = Photo.objects.filter(Q(image_hash=hash)).first()
