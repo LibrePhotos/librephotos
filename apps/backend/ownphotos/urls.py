@@ -190,7 +190,7 @@ router.register(r"api/exists", upload.UploadPhotoExists, basename="exists")
 router.register(r"api/jobs", jobs.LongRunningJobViewSet)
 urlpatterns = [
     re_path(r"^", include(router.urls)),
-    re_path(r"^admin/", admin.site.urls),
+    re_path(r"^api/django-admin/", admin.site.urls),
     re_path(r"^api/sitesettings", views.SiteSettingsView.as_view()),
     re_path(r"^api/firsttimesetup", user.IsFirstTimeSetupView.as_view()),
     re_path(r"^api/dirtree", user.RootPathTreeView.as_view()),
