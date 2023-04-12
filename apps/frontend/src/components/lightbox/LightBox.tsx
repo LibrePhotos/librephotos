@@ -115,6 +115,7 @@ export function LightBox(props: Props) {
             isPublic={isPublic}
           />,
         ]}
+        enableZoom={!isVideo()}
         onCloseRequest={onCloseRequest}
         onAfterOpen={() => {
           onImageLoad();
