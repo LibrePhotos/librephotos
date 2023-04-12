@@ -72,19 +72,16 @@ export function LightBox(props: Props) {
     ) : null;
 
   function getTransform({ x = 0, y = 0, zoom = 1, width, targetWidth }) {
-    const innerWidth = document.getElementsByClassName("ril-inner ril__inner")[0].clientWidth;
+    var innerWidth = viewportWidth;
+    if (document.getElementsByClassName("ril-inner ril__inner")[0]) {
+      innerWidth = document.getElementsByClassName("ril-inner ril__inner")[0].clientWidth;
+    }
+
     let nextX = x;
     if (width > innerWidth) {
       nextX += (innerWidth - width) / 2;
     }
     const scaleFactor = zoom * (targetWidth / width);
-    console.log("inputWidth", width);
-    console.log("targetWidth", targetWidth);
-    console.log("zoom", zoom);
-    console.log("modalWidth", innerWidth);
-    console.log("scaleFactor", scaleFactor);
-    console.log("x", x);
-    console.log("y", y);
     return {
       transform: `translate3d(${nextX}px,${y}px,0) scale3d(${scaleFactor},${scaleFactor},1)`,
     };
@@ -95,7 +92,11 @@ export function LightBox(props: Props) {
   Lightbox.getTransform = getTransform;
 
   return (
-    <div>
+    <div
+      style={{
+        pointerEvents: "none",
+      }}
+    >
       <Lightbox
         // @ts-ignore
         mainSrc={!isVideo() ? getPictureUrl(lightboxImageId) : null}
