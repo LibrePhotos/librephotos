@@ -23,11 +23,10 @@ type Props = {
 export function LightBox(props: Props) {
   const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
   const { photoDetails } = useAppSelector(store => store.photos);
-
-  const { width } = useViewportSize();
+  const { width: viewportWidth } = useViewportSize();
   let LIGHTBOX_SIDEBAR_WIDTH = 320;
-  if (width < 600) {
-    LIGHTBOX_SIDEBAR_WIDTH = width;
+  if (viewportWidth < 600) {
+    LIGHTBOX_SIDEBAR_WIDTH = viewportWidth;
   }
   const {
     lightboxImageId,
@@ -72,6 +71,29 @@ export function LightBox(props: Props) {
       <ReactPlayer width="100%" height="100%" controls playing url={getVideoUrl(id)} progressInterval={100} />
     ) : null;
 
+  function getTransform({ x = 0, y = 0, zoom = 1, width, targetWidth }) {
+    const innerWidth = document.getElementsByClassName("ril-inner ril__inner")[0].clientWidth;
+    let nextX = x;
+    if (width > innerWidth) {
+      nextX += (innerWidth - width) / 2;
+    }
+    const scaleFactor = zoom * (targetWidth / width);
+    console.log("inputWidth", width);
+    console.log("targetWidth", targetWidth);
+    console.log("zoom", zoom);
+    console.log("modalWidth", innerWidth);
+    console.log("scaleFactor", scaleFactor);
+    console.log("x", x);
+    console.log("y", y);
+    return {
+      transform: `translate3d(${nextX}px,${y}px,0) scale3d(${scaleFactor},${scaleFactor},1)`,
+    };
+  }
+
+  // override static function getTransform from react-image-lightbox
+  // @ts-ignore
+  Lightbox.getTransform = getTransform;
+
   return (
     <div>
       <Lightbox
@@ -105,7 +127,7 @@ export function LightBox(props: Props) {
         reactModalStyle={{
           content: {},
           overlay: {
-            width: lightboxSidebarShow ? width - LIGHTBOX_SIDEBAR_WIDTH : width,
+            width: lightboxSidebarShow ? viewportWidth - LIGHTBOX_SIDEBAR_WIDTH : viewportWidth,
           },
         }}
       />
