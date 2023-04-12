@@ -313,6 +313,10 @@
     "confirmpassword": "Confirm Password",
     "confirmpasswordplaceholder": "Confirm Password",
     "signup": "Sign Up",
+    "error":{
+      "token_not_valid": "Login expired, please login again.",
+      "token": "Token issue"
+    },
     "errorbackend": "No connection to backend server, try again in a few minutes.",
     "errorpassword": "Password may not be blank!",
     "errorusername": "Username may not be blank!",
