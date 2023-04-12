@@ -83,6 +83,7 @@ export function LightBox(props: Props) {
         nextCustomContent={getVideoComponent(getNextId())}
         prevCustomContent={getVideoComponent(getPreviousId())}
         imageLoadErrorMessage=""
+        discourageDownloads={false}
         toolbarButtons={[
           <Toolbar
             photosDetail={photoDetails[lightboxImageId]}
