@@ -289,7 +289,10 @@
         "errorusernameexists": "此用户名已存在。",
         "erroremail": "输入一个有效的电子邮件地址。",
         "firsttimesetup": "初始设置",
-        "usernamelabel": "用户名"
+        "usernamelabel": "用户名",
+        "error": {
+            "token_not_valid": "登录已过期，请重新登录。"
+        }
     },
     "search": {
         "search": "搜索",
