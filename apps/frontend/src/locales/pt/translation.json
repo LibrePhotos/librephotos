@@ -299,7 +299,11 @@
         "name": "LibrePhotos",
         "username": "Nome de utilizador",
         "login": "Iniciar sessão",
-        "usernamelabel": "Nome de utilizador"
+        "usernamelabel": "Nome de utilizador",
+        "error": {
+            "token": "Problema de token",
+            "token_not_valid": "Sessão expirou, por favor inicie sessão novamente."
+        }
     },
     "search": {
         "search": "Pesquisar",
