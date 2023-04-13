@@ -169,9 +169,17 @@
     "choosedirectory": "Choose a directory from below"
   },
   "modalphotosshare": {
+    "title": "Share photos",
+    "search": "Search User",
+    "name": "Person name",
+    "share": "Share",
+    "unshare": "Unshare",
     "joined": "Joined"
   },
   "modalalbumsshare": {
+    "title": "Share Album",
+    "search": "Search User",
+    "name": "Person name",
     "joined": "Joined"
   },
   "topmenu": {
