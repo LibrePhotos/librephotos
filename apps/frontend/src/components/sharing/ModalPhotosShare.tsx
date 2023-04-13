@@ -89,7 +89,7 @@ export function ModalPhotosShare(props: Props) {
                 if (item.first_name.length > 0 && item.last_name.length > 0) {
                   displayName = `${item.first_name} ${item.last_name}`;
                 }
-                const avatar = item.avater ? item.avatar : "/unknown_user.jpg";
+                const avatar = item.avatar ? item.avatar_url : "/unknown_user.jpg";
                 return (
                   <Group position="apart" key={item.id}>
                     <Group>

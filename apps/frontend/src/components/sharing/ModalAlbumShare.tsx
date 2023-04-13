@@ -90,7 +90,7 @@ export function UserEntry(props: UserEntryProps) {
 
   const displayName =
     item.first_name.length > 0 && item.last_name.length > 0 ? `${item.first_name} ${item.last_name}` : item.username;
-  const avatar = item.avater ? item.avatar : "/unknown_user.jpg";
+  const avatar = item.avatar ? item.avatar_url : "/unknown_user.jpg";
 
   return (
     <Group position="apart" key={item.id}>
