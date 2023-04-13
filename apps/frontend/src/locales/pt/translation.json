@@ -195,10 +195,18 @@
         "update": "Atualizar"
     },
     "modalphotosshare": {
-        "joined": "Aderiu"
+        "joined": "Aderiu",
+        "share": "Partilhar",
+        "unshare": "Deixar de partilhar",
+        "title": "Partilhar fotos",
+        "name": "Nome da pessoa",
+        "search": "Procurar utilizador"
     },
     "modalalbumsshare": {
-        "joined": "Aderiu"
+        "joined": "Aderiu",
+        "title": "Partilhar álbum",
+        "search": "Procurar utilizador",
+        "name": "Nome da pessoa"
     },
     "topmenu": {
         "available": "Trabalhador disponível! Pode começar a analisar mais fotos, inferir títulos para caras, criar álbuns de eventos automáticos ou regenerar títulos de álbuns de eventos automáticos.",
