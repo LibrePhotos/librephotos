@@ -9,6 +9,12 @@ from api.models import User
 from api.tests.utils import create_test_user, create_user_details
 
 
+def delete_all_users():
+    User.objects.all().delete()
+    # That's a weird one. When deleting all users, the user with username "deleted" is not deleted.
+    User.objects.filter(username="deleted").delete()
+
+
 class UserTest(TestCase):
     public_user_properties = [
         "id",
@@ -106,17 +112,15 @@ class UserTest(TestCase):
     @override_config(ALLOW_REGISTRATION=False)
     def test_super_user_create_with_command(self):
         with patch.dict("os.environ", {"ADMIN_PASSWORD": "demo1234"}):
-            User.objects.all().delete()
+            delete_all_users()
             call_command("createadmin", "demo", "demo@test.com")
-            self.assertEqual(2, len(User.objects.all()))
-            user = User.objects.get(username="admin")
+            self.assertEqual(1, len(User.objects.all()))
+            user = User.objects.get(username="demo")
             self.assertTrue(user.is_superuser)
 
     @override_config(ALLOW_REGISTRATION=False)
     def test_public_user_create_successful_on_first_setup(self):
-        User.objects.all().delete()
-        # That's a weird one. When deleting all users, the user with username "deleted" is not deleted.
-        User.objects.filter(username="deleted").delete()
+        delete_all_users()
         self.client.force_authenticate(user=None)
         data = create_user_details()
         response = self.client.post("/api/user/", data=data)
@@ -197,12 +201,12 @@ class UserTest(TestCase):
 
     @override_config(ALLOW_REGISTRATION=False)
     def test_first_time_setup_creates_user_when_registration_is_disabled(self):
-        User.objects.all().delete()
+        delete_all_users()
         response = self.client.post("/api/user/", data=create_user_details())
         self.assertEqual(201, response.status_code)
 
     def test_first_time_setup(self):
-        User.objects.all().delete()
+        delete_all_users()
         response = self.client.get("/api/firsttimesetup/")
         data = response.json()
         self.assertEqual(True, data["isFirstTimeSetup"])
