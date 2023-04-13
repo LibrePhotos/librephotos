@@ -101,8 +101,8 @@ def handle_new_image(user, path, job_id):
             photo.save()
 
             file = File.create(path, user)
-            if has_embedded_media(path):
-                em_path = extract_embedded_media(path)
+            if has_embedded_media(file):
+                em_path = extract_embedded_media(file)
                 if em_path:
                     em_file = File.create(em_path, user)
                     file.embedded_media.add(em_file)
@@ -194,9 +194,7 @@ def handle_new_image(user, path, job_id):
             photo.files.add(file)
             photo.save()
             photo._check_files()
-            util.logger.warning(
-                "job {}: file {} exists already".format(job_id, path)
-            )
+            util.logger.warning("job {}: file {} exists already".format(job_id, path))
     except Exception as e:
         try:
             util.logger.exception(

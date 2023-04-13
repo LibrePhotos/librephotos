@@ -115,13 +115,13 @@ class UserTest(TestCase):
     @override_config(ALLOW_REGISTRATION=False)
     def test_public_user_create_successful_on_first_setup(self):
         User.objects.all().delete()
+        # That's a weird one. When deleting all users, the user with username "deleted" is not deleted.
+        User.objects.filter(username="deleted").delete()
         self.client.force_authenticate(user=None)
-        # You do not have to provide the is_superuser flag, because it is set to true by default, when there are no superusers in the database
         data = create_user_details()
         response = self.client.post("/api/user/", data=data)
         self.assertEqual(201, response.status_code)
-        # Changed to 2, because we also have a deleted user -> endpoint things it already has a user and does not create a new admin
-        self.assertEqual(2, len(User.objects.all()))
+        self.assertEqual(1, len(User.objects.all()))
         user = User.objects.get(username=data["username"])
         self.assertTrue(user.is_superuser)
 
