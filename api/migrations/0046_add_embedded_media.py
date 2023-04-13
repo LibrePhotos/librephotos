@@ -3,13 +3,13 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("api", "0043_alter_photo_size"),
+        ("api", "0045_alter_face_cluster"),
     ]
 
     operations = [
         migrations.AddField(
             model_name="file",
             name="embedded_media",
-            field=models.ManyToManyField("self", related_name="+"),
+            field=models.ManyToManyField("File"),
         ),
     ]
