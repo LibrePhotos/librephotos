@@ -531,7 +531,8 @@ class Photo(models.Model):
             try_sidecar=True,
         )
         self.size = size
-        self.fstop = fstop
+        if fstop and isinstance(fstop, numbers.Number):
+            self.fstop = fstop
         self.focal_length = focal_length
         self.iso = iso
         if shutter_speed and isinstance(shutter_speed, numbers.Number):
