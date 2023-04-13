@@ -7,6 +7,7 @@ import zipfile
 import jsonschema
 import magic
 from constance import config as site_config
+from django.db.models import Q
 from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
 from django.utils.decorators import method_decorator
 from django.utils.encoding import iri_to_uri
@@ -272,7 +273,6 @@ class MediaAccessView(APIView):
 
 
 class VideoTranscoder:
-
     process = ""
 
     def __init__(self, path):
@@ -380,6 +380,22 @@ class MediaAccessFullsizeOriginalView(APIView):
                 return response
             except Exception:
                 return HttpResponse(status=404)
+        if path.lower() == "embedded_media":
+            try:
+                query = (
+                    Q(owner=request.user)
+                    if request.user.is_authenticated
+                    else Q(public=True)
+                )
+                photo = Photo.objects.filter(query, image_hash=fname).first()
+                if not photo or photo.main_file.embedded_media.count() < 1:
+                    raise Photo.DoesNotExist()
+            except Photo.DoesNotExist:
+                return HttpResponse(status=404)
+            response = HttpResponse()
+            response["Content-Type"] = "video/mp4"
+            response["X-Accel-Redirect"] = f"/protected_media/{path}/{fname}_1.mp4"
+            return response
         if path.lower() != "photos":
             jwt = request.COOKIES.get("jwt")
             image_hash = fname.split(".")[0].split("_")[0]

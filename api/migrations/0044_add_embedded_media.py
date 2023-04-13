@@ -2,9 +2,8 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ("api", "0041_apply_user_enum_for_person"),
+        ("api", "0043_alter_photo_size"),
     ]
 
     operations = [

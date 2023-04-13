@@ -4,6 +4,7 @@ from mmap import ACCESS_READ, mmap
 
 import magic
 import pyvips
+from django.conf import settings
 from django.db import models
 
 import api.util as util
@@ -44,7 +45,7 @@ class File(models.Model):
         choices=FILE_TYPES,
     )
     missing = models.BooleanField(default=False)
-    embedded_media = models.ManyToManyField("self", related_name="+")
+    embedded_media = models.ManyToManyField("File")
 
     @staticmethod
     def create(path: str, user):
@@ -175,7 +176,8 @@ def _locate_embedded_video_samsung(data):
     return -1
 
 
-def has_embedded_media(path: str) -> bool:
+def has_embedded_media(file: File) -> bool:
+    path = str(file.path)
     with open(path, "rb+") as image:
         with mmap(image.fileno(), 0, access=ACCESS_READ) as mm:
             return (
@@ -184,15 +186,18 @@ def has_embedded_media(path: str) -> bool:
             )
 
 
-def extract_embedded_media(path: str) -> str | None:
-    with open(path, "rb") as image:
+def extract_embedded_media(file: File) -> str | None:
+    with open(str(file.path), "rb") as image:
         with mmap(image.fileno(), 0, access=ACCESS_READ) as mm:
             position = _locate_embedded_video_google(
                 mm
             ) or _locate_embedded_video_google(mm)
             if position == -1:
                 return None
-            output_path = f"{os.path.splitext(path)[0]}_embedded.mp4"
+            output_dir = f"{settings.MEDIA_ROOT}/embedded_media"
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+            output_path = f"{output_dir}/{file.hash}_1.mp4"
             with open(output_path, "wb+") as video:
                 mm.seek(position)
                 data = mm.read(mm.size())

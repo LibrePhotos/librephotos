@@ -9,7 +9,6 @@ from api.serializers.simple import SimpleUserSerializer
 
 
 class PigPhotoSerilizer(serializers.ModelSerializer):
-
     id = serializers.SerializerMethodField()
     dominantColor = serializers.SerializerMethodField()
     aspectRatio = serializers.SerializerMethodField()
@@ -255,10 +254,14 @@ class PhotoSerializer(serializers.ModelSerializer):
                 "type": "video" if file.type == File.VIDEO else "image",
             }
 
-        embedded_media = obj.main_file.embedded_media.filter(
-            type__in=[File.VIDEO, File.IMAGE]
+        embedded_media = obj.main_file.embedded_media.all()
+        if len(embedded_media) == 0:
+            return []
+        return list(
+            map(
+                serialize_file, embedded_media.filter(type__in=[File.VIDEO, File.IMAGE])
+            )
         )
-        return list(map(serialize_file, embedded_media))
 
 
 class SharedFromMePhotoThroughSerializer(serializers.ModelSerializer):
