@@ -83,7 +83,7 @@ export function fetchUserAlbumsList() {
         });
       })
       .catch(err => {
-        console.log(err);
+        console.error(err);
         dispatch({ type: "FETCH_USER_ALBUMS_LIST_REJECTED", payload: err });
       });
   };
@@ -235,7 +235,7 @@ export function setAlbumCoverForUserAlbum(album_id, photo_hash) {
         dispatch(fetchUserAlbumsList());
       })
       .catch(err => {
-        console.log(err);
+        console.error(err);
         dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON_REJECTED", payload: err });
       });
   };

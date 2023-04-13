@@ -279,7 +279,7 @@ export function fetchTimezoneList(dispatch) {
       });
     })
     .catch(err => {
-      console.log(err);
+      console.error(err);
       dispatch({ type: "FETCH_TIMEZONE_LIST_REJECTED", payload: err });
     });
 }

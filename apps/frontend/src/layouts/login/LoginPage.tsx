@@ -31,7 +31,6 @@ export function LoginPage(): JSX.Element {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const location = useLocation();
-  console.info("location: ", location);
   // @ts-ignore
   const from = location.state?.from || "/";
 

@@ -42,8 +42,6 @@ export function LocationLink(props: Props) {
     dispatch(fetchLocationSunburst());
   }, []);
 
-  console.log(locationSunburst);
-
   const {
     width,
     height,
