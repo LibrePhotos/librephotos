@@ -351,10 +351,18 @@
         "cancel": "Annuleren"
     },
     "modalphotosshare": {
-        "joined": "Deelgenomen"
+        "joined": "Deelgenomen",
+        "name": "Persoonsnaam",
+        "search": "Zoeken naar gebruiker",
+        "share": "Delen",
+        "title": "Foto's delen",
+        "unshare": "Niet meer delen"
     },
     "modalalbumsshare": {
-        "joined": "Deelgenomen"
+        "joined": "Deelgenomen",
+        "name": "Persoonsnaam",
+        "title": "Album delen",
+        "search": "Zoeken naar gebruiker"
     },
     "rules": {
         "5": "Datum extraheren uit WhatsApp-bestandsnaam",
