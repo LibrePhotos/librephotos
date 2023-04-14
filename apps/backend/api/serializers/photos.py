@@ -1,14 +1,14 @@
 import json
+from typing import List
 
 from rest_framework import serializers
 
 from api.image_similarity import search_similar_image
-from api.models import Photo
+from api.models import File, Photo
 from api.serializers.simple import SimpleUserSerializer
 
 
 class PigPhotoSerilizer(serializers.ModelSerializer):
-
     id = serializers.SerializerMethodField()
     dominantColor = serializers.SerializerMethodField()
     aspectRatio = serializers.SerializerMethodField()
@@ -140,6 +140,7 @@ class PhotoSerializer(serializers.ModelSerializer):
     shared_to = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     image_path = serializers.SerializerMethodField()
     owner = SimpleUserSerializer(many=False, read_only=True)
+    embedded_media = serializers.SerializerMethodField()
 
     class Meta:
         model = Photo
@@ -178,6 +179,7 @@ class PhotoSerializer(serializers.ModelSerializer):
             "focalLength35Equivalent",
             "digitalZoomRatio",
             "subjectDistance",
+            "embedded_media",
         )
 
     def get_similar_photos(self, obj) -> list:
@@ -244,6 +246,22 @@ class PhotoSerializer(serializers.ModelSerializer):
             {"name": f.person.name, "face_url": f.image.url, "face_id": f.id}
             for f in obj.faces.all()
         ]
+
+    def get_embedded_media(self, obj: Photo) -> List[dict]:
+        def serialize_file(file):
+            return {
+                "id": file.hash,
+                "type": "video" if file.type == File.VIDEO else "image",
+            }
+
+        embedded_media = obj.main_file.embedded_media.all()
+        if len(embedded_media) == 0:
+            return []
+        return list(
+            map(
+                serialize_file, embedded_media.filter(type__in=[File.VIDEO, File.IMAGE])
+            )
+        )
 
 
 class SharedFromMePhotoThroughSerializer(serializers.ModelSerializer):

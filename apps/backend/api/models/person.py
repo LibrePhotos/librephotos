@@ -66,7 +66,7 @@ class Person(models.Model):
         return photos
 
 
-def get_unknown_person(owner: User):
+def get_unknown_person(owner: User = None):
     unknown_person: Person = Person.objects.get_or_create(
         name=Person.UNKNOWN_PERSON_NAME, cluster_owner=owner, kind=Person.KIND_UNKNOWN
     )[0]

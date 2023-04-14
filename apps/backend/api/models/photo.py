@@ -742,3 +742,6 @@ class Photo(models.Model):
                 return True
         logger.info("Path is not valid: {}".format(duplicate_path))
         return False
+
+    def _set_embedded_media(self, obj):
+        return obj.main_file.embedded_media
