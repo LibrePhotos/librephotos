@@ -92,11 +92,7 @@ export function LightBox(props: Props) {
   Lightbox.getTransform = getTransform;
 
   return (
-    <div
-      style={{
-        pointerEvents: "none",
-      }}
-    >
+    <div>
       <Lightbox
         // @ts-ignore
         mainSrc={!isVideo() ? getPictureUrl(lightboxImageId) : null}
