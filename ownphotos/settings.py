@@ -318,8 +318,10 @@ IMAGE_SIMILARITY_SERVER = "http://localhost:8002"
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
-    os.environ.get("CSRF_TRUSTED_ORIGINS", ""),
 ]
+
+if os.environ.get("CSRF_TRUSTED_ORIGINS"):
+    CSRF_TRUSTED_ORIGINS.append(os.environ.get("CSRF_TRUSTED_ORIGINS"))
 
 LOGGING = {
     "version": 1,
