@@ -23,6 +23,7 @@ type Props = {
 export function LightBox(props: Props) {
   const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
   const { photoDetails } = useAppSelector(store => store.photos);
+  const { playing: isPlayingEmbeddedContent } = useAppSelector(store => store.player);
   const { width: viewportWidth } = useViewportSize();
   let LIGHTBOX_SIDEBAR_WIDTH = 320;
   if (viewportWidth < 600) {
@@ -57,8 +58,6 @@ export function LightBox(props: Props) {
 
   const getPictureUrl = id => `${serverAddress}/media/thumbnails_big/${id}`;
 
-  const getVideoUrl = id => `${serverAddress}/media/video/${id}`;
-
   const isVideo = () => {
     if (getCurrentPhotodetail() === undefined || getCurrentPhotodetail().video === undefined) {
       return false;
@@ -66,13 +65,37 @@ export function LightBox(props: Props) {
     return getCurrentPhotodetail().video;
   };
 
-  const getVideoComponent = id =>
-    isVideo() ? (
-      <ReactPlayer width="100%" height="100%" controls playing url={getVideoUrl(id)} progressInterval={100} />
-    ) : null;
+  function getVideoComponent(id) {
+    const media = photoDetails[id];
+    if (media !== undefined && !!media.video) {
+      return (
+        <ReactPlayer
+          width="100%"
+          height="100%"
+          playing
+          url={`${serverAddress}/media/video/${id}`}
+          progressInterval={100}
+        />
+      );
+    }
+    if (media !== undefined && media.embedded_media.length > 0) {
+      return (
+        <ReactPlayer
+          width="100%"
+          height="100%"
+          config={{ file: { attributes: { poster: getPictureUrl(id) } } }}
+          loop
+          playing={isPlayingEmbeddedContent}
+          url={`${serverAddress}/media/embedded_media/${id}`}
+          progressInterval={100}
+        />
+      );
+    }
+    return null;
+  }
 
   function getTransform({ x = 0, y = 0, zoom = 1, width, targetWidth }) {
-    var innerWidth = viewportWidth;
+    let innerWidth = viewportWidth;
     if (document.getElementsByClassName("ril-inner ril__inner")[0]) {
       innerWidth = document.getElementsByClassName("ril-inner ril__inner")[0].clientWidth;
     }
