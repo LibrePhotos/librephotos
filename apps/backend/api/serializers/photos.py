@@ -79,8 +79,9 @@ class PigPhotoSerilizer(serializers.ModelSerializer):
     def get_type(self, obj) -> str:
         if obj.video:
             return "video"
-        else:
-            return "image"
+        if obj.main_file.embedded_media.count() > 0:
+            return "motion_photo"
+        return "image"
 
 
 class GroupedPhotosSerializer(serializers.ModelSerializer):
