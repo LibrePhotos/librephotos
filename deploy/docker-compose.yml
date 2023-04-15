@@ -71,6 +71,7 @@ services:
       - WEB_CONCURRENCY=${gunniWorkers:-1}
       - SKIP_PATTERNS=${skipPatterns:-}
       - ALLOW_UPLOAD=${allowUpload:-false}
+      - CSRF_TRUSTED_ORIGINS=${csrfTrustedOrigins:-}
       - DEBUG=0
       - HEAVYWEIGHT_PROCESS=${HEAVYWEIGHT_PROCESS:-}
     depends_on:
