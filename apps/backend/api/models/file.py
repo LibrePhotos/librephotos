@@ -178,6 +178,10 @@ def _locate_embedded_video_samsung(data):
 
 def has_embedded_media(file: File) -> bool:
     path = str(file.path)
+    mime = magic.Magic(mime=True)
+    mime_type = mime.from_file(path)
+    if mime_type != "image/jpeg":
+        return False
     with open(path, "rb+") as image:
         with mmap(image.fileno(), 0, access=ACCESS_READ) as mm:
             return (
