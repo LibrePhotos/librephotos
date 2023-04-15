@@ -381,12 +381,16 @@ class MediaAccessFullsizeOriginalView(APIView):
             except Exception:
                 return HttpResponse(status=404)
         if path.lower() == "embedded_media":
+            jwt = request.COOKIES.get("jwt")
+            query = Q(public=True)
+            if jwt is not None:
+                try:
+                    token = AccessToken(jwt)
+                    user = User.objects.filter(id=token["user_id"]).only("id").first()
+                    query = Q(owner=user)
+                except TokenError:
+                    pass
             try:
-                query = (
-                    Q(owner=request.user)
-                    if request.user.is_authenticated
-                    else Q(public=True)
-                )
                 photo = Photo.objects.filter(query, image_hash=fname).first()
                 if not photo or photo.main_file.embedded_media.count() < 1:
                     raise Photo.DoesNotExist()
