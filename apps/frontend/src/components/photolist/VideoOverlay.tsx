@@ -1,11 +1,13 @@
 import { createStyles } from "@mantine/core";
 import { Duration } from "luxon";
 import React from "react";
-import { PlayerPlay } from "tabler-icons-react";
+import { PlayerPlay, Run } from "tabler-icons-react";
+
+import { MediaType } from "../../actions/photosActions.types";
 
 type Props = {
   item: {
-    type: string;
+    type: MediaType;
     video_length: string;
   };
 };
@@ -30,13 +32,13 @@ export function VideoOverlay({ item }: Props) {
     return <span className={classes.duration}>{Duration.fromObject({ seconds: video_length }).toFormat("mm:ss")}</span>;
   }
 
-  if (item.type !== "video") {
+  if (![MediaType.VIDEO, MediaType.MOTION_PHOTO].includes(item.type)) {
     return <div />;
   }
 
   return (
     <div className={classes.container}>
-      <PlayerPlay />
+      {item.type === MediaType.MOTION_PHOTO ? <Run /> : <PlayerPlay />}
       {item.video_length && item.video_length !== "None" && getDuration(item)}
     </div>
   );

@@ -8,9 +8,10 @@ export const SimpleUserSchema = z.object({
 });
 export type SimpleUser = z.infer<typeof SimpleUserSchema>;
 
-enum MediaType {
+export enum MediaType {
   IMAGE = "image",
   VIDEO = "video",
+  MOTION_PHOTO = "motion_photo",
 }
 
 export const PigPhotoSchema = z.object({
