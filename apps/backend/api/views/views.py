@@ -383,7 +383,11 @@ class MediaAccessFullsizeOriginalView(APIView):
         if path.lower() == "embedded_media":
             jwt = request.COOKIES.get("jwt")
             query = Q(public=True)
-            if jwt is not None:
+            if request.user.is_authenticated:
+                query = Q(owner=request.user)
+            if (
+                jwt is not None
+            ):  # pragma: no cover, currently it's difficult to test requests with jwt in cookies
                 try:
                     token = AccessToken(jwt)
                     user = User.objects.filter(id=token["user_id"]).only("id").first()
