@@ -149,7 +149,7 @@
         "ukrainian": "Ukrainisch",
         "traditionalchinese": "Chinesisch (Traditionell)",
         "vietnamese": "Vietnamesisch",
-        "public_sharing": "Öffentliches Teilen"
+        "public_sharing": "öffentliches Teilen"
     },
     "modalnextcloud": {
         "setdirectory": "Setze dein Nextcloud Scan Ordner",
@@ -160,10 +160,18 @@
         "choosedirectory": "Wähle eine Ornder von unten aus"
     },
     "modalphotosshare": {
-        "joined": "Beigetreten"
+        "joined": "Beigetreten",
+        "title": "Photos teilen",
+        "search": "Nutzer suchen",
+        "name": "Name der Person",
+        "share": "Teilen",
+        "unshare": "Teilen aufheben"
     },
     "modalalbumsshare": {
-        "joined": "Beigetreten"
+        "joined": "Beigetreten",
+        "title": "Album teilen",
+        "search": "Nutzer suchen",
+        "name": "Name der Person"
     },
     "topmenu": {
         "running": "Bearbeitet",
@@ -289,7 +297,11 @@
         "errorusernameexists": "Ein Nutzer mit diesem Benutzernamen existiert bereits.",
         "erroremail": "Bitte gültige E-Mail-Adresse eingeben.",
         "firsttimesetup": "Erstmalige Einrichtung",
-        "usernamelabel": "Benutzername"
+        "usernamelabel": "Benutzername",
+        "error": {
+            "token_not_valid": "Anmeldung abgelaufen, bitte erneut anmelden.",
+            "token": "Token-Problem"
+        }
     },
     "search": {
         "search": "Suche nach",
@@ -351,7 +363,7 @@
         "headerheavyweight": "Schwergewichtige Prozesse",
         "skippatterns": " Durch Kommata getrennte Liste der zu ignorierenden Muster (z. B. '@eaDir,#recycle' für Synology-Geräte)",
         "apikey": "Möchten Sie auf einer Karte sehen, wo alle Ihre Fotos aufgenommen wurden (wenn ein Ort in Ihren Fotos gespeichert ist). Holen Sie sich einen API-Schlüssel für die Kartenbox https://account.mapbox.com/auth/signup/",
-        "heavyweight": "Anzahl der Arbeiter, wenn Bilder gescannt werden. Diese Einstellung kann den Speicherverbrauch drastisch beeinflussen. Jeder Arbeiter benötigt 800 MB RAM. Ändern Sie diese Einstellung nach eigenem Ermessen. Die Voreinstellung ist 1."
+        "heavyweight": "Anzahl gleichzeitig laufender Prozesse, wenn Bilder gescannt werden. Diese Einstellung kann die Arbeitsspeichernutzung drastisch beeinträchtigen. Jeder Arbeiter benötigt 800 MB Arbeitsspeicher. Kann nach eigenem Ermessen verändert werden. Die Voreinstellung ist 1."
     },
     "countstats": {
         "photos": "Fotos"
@@ -409,7 +421,7 @@
         "sortby": "Sortieren nach",
         "sortbyconfidence": "Vertrauen",
         "sortbydate": "Datum",
-        "personscounter_one": "{{count}} Person",
+        "personscounter_one": "{{count}} Personen",
         "personscounter_other": "{{count}} Personen",
         "assumedpersonscounter_other": "{{count}} abgeleitete Personen",
         "unknownfacescounter_other": "{{count}} unbekannte Gesichter",
@@ -489,7 +501,7 @@
         "scannextcloudphotostitle": "Scan Nextcloud-Fotos",
         "regenerateeventstitle": "Ereignis-Titel erneut generieren",
         "setpublicphotostitle": "Öffentliche Fotos einstellen",
-        "setcoverphoto": "Cover-Foto gesetzt",
+        "setcoverphoto": "Cover-Foto festlegen",
         "setfavoritestitle": "Favoriten festlegen",
         "sethidetitle": "Verborgen festlegen",
         "updateuser": "Infos von {{username}} aktualisiert",
