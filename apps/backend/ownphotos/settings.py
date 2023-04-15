@@ -316,8 +316,10 @@ CORS_ALLOW_CREDENTIALS = True
 
 IMAGE_SIMILARITY_SERVER = "http://localhost:8002"
 
-# Make this configurable
-CSRF_TRUSTED_ORIGINS = ["http://localhost:3000"]
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    os.environ.get("CSRF_TRUSTED_ORIGIN", ""),
+]
 
 LOGGING = {
     "version": 1,
