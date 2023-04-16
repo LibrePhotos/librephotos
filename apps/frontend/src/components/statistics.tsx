@@ -1,7 +1,7 @@
-import { ActionIcon, Button, Card, Flex, Grid, Group, HoverCard, Stack, Text, Title } from "@mantine/core";
+import { Card, Flex, Grid, Group, HoverCard, Stack, Text, Title } from "@mantine/core";
 import React, { useEffect } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { Calendar, FaceId, InfoCircle, Photo, QuestionMark, SettingsAutomation, Tag, Users } from "tabler-icons-react";
+import { Calendar, FaceId, Photo, QuestionMark, SettingsAutomation, Tag, Users } from "tabler-icons-react";
 
 import { fetchCountStats } from "../actions/utilActions";
 import { useAppDispatch, useAppSelector } from "../store/store";
