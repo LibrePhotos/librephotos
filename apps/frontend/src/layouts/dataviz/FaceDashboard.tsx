@@ -79,7 +79,8 @@ export function FaceDashboard() {
         );
       });
     }
-  }, [activeTab, dispatch, groups, inferredFacesList, labeledFacesList, orderBy]);
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [activeTab, groups, orderBy]);
 
   const previousTab: IFacesTab = usePrevious(activeTab);
   const [scrollTo, setScrollTo] = useState<number | null>(null);
@@ -103,7 +104,7 @@ export function FaceDashboard() {
     }
     setScrollTo(tabs[activeTab].scrollPosition);
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [activeTab, dispatch, previousTab, tabs]);
+  }, [activeTab, previousTab, tabs]);
 
   useEffect(() => {
     const cellContents = activeTab === FacesTab.enum.labeled ? labeledCellContents : inferredCellContents;
@@ -116,15 +117,8 @@ export function FaceDashboard() {
       scrollPosition += entrySquareSize;
     });
     setDataForScrollIndicator(scrollPositions);
-  }, [
-    activeTab,
-    inferredFacesList,
-    labeledFacesList,
-    gridHeight,
-    labeledCellContents,
-    inferredCellContents,
-    entrySquareSize,
-  ]);
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [activeTab, gridHeight, entrySquareSize]);
 
   // ensure that the endpoint is not undefined
   const getEndpointCell = (cellContents, rowStopIndex, columnStopIndex) => {
