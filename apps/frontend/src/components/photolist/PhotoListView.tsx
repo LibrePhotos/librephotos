@@ -1,19 +1,22 @@
-import { Box, Group } from "@mantine/core";
-import { useViewportSize } from "@mantine/hooks";
+import { Card, Group } from "@mantine/core";
+import { useScrollLock, useViewportSize } from "@mantine/hooks";
 import _ from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Pig from "react-pig";
 import { useParams } from "react-router-dom";
 
-import { adjustDateFormat } from "../../util/util";
 import { setAlbumCoverForUserAlbum } from "../../actions/albumsActions";
 import { setAlbumCoverForPerson } from "../../actions/peopleActions";
 import { fetchPhotoDetail } from "../../actions/photosActions";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { adjustDateFormat } from "../../util/util";
 import { ModalAlbumEdit } from "../album/ModalAlbumEdit";
 import { LightBox } from "../lightbox/LightBox";
+import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
+import { ScrollerType } from "../scrollscrubber/ScrollScrubberTypes.zod";
+import type { IScrollerData } from "../scrollscrubber/ScrollScrubberTypes.zod";
 import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
 import { ModalPhotosShare } from "../sharing/ModalPhotosShare";
 import { DefaultHeader } from "./DefaultHeader";
@@ -22,9 +25,6 @@ import { SelectionActions } from "./SelectionActions";
 import { SelectionBar } from "./SelectionBar";
 import { TrashcanActions } from "./TrashcanActions";
 import { VideoOverlay } from "./VideoOverlay";
-import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
-import { ScrollerType } from "../scrollscrubber/ScrollScrubberTypes.zod";
-import type { IScrollerData } from "../scrollscrubber/ScrollScrubberTypes.zod";
 
 const TIMELINE_SCROLL_WIDTH = 0;
 
@@ -64,6 +64,7 @@ function PhotoListViewComponent(props: Props) {
   const selectionStateRef = useRef(selectionState);
   const [dataForScrollIndicator, setDataForScrollIndicator] = useState<IScrollerData[]>([]);
   const gridHeight = useRef(200);
+  const [scrollLocked, setScrollLocked] = useScrollLock(false);
 
   const route = useAppSelector(store => store.router);
   const userSelfDetails = useAppSelector(store => store.user.userSelfDetails);
@@ -153,7 +154,12 @@ function PhotoListViewComponent(props: Props) {
     if (pigRef.current) {
       // @ts-ignore
       pigRef.current.imageData.forEach((group: DatePhotosGroupSchema) => {
-        scrollPositions.push({label: group.date, targetY: group.groupTranslateY, year: group.year, month: group.month});
+        scrollPositions.push({
+          label: group.date,
+          targetY: group.groupTranslateY,
+          year: group.year,
+          month: group.month,
+        });
       });
     }
     return scrollPositions;
@@ -165,7 +171,7 @@ function PhotoListViewComponent(props: Props) {
       // @ts-ignore
       gridHeight.current = pigRef.current.totalHeight;
     }
-  // @ts-ignore
+    // @ts-ignore
   }, [loading, pigRef.current?.totalHeight]);
 
   const scrollToY = (y: number) => {
@@ -199,6 +205,7 @@ function PhotoListViewComponent(props: Props) {
     setLightboxImageIndex(index);
     setLightboxImageId(item.id);
     setLightboxShow(index >= 0);
+    setScrollLocked(true);
   };
 
   const getPhotoDetails = (image: string) => {
@@ -211,6 +218,7 @@ function PhotoListViewComponent(props: Props) {
       (idx2hashRef.current.length <= lightboxImageIndex ||
         lightboxImageId !== idx2hashRef.current[lightboxImageIndex].id)
     ) {
+      setScrollLocked(false);
       setLightboxShow(false);
     }
   };
@@ -236,7 +244,7 @@ function PhotoListViewComponent(props: Props) {
 
   return (
     <div>
-      <Box
+      <Card
         sx={theme => ({
           backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
           textAlign: "center",
@@ -247,7 +255,8 @@ function PhotoListViewComponent(props: Props) {
           width: "100%",
           zIndex: 10,
           boxSizing: "border-box",
-          top: 45,
+          top: 50,
+          padding: 6,
         }}
       >
         {header || (
@@ -267,14 +276,14 @@ function PhotoListViewComponent(props: Props) {
           />
         )}
         {!loading && !isPublic && getNumPhotos() > 0 && (
-          <Box
+          <Card
             sx={theme => ({
               backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
               textAlign: "center",
               cursor: "pointer",
             })}
             style={{
-              height: 40,
+              padding: 4,
             }}
           >
             <Group
@@ -318,34 +327,40 @@ function PhotoListViewComponent(props: Props) {
                 />
               </Group>
             </Group>
-          </Box>
+          </Card>
         )}
-      </Box>
+      </Card>
       {!loading && photoset && photoset.length > 0 ? (
-          <ScrollScrubber
+        <ScrollScrubber
           scrollPositions={dataForScrollIndicator}
           scrollToY={scrollToY}
           targetHeight={gridHeight.current}
           type={ScrollerType.enum.date}
         >
-          <Pig
-            ref={pigRef}
-            className="scrollscrubbertarget"
-            imageData={getPigImageData}
-            selectable={selectable === undefined || selectable}
-            selectedItems={selectionStateRef.current.selectedItems}
-            handleSelection={handleSelection}
-            handleClick={handleClick}
-            scaleOfImages={userSelfDetails.image_scale}
-            groupByDate={isDateView}
-            getUrl={getUrl}
-            toprightoverlay={FavoritedOverlay}
-            bottomleftoverlay={VideoOverlay}
-            numberOfItems={numberOfItems || idx2hashRef.current.length}
-            updateItems={updateItems ? throttledUpdateItems : () => {}}
-            updateGroups={updateGroups ? throttledUpdateGroups : () => {}}
-            bgColor="inherit"
-          />
+          <div
+            style={{
+              padding: 10,
+            }}
+          >
+            <Pig
+              ref={pigRef}
+              className="scrollscrubbertarget"
+              imageData={getPigImageData}
+              selectable={selectable === undefined || selectable}
+              selectedItems={selectionStateRef.current.selectedItems}
+              handleSelection={handleSelection}
+              handleClick={handleClick}
+              scaleOfImages={userSelfDetails.image_scale}
+              groupByDate={isDateView}
+              getUrl={getUrl}
+              toprightoverlay={FavoritedOverlay}
+              bottomleftoverlay={VideoOverlay}
+              numberOfItems={numberOfItems || idx2hashRef.current.length}
+              updateItems={updateItems ? throttledUpdateItems : () => {}}
+              updateGroups={updateGroups ? throttledUpdateGroups : () => {}}
+              bgColor="inherit"
+            />
+          </div>
         </ScrollScrubber>
       ) : (
         <div />
@@ -367,7 +382,10 @@ function PhotoListViewComponent(props: Props) {
           idx2hash={idx2hash}
           lightboxImageIndex={lightboxImageIndex}
           lightboxImageId={lightboxImageId}
-          onCloseRequest={() => setLightboxShow(false)}
+          onCloseRequest={() => {
+            setLightboxShow(false);
+            setScrollLocked(false);
+          }}
           onImageLoad={() => {
             getPhotoDetails(idx2hash[lightboxImageIndex].id);
           }}
@@ -410,7 +428,7 @@ function PhotoListViewComponent(props: Props) {
           onRequestClose={() => {
             setModalAlbumShareOpen(false);
           }}
-          albumID={params && params.albumID ? params.albumID : ''}
+          albumID={params && params.albumID ? params.albumID : ""}
         />
       )}
     </div>

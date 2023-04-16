@@ -1,4 +1,4 @@
-import { useForceUpdate, useViewportSize } from "@mantine/hooks";
+import { useViewportSize } from "@mantine/hooks";
 import React, { useState } from "react";
 import Lightbox from "react-image-lightbox";
 import "react-image-lightbox/style.css";
@@ -19,16 +19,15 @@ type Props = {
   onMoveNextRequest: () => void;
   onImageLoad: () => void;
 };
-const SCROLLBAR_WIDTH = 15;
 
-export const LightBox = (props: Props) => {
+export function LightBox(props: Props) {
   const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
   const { photoDetails } = useAppSelector(store => store.photos);
-
-  const { width } = useViewportSize();
+  const { playing: isPlayingEmbeddedContent } = useAppSelector(store => store.player);
+  const { width: viewportWidth } = useViewportSize();
   let LIGHTBOX_SIDEBAR_WIDTH = 320;
-  if (width < 600) {
-    LIGHTBOX_SIDEBAR_WIDTH = width - SCROLLBAR_WIDTH;
+  if (viewportWidth < 600) {
+    LIGHTBOX_SIDEBAR_WIDTH = viewportWidth;
   }
   const {
     lightboxImageId,
@@ -45,9 +44,7 @@ export const LightBox = (props: Props) => {
     setLightBoxSidebarShow(!lightboxSidebarShow);
   };
 
-  const getCurrentPhotodetail = () => {
-    return photoDetails[lightboxImageId];
-  };
+  const getCurrentPhotodetail = () => photoDetails[lightboxImageId];
 
   const getPreviousId = () => {
     const image = idx2hash.slice((lightboxImageIndex - 1) % idx2hash.length)[0];
@@ -59,13 +56,7 @@ export const LightBox = (props: Props) => {
     return image ? image.id : undefined;
   };
 
-  const getPictureUrl = id => {
-    return `${serverAddress}/media/thumbnails_big/${id}`;
-  };
-
-  const getVideoUrl = id => {
-    return `${serverAddress}/media/video/${id}`;
-  };
+  const getPictureUrl = id => `${serverAddress}/media/thumbnails_big/${id}`;
 
   const isVideo = () => {
     if (getCurrentPhotodetail() === undefined || getCurrentPhotodetail().video === undefined) {
@@ -74,10 +65,54 @@ export const LightBox = (props: Props) => {
     return getCurrentPhotodetail().video;
   };
 
-  const getVideoComponent = id =>
-    isVideo() ? (
-      <ReactPlayer width="100%" height="100%" controls playing url={getVideoUrl(id)} progressInterval={100} />
-    ) : null;
+  function getVideoComponent(id) {
+    const media = photoDetails[id];
+    if (media !== undefined && !!media.video) {
+      return (
+        <ReactPlayer
+          width="100%"
+          height="100%"
+          playing
+          url={`${serverAddress}/media/video/${id}`}
+          progressInterval={100}
+        />
+      );
+    }
+    if (media !== undefined && media.embedded_media.length > 0) {
+      return (
+        <ReactPlayer
+          width="100%"
+          height="100%"
+          config={{ file: { attributes: { poster: getPictureUrl(id) } } }}
+          loop
+          playing={isPlayingEmbeddedContent}
+          url={`${serverAddress}/media/embedded_media/${id}`}
+          progressInterval={100}
+        />
+      );
+    }
+    return null;
+  }
+
+  function getTransform({ x = 0, y = 0, zoom = 1, width, targetWidth }) {
+    let innerWidth = viewportWidth;
+    if (document.getElementsByClassName("ril-inner ril__inner")[0]) {
+      innerWidth = document.getElementsByClassName("ril-inner ril__inner")[0].clientWidth;
+    }
+
+    let nextX = x;
+    if (width > innerWidth) {
+      nextX += (innerWidth - width) / 2;
+    }
+    const scaleFactor = zoom * (targetWidth / width);
+    return {
+      transform: `translate3d(${nextX}px,${y}px,0) scale3d(${scaleFactor},${scaleFactor},1)`,
+    };
+  }
+
+  // override static function getTransform from react-image-lightbox
+  // @ts-ignore
+  Lightbox.getTransform = getTransform;
 
   return (
     <div>
@@ -90,6 +125,7 @@ export const LightBox = (props: Props) => {
         nextCustomContent={getVideoComponent(getNextId())}
         prevCustomContent={getVideoComponent(getPreviousId())}
         imageLoadErrorMessage=""
+        discourageDownloads={false}
         toolbarButtons={[
           <Toolbar
             photosDetail={photoDetails[lightboxImageId]}
@@ -98,6 +134,7 @@ export const LightBox = (props: Props) => {
             isPublic={isPublic}
           />,
         ]}
+        enableZoom={!isVideo()}
         onCloseRequest={onCloseRequest}
         onAfterOpen={() => {
           onImageLoad();
@@ -111,16 +148,15 @@ export const LightBox = (props: Props) => {
         reactModalStyle={{
           content: {},
           overlay: {
-            right: lightboxSidebarShow ? LIGHTBOX_SIDEBAR_WIDTH : 0,
-            width: lightboxSidebarShow ? width - SCROLLBAR_WIDTH - LIGHTBOX_SIDEBAR_WIDTH : width,
+            width: lightboxSidebarShow ? viewportWidth - LIGHTBOX_SIDEBAR_WIDTH : viewportWidth,
           },
         }}
       />
       {lightboxSidebarShow ? (
         <Sidebar photoDetail={getCurrentPhotodetail()} closeSidepanel={closeSidepanel} isPublic={isPublic} />
       ) : (
-        <div></div>
+        <div />
       )}
     </div>
   );
-};
+}

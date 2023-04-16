@@ -148,7 +148,8 @@
         "traditionalchinese": "繁体中文（Traditional）",
         "add_rule": "添加规则",
         "togglecolorscheme": "切换配色方案",
-        "vietnamese": "越南语（Vietnamese）"
+        "vietnamese": "越南语（Vietnamese）",
+        "public_sharing": "公开分享"
     },
     "modalnextcloud": {
         "setdirectory": "设置Nextcloud扫描目录",
@@ -288,7 +289,10 @@
         "errorusernameexists": "此用户名已存在。",
         "erroremail": "输入一个有效的电子邮件地址。",
         "firsttimesetup": "初始设置",
-        "usernamelabel": "用户名"
+        "usernamelabel": "用户名",
+        "error": {
+            "token_not_valid": "登录已过期，请重新登录。"
+        }
     },
     "search": {
         "search": "搜索",
@@ -403,7 +407,15 @@
         "sortbydate": "日期",
         "sortbyconfidence": "置信度",
         "sortby": "排序方式",
-        "explanationvalidate": "确认本组人脸与人物完全匹配，并添加到对应的人脸ID"
+        "explanationvalidate": "确认本组人脸与人物完全匹配，并添加到对应的人脸ID",
+        "personscounter_one": "{{count}}个人物",
+        "personscounter_other": "{{count}}个人物",
+        "clusterscounter_one": "{{count}} 个集群",
+        "clusterscounter_other": "{{count}} 个集群",
+        "assumedpersonscounter_one": "{{count}} 个已推断的人",
+        "assumedpersonscounter_other": "{{count}} 个已推断的人",
+        "facescounter_one": "{{count}} 张人脸",
+        "facescounter_other": "{{count}} 张人脸"
     },
     "scan": "扫描",
     "socialgraph": "社交图谱",

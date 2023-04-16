@@ -37,14 +37,15 @@ export function useWorkerStatus(): {
 
   useEffect(() => {
     if (hadPreviousJob && workerRunningJob !== undefined && currentData?.job_detail === null) {
-      showNotification({
-        message: t("toasts.jobfinished", {
-          job: previousJob?.job_detail?.job_type_str,
-        }),
-        title: workerRunningJob?.job_type_str,
-        color: "teal",
-      });
-
+      if (previousJob?.job_detail?.job_type_str !== undefined) {
+        showNotification({
+          message: t("toasts.jobfinished", {
+            job: previousJob?.job_detail?.job_type_str,
+          }),
+          title: workerRunningJob?.job_type_str,
+          color: "teal",
+        });
+      }
       if (workerRunningJob?.job_type_str.toLowerCase() === "train faces") {
         dispatch(api.endpoints.fetchIncompleteFaces.initiate({ inferred: false }));
         dispatch(api.endpoints.fetchIncompleteFaces.initiate({ inferred: true }));

@@ -119,7 +119,7 @@ export const api = createApi({
         url: "/user/",
       }),
       transformResponse: response => UserSignupResponseSchema.parse(response),
-      invalidatesTags: ["FirstTimeSetup"],
+      invalidatesTags: ["FirstTimeSetup", "UserList"],
     }),
     [Endpoints.manageUpdateUser]: builder.mutation<IManageUser, IManageUser>({
       query: body => ({

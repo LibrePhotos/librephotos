@@ -1,13 +1,13 @@
 import { ActionIcon, Avatar, Divider, Group, Modal, ScrollArea, Stack, Text, TextInput, Title } from "@mantine/core";
 import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
-import { Share, ShareOff } from "tabler-icons-react";
 import { useTranslation } from "react-i18next";
-import i18n from "../../i18n";
+import { Share, ShareOff } from "tabler-icons-react";
 
 import { setPhotosShared } from "../../actions/photosActions";
 import { fetchPublicUserList } from "../../actions/publicActions";
 import { serverAddress } from "../../api_client/apiClient";
+import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 function fuzzyMatch(str: string, pattern: string) {
@@ -23,11 +23,10 @@ type Props = {
   isOpen: boolean;
   onRequestClose: () => void;
 };
-// To-Do: Add missing locales
+
 export function ModalPhotosShare(props: Props) {
   const { t } = useTranslation();
   const [userNameFilter, setUserNameFilter] = useState("");
-  const [valShare] = useState(false);
 
   const { auth, pub } = useAppSelector(store => store);
   const dispatch = useAppDispatch();
@@ -57,19 +56,14 @@ export function ModalPhotosShare(props: Props) {
 
   return (
     <Modal
-      zIndex={1500}
       opened={isOpen}
-      title={<Title>Share Photos</Title>}
+      title={<Title>{t("modalphotosshare.title")}</Title>}
       onClose={() => {
         onRequestClose();
         setUserNameFilter("");
       }}
     >
       <Stack>
-        <Text color="dimmed">
-          {valShare ? "Share " : "Unshare "} selected {selectedImageHashes.length} photo(s) with...
-        </Text>
-        <Divider />
         <ScrollArea>
           <Group>
             {selectedImageSrcs.slice(0, 100).map((image: string) => (
@@ -78,54 +72,60 @@ export function ModalPhotosShare(props: Props) {
           </Group>
         </ScrollArea>
         <Divider />
-        <Title order={4}>Search user</Title>
+        <Title order={4}>{t("modalphotosshare.search")}</Title>
         <TextInput
           onChange={event => {
             setUserNameFilter(event.currentTarget.value);
           }}
-          placeholder="Person name"
+          placeholder={t("modalphotosshare.name")}
         />
         <Divider />
 
         <ScrollArea>
-          {filteredUserList.length > 0 &&
-            filteredUserList.map(item => {
-              let displayName = item.username;
-              if (item.first_name.length > 0 && item.last_name.length > 0) {
-                displayName = `${item.first_name} ${item.last_name}`;
-              }
-              return (
-                <Group position="apart" key={item.id}>
-                  <Group>
-                    <Avatar radius="xl" size={50} src="/unknown_user.jpg" />
-                    <Stack spacing="xs">
-                      <Title order={4}>{displayName}</Title>
-                      <Text size="sm" color="dimmed">
-                        {t("modalphotosshare.joined")} {DateTime.fromISO(item.date_joined).setLocale(i18n.resolvedLanguage.replace("_", "-")).toRelative()}
-                      </Text>
-                    </Stack>
+          <Stack>
+            {filteredUserList.length > 0 &&
+              filteredUserList.map(item => {
+                let displayName = item.username;
+                if (item.first_name.length > 0 && item.last_name.length > 0) {
+                  displayName = `${item.first_name} ${item.last_name}`;
+                }
+                const avatar = item.avatar ? item.avatar_url : "/unknown_user.jpg";
+                return (
+                  <Group position="apart" key={item.id}>
+                    <Group>
+                      <Avatar radius="xl" size={50} src={avatar} />
+                      <div>
+                        <Title order={4}>{displayName}</Title>
+                        <Text size="sm" color="dimmed">
+                          {t("modalphotosshare.joined")}{" "}
+                          {DateTime.fromISO(item.date_joined)
+                            .setLocale(i18n.resolvedLanguage.replace("_", "-"))
+                            .toRelative()}
+                        </Text>
+                      </div>
+                    </Group>
+                    <Group>
+                      <ActionIcon
+                        onClick={() => {
+                          dispatch(setPhotosShared(selectedImageHashes, true, item));
+                        }}
+                        color="green"
+                      >
+                        <Share />
+                      </ActionIcon>
+                      <ActionIcon
+                        onClick={() => {
+                          dispatch(setPhotosShared(selectedImageHashes, false, item));
+                        }}
+                        color="red"
+                      >
+                        <ShareOff />
+                      </ActionIcon>
+                    </Group>
                   </Group>
-                  <Group>
-                    <ActionIcon
-                      onClick={() => {
-                        dispatch(setPhotosShared(selectedImageHashes, true, item));
-                      }}
-                      color="green"
-                    >
-                      <Share />
-                    </ActionIcon>
-                    <ActionIcon
-                      onClick={() => {
-                        dispatch(setPhotosShared(selectedImageHashes, false, item));
-                      }}
-                      color="red"
-                    >
-                      <ShareOff />
-                    </ActionIcon>
-                  </Group>
-                </Group>
-              );
-            })}
+                );
+              })}
+          </Stack>
         </ScrollArea>
       </Stack>
     </Modal>

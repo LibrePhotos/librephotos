@@ -36,10 +36,7 @@ export function AlbumUserGallery() {
   if (isPublic) {
     additionalSubHeader = (
       <span>
-        {", "}owned by{" "}
-        <b style={{ color: "black" }}>
-          {albumDetails.owner.id === auth.access.user_id ? "you" : albumDetails.owner.username}
-        </b>
+        {", "}owned by {albumDetails.owner.id === auth.access.user_id ? "you" : albumDetails.owner.username}
       </span>
     );
   }

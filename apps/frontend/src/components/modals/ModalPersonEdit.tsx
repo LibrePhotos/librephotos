@@ -104,13 +104,19 @@ export function ModalPersonEdit(props: Props) {
           </Button>
         </Group>
         <Divider />
-        <Stack style={{ height: matches ? "50vh" : "25vh", overflowY: "scroll" }}>
+        <Stack
+          style={{
+            height: matches ? "50vh" : "25vh",
+            overflowY: "scroll",
+          }}
+        >
           {filteredPeopleList.length > 0 &&
             filteredPeopleList.map(item => (
               <Group key={item.key}>
                 <Avatar radius="xl" size={60} src={serverAddress + item.face_url} />
                 <div>
                   <Title
+                    style={{ width: "250px", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }}
                     order={4}
                     onClick={() => {
                       dispatch(

@@ -160,10 +160,18 @@
         "choosedirectory": "Elija un directorio de los siguientes"
     },
     "modalphotosshare": {
-        "joined": "Ingresado"
+        "joined": "Ingresado",
+        "title": "Comparte las fotos",
+        "search": "Buscar un usuario",
+        "name": "Nombre de la persona",
+        "share": "Compartir",
+        "unshare": "Dejar de compartir"
     },
     "modalalbumsshare": {
-        "joined": "Ingresado"
+        "joined": "Ingresado",
+        "title": "Compartir el álbum",
+        "search": "Buscar un usuario",
+        "name": "Nombre de la persona"
     },
     "topmenu": {
         "running": "Ejecutándose",
@@ -289,7 +297,11 @@
         "errorusernameexists": "Un usuario con ese nombre ya existe.",
         "erroremail": "Introduzca una dirección de correo electrónico válida.",
         "firsttimesetup": "Configuración por primera vez",
-        "usernamelabel": "Nombre de usuario"
+        "usernamelabel": "Nombre de usuario",
+        "error": {
+            "token_not_valid": "El inicio de sesión caducó, vuelve a iniciar la sesión.",
+            "token": "Emisión del token"
+        }
     },
     "search": {
         "search": "Buscar",

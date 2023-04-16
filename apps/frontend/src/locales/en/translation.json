@@ -175,9 +175,17 @@
     "choosedirectory": "Choose a directory from below"
   },
   "modalphotosshare": {
+    "title": "Share photos",
+    "search": "Search User",
+    "name": "Person name",
+    "share": "Share",
+    "unshare": "Unshare",
     "joined": "Joined"
   },
   "modalalbumsshare": {
+    "title": "Share Album",
+    "search": "Search User",
+    "name": "Person name",
     "joined": "Joined"
   },
   "topmenu": {
@@ -319,6 +327,10 @@
     "confirmpassword": "Confirm Password",
     "confirmpasswordplaceholder": "Confirm Password",
     "signup": "Sign Up",
+    "error":{
+      "token_not_valid": "Login expired, please login again.",
+      "token": "Token issue"
+    },
     "errorbackend": "No connection to backend server, try again in a few minutes.",
     "errorpassword": "Password may not be blank!",
     "errorusername": "Username may not be blank!",
@@ -362,7 +374,7 @@
     "duration": "Duration",
     "startedby": "Started By",
     "delete": "Delete",
-    "itemsprocessed": "Item(s) processed",
+    "itemsadded": "Asset(s) added",
     "running": "running",
     "removeexplanation": "Does not actually stop the job, only removes this entry from DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc."
   },

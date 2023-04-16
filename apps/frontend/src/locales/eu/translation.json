@@ -160,7 +160,30 @@
         "rescanfaces": "Berraztertu aurpegiak",
         "semanticsearchheader": "Bilaketa semantikoaren gehienezko emaitzak",
         "favorite": "Gogokoen aukerak",
-        "semanticsearchupdate": "Eguneratu"
+        "semanticsearchupdate": "Eguneratu",
+        "basque": "Euskara",
+        "helptranslating": "Lagundu itzultzen",
+        "albumoptions": "Albumen aukerak",
+        "savechanges": "Gorde aldaketak?",
+        "password": {
+            "errormustmatch": "Pasahitzak bat etorri behar dira",
+            "errorcannotbeblank": "Pasahitza ezin da hutsik utzi",
+            "errormustretype": "Berridatzi pasahitza",
+            "titlechangepassword": "Aldatu pasahitza",
+            "titlesetpassword": "Ezarri pasahitza",
+            "tooltipeditbutton": "Sakatu pasahitza aldatzeko"
+        },
+        "portuguese": "Portugalera",
+        "togglecolorscheme": "Aldatu koloreak",
+        "inferredfacesconfidence": "Ondorioztatutako aurpegien konfidantza",
+        "inferredfacesconfidencehelp": "Sartu 0 eta bat arteko konfidantza maila bat. Albumek pertsona bat erakus dezaten ondorioztatutako aurpegien konfidantza balio hau baino altuago denean agertuko da.",
+        "public_sharing": "Partekatu publikoki",
+        "add_rule": "Gehitu araua",
+        "finnish": "Finlandiera",
+        "czech": "Txekiera",
+        "ukrainian": "Ukrainera",
+        "traditionalchinese": "Txinera (tradizionala)",
+        "vietnamese": "vietnamera"
     },
     "topmenu": {
         "available": "Argazki gehiago aztertzen has zaitezke, aurpegiak etiketatzen, momentuen albumak automatikoki sortzen, edo automatikoki sortutako albumen tituluak birsortzen.",
@@ -181,7 +204,8 @@
         "placeholder": "Albumaren titulua",
         "create": "Sortu",
         "items": "{{count}} elementu",
-        "updated": "Eguneratua {{duration}}"
+        "updated": "Eguneratua {{duration}}",
+        "alreadyexists": "{{title}} albuma badago lehendik ere."
     },
     "sidemenu": {
         "favorites": "Gogokoak",
@@ -207,10 +231,10 @@
         "things": "Gauzak",
         "myalbums": "Nire albumak",
         "timeline": "Denbora-lerroa",
-        "facerecognition": "Aurpegien antzematea",
+        "facerecognition": "Aurpegiak",
         "sharing": "Partekatzen",
         "facecluster": "Aurpegi-pilaketak",
-        "datavizsmall": "Datuen bistaratzea",
+        "datavizsmall": "Datuak",
         "sharedwithyou": "Zurekin partekatutakoak"
     },
     "selectionbar": {
@@ -254,7 +278,8 @@
             "generate": "Sortu",
             "cancel": "Utzi",
             "attributes": "Xehetasunak",
-            "submit": "Bidali"
+            "submit": "Bidali",
+            "editdatetime": "Editatu data eta ordua"
         }
     },
     "photos": {
@@ -282,7 +307,8 @@
         "firsttimesetup": "Lehenbiziko konfigurazioa",
         "login": "Hasi saioa",
         "password": "Pasahitza",
-        "confirmpasswordplaceholder": "idatzi berriro pasahitza"
+        "confirmpasswordplaceholder": "idatzi berriro pasahitza",
+        "usernamelabel": "Erabiltzaile izena"
     },
     "search": {
         "loading": "Kargatzen…",
@@ -314,7 +340,13 @@
         "minimumconfidence": "Konfiantza minimoa",
         "notset": "Ezarri gabe",
         "users": "Erabiltzaileak",
-        "scandirectory": "Aztertu direktorioa"
+        "scandirectory": "Aztertu direktorioa",
+        "cannotbeundone": "Ekintza hau ezin da desegin.",
+        "admintools": "Administrari tresnak",
+        "deleteallautoalbums": "Ezabatu automatikoki sortutako album guztiak",
+        "cannotdeleteadmin": "Ezin da administraria ezabatu",
+        "addnewuser": "Gehitu erabiltzaile berria",
+        "titledeleteuser": "Ezabatu erabiltzailea"
     },
     "modalscandirectoryedit": {
         "header": "Ezarri erabiltzailearentzat arakatzeko direktorioa",
@@ -323,17 +355,23 @@
         "notset": "ezarri gabe",
         "update": "Eguneratu",
         "explanation3": "Aukeratu hauetako direktorio bat",
-        "explanation1": "Erabiltzaileak"
+        "explanation1": "Erabiltzaileak",
+        "pathdoesnotexist": "Ibilbidea ez dago",
+        "mustspecifypath": "Arakatzeko direktorio bat zehaztu behar duzu"
     },
     "autoalbum": {
-        "subtitle": "Automatikoki sortutako albumen {{ autoalbumlength }} erakusten"
+        "subtitle": "Automatikoki sortutako albumen {{ autoalbumlength }} erakusten",
+        "delete": "Ezabatu automatikoki sortutako albuma",
+        "deleteexplanation": "Automatikoki sortutako albuma ezabatuko du honek. Ziur zaude?"
     },
     "socialgraph": "Jendearen grafikoa",
     "personalbum": {
         "renameperson": "Aldatu izena",
         "numberofpeople": "{{peoplelength}} pertsona",
         "personalreadyexists": "{{name}} izena existitzen da dagoeneko.",
-        "nameplaceholder": "Izena"
+        "nameplaceholder": "Izena",
+        "deleteperson": "Ezabatu pertsona",
+        "deletepersondescription": "Ziur pertsona hau ezabatu nahi duzula?"
     },
     "thingalbum": {
         "showingthings": "Top {{number}} Gauzak ikusgai"
@@ -349,7 +387,17 @@
         "numberoffaces": "{{number}} aurpegi",
         "selectedfaces": "{{number}} aukeratuta",
         "explanationadding": "Gehitu existitzen den aupegi bati edo sortu aurpegi berri bat",
-        "explanationtraining": "Trebatu aztertzailea eta etiketatu aurpegiak automatikoki"
+        "explanationtraining": "Identifikatu antzeko aurpegiak eta saiatu bat datozenak aurkitzen",
+        "notthisperson": "Eraman aurpegiak 'Ezezagunak - Besteak' taldera",
+        "sortby": "Taldekatu honen arabera",
+        "sortbyconfidence": "Konfidantza",
+        "sortbydate": "Data",
+        "personscounter_one": "Pertsona {{count}}",
+        "personscounter_other": "{{count}} pertsona",
+        "facescounter_one": "Aurpegi {{count}}",
+        "facescounter_other": "{{count}} aurpegi",
+        "unknownfacescounter_one": "Aurpegi ezezagun {{count}}",
+        "unknownfacescounter_other": "{{count}} aurpegi ezezagun"
     },
     "autoalbumgallery": {
         "showmap": "Erakutsi mapa",
@@ -392,7 +440,7 @@
         "deletefaces": "{{numberOfFaces}} aurpegi ezabatu d(ir)a",
         "renamepersontitle": "Aldatu izena",
         "sharephoto": "{{numberOfPhotos}} argazki {{username}}(r)ekin partekatu d(ir)a",
-        "unsharephoto": "{{numberOfPhotos}} argazki {{username}}(r)ekin partekatu d(ir)a",
+        "unsharephoto": "{{numberOfPhotos}} argazki {{username}}(r)ekin partekatzeari utzi zaio",
         "addpublicphoto": "{{numberOfPhotos}} argazki gehitu d(ir)a zure argazki publikoetara. Argazkien estekak arbelera kopiatu dira.",
         "fullscanphotos": "Argazkiak aztertzen (sakon)…",
         "fullscanphotostitle": "Aztertu argazkiak (sakon)",
@@ -429,7 +477,7 @@
         "trainingstartedtitle": "Aurpegi-trbakuntza",
         "deleteperson": "Pertsona ezabatu da",
         "deletepersontitle": "Ezabatu pertsona",
-        "trainingstarted": "Trebakuntza hasi da",
+        "trainingstarted": "Azterketa hasi da",
         "setcoverphoto": "Albumaren azala ezarri da",
         "scannextcloudphotos": "Nextcloud-eko argazkien azterketa hasi da",
         "regenerateevents": "Momentuen tituluak birsortzen…",
@@ -437,7 +485,14 @@
         "updateusertitle": "Eguneratu erabiltzailea",
         "deletejob": "{{id}} prozesua ezabatu da.",
         "deletejobtitle": "Ezabatu prozesua",
-        "generateeventalbumstitle": "Sortu momentuen albumak"
+        "generateeventalbumstitle": "Sortu momentuen albumak",
+        "deleteallautoalbums": "Automatikoki sortutako album guztiak ezabatu dira.",
+        "deleteallautoalbumstitle": "Ezabatu automatikoki sortutako album guztiak",
+        "scanuploadedphotos": "Igotako argazkiak aztertzen…",
+        "scanuploadedphotostitle": "Aztertu igotako argazkiak",
+        "deleteusertitle": "Ezabatu erabiltzailea",
+        "removefacestopersontitle": "Kendu aurpegiak pertsonatik",
+        "deleteuser": "{{username}} ezabatu da"
     },
     "nosocialgraph": "Ez dago jendearen grafikorik",
     "fetchingsocialgraph": "Jendearen grafikoa eskuratzen…",
@@ -466,8 +521,8 @@
         "days": "egun",
         "loading": "Kargatzen…",
         "photos": "argazkiak",
-        "setup": "Badirudi oraindik ez duzula LibrePhotos konfiguratu.",
-        "gettingstarted": "Hasiera"
+        "setup": "LibrePhotos erabiltzen hasteko editatu zure erabiltzailearen direktorioa.",
+        "gettingstarted": "Editatu erabiltzailea"
     },
     "faces": "Aurpegiak",
     "countstats": {
@@ -486,5 +541,32 @@
     "days": "Egunak",
     "rename": "Aldatu izena",
     "delete": "Ezabatu",
-    "deleteface": "Ezabatu aurpegiak"
+    "deleteface": "Ezabatu aurpegiak",
+    "favoritesyncoptions": {
+        "sidecar": "Gorde sidecarrean",
+        "off": "Itzalita",
+        "mediafile": "Gorde multimedia fitxategira"
+    },
+    "sync": "Sinkronizatu metadatuak diskora",
+    "exif": {
+        "showmore": "Erakutsi gehiago",
+        "deleteduplicate": "Ziur bikoiztutakoa ezabatu nahi duzula?",
+        "focallengthin35mmfilm": "35mm-rekin baliokidea den foku-distantzia",
+        "otherversions": "Beste bertsioak",
+        "duplicates": "Bikoiztutakoak",
+        "showless": "Erakutsi gutxiago",
+        "deleteduplicatetitle": "Ezabatu bikoiztutakoa"
+    },
+    "metadata": "Metadatuen eukerak",
+    "defaulttimezone": "Ordu-eremua defektuz",
+    "modaluseredit": {
+        "errorusernameexists": "Badago lehendik ere izen hori duen erabiltzailea",
+        "errorusernamecannotbeblank": "Erabiltzaile izena ezin da hutsik utzi",
+        "header": "Editatu erabiltzailea",
+        "createheader": "Sortu erabiltzailea",
+        "errorinvalidemail": "Sartu baliozko ePosta helbidea"
+    },
+    "supportus": "Eman babesa",
+    "save": "Gorde",
+    "modify": "Moldatu"
 }

@@ -8,9 +8,10 @@ export const SimpleUserSchema = z.object({
 });
 export type SimpleUser = z.infer<typeof SimpleUserSchema>;
 
-enum MediaType {
+export enum MediaType {
   IMAGE = "image",
   VIDEO = "video",
+  MOTION_PHOTO = "motion_photo",
 }
 
 export const PigPhotoSchema = z.object({
@@ -77,13 +78,14 @@ export const PhotoSchema = z.object({
   subjectDistance: z.number().nullable(),
   digitalZoomRatio: z.number().nullable(),
   lens: z.string().nullable(),
+  embedded_media: z.object({ id: z.string(), type: z.nativeEnum(MediaType) }).array(),
 });
 export type Photo = z.infer<typeof PhotoSchema>;
 
 export const DatePhotosGroupSchema = z.object({
   date: z.string().nullable(),
-  year : z.number().nullable().optional(),
-  month : z.number().nullable().optional(),
+  year: z.number().nullable().optional(),
+  month: z.number().nullable().optional(),
   location: z.string().nullable(),
   items: PigPhotoSchema.array(),
 });

@@ -35,11 +35,13 @@ export function FooterMenu(): JSX.Element {
       return null;
     }
 
-    const icon = <item.icon className={classes.linkIcon} color={item.color} size={33} style={{ margin: 0 }} />;
+    const icon = <item.icon className={classes.linkIcon} size={33} style={{ margin: 0 }} />;
     const link = item.submenu ? (
-      <ActionIcon key={key}>{icon}</ActionIcon>
+      <ActionIcon variant="light" color={item.color} key={key}>
+        {icon}
+      </ActionIcon>
     ) : (
-      <ActionIcon key={key} component={Link} to={item.link}>
+      <ActionIcon variant="light" color={item.color} key={key} component={Link} to={item.link}>
         {icon}
       </ActionIcon>
     );
