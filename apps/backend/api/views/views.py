@@ -3,6 +3,7 @@ import os
 import subprocess
 import uuid
 import zipfile
+from urllib.parse import quote
 
 import jsonschema
 import magic
@@ -487,7 +488,7 @@ class MediaAccessFullsizeOriginalView(APIView):
                 mime = magic.Magic(mime=True)
                 filename = mime.from_file(photo.main_file.path)
                 response["Content-Type"] = filename
-                response["X-Accel-Redirect"] = internal_path
+                response["X-Accel-Redirect"] = quote(internal_path)
                 return response
             else:
                 for album in photo.albumuser_set.only("shared_to"):
