@@ -11,7 +11,7 @@ RUN apt-get update \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
-# system packages installation
+# System packages installation
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
 		build-essential \
