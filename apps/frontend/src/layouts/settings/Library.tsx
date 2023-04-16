@@ -88,9 +88,13 @@ export function Library() {
   const util = useAppSelector(state => state.util);
   const statusPhotoScan = useAppSelector(state => state.util.statusPhotoScan);
   const { t } = useTranslation();
-  const [fetchNextcloudDirs, { isFetching: isNextcloudFetching }] = useLazyFetchNextcloudDirsQuery();
+  const [
+    fetchNextcloudDirs,
+    { isFetching: isNextcloudFetching, isSuccess: isNextcloudSuccess, isError: isNextcloudError },
+  ] = useLazyFetchNextcloudDirsQuery();
+  const [nextcloudStatusColor, setNextcloudStatusColor] = useState("gray");
   const { classes, theme } = useStyles();
-
+  
   const onPhotoScanButtonClick = () => {
     dispatch(scanPhotos());
   };
@@ -132,6 +136,16 @@ export function Library() {
       setWorkerAvailability(worker.queue_can_accept_job);
     }
   }, [worker]);
+
+  useEffect(() => {
+    if (isNextcloudFetching === true) {
+      setNextcloudStatusColor("blue");
+    } else if (isNextcloudSuccess === true) {
+      setNextcloudStatusColor("green");
+    } else if (isNextcloudError === true) {
+      setNextcloudStatusColor("red");
+    }
+  }, [isNextcloudFetching, isNextcloudSuccess, isNextcloudError]);
 
   if (avatarImgSrc === "/unknown_user.jpg") {
     if (userSelfDetails.avatar_url) {
