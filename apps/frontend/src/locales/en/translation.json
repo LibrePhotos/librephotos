@@ -169,7 +169,7 @@
   "modalnextcloud": {
     "setdirectory": "Set your Nextcloud scan directory",
     "currentdirectory": "Current Nextcloud scan directory",
-    "notset": "Choose",
+    "browse": "Browse",
     "update": "Update",
     "cancel": "Cancel",
     "choosedirectory": "Choose a directory from below"

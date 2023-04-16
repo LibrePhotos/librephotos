@@ -401,14 +401,15 @@ export function Library() {
               </Stack>
             </Grid.Col>
             <Grid.Col span={2}>
-              <Button
+              <Badge
                 size="xs"
-                leftIcon={isNextcloudFetching ? <Check /> : <X />}
-                variant="subtle"
-                color={isNextcloudFetching ? "green" : "red"}
+                p={10}
+                leftSection={userSelfDetails.nextcloud_scan_directory ? <Check /> :  <X /> }
+                variant="outline"
+                color={userSelfDetails.nextcloud_scan_directory ? "green" : "red"}
               >
-                {isNextcloudFetching ? t("settings.nextcloudloggedin") : t("settings.nextcloudnotloggedin")}
-              </Button>
+                {userSelfDetails.nextcloud_scan_directory ? t("settings.nextcloudloggedin") : t("settings.nextcloudnotloggedin")  }
+              </Badge>
             </Grid.Col>
             <Grid.Col span={7}>
               <Stack spacing={0}>
@@ -462,7 +463,8 @@ export function Library() {
                 <Trans i18nKey="settings.nextcloudscandirectory" />
 
                 <Text size="sm" color="dimmed">
-                  Pick the folder to process from the nextcloud instance
+                  {userSelfDetails.nextcloud_scan_directory ? userSelfDetails.nextcloud_scan_directory : "Choose the folder to process from the nextcloud instance"}
+                  
                 </Text>
               </Stack>
             </Grid.Col>
@@ -475,9 +477,7 @@ export function Library() {
                 }}
                 variant="subtle"
               >
-                {userSelfDetails.nextcloud_scan_directory
-                  ? userSelfDetails.nextcloud_scan_directory
-                  : t("modalnextcloud.notset")}
+                {t("modalnextcloud.browse")}
               </Button>
             </Grid.Col>
             <Grid.Col span={10}></Grid.Col>
@@ -487,7 +487,7 @@ export function Library() {
                   dispatch(scanNextcloudPhotos());
                 }}
                 disabled={isNextcloudFetching || !workerAvailability || !userSelfDetails.nextcloud_scan_directory}
-                variant="subtle"
+                variant="filled"
                 leftIcon={<BrandNextcloud />}
               >
                 <Trans i18nKey="settings.scannextcloudphotos">Scan photos (Nextcloud)</Trans>

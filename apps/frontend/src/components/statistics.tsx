@@ -39,68 +39,60 @@ export const CountStats = () => {
       </Card>
 
       <Card withBorder p="xs">
-        <Group position="left" spacing="xs">
-          <FaceId size={64} strokeWidth={1} />
-          <div>
-            <Text color="dimmed">{t("faces")}</Text>
-            <Title order={3}>{countStats.num_faces}</Title>
-            <span style={{ position: "absolute", right: 0, top: 0 }}>
-              <HoverCard width={300} shadow="md" withinPortal withArrow position='bottom-start'>
-                <HoverCard.Target>
-                  <ActionIcon>
-                    <InfoCircle />
-                  </ActionIcon>
-                </HoverCard.Target>
-                <HoverCard.Dropdown>
-                  <Grid>
-                    <Grid.Col span={9}>
-                      <Stack spacing={0}>
-                        <Text>
-                          <Trans i18nKey="settings.inferred">Inferred</Trans>
-                        </Text>
-
-                      </Stack>
-                    </Grid.Col>
-                    <Grid.Col span={3}>
-                      <Flex gap="sm">
-                        <FaceId />
-                        {util.countStats.num_inferred_faces}
-                      </Flex>
-                    </Grid.Col>
-                    <Grid.Col span={9}>
-                      <Stack spacing={0}>
-                        <Text>
-                          <Trans i18nKey="settings.labeled">Labeled</Trans>
-                        </Text>
-
-                      </Stack>
-                    </Grid.Col>
-                    <Grid.Col span={3}>
-                      <Flex gap="sm">
-                        <Tag />
-                        {util.countStats.num_labeled_faces}
-                      </Flex>
-                    </Grid.Col>
-                    <Grid.Col span={9}>
-                      <Stack spacing={0}>
-                        <Text>
-                          <Trans i18nKey="settings.unknown">Unknown</Trans>
-                        </Text>
-
-                      </Stack>
-                    </Grid.Col>
-                    <Grid.Col span={3}>
-                      <Flex gap="sm">
-                        <QuestionMark />
-                        {util.countStats.num_unknown_faces}
-                      </Flex>
-                    </Grid.Col>
-                  </Grid>
-                </HoverCard.Dropdown>
-              </HoverCard>
-            </span>
-          </div>
-        </Group>
+        <HoverCard width={300} shadow="md" withinPortal withArrow>
+          <HoverCard.Target>
+            <Group position="left" spacing="xs">
+              <FaceId size={64} strokeWidth={1} />
+              <div>
+                <Text color="dimmed">{t("faces")}</Text>
+                <Title order={3}>{countStats.num_faces}</Title>
+              </div>
+            </Group>
+          </HoverCard.Target>
+          <HoverCard.Dropdown>
+            <Grid>
+              <Grid.Col span={9}>
+                <Stack spacing={0}>
+                  <Text>
+                    <Trans i18nKey="settings.inferred">Inferred</Trans>
+                  </Text>
+                </Stack>
+              </Grid.Col>
+              <Grid.Col span={3}>
+                <Flex gap="sm">
+                  <FaceId />
+                  {util.countStats.num_inferred_faces}
+                </Flex>
+              </Grid.Col>
+              <Grid.Col span={9}>
+                <Stack spacing={0}>
+                  <Text>
+                    <Trans i18nKey="settings.labeled">Labeled</Trans>
+                  </Text>
+                </Stack>
+              </Grid.Col>
+              <Grid.Col span={3}>
+                <Flex gap="sm">
+                  <Tag />
+                  {util.countStats.num_labeled_faces}
+                </Flex>
+              </Grid.Col>
+              <Grid.Col span={9}>
+                <Stack spacing={0}>
+                  <Text>
+                    <Trans i18nKey="settings.unknown">Unknown</Trans>
+                  </Text>
+                </Stack>
+              </Grid.Col>
+              <Grid.Col span={3}>
+                <Flex gap="sm">
+                  <QuestionMark />
+                  {util.countStats.num_unknown_faces}
+                </Flex>
+              </Grid.Col>
+            </Grid>
+          </HoverCard.Dropdown>
+        </HoverCard>
       </Card>
 
       <Card withBorder p="xs">
