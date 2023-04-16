@@ -36,7 +36,6 @@ import {
   QuestionMark,
   Refresh,
   RefreshDot,
-  Scan,
   X,
 } from "tabler-icons-react";
 
@@ -72,9 +71,6 @@ const useStyles = createStyles(theme => ({
 
 export function Library() {
   const [isOpen, { open, close }] = useDisclosure(false);
-  const [nextcloudAuthStatusPopup, { close: closeNextcloudAuthStatusPopup, open: openNextcloudAuthStatusPopup }] =
-    useDisclosure(false);
-  const [credentialsPopup, { close: closeCredentialsPopup, open: openCredentialsPopup }] = useDisclosure(false);
   const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
   const [isOpenNextcloudHelp, setIsOpenNextcloudHelp] = useState(false);
   const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
@@ -93,8 +89,8 @@ export function Library() {
     { isFetching: isNextcloudFetching, isSuccess: isNextcloudSuccess, isError: isNextcloudError },
   ] = useLazyFetchNextcloudDirsQuery();
   const [nextcloudStatusColor, setNextcloudStatusColor] = useState("gray");
-  const { classes, theme } = useStyles();
-  
+  const { classes } = useStyles();
+
   const onPhotoScanButtonClick = () => {
     dispatch(scanPhotos());
   };
@@ -420,7 +416,7 @@ export function Library() {
                 p={10}
                 leftSection={userSelfDetails.nextcloud_scan_directory ? <Check /> :  <X /> }
                 variant="outline"
-                color={userSelfDetails.nextcloud_scan_directory ? "green" : "red"}
+                color={nextcloudStatusColor}
               >
                 {userSelfDetails.nextcloud_scan_directory ? t("settings.nextcloudloggedin") : t("settings.nextcloudnotloggedin")  }
               </Badge>
