@@ -350,7 +350,8 @@
         "queued": "Em fila",
         "startedby": "Iniciado por",
         "started": "Iniciou",
-        "removeexplanation": "Não para o trabalho, simplesmente remove este registo da base de dados. Usar apenas quando é sabido que um trabalho falhou inesperadamente, depois de ter analisado os registos, etc."
+        "removeexplanation": "Não para o trabalho, simplesmente remove este registo da base de dados. Usar apenas quando é sabido que um trabalho falhou inesperadamente, depois de ter analisado os registos, etc.",
+        "itemsadded": "Ativo(s) adicionado(s)"
     },
     "modalscandirectoryedit": {
         "currentdirectory": "Diretoria atual do utilizador",
