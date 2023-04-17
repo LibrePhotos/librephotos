@@ -340,7 +340,8 @@
         "delete": "Löschen",
         "itemsprocessed": "Bilder verarbeitet",
         "running": "läuft",
-        "removeexplanation": "Stoppt nicht den eigentlichen Job, sondern entfernt nur den Eintrag. Das sollte man machen in Fällen bei denen der Job nicht sauber abgeschlossen wurde."
+        "removeexplanation": "Stoppt nicht den eigentlichen Job, sondern entfernt nur den Eintrag. Das sollte man machen in Fällen bei denen der Job nicht sauber abgeschlossen wurde.",
+        "itemsadded": "Asset(s) hinzugefügt"
     },
     "modalscandirectoryedit": {
         "header": "Lege Scan-Ordner für Nutzer fest",
