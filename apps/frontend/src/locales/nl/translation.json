@@ -317,7 +317,8 @@
         "itemsprocessed": "Aantal verwerkte items",
         "running": "in uitvoer",
         "status": "Status",
-        "removeexplanation": "De taak wordt hiermee niet daadwerkelijk afgebroken; alleen het DB-item wordt verwijderd. Let op: gebruik dit alleen als een taak niet netjes is afgebroken en op basis van informatie uit het logboek."
+        "removeexplanation": "De taak wordt hiermee niet daadwerkelijk afgebroken; alleen het DB-item wordt verwijderd. Let op: gebruik dit alleen als een taak niet netjes is afgebroken en op basis van informatie uit het logboek.",
+        "itemsadded": "Item(s) toegevoegd"
     },
     "modalscandirectoryedit": {
         "explanation2": "op de knop ‘Foto's scannen’ klikt, dan worden hier opgegeven foto's geïmporteerd naar het gebruikersaccount",
