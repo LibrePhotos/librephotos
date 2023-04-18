@@ -340,7 +340,8 @@
         "delete": "Eliminar",
         "itemsprocessed": "Artículo(s) procesados",
         "running": "Ejecutándose",
-        "removeexplanation": "En realidad, no detiene el trabajo, solo elimina esta entrada de la base de datos. Úselo solo en los casos en que sepa que un trabajo falló sin gracia, al inspeccionar los registros, etc."
+        "removeexplanation": "En realidad, no detiene el trabajo, solo elimina esta entrada de la base de datos. Úselo solo en los casos en que sepa que un trabajo falló sin gracia, al inspeccionar los registros, etc.",
+        "itemsadded": "Elemento(s) agregado(s)"
     },
     "modalscandirectoryedit": {
         "header": "Establecer el directorio de detección para el usuario",
