@@ -420,7 +420,7 @@ export function Library() {
               >
                 { isNextcloudFetching && "Connecting" }
                 { (isNextcloudSuccess && !isNextcloudFetching) && "Connected" }
-                { isNextcloudError && "Error" }
+                { isNextcloudError && "Not connected" }
               </Badge>
             </Grid.Col>
             <Grid.Col span={7}>
