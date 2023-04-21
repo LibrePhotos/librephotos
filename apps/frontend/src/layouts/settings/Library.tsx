@@ -312,7 +312,7 @@ export function Library() {
                   onClick={onGenerateEventAlbumsButtonClick}
                   disabled={!workerAvailability}
                   leftIcon={<RefreshDot />}
-                  variant="subtle"
+                  variant="outline"
                 >
                   Generate
                 </Button>
@@ -335,7 +335,7 @@ export function Library() {
                   }}
                   disabled={!workerAvailability}
                   leftIcon={<RefreshDot />}
-                  variant="subtle"
+                  variant="outline"
                 >
                   Generate
                 </Button>
@@ -370,7 +370,7 @@ export function Library() {
                   });
                 }}
                 leftIcon={<FaceId />}
-                variant="subtle"
+                variant="outline"
               >
                 <Trans i18nKey="settings.facesbutton">Train Faces</Trans>
               </Button>
@@ -397,7 +397,7 @@ export function Library() {
                   });
                 }}
                 leftIcon={<FaceId />}
-                variant="subtle"
+                variant="outline"
               >
                 <Trans i18nKey="settings.rescanfaces">Rescan</Trans>
               </Button>
@@ -414,11 +414,13 @@ export function Library() {
               <Badge
                 size="xs"
                 p={10}
-                leftSection={userSelfDetails.nextcloud_scan_directory ? <Check /> :  <X /> }
+                leftSection={isNextcloudSuccess ? <Check /> :  <X /> }
                 variant="outline"
                 color={nextcloudStatusColor}
               >
-                {userSelfDetails.nextcloud_scan_directory ? t("settings.nextcloudloggedin") : t("settings.nextcloudnotloggedin")  }
+                { isNextcloudFetching && "Connecting" }
+                { (isNextcloudSuccess && !isNextcloudFetching) && "Connected" }
+                { isNextcloudError && "Error" }
               </Badge>
             </Grid.Col>
             <Grid.Col span={7}>
@@ -481,11 +483,11 @@ export function Library() {
             <Grid.Col span={2}>
               <Button
                 leftIcon={<Folder />}
-                disabled={isNextcloudFetching}
+                disabled={isNextcloudError || isNextcloudFetching}
                 onClick={() => {
                   setModalNextcloudScanDirectoryOpen(true);
                 }}
-                variant="subtle"
+                variant="outline"
               >
                 {t("modalnextcloud.browse")}
               </Button>
