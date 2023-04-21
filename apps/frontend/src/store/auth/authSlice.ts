@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import jwtDecode from "jwt-decode";
+import { Cookies } from "react-cookie";
 import { persistReducer } from "redux-persist";
 import { createFilter } from "redux-persist-transform-filter";
 import storage from "redux-persist/es/storage";
@@ -27,6 +28,10 @@ const authSlice = createSlice({
       },
     }),
     logout: () => {
+      const cookies = new Cookies();
+      cookies.remove("csrftoken");
+      cookies.remove("test");
+      cookies.remove("jwt");
       return initialState;
     },
     clearError: state => ({ ...state, error: null }),

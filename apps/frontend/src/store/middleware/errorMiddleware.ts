@@ -2,7 +2,7 @@ import { showNotification } from "@mantine/notifications";
 import type { Middleware, MiddlewareAPI } from "@reduxjs/toolkit";
 import { isRejectedWithValue } from "@reduxjs/toolkit";
 
-import { Endpoints } from "../../api_client/api";
+import { Endpoints, api } from "../../api_client/api";
 import i18n from "../../i18n";
 import { toUpperCase } from "../../util/stringUtils";
 import { AuthErrorSchema } from "../auth/auth.zod";
@@ -26,6 +26,7 @@ export const errorMiddleware: Middleware =
                 color: "red",
               });
               dispatch(logout());
+              dispatch(api.util.resetApiState());
               return;
             }
           }
