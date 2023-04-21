@@ -30,7 +30,7 @@ export function TopMenu() {
 
   return (
     <Header height={45} px={10}>
-      <Grid justify="space-between" grow style={{ padding: 5 }}>
+      <Grid justify="space-between" grow style={{ paddingTop: 5 }}>
         {matches && <TopMenuCommon onToggleSidebar={() => dispatch(toggleSidebar())} />}
         <Grid.Col span={3}>
           <CustomSearch />
@@ -81,7 +81,13 @@ export function TopMenu() {
                   </Menu.Item>
                 )}
 
-                <Menu.Item icon={<Logout />} onClick={() => dispatch(logout())}>
+                <Menu.Item
+                  icon={<Logout />}
+                  onClick={() => {
+                    dispatch(logout());
+                    dispatch(api.util.resetApiState());
+                  }}
+                >
                   {t("topmenu.logout")}
                 </Menu.Item>
               </Menu.Dropdown>

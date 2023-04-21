@@ -94,7 +94,7 @@ export function App() {
           <NotificationsProvider autoClose={3000} zIndex={1001}>
             <AppShell
               fixed
-              padding={5}
+              padding={0}
               navbar={getNavBar(showMenubar, showSidebar, isAuth)}
               header={getHeader(showMenubar)}
               footer={getFooter(isAuth)}

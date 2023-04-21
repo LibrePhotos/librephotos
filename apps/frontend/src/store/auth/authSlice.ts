@@ -26,7 +26,9 @@ const authSlice = createSlice({
         token: payload.access,
       },
     }),
-    logout: () => initialState,
+    logout: () => {
+      return initialState;
+    },
     clearError: state => ({ ...state, error: null }),
   },
   extraReducers: builder => {
