@@ -414,13 +414,13 @@ export function Library() {
               <Badge
                 size="xs"
                 p={10}
-                leftSection={isNextcloudSuccess ? <Check /> :  <X /> }
+                leftSection={isNextcloudSuccess ? <Check /> : <X />}
                 variant="outline"
                 color={nextcloudStatusColor}
               >
-                { isNextcloudFetching && "Connecting" }
-                { (isNextcloudSuccess && !isNextcloudFetching) && "Connected" }
-                { isNextcloudError && "Not connected" }
+                {isNextcloudFetching && t("settings.nextcloudconnecting")}
+                {isNextcloudSuccess && !isNextcloudFetching && t("settings.nextcloudloggedin")}
+                {isNextcloudError && t("settings.nextcloudnotloggedin")}
               </Badge>
             </Grid.Col>
             <Grid.Col span={7}>
@@ -475,8 +475,9 @@ export function Library() {
                 <Trans i18nKey="settings.nextcloudscandirectory" />
 
                 <Text size="sm" color="dimmed">
-                  {userSelfDetails.nextcloud_scan_directory ? userSelfDetails.nextcloud_scan_directory : "Choose the folder to process from the nextcloud instance"}
-                  
+                  {userSelfDetails.nextcloud_scan_directory
+                    ? userSelfDetails.nextcloud_scan_directory
+                    : "Choose the folder to process from the nextcloud instance"}
                 </Text>
               </Stack>
             </Grid.Col>
