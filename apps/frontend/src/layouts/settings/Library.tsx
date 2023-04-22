@@ -1,27 +1,43 @@
 import {
-  Box,
+  ActionIcon,
+  Badge,
   Button,
+  Card,
+  Collapse,
+  Container,
   Dialog,
   Divider,
+  Flex,
+  Grid,
   Group,
-  Indicator,
+  HoverCard,
   List,
   Loader,
+  Menu,
   Modal,
-  Popover,
-  SimpleGrid,
   Space,
   Stack,
-  Table,
   Text,
   TextInput,
   Title,
+  createStyles,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { Book, Edit, ExternalLink, FaceId, QuestionMark, Refresh, RefreshDot, Tag, Trash } from "tabler-icons-react";
+import {
+  Book,
+  BrandNextcloud,
+  Check,
+  ChevronDown,
+  FaceId,
+  Folder,
+  QuestionMark,
+  Refresh,
+  RefreshDot,
+  X,
+} from "tabler-icons-react";
 
 import { scanAllPhotos, scanNextcloudPhotos, scanPhotos } from "../../actions/photosActions";
 import {
@@ -39,12 +55,24 @@ import { CountStats } from "../../components/statistics";
 import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
+const useStyles = createStyles(theme => ({
+  button: {
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+
+  menuControl: {
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+    border: 0,
+    borderLeft: `1px solid ${theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.white}`,
+  },
+}));
+
 export function Library() {
   const [isOpen, { open, close }] = useDisclosure(false);
-  const [nextcloudAuthStatusPopup, { close: closeNextcloudAuthStatusPopup, open: openNextcloudAuthStatusPopup }] =
-    useDisclosure(false);
-  const [credentialsPopup, { close: closeCredentialsPopup, open: openCredentialsPopup }] = useDisclosure(false);
   const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
+  const [isOpenNextcloudHelp, setIsOpenNextcloudHelp] = useState(false);
   const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
   const [userSelfDetails, setUserSelfDetails] = useState({} as any);
   const [modalNextcloudScanDirectoryOpen, setModalNextcloudScanDirectoryOpen] = useState(false);
@@ -61,6 +89,7 @@ export function Library() {
     { isFetching: isNextcloudFetching, isSuccess: isNextcloudSuccess, isError: isNextcloudError },
   ] = useLazyFetchNextcloudDirsQuery();
   const [nextcloudStatusColor, setNextcloudStatusColor] = useState("gray");
+  const { classes } = useStyles();
 
   const onPhotoScanButtonClick = () => {
     dispatch(scanPhotos());
@@ -121,427 +150,419 @@ export function Library() {
   }
 
   return (
-    <Stack align="center" justify="flex-start">
-      <Group spacing="xs">
-        <Book size={35} />
-        <Title order={2}>{t("settings.library")}</Title>
-      </Group>
-      <CountStats />
-      <Divider hidden />
-      <SimpleGrid
-        cols={4}
-        breakpoints={[
-          { maxWidth: 1180, cols: 3, spacing: "md" },
-          { maxWidth: 955, cols: 2, spacing: "sm" },
-          { maxWidth: 700, cols: 1, spacing: "sm" },
-        ]}
-        spacing="xl"
-      >
-        <Box
-          sx={theme => ({
-            backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-            padding: theme.spacing.xl,
-            borderRadius: theme.radius.md,
-            cursor: "pointer",
+    <Container>
+      <Flex align="baseline" justify="space-between">
+        <Group spacing="xs" sx={{ marginBottom: 20, marginTop: 40 }}>
+          <Book size={35} />
+          <Title order={1}>{t("settings.library")}</Title>
+        </Group>
+      </Flex>
 
-            "&:hover": {
-              backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[1],
-            },
-          })}
-        >
+      <Stack>
+        <CountStats />
+        <Card shadow="md">
           <Stack>
-            <Title order={5}>
-              {+util.countStats.num_photos} <Trans i18nKey="settings.photos">Photos</Trans>
+            <Title order={4} sx={{ marginBottom: 16 }}>
+              <Trans i18nKey="settings.photos">Photos</Trans>
+              {+util.countStats.num_missing_photos > 0 && (
+                <HoverCard width={280} shadow="md">
+                  <HoverCard.Target>
+                    <Badge onClick={open} color="red" sx={{ marginLeft: 10 }}>
+                      {+util.countStats.num_missing_photos}{" "}
+                      <Trans i18nKey="settings.missingphotos">Missing photos</Trans>
+                    </Badge>
+                  </HoverCard.Target>
+                  <HoverCard.Dropdown>
+                    <Text size="sm">
+                      <Trans i18nKey="settings.missingphotosdescription"></Trans>
+                    </Text>
+                  </HoverCard.Dropdown>
+                </HoverCard>
+              )}
+              <Modal opened={isOpen} title={t("settings.missingphotosbutton")} onClose={close}>
+                <Stack spacing="xl">
+                  This action will delete all missing photos and it&apos;s metadata from the database.
+                  <Group>
+                    <Button onClick={close}>Cancel</Button>
+                    <Button color="red" onClick={onDeleteMissingPhotosButtonClick}>
+                      Confirm
+                    </Button>
+                  </Group>
+                </Stack>
+              </Modal>
             </Title>
-            <Divider />
-            <Button color="green" onClick={onPhotoScanButtonClick} disabled={!workerAvailability}>
-              {statusPhotoScan.status && statusPhotoScan.added ? <Loader /> : null}
-              {statusPhotoScan.added
-                ? `${t("settings.statusscanphotostrue")}(${statusPhotoScan.added}/${statusPhotoScan.to_add})`
-                : t("settings.statusscanphotosfalse")}
-            </Button>
-
-            <Button
-              onClick={() => {
-                dispatch(scanNextcloudPhotos());
-              }}
-              disabled={isNextcloudFetching || !workerAvailability || !userSelfDetails.nextcloud_scan_directory}
-              color="blue"
-            >
-              <Refresh />
-              <Trans i18nKey="settings.scannextcloudphotos">Scan photos (Nextcloud)</Trans>
-            </Button>
-
-            <Divider hidden />
-            <List size="sm">
-              <List.Item>
-                <Trans i18nKey="settings.scannextclouddescription.item1">
-                  Make a list of all files in subdirectories. For each media file:
-                </Trans>
-              </List.Item>
-              <List.Item>
-                <Trans i18nKey="settings.scannextclouddescription.item2">
-                  If the filepath exists, check if the file has been modified. If it was modified, rescan the image. If
-                  not, we skip.
-                </Trans>
-              </List.Item>
-              <List.Item>
-                <Trans i18nKey="settings.scannextclouddescription.item3">
-                  Calculate a unique ID of the image file (md5)
-                </Trans>
-              </List.Item>
-              <List.Item>
-                <Trans i18nKey="settings.scannextclouddescription.item4">
-                  If this media file is already in the database, we add the path to the existing media file.
-                </Trans>
-              </List.Item>
-              <List.Item>
-                <Trans i18nKey="settings.scannextclouddescription.item5">Generate a number of thumbnails</Trans>{" "}
-              </List.Item>
-              <List.Item>
-                <Trans i18nKey="settings.scannextclouddescription.item6">Generate image captions</Trans>{" "}
-              </List.Item>
-              <List.Item>
-                <Trans i18nKey="settings.scannextclouddescription.item7">Extract Exif information</Trans>{" "}
-              </List.Item>
-              <List.Item>
-                <Trans i18nKey="settings.scannextclouddescription.item8">
-                  Reverse geolocate to get location names from GPS coordinates{" "}
-                </Trans>
-              </List.Item>
-              <List.Item>
-                <Trans i18nKey="settings.scannextclouddescription.item9">Extract faces. </Trans>{" "}
-              </List.Item>
-              <List.Item>
-                <Trans i18nKey="settings.scannextclouddescription.item10">Add photo to thing and place albums.</Trans>{" "}
-              </List.Item>
-              <List.Item>
-                <Trans i18nKey="settings.scannextclouddescription.item11">
-                  Check if photos are missing or have been moved.
-                </Trans>
-              </List.Item>
-            </List>
-            <Button color="green" onClick={onPhotoFullScanButtonClick} disabled={!workerAvailability}>
-              {statusPhotoScan.status && statusPhotoScan.added ? <Loader /> : null}
-              {statusPhotoScan.added
-                ? `${t("settings.statusrescanphotostrue")}(${statusPhotoScan.added}/${statusPhotoScan.to_add})`
-                : t("settings.statusrescanphotosfalse")}
-            </Button>
-          </Stack>
-        </Box>
-        <Box
-          sx={theme => ({
-            backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-            padding: theme.spacing.xl,
-            borderRadius: theme.radius.md,
-            cursor: "pointer",
-
-            "&:hover": {
-              backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[1],
-            },
-          })}
-        >
-          <Stack>
-            <Title order={5}>
-              {+util.countStats.num_missing_photos} <Trans i18nKey="settings.missingphotos">Missing Photos</Trans>
-            </Title>
-            <Divider />
-            <Button onClick={open} disabled={!workerAvailability} color="red">
-              <Trash />
-              <Trans i18nKey="settings.missingphotosbutton">Remove missing photos</Trans>
-            </Button>
-            <Modal opened={isOpen} title={t("settings.missingphotosbutton")} onClose={close}>
-              <Stack spacing="xl">
-                This action will delete all missing photos and it&apos;s metadata from the database.
-                <Group>
-                  <Button onClick={close}>Cancel</Button>
-                  <Button color="red" onClick={onDeleteMissingPhotosButtonClick}>
-                    Confirm
+            <Grid>
+              <Grid.Col span={10}>
+                <Stack spacing={0}>
+                  <Group>
+                    <Text>Scan Library</Text>
+                    <ActionIcon radius="xl" variant="light" size="xs">
+                      <QuestionMark onClick={() => setIsOpenNextcloudHelp(!isOpenNextcloudHelp)} />
+                    </ActionIcon>
+                  </Group>
+                  <Text fz="sm" color="dimmed">
+                    {t("settings.scanphotosdescription")}
+                  </Text>
+                </Stack>
+              </Grid.Col>
+              <Grid.Col span={2}>
+                <Group noWrap spacing={0}>
+                  <Button
+                    onClick={onPhotoScanButtonClick}
+                    disabled={!workerAvailability}
+                    leftIcon={<Refresh />}
+                    variant="filled"
+                    className={classes.button}
+                  >
+                    {statusPhotoScan.status && statusPhotoScan.added ? <Loader /> : null}
+                    {statusPhotoScan.added
+                      ? `${t("settings.statusscanphotostrue")}(${statusPhotoScan.added}/${statusPhotoScan.to_add})`
+                      : t("settings.statusscanphotosfalse")}
                   </Button>
+                  <Menu transition="pop" position="bottom-end" withinPortal>
+                    <Menu.Target>
+                      <ActionIcon variant="filled" color="blue" size={36} className={classes.menuControl}>
+                        <ChevronDown size="1rem" />
+                      </ActionIcon>
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                      <Menu.Item icon={<Refresh size="1rem" />} onClick={onPhotoFullScanButtonClick}>
+                        {statusPhotoScan.status && statusPhotoScan.added ? <Loader /> : null}
+                        {statusPhotoScan.added
+                          ? `${t("settings.statusrescanphotostrue")}(${statusPhotoScan.added}/${
+                              statusPhotoScan.to_add
+                            })`
+                          : t("settings.statusrescanphotosfalse")}
+                      </Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
                 </Group>
+              </Grid.Col>
+            </Grid>
+
+            <Collapse in={isOpenNextcloudHelp}>
+              <Text fz="lg">Rescan will reprocess your entire library through the following tasks: </Text>
+              <List>
+                <List.Item>
+                  <Trans i18nKey="settings.scannextclouddescription.item1">
+                    Make a list of all files in subdirectories. For each media file:
+                  </Trans>
+                </List.Item>
+                <List.Item>
+                  <Trans i18nKey="settings.scannextclouddescription.item2">
+                    If the filepath exists, check if the file has been modified. If it was modified, rescan the image.
+                    If not, we skip.
+                  </Trans>
+                </List.Item>
+                <List.Item>
+                  <Trans i18nKey="settings.scannextclouddescription.item3">
+                    Calculate a unique ID of the image file (md5)
+                  </Trans>
+                </List.Item>
+                <List.Item>
+                  <Trans i18nKey="settings.scannextclouddescription.item4">
+                    If this media file is already in the database, we add the path to the existing media file.
+                  </Trans>
+                </List.Item>
+                <List.Item>
+                  <Trans i18nKey="settings.scannextclouddescription.item5">Generate a number of thumbnails</Trans>{" "}
+                </List.Item>
+                <List.Item>
+                  <Trans i18nKey="settings.scannextclouddescription.item6">Generate image captions</Trans>{" "}
+                </List.Item>
+                <List.Item>
+                  <Trans i18nKey="settings.scannextclouddescription.item7">Extract Exif information</Trans>{" "}
+                </List.Item>
+                <List.Item>
+                  <Trans i18nKey="settings.scannextclouddescription.item8">
+                    Reverse geolocate to get location names from GPS coordinates{" "}
+                  </Trans>
+                </List.Item>
+                <List.Item>
+                  <Trans i18nKey="settings.scannextclouddescription.item9">Extract faces. </Trans>{" "}
+                </List.Item>
+                <List.Item>
+                  <Trans i18nKey="settings.scannextclouddescription.item10">Add photo to thing and place albums.</Trans>{" "}
+                </List.Item>
+                <List.Item>
+                  <Trans i18nKey="settings.scannextclouddescription.item11">
+                    Check if photos are missing or have been moved.
+                  </Trans>
+                </List.Item>
+              </List>
+            </Collapse>
+            <Divider
+              labelProps={{ fw: "bold" }}
+              labelPosition="left"
+              label={t("settings.eventsalbums")}
+              mt={20}
+              mb={10}
+            ></Divider>
+            <Grid>
+              <Grid.Col span={10}>
+                <Stack spacing={0}>
+                  <Text>{t("settings.eventalbumsgenerate")}</Text>
+                  <Text fz="sm" color="dimmed">
+                    {t("settings.eventsalbumsdescription")}
+                  </Text>
+                </Stack>
+              </Grid.Col>
+              <Grid.Col span={2}>
+                <Button
+                  onClick={onGenerateEventAlbumsButtonClick}
+                  disabled={!workerAvailability}
+                  leftIcon={<RefreshDot />}
+                  variant="outline"
+                >
+                  Generate
+                </Button>
+              </Grid.Col>
+            </Grid>
+
+            <Grid>
+              <Grid.Col span={10}>
+                <Stack spacing={0}>
+                  <Text>{t("settings.eventalbumsregenerate")}</Text>
+                  <Text fz="sm" color="dimmed">
+                    {t("settings.eventalbumsregeneratedescription")}
+                  </Text>
+                </Stack>
+              </Grid.Col>
+              <Grid.Col span={2}>
+                <Button
+                  onClick={() => {
+                    dispatch(generateEventAlbumTitles());
+                  }}
+                  disabled={!workerAvailability}
+                  leftIcon={<RefreshDot />}
+                  variant="outline"
+                >
+                  Generate
+                </Button>
+              </Grid.Col>
+            </Grid>
+          </Stack>
+          <Divider
+            labelProps={{ fw: "bold" }}
+            labelPosition="left"
+            label={`${t("settings.faces")} & ${t("settings.people")}`}
+            mt={20}
+            mb={10}
+          />
+          <Grid>
+            <Grid.Col span={10}>
+              <Stack spacing={0}>
+                <Text>{t("settings.trainfacestitle")}</Text>
+                <Text fz="sm" color="dimmed">
+                  {t("settings.trainfacesdescription")}
+                </Text>
               </Stack>
-            </Modal>
-            <Divider hidden />
-            <p>
-              <Trans i18nKey="settings.missingphotosdescription">
-                On every scan LibrePhotos will check if the files are still in the same location or if they have been
-                moved. If they are missing, then they get marked as such.
-              </Trans>
-            </p>
-            <Divider />
-          </Stack>
-        </Box>
-        <Box
-          sx={theme => ({
-            backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-            padding: theme.spacing.xl,
-            borderRadius: theme.radius.md,
-            cursor: "pointer",
-
-            "&:hover": {
-              backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[1],
-            },
-          })}
-        >
-          <Stack>
-            <Title order={5}>
-              {+util.countStats.num_albumauto} <Trans i18nKey="settings.eventsalbums">Event Albums</Trans>
-            </Title>
-            <Divider />
-            <Button onClick={onGenerateEventAlbumsButtonClick} disabled={!workerAvailability} color="green">
-              <RefreshDot />
-              <Trans i18nKey="settings.eventalbumsgenerate">Generate Event Albums</Trans>
-            </Button>
-            <Divider hidden />
-            <p>
-              <Trans i18nKey="settings.eventsalbumsdescription">
-                The backend server will first group photos by time taken. If two consecutive photos are taken within 12
-                hours of each other, the two photos are considered to be from the same event. After groups are put
-                together in this way, it automatically generates a title for this album.
-              </Trans>
-            </p>
-            <Divider />
-            <Button
-              onClick={() => {
-                dispatch(generateEventAlbumTitles());
-              }}
-              disabled={!workerAvailability}
-              color="green"
-            >
-              <RefreshDot />
-              <Trans i18nKey="settings.eventalbumsregenerate">Regenerate Event Titles</Trans>
-            </Button>
-            <Divider hidden />
-            <p>
-              <Trans i18nKey="settings.eventalbumsregeneratedescription">
-                Automatically generated albums have names of people in the titles. If you trained your face classifier
-                after making event albums, you can generate new titles for already existing event albums to reflect the
-                new names associated with the faces in photos.
-              </Trans>
-            </p>
-          </Stack>
-        </Box>
-        <Box
-          sx={theme => ({
-            backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-            padding: theme.spacing.xl,
-            borderRadius: theme.radius.md,
-            cursor: "pointer",
-
-            "&:hover": {
-              backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[1],
-            },
-          })}
-        >
-          <Stack>
-            <Title order={5}>
-              {+util.countStats.num_faces} <Trans i18nKey="settings.faces">Faces</Trans>,{+util.countStats.num_people}{" "}
-              <Trans i18nKey="settings.people">People</Trans>
-            </Title>
-            <Divider />
-            <Button
-              disabled={!workerAvailability}
-              onClick={() => {
-                dispatch(api.endpoints.trainFaces.initiate());
-                showNotification({
-                  message: i18n.t<string>("toasts.trainingstarted"),
-                  title: i18n.t<string>("toasts.trainingstartedtitle"),
-                  color: "teal",
-                });
-              }}
-              color="green"
-            >
-              <FaceId /> <Trans i18nKey="settings.facesbutton">Train Faces</Trans>
-            </Button>
-            <Divider hidden />
-
-            <Table striped highlightOnHover>
-              <tbody>
-                <tr>
-                  <td>
-                    <b>
-                      <FaceId />
-                      <Trans i18nKey="settings.inferred">Inferred</Trans>
-                    </b>
-                  </td>
-                  <td>
-                    {util.countStats.num_inferred_faces} <Trans i18nKey="settings.facessmall">faces</Trans>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <b>
-                      <Tag />
-                      <Trans i18nKey="settings.labeled">Labeled</Trans>
-                    </b>
-                  </td>
-                  <td>
-                    {util.countStats.num_labeled_faces} <Trans i18nKey="settings.facessmall">faces</Trans>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <b>
-                      <QuestionMark />
-                      <Trans i18nKey="settings.unknown">Unknown</Trans>
-                    </b>
-                  </td>
-                  <td>
-                    {util.countStats.num_unknown_faces} <Trans i18nKey="settings.facessmall">faces</Trans>
-                  </td>
-                </tr>
-              </tbody>
-            </Table>
-            <Divider hidden />
-            <Button leftIcon={<ExternalLink size={14} />} component="a" href="/faces">
-              {t("settings.facedashboard")}
-            </Button>
-            <Divider hidden />
-            <Button
-              color="green"
-              disabled={!workerAvailability}
-              onClick={() => {
-                dispatch(api.endpoints.rescanFaces.initiate());
-                showNotification({
-                  message: i18n.t<string>("toasts.rescanfaces"),
-                  title: i18n.t<string>("toasts.rescanfacestitle"),
-                  color: "teal",
-                });
-              }}
-            >
-              <FaceId />
-              <Trans i18nKey="settings.rescanfaces">Rescan Faces</Trans>
-            </Button>
-          </Stack>
-        </Box>
-      </SimpleGrid>
-      <Divider />
-      <Title order={3}>
-        <Popover opened={nextcloudAuthStatusPopup} position="top" withArrow>
-          <Popover.Target>
-            <Group>
-              <Indicator
-                inline
-                onMouseEnter={openNextcloudAuthStatusPopup}
-                onMouseLeave={closeNextcloudAuthStatusPopup}
-                processing={isNextcloudFetching}
+            </Grid.Col>
+            <Grid.Col span={2}>
+              <Button
+                disabled={!workerAvailability}
+                onClick={() => {
+                  dispatch(api.endpoints.trainFaces.initiate());
+                  showNotification({
+                    message: i18n.t<string>("toasts.trainingstarted"),
+                    title: i18n.t<string>("toasts.trainingstartedtitle"),
+                    color: "teal",
+                  });
+                }}
+                leftIcon={<FaceId />}
+                variant="outline"
+              >
+                <Trans i18nKey="settings.facesbutton">Train Faces</Trans>
+              </Button>
+            </Grid.Col>
+          </Grid>
+          <Grid>
+            <Grid.Col span={10}>
+              <Stack spacing={0}>
+                <Text>{t("settings.rescanfacestitle")}</Text>
+                <Text fz="sm" color="dimmed">
+                  {t("settings.rescanfacesdescription")}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={2}>
+              <Button
+                disabled={!workerAvailability}
+                onClick={() => {
+                  dispatch(api.endpoints.rescanFaces.initiate());
+                  showNotification({
+                    message: i18n.t<string>("toasts.rescanfaces"),
+                    title: i18n.t<string>("toasts.rescanfacestitle"),
+                    color: "teal",
+                  });
+                }}
+                leftIcon={<FaceId />}
+                variant="outline"
+              >
+                <Trans i18nKey="settings.rescanfaces">Rescan</Trans>
+              </Button>
+            </Grid.Col>
+          </Grid>
+          <Divider labelProps={{ fw: "bold" }} labelPosition="left" label="Nextcloud" mt={20} mb={10} />
+          <Grid>
+            <Grid.Col span={10}>
+              <Stack spacing={0}>
+                <Text>Status</Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={2}>
+              <Badge
+                size="xs"
+                p={10}
+                leftSection={isNextcloudSuccess ? <Check /> : <X />}
+                variant="outline"
                 color={nextcloudStatusColor}
               >
-                <div />
-              </Indicator>
-              <Trans i18nKey="settings.nextcloudheader">Nextcloud</Trans>
-            </Group>
-          </Popover.Target>
-          <Popover.Dropdown sx={{ pointerEvents: "none" }}>
-            <Text size="sm">
-              {!isNextcloudFetching ? t("settings.nextcloudloggedin") : t("settings.nextcloudnotloggedin")}
-            </Text>
-          </Popover.Dropdown>
-        </Popover>
-      </Title>
-      <Stack>
-        <TextInput
-          onChange={event => {
-            setUserSelfDetails({ ...userSelfDetails, nextcloud_server_address: event.currentTarget.value });
-          }}
-          value={userSelfDetails.nextcloud_server_address}
-          label={t("settings.serveradress")}
-          placeholder={t("settings.serveradressplaceholder")}
-        />
-        <Group>
-          <TextInput
-            onChange={event => {
-              setUserSelfDetails({ ...userSelfDetails, nextcloud_username: event.currentTarget.value });
-            }}
-            label={t("settings.nextcloudusername")}
-            placeholder={t("settings.nextcloudusernameplaceholder")}
-            value={userSelfDetails.nextcloud_username}
-          />
-          <TextInput
-            onChange={event => {
-              setUserSelfDetails({ ...userSelfDetails, nextcloud_app_password: event.currentTarget.value });
-            }}
-            type="password"
-            label={
-              <Popover position="top" withArrow opened={credentialsPopup}>
-                <Popover.Target>
-                  <Group>
-                    {t("settings.nextcloudpassword")}
-                    <QuestionMark onMouseEnter={openCredentialsPopup} onMouseLeave={closeCredentialsPopup} />
-                  </Group>
-                </Popover.Target>
-                <Popover.Dropdown>
-                  <Text size="sm">{t("settings.credentialspopup")}</Text>
-                </Popover.Dropdown>
-              </Popover>
-            }
-            placeholder={t("settings.nextcloudpasswordplaceholder")}
-            value={userSelfDetails.nextcloud_app_password}
-          />
-        </Group>
-      </Stack>{" "}
-      <Group grow>
-        <Button
-          variant="subtle"
-          leftIcon={<Edit />}
-          disabled={isNextcloudFetching}
-          onClick={() => {
-            setModalNextcloudScanDirectoryOpen(true);
-          }}
-        >
-          {userSelfDetails.nextcloud_scan_directory ? userSelfDetails.nextcloud_scan_directory : t("adminarea.notset")}
-        </Button>
-      </Group>
-      <Space h="xl" />
-      <ModalNextcloudScanDirectoryEdit
-        path={userSelfDetails.nextcloud_scan_directory}
-        isOpen={modalNextcloudScanDirectoryOpen}
-        onChange={path =>
-          setUserSelfDetails({
-            ...userSelfDetails,
-            nextcloud_scan_directory: path,
-          })
-        }
-        onClose={() => {
-          setModalNextcloudScanDirectoryOpen(false);
-        }}
-      />
-      <Dialog
-        opened={isOpenUpdateDialog}
-        withCloseButton
-        onClose={() => setIsOpenUpdateDialog(false)}
-        size="lg"
-        radius="md"
-      >
-        <Text size="sm" style={{ marginBottom: 10 }} weight={500}>
-          Save Changes?
-        </Text>
+                {isNextcloudFetching && t("settings.nextcloudconnecting")}
+                {isNextcloudSuccess && !isNextcloudFetching && t("settings.nextcloudloggedin")}
+                {isNextcloudError && t("settings.nextcloudnotloggedin")}
+              </Badge>
+            </Grid.Col>
+            <Grid.Col span={7}>
+              <Stack spacing={0}>
+                <Trans i18nKey="settings.serveradress" />
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={5}>
+              <TextInput
+                onChange={event => {
+                  setUserSelfDetails({ ...userSelfDetails, nextcloud_server_address: event.currentTarget.value });
+                }}
+                value={userSelfDetails.nextcloud_server_address}
+                placeholder={t("settings.serveradressplaceholder")}
+              />
+            </Grid.Col>
+            <Grid.Col span={7}>
+              <Stack spacing={0}>
+                <Trans i18nKey="settings.nextcloudusername" />
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={5}>
+              <TextInput
+                onChange={event => {
+                  setUserSelfDetails({ ...userSelfDetails, nextcloud_username: event.currentTarget.value });
+                }}
+                value={userSelfDetails.nextcloud_username}
+                placeholder={t("settings.nextcloudusernameplaceholder")}
+              />
+            </Grid.Col>
+            <Grid.Col span={7}>
+              <Stack spacing={0}>
+                <Trans i18nKey="settings.nextcloudpassword" />
 
-        <Group align="flex-end">
-          <Button
-            size="sm"
-            color="green"
-            onClick={() => {
-              const newUserData = userSelfDetails;
-              delete newUserData.scan_directory;
-              delete newUserData.avatar;
-              updateUser(newUserData, dispatch);
-              dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id));
-              setIsOpenUpdateDialog(false);
+                <Text size="sm" color="dimmed">
+                  {t("settings.credentialspopup")}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={5}>
+              <TextInput
+                onChange={event => {
+                  setUserSelfDetails({ ...userSelfDetails, nextcloud_app_password: event.currentTarget.value });
+                }}
+                type="password"
+                placeholder={t("settings.nextcloudpasswordplaceholder")}
+                value={userSelfDetails.nextcloud_app_password}
+              />
+            </Grid.Col>
+            <Grid.Col span={10}>
+              <Stack spacing={0}>
+                <Trans i18nKey="settings.nextcloudscandirectory" />
+
+                <Text size="sm" color="dimmed">
+                  {userSelfDetails.nextcloud_scan_directory
+                    ? userSelfDetails.nextcloud_scan_directory
+                    : "Choose the folder to process from the nextcloud instance"}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={2}>
+              <Button
+                leftIcon={<Folder />}
+                disabled={isNextcloudError || isNextcloudFetching}
+                onClick={() => {
+                  setModalNextcloudScanDirectoryOpen(true);
+                }}
+                variant="outline"
+              >
+                {t("modalnextcloud.browse")}
+              </Button>
+            </Grid.Col>
+            <Grid.Col span={10}></Grid.Col>
+            <Grid.Col span={2}>
+              <Button
+                onClick={() => {
+                  dispatch(scanNextcloudPhotos());
+                }}
+                disabled={isNextcloudFetching || !workerAvailability || !userSelfDetails.nextcloud_scan_directory}
+                variant="filled"
+                leftIcon={<BrandNextcloud />}
+              >
+                <Trans i18nKey="settings.scannextcloudphotos">Scan photos (Nextcloud)</Trans>
+              </Button>
+            </Grid.Col>
+          </Grid>
+
+          <Group mt={20}></Group>
+          <Space h="xl" />
+          <ModalNextcloudScanDirectoryEdit
+            path={userSelfDetails.nextcloud_scan_directory}
+            isOpen={modalNextcloudScanDirectoryOpen}
+            onChange={path =>
+              setUserSelfDetails({
+                ...userSelfDetails,
+                nextcloud_scan_directory: path,
+              })
+            }
+            onClose={() => {
+              setModalNextcloudScanDirectoryOpen(false);
             }}
-          >
-            <Trans i18nKey="settings.favoriteupdate">Update profile settings</Trans>
-          </Button>
-          <Button
-            onClick={() => {
-              setUserSelfDetails(userSelfDetails);
-            }}
-            size="sm"
-          >
-            <Trans i18nKey="settings.nextcloudcancel">Cancel</Trans>
-          </Button>
-        </Group>
-      </Dialog>
-    </Stack>
+          />
+        </Card>
+
+        <Dialog
+          opened={isOpenUpdateDialog}
+          withCloseButton
+          onClose={() => setIsOpenUpdateDialog(false)}
+          size="lg"
+          radius="md"
+        >
+          <Text size="sm" style={{ marginBottom: 10 }} weight={500}>
+            Save Changes?
+          </Text>
+
+          <Group align="flex-end">
+            <Button
+              size="sm"
+              color="green"
+              onClick={() => {
+                const newUserData = userSelfDetails;
+                delete newUserData.scan_directory;
+                delete newUserData.avatar;
+                updateUser(newUserData, dispatch);
+                dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id));
+                setIsOpenUpdateDialog(false);
+              }}
+            >
+              <Trans i18nKey="settings.favoriteupdate">Update profile settings</Trans>
+            </Button>
+            <Button
+              onClick={() => {
+                setUserSelfDetails(userSelfDetails);
+              }}
+              size="sm"
+            >
+              <Trans i18nKey="settings.nextcloudcancel">Cancel</Trans>
+            </Button>
+          </Group>
+        </Dialog>
+      </Stack>
+      <Space h="xl" />
+    </Container>
   );
 }

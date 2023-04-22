@@ -1,12 +1,13 @@
-import { Button, Group, Title } from "@mantine/core";
+import { Card, Flex, Grid, Group, HoverCard, Stack, Text, Title } from "@mantine/core";
 import React, { useEffect } from "react";
-import { useTranslation } from "react-i18next";
-import { Calendar, FaceId, Photo, SettingsAutomation, Users } from "tabler-icons-react";
+import { Trans, useTranslation } from "react-i18next";
+import { Calendar, FaceId, Photo, QuestionMark, SettingsAutomation, Tag, Users } from "tabler-icons-react";
 
 import { fetchCountStats } from "../actions/utilActions";
 import { useAppDispatch, useAppSelector } from "../store/store";
 
 export const CountStats = () => {
+  const util = useAppSelector(state => state.util);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
 
@@ -16,51 +17,103 @@ export const CountStats = () => {
   }, []);
 
   return (
-    <Group position="apart">
-      <div>
-        <Title align="center">{countStats.num_photos}</Title>
-        <Group position="center">
-          <Button variant="subtle" color="dark" leftIcon={<Photo size={20} />}>
-            {t("countstats.photos")}
-          </Button>
+    <Group grow spacing="xs" align="stretch">
+      <Card withBorder p="xs">
+        <Group position="left" spacing="xs">
+          <Photo size={64} strokeWidth={1} />
+          <div>
+            <Text color="dimmed">{t("countstats.photos")}</Text>
+            <Title order={3}>{countStats.num_photos}</Title>
+          </div>
         </Group>
-      </div>
+      </Card>
 
-      <div>
-        <Title align="center">{countStats.num_people}</Title>
-        <Group position="center">
-          <Button variant="subtle" color="dark" leftIcon={<Users size={20} />}>
-            {t("people")}
-          </Button>
+      <Card withBorder p="xs">
+        <Group position="left" spacing="xs">
+          <Users size={64} strokeWidth={1} />
+          <div>
+            <Text color="dimmed"> {t("people")}</Text>
+            <Title order={3}>{countStats.num_people}</Title>
+          </div>
         </Group>
-      </div>
+      </Card>
 
-      <div>
-        <Title align="center">{countStats.num_faces}</Title>
-        <Group position="center">
-          <Button variant="subtle" color="dark" leftIcon={<FaceId size={20} />}>
-            {t("faces")}
-          </Button>
-        </Group>
-      </div>
+      <Card withBorder p="xs">
+        <HoverCard width={300} shadow="md" withinPortal withArrow>
+          <HoverCard.Target>
+            <Group position="left" spacing="xs">
+              <FaceId size={64} strokeWidth={1} />
+              <div>
+                <Text color="dimmed">{t("faces")}</Text>
+                <Title order={3}>{countStats.num_faces}</Title>
+              </div>
+            </Group>
+          </HoverCard.Target>
+          <HoverCard.Dropdown>
+            <Grid>
+              <Grid.Col span={9}>
+                <Stack spacing={0}>
+                  <Text>
+                    <Trans i18nKey="settings.inferred">Inferred</Trans>
+                  </Text>
+                </Stack>
+              </Grid.Col>
+              <Grid.Col span={3}>
+                <Flex gap="sm">
+                  <FaceId />
+                  {util.countStats.num_inferred_faces}
+                </Flex>
+              </Grid.Col>
+              <Grid.Col span={9}>
+                <Stack spacing={0}>
+                  <Text>
+                    <Trans i18nKey="settings.labeled">Labeled</Trans>
+                  </Text>
+                </Stack>
+              </Grid.Col>
+              <Grid.Col span={3}>
+                <Flex gap="sm">
+                  <Tag />
+                  {util.countStats.num_labeled_faces}
+                </Flex>
+              </Grid.Col>
+              <Grid.Col span={9}>
+                <Stack spacing={0}>
+                  <Text>
+                    <Trans i18nKey="settings.unknown">Unknown</Trans>
+                  </Text>
+                </Stack>
+              </Grid.Col>
+              <Grid.Col span={3}>
+                <Flex gap="sm">
+                  <QuestionMark />
+                  {util.countStats.num_unknown_faces}
+                </Flex>
+              </Grid.Col>
+            </Grid>
+          </HoverCard.Dropdown>
+        </HoverCard>
+      </Card>
 
-      <div>
-        <Title align="center">{countStats.num_albumauto}</Title>
-        <Group position="center">
-          <Button variant="subtle" color="dark" leftIcon={<SettingsAutomation size={20} />}>
-            {t("events")}
-          </Button>
+      <Card withBorder p="xs">
+        <Group position="left" spacing="xs">
+          <SettingsAutomation size={64} strokeWidth={1} />
+          <div>
+            <Text color="dimmed">{t("events")}</Text>
+            <Title order={3}>{countStats.num_albumauto}</Title>
+          </div>
         </Group>
-      </div>
+      </Card>
 
-      <div>
-        <Title align="center">{countStats.num_albumdate}</Title>
-        <Group position="center">
-          <Button variant="subtle" color="dark" leftIcon={<Calendar size={20} />}>
-            {t("days")}
-          </Button>
+      <Card withBorder p="xs">
+        <Group position="left" spacing="xs">
+          <Calendar size={64} strokeWidth={1} />
+          <div>
+            <Text color="dimmed">{t("days")}</Text>
+            <Title order={3}>{countStats.num_albumdate}</Title>
+          </div>
         </Group>
-      </div>
+      </Card>
     </Group>
   );
 };
