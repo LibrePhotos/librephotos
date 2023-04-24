@@ -1,4 +1,4 @@
-FROM node:13-slim as builder
+FROM node:18-slim as builder
 
 RUN apt-get update && apt-get install -y git
 
