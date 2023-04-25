@@ -1,4 +1,4 @@
-import { Box, Card, Group } from "@mantine/core";
+import { Box, Group } from "@mantine/core";
 import { useScrollLock, useViewportSize } from "@mantine/hooks";
 import _ from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -276,11 +276,12 @@ function PhotoListViewComponent(props: Props) {
           />
         )}
         {!loading && !isPublic && getNumPhotos() > 0 && (
-          <Card
+          <Box
             sx={theme => ({
               backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
               textAlign: "center",
               cursor: "pointer",
+              borderRadius: 10,
             })}
             style={{
               padding: 4,
@@ -327,7 +328,7 @@ function PhotoListViewComponent(props: Props) {
                 />
               </Group>
             </Group>
-          </Card>
+          </Box>
         )}
       </Box>
       {!loading && photoset && photoset.length > 0 ? (
