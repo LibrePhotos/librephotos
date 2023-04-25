@@ -124,8 +124,18 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
     target_count = len(data["all"]["id"])
     if target_count == 0:
         return target_count
+
+    # double cluster size for every 10x increase in target counts
+    min_cluster_size = 2
+    if target_count > 1000:
+        min_cluster_size = 4
+    if target_count > 10000:
+        min_cluster_size = 8
+    if target_count > 100000:
+        min_cluster_size = 16
+
     # creating HDBSCAN object for clustering the encodings with the metric "euclidean"
-    clt = HDBSCAN(min_cluster_size=2, metric="euclidean")
+    clt = HDBSCAN(min_cluster_size=min_cluster_size, metric="euclidean")
 
     clt.fit(np.array(data["all"]["encoding"]))
 
