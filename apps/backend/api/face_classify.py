@@ -189,6 +189,7 @@ def delete_clustered_people(user: User):
     """Delete all existing Person records of type CLUSTER"""
     print("[INFO] Deleting all clustered people")
     Person.objects.filter(kind=Person.KIND_CLUSTER, cluster_owner=user).delete()
+    Person.objects.filter(kind=Person.KIND_UNKNOWN, cluster_owner=user).delete()
     Person.objects.filter(cluster_owner=None).delete()
     Person.objects.filter(cluster_owner=get_deleted_user()).delete()
 
