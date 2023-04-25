@@ -6,6 +6,7 @@ from api.models.cluster import UNKNOWN_CLUSTER_ID, Cluster, get_unknown_cluster
 from api.models.face import Face
 from api.models.person import Person, get_or_create_person, get_unknown_person
 from api.models.user import User
+from api.util import logger
 
 
 class ClusterManager:
@@ -39,20 +40,35 @@ class ClusterManager:
                 unknown_ids.append(face.id)
             else:
                 known_faces.append(face)
+
+        if cluster_id == UNKNOWN_CLUSTER_ID:
+            logger.info("Adding unknown cluster")
+            logger.info(
+                "Adding unknown %d faces to unknown cluster" % len(unknown_faces)
+            )
+            logger.info("Adding known %d faces to unknown cluster" % len(known_faces))
+            for face in unknown_faces:
+                face.cluster = unknown_cluster
+                face.person = unknown_person
+                face.person_label_is_inferred = None
+                face.save()
+            for face in known_faces:
+                face.cluster = unknown_cluster
+                face.save()
+
+            return added_clusters
+
         if len(known_faces) == 0:
             new_cluster: Cluster
             new_person: Person
-            if cluster_id == UNKNOWN_CLUSTER_ID:
-                new_cluster = unknown_cluster
-                new_person = unknown_person
-            else:
-                new_person = get_or_create_person(
-                    name="Unknown " + labelStr, owner=user, kind=Person.KIND_CLUSTER
-                )
-                new_person.cluster_owner = user
-                new_person.save()
-                new_cluster = Cluster.get_or_create_cluster_by_id(user, cluster_id)
-                new_cluster.name = "Cluster " + str(cluster_id)
+
+            new_person = get_or_create_person(
+                name="Unknown " + labelStr, owner=user, kind=Person.KIND_CLUSTER
+            )
+            new_person.cluster_owner = user
+            new_person.save()
+            new_cluster = Cluster.get_or_create_cluster_by_id(user, cluster_id)
+            new_cluster.name = "Cluster " + str(cluster_id)
 
             new_cluster.person = new_person
             encoding_by_person[new_cluster.person.id] = []
@@ -106,41 +122,22 @@ class ClusterManager:
             for face in unknown_faces:
                 encoding = face.get_encoding_array()
                 closest_cluster: Cluster
-                if cluster_id == UNKNOWN_CLUSTER_ID:
-                    closest_cluster = unknown_cluster
-                    if unknown_person.id not in clusters_by_person.keys():
-                        clusters_by_person[closest_cluster.person.id] = closest_cluster
-                        added_clusters.append(closest_cluster)
-                        encoding_by_person[closest_cluster.person.id] = []
-                        face_ids_by_cluster[closest_cluster.id] = []
-                else:
-                    min_distance: np.float64 = np.Infinity
-                    for new_cluster in added_clusters:
-                        distance = math.dist(
-                            encoding, mean_encoding_by_cluster[new_cluster.id]
-                        )
-                        if distance < min_distance:
-                            closest_cluster = new_cluster
-                            min_distance = distance
+                min_distance: np.float64 = np.Infinity
+                for new_cluster in added_clusters:
+                    distance = math.dist(
+                        encoding, mean_encoding_by_cluster[new_cluster.id]
+                    )
+                    if distance < min_distance:
+                        closest_cluster = new_cluster
+                        min_distance = distance
                 face_ids_by_cluster[closest_cluster.id].append(face.id)
                 encoding_by_person[closest_cluster.person.id].append(encoding)
             for new_cluster in added_clusters:
-                if new_cluster is unknown_cluster:
-                    Face.objects.filter(
-                        id__in=face_ids_by_cluster[new_cluster.id]
-                    ).update(
-                        cluster=new_cluster,
-                        person_label_is_inferred=False,
-                        person=new_cluster.person,
-                    )
-                else:
-                    Face.objects.filter(
-                        id__in=face_ids_by_cluster[new_cluster.id]
-                    ).update(
-                        cluster=new_cluster,
-                        person_label_is_inferred=True,
-                        person=new_cluster.person,
-                    )
+                Face.objects.filter(id__in=face_ids_by_cluster[new_cluster.id]).update(
+                    cluster=new_cluster,
+                    person_label_is_inferred=True,
+                    person=new_cluster.person,
+                )
 
         # Update statistics again and save everything, since we've added more faces
         for new_cluster in added_clusters:
