@@ -9,7 +9,6 @@ import { scanPhotos } from "./photosActions";
 import {
   CountStats,
   DeleteMissingPhotosResponse,
-  DirTree,
   GenerateEventAlbumsResponse,
   GenerateEventAlbumsTitlesResponse,
   LocationSunburst,
@@ -18,46 +17,6 @@ import {
   SearchTermExamples,
   WordCloudResponse,
 } from "./utilActions.types";
-
-export function fetchDirectoryTree(path) {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_DIRECTORY_TREE" });
-    Server.get(`dirtree/?path=${path}`)
-      .then(response => {
-        const data = DirTree.array().parse(response.data);
-        dispatch({
-          type: "FETCH_DIRECTORY_TREE_FULFILLED",
-          payload: data,
-        });
-      })
-      .catch(error => {
-        console.error(error);
-        dispatch({ type: "FETCH_DIRECTORY_TREE_REJECTED", payload: error });
-      });
-  };
-}
-
-export function fetchNextcloudDirectoryTree(path) {
-  return function (dispatch) {
-    dispatch({ type: "FETCH_NEXTCLOUD_DIRECTORY_TREE" });
-    Server.get(`nextcloud/listdir/?fpath=${path}`)
-      .then(response => {
-        // To-Do: Needs to be tested...
-        // const data = DirTree.array().parse(response.data);
-        dispatch({
-          type: "FETCH_NEXTCLOUD_DIRECTORY_TREE_FULFILLED",
-          payload: response.data,
-        });
-      })
-      .catch(error => {
-        console.error(error);
-        dispatch({
-          type: "FETCH_NEXTCLOUD_DIRECTORY_TREE_REJECTED",
-          payload: error,
-        });
-      });
-  };
-}
 
 export function updateAvatar(user, form_data) {
   return function (dispatch) {

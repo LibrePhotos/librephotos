@@ -1,4 +1,5 @@
-import { EMAIL_REGEX, fuzzyMatch } from "./util";
+import type { DirTree } from "../api_client/dir-tree";
+import { EMAIL_REGEX, fuzzyMatch, mergeDirTree } from "./util";
 
 describe("email regex test", () => {
   test("good samples should match", () => {
@@ -97,4 +98,86 @@ describe("fuzzyMatch", () => {
       expect(fuzzyMatch(item.query, item.value)).toBe(item.result);
     });
   });
+});
+
+test("merge directory tree", () => {
+  const tree: DirTree[] = [
+    {
+      title: "root",
+      absolute_path: "/",
+      children: [
+        {
+          title: "dir1",
+          absolute_path: "/dir1",
+          children: [
+            {
+              title: "dir1-1",
+              absolute_path: "/dir1/dir1-1",
+              children: [],
+            },
+          ],
+        },
+        {
+          title: "dir2",
+          absolute_path: "/dir2",
+          children: [],
+        },
+      ],
+    },
+  ];
+  const branch: DirTree = {
+    title: "dir1-1",
+    absolute_path: "/dir1/dir1-1",
+    children: [
+      {
+        title: "dir1-1-1",
+        absolute_path: "/dir1/dir1-1/dir1-1-1",
+        children: [
+          {
+            title: "dir1-1-1-1",
+            absolute_path: "/dir1/dir1-1/dir1-1-1/dir1-1-1-1",
+            children: [],
+          },
+        ],
+      },
+    ],
+  };
+  const expected: DirTree[] = [
+    {
+      title: "root",
+      absolute_path: "/",
+      children: [
+        {
+          title: "dir1",
+          absolute_path: "/dir1",
+          children: [
+            {
+              title: "dir1-1",
+              absolute_path: "/dir1/dir1-1",
+              children: [
+                {
+                  title: "dir1-1-1",
+                  absolute_path: "/dir1/dir1-1/dir1-1-1",
+                  children: [
+                    {
+                      title: "dir1-1-1-1",
+                      absolute_path: "/dir1/dir1-1/dir1-1-1/dir1-1-1-1",
+                      children: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          title: "dir2",
+          absolute_path: "/dir2",
+          children: [],
+        },
+      ],
+    },
+  ];
+
+  expect(mergeDirTree(tree, branch)).toEqual(expected);
 });

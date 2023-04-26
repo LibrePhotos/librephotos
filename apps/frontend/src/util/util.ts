@@ -4,6 +4,7 @@ import { DateTime } from "luxon";
 
 import type { UserPhotosGroup } from "../actions/photosActions";
 import type { DatePhotosGroup, IncompleteDatePhotosGroup, PigPhoto } from "../actions/photosActions.types";
+import type { DirTree } from "../api_client/dir-tree";
 import i18n from "../i18n";
 
 export const EMAIL_REGEX = /^\w+([-.]?\w+){0,2}(\+?\w+([-.]?\w+){0,2})?@(\w+-?\w+\.){1,9}[a-z]{2,}$/;
@@ -88,4 +89,17 @@ export function fuzzyMatch(query: string, value: string): boolean {
     return new RegExp(expression).test(value.toLowerCase());
   }
   return true;
+}
+
+export function mergeDirTree(tree: DirTree[], branch: DirTree): DirTree[] {
+  return tree.map(folder => {
+    if (branch.absolute_path === folder.absolute_path) {
+      return { ...folder, children: branch.children };
+    }
+    if (branch.absolute_path.startsWith(folder.absolute_path)) {
+      const newTreeData = mergeDirTree(folder.children, branch);
+      return { ...folder, children: newTreeData };
+    }
+    return folder;
+  });
 }
