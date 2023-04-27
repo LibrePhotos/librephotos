@@ -42,7 +42,7 @@ class ScanPhotosView(APIView):
     def get(self, request, format=None):
         try:
             job_id = uuid.uuid4()
-            scan_photos(request.user, job_id)
+            scan_photos.delay(request.user, job_id)
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception("An Error occurred")
