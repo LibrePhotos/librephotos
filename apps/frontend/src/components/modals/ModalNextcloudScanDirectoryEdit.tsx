@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import SortableTree from "react-sortable-tree";
 import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
 
-import type { NextcloudDirsResponse } from "../../api_client/nextcloud";
+import type { DirTreeResponse } from "../../api_client/dir-tree";
 import { useFetchNextcloudDirsQuery } from "../../api_client/nextcloud";
 
 type Props = {
@@ -18,7 +18,7 @@ export function ModalNextcloudScanDirectoryEdit(props: Props) {
   const { t } = useTranslation();
   const { path, isOpen, onChange, onClose } = props;
   const [newScanDirectory, setNewScanDirectory] = useState("");
-  const [treeData, setTreeData] = useState<NextcloudDirsResponse>([]);
+  const [treeData, setTreeData] = useState<DirTreeResponse>([]);
   const [placeholder, setPlaceholder] = useState("...");
   const inputRef = useRef<HTMLInputElement>(null);
   const { data: nextcloudDirs } = useFetchNextcloudDirsQuery();
