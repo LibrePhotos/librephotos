@@ -1,16 +1,6 @@
-import { z } from "zod";
-
 import { api } from "./api";
-
-const NextcloudDirEntrySchema = z.object({
-  absolute_path: z.string(),
-  title: z.string(),
-  children: z.array(z.any()),
-});
-
-const NextcloudDirsResponseSchema = z.array(NextcloudDirEntrySchema);
-
-export type NextcloudDirsResponse = z.infer<typeof NextcloudDirsResponseSchema>;
+import type { DirTreeResponse } from "./dir-tree";
+import { DirTreeResponseSchema } from "./dir-tree";
 
 enum NextcloudEndpoints {
   fetchNextcloudDirs = "fetchNextcloudDirs",
@@ -19,9 +9,9 @@ enum NextcloudEndpoints {
 export const nextcloudApi = api
   .injectEndpoints({
     endpoints: builder => ({
-      [NextcloudEndpoints.fetchNextcloudDirs]: builder.query<NextcloudDirsResponse, void>({
+      [NextcloudEndpoints.fetchNextcloudDirs]: builder.query<DirTreeResponse, void>({
         query: () => `nextcloud/listdir/?fpath=/`,
-        transformResponse: response => NextcloudDirsResponseSchema.parse(response),
+        transformResponse: response => DirTreeResponseSchema.parse(response),
       }),
     }),
   })
