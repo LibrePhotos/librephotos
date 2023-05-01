@@ -16,7 +16,7 @@ drf-extensions==0.7.1
 drf-spectacular==0.26.1
 face-recognition==1.2.3
 faiss-cpu==1.7.3
-Flask==1.1.4
+Flask==2.3.2
 Flask-Cors==3.0.9
 Flask-RESTful==0.3.9
 geopy==2.1.0
