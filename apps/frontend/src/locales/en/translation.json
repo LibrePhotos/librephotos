@@ -54,6 +54,7 @@
     "nextcloudconnecting": "Connecting",
     "nextcloudloggedin": "Connected",
     "nextcloudnotloggedin": "Disconnected",
+    "nextcloudsetup": "Missing credentials",
     "nextcloudchange": "Change",
     "appearance": "Appearance",
     "thumbnailsize": "Thumbnail size",

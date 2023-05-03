@@ -136,7 +136,7 @@ export function Library() {
   useEffect(() => {
     if (isNextcloudFetching === true) {
       setNextcloudStatusColor("blue");
-    } else if (isNextcloudSuccess === true) {
+    } else if (isNextcloudSuccess === true && userSelfDetails.nextcloud_server_address) {
       setNextcloudStatusColor("green");
     } else if (isNextcloudError === true) {
       setNextcloudStatusColor("red");
@@ -148,6 +148,19 @@ export function Library() {
       setAvatarImgSrc(serverAddress + userSelfDetails.avatar_url);
     }
   }
+
+  const BadgeIcon = () => {
+    if (isNextcloudSuccess && userSelfDetails.nextcloud_server_address) {
+      return <Check />;
+    }
+    if (isNextcloudError) {
+      return <X />;
+    }
+    if (isNextcloudFetching) {
+      return <RefreshDot />;
+    }
+    return <QuestionMark />;
+  };
 
   return (
     <Container>
@@ -411,13 +424,8 @@ export function Library() {
               </Stack>
             </Grid.Col>
             <Grid.Col span={2}>
-              <Badge
-                size="xs"
-                p={10}
-                leftSection={isNextcloudSuccess ? <Check /> : <X />}
-                variant="outline"
-                color={nextcloudStatusColor}
-              >
+              <Badge size="xs" p={10} leftSection={BadgeIcon()} variant="outline" color={nextcloudStatusColor}>
+                {!userSelfDetails.nextcloud_server_address && t("settings.nextcloudsetup")}
                 {isNextcloudFetching && t("settings.nextcloudconnecting")}
                 {isNextcloudSuccess && !isNextcloudFetching && t("settings.nextcloudloggedin")}
                 {isNextcloudError && t("settings.nextcloudnotloggedin")}
@@ -484,7 +492,7 @@ export function Library() {
             <Grid.Col span={2}>
               <Button
                 leftIcon={<Folder />}
-                disabled={isNextcloudError || isNextcloudFetching}
+                disabled={isNextcloudError || isNextcloudFetching || !userSelfDetails.nextcloud_scan_directory}
                 onClick={() => {
                   setModalNextcloudScanDirectoryOpen(true);
                 }}
