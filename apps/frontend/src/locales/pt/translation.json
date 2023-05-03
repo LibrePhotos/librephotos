@@ -161,7 +161,8 @@
         "trainfacestitle": "Treinar caras",
         "trainfacesdescription": "Treinar o sistema baseado em informação existente",
         "rescanfacestitle": "Voltar a analisar caras",
-        "rescanfacesdescription": "Procurar caras na biblioteca"
+        "rescanfacesdescription": "Procurar caras na biblioteca",
+        "nextcloudsetup": "Credenciais em falta"
     },
     "sidemenu": {
         "myalbums": "Meus álbuns",
