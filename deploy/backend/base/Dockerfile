@@ -66,7 +66,7 @@ RUN pip3 install --no-cache-dir --break-system-packages cmake==3.21.2
 WORKDIR /tmp/builds
 RUN git clone https://github.com/LibRaw/LibRaw && \
 	cd LibRaw && \ 
-	git reset --hard 2a9a4de21ea7f5d15314da8ee5f27feebf239655 && \
+	git reset --hard 122bf7c5b53423cc061900c4ff479719ee709415 && \
 	autoreconf --install && \
 	./configure && \
 	make && \
