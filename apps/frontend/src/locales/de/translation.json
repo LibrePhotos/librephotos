@@ -156,7 +156,8 @@
         "trainfacestitle": "Gesichter trainieren",
         "trainfacesdescription": "Das System auf der Grundlage vorhandener Informationen anlernen",
         "rescanfacestitle": "Gesichter erneut scannen",
-        "rescanfacesdescription": "In der Bibliothek nach Gesichtern Ausschau halten"
+        "rescanfacesdescription": "In der Bibliothek nach Gesichtern Ausschau halten",
+        "nextcloudsetup": "Fehlende Anmeldedaten"
     },
     "modalnextcloud": {
         "setdirectory": "Setze dein Nextcloud Scan Ordner",
@@ -307,7 +308,7 @@
         "firsttimesetup": "Erstmalige Einrichtung",
         "usernamelabel": "Benutzername",
         "error": {
-            "token_not_valid": "Anmeldung abgelaufen, bitte erneut anmelden.",
+            "token_not_valid": "Anmeldung ist abgelaufen. Bitte melden Sie sich erneut an.",
             "token": "Token-Problem"
         }
     },
