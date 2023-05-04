@@ -137,7 +137,8 @@
         "profile": "Profil",
         "polish": "Polsk",
         "metadata": "Metadata-alternativer",
-        "sync": "Synkroniser metadata til disk"
+        "sync": "Synkroniser metadata til disk",
+        "add_rule": "Legg til regel"
     },
     "modalnextcloud": {
         "setdirectory": "Sett din Nextcloud-skanningsmappe",
@@ -148,10 +149,14 @@
         "choosedirectory": "Velg en mappe nedenfor"
     },
     "modalphotosshare": {
-        "joined": "Sammenkoblet"
+        "joined": "Sammenkoblet",
+        "unshare": "Opphev deling",
+        "share": "Del"
     },
     "modalalbumsshare": {
-        "joined": "Sammenkoblet"
+        "joined": "Sammenkoblet",
+        "title": "Del album",
+        "search": "Søk etter bruker"
     },
     "topmenu": {
         "running": "Kjører",
@@ -248,7 +253,8 @@
         "photos": "Bilder",
         "favorite": "Favorittbilder",
         "notimestamp": "Bilder uten tidsstempler",
-        "hidden": "Skjulte bilder"
+        "hidden": "Skjulte bilder",
+        "deleted": "Papirkurv"
     },
     "login": {
         "login": "Logg inn",
@@ -265,7 +271,12 @@
         "confirmpassword": "Bekreft passord",
         "confirmpasswordplaceholder": "Bekreft passord",
         "erroremail": "Skriv inn en gyldig e-postadresse.",
-        "errorusernameexists": "En bruker med det brukernavnet finnes allerede."
+        "errorusernameexists": "En bruker med det brukernavnet finnes allerede.",
+        "error": {
+            "token": "Problem med symbol"
+        },
+        "firsttimesetup": "Førstegangsoppsett",
+        "usernamelabel": "Brukernavn"
     },
     "search": {
         "search": "Søk",
@@ -285,7 +296,10 @@
         "titledeleteuser": "Slett bruker",
         "cannotbeundone": "Denne handlingen kan ikke angres.",
         "cannotdeleteadmin": "Kan ikke slette administratorbruker",
-        "addnewuser": "Legg til ny bruker"
+        "addnewuser": "Legg til ny bruker",
+        "deleteallautoalbums": "Slett alle auto-opprettede album",
+        "remove": "Fjern",
+        "admintools": "Administratorverktøy"
     },
     "joblist": {
         "reload": "Last inn igjen",
@@ -381,7 +395,8 @@
         "explanationdeleting": "Slett fjeset og dets miniatyrbilder",
         "explanationtraining": "Tren en klassifiserer til å automatisk gjenkjenne fjes",
         "sortby": "Sorter etter",
-        "sortbydate": "Dato"
+        "sortbydate": "Dato",
+        "unknownfacescounter_other": "{{count}} ukjente fjes"
     },
     "scan": "Skann",
     "socialgraph": "Sosial graf",
@@ -456,7 +471,8 @@
         "deleteuser": "{{username}} slettet",
         "deleteusertitle": "Slett bruker",
         "deletejobtitle": "Slett jobb",
-        "removefacestopersontitle": "Fjern fjes fra person"
+        "removefacestopersontitle": "Fjern fjes fra person",
+        "editphoto": "Bilde redigert"
     },
     "rules": {
         "file_property": "Bruk filegenskap {{rule}}",
@@ -464,7 +480,8 @@
         "exif_tag": "Bruk Exiftag {{rule}}",
         "report_tz": "Overfør til {{rule}}",
         "predefined_regexp": "Bruk forhåndsdefinert regulært uttrykk: {{rule}}",
-        "rule_type": "Regeltype: {{rule}}"
+        "rule_type": "Regeltype: {{rule}}",
+        "14": "Tidsstempel satt av bruker"
     },
     "metadata": "Metadata-alternativer",
     "defaulttimezone": "Forvalgt tidssone",
@@ -489,7 +506,10 @@
     "save": "Lagre",
     "modify": "Endre",
     "exif": {
-        "filepath": "Filsti"
+        "filepath": "Filsti",
+        "deleteduplicatetitle": "Slett duplikat",
+        "showmore": "Vis mer",
+        "showless": "Vis mindre"
     },
     "nofaces": "Ingen fjes",
     "locationstimeline": {
