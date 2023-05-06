@@ -40,7 +40,6 @@ RUN apt-get update && \
 		liborc-dev \
 		libpng-dev \
 		libpq-dev \
-		libraw-dev \
 		librsvg2-dev \
 		libsm6 \
 		libtiff5-dev \ 
