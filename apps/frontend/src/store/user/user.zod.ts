@@ -57,7 +57,6 @@ export const ManageUser = z.object({
   first_name: z.string().nullable(),
   last_name: z.string().nullable(),
   password: z.string().optional(),
-  public_sharing: z.boolean(),
 });
 
 export const SimpleUser = z.object({

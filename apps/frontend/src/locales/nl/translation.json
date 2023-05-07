@@ -155,7 +155,8 @@
         "trainfacesdescription": "Train het systeem op basis van aanwezige informatie",
         "rescanfacestitle": "Gezichten opnieuw herkennen",
         "rescanfacesdescription": "Zoek naar gezichten in de verzameling",
-        "scanphotosdescription": "Zoek naar nieuwe bestanden in je verzameling"
+        "scanphotosdescription": "Zoek naar nieuwe bestanden in je verzameling",
+        "nextcloudsetup": "Inloggegevens ontbreken"
     },
     "topmenu": {
         "profile": "Profiel",

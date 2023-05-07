@@ -25,7 +25,7 @@
         "change": "Ändern",
         "nextcloudheader": "Nextcloud",
         "credentials": "Zugangsdaten",
-        "credentialspopup": "Anwendungspasswort verwenden",
+        "credentialspopup": "Ihr Nextcloud-Anmeldepasswort",
         "serveradress": "Serveradresse",
         "serveradressplaceholder": "https://",
         "nextcloudusername": "Nutzername",
@@ -35,8 +35,8 @@
         "nextcloudupdate": "Nextcloud-Zugangsdaten aktualisieren",
         "nextcloudcancel": "Abbrechen",
         "nextcloudscandirectory": "Nextcloud Scan-Ordner",
-        "nextcloudloggedin": "In Nextcloud angemeldet",
-        "nextcloudnotloggedin": "Nicht in Nextcloud angemeldet",
+        "nextcloudloggedin": "Verbunden",
+        "nextcloudnotloggedin": "Getrennt",
         "nextcloudchange": "Ändern",
         "appearance": "Oberfläche",
         "thumbnailsize": "Größe der Vorschaubilder",
@@ -44,9 +44,9 @@
         "small": "Klein",
         "library": "Bibliothek",
         "photos": "Fotos",
-        "statusscanphotostrue": "Fotos werden gescannt (Dateisystem)",
-        "statusscanphotosfalse": "Fotos scannen (Dateisystem)",
-        "scannextcloudphotos": "Fotos scannen (Nextcloud)",
+        "statusscanphotostrue": "Fotos werden gescannt",
+        "statusscanphotosfalse": "Scannen",
+        "scannextcloudphotos": "Scannen",
         "scannextclouddescription": {
             "item1": "Erstelle eine Liste aller Unterordner. Mache folgendes für jede Mediendatei:",
             "item2": "Prüfe, ob der Dateipfad existiert und ob die Datei modifiziert wurde. Falls ja, scanne das Bild erneut. Falls nicht, überspringe es.",
@@ -60,8 +60,8 @@
             "item10": "Füge das Foto den \"Dinge\"- und \"Orte\"-Alben hinzu.",
             "item11": "Überprüfe, ob das Foto fehlt oder ob es verschoben wurde."
         },
-        "statusrescanphotostrue": "Scanne alle Fotos erneut (Dateisystem)",
-        "statusrescanphotosfalse": "Scanne alle Fotos erneut (Dateisystem)",
+        "statusrescanphotostrue": "Wird erneut gescannt",
+        "statusrescanphotosfalse": "Erneut scannen",
         "missingphotos": "Fehlende Fotos",
         "missingphotosbutton": "Fehlende Fotos entfernen",
         "missingphotosdescription": "Nach jedem Scan prüft LibrePhotos, ob alle Dateien am gleichen Ort sind oder ob sie verschoben wurden. Falls sie fehlen, werden Sie als fehlend markiert.",
@@ -72,13 +72,13 @@
         "eventalbumsregeneratedescription": "Generiere automatisch Namen für die Alben anhand der Namen der Personen im Foto. Falls die Gesichtsdaten nach dem Erstellen der Ereignis-Alben angelegt wurden, ist es möglich, mit diesem Button neue Titel zu generieren, um die Personen in den Fotos auch im Titel widerzuspiegeln.",
         "faces": "Gesichter",
         "people": "Personen",
-        "facesbutton": "Gesichter trainieren",
+        "facesbutton": "Trainieren",
         "inferred": "Hergeleitet",
         "facessmall": "Gesichter",
         "labeled": "Benannt",
         "unknown": "Unbekannt",
         "facedashboard": "Dashboard für Gesichter",
-        "rescanfaces": "Gesichter erneut trainieren",
+        "rescanfaces": "Erneut scannen",
         "scanoptions": "Scanoptionen",
         "sceneconfidence": "Szenen-Vertrauenswert",
         "confidencelevel": "Vertrauenswert",
@@ -149,7 +149,15 @@
         "ukrainian": "Ukrainisch",
         "traditionalchinese": "Chinesisch (Traditionell)",
         "vietnamese": "Vietnamesisch",
-        "public_sharing": "öffentliches Teilen"
+        "public_sharing": "öffentliches Teilen",
+        "nextcloudconnecting": "Wird verbunden",
+        "scanphotosdescription": "Nach neuen Dateien in Ihrer Bibliothek suchen",
+        "rescanphotosdescription": "Alle Dateien erneut scannen",
+        "trainfacestitle": "Gesichter trainieren",
+        "trainfacesdescription": "Das System auf der Grundlage vorhandener Informationen anlernen",
+        "rescanfacestitle": "Gesichter erneut scannen",
+        "rescanfacesdescription": "In der Bibliothek nach Gesichtern Ausschau halten",
+        "nextcloudsetup": "Fehlende Anmeldedaten"
     },
     "modalnextcloud": {
         "setdirectory": "Setze dein Nextcloud Scan Ordner",
@@ -157,7 +165,8 @@
         "notset": "Nicht gesetzt",
         "update": "Aktualisieren",
         "cancel": "Abbrechen",
-        "choosedirectory": "Wähle eine Ornder von unten aus"
+        "choosedirectory": "Wähle eine Ornder von unten aus",
+        "browse": "Durchsuchen"
     },
     "modalphotosshare": {
         "joined": "Beigetreten",
@@ -299,7 +308,7 @@
         "firsttimesetup": "Erstmalige Einrichtung",
         "usernamelabel": "Benutzername",
         "error": {
-            "token_not_valid": "Anmeldung abgelaufen, bitte erneut anmelden.",
+            "token_not_valid": "Anmeldung ist abgelaufen. Bitte melden Sie sich erneut an.",
             "token": "Token-Problem"
         }
     },

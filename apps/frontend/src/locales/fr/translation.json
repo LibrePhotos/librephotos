@@ -25,7 +25,7 @@
         "change": "Modifier",
         "nextcloudheader": "Nextcloud",
         "credentials": "Données d’accès",
-        "credentialspopup": "Utiliser le mot de passe de l’appli",
+        "credentialspopup": "Ton mot de passe Nextcloud",
         "serveradress": "Adresse du Serveur",
         "serveradressplaceholder": "https://",
         "nextcloudusername": "Utilisateur",
@@ -35,8 +35,8 @@
         "nextcloudupdate": "Mettre à jour les données d’accès Nextcloud",
         "nextcloudcancel": "Annuler",
         "nextcloudscandirectory": "Répertoire de scan Nextcloud",
-        "nextcloudloggedin": "Connecté à Nextcloud",
-        "nextcloudnotloggedin": "Déconnecté de Nextcloud",
+        "nextcloudloggedin": "Connecté",
+        "nextcloudnotloggedin": "Déconnecté",
         "nextcloudchange": "Mettre à jour",
         "appearance": "Apparence",
         "thumbnailsize": "Taille des vignettes",
@@ -44,9 +44,9 @@
         "small": "Petite",
         "library": "Bibliothèque",
         "photos": "Photos",
-        "statusscanphotostrue": "Scan photos en cours (hébergées par vous)",
-        "statusscanphotosfalse": "Scan photos (hébergées par vous)",
-        "scannextcloudphotos": "Scanner les photos (Nextcloud)",
+        "statusscanphotostrue": "Scan des photos en cours",
+        "statusscanphotosfalse": "Scan",
+        "scannextcloudphotos": "Scanner les photos",
         "scannextclouddescription": {
             "item1": "Lister les fichiers de tous les sous-répertoires de scan ; pour chaque photo (ou vidéo) approprié :",
             "item2": "Si le chemin du fichier existe, vérifier si la photo a été modifiée ; si oui, rescanner, sinon on passe.",
@@ -60,8 +60,8 @@
             "item10": "Ajouter la photo aux albums de choses et de localisations.",
             "item11": "Vérifier si la photo n’est pas déjà présente ou a été déplacée."
         },
-        "statusrescanphotostrue": "Rescan complet (depuis la racine)",
-        "statusrescanphotosfalse": "Rescan complet (depuis la racine)",
+        "statusrescanphotostrue": "Rescanner",
+        "statusrescanphotosfalse": "Rescan",
         "missingphotos": "Photos manquantes",
         "missingphotosbutton": "Supprimer les photos manquantes",
         "missingphotosdescription": "À chaque scan, LibrePhotos vérifie si les photos sont toujours au même endroit ou si elle ont été déplacées ; toute photo manquante sera marquée comme photo manquante.",
@@ -72,13 +72,13 @@
         "eventalbumsregeneratedescription": "Les noms automatiquement créés contiennent des traces de nom de personnes ; si vous traitez les visages après avoir généré les albums, vous pouvez forcer le recalcul des noms des albums Évènements.",
         "faces": "Visages",
         "people": "Personnes",
-        "facesbutton": "Traiter les visages",
+        "facesbutton": "Aprendre les visages",
         "inferred": "Visages présumés",
         "facessmall": "Visages",
         "labeled": "Visages connus",
         "unknown": "Visages inconnus",
         "facedashboard": "Tableau de bord ‘visages’",
-        "rescanfaces": "Rescan des visages",
+        "rescanfaces": "Rescan",
         "scanoptions": "Options de scan",
         "sceneconfidence": "Confiance de scène",
         "confidencelevel": "Niveau de confiance",
@@ -149,7 +149,14 @@
         "vietnamese": "vietnamien",
         "togglecolorscheme": "Basculer le jeu de couleurs",
         "add_rule": "Ajouter une règle",
-        "public_sharing": "Partage public"
+        "public_sharing": "Partage public",
+        "nextcloudconnecting": "Connexion",
+        "scanphotosdescription": "Recherche de nouveaux fichiers dans votre bibliothèque",
+        "trainfacesdescription": "Enseigner le système sur la base des informations existantes",
+        "trainfacestitle": "Apprentissage des visages",
+        "rescanfacesdescription": "Cherchez des visages dans la bibliothèque",
+        "rescanphotosdescription": "Rescanner tout les fichiers",
+        "rescanfacestitle": "Rescanner les visages"
     },
     "modalnextcloud": {
         "setdirectory": "Définir votre répertoire de scan Nextcloud",
@@ -157,13 +164,22 @@
         "notset": "non défini",
         "update": "Mettre à jour",
         "cancel": "Annuler",
-        "choosedirectory": "Choisissez un des répertoires ci-dessous"
+        "choosedirectory": "Choisissez un des répertoires ci-dessous",
+        "browse": "Parcourir"
     },
     "modalphotosshare": {
-        "joined": "Enregistré"
+        "joined": "Enregistré",
+        "search": "Recherche d'un utilisateur",
+        "share": "Partager",
+        "unshare": "Ne plus partager",
+        "title": "Partager des photos",
+        "name": "Nom de la personne"
     },
     "modalalbumsshare": {
-        "joined": "Enregistré"
+        "joined": "Enregistré",
+        "title": "Partager l'album",
+        "search": "Recherche d'un utilisateur",
+        "name": "Nom de la personne"
     },
     "topmenu": {
         "running": "En cours",
@@ -289,7 +305,11 @@
         "errorusernameexists": "Un utilisateur avec ce nom d'utilisateur existe déjà.",
         "erroremail": "Saisissez une adresse courriel valide.",
         "firsttimesetup": "Première configuration",
-        "usernamelabel": "Nom d'utilisateur"
+        "usernamelabel": "Nom d'utilisateur",
+        "error": {
+            "token_not_valid": "Le login a expiré, veuillez vous connecter à nouveau.",
+            "token": "Erreur de jeton"
+        }
     },
     "search": {
         "search": "Recherche",
@@ -328,7 +348,8 @@
         "delete": "Supprimer",
         "itemsprocessed": "Élément(s) traité(s)",
         "running": "en cours",
-        "removeexplanation": "N'arrête pas réellement le travail, mais supprime seulement cette entrée de la base de données. À n'utiliser que dans les cas où vous savez qu'un travail a échoué de manière non gracieuse, en inspectant les journaux, etc."
+        "removeexplanation": "N'arrête pas réellement le travail, mais supprime seulement cette entrée de la base de données. À n'utiliser que dans les cas où vous savez qu'un travail a échoué de manière non gracieuse, en inspectant les journaux, etc.",
+        "itemsadded": "Elément(s) ajouté.s"
     },
     "modalscandirectoryedit": {
         "header": "Définir le répertoire de scan pour l’utilisateur",
@@ -548,7 +569,7 @@
         "newalbum": "Nouvel album",
         "placeholder": "Titre de l'album",
         "items": "{{count}} élément(s)",
-        "updated": "Mise à jour {{duration}}",
+        "updated": "Mise à jour en {{duration}}",
         "create": "Créer",
         "alreadyexists": "L'album {{title}} existe déjà."
     },

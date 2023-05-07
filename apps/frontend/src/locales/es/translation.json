@@ -156,7 +156,8 @@
         "rescanfacestitle": "Volver a escanear las caras",
         "rescanfacesdescription": "Busca las caras en la biblioteca",
         "scanphotosdescription": "Busca los archivos nuevos en tu biblioteca",
-        "trainfacesdescription": "Enseñar el sistema basándose en la información existente"
+        "trainfacesdescription": "Enseñar el sistema basándose en la información existente",
+        "nextcloudsetup": "Faltan las credenciales"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de detección de Nextcloud",
@@ -307,7 +308,7 @@
         "firsttimesetup": "Configuración por primera vez",
         "usernamelabel": "Nombre de usuario",
         "error": {
-            "token_not_valid": "El inicio de sesión caducó, vuelve a iniciar la sesión.",
+            "token_not_valid": "La sesión ha caducado. Vuelve a iniciar la sesión otra vez.",
             "token": "Emisión del token"
         }
     },

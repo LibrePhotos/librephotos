@@ -155,7 +155,8 @@
         "rescanfacestitle": "Повторне сканування облич",
         "rescanfacesdescription": "Шукати обличчя в бібліотеці",
         "nextcloudconnecting": "З'єднання",
-        "trainfacesdescription": "Навчити систему на основі наявної інформації"
+        "trainfacesdescription": "Навчити систему на основі наявної інформації",
+        "nextcloudsetup": "Відсутні облікові дані"
     },
     "modalalbum": {
         "create": "Створити",
