@@ -11,7 +11,7 @@ import { fetchPhotoDetail } from "../../actions/photosActions";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
-import { adjustDateFormat } from "../../util/util";
+import { formatDateForPhotoGroups } from "../../util/util";
 import { ModalAlbumEdit } from "../album/ModalAlbumEdit";
 import { LightBox } from "../lightbox/LightBox";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
@@ -64,7 +64,8 @@ function PhotoListViewComponent(props: Props) {
   const selectionStateRef = useRef(selectionState);
   const [dataForScrollIndicator, setDataForScrollIndicator] = useState<IScrollerData[]>([]);
   const gridHeight = useRef(200);
-  const [scrollLocked, setScrollLocked] = useScrollLock(false);
+  const setScrollLocked = useScrollLock(false)[1];
+  const [photos, setPhotos] = useState<any[]>([]);
 
   const route = useAppSelector(store => store.router);
   const userSelfDetails = useAppSelector(store => store.user.userSelfDetails);
@@ -93,6 +94,10 @@ function PhotoListViewComponent(props: Props) {
   useEffect(() => {
     idx2hashRef.current = idx2hash;
   }, [idx2hash]);
+
+  useEffect(() => {
+    setPhotos(isDateView ? formatDateForPhotoGroups(photoset) : photoset);
+  }, [isDateView, photoset]);
 
   /* eslint-disable react-hooks/exhaustive-deps */
   const throttledUpdateGroups = useCallback(
@@ -223,11 +228,7 @@ function PhotoListViewComponent(props: Props) {
     }
   };
 
-  const getNumPhotosetItems = () => (photoset ? photoset.length : 0);
-
   const getNumPhotos = () => (idx2hashRef.current ? idx2hashRef.current.length : 0);
-
-  const getPigImageData = Array.isArray(photoset) ? photoset : [photoset];
 
   closeLightboxIfImageIndexIsOutOfSync();
 
@@ -236,10 +237,6 @@ function PhotoListViewComponent(props: Props) {
   // @ts-ignore
   if (route.location.pathname.startsWith("/useralbum/")) {
     isUserAlbum = true;
-  }
-
-  if (isDateView) {
-    adjustDateFormat(photoset);
   }
 
   return (
@@ -266,7 +263,7 @@ function PhotoListViewComponent(props: Props) {
             // @ts-ignore
             photoList={this}
             loading={loading}
-            numPhotosetItems={getNumPhotosetItems()}
+            numPhotosetItems={photos.length || 0}
             numPhotos={getNumPhotos()}
             icon={icon}
             title={title}
@@ -331,7 +328,7 @@ function PhotoListViewComponent(props: Props) {
           </Box>
         )}
       </Box>
-      {!loading && photoset && photoset.length > 0 ? (
+      {!loading && photos && photos.length > 0 ? (
         <ScrollScrubber
           scrollPositions={dataForScrollIndicator}
           scrollToY={scrollToY}
@@ -346,7 +343,7 @@ function PhotoListViewComponent(props: Props) {
             <Pig
               ref={pigRef}
               className="scrollscrubbertarget"
-              imageData={getPigImageData}
+              imageData={photos}
               selectable={selectable === undefined || selectable}
               selectedItems={selectionStateRef.current.selectedItems}
               handleSelection={handleSelection}
