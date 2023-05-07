@@ -1,5 +1,7 @@
+import type { DatePhotosGroup } from "../actions/photosActions.types";
 import type { DirTree } from "../api_client/dir-tree";
-import { EMAIL_REGEX, fuzzyMatch, mergeDirTree } from "./util";
+import i18n from "../i18n";
+import { EMAIL_REGEX, formatDateForPhotoGroups, fuzzyMatch, mergeDirTree } from "./util";
 
 describe("email regex test", () => {
   test("good samples should match", () => {
@@ -180,4 +182,52 @@ test("merge directory tree", () => {
   ];
 
   expect(mergeDirTree(tree, branch)).toEqual(expected);
+});
+
+describe("adjust date for photo list group", () => {
+  test("should format date, set year and month", () => {
+    const photoGroups: DatePhotosGroup[] = [
+      {
+        date: "2023-03-03",
+        location: "",
+        items: [],
+      },
+      {
+        date: "2023-05-06",
+        location: "",
+        items: [],
+      },
+    ];
+    const actual = formatDateForPhotoGroups(photoGroups);
+    expect(actual[0].date).toEqual("Friday, March 3, 2023");
+    expect(actual[0].year).toEqual(2023);
+    expect(actual[0].month).toEqual(3);
+    expect(actual[1].date).toEqual("Saturday, May 6, 2023");
+    expect(actual[1].year).toEqual(2023);
+    expect(actual[1].month).toEqual(5);
+  });
+
+  it("should return original date if it is not valid", () => {
+    const photoGroups: DatePhotosGroup[] = [
+      {
+        date: "invalid date",
+        location: "",
+        items: [],
+      },
+    ];
+    const actual = formatDateForPhotoGroups(photoGroups);
+    expect(actual).toEqual(photoGroups);
+  });
+
+  it("should return localised string if date is null", () => {
+    const photoGroups: DatePhotosGroup[] = [
+      {
+        date: null,
+        location: "",
+        items: [],
+      },
+    ];
+    const actual = formatDateForPhotoGroups(photoGroups);
+    expect(actual[0].date).toEqual(i18n.t<string>("sidemenu.withouttimestamp"));
+  });
 });

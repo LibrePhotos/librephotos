@@ -22,24 +22,23 @@ export const copyToClipboard = (str: string) => {
   }
 };
 
-// TODO: Add ordinal suffix to day of month when implemented in luxon
-// TODO(sickelap): rafactor adjustDateFormatForSingleGroup to not mutate param
-/* eslint no-param-reassign: ["error", { "props": false }] */
-export function adjustDateFormatForSingleGroup(group: DatePhotosGroup) {
-  if (group.date != null) {
-    const date = DateTime.fromISO(group.date);
-    if (date.isValid) {
-      group.year = date.year;
-      group.month = date.month;
-      group.date = date.setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString(DateTime.DATE_HUGE);
+// TODO: Add ordinal suffix to day of month when implemented in luxon (NB, is it still valid?)
+export function formatDateForPhotoGroups(photoGroups: DatePhotosGroup[]): DatePhotosGroup[] {
+  return photoGroups.map(photoGroup => {
+    if (photoGroup.date === null) {
+      return { ...photoGroup, date: i18n.t<string>("sidemenu.withouttimestamp") };
     }
-  } else {
-    group.date = i18n.t<string>("sidemenu.withouttimestamp");
-  }
-}
-
-export function adjustDateFormat(photosGroupedByDate: DatePhotosGroup[]) {
-  photosGroupedByDate.forEach(adjustDateFormatForSingleGroup);
+    const date = DateTime.fromISO(photoGroup.date);
+    if (date.isValid) {
+      return {
+        ...photoGroup,
+        year: date.year,
+        month: date.month,
+        date: date.setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString(DateTime.DATE_HUGE),
+      };
+    }
+    return photoGroup;
+  });
 }
 
 export function getPhotosFlatFromSingleGroup(group: DatePhotosGroup) {
