@@ -228,7 +228,7 @@ export function Profile() {
         </Card>
 
         <Card shadow="md">
-          <Title order={4}>{t("settings.interface")}</Title>
+          <Title order={4}>{t("settings.appearance")}</Title>
           <Radio.Group
             label={t("settings.thumbnailsize")}
             value={userSelfDetails.image_scale?.toString()}
