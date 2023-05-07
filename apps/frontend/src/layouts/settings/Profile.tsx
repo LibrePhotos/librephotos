@@ -278,7 +278,7 @@ export function Profile() {
           </Stack>
         </Card>
 
-        <Card>
+        <Card shadow="md">
           <Title order={4} mb={10}>
           {t("settings.avatar")}
           </Title>
