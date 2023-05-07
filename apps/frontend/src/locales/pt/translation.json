@@ -319,7 +319,7 @@
         "usernamelabel": "Nome de utilizador",
         "error": {
             "token": "Problema de token",
-            "token_not_valid": "Sessão expirou, por favor inicie sessão novamente."
+            "token_not_valid": "A sessão expirou, por favor inicie sessão novamente."
         }
     },
     "search": {
