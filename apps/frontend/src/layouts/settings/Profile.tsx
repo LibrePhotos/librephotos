@@ -1,11 +1,13 @@
 import {
   ActionIcon,
   Button,
+  Card,
+  Container,
   Dialog,
   Group,
+  Radio,
   Select,
   Stack,
-  Switch,
   Text,
   TextInput,
   Title,
@@ -85,92 +87,15 @@ export function Profile() {
     }
   }
   return (
-    <Stack align="center" justify="flex-start">
-      <Group spacing="xs">
+    <Container>
+      <Group spacing="xs" sx={{ marginBottom: 20, marginTop: 40 }}>
         <User size={35} />
-        <Title order={2}>{t("settings.profile")}</Title>
+        <Title order={1}>{t("settings.profile")}</Title>
       </Group>
-      <Stack align="flex-start">
-        <Group>
-          <div
-            style={{
-              display: "inline-block",
-              verticalAlign: "top",
-              padding: 5,
-            }}
-          >
-            <Dropzone
-              noClick
-              // @ts-ignore
-              style={{ width: 150, height: 150, borderRadius: 75 }}
-              ref={node => {
-                // @ts-ignore
-                dropzoneRef = node;
-              }}
-              onDrop={accepted => {
-                setAvatarImgSrc(URL.createObjectURL(accepted[0]));
-              }}
-            >
-              {({ getRootProps, getInputProps }) => (
-                // eslint-disable-next-line react/jsx-props-no-spreading
-                <div {...getRootProps()}>
-                  {/* eslint-disable-next-line react/jsx-props-no-spreading */}
-                  <input {...getInputProps()} />
-                  <AvatarEditor ref={setEditorRef} width={150} height={150} border={0} image={avatarImgSrc} />
-                </div>
-              )}
-            </Dropzone>
-          </div>
-          <div
-            style={{
-              display: "inline-block",
-              verticalAlign: "top",
-              padding: 5,
-            }}
-          >
-            <p>
-              <b>
-                <Trans i18nKey="settings.uploadheader">Upload new avatar</Trans>
-              </b>
-            </p>
-            <Group>
-              <Button
-                size="sm"
-                onClick={() => {
-                  // @ts-ignore
-                  dropzoneRef.open();
-                }}
-              >
-                <Photo />
-                <Trans i18nKey="settings.image">Choose image</Trans>
-              </Button>
-              <Button
-                size="sm"
-                color="green"
-                onClick={() => {
-                  const formData = new FormData();
-                  // @ts-ignore
-                  urlToFile(
-                    // @ts-ignore
-                    editorRef.getImageScaledToCanvas().toDataURL(),
-                    `${userSelfDetails.first_name}avatar.png`
-                  ).then(file => {
-                    formData.append("avatar", file, `${userSelfDetails.first_name}avatar.png`);
-                    dispatch(updateAvatar(userSelfDetails, formData));
-                  });
-                }}
-              >
-                <Upload />
-                <Trans i18nKey="settings.upload">Upload</Trans>
-              </Button>
-            </Group>
-            <p>
-              <Trans i18nKey="settings.filesize">The maximum file size allowed is 200KB.</Trans>
-            </p>
-          </div>
-        </Group>
-        <Stack>
-          <Group>
+      <Stack>
+        <Card shadow="md">
+          <Title order={4}>User</Title>
+          <Group grow mb={10}>
             <TextInput
               onChange={event => {
                 setUserSelfDetails({ ...userSelfDetails, first_name: event.currentTarget.value });
@@ -187,17 +112,17 @@ export function Profile() {
               placeholder={t("settings.lastnameplaceholder")}
               value={userSelfDetails.last_name}
             />
+            <TextInput
+              label={t("settings.email")}
+              placeholder={t("settings.emailplaceholder")}
+              value={userSelfDetails.email}
+              onChange={event => {
+                setUserSelfDetails({ ...userSelfDetails, email: event.currentTarget.value });
+              }}
+            />
           </Group>
-          <TextInput
-            label={t("settings.email")}
-            placeholder={t("settings.emailplaceholder")}
-            value={userSelfDetails.email}
-            onChange={event => {
-              setUserSelfDetails({ ...userSelfDetails, email: event.currentTarget.value });
-            }}
-          />
 
-          <Group>
+          <Group align="end">
             <Select
               label={t("settings.language")}
               placeholder={t("settings.language")}
@@ -286,90 +211,179 @@ export function Profile() {
               ]}
             />
             <Button
-              style={{ marginTop: "28px" }}
               component="a"
               href="https://hosted.weblate.org/engage/librephotos/"
+              target="_blank"
               variant="gradient"
               gradient={{ from: "#43cea2", to: "#185a9d" }}
             >
               {t("settings.helptranslating")}
             </Button>
           </Group>
+        </Card>
 
+        <Card shadow="md">
+          <Title order={4}>{t("settings.security")}</Title>
           <PasswordEntry onValidate={onPasswordValidate} createNew={false} />
+        </Card>
 
-          <Switch
-            label={`${t("settings.thumbnailsize")}: ${
-              userSelfDetails.image_scale === 1 ? t("settings.big") : t("settings.small")
-            }`}
-            onChange={event => {
-              if (event.currentTarget.checked) {
-                setUserSelfDetails({ ...userSelfDetails, image_scale: 1 });
-              } else {
-                setUserSelfDetails({ ...userSelfDetails, image_scale: 2 });
-              }
+        <Card shadow="md">
+          <Title order={4}>{t("settings.interface")}</Title>
+          <Radio.Group
+            label={t("settings.thumbnailsize")}
+            value={userSelfDetails.image_scale?.toString()}
+            onChange={value => {
+              setUserSelfDetails({ ...userSelfDetails, image_scale: value });
             }}
-            checked={userSelfDetails.image_scale === 1}
-          />
+          >
+            <Group>
+              <Radio value="2" label={t("settings.small")} />
+              <Radio value="1" label={t("settings.big")} />
+            </Group>
+          </Radio.Group>
 
-          <Switch
-            label={`${t("settings.public_sharing")} ${userSelfDetails.public_sharing ? t("enabled") : t("disabled")}`}
-            onChange={event => setUserSelfDetails({ ...userSelfDetails, public_sharing: event.currentTarget.checked })}
-            checked={userSelfDetails.public_sharing}
-          />
-        </Stack>{" "}
-        {auth.isAdmin ? (
-          <TextInput
-            type="text"
-            label={t("settings.scandirectory")}
-            disabled
-            placeholder={userSelfDetails.scan_directory}
-          />
-        ) : null}
-        <ActionIcon
-          variant="outline"
-          color={dark ? "yellow" : "blue"}
-          onClick={() => toggleColorScheme()}
-          title={t("settings.togglecolorscheme")}
+          <Radio.Group
+            label={t("settings.public_sharing")}
+            value={userSelfDetails.public_sharing ? "1" : "0"}
+            onChange={value => {
+              setUserSelfDetails({ ...userSelfDetails, public_sharing: !!parseInt(value) });
+            }}
+          >
+            <Group>
+              <Radio value="1" label={t("enabled")} />
+              <Radio value="0" label={t("disabled")} />
+            </Group>
+          </Radio.Group>
+
+          <Text fw={500} fz="sm">
+            {t("settings.colorscheme")}
+          </Text>
+          <Stack align="flex-start">
+            {auth.isAdmin ? (
+              <TextInput
+                type="text"
+                label={t("settings.scandirectory")}
+                disabled
+                placeholder={userSelfDetails.scan_directory}
+              />
+            ) : null}
+            <ActionIcon
+              variant="outline"
+              color={dark ? "yellow" : "blue"}
+              onClick={() => toggleColorScheme()}
+              title={t("settings.togglecolorscheme")}
+            >
+              {dark ? <Sun size={18} /> : <MoonStars size={18} />}
+            </ActionIcon>
+          </Stack>
+        </Card>
+
+        <Card>
+          <Title order={4} mb={10}>
+          {t("settings.avatar")}
+          </Title>
+          <Group position="center" align="self-start" grow>
+            <div>
+              <Dropzone
+                noClick
+                // @ts-ignore
+                style={{ width: 150, height: 150, borderRadius: 75 }}
+                ref={node => {
+                  // @ts-ignore
+                  dropzoneRef = node;
+                }}
+                onDrop={accepted => {
+                  setAvatarImgSrc(URL.createObjectURL(accepted[0]));
+                }}
+              >
+                {({ getRootProps, getInputProps }) => (
+                  // eslint-disable-next-line react/jsx-props-no-spreading
+                  <div {...getRootProps()}>
+                    {/* eslint-disable-next-line react/jsx-props-no-spreading */}
+                    <input {...getInputProps()} />
+                    <AvatarEditor ref={setEditorRef} width={150} height={150} border={0} image={avatarImgSrc} />
+                  </div>
+                )}
+              </Dropzone>
+            </div>
+            <div>
+              <Title order={4} mb={10}>
+                <Trans i18nKey="settings.uploadheader">Upload new avatar</Trans>
+              </Title>
+              <Group>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    // @ts-ignore
+                    dropzoneRef.open();
+                  }}
+                >
+                  <Photo />
+                  <Trans i18nKey="settings.image">Choose image</Trans>
+                </Button>
+                <Button
+                  size="sm"
+                  color="green"
+                  onClick={() => {
+                    const formData = new FormData();
+                    // @ts-ignore
+                    urlToFile(
+                      // @ts-ignore
+                      editorRef.getImageScaledToCanvas().toDataURL(),
+                      `${userSelfDetails.first_name}avatar.png`
+                    ).then(file => {
+                      formData.append("avatar", file, `${userSelfDetails.first_name}avatar.png`);
+                      dispatch(updateAvatar(userSelfDetails, formData));
+                    });
+                  }}
+                >
+                  <Upload />
+                  <Trans i18nKey="settings.upload">Upload</Trans>
+                </Button>
+              </Group>
+              <p>
+                <Trans i18nKey="settings.filesize">The maximum file size allowed is 200KB.</Trans>
+              </p>
+            </div>
+          </Group>
+        </Card>
+
+        <Dialog
+          opened={isOpenUpdateDialog}
+          withCloseButton
+          onClose={() => setIsOpenUpdateDialog(false)}
+          size="lg"
+          radius="md"
         >
-          {dark ? <Sun size={18} /> : <MoonStars size={18} />}
-        </ActionIcon>
-      </Stack>
-      <Dialog
-        opened={isOpenUpdateDialog}
-        withCloseButton
-        onClose={() => setIsOpenUpdateDialog(false)}
-        size="lg"
-        radius="md"
-      >
-        <Text size="sm" style={{ marginBottom: 10 }} weight={500}>
-          Save Changes?
-        </Text>
+          <Text size="sm" style={{ marginBottom: 10 }} weight={500}>
+            Save Changes?
+          </Text>
 
-        <Group align="flex-end">
-          <Button
-            size="sm"
-            color="green"
-            onClick={() => {
-              const newUserData = userSelfDetails;
-              delete newUserData.scan_directory;
-              delete newUserData.avatar;
-              updateUser(newUserData, dispatch);
-              setIsOpenUpdateDialog(false);
-            }}
-          >
-            <Trans i18nKey="settings.favoriteupdate">Update profile settings</Trans>
-          </Button>
-          <Button
-            onClick={() => {
-              setUserSelfDetails(userSelfDetails);
-            }}
-            size="sm"
-          >
-            <Trans i18nKey="settings.nextcloudcancel">Cancel</Trans>
-          </Button>
-        </Group>
-      </Dialog>
-    </Stack>
+          <Group align="flex-end">
+            <Button
+              size="sm"
+              color="green"
+              onClick={() => {
+                const newUserData = userSelfDetails;
+                delete newUserData.scan_directory;
+                delete newUserData.avatar;
+                updateUser(newUserData, dispatch);
+                setIsOpenUpdateDialog(false);
+              }}
+            >
+              <Trans i18nKey="settings.favoriteupdate">Update profile settings</Trans>
+            </Button>
+            <Button
+              onClick={() => {
+                setUserSelfDetails(userSelfDetails);
+              }}
+              size="sm"
+            >
+              <Trans i18nKey="settings.nextcloudcancel">Cancel</Trans>
+            </Button>
+          </Group>
+        </Dialog>
+      </Stack>
+    </Container>
   );
 }

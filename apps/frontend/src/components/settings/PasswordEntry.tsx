@@ -48,11 +48,11 @@ export function PasswordEntry(props: Props): JSX.Element {
 
   return (
     <Stack style={{ display: "flex", alignContent: "stretch" }} spacing="xs">
-      <Title order={6} style={{ paddingTop: "15px" }}>
+      <Title order={6}>
         {createNew ? (
           <Text>{t("settings.password.titlesetpassword")}</Text>
         ) : (
-          <Text style={{ display: "flex", alignItems: "center" }}>
+          <Text style={{ display: "flex", alignItems: "center", justifyContent: 'space-between' }}>
             {t("settings.password.titlechangepassword")}
             <ActionIcon
               title={t("settings.password.tooltipeditbutton")}
