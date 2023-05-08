@@ -162,7 +162,13 @@
         "trainfacesdescription": "Treinar o sistema baseado em informação existente",
         "rescanfacestitle": "Voltar a analisar caras",
         "rescanfacesdescription": "Procurar caras na biblioteca",
-        "nextcloudsetup": "Credenciais em falta"
+        "nextcloudsetup": "Credenciais em falta",
+        "security": "Segurança",
+        "colorscheme": {
+            "dark": "Escuro",
+            "title": "Esquema de cores",
+            "light": "Claro"
+        }
     },
     "sidemenu": {
         "myalbums": "Meus álbuns",
@@ -344,7 +350,8 @@
         "titledeleteuser": "Eliminar utilizador",
         "cannotbeundone": "Esta ação não pode ser revertida.",
         "cannotdeleteadmin": "Não é permitido eliminar o administrador",
-        "addnewuser": "Adicionar novo utilizador"
+        "addnewuser": "Adicionar novo utilizador",
+        "delete": "Eliminar"
     },
     "joblist": {
         "workerlogs": "Registos de trabalhadores",
@@ -359,7 +366,7 @@
         "queued": "Em fila",
         "startedby": "Iniciado por",
         "started": "Iniciou",
-        "removeexplanation": "Não para o trabalho, simplesmente remove este registo da base de dados. Usar apenas quando é sabido que um trabalho falhou inesperadamente, depois de ter analisado os registos, etc.",
+        "removeexplanation": "Eliminar uma entrada não para o trabalho, simplesmente remove este registo da base de dados. Usar apenas quando é sabido que um trabalho falhou inesperadamente, depois de ter analisado os registos, etc.",
         "itemsadded": "Ativo(s) adicionado(s)"
     },
     "modalscandirectoryedit": {
