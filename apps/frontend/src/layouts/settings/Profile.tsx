@@ -1,5 +1,4 @@
 import {
-  ActionIcon,
   Button,
   Card,
   Container,
@@ -20,7 +19,7 @@ import AvatarEditor from "react-avatar-editor";
 import type { DropzoneRef } from "react-dropzone";
 import Dropzone from "react-dropzone";
 import { Trans, useTranslation } from "react-i18next";
-import { MoonStars, Photo, Sun, Upload, User } from "tabler-icons-react";
+import { Photo, Upload, User } from "tabler-icons-react";
 
 import { updateAvatar, updateUser } from "../../actions/utilActions";
 import { api } from "../../api_client/api";
