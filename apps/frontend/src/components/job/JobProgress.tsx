@@ -15,7 +15,7 @@ export function JobProgress({ target, current, finished, error }: IJobProgress) 
   if (target && current && target !== 0 && !finished) {
     return (
       <div>
-        <Progress size={30} value={(+current.toFixed(2) / target) * 100} />
+        <Progress size={10} value={(+current.toFixed(2) / target) * 100} />
         <Center>
           {`${current} ${t("joblist.itemsadded")} (${((+current.toFixed(2) / target) * 100).toFixed(2)} %) `}
         </Center>
@@ -25,7 +25,7 @@ export function JobProgress({ target, current, finished, error }: IJobProgress) 
   if (finished) {
     return (
       <div>
-        <Progress size={30} color={error ? "red" : "green"} value={100} />
+        <Progress size={10} color={error ? "red" : "green"} value={100} />
         <Center>{`${current} ${t("joblist.itemsadded")} `}</Center>
       </div>
     );

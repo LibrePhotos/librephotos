@@ -1,8 +1,9 @@
-import { Loader, Pagination, SimpleGrid, Table, Title } from "@mantine/core";
+import { Alert, Card, Flex, Loader, Pagination, Table, Title } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AlertCircle } from "tabler-icons-react";
 
 import { JobsResponseSchema, useJobsQuery } from "../../api_client/admin-jobs";
 import i18n from "../../i18n";
@@ -10,6 +11,7 @@ import { DeleteJobButton } from "./DeleteJobButton";
 import { JobDuration } from "./JobDuration";
 import { JobIndicator } from "./JobIndicator";
 import { JobProgress } from "./JobProgress";
+
 
 export function JobList() {
   const { t } = useTranslation();
@@ -31,11 +33,14 @@ export function JobList() {
   }, [jobs]);
 
   return (
-    <SimpleGrid cols={1} spacing="xl">
-      <Title order={3}>
+    <Card shadow="md">
+      <Title order={3} mb={20}>
         {t("joblist.workerlogs")} {isLoading ? <Loader size="xs" /> : null}
       </Title>
-      <Table striped highlightOnHover>
+      <Alert icon={<AlertCircle/>} title='Removing entries' mb={20}>
+        {t("joblist.removeexplanation")}
+      </Alert>
+      <Table striped highlightOnHover verticalSpacing="xs">
         <thead>
           <tr>
             <th> {t("joblist.status")}</th>
@@ -96,11 +101,14 @@ export function JobList() {
           ))}
         </tbody>
       </Table>
+      <Flex justify="center" mt={20}>
       <Pagination
         page={activePage}
         total={Math.ceil(+jobCount.toFixed(1) / pageSize)}
         onChange={newPage => setActivePage(newPage)}
+        withEdges
       />
-    </SimpleGrid>
+      </Flex>
+    </Card>
   );
 }

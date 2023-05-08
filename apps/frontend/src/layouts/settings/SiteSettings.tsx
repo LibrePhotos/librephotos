@@ -1,4 +1,4 @@
-import { NativeSelect, Stack, Switch, TextInput } from "@mantine/core";
+import { Card, Grid, NativeSelect, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -30,63 +30,91 @@ export function SiteSettings() {
   }, [settings, isLoading]);
 
   return (
-    <Stack align="flex-start" justify="flex-start">
-      <Switch
-        label={t("sitesettings.header")}
-        onChange={() => saveSettings({ allow_registration: !allowRegistration })}
-        checked={allowRegistration}
-      />
-      <Switch
-        label={t("sitesettings.headerupload")}
-        onChange={() => saveSettings({ allow_upload: !allowUpload })}
-        checked={allowUpload}
-      />
-      <TextInput
-        style={{ maxWidth: 500 }}
-        label={t("sitesettings.headerskippatterns")}
-        description={t("sitesettings.skippatterns")}
-        value={skipPatterns}
-        onKeyDown={e => {
-          if (e.key === "Enter") {
-            saveSettings({ skip_patterns: skipPatterns });
-          }
-        }}
-        onBlur={() => saveSettings({ skip_patterns: skipPatterns })}
-        onChange={event => setSkipPatterns(event.currentTarget.value)}
-      />
-      <TextInput
-        style={{ maxWidth: 500 }}
-        label={t("sitesettings.headerapikey")}
-        description={t("sitesettings.apikey")}
-        rightSectionWidth={100}
-        value={mapApiKey}
-        onKeyDown={e => {
-          if (e.key === "Enter") {
-            saveSettings({ map_api_key: mapApiKey });
-          }
-        }}
-        onBlur={() => saveSettings({ map_api_key: mapApiKey })}
-        onChange={e => setMapApiKey(e.target.value)}
-      />
-      <NativeSelect
-        style={{ maxWidth: 500 }}
-        label={t("sitesettings.headerheavyweight")}
-        description={t("sitesettings.heavyweight")}
-        rightSectionWidth={100}
-        data={heavyweightProcessOptions}
-        value={heavyweightProcess}
-        onKeyDown={e => {
-          if (e.key === "Enter") {
-            saveSettings({ heavyweight_process: +e.currentTarget.value });
-          }
-        }}
-        onBlur={() => saveSettings({ heavyweight_process: heavyweightProcess })}
-        onChange={e => {
-          if (/^([0-9\b]+)?$/.test(e.target.value)) {
-            setHeavyweightProcess(+e.currentTarget.value);
-          }
-        }}
-      />
-    </Stack>
+    <Card shadow="md" mb={10}>
+      <Stack>
+        <Title order={4} sx={{ marginBottom: 16 }}>
+          {t("adminarea.sitesettings")}
+        </Title>
+
+        <Switch
+          label={t("sitesettings.header")}
+          onChange={() => saveSettings({ allow_registration: !allowRegistration })}
+          checked={allowRegistration}
+        />
+        <Switch
+          label={t("sitesettings.headerupload")}
+          onChange={() => saveSettings({ allow_upload: !allowUpload })}
+          checked={allowUpload}
+        />
+
+        <Grid align="flex-end">
+          <Grid.Col span={8}>
+            <Stack spacing={0}>
+              <Text>{t("sitesettings.headerskippatterns")}</Text>
+              <Text fz="sm" color="dimmed">
+                {t("sitesettings.skippatterns")}
+              </Text>
+            </Stack>
+          </Grid.Col>
+          <Grid.Col span={4}>
+            <TextInput
+              value={skipPatterns}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  saveSettings({ skip_patterns: skipPatterns });
+                }
+              }}
+              onBlur={() => saveSettings({ skip_patterns: skipPatterns })}
+              onChange={event => setSkipPatterns(event.currentTarget.value)}
+            />
+          </Grid.Col>
+          <Grid.Col span={8}>
+            <Stack spacing={0}>
+              <Text>{t("sitesettings.headerapikey")}</Text>
+              <Text fz="sm" color="dimmed">
+                {t("sitesettings.apikey")}
+              </Text>
+            </Stack>
+          </Grid.Col>
+          <Grid.Col span={4}>
+            <TextInput
+              value={mapApiKey}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  saveSettings({ map_api_key: mapApiKey });
+                }
+              }}
+              onBlur={() => saveSettings({ map_api_key: mapApiKey })}
+              onChange={e => setMapApiKey(e.target.value)}
+            />
+          </Grid.Col>
+          <Grid.Col span={8}>
+            <Stack spacing={0}>
+              <Text>{t("sitesettings.headerheavyweight")}</Text>
+              <Text fz="sm" color="dimmed">
+                {t("sitesettings.heavyweight")}
+              </Text>
+            </Stack>
+          </Grid.Col>
+          <Grid.Col span={4}>
+            <NativeSelect
+              data={heavyweightProcessOptions}
+              value={heavyweightProcess}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  saveSettings({ heavyweight_process: +e.currentTarget.value });
+                }
+              }}
+              onBlur={() => saveSettings({ heavyweight_process: heavyweightProcess })}
+              onChange={e => {
+                if (/^([0-9\b]+)?$/.test(e.target.value)) {
+                  setHeavyweightProcess(+e.currentTarget.value);
+                }
+              }}
+            />
+          </Grid.Col>
+        </Grid>
+      </Stack>
+    </Card>
   );
-};
+}
