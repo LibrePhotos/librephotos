@@ -1,4 +1,18 @@
-import { ActionIcon, Button, Group, Loader, SimpleGrid, Table, Title } from "@mantine/core";
+import {
+  ActionIcon,
+  Button,
+  Card,
+  Container,
+  Flex,
+  Grid,
+  Group,
+  Loader,
+  SimpleGrid,
+  Space,
+  Stack,
+  Table,
+  Title,
+} from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
@@ -14,7 +28,7 @@ import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { SiteSettings } from "./SiteSettings";
 
-function UserTable() {
+function UserTable(props: any) {
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState({});
@@ -22,12 +36,17 @@ function UserTable() {
   const [createNewUser, setCreateNewUser] = useState(false);
 
   const { data: userList } = useFetchUserListQuery();
+  const fetchingUserList = useAppSelector(state => state.util.fetchingUserList);
 
   const matches = useMediaQuery("(min-width: 700px)");
   const { t } = useTranslation();
 
   return (
-    <>
+    <Card shadow="md">
+      <Title order={4} mb={16}>
+        {t("adminarea.users")}
+        {fetchingUserList ? <Loader size="xs" /> : null}
+      </Title>
       <Table striped highlightOnHover>
         <thead>
           <tr>
@@ -91,24 +110,24 @@ function UserTable() {
                 </tr>
               ))
             : null}
-          <tr>
-            <td>
-              <Button
-                size="sm"
-                color="green"
-                leftIcon={<Plus />}
-                onClick={() => {
-                  setCreateNewUser(true);
-                  setUserToEdit({});
-                  setUserModalOpen(true);
-                }}
-              >
-                {t("adminarea.addnewuser")}
-              </Button>
-            </td>
-          </tr>
         </tbody>
       </Table>
+      <Flex justify="flex-end" mt={10}>
+      <Button
+        size="sm"
+        color="green"
+        variant="outline"
+        leftIcon={<Plus />}
+        onClick={() => {
+          setCreateNewUser(true);
+          setUserToEdit({});
+          setUserModalOpen(true);
+        }}
+      >
+        {t("adminarea.addnewuser")}
+      </Button>
+      </Flex>
+
 
       <ModalUserEdit
         onRequestClose={() => {
@@ -126,14 +145,14 @@ function UserTable() {
         isOpen={deleteModalOpen}
         userToDelete={userToDelete}
       />
-    </>
+    </Card>
   );
 }
 
 export function AdminPage() {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
-  const fetchingUserList = useAppSelector(state => state.util.fetchingUserList);
+
   const { t } = useTranslation();
 
   if (!auth.access.is_admin) {
@@ -141,22 +160,33 @@ export function AdminPage() {
   }
 
   return (
-    <SimpleGrid cols={1} spacing="xl">
-      <Group spacing="xs">
-        <Adjustments size={35} />
-        <Title order={2}>{t("adminarea.header")}</Title>
-      </Group>
-      <Title order={3}>{t("adminarea.sitesettings")}</Title>
-      <SiteSettings />
-      <Title order={3}>{t("adminarea.admintools")}</Title>
-      <Button onClick={() => dispatch(deleteAllAutoAlbum())}>{t("adminarea.deleteallautoalbums")}</Button>
-      <Title order={3}>
-        {t("adminarea.users")}
-        {fetchingUserList ? <Loader size="xs" /> : null}
-      </Title>
+    <Container>
+      <Stack>
+        <Flex align="baseline" justify="space-between">
+          <Group spacing="xs" sx={{ marginBottom: 20, marginTop: 40 }}>
+            <Adjustments size={35} />
+            <Title order={1}>{t("adminarea.header")}</Title>
+          </Group>
+        </Flex>
 
-      <UserTable />
-      <JobList />
-    </SimpleGrid>
+        <SiteSettings />
+
+        <Card shadow="md">
+          <Title order={4} mb={16}>
+            {t("adminarea.admintools")}
+          </Title>
+          <Flex justify="space-between">
+            <>{t("adminarea.deleteallautoalbums")}</>
+            <Button onClick={() => dispatch(deleteAllAutoAlbum())} variant="outline">{t("adminarea.delete")}</Button>
+          </Flex>
+        </Card>
+
+        <UserTable />
+
+        <JobList />
+
+        <Space h="xl" />
+      </Stack>
+    </Container>
   );
 }

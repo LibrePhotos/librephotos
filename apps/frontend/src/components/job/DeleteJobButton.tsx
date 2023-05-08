@@ -12,16 +12,15 @@ export function DeleteJobButton({ job }: { job: Job }) {
   const [deleteJob] = useDeleteJobMutation();
 
   return (
-    <Popover opened={opened} position="top" withArrow width={260}>
-      <Popover.Target>
-        <Button onMouseEnter={open} onMouseLeave={close} onClick={() => deleteJob(job.id)} color="red">
-          {t("adminarea.remove")}
-        </Button>
-      </Popover.Target>
-
-      <Popover.Dropdown>
-        <div style={{ display: "flex" }}>{t("joblist.removeexplanation")}</div>
-      </Popover.Dropdown>
-    </Popover>
+    <Button
+      onMouseEnter={open}
+      onMouseLeave={close}
+      onClick={() => deleteJob(job.id)}
+      color="red"
+      variant="outline"
+      size="xs"
+    >
+      {t("adminarea.remove")}
+    </Button>
   );
 }

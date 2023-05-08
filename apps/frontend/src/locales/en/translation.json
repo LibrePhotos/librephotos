@@ -357,6 +357,7 @@
         "joined": "Joined",
         "notset": "Not set",
         "remove": "Remove",
+        "delete": "Delete",
         "admintools": "Admin Tools",
         "deleteallautoalbums": "Delete all auto created albums",
         "deleteuserconfirmexplanation": "You are about to delete the following user: {{username}}. This will delete all associated data.",
@@ -378,7 +379,7 @@
         "delete": "Delete",
         "itemsadded": "Asset(s) added",
         "running": "running",
-        "removeexplanation": "Does not actually stop the job, only removes this entry from DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc."
+        "removeexplanation": "Removing an entry does not actually stop the job - it's only removed from the DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc."
     },
     "modaluseredit": {
         "header": "Edit User",
