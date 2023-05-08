@@ -191,10 +191,13 @@
         "rescanfacestitle": "Berriro eskaneatu aurpegiak",
         "colorscheme": {
             "light": "Argia",
-            "dark": "Ilun"
+            "dark": "Ilun",
+            "title": "Kolore eskema"
         },
         "scanphotosdescription": "Eskaneatu fitxero berriak izateko zure liburutegian",
-        "rescanphotosdescription": "Berriro eskaneatu fitxero guztiak"
+        "rescanphotosdescription": "Berriro eskaneatu fitxero guztiak",
+        "nextcloudsetup": "Egiaztagiriak falta dira",
+        "security": "Segurtasuna"
     },
     "topmenu": {
         "available": "Argazki gehiago aztertzen has zaitezke, aurpegiak etiketatzen, momentuen albumak automatikoki sortzen, edo automatikoki sortutako albumen tituluak birsortzen.",
