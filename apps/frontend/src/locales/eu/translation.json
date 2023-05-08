@@ -183,7 +183,10 @@
         "czech": "Txekiera",
         "ukrainian": "Ukrainera",
         "traditionalchinese": "Txinera (tradizionala)",
-        "vietnamese": "vietnamera"
+        "vietnamese": "vietnamera",
+        "trainfacesdescription": "Irakatsi sistema existitzen den informazioan oinarrituta",
+        "rescanfacesdescription": "Bilatu aurpegiak liburutegian",
+        "nextcloudconnecting": "Konektatzen"
     },
     "topmenu": {
         "available": "Argazki gehiago aztertzen has zaitezke, aurpegiak etiketatzen, momentuen albumak automatikoki sortzen, edo automatikoki sortutako albumen tituluak birsortzen.",
@@ -279,7 +282,11 @@
             "cancel": "Utzi",
             "attributes": "Xehetasunak",
             "submit": "Bidali",
-            "editdatetime": "Editatu data eta ordua"
+            "editdatetime": "Editatu data eta ordua",
+            "withouttimestamp": "Denbora-zigilurik gabe",
+            "removetimestamp": "Ezabatu denbora-zigilua",
+            "undotimestampmodification": "Desegin denbora-zigiluaren aldaketa",
+            "invalidtimestamp": "Denbora-zigilu baliogabea"
         }
     },
     "photos": {
@@ -308,7 +315,11 @@
         "login": "Hasi saioa",
         "password": "Pasahitza",
         "confirmpasswordplaceholder": "idatzi berriro pasahitza",
-        "usernamelabel": "Erabiltzaile izena"
+        "usernamelabel": "Erabiltzaile izena",
+        "error": {
+            "token": "Token arazoa",
+            "token_not_valid": "Saioa iraungi da. Hasi saioa berriro mesedez."
+        }
     },
     "search": {
         "loading": "Kargatzen…",
@@ -328,7 +339,8 @@
         "delete": "Ezabatu",
         "workerlogs": "Prozesuen historia",
         "removeexplanation": "Ez du prozesua geldiaraziko, datubasetik sarrera kenduko baino. Prozesuak kale egin duela dakizunean bakarrik erabili, historia etab. ikuskatuz.",
-        "running": "exekutatzen"
+        "running": "exekutatzen",
+        "itemsadded": "Aktiboa(k) gehituta"
     },
     "adminarea": {
         "joined": "Bat egin zuen",
@@ -397,7 +409,9 @@
         "facescounter_one": "Aurpegi {{count}}",
         "facescounter_other": "{{count}} aurpegi",
         "unknownfacescounter_one": "Aurpegi ezezagun {{count}}",
-        "unknownfacescounter_other": "{{count}} aurpegi ezezagun"
+        "unknownfacescounter_other": "{{count}} aurpegi ezezagun",
+        "clusterscounter_one": "{{count}} Kluster",
+        "clusterscounter_other": "{{count}} Klusterrak"
     },
     "autoalbumgallery": {
         "showmap": "Erakutsi mapa",
@@ -492,7 +506,8 @@
         "scanuploadedphotostitle": "Aztertu igotako argazkiak",
         "deleteusertitle": "Ezabatu erabiltzailea",
         "removefacestopersontitle": "Kendu aurpegiak pertsonatik",
-        "deleteuser": "{{username}} ezabatu da"
+        "deleteuser": "{{username}} ezabatu da",
+        "removefacestoperson": "{{numberOfFaces}} aurpegia(k) \"Ezezaguna - Bestelakoa\" aukerara eraman dira"
     },
     "nosocialgraph": "Ez dago jendearen grafikorik",
     "fetchingsocialgraph": "Jendearen grafikoa eskuratzen…",
@@ -508,13 +523,22 @@
         "notset": "ezarri gabe",
         "setdirectory": "Ezarri Nextcloud-eko azterketa-direktorioa",
         "update": "Eguneratu",
-        "cancel": "Utzi"
+        "cancel": "Utzi",
+        "browse": "Arakatu"
     },
     "modalphotosshare": {
-        "joined": "Bat egin zuen"
+        "joined": "Bat egin zuen",
+        "title": "Partekatu argazkiak",
+        "search": "Bilatu Erabiltzailea",
+        "name": "Pertsonaren izena",
+        "share": "Partekatu",
+        "unshare": "Partekatzeari utzi"
     },
     "modalalbumsshare": {
-        "joined": "Bat egin zuen"
+        "joined": "Bat egin zuen",
+        "title": "Partekatu Albuma",
+        "search": "Bilatu Erabiltzailea",
+        "name": "Pertsonaren izena"
     },
     "defaultheader": {
         "noimages": "Ez da irudirik aurkitu",
@@ -555,7 +579,10 @@
         "otherversions": "Beste bertsioak",
         "duplicates": "Bikoiztutakoak",
         "showless": "Erakutsi gutxiago",
-        "deleteduplicatetitle": "Ezabatu bikoiztutakoa"
+        "deleteduplicatetitle": "Ezabatu bikoiztutakoa",
+        "filepath": "Fitxategiaren bide-izena",
+        "subjectdistance": "Gaiaren Distantzia",
+        "digitalzoomratio": "Zoom Digitalaren Ratioa"
     },
     "metadata": "Metadatuen eukerak",
     "defaulttimezone": "Ordu-eremua defektuz",
