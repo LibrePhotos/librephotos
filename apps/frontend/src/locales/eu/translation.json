@@ -186,7 +186,15 @@
         "vietnamese": "vietnamera",
         "trainfacesdescription": "Irakatsi sistema existitzen den informazioan oinarrituta",
         "rescanfacesdescription": "Bilatu aurpegiak liburutegian",
-        "nextcloudconnecting": "Konektatzen"
+        "nextcloudconnecting": "Konektatzen",
+        "trainfacestitle": "Trenen aurpegiak",
+        "rescanfacestitle": "Berriro eskaneatu aurpegiak",
+        "colorscheme": {
+            "light": "Argia",
+            "dark": "Ilun"
+        },
+        "scanphotosdescription": "Eskaneatu fitxero berriak izateko zure liburutegian",
+        "rescanphotosdescription": "Berriro eskaneatu fitxero guztiak"
     },
     "topmenu": {
         "available": "Argazki gehiago aztertzen has zaitezke, aurpegiak etiketatzen, momentuen albumak automatikoki sortzen, edo automatikoki sortutako albumen tituluak birsortzen.",
@@ -358,7 +366,9 @@
         "deleteallautoalbums": "Ezabatu automatikoki sortutako album guztiak",
         "cannotdeleteadmin": "Ezin da administraria ezabatu",
         "addnewuser": "Gehitu erabiltzaile berria",
-        "titledeleteuser": "Ezabatu erabiltzailea"
+        "titledeleteuser": "Ezabatu erabiltzailea",
+        "deleteuserconfirmexplanation": "Hurrengo erabiltzailea ezabatuko duzu: {{username}}. Honek erlazionatutako informazio guztia ezabatuko du.",
+        "delete": "Borratu"
     },
     "modalscandirectoryedit": {
         "header": "Ezarri erabiltzailearentzat arakatzeko direktorioa",
@@ -411,7 +421,10 @@
         "unknownfacescounter_one": "Aurpegi ezezagun {{count}}",
         "unknownfacescounter_other": "{{count}} aurpegi ezezagun",
         "clusterscounter_one": "{{count}} Kluster",
-        "clusterscounter_other": "{{count}} Klusterrak"
+        "clusterscounter_other": "{{count}} Klusterrak",
+        "explanationvalidate": "Baieztatu eaupegi guztiak pertsona honenak direla eta gehitu beraien aurpegi ID- ra",
+        "assumedpersonscounter_one": "{{count}} konfiantza pertsona",
+        "assumedpersonscounter_other": "{{count}} konfiantza pertsonak"
     },
     "autoalbumgallery": {
         "showmap": "Erakutsi mapa",
@@ -595,5 +608,9 @@
     },
     "supportus": "Eman babesa",
     "save": "Gorde",
-    "modify": "Moldatu"
+    "modify": "Aldatu",
+    "timezoneexplain": "ordutegi mota hau erabiltzailearen ordutegira bihurtzeko erabiltzen da",
+    "locationstimeline": {
+        "fromto": "{{location}}   {{start}} - tik {{end}}- raino"
+    }
 }
