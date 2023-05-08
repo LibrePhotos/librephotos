@@ -61,7 +61,11 @@
         "thumbnailsize": "Thumbnail size",
         "big": "Big",
         "small": "Small",
-        "colorscheme": "Toggle color scheme",
+        "colorscheme": {
+            "title": "Color scheme",
+            "light": "Light",
+            "dark": "Dark"
+        },
         "library": "Library",
         "photos": "Photos",
         "helptranslating": "Help translating",

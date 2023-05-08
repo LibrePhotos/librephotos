@@ -7,6 +7,7 @@ import {
   Group,
   Radio,
   Select,
+  Space,
   Stack,
   Text,
   TextInput,
@@ -94,8 +95,76 @@ export function Profile() {
       </Group>
       <Stack>
         <Card shadow="md">
-          <Title order={4}>User</Title>
-          <Group grow mb={10}>
+          <Title order={4} mb={10}>
+            User
+          </Title>
+          <Title order={5}>{t("settings.avatar")}</Title>
+          <Group position="center" align="self-start" grow mb={20}>
+            <div>
+              <Dropzone
+                noClick
+                // @ts-ignore
+                style={{ width: 150, height: 150, borderRadius: 75 }}
+                ref={node => {
+                  // @ts-ignore
+                  dropzoneRef = node;
+                }}
+                onDrop={accepted => {
+                  setAvatarImgSrc(URL.createObjectURL(accepted[0]));
+                }}
+              >
+                {({ getRootProps, getInputProps }) => (
+                  // eslint-disable-next-line react/jsx-props-no-spreading
+                  <div {...getRootProps()}>
+                    {/* eslint-disable-next-line react/jsx-props-no-spreading */}
+                    <input {...getInputProps()} />
+                    <AvatarEditor ref={setEditorRef} width={150} height={150} border={0} image={avatarImgSrc} />
+                  </div>
+                )}
+              </Dropzone>
+            </div>
+            <div>
+              <Title order={4} mb={10}>
+                <Trans i18nKey="settings.uploadheader">Upload new avatar</Trans>
+              </Title>
+              <Group>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    // @ts-ignore
+                    dropzoneRef.open();
+                  }}
+                >
+                  <Photo />
+                  <Trans i18nKey="settings.image">Choose image</Trans>
+                </Button>
+                <Button
+                  size="sm"
+                  color="green"
+                  onClick={() => {
+                    const formData = new FormData();
+                    // @ts-ignore
+                    urlToFile(
+                      // @ts-ignore
+                      editorRef.getImageScaledToCanvas().toDataURL(),
+                      `${userSelfDetails.first_name}avatar.png`
+                    ).then(file => {
+                      formData.append("avatar", file, `${userSelfDetails.first_name}avatar.png`);
+                      dispatch(updateAvatar(userSelfDetails, formData));
+                    });
+                  }}
+                >
+                  <Upload />
+                  <Trans i18nKey="settings.upload">Upload</Trans>
+                </Button>
+              </Group>
+              <p>
+                <Trans i18nKey="settings.filesize">The maximum file size allowed is 200KB.</Trans>
+              </p>
+            </div>
+          </Group>
+          <Title order={5}>{t("settings.account")}</Title>
+          <Group grow>
             <TextInput
               onChange={event => {
                 setUserSelfDetails({ ...userSelfDetails, first_name: event.currentTarget.value });
@@ -121,8 +190,70 @@ export function Profile() {
               }}
             />
           </Group>
+        </Card>
 
-          <Group align="end">
+        <Card shadow="md">
+          <Title order={4}>{t("settings.security")}</Title>
+          <PasswordEntry onValidate={onPasswordValidate} createNew={false} />
+        </Card>
+
+        <Card shadow="md">
+          <Title order={4} mb={10}>
+            {t("settings.appearance")}
+          </Title>
+          <Radio.Group
+            label={t("settings.thumbnailsize")}
+            value={userSelfDetails.image_scale?.toString()}
+            onChange={value => {
+              setUserSelfDetails({ ...userSelfDetails, image_scale: value });
+            }}
+            mb={10}
+          >
+            <Group>
+              <Radio value="2" label={t("settings.small")} />
+              <Radio value="1" label={t("settings.big")} />
+            </Group>
+          </Radio.Group>
+
+          <Radio.Group
+            label={t("settings.public_sharing")}
+            value={userSelfDetails.public_sharing ? "1" : "0"}
+            onChange={value => {
+              setUserSelfDetails({ ...userSelfDetails, public_sharing: !!parseInt(value) });
+            }}
+            mb={10}
+          >
+            <Group>
+              <Radio value="1" label={t("enabled")} />
+              <Radio value="0" label={t("disabled")} />
+            </Group>
+          </Radio.Group>
+
+          <Stack align="flex-start">
+            {auth.isAdmin ? (
+              <TextInput
+                type="text"
+                label={t("settings.scandirectory")}
+                disabled
+                placeholder={userSelfDetails.scan_directory}
+              />
+            ) : null}
+
+            <Radio.Group
+              label={t("settings.colorscheme.title")}
+              value={dark ? "1" : "0"}
+              onChange={value => {
+                toggleColorScheme();
+              }}
+            >
+              <Group>
+                <Radio value="1" label={t("settings.colorscheme.dark")} />
+                <Radio value="0" label={t("settings.colorscheme.light")} />
+              </Group>
+            </Radio.Group>
+          </Stack>
+
+          <Group align="end" mb={10} mt={10}>
             <Select
               label={t("settings.language")}
               placeholder={t("settings.language")}
@@ -221,133 +352,7 @@ export function Profile() {
             </Button>
           </Group>
         </Card>
-
-        <Card shadow="md">
-          <Title order={4}>{t("settings.security")}</Title>
-          <PasswordEntry onValidate={onPasswordValidate} createNew={false} />
-        </Card>
-
-        <Card shadow="md">
-          <Title order={4}>{t("settings.appearance")}</Title>
-          <Radio.Group
-            label={t("settings.thumbnailsize")}
-            value={userSelfDetails.image_scale?.toString()}
-            onChange={value => {
-              setUserSelfDetails({ ...userSelfDetails, image_scale: value });
-            }}
-          >
-            <Group>
-              <Radio value="2" label={t("settings.small")} />
-              <Radio value="1" label={t("settings.big")} />
-            </Group>
-          </Radio.Group>
-
-          <Radio.Group
-            label={t("settings.public_sharing")}
-            value={userSelfDetails.public_sharing ? "1" : "0"}
-            onChange={value => {
-              setUserSelfDetails({ ...userSelfDetails, public_sharing: !!parseInt(value) });
-            }}
-          >
-            <Group>
-              <Radio value="1" label={t("enabled")} />
-              <Radio value="0" label={t("disabled")} />
-            </Group>
-          </Radio.Group>
-
-          <Text fw={500} fz="sm">
-            {t("settings.colorscheme")}
-          </Text>
-          <Stack align="flex-start">
-            {auth.isAdmin ? (
-              <TextInput
-                type="text"
-                label={t("settings.scandirectory")}
-                disabled
-                placeholder={userSelfDetails.scan_directory}
-              />
-            ) : null}
-            <ActionIcon
-              variant="outline"
-              color={dark ? "yellow" : "blue"}
-              onClick={() => toggleColorScheme()}
-              title={t("settings.togglecolorscheme")}
-            >
-              {dark ? <Sun size={18} /> : <MoonStars size={18} />}
-            </ActionIcon>
-          </Stack>
-        </Card>
-
-        <Card shadow="md">
-          <Title order={4} mb={10}>
-          {t("settings.avatar")}
-          </Title>
-          <Group position="center" align="self-start" grow>
-            <div>
-              <Dropzone
-                noClick
-                // @ts-ignore
-                style={{ width: 150, height: 150, borderRadius: 75 }}
-                ref={node => {
-                  // @ts-ignore
-                  dropzoneRef = node;
-                }}
-                onDrop={accepted => {
-                  setAvatarImgSrc(URL.createObjectURL(accepted[0]));
-                }}
-              >
-                {({ getRootProps, getInputProps }) => (
-                  // eslint-disable-next-line react/jsx-props-no-spreading
-                  <div {...getRootProps()}>
-                    {/* eslint-disable-next-line react/jsx-props-no-spreading */}
-                    <input {...getInputProps()} />
-                    <AvatarEditor ref={setEditorRef} width={150} height={150} border={0} image={avatarImgSrc} />
-                  </div>
-                )}
-              </Dropzone>
-            </div>
-            <div>
-              <Title order={4} mb={10}>
-                <Trans i18nKey="settings.uploadheader">Upload new avatar</Trans>
-              </Title>
-              <Group>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    // @ts-ignore
-                    dropzoneRef.open();
-                  }}
-                >
-                  <Photo />
-                  <Trans i18nKey="settings.image">Choose image</Trans>
-                </Button>
-                <Button
-                  size="sm"
-                  color="green"
-                  onClick={() => {
-                    const formData = new FormData();
-                    // @ts-ignore
-                    urlToFile(
-                      // @ts-ignore
-                      editorRef.getImageScaledToCanvas().toDataURL(),
-                      `${userSelfDetails.first_name}avatar.png`
-                    ).then(file => {
-                      formData.append("avatar", file, `${userSelfDetails.first_name}avatar.png`);
-                      dispatch(updateAvatar(userSelfDetails, formData));
-                    });
-                  }}
-                >
-                  <Upload />
-                  <Trans i18nKey="settings.upload">Upload</Trans>
-                </Button>
-              </Group>
-              <p>
-                <Trans i18nKey="settings.filesize">The maximum file size allowed is 200KB.</Trans>
-              </p>
-            </div>
-          </Group>
-        </Card>
-
+        <Space h="xl" />
         <Dialog
           opened={isOpenUpdateDialog}
           withCloseButton
