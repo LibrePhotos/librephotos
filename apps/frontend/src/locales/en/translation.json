@@ -56,11 +56,16 @@
         "nextcloudnotloggedin": "Disconnected",
         "nextcloudsetup": "Missing credentials",
         "nextcloudchange": "Change",
+        "security": "Security",
         "appearance": "Appearance",
         "thumbnailsize": "Thumbnail size",
         "big": "Big",
         "small": "Small",
-        "togglecolorscheme": "Toggle color scheme",
+        "colorscheme": {
+            "title": "Color scheme",
+            "light": "Light",
+            "dark": "Dark"
+        },
         "library": "Library",
         "photos": "Photos",
         "helptranslating": "Help translating",
