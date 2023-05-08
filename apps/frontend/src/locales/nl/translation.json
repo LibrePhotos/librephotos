@@ -156,7 +156,13 @@
         "rescanfacestitle": "Gezichten opnieuw herkennen",
         "rescanfacesdescription": "Zoek naar gezichten in de verzameling",
         "scanphotosdescription": "Zoek naar nieuwe bestanden in je verzameling",
-        "nextcloudsetup": "Inloggegevens ontbreken"
+        "nextcloudsetup": "Inloggegevens ontbreken",
+        "security": "Beveiliging",
+        "colorscheme": {
+            "title": "Thema",
+            "light": "Licht",
+            "dark": "Donker"
+        }
     },
     "topmenu": {
         "profile": "Profiel",
@@ -310,7 +316,8 @@
         "titledeleteuser": "Gebruiker verwijderen",
         "cannotbeundone": "Let op: deze actie is onomkeerbaar.",
         "cannotdeleteadmin": "De beheerder kan niet worden verwijderd",
-        "addnewuser": "Gebruiker toevoegen"
+        "addnewuser": "Gebruiker toevoegen",
+        "delete": "Verwijderen"
     },
     "joblist": {
         "workerlogs": "Werklogboek",
@@ -325,7 +332,7 @@
         "itemsprocessed": "Aantal verwerkte items",
         "running": "in uitvoer",
         "status": "Status",
-        "removeexplanation": "De taak wordt hiermee niet daadwerkelijk afgebroken; alleen het DB-item wordt verwijderd. Let op: gebruik dit alleen als een taak niet netjes is afgebroken en op basis van informatie uit het logboek.",
+        "removeexplanation": "Door het verwijderen van een taak wordt deze niet daadwerkelijk afgebroken; alleen het DB-item wordt verwijderd. Let op: gebruik dit alleen als een taak niet netjes is afgebroken en op basis van informatie uit het logboek.",
         "itemsadded": "Item(s) toegevoegd"
     },
     "modalscandirectoryedit": {
