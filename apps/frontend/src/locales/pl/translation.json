@@ -11,12 +11,12 @@
         "nextcloudpassword": "Nextcloud hasło aplikacji",
         "nextcloudpasswordplaceholder": "Nextcloud hasło aplikacji",
         "nextcloudupdate": "Uaktualnij dane do logowania Nextcloud",
-        "nextcloudloggedin": "Zalogowany do Nextcloud",
+        "nextcloudloggedin": "Połączony",
         "nextcloudchange": "Zmień",
         "thumbnailsize": "Rozmiar miniaturki",
         "big": "Duża",
-        "statusscanphotostrue": "Skanowanie zdjęć (system plików)",
-        "scannextcloudphotos": "Skanuj zdjęcia (Nextcloud)",
+        "statusscanphotostrue": "Skanowanie zdjęć",
+        "scannextcloudphotos": "Skanuj",
         "scannextclouddescription": {
             "item1": "Wykonaj listę plików w podkatalogach. Dla każdego pliku z mediami:",
             "item2": "Jeśli ścieżka pliku istnieje, sprawdź, czy plik nie został zmodyfikowany. Jeśli został zmodyfikowany, ponownie zeskanuj obraz. Jeśli nie, pomijamy to.",
@@ -51,7 +51,7 @@
         "norwegianbokmal": "Norweski",
         "updateaccountinformation": "Zaktualizuj ustawienia profilu",
         "swedish": "Szwedzki",
-        "credentialspopup": "Użyj hasła aplikacji",
+        "credentialspopup": "Hasło logowania w Nextcloud",
         "serveradress": "Adres serwera",
         "serveradressplaceholder": "https://",
         "nextcloudheader": "Nextcloud",
@@ -60,12 +60,12 @@
         "nextcloudusernameplaceholder": "Nazwa użytkownika",
         "nextcloudscandirectory": "Nextcloud Skanowanie Katalogu",
         "nextcloudcancel": "Anuluj",
-        "nextcloudnotloggedin": "Niezalogowany do Nextcloud",
+        "nextcloudnotloggedin": "Rozłączony",
         "appearance": "Wygląd",
         "library": "Biblioteka",
         "photos": "Zdjęcia",
         "small": "Mała",
-        "statusscanphotosfalse": "Skanuj zdjęcia (system plików)",
+        "statusscanphotosfalse": "Skanuj",
         "profile": "Profil",
         "polish": "Polski",
         "confidencepercentage": "Pewność: {{percentage}}%",
@@ -93,7 +93,7 @@
         "eventsalbumsdescription": "Serwer przetwarzający w tle najpierw pogrupuje zdjęcia według czasu wykonania. Jeśli dwa kolejne zdjęcia zostaną zrobione w odstępie 12 godzin od siebie, uważa się, że dwa zdjęcia pochodzą z tego samego wydarzenia. Po ułożeniu grup w ten sposób automatycznie generuje tytuł dla tego albumu.",
         "eventalbumsregenerate": "Regeneruj tytuły wydarzeń",
         "facesbutton": "Wytrenuj twarze",
-        "rescanfaces": "Ponownie zeskanuj twarze",
+        "rescanfaces": "Przeskanuj ponownie",
         "sceneconfidence": "Pewność dla scen",
         "confidencelevel": "Poziom zaufania",
         "semanticsearchheader": "Maks. wyniki wyszukiwania semantycznego",
@@ -118,7 +118,7 @@
         "eventalbumsregeneratedescription": "Albumy generowane automatycznie mają w tytułach nazwiska osób. Jeśli wytrenowałeś klasyfikator twarzy po utworzeniu albumów wydarzeń, możesz generować nowe tytuły dla już istniejących albumów wydarzeń, aby odzwierciedlić nowe nazwy powiązane z twarzami na zdjęciach.",
         "inferredfacesconfidencehelp": "Wprowadź poziom podobieństwa z zakresu od 0 do 1. W przypadku albumów zawierających osobę pojawią się pogrupowane twarze o poziomie ufności wyższym niż ta wartość.",
         "experimentalupdate": "Aktualizuj",
-        "statusrescanphotostrue": "Ponowne skanowanie wszystkich zdjęć (system plików)",
+        "statusrescanphotostrue": "Ponowne skanowanie",
         "missingphotosdescription": "Przy każdym skanowaniu LibrePhotos sprawdzi czy pliki są w tej samej lokalizacji czy też zostały przeniesione. Jeśli będzie ich brakować zostaną oznaczone jako brakujące.",
         "eventsalbums": "Albumy wydarzeń",
         "on": "Włączony",
@@ -136,7 +136,7 @@
         "portuguese": "Portugalski",
         "basque": "Baskijski",
         "czech": "Czeski",
-        "statusrescanphotosfalse": "Przeskanuj wszystkie zdjęcia (system plików)",
+        "statusrescanphotosfalse": "Przeskanuj ponownie",
         "missingphotos": "Brakujące zdjęcia",
         "off": "Wyłączony",
         "helptranslating": "Pomóż w tłumaczeniu",
@@ -148,7 +148,13 @@
         "vietnamese": "Wietnamski",
         "add_rule": "Dodaj regułę",
         "togglecolorscheme": "Przełącz schemat kolorów",
-        "public_sharing": "Udostępnianie publiczne"
+        "public_sharing": "Udostępnianie publiczne",
+        "nextcloudsetup": "Brak poświadczeń",
+        "trainfacestitle": "Wytrenuj twarze",
+        "rescanfacestitle": "Przeskanuj ponownie twarze",
+        "nextcloudconnecting": "Trwa łączenie",
+        "scanphotosdescription": "Skanuj w poszukiwaniu nowych plików w bibliotece",
+        "rescanphotosdescription": "Przeskanuj ponownie wszystkie pliki"
     },
     "topmenu": {
         "loggedin": "Zalogowany jako",
@@ -255,7 +261,10 @@
         "erroremail": "Podaj prawidłowy email.",
         "errorusername": "Nazwa użytkownika nie może być pusta!",
         "tagline": "Wygodne miejsce dla twoich zdjęć.",
-        "firsttimesetup": "Konfiguracja początkowa"
+        "firsttimesetup": "Konfiguracja początkowa",
+        "error": {
+            "token": "Problem z tokenem"
+        }
     },
     "adminarea": {
         "scandirectory": "Folder skanowania",
@@ -333,7 +342,8 @@
         "currentdirectory": "Aktualny folder skanowania Nextcloud",
         "setdirectory": "Ustaw swój folder skanowania Nextcloud",
         "choosedirectory": "Wybierz folder z listy poniżej",
-        "cancel": "Anuluj"
+        "cancel": "Anuluj",
+        "browse": "Przeglądaj"
     },
     "modaluseredit": {
         "errorusernamecannotbeblank": "Nazwa użytkownika nie może być pusta",
@@ -580,10 +590,18 @@
     "cancel": "Anuluj",
     "days": "Dni",
     "modalalbumsshare": {
-        "joined": "Dołączył"
+        "joined": "Dołączył",
+        "title": "Udostępnij album",
+        "search": "Szukaj użytkownika",
+        "name": "Imię"
     },
     "modalphotosshare": {
-        "joined": "Dołączył"
+        "joined": "Dołączył",
+        "name": "Imię",
+        "title": "Udostępnij zdjęcia",
+        "search": "Szukaj użytkownika",
+        "share": "Udostępnij",
+        "unshare": "Cofnij udostępnianie"
     },
     "locationstimeline": {
         "fromto": "{{location}} od {{start}} do {{end}}"
