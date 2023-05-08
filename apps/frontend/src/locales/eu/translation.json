@@ -145,7 +145,7 @@
         "unknown": "Ezezagunak",
         "facedashboard": "Aurpegien arbela",
         "missingphotos": "Falta diren argazkiak",
-        "facesbutton": "Trebatu aurpegiak",
+        "facesbutton": "Entrenatu",
         "inferred": "Ondorioztatuak",
         "semanticsearch": {
             "top50": "Top 50",
@@ -344,7 +344,7 @@
         "reload": "Birkargatu",
         "status": "Egoera",
         "jobtype": "Lan-mota",
-        "progress": "Bilakaera",
+        "progress": "Aurrerapena",
         "started": "Hasita",
         "duration": "Iraupena",
         "delete": "Ezabatu",
@@ -427,7 +427,9 @@
         "clusterscounter_other": "{{count}} Klusterrak",
         "explanationvalidate": "Baieztatu eaupegi guztiak pertsona honenak direla eta gehitu beraien aurpegi ID- ra",
         "assumedpersonscounter_one": "{{count}} konfiantza pertsona",
-        "assumedpersonscounter_other": "{{count}} konfiantza pertsonak"
+        "assumedpersonscounter_other": "{{count}} konfiantza pertsonak",
+        "clusteredfacescounter_other": "{{count}} Aurpegi multzokatuak",
+        "clusteredfacescounter_one": "{{count}} Aurpegi multzokatua"
     },
     "autoalbumgallery": {
         "showmap": "Erakutsi mapa",
@@ -614,6 +616,6 @@
     "modify": "Aldatu",
     "timezoneexplain": "ordutegi mota hau erabiltzailearen ordutegira bihurtzeko erabiltzen da",
     "locationstimeline": {
-        "fromto": "{{location}}   {{start}} - tik {{end}}- raino"
+        "fromto": "{{location}} {{start}} - tik {{end}}- raino"
     }
 }
