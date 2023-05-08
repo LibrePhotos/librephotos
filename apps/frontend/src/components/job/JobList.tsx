@@ -1,4 +1,4 @@
-import { Alert, Card, Flex, Loader, Pagination, SimpleGrid, Table, Title } from "@mantine/core";
+import { Alert, Card, Flex, Loader, Pagination, Table, Title } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
