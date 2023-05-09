@@ -157,7 +157,13 @@
         "trainfacesdescription": "Das System auf der Grundlage vorhandener Informationen anlernen",
         "rescanfacestitle": "Gesichter erneut scannen",
         "rescanfacesdescription": "In der Bibliothek nach Gesichtern Ausschau halten",
-        "nextcloudsetup": "Fehlende Anmeldedaten"
+        "nextcloudsetup": "Fehlende Anmeldedaten",
+        "security": "Sicherheit",
+        "colorscheme": {
+            "title": "Farbschema",
+            "light": "Hell",
+            "dark": "Dunkel"
+        }
     },
     "modalnextcloud": {
         "setdirectory": "Setze dein Nextcloud Scan Ordner",
@@ -334,7 +340,8 @@
         "cannotbeundone": "Diese Aktion ist irreversibel.",
         "deleteuserconfirmexplanation": "Du bist dabei, den folgenden Nutzer zu löschen: {{username}}. Zugehörige Daten werden gelöscht.",
         "cannotdeleteadmin": "Admin Nutzer kann nicht gelöscht werden",
-        "addnewuser": "Neuen Nutzer erstellen"
+        "addnewuser": "Neuen Nutzer erstellen",
+        "delete": "Löschen"
     },
     "joblist": {
         "workerlogs": "Arbeiterprotokolle",
