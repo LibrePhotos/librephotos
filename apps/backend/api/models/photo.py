@@ -530,18 +530,28 @@ class Photo(models.Model):
             ],
             try_sidecar=True,
         )
-        self.size = size
+        if size and isinstance(size, numbers.Number):
+            self.size = size
         if fstop and isinstance(fstop, numbers.Number):
             self.fstop = fstop
-        self.focal_length = focal_length
-        self.iso = iso
+        if focal_length and isinstance(focal_length, numbers.Number):
+            self.focal_length = focal_length
+        if iso and isinstance(iso, numbers.Number):
+            self.iso = iso
         if shutter_speed and isinstance(shutter_speed, numbers.Number):
             self.shutter_speed = str(Fraction(shutter_speed).limit_denominator(1000))
-        self.camera = camera
-        self.lens = lens
-        self.width = width
-        self.height = height
-        self.focalLength35Equivalent = focalLength35Equivalent
+        if camera and isinstance(camera, str):
+            self.camera = camera
+        if lens and isinstance(camera, str):
+            self.lens = lens
+        if width and isinstance(width, numbers.Number):
+            self.width = width
+        if height and isinstance(height, numbers.Number):
+            self.height = height
+        if focalLength35Equivalent and isinstance(
+            focalLength35Equivalent, numbers.Number
+        ):
+            self.focalLength35Equivalent = focalLength35Equivalent
         if subjectDistance and isinstance(subjectDistance, numbers.Number):
             self.subjectDistance = subjectDistance
         if digitalZoomRatio and isinstance(digitalZoomRatio, numbers.Number):
