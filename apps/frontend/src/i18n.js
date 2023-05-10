@@ -3,6 +3,7 @@ import LanguageDetector from "i18next-browser-languagedetector";
 import { DateTime } from "luxon";
 import { initReactI18next } from "react-i18next";
 
+import translationAr from "./locales/ar/translation.json";
 import translationCs from "./locales/cs/translation.json";
 import translationDe from "./locales/de/translation.json";
 import translationEn from "./locales/en/translation.json";
@@ -12,13 +13,17 @@ import translationFi from "./locales/fi/translation.json";
 import translationFr from "./locales/fr/translation.json";
 import translationIt from "./locales/it/translation.json";
 import translationJa from "./locales/ja/translation.json";
+import translationKo from "./locales/ko/translation.json";
 import translationNb_NO from "./locales/nb_NO/translation.json";
 import translationNl from "./locales/nl/translation.json";
 import translationPl from "./locales/pl/translation.json";
 import translationPt from "./locales/pt/translation.json";
+import translationPt_BR from "./locales/pt_BR/translation.json";
 import translationRu from "./locales/ru/translation.json";
+import translationSk from "./locales/sk/translation.json";
 import translationSv from "./locales/sv/translation.json";
 import translationUK from "./locales/uk/translation.json";
+import translationUr from "./locales/ur/translation.json";
 import translationVi from "./locales/vi/translation.json";
 import translationZh_Hans from "./locales/zh_Hans/translation.json";
 import translationZh_Hant from "./locales/zh_Hant/translation.json";
@@ -80,6 +85,21 @@ const resources = {
   },
   vi: {
     translation: translationVi,
+  },
+  ar: {
+    translation: translationAr,
+  },
+  ko: {
+    translation: translationKo,
+  },
+  pt_BR: {
+    translation: translationPt_BR,
+  },
+  sk: {
+    translation: translationSk,
+  },
+  ur: {
+    translation: translationUr,
   },
 };
 i18n

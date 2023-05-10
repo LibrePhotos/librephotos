@@ -338,6 +338,30 @@ export function Profile() {
                   value: "vi",
                   label: t("settings.vietnamese"),
                 },
+                {
+                  value: "ar",
+                  label: t("settings.arabic"),
+                },
+                {
+                  value: "hu",
+                  label: t("settings.hungarian"),
+                },
+                {
+                  value: "ko",
+                  label: t("settings.korean"),
+                },
+                {
+                  value: "pt_BR",
+                  label: t("settings.portuguesebr"),
+                },
+                {
+                  value: "sk",
+                  label: t("settings.slovak"),
+                },
+                {
+                  value: "ur",
+                  label: t("settings.urdu"),
+                },
               ]}
             />
             <Button
