@@ -424,10 +424,20 @@ export function Library() {
               </Stack>
             </Grid.Col>
             <Grid.Col span={2}>
-              <Badge size="xs" p={10} leftSection={BadgeIcon()} variant="outline" color={nextcloudStatusColor}>
+              <Badge
+                size="xs"
+                p={10}
+                style={{ marginLeft: -20 }}
+                leftSection={BadgeIcon()}
+                variant="outline"
+                color={nextcloudStatusColor}
+              >
                 {!userSelfDetails.nextcloud_server_address && t("settings.nextcloudsetup")}
                 {isNextcloudFetching && t("settings.nextcloudconnecting")}
-                {isNextcloudSuccess && !isNextcloudFetching && t("settings.nextcloudloggedin")}
+                {isNextcloudSuccess &&
+                  userSelfDetails.nextcloud_server_address &&
+                  !isNextcloudFetching &&
+                  t("settings.nextcloudloggedin")}
                 {isNextcloudError && t("settings.nextcloudnotloggedin")}
               </Badge>
             </Grid.Col>
