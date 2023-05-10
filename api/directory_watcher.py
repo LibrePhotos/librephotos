@@ -92,6 +92,8 @@ def handle_new_image(user, path, job_id):
 
         photos: QuerySet[Photo] = Photo.objects.filter(Q(image_hash=hash))
         if not photos.exists():
+            start = datetime.datetime.now()
+            elapsed = (datetime.datetime.now() - start).total_seconds()
             photo: Photo = Photo()
             photo.image_hash = hash
             photo.owner = user
@@ -99,20 +101,30 @@ def handle_new_image(user, path, job_id):
             photo.geolocation_json = {}
             photo.video = is_video(path)
             photo.save()
-
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info(
+                "job {}: create database entry: {}, elapsed: {}".format(
+                    job_id, path, elapsed
+                )
+            )
             file = File.create(path, user)
             if has_embedded_media(file):
                 em_path = extract_embedded_media(file)
                 if em_path:
                     em_file = File.create(em_path, user)
                     file.embedded_media.add(em_file)
-
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info(
+                "job {}: extract embedded media: {}, elapsed: {}".format(
+                    job_id, path, elapsed
+                )
+            )
             photo.files.add(file)
             photo.main_file = file
-
+            photo.save()
+            
             photo._generate_thumbnail(True)
-            start = datetime.datetime.now()
-            elapsed = (datetime.datetime.now() - start).total_seconds()
+            
             util.logger.info(
                 "job {}: generate thumbnails: {}, elapsed: {}".format(
                     job_id, path, elapsed
