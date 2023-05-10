@@ -162,7 +162,13 @@
             "title": "Thema",
             "light": "Licht",
             "dark": "Donker"
-        }
+        },
+        "arabic": "Arabisch",
+        "korean": "Koreaans",
+        "hungarian": "Hongaars",
+        "urdu": "Urdu",
+        "slovak": "Slowaaks",
+        "portuguesebr": "Portugees (Brazilië)"
     },
     "topmenu": {
         "profile": "Profiel",
