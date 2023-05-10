@@ -79,12 +79,11 @@ def batch_calculate_clip_embedding(job_id, user):
                 obj.save()
         except Exception as e:
             util.logger.error("Error calculating clip embeddings: {}".format(e))
-
         lrj.result = {"progress": {"current": done_count, "target": count}}
         lrj.save()
 
-        semantic_search_instance.unload()
-        build_image_similarity_index(user)
-        lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
-        lrj.finished = True
-        lrj.save()
+    semantic_search_instance.unload()
+    build_image_similarity_index(user)
+    lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
+    lrj.finished = True
+    lrj.save()
