@@ -157,7 +157,19 @@
         "rescanfacesdescription": "Busca las caras en la biblioteca",
         "scanphotosdescription": "Busca los archivos nuevos en tu biblioteca",
         "trainfacesdescription": "Enseñar el sistema basándose en la información existente",
-        "nextcloudsetup": "Faltan las credenciales"
+        "nextcloudsetup": "Faltan las credenciales",
+        "arabic": "Árabe",
+        "korean": "Coreano",
+        "portuguesebr": "Portugués (Brasil)",
+        "hungarian": "Hungaro",
+        "urdu": "Urdu",
+        "security": "Seguridad",
+        "colorscheme": {
+            "title": "Esquema de colores",
+            "light": "Claro",
+            "dark": "Oscuro"
+        },
+        "slovak": "Eslovaco"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de detección de Nextcloud",
@@ -334,7 +346,8 @@
         "cannotbeundone": "Esta acción no se puede deshacer.",
         "cannotdeleteadmin": "No se puede eliminar el usuario administrador",
         "addnewuser": "Agregar nuevo usuario",
-        "titledeleteuser": "Eliminar usuario"
+        "titledeleteuser": "Eliminar usuario",
+        "delete": "Borrar"
     },
     "joblist": {
         "workerlogs": "Registros de trabajadores",
@@ -349,7 +362,7 @@
         "delete": "Eliminar",
         "itemsprocessed": "Artículo(s) procesados",
         "running": "Ejecutándose",
-        "removeexplanation": "En realidad, no detiene el trabajo, solo elimina esta entrada de la base de datos. Úselo solo en los casos en que sepa que un trabajo falló sin gracia, al inspeccionar los registros, etc.",
+        "removeexplanation": "Eliminar una entrada no detiene realmente el trabajo, sólo lo elimina de la base de datos. Utilícelo sólo en los casos en los que sepa que un trabajo ha fallado sin gracia, inspeccionando los registros, etc.",
         "itemsadded": "Elemento(s) agregado(s)"
     },
     "modalscandirectoryedit": {
