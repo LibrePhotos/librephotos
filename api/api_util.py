@@ -273,7 +273,9 @@ def get_search_term_examples(user):
 
 def get_count_stats(user):
     num_photos = Photo.visible.filter(Q(owner=user)).count()
-    num_missing_photos = Photo.objects.filter(Q(owner=user) & Q(files=None)).count()
+    num_missing_photos = Photo.objects.filter(
+        Q(owner=user) & Q(files=None) | Q(main_file=None)
+    ).count()
     num_faces = Face.objects.filter(photo__owner=user).count()
     num_unknown_faces = Face.objects.filter(
         (
