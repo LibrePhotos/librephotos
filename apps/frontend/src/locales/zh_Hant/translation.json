@@ -120,6 +120,30 @@
             "off": "關閉",
             "mediafile": "保存至媒體文件"
         },
-        "savechanges": "保存更改？"
+        "savechanges": "保存更改？",
+        "password": {
+            "tooltipeditbutton": "點擊以更換密碼",
+            "titlesetpassword": "設置密碼",
+            "titlechangepassword": "更改密碼",
+            "errormustmatch": "密碼必需一致",
+            "errorcannotbeblank": "密碼不能為空",
+            "errormustretype": "必需再次輸入密碼"
+        },
+        "public_sharing": "公開分享",
+        "add_rule": "添加規則"
+    },
+    "modalalbum": {
+        "alreadyexists": "{{title}} 相冊已存在",
+        "selectedimages": "以添加{{count}}張相片至...",
+        "newalbum": "新建相冊",
+        "items": "{{count}}項目",
+        "create": "創建",
+        "updated": "更新時長{{duration}}",
+        "title": "添加至相冊",
+        "placeholder": "相冊名稱"
+    },
+    "modalnextcloud": {
+        "currentdirectory": "當前Nextcloud掃描目錄",
+        "setdirectory": "設置你的Nextcloud掃描目錄"
     }
 }
