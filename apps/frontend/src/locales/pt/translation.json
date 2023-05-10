@@ -168,7 +168,13 @@
             "dark": "Escuro",
             "title": "Esquema de cores",
             "light": "Claro"
-        }
+        },
+        "arabic": "Árabe",
+        "portuguesebr": "Português (Brasil)",
+        "slovak": "Eslovaco",
+        "hungarian": "Húngaro",
+        "urdu": "Urdu",
+        "korean": "Coreano"
     },
     "sidemenu": {
         "myalbums": "Meus álbuns",
