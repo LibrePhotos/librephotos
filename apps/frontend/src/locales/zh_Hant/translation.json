@@ -144,6 +144,32 @@
     },
     "modalnextcloud": {
         "currentdirectory": "當前Nextcloud掃描目錄",
-        "setdirectory": "設置你的Nextcloud掃描目錄"
+        "setdirectory": "設置你的Nextcloud掃描目錄",
+        "browse": "瀏覽",
+        "update": "更新",
+        "cancel": "取消",
+        "choosedirectory": "從列表中選擇目錄"
+    },
+    "modalalbumsshare": {
+        "search": "搜索用戶",
+        "name": "人名",
+        "title": "分享相冊",
+        "joined": "加入"
+    },
+    "topmenu": {
+        "busy": "系統忙...",
+        "loggedin": "登陸為",
+        "running": "運行中",
+        "settings": "設置",
+        "logout": "登出",
+        "available": "線程可用！ 你可以開始掃描更多照片、推斷面部標籤、自動創建事件相冊或重新生成自動事件相冊的標題。"
+    },
+    "modalphotosshare": {
+        "share": "分享",
+        "joined": "加入",
+        "title": "分享照片",
+        "unshare": "取消分享",
+        "search": "搜索用戶",
+        "name": "人名"
     }
 }
