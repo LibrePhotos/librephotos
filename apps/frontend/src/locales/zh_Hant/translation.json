@@ -162,7 +162,10 @@
         "running": "運行中",
         "settings": "設置",
         "logout": "登出",
-        "available": "線程可用！ 你可以開始掃描更多照片、推斷面部標籤、自動創建事件相冊或重新生成自動事件相冊的標題。"
+        "available": "線程可用！ 你可以開始掃描更多照片、推斷面部標籤、自動創建事件相冊或重新生成自動事件相冊的標題。",
+        "profile": "簡介",
+        "library": "圖庫",
+        "adminarea": "管理區"
     },
     "modalphotosshare": {
         "share": "分享",
@@ -171,5 +174,12 @@
         "unshare": "取消分享",
         "search": "搜索用戶",
         "name": "人名"
+    },
+    "sync": "將元數據同步到磁盤",
+    "defaulttimezone": "默認時區",
+    "metadata": "元數據選項",
+    "timezoneexplain": "此時區用於將時間戳轉換為用戶的默認時區",
+    "favoritesyncoptions": {
+        "off": "關"
     }
 }
