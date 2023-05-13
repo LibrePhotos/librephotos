@@ -35,7 +35,7 @@ tzdata==2023.3
 PyExifTool==0.5.5
 PyJWT==2.4.0
 pyvips==2.2.1
-rq==1.13.0
+rq==1.14.1
 seaborn==0.11.0
 sentence_transformers==2.2.2
 sklearn==0.0
