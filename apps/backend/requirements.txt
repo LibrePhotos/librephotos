@@ -42,5 +42,5 @@ sklearn==0.0
 timezonefinder==5.2.0
 tqdm==4.51.0
 gevent==22.10.2
-python-magic==0.4.18
+python-magic==0.4.27
 Wand==0.6.11
