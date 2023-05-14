@@ -21,6 +21,7 @@ from api.models.file import (
     calculate_hash,
     extract_embedded_media,
     has_embedded_media,
+    is_metadata,
     is_valid_media,
     is_video,
 )
@@ -90,6 +91,25 @@ def handle_new_image(user, path, job_id):
             )
             return
 
+        if is_metadata(path):
+            photo_name = os.path.splitext(os.path.basename(path))[0]
+            photo_dir = os.path.dirname(path)
+            photo = Photo.objects.filter(
+                Q(files__path__contains=photo_dir)
+                & Q(files__path__contains=photo_name)
+                & ~Q(files__path__contains=os.path.basename(path))
+            ).first()
+
+            if photo:
+                file = File.create(path, user)
+                photo.files.add(file)
+                photo.save()
+            else:
+                util.logger.warning(
+                    "job {}: no photo to metadata file found {}".format(job_id, path)
+                )
+            return
+
         photos: QuerySet[Photo] = Photo.objects.filter(Q(image_hash=hash))
         if not photos.exists():
             start = datetime.datetime.now()
@@ -122,9 +142,9 @@ def handle_new_image(user, path, job_id):
             photo.files.add(file)
             photo.main_file = file
             photo.save()
-            
+
             photo._generate_thumbnail(True)
-            
+
             util.logger.info(
                 "job {}: generate thumbnails: {}, elapsed: {}".format(
                     job_id, path, elapsed
@@ -299,27 +319,6 @@ def photo_scanner(user, last_scan, full_scan, path, job_id):
         )
 
 
-def initialize_scan_process(*args, **kwargs):
-    """
-    Each process will have its own exiftool instance
-    so we need to start _and_ stop it for each process.
-    multiprocessing.util.Finalize is _undocumented_ and
-    should perhaps not be relied on but I found no other
-    way. (See https://stackoverflow.com/a/24724452)
-
-    """
-    from multiprocessing.util import Finalize
-
-    from api.util import exiftool_instance
-
-    et = exiftool_instance.__enter__()
-
-    def terminate(et):
-        et.terminate()
-
-    Finalize(et, terminate, args=(et,), exitpriority=16)
-
-
 @job
 def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
     if not os.path.exists(
@@ -381,7 +380,6 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
 
         with Pool(
             processes=site_config.HEAVYWEIGHT_PROCESS,
-            initializer=initialize_scan_process,
         ) as pool:
             pool.starmap(photo_scanner, all)
 
