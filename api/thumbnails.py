@@ -2,7 +2,7 @@ import os
 import subprocess
 
 import pyvips
-from wand.image import Image
+import requests
 
 import api.util as util
 import ownphotos.settings
@@ -16,14 +16,13 @@ def createThumbnail(inputPath, outputHeight, outputPath, hash, fileType):
                 completePath = os.path.join(
                     ownphotos.settings.MEDIA_ROOT, outputPath, hash + fileType
                 ).strip()
-                with Image(filename=inputPath) as img:
-                    with img.clone() as thumbnail:
-                        thumbnail.format = "webp"
-                        thumbnail.transform(resize="x" + str(outputHeight))
-                        thumbnail.compression_quality = 95
-                        thumbnail.auto_orient()
-                        thumbnail.save(filename=completePath)
-                return completePath
+                json = {
+                    "source": inputPath,
+                    "destination": completePath,
+                    "height": outputHeight,
+                }
+                response = requests.post("http://localhost:8003/", json=json).json()
+                return response["thumbnail"]
             else:
                 bigThumbnailPath = os.path.join(
                     ownphotos.settings.MEDIA_ROOT, "thumbnails_big", hash + fileType
