@@ -177,11 +177,11 @@ export function Library() {
           <Stack>
             <Title order={4} sx={{ marginBottom: 16 }}>
               <Trans i18nKey="settings.photos">Photos</Trans>
-              {+util.countStats.num_missing_photos > 0 && (
+              {util.countStats.num_missing_photos > 0 && (
                 <HoverCard width={280} shadow="md">
                   <HoverCard.Target>
                     <Badge onClick={open} color="red" sx={{ marginLeft: 10 }}>
-                      {+util.countStats.num_missing_photos}{" "}
+                      {util.countStats.num_missing_photos}{" "}
                       <Trans i18nKey="settings.missingphotos">Missing photos</Trans>
                     </Badge>
                   </HoverCard.Target>
