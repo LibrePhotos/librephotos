@@ -90,10 +90,6 @@ def get_sidecar_files_in_priority_order(media_file):
         media_file + ".XMP",
     ]
 
-
-exiftool_instance = exiftool.ExifTool()
-
-
 def _get_existing_metadata_files_reversed(media_file, include_sidecar_files):
     if include_sidecar_files:
         files = [
@@ -120,49 +116,34 @@ def get_metadata(media_file, tags, try_sidecar=True):
     tag was not found.
 
     """
-    et = exiftool_instance
-    terminate_et = False
-    if not et.running:
-        et.start()
-        terminate_et = True
 
     files_by_reverse_priority = _get_existing_metadata_files_reversed(
         media_file, try_sidecar
     )
 
     values = []
-    try:
+    with exiftool.ExifToolAlpha() as et:
         for tag in tags:
             value = None
             for file in files_by_reverse_priority:
-                retrieved_value = et.get_tag(tag, file)
+                retrieved_value = et.get_tag(file, tag)
                 if retrieved_value is not None:
                     value = retrieved_value
-            values.append(value)
-    finally:
-        if terminate_et:
-            et.terminate()
+            values.append(value)#
     return values
 
 
 def write_metadata(media_file, tags, use_sidecar=True):
-    et = exiftool_instance
-    terminate_et = False
-    if not et.running:
-        et.start()
-        terminate_et = True
+
     # To-Do: Replace with new File Structure
     if use_sidecar:
         file_path = get_sidecar_files_in_priority_order(media_file)[0]
     else:
         file_path = media_file
 
-    try:
+    with exiftool.ExifTool() as et:
         logger.info(f"Writing {tags} to {file_path}")
         params = [os.fsencode(f"-{tag}={value}") for tag, value in tags.items()]
         params.append(b"-overwrite_original")
         params.append(os.fsencode(file_path))
         et.execute(*params)
-    finally:
-        if terminate_et:
-            et.terminate()
