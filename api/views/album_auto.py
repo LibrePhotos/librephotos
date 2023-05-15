@@ -1,13 +1,13 @@
 import uuid
 
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Count, OuterRef, Prefetch, Q, Subquery
 from rest_framework import filters, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.autoalbum import generate_event_albums, regenerate_event_titles
-from api.models import AlbumAuto, Person, Photo
+from api.models import AlbumAuto, Face, Person, Photo
 from api.serializers.album_auto import AlbumAutoListSerializer, AlbumAutoSerializer
 from api.util import logger
 from api.views.custom_api_view import ListViewSet
@@ -28,7 +28,37 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
                 Prefetch(
                     "photos__faces__person",
                     queryset=Person.objects.all().annotate(
-                        viewable_face_count=Count("faces")
+                        viewable_face_count=Count("faces"),
+                        face_url=Subquery(
+                            Face.objects.filter(
+                                person=OuterRef("pk"),
+                                photo__hidden=False,
+                                photo__deleted=False,
+                                photo__owner=self.request.user,
+                            )
+                            .order_by("id")
+                            .values("image")[:1]
+                        ),
+                        face_photo_url=Subquery(
+                            Photo.objects.filter(
+                                faces__person=OuterRef("pk"),
+                                hidden=False,
+                                deleted=False,
+                                owner=self.request.user,
+                            )
+                            .order_by("added_on")
+                            .values("image_hash")[:1]
+                        ),
+                        video=Subquery(
+                            Photo.objects.filter(
+                                faces__person=OuterRef("pk"),
+                                hidden=False,
+                                deleted=False,
+                                owner=self.request.user,
+                            )
+                            .order_by("added_on")
+                            .values("video")[:1]
+                        ),
                     ),
                 ),
             )
