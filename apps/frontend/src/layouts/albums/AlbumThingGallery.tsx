@@ -3,25 +3,20 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { Tags } from "tabler-icons-react";
 
-import { fetchThingAlbum } from "../../actions/albumsActions";
+import { useLazyFetchThingsAlbumQuery } from "../../api_client/albums/things";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { useAppDispatch, useAppSelector } from "../../store/store";
 
 export function AlbumThingGallery() {
   const { t } = useTranslation();
-  const dispatch = useAppDispatch();
   const { albumID } = useParams();
-
-  const albumsThing = useAppSelector(store => store.albums.albumsThing);
-  const fetchingAlbumsThing = useAppSelector(store => store.albums.fetchingAlbumsThing);
-
-  const groupedPhotos = albumID ? albumsThing[albumID] : undefined;
+  const [fetchAlbum, { data: groupedPhotos, isLoading: fetchingAlbumsThing }] = useLazyFetchThingsAlbumQuery();
 
   useEffect(() => {
     if (albumID) {
-      dispatch(fetchThingAlbum(albumID));
+      fetchAlbum(albumID);
     }
-  }, [albumID, dispatch]);
+  }, [albumID, fetchAlbum]);
+
   return (
     <PhotoListView
       title={groupedPhotos ? groupedPhotos.title : t("loading")}
