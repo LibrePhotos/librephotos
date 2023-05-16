@@ -1,3 +1,4 @@
+import { useViewportSize } from "@mantine/hooks";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -6,7 +7,6 @@ import { Tags } from "tabler-icons-react";
 
 import { useFetchThingsAlbumsQuery } from "../../api_client/albums/things";
 import { Tile } from "../../components/Tile";
-import { useWindowDimensions } from "../../hooks/useWindowDimensions";
 import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
 import { HeaderComponent } from "./HeaderComponent";
 
@@ -29,7 +29,7 @@ function calculateGridValues(width: number): { columnWidth: number; squareSize: 
 
 export function AlbumThing() {
   const { t } = useTranslation();
-  const { width, height } = useWindowDimensions();
+  const { width, height } = useViewportSize();
   const [entriesPerRow, setEntriesPerRow] = useState(0);
   const [entrySquareSize, setEntrySquareSize] = useState(200);
   const [numberOfRows, setNumberOfRows] = useState(0);
