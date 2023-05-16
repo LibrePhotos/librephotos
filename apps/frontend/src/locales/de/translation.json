@@ -131,7 +131,7 @@
         "finnish": "Finnisch",
         "basque": "Baskisch",
         "czech": "Tschechisch",
-        "helptranslating": "Beim Übersetzen helfen",
+        "helptranslating": "Bei Übersetzung helfen",
         "inferredfacesconfidencehelp": "Vertrauenslevel zwischen 0 und 1 eingeben. In Alben mit einer Person werden hergeleitete Gesichter mit Vertrauenslevel höher als dieser Wert angezeigt.",
         "inferredfacesconfidence": "Vertrauen hergeleitete Gesichter",
         "albumoptions": "Album-Optionen",
@@ -163,7 +163,13 @@
             "title": "Farbschema",
             "light": "Hell",
             "dark": "Dunkel"
-        }
+        },
+        "hungarian": "Ungarisch",
+        "arabic": "Arabisch",
+        "korean": "Koreanisch",
+        "portuguesebr": "Portugiesisch (Brasilien)",
+        "slovak": "Slowakisch",
+        "urdu": "Urdu"
     },
     "modalnextcloud": {
         "setdirectory": "Setze dein Nextcloud Scan Ordner",
@@ -189,7 +195,7 @@
         "name": "Name der Person"
     },
     "topmenu": {
-        "running": "Bearbeitet",
+        "running": "In Bearbeitung",
         "available": "Arbeiter verfügbar! Du kannst mehr Fotos scannen, Gesichter analysieren, Ereignis-Alben erstellen oder Titel für Ereignis-Alben neu generieren.",
         "busy": "Beschäftigt …",
         "loggedin": "Angemeldet als",
@@ -356,7 +362,7 @@
         "delete": "Löschen",
         "itemsprocessed": "Bilder verarbeitet",
         "running": "läuft",
-        "removeexplanation": "Stoppt nicht den eigentlichen Job, sondern entfernt nur den Eintrag. Das sollte man machen in Fällen bei denen der Job nicht sauber abgeschlossen wurde.",
+        "removeexplanation": "Stoppt nicht den eigentlichen Job, sondern entfernt nur den Datenbank-Eintrag. Nur verwenden, wenn der betroffene Job unerwartet beendet wurde, bspw. durch Inspizieren der Logs.",
         "itemsadded": "Asset(s) hinzugefügt"
     },
     "modalscandirectoryedit": {
