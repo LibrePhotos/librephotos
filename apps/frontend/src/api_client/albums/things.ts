@@ -12,6 +12,10 @@ const ThingsAlbumListSchema = z
   })
   .array();
 
+const ThingsAlbumListResponseSchema = z.object({
+  results: ThingsAlbumListSchema,
+});
+
 const ThingsAlbumSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -35,7 +39,7 @@ const thingsAlbumsApi = api
     endpoints: builder => ({
       [Endpoints.fetchThingsAlbums]: builder.query<ThingsAlbumList, void>({
         query: () => "albums/thing/list/",
-        transformResponse: response => ThingsAlbumListSchema.parse(response),
+        transformResponse: response => ThingsAlbumListResponseSchema.parse(response).results,
       }),
       [Endpoints.fetchThingsAlbum]: builder.query<ThingsAlbum, string>({
         query: id => `albums/thing/${id}/`,
@@ -55,4 +59,4 @@ const thingsAlbumsApi = api
     },
   });
 
-export const { useLazyFetchThingsAlbumQuery } = thingsAlbumsApi;
+export const { useLazyFetchThingsAlbumQuery, useFetchThingsAlbumsQuery } = thingsAlbumsApi;
