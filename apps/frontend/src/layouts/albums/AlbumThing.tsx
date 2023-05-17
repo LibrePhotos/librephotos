@@ -1,5 +1,4 @@
-import { useViewportSize } from "@mantine/hooks";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
@@ -7,58 +6,26 @@ import { Tags } from "tabler-icons-react";
 
 import { useFetchThingsAlbumsQuery } from "../../api_client/albums/things";
 import { Tile } from "../../components/Tile";
-import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
+import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";
 import { HeaderComponent } from "./HeaderComponent";
-
-const SIDEBAR_WIDTH = LEFT_MENU_WIDTH;
-
-function calculateGridValues(width: number): { columnWidth: number; squareSize: number } {
-  let entries = 6;
-  if (width < 600) {
-    entries = 2;
-  } else if (width < 800) {
-    entries = 3;
-  } else if (width < 1000) {
-    entries = 4;
-  } else if (width < 1200) {
-    entries = 5;
-  }
-  const columnWidth = width - SIDEBAR_WIDTH - 5 - 5 - 15;
-  return { columnWidth, squareSize: columnWidth / entries };
-}
 
 export function AlbumThing() {
   const { t } = useTranslation();
-  const { width, height } = useViewportSize();
-  const [entriesPerRow, setEntriesPerRow] = useState(0);
-  const [entrySquareSize, setEntrySquareSize] = useState(200);
-  const [numberOfRows, setNumberOfRows] = useState(0);
   const { data: albums, isFetching } = useFetchThingsAlbumsQuery();
-
-  useEffect(() => {
-    const { columnWidth, squareSize } = calculateGridValues(width);
-    setEntriesPerRow(columnWidth / squareSize);
-    setEntrySquareSize(squareSize);
-  }, [width, height]);
-
-  useEffect(() => {
-    if (albums) {
-      setNumberOfRows(Math.ceil(albums.length / 6));
-    }
-  }, [albums]);
+  const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums || []);
 
   function renderCell({ columnIndex, key, rowIndex, style }) {
     if (!albums || albums.length === 0) {
       return null;
     }
-    const albumThingIndex = rowIndex * entriesPerRow + columnIndex;
-    if (albumThingIndex >= albums.length) {
+    const index = rowIndex * entriesPerRow + columnIndex;
+    if (index >= albums.length) {
       return <div key={key} style={style} />;
     }
     return (
       <div key={key} style={style}>
-        {albums[albumThingIndex].cover_photos.slice(0, 1).map(photo => (
-          <Link key={albums[albumThingIndex].id} to={`/thing/${albums[albumThingIndex].id}/`}>
+        {albums[index].cover_photos.slice(0, 1).map(photo => (
+          <Link key={albums[index].id} to={`/thing/${albums[index].id}/`}>
             <Tile
               video={photo.video === true}
               height={entrySquareSize - 10}
@@ -68,10 +35,10 @@ export function AlbumThing() {
           </Link>
         ))}
         <div style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
-          <b>{albums[albumThingIndex].title}</b>
+          <b>{albums[index].title}</b>
           <br />
           {t("numberofphotos", {
-            number: albums[albumThingIndex].photo_count,
+            number: albums[index].photo_count,
           })}
         </div>
       </div>
@@ -96,7 +63,7 @@ export function AlbumThing() {
             cellRenderer={props => renderCell(props)}
             columnWidth={entrySquareSize}
             columnCount={entriesPerRow}
-            height={height - TOP_MENU_HEIGHT - 60}
+            height={gridHeight}
             rowHeight={entrySquareSize + 60}
             rowCount={numberOfRows}
             width={containerWidth}

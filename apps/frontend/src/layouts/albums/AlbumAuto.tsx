@@ -1,164 +1,120 @@
-import { ActionIcon, Button, Group, Image, Menu, Modal, Text } from "@mantine/core";
-import { useViewportSize } from "@mantine/hooks";
+import { ActionIcon, Button, Group, Menu, Modal, Text } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { DateTime } from "luxon";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import LazyLoad from "react-lazyload";
 import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
-import { push } from "redux-first-history";
-import { DotsVertical, Edit, SettingsAutomation, Trash } from "tabler-icons-react";
+import { DotsVertical, SettingsAutomation, Trash } from "tabler-icons-react";
 
-import { deleteAutoAlbum, fetchAutoAlbumsList } from "../../actions/albumsActions";
-import { searchPhotos } from "../../actions/searchActions";
-import { serverAddress } from "../../api_client/apiClient";
+import { useDeleteAutoAlbumMutation, useFetchAutoAlbumsQuery } from "../../api_client/albums/auto";
 import { Tile } from "../../components/Tile";
+import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";
 import i18n from "../../i18n";
-import { useAppDispatch, useAppSelector } from "../../store/store";
-import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
 import { HeaderComponent } from "./HeaderComponent";
 
-const SIDEBAR_WIDTH = LEFT_MENU_WIDTH;
-
-export const AlbumAuto = () => {
-  const { width, height } = useViewportSize();
-  const [entrySquareSize, setEntrySquareSize] = useState(200);
-  const [numEntrySquaresPerRow, setNumEntrySquaresPerRow] = useState(0);
-  const dispatch = useAppDispatch();
-  const { t } = useTranslation();
-
-  const [openDeleteDialogState, setOpenDeleteDialogState] = useState(false);
+export function AlbumAuto() {
   const [autoAlbumID, setAutoAlbumID] = useState("");
   const [autoAlbumTitle, setAutoAlbumTitle] = useState("");
-  const { albumsAutoList, fetchingAlbumsAutoList } = useAppSelector(store => store.albums);
+  const [deleteDialogVisible, { open: showDeleteDialog, close: closeDeleteDialog }] = useDisclosure(false);
+  const { data: albums, isFetching } = useFetchAutoAlbumsQuery();
+  const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums || []);
+  const [deleteAutoAlbum] = useDeleteAutoAlbumMutation();
+  const { t } = useTranslation();
 
-  useEffect(() => {
-    if (albumsAutoList.length === 0) {
-      dispatch(fetchAutoAlbumsList());
+  function deleteAlbum(album) {
+    setAutoAlbumID(album.id);
+    setAutoAlbumTitle(album.title);
+    showDeleteDialog();
+  }
+
+  function cellRenderer({ columnIndex, key, rowIndex, style }) {
+    if (!albums || albums.length === 0) {
+      return null;
     }
-  }, []);
-  useEffect(() => {
-    let numEntrySquaresPerRow = 6;
-    if (window.innerWidth < 600) {
-      numEntrySquaresPerRow = 2;
-    } else if (window.innerWidth < 800) {
-      numEntrySquaresPerRow = 3;
-    } else if (window.innerWidth < 1000) {
-      numEntrySquaresPerRow = 4;
-    } else if (window.innerWidth < 1200) {
-      numEntrySquaresPerRow = 5;
+    const index = rowIndex * entriesPerRow + columnIndex;
+    if (index >= albums.length) {
+      return <div key={key} style={style} />;
     }
-
-    const columnWidth = window.innerWidth - SIDEBAR_WIDTH - 5 - 5 - 15;
-
-    const entrySquareSize = columnWidth / numEntrySquaresPerRow;
-    setEntrySquareSize(entrySquareSize);
-    setNumEntrySquaresPerRow(numEntrySquaresPerRow);
-  }, [width, height]);
-
-  const openDeleteDialog = (personID, personName) => {
-    setOpenDeleteDialogState(true);
-    setAutoAlbumID(personID);
-    setAutoAlbumTitle(personName);
-  };
-
-  const cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    const albumAutoIndex = rowIndex * numEntrySquaresPerRow + columnIndex;
-    if (albumAutoIndex < albumsAutoList.length) {
-      const dateTimeLabel = DateTime.fromISO(albumsAutoList[albumAutoIndex].timestamp).isValid
-      ? DateTime.fromISO(albumsAutoList[albumAutoIndex].timestamp).setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString(DateTime.DATE_MED)
+    const album = albums[index];
+    const dateTimeLabel = DateTime.fromISO(album.timestamp).isValid
+      ? DateTime.fromISO(album.timestamp)
+          .setLocale(i18n.resolvedLanguage.replace("_", "-"))
+          .toLocaleString(DateTime.DATE_MED)
       : null;
-    
-      return (
-        <div key={key} style={style}>
-          <div onClick={() => {}} style={{ padding: 5 }}>
-            <Link to={`/event/${albumsAutoList[albumAutoIndex].id}`}>
-              <Tile
-                video={albumsAutoList[albumAutoIndex].photos.video === true}
-                height={entrySquareSize - 10}
-                width={entrySquareSize - 10}
-                image_hash={albumsAutoList[albumAutoIndex].photos.image_hash}
-              />
-            </Link>
-            <div style={{ position: "absolute", top: 10, right: 10 }}>
-              <Menu position="bottom-end">
-                <Menu.Target>
-                  <ActionIcon>
-                    <DotsVertical />
-                  </ActionIcon>
-                </Menu.Target>
-                <Menu.Dropdown>
-                  <Menu.Item
-                    icon={<Trash />}
-                    onClick={() =>
-                      openDeleteDialog(albumsAutoList[albumAutoIndex].id, albumsAutoList[albumAutoIndex].title)
-                    }
-                  >
-                    {t("delete")}
-                  </Menu.Item>
-                </Menu.Dropdown>
-              </Menu>
-            </div>
-          </div>
-          <div className="personCardName" style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
-            <b>{albumsAutoList[albumAutoIndex].title}</b> <br />
-            {dateTimeLabel ? `${dateTimeLabel} - `:""}
-            {t("numberofphotos", {
-              number: albumsAutoList[albumAutoIndex].photo_count,
-            })}
-          </div>
+
+    return (
+      <div key={key} style={style}>
+        <Link key={album.id} to={`/event/${album.id}/`}>
+          <Tile
+            video={album.photos.video === true}
+            height={entrySquareSize - 10}
+            width={entrySquareSize - 10}
+            image_hash={album.photos.image_hash}
+          />
+        </Link>
+        <div className="personCardName" style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
+          <b>{album.title}</b> <br />
+          {dateTimeLabel ? `${dateTimeLabel} - ` : ""}
+          {t("numberofphotos", {
+            number: album.photo_count,
+          })}
         </div>
-      );
-    }
-    return <div key={key} style={style} />;
-  };
+        <div style={{ position: "absolute", top: 10, right: 10 }}>
+          <Menu position="bottom-end">
+            <Menu.Target>
+              <ActionIcon>
+                <DotsVertical />
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item icon={<Trash />} onClick={() => deleteAlbum(album)}>
+                {t("delete")}
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
       <HeaderComponent
         icon={<SettingsAutomation size={50} />}
         title={t("events")}
-        fetching={fetchingAlbumsAutoList}
+        fetching={isFetching}
         subtitle={t("autoalbum.subtitle", {
-          autoalbumlength: albumsAutoList.length,
+          autoalbumlength: (albums && albums.length) || 0,
         })}
       />
 
       <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
-        {({ width }) => (
+        {({ width: containerWidth }) => (
           <Grid
             style={{ outline: "none" }}
             disableHeader={false}
-            cellRenderer={cellRenderer}
+            cellRenderer={props => cellRenderer(props)}
             columnWidth={entrySquareSize}
-            columnCount={numEntrySquaresPerRow}
-            height={height - TOP_MENU_HEIGHT - 60}
+            columnCount={entriesPerRow}
+            height={gridHeight}
             rowHeight={entrySquareSize + 120}
-            // @ts-ignore
-            rowCount={Math.ceil(albumsAutoList.length / numEntrySquaresPerRow.toFixed(1))}
-            width={width}
+            rowCount={numberOfRows}
+            width={containerWidth}
           />
         )}
       </AutoSizer>
-      <Modal
-        opened={openDeleteDialogState}
-        title={t("autoalbum.delete")}
-        onClose={() => setOpenDeleteDialogState(false)}
-      >
+
+      <Modal opened={deleteDialogVisible} title={t("autoalbum.delete")} onClose={closeDeleteDialog}>
+        <Text size="lg">{autoAlbumTitle}</Text>
         <Text size="sm">{t("autoalbum.deleteexplanation")}</Text>
         <Group>
-          <Button
-            onClick={() => {
-              setOpenDeleteDialogState(false);
-            }}
-          >
-            {t("cancel")}
-          </Button>
+          <Button onClick={closeDeleteDialog}>{t("cancel")}</Button>
           <Button
             color="red"
             onClick={() => {
-              dispatch(deleteAutoAlbum(autoAlbumID, autoAlbumTitle));
-              setOpenDeleteDialogState(false);
+              deleteAutoAlbum({ id: autoAlbumID, albumTitle: autoAlbumTitle });
+              closeDeleteDialog();
             }}
           >
             {t("delete")}
@@ -167,49 +123,4 @@ export const AlbumAuto = () => {
       </Modal>
     </div>
   );
-};
-
-type Props = {
-  size: number;
-  cover_photos: any;
-  title: string;
-  photoCount: number;
-};
-
-export const EntrySquare = (props: Props) => {
-  const dispatch = useAppDispatch();
-
-  const { size, cover_photos, title, photoCount } = props;
-
-  const images = cover_photos.map(photo => (
-    <Image
-      style={{ display: "inline-block", objectFit: "cover" }}
-      width={size / 2 - 20}
-      height={size / 2 - 20}
-      src={`${serverAddress}/media/square_thumbnails/${photo.image_hash}`}
-    />
-  ));
-  return (
-    <div
-      style={{
-        width: size,
-        display: "inline-block",
-        paddingLeft: 10,
-        paddingRight: 10,
-      }}
-      onClick={() => {
-        dispatch(searchPhotos(title));
-        dispatch(push("/search"));
-      }}
-    >
-      <div style={{ height: size }}>
-        <LazyLoad once unmountIfInvisible height={size}>
-          <Group>{images}</Group>
-        </LazyLoad>
-      </div>
-      <div style={{ height: 100 }}>
-        <b>{title}</b> ({photoCount})
-      </div>
-    </div>
-  );
-};
+}
