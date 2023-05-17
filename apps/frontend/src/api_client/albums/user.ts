@@ -18,26 +18,24 @@ const UserAlbumListSchema = z
     favorited: z.boolean(),
   })
   .array();
+
 const UserAlbumListResponseSchema = z.object({
   results: UserAlbumListSchema,
 });
 
 export type UserAlbumList = z.infer<typeof UserAlbumListSchema>;
 
-const UserAlbumDetailsSchema = z.object({
+const UserAlbumSchema = z.object({
   id: z.string(),
   title: z.string(),
   owner: SimpleUserSchema,
   shared_to: SimpleUserSchema.array(),
-
   date: z.string(),
   location: z.string().nullable(),
-});
-export type UserAlbumDetails = z.infer<typeof UserAlbumDetailsSchema>;
-
-export const UserAlbumSchema = UserAlbumDetailsSchema.extend({
   grouped_photos: DatePhotosGroupSchema.array(),
 });
+
+export type UserAlbum = z.infer<typeof UserAlbumSchema>;
 
 enum Endpoints {
   fetchUserAlbums = "fetchUserAlbums",
@@ -57,6 +55,10 @@ export const userAlbumsApi = api
       [Endpoints.fetchUserAlbums]: builder.query<UserAlbumList, void>({
         query: () => "albums/user/list/",
         transformResponse: response => UserAlbumListResponseSchema.parse(response).results,
+      }),
+      [Endpoints.fetchUserAlbum]: builder.query<UserAlbum, string>({
+        query: id => `albums/user/${id}/`,
+        transformResponse: response => UserAlbumSchema.parse(response),
       }),
       [Endpoints.deleteUserAlbum]: builder.mutation<void, { id: string; albumTitle: string }>({
         query: ({ id }) => ({
@@ -97,10 +99,18 @@ export const userAlbumsApi = api
       [Endpoints.fetchUserAlbums]: {
         providesTags: ["UserAlbums"],
       },
+      [Endpoints.fetchUserAlbum]: {
+        providesTags: ["UserAlbum"],
+      },
       [Endpoints.deleteUserAlbum]: {
         invalidatesTags: ["UserAlbums"],
       },
     },
   });
 
-export const { useFetchUserAlbumsQuery, useDeleteUserAlbumMutation, useRenameUserAlbumMutation } = userAlbumsApi;
+export const {
+  useFetchUserAlbumsQuery,
+  useLazyFetchUserAlbumQuery,
+  useDeleteUserAlbumMutation,
+  useRenameUserAlbumMutation,
+} = userAlbumsApi;

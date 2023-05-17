@@ -1,54 +1,60 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { Bookmark } from "tabler-icons-react";
 
-import { fetchUserAlbum } from "../../actions/albumsActions";
+import type { DatePhotosGroup, PigPhoto } from "../../actions/photosActions.types";
+import { useLazyFetchUserAlbumQuery } from "../../api_client/albums/user";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { PhotosetType } from "../../reducers/photosReducer";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { useAppSelector } from "../../store/store";
+import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export function AlbumUserGallery() {
-  const { t } = useTranslation();
-  const dispatch = useAppDispatch();
-
-  const { albumID, ...params } = useParams();
-
-  const photosGroupedByDate = useAppSelector(store => store.photos.photosGroupedByDate);
-  const photosFlat = useAppSelector(store => store.photos.photosFlat);
-  const fetchedPhotosetType = useAppSelector(store => store.photos.fetchedPhotosetType);
+  const [fetchAlbum, { data: album, isFetching }] = useLazyFetchUserAlbumQuery();
+  const [flatPhotos, setFlatPhotos] = useState<PigPhoto[]>([]);
+  const [groupedPhotos, setGroupedPhotos] = useState<DatePhotosGroup[]>([]);
+  const [isPublic, setIsPublic] = useState(false);
   const albumDetails = useAppSelector(store => store.albums.albumDetails);
   const auth = useAppSelector(store => store.auth);
-
-  const isLoaded = () => {
-    return fetchedPhotosetType === PhotosetType.USER_ALBUM && albumDetails.id === albumID && params;
-  };
+  const { albumID } = useParams();
+  const { t } = useTranslation();
 
   useEffect(() => {
-    if (!isLoaded()) {
-      //@ts-ignore
-      dispatch(fetchUserAlbum(albumID));
+    if (!albumID) {
+      return;
     }
-  }, [albumID, dispatch, fetchedPhotosetType, albumDetails]);
+    fetchAlbum(albumID);
+  }, [albumID, fetchAlbum]);
 
-  const isPublic = albumDetails.owner && albumDetails.owner.id !== auth.access.user_id;
-  let additionalSubHeader = <div></div>;
-  if (isPublic) {
-    additionalSubHeader = (
-      <span>
-        {", "}owned by {albumDetails.owner.id === auth.access.user_id ? "you" : albumDetails.owner.username}
-      </span>
-    );
+  useEffect(() => {
+    if (!album) {
+      return;
+    }
+    setIsPublic(album.owner && album.owner.id !== auth.access.user_id);
+    setGroupedPhotos(album.grouped_photos);
+    setFlatPhotos(getPhotosFlatFromGroupedByDate(album.grouped_photos));
+  }, [album, auth]);
+
+  function getSubheader(showHeader: boolean) {
+    if (showHeader) {
+      return (
+        <span>
+          {", "}owned by {albumDetails.owner.id === auth.access.user_id ? "you" : albumDetails.owner.username}
+        </span>
+      );
+    }
+    return <div />;
   }
+
   return (
     <PhotoListView
-      title={albumDetails ? albumDetails.title : t("loading")}
-      additionalSubHeader={additionalSubHeader}
-      loading={!isLoaded()}
+      title={album ? album.title : t("loading")}
+      additionalSubHeader={getSubheader(isPublic)}
+      loading={isFetching}
       icon={<Bookmark size={50} />}
       isDateView
-      photoset={photosGroupedByDate}
-      idx2hash={photosFlat}
+      photoset={groupedPhotos}
+      idx2hash={flatPhotos}
       isPublic={isPublic}
       selectable
     />
