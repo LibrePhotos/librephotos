@@ -6,8 +6,8 @@ import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
 import { DotsVertical, Edit, Trash, Users } from "tabler-icons-react";
 
-import { deletePerson, renamePerson } from "../../actions/peopleActions";
-import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/people";
+import { deletePerson } from "../../actions/peopleActions";
+import { useFetchPeopleAlbumsQuery, useRenamePersonAlbumMutation } from "../../api_client/albums/people";
 import { Tile } from "../../components/Tile";
 import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";
 import { useAppDispatch } from "../../store/store";
@@ -23,6 +23,7 @@ export function AlbumPeople() {
   const { t } = useTranslation();
   const { data: albums, isFetching } = useFetchPeopleAlbumsQuery();
   const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums || []);
+  const [renamePerson] = useRenamePersonAlbumMutation();
 
   const openDeleteDialog = (id: string, name: string) => {
     showDeleteDialog();
@@ -34,6 +35,7 @@ export function AlbumPeople() {
     showRenameDialog();
     setPersonID(id);
     setPersonName(name);
+    setNewPersonName("");
   };
 
   function getPersonIcon(album) {
@@ -132,7 +134,7 @@ export function AlbumPeople() {
           />
           <Button
             onClick={() => {
-              dispatch(renamePerson(personID, personName, newPersonName));
+              renamePerson({ id: personID, personName, newPersonName });
               hideRenameDialog();
             }}
             disabled={

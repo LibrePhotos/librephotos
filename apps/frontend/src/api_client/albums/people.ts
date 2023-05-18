@@ -1,5 +1,7 @@
+import { showNotification } from "@mantine/notifications";
 import { z } from "zod";
 
+import i18n from "../../i18n";
 import { api } from "../api";
 
 export const PersonResponseSchema = z.object({
@@ -36,6 +38,7 @@ const PeopleResponseSchema = z.object({
 
 enum Endpoints {
   fetchPeopleAlbums = "fetchPeopleAlbums",
+  renamePersonAlbum = "renamePersonAlbum",
 }
 
 export const peopleAlbumsApi = api
@@ -54,6 +57,20 @@ export const peopleAlbumsApi = api
             face_url: item.face_url || "",
           })),
       }),
+      [Endpoints.renamePersonAlbum]: builder.mutation<void, { id: string; personName: string; newPersonName: string }>({
+        query: ({ id, newPersonName }) => ({
+          url: `persons/${id}/`,
+          method: "PATCH",
+          body: { newPersonName },
+        }),
+        transformResponse(response, meta, query) {
+          showNotification({
+            message: i18n.t<string>("toasts.renameperson", query),
+            title: i18n.t<string>("toasts.renamepersontitle"),
+            color: "teal",
+          });
+        },
+      }),
     }),
   })
   .enhanceEndpoints<"PeopleAlbums">({
@@ -62,7 +79,10 @@ export const peopleAlbumsApi = api
       [Endpoints.fetchPeopleAlbums]: {
         providesTags: ["PeopleAlbums"],
       },
+      [Endpoints.renamePersonAlbum]: {
+        invalidatesTags: ["PeopleAlbums"],
+      },
     },
   });
 
-export const { useFetchPeopleAlbumsQuery } = peopleAlbumsApi;
+export const { useFetchPeopleAlbumsQuery, useRenamePersonAlbumMutation } = peopleAlbumsApi;
