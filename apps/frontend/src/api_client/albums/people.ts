@@ -39,6 +39,7 @@ const PeopleResponseSchema = z.object({
 enum Endpoints {
   fetchPeopleAlbums = "fetchPeopleAlbums",
   renamePersonAlbum = "renamePersonAlbum",
+  deletePersonAlbum = "deletePersonAlbum",
 }
 
 export const peopleAlbumsApi = api
@@ -71,6 +72,19 @@ export const peopleAlbumsApi = api
           });
         },
       }),
+      [Endpoints.deletePersonAlbum]: builder.mutation<void, string>({
+        query: id => ({
+          url: `persons/${id}/`,
+          method: "DELETE",
+        }),
+        transformResponse() {
+          showNotification({
+            message: i18n.t<string>("toasts.deleteperson"),
+            title: i18n.t<string>("toasts.deletepersontitle"),
+            color: "teal",
+          });
+        },
+      }),
     }),
   })
   .enhanceEndpoints<"PeopleAlbums">({
@@ -82,7 +96,11 @@ export const peopleAlbumsApi = api
       [Endpoints.renamePersonAlbum]: {
         invalidatesTags: ["PeopleAlbums"],
       },
+      [Endpoints.deletePersonAlbum]: {
+        invalidatesTags: ["PeopleAlbums"],
+      },
     },
   });
 
-export const { useFetchPeopleAlbumsQuery, useRenamePersonAlbumMutation } = peopleAlbumsApi;
+export const { useFetchPeopleAlbumsQuery, useRenamePersonAlbumMutation, useDeletePersonAlbumMutation } =
+  peopleAlbumsApi;

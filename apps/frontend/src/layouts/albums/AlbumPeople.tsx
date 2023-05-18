@@ -6,11 +6,13 @@ import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
 import { DotsVertical, Edit, Trash, Users } from "tabler-icons-react";
 
-import { deletePerson } from "../../actions/peopleActions";
-import { useFetchPeopleAlbumsQuery, useRenamePersonAlbumMutation } from "../../api_client/albums/people";
+import {
+  useDeletePersonAlbumMutation,
+  useFetchPeopleAlbumsQuery,
+  useRenamePersonAlbumMutation,
+} from "../../api_client/albums/people";
 import { Tile } from "../../components/Tile";
 import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";
-import { useAppDispatch } from "../../store/store";
 import { HeaderComponent } from "./HeaderComponent";
 
 export function AlbumPeople() {
@@ -19,24 +21,23 @@ export function AlbumPeople() {
   const [personID, setPersonID] = useState("");
   const [personName, setPersonName] = useState("");
   const [newPersonName, setNewPersonName] = useState("");
-  const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const { data: albums, isFetching } = useFetchPeopleAlbumsQuery();
   const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums || []);
   const [renamePerson] = useRenamePersonAlbumMutation();
+  const [deletePerson] = useDeletePersonAlbumMutation();
 
-  const openDeleteDialog = (id: string, name: string) => {
-    showDeleteDialog();
+  function openDeleteDialog(id: string) {
     setPersonID(id);
-    setPersonName(name);
-  };
+    showDeleteDialog();
+  }
 
-  const openRenameDialog = (id: string, name: string) => {
-    showRenameDialog();
+  function openRenameDialog(id: string, name: string) {
     setPersonID(id);
     setPersonName(name);
     setNewPersonName("");
-  };
+    showRenameDialog();
+  }
 
   function getPersonIcon(album) {
     if (album.face_count === 0) {
@@ -86,7 +87,7 @@ export function AlbumPeople() {
                 <Menu.Item icon={<Edit />} onClick={() => openRenameDialog(album.key, album.text)}>
                   {t("rename")}
                 </Menu.Item>
-                <Menu.Item icon={<Trash />} onClick={() => openDeleteDialog(album.key, album.text)}>
+                <Menu.Item icon={<Trash />} onClick={() => openDeleteDialog(album.key)}>
                   {t("delete")}
                 </Menu.Item>
               </Menu.Dropdown>
@@ -153,7 +154,7 @@ export function AlbumPeople() {
           <Button
             color="red"
             onClick={() => {
-              dispatch(deletePerson(personID));
+              deletePerson(personID);
               hideDeleteDialog();
             }}
           >
