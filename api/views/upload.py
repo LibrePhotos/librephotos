@@ -6,9 +6,14 @@ from chunked_upload.exceptions import ChunkedUploadError
 from chunked_upload.models import ChunkedUpload
 from chunked_upload.views import ChunkedUploadCompleteView, ChunkedUploadView
 from django.core.files.base import ContentFile
+from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets
 from rest_framework.response import Response
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import AccessToken
 
 import api.util as util
 from api.models import Photo, User
@@ -24,13 +29,20 @@ class UploadPhotoExists(viewsets.ViewSet):
             return Response({"exists": False})
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class UploadPhotosChunked(ChunkedUploadView):
-
     model = ChunkedUpload
 
     def check_permissions(self, request):
+        jwt = request.COOKIES.get("jwt")
+        if jwt is not None:
+            try:
+                AccessToken(jwt)
+            except TokenError:
+                return HttpResponseForbidden()
+        else:
+            return HttpResponseForbidden()
         # To-Do: make deactivatable
-        # To-Do: Maybe check jwt token here?
         # To-Do: Check if file is allowed type
         user = User.objects.filter(id=request.POST.get("user")).first()
         if not user or not user.is_authenticated:
@@ -50,12 +62,20 @@ class UploadPhotosChunked(ChunkedUploadView):
         return chunked_upload
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
-
     model = ChunkedUpload
 
     def check_permissions(self, request):
-        # To-Do: Maybe check jwt token here?
+        jwt = request.COOKIES.get("jwt")
+        if jwt is not None:
+            try:
+                AccessToken(jwt)
+            except TokenError:
+                return HttpResponseForbidden()
+        else:
+            return HttpResponseForbidden()
+
         user = User.objects.filter(id=request.POST.get("user")).first()
         if not user or not user.is_authenticated:
             raise ChunkedUploadError(
@@ -85,7 +105,6 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                     user.scan_directory, "uploads", device, filename
                 )
             else:
-
                 existing_photo_hash = calculate_hash(
                     user, os.path.join(user.scan_directory, "uploads", device, filename)
                 )
