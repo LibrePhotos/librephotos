@@ -107,7 +107,13 @@
         "rescanfacestitle": "Ri-scansiona i volti",
         "rescanfaces": "Ri-scansiona",
         "scanoptions": "Opzioni scansione",
-        "confidencelevel": "Livello di Confidenza"
+        "confidencelevel": "Livello di Confidenza",
+        "portuguesebr": "Portoghese (Brasile)",
+        "slovak": "slovacco",
+        "arabic": "Arabo",
+        "korean": "Koreano",
+        "hungarian": "Ungherese",
+        "urdu": "Urdu"
     },
     "joblist": {
         "queued": "In coda",
