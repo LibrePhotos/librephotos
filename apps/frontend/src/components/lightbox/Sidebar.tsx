@@ -7,11 +7,11 @@ import { push } from "redux-first-history";
 // only needs to be imported once
 import { Edit, File, FileInfo, Map2, Note, Photo, Tags, Users, X } from "tabler-icons-react";
 
-import { generatePhotoIm2txtCaption } from "../../actions/photosActions";
+import { generatePhotoIm2txtCaption, savePhotoCaption } from "../../actions/photosActions";
 import type { Photo as PhotoType } from "../../actions/photosActions.types";
 import { searchPhotos } from "../../actions/searchActions";
 import { serverAddress } from "../../api_client/apiClient";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { store, useAppDispatch, useAppSelector } from "../../store/store";
 import { LocationMap } from "../LocationMap";
 import { Tile } from "../Tile";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
@@ -31,6 +31,7 @@ export function Sidebar(props: Props) {
   const [personEditOpen, setPersonEditOpen] = useState(false);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
   const { generatingCaptionIm2txt } = useAppSelector(store => store.photos);
+  const { savingImageCaption } = useAppSelector(store => store.photos);
   const { photoDetail, isPublic, closeSidepanel } = props;
   const { width } = useViewportSize();
   const SCROLLBAR_WIDTH = 15;
@@ -149,7 +150,13 @@ export function Sidebar(props: Props) {
                 placeholder={photoDetail.captions_json.im2txt}
               />
               <Group>
-                <Button disabled={isPublic} size="sm" color="green">
+                <Button 
+                onClick={() => {
+                    dispatch(savePhotoCaption(photoDetail.image_hash,"caption from abdullah"));
+                }}
+                disabled={isPublic} 
+                size="sm" 
+                color="green">
                   {t("lightbox.sidebar.submit")}
                 </Button>
                 <Button
