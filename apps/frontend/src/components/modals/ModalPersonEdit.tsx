@@ -97,7 +97,7 @@ export function ModalPersonEdit(props: Props) {
               onRequestClose();
               setNewPersonName("");
             }}
-            disabled={personExist(newPersonName)}
+            disabled={personExist(newPersonName) || newPersonName.trim().length === 0}
             type="submit"
           >
             {t("personedit.addperson")}
