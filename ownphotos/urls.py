@@ -204,6 +204,7 @@ urlpatterns = [
     re_path(r"^api/photosedit/makepublic", photos.SetPhotosPublic.as_view()),
     re_path(r"^api/photosedit/share", photos.SetPhotosShared.as_view()),
     re_path(r"^api/photosedit/generateim2txt", photos.GeneratePhotoCaption.as_view()),
+    re_path(r"^api/photosedit/savecaption", photos.SavePhotoCaption.as_view()),
     re_path(r"^api/useralbum/share", views.SetUserAlbumShared.as_view()),
     re_path(r"^api/trainfaces", faces.TrainFaceView.as_view()),
     re_path(r"^api/clusterfaces", dataviz.ClusterFaceView.as_view()),

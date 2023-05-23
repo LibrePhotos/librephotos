@@ -512,6 +512,25 @@ class GeneratePhotoCaption(APIView):
         return Response({"status": res})
 
 
+class SavePhotoCaption(APIView):
+    permission_classes = (IsOwnerOrReadOnly,)
+
+    def post(self, request, format=None):
+        data = dict(request.data)
+        image_hash = data["image_hash"]
+        caption = data["caption"]
+
+        photo = Photo.objects.get(image_hash=image_hash)
+        if photo.owner != request.user:
+            return Response(
+                {"status": False, "message": "you are not the owner of this photo"},
+                status=400,
+            )
+
+        res = photo._save_captions(caption=caption)
+        return Response({"status": res})
+
+
 class DeletePhotos(APIView):
     def delete(self, request):
         data = dict(request.data)
