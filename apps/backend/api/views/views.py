@@ -458,8 +458,10 @@ class MediaAccessFullsizeOriginalView(APIView):
                     "/nextcloud_media/", "/nextcloud_original/"
                 )
                 internal_path = "/nextcloud_original" + photo.main_file.path[21:]
-            if photo.main_file.path.startswith("/data/"):
+            else:
                 internal_path = "/original" + photo.main_file.path[5:]
+
+            internal_path = quote(internal_path)
 
             # grant access if the requested photo is public
             if photo.public:
@@ -488,7 +490,7 @@ class MediaAccessFullsizeOriginalView(APIView):
                 mime = magic.Magic(mime=True)
                 filename = mime.from_file(photo.main_file.path)
                 response["Content-Type"] = filename
-                response["X-Accel-Redirect"] = quote(internal_path)
+                response["X-Accel-Redirect"] = internal_path
                 return response
             else:
                 for album in photo.albumuser_set.only("shared_to"):
