@@ -5,6 +5,7 @@ import numpy as np
 import pytz
 import seaborn as sns
 from bulk_update.helper import bulk_update
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django_rq import job
 from hdbscan import HDBSCAN
@@ -34,10 +35,11 @@ def cluster_faces(user, inferred=True):
 
     face_encoding = []
     faces = Face.objects.filter(photo__owner=user)
-    face: Face
-    for face in faces:
-        if (not face.person_label_is_inferred) or inferred:
-            face_encoding.append(face.get_encoding_array())
+    paginator = Paginator(faces, 5000)
+    for page in range(1, paginator.num_pages + 1):
+        for face in paginator.page(page).object_list:
+            if ((not face.person_label_is_inferred) or inferred) and face.encoding:
+                face_encoding.append(face.get_encoding_array())
 
     pca = PCA(n_components=3)
     vis_all = pca.fit_transform(face_encoding)
