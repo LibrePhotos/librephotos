@@ -58,7 +58,7 @@ export const peopleAlbumsApi = api
             face_photo_url: item.face_photo_url || "",
             face_url: item.face_url || "",
           }));
-          return _.sortBy(people, "text");
+          return _.orderBy(people, ["text", "face_count"], ["asc", "desc"]);
         },
       }),
       [Endpoints.renamePersonAlbum]: builder.mutation<void, { id: string; personName: string; newPersonName: string }>({
