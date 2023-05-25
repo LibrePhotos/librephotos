@@ -1,4 +1,5 @@
 import { showNotification } from "@mantine/notifications";
+import _ from "lodash";
 import { z } from "zod";
 
 import i18n from "../../i18n";
@@ -47,8 +48,8 @@ export const peopleAlbumsApi = api
     endpoints: builder => ({
       [Endpoints.fetchPeopleAlbums]: builder.query<People, void>({
         query: () => "persons/?page_size=1000",
-        transformResponse: response =>
-          PeopleResponseSchema.parse(response).results.map(item => ({
+        transformResponse: response => {
+          const people = PeopleResponseSchema.parse(response).results.map(item => ({
             key: item.id.toString(),
             value: item.name,
             text: item.name,
@@ -56,7 +57,9 @@ export const peopleAlbumsApi = api
             face_count: item.face_count,
             face_photo_url: item.face_photo_url || "",
             face_url: item.face_url || "",
-          })),
+          }));
+          return _.orderBy(people, ["text", "face_count"], ["asc", "desc"]);
+        },
       }),
       [Endpoints.renamePersonAlbum]: builder.mutation<void, { id: string; personName: string; newPersonName: string }>({
         query: ({ id, newPersonName }) => ({
