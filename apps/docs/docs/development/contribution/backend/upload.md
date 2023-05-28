@@ -32,7 +32,6 @@ On the first chunk leave `upload_id` empty, you will get a response with the `up
 
 - `Content-Type` - `multipart/form-data`
 - `Authorization` - `Bearer <token>`
-- `X-CSRFToken` - `<token>`
 - `Content-Range` - `bytes <start>-<end>/<total>`
 
 ### `POST /api/upload/complete/`
@@ -50,7 +49,6 @@ Combines the chunks of a file into a single file and moves it to the upload fold
 
 - `Content-Type` - `multipart/form-data`
 - `Authorization` - `Bearer <token>`
-- `X-CSRFToken` - `<token>`
 
 ### `GET /api/scanuploadedphotos/`
 
