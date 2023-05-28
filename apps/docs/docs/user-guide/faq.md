@@ -61,3 +61,13 @@ Then double-click on Processors or select it and click Edit:
 ## error decoding 'Volumes[0]': invalid spec: :/data: empty section between colons / "The "scanDirectory" variable is not set. Defaulting to a blank string."
 
 This error usually means, that you forgot to rename the librephotos.env to .env
+
+## Why is the scan directory not mounted read-only?
+
+You can set the scan directory as read-only, but then a couple of features will not be available. List of impacted features are:
+
+- Writing back metadata to media files
+- Uploading images
+- Deleting images
+
+This is not yet handled gracefully, which means, you will probably just get non-descriptive errors, when you are trying to use these features.
