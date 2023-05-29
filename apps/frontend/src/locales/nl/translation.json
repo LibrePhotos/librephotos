@@ -624,5 +624,6 @@
     "modify": "Bewerken",
     "locationstimeline": {
         "fromto": "{{location}} van {{start}} tot {{end}}"
-    }
+    },
+    "docs": "Documentatie"
 }
