@@ -3,11 +3,11 @@ import { useMediaQuery } from "@mantine/hooks";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
-import { ChevronRight, Heart } from "tabler-icons-react";
+import { Book, ChevronRight, Heart } from "tabler-icons-react";
 
 import { selectAuthAccess, selectIsAuthenticated } from "../../store/auth/authSelectors";
 import { useAppDispatch, useAppSelector } from "../../store/store";
-import { LEFT_MENU_WIDTH, SUPPORT_LINK } from "../../ui-constants";
+import { DOCUMENTATION_LINK, LEFT_MENU_WIDTH, SUPPORT_LINK } from "../../ui-constants";
 import { getNavigationItems, navigationStyles } from "./navigation";
 
 export function SideMenuNarrow(): JSX.Element {
@@ -93,6 +93,12 @@ export function SideMenuNarrow(): JSX.Element {
       <Navbar.Section grow>{links}</Navbar.Section>
 
       <Navbar.Section mb="lg">
+        <a href={DOCUMENTATION_LINK} target="_blank" rel="noreferrer" className={classes.link}>
+          <ActionIcon className={classes.linkIcon} variant="light">
+            <Book />
+          </ActionIcon>
+          <span style={{ flexGrow: 2 }}>{t("docs")}</span>
+        </a>
         <a href={SUPPORT_LINK} target="_blank" rel="noreferrer" className={classes.link}>
           <ActionIcon className={classes.linkIcon} color="pink" variant="light">
             <Heart />
