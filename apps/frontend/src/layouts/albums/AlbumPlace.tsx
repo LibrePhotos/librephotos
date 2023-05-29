@@ -14,8 +14,12 @@ import { serverAddress } from "../../api_client/apiClient";
 import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";
 import { HeaderComponent } from "./HeaderComponent";
 
-export function AlbumPlace() {
-  const { width, height } = useViewportSize();
+type Props = {
+  height?: number;
+};
+
+export function AlbumPlace({ height }: Props) {
+  const { width } = useViewportSize();
   const mapRef = useRef<Map>(null);
   const { t } = useTranslation();
   const [visibleAlbums, setVisibleAlbums] = useState<PlaceAlbumList>([]);
@@ -155,3 +159,7 @@ export function AlbumPlace() {
     </div>
   );
 }
+
+AlbumPlace.defaultProps = {
+  height: 0,
+};

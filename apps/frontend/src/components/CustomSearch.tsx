@@ -1,6 +1,6 @@
-import { Autocomplete, Group, Text, createStyles, Avatar } from "@mantine/core";
+import { Autocomplete, Avatar, Group, Text, createStyles } from "@mantine/core";
 import type { AutocompleteItem } from "@mantine/core";
-import { useViewportSize } from "@mantine/hooks";
+import { useInterval, useViewportSize } from "@mantine/hooks";
 import { random } from "lodash";
 import React, { cloneElement, forwardRef, useCallback, useEffect, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
@@ -8,11 +8,13 @@ import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
 import { Album, Map, Search, Tag, X } from "tabler-icons-react";
 
-import { fetchPlaceAlbumsList, fetchThingAlbumsList, fetchUserAlbumsList } from "../actions/albumsActions";
-import { fetchPeople } from "../actions/peopleActions";
 import { searchPhotos } from "../actions/searchActions";
-import { fetchExampleSearchTerms } from "../actions/utilActions";
-import { useAppDispatch, useAppSelector } from "../store/store";
+import { useFetchPeopleAlbumsQuery } from "../api_client/albums/people";
+import { useFetchPlacesAlbumsQuery } from "../api_client/albums/places";
+import { useFetchThingsAlbumsQuery } from "../api_client/albums/things";
+import { useFetchUserAlbumsQuery } from "../api_client/albums/user";
+import { useFetchSearchExamplesQuery } from "../api_client/search";
+import { useAppDispatch } from "../store/store";
 import { fuzzyMatch } from "../util/util";
 
 enum SuggestionType {
@@ -20,7 +22,7 @@ enum SuggestionType {
   PLACE_ALBUM,
   THING_ALBUM,
   USER_ALBUM,
-  PEOPLE
+  PEOPLE,
 }
 
 interface SearchSuggestion {
@@ -46,7 +48,12 @@ function toUserAlbumSuggestion(item: any) {
 }
 
 function toPeopleSuggestion(item: any) {
-  return { value: item.value, icon: <Avatar src={item.face_url} alt={item.value} size="xl"/>, type: SuggestionType.PEOPLE, id: item.key };
+  return {
+    value: item.value,
+    icon: <Avatar src={item.face_url} alt={item.value} size="xl" />,
+    type: SuggestionType.PEOPLE,
+    id: item.key,
+  };
 }
 
 const SearchSuggestionItem = forwardRef<HTMLDivElement, SearchSuggestion>(
@@ -79,15 +86,26 @@ export function CustomSearch() {
   const [value, setValue] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<Array<AutocompleteItem>>([]);
   const [searchPlaceholder, setSearchPlaceholder] = useState("");
-  const searchExamples = useAppSelector(store => store.util.exampleSearchTerms);
-  const people = useAppSelector(store => store.people.people);
-  const placeAlbums = useAppSelector(store => store.albums.albumsPlaceList);
-  const thingAlbums = useAppSelector(store => store.albums.albumsThingList);
-  const userAlbums = useAppSelector(store => store.albums.albumsUserList);
   const searchBarWidth = width - width / 2.2;
+  const { data: searchExamples } = useFetchSearchExamplesQuery();
+  const { data: placeAlbums } = useFetchPlacesAlbumsQuery();
+  const { data: thingAlbums } = useFetchThingsAlbumsQuery();
+  const { data: userAlbums } = useFetchUserAlbumsQuery();
+  const { data: people } = useFetchPeopleAlbumsQuery();
+
+  const updateSearchPlaceholder = useInterval(() => {
+    if (!searchExamples) {
+      return;
+    }
+    const example = searchExamples[Math.floor(random(0.1, 1) * searchExamples.length)];
+    setSearchPlaceholder(`${t("search.search")} ${example}`);
+  }, 5000);
 
   const filterSearch = useCallback(
     (query: string = "") => {
+      if (!searchExamples || !placeAlbums || !thingAlbums || !userAlbums || !people) {
+        return;
+      }
       setValue(query);
       setSearchSuggestions([
         ...searchExamples
@@ -146,24 +164,13 @@ export function CustomSearch() {
   }
 
   useEffect(() => {
-    dispatch(fetchExampleSearchTerms());
-    dispatch(fetchPlaceAlbumsList());
-    dispatch(fetchThingAlbumsList());
-    dispatch(fetchUserAlbumsList());
-    fetchPeople(dispatch);
-  }, [dispatch]);
-
-  useEffect(() => {
     filterSearch();
   }, [searchExamples, placeAlbums, thingAlbums, userAlbums, people, filterSearch]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      const example = searchExamples[Math.floor(random(0.1, 1) * searchExamples.length)];
-      setSearchPlaceholder(`${t("search.search")} ${example}`);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [t, searchExamples]);
+    updateSearchPlaceholder.start();
+    return updateSearchPlaceholder.stop;
+  }, [updateSearchPlaceholder]);
 
   return (
     <Autocomplete
