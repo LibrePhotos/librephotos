@@ -1,5 +1,5 @@
 ---
-title: " 📁 Upload"
+title: " ⬆ Upload"
 excerpt: "How to upload photos to LibrePhotos"
 sidebar_position: 5
 ---
