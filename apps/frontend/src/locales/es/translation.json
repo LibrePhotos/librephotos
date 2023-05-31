@@ -624,5 +624,6 @@
     "modify": "Modificar",
     "locationstimeline": {
         "fromto": "{{location}} de {{start}} a {{end}}"
-    }
+    },
+    "docs": "Documentación"
 }
