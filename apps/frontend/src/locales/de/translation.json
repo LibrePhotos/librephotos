@@ -624,5 +624,6 @@
         "errorinvalidemail": "Gültige E-Mail-Adresse erforderlich"
     },
     "save": "Speichern",
-    "modify": "Bearbeiten"
+    "modify": "Bearbeiten",
+    "docs": "Dokumentation"
 }
