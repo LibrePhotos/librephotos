@@ -82,4 +82,4 @@ in order to open this container, you must have the required dependencies install
 
 ## Next Steps
 
-Next, take a look at the [first steps after setup]({% post_url user_guide/0000-02-01-first_steps %}).
+Next, take a look at the [first steps after setup](../user-guide/first-steps).

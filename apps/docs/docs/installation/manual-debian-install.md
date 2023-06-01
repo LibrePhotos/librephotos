@@ -79,6 +79,4 @@ This is a permissions issue. The subdirectories need others read and execute per
 
 ## Next Steps
 
-Next, take a look at the [first steps after setup]({% post_url user_guide/0000-02-01-first_steps %}).
-
-
+Next, take a look at the [first steps after setup](../user-guide/first-steps).

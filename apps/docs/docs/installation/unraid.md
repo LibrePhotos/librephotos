@@ -42,7 +42,7 @@ wget https://raw.githubusercontent.com/LibrePhotos/librephotos-docker/main/docke
 ```
 
 You'll need to edit the .env file with paths to your photos (myPhotos) and possibly the timeZone variable. Optionally, you'll want to grab a mapbox API key as documented in the file. Keep note of the default HTTP port, 3000.
-You should have LibrePhotos accessible after a few minutes of boot-up on unraidip:3000 unless you changed this in the .env file. The username is admin & the password is admin, unless you changed them in the .env file. It is recommended you change the admin username and password if LibrePhotos is going to be publicly accessible. This is done via the .env file.
+You should have LibrePhotos accessible after a few minutes of boot-up on unraidip:3000 unless you changed this in the .env file.
 
 ​Once done, you can fire up the containers by typing:
 
@@ -63,13 +63,6 @@ docker ps | grep librephoto
 ```
 
 Finally, you can access the UI by going to http://unraidip:3000
-
-The first thing you'll want to do in the UI is go to the drop-down menu located at the top right under avatar and select Admin Area.
-
-You'll need to set your "Scan Directory" which should be /data.
-
-Go back to the drop-down and select Settings. Scroll to the bottom and select Scan photos from bottom left. You'll see some activity on your server as the photos are being processed. You can check on them by going to Photos on the top left of the UI and select recently added.
-​
 
 Furthermore, you can also monitor progress from shell prompt by tailing this file:
 
@@ -97,4 +90,4 @@ Thanks to [u/Tusc00](https://old.reddit.com/user/Tusc00) and Martijn (Spiek90) f
 
 ## Next Steps
 
-Next, take a look at the [first steps after setup]({% post_url user_guide/0000-02-01-first_steps %}).
+Next, take a look at the [first steps after setup](../user-guide/first-steps).
