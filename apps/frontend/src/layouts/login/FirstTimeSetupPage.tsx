@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-props-no-spreading */
 import {
   Button,
   Card,
@@ -40,8 +41,8 @@ export function FirstTimeSetupPage(): JSX.Element {
     initialValues: {
       username: "",
       password: "",
-      first_name: "",
-      last_name: "",
+      firstName: "",
+      lastName: "",
       passwordConfirm: "",
       email: "",
     },
@@ -60,15 +61,15 @@ export function FirstTimeSetupPage(): JSX.Element {
       dispatch(api.endpoints.fetchUserList.initiate());
       navigate("/");
     }
-  }, [navigate, isSuccess]);
+  }, [navigate, isSuccess, dispatch]);
 
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     const result = form.validate();
     if (!result.hasErrors) {
-      const { email, first_name, last_name, password } = form.values;
+      const { email, firstName, lastName, password } = form.values;
       const username = form.values.username.toLowerCase();
-      void signup({ email, first_name, last_name, username, password });
+      void signup({ email, first_name: firstName, last_name: lastName, username, password });
     }
   }
 
@@ -94,7 +95,7 @@ export function FirstTimeSetupPage(): JSX.Element {
         </Group>
 
         <div className="login-form">
-          <Card>
+          <Card shadow="xl">
             <Stack>
               <Title order={3}>{t("login.firsttimesetup")}</Title>
               <form onSubmit={onSubmit}>
@@ -113,33 +114,37 @@ export function FirstTimeSetupPage(): JSX.Element {
                     name="email"
                     {...form.getInputProps("email")}
                   />
-                  <TextInput
-                    required
-                    icon={<User />}
-                    placeholder={t("settings.firstnameplaceholder")}
-                    name="firstname"
-                    {...form.getInputProps("first_name")}
-                  />
-                  <TextInput
-                    required
-                    icon={<User />}
-                    placeholder={t("settings.lastnameplaceholder")}
-                    name="firstname"
-                    {...form.getInputProps("last_name")}
-                  />
-                  <PasswordInput
-                    icon={<Lock />}
-                    placeholder={t("login.passwordplaceholder")}
-                    name="password"
-                    {...form.getInputProps("password")}
-                  />
-                  <PasswordInput
-                    required
-                    icon={<Lock />}
-                    placeholder={t("login.confirmpasswordplaceholder")}
-                    name="passwordConfirm"
-                    {...form.getInputProps("passwordConfirm")}
-                  />
+                  <Group grow>
+                    <TextInput
+                      required
+                      icon={<User />}
+                      placeholder={t("settings.firstnameplaceholder")}
+                      name="firstname"
+                      {...form.getInputProps("firstName")}
+                    />
+                    <TextInput
+                      required
+                      icon={<User />}
+                      placeholder={t("settings.lastnameplaceholder")}
+                      name="firstname"
+                      {...form.getInputProps("lastName")}
+                    />
+                  </Group>
+                  <Group grow>
+                    <PasswordInput
+                      icon={<Lock />}
+                      placeholder={t("login.passwordplaceholder")}
+                      name="password"
+                      {...form.getInputProps("password")}
+                    />
+                    <PasswordInput
+                      required
+                      icon={<Lock />}
+                      placeholder={t("login.confirmpasswordplaceholder")}
+                      name="passwordConfirm"
+                      {...form.getInputProps("passwordConfirm")}
+                    />
+                  </Group>
 
                   <Button
                     variant="gradient"
