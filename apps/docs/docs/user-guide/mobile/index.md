@@ -10,7 +10,7 @@ sidebar_position: 5
 
 It aims to become a full-featured photo album replacement, including features like offline support, backup and sync etc.
 
-The app is currently in closed beta on the Google Play Store. Contact [the author](https://github.com/savvasdalkitsis/) on [gitter](https://app.gitter.im/#/room/#uhuruphotos:gitter.im) or [discord](https://discord.gg/xwRvtSDGWb) for access.
+The app is currently in [open beta on the Google Play Store](https://play.google.com/apps/testing/com.savvasdalkitsis.uhuruphotos). You can contact [the author](https://github.com/savvasdalkitsis/) on [gitter](https://app.gitter.im/#/room/#uhuruphotos:gitter.im) or [discord](https://discord.gg/xwRvtSDGWb) for information.
 
 ## LibrePhotos Mobile
 
