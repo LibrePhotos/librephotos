@@ -268,7 +268,7 @@
         "album": "Álbum",
         "albumcover": "Establecer portada del álbum",
         "albumcoverdescription": "Configurar la portada del álbum actual",
-        "deleted": "Eliminar"
+        "deleted": "Mover a la papelera"
     },
     "lightbox": {
         "sidebar": {
@@ -529,7 +529,7 @@
         "deletemissingphotos": "Eliminando fotos que faltan…",
         "updateuser": "La información de {{username}} fue actualizada con éxito",
         "generateeventalbums": "Generando álbumes de eventos…",
-        "deletephoto": "Se eliminaron {{numberOfPhotos}} fotos.",
+        "deletephoto": "Se movieron {{numberOfPhotos}} foto(s) a la papelera.",
         "recoverphoto": "{{numberOfPhotos}} foto(s) fueron recuperadas.",
         "setdeletetitle": "Eliminar Imágenes",
         "finaldeletephoto": "{{numberOfPhotos}} la(s) foto(s) se eliminaron permanentemente.",
