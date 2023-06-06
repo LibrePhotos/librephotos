@@ -31,8 +31,11 @@ export function Sidebar(props: Props) {
   const [personEditOpen, setPersonEditOpen] = useState(false);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
   const { generatingCaptionIm2txt } = useAppSelector(store => store.photos);
-  const { savingImageCaption } = useAppSelector(store => store.photos);
+  // const { savingImageCaption } = useAppSelector(store => store.photos);
   const { photoDetail, isPublic, closeSidepanel } = props;
+  const cur_cap = photoDetail.captions_json.user_caption 
+              && photoDetail.captions_json.user_caption.length > 0 ? photoDetail.captions_json.user_caption : photoDetail.captions_json.im2txt
+  const [imageCaption, setimageCaption] = useState(cur_cap)
   const { width } = useViewportSize();
   const SCROLLBAR_WIDTH = 15;
   let LIGHTBOX_SIDEBAR_WIDTH = 320;
@@ -145,14 +148,15 @@ export function Sidebar(props: Props) {
             {false && photoDetail.captions_json.im2txt}
             <Stack>
               <Textarea
-                value={photoDetail.captions_json.im2txt}
+                value={imageCaption}
                 disabled={isPublic}
-                placeholder={photoDetail.captions_json.im2txt}
+                placeholder={cur_cap}
+                onChange={e => setimageCaption(e.target.value)}
               />
               <Group>
                 <Button 
                 onClick={() => {
-                    dispatch(savePhotoCaption(photoDetail.image_hash,"caption from abdullah"));
+                    dispatch(savePhotoCaption(photoDetail.image_hash, imageCaption));
                 }}
                 disabled={isPublic} 
                 size="sm" 

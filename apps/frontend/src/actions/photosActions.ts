@@ -597,7 +597,7 @@ export function generatePhotoIm2txtCaption(image_hash: string) {
 }
 
 
-export function savePhotoCaption(image_hash: string, caption: string) {
+export function savePhotoCaption(image_hash: string, caption?: string | undefined) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "SAVE_PHOTO_CAPTION" });
     Server.post("photosedit/savecaption", { image_hash: image_hash, caption: caption })
