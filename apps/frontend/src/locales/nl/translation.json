@@ -233,7 +233,7 @@
         "hide": "Verbergen",
         "unhide": "Tonen",
         "makepublic": "Instellen als openbaar",
-        "deleted": "Verwijderen",
+        "deleted": "Verplaatsen naar prullenbak",
         "makeprivate": "Instellen als privé",
         "download": "Downloaden",
         "albumcoverdescription": "Stel de omslag van het huidige album in",
@@ -494,7 +494,7 @@
         "deletemissingphotos": "Bezig met verwijderen van ontbrekende foto's…",
         "deletemissingphotostitle": "Ontbrekende foto's verwijderen",
         "generateeventalbums": "Bezig met samenstellen van gebeurtenisalbums…",
-        "deletephoto": "Er is/zijn {{numberOfPhotos}} foto('s) verwijderd.",
+        "deletephoto": "Er is/zijn {{numberOfPhotos}} foto('s) verplaatst naar de prullenbak.",
         "scanphotos": "Het scannen is begonnen",
         "recoverphoto": "Er is/zijn {{numberOfPhotos}} foto('s) hersteld.",
         "deletepersontitle": "Persoon verwijderen",
@@ -540,7 +540,9 @@
         "removefacestoperson": "Er is/zijn {{numberOfFaces}} gezicht(en) verplaatst naar ‘Onbekend - Overig’",
         "deleteuser": "{{username}} is verwijderd",
         "deleteusertitle": "Gebruiker verwijderen",
-        "removefacestopersontitle": "Gezichten van persoon verwijderen"
+        "removefacestopersontitle": "Gezichten van persoon verwijderen",
+        "savecaptions": "Het bijschrijft is bijgewerkt",
+        "captionupdate": "Bijschrift bijwerken"
     },
     "rename": "Naam wijzigen",
     "events": "Gebeurtenissen",
