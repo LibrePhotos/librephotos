@@ -599,11 +599,15 @@ export function generatePhotoIm2txtCaption(image_hash: string) {
 
 export function savePhotoCaption(image_hash: string, caption?: string | undefined) {
   return function (dispatch: Dispatch<any>) {
-    dispatch({ type: "SAVE_PHOTO_CAPTION" });
     Server.post("photosedit/savecaption", { image_hash: image_hash, caption: caption })
       .then(() => {
         dispatch({ type: "SAVE_PHOTO_CAPTION_FULFILLED" });
         dispatch(fetchPhotoDetail(image_hash));
+        showNotification({
+          message: i18n.t<string>("toasts.savecaptions"),
+          title: i18n.t<string>("toasts.captionupdate"),
+          color: "teal",
+        });
       })
       .catch(error => {
         dispatch({ type: "SAVE_PHOTO_CAPTION_REJECTED" });
