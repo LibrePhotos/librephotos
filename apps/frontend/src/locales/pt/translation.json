@@ -249,7 +249,7 @@
         "days": "dias"
     },
     "selectionactions": {
-        "deleted": "Eliminar",
+        "deleted": "Mover para o lixo",
         "download": "Descarregar",
         "makeprivate": "Tornar privada",
         "photoactions": "Ações de fotos",
@@ -541,7 +541,7 @@
         "scannextcloudphotostitle": "Analisar fotos do Nextcloud",
         "generateeventalbumstitle": "Gerar álbuns de eventos",
         "recoverphoto": "{{numberOfPhotos}} fotos foram recuperadas.",
-        "deletephoto": "{{numberOfPhotos}} fotos foram eliminadas.",
+        "deletephoto": "{{numberOfPhotos}} fotos foram movidas para o lixo.",
         "scanuploadedphotos": "A analisar fotos carregadas…",
         "scanuploadedphotostitle": "Analisar fotos carregadas",
         "deleteallautoalbumstitle": "Eliminar todos os álbuns criados automaticamente",
@@ -549,7 +549,9 @@
         "deleteuser": "{{username}} eliminado",
         "deleteusertitle": "Eliminar utilizador",
         "removefacestoperson": "{{numberOfFaces}} cara(s) movida(s) para 'Desconhecido - Outro'",
-        "removefacestopersontitle": "Remover caras da pessoa"
+        "removefacestopersontitle": "Remover caras da pessoa",
+        "savecaptions": "Legenda da imagem atualizada com sucesso",
+        "captionupdate": "Atualizar legenda"
     },
     "deletefaceexplanation": "Esta ação vai permanentemente eliminar as caras e todos os seus dados associados. Esta ação não pode ser desfeita.",
     "rules": {
