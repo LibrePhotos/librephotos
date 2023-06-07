@@ -180,6 +180,31 @@ class Photo(models.Model):
             )
             return False
 
+    def _save_captions(self, commit=True, caption=None):
+        image_path = self.thumbnail_big.path
+        captions = self.captions_json
+        search_captions = self.search_captions
+        try:
+            caption = (
+                caption.replace("<start>", "").replace("<end>", "").strip().lower()
+            )
+            captions["user_caption"] = caption
+            self.captions_json = captions
+            # todo: handle duplicate captions
+            self.search_captions = search_captions + caption
+            if commit:
+                self.save()
+            util.logger.info(
+                "saved captions for image %s. caption: %s"
+                % (image_path, caption)
+            )
+            return True
+        except Exception:
+            util.logger.warning(
+                "could not save captions for image %s" % image_path
+            )
+            return False
+
     def _generate_clip_embeddings(self, commit=True):
         image_path = self.thumbnail_big.path
         if not self.clip_embeddings and image_path:
