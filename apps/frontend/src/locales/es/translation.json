@@ -546,7 +546,9 @@
         "removefacestoperson": "Se movieron {{numberOfFaces}} rostros a «Desconocidos - Otros»",
         "removefacestopersontitle": "Quitar rostros de la persona",
         "deleteallautoalbumstitle": "Eliminar todos los álbumes creados automáticamente",
-        "deleteuser": "{{username}} eliminado"
+        "deleteuser": "{{username}} eliminado",
+        "savecaptions": "Leyenda de la imagen actualizada con éxito",
+        "captionupdate": "Actualizar el título"
     },
     "rules": {
         "report_tz": "Transformar a{{rule}}",
