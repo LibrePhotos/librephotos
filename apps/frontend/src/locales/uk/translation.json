@@ -466,7 +466,9 @@
         "sharephoto": "До {{numberOfPhotos}} світлин(и) надано доступ для {{username}}",
         "unsharephoto": "Скасовано доступ до {{numberOfPhotos}} світлин(и) для {{username}}",
         "addpublicphoto": "{{numberOfPhotos}} світлин(у) додано до загальнодоступних. Посилання на них скопійовані до буфера обміну.",
-        "unhidephoto": "{{numberOfPhotos}} світлин(у) було показано."
+        "unhidephoto": "{{numberOfPhotos}} світлин(у) було показано.",
+        "savecaptions": "Підпис зображення успішно оновлено",
+        "captionupdate": "Оновити підпис"
     },
     "rules": {
         "10": "Час створення файлу за часовим поясом UTC",
