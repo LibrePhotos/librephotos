@@ -165,7 +165,6 @@ class Photo(models.Model):
             )
             captions["im2txt"] = caption
             self.captions_json = captions
-            print('caption:', captions)
             # todo: handle duplicate captions
             self.search_captions = search_captions + caption
             if commit:
@@ -186,7 +185,6 @@ class Photo(models.Model):
         captions = self.captions_json
         search_captions = self.search_captions
         try:
-            # caption = im2txt(image_path)
             caption = (
                 caption.replace("<start>", "").replace("<end>", "").strip().lower()
             )
