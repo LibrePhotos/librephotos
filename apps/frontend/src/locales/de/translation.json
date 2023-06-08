@@ -268,7 +268,7 @@
         "album": "Alben",
         "albumcover": "Album-Cover festlegen",
         "albumcoverdescription": "Album-Cover für aktuelles Album festlegen",
-        "deleted": "Löschen"
+        "deleted": "In den Papierkorb verschieben"
     },
     "lightbox": {
         "sidebar": {
@@ -530,7 +530,7 @@
         "updateuser": "Infos von {{username}} aktualisiert",
         "unfavoritephoto": "{{numberOfPhotos}} Foto(s) aus Favoriten entfernt.",
         "finaldeletephoto": "{{numberOfPhotos}} Foto(s) endgültig gelöscht.",
-        "deletephoto": "{{numberOfPhotos}} Foto(s) gelöscht.",
+        "deletephoto": "{{numberOfPhotos}} Foto(s) wurde(n) in den Papierkorb verschoben.",
         "recoverphoto": "{{numberOfPhotos}} Foto(s) wiederhergestellt.",
         "finaldeletephototitle": "Bilder löschen",
         "setdeletetitle": "Bilder löschen",
@@ -546,7 +546,9 @@
         "deleteuser": "{{username}} gelöscht",
         "deleteusertitle": "Nutzer löschen",
         "removefacestoperson": "{{numberOfFaces}} Gesichter zurückgesetzt auf 'Unknown - Other'",
-        "removefacestopersontitle": "Gesichter aus Person entfernen"
+        "removefacestopersontitle": "Gesichter aus Person entfernen",
+        "savecaptions": "Bildunterschrift erfolgreich aktualisiert",
+        "captionupdate": "Bildunterschrift aktualisieren"
     },
     "rules": {
         "file_property": "Dateieigenschaft verwenden: {{rule}}",
