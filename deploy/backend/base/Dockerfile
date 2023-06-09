@@ -16,6 +16,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
 		build-essential \
 		bzip2 \
+		brotli \
 		curl \
 		ffmpeg \
 		git \
