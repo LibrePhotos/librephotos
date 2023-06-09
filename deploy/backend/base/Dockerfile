@@ -57,6 +57,14 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Install ExifTool
+WORKDIR /tmp/exiftool
+RUN curl -SL https://exiftool.org/Image-ExifTool-12.63.tar.gz | tar -xz && \
+    cd Image-ExifTool-12.63 && \
+    perl Makefile.PL && \
+    make install && \
+    rm -rf /tmp/exiftool
+
 # Current Version: pytorch 2.0.1
 RUN pip3 install --no-cache-dir --break-system-packages torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu
 
