@@ -10,8 +10,9 @@ if __name__ == "__main__":
     except IndexError:
         command = "help"
 
+    collect_coverage = os.environ.get("NO_COVERAGE") is not None
     running_tests = command == "test"
-    if running_tests:
+    if running_tests and not collect_coverage:
         from coverage import Coverage
 
         cov = Coverage()
@@ -24,7 +25,7 @@ if __name__ == "__main__":
         raise
     execute_from_command_line(sys.argv)
 
-    if running_tests:
+    if running_tests and not collect_coverage:
         cov.stop()
         cov.save()
         cov.html_report()
