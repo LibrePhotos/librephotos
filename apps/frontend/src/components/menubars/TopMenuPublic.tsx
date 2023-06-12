@@ -1,6 +1,7 @@
 import { Button, Grid, Group, Header, Image } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import React, { useEffect } from "react";
+import { Link } from "react-router-dom";
 import { push } from "redux-first-history";
 import { Menu2 } from "tabler-icons-react";
 
@@ -17,9 +18,11 @@ export function TopMenuCommon({ onToggleSidebar }: Props) {
     <Grid.Col span={1}>
       <Group>
         <Menu2 onClick={onToggleSidebar} />
-        <Button color="dark" style={{ padding: 2 }}>
-          <Image height={30} width={30} src="/logo-white.png" />
-        </Button>
+        <Link to="/">
+          <Button color="dark" style={{ padding: 2 }}>
+            <Image height={30} width={30} src="/logo-white.png" />
+          </Button>
+        </Link>
       </Group>
     </Grid.Col>
   );
