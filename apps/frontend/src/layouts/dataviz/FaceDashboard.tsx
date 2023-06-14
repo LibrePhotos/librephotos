@@ -1,16 +1,18 @@
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 import { Stack } from "@mantine/core";
-import { useElementSize, usePrevious } from "@mantine/hooks";
+import { useElementSize, usePrevious, useScrollLock } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 import _ from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
 
+import { fetchPhotoDetail } from "../../actions/photosActions";
 import { api, useFetchIncompleteFacesQuery } from "../../api_client/api";
 import { ButtonHeaderGroup } from "../../components/facedashboard/ButtonHeaderGroup";
 import { FaceComponent } from "../../components/facedashboard/FaceComponent";
 import { HeaderComponent } from "../../components/facedashboard/HeaderComponent";
 import { TabComponent } from "../../components/facedashboard/TabComponent";
+import { LightBox } from "../../components/lightbox/LightBox";
 import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
 import { ScrollScrubber } from "../../components/scrollscrubber/ScrollScrubber";
 import { ScrollerType } from "../../components/scrollscrubber/ScrollScrubberTypes.zod";
@@ -38,6 +40,12 @@ export function FaceDashboard() {
   const [inferredCellContents, setInferredCellContents] = useState<any[]>([]);
   const [labeledCellContents, setLabeledCellContents] = useState<any[]>([]);
 
+  const [lightboxImageIndex, setLightboxImageIndex] = useState(1);
+  const [lightboxImageId, setLightboxImageId] = useState("");
+  const [lightboxShow, setLightboxShow] = useState(false);
+
+  const setScrollLocked = useScrollLock(false)[1];
+
   const fetchingInferredFacesList = useFetchIncompleteFacesQuery({ inferred: false }).isFetching;
   const fetchingLabeledFacesList = useFetchIncompleteFacesQuery({ inferred: true }).isFetching;
   const dispatch = useAppDispatch();
@@ -55,6 +63,39 @@ export function FaceDashboard() {
     store => store.face,
     (prev, next) => prev.inferredFacesList === next.inferredFacesList && prev.labeledFacesList === next.labeledFacesList
   );
+
+  const getPhotoDetails = (image: string) => {
+    dispatch(fetchPhotoDetail(image));
+  };
+
+  const idx2hash =
+    activeTab === FacesTab.enum.labeled
+      ? labeledFacesList
+          .flatMap(person => person.faces)
+          .map(face => ({
+            id: face.photo,
+          }))
+      : inferredFacesList
+          .flatMap(person => person.faces)
+          .map(face => ({
+            id: face.photo,
+          }));
+
+  const idx2hashRef = useRef(idx2hash);
+
+  useEffect(() => {
+    idx2hashRef.current = idx2hash;
+  }, [idx2hash]);
+
+  const handleShowClick = (event: React.KeyboardEvent, item: any) => {
+    console.log("handleShowClick", item);
+    console.log("idx2hashRef", idx2hashRef.current);
+    const index = idx2hashRef.current.findIndex(image => image.id === item.photo);
+    setLightboxImageIndex(index);
+    setLightboxImageId(item.photo);
+    setLightboxShow(index >= 0);
+    setScrollLocked(true);
+  };
 
   const { orderBy } = useAppSelector(store => store.face);
 
@@ -307,6 +348,7 @@ export function FaceDashboard() {
         <div key={key} style={style}>
           <FaceComponent
             handleClick={handleClick}
+            handleShowClick={handleShowClick}
             cell={cell}
             isScrollingFast={false}
             selectMode={selectMode}
@@ -375,6 +417,33 @@ export function FaceDashboard() {
         }}
         selectedFaces={selectedFaces}
       />
+      {lightboxShow && (
+        <LightBox
+          isPublic={false}
+          idx2hash={idx2hash}
+          lightboxImageIndex={lightboxImageIndex}
+          lightboxImageId={lightboxImageId}
+          onCloseRequest={() => {
+            setLightboxShow(false);
+            setScrollLocked(false);
+          }}
+          onImageLoad={() => {
+            getPhotoDetails(idx2hash[lightboxImageIndex].id);
+          }}
+          onMovePrevRequest={() => {
+            const prevIndex = (lightboxImageIndex + idx2hash.length - 1) % idx2hash.length;
+            setLightboxImageIndex(prevIndex);
+            setLightboxImageId(idx2hash[prevIndex].id);
+            getPhotoDetails(idx2hash[prevIndex].id);
+          }}
+          onMoveNextRequest={() => {
+            const nextIndex = (lightboxImageIndex + idx2hash.length + 1) % idx2hash.length;
+            setLightboxImageIndex(nextIndex);
+            setLightboxImageId(idx2hash[nextIndex].id);
+            getPhotoDetails(idx2hash[nextIndex].id);
+          }}
+        />
+      )}
     </div>
   );
 }

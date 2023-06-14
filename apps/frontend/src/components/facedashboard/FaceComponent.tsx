@@ -1,11 +1,11 @@
-import { Avatar, Box, Center, Indicator } from "@mantine/core";
+import { ActionIcon, Avatar, Box, Center, Indicator } from "@mantine/core";
 import _ from "lodash";
 import React, { useState } from "react";
-import { serverAddress } from "../../api_client/apiClient";
-import { PhotoIcon } from "./PhotoIcon";
-import { FaceTooltip } from "./FaceTooltip";
-import { useAppSelector } from "../../store/store";
+import { Photo } from "tabler-icons-react";
 
+import { serverAddress } from "../../api_client/apiClient";
+import { useAppSelector } from "../../store/store";
+import { FaceTooltip } from "./FaceTooltip";
 
 type Props = {
   cell: any;
@@ -14,9 +14,18 @@ type Props = {
   entrySquareSize: number;
   isSelected: boolean;
   handleClick: (e: any, cell: any) => void;
+  handleShowClick: (e: any, cell: any) => void;
 };
 
-export function FaceComponent({ cell, isScrollingFast, selectMode, entrySquareSize, isSelected, handleClick }: Props) {
+export function FaceComponent({
+  cell,
+  isScrollingFast,
+  selectMode,
+  entrySquareSize,
+  isSelected,
+  handleClick,
+  handleShowClick,
+}: Props) {
   const calculateProbabiltyColor = (labelProbability: number) => {
     if (labelProbability > 0.9) return "green";
     if (labelProbability > 0.8) return "yellow";
@@ -25,7 +34,6 @@ export function FaceComponent({ cell, isScrollingFast, selectMode, entrySquareSi
   };
 
   const labelProbabilityColor = calculateProbabiltyColor(cell.person_label_probability);
-  const showPhotoIcon = <PhotoIcon photo={cell.photo} />;
   const [tooltipOpened, setTooltipOpened] = useState(false);
   const { activeTab } = useAppSelector(store => store.face);
   // TODO: janky shit going on in the next line!
@@ -60,10 +68,7 @@ export function FaceComponent({ cell, isScrollingFast, selectMode, entrySquareSi
       })}
     >
       <Center>
-        <FaceTooltip
-            tooltipOpened={tooltipOpened}
-            cell={cell}
-        >
+        <FaceTooltip tooltipOpened={tooltipOpened} cell={cell}>
           <Indicator
             offset={offset}
             color={labelProbabilityColor}
@@ -82,7 +87,11 @@ export function FaceComponent({ cell, isScrollingFast, selectMode, entrySquareSi
             />
           </Indicator>
         </FaceTooltip>
-        {showPhotoIcon}
+        <div style={{ left: 0, bottom: 0, position: "absolute" }}>
+          <ActionIcon variant="filled" onClick={(e: any) => handleShowClick(e, cell)}>
+            <Photo />
+          </ActionIcon>
+        </div>
       </Center>
     </Box>
   );
