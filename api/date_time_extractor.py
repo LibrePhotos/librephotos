@@ -42,7 +42,7 @@ REGEXP_NO_TZ = re.compile(
 # Here we get year, month, day from the filename and use the number as microsecond so that
 # media is ordered by that number but all of these images are grouped together separated from
 # other media on that date.
-REGEXP_WHATSAPP = re.compile(r"^(?:IMG|VID)-(\d{4})(\d{2})(\d{2})-WA(\d+)")
+REGEXP_WHATSAPP = re.compile(r"^(?:IMG|VID)[-_](\d{4})(\d{2})(\d{2})(?:[-_]WA(\d+))?")
 REGEXP_WHATSAPP_GROUP_MAPPING = ["year", "month", "day", "microsecond"]
 
 PREDEFINED_REGEXPS = {
@@ -88,7 +88,9 @@ def _extract_no_tz_datetime_from_str(x, regexp=REGEXP_NO_TZ, group_mapping=None)
                     f"Group mapping {how_to_use} is unknown - must be one of {list(REGEXP_GROUP_MAPPINGS.keys())}"
                 )
             ind = REGEXP_GROUP_MAPPINGS[how_to_use]
-            datetime_args[ind] = int(value)
+            # handle case when we have less groups than expected
+            if value is not None:
+                datetime_args[ind] = int(value)
 
     try:
         return datetime(*datetime_args)
