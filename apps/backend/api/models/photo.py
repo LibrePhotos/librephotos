@@ -625,14 +625,19 @@ class Photo(models.Model):
                 # Create face from the region infos
                 image = np.array(PIL.Image.open(self.thumbnail_big.path))
                 if region["Area"]["Unit"] == "normalized":
-                    top = int(region["Area"]["Y"] * image.shape[0])
-                    right = int(
-                        (region["Area"]["X"] + region["Area"]["W"]) * image.shape[1]
-                    )
-                    bottom = int(
-                        (region["Area"]["Y"] + region["Area"]["H"]) * image.shape[0]
-                    )
-                    left = int(region["Area"]["X"] * image.shape[1])
+                    image_width = image.shape[1]
+                    image_height = image.shape[0]
+                    area = region["Area"]
+                    # Calculate the half-width and half-height of the box
+                    half_width = area["W"] * image_width / 2
+                    half_height = area["H"] * image_height / 2
+
+                    # Calculate the top, right, bottom, and left coordinates
+                    top = int((area["Y"] * image_height) - half_height)
+                    right = int((area["X"] * image_width) + half_width)
+                    bottom = int((area["Y"] * image_height) + half_height)
+                    left = int((area["X"] * image_width) - half_width)
+
                 face_image = image[top:bottom, left:right]
                 face_image = PIL.Image.fromarray(face_image)
 
