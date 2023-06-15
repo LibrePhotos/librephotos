@@ -58,8 +58,6 @@ def create_test_photos(number_of_photos=1, **kwargs):
 
 
 def create_test_file(path: str, user: User, content: bytes):
-    with open(path, "wb+") as f:
-        f.write(content)
     return File.create(path, user)
 
 
