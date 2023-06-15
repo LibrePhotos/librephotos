@@ -91,7 +91,7 @@ def get_sidecar_files_in_priority_order(media_file):
     ]
 
 
-exiftool_instance = exiftool.ExifTool()
+exiftool_instance = exiftool.ExifTool(common_args=["-struct"])
 
 
 def _get_existing_metadata_files_reversed(media_file, include_sidecar_files):

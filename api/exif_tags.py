@@ -29,3 +29,4 @@ class Tags:
     LENS = "EXIF:LensModel"
     SUBJECT_DISTANCE = "EXIF:SubjectDistance"
     DIGITAL_ZOOM_RATIO = "EXIF:DigitalZoomRatio"
+    REGION_INFO = "XMP:RegionInfo"
