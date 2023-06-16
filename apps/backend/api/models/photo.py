@@ -515,8 +515,12 @@ class Photo(models.Model):
         (video_length,) = get_metadata(
             self.main_file.path, tags=[Tags.QUICKTIME_DURATION], try_sidecar=True
         )
-        logger.debug(f"Extracted rating for {self.main_file.path}: {video_length}")
-        self.video_length = video_length
+        logger.debug(
+            f"Extracted video length for {self.main_file.path}: {video_length}"
+        )
+        if video_length and isinstance(video_length, numbers.Number):
+            self.video_length = video_length
+
         if commit:
             self.save()
 
@@ -564,7 +568,7 @@ class Photo(models.Model):
             self.shutter_speed = str(Fraction(shutter_speed).limit_denominator(1000))
         if camera and isinstance(camera, str):
             self.camera = camera
-        if lens and isinstance(camera, str):
+        if lens and isinstance(lens, str):
             self.lens = lens
         if width and isinstance(width, numbers.Number):
             self.width = width
@@ -606,7 +610,7 @@ class Photo(models.Model):
         )
 
         (region_info,) = get_metadata(
-            self.main_file.path, tags=[Tags.REGION_INFO], try_sidecar=True
+            self.main_file.path, tags=[Tags.REGION_INFO], try_sidecar=True, struct=True
         )
 
         if region_info:
@@ -680,7 +684,7 @@ class Photo(models.Model):
             try:
                 face_locations = face_recognition.face_locations(image)
             except Exception:
-                logger.debug(
+                logger.info(
                     f"Can't extract face information on photo: {self.main_file.path}"
                 )
 

@@ -91,7 +91,8 @@ def get_sidecar_files_in_priority_order(media_file):
     ]
 
 
-exiftool_instance = exiftool.ExifTool(common_args=["-struct"])
+exiftool_instance_struct = exiftool.ExifTool(common_args=["-struct"])
+exiftool_instance = exiftool.ExifTool()
 
 
 def _get_existing_metadata_files_reversed(media_file, include_sidecar_files):
@@ -106,17 +107,20 @@ def _get_existing_metadata_files_reversed(media_file, include_sidecar_files):
     return [media_file]
 
 
-def get_metadata(media_file, tags, try_sidecar=True):
+def get_metadata(media_file, tags, try_sidecar=True, struct=False):
     """
     Get values for each metadata tag in *tags* from *media_file*.
     If *try_sidecar* is `True`, use the value set in any XMP sidecar file
     stored alongside *media_file*.
+    If *struct* is `True`, use the exiftool instance which returns structured data
 
     Returns a list with the value of each tag in *tags* or `None` if the
     tag was not found.
 
     """
     et = exiftool_instance
+    if struct:
+        et = exiftool_instance_struct
     terminate_et = False
     if not et.running:
         et.start()
