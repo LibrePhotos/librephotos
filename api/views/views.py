@@ -80,6 +80,7 @@ class SiteSettingsView(APIView):
         out["allow_upload"] = site_config.ALLOW_UPLOAD
         out["skip_patterns"] = site_config.SKIP_PATTERNS
         out["heavyweight_process"] = site_config.HEAVYWEIGHT_PROCESS
+        out["map_api_provider"] = site_config.MAP_API_PROVIDER
         out["map_api_key"] = site_config.MAP_API_KEY
         return Response(out)
 
@@ -93,6 +94,8 @@ class SiteSettingsView(APIView):
             site_config.SKIP_PATTERNS = request.data["skip_patterns"]
         if "heavyweight_process" in request.data.keys():
             site_config.HEAVYWEIGHT_PROCESS = request.data["heavyweight_process"]
+        if "map_api_provider" in request.data.keys():
+            site_config.MAP_API_PROVIDER = request.data["map_api_provider"]
         if "map_api_key" in request.data.keys():
             site_config.MAP_API_KEY = request.data["map_api_key"]
         return self.get(request, format=format)

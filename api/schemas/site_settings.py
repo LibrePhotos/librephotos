@@ -5,6 +5,7 @@ site_settings_schema = {
         {"required": ["allow_upload"]},
         {"required": ["skip_patterns"]},
         {"required": ["heavyweight_process"]},
+        # {"required": ["map_api_provider"]},
         {"required": ["map_api_key"]},
     ],
     "properties": {
@@ -12,6 +13,7 @@ site_settings_schema = {
         "allow_upload": {"type": "boolean"},
         "skip_patterns": {"type": "string"},
         "heavyweight_process": {"type": "number"},
+        "map_api_provider": {"type": "string"},
         "map_api_key": {"type": "string"},
     },
 }

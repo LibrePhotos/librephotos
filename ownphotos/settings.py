@@ -100,6 +100,22 @@ HEAVYWEIGHT_PROCESS = (
     int(HEAVYWEIGHT_PROCESS_ENV) if HEAVYWEIGHT_PROCESS_ENV.isnumeric() else 1
 )
 
+CONSTANCE_ADDITIONAL_FIELDS = {
+    "map_api_provider": [
+        "django.forms.fields.ChoiceField",
+        {
+            "widget": "django.forms.Select",
+            "choices": (
+                ("mapbox", "Mapbox"),
+                ("maptiler", "MapTiler"),
+                ("nominatim", "Nominatim (OpenStreetMap)"),
+                ("opencage", "OpenCage"),
+                ("photon", "Photon"),
+                ("tomtom", "TomTom"),
+            ),
+        },
+    ],
+}
 CONSTANCE_CONFIG = {
     "ALLOW_REGISTRATION": (False, "Publicly allow user registration", bool),
     "ALLOW_UPLOAD": (
@@ -116,6 +132,11 @@ CONSTANCE_CONFIG = {
         HEAVYWEIGHT_PROCESS,
         "Number of workers, when scanning pictures. This setting can dramatically affect the ram usage. Each worker needs 800MB of RAM. Change at your own will. Default is 1.",
         int,
+    ),
+    "MAP_API_PROVIDER": (
+        os.environ.get("MAP_API_PROVIDER", "mapbox"),
+        "Map Provider",
+        "map_api_provider",
     ),
     "MAP_API_KEY": (os.environ.get("MAPBOX_API_KEY", ""), "Map Box API Key", str),
     "IMAGE_DIRS": ("/data", "Image dirs list (serialized json)", str),

@@ -44,7 +44,9 @@ def create_test_user(is_admin=False, public_sharing=False, **kwargs):
 
 def create_test_photo(**kwargs):
     pk = fake.md5()
-    photo = Photo(pk=pk, image_hash=pk, aspect_ratio=1, **kwargs)
+    if "aspect_ratio" not in kwargs.keys():
+        kwargs["aspect_ratio"] = 1
+    photo = Photo(pk=pk, image_hash=pk, **kwargs)
     file = create_test_file(f"/tmp/{pk}.png", photo.owner, ONE_PIXEL_PNG)
     photo.main_file = file
     if "added_on" not in kwargs.keys():
