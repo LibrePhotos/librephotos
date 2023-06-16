@@ -1,0 +1,85 @@
+expectations = [
+    {
+        "features": [
+            {"text": "Beach Road"},
+            {"text": "Seven Ways"},
+            {"text": "Bondi Beach"},
+            {"text": "Waverley Council"},
+            {"text": "New South Wales"},
+            {"text": "Australia"},
+        ],
+        "places": [
+            "Beach Road",
+            "Seven Ways",
+            "Bondi Beach",
+            "Waverley Council",
+            "New South Wales",
+            "Australia",
+        ],
+        "address": "17, Beach Road, 2026, Beach Road, Waverley Council, New South Wales, Australia",
+        "center": [151.27521180010973, -33.88801645],
+    },
+    {
+        "features": [
+            {"text": "Fire Route 47"},
+            {"text": "Selwyn"},
+            {"text": "Ontario"},
+            {"text": "Canada"},
+        ],
+        "places": ["Fire Route 47", "Selwyn", "Ontario", "Canada"],
+        "address": "3123, Fire Route 47, K0L 2C0, Fire Route 47, Selwyn, Ontario, Canada",
+        "center": [-78.1958197673355, 44.55381618293302],
+    },
+    {
+        "features": [
+            {"text": "Möckernstraße"},
+            {"text": "Kreuzberg"},
+            {"text": "Berlin"},
+            {"text": "Deutschland"},
+        ],
+        "places": ["Möckernstraße", "Kreuzberg", "Berlin", "Deutschland"],
+        "address": "Tempodrom, 10, Möckernstraße, 10963, Möckernstraße, Berlin, Deutschland",
+        "center": [13.381190860617572, 52.501606300000006],
+    },
+    {
+        "features": [
+            {"text": "Lakeshore road"},
+            {"text": "Spangmik"},
+            {"text": "Ladakh"},
+            {"text": "India"},
+        ],
+        "places": ["Lakeshore road", "Spangmik", "Ladakh", "India"],
+        "address": "Camp Water Mark, Lakeshore road, Lakeshore road, Ladakh, India",
+        "center": [78.4571752, 33.9132578],
+    },
+    {
+        "features": [
+            {"text": "Marine Parade"},
+            {"text": "Maroubra"},
+            {"text": "Randwick City Council"},
+            {"text": "New South Wales"},
+            {"text": "Australia"},
+        ],
+        "places": [
+            "Marine Parade",
+            "Maroubra",
+            "Randwick City Council",
+            "New South Wales",
+            "Australia",
+        ],
+        "address": "Mahon Pool, Marine Parade, 2035, Marine Parade, Randwick City Council, New South Wales, Australia",
+        "center": [151.26386704076833, -33.9430026],
+    },
+    {
+        "features": [
+            {"text": "Main Bazaar"},
+            {"text": "Matsik Chulung"},
+            {"text": "Leh"},
+            {"text": "Ladakh"},
+            {"text": "India"},
+        ],
+        "places": ["Main Bazaar", "Matsik Chulung", "Leh", "Ladakh", "India"],
+        "address": "Dry Fruit Market, Main Bazaar, Main Bazaar, Leh, Ladakh, India",
+        "center": [77.585862, 34.1621176],
+    },
+]
