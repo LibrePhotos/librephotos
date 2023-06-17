@@ -173,7 +173,7 @@ def get_search_term_examples(user):
         "for file path or file name",
     ]
 
-    pp = Photo.objects.filter(owner=user).exclude(captions_json={})
+    pp = Photo.objects.filter(owner=user).exclude(captions_json={})[:1000]
     possible_ids = list(pp.values_list("image_hash", flat=True))
     if len(possible_ids) > 99:
         possible_ids = random.choices(possible_ids, k=100)
