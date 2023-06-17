@@ -108,13 +108,11 @@ class FaceIncompleteListViewSet(ListViewSet):
             conditional_filter = Q(faces__person_label_is_inferred=inferred)
 
         queryset = (
-            Person.objects.filter(Q(faces__photo__owner=self.request.user))
+            Person.objects.filter(Q(cluster_owner=self.request.user))
             .annotate(
                 face_count=Count(
                     "faces",
-                    filter=(
-                        conditional_filter & Q(faces__photo__owner=self.request.user)
-                    ),
+                    filter=(conditional_filter),
                 )
             )
             .filter(face_count__gt=0)
