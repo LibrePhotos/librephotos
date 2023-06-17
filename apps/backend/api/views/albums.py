@@ -11,6 +11,7 @@ from api.models import (
     AlbumThing,
     AlbumUser,
     Face,
+    File,
     Person,
     Photo,
     User,
@@ -54,6 +55,7 @@ class AlbumPersonListViewSet(ListViewSet):
 
     def list(self, *args, **kwargs):
         return super(AlbumPersonListViewSet, self).list(*args, **kwargs)
+
 
 # To-Do: Not used as far as I can tell, only in mobile app
 class AlbumPersonViewSet(viewsets.ModelViewSet):
@@ -131,8 +133,8 @@ class PersonViewSet(viewsets.ModelViewSet):
                         photo__deleted=False,
                         photo__owner=self.request.user,
                     )
-                    .order_by("id") 
-                    .values("image")[:1]   
+                    .order_by("id")
+                    .values("image")[:1]
                 ),
                 face_photo_url=Subquery(
                     Photo.objects.filter(
@@ -150,11 +152,11 @@ class PersonViewSet(viewsets.ModelViewSet):
                         hidden=False,
                         deleted=False,
                         owner=self.request.user,
-                     )
+                    )
                     .order_by("added_on")
                     .values("video")[:1]
                 ),
-            ) 
+            )
         )
         return qs
 
@@ -218,11 +220,19 @@ class AlbumThingListViewSet(ListViewSet):
 
     def get_queryset(self):
         cover_photos_query = Photo.objects.filter(hidden=False)
-        
-        return ( 
+
+        return (
             AlbumThing.objects.filter(owner=self.request.user)
-            .annotate(photo_count=Count('photos', filter=Q(photos__hidden=False), distinct=True))
-            .prefetch_related(Prefetch('photos', queryset=cover_photos_query[:4], to_attr='cover_photos'))
+            .annotate(
+                photo_count=Count(
+                    "photos", filter=Q(photos__hidden=False), distinct=True
+                )
+            )
+            .prefetch_related(
+                Prefetch(
+                    "photos", queryset=cover_photos_query[:4], to_attr="cover_photos"
+                )
+            )
             .filter(photo_count__gt=0)
             .order_by("-title")
         )
@@ -396,6 +406,7 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                         "image_hash",
                         "aspect_ratio",
                         "video",
+                        "main_file",
                         "search_location",
                         "dominant_color",
                         "public",
@@ -412,6 +423,10 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                     queryset=User.objects.only(
                         "id", "username", "first_name", "last_name"
                     ),
+                ),
+                Prefetch(
+                    "photos__main_file__embedded_media",
+                    queryset=File.objects.only("hash"),
                 ),
             )
         )
@@ -486,7 +501,6 @@ class AlbumDateListViewSet(ListViewSet):
             )
             return qs
         if self.request.query_params.get("person"):
-
             return (
                 AlbumDate.objects.filter(
                     Q(owner=self.request.user)
