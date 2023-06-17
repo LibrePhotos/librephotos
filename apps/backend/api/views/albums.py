@@ -219,7 +219,9 @@ class AlbumThingListViewSet(ListViewSet):
     search_fields = ["title"]
 
     def get_queryset(self):
-        cover_photos_query = Photo.objects.filter(hidden=False)
+        cover_photos_query = Photo.objects.filter(hidden=False).only(
+            "image_hash", "video"
+        )
 
         return (
             AlbumThing.objects.filter(owner=self.request.user)
@@ -283,11 +285,20 @@ class AlbumPlaceListViewSet(ListViewSet):
     search_fields = ["title"]
 
     def get_queryset(self):
+        cover_photos_query = Photo.objects.filter(hidden=False).only(
+            "image_hash", "video"
+        )
+
         return (
             AlbumPlace.objects.filter(owner=self.request.user)
             .annotate(
                 photo_count=Count(
                     "photos", filter=Q(photos__hidden=False), distinct=True
+                )
+            )
+            .prefetch_related(
+                Prefetch(
+                    "photos", queryset=cover_photos_query[:4], to_attr="cover_photos"
                 )
             )
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
