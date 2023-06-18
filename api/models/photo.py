@@ -849,7 +849,7 @@ class Photo(models.Model):
         or orientation directly if the user save_metadata_to_disk field is MEDIA_FILE
         """
         if delta_angle % 360 == 0 and not flip_image:
-            return True
+            return
 
         user = User.objects.get(username=self.owner)
         save_on_file = (user.save_metadata_to_disk == User.SaveMetadata.MEDIA_FILE and \
@@ -871,7 +871,6 @@ class Photo(models.Model):
         else:
             self.localOrientation = new_orientation
             self._regenerate_thumbnail()
-        return True
 
     def __str__(self):
         return "%s" % self.image_hash

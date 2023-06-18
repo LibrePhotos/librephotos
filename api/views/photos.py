@@ -22,6 +22,8 @@ from api.views.pagination import (
     StandardResultsSetPagination,
 )
 
+PHOTO_OWNER_ERROR_MESSAGE = "you are not the owner of this photo"
+
 
 class RecentlyAddedPhotoListViewSet(ListViewSet):
     serializer_class = PigPhotoSerilizer
@@ -504,7 +506,7 @@ class GeneratePhotoCaption(APIView):
         photo = Photo.objects.get(image_hash=image_hash)
         if photo.owner != request.user:
             return Response(
-                {"status": False, "message": "you are not the owner of this photo"},
+                {"status": False, "message": PHOTO_OWNER_ERROR_MESSAGE},
                 status=400,
             )
 
@@ -523,7 +525,7 @@ class SavePhotoCaption(APIView):
         photo = Photo.objects.get(image_hash=image_hash)
         if photo.owner != request.user:
             return Response(
-                {"status": False, "message": "you are not the owner of this photo"},
+                {"status": False, "message": PHOTO_OWNER_ERROR_MESSAGE},
                 status=400,
             )
 
@@ -591,9 +593,9 @@ class RotatePhoto(APIView):
         photo = Photo.objects.get(image_hash=image_hash)
         if photo.owner != request.user:
             return Response(
-                {"status": False, "message": "you are not the owner of this photo"},
+                {"status": False, "message": PHOTO_OWNER_ERROR_MESSAGE},
                 status=400,
             )
 
-        res = photo._rotate_image(angle, flip)
-        return Response({"status": res})
+        photo._rotate_image(angle, flip)
+        return Response({"status": True})

@@ -25,28 +25,14 @@ def createThumbnail(inputPath, outputHeight, outputPath, hash, fileType, orienta
                 }
                 response = requests.post("http://localhost:8003/", json=json).json()
                 return response["thumbnail"]
-            else:
-                bigThumbnailPath = os.path.join(
-                    ownphotos.settings.MEDIA_ROOT, "thumbnails_big", hash + fileType
-                )
-                x = pyvips.Image.thumbnail(
-                    bigThumbnailPath,
-                    10000,
-                    height=outputHeight,
-                    size=pyvips.enums.Size.DOWN,
-                )
-                if angle != 0:
-                    x = x.rotate(angle)
-                if is_flipped:
-                    x = x.flip(flip_direction)
-                completePath = os.path.join(
-                    ownphotos.settings.MEDIA_ROOT, outputPath, hash + fileType
-                ).strip()
-                x.write_to_file(completePath, Q=95)
-            return completePath
-        else:
+            bigThumbnailPath = os.path.join(
+                ownphotos.settings.MEDIA_ROOT, "thumbnails_big", hash + fileType
+            )
             x = pyvips.Image.thumbnail(
-                inputPath, 10000, height=outputHeight, size=pyvips.enums.Size.DOWN
+                bigThumbnailPath,
+                10000,
+                height=outputHeight,
+                size=pyvips.enums.Size.DOWN,
             )
             if angle != 0:
                 x = x.rotate(angle)
@@ -55,8 +41,20 @@ def createThumbnail(inputPath, outputHeight, outputPath, hash, fileType, orienta
             completePath = os.path.join(
                 ownphotos.settings.MEDIA_ROOT, outputPath, hash + fileType
             ).strip()
-            x.write_to_file(completePath)
+            x.write_to_file(completePath, Q=95)
             return completePath
+        x = pyvips.Image.thumbnail(
+            inputPath, 10000, height=outputHeight, size=pyvips.enums.Size.DOWN
+        )
+        if angle != 0:
+            x = x.rotate(angle)
+        if is_flipped:
+            x = x.flip(flip_direction)
+        completePath = os.path.join(
+            ownphotos.settings.MEDIA_ROOT, outputPath, hash + fileType
+        ).strip()
+        x.write_to_file(completePath)
+        return completePath
     except Exception as e:
         util.logger.error("Could not create thumbnail for file {}".format(inputPath))
         raise e
