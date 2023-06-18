@@ -155,7 +155,7 @@ def write_metadata(media_file, tags, use_sidecar=True):
     if use_sidecar:
         file_path = get_sidecar_files_in_priority_order(media_file)[0]
     else:
-        file_path = media_file
+        file_path = media_file.path
 
     try:
         logger.info(f"Writing {tags} to {file_path}")
@@ -166,3 +166,56 @@ def write_metadata(media_file, tags, use_sidecar=True):
     finally:
         if terminate_et:
             et.terminate()
+
+def convert_exif_orientation_to_degrees(orientation):
+    """
+    Function to convert EXIF Orientation values to a rotation in degrees
+    and a boolean indicating if the image is flipped.
+    Orientation value is an integer, 1 through 8.
+    The math works better if we make the range from 0 to 7.
+    Rotation is assumed to be clockwise.
+    """
+    if orientation not in range(1, 9):
+        return 0, False
+    this_orientation = orientation - 1
+    is_flipped = this_orientation in [1, 3, 4, 6]
+    # Re-flip flipped orientation
+    if is_flipped:
+        flip_delta = 1 if this_orientation % 2 == 0 else -1
+        this_orientation = this_orientation + flip_delta
+    angle = 0
+    if this_orientation == 0:
+        angle = 0
+    elif this_orientation == 7:
+        angle = 90
+    elif this_orientation == 2:
+        angle = 180
+    elif this_orientation == 5:
+        angle = 270
+    
+    return angle, is_flipped
+
+def convert_degrees_to_exif_orientation(angle, is_flipped=False):
+    """
+    Reverse of the function above.
+    angle needs to be a multiple of 90, and it's clockwise.
+    Negative values are treated as counter-clockwise rotation.
+    """
+    COUNTER_CLOCKWISE = 1
+    CLOCKWISE = -1
+
+    angle = int(round(angle / 90.0) * 90)
+    turns = int(angle / 90)
+    direction = CLOCKWISE if turns >= 0 else COUNTER_CLOCKWISE
+    turns = abs(turns)
+    orientation = 0
+    for i in range(turns):
+        step = 5
+        if (i == 7 and direction == COUNTER_CLOCKWISE or \
+            i == 0 and direction == CLOCKWISE):
+            step = 1
+        orientation = (orientation + step * direction) % 8
+    if is_flipped:
+        flip_delta = 1 if orientation % 2 == 0 else -1
+        orientation = orientation + flip_delta
+    return orientation + 1
