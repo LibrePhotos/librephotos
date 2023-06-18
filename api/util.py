@@ -209,10 +209,10 @@ def convert_degrees_to_exif_orientation(angle, is_flipped=False):
     direction = CLOCKWISE if turns >= 0 else COUNTER_CLOCKWISE
     turns = abs(turns)
     orientation = 0
-    for i in range(turns):
+    for _i in range(turns):
         step = 5
-        if (i == 7 and direction == COUNTER_CLOCKWISE or \
-            i == 0 and direction == CLOCKWISE):
+        if (orientation == 7 and direction == COUNTER_CLOCKWISE or \
+            orientation == 0 and direction == CLOCKWISE):
             step = 1
         orientation = (orientation + step * direction) % 8
     if is_flipped:

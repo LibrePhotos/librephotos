@@ -850,7 +850,7 @@ class Photo(models.Model):
         """
         if delta_angle % 360 == 0 and not flip_image:
             return True
-        
+
         user = User.objects.get(username=self.owner)
         save_on_file = (user.save_metadata_to_disk == User.SaveMetadata.MEDIA_FILE and \
             not self.main_file.is_raw())
