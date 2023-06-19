@@ -186,11 +186,11 @@ def convert_exif_orientation_to_degrees(orientation):
     angle = 0
     if this_orientation == 0:
         angle = 0
-    elif this_orientation == 7:
+    elif this_orientation == 5:
         angle = 90
     elif this_orientation == 2:
         angle = 180
-    elif this_orientation == 5:
+    elif this_orientation == 7:
         angle = 270
     
     return angle, is_flipped
@@ -201,8 +201,8 @@ def convert_degrees_to_exif_orientation(angle, is_flipped=False):
     angle needs to be a multiple of 90, and it's clockwise.
     Negative values are treated as counter-clockwise rotation.
     """
-    COUNTER_CLOCKWISE = 1
-    CLOCKWISE = -1
+    CLOCKWISE = 1
+    COUNTER_CLOCKWISE = -1
 
     angle = int(round(angle / 90.0) * 90)
     turns = int(angle / 90)
@@ -211,8 +211,8 @@ def convert_degrees_to_exif_orientation(angle, is_flipped=False):
     orientation = 0
     for _i in range(turns):
         step = 5
-        if (orientation == 7 and direction == COUNTER_CLOCKWISE or \
-            orientation == 0 and direction == CLOCKWISE):
+        if (orientation == 7 and direction == CLOCKWISE or
+            orientation == 0 and direction == COUNTER_CLOCKWISE):
             step = 1
         orientation = (orientation + step * direction) % 8
     if is_flipped:

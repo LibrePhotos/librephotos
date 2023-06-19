@@ -13,6 +13,7 @@ def createThumbnail(inputPath, outputHeight, outputPath, hash, fileType, orienta
     try:
         angle, is_flipped = util.convert_exif_orientation_to_degrees(orientation)
         flip_direction = pyvips.Direction.HORIZONTAL if orientation in [5, 7] else pyvips.Direction.VERTICAL
+        
         if is_raw(inputPath):
             if "thumbnails_big" in outputPath:
                 completePath = os.path.join(
@@ -25,6 +26,7 @@ def createThumbnail(inputPath, outputHeight, outputPath, hash, fileType, orienta
                 }
                 response = requests.post("http://localhost:8003/", json=json).json()
                 return response["thumbnail"]
+            
             bigThumbnailPath = os.path.join(
                 ownphotos.settings.MEDIA_ROOT, "thumbnails_big", hash + fileType
             )
@@ -32,6 +34,7 @@ def createThumbnail(inputPath, outputHeight, outputPath, hash, fileType, orienta
                 bigThumbnailPath,
                 10000,
                 height=outputHeight,
+                no_rotate=True,
                 size=pyvips.enums.Size.DOWN,
             )
             if angle != 0:
@@ -43,8 +46,13 @@ def createThumbnail(inputPath, outputHeight, outputPath, hash, fileType, orienta
             ).strip()
             x.write_to_file(completePath, Q=95)
             return completePath
+
         x = pyvips.Image.thumbnail(
-            inputPath, 10000, height=outputHeight, size=pyvips.enums.Size.DOWN
+            inputPath,
+            10000,
+            height=outputHeight,
+            no_rotate=True,
+            size=pyvips.enums.Size.DOWN,
         )
         if angle != 0:
             x = x.rotate(angle)
@@ -55,6 +63,7 @@ def createThumbnail(inputPath, outputHeight, outputPath, hash, fileType, orienta
         ).strip()
         x.write_to_file(completePath)
         return completePath
+    
     except Exception as e:
         util.logger.error("Could not create thumbnail for file {}".format(inputPath))
         raise e

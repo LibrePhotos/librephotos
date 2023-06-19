@@ -17,7 +17,7 @@ import api.models
 import api.util as util
 from api.exif_tags import Tags
 from api.im2txt.sample import im2txt
-from api.models.file import File
+from api.models.file import File, is_raw
 from api.models.user import User, get_deleted_user
 from api.places365.places365 import place365_instance
 from api.semantic_search.semantic_search import semantic_search_instance
@@ -91,8 +91,6 @@ class Photo(models.Model):
     subjectDistance = models.FloatField(blank=True, null=True)
     digitalZoomRatio = models.FloatField(blank=True, null=True)
     orientation = models.IntegerField(default=1)
-
-    localOrientation = models.IntegerField(default=1)
 
     owner = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None
@@ -271,7 +269,7 @@ class Photo(models.Model):
                         outputPath="thumbnails_big",
                         hash=self.image_hash,
                         fileType=".webp",
-                        orientation=self.localOrientation,
+                        orientation=self.orientation,
                     )
                 else:
                     createThumbnailForVideo(
@@ -290,7 +288,7 @@ class Photo(models.Model):
                     outputPath="square_thumbnails",
                     hash=self.image_hash,
                     fileType=".webp",
-                    orientation=self.localOrientation,
+                    orientation=self.orientation,
                 )
             if self.video and not doesVideoThumbnailExists(
                 "square_thumbnails", self.image_hash
@@ -312,7 +310,7 @@ class Photo(models.Model):
                     outputPath="square_thumbnails_small",
                     hash=self.image_hash,
                     fileType=".webp",
-                    orientation=self.localOrientation,
+                    orientation=self.orientation,
                 )
             if self.video and not doesVideoThumbnailExists(
                 "square_thumbnails_small", self.image_hash
@@ -844,18 +842,14 @@ class Photo(models.Model):
             logger.info("Cannot calculate dominant color {} object".format(self))
     
     def _rotate_image(self, delta_angle, flip_image=False):
-        """
-        This function updates the field localOrientation
-        or orientation directly if the user save_metadata_to_disk field is MEDIA_FILE
-        """
         if delta_angle % 360 == 0 and not flip_image:
             return
 
         user = User.objects.get(username=self.owner)
         save_on_file = (user.save_metadata_to_disk == User.SaveMetadata.MEDIA_FILE and \
-            not self.main_file.is_raw())
+            not is_raw(self.main_file.path))
         
-        old_orientation = self.orientation if save_on_file else self.localOrientation
+        old_orientation = self.orientation
         angle, is_flipped = util.convert_exif_orientation_to_degrees(old_orientation)
 
         angle += delta_angle
@@ -863,14 +857,12 @@ class Photo(models.Model):
             is_flipped = not is_flipped
         
         new_orientation = util.convert_degrees_to_exif_orientation(angle, is_flipped)
+        self.orientation = new_orientation
 
         if save_on_file:
-            self.orientation = new_orientation
-            self.localOrientation = 1 # reset local orientation when changing file orientation
             self.save()
-        else:
-            self.localOrientation = new_orientation
-            self._regenerate_thumbnail()
+            return
+        self._regenerate_thumbnail()
 
     def __str__(self):
         return "%s" % self.image_hash
