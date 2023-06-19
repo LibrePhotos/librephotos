@@ -459,7 +459,6 @@ class Photo(models.Model):
             raise e
 
         self.geolocation_json = res
-
         if "search_text" in res.keys():
             if self.search_location:
                 self.search_location = self.search_location + " " + res["search_text"]
