@@ -225,11 +225,7 @@ class AlbumThingListViewSet(ListViewSet):
 
         return (
             AlbumThing.objects.filter(owner=self.request.user)
-            .annotate(
-                photo_count=Count(
-                    "photos", filter=Q(photos__hidden=False), distinct=True
-                )
-            )
+            .annotate(photo_count=Count("photos", filter=Q(photos__hidden=False)))
             .prefetch_related(
                 Prefetch(
                     "photos", queryset=cover_photos_query[:4], to_attr="cover_photos"
