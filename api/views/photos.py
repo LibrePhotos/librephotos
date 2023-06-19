@@ -5,7 +5,7 @@ from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.models import Photo, User
+from api.models import File, Photo, User
 from api.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
 from api.serializers.photos import (
     GroupedPhotosSerializer,
@@ -45,7 +45,13 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
                     added_on__day=latestDate.day,
                 )
             )
-            .prefetch_related("owner")
+            .prefetch_related(
+                "owner",
+                Prefetch(
+                    "main_file__embedded_media",
+                    queryset=File.objects.only("hash"),
+                ),
+            )
             .order_by("-added_on")
         )
         return queryset
@@ -181,6 +187,10 @@ class NoTimestampPhotoViewSet(ListViewSet):
                     queryset=User.objects.only(
                         "id", "username", "first_name", "last_name"
                     ),
+                ),
+                Prefetch(
+                    "main_file__embedded_media",
+                    queryset=File.objects.only("hash"),
                 ),
             )
             .order_by("added_on")
