@@ -55,6 +55,7 @@ class IsFirstTimeSetupView(APIView):
         )
 
 
+# To-Do: This executes multiple querys per users
 class UserViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = (
