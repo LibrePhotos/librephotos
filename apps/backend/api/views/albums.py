@@ -110,53 +110,50 @@ class PersonViewSet(viewsets.ModelViewSet):
     search_fields = ["name"]
 
     def get_queryset(self):
-        qs = (
-            Person.objects.filter(
-                ~Q(kind=Person.KIND_CLUSTER)
-                & ~Q(kind=Person.KIND_UNKNOWN)
-                & Q(faces__photo__hidden=False)
-                & Q(faces__photo__deleted=False)
-                & Q(faces__photo__owner=self.request.user)
+        qs = Person.objects.filter(
+            ~Q(kind=Person.KIND_CLUSTER)
+            & ~Q(kind=Person.KIND_UNKNOWN)
+            & Q(cluster_owner=self.request.user)
+        ).annotate(
+            viewable_face_count=Count(
+                "faces__photo",
+                filter=Q(faces__photo__hidden=False, faces__photo__deleted=False)
                 & Q(
                     faces__person_label_probability__gte=F(
                         "faces__photo__owner__confidence_person"
                     )
+                ),
+            ),
+            face_url=Subquery(
+                Face.objects.filter(
+                    person=OuterRef("pk"),
+                    photo__hidden=False,
+                    photo__deleted=False,
+                    photo__owner=self.request.user,
                 )
-            )
-            .distinct()
-            .annotate(
-                viewable_face_count=Count("faces"),
-                face_url=Subquery(
-                    Face.objects.filter(
-                        person=OuterRef("pk"),
-                        photo__hidden=False,
-                        photo__deleted=False,
-                        photo__owner=self.request.user,
-                    )
-                    .order_by("id")
-                    .values("image")[:1]
-                ),
-                face_photo_url=Subquery(
-                    Photo.objects.filter(
-                        faces__person=OuterRef("pk"),
-                        hidden=False,
-                        deleted=False,
-                        owner=self.request.user,
-                    )
-                    .order_by("added_on")
-                    .values("image_hash")[:1]
-                ),
-                video=Subquery(
-                    Photo.objects.filter(
-                        faces__person=OuterRef("pk"),
-                        hidden=False,
-                        deleted=False,
-                        owner=self.request.user,
-                    )
-                    .order_by("added_on")
-                    .values("video")[:1]
-                ),
-            )
+                .order_by("id")
+                .values("image")[:1]
+            ),
+            face_photo_url=Subquery(
+                Photo.objects.filter(
+                    faces__person=OuterRef("pk"),
+                    hidden=False,
+                    deleted=False,
+                    owner=self.request.user,
+                )
+                .order_by("added_on")
+                .values("image_hash")[:1]
+            ),
+            video=Subquery(
+                Photo.objects.filter(
+                    faces__person=OuterRef("pk"),
+                    hidden=False,
+                    deleted=False,
+                    owner=self.request.user,
+                )
+                .order_by("added_on")
+                .values("video")[:1]
+            ),
         )
         return qs
 
