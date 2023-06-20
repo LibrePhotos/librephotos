@@ -132,7 +132,7 @@ class PersonViewSet(viewsets.ModelViewSet):
             photo__owner=self.request.user,
             person=OuterRef("pk"),
             person_label_probability__gte=confidence_person,
-        )
+        ).only("id")
 
         qs = Person.objects.filter(
             ~Q(kind=Person.KIND_CLUSTER)
