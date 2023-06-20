@@ -1,6 +1,14 @@
 import re
 
-from django.db.models import Count, F, OuterRef, Prefetch, Q, Subquery
+from django.db.models import (
+    Count,
+    F,
+    OuterRef,
+    PositiveIntegerField,
+    Prefetch,
+    Q,
+    Subquery,
+)
 from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -103,6 +111,11 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
         return Response({"results": serializer.data})
 
 
+class SubqueryCount(Subquery):
+    template = "(SELECT count(*) FROM (%(subquery)s) _count)"
+    output_field = PositiveIntegerField()
+
+
 class PersonViewSet(viewsets.ModelViewSet):
     serializer_class = PersonSerializer
     pagination_class = StandardResultsSetPagination
@@ -113,19 +126,20 @@ class PersonViewSet(viewsets.ModelViewSet):
         confidence_person = (
             User.objects.filter(id=self.request.user.id).first().confidence_person
         )
+        viewable_face_count_query = Face.objects.filter(
+            photo__hidden=False,
+            photo__deleted=False,
+            photo__owner=self.request.user,
+            person=OuterRef("pk"),
+            person_label_probability__gte=confidence_person,
+        )
+
         qs = Person.objects.filter(
             ~Q(kind=Person.KIND_CLUSTER)
             & ~Q(kind=Person.KIND_UNKNOWN)
             & Q(cluster_owner=self.request.user)
         ).annotate(
-            viewable_face_count=Count(
-                "faces__photo",
-                filter=Q(
-                    faces__photo__hidden=False,
-                    faces__photo__deleted=False,
-                    faces__person_label_probability__gte=confidence_person,
-                ),
-            ),
+            viewable_face_count=SubqueryCount(viewable_face_count_query),
             face_url=Subquery(
                 Face.objects.filter(
                     person=OuterRef("pk"),
