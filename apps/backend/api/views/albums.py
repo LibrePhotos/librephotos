@@ -110,6 +110,9 @@ class PersonViewSet(viewsets.ModelViewSet):
     search_fields = ["name"]
 
     def get_queryset(self):
+        confidence_person = (
+            User.objects.filter(id=self.request.user.id).first().confidence_person
+        )
         qs = Person.objects.filter(
             ~Q(kind=Person.KIND_CLUSTER)
             & ~Q(kind=Person.KIND_UNKNOWN)
@@ -117,11 +120,10 @@ class PersonViewSet(viewsets.ModelViewSet):
         ).annotate(
             viewable_face_count=Count(
                 "faces__photo",
-                filter=Q(faces__photo__hidden=False, faces__photo__deleted=False)
-                & Q(
-                    faces__person_label_probability__gte=F(
-                        "faces__photo__owner__confidence_person"
-                    )
+                filter=Q(
+                    faces__photo__hidden=False,
+                    faces__photo__deleted=False,
+                    faces__person_label_probability__gte=confidence_person,
                 ),
             ),
             face_url=Subquery(
