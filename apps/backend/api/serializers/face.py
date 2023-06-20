@@ -29,8 +29,8 @@ class IncompletePersonFaceListSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "kind", "face_count"]
 
     def get_face_count(self, obj) -> int:
-        if obj and obj.face_count:
-            return obj.face_count
+        if obj and obj.viewable_face_count:
+            return obj.viewable_face_count
         else:
             return 0
 

@@ -670,6 +670,8 @@ class Photo(models.Model):
                 face.image.save(face.image_path, ContentFile(face_io.getvalue()))
                 face_io.close()
                 face.save()
+                person._calculate_face_count()
+                person._set_default_cover_photo()
                 logger.debug(f"Created face {face} from {self.main_file.path}")
             return
 

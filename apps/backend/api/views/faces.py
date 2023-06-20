@@ -110,12 +110,12 @@ class FaceIncompleteListViewSet(ListViewSet):
         queryset = (
             Person.objects.filter(Q(cluster_owner=self.request.user))
             .annotate(
-                face_count=Count(
+                viewable_face_count=Count(
                     "faces",
                     filter=(conditional_filter),
                 )
             )
-            .filter(face_count__gt=0)
+            .filter(viewable_face_count__gt=0)
             .order_by("name")
         )
         return queryset
@@ -202,6 +202,8 @@ class SetFacePersonLabel(APIView):
                 updated.append(FaceListSerializer(face).data)
             else:
                 not_updated.append(FaceListSerializer(face).data)
+        person._calculate_face_count()
+        person._set_default_cover_photo()
         return Response(
             {
                 "status": True,

@@ -8,7 +8,6 @@ from api.util import logger
 
 
 class GroupedPersonPhotosSerializer(serializers.ModelSerializer):
-
     id = serializers.SerializerMethodField()
     grouped_photos = serializers.SerializerMethodField()
 
@@ -35,7 +34,6 @@ class GroupedPersonPhotosSerializer(serializers.ModelSerializer):
 
 class PersonSerializer(serializers.ModelSerializer):
     face_url = serializers.SerializerMethodField()
-    face_count = serializers.SerializerMethodField()
     face_photo_url = serializers.SerializerMethodField()
     video = serializers.SerializerMethodField()
     newPersonName = serializers.CharField(max_length=100, default="", write_only=True)
@@ -54,21 +52,20 @@ class PersonSerializer(serializers.ModelSerializer):
             "cover_photo",
         )
 
-    def get_face_count(self, obj) -> int:
-        return obj.viewable_face_count
-
     def get_face_url(self, obj) -> str:
-        return "/media/" + obj.face_url
+        if obj.cover_photo:
+            return obj.cover_photo.faces.first().image.name
+        return "/media/" + obj.faces.first().image.name
 
     def get_face_photo_url(self, obj) -> str:
         if obj.cover_photo:
             return obj.cover_photo.image_hash
-        return obj.face_photo_url
+        return obj.faces.first().photo.image_hash
 
     def get_video(self, obj) -> str:
         if obj.cover_photo:
             return obj.cover_photo.video
-        return obj.video
+        return obj.faces.first().photo.video
 
     def create(self, validated_data):
         name = validated_data.pop("name")

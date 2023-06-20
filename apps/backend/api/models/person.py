@@ -25,7 +25,7 @@ class Person(models.Model):
     cover_photo = models.ForeignKey(
         Photo, related_name="person", on_delete=models.SET_NULL, blank=False, null=True
     )
-
+    face_count = models.IntegerField(default=0)
     cluster_owner = models.ForeignKey(
         User,
         related_name="owner",
@@ -36,6 +36,23 @@ class Person(models.Model):
 
     def __str__(self):
         return "%d" % self.id
+
+    def _calculate_face_count(self):
+        confidence_person = (
+            User.objects.filter(id=self.cluster_owner.id).first().confidence_person
+        )
+        self.face_count = self.faces.filter(
+            photo__hidden=False,
+            photo__deleted=False,
+            photo__owner=self.cluster_owner.id,
+            person_label_probability__gte=confidence_person,
+        ).count()
+        self.save()
+
+    def _set_default_cover_photo(self):
+        if not self.cover_photo:
+            self.cover_photo = self.faces.first().photo
+            self.save()
 
     def get_photos(self, owner):
         faces = list(
