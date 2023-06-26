@@ -75,6 +75,8 @@ class PersonSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         name = validated_data.pop("name")
+        if len(name.strip()) == 0:
+            raise serializers.ValidationError("Name cannot be empty")
         qs = Person.objects.filter(name=name)
         if qs.count() > 0:
             return qs[0]
