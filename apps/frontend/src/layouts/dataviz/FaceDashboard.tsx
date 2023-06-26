@@ -88,8 +88,6 @@ export function FaceDashboard() {
   }, [idx2hash]);
 
   const handleShowClick = (event: React.KeyboardEvent, item: any) => {
-    console.log("handleShowClick", item);
-    console.log("idx2hashRef", idx2hashRef.current);
     const index = idx2hashRef.current.findIndex(image => image.id === item.photo);
     setLightboxImageIndex(index);
     setLightboxImageId(item.photo);

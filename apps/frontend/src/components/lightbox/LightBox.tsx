@@ -65,20 +65,28 @@ export function LightBox(props: Props) {
     return getCurrentPhotodetail().video;
   };
 
+  const isEmbeddedMedia = () => {
+    if (getCurrentPhotodetail() === undefined || getCurrentPhotodetail().embedded_media.length === 0) {
+      return false;
+    }
+    return getCurrentPhotodetail().embedded_media.length > 0;
+  };
+
+  // To-Do: This is technically false, but we do not know the next and previous media types, which is why it would return null sometimes, which leads to the arrows not showing up
   function getVideoComponent(id) {
-    const media = photoDetails[id];
-    if (media !== undefined && !!media.video) {
+    if (isVideo()) {
       return (
         <ReactPlayer
           width="100%"
           height="100%"
           playing
+          controls
           url={`${serverAddress}/media/video/${id}`}
           progressInterval={100}
         />
       );
     }
-    if (media !== undefined && media.embedded_media.length > 0) {
+    if (isEmbeddedMedia()) {
       return (
         <ReactPlayer
           width="100%"
