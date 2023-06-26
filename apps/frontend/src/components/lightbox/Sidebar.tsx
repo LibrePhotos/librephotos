@@ -1,21 +1,20 @@
-import { ActionIcon, Anchor, Avatar, Badge, Box, Button, Group, Stack, Text, Textarea, Title } from "@mantine/core";
+import { ActionIcon, Avatar, Badge, Box, Button, Group, Stack, Text, Textarea, Title } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-virtualized/styles.css";
 import { push } from "redux-first-history";
 // only needs to be imported once
-import { Edit, File, FileInfo, Map2, Note, Photo, Tags, Users, X } from "tabler-icons-react";
+import { Edit, Map2, Note, Photo, Tags, Users, X } from "tabler-icons-react";
 
 import { generatePhotoIm2txtCaption, savePhotoCaption } from "../../actions/photosActions";
 import type { Photo as PhotoType } from "../../actions/photosActions.types";
 import { searchPhotos } from "../../actions/searchActions";
 import { serverAddress } from "../../api_client/apiClient";
-import { store, useAppDispatch, useAppSelector } from "../../store/store";
+import { useAppDispatch, useAppSelector } from "../../store/store";
 import { LocationMap } from "../LocationMap";
 import { Tile } from "../Tile";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
-import { FileInfoComponent } from "./FileInfoComponent";
 import { TimestampItem } from "./TimestampItem";
 import { VersionComponent } from "./VersionComponent";
 
@@ -30,14 +29,28 @@ export function Sidebar(props: Props) {
   const dispatch = useAppDispatch();
   const [personEditOpen, setPersonEditOpen] = useState(false);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
+  const { fetchingPhotoDetail } = useAppSelector(store => store.photos);
   const { generatingCaptionIm2txt } = useAppSelector(store => store.photos);
   const { photoDetail, isPublic, closeSidepanel } = props;
-  const cur_cap = photoDetail.captions_json.user_caption 
-              && photoDetail.captions_json.user_caption.length > 0 ? photoDetail.captions_json.user_caption : photoDetail.captions_json.im2txt
-  const [imageCaption, setimageCaption] = useState(cur_cap)
+
+  const [imageCaption, setImageCaption] = useState("");
   const { width } = useViewportSize();
   const SCROLLBAR_WIDTH = 15;
   let LIGHTBOX_SIDEBAR_WIDTH = 320;
+
+  useEffect(() => {
+    if (!fetchingPhotoDetail) {
+      const currentCaption =
+        photoDetail.captions_json.user_caption && photoDetail.captions_json.user_caption.length > 0
+          ? photoDetail.captions_json.user_caption
+          : photoDetail.captions_json.im2txt;
+
+      setImageCaption(currentCaption);
+    } else {
+      setImageCaption("");
+    }
+  }, [photoDetail, fetchingPhotoDetail]);
+
   if (width < 600) {
     LIGHTBOX_SIDEBAR_WIDTH = width - SCROLLBAR_WIDTH;
   }
@@ -60,7 +73,7 @@ export function Sidebar(props: Props) {
         zIndex: 250,
       }}
     >
-      {photoDetail && (
+      {photoDetail && !fetchingPhotoDetail && (
         <Stack>
           <Group position="apart">
             <Title order={3}>Details</Title>
@@ -146,20 +159,16 @@ export function Sidebar(props: Props) {
             </Group>
             {false && photoDetail.captions_json.im2txt}
             <Stack>
-              <Textarea
-                value={imageCaption}
-                disabled={isPublic}
-                placeholder={cur_cap}
-                onChange={e => setimageCaption(e.target.value)}
-              />
+              <Textarea value={imageCaption} disabled={isPublic} onChange={e => setImageCaption(e.target.value)} />
               <Group>
-                <Button 
-                onClick={() => {
+                <Button
+                  onClick={() => {
                     dispatch(savePhotoCaption(photoDetail.image_hash, imageCaption));
-                }}
-                disabled={isPublic} 
-                size="sm" 
-                color="green">
+                  }}
+                  disabled={isPublic}
+                  size="sm"
+                  color="green"
+                >
                   {t("lightbox.sidebar.submit")}
                 </Button>
                 <Button
