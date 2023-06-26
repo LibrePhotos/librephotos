@@ -35,7 +35,18 @@ class Person(models.Model):
     )
 
     def __str__(self):
-        return "%d" % self.id
+        return (
+            self.name
+            + " ("
+            + self.kind
+            + ")"
+            + " ("
+            + str(self.id)
+            + ")"
+            + " ("
+            + str(self.cluster_owner)
+            + ")"
+        )
 
     def _calculate_face_count(self):
         confidence_person = (
