@@ -15,7 +15,7 @@ class DeletePhotosTest(TestCase):
 
     def test_tag_my_photos_for_removal(self):
         photos = create_test_photos(number_of_photos=3, owner=self.user1)
-        image_hashes = [str(p) for p in photos]
+        image_hashes = [p.image_hash for p in photos]
 
         payload = {"image_hashes": image_hashes, "deleted": True}
         headers = {"Content-Type": "application/json"}
@@ -32,7 +32,7 @@ class DeletePhotosTest(TestCase):
     def test_untag_my_photos_for_removal(self):
         photos1 = create_test_photos(number_of_photos=1, owner=self.user1, deleted=True)
         photos2 = create_test_photos(number_of_photos=2, owner=self.user1)
-        image_hashes = [str(p) for p in photos1 + photos2]
+        image_hashes = [p.image_hash for p in photos1 + photos2]
 
         payload = {"image_hashes": image_hashes, "deleted": False}
         headers = {"Content-Type": "application/json"}
@@ -48,7 +48,7 @@ class DeletePhotosTest(TestCase):
 
     def test_tag_photos_of_other_user_for_removal(self):
         photos = create_test_photos(number_of_photos=2, owner=self.user2)
-        image_hashes = [str(p) for p in photos]
+        image_hashes = [p.image_hash for p in photos]
 
         payload = {"image_hashes": image_hashes, "deleted": True}
         headers = {"Content-Type": "application/json"}
@@ -84,7 +84,7 @@ class DeletePhotosTest(TestCase):
             number_of_photos=2, owner=self.user1, deleted=True
         )
         photos_to_not_delete = create_test_photos(number_of_photos=3, owner=self.user1)
-        image_hashes = [str(p) for p in photos_to_delete + photos_to_not_delete]
+        image_hashes = [p.image_hash for p in photos_to_delete + photos_to_not_delete]
 
         payload = {"image_hashes": image_hashes}
         headers = {"Content-Type": "application/json"}
@@ -102,7 +102,7 @@ class DeletePhotosTest(TestCase):
         photos_to_delete = create_test_photos(
             number_of_photos=5, owner=self.user2, deleted=True
         )
-        image_hashes = [str(p) for p in photos_to_delete]
+        image_hashes = [p.image_hash for p in photos_to_delete]
 
         payload = {"image_hashes": image_hashes}
         headers = {"Content-Type": "application/json"}
