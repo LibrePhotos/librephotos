@@ -53,18 +53,24 @@ class PersonSerializer(serializers.ModelSerializer):
         )
 
     def get_face_url(self, obj) -> str:
-        if obj.cover_photo:
+        if obj.cover_photo and obj.cover_photo.faces.count() > 0:
             return "/media/" + obj.cover_photo.faces.first().image.name
+        if obj.faces.count() == 0:
+            return ""
         return "/media/" + obj.faces.first().image.name
 
     def get_face_photo_url(self, obj) -> str:
         if obj.cover_photo:
             return obj.cover_photo.image_hash
+        if obj.faces.count() == 0:
+            return ""
         return obj.faces.first().photo.image_hash
 
     def get_video(self, obj) -> str:
         if obj.cover_photo:
             return obj.cover_photo.video
+        if obj.faces.count() == 0:
+            return "False"
         return obj.faces.first().photo.video
 
     def create(self, validated_data):
