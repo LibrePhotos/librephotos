@@ -15,7 +15,7 @@ class PublicPhotosTest(TestCase):
 
     def test_set_my_photos_as_public(self):
         photos = create_test_photos(number_of_photos=3, owner=self.user1)
-        image_hashes = [str(p) for p in photos]
+        image_hashes = [p.image_hash for p in photos]
 
         payload = {"image_hashes": image_hashes, "val_public": True}
         headers = {"Content-Type": "application/json"}
@@ -31,7 +31,7 @@ class PublicPhotosTest(TestCase):
 
     def test_set_my_photos_as_private(self):
         photos = create_test_photos(number_of_photos=2, owner=self.user1, public=True)
-        image_hashes = [str(p) for p in photos]
+        image_hashes = [p.image_hash for p in photos]
 
         payload = {"image_hashes": image_hashes, "val_public": False}
         headers = {"Content-Type": "application/json"}
@@ -47,7 +47,7 @@ class PublicPhotosTest(TestCase):
 
     def test_set_photos_of_other_user_as_public(self):
         photos = create_test_photos(number_of_photos=2, owner=self.user2)
-        image_hashes = [str(p) for p in photos]
+        image_hashes = [p.image_hash for p in photos]
 
         payload = {"image_hashes": image_hashes, "val_public": True}
         headers = {"Content-Type": "application/json"}

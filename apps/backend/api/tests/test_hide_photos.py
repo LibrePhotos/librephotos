@@ -15,7 +15,7 @@ class FavoritePhotosTest(TestCase):
 
     def test_hide_my_photos(self):
         photos = create_test_photos(number_of_photos=3, owner=self.user1)
-        image_hashes = [str(p) for p in photos]
+        image_hashes = [p.image_hash for p in photos]
 
         payload = {"image_hashes": image_hashes, "hidden": True}
         headers = {"Content-Type": "application/json"}
@@ -32,7 +32,7 @@ class FavoritePhotosTest(TestCase):
     def test_untag_my_photos_as_favorite(self):
         photos1 = create_test_photos(number_of_photos=1, owner=self.user1, hidden=True)
         photos2 = create_test_photos(number_of_photos=2, owner=self.user1)
-        image_hashes = [str(p) for p in photos1 + photos2]
+        image_hashes = [p.image_hash for p in photos1 + photos2]
 
         payload = {"image_hashes": image_hashes, "hidden": False}
         headers = {"Content-Type": "application/json"}
@@ -48,7 +48,7 @@ class FavoritePhotosTest(TestCase):
 
     def test_tag_photos_of_other_user_as_favorite(self):
         photos = create_test_photos(number_of_photos=2, owner=self.user2)
-        image_hashes = [str(p) for p in photos]
+        image_hashes = [p.image_hash for p in photos]
 
         payload = {"image_hashes": image_hashes, "hidden": True}
         headers = {"Content-Type": "application/json"}

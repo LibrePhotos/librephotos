@@ -16,7 +16,7 @@ class SharePhotosTest(TestCase):
 
     def test_share_photos(self):
         photos = create_test_photos(number_of_photos=3, owner=self.user1)
-        image_hashes = [str(p) for p in photos]
+        image_hashes = [p.image_hash for p in photos]
 
         payload = {
             "image_hashes": image_hashes,
@@ -40,7 +40,7 @@ class SharePhotosTest(TestCase):
 
     def test_unshare_photos(self):
         photos = create_test_photos(number_of_photos=3, owner=self.user1)
-        image_hashes = [str(p) for p in photos]
+        image_hashes = [p.image_hash for p in photos]
         share_test_photos(image_hashes, self.user2)
 
         payload = {
@@ -66,7 +66,7 @@ class SharePhotosTest(TestCase):
     @skip("BUG!!! scenario not implemented")
     def test_share_other_user_photos(self):
         photos = create_test_photos(number_of_photos=2, owner=self.user2)
-        image_hashes = [str(p) for p in photos]
+        image_hashes = [p.image_hash for p in photos]
 
         payload = {
             "image_hashes": image_hashes,
