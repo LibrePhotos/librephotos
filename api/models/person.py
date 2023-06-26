@@ -1,6 +1,7 @@
 import datetime
 
 import pytz
+from django.core.validators import MinLengthValidator
 from django.db import models
 from django.db.models import Prefetch
 
@@ -20,7 +21,9 @@ class Person(models.Model):
         (KIND_CLUSTER, "Cluster ID"),
         (KIND_UNKNOWN, "Unknown Person"),
     )
-    name = models.CharField(blank=False, max_length=128)
+    name = models.CharField(
+        blank=False, max_length=128, validators=[MinLengthValidator(1)]
+    )
     kind = models.CharField(choices=KIND_CHOICES, max_length=10)
     cover_photo = models.ForeignKey(
         Photo, related_name="person", on_delete=models.SET_NULL, blank=False, null=True
