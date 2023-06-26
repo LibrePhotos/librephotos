@@ -20,7 +20,7 @@ class AlbumDate(models.Model):
         unique_together = ("date", "owner")
 
     def __str__(self):
-        return "%d: %s" % (self.id, self.title)
+        return str(self.date) + " (" + str(self.owner) + ")"
 
     def ordered_photos(self):
         return self.photos.all().order_by("-exif_timestamp")

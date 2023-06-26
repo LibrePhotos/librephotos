@@ -814,9 +814,6 @@ class Photo(models.Model):
         except Exception:
             logger.info("Cannot calculate dominant color {} object".format(self))
 
-    def __str__(self):
-        return "%s" % self.image_hash
-
     def manual_delete(self):
         for file in self.files.all():
             if os.path.isfile(file.path):
@@ -849,3 +846,12 @@ class Photo(models.Model):
 
     def _set_embedded_media(self, obj):
         return obj.main_file.embedded_media
+
+    def __str__(self):
+        return (
+            "{}".format(self.image_hash)
+            + " - "
+            + "{}".format(self.owner)
+            + " - "
+            + "{}".format(self.main_file.path)
+        )
