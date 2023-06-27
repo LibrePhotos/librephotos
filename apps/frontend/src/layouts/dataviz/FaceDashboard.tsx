@@ -29,10 +29,8 @@ export function FaceDashboard() {
   const gridRef = useRef<any>();
   const [gridHeight, setGridHeight] = useState(200);
   const [currentScrollPosition, setCurrentScrollPosition] = useState(0);
-  const [dataForScrollIndicator, setDataForScrollIndicator] = useState<IScrollerData[]>([]);
+
   const [lastChecked, setLastChecked] = useState(null);
-  const [entrySquareSize, setEntrySquareSize] = useState(200);
-  const [numEntrySquaresPerRow, setNumEntrySquaresPerRow] = useState(10);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
   const [modalPersonEditOpen, setModalPersonEditOpen] = useState(false);
   const [lightboxImageIndex, setLightboxImageIndex] = useState(1);
@@ -58,6 +56,8 @@ export function FaceDashboard() {
     store => store.face,
     (prev, next) => prev.inferredFacesList === next.inferredFacesList && prev.labeledFacesList === next.labeledFacesList
   );
+
+  const { entrySquareSize, numEntrySquaresPerRow } = calculateFaceGridCellSize(width);
 
   const inferredCellContents = calculateFaceGridCells(inferredFacesList, numEntrySquaresPerRow).cellContents;
   const labeledCellContents = calculateFaceGridCells(labeledFacesList, numEntrySquaresPerRow).cellContents;
@@ -132,6 +132,21 @@ export function FaceDashboard() {
     setCurrentScrollPosition(scrollTop);
   };
 
+  const getScrollPositions = () => {
+    const cellContents = activeTab === FacesTab.enum.labeled ? labeledCellContents : inferredCellContents;
+    let scrollPosition = 0;
+    const scrollPositions: IScrollerData[] = [];
+    cellContents.forEach(row => {
+      if (row[0].name) {
+        scrollPositions.push({ label: row[0].name, targetY: scrollPosition });
+      }
+      scrollPosition += entrySquareSize;
+    });
+    return scrollPositions;
+  };
+
+  const dataForScrollIndicator = getScrollPositions();
+
   useEffect(() => {
     if (previousTab) {
       dispatch(
@@ -144,20 +159,6 @@ export function FaceDashboard() {
     setScrollTo(tabs[activeTab].scrollPosition);
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [activeTab, previousTab, tabs]);
-
-  useEffect(() => {
-    const cellContents = activeTab === FacesTab.enum.labeled ? labeledCellContents : inferredCellContents;
-    let scrollPosition = 0;
-    const scrollPositions: IScrollerData[] = [];
-    cellContents.forEach(row => {
-      if (row[0].name) {
-        scrollPositions.push({ label: row[0].name, targetY: scrollPosition });
-      }
-      scrollPosition += entrySquareSize;
-    });
-    setDataForScrollIndicator(scrollPositions);
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [activeTab, gridHeight, entrySquareSize]);
 
   // ensure that the endpoint is not undefined
   const getEndpointCell = (cellContents, rowStopIndex, columnStopIndex) => {
@@ -193,13 +194,6 @@ export function FaceDashboard() {
       setGroups(uniqueGroups);
     }
   };
-
-  useEffect(() => {
-    const { entrySquareSize: squareSize, numEntrySquaresPerRow: squaresPerRow } = calculateFaceGridCellSize(width);
-
-    setEntrySquareSize(squareSize);
-    setNumEntrySquaresPerRow(squaresPerRow);
-  }, [width]);
 
   const onFacesSelect = faces => {
     // get duplicates of new faces and selected faces
