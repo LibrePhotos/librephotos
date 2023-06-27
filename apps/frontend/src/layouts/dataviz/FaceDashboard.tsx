@@ -27,7 +27,6 @@ import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gr
 export function FaceDashboard() {
   const { ref, width } = useElementSize();
   const gridRef = useRef<any>();
-  const [gridHeight, setGridHeight] = useState(200);
   const [currentScrollPosition, setCurrentScrollPosition] = useState(0);
 
   const [lastChecked, setLastChecked] = useState(null);
@@ -80,6 +79,7 @@ export function FaceDashboard() {
           .map(face => ({
             id: face.photo,
           }));
+
   const handleShowClick = (event: React.KeyboardEvent, item: any) => {
     const index = idx2hash.findIndex(image => image.id === item.photo);
     setLightboxImageIndex(index);
@@ -161,11 +161,9 @@ export function FaceDashboard() {
     return getEndpointCell(cellContents, rowStopIndex, columnStopIndex - 1);
   };
 
+  const gridHeight = gridRef.current ? gridRef.current.getTotalRowsHeight() : 200;
+
   const onSectionRendered = (params: any) => {
-    if (gridRef.current) {
-      // To-do find a better way to force update gridHeight for scrollscrubber
-      setGridHeight(gridRef.current.getTotalRowsHeight());
-    }
     const cellContents = activeTab === FacesTab.enum.labeled ? labeledCellContents : inferredCellContents;
     const startPoint = cellContents[params.rowOverscanStartIndex][params.columnOverscanStartIndex];
     const endPoint = getEndpointCell(cellContents, params.rowOverscanStopIndex, params.columnOverscanStopIndex);
