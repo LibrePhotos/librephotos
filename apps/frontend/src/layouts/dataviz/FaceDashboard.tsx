@@ -33,10 +33,9 @@ export function FaceDashboard() {
   const [lastChecked, setLastChecked] = useState(null);
   const [entrySquareSize, setEntrySquareSize] = useState(200);
   const [numEntrySquaresPerRow, setNumEntrySquaresPerRow] = useState(10);
-  const [selectMode, setSelectMode] = useState(false);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
   const [modalPersonEditOpen, setModalPersonEditOpen] = useState(false);
-
+  const selectMode = selectedFaces.length > 0;
   const [inferredCellContents, setInferredCellContents] = useState<any[]>([]);
   const [labeledCellContents, setLabeledCellContents] = useState<any[]>([]);
 
@@ -196,30 +195,20 @@ export function FaceDashboard() {
 
   useEffect(() => {
     const inferredContents = calculateFaceGridCells(inferredFacesList, numEntrySquaresPerRow).cellContents;
-    const labeledContents = calculateFaceGridCells(labeledFacesList, numEntrySquaresPerRow).cellContents;
     setInferredCellContents(inferredContents);
+  }, [inferredFacesList, numEntrySquaresPerRow]);
+
+  useEffect(() => {
+    const labeledContents = calculateFaceGridCells(labeledFacesList, numEntrySquaresPerRow).cellContents;
     setLabeledCellContents(labeledContents);
-  }, [inferredFacesList, labeledFacesList, numEntrySquaresPerRow, selectedFaces]);
+  }, [labeledFacesList, numEntrySquaresPerRow]);
 
   useEffect(() => {
     const { entrySquareSize: squareSize, numEntrySquaresPerRow: squaresPerRow } = calculateFaceGridCellSize(width);
 
     setEntrySquareSize(squareSize);
     setNumEntrySquaresPerRow(squaresPerRow);
-
-    if (inferredFacesList) {
-      const inferredContents = calculateFaceGridCells(inferredFacesList, squaresPerRow).cellContents;
-      setInferredCellContents(inferredContents);
-    }
-    if (labeledFacesList) {
-      const labeledContents = calculateFaceGridCells(labeledFacesList, squaresPerRow).cellContents;
-      setLabeledCellContents(labeledContents);
-    }
-  }, [inferredFacesList, labeledFacesList, selectedFaces, width]);
-
-  useEffect(() => {
-    setSelectMode(selectedFaces.length > 0);
-  }, [selectedFaces]);
+  }, [width]);
 
   const onFacesSelect = faces => {
     // get duplicates of new faces and selected faces
