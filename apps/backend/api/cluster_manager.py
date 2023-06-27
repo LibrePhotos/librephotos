@@ -11,10 +11,6 @@ from api.util import logger
 
 class ClusterManager:
     @staticmethod
-    def get_global_data_count():
-        return Face.objects.count()
-
-    @staticmethod
     def try_add_cluster(
         user: User, cluster_id: int, faces: list[Face], padLen: int = 1
     ) -> list[Cluster]:

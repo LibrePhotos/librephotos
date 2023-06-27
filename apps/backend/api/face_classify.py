@@ -117,11 +117,15 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
     print("[INFO] Creating clusters")
 
     data = {
-        "all": {"encoding": [], "id": []},
+        "all": {"encoding": [], "id": [], "person_id": [], "person_labeled": []},
     }
     for face in Face.objects.filter(photo__owner=user).prefetch_related("person"):
         data["all"]["encoding"].append(face.get_encoding_array())
         data["all"]["id"].append(face.id)
+        data["all"]["person_id"].append(face.person.id)
+        data["all"]["person_labeled"].append(
+            1 if face.person.kind == Person.KIND_USER else 0
+        )
 
     target_count = len(data["all"]["id"])
     if target_count == 0:
@@ -139,7 +143,15 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
     # creating HDBSCAN object for clustering the encodings with the metric "euclidean"
     clt = HDBSCAN(min_cluster_size=min_cluster_size, metric="euclidean")
 
-    clt.fit(np.array(data["all"]["encoding"]))
+    # clustering the encodings, person labeled and person_ids
+    X = np.column_stack(
+        (
+            np.array(data["all"]["encoding"]),
+            np.array(data["all"]["person_labeled"]),
+            np.array(data["all"]["person_id"]),
+        )
+    )
+    clt.fit(X)
 
     labelIDs = np.unique(clt.labels_)
     labelID: np.intp
