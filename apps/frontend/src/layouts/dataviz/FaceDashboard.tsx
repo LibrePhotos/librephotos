@@ -80,15 +80,8 @@ export function FaceDashboard() {
           .map(face => ({
             id: face.photo,
           }));
-
-  const idx2hashRef = useRef(idx2hash);
-
-  useEffect(() => {
-    idx2hashRef.current = idx2hash;
-  }, [idx2hash]);
-
   const handleShowClick = (event: React.KeyboardEvent, item: any) => {
-    const index = idx2hashRef.current.findIndex(image => image.id === item.photo);
+    const index = idx2hash.findIndex(image => image.id === item.photo);
     setLightboxImageIndex(index);
     setLightboxImageId(item.photo);
     setLightboxShow(index >= 0);
