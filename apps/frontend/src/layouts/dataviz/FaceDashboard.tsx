@@ -35,10 +35,6 @@ export function FaceDashboard() {
   const [numEntrySquaresPerRow, setNumEntrySquaresPerRow] = useState(10);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
   const [modalPersonEditOpen, setModalPersonEditOpen] = useState(false);
-  const selectMode = selectedFaces.length > 0;
-  const [inferredCellContents, setInferredCellContents] = useState<any[]>([]);
-  const [labeledCellContents, setLabeledCellContents] = useState<any[]>([]);
-
   const [lightboxImageIndex, setLightboxImageIndex] = useState(1);
   const [lightboxImageId, setLightboxImageId] = useState("");
   const [lightboxShow, setLightboxShow] = useState(false);
@@ -62,6 +58,11 @@ export function FaceDashboard() {
     store => store.face,
     (prev, next) => prev.inferredFacesList === next.inferredFacesList && prev.labeledFacesList === next.labeledFacesList
   );
+
+  const inferredCellContents = calculateFaceGridCells(inferredFacesList, numEntrySquaresPerRow).cellContents;
+  const labeledCellContents = calculateFaceGridCells(labeledFacesList, numEntrySquaresPerRow).cellContents;
+
+  const selectMode = selectedFaces.length > 0;
 
   const getPhotoDetails = (image: string) => {
     dispatch(fetchPhotoDetail(image));
@@ -192,16 +193,6 @@ export function FaceDashboard() {
       setGroups(uniqueGroups);
     }
   };
-
-  useEffect(() => {
-    const inferredContents = calculateFaceGridCells(inferredFacesList, numEntrySquaresPerRow).cellContents;
-    setInferredCellContents(inferredContents);
-  }, [inferredFacesList, numEntrySquaresPerRow]);
-
-  useEffect(() => {
-    const labeledContents = calculateFaceGridCells(labeledFacesList, numEntrySquaresPerRow).cellContents;
-    setLabeledCellContents(labeledContents);
-  }, [labeledFacesList, numEntrySquaresPerRow]);
 
   useEffect(() => {
     const { entrySquareSize: squareSize, numEntrySquaresPerRow: squaresPerRow } = calculateFaceGridCellSize(width);
