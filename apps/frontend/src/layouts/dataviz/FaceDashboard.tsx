@@ -148,6 +148,18 @@ export function FaceDashboard() {
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [activeTab]);
 
+  useEffect(() => {
+    if (scrollTo !== null) {
+      dispatch(
+        faceActions.saveCurrentGridPosition({
+          tab: activeTab,
+          position: scrollTo,
+        })
+      );
+    }
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [scrollTo]);
+
   // ensure that the endpoint is not undefined
   const getEndpointCell = (cellContents, rowStopIndex, columnStopIndex) => {
     if (cellContents[rowStopIndex][columnStopIndex]) {
