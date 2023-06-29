@@ -1,6 +1,6 @@
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 import { Stack } from "@mantine/core";
-import { useElementSize, usePrevious, useScrollLock } from "@mantine/hooks";
+import { useElementSize, useScrollLock } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 import _ from "lodash";
 import React, { useEffect, useRef, useState } from "react";
@@ -20,14 +20,14 @@ import type { IScrollerData } from "../../components/scrollscrubber/ScrollScrubb
 import i18n from "../../i18n";
 import { faceActions } from "../../store/faces/faceSlice";
 import { FacesTab } from "../../store/faces/facesActions.types";
-import type { IFacesTab } from "../../store/faces/facesActions.types";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
 
 export function FaceDashboard() {
   const { ref, width } = useElementSize();
   const gridRef = useRef<any>();
-  const [currentScrollPosition, setCurrentScrollPosition] = useState(0);
+
+  const { activeTab, tabs } = useAppSelector(store => store.face);
 
   const [lastChecked, setLastChecked] = useState(null);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
@@ -36,6 +36,7 @@ export function FaceDashboard() {
   const [lightboxImageId, setLightboxImageId] = useState("");
   const [lightboxShow, setLightboxShow] = useState(false);
 
+  const [scrollTo, setScrollTo] = useState<number | null>(null);
   const setScrollLocked = useScrollLock(false)[1];
 
   const fetchingInferredFacesList = useFetchIncompleteFacesQuery({ inferred: false }).isFetching;
@@ -48,8 +49,6 @@ export function FaceDashboard() {
       person: any;
     }[]
   >([]);
-
-  const { activeTab, tabs } = useAppSelector(store => store.face);
 
   const { inferredFacesList, labeledFacesList } = useAppSelector(
     store => store.face,
@@ -114,15 +113,19 @@ export function FaceDashboard() {
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [activeTab, groups, orderBy]);
 
-  const previousTab: IFacesTab = usePrevious(activeTab);
-  const [scrollTo, setScrollTo] = useState<number | null>(null);
-
   const handleGridScroll = (params: any) => {
     const { scrollTop } = params;
     if (scrollTo !== null && scrollTop === scrollTo) {
       setScrollTo(null);
     }
-    setCurrentScrollPosition(scrollTop);
+    if (tabs[activeTab].scrollPosition !== scrollTop) {
+      dispatch(
+        faceActions.saveCurrentGridPosition({
+          tab: activeTab,
+          position: scrollTop,
+        })
+      );
+    }
   };
 
   const getScrollPositions = () => {
@@ -141,17 +144,9 @@ export function FaceDashboard() {
   const dataForScrollIndicator = getScrollPositions();
 
   useEffect(() => {
-    if (previousTab) {
-      dispatch(
-        faceActions.saveCurrentGridPosition({
-          tab: previousTab,
-          position: currentScrollPosition,
-        })
-      );
-    }
     setScrollTo(tabs[activeTab].scrollPosition);
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [activeTab, previousTab, tabs]);
+  }, [activeTab]);
 
   // ensure that the endpoint is not undefined
   const getEndpointCell = (cellContents, rowStopIndex, columnStopIndex) => {
@@ -365,7 +360,7 @@ export function FaceDashboard() {
                 rowCount={
                   activeTab === FacesTab.enum.labeled ? labeledCellContents.length : inferredCellContents.length
                 }
-                scrollTop={scrollTo}
+                scrollTop={tabs[activeTab].scrollPosition}
                 onScroll={handleGridScroll}
               />
             </ScrollScrubber>
