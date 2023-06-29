@@ -138,9 +138,10 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
 
     # creating HDBSCAN object for clustering the encodings with the metric "euclidean"
     clt = HDBSCAN(min_cluster_size=min_cluster_size, metric="euclidean")
-
+    logger.info("Before finding clusters")
     # clustering the encodings
     clt.fit(np.array(data["all"]["encoding"]))
+    logger.info("After finding clusters")
 
     labelIDs = np.unique(clt.labels_)
     labelID: np.intp
@@ -239,13 +240,14 @@ def train_faces(user: User, job_id) -> bool:
         data_unknown = {"encoding": [], "id": []}
         # First, sort all faces into known and unknown ones
         face: Face
-        for face in Face.objects.filter(
-            Q(photo__owner=user) & ~Q(person=unknown_person)
-        ).prefetch_related("person"):
+        for face in Face.objects.filter(Q(photo__owner=user)).prefetch_related(
+            "person"
+        ):
             person: Person = face.person
             unknown = (
                 face.person_label_is_inferred is not False
                 or person.kind == Person.KIND_CLUSTER
+                or person.kind == Person.KIND_UNKNOWN
             )
             if unknown:
                 data_unknown["encoding"].append(face.get_encoding_array())
@@ -293,20 +295,26 @@ def train_faces(user: User, job_id) -> bool:
                     data_unknown["id"][i : i + 100]
                     for i in range(0, len(data_unknown["encoding"]), 100)
                 ]
-                for idx, page_data_unknown_encoding in enumerate(pages_encoding):
-                    page_data_unknown_id = pages_id[idx]
-                    face_encodings_unknown_np = np.array(page_data_unknown_encoding)
+                for idx, page in enumerate(pages_encoding):
+                    page_id = pages_id[idx]
+                    pages_of_faces = Face.objects.filter(id__in=page_id).all()
+                    # sort pages of faces by id by page_id
+                    pages_of_faces = sorted(
+                        pages_of_faces, key=lambda x: page_id.index(x.id)
+                    )
+                    face_encodings_unknown_np = np.array(page)
                     probs = clf.predict_proba(face_encodings_unknown_np)
-
                     commit_time = datetime.datetime.now() + datetime.timedelta(
                         seconds=5
                     )
                     face_stack = []
-                    for idx, (face_id, probability_array) in enumerate(
-                        zip(page_data_unknown_id, probs)
+                    for idx, (face, probability_array) in enumerate(
+                        zip(pages_of_faces, probs)
                     ):
-                        face = Face.objects.get(id=face_id)
-                        if face.person is unknown_person:
+                        if (
+                            face.person is unknown_person
+                            or face.person.kind == Person.KIND_UNKNOWN
+                        ):
                             face.person_label_is_inferred = False
                         else:
                             face.person_label_is_inferred = True
@@ -314,11 +322,27 @@ def train_faces(user: User, job_id) -> bool:
 
                         # Find the probability in the probability array corresponding to the person
                         # that we currently believe the face is, even a simulated "unknown" person
+                        highest_probability = max(probability_array)
+                        highest_probability_person = 0
                         for i, target in enumerate(clf.classes_):
+                            if highest_probability == probability_array[i]:
+                                highest_probability_person = target
                             if target == face.person.id:
                                 probability = probability_array[i]
-                                break
-                        face.person_label_probability = probability
+
+                        # To-Do: Make this a parameter in the settings
+                        if (
+                            probability < highest_probability - 0.1
+                            and highest_probability > 0.5
+                        ):
+                            face.person = Person.objects.get(
+                                id=highest_probability_person
+                            )
+                            face.person_label_is_inferred = True
+                            face.person_label_probability = highest_probability
+                        else:
+                            face.person_label_probability = probability
+
                         face_stack.append(face)
                         if commit_time < datetime.datetime.now():
                             lrj.result = {
