@@ -14,7 +14,6 @@ export function AlbumUserGallery() {
   const [flatPhotos, setFlatPhotos] = useState<PigPhoto[]>([]);
   const [groupedPhotos, setGroupedPhotos] = useState<DatePhotosGroup[]>([]);
   const [isPublic, setIsPublic] = useState(false);
-  const albumDetails = useAppSelector(store => store.albums.albumDetails);
   const auth = useAppSelector(store => store.auth);
   const { albumID } = useParams();
   const { t } = useTranslation();
@@ -36,10 +35,10 @@ export function AlbumUserGallery() {
   }, [album, auth]);
 
   function getSubheader(showHeader: boolean) {
-    if (showHeader) {
+    if (showHeader && album) {
       return (
         <span>
-          {", "}owned by {albumDetails.owner.id === auth.access.user_id ? "you" : albumDetails.owner.username}
+          {", "}owned by {album.owner.id === auth.access.user_id ? "you" : album.owner.username}
         </span>
       );
     }
