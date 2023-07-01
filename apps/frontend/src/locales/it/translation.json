@@ -32,7 +32,7 @@
         "big": "Grande",
         "library": "Raccolta",
         "photos": "Foto",
-        "statusscanphotostrue": "Scansione di foto (sistema di file)",
+        "statusscanphotostrue": "Scansione delle foto in corso",
         "header": "Impostazioni",
         "lastnameplaceholder": "Cognome",
         "small": "Piccola",
@@ -43,13 +43,13 @@
         "simplifiedchinese": "cinese (semplificato)",
         "nextcloudupdate": "Aggiorna le credenziali Nextcloud",
         "nextcloudchange": "Cambia",
-        "nextcloudnotloggedin": "Non connesso a Nextcloud",
+        "nextcloudnotloggedin": "Non connesso",
         "credentialspopup": "Usa la password del tuo account Nextcloud",
         "serveradress": "Indirizzo del server",
         "nextcloudpassword": "Password dell'app Nextcloud",
-        "nextcloudloggedin": "Connesso a Nextcloud",
-        "statusscanphotosfalse": "Scansiona foto (sistema file)",
-        "scannextcloudphotos": "Scansiona foto (Nextcloud)",
+        "nextcloudloggedin": "Connesso",
+        "statusscanphotosfalse": "Scansiona",
+        "scannextcloudphotos": "Scansiona",
         "russian": "russo",
         "swedish": "svedese",
         "japanese": "giapponese",
@@ -113,7 +113,14 @@
         "arabic": "Arabo",
         "korean": "Koreano",
         "hungarian": "Ungherese",
-        "urdu": "Urdu"
+        "urdu": "Urdu",
+        "nextcloudsetup": "Credenziali mancanti",
+        "security": "Sicurezza",
+        "colorscheme": {
+            "title": "Schema colori",
+            "light": "Chiaro",
+            "dark": "Scuro"
+        }
     },
     "joblist": {
         "queued": "In coda",
