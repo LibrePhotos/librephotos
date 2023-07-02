@@ -10,7 +10,7 @@ category: 1
 ## For Developers
 
 Create a directory for the project: this is where all the Git repositories will be cloned into. In this guide, we will
-use `/dev/librephotos` as an example.
+use `./dev/librephotos` as an example.
 
 Pull frontend code with `git clone https://github.com/LibrePhotos/librephotos-frontend.git `
 
@@ -21,8 +21,8 @@ Pull librephotos-docker repo `git clone https://github.com/LibrePhotos/librephot
 ### Setting up in Linux
 
 ```bash
-codedir=/dev/librephotos
-cd ${codedir}
+codedir=./dev/librephotos
+cd $codedir
 git clone https://github.com/LibrePhotos/librephotos-frontend.git
 git clone https://github.com/LibrePhotos/librephotos.git
 git clone https://github.com/LibrePhotos/librephotos-docker.git
@@ -33,7 +33,7 @@ git clone https://github.com/LibrePhotos/librephotos-docker.git
 In PowerShell:
 
 ```powershell
-$Env:codedir = "/dev/librephotos"
+$Env:codedir = "./dev/librephotos"
 CD $Env:codedir
 git clone https://github.com/LibrePhotos/librephotos-frontend.git
 git clone https://github.com/LibrePhotos/librephotos.git
@@ -68,7 +68,7 @@ docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ### Visual Studio Code
 
 If you use Visual Studio Code, you can also benefit from auto-completion and other goodies. For this, just run `code .`
-in your Dockerfile folder, which is `/dev/librephotos/librephotos-docker` in our example.
+in your Dockerfile folder, which is `./dev/librephotos/librephotos-docker` in our example.
 
 Visual Studio Code will open and ask you if you want to reopen it in the container. If you do, it will create the images
 from scratch (first time you do it can take a couple of minutes), and you will have the same Python interpreter
