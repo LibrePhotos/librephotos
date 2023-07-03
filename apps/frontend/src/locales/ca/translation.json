@@ -24,6 +24,10 @@
         "simplifiedchinese": "Chinés simplificat",
         "traditionalchinese": "Chinés (tradicional)",
         "russian": "Rus",
-        "swedish": "Suec"
+        "swedish": "Suec",
+        "account": "Compte",
+        "avatar": "Avatar Públic",
+        "header": "Configuració",
+        "profile": "Perfil"
     }
 }
