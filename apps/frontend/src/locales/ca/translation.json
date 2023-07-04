@@ -1,1 +1,29 @@
-{}
+{
+    "settings": {
+        "uploadheader": "Carrega nou avatar",
+        "image": "Escull imatge",
+        "upload": "Carrega",
+        "accountinformation": "Informació de conta",
+        "lastname": "Segon cognom",
+        "emailplaceholder": "Adreça electrònica",
+        "language": "Selecció d'idioma",
+        "english": "Anglès",
+        "french": "Francés",
+        "japanese": "Japonés",
+        "polish": "Polac",
+        "dutch": "Holandés",
+        "filesize": "Tamany màxim d'imatge permès és 200 kB.",
+        "firstname": "Primer Cognom",
+        "firstnameplaceholder": "Primer Cognom",
+        "lastnameplaceholder": "Segon cognom",
+        "email": "Adreça electrònica",
+        "german": "Alemany",
+        "spanish": "Castellà",
+        "italian": "Italià",
+        "norwegianbokmal": "Noruec",
+        "simplifiedchinese": "Chinés simplificat",
+        "traditionalchinese": "Chinés (tradicional)",
+        "russian": "Rus",
+        "swedish": "Suec"
+    }
+}
