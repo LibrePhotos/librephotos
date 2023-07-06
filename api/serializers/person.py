@@ -54,7 +54,10 @@ class PersonSerializer(serializers.ModelSerializer):
 
     def get_face_url(self, obj) -> str:
         if obj.cover_photo and obj.cover_photo.faces.count() > 0:
-            return "/media/" + obj.cover_photo.faces.first().image.name
+            return (
+                "/media/"
+                + obj.cover_photo.faces.filter(person__name=obj.name).first().image.name
+            )
         if obj.faces.count() == 0:
             return ""
         return "/media/" + obj.faces.first().image.name
