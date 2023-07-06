@@ -63,13 +63,11 @@ export function AlbumPersonGallery(): JSX.Element {
     []
   );
 
-  // get person details
   return (
     <PhotoListView
       title={personname || t("loading")}
       loading={fetchedPhotosetType !== PhotosetType.PERSON}
       icon={<User size={50} />}
-      isDateView
       photoset={photosGroupedByDate}
       idx2hash={photosFlat}
       updateGroups={throttledGetAlbums}

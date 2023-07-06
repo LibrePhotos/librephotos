@@ -34,7 +34,6 @@ export function NoTimestampPhotosView() {
       title={t("photos.notimestamp")}
       loading={fetchedPhotosetType !== PhotosetType.NO_TIMESTAMP}
       icon={<Photo size={50} />}
-      isDateView={false}
       photoset={photosFlat}
       idx2hash={photosFlat}
       numberOfItems={numberOfPhotos}

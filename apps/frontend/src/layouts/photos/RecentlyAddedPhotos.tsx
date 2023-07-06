@@ -26,7 +26,6 @@ export function RecentlyAddedPhotos() {
       title={t("photos.recentlyadded")}
       loading={fetchedPhotosetType !== PhotosetType.RECENTLY_ADDED}
       icon={<Clock size={50} />}
-      isDateView={false}
       date={recentlyAddedPhotosDate}
       photoset={photosFlat}
       idx2hash={photosFlat}

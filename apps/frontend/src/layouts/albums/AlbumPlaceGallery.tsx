@@ -28,7 +28,6 @@ export function AlbumPlaceGallery() {
       title={groupedPhotos ? groupedPhotos.title : t("loading")}
       loading={fetchingAlbumsPlace}
       icon={<Map size={50} />}
-      isDateView
       photoset={groupedPhotos ? groupedPhotos.grouped_photos : []}
       idx2hash={groupedPhotos ? groupedPhotos.grouped_photos.flatMap(el => el.items) : []}
       selectable

@@ -51,7 +51,6 @@ export function AlbumUserGallery() {
       additionalSubHeader={getSubheader(isPublic)}
       loading={isFetching}
       icon={<Bookmark size={50} />}
-      isDateView
       photoset={groupedPhotos}
       idx2hash={flatPhotos}
       isPublic={isPublic}

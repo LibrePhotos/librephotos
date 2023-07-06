@@ -32,7 +32,6 @@ type Props = {
   title: string;
   loading: boolean;
   icon: any;
-  isDateView: boolean;
   photoset: any[];
   idx2hash: any[];
   selectable: boolean;
@@ -65,7 +64,6 @@ function PhotoListViewComponent(props: Props) {
   const [dataForScrollIndicator, setDataForScrollIndicator] = useState<IScrollerData[]>([]);
   const gridHeight = useRef(200);
   const setScrollLocked = useScrollLock(false)[1];
-  const [photos, setPhotos] = useState<any[]>([]);
 
   const route = useAppSelector(store => store.router);
   const userSelfDetails = useAppSelector(store => store.user.userSelfDetails);
@@ -74,7 +72,6 @@ function PhotoListViewComponent(props: Props) {
     title,
     loading,
     icon,
-    isDateView,
     photoset,
     idx2hash,
     selectable,
@@ -87,6 +84,9 @@ function PhotoListViewComponent(props: Props) {
     additionalSubHeader,
   } = props;
 
+  const isDateView = photoset !== idx2hash;
+  const photos = isDateView ? formatDateForPhotoGroups(photoset) : photoset;
+
   const idx2hashRef = useRef(idx2hash);
   const dispatch = useAppDispatch();
   const params = useParams();
@@ -95,11 +95,6 @@ function PhotoListViewComponent(props: Props) {
     idx2hashRef.current = idx2hash;
   }, [idx2hash]);
 
-  useEffect(() => {
-    setPhotos(isDateView ? formatDateForPhotoGroups(photoset) : photoset);
-  }, [isDateView, photoset]);
-
-  /* eslint-disable react-hooks/exhaustive-deps */
   const throttledUpdateGroups = useCallback(
     _.throttle(visibleItems => updateGroups(visibleItems), 500),
     []

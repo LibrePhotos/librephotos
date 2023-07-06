@@ -62,7 +62,6 @@ export function UserPublicPage() {
       }
       loading={fetchedPhotosetType !== PhotosetType.PUBLIC}
       icon={<Globe size={50} />}
-      isDateView
       photoset={photosGroupedByDate}
       idx2hash={photosFlat}
       isPublic={auth.access === null || auth.access.name !== params.username}

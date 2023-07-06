@@ -65,7 +65,6 @@ export class PhotosShared extends Component {
               title="Photos"
               loading={this.props.fetchedPhotosetType !== photosetType}
               icon={<Photo size={50} />}
-              isDateView={false}
               photoset={group.photos}
               idx2hash={group.photos}
               isPublic

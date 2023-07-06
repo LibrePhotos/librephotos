@@ -24,7 +24,6 @@ export function HiddenPhotos() {
       title={t("photos.hidden")}
       loading={fetchedPhotosetType !== PhotosetType.HIDDEN}
       icon={<EyeOff size={50} />}
-      isDateView
       photoset={photosGroupedByDate}
       idx2hash={photosFlat}
       selectable

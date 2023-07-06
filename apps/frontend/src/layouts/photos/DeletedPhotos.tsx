@@ -52,7 +52,6 @@ export function DeletedPhotos() {
       title={t("photos.deleted")}
       loading={fetchedPhotosetType !== PhotosetType.DELETED}
       icon={<Trash size={50} />}
-      isDateView
       photoset={photosGroupedByDate}
       updateGroups={getAlbums}
       idx2hash={photosFlat}

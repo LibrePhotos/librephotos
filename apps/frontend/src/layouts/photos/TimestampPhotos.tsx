@@ -50,7 +50,6 @@ export function TimestampPhotos() {
       title={t("photos.photos")}
       loading={fetchedPhotosetType !== PhotosetType.TIMESTAMP}
       icon={<Photo size={50} />}
-      isDateView
       photoset={photosGroupedByDate}
       idx2hash={photosFlat}
       updateGroups={getAlbums}

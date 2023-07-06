@@ -52,7 +52,6 @@ export function FavoritePhotos() {
       title={t("photos.favorite")}
       loading={fetchedPhotosetType !== PhotosetType.FAVORITES}
       icon={<Star size={50} />}
-      isDateView
       photoset={photosGroupedByDate}
       updateGroups={getAlbums}
       idx2hash={photosFlat}
