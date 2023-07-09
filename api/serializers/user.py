@@ -63,6 +63,9 @@ class UserSerializer(serializers.ModelSerializer):
             "datetime_rules",
             "default_timezone",
             "public_sharing",
+            "face_recognition_model",
+            "min_cluster_size",
+            "confidence_unknown_face",
         )
 
     def validate_nextcloud_app_password(self, value):
@@ -195,6 +198,20 @@ class UserSerializer(serializers.ModelSerializer):
         if "public_sharing" in validated_data:
             instance.public_sharing = validated_data.pop("public_sharing")
             instance.save()
+        if "face_recognition_model" in validated_data:
+            instance.face_recognition_model = validated_data.pop(
+                "face_recognition_model"
+            )
+            instance.save()
+        if "min_cluster_size" in validated_data:
+            instance.min_cluster_size = validated_data.pop("min_cluster_size")
+            instance.save()
+        if "confidence_unknown_face" in validated_data:
+            instance.confidence_unknown_face = validated_data.pop(
+                "confidence_unknown_face"
+            )
+            instance.save()
+
         return instance
 
     def get_photo_count(self, obj) -> int:
