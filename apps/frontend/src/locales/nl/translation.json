@@ -168,7 +168,9 @@
         "hungarian": "Hongaars",
         "urdu": "Urdu",
         "slovak": "Slowaaks",
-        "portuguesebr": "Portugees (Brazilië)"
+        "portuguesebr": "Portugees (Brazilië)",
+        "face_options": "Gezichtsopties",
+        "face_recognition_model": "Gezichtsherkenningsmodel"
     },
     "topmenu": {
         "profile": "Profiel",
