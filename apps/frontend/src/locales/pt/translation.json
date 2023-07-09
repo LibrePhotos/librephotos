@@ -174,7 +174,21 @@
         "slovak": "Eslovaco",
         "hungarian": "Húngaro",
         "urdu": "Urdu",
-        "korean": "Coreano"
+        "korean": "Coreano",
+        "unknown_faces_confidence_help": "Introduza um nível de certeza entre 0 e 1. Caras de \"Desconhecidas - Outras\" serão correspondidas a outras pessoas se o nível de certeza é mais alto que este valor. 0 significa que este recurso está desligado.",
+        "models": {
+            "cnn": "CNN",
+            "hog": "HOG"
+        },
+        "face_options": "Opções de caras",
+        "face_recognition_model_help": "Modifica o modelo usado para reconhecimento facial. O modelo CNN é mais preciso mas mais lento que o modelo HOG.",
+        "min_cluster_size": "Tamanho mínimo de aglomerado",
+        "min_cluster_size_help": "Modifica como os aglomerados são formados. Um valor mais baixo resultará na formação de mais aglomerados.",
+        "unknown_faces_confidence": "Certeza ao coincidir caras desconhecidas - outras",
+        "face_recognition_model": "Modelo de reconhecimento facial",
+        "size": {
+            "auto": "Automático"
+        }
     },
     "sidemenu": {
         "myalbums": "Meus álbuns",
