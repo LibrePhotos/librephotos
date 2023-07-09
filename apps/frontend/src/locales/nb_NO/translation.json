@@ -448,7 +448,7 @@
     "places": "Steder",
     "personedit": {
         "labelfaces": "Etikettmerk fjes",
-        "numberselected": "Etikettmerk {number} valgte fjes som …",
+        "numberselected": "Etikettmerk {{number}} valgte fjes som …",
         "newperson": "Ny person",
         "personname": "Navnet på personen",
         "addperson": "Legg til person"
