@@ -181,7 +181,8 @@
         "nextcloudconnecting": "Kobler til …",
         "rescanphotosdescription": "Omskanning av alle filer",
         "trainfacestitle": "Tren fjes",
-        "trainfacesdescription": "Lær opp systemet basert på eksisterende info"
+        "trainfacesdescription": "Lær opp systemet basert på eksisterende info",
+        "face_recognition_model_help": "Endrer modellen brukt for fjesgjenkjenning. CNN-modellen er mer nøyaktig, men tregere enn HOG-modellen."
     },
     "modalnextcloud": {
         "setdirectory": "Sett din Nextcloud-skanningsmappe",
@@ -350,7 +351,8 @@
         "deleteallautoalbums": "Slett alle auto-opprettede album",
         "remove": "Fjern",
         "admintools": "Administratorverktøy",
-        "delete": "Slett"
+        "delete": "Slett",
+        "deleteuserconfirmexplanation": "Du er i ferd med å slette {{username}}-brukeren. Dette sletter også all tilknyttet data."
     },
     "joblist": {
         "reload": "Last inn igjen",
@@ -365,7 +367,8 @@
         "queued": "I kø",
         "duration": "Varighet",
         "startedby": "Startet av",
-        "running": "kjører"
+        "running": "kjører",
+        "itemsadded": "Tilleggselement(er) tillagt"
     },
     "modalscandirectoryedit": {
         "explanation1": "Når brukeren",
@@ -433,7 +436,10 @@
         "headerupload": "Tillat opplastinger",
         "headerheavyweight": "Tunge prosesser",
         "headerapikey": "Mapbox API-nøkkel",
-        "headerskippatterns": "Utelatelsesmønster"
+        "headerskippatterns": "Utelatelsesmønster",
+        "skippatterns": " Kommainndelt liste over mønster å ignorere (f.eks. «@eaDir.#recycle» for Synology-enheter)",
+        "apikey": "Viser et kart der alle bildene dine ble tattt (om posisjon er lagret i bildene dine). Skaff deg en Mapbox API-nøkkel på https://account.mapbox.com/auth/signup/",
+        "heavyweight": "Øk antallet bildeskanningsarbeidere utover forvalget på 1, men vær forberedt på å bruke 800 MB minne for hver ekstra arbeider."
     },
     "countstats": {
         "photos": "Bilder"
@@ -465,7 +471,11 @@
         "facescounter_other": "{{count}} fjes",
         "facescounter_one": "{{count}} fjes",
         "personscounter_one": "{{count}} person",
-        "sortbyconfidence": "Tillitsnivå"
+        "sortbyconfidence": "Tillitsnivå",
+        "clusteredfacescounter_one": "{{count}} fjes i klase",
+        "clusterscounter_one": "{{count}} klase",
+        "clusterscounter_other": "{{count}} klaser",
+        "clusteredfacescounter_other": "{{count}} fjes i klase"
     },
     "scan": "Skann",
     "socialgraph": "Sosial graf",
@@ -549,7 +559,9 @@
         "savecaptions": "Bildeundertekst oppdatert",
         "deletephoto": "{{numberOfPhotos}} bilde(r) ble flyttet til papirkurven.",
         "captionupdate": "Oppdater undertekst",
-        "recoverphoto": "{{numberOfPhotos}} bilde(r) ble gjenopprettet."
+        "recoverphoto": "{{numberOfPhotos}} bilde(r) ble gjenopprettet.",
+        "deleteallautoalbums": "Slettet alle auto-opprettede album.",
+        "removefacestoperson": "{{numberOfFaces}} fjes ble flyttet til «Ukjent — annet»"
     },
     "rules": {
         "file_property": "Bruk filegenskap {{rule}}",
@@ -564,7 +576,15 @@
         "9": "Filendringstid i brukerforvalgt tidssone",
         "13": "Bruk «Composite:GPSDateTime»-tagg i UTC-tidssone (finner ikke faktisk tidssone)",
         "15": "Lokal tid fra «EXIF:DateTime»-Exif-tagg",
-        "1": "Lokal tid fra «DATE_TIME_ORIGINAL»-Exif-tagg"
+        "1": "Lokal tid fra «DATE_TIME_ORIGINAL»-Exif-tagg",
+        "4": "Video UTC — rapporter lokal tid i UTC (siden man ikke finner faktisk tidssone)",
+        "6": "Videoopprettelses-datotid i UTC-tidssone (finner ikke faktisk tidssone)",
+        "7": "Filendringstid i brukerforvalgt tidssone",
+        "11": "Bruk Composite:GPSDateTime tag og finn tidssone ved bruk av GPS-koordinater",
+        "12": "Bruk Composite:GPSDateTime-tagg i brukerforvalgt tidssone (finner ikke faktisk tidssone)",
+        "3": "Bruker filnavn og antar tid er lokal",
+        "5": "Utled dato ved bruk av WhatsApp-filnavn",
+        "2": "Hent videoopprettelsesetikett i UTC og regn ut tidssone ved bruk av GPS-koordinater"
     },
     "metadata": "Metadata-alternativer",
     "defaulttimezone": "Forvalgt tidssone",
@@ -585,7 +605,8 @@
     },
     "favoritesyncoptions": {
         "off": "Av",
-        "mediafile": "Lagre som mediafil"
+        "mediafile": "Lagre som mediafil",
+        "sidecar": "Lagre i Sidecar"
     },
     "save": "Lagre",
     "modify": "Endre",
@@ -614,5 +635,9 @@
     },
     "sync": "Synkroniser metadata til disk",
     "locationtimeline": "Plass-tidslinje",
-    "docs": "Dokumentasjon"
+    "docs": "Dokumentasjon",
+    "nosocialgraph": "Ingen sosial graf",
+    "fetchingsocialgraph": "Henter sosial graf …",
+    "deletefaceexplanation": "Handlingen sletter fjesene og all tilknyttet data for godt. Denne handlingen kan ikke angres.",
+    "timezoneexplain": "Denne tidssonen brukes til å konvertere tidsstempel til brukerens forvalgte tidssone"
 }
