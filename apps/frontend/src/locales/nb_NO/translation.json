@@ -138,7 +138,50 @@
         "polish": "Polsk",
         "metadata": "Metadata-alternativer",
         "sync": "Synkroniser metadata til disk",
-        "add_rule": "Legg til regel"
+        "add_rule": "Legg til regel",
+        "arabic": "Arabisk",
+        "korean": "Koreansk",
+        "portuguesebr": "Portugisisk (Brasil)",
+        "slovak": "Slovakisk",
+        "hungarian": "Ungarsk",
+        "urdu": "Urdu",
+        "rescanfacesdescription": "Se etter fjes i biblioteket",
+        "public_sharing": "Offentlig deling",
+        "albumoptions": "Albumsalternativer",
+        "inferredfacesconfidence": "Tillitsnivå for utledede fjes",
+        "nextcloudsetup": "Manglende identitetsdetaljer",
+        "dutch": "Nederlandsk",
+        "ukrainian": "Ukrainsk",
+        "vietnamese": "Vietnamesisk",
+        "colorscheme": {
+            "title": "Fargepalett",
+            "light": "Lys",
+            "dark": "Mørk"
+        },
+        "scanphotosdescription": "Skann biblioteket for nye filer",
+        "security": "Sikkerhet",
+        "rescanfacestitle": "Skann fjes på ny",
+        "face_recognition_model": "Fjesgjenkjennelsesmodell",
+        "size": {
+            "auto": "Auto"
+        },
+        "models": {
+            "hog": "HOG",
+            "cnn": "CNN"
+        },
+        "min_cluster_size": "Min. klase-størrelse",
+        "min_cluster_size_help": "Endrer hvordan klaser formes. Mindre verdi gir flere klaser.",
+        "face_options": "Fjesalternativer",
+        "traditionalchinese": "Kinesisk (tradisjonell)",
+        "confidencepercentage": "Tillitsnivå: {{percentage}}%",
+        "unknown_faces_confidence": "Tillitsnivå ved ukjent samsvar — andre fjes",
+        "inferredfacesconfidencehelp": "Skriv inn et tillitsnivå mellom 0 og 1. For album som viser en person, vil utledede fjes med høyere tillitsnivå en dette vises.",
+        "configdatetime": " Sett dato og tidstolkningsregler",
+        "unknown_faces_confidence_help": "Skriv inn inn et tillitsnivå mellom 0 og 1. Fjes fra «Ukjent — andre» vil bli jamført med andre personer hvis tillitsnivået er høyere enn denne verdien. 0 betyr at funksjonen er avskrudd.",
+        "nextcloudconnecting": "Kobler til …",
+        "rescanphotosdescription": "Omskanning av alle filer",
+        "trainfacestitle": "Tren fjes",
+        "trainfacesdescription": "Lær opp systemet basert på eksisterende info"
     },
     "modalnextcloud": {
         "setdirectory": "Sett din Nextcloud-skanningsmappe",
@@ -146,17 +189,22 @@
         "notset": "ikke satt",
         "update": "Oppdater",
         "cancel": "Avbryt",
-        "choosedirectory": "Velg en mappe nedenfor"
+        "choosedirectory": "Velg en mappe nedenfor",
+        "browse": "Utforsk"
     },
     "modalphotosshare": {
         "joined": "Sammenkoblet",
         "unshare": "Opphev deling",
-        "share": "Del"
+        "share": "Del",
+        "title": "Del bilder",
+        "name": "Egennavn",
+        "search": "Søk etter bruker"
     },
     "modalalbumsshare": {
         "joined": "Sammenkoblet",
         "title": "Del album",
-        "search": "Søk etter bruker"
+        "search": "Søk etter bruker",
+        "name": "Egennavn"
     },
     "topmenu": {
         "running": "Kjører",
@@ -178,7 +226,7 @@
         "socialgraph": "Sosial graf",
         "facecluster": "Fjesgrupper",
         "datavizsmall": "Datavisualisering",
-        "facerecognition": "Fjesgjenkjenning",
+        "facerecognition": "Fjes",
         "dashboards": "Oversikter",
         "places": "Steder",
         "publicphotos": "Offentlige bilder",
@@ -244,7 +292,8 @@
             "editdatetime": "Rediger dato og tid",
             "withouttimestamp": "Uten tidsstempel",
             "invalidtimestamp": "Ugyldig tidsstempel",
-            "removetimestamp": "Fjern tidsstempel"
+            "removetimestamp": "Fjern tidsstempel",
+            "undotimestampmodification": "Angre tidsstempelsendring"
         }
     },
     "photos": {
@@ -273,7 +322,8 @@
         "erroremail": "Skriv inn en gyldig e-postadresse.",
         "errorusernameexists": "En bruker med det brukernavnet finnes allerede.",
         "error": {
-            "token": "Problem med symbol"
+            "token": "Problem med symbol",
+            "token_not_valid": "Innlogging utløpt. Logg inn igjen."
         },
         "firsttimesetup": "Førstegangsoppsett",
         "usernamelabel": "Brukernavn"
@@ -299,7 +349,8 @@
         "addnewuser": "Legg til ny bruker",
         "deleteallautoalbums": "Slett alle auto-opprettede album",
         "remove": "Fjern",
-        "admintools": "Administratorverktøy"
+        "admintools": "Administratorverktøy",
+        "delete": "Slett"
     },
     "joblist": {
         "reload": "Last inn igjen",
@@ -323,10 +374,14 @@
         "notset": "ikke satt",
         "update": "Oppdater",
         "explanation3": "Velg en mappe nedenfor",
-        "header": "Sett skanningsmappe for brukeren"
+        "header": "Sett skanningsmappe for brukeren",
+        "pathdoesnotexist": "Stien finnes ikke",
+        "mustspecifypath": "Du må angi en skanningsmappe"
     },
     "autoalbum": {
-        "subtitle": "Viser {{ autoalbumlength }} automatisk opprettede album"
+        "subtitle": "Viser {{ autoalbumlength }} automatisk opprettede album",
+        "delete": "Slett auto-album",
+        "deleteexplanation": "Dette sletter auto-abumet. Er du sikker?"
     },
     "personalbum": {
         "renameperson": "Gi personen nytt navn",
@@ -374,7 +429,11 @@
     "sitesettings": {
         "allow": "Tillat",
         "noallow": "Ikke tillat",
-        "header": "Tillat brukerregistrering"
+        "header": "Tillat brukerregistrering",
+        "headerupload": "Tillat opplastinger",
+        "headerheavyweight": "Tunge prosesser",
+        "headerapikey": "Mapbox API-nøkkel",
+        "headerskippatterns": "Utelatelsesmønster"
     },
     "countstats": {
         "photos": "Bilder"
@@ -393,10 +452,20 @@
         "selectedfaces": "{{number}} valgt",
         "explanationadding": "Legg til for eksisterende fjes-ID, eller opprett en ny",
         "explanationdeleting": "Slett fjeset og dets miniatyrbilder",
-        "explanationtraining": "Tren en klassifiserer til å automatisk gjenkjenne fjes",
+        "explanationtraining": "Identifiser lignende fjes og prøv å finne samsvar",
         "sortby": "Sorter etter",
         "sortbydate": "Dato",
-        "unknownfacescounter_other": "{{count}} ukjente fjes"
+        "unknownfacescounter_other": "{{count}} ukjente fjes",
+        "explanationvalidate": "Bekreft at alle fjes fra denne gruppejamføringen stemmer med personer og legg dem til i samsvarende fjes-ID",
+        "notthisperson": "Flytt fjesene tilbake i «Ukjent — andre»",
+        "personscounter_other": "{{count}} personer",
+        "unknownfacescounter_one": "{{count}} ukjent fjes",
+        "assumedpersonscounter_one": "{{count}} utledet person",
+        "assumedpersonscounter_other": "{{count}} utledede personer",
+        "facescounter_other": "{{count}} fjes",
+        "facescounter_one": "{{count}} fjes",
+        "personscounter_one": "{{count}} person",
+        "sortbyconfidence": "Tillitsnivå"
     },
     "scan": "Skann",
     "socialgraph": "Sosial graf",
@@ -405,7 +474,7 @@
     "dataviz": "Datavisualisering",
     "placetree": "Stedstre",
     "wordclouds": "Ordskyer",
-    "faceclusterexplanation": "Folk med lignende ansikter bør grupperes sammen i denne oversikten. (Klikk på et punkt for å vise dets etikett.)",
+    "faceclusterexplanation": "Folk med lignende fjes bør grupperes sammen i denne oversikten. (Klikk på et punkt for å vise dets etikett.)",
     "toasts": {
         "createnewalbum": "{{numberOfPhotos}} bilde(r) ble lagt til i det nye {{title}}-albumet",
         "createalbumtitle": "Opprett album",
@@ -422,7 +491,7 @@
         "sharingalbumtitle": "Del album",
         "unsharingalbum": "Deling av album opphevet",
         "unsharingalbumtitle": "Opphev deling av album",
-        "trainingstartedtitle": "Fjestrening",
+        "trainingstartedtitle": "Fjesgjenkjenning",
         "rescanfaces": "Skanning startet",
         "rescanfacestitle": "Fjes-reskanning",
         "renamepersontitle": "Gi person nytt navn",
@@ -472,16 +541,30 @@
         "deleteusertitle": "Slett bruker",
         "deletejobtitle": "Slett jobb",
         "removefacestopersontitle": "Fjern fjes fra person",
-        "editphoto": "Bilde redigert"
+        "editphoto": "Bilde redigert",
+        "scanuploadedphotos": "Skanner opplastede bilder …",
+        "deletejob": "Jobb {{id}} slettet.",
+        "finaldeletephoto": "{{numberOfPhotos}} bilde(r) ble slettet for godt.",
+        "deleteallautoalbumstitle": "Slett alle auto-opprettede album",
+        "savecaptions": "Bildeundertekst oppdatert",
+        "deletephoto": "{{numberOfPhotos}} bilde(r) ble flyttet til papirkurven.",
+        "captionupdate": "Oppdater undertekst",
+        "recoverphoto": "{{numberOfPhotos}} bilde(r) ble gjenopprettet."
     },
     "rules": {
         "file_property": "Bruk filegenskap {{rule}}",
         "source_tz": "Overfør fra {{rule}}",
-        "exif_tag": "Bruk Exiftag {{rule}}",
+        "exif_tag": "Bruk Exif-tagg {{rule}}",
         "report_tz": "Overfør til {{rule}}",
         "predefined_regexp": "Bruk forhåndsdefinert regulært uttrykk: {{rule}}",
         "rule_type": "Regeltype: {{rule}}",
-        "14": "Tidsstempel satt av bruker"
+        "14": "Tidsstempel satt av bruker",
+        "8": "Filendringstid i UTC-tidssone",
+        "10": "Filopprettelsestid i UTC-tidssone",
+        "9": "Filendringstid i brukerforvalgt tidssone",
+        "13": "Bruk «Composite:GPSDateTime»-tagg i UTC-tidssone (finner ikke faktisk tidssone)",
+        "15": "Lokal tid fra «EXIF:DateTime»-Exif-tagg",
+        "1": "Lokal tid fra «DATE_TIME_ORIGINAL»-Exif-tagg"
     },
     "metadata": "Metadata-alternativer",
     "defaulttimezone": "Forvalgt tidssone",
@@ -497,7 +580,8 @@
         "newalbum": "Nytt album",
         "placeholder": "Albumsnavn",
         "items": "{{count}} element(er)",
-        "create": "Opprett"
+        "create": "Opprett",
+        "selectedimages": "Legg til valgt(e) {{count}} bilde(r) i …"
     },
     "favoritesyncoptions": {
         "off": "Av",
@@ -509,7 +593,13 @@
         "filepath": "Filsti",
         "deleteduplicatetitle": "Slett duplikat",
         "showmore": "Vis mer",
-        "showless": "Vis mindre"
+        "showless": "Vis mindre",
+        "subjectdistance": "Objektdistanse",
+        "deleteduplicate": "Slett dette duplikatet?",
+        "digitalzoomratio": "Digitalforstørrelsesforhold",
+        "focallengthin35mmfilm": "Brennvidde i 35-mm-ekvivalent",
+        "duplicates": "Duplikater",
+        "otherversions": "Andre versjoner"
     },
     "nofaces": "Ingen fjes",
     "locationstimeline": {
@@ -519,7 +609,10 @@
         "errorusernamecannotbeblank": "Brukernavn må fylles ut",
         "errorinvalidemail": "Skriv inn en gyldig e-postadresse",
         "header": "Rediger bruker",
-        "createheader": "Opprett bruker"
+        "createheader": "Opprett bruker",
+        "errorusernameexists": "En bruker med det navnet finnes allerede"
     },
-    "sync": "Synkroniser metadata til disk"
+    "sync": "Synkroniser metadata til disk",
+    "locationtimeline": "Plass-tidslinje",
+    "docs": "Dokumentasjon"
 }
