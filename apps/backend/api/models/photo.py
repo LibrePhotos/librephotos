@@ -683,7 +683,9 @@ class Photo(models.Model):
             face_locations = []
             # Create
             try:
-                face_locations = face_recognition.face_locations(image)
+                face_locations = face_recognition.face_locations(
+                    image, model=self.owner.face_detection_model.lower()
+                )
             except Exception:
                 logger.info(
                     f"Can't extract face information on photo: {self.main_file.path}"

@@ -48,6 +48,16 @@ class User(AbstractUser):
     )
     public_sharing = models.BooleanField(default=False)
 
+    class FaceRecogniton(models.TextChoices):
+        HOG = "HOG"
+        CNN = "CNN"
+
+    face_recognition_model = models.TextField(
+        choices=FaceRecogniton.choices, default=FaceRecogniton.HOG
+    )
+    min_cluster_size = models.IntegerField(default=0)
+    confidence_unknown_face = models.FloatField(default=0.5)
+
 
 def get_admin_user():
     return User.objects.get(is_superuser=True)

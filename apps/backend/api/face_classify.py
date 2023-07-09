@@ -127,14 +127,21 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
     if target_count == 0:
         return target_count
 
-    # double cluster size for every 10x increase in target counts
     min_cluster_size = 2
-    if target_count > 1000:
-        min_cluster_size = 4
-    if target_count > 10000:
-        min_cluster_size = 8
-    if target_count > 100000:
-        min_cluster_size = 16
+    # double cluster size for every 10x increase in target counts, if user has not set a valid min_cluster_size
+    if (
+        user.min_cluster_size == 0
+        or user.min_cluster_size is None
+        or user.min_cluster_size == 1
+    ):
+        if target_count > 1000:
+            min_cluster_size = 4
+        if target_count > 10000:
+            min_cluster_size = 8
+        if target_count > 100000:
+            min_cluster_size = 16
+    else:
+        min_cluster_size = user.min_cluster_size
 
     # creating HDBSCAN object for clustering the encodings with the metric "euclidean"
     clt = HDBSCAN(min_cluster_size=min_cluster_size, metric="euclidean")
@@ -330,10 +337,10 @@ def train_faces(user: User, job_id) -> bool:
                             if target == face.person.id:
                                 probability = probability_array[i]
 
-                        # To-Do: Make this a parameter in the settings
                         if (
-                            probability < highest_probability - 0.1
-                            and highest_probability > 0.5
+                            probability < user.confidence_unknown_face - 0.1
+                            and user.confidence_unknown_face > 0.5
+                            and user.confidence_unknown_face != 0
                         ):
                             face.person = Person.objects.get(
                                 id=highest_probability_person
