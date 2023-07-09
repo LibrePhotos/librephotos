@@ -157,6 +157,49 @@ export function Settings() {
           />
         </Card>
         <Card shadow="md">
+          <Title order={4} sx={{ marginBottom: 16 }}>
+            {t("settings.face_options")}
+          </Title>
+          <Radio.Group
+            label={t("settings.face_recognition_model")}
+            description={t("settings.face_recognition_model_help")}
+            value={userSelfDetails.face_recognition_model}
+            onChange={value => {
+              setUserSelfDetails({ ...userSelfDetails, face_recognition_model: value || "HOG" });
+            }}
+          >
+            <Radio value="HOG" label={t("settings.models.hog")} />
+            <Radio value="CNN" label={t("settings.models.cnn")} />
+          </Radio.Group>
+          <Radio.Group
+            label={t("settings.min_cluster_size")}
+            description={t("settings.min_cluster_size_help")}
+            value={userSelfDetails.min_cluster_size ? userSelfDetails.min_cluster_size.toString() : "0"}
+            onChange={value => {
+              setUserSelfDetails({ ...userSelfDetails, min_cluster_size: value || 0 });
+            }}
+          >
+            <Radio value="0" label={t("settings.size.auto")} />
+            <Radio value="2" label={2} />
+            <Radio value="4" label={4} />
+            <Radio value="8" label={8} />
+            <Radio value="16" label={16} />
+          </Radio.Group>
+          <NumberInput
+            label={t("settings.unknown_faces_confidence")}
+            description={t("settings.unknown_faces_confidence_help")}
+            min={0}
+            max={1.0}
+            placeholder="0.50"
+            precision={2}
+            value={userSelfDetails.confidence_unknown_face}
+            hideControls
+            onChange={value => {
+              setUserSelfDetails({ ...userSelfDetails, confidence_unknown_face: value });
+            }}
+          />
+        </Card>
+        <Card shadow="md">
           <ConfigDateTime
             value={userSelfDetails.datetime_rules}
             onChange={value => {
