@@ -2,7 +2,6 @@ import { Box, Group } from "@mantine/core";
 import { useScrollLock, useViewportSize } from "@mantine/hooks";
 import _ from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import Pig from "react-pig";
 import { useParams } from "react-router-dom";
 
 import { setAlbumCoverForUserAlbum } from "../../actions/albumsActions";
@@ -14,6 +13,7 @@ import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { formatDateForPhotoGroups } from "../../util/util";
 import { ModalAlbumEdit } from "../album/ModalAlbumEdit";
 import { LightBox } from "../lightbox/LightBox";
+import Pig from "../react-pig";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
 import { ScrollerType } from "../scrollscrubber/ScrollScrubberTypes.zod";
 import type { IScrollerData } from "../scrollscrubber/ScrollScrubberTypes.zod";
@@ -52,7 +52,7 @@ type SelectionState = {
 
 function PhotoListViewComponent(props: Props) {
   const { height } = useViewportSize();
-  const pigRef = useRef();
+  const pigRef = useRef<Pig>(null);
   const [lightboxImageIndex, setLightboxImageIndex] = useState(1);
   const [lightboxImageId, setLightboxImageId] = useState("");
   const [lightboxShow, setLightboxShow] = useState(false);

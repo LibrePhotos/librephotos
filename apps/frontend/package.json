@@ -32,6 +32,7 @@
     "not op_mini all"
   ],
   "dependencies": {
+    "es-abstract": "1.18.3",
     "@badeball/cypress-cucumber-preprocessor": "^14.0.0",
     "@dnd-kit/core": "6.0.5",
     "@dnd-kit/sortable": "7.0.1",
@@ -92,7 +93,6 @@
     "react-lazyload": "3.2.0",
     "react-leaflet": "^1.9.1",
     "react-leaflet-markercluster": "^1.1.8",
-    "react-pig": "npm:librephotos-react-pig@1.0.0",
     "react-player": "2.10.1",
     "react-redux": "8.0.2",
     "react-router-dom": "6.3.0",
@@ -104,6 +104,7 @@
     "react-visibility-sensor": "5.1.1",
     "redux": "4.2.0",
     "redux-first-history": "5.0.12",
+    "react-spring": "^9.2.3",
     "redux-persist": "6.0.0",
     "redux-persist-transform-filter": "0.0.20",
     "redux-thunk": "2.4.1",

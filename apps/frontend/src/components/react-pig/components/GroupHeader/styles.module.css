@@ -1,0 +1,52 @@
+.headerPositioner {
+  width: 100%;
+  position: absolute;
+}
+
+.headerInner {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  width: 100%;
+  line-height: 1.5;
+  display: flex;
+  align-items: baseline;
+}
+
+.location {
+  font-size: 15px;
+  margin-right: 1rem;
+  flex: 1;
+  opacity: 0.5;
+}
+
+.date {
+  font-size: 18px;
+  font-weight: bold;
+  text-align: right;
+  flex: 1;
+}
+
+@media (min-width: 600px) {
+  .date {
+    font-size: 32px;
+  }
+
+  .location {
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 1000px) {
+  .headerInner {
+    justify-content: flex-end;
+  }
+
+  .date {
+    flex: inherit;
+  }
+
+  .location {
+    flex: inherit;
+  }
+}
