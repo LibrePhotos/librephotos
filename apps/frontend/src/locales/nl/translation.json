@@ -170,7 +170,19 @@
         "slovak": "Slowaaks",
         "portuguesebr": "Portugees (Brazilië)",
         "face_options": "Gezichtsopties",
-        "face_recognition_model": "Gezichtsherkenningsmodel"
+        "face_recognition_model": "Gezichtsherkenningsmodel",
+        "models": {
+            "hog": "HOG",
+            "cnn": "CNN"
+        },
+        "min_cluster_size": "Minimale clustergrootte",
+        "min_cluster_size_help": "Geef aan hoe clusters gevormd dienen te worden. Lagere waarde = meer clusters.",
+        "face_recognition_model_help": "Kies een ander gezichtsherkenningsmodel. Het CNN-model is nauwkeuriger, maar langzamer dan het HOG-model.",
+        "size": {
+            "auto": "Automatisch"
+        },
+        "unknown_faces_confidence": "Zekerheid tijdens onbekende overeenkomst - overige gezichten",
+        "unknown_faces_confidence_help": "Voer een zekerheidsniveau tussen de 0 en 1 in. Gezichten uit ‘Onbekend - Overig’ worden naast die van andere personen gelegd als het zekerheidsniveau hoger is dan deze waarde. 0 = uitschakelen."
     },
     "topmenu": {
         "profile": "Profiel",
