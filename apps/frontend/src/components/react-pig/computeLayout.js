@@ -1,4 +1,5 @@
 // Need to minimise runs of this function. The goal is to run once on init, and only ever run again on window.resize
+
 /**
  * This computes the layout of the entire grid, setting the height, width,
  * translateX, translateY, and transtion values for each ProgessiveImage in
@@ -14,16 +15,9 @@
  *
  * All DOM manipulation occurs in `doLayout`.
  */
-
 import getMinAspectRatio from "./utils/getMinAspectRatio";
 
-export default function ({
-  imageData,
-  settings,
-  totalHeight,
-  wrapperWidth,
-  scaleOfImages,
-}) {
+export default function ({ imageData, settings, totalHeight, wrapperWidth, scaleOfImages }) {
   // Compute the minimum aspect ratio that should be applied to the rows.
   const minAspectRatio = getMinAspectRatio(wrapperWidth, scaleOfImages);
 
@@ -46,8 +40,7 @@ export default function ({
     rowAspectRatio += image.aspectRatio;
     if (rowAspectRatio >= minAspectRatio || index + 1 === imageData.length) {
       // Compute that row's height.
-      let totalDesiredWidthOfImages =
-        wrapperWidth - settings.gridGap * (row.length - 1);
+      const totalDesiredWidthOfImages = wrapperWidth - settings.gridGap * (row.length - 1);
       let rowHeight = totalDesiredWidthOfImages / rowAspectRatio;
 
       // Handles cases where we don't have enough images to fill a row
@@ -63,7 +56,7 @@ export default function ({
       //       style values on the ProgressiveImage instance. The DOM nodes
       //       will be updated in doLayout.
 
-      row.forEach((img) => {
+      row.forEach(img => {
         const imageWidth = rowHeight * img.aspectRatio;
 
         tempImgData.push({
