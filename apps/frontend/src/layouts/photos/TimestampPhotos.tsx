@@ -35,7 +35,7 @@ export function TimestampPhotos() {
   }, [dispatch]);
 
   const getAlbums = (visibleGroups: any) => {
-    visibleGroups.forEach((group: any) => {
+    visibleGroups.reverse().forEach((group: any) => {
       const visibleImages = group.items;
       if (visibleImages.filter((i: any) => i.isTemp && i.isTemp != undefined).length > 0) {
         const firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
