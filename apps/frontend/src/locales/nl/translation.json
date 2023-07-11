@@ -179,10 +179,19 @@
         "min_cluster_size_help": "Geef aan hoe clusters gevormd dienen te worden. Lagere waarde = meer clusters.",
         "face_recognition_model_help": "Kies een ander gezichtsherkenningsmodel. Het CNN-model is nauwkeuriger, maar langzamer dan het HOG-model.",
         "size": {
-            "auto": "Automatisch"
+            "auto": "Automatisch",
+            "small": "Klein",
+            "normal": "Normaal",
+            "high": "Groot",
+            "veryhigh": "Erg groot",
+            "off": "Uit"
         },
         "unknown_faces_confidence": "Zekerheid tijdens onbekende overeenkomst - overige gezichten",
-        "unknown_faces_confidence_help": "Voer een zekerheidsniveau tussen de 0 en 1 in. Gezichten uit ‘Onbekend - Overig’ worden naast die van andere personen gelegd als het zekerheidsniveau hoger is dan deze waarde. 0 = uitschakelen."
+        "unknown_faces_confidence_help": "Voer een zekerheidsniveau tussen de 0 en 1 in. Gezichten uit ‘Onbekend - Overig’ worden naast die van andere personen gelegd als het zekerheidsniveau hoger is dan deze waarde. 0 = uitschakelen.",
+        "min_samples": "Minimumaantal items",
+        "min_samples_help": "Geef aan hoe terughoudend clusters dienen te zĳn. Lagere waarde = minder terughoudend.",
+        "cluster_selection_epsilon": "Clusterselectie - Epsilon",
+        "cluster_selection_epsilon_help": "Geef aan hoe clusters dienen te worden gegroepeerd. Hogere waarde = meer groeperingen."
     },
     "topmenu": {
         "profile": "Profiel",
