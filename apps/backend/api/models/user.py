@@ -57,6 +57,8 @@ class User(AbstractUser):
     )
     min_cluster_size = models.IntegerField(default=0)
     confidence_unknown_face = models.FloatField(default=0.5)
+    min_samples = models.IntegerField(default=1)
+    cluster_selection_epsilon = models.FloatField(default=0.05)
 
 
 def get_admin_user():

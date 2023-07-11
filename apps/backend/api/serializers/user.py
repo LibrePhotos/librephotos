@@ -66,6 +66,8 @@ class UserSerializer(serializers.ModelSerializer):
             "face_recognition_model",
             "min_cluster_size",
             "confidence_unknown_face",
+            "min_samples",
+            "cluster_selection_epsilon",
         )
 
     def validate_nextcloud_app_password(self, value):
@@ -209,6 +211,14 @@ class UserSerializer(serializers.ModelSerializer):
         if "confidence_unknown_face" in validated_data:
             instance.confidence_unknown_face = validated_data.pop(
                 "confidence_unknown_face"
+            )
+            instance.save()
+        if "min_samples" in validated_data:
+            instance.min_samples = validated_data.pop("min_samples")
+            instance.save()
+        if "cluster_selection_epsilon":
+            instance.cluster_selection_epsilon = validated_data.pop(
+                "cluster_selection_epsilon"
             )
             instance.save()
 
