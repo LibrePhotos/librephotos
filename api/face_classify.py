@@ -143,8 +143,17 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
     else:
         min_cluster_size = user.min_cluster_size
 
+    min_samples = 1
+    if user.min_samples > 0:
+        min_samples = user.min_samples
+
     # creating HDBSCAN object for clustering the encodings with the metric "euclidean"
-    clt = HDBSCAN(min_cluster_size=min_cluster_size, metric="euclidean")
+    clt = HDBSCAN(
+        min_cluster_size=min_cluster_size,
+        min_samples=min_samples,
+        cluster_selection_epsilon=user.cluster_selection_epsilon,
+        metric="euclidean",
+    )
     logger.info("Before finding clusters")
     # clustering the encodings
     clt.fit(np.array(data["all"]["encoding"]))
