@@ -42,6 +42,8 @@ export const UserSchema = z.object({
   face_recognition_model: z.string(),
   confidence_unknown_face: z.number(),
   min_cluster_size: z.number(),
+  min_samples: z.number(),
+  cluster_selection_epsilon: z.number(),
 });
 
 export const ManageUser = z.object({

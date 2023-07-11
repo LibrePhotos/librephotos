@@ -185,6 +185,37 @@ export function Settings() {
             <Radio value="8" label={8} />
             <Radio value="16" label={16} />
           </Radio.Group>
+          <Radio.Group
+            label={t("settings.min_samples")}
+            description={t("settings.min_samples_help")}
+            value={userSelfDetails.min_samples ? userSelfDetails.min_samples.toString() : "1"}
+            onChange={value => {
+              setUserSelfDetails({ ...userSelfDetails, min_samples: value || 0 });
+            }}
+          >
+            <Radio value="1" label={1} />
+            <Radio value="2" label={2} />
+            <Radio value="4" label={4} />
+            <Radio value="8" label={8} />
+            <Radio value="16" label={16} />
+          </Radio.Group>
+          <Radio.Group
+            label={t("settings.cluster_selection_epsilon")}
+            description={t("settings.cluster_selection_epsilon_help")}
+            value={
+              userSelfDetails.cluster_selection_epsilon ? userSelfDetails.cluster_selection_epsilon.toString() : "0.1"
+            }
+            onChange={value => {
+              setUserSelfDetails({ ...userSelfDetails, cluster_selection_epsilon: value || 0 });
+            }}
+          >
+            <Radio value="0" label={t("settings.size.off")} />
+            <Radio value="0.025" label={t("settings.size.small")} />
+            <Radio value="0.05" label={t("settings.size.normal")} />
+            <Radio value="0.1" label={t("settings.size.high")} />
+            <Radio value="0.2" label={t("settings.size.veryhigh")} />
+          </Radio.Group>
+
           <NumberInput
             label={t("settings.unknown_faces_confidence")}
             description={t("settings.unknown_faces_confidence_help")}
