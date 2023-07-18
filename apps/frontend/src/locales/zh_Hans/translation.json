@@ -45,7 +45,7 @@
             "item3": "计算图片的唯一ID （MD5）",
             "item5": "生成图片缩略图",
             "item6": "生成图片描述",
-            "item7": "提取Exif信息",
+            "item7": "提取 Exif 信息",
             "item8": "基于GPS坐标反推地理定位",
             "item11": "检查照片是否丢失或被移动。",
             "item9": "检测人脸。",
@@ -82,7 +82,7 @@
         },
         "semanticsearchheader": "语义化搜索展示的结果数",
         "semanticsearch": {
-            "placeholder": "搜索结果",
+            "placeholder": "语义化搜索结果",
             "top100": "前100位",
             "top50": "前50位",
             "top10": "前10位",
@@ -120,7 +120,7 @@
         "swedish": "瑞典语（Svenska）",
         "japanese": "日语（Japanese）",
         "russian": "俄语（Русский）",
-        "configdatetime": " 设置日期解析规则",
+        "configdatetime": " 设置日期和时间解析规则",
         "metadata": "元数据选项",
         "sync": "将元数据同步到硬盘",
         "polish": "波兰语",
@@ -169,7 +169,25 @@
         "trainfacestitle": "训练人脸识别",
         "rescanfacestitle": "重新扫描人脸",
         "rescanfacesdescription": "在库中查找人脸",
-        "trainfacesdescription": "基于已知信息训练系统"
+        "trainfacesdescription": "基于已知信息训练系统",
+        "min_cluster_size": "最小簇大小",
+        "face_recognition_model": "人脸识别模型",
+        "face_recognition_model_help": "更改用于人脸识别的模型。 CNN 模型比 HOG 模型更准确，但速度更慢。",
+        "models": {
+            "hog": "HOG",
+            "cnn": "CNN"
+        },
+        "size": {
+            "auto": "自动",
+            "small": "小",
+            "normal": "普通",
+            "high": "大",
+            "veryhigh": "非常大",
+            "off": "关闭"
+        },
+        "min_cluster_size_help": "更改群集的形成方式。值越小，形成的簇越多。",
+        "unknown_faces_confidence_help": "输入介于 0 和 1 之间的置信水平。如果置信度高于此值，则将来自“未知 - 其他”中的人脸与其他人匹配。0 表示禁用此功能。",
+        "min_samples": "最小样本数"
     },
     "modalnextcloud": {
         "setdirectory": "设置Nextcloud扫描目录",
@@ -363,7 +381,7 @@
         "started": "开始于",
         "duration": "耗时",
         "startedby": "执行用户",
-        "itemsadded": "增加的资产"
+        "itemsadded": "已添加文件"
     },
     "modalscandirectoryedit": {
         "header": "设置扫描目录，仅作用于用户",
@@ -380,11 +398,11 @@
         "allow": "开放",
         "noallow": "不允许",
         "header": "允许用户注册",
-        "apikey": "是否要在地图上展示照片的拍摄地点（如果照片中存储了位置）？需要注册并提供 Map box 的 API 密钥 https://account.mapbox.com/auth/signup/",
+        "apikey": "显示您所有照片（包含位置信息）的拍摄地点的地图。需要注册并提供 Map box 的 API 密钥：https://account.mapbox.com/auth/signup/",
         "headerupload": "允许上传",
         "skippatterns": " 用逗号分隔欲忽略的模式列表（例如：群晖设备上的“@eaDir,#recycle”）",
         "headerapikey": "Mapbox API 密钥",
-        "heavyweight": "扫描图片时的工作线程数量，此设置会显著增加内存占用量，每个工作线程需要 800MB 内存，请根据需要自行修改，默认为1。",
+        "heavyweight": "将扫描图片的工作线程数提高至 1 以上，每个额外的工作线程需要 800 MB 的内存。",
         "headerheavyweight": "高负荷处理",
         "headerskippatterns": "忽略模式"
     },
@@ -547,11 +565,11 @@
         "deleteallautoalbumstitle": "删除所有自动创建的相册",
         "deleteuser": "{{username}}已删除",
         "deleteusertitle": "删除用户",
-        "savecaptions": "图片描述更新成功",
+        "savecaptions": "图片描述已更新",
         "captionupdate": "更新描述"
     },
     "rules": {
-        "1": "提取EXIF中的DATE_TIME_ORIGINAL作为当地时间",
+        "1": "提取 EXIF 中的 DATE_TIME_ORIGINAL 作为本地时间",
         "2": "使用UTC时间创建视频标签 + 使用 GPS 坐标计算时区",
         "3": "使用文件名假设时间是本地的",
         "4": "视频 UTC - 使用UTC时间作为本地时间（因为无法定位实际时区）",
@@ -570,7 +588,7 @@
         "12": "综合判定：GPS时间标签并使用用户默认时区（无法确定实际时区）",
         "13": "综合判定：GPS时间标签并使用UTC时区（无法确定实际时区）",
         "14": "用户设定的时间戳",
-        "15": "从EXIF加载时间：使用EXIF时间信息",
+        "15": "来自 EXIF 的本地时间：DateTime Exif 标签",
         "10": "文件创建时间使用UTC时区"
     },
     "fetchingsocialgraph": "正在获取社交图谱…",
@@ -584,7 +602,7 @@
         "create": "创建",
         "items": "{{count}}个项目",
         "alreadexists": "相册{{title}}已经存在。",
-        "selectedimages": "将选定的 {{count}} 张照片添加到...",
+        "selectedimages": "将选定的 {{count}} 张照片添加到…",
         "placeholder": "相册标题",
         "alreadyexists": "相册标题{{title}}已存在。",
         "updated": "{{duration}} 前更新"
@@ -609,7 +627,7 @@
         "subjectdistance": "被摄体距离",
         "duplicates": "重复项",
         "showmore": "显示更多",
-        "deleteduplicate": "您确定要删除此重复项吗？",
+        "deleteduplicate": "删除此重复项？",
         "deleteduplicatetitle": "删除重复项",
         "showless": "显示更少"
     },
