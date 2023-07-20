@@ -7,7 +7,7 @@ django-extensions==3.2.3
 django-filter==23.1
 django-picklefield==3.1
 django-redis==5.2.0
-django-rq==2.8.0
+django-rq==2.8.1
 django-bulk-update
 django-silk==5.0.3
 djangorestframework==3.14.0
