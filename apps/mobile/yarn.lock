@@ -1876,9 +1876,9 @@
   integrity sha512-rQfMIGSR/1r/SyN87+VD8xHHzDYeHaJq6elOSCAD+0iLagXkSI2pfA0LmSXP21uw5i3em7GkkRjfJ8wpqWXZNw==
 
 "@react-native-community/progress-view@^1.4.0-beta.0":
-  version "1.4.0-beta.0"
-  resolved "https://registry.yarnpkg.com/@react-native-community/progress-view/-/progress-view-1.4.0-beta.0.tgz#a13abb86299fb1a2e5fe94645ba8c60c4f8df5fe"
-  integrity sha512-q0wWG6UxpDN2x+N87ovOPK48ocD4SiRa0FPEnzIqZFHukZsqkIxBwOxwTOhvI9yvKZ+5zqMRTTVbMnnVBXKLPg==
+  version "1.4.1"
+  resolved "https://registry.yarnpkg.com/@react-native-community/progress-view/-/progress-view-1.4.1.tgz#05128c100d70a158490d4cf69f1078d6cc84d40c"
+  integrity sha512-FvPJfh7JcicZWq1U0nxDlRE8fa/znNlWv6mQdLFxiCQNP9mM1S4Bp5pK3csXC4uYUbGaIgA4genP3FxYDi+tTQ==
 
 "@react-native-cookies/cookies@^6.2.1":
   version "6.2.1"
