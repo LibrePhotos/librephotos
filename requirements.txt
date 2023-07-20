@@ -22,7 +22,7 @@ Flask-RESTful==0.3.10
 geopy==2.1.0
 gunicorn==20.1.0
 hdbscan==0.8.33
-matplotlib==3.7.1
+matplotlib==3.7.2
 networkx==2.6.3
 nltk==3.6.7
 markupsafe==2.0.1
