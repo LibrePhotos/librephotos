@@ -15,7 +15,7 @@ djangorestframework-simplejwt==5.2.2
 drf-extensions==0.7.1
 drf-spectacular==0.26.1
 face-recognition==1.2.3
-faiss-cpu==1.7.3
+faiss-cpu==1.7.4
 Flask==1.1.4
 Flask-Cors==3.0.10
 Flask-RESTful==0.3.10
