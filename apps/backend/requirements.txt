@@ -18,7 +18,7 @@ face-recognition==1.2.3
 faiss-cpu==1.7.3
 Flask==1.1.4
 Flask-Cors==3.0.10
-Flask-RESTful==0.3.9
+Flask-RESTful==0.3.10
 geopy==2.1.0
 gunicorn==20.1.0
 hdbscan==0.8.29
