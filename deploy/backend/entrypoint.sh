@@ -9,7 +9,6 @@ fi
 export OPENBLAS_NUM_THREADS=1 
 export OPENBLAS_MAIN_FREE=1
 
-pip install --break-system-packages --no-cache-dir -r requirements.txt
 mkdir -p /logs
 
 python manage.py showmigrations | tee /logs/show_migrate.log
