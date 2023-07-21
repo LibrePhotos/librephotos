@@ -13,6 +13,7 @@ from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpRespon
 from django.utils.decorators import method_decorator
 from django.utils.encoding import iri_to_uri
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django_q.tasks import AsyncTask
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
@@ -177,7 +178,9 @@ class ScanPhotosView(APIView):
     def get(self, request, format=None):
         try:
             job_id = uuid.uuid4()
-            scan_photos.delay(request.user, False, job_id, request.user.scan_directory)
+            AsyncTask(
+                scan_photos, request.user, False, job_id, request.user.scan_directory
+            ).run()
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception("An Error occurred")
@@ -190,12 +193,13 @@ class SelectiveScanPhotosView(APIView):
         # To-Do: Sanatize the scan_directory
         try:
             job_id = uuid.uuid4()
-            scan_photos.delay(
+            AsyncTask(
+                scan_photos,
                 request.user,
                 False,
                 job_id,
                 os.path.join(request.user.scan_directory, "uploads", "web"),
-            )
+            ).run()
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception("An Error occurred")
@@ -206,7 +210,9 @@ class FullScanPhotosView(APIView):
     def get(self, request, format=None):
         try:
             job_id = uuid.uuid4()
-            scan_photos.delay(request.user, True, job_id, request.user.scan_directory)
+            AsyncTask(
+                scan_photos, request.user, True, job_id, request.user.scan_directory
+            ).run()
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception("An Error occurred")

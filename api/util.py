@@ -91,10 +91,6 @@ def get_sidecar_files_in_priority_order(media_file):
     ]
 
 
-exiftool_instance_struct = exiftool.ExifTool(common_args=["-struct"])
-exiftool_instance = exiftool.ExifTool()
-
-
 def _get_existing_metadata_files_reversed(media_file, include_sidecar_files):
     if include_sidecar_files:
         files = [
@@ -118,9 +114,11 @@ def get_metadata(media_file, tags, try_sidecar=True, struct=False):
     tag was not found.
 
     """
-    et = exiftool_instance
+    et = None
     if struct:
-        et = exiftool_instance_struct
+        et = exiftool.ExifTool(common_args=["-struct"])
+    else:
+        et = exiftool.ExifTool()
     terminate_et = False
     if not et.running:
         et.start()
@@ -146,7 +144,7 @@ def get_metadata(media_file, tags, try_sidecar=True, struct=False):
 
 
 def write_metadata(media_file, tags, use_sidecar=True):
-    et = exiftool_instance
+    et = exiftool.ExifTool()
     terminate_et = False
     if not et.running:
         et.start()

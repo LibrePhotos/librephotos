@@ -6,7 +6,7 @@ import pytz
 import torch
 from constance import config as site_config
 from django.db.models import Q
-from django_rq import job
+from django_q.tasks import AsyncTask
 
 import api.util as util
 from api.image_similarity import build_image_similarity_index
@@ -25,12 +25,11 @@ def create_batch_job(job_type, user):
     )
 
     if job_type == LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS:
-        batch_calculate_clip_embedding.delay(job_id, user)
+        AsyncTask(batch_calculate_clip_embedding, job_id, user).run()
 
     lrj.save()
 
 
-@job
 def batch_calculate_clip_embedding(job_id, user):
     lrj = LongRunningJob.objects.get(job_id=job_id)
     lrj.started_at = datetime.now().replace(tzinfo=pytz.utc)

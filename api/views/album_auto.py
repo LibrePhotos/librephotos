@@ -1,6 +1,7 @@
 import uuid
 
 from django.db.models import Count, OuterRef, Prefetch, Q, Subquery
+from django_q.tasks import AsyncTask
 from rest_framework import filters, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -115,7 +116,7 @@ class RegenerateAutoAlbumTitles(APIView):
     def get(self, request, format=None):
         try:
             job_id = uuid.uuid4()
-            regenerate_event_titles.delay(request.user, job_id)
+            AsyncTask(regenerate_event_titles, request.user, job_id).run()
             return Response({"status": True, "job_id": job_id})
         except BaseException as e:
             logger.error(str(e))
@@ -126,7 +127,7 @@ class AutoAlbumGenerateView(APIView):
     def get(self, request, format=None):
         try:
             job_id = uuid.uuid4()
-            generate_event_albums.delay(request.user, job_id)
+            AsyncTask(generate_event_albums, request.user, job_id).run()
             return Response({"status": True, "job_id": job_id})
         except BaseException as e:
             logger.error(str(e))

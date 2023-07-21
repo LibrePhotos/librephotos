@@ -173,14 +173,17 @@ def get_search_term_examples(user):
         "for file path or file name",
     ]
 
-    possible_ids = list(Photo.objects.filter(owner=user).exclude(captions_json={})[:1000].values_list("image_hash", flat=True))
+    possible_ids = list(
+        Photo.objects.filter(owner=user)
+        .exclude(captions_json={})[:1000]
+        .values_list("image_hash", flat=True)
+    )
     if len(possible_ids) > 99:
         possible_ids = random.choices(possible_ids, k=100)
     logger.info(f"{len(possible_ids)} possible ids")
     try:
         samples = (
-            Photo.objects
-            .filter(owner=user)
+            Photo.objects.filter(owner=user)
             .exclude(captions_json={})
             .filter(image_hash__in=possible_ids)
             .prefetch_related("faces")
