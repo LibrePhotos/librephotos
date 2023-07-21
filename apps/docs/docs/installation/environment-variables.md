@@ -14,15 +14,6 @@ make rename
 
 Then you can resume following the normal instructions.
 
-### Redis password
-
-If the user wishes to re-use an existing instance of Redis that has password authentication, that user can set the Redis password in the backend by adding a new environment variable in the docker-compose file:
-
-```bash
-    environment:
-        - REDIS_PASS=${password}
-```
-
 ### Old environment variables
 
 These are now site settings. If you set these values, they will act as the default on the first set-up.

@@ -10,7 +10,6 @@ LibrePhotos can be installed locally on Debian-based operating systems with syst
 
 We currently only support nginx. If you want something custom, adapt the script to your liking.
 We do not support a remote PostgreSQL server yet.
-If REDIS present on the system AND connection to it through socket, change socket permissions to 770, user 'librephotos' will be added to group 'redis' automatically.
 
 ## Compatibility
 
