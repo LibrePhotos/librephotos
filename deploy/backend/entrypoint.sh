@@ -6,15 +6,20 @@ if [[ "$(uname -m)" == "aarch64"* ]]; then
   export OPENBLAS_CORETYPE=ARMV8
   echo "ARM architecture detected. OPENBLAS_CORETYPE set to ARMV8"
 fi
+export OPENBLAS_NUM_THREADS=1 
+export OPENBLAS_MAIN_FREE=1
 
+pip install --break-system-packages --no-cache-dir -r requirements.txt
 mkdir -p /logs
-python manage.py collectstatic --no-input
-python image_similarity/main.py 2>&1 | tee /logs/gunicorn_image_similarity.log &
-python service/thumbnail/main.py 2>&1 | tee /logs/gunicorn_thumbnail.log &
+
 python manage.py showmigrations | tee /logs/show_migrate.log
 python manage.py migrate | tee /logs/command_migrate.log
 python manage.py showmigrations | tee /logs/show_migrate.log
+python manage.py collectstatic --no-input
+python image_similarity/main.py 2>&1 | tee /logs/gunicorn_image_similarity.log &
+python service/thumbnail/main.py 2>&1 | tee /logs/gunicorn_thumbnail.log &
 python manage.py clear_cache 
+python manage.py build_similarity_index 2>&1 | tee /logs/command_build_similarity_index.log
 
 if [ -n "$ADMIN_USERNAME" ]
 then
@@ -23,7 +28,7 @@ fi
 
 echo "Running backend server..."
 
-python manage.py rqworker default 2>&1 | tee /logs/rqworker.log &
+python manage.py qcluster 2>&1 | tee /logs/qcluster.log &
 
 if [ "$DEBUG" = 1 ]
 then
