@@ -1,6 +1,7 @@
 import uuid
 
 from django.db.models import Count, Q
+from django_q.tasks import AsyncTask
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.response import Response
@@ -24,7 +25,7 @@ class ScanFacesView(APIView):
     def get(self, request, format=None):
         try:
             job_id = uuid.uuid4()
-            scan_faces.delay(request.user, job_id)
+            AsyncTask(scan_faces, request.user, job_id).run()
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception("An Error occurred")
@@ -36,7 +37,7 @@ class TrainFaceView(APIView):
     def _train_faces(request):
         try:
             job_id = uuid.uuid4()
-            cluster_all_faces.delay(request.user, job_id)
+            AsyncTask(cluster_all_faces, request.user, job_id).run()
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception()

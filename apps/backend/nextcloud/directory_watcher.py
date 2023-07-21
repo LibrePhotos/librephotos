@@ -4,7 +4,6 @@ import pathlib
 
 import owncloud as nextcloud
 import pytz
-from django_rq import job
 
 import api.util as util
 from api.directory_watcher import handle_new_image
@@ -38,7 +37,6 @@ def collect_photos(nc, path, photos):
             collect_photos(nc, x.path, photos)
 
 
-@job
 def scan_photos(user, job_id):
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)

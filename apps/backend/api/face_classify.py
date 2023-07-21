@@ -7,7 +7,7 @@ import seaborn as sns
 from bulk_update.helper import bulk_update
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django_rq import job
+from django_q.tasks import AsyncTask
 from hdbscan import HDBSCAN
 from sklearn.decomposition import PCA
 from sklearn.neural_network import MLPClassifier
@@ -59,7 +59,6 @@ def cluster_faces(user, inferred=True):
     return res
 
 
-@job
 def cluster_all_faces(user, job_id) -> bool:
     """Groups all faces into clusters for ease of labeling. It first deletes all
     existing clusters, then regenerates them all. It will split clusters that have
@@ -94,7 +93,7 @@ def cluster_all_faces(user, job_id) -> bool:
         lrj.save()
 
         train_job_id = uuid.uuid4()
-        train_faces.delay(user, train_job_id)
+        AsyncTask(train_faces, user, train_job_id).run()
         return True
 
     except BaseException as err:
@@ -226,7 +225,6 @@ def delete_clustered_people(user: User):
     Person.objects.filter(cluster_owner=get_deleted_user()).delete()
 
 
-@job
 def train_faces(user: User, job_id) -> bool:
     """Given existing Cluster records for all faces, determines the probability
     that unknown faces belong to those Clusters. It takes any known, labeled faces

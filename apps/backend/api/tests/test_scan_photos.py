@@ -2,7 +2,6 @@ import os
 from unittest import skip
 
 from django.test import TestCase
-from django_rq import get_worker
 from pyfakefs.fake_filesystem_unittest import Patcher
 from rest_framework.test import APIClient
 
@@ -37,7 +36,6 @@ class ScanPhotosTestCase(TestCase):
             # scan photos
             scan_photos_res = self.client_admin.get("/api/scanphotos/")
             self.assertEqual(scan_photos_res.status_code, 200)
-            get_worker().work(burst=True)
 
             # make sure photos are imported
             get_photos_res = self.client_admin.get("/api/photos/")
@@ -48,7 +46,7 @@ class ScanPhotosTestCase(TestCase):
             num_photos = len(get_photos_res.json()["results"])
             scan_photos_res = self.client_admin.get("/api/scanphotos/")
             self.assertEqual(scan_photos_res.status_code, 200)
-            get_worker().work(burst=True)
+
             get_photos_res = self.client_admin.get("/api/photos/")
             self.assertEqual(get_photos_res.status_code, 200)
             self.assertEqual(len(get_photos_res.json()["results"]), num_photos)
@@ -63,7 +61,6 @@ class ScanPhotosTestCase(TestCase):
         # make auto albums
         auto_album_gen_res = self.client_admin.get("/api/autoalbumgen/")
         self.assertEqual(auto_album_gen_res.status_code, 200)
-        get_worker().work(burst=True)
 
         # make sure auto albums are there
         auto_album_list_res = self.client_admin.get("/api/albums/auto/list/")
@@ -82,7 +79,6 @@ class ScanPhotosTestCase(TestCase):
 
         auto_album_gen_res = self.client_admin.get("/api/autoalbumgen/")
         self.assertEqual(auto_album_gen_res.status_code, 200)
-        get_worker().work(burst=True)
 
         auto_album_list_res = self.client_admin.get("/api/albums/auto/list/")
         self.assertEqual(len(auto_album_list_res.json()["results"]), num_auto_albums)

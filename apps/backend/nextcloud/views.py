@@ -1,6 +1,7 @@
 import uuid
 
 import owncloud as nextcloud
+from django_q.tasks import AsyncTask
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -42,7 +43,7 @@ class ScanPhotosView(APIView):
     def get(self, request, format=None):
         try:
             job_id = uuid.uuid4()
-            scan_photos.delay(request.user, job_id)
+            AsyncTask(scan_photos, request.user, job_id).run()
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception("An Error occurred")

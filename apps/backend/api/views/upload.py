@@ -10,12 +10,14 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from django_q.tasks import AsyncTask
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
 import api.util as util
+from api.directory_watcher import handle_new_image
 from api.models import Photo, User
 from api.models.file import calculate_hash, calculate_hash_b64
 
@@ -134,6 +136,7 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                 ChunkedUpload, upload_id=request.POST.get("upload_id")
             )
             chunked_upload.delete(delete_file=True)
+            AsyncTask(handle_new_image, user, photo_path, image_hash).run()
         else:
             util.logger.info(
                 "Photo {} duplicated with hash {} ".format(filename, image_hash)

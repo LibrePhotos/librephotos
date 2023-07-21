@@ -197,7 +197,9 @@ urlpatterns = [
     re_path(r"^api/labelfaces", faces.SetFacePersonLabel.as_view()),
     re_path(r"^api/deletefaces", faces.DeleteFaces.as_view()),
     re_path(r"^api/photosedit/delete", photos.DeletePhotos.as_view()),
-    re_path(r"^api/photosedit/duplicate/delete", photos.DeleteDuplicatePhotos.as_view()),
+    re_path(
+        r"^api/photosedit/duplicate/delete", photos.DeleteDuplicatePhotos.as_view()
+    ),
     re_path(r"^api/photosedit/setdeleted", photos.SetPhotosDeleted.as_view()),
     re_path(r"^api/photosedit/favorite", photos.SetPhotosFavorite.as_view()),
     re_path(r"^api/photosedit/hide", photos.SetPhotosHidden.as_view()),
@@ -233,14 +235,11 @@ urlpatterns = [
         name="media",
     ),
     re_path(r"^api/rqavailable/$", jobs.QueueAvailabilityView.as_view()),
-    re_path(r"^api/rqjobstat/$", jobs.RQJobStatView.as_view()),
-    re_path(r"^api/rqjoblist/$", jobs.ListAllRQJobsView.as_view()),
     re_path(r"^api/nextcloud/listdir", nextcloud_views.ListDir.as_view()),
     re_path(r"^api/nextcloud/scanphotos", nextcloud_views.ScanPhotosView.as_view()),
     re_path(r"^api/photos/download", views.ZipListPhotosView.as_view()),
     re_path(r"^api/timezones", timezone.TimeZoneView.as_view()),
 ]
-urlpatterns += [re_path("api/django-rq/", include("django_rq.urls"))]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if site_config.ALLOW_UPLOAD:

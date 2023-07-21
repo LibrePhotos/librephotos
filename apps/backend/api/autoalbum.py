@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytz
 from django.db.models import Q
-from django_rq import job
 
 from api.models import (
     AlbumAuto,
@@ -19,7 +18,6 @@ from api.models import (
 from api.util import logger
 
 
-@job
 def regenerate_event_titles(user, job_id):
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
@@ -60,7 +58,6 @@ def regenerate_event_titles(user, job_id):
     return 1
 
 
-@job
 def generate_event_albums(user, job_id):
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
@@ -193,7 +190,6 @@ def generate_event_albums(user, job_id):
 
 
 # To-Do: This does not belong here
-@job
 def delete_missing_photos(user, job_id):
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)

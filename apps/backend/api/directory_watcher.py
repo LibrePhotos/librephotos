@@ -2,21 +2,20 @@ import datetime
 import os
 import stat
 import uuid
-from multiprocessing import Pool
 
 import pytz
 from constance import config as site_config
 from django import db
 from django.core.paginator import Paginator
 from django.db.models import Q, QuerySet
-from django_rq import job
+from django_q.tasks import AsyncTask
 
 import api.models.album_thing
 import api.util as util
 import ownphotos.settings
 from api.batch_jobs import create_batch_job
 from api.face_classify import cluster_all_faces
-from api.models import Face, File, LongRunningJob, Photo
+from api.models import File, LongRunningJob, Photo
 from api.models.file import (
     calculate_hash,
     extract_embedded_media,
@@ -26,8 +25,6 @@ from api.models.file import (
     is_video,
 )
 from api.places365.places365 import place365_instance
-
-AUTO_FACE_RETRAIN_THRESHOLD = 0.1
 
 
 def should_skip(path):
@@ -60,7 +57,6 @@ else:
         return os.path.basename(path).startswith(".")
 
 
-@job
 def handle_new_image(user, path, job_id):
     if not is_valid_media(path):
         return
@@ -238,6 +234,7 @@ def handle_new_image(user, path, job_id):
             util.logger.exception(
                 "job {}: could not load image {}".format(job_id, path)
             )
+    update_scan_counter(job_id)
 
 
 def rescan_image(user, path, job_id):
@@ -265,6 +262,7 @@ def rescan_image(user, path, job_id):
             util.logger.exception(
                 "job {}: could not load image {}".format(job_id, path)
             )
+    update_scan_counter(job_id)
 
 
 def walk_directory(directory, callback):
@@ -291,6 +289,27 @@ def _file_was_modified_after(filepath, time):
     return datetime.datetime.fromtimestamp(modified).replace(tzinfo=pytz.utc) > time
 
 
+def update_scan_counter(job_id):
+    with db.connection.cursor() as cursor:
+        cursor.execute(
+            """
+                    update api_longrunningjob
+                    set result = jsonb_set(result,'{"progress","current"}',
+                        ((jsonb_extract_path(result,'progress','current')::int + 1)::text)::jsonb
+                    ) where job_id = %(job_id)s""",
+            {"job_id": str(job_id)},
+        )
+        cursor.execute(
+            """
+                update api_longrunningjob
+                set finished = true, finished_at = now()
+                where job_id = %(job_id)s and
+                        (result->'progress'->>'current')::int = (result->'progress'->>'target')::int
+            """,
+            {"job_id": str(job_id)},
+        )
+
+
 def photo_scanner(user, last_scan, full_scan, path, job_id):
     if Photo.objects.filter(files__path=path).exists():
         files_to_check = [path]
@@ -305,21 +324,13 @@ def photo_scanner(user, last_scan, full_scan, path, job_id):
                 ]
             )
         ):
-            rescan_image(user, path, job_id)
+            AsyncTask(rescan_image, user, path, job_id).run()
+        else:
+            update_scan_counter(job_id)
     else:
-        handle_new_image(user, path, job_id)
-    with db.connection.cursor() as cursor:
-        cursor.execute(
-            """
-                update api_longrunningjob
-                set result = jsonb_set(result,'{"progress","current"}',
-                      ((jsonb_extract_path(result,'progress','current')::int + 1)::text)::jsonb
-                ) where job_id = %(job_id)s""",
-            {"job_id": str(job_id)},
-        )
+        AsyncTask(handle_new_image, user, path, job_id).run()
 
 
-@job
 def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
     if not os.path.exists(
         os.path.join(ownphotos.settings.MEDIA_ROOT, "thumbnails_big")
@@ -365,29 +376,14 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
         lrj.save()
         db.connections.close_all()
 
-        if site_config.HEAVYWEIGHT_PROCESS > 1:
-            import torch
-
-            num_threads = max(
-                1, torch.get_num_threads() // site_config.HEAVYWEIGHT_PROCESS
-            )
-            torch.set_num_threads(num_threads)
-            os.environ["OMP_NUM_THREADS"] = str(num_threads)
-            # important timing - we need to have no import in the models' modules so that
-            # we can import here: after setting OMP_NUM_THREADS (so that there is no work congestion,
-            # but before forking so that we can save on shared data loaded at module import.
-            import face_recognition  # noqa: F401
-
-        with Pool(
-            processes=site_config.HEAVYWEIGHT_PROCESS,
-        ) as pool:
-            pool.starmap(photo_scanner, all)
+        for photo in all:
+            photo_scanner(*photo)
 
         place365_instance.unload()
         util.logger.info("Scanned {} files in : {}".format(files_found, scan_directory))
         api.models.album_thing.update()
         util.logger.info("Finished updating album things")
-        exisisting_photos = Photo.objects.filter(owner=user.id)
+        exisisting_photos = Photo.objects.filter(owner=user.id).order_by("image_hash")
         paginator = Paginator(exisisting_photos, 5000)
         for page in range(1, paginator.num_pages + 1):
             for existing_photo in paginator.page(page).object_list:
@@ -401,18 +397,17 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
     added_photo_count = Photo.objects.count() - photo_count_before
     util.logger.info("Added {} photos".format(added_photo_count))
 
-    lrj.finished = True
-    lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-    lrj.result["new_photo_count"] = added_photo_count
-    lrj.save()
-
     cluster_job_id = uuid.uuid4()
-    cluster_all_faces.delay(user, cluster_job_id)
+    AsyncTask(cluster_all_faces, user, cluster_job_id).run()
 
     return {"new_photo_count": added_photo_count, "status": lrj.failed is False}
 
 
 def face_scanner(photo: Photo, job_id):
+    AsyncTask(face_scan_job, photo, job_id).run()
+
+
+def face_scan_job(photo: Photo, job_id):
     photo._extract_faces()
     with db.connection.cursor() as cursor:
         cursor.execute(
@@ -423,9 +418,17 @@ def face_scanner(photo: Photo, job_id):
                 ) where job_id = %(job_id)s""",
             {"job_id": str(job_id)},
         )
+        cursor.execute(
+            """
+                update api_longrunningjob
+                set finished = true
+                where job_id = %(job_id)s and
+                        (result->'progress'->>'current')::int = (result->'progress'->>'target')::int
+            """,
+            {"job_id": str(job_id)},
+        )
 
 
-@job
 def scan_faces(user, job_id):
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
@@ -440,7 +443,6 @@ def scan_faces(user, job_id):
         )
     lrj.save()
 
-    face_count_before = Face.objects.count()
     try:
         existing_photos = Photo.objects.filter(owner=user.id)
         all = [(photo, job_id) for photo in existing_photos]
@@ -449,26 +451,15 @@ def scan_faces(user, job_id):
         lrj.save()
         db.connections.close_all()
 
-        # Import before forking so that we can save on shared data loaded at module import.
-        import face_recognition  # noqa: F401
-
-        with Pool(processes=site_config.HEAVYWEIGHT_PROCESS) as pool:
-            pool.starmap(face_scanner, all)
+        for photo in all:
+            face_scanner(*photo)
 
     except Exception as err:
         util.logger.exception("An error occurred: ")
         print("[ERR]: {}".format(err))
         lrj.failed = True
 
-    added_face_count = Face.objects.count() - face_count_before
-    util.logger.info("Added {} faces".format(added_face_count))
-
-    lrj.finished = True
-    lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-    lrj.result["new_face_count"] = added_face_count
-    lrj.save()
-
     cluster_job_id = uuid.uuid4()
-    cluster_all_faces.delay(user, cluster_job_id)
+    AsyncTask(cluster_all_faces, user, cluster_job_id).run()
 
-    return {"new_face_count": added_face_count, "status": lrj.failed is False}
+    return {"new_face_count": all.len(), "status": lrj.failed is False}

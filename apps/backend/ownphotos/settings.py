@@ -56,7 +56,6 @@ if not SECRET_KEY:
         SECRET_KEY = f.read().strip()
         print("use SECRET_KEY from file")
 
-RQ_API_TOKEN = os.environ["SECRET_KEY"]
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DEBUG", "") == "1"
 
@@ -86,19 +85,29 @@ INSTALLED_APPS = [
     "corsheaders",
     "chunked_upload",
     "django_extensions",
-    "django_rq",
     "constance",
     "constance.backends.database",
+    "django_q",
 ]
 
-CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
-CONSTANCE_DATABASE_CACHE_BACKEND = "default"
 
 # Must be less or equal of nb core CPU ( Nearly 2GB per process)
 HEAVYWEIGHT_PROCESS_ENV = os.environ.get("HEAVYWEIGHT_PROCESS", "1")
 HEAVYWEIGHT_PROCESS = (
     int(HEAVYWEIGHT_PROCESS_ENV) if HEAVYWEIGHT_PROCESS_ENV.isnumeric() else 1
 )
+
+Q_CLUSTER = {
+    "name": "DjangORM",
+    "workers": HEAVYWEIGHT_PROCESS,
+    "queue_limit": 50,
+    "timeout": 10000000,
+    "retry": 20000000,
+    "orm": "default",
+}
+
+CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
+
 
 CONSTANCE_ADDITIONAL_FIELDS = {
     "map_api_provider": [
@@ -236,42 +245,6 @@ DATABASES = {
     },
 }
 
-if "REDIS_PATH" in os.environ:
-    redis_path = "unix://" + os.environ["REDIS_PATH"]
-    redis_path += "?db=" + os.environ.get("REDIS_DB", "0")
-else:
-    redis_path = "redis://" + os.environ["REDIS_HOST"]
-    redis_path += ":" + os.environ["REDIS_PORT"] + "/1"
-
-if "REDIS_PASS" in os.environ:
-    redis_password = os.environ["REDIS_PASS"]
-else:
-    redis_password = ""
-
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": redis_path,
-        "TIMEOUT": 60 * 60 * 24,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "PASSWORD": redis_password,
-        },
-    }
-}
-
-RQ_QUEUES = {
-    "default": {
-        "USE_REDIS_CACHE": "default",
-        "DEFAULT_TIMEOUT": 60 * 60 * 24 * 7,
-        "DB": 0,
-    }
-}
-
-RQ = {
-    "DEFAULT_RESULT_TTL": 60,
-}
-
 # Password validation
 # https://docs.djangoproject.com/en/1.11/ref/settings/#auth-password-validators
 
@@ -322,14 +295,6 @@ LOGS_ROOT = BASE_LOGS
 
 CHUNKED_UPLOAD_PATH = ""
 CHUNKED_UPLOAD_TO = os.path.join("chunked_uploads")
-
-THUMBNAIL_SIZE_TINY = 100
-THUMBNAIL_SIZE_SMALL = 200
-THUMBNAIL_SIZE_MEDIUM = 400
-THUMBNAIL_SIZE = 800
-THUMBNAIL_SIZE_BIG = (2048, 2048)
-
-FULLPHOTO_SIZE = (1000, 1000)
 
 DEFAULT_FAVORITE_MIN_RATING = os.environ.get("DEFAULT_FAVORITE_MIN_RATING", 4)
 CORS_ALLOW_ALL_ORIGINS = False

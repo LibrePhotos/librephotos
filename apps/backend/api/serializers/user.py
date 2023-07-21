@@ -216,7 +216,7 @@ class UserSerializer(serializers.ModelSerializer):
         if "min_samples" in validated_data:
             instance.min_samples = validated_data.pop("min_samples")
             instance.save()
-        if "cluster_selection_epsilon":
+        if "cluster_selection_epsilon" in validated_data:
             instance.cluster_selection_epsilon = validated_data.pop(
                 "cluster_selection_epsilon"
             )
