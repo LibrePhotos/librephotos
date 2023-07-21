@@ -39,7 +39,7 @@ sentence_transformers==2.2.2
 sklearn==0.0
 timezonefinder==5.2.0
 tqdm==4.65.0
-gevent==22.10.2
+gevent==23.7.0
 python-magic==0.4.27
 Wand==0.5.9
 django-q2==1.5.4
