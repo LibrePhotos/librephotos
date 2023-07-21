@@ -20,25 +20,6 @@ const initialState: UploadState = {
 }
 
 /**
- * Dispatches a scan photos action to the server and sets worker availability
- * @returns a function that dispatches actions to the redux store
- */
-export function scanUploadedPhotos() {
-  return function (dispatch: Dispatch<any>) {
-    dispatch({ type: 'SCAN_PHOTOS' })
-    dispatch({ type: 'SET_WORKER_AVAILABILITY', payload: false })
-
-    Server.get('scanuploadedphotos/')
-      .then(response => {
-        dispatch({ type: 'SCAN_PHOTOS_FULFILLED', payload: response.data })
-      })
-      .catch(err => {
-        dispatch({ type: 'SCAN_PHOTOS_REJECTED', payload: err })
-      })
-  }
-}
-
-/**
  * The upload slice, containing reducers and extra reducers
  */
 const uploadSlice = createSlice({
@@ -316,8 +297,6 @@ export const uploadImages = createAsyncThunk(
         dispatch(localImageSynced(file))
       }
     }
-    // To-Do: dispatch an update for the image, that it is now uploaded
-    dispatch(scanUploadedPhotos())
   },
 )
 
