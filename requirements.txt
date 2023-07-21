@@ -32,7 +32,7 @@ pycocotools==2.0.6
 https://github.com/owncloud/pyocclient/archive/master.zip
 pytz==2023.3
 tzdata==2023.3
-PyExifTool==0.4.9
+PyExifTool==0.5.5
 PyJWT==2.8.0
 pyvips==2.2.1
 rq==1.14.1
