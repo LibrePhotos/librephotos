@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { UploadState } from './upload.zod'
 import { RootState } from '../store'
-import type { Dispatch } from 'redux'
 
 import { api } from '../api'
 import { FileSystem } from 'react-native-file-access'
