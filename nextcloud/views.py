@@ -1,4 +1,5 @@
 import uuid
+from urllib.parse import urlparse
 
 import owncloud as nextcloud
 from django_q.tasks import AsyncTask
@@ -15,7 +16,9 @@ class ListDir(APIView):
             return Response([])
         path = request.query_params["fpath"]
 
-        if request.user.nextcloud_server_address is None:
+        if request.user.nextcloud_server_address is None or not valid_url(
+            request.user.nextcloud_server_address
+        ):
             return Response([])
 
         nc = nextcloud.Client(request.user.nextcloud_server_address)
@@ -36,7 +39,12 @@ class ListDir(APIView):
             return Response(status=400)
 
 
-# long running jobs
+def valid_url(url):
+    try:
+        urlparse(url)
+        return True
+    except BaseException:
+        return False
 
 
 class ScanPhotosView(APIView):
