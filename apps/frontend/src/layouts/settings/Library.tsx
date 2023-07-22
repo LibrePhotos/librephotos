@@ -502,7 +502,7 @@ export function Library() {
             <Grid.Col span={2}>
               <Button
                 leftIcon={<Folder />}
-                disabled={isNextcloudError || isNextcloudFetching || !userSelfDetails.nextcloud_scan_directory}
+                disabled={isNextcloudError || isNextcloudFetching || !userSelfDetails.nextcloud_server_address}
                 onClick={() => {
                   setModalNextcloudScanDirectoryOpen(true);
                 }}
@@ -517,7 +517,7 @@ export function Library() {
                 onClick={() => {
                   dispatch(scanNextcloudPhotos());
                 }}
-                disabled={isNextcloudFetching || !workerAvailability || !userSelfDetails.nextcloud_scan_directory}
+                disabled={isNextcloudFetching || !workerAvailability || !userSelfDetails.nextcloud_server_address}
                 variant="filled"
                 leftIcon={<BrandNextcloud />}
               >
