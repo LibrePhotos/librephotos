@@ -106,7 +106,7 @@
     "redux-first-history": "5.0.12",
     "react-spring": "^9.2.3",
     "redux-persist": "6.0.0",
-    "redux-persist-transform-filter": "0.0.20",
+    "redux-persist-transform-filter": "0.0.22",
     "redux-thunk": "2.4.1",
     "rumble-charts": "4.0.0",
     "source-map-explorer": "2.5.2",
