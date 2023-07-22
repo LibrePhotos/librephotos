@@ -58,6 +58,7 @@ else:
 
 
 def handle_new_image(user, path, job_id):
+    update_scan_counter(job_id)
     if not is_valid_media(path):
         return
     try:
@@ -234,10 +235,10 @@ def handle_new_image(user, path, job_id):
             util.logger.exception(
                 "job {}: could not load image {}".format(job_id, path)
             )
-    update_scan_counter(job_id)
 
 
 def rescan_image(user, path, job_id):
+    update_scan_counter(job_id)
     try:
         if is_valid_media(path):
             photo = Photo.objects.filter(Q(files__path=path)).get()
@@ -262,7 +263,6 @@ def rescan_image(user, path, job_id):
             util.logger.exception(
                 "job {}: could not load image {}".format(job_id, path)
             )
-    update_scan_counter(job_id)
 
 
 def walk_directory(directory, callback):
