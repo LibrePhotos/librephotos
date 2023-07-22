@@ -102,7 +102,7 @@
     "react-virtualized-item-grid": "1.0.0",
     "react-vis": "1.11.7",
     "react-visibility-sensor": "5.1.1",
-    "redux": "4.2.0",
+    "redux": "4.2.1",
     "redux-first-history": "5.0.12",
     "react-spring": "^9.2.3",
     "redux-persist": "6.0.0",
