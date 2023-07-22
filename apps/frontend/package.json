@@ -34,9 +34,9 @@
   "dependencies": {
     "es-abstract": "1.18.3",
     "@badeball/cypress-cucumber-preprocessor": "^14.0.0",
-    "@dnd-kit/core": "6.0.5",
-    "@dnd-kit/sortable": "7.0.1",
-    "@dnd-kit/utilities": "3.2.0",
+    "@dnd-kit/core": "6.0.8",
+    "@dnd-kit/sortable": "7.0.2",
+    "@dnd-kit/utilities": "3.2.1",
     "@emotion/cache": "^11.10.1",
     "@emotion/react": "^11.10.0",
     "@mantine/core": "5.10.0",
