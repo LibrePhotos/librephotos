@@ -134,7 +134,7 @@
     "@welldone-software/why-did-you-render": "7.0.1",
     "eslint": "8.45.0",
     "eslint-config-airbnb": "19.0.4",
-    "eslint-config-airbnb-typescript": "17.0.0",
+    "eslint-config-airbnb-typescript": "17.1.0",
     "eslint-config-node": "4.1.0",
     "eslint-config-prettier": "8.5.0",
     "eslint-config-recommended": "4.1.0",
