@@ -98,9 +98,10 @@ class FaceIncompleteListViewSet(ListViewSet):
 
     def get_queryset(self):
         inferred = False
+        personid = self.request.query_params.get("person")
         conditional_filter = Q(faces__person_label_is_inferred=inferred) | Q(
             faces__person__name=Person.UNKNOWN_PERSON_NAME
-        )
+        ) & Q(faces__person=personid)
         if (
             self.request.query_params.get("inferred")
             and self.request.query_params.get("inferred").lower() == "true"
