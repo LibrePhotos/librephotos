@@ -80,7 +80,7 @@
     "react-content-loader": "6.2.1",
     "react-cookie": "4.1.1",
     "react-cool-dimensions": "2.0.7",
-    "react-d3-graph": "1.2.1",
+    "react-d3-graph": "1.3.0",
     "react-dnd": "16.0.1",
     "react-dom": "18.2.0",
     "react-draggable": "4.4.5",
