@@ -120,7 +120,7 @@
     "@trivago/prettier-plugin-sort-imports": "3.4.0",
     "@types/crypto-js": "4.1.1",
     "@types/jest": "^28.1.7",
-    "@types/lodash": "4.14.195",
+    "@types/lodash": "4.14.196",
     "@types/luxon": "3.3.1",
     "@types/node": "18.0.5",
     "@types/react": "18.0.15",
