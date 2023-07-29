@@ -63,9 +63,6 @@ export enum Endpoints {
 
 const baseQuery = fetchBaseQuery({
   baseUrl: "/api/",
-  headers: {
-    "Content-Type": "application/json",
-  },
   credentials: "include",
 
   prepareHeaders: (headers, { getState, endpoint }) => {
