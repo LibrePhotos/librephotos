@@ -12,6 +12,7 @@ module.exports = {
     "import/prefer-default-export": "off",
     "import/no-default-export": "error",
     "no-void": "off",
+    "react/jsx-curly-brace-presence": "warn",
   },
   parserOptions: {
     project: "./tsconfig.eslint.json",
