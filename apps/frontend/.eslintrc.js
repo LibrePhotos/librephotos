@@ -9,6 +9,7 @@ module.exports = {
     "class-methods-use-this": "off",
     "block-scoped-var": "warn",
     "vars-on-top": "warn",
+    "react/jsx-curly-brace-presence": "warn",
     eqeqeq: "warn",
     radix: "warn",
     "arrow-body-style": "warn",
