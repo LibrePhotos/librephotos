@@ -105,6 +105,7 @@ export const userAlbumsApi = api
       [Endpoints.deleteUserAlbum]: {
         invalidatesTags: ["UserAlbums"],
       },
+      // To-Do: Add invalidatesTags for when adding photos to an album / create album
     },
   });
 

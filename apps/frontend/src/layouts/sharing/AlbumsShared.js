@@ -6,7 +6,7 @@ import { connect } from "react-redux";
 import { AutoSizer, Grid } from "react-virtualized";
 import { Polaroid, User } from "tabler-icons-react";
 
-import { serverAddress } from "../../api_client/apiClient";
+import { Tile } from "../../components/Tile";
 import { LEFT_MENU_WIDTH } from "../../ui-constants";
 import {
   calculateGridCellSize,
@@ -150,10 +150,12 @@ export class AlbumsShared extends Component {
       return (
         <div key={key} style={{ ...style, padding: 1 }}>
           <Anchor href={`/useralbum/${cell.id}/`}>
-            <Image
+            <Tile
+              style={{ objectFit: "cover" }}
               width={this.state.entrySquareSize - 2}
               height={this.state.entrySquareSize - 2}
-              src={`${serverAddress}/media/square_thumbnails/${cell.cover_photo.image_hash}`}
+              image_hash={cell.cover_photo.image_hash}
+              video={cell.cover_photo.video}
             />
           </Anchor>
           <Text weight={700}>{cell.title}</Text>
