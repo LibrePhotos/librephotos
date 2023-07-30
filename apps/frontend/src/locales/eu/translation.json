@@ -1,6 +1,6 @@
 {
     "sitesettings": {
-        "apikey": "Mapa batean ikusi nahi al dituzu argazkiak non egin ziren (argazkiek kokapena ezarrita badute)? Eman izena eta eskuratu Mapbox API gakoa: https://account.mapbox.com/auth/signup/",
+        "apikey": "Argazkiak mapa batean erakusten ditu (argazkiek kokapena ezarrita badute). Eman izena eta eskuratu Mapboxen API gakoa: https://account.mapbox.com/auth/signup/",
         "header": "Baimendu izen-emateak",
         "allow": "Baimendu",
         "skippatterns": " zerrendatu eta banatu koma bidez (adibidez: '@eaDir,#recycle' synology galuetarako)",
@@ -17,7 +17,7 @@
         "11": "Erabili Composite:GPSDateTime etiketa eta ebatzi ordu-eremua GPS koordenatuak erabiliz",
         "2": "Eskuratu bideoaren sorrera etiketa UTC eta GPS koordenatuak erabiliz",
         "3": "Fitxategiaren izena erabiliko da data ezartzeko",
-        "4": "Bideoaren UTCa - tokiko ordua UTCn ageri da (ezin izan dugulako bideoaren ordu-eremua aurkitu)",
+        "4": "Bideoaren UTCa - tokiko ordua UTCn ageri da (ezin izan da bideoaren ordu-eremua aurkitu)",
         "7": "Fitxategiaren ordu-eremua erabiltzailearenera aldatu da",
         "8": "Fitxategiaren ordu-eremua UTCarenera aldatu da",
         "9": "Fitxategiaren ordu-eremua erabiltzaileak lehenetsitakoan sortu da",
@@ -197,7 +197,34 @@
         "scanphotosdescription": "Eskaneatu fitxero berriak izateko zure liburutegian",
         "rescanphotosdescription": "Berriro eskaneatu fitxero guztiak",
         "nextcloudsetup": "Egiaztagiriak falta dira",
-        "security": "Segurtasuna"
+        "security": "Segurtasuna",
+        "korean": "Koreera",
+        "portuguesebr": "Portugalera (Brasil)",
+        "slovak": "Slovakiera",
+        "hungarian": "Hungariera",
+        "urdu": "Urdu",
+        "arabic": "Arabiera",
+        "size": {
+            "veryhigh": "Oso altua",
+            "auto": "Automatikoa",
+            "small": "Txikia",
+            "normal": "Arrunta",
+            "high": "Altua",
+            "off": "Itzalita"
+        },
+        "min_samples": "Gutxieneko laginak",
+        "cluster_selection_epsilon_help": "Zein multzo bateratzen de zehazten du. Zenbaki altuago batek multzo gehiago bateratuko ditu.",
+        "face_options": "Aurpegien aukerak",
+        "face_recognition_model": "Aurpegiak antzemateko eredua",
+        "face_recognition_model_help": "Aurpegiak antzemateko eredua aldatzen du. CNN eredua zehatzagoa da baina HOG eredua baino motelagoa.",
+        "models": {
+            "hog": "HOG",
+            "cnn": "CNN"
+        },
+        "min_cluster_size": "Multzoaren gutxieneko neurria",
+        "min_cluster_size_help": "Multzoak nola sortzen diren aldatzen du. Zenbaki txikiago bat ezarriz gero multzo gehiago sortuko dira.",
+        "unknown_faces_confidence": "Confidence when Matching Unknown - Other Faces",
+        "cluster_selection_epsilon": "Epsilon multzo-hautatzailea"
     },
     "topmenu": {
         "available": "Argazki gehiago aztertzen has zaitezke, aurpegiak etiketatzen, momentuen albumak automatikoki sortzen, edo automatikoki sortutako albumen tituluak birsortzen.",
@@ -268,7 +295,7 @@
         "download": "Deskargatu",
         "sharing": "Partekatzen",
         "favorite": "Gogoko egin",
-        "deleted": "Ezabatu",
+        "deleted": "Eraman zakarrontzira",
         "unhide": "Ezkutatzeari utzi",
         "makepublic": "Egin publiko",
         "makeprivate": "Egin pribatu",
@@ -496,7 +523,7 @@
         "uploadsuccess": "Behar bezala igo da",
         "deletemissingphotos": "Ezabatu falta diren argazkiak…",
         "deletemissingphotostitle": "Ezabatu falta diren argazkiak",
-        "deletephoto": "{{numberOfPhotos}} argazki ezabatu dira.",
+        "deletephoto": "{{numberOfPhotos}} argazki zakarrontzira eraman dira.",
         "recoverphoto": "{{numberOfPhotos}} argazki berreskuratu dira.",
         "setdeletetitle": "Ezabatu irudiak",
         "finaldeletephoto": "{{numberOfPhotos}} argazki betiko ezabatu dira.",
@@ -525,7 +552,9 @@
         "deleteusertitle": "Ezabatu erabiltzailea",
         "removefacestopersontitle": "Kendu aurpegiak pertsonatik",
         "deleteuser": "{{username}} ezabatu da",
-        "removefacestoperson": "{{numberOfFaces}} aurpegia(k) \"Ezezaguna - Bestelakoa\" aukerara eraman dira"
+        "removefacestoperson": "{{numberOfFaces}} aurpegia(k) \"Ezezaguna - Bestelakoa\" aukerara eraman dira",
+        "savecaptions": "Irudiaren testua eguneratu da",
+        "captionupdate": "Eguneratu testua"
     },
     "nosocialgraph": "Ez dago jendearen grafikorik",
     "fetchingsocialgraph": "Jendearen grafikoa eskuratzen…",
@@ -592,7 +621,7 @@
     "sync": "Sinkronizatu metadatuak diskora",
     "exif": {
         "showmore": "Erakutsi gehiago",
-        "deleteduplicate": "Ziur bikoiztutakoa ezabatu nahi duzula?",
+        "deleteduplicate": "Bikoiztutako hau ezabatu?",
         "focallengthin35mmfilm": "35mm-rekin baliokidea den foku-distantzia",
         "otherversions": "Beste bertsioak",
         "duplicates": "Bikoiztutakoak",
@@ -617,5 +646,6 @@
     "timezoneexplain": "ordutegi mota hau erabiltzailearen ordutegira bihurtzeko erabiltzen da",
     "locationstimeline": {
         "fromto": "{{location}} {{start}} - tik {{end}}- raino"
-    }
+    },
+    "docs": "Dokumentazioa"
 }
