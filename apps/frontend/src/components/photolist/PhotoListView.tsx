@@ -6,8 +6,8 @@ import { useParams } from "react-router-dom";
 
 import { setAlbumCoverForUserAlbum } from "../../actions/albumsActions";
 import { setAlbumCoverForPerson } from "../../actions/peopleActions";
-import { fetchPhotoDetail } from "../../actions/photosActions";
 import { serverAddress } from "../../api_client/apiClient";
+import { photoDetailsApi } from "../../api_client/photos/photoDetail";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { formatDateForPhotoGroups } from "../../util/util";
@@ -209,7 +209,7 @@ function PhotoListViewComponent(props: Props) {
   };
 
   const getPhotoDetails = (image: string) => {
-    dispatch(fetchPhotoDetail(image));
+    dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image));
   };
 
   const closeLightboxIfImageIndexIsOutOfSync = () => {

@@ -5,6 +5,7 @@ import { z } from "zod";
 
 // eslint-disable-next-line import/no-cycle
 import { Server } from "../api_client/apiClient";
+import { photoDetailsApi } from "../api_client/photos/photoDetail";
 import i18n from "../i18n";
 // eslint-disable-next-line import/no-cycle
 import { PhotosetType } from "../reducers/photosReducer";
@@ -31,24 +32,6 @@ const fetchPhotosetRejected = (err: string) => ({
   type: FETCH_PHOTOSET_REJECTED,
   payload: err,
 });
-
-export function fetchPhotoDetail(image_hash: string) {
-  return function (dispatch: Dispatch<any>) {
-    dispatch({ type: "FETCH_PHOTO_DETAIL", payload: image_hash });
-    Server.get(`photos/${image_hash}/`, { timeout: 100000 })
-      .then(response => {
-        const photo = PhotoSchema.parse(response.data);
-        dispatch({
-          type: "FETCH_PHOTO_DETAIL_FULFILLED",
-          payload: photo,
-        });
-      })
-      .catch(err => {
-        console.error(err);
-        dispatch({ type: "FETCH_PHOTO_DETAIL_REJECTED", payload: err });
-      });
-  };
-}
 
 export function downloadPhotos(image_hashes: string[]) {
   return function () {
@@ -98,7 +81,8 @@ export function setPhotosShared(image_hashes: string[], val_shared: boolean, tar
         });
 
         if (image_hashes.length === 1) {
-          dispatch(fetchPhotoDetail(image_hashes[0]));
+          // @ts-ignore
+          dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hashes[0])).refetch();
         }
       })
       .catch(err => {
@@ -238,7 +222,8 @@ export function setPhotosPublic(image_hashes: string[], val_public: boolean) {
         });
 
         if (image_hashes.length === 1) {
-          dispatch(fetchPhotoDetail(image_hashes[0]));
+          // @ts-ignore
+          dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hashes[0])).refetch();
         }
       })
       .catch(err => {
@@ -277,6 +262,9 @@ export function setPhotosFavorite(image_hashes: string[], favorite: boolean) {
             numberOfPhotos: image_hashes.length,
           });
         }
+
+        // @ts-ignore
+        dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hashes[0])).refetch();
         showNotification({
           message: notificationMessage,
           title: i18n.t<string>("toasts.setfavoritestitle"),
@@ -429,7 +417,8 @@ export function setPhotosHidden(image_hashes: string[], hidden: boolean) {
           color: "teal",
         });
         if (image_hashes.length === 1) {
-          dispatch(fetchPhotoDetail(image_hashes[0]));
+          // @ts-ignore
+          dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hashes[0])).refetch();
         }
       })
       .catch(err => {
@@ -587,7 +576,8 @@ export function generatePhotoIm2txtCaption(image_hash: string) {
     Server.post("photosedit/generateim2txt", { image_hash: image_hash })
       .then(() => {
         dispatch({ type: "GENERATE_PHOTO_CAPTION_FULFILLED" });
-        dispatch(fetchPhotoDetail(image_hash));
+        // @ts-ignore
+        dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hashes[0])).refetch();
       })
       .catch(error => {
         dispatch({ type: "GENERATE_PHOTO_CAPTION_REJECTED" });
@@ -596,13 +586,13 @@ export function generatePhotoIm2txtCaption(image_hash: string) {
   };
 }
 
-
 export function savePhotoCaption(image_hash: string, caption?: string | undefined) {
   return function (dispatch: Dispatch<any>) {
     Server.post("photosedit/savecaption", { image_hash: image_hash, caption: caption })
       .then(() => {
         dispatch({ type: "SAVE_PHOTO_CAPTION_FULFILLED" });
-        dispatch(fetchPhotoDetail(image_hash));
+        // @ts-ignore
+        dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hashes[0])).refetch();
         showNotification({
           message: i18n.t<string>("toasts.savecaptions"),
           title: i18n.t<string>("toasts.captionupdate"),
@@ -615,7 +605,6 @@ export function savePhotoCaption(image_hash: string, caption?: string | undefine
       });
   };
 }
-
 
 export function editPhoto(image_hash: string, photo_details: any) {
   return function (dispatch: Dispatch<any>) {

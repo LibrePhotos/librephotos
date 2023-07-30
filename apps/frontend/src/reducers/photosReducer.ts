@@ -12,10 +12,7 @@ import {
   FETCH_RECENTLY_ADDED_PHOTOS,
   FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED,
   FETCH_RECENTLY_ADDED_PHOTOS_REJECTED,
-  SET_PHOTOS_DELETED_FULFILLED,
   SET_PHOTOS_FAVORITE_FULFILLED,
-  SET_PHOTOS_HIDDEN_FULFILLED,
-  SET_PHOTOS_PUBLIC_FULFILLED,
 } from "../actions/photosActions";
 import type { IncompleteDatePhotosGroup, Photo, PigPhoto } from "../actions/photosActions.types";
 import { SEARCH_PHOTOS_FULFILLED, SEARCH_PHOTOS_REJECTED } from "../actions/searchActions";
@@ -42,10 +39,6 @@ export interface PhotosState {
   scannedPhotos: boolean;
   error: string | null;
 
-  photoDetails: { [key: string]: Photo };
-  fetchingPhotoDetail: boolean;
-  fetchedPhotoDetail: boolean;
-
   fetchedPhotos: boolean;
   fetchingPhotos: boolean;
 
@@ -63,15 +56,12 @@ export interface PhotosState {
 
 const initialPhotosState: PhotosState = {
   error: null,
-  fetchedPhotoDetail: false,
   fetchedPhotos: false,
   fetchedPhotosetType: PhotosetType.NONE,
-  fetchingPhotoDetail: false,
   fetchingPhotos: false,
   generatedCaptionIm2txt: false,
   generatingCaptionIm2txt: false,
   numberOfPhotos: 0,
-  photoDetails: {},
   photosFlat: [],
   photosGroupedByDate: [],
   photosGroupedByUser: [],
@@ -87,20 +77,6 @@ function resetPhotos(state: PhotosState, error: string) {
     photosGroupedByDate: [],
     photosGroupedByUser: [],
     error: error,
-  };
-}
-
-function updatePhotoDetails(state: PhotosState, action: AnyAction) {
-  const updatedPhotoDetails = action.payload.updatedPhotos as Photo[];
-  const newPhotoDetails = { ...state.photoDetails };
-
-  updatedPhotoDetails.forEach(photoDetails => {
-    newPhotoDetails[photoDetails.image_hash] = photoDetails;
-  });
-
-  return {
-    ...state,
-    photoDetails: newPhotoDetails,
   };
 }
 
@@ -243,45 +219,12 @@ export default function photosReducer(state = initialPhotosState, action: AnyAct
     case FETCH_PHOTOSET_REJECTED: {
       return resetPhotos(state, action.payload);
     }
-
-    case "FETCH_PHOTO_DETAIL": {
-      return {
-        ...state,
-        fetchingPhotoDetail: true,
-      };
-    }
-    case "FETCH_PHOTO_DETAIL_FULFILLED": {
-      var newPhotoDetails = { ...state.photoDetails };
-      const photoDetails: Photo = action.payload;
-      newPhotoDetails[photoDetails.image_hash] = photoDetails;
-      return {
-        ...state,
-        fetchingPhotoDetail: false,
-        fetchedPhotoDetail: true,
-        photoDetails: newPhotoDetails,
-      };
-    }
-    case "FETCH_PHOTO_DETAIL_REJECTED": {
-      return { ...state, fetchingPhotoDetail: false, error: action.payload };
-    }
-
-    case SET_PHOTOS_PUBLIC_FULFILLED: {
-      return updatePhotoDetails(state, action);
-    }
-
-    case SET_PHOTOS_DELETED_FULFILLED: {
-      return updatePhotoDetails(state, action);
-    }
-
     case SET_PHOTOS_FAVORITE_FULFILLED: {
       updatedPhotoDetails = action.payload.updatedPhotos as Photo[];
-      newPhotoDetails = { ...state.photoDetails };
       newPhotosGroupedByDate = [...state.photosGroupedByDate];
       newPhotosFlat = [...state.photosFlat];
 
       updatedPhotoDetails.forEach(photoDetails => {
-        newPhotoDetails[photoDetails.image_hash] = photoDetails;
-
         newPhotosFlat = newPhotosFlat.map(photo =>
           photo.id === photoDetails.image_hash ? { ...photo, rating: photoDetails.rating } : photo
         );
@@ -316,14 +259,9 @@ export default function photosReducer(state = initialPhotosState, action: AnyAct
 
       return {
         ...state,
-        photoDetails: newPhotoDetails,
         photosFlat: newPhotosFlat,
         photosGroupedByDate: newPhotosGroupedByDate,
       };
-    }
-
-    case SET_PHOTOS_HIDDEN_FULFILLED: {
-      return updatePhotoDetails(state, action);
     }
 
     case SEARCH_PHOTOS_FULFILLED: {

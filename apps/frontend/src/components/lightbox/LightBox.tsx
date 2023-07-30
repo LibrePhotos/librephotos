@@ -22,7 +22,7 @@ type Props = {
 
 export function LightBox(props: Props) {
   const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
-  const { photoDetails } = useAppSelector(store => store.photos);
+  const { photoDetails } = useAppSelector(store => store.photoDetails);
   const { playing: isPlayingEmbeddedContent } = useAppSelector(store => store.player);
   const { width: viewportWidth } = useViewportSize();
   let LIGHTBOX_SIDEBAR_WIDTH = 320;

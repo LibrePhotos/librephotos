@@ -7,9 +7,9 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { Calendar, Map2, SettingsAutomation, Users } from "tabler-icons-react";
 
-import { fetchPhotoDetail } from "../../actions/photosActions";
 import { useLazyFetchAutoAlbumQuery } from "../../api_client/albums/auto";
 import { serverAddress } from "../../api_client/apiClient";
+import { photoDetailsApi } from "../../api_client/photos/photoDetail";
 import { AlbumLocationMap } from "../../components/AlbumLocationMap";
 import { Tile } from "../../components/Tile";
 import { LightBox } from "../../components/lightbox/LightBox";
@@ -46,7 +46,7 @@ export function AlbumAutoGalleryView() {
   }, [width]);
 
   function getPhotoDetails(image_hash) {
-    dispatch(fetchPhotoDetail(image_hash));
+    dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hash));
   }
 
   useEffect(() => {

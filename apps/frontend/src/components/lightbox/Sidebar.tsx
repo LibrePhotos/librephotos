@@ -29,7 +29,6 @@ export function Sidebar(props: Props) {
   const dispatch = useAppDispatch();
   const [personEditOpen, setPersonEditOpen] = useState(false);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
-  const { fetchingPhotoDetail } = useAppSelector(store => store.photos);
   const { generatingCaptionIm2txt } = useAppSelector(store => store.photos);
   const { photoDetail, isPublic, closeSidepanel } = props;
 
@@ -39,7 +38,7 @@ export function Sidebar(props: Props) {
   let LIGHTBOX_SIDEBAR_WIDTH = 320;
 
   useEffect(() => {
-    if (!fetchingPhotoDetail) {
+    if (photoDetail) {
       const currentCaption =
         photoDetail.captions_json.user_caption && photoDetail.captions_json.user_caption.length > 0
           ? photoDetail.captions_json.user_caption
@@ -49,7 +48,7 @@ export function Sidebar(props: Props) {
     } else {
       setImageCaption("");
     }
-  }, [photoDetail, fetchingPhotoDetail]);
+  }, [photoDetail]);
 
   if (width < 600) {
     LIGHTBOX_SIDEBAR_WIDTH = width - SCROLLBAR_WIDTH;
@@ -73,7 +72,7 @@ export function Sidebar(props: Props) {
         zIndex: 250,
       }}
     >
-      {photoDetail && !fetchingPhotoDetail && (
+      {photoDetail && (
         <Stack>
           <Group position="apart">
             <Title order={3}>Details</Title>

@@ -6,8 +6,8 @@ import _ from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
 
-import { fetchPhotoDetail } from "../../actions/photosActions";
 import { api, useFetchIncompleteFacesQuery } from "../../api_client/api";
+import { photoDetailsApi } from "../../api_client/photos/photoDetail";
 import { ButtonHeaderGroup } from "../../components/facedashboard/ButtonHeaderGroup";
 import { FaceComponent } from "../../components/facedashboard/FaceComponent";
 import { HeaderComponent } from "../../components/facedashboard/HeaderComponent";
@@ -63,7 +63,7 @@ export function FaceDashboard() {
   const selectMode = selectedFaces.length > 0;
 
   const getPhotoDetails = (image: string) => {
-    dispatch(fetchPhotoDetail(image));
+    dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image));
   };
 
   const idx2hash =
