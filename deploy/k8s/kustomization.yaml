@@ -4,32 +4,28 @@ kind: Kustomization
 namespace: librephotos
 
 resources:
-- backend.yaml
-- db.yaml
-- frontend.yaml
-- ingress.yaml
-- ns.yaml
-- pvcs.yaml
-- redis.yaml
+  - backend.yaml
+  - db.yaml
+  - frontend.yaml
+  - ingress.yaml
+  - ns.yaml
+  - pvcs.yaml
 
 configMapGenerator:
-- name: backend
-  envs:
-  - config/backend.env
+  - name: backend
+    envs:
+      - config/backend.env
 
 images:
-- name: backend-placeholder
-  newName: reallibrephotos/librephotos
-  newTag: 2022w12
-- name: frontend-placeholder
-  newName: reallibrephotos/librephotos-frontend
-  newTag: 2022w12
-- name: proxy-placeholder
-  newName: reallibrephotos/librephotos-proxy
-  newTag: 2022w10
-- name: postgresql-placeholder
-  newName: postgres
-  newTag: "13"
-- name: redis-placeholder
-  newName: redis
-  newTag: "6"
+  - name: backend-placeholder
+    newName: reallibrephotos/librephotos
+    newTag: 2022w12
+  - name: frontend-placeholder
+    newName: reallibrephotos/librephotos-frontend
+    newTag: 2022w12
+  - name: proxy-placeholder
+    newName: reallibrephotos/librephotos-proxy
+    newTag: 2022w10
+  - name: postgresql-placeholder
+    newName: postgres
+    newTag: "13"

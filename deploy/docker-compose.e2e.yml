@@ -101,8 +101,6 @@ services:
       - DB_PASS=${dbPass}
       - DB_HOST=e2e-db
       - DB_PORT=5432
-      - REDIS_HOST=e2e-redis
-      - REDIS_PORT=6379
       - MAPBOX_API_KEY=${mapApiKey:-}
       - WEB_CONCURRENCY=${gunniWorkers:-1}
       - SKIP_PATTERNS=${skipPatterns:-}
@@ -117,19 +115,5 @@ services:
     depends_on:
       e2e-db:
         condition: service_healthy
-      e2e-redis:
-        condition: service_healthy
-    networks:
-      - e2e
-
-  e2e-redis:
-    image: redis:6
-    container_name: e2e-redis
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
-      interval: 5s
-      timeout: 5s
-      retries: 12
     networks:
       - e2e

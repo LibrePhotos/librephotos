@@ -65,8 +65,6 @@ services:
       - DB_PASS=${dbPass}
       - DB_HOST=${dbHost}
       - DB_PORT=5432
-      - REDIS_HOST=__redis_name__
-      - REDIS_PORT=6379
       - MAPBOX_API_KEY=${mapApiKey:-}
       - WEB_CONCURRENCY=${gunniWorkers:-1}
       - SKIP_PATTERNS=${skipPatterns:-}
@@ -76,15 +74,3 @@ services:
     depends_on:
       __db_name__:
         condition: service_healthy
-      __redis_name__:
-        condition: service_healthy
-
-  __redis_name__:
-    image: redis:6
-    container_name: __redis_name__
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
-      interval: 5s
-      timeout: 5s
-      retries: 12
