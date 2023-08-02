@@ -112,7 +112,7 @@
     "rumble-charts": "4.0.0",
     "source-map-explorer": "2.5.3",
     "tabler-icons-react": "1.56.0",
-    "zod": "3.17.3"
+    "zod": "3.21.4"
   },
   "devDependencies": {
     "@babel/eslint-parser": "7.22.9",
