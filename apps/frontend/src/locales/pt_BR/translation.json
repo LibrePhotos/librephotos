@@ -55,7 +55,7 @@
         "cancel": "Cancelar",
         "change": "Modificar",
         "nextcloudheader": "Nextcloud",
-        "nextcloudloggedin": "Conectado ao Nextcloud",
+        "nextcloudloggedin": "Conectado",
         "nextcloudchange": "Modificar",
         "appearance": "Aparência",
         "togglecolorscheme": "Alterar esquema de cores",
@@ -63,7 +63,7 @@
         "big": "Grande",
         "credentials": "Dados de acesso",
         "nextcloudusernameplaceholder": "Usuário",
-        "credentialspopup": "Usar senha do aplicativo",
+        "credentialspopup": "Sua senha de login no Nextcloud",
         "serveradress": "URL do servidor",
         "nextcloudupdate": "Atualizar credenciaos do Nextcloud",
         "nextcloudcancel": "Cancelar",
@@ -75,7 +75,7 @@
         "thumbnailsize": "Tamanho das miniaturas",
         "small": "Pequena",
         "semanticsearch": {
-            "placeholder": "Máximo de resultados",
+            "placeholder": "Máximo de resultados de pesquisa semântica",
             "top50": "Top 50",
             "top10": "Top 10",
             "top100": "Top 100",
@@ -99,7 +99,7 @@
         "savechanges": "Salvar alterações?",
         "transcodevideo": "Sempre transcodificar vídeos",
         "off": "Desligado",
-        "configdatetime": " Regras de análise de data e hora",
+        "configdatetime": " Definir regras de análise de data e hora",
         "on": "Ligado",
         "password": {
             "errorcannotbeblank": "A senha deve ser preenchida",
@@ -114,23 +114,23 @@
         "add_rule": "Adicionar regra",
         "library": "Biblioteca",
         "photos": "Fotos",
-        "statusscanphotostrue": "Analisando fotos (sistema de arquivos)",
-        "statusscanphotosfalse": "Analisar fotos (sistema de arquivos)",
-        "scannextcloudphotos": "Analisar fotos (Nextcloud)",
-        "statusrescanphotostrue": "Reanalisando todas as fotos (sistema de arquivos)",
-        "statusrescanphotosfalse": "Reanalisar todas as fotos (sistema de arquivos)",
+        "statusscanphotostrue": "Analisando fotos",
+        "statusscanphotosfalse": "Analisar",
+        "scannextcloudphotos": "Analisar",
+        "statusrescanphotostrue": "Reanalisando",
+        "statusrescanphotosfalse": "Reanalisar",
         "missingphotos": "Fotos não encontradas",
         "missingphotosbutton": "Remover fotos não encontradas",
         "eventsalbums": "Álbuns de eventos",
         "missingphotosdescription": "Em cada varredura, o LibrePhotos verifica se os arquivos ainda estão no mesmo local ou se foram movidos. Se eles estiverem ausentes, eles serão marcados como tal.",
         "eventalbumsgenerate": "Gerar Álbuns de Eventos",
-        "facesbutton": "Treinar Rostos",
+        "facesbutton": "Treinar",
         "eventsalbumsdescription": "Primeiramente as fotos são agrupadas por horário de criação. Se duas fotos consecutivas forem tiradas com um intervalo de até 12h, elas serão consideradas do mesmo evento. Depois que são montados grupos com esse critério, eles recebem um título e formam um álbum.",
         "eventalbumsregenerate": "Gerar novamente os títulos de eventos",
         "faces": "Rostos",
         "people": "Pessoas",
         "eventalbumsregeneratedescription": "Álbuns gerados automaticamente têm nomes de pessoas nos títulos. Se você treinou seu classificador de rostos depois de criar álbuns de eventos, pode gerar novos títulos para álbuns de eventos já existentes para refletir os novos nomes associados aos rostos.",
-        "rescanfaces": "Reanalizar Rostos",
+        "rescanfaces": "Reanalizar",
         "inferred": "Deduzidas",
         "facessmall": "rostos",
         "scanoptions": "Opções de análise",
@@ -141,14 +141,57 @@
             "standard": "Padrão"
         },
         "facedashboard": "Painel de Rostos",
-        "sceneconfidence": "Convicção de Cenas",
+        "sceneconfidence": "Confiança de Cenas",
         "inferredfacesconfidence": "Convicção dos rostos encontrados",
         "confidencepercentage": "Convicção: {{percentage}}%",
         "semanticsearchheader": "Máximo de resultados para pesquisas semânticas",
-        "confidencelevel": "Nível de convicção",
+        "confidencelevel": "Nível de confiança",
         "albumoptions": "Opções de álbum",
         "inferredfacesconfidencehelp": "Insira um nível de convicção entre 0 e 1. Para álbuns que apresentam uma pessoa, rostos encontrados com um nível de confiança superior a esse valor serão exibidos.",
-        "nextcloudnotloggedin": "Desconectado do Nextcloud"
+        "nextcloudnotloggedin": "Desconectado",
+        "portuguesebr": "Português (Brasil)",
+        "korean": "Coreano",
+        "arabic": "Árabe",
+        "slovak": "Eslovaco",
+        "hungarian": "Húngaro",
+        "urdu": "Urdu",
+        "scanphotosdescription": "Busca por novos arquivos na sua biblioteca",
+        "nextcloudsetup": "Credenciais ausentes",
+        "rescanfacestitle": "Reanalisar rostos",
+        "trainfacesdescription": "Ensine o sistema baseado nas informações existentes",
+        "rescanphotosdescription": "Reanalisar todos os arquivos",
+        "security": "Segurança",
+        "colorscheme": {
+            "title": "Esquema de cores",
+            "dark": "Escuro",
+            "light": "Claro"
+        },
+        "rescanfacesdescription": "Buscar por rostos na biblioteca",
+        "face_options": "Opções de face",
+        "face_recognition_model": "Modelo de reconhecimento de face",
+        "face_recognition_model_help": "Altera o modelo usado para reconhecimento de face. O modelo CNN é mais acurado, mas é mais lento que o modelo HOG.",
+        "models": {
+            "hog": "HOG",
+            "cnn": "CNN"
+        },
+        "min_cluster_size": "Tamanho mínimo do grupo",
+        "unknown_faces_confidence": "Confiança quando Correspondendo Desconhecido - Outros Rostos",
+        "size": {
+            "auto": "Automático",
+            "normal": "Normal",
+            "high": "Alto",
+            "veryhigh": "Muito alto",
+            "off": "Desligado",
+            "small": "Pequeno"
+        },
+        "min_cluster_size_help": "Altera como os grupos são formados. Valores menores resultam em mais grupos sendo formados.",
+        "nextcloudconnecting": "Conectando",
+        "trainfacestitle": "Treinar rostos",
+        "min_samples": "Mínimo de amostras",
+        "cluster_selection_epsilon": "Epsilon de seleção de grupos",
+        "min_samples_help": "Altera o quão conservador os grupos são. Quanto menor for o valor, menos conservador é.",
+        "cluster_selection_epsilon_help": "Determina quais grupos são mesclados. Um valor alto significa que mais grupos serão mesclados.",
+        "unknown_faces_confidence_help": "Insira um nível de confiança entre 0 e 1. Rostos de 'Desconhecido - Outro' serão atribuídos a outras pessoas se o nível de confiança for maior que esse valor. 0 significa que essa funcionalidade está desabilitada."
     },
     "topmenu": {
         "logout": "Desconectar",
@@ -165,7 +208,7 @@
         "hide": "Ocultar",
         "unhide": "Desocultar",
         "makepublic": "Tornar pública",
-        "deleted": "Apagar",
+        "deleted": "Mover para a lixeira",
         "makeprivate": "Tornar privada",
         "download": "Download",
         "sharing": "Compartilhamento",
@@ -199,7 +242,11 @@
         "errorusernameexists": "Este nome de usuário já está em uso.",
         "erroremail": "Insira um endereço de e-mail válido.",
         "tagline": "Um lugar confortável para suas fotos.",
-        "firsttimesetup": "Configuração inicial"
+        "firsttimesetup": "Configuração inicial",
+        "error": {
+            "token": "Problema com o token",
+            "token_not_valid": "Login expirado. Por favor, faça o login novamente."
+        }
     },
     "rename": "Renomear",
     "delete": "Excluir",
@@ -216,7 +263,7 @@
     "modalalbum": {
         "title": "Adicionar ao Álbum",
         "alreadyexists": "O álbum {{title}} já existe.",
-        "selectedimages": "Adicionar as {{count}} foto(s) selecionada(s) a...",
+        "selectedimages": "Adicionar as {{count}} foto(s) selecionada(s) a…",
         "placeholder": "Título do álbum",
         "create": "Criar",
         "updated": "Atualizado {{duration}}",
@@ -229,7 +276,8 @@
         "notset": "não definido",
         "currentdirectory": "Pasta de varredura atual no Nextcloud",
         "update": "Atualizar",
-        "cancel": "Cancelar"
+        "cancel": "Cancelar",
+        "browse": "Navegar"
     },
     "sidemenu": {
         "autoalbums": "Criados automaticamente",
@@ -308,7 +356,7 @@
         "showmore": "Exibir mais",
         "showless": "Exibir menos",
         "deleteduplicatetitle": "Eliminar duplicatas",
-        "deleteduplicate": "Tem certeza que quer eliminar esta duplicata?"
+        "deleteduplicate": "Eliminar esta duplicata?"
     },
     "search": {
         "search": "Pesquisar",
@@ -332,7 +380,8 @@
         "deleteuserconfirmexplanation": "Você está prestes a excluir o usuário {{username}}. Todos os dados associados serão eliminados.",
         "titledeleteuser": "Excluir usuário",
         "cannotbeundone": "Esta ação não pode ser desfeita.",
-        "addnewuser": "Adicionar Usuário"
+        "addnewuser": "Adicionar Usuário",
+        "delete": "Remover"
     },
     "joblist": {
         "status": "Status",
@@ -347,7 +396,8 @@
         "startedby": "Usuário",
         "delete": "Excluir",
         "running": "executando",
-        "removeexplanation": "Não interrompe o processo, apenas exclui esse registro. Use apenas nos casos que sabe que um trabalho falhou de maneira indesejável, inspecionando os logs, etc."
+        "removeexplanation": "Remover uma entrada não para o processo - isso apenas a remove do banco de dados. Use somente em casos quando você sabe que o processo falhou de forma inesperada por meio de análises de logs, etc.",
+        "itemsadded": "Recurso(s) adicionado(s)"
     },
     "modaluseredit": {
         "createheader": "Criar Usuário",
@@ -373,17 +423,25 @@
         "noallow": "Não permitir",
         "headerupload": "Permitir uploads",
         "headerskippatterns": "Padrões a ignorar",
-        "skippatterns": " Lista de padrões a ignorar, delimitada por vírgulas, por exemplo '@eaDir,#recycle' para dispositivos synology",
+        "skippatterns": " Lista de padrões a ignorar, delimitada por vírgulas, por exemplo '@eaDir,#recycle' para dispositivos Synology",
         "headerapikey": "Chave API da Mapbox",
-        "apikey": "Para ver um mapa com a localização de suas fotos (desde que estejam armazenadas no arquivo), é necessário uma chave API da Mapbox. Registre em https://account.mapbox.com/auth/signup/",
+        "apikey": "Exibe um mapa onde todas as suas fotos (as que contém dados geográficos) foram tiradas. Obtenha uma chave da API do Mapbox  em https://account.mapbox.com/auth/signup/",
         "headerheavyweight": "Processos intensivos",
-        "heavyweight": "Número de processos de análise de fotos. Esta configuração afeta o uso de RAM. Cada processo necessita 800MB de RAM. Altere conforme sua vontade, o padrão é 1."
+        "heavyweight": "Aumente o número de processos de análises de imagens para além de 1, mas esteja preparado para usar 800 MB de memória para cada processo adicional."
     },
     "modalphotosshare": {
-        "joined": "Conectado"
+        "joined": "Conectado",
+        "name": "Nome da pessoa",
+        "search": "Buscar usuário",
+        "unshare": "Descompartilhar",
+        "share": "Compartilhar",
+        "title": "Compartilhar fotos"
     },
     "modalalbumsshare": {
-        "joined": "Conectado"
+        "joined": "Conectado",
+        "search": "Buscar usuário",
+        "name": "Nome da pessoa",
+        "title": "Compartilhar álbum"
     },
     "metadata": "Opções de metadados",
     "defaulttimezone": "Fuso horário",
@@ -530,7 +588,9 @@
         "regenerateeventstitle": "Gerar novamente os títulos de eventos",
         "recoverphoto": "{{numberOfPhotos}} foto(s) recuperada(s).",
         "finaldeletephoto": "{{numberOfPhotos}} fotos foram excluídas permanentemente.",
-        "deletephoto": "{{numberOfPhotos}} fotos foram excluídas."
+        "deletephoto": "{{numberOfPhotos}} fotos foram movidas para a lixeira.",
+        "savecaptions": "Legenda da imagem atualizada",
+        "captionupdate": "Atualizar Legenda"
     },
     "thingalbum": {
         "showingthings": "Exibindo as top {{number}} coisas"
@@ -572,7 +632,7 @@
         "report_tz": "Transformar para {{rule}}",
         "2": "Obter etiqueta de criação do vídeo em UTC e definir fuso horário através das coordenadas GPS",
         "3": "Utilizando nome do arquivo e assumindo que a hora é local",
-        "4": "Vídeo UTC - informar hora local em UTC (já que não é possível encontrar o fuso horário real)",
+        "4": "Vídeo UTC - informar hora local em UTC (não é possível encontrar o fuso horário real)",
         "5": "Extrair data através do nome de arquivo WhatsApp",
         "11": "Utilizar composição: etiqueta GPSDateTime + determinar fuso horário pelas coordenadas GPS",
         "6": "Data/hora de criação do vídeo no fuso horário UTC (não é possível encontrar o fuso horário real)",
@@ -580,12 +640,13 @@
         "7": "Data/hora de modificação do arquivo no fuso horário padrão do usuário",
         "9": "Data/hora de criação do arquivo no fuso horário padrão do usuário",
         "13": "Utilizar composição: etiqueta GPSDateTime no fuso horário UTC (não é possível determinar o fuso horário real)",
-        "15": "Hora local conforme EXIF: Etiqueta exif DateTime",
+        "15": "Hora local conforme EXIF: Etiqueta Exif DateTime",
         "file_property": "Usar propriedade do arquivo: {{rule}}",
         "source_tz": "Transformar da regra {{rule}}",
         "predefined_regexp": "Usar expressão regular predefinida: {{rule}}"
     },
     "locationstimeline": {
         "fromto": "{{location}} de {{start}} a {{end}}"
-    }
+    },
+    "docs": "Documentação"
 }
