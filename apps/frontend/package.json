@@ -104,7 +104,7 @@
     "react-vis": "1.12.1",
     "react-visibility-sensor": "5.1.1",
     "redux": "4.2.1",
-    "redux-first-history": "5.0.12",
+    "redux-first-history": "5.1.1",
     "react-spring": "^9.2.3",
     "redux-persist": "6.0.0",
     "redux-persist-transform-filter": "0.0.22",
