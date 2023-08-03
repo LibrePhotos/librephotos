@@ -1,7 +1,7 @@
 ---
 title: " 📁 Upload"
 excerpt: "How to uploading photos works as a developer"
-sidebar_position: 5
+sidebar_position: 6
 ---
 
 ## Endpoints:
