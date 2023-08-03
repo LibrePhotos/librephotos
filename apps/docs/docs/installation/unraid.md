@@ -90,4 +90,4 @@ Thanks to [u/Tusc00](https://old.reddit.com/user/Tusc00) and Martijn (Spiek90) f
 
 ## Next Steps
 
-Next, take a look at the [first steps after setup](../user-guide/first-steps).
+Next, take a look at the [first steps after setup](../user-guide/first-steps.md).

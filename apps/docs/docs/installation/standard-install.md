@@ -35,7 +35,7 @@ You should have LibrePhotos accessible after a few minutes of boot-up on [localh
 
 ## Next Steps
 
-Next, take a look at the [first steps after setup](../user-guide/first-steps).
+Next, take a look at the [first steps after setup](../user-guide/first-steps.md).
 
 ### Updating
 
