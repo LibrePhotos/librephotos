@@ -54,7 +54,7 @@
             "item4": "Si este archivo multimedia ya está en la base de datos, agregamos la ruta al archivo multimedia existente.",
             "item5": "Genere varias miniaturas",
             "item6": "Generar títulos de imagen",
-            "item7": "Extraer información Exif",
+            "item7": "Extraer la información Exif",
             "item8": "Obtener la información del GPS mediante una geolocalización inversa",
             "item9": "Extraer rostros.",
             "item10": "Añadir una foto a un objeto y colocar álbumes.",
@@ -79,7 +79,7 @@
         "unknown": "Desconocido",
         "facedashboard": "Panel de control de Rostros",
         "rescanfaces": "Volver a escanear",
-        "scanoptions": "Opciones de detección",
+        "scanoptions": "Opciones de escaneado",
         "sceneconfidence": "Confianza en la escena",
         "confidencelevel": "Nivel de confianza",
         "confidence": {
