@@ -118,7 +118,7 @@
     "@babel/eslint-parser": "7.22.9",
     "@cucumber/messages": "^20.0.0",
     "@cypress/browserify-preprocessor": "^3.0.2",
-    "@trivago/prettier-plugin-sort-imports": "3.4.0",
+    "@trivago/prettier-plugin-sort-imports": "4.2.0",
     "@types/crypto-js": "4.1.1",
     "@types/jest": "^28.1.7",
     "@types/lodash": "4.14.196",
