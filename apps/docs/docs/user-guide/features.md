@@ -53,7 +53,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -70,7 +70,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -87,7 +87,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -104,7 +104,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>❌</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -138,7 +138,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -172,7 +172,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>❌</td>
         <p hidden>Photonix</p>       <td>❌</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -189,7 +189,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -206,7 +206,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -223,7 +223,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>❌</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -240,7 +240,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>❌</td>
         <p hidden>Photonix</p>       <td>❌</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -257,7 +257,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>❌</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️ [*](https://kb.synology.com/en-uk/DSM/tutorial/Which_Synology_NAS_models_support_the_facial_recognition_feature_on_Synology_Photos)</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -274,7 +274,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>❌</td>
         <p hidden>Photonix</p>       <td>❌</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -291,7 +291,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>❌</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -359,7 +359,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -393,7 +393,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -444,7 +444,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>❌</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -461,7 +461,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>❌</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -478,7 +478,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>❌</td>
         <p hidden>Photonix</p>       <td>❌</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -495,7 +495,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>❌</td>
         <p hidden>Photonix</p>       <td>❌</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -512,7 +512,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>🚧</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -529,7 +529,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>❌</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -546,7 +546,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -563,7 +563,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -580,7 +580,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -614,7 +614,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>❌</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -631,7 +631,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>❌</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -648,7 +648,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>❌</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -801,7 +801,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>❔</td>
         <p hidden>Photonix</p>       <td>❔</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -881,11 +881,11 @@ sidebar_position: 6
         <td>Github Stars/Forks</td>
         <p hidden>LibrePhotos</p>    <td><a href="https://github.com/LibrePhotos/librephotos"><img src="https://img.shields.io/github/stars/LibrePhotos/librephotos.svg?style=for-the-badge&color=3F51B5&logoColor=000000" alt="LibrePhotos Start"/></a></td>
         <p hidden>Photoview</p>      <td>❔</td>
-        <p hidden>PhotoPrism</p>     <td>❔</td>
+        <p hidden>PhotoPrism</p>     <td><a href="https://github.com/photoprism/photoprism"><img src="https://img.shields.io/github/stars/photoprism/photoprism.svg?style=for-the-badge&color=3F51B5&logoColor=000000" alt="PhotoPrism Start"/></a></td>
         <p hidden>Immich</p>         <td><a href="https://github.com/alextran1502/immich"><img src="https://img.shields.io/github/stars/alextran1502/immich.svg?style=for-the-badge&color=3F51B5&logoColor=000000" alt="Immich Start"/></a></td>
         <p hidden>Photonix</p>       <td>❔</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>N/A</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -902,7 +902,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>❌</td>
         <p hidden>Photonix</p>       <td>❔</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>❌</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -954,7 +954,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>❔</td>
         <p hidden>Photonix</p>       <td>❔</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>N/A</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -971,7 +971,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>❔</td>
         <p hidden>Photonix</p>       <td>❔</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
@@ -1022,7 +1022,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>❔</td>
         <p hidden>Photonix</p>       <td>❔</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Synology Photos</p><td>✔️</td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
