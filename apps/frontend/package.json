@@ -116,7 +116,7 @@
   },
   "devDependencies": {
     "@babel/eslint-parser": "7.22.9",
-    "@cucumber/messages": "^20.0.0",
+    "@cucumber/messages": "^22.0.0",
     "@cypress/browserify-preprocessor": "^3.0.2",
     "@trivago/prettier-plugin-sort-imports": "3.4.0",
     "@types/crypto-js": "4.1.1",
