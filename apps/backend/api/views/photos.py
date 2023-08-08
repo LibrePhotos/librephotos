@@ -1,6 +1,7 @@
 from django.db.models import Prefetch, Q
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -9,9 +10,10 @@ from api.models import File, Photo, User
 from api.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
 from api.serializers.photos import (
     GroupedPhotosSerializer,
+    PhotoDetailsSummarySerializer,
     PhotoEditSerializer,
     PhotoSerializer,
-    PigPhotoSerilizer,
+    PhotoSummarySerializer,
 )
 from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
 from api.util import logger
@@ -24,7 +26,7 @@ from api.views.pagination import (
 
 
 class RecentlyAddedPhotoListViewSet(ListViewSet):
-    serializer_class = PigPhotoSerilizer
+    serializer_class = PhotoSummarySerializer
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
@@ -65,12 +67,12 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
             .first()
             .added_on
         )
-        serializer = PigPhotoSerilizer(queryset, many=True)
+        serializer = PhotoSummarySerializer(queryset, many=True)
         return Response({"date": latestDate, "results": serializer.data})
 
 
 class FavoritePhotoListViewset(ListViewSet):  # pragma: no cover - deprecated
-    serializer_class = PigPhotoSerilizer
+    serializer_class = PhotoSummarySerializer
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
@@ -98,7 +100,7 @@ class FavoritePhotoListViewset(ListViewSet):  # pragma: no cover - deprecated
 
 
 class HiddenPhotoListViewset(ListViewSet):  # pragma: no cover - deprecated
-    serializer_class = PigPhotoSerilizer
+    serializer_class = PhotoSummarySerializer
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
@@ -121,7 +123,7 @@ class HiddenPhotoListViewset(ListViewSet):  # pragma: no cover - deprecated
 
 
 class PublicPhotoListViewset(ListViewSet):  # pragma: no cover - deprecated
-    serializer_class = PigPhotoSerilizer
+    serializer_class = PhotoSummarySerializer
     pagination_class = HugeResultsSetPagination
     permission_classes = (AllowAny,)
 
@@ -153,7 +155,7 @@ class PublicPhotoListViewset(ListViewSet):  # pragma: no cover - deprecated
 
 
 class NoTimestampPhotoHashListViewSet(ListViewSet):  # pragma: no cover - deprecated
-    serializer_class = PigPhotoSerilizer
+    serializer_class = PhotoSummarySerializer
     pagination_class = HugeResultsSetPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = ["search_captions", "search_location", "faces__person__name"]
@@ -173,7 +175,7 @@ class NoTimestampPhotoHashListViewSet(ListViewSet):  # pragma: no cover - deprec
 
 
 class NoTimestampPhotoViewSet(ListViewSet):
-    serializer_class = PigPhotoSerilizer
+    serializer_class = PhotoSummarySerializer
     pagination_class = RegularResultsSetPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = ["search_captions", "search_location", "faces__person__name"]
@@ -360,6 +362,17 @@ class PhotoViewSet(viewsets.ModelViewSet):
         "exif_timestamp",
         "main_file__path",
     ]
+
+    @action(
+        detail=True,
+        methods=["get"],
+        name="summary",
+        serializer_class=PhotoDetailsSummarySerializer,
+    )
+    def summary(self, request, pk):
+        queryset = self.get_queryset().filter(image_hash=pk)
+        serializer = PhotoDetailsSummarySerializer(queryset, many=False)
+        return Response(serializer.data)
 
     def get_permissions(self):
         if self.action == "list" or self.action == "retrieve":

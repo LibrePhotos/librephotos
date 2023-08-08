@@ -4,11 +4,11 @@ from typing import List
 from rest_framework import serializers
 
 from api.image_similarity import search_similar_image
-from api.models import File, Photo
+from api.models import AlbumDate, File, Photo
 from api.serializers.simple import SimpleUserSerializer
 
 
-class PigPhotoSerilizer(serializers.ModelSerializer):
+class PhotoSummarySerializer(serializers.ModelSerializer):
     id = serializers.SerializerMethodField()
     dominantColor = serializers.SerializerMethodField()
     aspectRatio = serializers.SerializerMethodField()
@@ -99,8 +99,8 @@ class GroupedPhotosSerializer(serializers.ModelSerializer):
     def get_location(self, obj) -> str:
         return obj.location
 
-    def get_items(self, obj) -> PigPhotoSerilizer(many=True):
-        return PigPhotoSerilizer(obj.photos, many=True).data
+    def get_items(self, obj) -> PhotoSummarySerializer(many=True):
+        return PhotoSummarySerializer(obj.photos, many=True).data
 
 
 class PhotoEditSerializer(serializers.ModelSerializer):
@@ -129,6 +129,26 @@ class PhotoHashListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Photo
         fields = ("image_hash", "video")
+
+
+class PhotoDetailsSummarySerializer(serializers.ModelSerializer):
+    photo_summary = serializers.SerializerMethodField()
+
+    album_date_id = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Photo
+        fields = ("photo_summary", "album_date_id")
+
+    def get_photo_summary(self, obj) -> PhotoSummarySerializer:
+        return PhotoSummarySerializer(obj.get()).data
+
+    def get_album_date_id(self, obj) -> int:
+        return (
+            AlbumDate.objects.filter(photos__in=obj)
+            .values_list("id", flat=True)
+            .first()
+        )
 
 
 class PhotoSerializer(serializers.ModelSerializer):
@@ -273,5 +293,5 @@ class SharedFromMePhotoThroughSerializer(serializers.ModelSerializer):
         model = Photo.shared_to.through
         fields = ("user_id", "user", "photo")
 
-    def get_photo(self, obj) -> PigPhotoSerilizer:
-        return PigPhotoSerilizer(obj.photo).data
+    def get_photo(self, obj) -> PhotoSummarySerializer:
+        return PhotoSummarySerializer(obj.photo).data
