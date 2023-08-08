@@ -42,4 +42,4 @@ gevent==23.7.0
 python-magic==0.4.27
 Wand==0.6.11
 django-q2==1.5.4
-
+safetensors==0.3.1
