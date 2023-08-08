@@ -2,14 +2,16 @@ from django.db.models import Count, Prefetch, Q
 
 from api.models import AlbumUser, Photo, User
 from api.serializers.album_user import AlbumUserListSerializer
-from api.serializers.photos import PigPhotoSerilizer, SharedFromMePhotoThroughSerializer
+from api.serializers.photos import (
+    PhotoSummarySerializer,
+    SharedFromMePhotoThroughSerializer,
+)
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import HugeResultsSetPagination
 
 
 class SharedToMePhotoSuperSimpleListViewSet(ListViewSet):
-
-    serializer_class = PigPhotoSerilizer
+    serializer_class = PhotoSummarySerializer
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
@@ -29,7 +31,6 @@ class SharedToMePhotoSuperSimpleListViewSet(ListViewSet):
 
 
 class SharedFromMePhotoSuperSimpleListViewSet(ListViewSet):
-
     serializer_class = SharedFromMePhotoThroughSerializer
     pagination_class = HugeResultsSetPagination
 
@@ -63,7 +64,6 @@ class SharedFromMePhotoSuperSimpleListViewSet(ListViewSet):
 
 
 class SharedToMeAlbumUserListViewSet(ListViewSet):
-
     serializer_class = AlbumUserListSerializer
     pagination_class = HugeResultsSetPagination
 
@@ -72,7 +72,6 @@ class SharedToMeAlbumUserListViewSet(ListViewSet):
 
 
 class SharedFromMeAlbumUserListViewSet(ListViewSet):
-
     serializer_class = AlbumUserListSerializer
     pagination_class = HugeResultsSetPagination
 
