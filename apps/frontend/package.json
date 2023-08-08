@@ -115,7 +115,7 @@
     "zod": "3.21.4"
   },
   "devDependencies": {
-    "@babel/eslint-parser": "7.22.9",
+    "@babel/eslint-parser": "7.22.10",
     "@cucumber/messages": "^22.0.0",
     "@cypress/browserify-preprocessor": "^3.0.2",
     "@trivago/prettier-plugin-sort-imports": "3.4.0",
