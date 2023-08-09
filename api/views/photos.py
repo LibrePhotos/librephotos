@@ -371,6 +371,8 @@ class PhotoViewSet(viewsets.ModelViewSet):
     )
     def summary(self, request, pk):
         queryset = self.get_queryset().filter(image_hash=pk)
+        if not queryset.exists():
+            return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = PhotoDetailsSummarySerializer(queryset, many=False)
         return Response(serializer.data)
 
