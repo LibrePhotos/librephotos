@@ -1,6 +1,7 @@
 import re
 
 from django.db.models import Count, F, Prefetch, Q
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -416,6 +417,16 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("favorite", OpenApiTypes.BOOL),
+            OpenApiParameter("public", OpenApiTypes.BOOL),
+            OpenApiParameter("deleted", OpenApiTypes.BOOL),
+            OpenApiParameter("username", OpenApiTypes.STR),
+            OpenApiParameter("person", OpenApiTypes.INT),
+        ],
+        description="Returns the actual images, for a given day in chunks of 100 images.",
+    )
     def retrieve(self, *args, **kwargs):
         queryset = self.get_queryset()
         albumid = re.findall(r"\'(.+?)\'", args[0].__str__())[0].split("/")[-2]
@@ -531,6 +542,16 @@ class AlbumDateListViewSet(ListViewSet):
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("favorite", OpenApiTypes.BOOL),
+            OpenApiParameter("public", OpenApiTypes.BOOL),
+            OpenApiParameter("deleted", OpenApiTypes.BOOL),
+            OpenApiParameter("username", OpenApiTypes.STR),
+            OpenApiParameter("person", OpenApiTypes.INT),
+        ],
+        description="Gives you a list of days with the number of elements. This is not paginated and can be large.",
+    )
     def list(self, *args, **kwargs):
         serializer = IncompleteAlbumDateSerializer(self.get_queryset(), many=True)
         return Response({"results": serializer.data})
