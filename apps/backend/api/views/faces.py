@@ -18,7 +18,7 @@ from api.serializers.face import (
 )
 from api.util import logger
 from api.views.custom_api_view import ListViewSet
-from api.views.pagination import HugeResultsSetPagination, RegularResultsSetPagination
+from api.views.pagination import RegularResultsSetPagination
 
 
 class ScanFacesView(APIView):
@@ -42,10 +42,6 @@ class TrainFaceView(APIView):
         except BaseException:
             logger.exception()
             return Response({"status": False})
-
-    @extend_schema(deprecated=True)
-    def get(self, request, format=None):
-        return self._train_faces(request)
 
     def post(self, request, format=None):
         return self._train_faces(request)
@@ -129,50 +125,6 @@ class FaceIncompleteListViewSet(ListViewSet):
     )
     def list(self, *args, **kwargs):
         return super(FaceIncompleteListViewSet, self).list(*args, **kwargs)
-
-
-class FaceInferredListViewSet(ListViewSet):
-    serializer_class = FaceListSerializer
-    pagination_class = HugeResultsSetPagination
-
-    def get_queryset(self):
-        # Todo: optimize query by only prefetching relevant models & fields
-        queryset = (
-            Face.objects.filter(
-                Q(photo__hidden=False)
-                & Q(photo__owner=self.request.user)
-                & Q(person_label_is_inferred=True)
-            )
-            .select_related("person")
-            .order_by("id")
-        )
-        return queryset
-
-    @extend_schema(deprecated=True)
-    def list(self, *args, **kwargs):
-        return super(FaceInferredListViewSet, self).list(*args, **kwargs)
-
-
-class FaceLabeledListViewSet(ListViewSet):
-    serializer_class = FaceListSerializer
-    pagination_class = HugeResultsSetPagination
-
-    def get_queryset(self):
-        # Todo: optimize query by only prefetching relevant models & fields
-        queryset = (
-            Face.objects.filter(
-                Q(photo__hidden=False) & Q(photo__owner=self.request.user),
-                Q(person_label_is_inferred=False)
-                | Q(person__name=Person.UNKNOWN_PERSON_NAME),
-            )
-            .select_related("person")
-            .order_by("id")
-        )
-        return queryset
-
-    @extend_schema(deprecated=True)
-    def list(self, *args, **kwargs):
-        return super(FaceLabeledListViewSet, self).list(*args, **kwargs)
 
 
 class SetFacePersonLabel(APIView):

@@ -2,20 +2,18 @@ from django.db.models import Prefetch, Q
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAdminUser
+from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.models import File, Photo, User
 from api.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
 from api.serializers.photos import (
-    GroupedPhotosSerializer,
     PhotoDetailsSummarySerializer,
     PhotoEditSerializer,
     PhotoSerializer,
     PhotoSummarySerializer,
 )
-from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
 from api.util import logger
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import (
@@ -69,109 +67,6 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
         )
         serializer = PhotoSummarySerializer(queryset, many=True)
         return Response({"date": latestDate, "results": serializer.data})
-
-
-class FavoritePhotoListViewset(ListViewSet):  # pragma: no cover - deprecated
-    serializer_class = PhotoSummarySerializer
-    pagination_class = HugeResultsSetPagination
-
-    def get_queryset(self):
-        user = User.objects.get(username=self.request.user)
-        return (
-            Photo.objects.filter(
-                Q(rating__gte=user.favorite_min_rating)
-                & Q(hidden=False)
-                & Q(owner=self.request.user)
-            )
-            .only("image_hash", "exif_timestamp", "rating", "public", "hidden")
-            .order_by("-exif_timestamp")
-        )
-
-    @extend_schema(
-        deprecated=True,
-        description="Deprecated, because this is not paginated. Use api/albums/date/list?favorites=true and api/albums/date/<id>/?page=<page_number>&favorite=true instead",
-        exclude=True,
-    )
-    def list(self, request):
-        queryset = self.get_queryset()
-        grouped_photos = get_photos_ordered_by_date(queryset)
-        serializer = GroupedPhotosSerializer(grouped_photos, many=True)
-        return Response({"results": serializer.data})
-
-
-class HiddenPhotoListViewset(ListViewSet):  # pragma: no cover - deprecated
-    serializer_class = PhotoSummarySerializer
-    pagination_class = HugeResultsSetPagination
-
-    def get_queryset(self):
-        return (
-            Photo.objects.filter(Q(hidden=True) & Q(owner=self.request.user))
-            .only("image_hash", "exif_timestamp", "rating", "public", "hidden")
-            .order_by("-exif_timestamp")
-        )
-
-    @extend_schema(
-        deprecated=True,
-        description="Deprecated, because this is not paginated. Use api/albums/date/list?hidden=true and api/albums/date/<id>/?page=<page_number>&hidden=true instead",
-        exclude=True,
-    )
-    def list(self, request):
-        queryset = self.get_queryset()
-        grouped_photos = get_photos_ordered_by_date(queryset)
-        serializer = GroupedPhotosSerializer(grouped_photos, many=True)
-        return Response({"results": serializer.data})
-
-
-class PublicPhotoListViewset(ListViewSet):  # pragma: no cover - deprecated
-    serializer_class = PhotoSummarySerializer
-    pagination_class = HugeResultsSetPagination
-    permission_classes = (AllowAny,)
-
-    def get_queryset(self):
-        if "username" in self.request.query_params.keys():
-            username = self.request.query_params["username"]
-            return (
-                Photo.visible.filter(Q(public=True) & Q(owner__username=username))
-                .only("image_hash", "exif_timestamp", "rating", "hidden")
-                .order_by("-exif_timestamp")
-            )
-
-        return (
-            Photo.visible.filter(Q(public=True))
-            .only("image_hash", "exif_timestamp", "rating", "hidden")
-            .order_by("-exif_timestamp")
-        )
-
-    @extend_schema(
-        deprecated=True,
-        description="Deprecated, because this is not paginated. Use api/albums/date/list?public=true&username=<username> and api/albums/date/<id>/?page=<page_number>&public=true&username=<username> instead",
-        exclude=True,
-    )
-    def list(self, request):
-        queryset = self.get_queryset()
-        grouped_photos = get_photos_ordered_by_date(queryset)
-        serializer = GroupedPhotosSerializer(grouped_photos, many=True)
-        return Response({"results": serializer.data})
-
-
-class NoTimestampPhotoHashListViewSet(ListViewSet):  # pragma: no cover - deprecated
-    serializer_class = PhotoSummarySerializer
-    pagination_class = HugeResultsSetPagination
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ["search_captions", "search_location", "faces__person__name"]
-
-    def get_queryset(self):
-        return Photo.visible.filter(
-            Q(exif_timestamp=None) & Q(owner=self.request.user)
-        ).order_by("main_file__path")
-
-    @extend_schema(
-        deprecated=True,
-        description="Deprecated, because this is not paginated. Use api/photos/notimestamp?page=<page_number> instead",
-        exclude=True,
-    )
-    def list(self, *args, **kwargs):
-        return super(NoTimestampPhotoHashListViewSet, self).list(*args, **kwargs)
 
 
 class NoTimestampPhotoViewSet(ListViewSet):
