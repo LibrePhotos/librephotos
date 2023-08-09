@@ -14,6 +14,7 @@ from django.utils.decorators import method_decorator
 from django.utils.encoding import iri_to_uri
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django_q.tasks import AsyncTask
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
@@ -372,6 +373,34 @@ class MediaAccessFullsizeOriginalView(APIView):
         response["X-Accel-Redirect"] = self._get_protected_media_url(path, fname)
         return response
 
+    @extend_schema(
+        description="Endpoint to load media files.",
+        parameters=[
+            OpenApiParameter(
+                name="path",
+                description="Kind of media file you want to load",
+                required=True,
+                type=OpenApiTypes.STR,
+                enum=[
+                    "thumbnails_big",
+                    "square_thumbnails",
+                    "small_square_thumbnails",
+                    "avatars",
+                    "photos",
+                    "faces",
+                    "embedded_media",
+                ],
+                location=OpenApiParameter.PATH,
+            ),
+            OpenApiParameter(
+                name="fname",
+                description="Usually the hash of the file. Faces have the format <hash>_<face_id>.jpg and avatars <first_name>avatar_<hash>.png",
+                required=True,
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.PATH,
+            ),
+        ],
+    )
     def get(self, request, path, fname, format=None):
         if path.lower() == "avatars":
             jwt = request.COOKIES.get("jwt")
