@@ -46,6 +46,10 @@ from api.views.pagination import (
 
 
 # To-Do: Not used as far as I can tell
+@extend_schema(
+    deprecated=True,
+    description="This endpoint is deprecated. Use /api/persons instead.",
+)
 class AlbumPersonListViewSet(ListViewSet):
     serializer_class = AlbumPersonListSerializer
     pagination_class = StandardResultsSetPagination
@@ -59,6 +63,10 @@ class AlbumPersonListViewSet(ListViewSet):
 
 
 # To-Do: Not used as far as I can tell, only in mobile app
+@extend_schema(
+    deprecated=True,
+    description="This endpoint is deprecated. Use /api/persons instead.",
+)
 class AlbumPersonViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return (
