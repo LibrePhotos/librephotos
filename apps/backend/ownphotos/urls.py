@@ -150,24 +150,12 @@ router.register(
     basename="photo",
 )
 
-router.register(
-    r"api/photos/notimestamp/list",
-    photos.NoTimestampPhotoHashListViewSet,
-    basename="photo",
-)
-
 router.register(r"api/photos/edit", photos.PhotoEditViewSet, basename="photo")
 
 router.register(
     r"api/photos/recentlyadded", photos.RecentlyAddedPhotoListViewSet, basename="photo"
 )
-router.register(
-    r"api/photos/favorites", photos.FavoritePhotoListViewset, basename="photo"
-)
-router.register(r"api/photos/hidden", photos.HiddenPhotoListViewset, basename="photo")
 router.register(r"api/photos/searchlist", search.SearchListViewSet, basename="photo")
-
-router.register(r"api/photos/public", photos.PublicPhotoListViewset, basename="photo")
 
 router.register(r"api/photos", photos.PhotoViewSet, basename="photo")
 
@@ -176,14 +164,6 @@ router.register(
 )
 
 router.register(r"api/faces", faces.FaceListView, basename="face")
-
-router.register(
-    r"api/faces/inferred/list", faces.FaceInferredListViewSet, basename="face"
-)
-
-router.register(
-    r"api/faces/labeled/list", faces.FaceLabeledListViewSet, basename="face"
-)
 
 router.register(r"api/exists", upload.UploadPhotoExists, basename="exists")
 
