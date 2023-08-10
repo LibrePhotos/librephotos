@@ -392,9 +392,6 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                     )
                 )
             )
-        print(self.request.query_params)
-        print(albumDateFilter)
-        print(photoFilter)
 
         photo_qs = Photo.objects.filter(*photoFilter)
         qs = AlbumDate.objects.filter(*albumDateFilter)
