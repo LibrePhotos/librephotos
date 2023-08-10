@@ -18,10 +18,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Lock, User } from "tabler-icons-react";
 
 import { useLoginMutation } from "../../api_client/api";
+import { useGetSettingsQuery } from "../../api_client/site-settings";
 import { selectIsAuthenticated } from "../../store/auth/authSelectors";
 import { authActions } from "../../store/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "../../store/store";
-import { selectSiteSettings } from "../../store/util/utilSelectors";
 
 export function LoginPage(): JSX.Element {
   const navigate = useNavigate();
@@ -34,7 +34,7 @@ export function LoginPage(): JSX.Element {
   // @ts-ignore
   const from = location.state?.from || "/";
 
-  const siteSettings = useAppSelector(selectSiteSettings);
+  const { currentData: siteSettings } = useGetSettingsQuery();
   const [login, { isLoading }] = useLoginMutation();
   const form = useForm({
     initialValues: {
@@ -101,7 +101,7 @@ export function LoginPage(): JSX.Element {
                   <Button variant="gradient" gradient={{ from: "#43cea2", to: "#185a9d" }} type="submit">
                     {t("login.login")}
                   </Button>
-                  {siteSettings.allow_registration && (
+                  {siteSettings && siteSettings.allow_registration && (
                     <Button
                       disabled={!siteSettings.allow_registration || isLoading}
                       component="a"
