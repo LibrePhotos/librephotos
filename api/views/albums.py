@@ -331,52 +331,74 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
     pagination_class = RegularResultsSetPagination
 
     def get_queryset(self):
+        albumDateFilter = []
+        photoFilter = []
+        photoFilter.append(Q(aspect_ratio__isnull=False))
+        albumDateFilter.append(Q(photos__aspect_ratio__isnull=False))
+
         if not self.request.user.is_anonymous:
-            photo_qs = Photo.visible.filter(Q(owner=self.request.user))
-            qs = AlbumDate.objects.filter(Q(owner=self.request.user)).filter(
-                Q(photos__hidden=False) & Q(photos__deleted=False)
-            )
+            photoFilter.append(Q(owner=self.request.user))
+            albumDateFilter.append(Q(photos__owner=self.request.user))
 
         if self.request.query_params.get("favorite"):
             min_rating = self.request.user.favorite_min_rating
-            qs = qs.filter(Q(photos__rating__gte=min_rating))
-            photo_qs = photo_qs.filter(Q(rating__gte=min_rating))
+            albumDateFilter.append(Q(photos__rating__gte=min_rating))
+            photoFilter.append(Q(rating__gte=min_rating))
 
         if self.request.query_params.get("public"):
-            username = self.request.query_params.get("username")
-            qs = AlbumDate.objects.filter(
-                Q(owner__username=username)
-                & Q(photos__hidden=False)
-                & Q(photos__public=True)
-            )
-            photo_qs = Photo.visible.filter(
-                Q(owner__username=username) & Q(public=True)
-            )
+            if self.request.query_params.get("username"):
+                username = self.request.query_params.get("username")
+                albumDateFilter.append(Q(owner__username=username))
+                photoFilter.append(Q(owner__username=username))
+            photoFilter.append(Q(public=True))
+            albumDateFilter.append(Q(photos__public=True))
+
+        if self.request.query_params.get("hidden"):
+            albumDateFilter.append(Q(photos__hidden=True))
+            photoFilter.append(Q(hidden=True))
+        else:
+            albumDateFilter.append(Q(photos__hidden=False))
+            photoFilter.append(Q(hidden=False))
+
+        if self.request.query_params.get("video"):
+            albumDateFilter.append(Q(photos__video=True))
+            photoFilter.append(Q(video=True))
+
         if self.request.query_params.get("deleted"):
-            qs = AlbumDate.objects.filter(
-                Q(owner=self.request.user) & Q(photos__deleted=True)
-            )
-            photo_qs = Photo.objects.filter(Q(deleted=True))
+            albumDateFilter.append(Q(photos__deleted=True))
+            photoFilter.append(Q(deleted=True))
+        else:
+            albumDateFilter.append(Q(photos__deleted=False))
+            photoFilter.append(Q(deleted=False))
 
         if self.request.query_params.get("person"):
-            qs = AlbumDate.objects.filter(
-                Q(owner=self.request.user)
-                & Q(photos__hidden=False)
-                & Q(photos__faces__person__id=self.request.query_params.get("person"))
-                & Q(
+            albumDateFilter.append(
+                Q(photos__faces__person__id=self.request.query_params.get("person"))
+            )
+            albumDateFilter.append(
+                Q(
                     photos__faces__person_label_probability__gte=F(
                         "photos__faces__photo__owner__confidence_person"
                     )
                 )
             )
-            photo_qs = Photo.visible.filter(
+            photoFilter.append(
                 Q(faces__person__id=self.request.query_params.get("person"))
-                & Q(
+            )
+            photoFilter.append(
+                Q(
                     faces__person_label_probability__gte=F(
                         "faces__photo__owner__confidence_person"
                     )
                 )
             )
+        print(self.request.query_params)
+        print(albumDateFilter)
+        print(photoFilter)
+
+        photo_qs = Photo.objects.filter(*photoFilter)
+        qs = AlbumDate.objects.filter(*albumDateFilter)
+
         # Todo: Make this more performant by only using the photo queryset
         # That will be a breaking change, but will improve performance
         qs = (
@@ -458,85 +480,50 @@ class AlbumDateListViewSet(ListViewSet):
     ]
 
     def get_queryset(self):
-        if not self.request.user.is_anonymous:
-            qs = AlbumDate.objects.filter(
-                Q(owner=self.request.user)
-                & Q(photos__owner=self.request.user)
-                & Q(photos__hidden=False)
-                & Q(photos__aspect_ratio__isnull=False)
-                & Q(photos__deleted=False)
-            )
-        if self.request.query_params.get("favorite"):
-            min_rating = self.request.user.favorite_min_rating
-            qs = AlbumDate.objects.filter(
-                Q(photos__hidden=False)
-                & Q(photos__aspect_ratio__isnull=False)
-                & Q(photos__deleted=False)
-                & Q(owner=self.request.user)
-                & Q(photos__rating__gte=min_rating)
-            )
-        if self.request.query_params.get("public"):
-            username = self.request.query_params.get("username")
-            qs = AlbumDate.objects.filter(
-                Q(photos__hidden=False)
-                & Q(photos__aspect_ratio__isnull=False)
-                & Q(photos__deleted=False)
-                & Q(owner__username=username)
-                & Q(photos__public=True)
-            )
+        filter = []
+        filter.append(Q(photos__aspect_ratio__isnull=False))
+
+        if self.request.query_params.get("hidden"):
+            filter.append(Q(photos__hidden=True))
+        else:
+            filter.append(Q(photos__hidden=False))
 
         if self.request.query_params.get("deleted"):
-            qs = (
-                AlbumDate.objects.filter(
-                    Q(owner=self.request.user) & Q(photos__deleted=True)
-                )
-                .annotate(photo_count=Count("photos", distinct=True))
-                .filter(Q(photo_count__gt=0))
-                .order_by(F("date").desc(nulls_last=True))
-            )
-            return qs
+            filter.append(Q(photos__deleted=True))
+        else:
+            filter.append(Q(photos__deleted=False))
+
+        if not self.request.user.is_anonymous:
+            filter.append(Q(owner=self.request.user))
+            filter.append(Q(photos__owner=self.request.user))
+
+        if self.request.query_params.get("favorite"):
+            min_rating = self.request.user.favorite_min_rating
+            filter.append(Q(photos__rating__gte=min_rating))
+
+        if self.request.query_params.get("public"):
+            username = self.request.query_params.get("username")
+            filter.append(Q(owner__username=username))
+            filter.append(Q(photos__public=True))
+
+        if self.request.query_params.get("video"):
+            filter.append(Q(photos__video=True))
+
         if self.request.query_params.get("person"):
-            return (
-                AlbumDate.objects.filter(
-                    Q(owner=self.request.user)
-                    & Q(photos__hidden=False)
-                    & Q(photos__aspect_ratio__isnull=False)
-                    & Q(photos__deleted=False)
-                    & Q(
-                        photos__faces__person__id=self.request.query_params.get(
-                            "person"
-                        )
-                    )
-                    & Q(
-                        photos__faces__person_label_probability__gte=F(
-                            "photos__faces__photo__owner__confidence_person"
-                        )
+            filter.append(
+                Q(photos__faces__person__id=self.request.query_params.get("person"))
+            )
+            filter.append(
+                Q(
+                    photos__faces__person_label_probability__gte=F(
+                        "photos__faces__photo__owner__confidence_person"
                     )
                 )
-                .annotate(
-                    photo_count=Count(
-                        "photos",
-                        filter=Q(
-                            photos__faces__person__id=self.request.query_params.get(
-                                "person"
-                            )
-                        )
-                        & Q(
-                            photos__faces__person_label_probability__gte=self.request.user.confidence_person
-                        ),
-                        distinct=True,
-                    )
-                )
-                .filter(Q(photo_count__gt=0))
-                .order_by(F("date").desc(nulls_last=True))
             )
 
         qs = (
-            qs.annotate(
-                photo_count=Count(
-                    "photos", filter=Q(photos__owner=self.request.user), distinct=True
-                )
-            )
+            AlbumDate.objects.filter(*filter)
+            .annotate(photo_count=Count("photos", distinct=True))
             .filter(Q(photo_count__gt=0))
             .order_by(F("date").desc(nulls_last=True))
         )
