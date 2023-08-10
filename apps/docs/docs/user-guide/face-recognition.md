@@ -27,3 +27,31 @@ Some user deleted all the faces with the delete face action. To get the faces ag
 ## Workflow
 
 After the first scan finished, go to the face dashboard. Label a couple of faces per person. Then train the faces with the blue button. Check if the inferred faces are accurate and add a couple of the inferred faces to the labels. Train the faces again. You will get the best results if all the persons in the pictures are known and when every label has at least a couple of faces.
+
+## Pipeline
+
+### Face Detection
+
+We have two methods on how to extract faces from images. `hog` is fast even on CPUs and does not take up significant RAM, which `cnn` is accurate, but uses a lot of resources.
+
+### Face Quality
+
+At the moment no matter, which detection methods we use, there will be face detected, which are not actually faces. The user has to manually delete these faces. In the future, we will have a new classifier, which determines if it is a face and how likely it is a face.
+
+### Face Recognition
+
+Creates a 512 dimension embedding for a given face. It makes them comparable with each other. Right now we only have the one method and should be good enough.
+
+### Face Clustering
+
+Clustering solves the issue of a system, which has no labelled persons yet. Users can get clusters they can name instead of going through a lot of faces and naming them. Clustering is stable, which means that you will get the same clusters out, when you put the same data in. If you label more faces, this will have no impact on face clustering at the moment. If you want to change how clustering is done, either change the settings, add images or delete wrong faces.
+
+Steps which could be done to improve clustering are combining very similar faces from e.g. a serial recording or photo shoot, to prevent from too many small images to be clustered.
+
+### Face Cluster Merging
+
+We could train a classifier to merge faces, based on previous merge decisions, which could improve the clusters even more.
+
+### Face Classification
+
+To get the percentage on how likely a face belongs to a cluster, we use classification. It is planned, that there will be a feature, that the classification will only happen on known person and that you can switch between them, but this is currently not implemented.
