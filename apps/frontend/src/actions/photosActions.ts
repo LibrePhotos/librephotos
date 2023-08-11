@@ -617,6 +617,8 @@ export function editPhoto(image_hash: string, photo_details: any) {
           title: i18n.t<string>("toasts.editphototitle"),
           color: "teal",
         });
+        // @ts-ignore
+        dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hash)).refetch();
       })
       .catch(error => {
         dispatch({ type: "EDIT_PHOTO_REJECTED" });
