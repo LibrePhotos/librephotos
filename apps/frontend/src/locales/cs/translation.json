@@ -16,7 +16,7 @@
         "change": "Změnit",
         "nextcloudheader": "Nextcloud",
         "credentials": "Přihlašovací údaje",
-        "credentialspopup": "Zadejte heslo",
+        "credentialspopup": "Vaše Nextcloud přihlašovací heslo",
         "serveradress": "Adresa serveru",
         "serveradressplaceholder": "https://",
         "nextcloudusername": "Uživatelské jméno",
@@ -25,15 +25,15 @@
         "nextcloudpasswordplaceholder": "Nextcloud App heslo",
         "nextcloudcancel": "Zrušit",
         "nextcloudscandirectory": "Skenovat adresář Nextcloud",
-        "nextcloudloggedin": "Přihlášen do Nextcloud",
-        "nextcloudnotloggedin": "Nepřihlášen do Nextcloud",
+        "nextcloudloggedin": "Připojeno",
+        "nextcloudnotloggedin": "Odpojeno",
         "nextcloudchange": "Změnit",
         "appearance": "Vzhled",
         "thumbnailsize": "Velikost náhledu",
         "big": "Velký",
         "small": "Malý",
         "library": "Knihovna",
-        "statusscanphotosfalse": "Skenovat fotografie (lokálně)",
+        "statusscanphotosfalse": "Skenovat",
         "photos": "Fotografie",
         "scannextclouddescription": {
             "item1": "Vytvoř seznam všech souborů v subadresářích. Pro každý typ souboru:",
@@ -41,7 +41,7 @@
             "item3": "Vypočítejte jedinečné ID souboru obrázku (MD5)",
             "item4": "Pokud je tento mediální soubor již v databázi, přidáme cestu ke stávajícímu mediálnímu souboru.",
             "item6": "Vytvořit popisky obrázků",
-            "item7": "Extrahovat informace Exif",
+            "item7": "Extrahovat i Exif informace",
             "item8": "Reverzní geolokace pro získání názvů míst ze souřadnic GPS",
             "item5": "Vytvořit několik miniatur",
             "item9": "Extrahovat obličeje.",
@@ -67,10 +67,10 @@
         "simplifiedchinese": "Čínština (zjednodušená)",
         "dutch": "Nizozemština",
         "nextcloudupdate": "Aktualizovat Nextcloud přihlašovací údaje",
-        "statusscanphotostrue": "Skenování fotografií (lokálně)",
-        "scannextcloudphotos": "Skenovat fotografie (Nextcloud)",
-        "statusrescanphotosfalse": "Znovu naskenovat všechny místní fotografie",
-        "statusrescanphotostrue": "Znovunaskenování všechny místní fotografie",
+        "statusscanphotostrue": "Skenování fotografií",
+        "scannextcloudphotos": "Skenovat",
+        "statusrescanphotosfalse": "Naskenovat znovu",
+        "statusrescanphotostrue": "Znovunaskenování",
         "missingphotos": "Chybějící fotografie",
         "missingphotosbutton": "Odstranit chybějící fotografie",
         "eventsalbums": "Alba událostí",
@@ -78,14 +78,14 @@
         "eventalbumsregenerate": "Přegenerovat názvy událostí",
         "eventalbumsregeneratedescription": "Automaticky generovaná alba mají v názvech jména lidí. Pokud jste si natrénovali klasifikátor tváří po vytvoření alb událostí, můžete vytvořit nové názvy pro již existující alba událostí, aby odrážely nová jména spojená s tvářemi na fotografiích.",
         "people": "Lidé",
-        "facesbutton": "Trénovat obličeje",
+        "facesbutton": "Trénovat",
         "faces": "Obličeje",
         "inferred": "Odvozeno",
         "facessmall": "obličeje",
         "labeled": "Oštítkováno",
         "unknown": "Neznámý",
         "facedashboard": "Správa obličejů",
-        "rescanfaces": "Přeskenovat obličeje",
+        "rescanfaces": "Znovu vyhledat",
         "scanoptions": "Možnosti skenování",
         "sceneconfidence": "Skóre důvěryhodnosti scény",
         "confidencelevel": "Hodnota důvěry",
@@ -142,7 +142,27 @@
         "ukrainian": "Ukrajinština",
         "vietnamese": "Vietnamština",
         "savechanges": "Uložit změny?",
-        "traditionalchinese": "Čínština (tradiční)"
+        "traditionalchinese": "Čínština (tradiční)",
+        "arabic": "Arabština",
+        "korean": "Korejština",
+        "portuguesebr": "Portugalština (Brazílie)",
+        "slovak": "Slovenština",
+        "hungarian": "Maďarština",
+        "urdu": "Urdština",
+        "nextcloudsetup": "Chybí přihlašovací údaje",
+        "rescanfacestitle": "Znovu naskenovat obličeje",
+        "rescanfacesdescription": "Vyhledat tváře v knihovně",
+        "security": "Bezpečnost",
+        "colorscheme": {
+            "title": "Barevné schéma",
+            "light": "Světlé",
+            "dark": "Tmavé"
+        },
+        "scanphotosdescription": "Skenovat nové soubory ve vaší knihovně",
+        "rescanphotosdescription": "Naskenovat znovu všechny soubory",
+        "nextcloudconnecting": "Připojování",
+        "trainfacestitle": "Natrénovat obličeje",
+        "trainfacesdescription": "Naučit systém na základě existujících informací"
     },
     "modalalbum": {
         "selectedimages": "Přidat vybrané fotografie ({{count}}) do...",
@@ -167,7 +187,8 @@
         "joined": "Přidáno"
     },
     "modalalbumsshare": {
-        "joined": "Přidáno"
+        "joined": "Přidáno",
+        "search": "Vyhledat uživatele"
     },
     "topmenu": {
         "running": "Běží",
@@ -258,7 +279,10 @@
         "name": "LibrePhotos",
         "errorusername": "Uživatelské jméno nesmí být prázdné!",
         "tagline": "Pohodlné místo pro vaše fotografie.",
-        "usernamelabel": "Uživatelské jméno"
+        "usernamelabel": "Uživatelské jméno",
+        "error": {
+            "token_not_valid": "Platnost přihlášení vypršela. Přihlaste se prosím znovu."
+        }
     },
     "adminarea": {
         "remove": "Odstranit",
@@ -277,7 +301,8 @@
         "cannotbeundone": "Tuto akci nelze vrátit.",
         "titledeleteuser": "Smazat uživatele",
         "cannotdeleteadmin": "Nelze smazat účet administrátora",
-        "addnewuser": "Přidat nový účet"
+        "addnewuser": "Přidat nový účet",
+        "delete": "Smazat"
     },
     "joblist": {
         "workerlogs": "Logy procesů",
@@ -312,7 +337,7 @@
         "allow": "Povolit",
         "headerheavyweight": "Procesy na pozadí (náročné)",
         "skippatterns": " Čárkami oddělený seznam vzorů, které se mají ignorovat (např. '@eaDir,#recycle' pro zařízení Synology)",
-        "headerapikey": "Mapbox API Klíč",
+        "headerapikey": "Mapbox API klíč",
         "apikey": "Chcete vidět mapu, kde byly pořízeny všechny vaše fotografie (pokud je ve vašich fotografiích uloženo místo). Získejte API klíč Map box https://account.mapbox.com/auth/signup/",
         "headerskippatterns": "Přeskočit vzory",
         "heavyweight": "Počet procesů při skenování obrázků. Toto nastavení může výrazně ovlivnit využití paměti RAM. Každý proces potřebuje 800 MB RAM. Změňte podle vlastního uvážení. Výchozí hodnota je 1."
@@ -490,7 +515,7 @@
         "unfavorite": "Odebrat z oblíbených",
         "hide": "Skrýt",
         "unhide": "Zrušit skrytí",
-        "deleted": "Smazat",
+        "deleted": "Přesunout do koše",
         "makeprivate": "Označit jako soukromé",
         "makepublic": "Označit jako veřejné",
         "download": "Stáhnout",
@@ -554,7 +579,7 @@
         "duplicates": "Duplikáty",
         "otherversions": "Ostatní verze",
         "showmore": "Zobrazit více",
-        "deleteduplicate": "Opravdu chcete smazat tento duplikát?",
+        "deleteduplicate": "Smazat tento duplikát?",
         "digitalzoomratio": "Poměr digitálního zoomu",
         "showless": "Zobrazit méně",
         "deleteduplicatetitle": "Smazat duplikát"
