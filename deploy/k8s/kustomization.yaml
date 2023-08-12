@@ -19,13 +19,13 @@ configMapGenerator:
 images:
   - name: backend-placeholder
     newName: reallibrephotos/librephotos
-    newTag: 2022w12
+    newTag: 2023w31
   - name: frontend-placeholder
     newName: reallibrephotos/librephotos-frontend
-    newTag: 2022w12
+    newTag: 2023w31
   - name: proxy-placeholder
     newName: reallibrephotos/librephotos-proxy
-    newTag: 2022w10
+    newTag: 2023w31
   - name: postgresql-placeholder
     newName: postgres
     newTag: "13"
