@@ -97,9 +97,6 @@ router.register(
     r"api/albums/date/list", albums.AlbumDateListViewSet, basename="album_date"
 )
 router.register(
-    r"api/albums/person/list", albums.AlbumPersonListViewSet, basename="person"
-)
-router.register(
     r"api/albums/thing/list", albums.AlbumThingListViewSet, basename="album_thing"
 )
 router.register(
