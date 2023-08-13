@@ -32,11 +32,7 @@ from api.serializers.album_thing import (
     GroupedThingPhotosSerializer,
 )
 from api.serializers.album_user import AlbumUserListSerializer, AlbumUserSerializer
-from api.serializers.person import (
-    AlbumPersonListSerializer,
-    GroupedPersonPhotosSerializer,
-    PersonSerializer,
-)
+from api.serializers.person import GroupedPersonPhotosSerializer, PersonSerializer
 from api.util import logger
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import (
@@ -45,30 +41,18 @@ from api.views.pagination import (
 )
 
 
-# To-Do: Not used as far as I can tell
-@extend_schema(
-    deprecated=True,
-    description="This endpoint is deprecated. Use /api/persons instead.",
-)
-class AlbumPersonListViewSet(ListViewSet):
-    serializer_class = AlbumPersonListSerializer
-    pagination_class = StandardResultsSetPagination
-
-    def get_queryset(self):
-        # import pdb; pdb.set_trace()
-        logger.info("Logging better than pdb in prod code")
-
-    def list(self, *args, **kwargs):
-        return super(AlbumPersonListViewSet, self).list(*args, **kwargs)
-
-
 # To-Do: Not used as far as I can tell, only in mobile app
 @extend_schema(
     deprecated=True,
     description="This endpoint is deprecated. Use /api/persons instead.",
 )
 class AlbumPersonViewSet(viewsets.ModelViewSet):
+    serializer_class = GroupedPersonPhotosSerializer
+
     def get_queryset(self):
+        if self.request.user.is_anonymous:
+            return Person.objects.none()
+
         return (
             Person.objects.annotate(
                 photo_count=Count(
@@ -119,6 +103,8 @@ class PersonViewSet(viewsets.ModelViewSet):
     search_fields = ["name"]
 
     def get_queryset(self):
+        if self.request.user.is_anonymous:
+            return Person.objects.none()
         qs = (
             Person.objects.filter(
                 ~Q(kind=Person.KIND_CLUSTER)
@@ -138,18 +124,14 @@ class PersonViewSet(viewsets.ModelViewSet):
 
         return qs
 
-    def retrieve(self, *args, **kwargs):
-        return super(PersonViewSet, self).retrieve(*args, **kwargs)
-
-    def list(self, *args, **kwargs):
-        return super(PersonViewSet, self).list(*args, **kwargs)
-
 
 class AlbumThingViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumThingSerializer
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
+        if self.request.user.is_anonymous:
+            return AlbumThing.objects.none()
         return (
             AlbumThing.objects.filter(Q(owner=self.request.user))
             .annotate(
@@ -190,6 +172,7 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
 
 
 # To-Do: Make album_cover an actual database field to improve performance
+# To-Do: Could be literally the list command in AlbumThingViewSet
 class AlbumThingListViewSet(ListViewSet):
     serializer_class = AlbumThingListSerializer
     pagination_class = StandardResultsSetPagination
@@ -197,6 +180,9 @@ class AlbumThingListViewSet(ListViewSet):
     search_fields = ["title"]
 
     def get_queryset(self):
+        if self.request.user.is_anonymous:
+            return AlbumThing.objects.none()
+
         cover_photos_query = Photo.objects.filter(hidden=False).only(
             "image_hash", "video"
         )
@@ -213,15 +199,14 @@ class AlbumThingListViewSet(ListViewSet):
             .order_by("-title")
         )
 
-    def list(self, *args, **kwargs):
-        return super(AlbumThingListViewSet, self).list(*args, **kwargs)
-
 
 class AlbumPlaceViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumPlaceSerializer
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
+        if self.request.user.is_anonymous:
+            return AlbumPlace.objects.none()
         return (
             AlbumPlace.objects.annotate(
                 photo_count=Count(
@@ -248,10 +233,8 @@ class AlbumPlaceViewSet(viewsets.ModelViewSet):
         )
         return Response({"results": serializer.data})
 
-    def list(self, *args, **kwargs):
-        return super(AlbumPlaceViewSet, self).list(*args, **kwargs)
 
-
+# To-Do: Could be literally the list command in AlbumPlaceViewSet
 class AlbumPlaceListViewSet(ListViewSet):
     serializer_class = AlbumPlaceListSerializer
     pagination_class = StandardResultsSetPagination
@@ -259,6 +242,8 @@ class AlbumPlaceListViewSet(ListViewSet):
     search_fields = ["title"]
 
     def get_queryset(self):
+        if self.request.user.is_anonymous:
+            return AlbumPlace.objects.none()
         cover_photos_query = Photo.objects.filter(hidden=False).only(
             "image_hash", "video"
         )
@@ -279,15 +264,14 @@ class AlbumPlaceListViewSet(ListViewSet):
             .order_by("title")
         )
 
-    def list(self, *args, **kwargs):
-        return super(AlbumPlaceListViewSet, self).list(*args, **kwargs)
-
 
 class AlbumUserViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumUserSerializer
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
+        if self.request.user.is_anonymous:
+            return AlbumUser.objects.none()
         qs = (
             AlbumUser.objects.filter(
                 Q(owner=self.request.user) | Q(shared_to__exact=self.request.user.id)
@@ -297,13 +281,8 @@ class AlbumUserViewSet(viewsets.ModelViewSet):
         )
         return qs
 
-    def retrieve(self, *args, **kwargs):
-        return super(AlbumUserViewSet, self).retrieve(*args, **kwargs)
 
-    def list(self, *args, **kwargs):
-        return super(AlbumUserViewSet, self).list(*args, **kwargs)
-
-
+# To-Do: Could be the list command in AlbumUserViewSet
 class AlbumUserListViewSet(ListViewSet):
     serializer_class = AlbumUserListSerializer
     pagination_class = StandardResultsSetPagination
@@ -311,6 +290,8 @@ class AlbumUserListViewSet(ListViewSet):
     search_fields = ["title"]
 
     def get_queryset(self):
+        if self.request.user.is_anonymous:
+            return AlbumUser.objects.none()
         return (
             AlbumUser.objects.filter(owner=self.request.user)
             .annotate(
@@ -321,9 +302,6 @@ class AlbumUserListViewSet(ListViewSet):
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
             .order_by("title")
         )
-
-    def list(self, *args, **kwargs):
-        return super(AlbumUserListViewSet, self).list(*args, **kwargs)
 
 
 class AlbumDateViewSet(viewsets.ModelViewSet):
@@ -464,10 +442,8 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         )
         return Response({"results": serializer.data})
 
-    def list(self, *args, **kwargs):
-        return super(AlbumDateViewSet, self).list(*args, **kwargs)
 
-
+# To-Do: Could be the summary command in AlbumDateViewSet
 class AlbumDateListViewSet(ListViewSet):
     serializer_class = IncompleteAlbumDateSerializer
     pagination_class = None

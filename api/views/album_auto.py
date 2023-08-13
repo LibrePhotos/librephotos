@@ -21,6 +21,9 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
+        if self.request.user.is_anonymous:
+            return AlbumAuto.objects.none()
+
         return (
             AlbumAuto.objects.prefetch_related(
                 Prefetch("owner"),
@@ -73,12 +76,6 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
         AlbumAuto.objects.filter(owner=request.user).all().delete()
         return Response("success")
 
-    def retrieve(self, *args, **kwargs):
-        return super(AlbumAutoViewSet, self).retrieve(*args, **kwargs)
-
-    def list(self, *args, **kwargs):
-        return super(AlbumAutoViewSet, self).list(*args, **kwargs)
-
 
 # TODO: Add custom covers for auto album
 class AlbumAutoListViewSet(ListViewSet):
@@ -107,9 +104,6 @@ class AlbumAutoListViewSet(ListViewSet):
             )
             .order_by("-timestamp")
         )
-
-    def list(self, *args, **kwargs):
-        return super(AlbumAutoListViewSet, self).list(*args, **kwargs)
 
 
 class RegenerateAutoAlbumTitles(APIView):

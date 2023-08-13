@@ -62,6 +62,8 @@ class AlbumUserEditViewSet(viewsets.ModelViewSet):
         return super(AlbumUserEditViewSet, self).list(*args, **kwargs)
 
     def get_queryset(self):
+        if self.request.user.is_anonymous:
+            return AlbumUser.objects.none()
         return AlbumUser.objects.filter(owner=self.request.user).order_by("title")
 
 
