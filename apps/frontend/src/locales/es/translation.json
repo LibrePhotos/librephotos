@@ -169,7 +169,30 @@
             "light": "Claro",
             "dark": "Oscuro"
         },
-        "slovak": "Eslovaco"
+        "slovak": "Eslovaco",
+        "cluster_selection_epsilon_help": "Determina cuales clústeres se unifican. Un valor mayor implica que más clústeres se unificarán.",
+        "min_cluster_size_help": "Cambia como se forma un clúster. Un menor valor resulta en una mayor cantidad de cústeres formados.",
+        "unknown_faces_confidence": "Confianza al Identificar Desconocidos - Otras Caras",
+        "unknown_faces_confidence_help": "Ingrese un nivel de confianza entre 0 y 1. Las caras de 'Desconocidos - Otros' serán identificadas a otras personas si el nivel de confianza es mayor que ese valor. 0 significa que ésta función se encuentra deshabilitada.",
+        "size": {
+            "veryhigh": "Muy Alta",
+            "off": "Apagado",
+            "auto": "Automático",
+            "small": "Pequeño",
+            "normal": "Normal",
+            "high": "Alta"
+        },
+        "min_samples": "Cantidad mínima de muestras",
+        "min_samples_help": "Cambia cuan conservadores son los cústeres. Un valor menor es menos conservativo.",
+        "cluster_selection_epsilon": "Valor Epsilon de la selección de cústeres",
+        "face_options": "Opciones para rostros",
+        "face_recognition_model": "Modelo de reconocimiento facial",
+        "face_recognition_model_help": "Cambia el modelo usado para el reconocimiento facial. El modelo CNN es más preciso pero más lento que el modelo HOG.",
+        "models": {
+            "hog": "HOG",
+            "cnn": "CNN"
+        },
+        "min_cluster_size": "Tamaño mínimo del clúster"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de detección de Nextcloud",
@@ -381,12 +404,12 @@
         "allow": "Permitir",
         "noallow": "No permitir",
         "skippatterns": " Lista delimitada por comas de patrones para ignorar (p. ej., '@eaDir,#recycle' para dispositivos Synology)",
-        "apikey": "¿Quiere ver en un mapa dónde se tomaron todas sus fotos (si una ubicación está almacenada en sus fotos)? Obtenga una clave API de Mapbox https://account.mapbox.com/auth/signup/",
+        "apikey": "¿Mostrar en un mapa dónde se tomaron todas sus fotos (que contienen información de ubicación)? Obtenga una clave API de Mapbox en https://account.mapbox.com/auth/signup/",
         "headerupload": "Permitir subir fotos",
         "headerskippatterns": "Omitir patrones",
         "headerapikey": "Clave API de Mapbox",
         "headerheavyweight": "Procesos intensivos",
-        "heavyweight": "Número de trabajadores, al escanear imágenes. Esta configuración puede afectar drásticamente el uso de RAM. Cada trabajador necesita 800 MB de RAM. Cambia a tu voluntad. El valor predeterminado es 1."
+        "heavyweight": "Incrementar el número de trabajadores por encima de 1, pero se usarán 800 MB de RAM por cada uno que se agregue."
     },
     "countstats": {
         "photos": "Fotos"
@@ -547,19 +570,19 @@
         "removefacestopersontitle": "Quitar rostros de la persona",
         "deleteallautoalbumstitle": "Eliminar todos los álbumes creados automáticamente",
         "deleteuser": "{{username}} eliminado",
-        "savecaptions": "Leyenda de la imagen actualizada con éxito",
+        "savecaptions": "Leyenda de la imagen actualizada",
         "captionupdate": "Actualizar el título"
     },
     "rules": {
         "report_tz": "Transformar a{{rule}}",
         "file_property": "Usar propiedad de archivo: {{rule}}",
         "source_tz": "Transformar de {{rule}}",
-        "exif_tag": "Usar etiqueta EXIF: {{rule}}",
+        "exif_tag": "Usar etiqueta Exif: {{rule}}",
         "2": "Obtenga la etiqueta de creación de video en UTC + averigüe el huso horario usando las coordenadas GPS",
         "rule_type": "Tipo de regla: {{rule}}",
-        "1": "Hora local desde la etiqueta exif DATE_TIME_ORIGINAL",
+        "1": "Hora local desde la etiqueta Exif DATE_TIME_ORIGINAL",
         "3": "Usando el nombre de archivo asumiendo que el tiempo es local",
-        "4": "Video UTC: informa la hora local en UTC (ya que no se puede averiguar el huso horario real)",
+        "4": "Video UTC: informa la hora local en UTC (no se puede averiguar el huso horario real)",
         "5": "Extraer fecha usando el nombre de archivo de WhatsApp",
         "6": "Fecha y hora de creación del video en el huso horario UTC (no se puede averiguar el huso horario real)",
         "7": "Hora de modificación del archivo en el huso horario predeterminado del usuario",
@@ -570,7 +593,7 @@
         "12": "Usar la etiqueta Composite:GPSDateTime en el huso horario predeterminado del usuario (no se puede averiguar el huso horario real)",
         "13": "Usar la etiqueta Composite:GPSDateTime en el huso horario UTC (no se puede averiguar el huso horario real)",
         "14": "Marca de tiempo establecida por el usuario",
-        "15": "Hora local de la etiqueta EXIF: DateTime exif",
+        "15": "Hora local de la etiqueta EXIF: DateTime Exif",
         "11": "Use la etiqueta Compuesto:GPSDateTime + averigüe el huso horario usando las coordenadas GPS"
     },
     "nodata": "Sin datos",
@@ -585,7 +608,7 @@
         "items": "{{count}} elemento(s)",
         "alreadexists": "El álbum {{title}} ya existe.",
         "placeholder": "Título del álbum",
-        "selectedimages": "Añadir la(s) foto(s) seleccionada(s) {{count}} a…",
+        "selectedimages": "Añadir {{count}} foto(s) seleccionada(s) a…",
         "alreadyexists": "El álbum {{title}} ya existe.",
         "updated": "Actualizado {{duration}}"
     },
@@ -614,7 +637,7 @@
         "duplicates": "Duplicados",
         "showmore": "Mostrar más",
         "deleteduplicatetitle": "Eliminar duplicado",
-        "deleteduplicate": "¿Está seguro de que desea eliminar este duplicado?"
+        "deleteduplicate": "¿Eliminar este duplicado?"
     },
     "modaluseredit": {
         "createheader": "Crear Usuario",
