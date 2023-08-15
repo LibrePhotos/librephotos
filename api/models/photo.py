@@ -17,7 +17,7 @@ import api.models
 import api.util as util
 from api.exif_tags import Tags
 from api.im2txt.sample import im2txt
-from api.models.file import File
+from api.models.file import File, is_raw
 from api.models.user import User, get_deleted_user
 from api.places365.places365 import place365_instance
 from api.semantic_search.semantic_search import semantic_search_instance
@@ -90,6 +90,7 @@ class Photo(models.Model):
     focalLength35Equivalent = models.IntegerField(blank=True, null=True)
     subjectDistance = models.FloatField(blank=True, null=True)
     digitalZoomRatio = models.FloatField(blank=True, null=True)
+    orientation = models.IntegerField(default=1)
 
     owner = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None
@@ -151,8 +152,12 @@ class Photo(models.Model):
         if "timestamp" in modified_fields:
             # To-Do: Only works for files and not for the sidecar file
             tags_to_write[Tags.DATE_TIME] = self.timestamp
+        if "orientation" in modified_fields:
+            tags_to_write[Tags.ORIENTATION] = self.orientation
         if tags_to_write:
             util.write_metadata(self.main_file, tags_to_write, use_sidecar=use_sidecar)
+            if "orientation" in modified_fields:
+                self._regenerate_thumbnail(commit=False)
 
     def _generate_captions_im2txt(self, commit=True):
         image_path = self.thumbnail_big.path
@@ -264,6 +269,7 @@ class Photo(models.Model):
                         outputPath="thumbnails_big",
                         hash=self.image_hash,
                         fileType=".webp",
+                        orientation=self.orientation,
                     )
                 else:
                     createThumbnailForVideo(
@@ -282,6 +288,7 @@ class Photo(models.Model):
                     outputPath="square_thumbnails",
                     hash=self.image_hash,
                     fileType=".webp",
+                    orientation=self.orientation,
                 )
             if self.video and not doesVideoThumbnailExists(
                 "square_thumbnails", self.image_hash
@@ -303,6 +310,7 @@ class Photo(models.Model):
                     outputPath="square_thumbnails_small",
                     hash=self.image_hash,
                     fileType=".webp",
+                    orientation=self.orientation,
                 )
             if self.video and not doesVideoThumbnailExists(
                 "square_thumbnails_small", self.image_hash
@@ -333,6 +341,22 @@ class Photo(models.Model):
                 "could not generate thumbnail for image %s" % self.main_file.path
             )
             raise e
+
+    def _regenerate_thumbnail(self, commit=True):
+        if doesStaticThumbnailExists("thumbnails_big", self.image_hash):
+            os.remove(self.thumbnail_big.path)
+        if doesStaticThumbnailExists("square_thumbnails", self.image_hash):
+            os.remove(self.square_thumbnail.path)
+        if doesStaticThumbnailExists("square_thumbnails_small", self.image_hash):
+            os.remove(self.square_thumbnail_small.path)
+        if doesVideoThumbnailExists("square_thumbnails", self.image_hash):
+            os.remove(self.square_thumbnail.path)
+        if doesVideoThumbnailExists("square_thumbnails_small", self.image_hash):
+            os.remove(self.square_thumbnail_small.path)
+        self._generate_thumbnail(commit=commit)
+        self._calculate_aspect_ratio(commit=commit)
+        self._generate_clip_embeddings(commit=commit)
+        self._extract_faces()
 
     def _find_album_place(self):
         return api.models.album_place.AlbumPlace.objects.filter(
@@ -537,6 +561,7 @@ class Photo(models.Model):
             focalLength35Equivalent,
             subjectDistance,
             digitalZoomRatio,
+            orientation,
         ) = get_metadata(  # noqa: E501
             self.main_file.path,
             tags=[
@@ -552,6 +577,7 @@ class Photo(models.Model):
                 Tags.FOCAL_LENGTH_35MM,
                 Tags.SUBJECT_DISTANCE,
                 Tags.DIGITAL_ZOOM_RATIO,
+                Tags.ORIENTATION,
             ],
             try_sidecar=True,
         )
@@ -581,6 +607,8 @@ class Photo(models.Model):
             self.subjectDistance = subjectDistance
         if digitalZoomRatio and isinstance(digitalZoomRatio, numbers.Number):
             self.digitalZoomRatio = digitalZoomRatio
+        if orientation and isinstance(orientation, numbers.Number):
+            self.orientation = orientation
         if commit:
             self.save()
 
@@ -816,6 +844,29 @@ class Photo(models.Model):
             self.save()
         except Exception:
             logger.info("Cannot calculate dominant color {} object".format(self))
+    
+    def _rotate_image(self, delta_angle, flip_image=False):
+        if delta_angle % 360 == 0 and not flip_image:
+            return
+
+        user = User.objects.get(username=self.owner)
+        save_on_file = (user.save_metadata_to_disk == User.SaveMetadata.MEDIA_FILE and \
+            not is_raw(self.main_file.path))
+        
+        old_orientation = self.orientation
+        angle, is_flipped = util.convert_exif_orientation_to_degrees(old_orientation)
+
+        angle += delta_angle
+        if flip_image:
+            is_flipped = not is_flipped
+        
+        new_orientation = util.convert_degrees_to_exif_orientation(angle, is_flipped)
+        self.orientation = new_orientation
+
+        if save_on_file:
+            self.save()
+            return
+        self._regenerate_thumbnail()
 
     def manual_delete(self):
         for file in self.files.all():

@@ -2,6 +2,7 @@ class Tags:
     RATING = "Rating"
     IMAGE_HEIGHT = "ImageHeight"
     IMAGE_WIDTH = "ImageWidth"
+    ORIENTATION = "Orientation"
     DATE_TIME_ORIGINAL = "EXIF:DateTimeOriginal"
     DATE_TIME = "EXIF:DateTime"
     QUICKTIME_CREATE_DATE = "QuickTime:CreateDate"

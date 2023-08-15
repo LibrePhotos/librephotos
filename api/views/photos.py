@@ -22,6 +22,8 @@ from api.views.pagination import (
     StandardResultsSetPagination,
 )
 
+PHOTO_OWNER_ERROR_MESSAGE = "you are not the owner of this photo"
+
 
 class RecentlyAddedPhotoListViewSet(ListViewSet):
     serializer_class = PhotoSummarySerializer
@@ -424,7 +426,7 @@ class GeneratePhotoCaption(APIView):
         photo = Photo.objects.get(image_hash=image_hash)
         if photo.owner != request.user:
             return Response(
-                {"status": False, "message": "you are not the owner of this photo"},
+                {"status": False, "message": PHOTO_OWNER_ERROR_MESSAGE},
                 status=400,
             )
 
@@ -443,7 +445,7 @@ class SavePhotoCaption(APIView):
         photo = Photo.objects.get(image_hash=image_hash)
         if photo.owner != request.user:
             return Response(
-                {"status": False, "message": "you are not the owner of this photo"},
+                {"status": False, "message": PHOTO_OWNER_ERROR_MESSAGE},
                 status=400,
             )
 
@@ -497,3 +499,23 @@ class DeleteDuplicatePhotos(APIView):
             return Response(status=status.HTTP_200_OK)
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+class RotatePhoto(APIView):
+    permission_classes = (IsOwnerOrReadOnly,)
+
+    def post(self, request, format=None):
+        data = dict(request.data)
+        image_hash = data["image_hash"]
+
+        angle = data["angle"]
+        flip = data.get("flip", False)
+
+        photo = Photo.objects.get(image_hash=image_hash)
+        if photo.owner != request.user:
+            return Response(
+                {"status": False, "message": PHOTO_OWNER_ERROR_MESSAGE},
+                status=400,
+            )
+
+        photo._rotate_image(angle, flip)
+        return Response({"status": True})
