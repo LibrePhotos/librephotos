@@ -88,7 +88,7 @@
             "low": "Niedrig",
             "none": "Keine"
         },
-        "semanticsearchheader": "Anzahl der Resultate für Semantische Suche",
+        "semanticsearchheader": "Anzahl der maximalen Resultate für Semantische Suche",
         "semanticsearch": {
             "placeholder": "Anzahl der Resultate",
             "top100": "Top 100",
@@ -169,7 +169,28 @@
         "korean": "Koreanisch",
         "portuguesebr": "Portugiesisch (Brasilien)",
         "slovak": "Slowakisch",
-        "urdu": "Urdu"
+        "urdu": "Urdu",
+        "unknown_faces_confidence_help": "Geben Sie einen Vertrauenswert zwischen 0 und 1 ein. Gesichter von 'unbekannte - andere Gesichter' werden anderen Personen zugeordnet, falls der Vertrauenswert höher als dieser Wert ist. O heißt. dass das Feature deaktiviert ist.",
+        "min_samples_help": "Ändert, wie konservativ Cluster sind. Ein kleinerer Wert heißt weniger konservativ.",
+        "face_options": "Gesichts-Optionen",
+        "face_recognition_model": "Gesichtserkennungsmodell",
+        "min_cluster_size_help": "Ändert die Bildung von Clustern. Ein kleinerer Wert führt dazu, dass mehr Cluster gebildet werden.",
+        "face_recognition_model_help": "Ändert das für die Gesichtserkennung verwendete Modell. Das CNN-Modell ist genauer, aber langsamer als das HOG-Modell.",
+        "min_cluster_size": "Minimale Clustergröße",
+        "size": {
+            "auto": "Automatisch",
+            "small": "Klein",
+            "normal": "Normal",
+            "high": "Hoch",
+            "veryhigh": "Sehr hoch",
+            "off": "Aus"
+        },
+        "unknown_faces_confidence": "Vertrauen beim Abgleich unbekannter - anderer Gesichter",
+        "models": {
+            "hog": "HOG",
+            "cnn": "CNN"
+        },
+        "min_samples": "Minimale Samples"
     },
     "modalnextcloud": {
         "setdirectory": "Setze dein Nextcloud Scan Ordner",
