@@ -612,7 +612,7 @@
         "updated": "Bijgewerkt {{duration}}"
     },
     "deleteface": "Gezichten verwijderen",
-    "deletefaceexplanation": "Door deze actie worden de gezichten en alle bijbehorende gegevens verwijderd. Dit kan niet ongedaan worden gemaakt.",
+    "deletefaceexplanation": "Door deze actie worden de gezichten en alle bijbehorende gegevens verwijderd. Dit is onomkeerbaar.",
     "cancel": "Annuleren",
     "confirm": "Bevestigen",
     "metadata": "Metagegevensopties",
@@ -650,5 +650,6 @@
     "locationstimeline": {
         "fromto": "{{location}} van {{start}} tot {{end}}"
     },
-    "docs": "Documentatie"
+    "docs": "Documentatie",
+    "deletealbumexplanation": "Door deze actie wordt het album permanent verwĳderd. Dit is onomkeerbaar."
 }
