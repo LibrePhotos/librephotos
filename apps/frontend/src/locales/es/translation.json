@@ -88,9 +88,9 @@
             "low": "Bajo",
             "none": "Ninguno"
         },
-        "semanticsearchheader": "Resultados máximos de búsqueda semántica",
+        "semanticsearchheader": "Resultados máximos para la búsqueda por palabras",
         "semanticsearch": {
-            "placeholder": "Resultados de búsqueda semántica",
+            "placeholder": "Resultados para la búsqueda por palabras",
             "top100": "Top 100",
             "top50": "Top 50",
             "top10": "Top 10",
@@ -120,7 +120,7 @@
         "japanese": "Japonés",
         "russian": "Ruso",
         "swedish": "Sueco",
-        "configdatetime": " Establecer reglas de análisis de fecha y hora",
+        "configdatetime": " Establecer reglas para el análisis de la fecha y hora",
         "metadata": "Opciones de metadatos",
         "sync": "Sincronizar metadatos con el disco",
         "polish": "Polaco",
@@ -403,11 +403,11 @@
         "header": "Permitir el registro de usuarios",
         "allow": "Permitir",
         "noallow": "No permitir",
-        "skippatterns": " Lista delimitada por comas de patrones para ignorar (p. ej., '@eaDir,#recycle' para dispositivos Synology)",
+        "skippatterns": " Lista delimitada por comas de patrones a ignorar (por ejemplo, '@eaDir,#recycle' para dispositivos Synology)",
         "apikey": "¿Mostrar en un mapa dónde se tomaron todas sus fotos (que contienen información de ubicación)? Obtenga una clave API de Mapbox en https://account.mapbox.com/auth/signup/",
         "headerupload": "Permitir subir fotos",
         "headerskippatterns": "Omitir patrones",
-        "headerapikey": "Clave API de Mapbox",
+        "headerapikey": "Clave API para Mapbox",
         "headerheavyweight": "Procesos intensivos",
         "heavyweight": "Incrementar el número de trabajadores por encima de 1, pero se usarán 800 MB de RAM por cada uno que se agregue."
     },
@@ -579,7 +579,7 @@
         "source_tz": "Transformar de {{rule}}",
         "exif_tag": "Usar etiqueta Exif: {{rule}}",
         "2": "Obtenga la etiqueta de creación de video en UTC + averigüe el huso horario usando las coordenadas GPS",
-        "rule_type": "Tipo de regla: {{rule}}",
+        "rule_type": "Tipo de la regla: {{rule}}",
         "1": "Hora local desde la etiqueta Exif DATE_TIME_ORIGINAL",
         "3": "Usando el nombre de archivo asumiendo que el tiempo es local",
         "4": "Video UTC: informa la hora local en UTC (no se puede averiguar el huso horario real)",
@@ -650,5 +650,6 @@
     "locationstimeline": {
         "fromto": "{{location}} de {{start}} a {{end}}"
     },
-    "docs": "Documentación"
+    "docs": "Documentación",
+    "deletealbumexplanation": "Esta acción borrará permanentemente el álbum. Esta acción no se puede deshacer."
 }
