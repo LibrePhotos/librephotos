@@ -179,7 +179,7 @@ export function AlbumUser() {
       <ModalAlbumShare isOpen={isShareDialogOpen} onRequestClose={hideShareDialog} albumID={albumID} />
       <Modal opened={isDeleteDialogOpen} onClose={hideDeleteDialog}>
         <Stack>
-          {t("deletefaceexplanation")}
+          {t("deletealbumexplanation")}
           <Group position="center">
             <Button color="blue" onClick={hideDeleteDialog}>
               {t("cancel")}
