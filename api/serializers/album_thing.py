@@ -7,7 +7,6 @@ from api.serializers.simple import PhotoSuperSimpleSerializer
 
 
 class GroupedThingPhotosSerializer(serializers.ModelSerializer):
-
     id = serializers.SerializerMethodField()
     grouped_photos = serializers.SerializerMethodField()
 

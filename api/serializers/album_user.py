@@ -101,7 +101,6 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         return instance
 
     def update(self, instance, validated_data):
-
         if "title" in validated_data.keys():
             title = validated_data["title"]
             instance.title = title
