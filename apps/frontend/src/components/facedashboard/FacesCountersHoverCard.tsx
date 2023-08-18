@@ -50,8 +50,9 @@ export function FacesCountersHoverCard({ tab, children }: Props) {
         {`${t("facesdashboard.personscounter", { count: labeledPersonsCount })}`}{" "}
         {`(${t("facesdashboard.facescounter", { count: labeledFacesCount })})`}
       </Text>
-      labeledUnknownFacesCount !== 0 && (
-      <Text size="sm">{`${t("facesdashboard.unknownfacescounter", { count: labeledUnknownFacesCount })}`}</Text>)
+      {labeledUnknownFacesCount !== 0 && (
+        <Text size="sm">{`${t("facesdashboard.unknownfacescounter", { count: labeledUnknownFacesCount })}`}</Text>
+      )}
     </Stack>
   );
 
@@ -65,8 +66,9 @@ export function FacesCountersHoverCard({ tab, children }: Props) {
         {`${t("facesdashboard.clusterscounter", { count: inferredClustersCount })}`}{" "}
         {`(${t("facesdashboard.facescounter", { count: inferredClusteredFacesCount })})`}
       </Text>
-      inferredUnknownFacesCount !== 0 && (
-      <Text size="sm">{`${t("facesdashboard.unknownfacescounter", { count: inferredUnknownFacesCount })}`}</Text>)
+      {inferredUnknownFacesCount !== 0 && (
+        <Text size="sm">{`${t("facesdashboard.unknownfacescounter", { count: inferredUnknownFacesCount })}`}</Text>
+      )}
     </Stack>
   );
 
