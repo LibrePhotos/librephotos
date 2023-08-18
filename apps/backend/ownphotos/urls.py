@@ -14,7 +14,6 @@ Including another URLconf
     2. Add a URL to urlpatterns:  re_path(r'^blog/', include('blog.urls'))
 """
 
-from constance import config as site_config
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -216,15 +215,10 @@ urlpatterns = [
     re_path(r"^api/nextcloud/scanphotos", nextcloud_views.ScanPhotosView.as_view()),
     re_path(r"^api/photos/download", views.ZipListPhotosView.as_view()),
     re_path(r"^api/timezones", timezone.TimeZoneView.as_view()),
+    re_path(r"api/upload/complete/", upload.UploadPhotosChunkedComplete.as_view()),
+    re_path(r"api/upload/", upload.UploadPhotosChunked.as_view()),
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-
-if site_config.ALLOW_UPLOAD:
-    urlpatterns += [
-        re_path(r"api/upload/complete/", upload.UploadPhotosChunkedComplete.as_view())
-    ]
-    urlpatterns += [re_path(r"api/upload/", upload.UploadPhotosChunked.as_view())]
-
 
 if settings.DEBUG:
     from drf_spectacular.views import (
