@@ -152,7 +152,9 @@ class Photo(models.Model):
             # To-Do: Only works for files and not for the sidecar file
             tags_to_write[Tags.DATE_TIME] = self.timestamp
         if tags_to_write:
-            util.write_metadata(self.main_file.path, tags_to_write, use_sidecar=use_sidecar)
+            util.write_metadata(
+                self.main_file.path, tags_to_write, use_sidecar=use_sidecar
+            )
 
     def _generate_captions_im2txt(self, commit=True):
         image_path = self.thumbnail_big.path
