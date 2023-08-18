@@ -122,10 +122,12 @@ export function ModalAlbumEdit(props: Props) {
                     <Text size="sm" color="dimmed">
                       {t("modalalbum.items", { count: item.photo_count })}
                       <br />
-                      {t("modalalbum.updated")}{" "}
-                      {DateTime.fromISO(item.created_on)
-                        .setLocale(i18n.resolvedLanguage.replace("_", "-"))
-                        .toRelative()}
+                      {t("modalalbum.updated", {
+                        duration: DateTime.fromISO(item.created_on)
+                          .setLocale(i18n.resolvedLanguage.replace("_", "-"))
+                          .toRelative(),
+                      })}
+                      {}
                     </Text>
                   </div>
                 </Group>
