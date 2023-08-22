@@ -26,7 +26,7 @@ nltk==3.8.1
 markupsafe==2.1.3
 Pillow==10.0.0
 psycopg==3.1.10
-pycocotools==2.0.6
+pycocotools==2.0.7
 https://github.com/owncloud/pyocclient/archive/master.zip
 pytz==2023.3
 tzdata==2023.3
