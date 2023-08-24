@@ -2771,9 +2771,9 @@
   integrity sha512-Dd0BYtWgnWJKwO1jkmTrzofjK2QXXcai0dmtzvIBhcA+RsG5h8R3xlyta0kGOZRNfL9GuRtb1knmPEhQrePCEw==
 
 "@types/node@^18.14.1":
-  version "18.17.2"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.17.2.tgz#95b4df6c724e146ef932043a1fb6b8f80975e461"
-  integrity sha512-wBo3KqP/PBqje5TI9UTiuL3yWfP6sdPtjtygSOqcYZWT232dfDeDOnkDps5wqZBP9NgGgYrNejinl0faAuE+HQ==
+  version "18.17.9"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.17.9.tgz#b219fa0da3c574399f4a44455ea4b388029afd56"
+  integrity sha512-fxaKquqYcPOGwE7tC1anJaPJ0GHyOVzfA2oUoXECjBjrtsIz4YJvtNYsq8LUcjEUehEF+jGpx8Z+lFrtT6z0tg==
 
 "@types/prettier@^2.1.5":
   version "2.7.3"
@@ -2786,9 +2786,9 @@
   integrity sha512-JCB8C6SnDoQf0cNycqd/35A7MjcnK+ZTqE7judS6o7utxUCg6imJg3QK2qzHKszlTjcj2cn+NwMB2i96ubpj7w==
 
 "@types/react-native-vector-icons@^6.4.13":
-  version "6.4.13"
-  resolved "https://registry.yarnpkg.com/@types/react-native-vector-icons/-/react-native-vector-icons-6.4.13.tgz#28b34d15094e040718beefb67cb3eff0c4994cb6"
-  integrity sha512-1PqFoKuXTSzMHwGMAr+REdYJBQAbe9xrww3ecZR0FsHcD1K+vGS/rxuAriL4rsI6+p69sZQjDzpEVAbDQcjSwA==
+  version "6.4.14"
+  resolved "https://registry.yarnpkg.com/@types/react-native-vector-icons/-/react-native-vector-icons-6.4.14.tgz#085868a3d73a1db4bd49d6ce308c88b3a39cd96c"
+  integrity sha512-3RaEadfUUImrDed03hwRnYp5QFevcWkWgPUHxj9U9lB6G5uPEGaxXoLWdjgioQ46CvADXUzrDOEYLSVcAn1GQw==
   dependencies:
     "@types/react" "*"
     "@types/react-native" "^0.70"
