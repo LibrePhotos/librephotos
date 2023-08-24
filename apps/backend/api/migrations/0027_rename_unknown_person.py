@@ -17,9 +17,9 @@ def migrate_unknown(apps, schema_editor):
         unknown_person: Person = Person.objects.get_or_create(
             name=UNKNOWN_PERSON_NAME, cluster_owner=None, kind=KIND_UNKNOWN
         )[0]
-    if unknown_person.kind != KIND_UNKNOWN:
-        unknown_person.kind = KIND_UNKNOWN
-        unknown_person.save()
+        if unknown_person.kind != KIND_UNKNOWN:
+            unknown_person.kind = KIND_UNKNOWN
+            unknown_person.save()
 
 
 def unmigrate_unknown(apps, schema_editor):
