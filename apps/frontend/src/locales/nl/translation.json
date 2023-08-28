@@ -346,7 +346,9 @@
         "cannotbeundone": "Let op: deze actie is onomkeerbaar.",
         "cannotdeleteadmin": "De beheerder kan niet worden verwijderd",
         "addnewuser": "Gebruiker toevoegen",
-        "delete": "Verwijderen"
+        "delete": "Verwijderen",
+        "download": "Downloaden",
+        "downloadserverstats": "Serverstatistieken downloaden"
     },
     "joblist": {
         "workerlogs": "Werklogboek",
