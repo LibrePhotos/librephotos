@@ -1,3 +1,4 @@
+from django.http import HttpResponseForbidden
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -8,6 +9,7 @@ from api.api_util import (
     get_location_timeline,
     get_photo_month_counts,
     get_searchterms_wordcloud,
+    get_server_stats,
 )
 from api.face_classify import cluster_faces
 from api.social_graph import build_social_graph
@@ -22,6 +24,14 @@ class ClusterFaceView(APIView):
 class SocialGraphView(APIView):
     def get(self, request, format=None):
         res = build_social_graph(request.user)
+        return Response(res)
+
+
+class ServerStatsView(APIView):
+    def get(self, request, format=None):
+        if not (request.user and request.user.is_staff):
+            return HttpResponseForbidden()
+        res = get_server_stats()
         return Response(res)
 
 
