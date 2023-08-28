@@ -620,13 +620,16 @@ class Photo(models.Model):
             logger.debug(f"region_info: {region_info}")
             # Extract faces
             for region in region_info["RegionList"]:
-                if region["Type"] != "Face":
+                if region.get("Type") != "Face":
                     continue
                 # Find person with the name of the region with get_or_create
-                person = api.models.person.get_or_create_person(
-                    name=region["Name"], owner=self.owner
-                )
-                person.save()
+                if region.get("Name"):
+                    person = api.models.person.get_or_create_person(
+                        name=region.get("Name"), owner=self.owner
+                    )
+                    person.save()
+                else:
+                    person = api.models.person.get_unknown_person(owner=self.owner)
                 # Create face from the region infos
                 image = np.array(PIL.Image.open(self.thumbnail_big.path))
                 if region["Area"]["Unit"] == "normalized":
