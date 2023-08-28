@@ -370,7 +370,9 @@
         "cannotdeleteadmin": "No se puede eliminar el usuario administrador",
         "addnewuser": "Agregar nuevo usuario",
         "titledeleteuser": "Eliminar usuario",
-        "delete": "Borrar"
+        "delete": "Borrar",
+        "download": "Descargar",
+        "downloadserverstats": "Descargar estadísticas del servidor"
     },
     "joblist": {
         "workerlogs": "Registros de trabajadores",
