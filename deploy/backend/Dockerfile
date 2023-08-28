@@ -1,6 +1,9 @@
 FROM reallibrephotos/librephotos-base:dev
 # actual project
 ARG DEBUG
+ARG IMAGE_TAG
+ENV IMAGE_TAG ${IMAGE_TAG}
+
 WORKDIR /code
 RUN git clone --depth 1 https://github.com/LibrePhotos/librephotos .
 RUN pip install --break-system-packages --no-cache-dir -r requirements.txt
