@@ -7,18 +7,23 @@ from datetime import datetime
 import numpy as np
 import seaborn as sns
 from django.db import connection
-from django.db.models import Count, Q
+from django.db.models import Avg, Count, Max, Min, Q, Sum
 from django.db.models.functions import TruncMonth
 
 from api.models import (
     AlbumAuto,
     AlbumDate,
+    AlbumPlace,
+    AlbumThing,
     AlbumUser,
+    Cluster,
     Face,
     LongRunningJob,
     Person,
     Photo,
+    User,
 )
+from api.models.user import get_deleted_user
 from api.serializers.job import LongRunningJobSerializer
 from api.util import logger
 
@@ -274,6 +279,376 @@ def get_search_term_examples(user):
                 search_terms.append(search_term_time_thing)
 
     return list(set(search_terms))
+
+
+def median_value(queryset, term):
+    from decimal import Decimal
+
+    count = queryset.count()
+    if count == 0:
+        return
+    values = queryset.values_list(term, flat=True).order_by(term)
+    logger.info(values)
+    logger.info(count)
+    if count % 2 == 1:
+        return values[int(round(count / 2))]
+    else:
+        return sum(values[count / 2 - 1 : count / 2 + 1]) / Decimal(2.0)
+
+
+def calc_megabytes(bytes):
+    if bytes == 0 or bytes is None:
+        return 0
+    return round(((bytes / 1024) / 1024))
+
+
+def get_server_stats():
+    # CPU architecture, Speed, Number of Cores, 64bit / 32 Bits
+    import cpuinfo
+
+    cpu_info = cpuinfo.get_cpu_info()
+    # FLOPs (To-Do)
+    # Available RAM
+    import psutil
+
+    available_ram = calc_megabytes(psutil.virtual_memory().total)
+    # RAM Speed (To-Do: ????)
+    # GPU
+    import torch
+
+    if torch.cuda.is_available():
+        gpu_name = torch.cuda.get_device_name(0)
+        gpu_memory = torch.cuda.memory_summary()
+    else:
+        gpu_name = ""
+        gpu_memory = ""
+    # Kind of storage system (local, nfs etc.) (To-Do)
+    # Storage speed (hdd, ssd, nvme) (To-Do)
+    # Total Capacity
+    import shutil
+
+    total_storage, used_storage, free_storage = shutil.disk_usage("/")
+    # Docker image tag (latest, 2023w26 etc.) (To-Do: set this in build step)
+    image_tag = os.environ.get("IMAGE_TAG", "")
+    # Number of Users
+    number_of_users = User.objects.filter(~Q(id=get_deleted_user().id)).count()
+    users = []
+    idx = 0
+    for user in User.objects.filter(~Q(id=get_deleted_user().id)):
+        # Days since joining
+        date_joined = user.date_joined
+        # Number of Photos
+        number_of_photos = Photo.objects.filter(Q(owner=user)).count()
+        # Number of Videos
+        number_of_videos = Photo.objects.filter(Q(owner=user) & Q(video=True)).count()
+        # Number of Files (To-Do: Owner missing)
+        # number_of_files = File.objects.filter(Q(owner=user)).count()
+        # Number of Captions
+        number_of_captions = Photo.objects.filter(
+            Q(owner=user) & Q(captions_json__user_caption__isnull=False)
+        ).count()
+        # Number of Generated Captions
+        number_of_generated_captions = Photo.objects.filter(
+            Q(owner=user) & Q(captions_json__im2txt__isnull=False)
+        ).count()
+        # Most common file type for photos (To-Do: Add mime type)
+        # most_common_file_type = Photo.objects.filter(Q(owner=user)).values("file_extension").annotate(count=Count("file_extension")).order_by("-count").first()
+        # Most common file type for videos (To-Do: Add mime type)
+        # most_common_file_type_videos = Photo.objects.filter(Q(owner=user) & Q(video=True)).values("file_extension").annotate(count=Count("file_extension")).order_by("-count").first()
+        # Number of Albums
+        number_of_albums = AlbumUser.objects.filter(Q(owner=user)).count()
+        # Min, Max, Mean, Median number of photos
+        min_number_of_photos_per_album = (
+            AlbumUser.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos"))
+            .aggregate(Min("count"))
+        )
+        max_number_of_photos_per_album = (
+            AlbumUser.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos"))
+            .aggregate(Max("count"))
+        )
+        mean_number_of_photos_per_album = (
+            AlbumUser.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos"))
+            .aggregate(Avg("count"))
+        )
+        median_number_of_photos_per_album = median_value(
+            AlbumUser.objects.filter(Q(owner=user)).annotate(count=Count("photos")),
+            "count",
+        )
+        # Min, Max, Mean, Median number of videos
+        min_number_of_videos_per_album = (
+            AlbumUser.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos", filter=Q(photos__video=True)))
+            .aggregate(Min("count"))
+        )
+        max_number_of_videos_per_album = (
+            AlbumUser.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos", filter=Q(photos__video=True)))
+            .aggregate(Max("count"))
+        )
+        mean_number_of_videos_per_album = (
+            AlbumUser.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos", filter=Q(photos__video=True)))
+            .aggregate(Avg("count"))
+        )
+        median_number_of_videos_per_album = median_value(
+            AlbumUser.objects.filter(Q(owner=user)).annotate(
+                count=Count("photos", filter=Q(photos__video=True))
+            ),
+            "count",
+        )
+        # Number of Persons
+        number_of_persons = Person.objects.filter(Q(cluster_owner=user)).count()
+        # Min, Max, Mean, Median number of faces
+        min_number_of_faces_per_person = (
+            Person.objects.filter(Q(cluster_owner=user))
+            .annotate(count=Count("faces"))
+            .aggregate(Min("count"))
+        )
+        max_number_of_faces_per_person = (
+            Person.objects.filter(Q(cluster_owner=user))
+            .annotate(count=Count("faces"))
+            .aggregate(Max("count"))
+        )
+        mean_number_of_faces_per_person = (
+            Person.objects.filter(Q(cluster_owner=user))
+            .annotate(count=Count("faces"))
+            .aggregate(Avg("count"))
+        )
+        median_number_of_faces_per_person = median_value(
+            Person.objects.filter(Q(cluster_owner=user)).annotate(count=Count("faces")),
+            "count",
+        )
+        # Number of Clusters
+        number_of_clusters = Cluster.objects.filter(Q(owner=user)).count()
+        # Number of Places
+        number_of_places = AlbumPlace.objects.filter(Q(owner=user)).count()
+        # Min, Max, Mean, Median number of photos
+        min_number_of_photos_per_place = (
+            AlbumPlace.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos"))
+            .aggregate(Min("count"))
+        )
+        max_number_of_photos_per_place = (
+            AlbumPlace.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos"))
+            .aggregate(Max("count"))
+        )
+        mean_number_of_photos_per_place = (
+            AlbumPlace.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos"))
+            .aggregate(Avg("count"))
+        )
+        median_number_of_photos_per_place = median_value(
+            AlbumPlace.objects.filter(Q(owner=user)).annotate(count=Count("photos")),
+            "count",
+        )
+        # Min, Max, Mean, Median number of videos
+        min_number_of_videos_per_place = (
+            AlbumPlace.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos", filter=Q(photos__video=True)))
+            .aggregate(Min("count"))
+        )
+        max_number_of_videos_per_place = (
+            AlbumPlace.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos", filter=Q(photos__video=True)))
+            .aggregate(Max("count"))
+        )
+        mean_number_of_videos_per_place = (
+            AlbumPlace.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos", filter=Q(photos__video=True)))
+            .aggregate(Avg("count"))
+        )
+        median_number_of_videos_per_place = median_value(
+            AlbumPlace.objects.filter(Q(owner=user)).annotate(
+                count=Count("photos", filter=Q(photos__video=True))
+            ),
+            "count",
+        )
+        # Number of Things
+        number_of_things = AlbumThing.objects.filter(Q(owner=user)).count()
+        # Min, Max, Mean, Median number of photos
+        min_number_of_photos_per_thing = (
+            AlbumThing.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos"))
+            .aggregate(Min("count"))
+        )
+        max_number_of_photos_per_thing = (
+            AlbumThing.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos"))
+            .aggregate(Max("count"))
+        )
+        mean_number_of_photos_per_thing = (
+            AlbumThing.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos"))
+            .aggregate(Avg("count"))
+        )
+        median_number_of_photos_per_thing = median_value(
+            AlbumThing.objects.filter(Q(owner=user)).annotate(count=Count("photos")),
+            "count",
+        )
+        # Min, Max, Mean, Median number of videos
+        min_number_of_videos_per_thing = (
+            AlbumThing.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos", filter=Q(photos__video=True)))
+            .aggregate(Min("count"))
+        )
+        max_number_of_videos_per_thing = (
+            AlbumThing.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos", filter=Q(photos__video=True)))
+            .aggregate(Max("count"))
+        )
+        mean_number_of_videos_per_thing = (
+            AlbumThing.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos", filter=Q(photos__video=True)))
+            .aggregate(Avg("count"))
+        )
+        median_number_of_videos_per_thing = median_value(
+            AlbumThing.objects.filter(Q(owner=user)).annotate(
+                count=Count("photos", filter=Q(photos__video=True))
+            ),
+            "count",
+        )
+        # Number of Events
+        number_of_events = AlbumAuto.objects.filter(Q(owner=user)).count()
+        # Min, Max, Mean, Median number of photos
+        min_number_of_photos_per_event = (
+            AlbumAuto.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos"))
+            .aggregate(Min("count"))
+        )
+        max_number_of_photos_per_event = (
+            AlbumAuto.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos"))
+            .aggregate(Max("count"))
+        )
+        mean_number_of_photos_per_event = (
+            AlbumAuto.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos"))
+            .aggregate(Avg("count"))
+        )
+        median_number_of_photos_per_event = median_value(
+            AlbumAuto.objects.filter(Q(owner=user)).annotate(count=Count("photos")),
+            "count",
+        )
+        # Min, Max, Mean, Median number of videos
+        min_number_of_videos_per_event = (
+            AlbumAuto.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos", filter=Q(photos__video=True)))
+            .aggregate(Min("count"))
+        )
+        max_number_of_videos_per_event = (
+            AlbumAuto.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos", filter=Q(photos__video=True)))
+            .aggregate(Max("count"))
+        )
+        mean_number_of_videos_per_event = (
+            AlbumAuto.objects.filter(Q(owner=user))
+            .annotate(count=Count("photos", filter=Q(photos__video=True)))
+            .aggregate(Avg("count"))
+        )
+        median_number_of_videos_per_event = median_value(
+            AlbumAuto.objects.filter(Q(owner=user)).annotate(
+                count=Count("photos", filter=Q(photos__video=True))
+            ),
+            "count",
+        )
+        # Number of Favorites
+        number_of_favorites = Photo.objects.filter(
+            Q(owner=user) & Q(rating__gte=user.favorite_min_rating)
+        ).count()
+        # Number of Hidden
+        number_of_hidden = Photo.objects.filter(Q(owner=user) & Q(hidden=True)).count()
+        # Number of public
+        number_of_public = Photo.objects.filter(Q(owner=user) & Q(public=True)).count()
+        # Total File Size (To-Do: Should be files)
+        total_file_size = (
+            Photo.objects.filter(Q(owner=user)).aggregate(Sum("size"))["size__sum"]
+            or None
+        )
+        user = {
+            "date_joined": date_joined.strftime("%d-%m-%Y"),
+            "total_file_size_in_mb": calc_megabytes(total_file_size),
+            "number_of_photos": number_of_photos,
+            "number_of_videos": number_of_videos,
+            # "number_of_files": number_of_files,
+            "number_of_captions": number_of_captions,
+            "number_of_generated_captions": number_of_generated_captions,
+            # "most_common_file_type": most_common_file_type,
+            # "most_common_file_type_videos": most_common_file_type_videos,
+            "album": {
+                "count": number_of_albums,
+                "min": min_number_of_photos_per_album["count__min"] or None,
+                "max": max_number_of_photos_per_album["count__max"] or None,
+                "mean": mean_number_of_photos_per_album["count__avg"] or None,
+                "median": median_number_of_photos_per_album,
+                "min_videos": min_number_of_videos_per_album["count__min"] or None,
+                "max_videos": max_number_of_videos_per_album["count__max"] or None,
+                "mean_videos": mean_number_of_videos_per_album["count__avg"] or None,
+                "median_videos": median_number_of_videos_per_album,
+            },
+            "person": {
+                "count": number_of_persons,
+                "min": min_number_of_faces_per_person["count__min"] or None,
+                "max": max_number_of_faces_per_person["count__max"] or None,
+                "mean": mean_number_of_faces_per_person["count__avg"] or None,
+                "median": median_number_of_faces_per_person,
+            },
+            "number_of_clusters": number_of_clusters,
+            "places": {
+                "count": number_of_places,
+                "min": min_number_of_photos_per_place["count__min"] or None,
+                "max": max_number_of_photos_per_place["count__max"] or None,
+                "mean": mean_number_of_photos_per_place["count__avg"] or None,
+                "median": median_number_of_photos_per_place,
+                "min_videos": min_number_of_videos_per_place["count__min"] or None,
+                "max_videos": max_number_of_videos_per_place["count__max"] or None,
+                "mean_videos": mean_number_of_videos_per_place["count__avg"] or None,
+                "median_videos": median_number_of_videos_per_place,
+            },
+            "things": {
+                "count": number_of_things,
+                "min": min_number_of_photos_per_thing["count__min"] or None,
+                "max": max_number_of_photos_per_thing["count__max"] or None,
+                "mean": mean_number_of_photos_per_thing["count__avg"] or None,
+                "median": median_number_of_photos_per_thing,
+                "min_videos": min_number_of_videos_per_thing["count__min"] or None,
+                "max_videos": max_number_of_videos_per_thing["count__max"] or None,
+                "mean_videos": mean_number_of_videos_per_thing["count__avg"] or None,
+                "median_videos": median_number_of_videos_per_thing,
+            },
+            "events": {
+                "count": number_of_events,
+                "min": min_number_of_photos_per_event["count__min"] or None,
+                "max": max_number_of_photos_per_event["count__max"] or None,
+                "mean": mean_number_of_photos_per_event["count__avg"] or None,
+                "median": median_number_of_photos_per_event,
+                "min_videos": min_number_of_videos_per_event["count__min"] or None,
+                "max_videos": max_number_of_videos_per_event["count__max"] or None,
+                "mean_videos": mean_number_of_videos_per_event["count__avg"] or None,
+                "median_videos": median_number_of_videos_per_event,
+            },
+            "number_of_favorites": number_of_favorites,
+            "number_of_hidden": number_of_hidden,
+            "number_of_public": number_of_public,
+        }
+        users.append(user)
+        idx = idx + 1
+    res = {
+        "cpu_info": cpu_info,
+        "image_tag": image_tag,
+        "available_ram_in_mb": available_ram,
+        "gpu_name": gpu_name,
+        "gpu_memory_in_mb": gpu_memory,
+        "total_storage_in_mb": calc_megabytes(total_storage),
+        "used_storage_in_mb": calc_megabytes(used_storage),
+        "free_storage_in_mb": calc_megabytes(free_storage),
+        "number_of_users": number_of_users,
+        "users": users,
+    }
+    return res
 
 
 def get_count_stats(user):
