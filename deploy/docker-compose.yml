@@ -72,6 +72,7 @@ services:
       - CSRF_TRUSTED_ORIGINS=${csrfTrustedOrigins:-}
       - DEBUG=0
       - HEAVYWEIGHT_PROCESS=${HEAVYWEIGHT_PROCESS:-}
+      - IMAGE_TAG=${tag:-}
     depends_on:
       db:
         condition: service_healthy
