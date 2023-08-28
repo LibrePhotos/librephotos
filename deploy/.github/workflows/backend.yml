@@ -54,6 +54,8 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: ./backend
+          build-args: |
+            "IMAGE_TAG=dev"
           platforms: linux/amd64,linux/arm64
           push: true
           tags: reallibrephotos/librephotos:dev
@@ -85,6 +87,8 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: ./backend
+          build-args: |
+            "IMAGE_TAG=${{ github.event.release.tag_name}}"
           platforms: linux/amd64,linux/arm64
           push: true
           tags: reallibrephotos/librephotos:${{ github.event.release.tag_name }},reallibrephotos/librephotos:latest
