@@ -47,7 +47,7 @@
     "@popperjs/core": "2.11.8",
     "@reduxjs/toolkit": "1.9.5",
     "@visx/gradient": "3.3.0",
-    "@visx/group": "2.17.0",
+    "@visx/group": "3.3.0",
     "@visx/hierarchy": "3.3.0",
     "@visx/shape": "2.18.0",
     "axios": "1.5.0",
