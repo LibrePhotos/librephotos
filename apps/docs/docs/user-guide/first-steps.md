@@ -6,7 +6,7 @@ sidebar_position: 1
 
 ## First steps after setting up
 
-On your first visit, you should see the first time setup. Fill out the details and login. The next step is to set up your scan directory. Click on the green button, which is on the photo site, and fill out your scan directory. After saving, your first scan should start.
+On your first visit, you should see the first time setup. Fill out the details and login. The next step is to set up your scan directory. Click on the green button, which is on the photo site, and fill out your scan directory. If you have not altered the docker-compose.yml, the correct value is '/data', which will point at the folder you selected for scanDirectory in the .env file. After saving, your first scan should start.
 
 The basic idea is this:
 
