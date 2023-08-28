@@ -32,6 +32,7 @@ import type { IUploadOptions, IUploadResponse } from "../store/upload/upload.zod
 import { UploadExistResponse, UploadResponse } from "../store/upload/upload.zod";
 import type { IApiUserListResponse, IManageUser, IUser } from "../store/user/user.zod";
 import { ManageUser, UserSchema } from "../store/user/user.zod";
+import type { ServerStatsResponseType } from "../store/util/util.zod";
 import type { IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
 // eslint-disable-next-line import/no-cycle
 import { Server } from "./apiClient";
@@ -59,6 +60,7 @@ export enum Endpoints {
   deleteFaces = "deleteFaces",
   notThisPerson = "notThisPerson",
   setFacesPersonLabel = "setFacesPersonLabel",
+  fetchServerStats = "fetchServerStats",
 }
 
 const baseQuery = fetchBaseQuery({
@@ -237,6 +239,11 @@ export const api = createApi({
         body: { person_name: personName, face_ids: faceIds },
       }),
     }),
+    [Endpoints.fetchServerStats]: builder.query<ServerStatsResponseType, void>({
+      query: () => ({
+        url: `serverstats`,
+      }),
+    }),
   }),
 });
 
@@ -260,4 +267,5 @@ export const {
   useDeleteUserMutation,
   useManageUpdateUserMutation,
   useIsFirstTimeSetupQuery,
+  useFetchServerStatsQuery,
 } = api;

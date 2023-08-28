@@ -398,7 +398,9 @@
     "titledeleteuser": "Delete User",
     "cannotbeundone": "This action cannot be undone.",
     "cannotdeleteadmin": "Cannot delete admin user",
-    "addnewuser": "Add New User"
+    "addnewuser": "Add New User",
+    "download": "Download",
+    "downloadserverstats": "Download Server Stats"
   },
   "joblist": {
     "workerlogs": "Worker Logs",

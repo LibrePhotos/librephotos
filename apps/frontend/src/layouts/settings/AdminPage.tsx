@@ -1,16 +1,4 @@
-import {
-  ActionIcon,
-  Button,
-  Card,
-  Container,
-  Flex,
-  Group,
-  Loader,
-  Space,
-  Stack,
-  Table,
-  Title,
-} from "@mantine/core";
+import { ActionIcon, Button, Card, Container, Flex, Group, Loader, Space, Stack, Table, Title } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
@@ -18,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Adjustments, Edit, Plus, Trash } from "tabler-icons-react";
 
 import { deleteAllAutoAlbum } from "../../actions/albumsActions";
-import { useFetchUserListQuery } from "../../api_client/api";
+import { useFetchServerStatsQuery, useFetchUserListQuery } from "../../api_client/api";
 import { JobList } from "../../components/job/JobList";
 import { ModalUserDelete } from "../../components/modals/ModalUserDelete";
 import { ModalUserEdit } from "../../components/modals/ModalUserEdit";
@@ -34,6 +22,7 @@ function UserTable(props: any) {
   const [createNewUser, setCreateNewUser] = useState(false);
 
   const { data: userList } = useFetchUserListQuery();
+
   const fetchingUserList = useAppSelector(state => state.util.fetchingUserList);
 
   const matches = useMediaQuery("(min-width: 700px)");
@@ -111,21 +100,20 @@ function UserTable(props: any) {
         </tbody>
       </Table>
       <Flex justify="flex-end" mt={10}>
-      <Button
-        size="sm"
-        color="green"
-        variant="outline"
-        leftIcon={<Plus />}
-        onClick={() => {
-          setCreateNewUser(true);
-          setUserToEdit({});
-          setUserModalOpen(true);
-        }}
-      >
-        {t("adminarea.addnewuser")}
-      </Button>
+        <Button
+          size="sm"
+          color="green"
+          variant="outline"
+          leftIcon={<Plus />}
+          onClick={() => {
+            setCreateNewUser(true);
+            setUserToEdit({});
+            setUserModalOpen(true);
+          }}
+        >
+          {t("adminarea.addnewuser")}
+        </Button>
       </Flex>
-
 
       <ModalUserEdit
         onRequestClose={() => {
@@ -150,7 +138,26 @@ function UserTable(props: any) {
 export function AdminPage() {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
+  const { data: serverStats } = useFetchServerStatsQuery();
 
+  const downloadFile = () => {
+    // create file in browser
+    const fileName = "serverstats";
+    const json = JSON.stringify(serverStats, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const href = URL.createObjectURL(blob);
+
+    // create "a" HTLM element with href to file
+    const link = document.createElement("a");
+    link.href = href;
+    link.download = fileName + ".json";
+    document.body.appendChild(link);
+    link.click();
+
+    // clean up "a" element & remove ObjectURL
+    document.body.removeChild(link);
+    URL.revokeObjectURL(href);
+  };
   const { t } = useTranslation();
 
   if (!auth.access.is_admin) {
@@ -170,13 +177,21 @@ export function AdminPage() {
         <SiteSettings />
 
         <Card shadow="md">
-          <Title order={4} mb={16}>
-            {t("adminarea.admintools")}
-          </Title>
-          <Flex justify="space-between">
-            <>{t("adminarea.deleteallautoalbums")}</>
-            <Button onClick={() => dispatch(deleteAllAutoAlbum())} variant="outline">{t("adminarea.delete")}</Button>
-          </Flex>
+          <Stack>
+            <Title order={4} mb={16}>
+              {t("adminarea.admintools")}
+            </Title>
+            <Flex justify="space-between">
+              <>{t("adminarea.deleteallautoalbums")}</>
+              <Button onClick={() => dispatch(deleteAllAutoAlbum())} variant="outline">
+                {t("adminarea.delete")}
+              </Button>
+            </Flex>
+            <Flex justify="space-between">
+              <div>{t("adminarea.downloadserverstats")}</div>
+              <Button onClick={() => downloadFile()}>{t("adminarea.download")}</Button>
+            </Flex>
+          </Stack>
         </Card>
 
         <UserTable />
