@@ -370,7 +370,9 @@
         "deleteuserconfirmexplanation": "Ви збираєтеся видалити такого користувача: {{username}}. Також буде видалено всі пов'язані з ним дані.",
         "cannotdeleteadmin": "Неможливо видалити користувача admin",
         "minimumconfidence": "Мінімальна впевненість",
-        "delete": "Видалити"
+        "delete": "Видалити",
+        "downloadserverstats": "Статистика сервера завантаження",
+        "download": "Звантажити"
     },
     "joblist": {
         "reload": "Перевантаження",
