@@ -92,7 +92,7 @@
         },
         "eventsalbumsdescription": "Serwer przetwarzający w tle najpierw pogrupuje zdjęcia według czasu wykonania. Jeśli dwa kolejne zdjęcia zostaną zrobione w odstępie 12 godzin od siebie, uważa się, że dwa zdjęcia pochodzą z tego samego wydarzenia. Po ułożeniu grup w ten sposób automatycznie generuje tytuł dla tego albumu.",
         "eventalbumsregenerate": "Regeneruj tytuły wydarzeń",
-        "facesbutton": "Wytrenuj twarze",
+        "facesbutton": "Wytrenuj",
         "rescanfaces": "Przeskanuj ponownie",
         "sceneconfidence": "Pewność dla scen",
         "confidencelevel": "Poziom zaufania",
@@ -174,7 +174,19 @@
         "models": {
             "hog": "HOG",
             "cnn": "CNN"
-        }
+        },
+        "urdu": "Urdu",
+        "size": {
+            "auto": "Automatyczny",
+            "small": "Mały",
+            "normal": "Normalny",
+            "high": "Duży",
+            "off": "Wyłączony",
+            "veryhigh": "Bardzo duży"
+        },
+        "min_cluster_size": "Minimalny rozmiar klastra",
+        "min_samples": "Minimalna liczba próbek",
+        "unknown_faces_confidence": "Pewność podczas dopasowywania nieznanych - inne twarze"
     },
     "topmenu": {
         "loggedin": "Zalogowany jako",
@@ -233,7 +245,7 @@
     },
     "sitesettings": {
         "headerskippatterns": "Ignorowane wzorce",
-        "skippatterns": " Lista wzorców do zignorowania oddzielona przecinkami (np. '@eaDir,#recycle' dla urządzeń synology)",
+        "skippatterns": " Lista wzorców do zignorowania oddzielona przecinkami (np. '@eaDir,#recycle' dla urządzeń Synology)",
         "header": "Zezwól na rejestrację nowych użytkowników",
         "allow": "Zezwól",
         "noallow": "Nie zezwalaj",
@@ -305,7 +317,9 @@
         "titledeleteuser": "Usuń użytkownika",
         "cannotbeundone": "Tej operacji nie da się odwrócić.",
         "cannotdeleteadmin": "Nie można usunąć administratora",
-        "delete": "Usuń"
+        "delete": "Usuń",
+        "download": "Pobierz",
+        "downloadserverstats": "Statystyki serwera pobierania"
     },
     "metadata": "Opcje metadanych",
     "defaulttimezone": "Domyślna strefa czasowa",
@@ -381,7 +395,7 @@
         "create": "Stwórz",
         "items": "{{count}} obiekt(ów)",
         "alreadyexists": "Album {{title}} już istnieje.",
-        "selectedimages": "Dodaj {{count}} wybranych zdjęć do...",
+        "selectedimages": "Dodaj {{count}} wybranych zdjęć do…",
         "updated": "Zaktualizowano {{duration}}"
     },
     "exif": {
@@ -629,5 +643,6 @@
     "locationstimeline": {
         "fromto": "{{location}} od {{start}} do {{end}}"
     },
-    "docs": "Dokumentacja"
+    "docs": "Dokumentacja",
+    "deletealbumexplanation": "To działanie na trwałe usunie ten album. Tego działania nie da się cofnąć."
 }
