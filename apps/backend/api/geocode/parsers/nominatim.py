@@ -17,5 +17,5 @@ def parse(location):
         "features": [{"text": place} for place in places],
         "places": places,
         "address": location.address,
-        "center": [float(location.raw["lon"]), float(location.raw["lat"])],
+        "center": [float(location.raw["lat"]), float(location.raw["lon"])],
     }

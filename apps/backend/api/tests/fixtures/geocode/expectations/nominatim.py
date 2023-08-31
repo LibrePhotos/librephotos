@@ -19,7 +19,7 @@ expectations = [
             "Australia",
         ],
         "address": "17, Beach Road, Seven Ways, Bondi Beach, Eastern Suburbs, Sydney, Waverley Council, New South Wales, 2026, Australia",
-        "center": [151.27521180010973, -33.88801645],
+        "center": [-33.88801645, 151.27521180010973],
     },
     {
         "features": [
@@ -37,7 +37,7 @@ expectations = [
             "Canada",
         ],
         "address": "3118, Fire Route 47, Selwyn, Peterborough County, Central Ontario, Ontario, K0L 2C0, Canada",
-        "center": [-78.19571323702382, 44.55373905094425],
+        "center": [44.55373905094425, -78.19571323702382],
     },
     {
         "features": [
@@ -55,7 +55,7 @@ expectations = [
             "Deutschland",
         ],
         "address": "Tempodrom, 10, Möckernstraße, Kreuzberg, Friedrichshain-Kreuzberg, Berlin, 10963, Deutschland",
-        "center": [13.381190860617572, 52.501606300000006],
+        "center": [52.501606300000006, 13.381190860617572],
     },
     {
         "features": [
@@ -73,7 +73,7 @@ expectations = [
             "India",
         ],
         "address": "Camp Water Mark, Lakeshore road, Spangmik, Leh Tehsil, Leh District, Ladakh, India",
-        "center": [78.4571752, 33.9132578],
+        "center": [33.9132578, 78.4571752],
     },
     {
         "features": [
@@ -93,7 +93,7 @@ expectations = [
             "Australia",
         ],
         "address": "Mahon Pool, Marine Parade, Maroubra, Eastern Suburbs, Sydney, Randwick City Council, New South Wales, 2035, Australia",
-        "center": [151.26386704076833, -33.9430026],
+        "center": [-33.9430026, 151.26386704076833],
     },
     {
         "features": [
@@ -105,6 +105,6 @@ expectations = [
         ],
         "places": ["Main Bazaar", "Leh", "Leh Tehsil", "Ladakh", "India"],
         "address": "Dry Fruit Market, Main Bazaar, Matsik Chulung, Leh, Leh Tehsil, Leh District, Ladakh, India",
-        "center": [77.585862, 34.1621176],
+        "center": [34.1621176, 77.585862],
     },
 ]

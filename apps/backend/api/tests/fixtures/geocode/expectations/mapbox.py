@@ -15,7 +15,7 @@ expectations = [
             "Australia",
         ],
         "address": "17 Beach Road, Bondi Beach New South Wales 2026, Australia",
-        "center": [-33.888012425, 151.275216500055],
+        "center": [151.275216500055, -33.888012425],
     },
     {
         "features": [
@@ -33,7 +33,7 @@ expectations = [
             "Canada",
         ],
         "address": "2880 Fire Route 47, Lakefield, Ontario K0L 2H0, Canada",
-        "center": [44.5540639, -78.1955566],
+        "center": [-78.1955566, 44.5540639],
     },
     {
         "features": [
@@ -44,7 +44,7 @@ expectations = [
         ],
         "places": ["Roncalli", "Kreuzberg", "Berlin", "Germany"],
         "address": "Roncalli, Mckernstr, Berlin, 10963, Germany",
-        "center": [52.501711, 13.381502],
+        "center": [13.381502, 52.501711],
     },
     {
         "features": [
@@ -64,7 +64,7 @@ expectations = [
             "India",
         ],
         "address": "Lakeshore Road ، 194201 Leh، India",
-        "center": [33.913368523661, 78.45710763764029],
+        "center": [78.45710763764029, 33.913368523661],
     },
     {
         "features": [
@@ -82,7 +82,7 @@ expectations = [
             "Australia",
         ],
         "address": "Mahon Rock Pool, Marine Pde., Sydney, New South Wales, Australia",
-        "center": [-33.94292, 151.263303],
+        "center": [151.263303, -33.94292],
     },
     {
         "features": [
@@ -102,6 +102,6 @@ expectations = [
             "India",
         ],
         "address": "Main Bazaar ، 194101 Leh، India",
-        "center": [34.1622089, 77.585527],
+        "center": [77.585527, 34.1622089],
     },
 ]

@@ -9,5 +9,5 @@ def parse(location):
         "features": [{"text": place} for place in places],
         "places": places,
         "address": location.address,
-        "center": [center[1], center[0]],
+        "center": [center[0], center[1]],
     }
