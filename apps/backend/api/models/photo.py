@@ -622,6 +622,7 @@ class Photo(models.Model):
             for region in region_info["RegionList"]:
                 if region.get("Type") != "Face":
                     continue
+
                 # Find person with the name of the region with get_or_create
                 if region.get("Name"):
                     person = api.models.person.get_or_create_person(
@@ -636,15 +637,50 @@ class Photo(models.Model):
                     image_width = image.shape[1]
                     image_height = image.shape[0]
                     area = region["Area"]
+                    if not area.get("X") or not isinstance(
+                        area.get("X"), numbers.Number
+                    ):
+                        logger.info(
+                            f"Broken face area exif data! region_info: {region_info}"
+                        )
+                        continue
+                    if not area.get("Y") or not isinstance(
+                        area.get("Y"), numbers.Number
+                    ):
+                        logger.info(
+                            f"Broken face area exif data! region_info: {region_info}"
+                        )
+                        continue
+                    if not area.get("W") or not isinstance(
+                        area.get("W"), numbers.Number
+                    ):
+                        logger.info(
+                            f"Broken face area exif data! region_info: {region_info}"
+                        )
+                        continue
+                    if not area.get("H") or not isinstance(
+                        area.get("H"), numbers.Number
+                    ):
+                        logger.info(
+                            f"Broken face area exif data! region_info: {region_info}"
+                        )
+                        continue
+
+                    correct_w = float(area["W"])
+                    correct_h = float(area["H"])
+
+                    correct_x = float(area["X"])
+                    correct_y = float(area["Y"])
+
                     # Calculate the half-width and half-height of the box
-                    half_width = area["W"] * image_width / 2
-                    half_height = area["H"] * image_height / 2
+                    half_width = correct_w * image_width / 2
+                    half_height = correct_h * image_height / 2
 
                     # Calculate the top, right, bottom, and left coordinates
-                    top = int((area["Y"] * image_height) - half_height)
-                    right = int((area["X"] * image_width) + half_width)
-                    bottom = int((area["Y"] * image_height) + half_height)
-                    left = int((area["X"] * image_width) - half_width)
+                    top = int((correct_y * image_height) - half_height)
+                    right = int((correct_x * image_width) + half_width)
+                    bottom = int((correct_y * image_height) + half_height)
+                    left = int((correct_x * image_width) - half_width)
 
                 face_image = image[top:bottom, left:right]
                 face_image = PIL.Image.fromarray(face_image)
