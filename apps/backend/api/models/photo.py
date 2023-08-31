@@ -16,6 +16,7 @@ import api.date_time_extractor as date_time_extractor
 import api.models
 import api.util as util
 from api.exif_tags import Tags
+from api.geocode.geocode import reverse_geocode
 from api.im2txt.sample import im2txt
 from api.models.file import File
 from api.models.user import User, get_deleted_user
@@ -448,30 +449,23 @@ class Photo(models.Model):
         self.exif_gps_lat = float(new_gps_lat)
         if commit:
             self.save()
-        # Skip if the request fails or is empty
-        res = None
         try:
-            res = util.mapbox_reverse_geocode(new_gps_lat, new_gps_lon)
-            if not res or len(res) == 0:
-                return
-            if "features" not in res.keys():
+            res = reverse_geocode(new_gps_lat, new_gps_lon)
+            if not res:
                 return
         except Exception as e:
             util.logger.exception("something went wrong with geolocating")
             raise e
 
         self.geolocation_json = res
-        if "search_text" in res.keys():
-            if self.search_location:
-                self.search_location = self.search_location + " " + res["search_text"]
-            else:
-                self.search_location = res["search_text"]
-        # Delete photo from album places if location has changed
+        self.search_location = res["address"]
 
+        # Delete photo from album places if location has changed
         if old_album_places is not None:
             for old_album_place in old_album_places:
                 old_album_place.photos.remove(self)
                 old_album_place.save()
+
         # Add photo to new album places
         for geolocation_level, feature in enumerate(self.geolocation_json["features"]):
             if "text" not in feature.keys() or feature["text"].isnumeric():
@@ -493,11 +487,7 @@ class Photo(models.Model):
         if not self.geolocation_json:
             return
         album_date = self._find_album_date()
-        city_name = [
-            f["text"]
-            for f in self.geolocation_json["features"][1:-1]
-            if not f["text"].isdigit()
-        ][0]
+        city_name = self.geolocation_json["city"]
         if album_date.location and len(album_date.location) > 0:
             prev_value = album_date.location
             new_value = prev_value
