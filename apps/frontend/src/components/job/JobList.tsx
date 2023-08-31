@@ -6,12 +6,11 @@ import { useTranslation } from "react-i18next";
 import { AlertCircle } from "tabler-icons-react";
 
 import { JobsResponseSchema, useJobsQuery } from "../../api_client/admin-jobs";
-import i18n from "../../i18n";
+import { i18nResolvedLanguage } from "../../i18n";
 import { DeleteJobButton } from "./DeleteJobButton";
 import { JobDuration } from "./JobDuration";
 import { JobIndicator } from "./JobIndicator";
 import { JobProgress } from "./JobProgress";
-
 
 export function JobList() {
   const { t } = useTranslation();
@@ -37,7 +36,7 @@ export function JobList() {
       <Title order={3} mb={20}>
         {t("joblist.workerlogs")} {isLoading ? <Loader size="xs" /> : null}
       </Title>
-      <Alert icon={<AlertCircle/>} title='Removing entries' mb={20}>
+      <Alert icon={<AlertCircle />} title="Removing entries" mb={20}>
         {t("joblist.removeexplanation")}
       </Alert>
       <Table striped highlightOnHover verticalSpacing="xs">
@@ -74,14 +73,10 @@ export function JobList() {
               </td>
               {matches && (
                 <>
-                  <td>
-                    {DateTime.fromISO(job.queued_at).setLocale(i18n.resolvedLanguage.replace("_", "-")).toRelative()}
-                  </td>
+                  <td>{DateTime.fromISO(job.queued_at).setLocale(i18nResolvedLanguage).toRelative()}</td>
                   <td>
                     {job.started_at
-                      ? DateTime.fromISO(job.started_at!)
-                          .setLocale(i18n.resolvedLanguage.replace("_", "-"))
-                          .toRelative()
+                      ? DateTime.fromISO(job.started_at!).setLocale(i18nResolvedLanguage).toRelative()
                       : ""}
                   </td>
                 </>
@@ -102,12 +97,12 @@ export function JobList() {
         </tbody>
       </Table>
       <Flex justify="center" mt={20}>
-      <Pagination
-        page={activePage}
-        total={Math.ceil(+jobCount.toFixed(1) / pageSize)}
-        onChange={newPage => setActivePage(newPage)}
-        withEdges
-      />
+        <Pagination
+          page={activePage}
+          total={Math.ceil(+jobCount.toFixed(1) / pageSize)}
+          onChange={newPage => setActivePage(newPage)}
+          withEdges
+        />
       </Flex>
     </Card>
   );

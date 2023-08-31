@@ -13,7 +13,7 @@ import { photoDetailsApi } from "../../api_client/photos/photoDetail";
 import { AlbumLocationMap } from "../../components/AlbumLocationMap";
 import { Tile } from "../../components/Tile";
 import { LightBox } from "../../components/lightbox/LightBox";
-import i18n from "../../i18n";
+import { i18nResolvedLanguage } from "../../i18n";
 import { useAppDispatch } from "../../store/store";
 import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
 import { HeaderComponent } from "./HeaderComponent";
@@ -62,9 +62,7 @@ export function AlbumAutoGalleryView() {
   useEffect(() => {}, [album]);
 
   function formatTimestamp(timestamp: string): string {
-    return DateTime.fromISO(timestamp)
-      .setLocale(i18n.resolvedLanguage.replace("_", "-"))
-      .toLocaleString(DateTime.DATE_MED);
+    return DateTime.fromISO(timestamp).setLocale(i18nResolvedLanguage).toLocaleString(DateTime.DATE_MED);
   }
 
   if (isFetching || !album) {
@@ -151,9 +149,7 @@ export function AlbumAutoGalleryView() {
                   <div>
                     <Title order={5}>
                       {t("autoalbumgallery.day", { day: i + 1 })} -{" "}
-                      {DateTime.fromISO(v[0])
-                        .setLocale(i18n.resolvedLanguage.replace("_", "-"))
-                        .toLocaleString(DateTime.DATE_HUGE)}
+                      {DateTime.fromISO(v[0]).setLocale(i18nResolvedLanguage).toLocaleString(DateTime.DATE_HUGE)}
                     </Title>
                     <Text color="dimmed">
                       <Breadcrumbs separator="/">{uniqueLocations}</Breadcrumbs>

@@ -7,7 +7,7 @@ import { Share, ShareOff } from "tabler-icons-react";
 import { setPhotosShared } from "../../actions/photosActions";
 import { fetchPublicUserList } from "../../actions/publicActions";
 import { serverAddress } from "../../api_client/apiClient";
-import i18n from "../../i18n";
+import { i18nResolvedLanguage } from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 function fuzzyMatch(str: string, pattern: string) {
@@ -98,9 +98,7 @@ export function ModalPhotosShare(props: Props) {
                         <Title order={4}>{displayName}</Title>
                         <Text size="sm" color="dimmed">
                           {t("modalphotosshare.joined")}{" "}
-                          {DateTime.fromISO(item.date_joined)
-                            .setLocale(i18n.resolvedLanguage.replace("_", "-"))
-                            .toRelative()}
+                          {DateTime.fromISO(item.date_joined).setLocale(i18nResolvedLanguage).toRelative()}
                         </Text>
                       </div>
                     </Group>

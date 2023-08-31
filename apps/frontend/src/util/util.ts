@@ -5,7 +5,7 @@ import { DateTime } from "luxon";
 import type { UserPhotosGroup } from "../actions/photosActions";
 import type { DatePhotosGroup, IncompleteDatePhotosGroup, PigPhoto } from "../actions/photosActions.types";
 import type { DirTree } from "../api_client/dir-tree";
-import i18n from "../i18n";
+import i18n, { i18nResolvedLanguage } from "../i18n";
 
 export const EMAIL_REGEX = /^\w+([-.]?\w+){0,2}(\+?\w+([-.]?\w+){0,2})?@(\w+-?\w+\.){1,9}[a-z]{2,}$/;
 
@@ -34,7 +34,7 @@ export function formatDateForPhotoGroups(photoGroups: DatePhotosGroup[]): DatePh
         ...photoGroup,
         year: date.year,
         month: date.month,
-        date: date.setLocale(i18n.resolvedLanguage.replace("_", "-")).toLocaleString(DateTime.DATE_HUGE),
+        date: date.setLocale(i18nResolvedLanguage).toLocaleString(DateTime.DATE_HUGE),
       };
     }
     return photoGroup;

@@ -7,7 +7,7 @@ import { push } from "redux-first-history";
 import { Calendar, ChevronDown, Clock, EyeOff, Globe, Star } from "tabler-icons-react";
 
 import { useFetchUserListQuery } from "../../api_client/api";
-import i18n from "../../i18n";
+import { i18nResolvedLanguage } from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
 
@@ -166,9 +166,7 @@ export function DefaultHeader(props: Props) {
           <b>
             {dayHeaderPrefix}
             {DateTime.fromISO(date).isValid
-              ? DateTime.fromISO(date)
-                  .setLocale(i18n.resolvedLanguage.replace("_", "-"))
-                  .toLocaleString(DateTime.DATE_HUGE)
+              ? DateTime.fromISO(date).setLocale(i18nResolvedLanguage).toLocaleString(DateTime.DATE_HUGE)
               : date}
           </b>
         </Text>

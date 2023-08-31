@@ -10,7 +10,7 @@ import { DotsVertical, SettingsAutomation, Trash } from "tabler-icons-react";
 import { useDeleteAutoAlbumMutation, useFetchAutoAlbumsQuery } from "../../api_client/albums/auto";
 import { Tile } from "../../components/Tile";
 import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";
-import i18n from "../../i18n";
+import { i18nResolvedLanguage } from "../../i18n";
 import { HeaderComponent } from "./HeaderComponent";
 
 export function AlbumAuto() {
@@ -38,9 +38,7 @@ export function AlbumAuto() {
     }
     const album = albums[index];
     const dateTimeLabel = DateTime.fromISO(album.timestamp).isValid
-      ? DateTime.fromISO(album.timestamp)
-          .setLocale(i18n.resolvedLanguage.replace("_", "-"))
-          .toLocaleString(DateTime.DATE_MED)
+      ? DateTime.fromISO(album.timestamp).setLocale(i18nResolvedLanguage).toLocaleString(DateTime.DATE_MED)
       : null;
 
     return (

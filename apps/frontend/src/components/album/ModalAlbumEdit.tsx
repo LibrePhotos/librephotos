@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { addToUserAlbum, createNewUserAlbum, fetchUserAlbumsList } from "../../actions/albumsActions";
-import i18n from "../../i18n";
+import { i18nResolvedLanguage } from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { fuzzyMatch } from "../../util/util";
 import { Tile } from "../Tile";
@@ -123,9 +123,7 @@ export function ModalAlbumEdit(props: Props) {
                       {t("modalalbum.items", { count: item.photo_count })}
                       <br />
                       {t("modalalbum.updated", {
-                        duration: DateTime.fromISO(item.created_on)
-                          .setLocale(i18n.resolvedLanguage.replace("_", "-"))
-                          .toRelative(),
+                        duration: DateTime.fromISO(item.created_on).setLocale(i18nResolvedLanguage).toRelative(),
                       })}
                       {}
                     </Text>

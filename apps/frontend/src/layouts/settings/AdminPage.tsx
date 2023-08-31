@@ -10,7 +10,7 @@ import { useFetchServerStatsQuery, useFetchUserListQuery } from "../../api_clien
 import { JobList } from "../../components/job/JobList";
 import { ModalUserDelete } from "../../components/modals/ModalUserDelete";
 import { ModalUserEdit } from "../../components/modals/ModalUserEdit";
-import i18n from "../../i18n";
+import { i18nResolvedLanguage } from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { SiteSettings } from "./SiteSettings";
 
@@ -88,11 +88,7 @@ function UserTable(props: any) {
                   {matches && <td>{user.confidence ? user.confidence : t("adminarea.notset")}</td>}
                   {matches && <td>{user.photo_count}</td>}
                   {matches && (
-                    <td>
-                      {DateTime.fromISO(user.date_joined)
-                        .setLocale(i18n.resolvedLanguage.replace("_", "-"))
-                        .toRelative()}
-                    </td>
+                    <td>{DateTime.fromISO(user.date_joined).setLocale(i18nResolvedLanguage).toRelative()}</td>
                   )}
                 </tr>
               ))

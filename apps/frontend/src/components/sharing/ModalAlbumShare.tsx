@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { fetchUserAlbum, setUserAlbumShared } from "../../actions/albumsActions";
 import { fetchPublicUserList } from "../../actions/publicActions";
-import i18n from "../../i18n";
+import { i18nResolvedLanguage } from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { fuzzyMatch } from "../../util/util";
 
@@ -100,7 +100,7 @@ export function UserEntry(props: UserEntryProps) {
           <Title order={4}>{displayName}</Title>
           <Text size="sm" color="dimmed">
             {t("modalphotosshare.joined")}{" "}
-            {DateTime.fromISO(item.date_joined).setLocale(i18n.resolvedLanguage.replace("_", "-")).toRelative()}
+            {DateTime.fromISO(item.date_joined).setLocale(i18nResolvedLanguage).toRelative()}
           </Text>
         </div>
       </Group>

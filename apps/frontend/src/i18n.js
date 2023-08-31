@@ -28,6 +28,8 @@ import translationVi from "./locales/vi/translation.json";
 import translationZh_Hans from "./locales/zh_Hans/translation.json";
 import translationZh_Hant from "./locales/zh_Hant/translation.json";
 
+export const i18nResolvedLanguage = i18n.resolvedLanguage ? i18n.resolvedLanguage.replace("_", "-") : "en";
+
 const resources = {
   en: {
     translation: translationEn,

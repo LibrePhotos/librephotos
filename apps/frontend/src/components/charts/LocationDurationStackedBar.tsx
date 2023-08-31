@@ -5,7 +5,7 @@ import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 
 import { fetchLocationTimeline } from "../../actions/utilActions";
-import i18n from "../../i18n";
+import { i18nResolvedLanguage } from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 const { Hint, XYPlot, XAxis, HorizontalBarSeries } = require("react-vis");
@@ -43,10 +43,10 @@ export function LocationDurationStackedBar() {
       return t("locationstimeline.fromto", {
         location: loc,
         start: DateTime.fromSeconds(start)
-          .setLocale(i18n.resolvedLanguage.replace("_", "-"))
+          .setLocale(i18nResolvedLanguage)
           .toLocaleString({ year: "numeric", month: "short" }),
         end: DateTime.fromSeconds(end)
-          .setLocale(i18n.resolvedLanguage.replace("_", "-"))
+          .setLocale(i18nResolvedLanguage)
           .toLocaleString({ year: "numeric", month: "short" }),
       });
     }
@@ -64,7 +64,7 @@ export function LocationDurationStackedBar() {
             <XAxis
               tickFormat={(v: any) =>
                 DateTime.fromSeconds(parseFloat(locationTimeline[0].start + v))
-                  .setLocale(i18n.resolvedLanguage.replace("_", "-"))
+                  .setLocale(i18nResolvedLanguage)
                   .toLocaleString({ year: "numeric", month: "2-digit" })
               }
             />

@@ -8,7 +8,7 @@ import "react-virtualized/styles.css";
 import { ArrowBackUp, Calendar, Check, Edit, X } from "tabler-icons-react";
 
 import { editPhoto } from "../../actions/photosActions";
-import i18n from "../../i18n";
+import { i18nResolvedLanguage } from "../../i18n";
 import { useAppDispatch } from "../../store/store";
 
 type Props = {
@@ -26,7 +26,7 @@ export function TimestampItem({ photoDetail }: Props) {
   const [editMode, setEditMode] = useState(false);
 
   const { t } = useTranslation();
-  const lang = i18n.resolvedLanguage.replace("_", "-");
+  const lang = i18nResolvedLanguage;
   import(`dayjs/locale/${lang}.js`);
 
   const dispatch = useAppDispatch();
