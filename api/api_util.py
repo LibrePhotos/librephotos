@@ -725,23 +725,15 @@ def get_location_clusters(user):
     start = datetime.now()
     with connection.cursor() as cursor:
         raw_sql = """
-            SELECT
-                DISTINCT ON (jsonb_extract_path_text("feature", 'text')) jsonb_extract_path_text("feature", 'text') "location"
-                , jsonb_extract_path_text("feature", 'center', '0')
-                , jsonb_extract_path_text("feature", 'center', '1')
-            FROM
-                "api_photo"
-                , jsonb_array_elements(jsonb_extract_path("api_photo"."geolocation_json", 'features')) "feature"
-            WHERE (
-                "api_photo"."owner_id" = %s
-                AND NOT (jsonb_extract_path_text("feature", 'text') ~ '^(-)?[0-9]+$')
-            )
-            ORDER BY
-                "location";
+            SELECT DISTINCT place,
+                (geolocation_json->'center'->>0)::numeric AS latitude,
+                (geolocation_json->'center'->>1)::numeric AS longitude
+            FROM api_photo, jsonb_array_elements_text(geolocation_json->'places') AS place
+            WHERE owner_id = %s
+            ORDER BY place;
         """
         cursor.execute(raw_sql, [user.id])
-        res = [[float(row[2]), float(row[1]), row[0]] for row in cursor.fetchall()]
-
+        res = [[float(row[1]), float(row[2]), row[0]] for row in cursor.fetchall()]
         elapsed = (datetime.now() - start).total_seconds()
         logger.info("location clustering took %.2f seconds" % elapsed)
         return res
