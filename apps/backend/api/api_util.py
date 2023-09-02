@@ -84,21 +84,20 @@ def jump_by_month(start_date, end_date, month_step=1):
 
 
 def get_location_timeline(user):
-    city_start_end_duration = []
     with connection.cursor() as cursor:
         raw_sql = """
             WITH data AS (
                 SELECT
-                    jsonb_extract_path_text("features", '-1', 'text') "location"
+                    jsonb_extract_path_text("places", '-1') "location"
                     , "api_photo"."exif_timestamp"
                     , ROW_NUMBER() OVER(ORDER BY "api_photo"."exif_timestamp") "unique_order"
                 FROM
                     "api_photo"
-                    , jsonb_extract_path("api_photo"."geolocation_json", 'features') "features"
+                    , jsonb_extract_path("api_photo"."geolocation_json", 'places') "places"
                 WHERE
                     (
                         "api_photo"."exif_timestamp" IS NOT NULL
-                        AND jsonb_extract_path("features", '-1', 'text') IS NOT NULL
+                        AND jsonb_extract_path("places", '-1') IS NOT NULL
                         AND "api_photo"."owner_id" = %s
                     )
                 ORDER BY
