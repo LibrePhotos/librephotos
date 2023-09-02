@@ -1,7 +1,6 @@
 import os
 import random
 import stat
-from collections import Counter
 from datetime import datetime
 
 import numpy as np
@@ -736,27 +735,6 @@ def get_location_clusters(user):
         elapsed = (datetime.now() - start).total_seconds()
         logger.info("location clustering took %.2f seconds" % elapsed)
         return res
-
-
-def get_photo_country_counts(user):
-    with connection.cursor() as cursor:
-        raw_sql = """
-            SELECT
-                DISTINCT ON(jsonb_extract_path("feature", 'place_name')) jsonb_extract_path("feature", 'place_name') "place_name"
-                , COUNT(jsonb_extract_path("feature", 'place_name'))
-            FROM
-                "api_photo"
-                , jsonb_array_elements(jsonb_extract_path("api_photo"."geolocation_json", 'features')) "feature"
-            WHERE
-                (
-                    "api_photo"."owner_id" = %s
-                    AND jsonb_extract_path_text("feature", 'place_type', '0') = 'country'
-                )
-            GROUP BY
-                "place_name";
-        """
-        cursor.execute(raw_sql, [user.id])
-        return Counter({row[0]: row[1] for row in cursor.fetchall()})
 
 
 def get_location_sunburst(user):
