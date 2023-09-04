@@ -577,7 +577,7 @@ export function generatePhotoIm2txtCaption(image_hash: string) {
       .then(() => {
         dispatch({ type: "GENERATE_PHOTO_CAPTION_FULFILLED" });
         // @ts-ignore
-        dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hashes[0])).refetch();
+        dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hash)).refetch();
       })
       .catch(error => {
         dispatch({ type: "GENERATE_PHOTO_CAPTION_REJECTED" });
@@ -592,7 +592,7 @@ export function savePhotoCaption(image_hash: string, caption?: string | undefine
       .then(() => {
         dispatch({ type: "SAVE_PHOTO_CAPTION_FULFILLED" });
         // @ts-ignore
-        dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hashes[0])).refetch();
+        dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hash)).refetch();
         showNotification({
           message: i18n.t<string>("toasts.savecaptions"),
           title: i18n.t<string>("toasts.captionupdate"),
