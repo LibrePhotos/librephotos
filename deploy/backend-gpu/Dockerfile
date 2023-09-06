@@ -1,5 +1,5 @@
 FROM reallibrephotos/librephotos-base-gpu:dev
-# actual project
+
 ARG DEBUG
 ARG IMAGE_TAG
 ENV IMAGE_TAG ${IMAGE_TAG}
