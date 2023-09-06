@@ -52,7 +52,6 @@ RUN apt-get update && \
 	rustc \
 	cargo \
 	libtinfo5 \
-	libjxl-dev \
 	libvips-dev \
 	swig && \
 	apt-get clean && \
