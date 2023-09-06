@@ -1,5 +1,6 @@
 FROM reallibrephotos/librephotos-base-gpu:dev
 
+# Debug flag is more like a dev flag
 ARG DEBUG
 ARG IMAGE_TAG
 ENV IMAGE_TAG ${IMAGE_TAG}
