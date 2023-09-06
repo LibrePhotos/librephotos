@@ -14,7 +14,7 @@ import { i18nResolvedLanguage } from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { SiteSettings } from "./SiteSettings";
 
-function UserTable(props: any) {
+function UserTable() {
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState({});
@@ -134,7 +134,7 @@ function UserTable(props: any) {
 export function AdminPage() {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
-  const { data: serverStats } = useFetchServerStatsQuery();
+  const { data: serverStats, isLoading } = useFetchServerStatsQuery();
 
   const downloadFile = () => {
     // create file in browser
@@ -146,7 +146,7 @@ export function AdminPage() {
     // create "a" HTLM element with href to file
     const link = document.createElement("a");
     link.href = href;
-    link.download = fileName + ".json";
+    link.download = `${fileName}.json`;
     document.body.appendChild(link);
     link.click();
 
@@ -185,7 +185,9 @@ export function AdminPage() {
             </Flex>
             <Flex justify="space-between">
               <div>{t("adminarea.downloadserverstats")}</div>
-              <Button onClick={() => downloadFile()}>{t("adminarea.download")}</Button>
+              <Button loading={isLoading} onClick={() => downloadFile()}>
+                {t("adminarea.download")}
+              </Button>
             </Flex>
           </Stack>
         </Card>
