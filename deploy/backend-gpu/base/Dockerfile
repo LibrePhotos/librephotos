@@ -7,7 +7,7 @@ RUN apt-get update \
 	&& apt-get install -y python3-pip python3-dev \
 	&& cd /usr/local/bin \
 	&& ln -s /usr/bin/python3 python \
-	&& pip3 install --upgrade --break-system-packages pip \
+	&& pip3 install --upgrade pip \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/*
 
@@ -67,9 +67,9 @@ RUN curl -SL https://exiftool.org/Image-ExifTool-12.64.tar.gz | tar -xz && \
 	rm -rf /tmp/exiftool
 
 # Current Version: pytorch 2.0.1
-RUN pip3 install --no-cache-dir --break-system-packages torch torchvision
+RUN pip3 install --no-cache-dir torch torchvision
 
-RUN pip3 install --no-cache-dir --break-system-packages cmake==3.21.2
+RUN pip3 install --no-cache-dir cmake==3.21.2
 
 #Build and install libraw, supports more RAW image types
 WORKDIR /tmp/builds
