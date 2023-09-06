@@ -1,4 +1,4 @@
-name: backend
+name: backend-gpu
 
 on:
   release:

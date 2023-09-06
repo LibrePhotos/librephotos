@@ -1,4 +1,4 @@
-name: backend-base
+name: backend-base-gpu
 
 on:
   push:
