@@ -36,7 +36,7 @@
     "prop-types": "^15.7.2",
     "react": "^18.2.0",
     "react-i18next": "^12.2.0",
-    "react-native": "^0.71.3",
+    "react-native": "^0.72.0",
     "react-native-blob-util": "^0.17.2",
     "react-native-device-info": "^10.4.0",
     "react-native-file-access": "^2.5.2",
