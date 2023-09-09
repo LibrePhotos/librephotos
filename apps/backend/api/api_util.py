@@ -87,16 +87,16 @@ def get_location_timeline(user):
         raw_sql = """
             WITH data AS (
                 SELECT
-                    jsonb_extract_path_text("places", '-1') "location"
+                    jsonb_extract_path_text("features", '-1', 'text') "location"
                     , "api_photo"."exif_timestamp"
                     , ROW_NUMBER() OVER(ORDER BY "api_photo"."exif_timestamp") "unique_order"
                 FROM
                     "api_photo"
-                    , jsonb_extract_path("api_photo"."geolocation_json", 'places') "places"
+                    , jsonb_extract_path("api_photo"."geolocation_json", 'features') "features"
                 WHERE
                     (
                         "api_photo"."exif_timestamp" IS NOT NULL
-                        AND jsonb_extract_path("places", '-1') IS NOT NULL
+                        AND jsonb_extract_path("features", '-1', 'text') IS NOT NULL
                         AND "api_photo"."owner_id" = %s
                     )
                 ORDER BY
@@ -723,12 +723,19 @@ def get_location_clusters(user):
     start = datetime.now()
     with connection.cursor() as cursor:
         raw_sql = """
-            SELECT DISTINCT place,
-                            jsonb_extract_path_text(geolocation_json, 'center', '0')::numeric AS latitude,
-                            jsonb_extract_path_text(geolocation_json, 'center', '1')::numeric AS longitude
-            FROM api_photo, jsonb_array_elements_text(jsonb_extract_path(geolocation_json, 'places')) place
-            WHERE owner_id = %s
-            ORDER BY place;
+            SELECT
+                DISTINCT ON (jsonb_extract_path_text("feature", 'text')) jsonb_extract_path_text("feature", 'text') "location"
+                , jsonb_extract_path_text("feature", 'center', '0')
+                , jsonb_extract_path_text("feature", 'center', '1')
+            FROM
+                "api_photo"
+                , jsonb_array_elements(jsonb_extract_path("api_photo"."geolocation_json", 'features')) "feature"
+            WHERE (
+                "api_photo"."owner_id" = %s
+                AND NOT (jsonb_extract_path_text("feature", 'text') ~ '^(-)?[0-9]+$')
+            )
+            ORDER BY
+                "location";
         """
         cursor.execute(raw_sql, [user.id])
         res = [[float(row[2]), float(row[1]), row[0]] for row in cursor.fetchall()]

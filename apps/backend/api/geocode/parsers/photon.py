@@ -12,10 +12,14 @@ def parse(location):
         "country",
     ]
     places = [data[prop] for prop in props if prop in data]
+    center = [
+        float(location.raw["geometry"]["coordinates"][0]),
+        float(location.raw["geometry"]["coordinates"][1]),
+    ]
     return {
-        "features": [{"text": place} for place in places],
+        "features": [{"text": place, "center": center} for place in places],
         "places": places,
         "address": location.address,
-        "center": location.raw["geometry"]["coordinates"],
+        "center": center,
         "_v": GEOCODE_VERSION,
     }

@@ -33,7 +33,7 @@ def parse(location):
         [data[prop] for prop in props if prop in data and len(data[prop]) > 2]
     )
     return {
-        "features": [{"text": place} for place in places],
+        "features": [{"text": place, "center": center} for place in places],
         "places": places,
         "address": address,
         "center": center,
