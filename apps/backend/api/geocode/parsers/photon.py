@@ -1,3 +1,6 @@
+from api.geocode import GEOCODE_VERSION
+
+
 def parse(location):
     data = location.raw["properties"]
     props = [
@@ -14,4 +17,5 @@ def parse(location):
         "places": places,
         "address": location.address,
         "center": location.raw["geometry"]["coordinates"],
+        "_v": GEOCODE_VERSION,
     }
