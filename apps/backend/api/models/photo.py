@@ -616,7 +616,6 @@ class Photo(models.Model):
 
         if region_info:
             logger.debug(f"Extracted region_info for {self.main_file.path}")
-            # Log region_info
             logger.debug(f"region_info: {region_info}")
             # Extract faces
             for region in region_info["RegionList"]:
@@ -633,10 +632,25 @@ class Photo(models.Model):
                     person = api.models.person.get_unknown_person(owner=self.owner)
                 # Create face from the region infos
                 image = np.array(PIL.Image.open(self.thumbnail_big.path))
-                if region["Area"]["Unit"] == "normalized":
+                area = region.get("Area")
+                applied_to_dimensions = region.get("AppliedToDimensions")
+                if (area and area.get("Unit") == "normalized") or (applied_to_dimensions and applied_to_dimensions.get("Unit") == "pixel"):
+                    # To-Do: Not sure, when to use this instead of the thumbnail size tbh
+                    #if applied_to_dimensions:
+                    #    image_width = applied_to_dimensions.get("W")
+                    #    image_height = applied_to_dimensions.get("H")
+                    
+                    # To-Do: Rotation, this is already handled by thumbnail creation?!
+                    #if region.get("Rotation"):
+                    #    rotation = region.get("Rotation")
+                    #    if rotation == 90:
+                    #        image = np.rot90(image, 1)
+                    #    elif rotation == 180:
+                    #        image = np.rot90(image, 2)
+                    #    elif rotation == 270:
+                    #        image = np.rot90(image, 3)
                     image_width = image.shape[1]
                     image_height = image.shape[0]
-                    area = region["Area"]
                     if not area.get("X") or not isinstance(
                         area.get("X"), numbers.Number
                     ):
@@ -665,6 +679,8 @@ class Photo(models.Model):
                             f"Broken face area exif data! region_info: {region_info}"
                         )
                         continue
+
+                    
 
                     correct_w = float(area["W"])
                     correct_h = float(area["H"])
