@@ -16,6 +16,7 @@ import api.date_time_extractor as date_time_extractor
 import api.models
 import api.util as util
 from api.exif_tags import Tags
+from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
 from api.im2txt.sample import im2txt
 from api.models.file import File
@@ -426,7 +427,7 @@ class Photo(models.Model):
             self.save()
         album_date.save()
 
-    def _geolocate_mapbox(self, commit=True):
+    def _geolocate(self, commit=True):
         old_gps_lat = self.exif_gps_lat
         old_gps_lon = self.exif_gps_lon
         new_gps_lat, new_gps_lon = get_metadata(
@@ -443,6 +444,8 @@ class Photo(models.Model):
             and old_gps_lon == float(new_gps_lon)
             and old_album_places.count() != 0
             and self.geolocation_json
+            and "_v" in self.geolocation_json
+            and self.geolocation_json["_v"] == GEOCODE_VERSION
         ):
             return
         self.exif_gps_lon = float(new_gps_lon)
