@@ -639,7 +639,7 @@ class Photo(models.Model):
                     #if applied_to_dimensions:
                     #    image_width = applied_to_dimensions.get("W")
                     #    image_height = applied_to_dimensions.get("H")
-                    
+
                     # To-Do: Rotation, this is already handled by thumbnail creation?!
                     #if region.get("Rotation"):
                     #    rotation = region.get("Rotation")
@@ -679,8 +679,6 @@ class Photo(models.Model):
                             f"Broken face area exif data! region_info: {region_info}"
                         )
                         continue
-
-                    
 
                     correct_w = float(area["W"])
                     correct_h = float(area["H"])
@@ -762,7 +760,7 @@ class Photo(models.Model):
 
                     image_path = self.image_hash + "_" + str(idx_face) + ".jpg"
 
-                    margin = 2
+                    margin = int((right - left) * 0.05)
                     existing_faces = api.models.face.Face.objects.filter(
                         photo=self,
                         location_top__lte=face_location[0] + margin,
