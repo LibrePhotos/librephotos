@@ -1,6 +1,9 @@
+from api.geocode import GEOCODE_VERSION
+
+
 def parse(location):
     data = location.raw["components"]
-    center = location.raw["geometry"]
+    center = [location.raw["geometry"]["lat"], location.raw["geometry"]["lng"]]
     props = [
         data["_type"],
         "road",
@@ -15,8 +18,9 @@ def parse(location):
     ]
     places = [data[prop] for prop in props if prop in data]
     return {
-        "features": [{"text": place} for place in places],
+        "features": [{"text": place, "center": center} for place in places],
         "places": places,
         "address": location.address,
-        "center": [center["lat"], center["lng"]],
+        "center": center,
+        "_v": GEOCODE_VERSION,
     }

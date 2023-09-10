@@ -1,12 +1,15 @@
+from api.geocode import GEOCODE_VERSION
+
 expectations = [
     {
+        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Beach Road"},
-            {"text": "Bondi Beach"},
-            {"text": "Waverley Council"},
-            {"text": "Eastern Suburbs"},
-            {"text": "New South Wales"},
-            {"text": "Australia"},
+            {"text": "Beach Road", "center": [-33.8880165, 151.2752118]},
+            {"text": "Bondi Beach", "center": [-33.8880165, 151.2752118]},
+            {"text": "Waverley Council", "center": [-33.8880165, 151.2752118]},
+            {"text": "Eastern Suburbs", "center": [-33.8880165, 151.2752118]},
+            {"text": "New South Wales", "center": [-33.8880165, 151.2752118]},
+            {"text": "Australia", "center": [-33.8880165, 151.2752118]},
         ],
         "places": [
             "Beach Road",
@@ -20,24 +23,26 @@ expectations = [
         "center": [-33.8880165, 151.2752118],
     },
     {
+        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Fire Route 47"},
-            {"text": "Ontario"},
-            {"text": "Peterborough County"},
-            {"text": "Canada"},
+            {"text": "Fire Route 47", "center": [44.5537391, -78.1957132]},
+            {"text": "Ontario", "center": [44.5537391, -78.1957132]},
+            {"text": "Peterborough County", "center": [44.5537391, -78.1957132]},
+            {"text": "Canada", "center": [44.5537391, -78.1957132]},
         ],
         "places": ["Fire Route 47", "Ontario", "Peterborough County", "Canada"],
         "address": "3118 Fire Route 47, Selwyn, ON K0L 2C0, Canada",
         "center": [44.5537391, -78.1957132],
     },
     {
+        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Tempodrom"},
-            {"text": "Möckernstraße"},
-            {"text": "Kreuzberg"},
-            {"text": "Friedrichshain-Kreuzberg"},
-            {"text": "Berlin"},
-            {"text": "Germany"},
+            {"text": "Tempodrom", "center": [52.5016063, 13.3811909]},
+            {"text": "Möckernstraße", "center": [52.5016063, 13.3811909]},
+            {"text": "Kreuzberg", "center": [52.5016063, 13.3811909]},
+            {"text": "Friedrichshain-Kreuzberg", "center": [52.5016063, 13.3811909]},
+            {"text": "Berlin", "center": [52.5016063, 13.3811909]},
+            {"text": "Germany", "center": [52.5016063, 13.3811909]},
         ],
         "places": [
             "Tempodrom",
@@ -51,13 +56,14 @@ expectations = [
         "center": [52.5016063, 13.3811909],
     },
     {
+        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Camp Water Mark"},
-            {"text": "Lakeshore road"},
-            {"text": "Spangmik"},
-            {"text": "Ladakh"},
-            {"text": "Leh Tehsil"},
-            {"text": "India"},
+            {"text": "Camp Water Mark", "center": [33.9132578, 78.4571752]},
+            {"text": "Lakeshore road", "center": [33.9132578, 78.4571752]},
+            {"text": "Spangmik", "center": [33.9132578, 78.4571752]},
+            {"text": "Ladakh", "center": [33.9132578, 78.4571752]},
+            {"text": "Leh Tehsil", "center": [33.9132578, 78.4571752]},
+            {"text": "India", "center": [33.9132578, 78.4571752]},
         ],
         "places": [
             "Camp Water Mark",
@@ -71,14 +77,15 @@ expectations = [
         "center": [33.9132578, 78.4571752],
     },
     {
+        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Mahon Pool"},
-            {"text": "Marine Parade"},
-            {"text": "Maroubra"},
-            {"text": "Randwick City Council"},
-            {"text": "Eastern Suburbs"},
-            {"text": "New South Wales"},
-            {"text": "Australia"},
+            {"text": "Mahon Pool", "center": [-33.9430026, 151.263867]},
+            {"text": "Marine Parade", "center": [-33.9430026, 151.263867]},
+            {"text": "Maroubra", "center": [-33.9430026, 151.263867]},
+            {"text": "Randwick City Council", "center": [-33.9430026, 151.263867]},
+            {"text": "Eastern Suburbs", "center": [-33.9430026, 151.263867]},
+            {"text": "New South Wales", "center": [-33.9430026, 151.263867]},
+            {"text": "Australia", "center": [-33.9430026, 151.263867]},
         ],
         "places": [
             "Mahon Pool",
@@ -93,12 +100,13 @@ expectations = [
         "center": [-33.9430026, 151.263867],
     },
     {
+        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Dry Fruit Market"},
-            {"text": "Main Bazaar"},
-            {"text": "Ladakh"},
-            {"text": "Leh Tehsil"},
-            {"text": "India"},
+            {"text": "Dry Fruit Market", "center": [34.1621176, 77.585862]},
+            {"text": "Main Bazaar", "center": [34.1621176, 77.585862]},
+            {"text": "Ladakh", "center": [34.1621176, 77.585862]},
+            {"text": "Leh Tehsil", "center": [34.1621176, 77.585862]},
+            {"text": "India", "center": [34.1621176, 77.585862]},
         ],
         "places": [
             "Dry Fruit Market",
