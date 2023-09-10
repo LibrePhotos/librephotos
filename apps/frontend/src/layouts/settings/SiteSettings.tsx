@@ -1,4 +1,4 @@
-import { Card, Grid, NativeSelect, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
+import { Card, Grid, NativeSelect, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -9,9 +9,23 @@ const heavyweightProcessOptions = Array(MAX_HEAVYWEIGHT_PROCESSES)
   .fill("")
   .map((_, i) => (i + 1).toString());
 
+const MAP_API_PROVIDERS = [
+  { value: "mapbox", label: "Mapbox", data: { use_api_key: true, url: "https://www.mapbox.com/" } },
+  { value: "maptiler", label: "MapTiler", data: { use_api_key: true, url: "https://www.maptiler.com/" } },
+  {
+    value: "nominatim",
+    label: "Nominatim (OpenStreetMap)",
+    data: { use_api_key: false, url: "https://nominatim.org/" },
+  },
+  { value: "opencage", label: "OpenCage", data: { use_api_key: true, url: "https://opencagedata.com/" } },
+  { value: "photon", label: "Photon", data: { use_api_key: false, url: "https://photon.komoot.io/" } },
+  { value: "tomtom", label: "TomTom", data: { use_api_key: true, url: "https://www.tomtom.com/" } },
+];
+
 export function SiteSettings() {
   const [skipPatterns, setSkipPatterns] = useState("");
   const [mapApiKey, setMapApiKey] = useState("");
+  const [mapApiProvider, setMapApiProvider] = useState<string>("mapbox");
   const [heavyweightProcess, setHeavyweightProcess] = useState(1);
   const [allowRegistration, setAllowRegistration] = useState(false);
   const [allowUpload, setAllowUpload] = useState(false);
@@ -23,6 +37,7 @@ export function SiteSettings() {
     if (!isLoading && settings) {
       setSkipPatterns(settings.skip_patterns);
       setMapApiKey(settings.map_api_key);
+      setMapApiProvider(settings.map_api_provider);
       setHeavyweightProcess(settings.heavyweight_process);
       setAllowRegistration(settings.allow_registration);
       setAllowUpload(settings.allow_upload);
@@ -70,24 +85,54 @@ export function SiteSettings() {
           </Grid.Col>
           <Grid.Col span={8}>
             <Stack spacing={0}>
-              <Text>{t("sitesettings.headerapikey")}</Text>
+              <Text>{t("sitesettings.map_api_provider_header")}</Text>
               <Text fz="sm" color="dimmed">
-                {t("sitesettings.apikey")}
+                {t("sitesettings.map_api_provider_description", {
+                  url: MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.url,
+                })}
               </Text>
             </Stack>
           </Grid.Col>
           <Grid.Col span={4}>
-            <TextInput
-              value={mapApiKey}
-              onKeyDown={e => {
-                if (e.key === "Enter") {
-                  saveSettings({ map_api_key: mapApiKey });
-                }
+            <Select
+              searchable
+              withinPortal
+              data={MAP_API_PROVIDERS}
+              dropdownPosition="bottom"
+              value={mapApiProvider}
+              onChange={provider => {
+                const value = provider || "";
+                setMapApiProvider(value);
+                saveSettings({ map_api_provider: value });
               }}
-              onBlur={() => saveSettings({ map_api_key: mapApiKey })}
-              onChange={e => setMapApiKey(e.target.value)}
             />
           </Grid.Col>
+          {MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.use_api_key && (
+            <>
+              <Grid.Col span={8}>
+                <Stack spacing={0}>
+                  <Text>{t("sitesettings.map_api_key_header")}</Text>
+                  <Text fz="sm" color="dimmed">
+                    {t("sitesettings.map_api_key_description", {
+                      url: MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.url,
+                    })}
+                  </Text>
+                </Stack>
+              </Grid.Col>
+              <Grid.Col span={4}>
+                <TextInput
+                  value={mapApiKey}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") {
+                      saveSettings({ map_api_key: mapApiKey });
+                    }
+                  }}
+                  onBlur={() => saveSettings({ map_api_key: mapApiKey })}
+                  onChange={e => setMapApiKey(e.target.value)}
+                />
+              </Grid.Col>
+            </>
+          )}
           <Grid.Col span={8}>
             <Stack spacing={0}>
               <Text>{t("sitesettings.headerheavyweight")}</Text>
