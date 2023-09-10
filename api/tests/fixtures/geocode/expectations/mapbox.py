@@ -1,11 +1,14 @@
+from api.geocode import GEOCODE_VERSION
+
 expectations = [
     {
+        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Beach Road"},
-            {"text": "Bondi Beach"},
-            {"text": "Sydney"},
-            {"text": "New South Wales"},
-            {"text": "Australia"},
+            {"text": "Beach Road", "center": [151.275216500055, -33.888012425]},
+            {"text": "Bondi Beach", "center": [151.275216500055, -33.888012425]},
+            {"text": "Sydney", "center": [151.275216500055, -33.888012425]},
+            {"text": "New South Wales", "center": [151.275216500055, -33.888012425]},
+            {"text": "Australia", "center": [151.275216500055, -33.888012425]},
         ],
         "places": [
             "Beach Road",
@@ -18,12 +21,13 @@ expectations = [
         "center": [151.275216500055, -33.888012425],
     },
     {
+        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Fire Route 47"},
-            {"text": "Lakefield"},
-            {"text": "Peterborough County"},
-            {"text": "Ontario"},
-            {"text": "Canada"},
+            {"text": "Fire Route 47", "center": [-78.1955566, 44.5540639]},
+            {"text": "Lakefield", "center": [-78.1955566, 44.5540639]},
+            {"text": "Peterborough County", "center": [-78.1955566, 44.5540639]},
+            {"text": "Ontario", "center": [-78.1955566, 44.5540639]},
+            {"text": "Canada", "center": [-78.1955566, 44.5540639]},
         ],
         "places": [
             "Fire Route 47",
@@ -36,24 +40,26 @@ expectations = [
         "center": [-78.1955566, 44.5540639],
     },
     {
+        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Roncalli"},
-            {"text": "Kreuzberg"},
-            {"text": "Berlin"},
-            {"text": "Germany"},
+            {"text": "Roncalli", "center": [13.381502, 52.501711]},
+            {"text": "Kreuzberg", "center": [13.381502, 52.501711]},
+            {"text": "Berlin", "center": [13.381502, 52.501711]},
+            {"text": "Germany", "center": [13.381502, 52.501711]},
         ],
         "places": ["Roncalli", "Kreuzberg", "Berlin", "Germany"],
         "address": "Roncalli, Mckernstr, Berlin, 10963, Germany",
         "center": [13.381502, 52.501711],
     },
     {
+        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Lakeshore Road"},
-            {"text": "Shachokol"},
-            {"text": "Leh"},
-            {"text": "Leh"},
-            {"text": "Ladakh"},
-            {"text": "India"},
+            {"text": "Lakeshore Road", "center": [78.45710763764029, 33.913368523661]},
+            {"text": "Shachokol", "center": [78.45710763764029, 33.913368523661]},
+            {"text": "Leh", "center": [78.45710763764029, 33.913368523661]},
+            {"text": "Leh", "center": [78.45710763764029, 33.913368523661]},
+            {"text": "Ladakh", "center": [78.45710763764029, 33.913368523661]},
+            {"text": "India", "center": [78.45710763764029, 33.913368523661]},
         ],
         "places": [
             "Lakeshore Road",
@@ -67,12 +73,13 @@ expectations = [
         "center": [78.45710763764029, 33.913368523661],
     },
     {
+        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Mahon Rock Pool"},
-            {"text": "Maroubra"},
-            {"text": "Sydney"},
-            {"text": "New South Wales"},
-            {"text": "Australia"},
+            {"text": "Mahon Rock Pool", "center": [151.263303, -33.94292]},
+            {"text": "Maroubra", "center": [151.263303, -33.94292]},
+            {"text": "Sydney", "center": [151.263303, -33.94292]},
+            {"text": "New South Wales", "center": [151.263303, -33.94292]},
+            {"text": "Australia", "center": [151.263303, -33.94292]},
         ],
         "places": [
             "Mahon Rock Pool",
@@ -85,13 +92,14 @@ expectations = [
         "center": [151.263303, -33.94292],
     },
     {
+        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Main Bazaar"},
-            {"text": "Chuchat Yakma"},
-            {"text": "Leh"},
-            {"text": "Leh"},
-            {"text": "Ladakh"},
-            {"text": "India"},
+            {"text": "Main Bazaar", "center": [77.585527, 34.1622089]},
+            {"text": "Chuchat Yakma", "center": [77.585527, 34.1622089]},
+            {"text": "Leh", "center": [77.585527, 34.1622089]},
+            {"text": "Leh", "center": [77.585527, 34.1622089]},
+            {"text": "Ladakh", "center": [77.585527, 34.1622089]},
+            {"text": "India", "center": [77.585527, 34.1622089]},
         ],
         "places": [
             "Main Bazaar",

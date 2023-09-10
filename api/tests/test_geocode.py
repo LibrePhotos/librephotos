@@ -1,6 +1,8 @@
 from unittest import TestCase
 from unittest.mock import patch
 
+from constance.test import override_config
+
 from api.geocode.geocode import reverse_geocode
 from api.geocode.parsers.mapbox import parse as parse_mapbox
 from api.geocode.parsers.nominatim import parse as parse_nominatim
@@ -79,7 +81,6 @@ class OpenCageLocation:
 
 class TestGeocodeParsers(TestCase):
     def test_mapbox_parser(self):
-        self.maxDiff = None
         for index, raw in enumerate(mapbox_responses):
             self.assertEquals(
                 parse_mapbox(MapboxLocation(raw)), mapbox_expectations[index]
@@ -132,6 +133,7 @@ def fake_geocoder(response):
 
 
 class TestGeocoder(TestCase):
+    @override_config(MAP_API_PROVIDER="mapbox")
     @patch("geopy.get_geocoder_for_service", autospec=True)
     def test_reverse_geocode(self, get_geocoder_for_service_mock):
         get_geocoder_for_service_mock.return_value = fake_geocoder(mapbox_responses[1])
