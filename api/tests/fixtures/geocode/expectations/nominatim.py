@@ -1,13 +1,16 @@
+from api.geocode import GEOCODE_VERSION
+
 expectations = [
     {
+        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Beach Road"},
-            {"text": "Seven Ways"},
-            {"text": "Bondi Beach"},
-            {"text": "Eastern Suburbs"},
-            {"text": "Sydney"},
-            {"text": "New South Wales"},
-            {"text": "Australia"},
+            {"text": "Beach Road", "center": [-33.88801645, 151.27521180010973]},
+            {"text": "Seven Ways", "center": [-33.88801645, 151.27521180010973]},
+            {"text": "Bondi Beach", "center": [-33.88801645, 151.27521180010973]},
+            {"text": "Eastern Suburbs", "center": [-33.88801645, 151.27521180010973]},
+            {"text": "Sydney", "center": [-33.88801645, 151.27521180010973]},
+            {"text": "New South Wales", "center": [-33.88801645, 151.27521180010973]},
+            {"text": "Australia", "center": [-33.88801645, 151.27521180010973]},
         ],
         "places": [
             "Beach Road",
@@ -19,15 +22,22 @@ expectations = [
             "Australia",
         ],
         "address": "17, Beach Road, Seven Ways, Bondi Beach, Eastern Suburbs, Sydney, Waverley Council, New South Wales, 2026, Australia",
-        "center": [151.27521180010973, -33.88801645],
+        "center": [-33.88801645, 151.27521180010973],
     },
     {
+        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Fire Route 47"},
-            {"text": "Selwyn"},
-            {"text": "Peterborough County"},
-            {"text": "Ontario"},
-            {"text": "Canada"},
+            {
+                "text": "Fire Route 47",
+                "center": [44.55373905094425, -78.19571323702382],
+            },
+            {"text": "Selwyn", "center": [44.55373905094425, -78.19571323702382]},
+            {
+                "text": "Peterborough County",
+                "center": [44.55373905094425, -78.19571323702382],
+            },
+            {"text": "Ontario", "center": [44.55373905094425, -78.19571323702382]},
+            {"text": "Canada", "center": [44.55373905094425, -78.19571323702382]},
         ],
         "places": [
             "Fire Route 47",
@@ -37,15 +47,22 @@ expectations = [
             "Canada",
         ],
         "address": "3118, Fire Route 47, Selwyn, Peterborough County, Central Ontario, Ontario, K0L 2C0, Canada",
-        "center": [-78.19571323702382, 44.55373905094425],
+        "center": [44.55373905094425, -78.19571323702382],
     },
     {
+        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Möckernstraße"},
-            {"text": "Kreuzberg"},
-            {"text": "Friedrichshain-Kreuzberg"},
-            {"text": "Berlin"},
-            {"text": "Deutschland"},
+            {
+                "text": "Möckernstraße",
+                "center": [52.501606300000006, 13.381190860617572],
+            },
+            {"text": "Kreuzberg", "center": [52.501606300000006, 13.381190860617572]},
+            {
+                "text": "Friedrichshain-Kreuzberg",
+                "center": [52.501606300000006, 13.381190860617572],
+            },
+            {"text": "Berlin", "center": [52.501606300000006, 13.381190860617572]},
+            {"text": "Deutschland", "center": [52.501606300000006, 13.381190860617572]},
         ],
         "places": [
             "Möckernstraße",
@@ -55,15 +72,16 @@ expectations = [
             "Deutschland",
         ],
         "address": "Tempodrom, 10, Möckernstraße, Kreuzberg, Friedrichshain-Kreuzberg, Berlin, 10963, Deutschland",
-        "center": [13.381190860617572, 52.501606300000006],
+        "center": [52.501606300000006, 13.381190860617572],
     },
     {
+        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Lakeshore road"},
-            {"text": "Spangmik"},
-            {"text": "Leh Tehsil"},
-            {"text": "Ladakh"},
-            {"text": "India"},
+            {"text": "Lakeshore road", "center": [33.9132578, 78.4571752]},
+            {"text": "Spangmik", "center": [33.9132578, 78.4571752]},
+            {"text": "Leh Tehsil", "center": [33.9132578, 78.4571752]},
+            {"text": "Ladakh", "center": [33.9132578, 78.4571752]},
+            {"text": "India", "center": [33.9132578, 78.4571752]},
         ],
         "places": [
             "Lakeshore road",
@@ -73,16 +91,17 @@ expectations = [
             "India",
         ],
         "address": "Camp Water Mark, Lakeshore road, Spangmik, Leh Tehsil, Leh District, Ladakh, India",
-        "center": [78.4571752, 33.9132578],
+        "center": [33.9132578, 78.4571752],
     },
     {
+        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Marine Parade"},
-            {"text": "Maroubra"},
-            {"text": "Eastern Suburbs"},
-            {"text": "Sydney"},
-            {"text": "New South Wales"},
-            {"text": "Australia"},
+            {"text": "Marine Parade", "center": [-33.9430026, 151.26386704076833]},
+            {"text": "Maroubra", "center": [-33.9430026, 151.26386704076833]},
+            {"text": "Eastern Suburbs", "center": [-33.9430026, 151.26386704076833]},
+            {"text": "Sydney", "center": [-33.9430026, 151.26386704076833]},
+            {"text": "New South Wales", "center": [-33.9430026, 151.26386704076833]},
+            {"text": "Australia", "center": [-33.9430026, 151.26386704076833]},
         ],
         "places": [
             "Marine Parade",
@@ -93,18 +112,19 @@ expectations = [
             "Australia",
         ],
         "address": "Mahon Pool, Marine Parade, Maroubra, Eastern Suburbs, Sydney, Randwick City Council, New South Wales, 2035, Australia",
-        "center": [151.26386704076833, -33.9430026],
+        "center": [-33.9430026, 151.26386704076833],
     },
     {
+        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Main Bazaar"},
-            {"text": "Leh"},
-            {"text": "Leh Tehsil"},
-            {"text": "Ladakh"},
-            {"text": "India"},
+            {"text": "Main Bazaar", "center": [34.1621176, 77.585862]},
+            {"text": "Leh", "center": [34.1621176, 77.585862]},
+            {"text": "Leh Tehsil", "center": [34.1621176, 77.585862]},
+            {"text": "Ladakh", "center": [34.1621176, 77.585862]},
+            {"text": "India", "center": [34.1621176, 77.585862]},
         ],
         "places": ["Main Bazaar", "Leh", "Leh Tehsil", "Ladakh", "India"],
         "address": "Dry Fruit Market, Main Bazaar, Matsik Chulung, Leh, Leh Tehsil, Leh District, Ladakh, India",
-        "center": [77.585862, 34.1621176],
+        "center": [34.1621176, 77.585862],
     },
 ]

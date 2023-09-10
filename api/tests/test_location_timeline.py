@@ -21,7 +21,7 @@ def prepare_database(user):
                 continue
             country = row[0]
             exif_timestamp = row[1]
-            geolocation_json = {"features": [{"text": country}]}
+            geolocation_json = {"places": [country], "features": [{"text": country}]}
             create_test_photo(
                 owner=user,
                 exif_timestamp=exif_timestamp,

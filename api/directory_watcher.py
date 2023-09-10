@@ -161,7 +161,7 @@ def handle_new_image(user, path, job_id):
                     job_id, path, elapsed
                 )
             )
-            photo._geolocate_mapbox(True)
+            photo._geolocate(True)
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
                 "job {}: geolocate: {}, elapsed: {}".format(job_id, path, elapsed)
@@ -244,7 +244,7 @@ def rescan_image(user, path, job_id):
             photo = Photo.objects.filter(Q(files__path=path)).get()
             photo._generate_thumbnail(True)
             photo._calculate_aspect_ratio(False)
-            photo._geolocate_mapbox(True)
+            photo._geolocate(True)
             photo._extract_exif_data(True)
             photo._extract_date_time_from_exif(True)
             photo._add_location_to_album_dates()

@@ -1,5 +1,7 @@
 from functools import reduce
 
+from api.geocode import GEOCODE_VERSION
+
 
 def _dedup(iterable):
     unique_items = set()
@@ -31,8 +33,9 @@ def parse(location):
         [data[prop] for prop in props if prop in data and len(data[prop]) > 2]
     )
     return {
-        "features": [{"text": place} for place in places],
+        "features": [{"text": place, "center": center} for place in places],
         "places": places,
         "address": address,
         "center": center,
+        "_v": GEOCODE_VERSION,
     }
