@@ -442,8 +442,10 @@
     "headerupload": "Allow uploads",
     "headerskippatterns": "Skip patterns",
     "skippatterns": " Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for Synology devices)",
-    "headerapikey": "Mapbox API key",
-    "apikey": "Shows a map where all your photos (containing positional info) where taken. Get a Mapbox API key  onhttps://account.mapbox.com/auth/signup/",
+    "map_api_provider_header": "Map Provider",
+    "map_api_provider_description": "For getting location names from image GPS metadata.",
+    "map_api_key_header": "API key for Map Provider",
+    "map_api_key_description": "Get your API key at {{url}}",
     "headerheavyweight": "Heavyweight Processes",
     "heavyweight": "Increase the number of picture-scanning workers beyond 1, but be prepared to use 800 MB memory for each additional one."
   },

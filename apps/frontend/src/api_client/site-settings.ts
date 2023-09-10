@@ -13,6 +13,7 @@ const SiteSettingsSchema = z.object({
   skip_patterns: z.string(),
   heavyweight_process: z.number(),
   map_api_key: z.string(),
+  map_api_provider: z.string(),
 });
 
 export type SiteSettings = z.infer<typeof SiteSettingsSchema>;
