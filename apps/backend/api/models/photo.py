@@ -627,14 +627,17 @@ class Photo(models.Model):
                 image = np.array(PIL.Image.open(self.thumbnail_big.path))
                 area = region.get("Area")
                 applied_to_dimensions = region.get("AppliedToDimensions")
-                if (area and area.get("Unit") == "normalized") or (applied_to_dimensions and applied_to_dimensions.get("Unit") == "pixel"):
+                if (area and area.get("Unit") == "normalized") or (
+                    applied_to_dimensions
+                    and applied_to_dimensions.get("Unit") == "pixel"
+                ):
                     # To-Do: Not sure, when to use this instead of the thumbnail size tbh
-                    #if applied_to_dimensions:
+                    # if applied_to_dimensions:
                     #    image_width = applied_to_dimensions.get("W")
                     #    image_height = applied_to_dimensions.get("H")
 
                     # To-Do: Rotation, this is already handled by thumbnail creation?!
-                    #if region.get("Rotation"):
+                    # if region.get("Rotation"):
                     #    rotation = region.get("Rotation")
                     #    if rotation == 90:
                     #        image = np.rot90(image, 1)
