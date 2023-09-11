@@ -65,7 +65,7 @@ RUN curl -SL https://exiftool.org/Image-ExifTool-12.64.tar.gz | tar -xz && \
 	make install && \
 	rm -rf /tmp/exiftool
 
-# Current Version: pytorch 2.0.1
+# Current Version: pytorch with cuda support
 RUN pip3 install --no-cache-dir torch torchvision
 
 RUN pip3 install --no-cache-dir cmake==3.21.2
