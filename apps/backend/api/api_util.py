@@ -316,7 +316,7 @@ def get_server_stats():
 
     if torch.cuda.is_available():
         gpu_name = torch.cuda.get_device_name(0)
-        gpu_memory = torch.cuda.memory_summary()
+        gpu_memory = calc_megabytes(torch.cuda.get_device_properties(0).total_memory)
     else:
         gpu_name = ""
         gpu_memory = ""
