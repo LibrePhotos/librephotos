@@ -97,7 +97,7 @@ WORKDIR /tmp/builds
 RUN git clone --depth 1 --branch 'master' https://github.com/davisking/dlib.git && \
     mkdir dlib/build && \
     cd dlib/build && \
-    cmake .. -DDLIB_USE_CUDA=0 -DUSE_AVX_INSTRUCTIONS=0 -DLIB_NO_GUI_SUPPORT=0 && \
+    cmake .. -DLIB_USE_CUDA=0 -DUSE_AVX_INSTRUCTIONS=0 -DLIB_NO_GUI_SUPPORT=0 && \
     cmake --build . && \
     cd /tmp/builds/dlib && \
     python3 setup.py install --no USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA --no USE_SSE4_INSTRUCTIONS && \
