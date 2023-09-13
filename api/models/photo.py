@@ -692,38 +692,38 @@ class Photo(models.Model):
                     bottom = int((correct_y * image_height) + half_height)
                     left = int((correct_x * image_width) - half_width)
 
-                face_image = image[top:bottom, left:right]
-                face_image = PIL.Image.fromarray(face_image)
+                    face_image = image[top:bottom, left:right]
+                    face_image = PIL.Image.fromarray(face_image)
 
-                # Figure out which face idx it is, but reading the number of the faces of the person
-                idx_face = api.models.face.Face.objects.filter(person=person).count()
-                image_path = self.image_hash + "_" + str(idx_face) + ".jpg"
+                    # Figure out which face idx it is, but reading the number of the faces of the person
+                    idx_face = api.models.face.Face.objects.filter(person=person).count()
+                    image_path = self.image_hash + "_" + str(idx_face) + ".jpg"
 
-                import face_recognition
+                    import face_recognition
 
-                face_encodings = face_recognition.face_encodings(
-                    image, known_face_locations=[(top, right, bottom, left)]
-                )
+                    face_encodings = face_recognition.face_encodings(
+                        image, known_face_locations=[(top, right, bottom, left)]
+                    )
 
-                face = api.models.face.Face(
-                    image_path=image_path,
-                    photo=self,
-                    location_top=top,
-                    location_right=bottom,
-                    location_bottom=left,
-                    location_left=right,
-                    encoding=face_encodings[0].tobytes().hex(),
-                    person=person,
-                    cluster=unknown_cluster,
-                )
-                face_io = BytesIO()
-                face_image.save(face_io, format="JPEG")
-                face.image.save(face.image_path, ContentFile(face_io.getvalue()))
-                face_io.close()
-                face.save()
-                person._calculate_face_count()
-                person._set_default_cover_photo()
-                logger.debug(f"Created face {face} from {self.main_file.path}")
+                    face = api.models.face.Face(
+                        image_path=image_path,
+                        photo=self,
+                        location_top=top,
+                        location_right=right,
+                        location_bottom=bottom,
+                        location_left=left,
+                        encoding=face_encodings[0].tobytes().hex(),
+                        person=person,
+                        cluster=unknown_cluster,
+                    )
+                    face_io = BytesIO()
+                    face_image.save(face_io, format="JPEG")
+                    face.image.save(face.image_path, ContentFile(face_io.getvalue()))
+                    face_io.close()
+                    face.save()
+                    person._calculate_face_count()
+                    person._set_default_cover_photo()
+                    logger.debug(f"Created face {face} from {self.main_file.path}")
             return
 
         import face_recognition
