@@ -47,8 +47,8 @@ export function LocationLink(props: Props) {
     height,
     margin = {
       top: 20,
-      left: 70,
-      right: 70,
+      left: 100,
+      right: 100,
       bottom: 20,
     },
   } = props;
@@ -184,8 +184,8 @@ export function LocationLink(props: Props) {
                         <rect
                           height={height}
                           width={width}
-                          y={height / 2}
-                          x={width / 2}
+                          y={- (height / 2)}
+                          x={0}
                           fill="#1b5a94"
                           rx={5}
                           stroke="#dddddd"
@@ -198,8 +198,8 @@ export function LocationLink(props: Props) {
                         <rect
                           height={height}
                           width={width}
-                          y={height / 2}
-                          x={width / 2}
+                          y={- (height / 2)}
+                          x={0}
                           fill={node.data.children ? "#1b6c94" : "#1b8594"}
                           stroke={node.data.children ? "#dddddd" : "#dddddd"}
                           strokeWidth={2}
@@ -212,8 +212,8 @@ export function LocationLink(props: Props) {
                         ></rect>
                       )}
                       <text
-                        y={height / 2 + 17}
-                        x={width / 2 + 15}
+                        y={ 5}
+                        x={ 10}
                         fontSize={11}
                         style={{ pointerEvents: "none" }}
                         fill={node.depth === 0 ? "white" : node.children ? "white" : "white"}
