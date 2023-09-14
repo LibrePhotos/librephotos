@@ -68,6 +68,7 @@ RUN curl -SL https://exiftool.org/Image-ExifTool-12.64.tar.gz | tar -xz && \
 # Current Version: pytorch with cuda support
 RUN pip3 install --no-cache-dir torch torchvision
 
+# Install latest cmake version
 RUN pip3 install --no-cache-dir cmake
 
 #Build and install libraw, supports more RAW image types
