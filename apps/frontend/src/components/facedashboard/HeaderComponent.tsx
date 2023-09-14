@@ -107,22 +107,24 @@ export function HeaderComponent({ cell, width, style, entrySquareSize, setSelect
             </ActionIcon>
           </Tooltip>
         )}
-        <Menu position="bottom-end">
-          <Menu.Target>
-            <ActionIcon>
-              <DotsVertical />
-            </ActionIcon>
-          </Menu.Target>
+        {!(cell.kind === "CLUSTER" || cell.kind === "UNKNOWN") && (
+          <Menu position="bottom-end">
+            <Menu.Target>
+              <ActionIcon>
+                <DotsVertical />
+              </ActionIcon>
+            </Menu.Target>
 
-          <Menu.Dropdown>
-            <Menu.Item icon={<Edit />} onClick={() => openRenameDialog(cell.id, cell.name)}>
-              {t("rename")}
-            </Menu.Item>
-            <Menu.Item icon={<Trash />} onClick={() => openDeleteDialog(cell.id)}>
-              {t("delete")}
-            </Menu.Item>
-          </Menu.Dropdown>
-        </Menu>
+            <Menu.Dropdown>
+              <Menu.Item icon={<Edit />} onClick={() => openRenameDialog(cell.id, cell.name)}>
+                {t("rename")}
+              </Menu.Item>
+              <Menu.Item icon={<Trash />} onClick={() => openDeleteDialog(cell.id)}>
+                {t("delete")}
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        )}
         <Text color="dimmed">
           {t("facesdashboard.numberoffaces", {
             number: cell.faces.length,
