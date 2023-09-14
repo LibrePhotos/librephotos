@@ -109,7 +109,7 @@ export const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, Fetch
 export const api = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["UserList", "FirstTimeSetup"],
+  tagTypes: ["UserList", "FirstTimeSetup", "Faces"],
   endpoints: builder => ({
     [Endpoints.signUp]: builder.mutation<UserSignupResponse, UserSignupRequest>({
       query: body => ({
@@ -203,11 +203,13 @@ export const api = createApi({
       query: ({ inferred = false }) => ({
         url: `faces/incomplete/?inferred=${inferred}`,
       }),
+      providesTags: ["Faces"],
     }),
     [Endpoints.fetchFaces]: builder.query<IPersonFaceListResponse, IPersonFaceListRequest>({
       query: ({ person, page = 0, inferred = false, orderBy = "confidence" }) => ({
         url: `faces/?person=${person}&page=${page}&inferred=${inferred}&order_by=${orderBy}`,
       }),
+      providesTags: ["Faces"],
     }),
     [Endpoints.clusterFaces]: builder.query<IClusterFacesResponse, void>({
       query: () => ({

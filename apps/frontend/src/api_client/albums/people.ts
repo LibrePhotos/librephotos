@@ -97,10 +97,10 @@ export const peopleAlbumsApi = api
         providesTags: ["PeopleAlbums"],
       },
       [Endpoints.renamePersonAlbum]: {
-        invalidatesTags: ["PeopleAlbums"],
+        invalidatesTags: ["PeopleAlbums", "Faces"],
       },
       [Endpoints.deletePersonAlbum]: {
-        invalidatesTags: ["PeopleAlbums"],
+        invalidatesTags: ["PeopleAlbums", "Faces"],
       },
     },
   });

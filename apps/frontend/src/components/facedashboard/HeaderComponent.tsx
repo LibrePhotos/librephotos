@@ -1,10 +1,16 @@
-import { ActionIcon, Chip, Divider, Group, Stack, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Chip, Divider, Group, Menu, Modal, Stack, Text, TextInput, Tooltip } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { UserCheck } from "tabler-icons-react";
+import { DotsVertical, Edit, Trash, UserCheck } from "tabler-icons-react";
 
+import {
+  useDeletePersonAlbumMutation,
+  useFetchPeopleAlbumsQuery,
+  useRenamePersonAlbumMutation,
+} from "../../api_client/albums/people";
 import { api } from "../../api_client/api";
 import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
@@ -23,6 +29,28 @@ export function HeaderComponent({ cell, width, style, entrySquareSize, setSelect
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const [checked, setChecked] = useState(false);
+  const [renameDialogVisible, { open: showRenameDialog, close: hideRenameDialog }] = useDisclosure(false);
+  const [deleteDialogVisible, { open: showDeleteDialog, close: hideDeleteDialog }] = useDisclosure(false);
+
+  function openDeleteDialog(id: string) {
+    setPersonID(id);
+    showDeleteDialog();
+  }
+
+  function openRenameDialog(id: string, name: string) {
+    setPersonID(id);
+    setPersonName(name);
+    setNewPersonName("");
+    showRenameDialog();
+  }
+
+  const [renamePerson] = useRenamePersonAlbumMutation();
+  const [deletePerson] = useDeletePersonAlbumMutation();
+  const { data: albums, isFetching } = useFetchPeopleAlbumsQuery();
+
+  const [personID, setPersonID] = useState("");
+  const [personName, setPersonName] = useState("");
+  const [newPersonName, setNewPersonName] = useState("");
 
   const handleClick = () => {
     if (!checked) {
@@ -79,13 +107,74 @@ export function HeaderComponent({ cell, width, style, entrySquareSize, setSelect
             </ActionIcon>
           </Tooltip>
         )}
+        <Menu position="bottom-end">
+          <Menu.Target>
+            <ActionIcon>
+              <DotsVertical />
+            </ActionIcon>
+          </Menu.Target>
+
+          <Menu.Dropdown>
+            <Menu.Item icon={<Edit />} onClick={() => openRenameDialog(cell.id, cell.name)}>
+              {t("rename")}
+            </Menu.Item>
+            <Menu.Item icon={<Trash />} onClick={() => openDeleteDialog(cell.id)}>
+              {t("delete")}
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
         <Text color="dimmed">
           {t("facesdashboard.numberoffaces", {
             number: cell.faces.length,
           })}
         </Text>
       </Group>
+
       <Divider />
+      <Modal title={t("personalbum.renameperson")} onClose={hideRenameDialog} opened={renameDialogVisible}>
+        <Group>
+          <TextInput
+            error={
+              albums && albums.map(el => el.text.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())
+                ? t("personalbum.personalreadyexists", {
+                    name: newPersonName.trim(),
+                  })
+                : false
+            }
+            onChange={e => {
+              setNewPersonName(e.currentTarget.value);
+            }}
+            placeholder={t("personalbum.nameplaceholder")}
+          />
+          <Button
+            onClick={() => {
+              renamePerson({ id: personID, personName, newPersonName });
+              hideRenameDialog();
+            }}
+            disabled={
+              albums && albums.map(el => el.text.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())
+            }
+            type="submit"
+          >
+            {t("rename")}
+          </Button>
+        </Group>
+      </Modal>
+      <Modal opened={deleteDialogVisible} title={t("personalbum.deleteperson")} onClose={hideDeleteDialog}>
+        <Text size="sm">{t("personalbum.deletepersondescription")}</Text>
+        <Group>
+          <Button onClick={hideDeleteDialog}>{t("cancel")}</Button>
+          <Button
+            color="red"
+            onClick={() => {
+              deletePerson(personID);
+              hideDeleteDialog();
+            }}
+          >
+            {t("delete")}
+          </Button>
+        </Group>
+      </Modal>
     </Stack>
   );
 }
