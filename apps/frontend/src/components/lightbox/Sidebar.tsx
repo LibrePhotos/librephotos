@@ -1,16 +1,19 @@
-import { ActionIcon, Avatar, Badge, Box, Button, Group, Stack, Text, Textarea, Title } from "@mantine/core";
+import { ActionIcon, Avatar, Badge, Box, Button, Group, Stack, Text, Textarea, Title, Tooltip } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
+import { showNotification } from "@mantine/notifications";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-virtualized/styles.css";
 import { push } from "redux-first-history";
 // only needs to be imported once
-import { Edit, Map2, Note, Photo, Tags, Users, X } from "tabler-icons-react";
+import { Edit, Map2, Note, Photo, Tags, UserOff, Users, X } from "tabler-icons-react";
 
 import { generatePhotoIm2txtCaption, savePhotoCaption } from "../../actions/photosActions";
 import type { Photo as PhotoType } from "../../actions/photosActions.types";
 import { searchPhotos } from "../../actions/searchActions";
+import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
+import { photoDetailsApi } from "../../api_client/photos/photoDetail";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { LocationMap } from "../LocationMap";
 import { Tile } from "../Tile";
@@ -36,6 +39,19 @@ export function Sidebar(props: Props) {
   const { width } = useViewportSize();
   const SCROLLBAR_WIDTH = 15;
   let LIGHTBOX_SIDEBAR_WIDTH = 320;
+
+  const notThisPerson = faceId => {
+    const ids = [faceId];
+    dispatch(api.endpoints.setFacesPersonLabel.initiate({ faceIds: ids, personName: "Unknown - Other" }));
+    showNotification({
+      message: t("toasts.removefacestoperson", {
+        numberOfFaces: ids.length,
+      }),
+      title: t("toasts.removefacestopersontitle"),
+      color: "teal",
+    });
+    dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(photoDetail.image_hash)).refetch();
+  };
 
   useEffect(() => {
     if (photoDetail) {
@@ -143,6 +159,11 @@ export function Sidebar(props: Props) {
                   >
                     <Edit size={17} />
                   </ActionIcon>
+                  <Tooltip label={t("facesdashboard.notthisperson")}>
+                    <ActionIcon variant="light" color="orange" onClick={() => notThisPerson(nc.face_id)}>
+                      <UserOff />
+                    </ActionIcon>
+                  </Tooltip>
                 </Group>
               ))}
             </Stack>
