@@ -18,10 +18,6 @@ encoder_path = os.path.join(im2txt_models_path, "models", "encoder-10-1000.ckpt"
 decoder_path = os.path.join(im2txt_models_path, "models", "decoder-10-1000.ckpt")
 vocab_path = os.path.join(im2txt_models_path, "data", "vocab.pkl")
 
-# Device configuration
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# device = torch.device('cpu')
-
 # Load vocabulary wrapper
 with open(vocab_path, "rb") as f:
     vocab = pickle.load(f)
@@ -38,6 +34,8 @@ def load_image(image_path, transform=None):
 
 
 def im2txt(image_path):
+    # Device configuration
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Image preprocessing
     transform = transforms.Compose(
         [
