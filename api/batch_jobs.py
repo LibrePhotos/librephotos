@@ -3,7 +3,6 @@ import uuid
 from datetime import datetime
 
 import pytz
-import torch
 from constance import config as site_config
 from django.db.models import Q
 from django_q.tasks import AsyncTask
@@ -31,6 +30,10 @@ def create_batch_job(job_type, user):
 
 
 def batch_calculate_clip_embedding(job_id, user):
+    import torch
+
+    # Only supports CPU
+    torch.device("cpu")
     lrj = LongRunningJob.objects.get(job_id=job_id)
     lrj.started_at = datetime.now().replace(tzinfo=pytz.utc)
 
