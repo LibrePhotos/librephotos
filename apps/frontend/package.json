@@ -79,7 +79,7 @@
     "react-beautiful-dnd": "^13.1.1",
     "react-calendar-heatmap": "1.9.0",
     "react-content-loader": "6.2.1",
-    "react-cookie": "6.1.0",
+    "react-cookie": "6.1.1",
     "react-cool-dimensions": "3.0.1",
     "react-d3-graph": "npm:librephotos-react-d3-graph@3.0.0",
     "react-dnd": "16.0.1",
