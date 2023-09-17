@@ -4,7 +4,7 @@ django-cors-headers==4.2.0
 git+https://github.com/derneuere/django-chunked-upload@master#egg=django-chunked-upload
 django-cryptography==1.1
 django-extensions==3.2.3
-django-filter==23.2
+django-filter==23.3
 django-picklefield==3.1
 django-bulk-update
 django-silk==5.0.3
