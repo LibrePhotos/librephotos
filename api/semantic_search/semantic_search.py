@@ -28,6 +28,8 @@ class SemanticSearch:
         self.model = SentenceTransformer(dir_clip_ViT_B_32_model)
 
     def calculate_clip_embeddings(self, img_paths):
+        import torch
+
         if not self.model_is_loaded:
             self.load()
         imgs = []
@@ -47,14 +49,25 @@ class SemanticSearch:
 
         try:
             imgs_emb = self.model.encode(imgs, batch_size=32, convert_to_tensor=True)
+            if torch.cuda.is_available():
+                if type(img_paths) is list:
+                    magnitudes = list(
+                        map(lambda x: np.linalg.norm(x.cpu().numpy()), imgs_emb)
+                    )
 
-            if type(img_paths) is list:
-                magnitudes = map(np.linalg.norm, imgs_emb)
+                    return imgs_emb, magnitudes
+                else:
+                    img_emb = imgs_emb[0].cpu().numpy().tolist()
+                    magnitude = np.linalg.norm(img_emb)
 
-                return imgs_emb, magnitudes
+                    return img_emb, magnitude
             else:
-                img_emb = imgs_emb[0].tolist()
-                magnitude = np.linalg.norm(img_emb)
+                if type(img_paths) is list:
+                    magnitudes = map(np.linalg.norm, imgs_emb)
+                    return imgs_emb, magnitudes
+                else:
+                    img_emb = imgs_emb[0].tolist()
+                    magnitude = np.linalg.norm(img_emb)
 
                 return img_emb, magnitude
         except Exception as e:
