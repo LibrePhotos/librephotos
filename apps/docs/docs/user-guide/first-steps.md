@@ -6,7 +6,7 @@ sidebar_position: 1
 
 ## First steps after setting up
 
-On your first visit, you should see the first time setup. Fill out the details and login. The next step is to set up your scan directory. Click on the green button, which is on the photo site, and fill out your scan directory. After saving, your first scan should start.
+On your first visit, you should see the first time setup. Fill out the details and login. The next step is to set up your scan directory. Click on the green button, which is on the photo site, and fill out your scan directory. If you have not altered the docker-compose.yml, the correct value is '/data', which will point at the folder you selected for scanDirectory in the .env file. After saving, your first scan should start.
 
 The basic idea is this:
 
@@ -23,7 +23,7 @@ Click on your avatar in the top right, and go to `Admin Area`. On this page, it 
 
 ## How to start a scan
 
-Click on your avatar in the top right, and go to `Library`. Click the green `Scan photos (file system)` button.
+Click on your avatar in the top right, and go to `Library`. Click the green `Scan photos (file system)` button. See the next page if you would like to set up automated scanning for new photos.
 
 ## How to import photos from an external Nextcloud instance
 
