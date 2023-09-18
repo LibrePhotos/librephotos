@@ -276,7 +276,7 @@ def get_search_term_examples(user):
             if random.random() > 0.9:
                 search_terms.append(search_term_time_thing)
 
-    return list(set(search_terms))
+    return list(filter(lambda x: len(x), set([x.strip() for x in search_terms])))
 
 
 def median_value(queryset, term):
