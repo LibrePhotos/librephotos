@@ -3,7 +3,7 @@ import secrets
 from django.utils import timezone
 from faker import Faker
 
-from api.models import File, Photo, User
+from api.models import Face, File, Person, Photo, User
 
 fake = Faker()
 
@@ -57,6 +57,27 @@ def create_test_photo(**kwargs):
 
 def create_test_photos(number_of_photos=1, **kwargs):
     return [create_test_photo(**kwargs) for _ in range(0, number_of_photos)]
+
+
+def create_test_face(**kwargs):
+    person = Person()
+    person.save()
+    face = Face(
+        person=person,
+        location_left=0,
+        location_right=1,
+        location_top=0,
+        location_bottom=1,
+        **kwargs,
+    )
+    face.save()
+    return face
+
+
+def create_test_photos_with_faces(number_of_photos=1, **kwargs):
+    photos = create_test_photos(number_of_photos, **kwargs)
+    [create_test_face(photo=photo) for photo in photos]
+    return photos
 
 
 def create_test_file(path: str, user: User, content: bytes):
