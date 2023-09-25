@@ -45,7 +45,7 @@
     "@mantine/hooks": "5.10.5",
     "@mantine/notifications": "5.10.5",
     "@popperjs/core": "2.11.8",
-    "@reduxjs/toolkit": "1.9.5",
+    "@reduxjs/toolkit": "1.9.6",
     "@visx/gradient": "3.3.0",
     "@visx/group": "3.3.0",
     "@visx/hierarchy": "3.3.0",
