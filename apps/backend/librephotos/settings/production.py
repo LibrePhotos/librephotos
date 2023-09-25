@@ -130,7 +130,7 @@ CONSTANCE_CONFIG = {
     "IMAGE_DIRS": ("/data", "Image dirs list (serialized json)", str),
 }
 
-INTERNAL_IPS = ("127.0.0.1", "localhost", "192.168.1.100")
+INTERNAL_IPS = ("127.0.0.1", "localhost")
 
 CORS_ALLOW_HEADERS = (
     "cache-control",
@@ -148,7 +148,7 @@ CORS_ALLOW_HEADERS = (
 )
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = ("http://localhost:3000", "http://192.168.1.100:3000")
+CORS_ALLOWED_ORIGINS = "http://localhost:3000"
 
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),

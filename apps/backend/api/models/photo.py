@@ -696,7 +696,9 @@ class Photo(models.Model):
                     face_image = PIL.Image.fromarray(face_image)
 
                     # Figure out which face idx it is, but reading the number of the faces of the person
-                    idx_face = api.models.face.Face.objects.filter(person=person).count()
+                    idx_face = api.models.face.Face.objects.filter(
+                        person=person
+                    ).count()
                     image_path = self.image_hash + "_" + str(idx_face) + ".jpg"
 
                     import face_recognition
