@@ -21,23 +21,25 @@ ROOT_URLCONF = "librephotos.urls"
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 DEBUG = False
 
+SECRET_KEY_FILENAME = os.path.join(BASE_LOGS, "secret.key")
 SECRET_KEY = ""
+
 if os.environ.get("SECRET_KEY"):
     SECRET_KEY = os.environ["SECRET_KEY"]
     print("use SECRET_KEY from env")
 
-if not SECRET_KEY and os.path.exists(os.path.join(BASE_LOGS, "secret.key")):
-    with open(os.path.join(BASE_LOGS, "secret.key"), "r") as f:
+if not SECRET_KEY and os.path.exists(SECRET_KEY_FILENAME):
+    with open(SECRET_KEY_FILENAME, "r") as f:
         SECRET_KEY = f.read().strip()
         print("use SECRET_KEY from file")
 
 if not SECRET_KEY:
     from django.core.management.utils import get_random_secret_key
 
-    with open(os.path.join(BASE_LOGS, "secret.key"), "w") as f:
+    with open(SECRET_KEY_FILENAME, "w") as f:
         f.write(get_random_secret_key())
         print("generate SECRET_KEY and save to file")
-    with open(os.path.join(BASE_LOGS, "secret.key"), "r") as f:
+    with open(SECRET_KEY_FILENAME, "r") as f:
         SECRET_KEY = f.read().strip()
         print("use SECRET_KEY from file")
 
@@ -102,7 +104,7 @@ CONSTANCE_ADDITIONAL_FIELDS = {
 CONSTANCE_CONFIG = {
     "ALLOW_REGISTRATION": (False, "Publicly allow user registration", bool),
     "ALLOW_UPLOAD": (
-        not os.environ.get("ALLOW_UPLOAD", "True") in ("false", "False", "0", "f"),
+        os.environ.get("ALLOW_UPLOAD", "True") not in ("false", "False", "0", "f"),
         "Allow uploading files",
         bool,
     ),
@@ -113,7 +115,10 @@ CONSTANCE_CONFIG = {
     ),
     "HEAVYWEIGHT_PROCESS": (
         HEAVYWEIGHT_PROCESS,
-        "Number of workers, when scanning pictures. This setting can dramatically affect the ram usage. Each worker needs 800MB of RAM. Change at your own will. Default is 1.",
+        """
+        Number of workers, when scanning pictures. This setting can dramatically affect the ram usage.
+        Each worker needs 800MB of RAM. Change at your own will. Default is 1.
+        """,
         int,
     ),
     "MAP_API_PROVIDER": (

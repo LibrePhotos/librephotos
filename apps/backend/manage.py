@@ -23,10 +23,7 @@ if __name__ == "__main__":
         cov.erase()
         cov.start()
 
-    try:
-        from django.core.management import execute_from_command_line
-    except ImportError:
-        raise
+    from django.core.management import execute_from_command_line
 
     os.environ.setdefault(
         "DJANGO_SETTINGS_MODULE", f"librephotos.settings.{environment}"
@@ -38,5 +35,3 @@ if __name__ == "__main__":
         cov.save()
         cov.html_report()
         covered = cov.report()
-        # if covered < 100:
-        #     raise SystemExit(1)
