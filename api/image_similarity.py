@@ -11,7 +11,7 @@ from api.util import logger
 
 
 def search_similar_embedding(user, emb, result_count=100, threshold=27):
-    if type(user) == int:
+    if isinstance(user, int):
         user_id = user
     else:
         user_id = user.id
@@ -33,7 +33,7 @@ def search_similar_embedding(user, emb, result_count=100, threshold=27):
 
 
 def search_similar_image(user, photo, threshold=27):
-    if type(user) == int:
+    if isinstance(user, int):
         user_id = user
     else:
         user_id = user.id
