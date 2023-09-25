@@ -1,9 +1,9 @@
+from django.conf import settings
 from rest_framework import status, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-import ownphotos.settings
 from api.api_util import path_to_dict
 from api.date_time_extractor import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
 from api.models import User
@@ -39,7 +39,7 @@ class RootPathTreeView(APIView):
             if path:
                 res = [path_to_dict(path)]
             else:
-                res = [path_to_dict(ownphotos.settings.DATA_ROOT)]
+                res = [path_to_dict(settings.DATA_ROOT)]
             return Response(res)
         except Exception as e:
             logger.exception(str(e))

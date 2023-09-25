@@ -3,16 +3,16 @@ import pickle
 
 # import matplotlib.pyplot as plt
 import torch
+from django.conf import settings
 from PIL import Image
 from torchvision import transforms
 
-import ownphotos.settings
 from api.im2txt.model import DecoderRNN, EncoderCNN
 
 embed_size = 256
 hidden_size = 512
 num_layers = 1
-im2txt_models_path = ownphotos.settings.IM2TXT_ROOT
+im2txt_models_path = settings.IM2TXT_ROOT
 
 encoder_path = os.path.join(im2txt_models_path, "models", "encoder-10-1000.ckpt")
 decoder_path = os.path.join(im2txt_models_path, "models", "decoder-10-1000.ckpt")

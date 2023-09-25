@@ -5,19 +5,19 @@ import os
 
 import numpy as np
 import torch
+from django.conf import settings
 from PIL import Image
 from torch.autograd import Variable as V
 from torch.nn import functional as F
 from torchvision import transforms as trn
 
-import ownphotos.settings
 import wideresnet
 from api.util import logger
 
 # import warnings
 
 torch.nn.Module.dump_patches = True
-dir_places365_model = ownphotos.settings.PLACES365_ROOT
+dir_places365_model = settings.PLACES365_ROOT
 
 
 class Places365:

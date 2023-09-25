@@ -6,13 +6,13 @@ import uuid
 import pytz
 from constance import config as site_config
 from django import db
+from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q, QuerySet
 from django_q.tasks import AsyncTask
 
 import api.models.album_thing
 import api.util as util
-import ownphotos.settings
 from api.batch_jobs import create_batch_job
 from api.face_classify import cluster_all_faces
 from api.models import File, LongRunningJob, Photo
@@ -332,12 +332,10 @@ def photo_scanner(user, last_scan, full_scan, path, job_id):
 
 
 def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
-    if not os.path.exists(
-        os.path.join(ownphotos.settings.MEDIA_ROOT, "thumbnails_big")
-    ):
-        os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "square_thumbnails_small"))
-        os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "square_thumbnails"))
-        os.mkdir(os.path.join(ownphotos.settings.MEDIA_ROOT, "thumbnails_big"))
+    if not os.path.exists(os.path.join(settings.MEDIA_ROOT, "thumbnails_big")):
+        os.mkdir(os.path.join(settings.MEDIA_ROOT, "square_thumbnails_small"))
+        os.mkdir(os.path.join(settings.MEDIA_ROOT, "square_thumbnails"))
+        os.mkdir(os.path.join(settings.MEDIA_ROOT, "thumbnails_big"))
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
