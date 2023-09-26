@@ -8,6 +8,7 @@ from urllib.parse import quote
 import jsonschema
 import magic
 from constance import config as site_config
+from django.conf import settings
 from django.db.models import Q
 from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
 from django.utils.decorators import method_decorator
@@ -22,7 +23,6 @@ from rest_framework.views import APIView, exception_handler
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
-import ownphotos.settings
 from api.api_util import get_search_term_examples
 from api.autoalbum import delete_missing_photos
 from api.directory_watcher import scan_photos
@@ -364,9 +364,7 @@ class MediaAccessFullsizeOriginalView(APIView):
                 response = HttpResponse()
                 response["Content-Type"] = filename
                 response["X-Accel-Redirect"] = iri_to_uri(
-                    photo.main_file.path.replace(
-                        ownphotos.settings.DATA_ROOT, "/original"
-                    )
+                    photo.main_file.path.replace(settings.DATA_ROOT, "/original")
                 )
                 return response
         # faces and avatars

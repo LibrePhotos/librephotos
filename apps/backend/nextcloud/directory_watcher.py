@@ -4,12 +4,12 @@ import pathlib
 
 import owncloud as nextcloud
 import pytz
+from django.conf import settings
 
 import api.util as util
 from api.directory_watcher import handle_new_image
 from api.image_similarity import build_image_similarity_index
 from api.models import LongRunningJob
-from ownphotos import settings
 
 
 def isValidNCMedia(file_obj):

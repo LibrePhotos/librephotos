@@ -2,12 +2,12 @@ import gc
 
 import numpy as np
 import PIL
+from django.conf import settings
 from sentence_transformers import SentenceTransformer
 
-import ownphotos
 from api.util import logger
 
-dir_clip_ViT_B_32_model = ownphotos.settings.CLIP_ROOT
+dir_clip_ViT_B_32_model = settings.CLIP_ROOT
 
 
 class SemanticSearch:

@@ -1,9 +1,9 @@
 import pytz
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django_cryptography.fields import encrypt
 
-import ownphotos.settings
 from api.date_time_extractor import DEFAULT_RULES_JSON
 
 
@@ -29,7 +29,7 @@ class User(AbstractUser):
     )
 
     favorite_min_rating = models.IntegerField(
-        default=ownphotos.settings.DEFAULT_FAVORITE_MIN_RATING, db_index=True
+        default=settings.DEFAULT_FAVORITE_MIN_RATING, db_index=True
     )
 
     class SaveMetadata(models.TextChoices):

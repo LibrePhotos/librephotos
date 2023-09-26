@@ -3,9 +3,9 @@ import subprocess
 
 import pyvips
 import requests
+from django.conf import settings
 
 import api.util as util
-import ownphotos.settings
 from api.models.file import is_raw
 
 
@@ -14,7 +14,7 @@ def createThumbnail(inputPath, outputHeight, outputPath, hash, fileType):
         if is_raw(inputPath):
             if "thumbnails_big" in outputPath:
                 completePath = os.path.join(
-                    ownphotos.settings.MEDIA_ROOT, outputPath, hash + fileType
+                    settings.MEDIA_ROOT, outputPath, hash + fileType
                 ).strip()
                 json = {
                     "source": inputPath,
@@ -25,7 +25,7 @@ def createThumbnail(inputPath, outputHeight, outputPath, hash, fileType):
                 return response["thumbnail"]
             else:
                 bigThumbnailPath = os.path.join(
-                    ownphotos.settings.MEDIA_ROOT, "thumbnails_big", hash + fileType
+                    settings.MEDIA_ROOT, "thumbnails_big", hash + fileType
                 )
                 x = pyvips.Image.thumbnail(
                     bigThumbnailPath,
@@ -34,7 +34,7 @@ def createThumbnail(inputPath, outputHeight, outputPath, hash, fileType):
                     size=pyvips.enums.Size.DOWN,
                 )
                 completePath = os.path.join(
-                    ownphotos.settings.MEDIA_ROOT, outputPath, hash + fileType
+                    settings.MEDIA_ROOT, outputPath, hash + fileType
                 ).strip()
                 x.write_to_file(completePath, Q=95)
             return completePath
@@ -43,7 +43,7 @@ def createThumbnail(inputPath, outputHeight, outputPath, hash, fileType):
                 inputPath, 10000, height=outputHeight, size=pyvips.enums.Size.DOWN
             )
             completePath = os.path.join(
-                ownphotos.settings.MEDIA_ROOT, outputPath, hash + fileType
+                settings.MEDIA_ROOT, outputPath, hash + fileType
             ).strip()
             x.write_to_file(completePath)
             return completePath
@@ -54,9 +54,7 @@ def createThumbnail(inputPath, outputHeight, outputPath, hash, fileType):
 
 def createAnimatedThumbnail(inputPath, outputHeight, outputPath, hash, fileType):
     try:
-        output = os.path.join(
-            ownphotos.settings.MEDIA_ROOT, outputPath, hash + fileType
-        ).strip()
+        output = os.path.join(settings.MEDIA_ROOT, outputPath, hash + fileType).strip()
         subprocess.call(
             [
                 "ffmpeg",
@@ -92,9 +90,7 @@ def createThumbnailForVideo(inputPath, outputPath, hash, fileType):
                 "00:00:00.000",
                 "-vframes",
                 "1",
-                os.path.join(
-                    ownphotos.settings.MEDIA_ROOT, outputPath, hash + fileType
-                ).strip(),
+                os.path.join(settings.MEDIA_ROOT, outputPath, hash + fileType).strip(),
             ]
         )
     except Exception as e:
@@ -106,11 +102,11 @@ def createThumbnailForVideo(inputPath, outputPath, hash, fileType):
 
 def doesStaticThumbnailExists(outputPath, hash):
     return os.path.exists(
-        os.path.join(ownphotos.settings.MEDIA_ROOT, outputPath, hash + ".webp").strip()
+        os.path.join(settings.MEDIA_ROOT, outputPath, hash + ".webp").strip()
     )
 
 
 def doesVideoThumbnailExists(outputPath, hash):
     return os.path.exists(
-        os.path.join(ownphotos.settings.MEDIA_ROOT, outputPath, hash + ".mp4").strip()
+        os.path.join(settings.MEDIA_ROOT, outputPath, hash + ".mp4").strip()
     )
