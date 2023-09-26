@@ -1,4 +1,3 @@
-import logging
 import logging.handlers
 import os
 import os.path
@@ -6,8 +5,7 @@ import os.path
 import exiftool
 import requests
 from constance import config as site_config
-
-import ownphotos.settings
+from django.conf import settings
 
 logger = logging.getLogger("ownphotos")
 formatter = logging.Formatter(
@@ -15,7 +13,7 @@ formatter = logging.Formatter(
 )
 fileMaxByte = 256 * 1024 * 200  # 100MB
 fileHandler = logging.handlers.RotatingFileHandler(
-    os.path.join(ownphotos.settings.LOGS_ROOT, "ownphotos.log"),
+    os.path.join(settings.LOGS_ROOT, "ownphotos.log"),
     maxBytes=fileMaxByte,
     backupCount=10,
 )
