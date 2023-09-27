@@ -32,8 +32,8 @@ python manage.py qcluster 2>&1 | tee /logs/qcluster.log &
 if [ "$DEBUG" = 1 ]
 then
     echo "development backend starting"
-    gunicorn --worker-class=gevent --reload --bind 0.0.0.0:8001 --log-level=info ownphotos.wsgi 2>&1 | tee /logs/gunicorn_django.log
+    gunicorn --worker-class=gevent --reload --bind 0.0.0.0:8001 --log-level=info librephotos.wsgi 2>&1 | tee /logs/gunicorn_django.log
 else
     echo "production backend starting"
-    gunicorn --worker-class=gevent --bind 0.0.0.0:8001 --log-level=info ownphotos.wsgi 2>&1 | tee /logs/gunicorn_django.log
+    gunicorn --worker-class=gevent --bind 0.0.0.0:8001 --log-level=info librephotos.wsgi 2>&1 | tee /logs/gunicorn_django.log
 fi
