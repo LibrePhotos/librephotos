@@ -148,7 +148,7 @@ CORS_ALLOW_HEADERS = (
 )
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = "http://localhost:3000"
+CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
 
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
