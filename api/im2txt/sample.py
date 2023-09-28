@@ -25,6 +25,10 @@ with open(vocab_path, "rb") as f:
 
 def load_image(image_path, transform=None):
     image = Image.open(image_path)
+    # Check if the image has 3 channels (RGB)
+    if image.mode != "RGB":
+        # Handle grayscale or other modes here (e.g., convert to RGB)
+        image = image.convert("RGB")
     image = image.resize([224, 224], Image.LANCZOS)
 
     if transform is not None:
@@ -33,9 +37,9 @@ def load_image(image_path, transform=None):
     return image
 
 
-def im2txt(image_path):
-    # Device configuration
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def im2txt(
+    image_path, device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
+):
     # Image preprocessing
     transform = transforms.Compose(
         [
@@ -53,11 +57,12 @@ def im2txt(image_path):
     decoder = decoder.to(device)
 
     # Load the trained model parameters
-    encoder.load_state_dict(torch.load(encoder_path, map_location="cpu"))
-    decoder.load_state_dict(torch.load(decoder_path, map_location="cpu"))
+    encoder.load_state_dict(torch.load(encoder_path, map_location=device))
+    decoder.load_state_dict(torch.load(decoder_path, map_location=device))
 
     # Prepare an image
     image = load_image(image_path, transform)
+
     image_tensor = image.to(device)
 
     # Generate an caption from the image
