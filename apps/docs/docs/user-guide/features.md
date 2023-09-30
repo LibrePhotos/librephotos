@@ -997,6 +997,23 @@ sidebar_position: 6
         <p hidden>Google Photos</p>  <td>✔️</td>
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
+        <tr>
+        <td>Download Photos</td>
+        <p hidden>LibrePhotos</p>    <td>❌</td>
+        <p hidden>Photoview</p>      <td>❔</td>
+        <p hidden>PhotoPrism</p>     <td>❔</td>
+        <p hidden>Immich</p>         <td>❔</td>
+        <p hidden>Photonix</p>       <td>❔</td>
+        <p hidden>Damselfly</p>      <td>❔</td>
+        <p hidden>Synology Photos</p><td>❔</td>
+        <p hidden>Lomorage</p>       <td>❔</td>
+        <p hidden>Piwigo</p>         <td>❔</td>
+        <p hidden>Photostructure</p> <td>❔</td>
+        <p hidden>PiGallery2</p>     <td>❔</td>
+        <p hidden>Lychee</p>         <td>❔</td>
+        <p hidden>Google Photos</p>  <td>✔️</td>
+        <p hidden>digiKam</p>        <td>❔</td>
+    </tr>
     <tr>
         <td>dlna</td>
         <p hidden>LibrePhotos</p>    <td>❔</td>
