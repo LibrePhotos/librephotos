@@ -25,6 +25,12 @@ Navigate to the librephotos-docker folder: `cd librephotos-docker`
 
 Copy the template variable file (containing options such as the location of your photos): `cp librephotos.env .env`
 
+:::info
+
+It is important that you rename it to .env. Otherwise docker compose cannot find your variables.
+
+:::
+
 Open `.env` in your favorite text editor and make the required changes. E.g., using nano: `nano .env`
 
 Do not forget to create the directories you specified in the `.env` file if they do not exist.
