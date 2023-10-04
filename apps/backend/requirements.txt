@@ -27,7 +27,7 @@ markupsafe==2.1.3
 Pillow==10.0.1
 psycopg==3.1.12
 https://github.com/owncloud/pyocclient/archive/master.zip
-pytz==2023.3
+pytz==2023.3.post1
 tzdata==2023.3
 PyExifTool==0.4.9
 PyJWT==2.8.0
