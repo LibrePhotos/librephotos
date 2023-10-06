@@ -1,12 +1,11 @@
 import { Loader, Stack, Text, Title } from "@mantine/core";
 import { DateTime } from "luxon";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 
-import { fetchLocationTimeline } from "../../actions/utilActions";
+import { useLocationTimelineQuery } from "../../api_client/location-timeline";
 import { i18nResolvedLanguage } from "../../i18n";
-import { useAppDispatch, useAppSelector } from "../../store/store";
 
 const { Hint, XYPlot, XAxis, HorizontalBarSeries } = require("react-vis");
 
@@ -27,16 +26,9 @@ export function LocationDurationStackedBar() {
     useBorderBoxSize: true, // Tell the hook to measure based on the border-box size, default is false
     polyfill: ResizeObserver, // Use polyfill to make this feature works on more browsers
   });
-  const dispatch = useAppDispatch();
-  const { locationTimeline, fetchedLocationTimeline } = useAppSelector(state => state.util);
+  const { data: locationTimeline = [], isSuccess: fetchedLocationTimeline } = useLocationTimelineQuery();
   const [hintValue, setHintValue] = useState<HintProps>({} as HintProps);
-
   const { t } = useTranslation();
-  useEffect(() => {
-    if (!fetchedLocationTimeline) {
-      fetchLocationTimeline(dispatch);
-    }
-  }, [dispatch, fetchedLocationTimeline]); // Only run on first render
 
   const getLocationFromToLabel = (loc: string | undefined, start: number | undefined, end: number | undefined) => {
     if (typeof start === "number" && typeof end === "number") {
