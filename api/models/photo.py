@@ -11,6 +11,7 @@ from django.core.files.base import ContentFile
 from django.db import models
 from django.db.models import Q
 from django.db.utils import IntegrityError
+from api.im2txt.sample import Im2txt
 
 import api.date_time_extractor as date_time_extractor
 import api.models
@@ -18,7 +19,6 @@ import api.util as util
 from api.exif_tags import Tags
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
-from api.im2txt.sample import im2txt
 from api.models.file import File
 from api.models.user import User, get_deleted_user
 from api.places365.places365 import place365_instance
@@ -163,7 +163,7 @@ class Photo(models.Model):
         captions = self.captions_json
         search_captions = self.search_captions
         try:
-            caption = im2txt(image_path)
+            caption = Im2txt().generate_caption(image_path)
             caption = (
                 caption.replace("<start>", "").replace("<end>", "").strip().lower()
             )
@@ -179,7 +179,7 @@ class Photo(models.Model):
             )
             return True
         except Exception:
-            util.logger.warning(
+            util.logger.exception(
                 "could not generate im2txt captions for image %s" % image_path
             )
             return False
