@@ -130,7 +130,7 @@ export function SideMenuNarrow(): JSX.Element {
             >
               <Progress
                 style={{ margin: 10 }}
-                sections={[{ value: storageStats.used_storage / storageStats.total_storage, color: "grey" }]}
+                sections={[{ value: (storageStats.used_storage / storageStats.total_storage) * 100, color: "grey" }]}
               />
             </Tooltip>
           )}
