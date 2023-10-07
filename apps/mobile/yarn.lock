@@ -8648,9 +8648,9 @@ react-native-device-info@^10.4.0:
   integrity sha512-qRzhuYOm5ZXQi5dhfJFjDq157oipxcEW/fo0QyMm5+TI6V6/+P/tju+Hif6z0rpLCf7MV7iDVRv2Kqha4D/yvQ==
 
 react-native-file-access@^2.5.2:
-  version "2.5.2"
-  resolved "https://registry.yarnpkg.com/react-native-file-access/-/react-native-file-access-2.5.2.tgz#b73b84a9a2166eeb48a879da33982d43249d5773"
-  integrity sha512-YkbD06qEf+SxOz0hdQk0iStMYrQeunnAHIMybDLD0K+HLTQ6PTkvtdi0Wlzdz1g5tSx0bVzhhsbDrEvqf5JLaA==
+  version "2.6.0"
+  resolved "https://registry.yarnpkg.com/react-native-file-access/-/react-native-file-access-2.6.0.tgz#d5d007f9360299a3baea9e048641cfe6b8074b09"
+  integrity sha512-kZwWIFb4AtaPh+B7EHZBJEiEFdY1FztcF8X35WepdfjDUul0Dk2+CR3Lp45gZ8/nchDthq0iWBhnWr5ffo3+Nw==
 
 react-native-file-logger@^0.4.1:
   version "0.4.1"
