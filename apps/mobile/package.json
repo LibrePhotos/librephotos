@@ -41,7 +41,7 @@
     "react-native-device-info": "^10.4.0",
     "react-native-file-access": "^2.5.2",
     "react-native-file-logger": "^0.4.1",
-    "react-native-flipper": "^0.182.0",
+    "react-native-flipper": "^0.212.0",
     "react-native-gesture-handler": "^2.9.0",
     "react-native-pager-view": "^6.1.4",
     "react-native-reanimated": "^2.14.4",
