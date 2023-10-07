@@ -1,10 +1,8 @@
 import os
 
-import nltk
 import torch
 import torch.utils.data as data
 from PIL import Image
-from pycocotools.coco import COCO
 
 
 class CocoDataset(data.Dataset):
@@ -20,6 +18,9 @@ class CocoDataset(data.Dataset):
             transform: image transformer.
         """
         self.root = root
+
+        from pycocotools.coco import COCO
+
         self.coco = COCO(json)
         self.ids = list(self.coco.anns.keys())
         self.vocab = vocab
@@ -39,6 +40,9 @@ class CocoDataset(data.Dataset):
             image = self.transform(image)
 
         # Convert caption (string) to word ids.
+
+        import nltk
+
         tokens = nltk.tokenize.word_tokenize(str(caption).lower())
         caption = []
         caption.append(vocab("<start>"))

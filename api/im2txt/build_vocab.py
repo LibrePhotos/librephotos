@@ -1,7 +1,6 @@
 import pickle
 from collections import Counter
 
-import nltk
 from tqdm import tqdm
 
 caption_path = "api/im2txt/data/annotations/captions_train2014.json"
@@ -34,6 +33,8 @@ class Vocabulary(object):
 
 def build_vocab(json, threshold):
     from pycocotools.coco import COCO
+    import nltk
+
     """Build a simple vocabulary wrapper."""
     coco = COCO(json)
     counter = Counter()
