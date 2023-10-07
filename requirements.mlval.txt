@@ -1,3 +1,4 @@
 pycocotools==2.0.7
 pycocoevalcap==1.2
 nltk==3.8.1
+matplotlib==3.8.0
