@@ -170,6 +170,20 @@ class SetUserAlbumShared(APIView):
 # Utility views
 
 
+class StorageStatsView(APIView):
+    def get(self, request, format=None):
+        import shutil
+
+        total_storage, used_storage, free_storage = shutil.disk_usage("/")
+        return Response(
+            {
+                "total_storage": total_storage,
+                "used_storage": used_storage,
+                "free_storage": free_storage,
+            }
+        )
+
+
 class SearchTermExamples(APIView):
     def get(self, request, format=None):
         search_term_examples = get_search_term_examples(request.user)
