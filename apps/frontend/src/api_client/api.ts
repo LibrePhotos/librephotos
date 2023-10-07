@@ -32,7 +32,7 @@ import type { IUploadOptions, IUploadResponse } from "../store/upload/upload.zod
 import { UploadExistResponse, UploadResponse } from "../store/upload/upload.zod";
 import type { IApiUserListResponse, IManageUser, IUser } from "../store/user/user.zod";
 import { ManageUser, UserSchema } from "../store/user/user.zod";
-import type { ServerStatsResponseType } from "../store/util/util.zod";
+import type { ServerStatsResponseType, StorageStatsResponseType } from "../store/util/util.zod";
 import type { IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
 // eslint-disable-next-line import/no-cycle
 import { Server } from "./apiClient";
@@ -61,6 +61,7 @@ export enum Endpoints {
   notThisPerson = "notThisPerson",
   setFacesPersonLabel = "setFacesPersonLabel",
   fetchServerStats = "fetchServerStats",
+  fetchStorageStats = "fetchStorageStats",
 }
 
 const baseQuery = fetchBaseQuery({
@@ -247,6 +248,11 @@ export const api = createApi({
         url: `serverstats`,
       }),
     }),
+    [Endpoints.fetchStorageStats]: builder.query<StorageStatsResponseType, void>({
+      query: () => ({
+        url: `storagestats`,
+      }),
+    }),
   }),
 });
 
@@ -271,4 +277,5 @@ export const {
   useManageUpdateUserMutation,
   useIsFirstTimeSetupQuery,
   useFetchServerStatsQuery,
+  useFetchStorageStatsQuery,
 } = api;

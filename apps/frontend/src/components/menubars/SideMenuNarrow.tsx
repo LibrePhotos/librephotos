@@ -1,14 +1,28 @@
-import { ActionIcon, Menu, Navbar } from "@mantine/core";
+import { ActionIcon, Center, Loader, Menu, Navbar, Progress, Text, Tooltip } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
-import { Book, ChevronRight, Heart } from "tabler-icons-react";
+import storage from "redux-persist/lib/storage";
+import { Book, ChevronRight, Cloud, Heart } from "tabler-icons-react";
 
+import { useFetchStorageStatsQuery } from "../../api_client/api";
 import { selectAuthAccess, selectIsAuthenticated } from "../../store/auth/authSelectors";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { DOCUMENTATION_LINK, LEFT_MENU_WIDTH, SUPPORT_LINK } from "../../ui-constants";
 import { getNavigationItems, navigationStyles } from "./navigation";
+
+function formatBytes(bytes, decimals = 2) {
+  if (!+bytes) return "0 Bytes";
+
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ["Bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"];
+
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return `${parseFloat((bytes / k ** i).toFixed(dm))} ${sizes[i]}`;
+}
 
 export function SideMenuNarrow(): JSX.Element {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
@@ -16,6 +30,8 @@ export function SideMenuNarrow(): JSX.Element {
   const dispatch = useAppDispatch();
   const { classes, cx } = navigationStyles();
   const [active, setActive] = useState("/");
+
+  const { data: storageStats, isLoading } = useFetchStorageStatsQuery();
 
   const { t } = useTranslation();
   const matches = useMediaQuery("(min-width: 700px)");
@@ -93,6 +109,32 @@ export function SideMenuNarrow(): JSX.Element {
       <Navbar.Section grow>{links}</Navbar.Section>
 
       <Navbar.Section mb="lg">
+        <div className={classes.hover}>
+          <div className={classes.text} style={{ paddingBottom: 0 }}>
+            <ActionIcon className={classes.linkIcon} variant="light">
+              <Cloud />
+            </ActionIcon>
+            <span style={{ flexGrow: 2 }}>{t("storage")}</span>
+          </div>
+          {isLoading && (
+            <Center>
+              <Loader size="xs"></Loader>
+            </Center>
+          )}
+          {!isLoading && (
+            <Tooltip
+              label={t("storagetooltip", {
+                usedstorage: formatBytes(storageStats.used_storage),
+                totalstorage: formatBytes(storageStats.total_storage),
+              })}
+            >
+              <Progress
+                style={{ margin: 10 }}
+                sections={[{ value: storageStats.used_storage / storageStats.total_storage, color: "grey" }]}
+              />
+            </Tooltip>
+          )}
+        </div>
         <a href={DOCUMENTATION_LINK} target="_blank" rel="noreferrer" className={classes.link}>
           <ActionIcon className={classes.linkIcon} variant="light">
             <Book />

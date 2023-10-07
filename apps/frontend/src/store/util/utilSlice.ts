@@ -2,9 +2,11 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 import { createSlice } from "@reduxjs/toolkit";
 
 import { api } from "../../api_client/api";
+import type { StorageStatsResponseType } from "./util.zod";
 
 const initialState = {
   serverStats: null,
+  storageStats: {} as StorageStatsResponseType,
 };
 
 const utilSlice = createSlice({
@@ -18,6 +20,14 @@ const utilSlice = createSlice({
         serverStats: payload,
       }))
       .addMatcher(api.endpoints.fetchServerStats.matchRejected, (state, { payload }) => ({
+        ...state,
+        error: payload,
+      }))
+      .addMatcher(api.endpoints.fetchStorageStats.matchFulfilled, (state, { payload }) => ({
+        ...state,
+        storageStats: payload,
+      }))
+      .addMatcher(api.endpoints.fetchStorageStats.matchRejected, (state, { payload }) => ({
         ...state,
         error: payload,
       }))
