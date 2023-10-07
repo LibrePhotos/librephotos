@@ -40,6 +40,6 @@ gevent==23.9.1
 python-magic==0.4.27
 Wand==0.6.11
 django-q2==1.5.5
-safetensors==0.3.3
+safetensors==0.4.0
 py-cpuinfo==9.0.0
 psutil==5.9.5
