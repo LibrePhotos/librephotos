@@ -43,4 +43,4 @@ Wand==0.6.11
 django-q2==1.6.1
 safetensors==0.4.0
 py-cpuinfo==9.0.0
-psutil==5.9.5
+psutil==5.9.6
