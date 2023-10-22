@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04
+FROM nvidia/cuda:12.2.2-cudnn8-devel-ubuntu22.04
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -65,8 +65,8 @@ RUN curl -SL https://exiftool.org/Image-ExifTool-12.64.tar.gz | tar -xz && \
 	make install && \
 	rm -rf /tmp/exiftool
 
-# Current Version: pytorch 2.1 with cuda support
-RUN pip3 install --no-cache-dir torch torchvision
+# Current Version: pytorch 2.1 with cuda 12.1 support
+RUN pip3 install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
 # Install latest cmake version
 RUN pip3 install --no-cache-dir cmake
