@@ -145,12 +145,7 @@ router.register(
     photos.NoTimestampPhotoViewSet,
     basename="photo",
 )
-router.register(
-    r"api/photos/onlyvidoes", photos.ViewOnlyVideoListViewSet, basename="photo"
-)
-router.register(
-    r"api/photos/onlyphotos", photos.ViewOnlyPhotoListViewSet, basename="photo"
-)
+
 router.register(r"api/photos/edit", photos.PhotoEditViewSet, basename="photo")
 
 router.register(
