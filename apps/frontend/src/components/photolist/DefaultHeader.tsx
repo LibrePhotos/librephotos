@@ -4,7 +4,7 @@ import type { ReactElement } from "react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
-import { Calendar, ChevronDown, Clock, EyeOff, Globe, Star } from "tabler-icons-react";
+import { Calendar, ChevronDown, Clock, EyeOff, Globe, Star ,Photo,Video} from "tabler-icons-react";
 
 import { useFetchUserListQuery } from "../../api_client/api";
 import { i18nResolvedLanguage } from "../../i18n";
@@ -44,7 +44,10 @@ export function DefaultHeader(props: Props) {
       path.startsWith("/favorites") ||
       path.startsWith("/notimestamp") ||
       path.startsWith("/recent") ||
-      path.startsWith("/user/")
+      path.startsWith("/user/") ||
+      path.startsWith("/photos") ||
+      path.startsWith("/videos")
+
     );
   };
 
@@ -138,6 +141,14 @@ export function DefaultHeader(props: Props) {
 
                 <Menu.Item icon={<Star color="yellow" size={14} />} onClick={() => dispatch(push("/favorites"))}>
                   {t("sidemenu.favorites")}
+                </Menu.Item>
+
+                <Menu.Item icon={<Photo color="blue" size={14} />} onClick={() => dispatch(push("/photos"))}>
+                  {t("sidemenu.photos")}
+                </Menu.Item>
+
+                <Menu.Item icon={<Video color="pink" size={14} />} onClick={() => dispatch(push("/videos"))}>
+                  {t("sidemenu.videos")}
                 </Menu.Item>
 
                 <Menu.Item
