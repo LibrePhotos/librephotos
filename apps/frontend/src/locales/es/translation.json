@@ -256,7 +256,8 @@
         "sharing": "Compartiendo",
         "publicphotos": "Fotos públicas",
         "youshared": "Tu compartiste",
-        "sharedwithyou": "Compartido contigo"
+        "sharedwithyou": "Compartido contigo",
+        "videos": "Vídeos"
     },
     "selectionbar": {
         "selected": "seleccionado",
@@ -322,7 +323,8 @@
         "notimestamp": "Fotos sin marcas de tiempo",
         "hidden": "Fotos Ocultas",
         "favorite": "Fotos favoritas",
-        "deleted": "Basura"
+        "deleted": "Basura",
+        "videos": "Vídeos"
     },
     "login": {
         "name": "LibrePhotos",
