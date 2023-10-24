@@ -227,7 +227,8 @@
         "facecluster": "Aglomerados de caras",
         "publicphotos": "Fotos públicas",
         "youshared": "Partilhadas por si",
-        "sharedwithyou": "Partilhadas consigo"
+        "sharedwithyou": "Partilhadas consigo",
+        "videos": "Vídeos"
     },
     "modalnextcloud": {
         "cancel": "Cancelar",
@@ -332,7 +333,8 @@
         "hidden": "Fotos ocultas",
         "notimestamp": "Fotos sem etiqueta de data/hora",
         "favorite": "Fotos favoritas",
-        "deleted": "Lixo"
+        "deleted": "Lixo",
+        "videos": "Vídeos"
     },
     "login": {
         "usernameplaceholder": "Nome de utilizador",
