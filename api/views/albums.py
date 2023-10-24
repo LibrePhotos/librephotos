@@ -342,6 +342,10 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
             albumDateFilter.append(Q(photos__video=True))
             photoFilter.append(Q(video=True))
 
+        if self.request.query_params.get("photo"):
+            albumDateFilter.append(Q(photos__video=False))
+            photoFilter.append(Q(video=False))
+
         if self.request.query_params.get("deleted"):
             albumDateFilter.append(Q(photos__deleted=True))
             photoFilter.append(Q(deleted=True))
@@ -483,6 +487,9 @@ class AlbumDateListViewSet(ListViewSet):
 
         if self.request.query_params.get("video"):
             filter.append(Q(photos__video=True))
+        
+        if self.request.query_params.get("photo"):
+            filter.append(Q(photos__video=False))
 
         if self.request.query_params.get("person"):
             filter.append(
