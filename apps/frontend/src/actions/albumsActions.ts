@@ -344,11 +344,13 @@ export function fetchAlbumDateList(dispatch: AppDispatch, options: AlbumDateList
   const favorites = options.photosetType === PhotosetType.FAVORITES ? "?favorite=true" : "";
   const publicParam = options.photosetType === PhotosetType.PUBLIC ? "?public=true" : "";
   const hiddenParam = options.photosetType === PhotosetType.HIDDEN ? "?hidden=true" : "";
+  const photos= options.photosetType === PhotosetType.PHOTOS? "?photo=true" : "";
   const deletedParam = options.photosetType === PhotosetType.DELETED ? "?deleted=true" : "";
   const usernameParam = options.username ? `&username=${options.username.toLowerCase()}` : "";
   const personidParam = options.person_id ? `?person=${options.person_id}` : "";
+  const videos= options.photosetType === PhotosetType.VIDEOS ? "?video=true" : "";
   Server.get(
-    `albums/date/list/${favorites}${publicParam}${hiddenParam}${deletedParam}${usernameParam}${personidParam}`,
+    `albums/date/list/${favorites}${publicParam}${hiddenParam}${deletedParam}${usernameParam}${personidParam}${photos}${videos}`,
     {
       timeout: 100000,
     }
@@ -388,13 +390,15 @@ export function fetchAlbumDate(dispatch: AppDispatch, options: AlbumDateOption) 
     },
   });
   const favorites = options.photosetType === PhotosetType.FAVORITES ? "&favorite=true" : "";
+  const photos= options.photosetType === PhotosetType.PHOTOS? "&photo=true" : "";
+  const videos= options.photosetType === PhotosetType.VIDEOS ? "&video=true" : "";
   const publicParam = options.photosetType === PhotosetType.PUBLIC ? "&public=true" : "";
   const usernameParam = options.username ? `&username=${options.username.toLowerCase()}` : "";
   const personidParam = options.person_id ? `&person=${options.person_id}` : "";
   const deletedParam = options.photosetType === PhotosetType.DELETED ? "&deleted=true" : "";
   const hiddenParam = options.photosetType === PhotosetType.HIDDEN ? "&hidden=true" : "";
   Server.get(
-    `albums/date/${options.album_date_id}/?page=${options.page}${favorites}${publicParam}${usernameParam}${personidParam}${deletedParam}${hiddenParam}`
+    `albums/date/${options.album_date_id}/?page=${options.page}${favorites}${publicParam}${usernameParam}${personidParam}${deletedParam}${hiddenParam}${photos}${videos}`
   )
     .then(response => {
       const datePhotosGroup: IncompleteDatePhotosGroup = IncompleteDatePhotosGroupSchema.parse(response.data.results);

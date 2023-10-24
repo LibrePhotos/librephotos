@@ -23,6 +23,7 @@ export enum PhotosetType {
   TIMESTAMP = "timestamp",
   NO_TIMESTAMP = "noTimestamp",
   FAVORITES = "favorites",
+  PHOTOS = "photos",
   HIDDEN = "hidden",
   RECENTLY_ADDED = "recentlyAdded",
   DELETED = "deleted",
@@ -32,6 +33,7 @@ export enum PhotosetType {
   PUBLIC = "public",
   SHARED_TO_ME = "sharedToMe",
   SHARED_BY_ME = "sharedByMe",
+  VIDEOS= "videos",
 }
 
 export interface PhotosState {

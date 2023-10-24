@@ -253,6 +253,7 @@
     "favorites": "Favorites",
     "mypublicphotos": "My Public Photos",
     "photos": "Photos",
+    "videos":"Videos",
     "albums": "Albums",
     "people": "People",
     "places": "Places",
@@ -350,6 +351,7 @@
     "notimestamp": "Photos without Timestamps",
     "hidden": "Hidden Photos",
     "favorite": "Favorite Photos",
+    "videos" :"Videos",
     "deleted": "Trash"
   },
   "login": {
