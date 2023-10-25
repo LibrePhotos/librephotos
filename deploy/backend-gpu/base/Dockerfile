@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.2.2-cudnn8-devel-ubuntu22.04
+FROM nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 
