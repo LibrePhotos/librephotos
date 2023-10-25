@@ -457,8 +457,9 @@ class Photo(models.Model):
             if not res:
                 return
         except Exception as e:
-            util.logger.exception("something went wrong with geolocating")
-            raise e
+            util.logger.warning(e)
+            util.logger.warning("Something went wrong with geolocating")
+            return
 
         self.geolocation_json = res
         self.search_location = res["address"]
