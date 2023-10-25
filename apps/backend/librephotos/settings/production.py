@@ -122,7 +122,7 @@ CONSTANCE_CONFIG = {
         int,
     ),
     "MAP_API_PROVIDER": (
-        os.environ.get("MAP_API_PROVIDER", "mapbox"),
+        os.environ.get("MAP_API_PROVIDER", "photon"),
         "Map Provider",
         "map_api_provider",
     ),
