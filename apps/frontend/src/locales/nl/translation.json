@@ -232,7 +232,8 @@
         "youshared": "Gedeeld met anderen",
         "sharedwithyou": "Gedeeld met mij",
         "facerecognition": "Gezichten",
-        "albums": "Albums"
+        "albums": "Albums",
+        "videos": "Video's"
     },
     "selectionbar": {
         "deselect": "Niets selecteren",
@@ -298,7 +299,8 @@
         "recentlyadded": "Onlangs toegevoegd",
         "addedon": "Toegevoegd op ",
         "notimestamp": "Foto's zonder tijdstempels",
-        "photos": "Foto's"
+        "photos": "Foto's",
+        "videos": "Video's"
     },
     "login": {
         "username": "Gebruikersnaam",
