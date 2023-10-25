@@ -139,3 +139,10 @@ class TestGeocoder(TestCase):
         get_geocoder_for_service_mock.return_value = fake_geocoder(mapbox_responses[1])
         result = reverse_geocode(0, 0)
         self.assertEquals(result, mapbox_expectations[1])
+
+    @override_config(MAP_API_PROVIDER="mapbox")
+    @override_config(MAP_API_KEY="")
+    def test_reverse_geocode_no_api_key(self):
+        result = reverse_geocode(0, 0)
+        print(result)
+        self.assertEquals(result, {})
