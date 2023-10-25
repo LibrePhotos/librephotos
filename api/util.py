@@ -47,33 +47,6 @@ weekdays = {
 }
 
 
-def mapbox_reverse_geocode(lat, lon):
-    mapbox_api_key = site_config.MAP_API_KEY
-
-    if mapbox_api_key == "":
-        return {}
-
-    url = (
-        "https://api.mapbox.com/geocoding/v5/mapbox.places/%f,%f.json?access_token=%s"
-        % (lon, lat, mapbox_api_key)
-    )
-    resp = requests.get(url)
-    if resp.status_code == 200:
-        resp_json = resp.json()
-        search_terms = []
-        if "features" in resp_json.keys():
-            for feature in resp_json["features"]:
-                search_terms.append(feature["text"])
-
-        resp_json["search_text"] = " ".join(search_terms)
-        logger.info("mapbox returned status 200.")
-        return resp_json
-    else:
-        # logger.info('mapbox returned non 200 response.')
-        logger.warning("mapbox returned status {} response.".format(resp.status_code))
-        return {}
-
-
 def get_sidecar_files_in_priority_order(media_file):
     """
     Returns a list of possible XMP sidecar files for *media_file*, ordered
