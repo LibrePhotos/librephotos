@@ -5,7 +5,7 @@ export const PublicPhotoSampleSchema = z.object({
   image_hash: z.string(),
   rating: z.number(),
   hidden: z.boolean(),
-  exif_timestamp: z.string(),
+  exif_timestamp: z.string().nullable(),
   public: z.boolean(),
   video: z.boolean(),
 });
