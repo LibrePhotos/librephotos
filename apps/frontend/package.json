@@ -128,7 +128,7 @@
     "@types/react-dom": "18.2.11",
     "@types/react-leaflet": "^2.0.0",
     "@types/react-modal": "3.16.2",
-    "@types/react-redux": "7.1.26",
+    "@types/react-redux": "7.1.28",
     "@typescript-eslint/eslint-plugin": "6.7.3",
     "@typescript-eslint/parser": "6.7.3",
     "@welldone-software/why-did-you-render": "7.0.1",
