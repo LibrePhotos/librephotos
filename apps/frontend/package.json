@@ -121,7 +121,7 @@
     "@types/crypto-js": "4.1.2",
     "@types/jest": "^28.1.7",
     "@types/lodash": "4.14.199",
-    "@types/luxon": "3.3.2",
+    "@types/luxon": "3.3.3",
     "@types/node": "18.18.7",
     "@types/react": "18.2.25",
     "@types/react-beautiful-dnd": "^13.1.3",
