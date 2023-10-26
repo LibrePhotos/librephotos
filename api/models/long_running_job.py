@@ -18,6 +18,7 @@ class LongRunningJob(models.Model):
     JOB_CALCULATE_CLIP_EMBEDDINGS = 6
     JOB_SCAN_FACES = 7
     JOB_CLUSTER_ALL_FACES = 8
+    JOB_DOWNLOAD_PHOTOS=9
 
     JOB_TYPES = (
         (JOB_SCAN_PHOTOS, "Scan Photos"),
@@ -28,6 +29,8 @@ class LongRunningJob(models.Model):
         (JOB_SCAN_FACES, "Scan Faces"),
         (JOB_CALCULATE_CLIP_EMBEDDINGS, "Calculate Clip Embeddings"),
         (JOB_CLUSTER_ALL_FACES, "Find Similar Faces"),
+        (JOB_DOWNLOAD_PHOTOS,"Download Selected Photos")
+
     )
 
     job_type = models.PositiveIntegerField(
