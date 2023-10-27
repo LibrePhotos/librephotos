@@ -1,5 +1,5 @@
 const presets = ['module:metro-react-native-babel-preset']
-const plugins = []
+const plugins = ['react-native-reanimated/plugin']
 
 plugins.push([
   'module-resolver',
