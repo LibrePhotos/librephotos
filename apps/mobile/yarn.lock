@@ -8491,9 +8491,9 @@ react-is@^17.0.1:
   integrity sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==
 
 react-native-blob-util@^0.19.0:
-  version "0.19.1"
-  resolved "https://registry.yarnpkg.com/react-native-blob-util/-/react-native-blob-util-0.19.1.tgz#7a1cc49db5c987e7091e6bc18334a2b38a7ab8ce"
-  integrity sha512-X1+MAcijR1AEky9dqNTFtsKvUPAoof2qsmmbSYThj/RWIucc2hhzrK3V2BJVU/hemNuz7E0NDaErmpNDpDHtNw==
+  version "0.19.2"
+  resolved "https://registry.yarnpkg.com/react-native-blob-util/-/react-native-blob-util-0.19.2.tgz#32f37557b24cf30d1b6aac9d81666a75617598ab"
+  integrity sha512-dU6Tq0SqdWpW5Csk64PrskmiYGn3HtaNsob8/PH2D1DjDZTvv2WjSyhgE+hqSgnxljkj4ZlNM73RxZBYrinQGA==
   dependencies:
     base-64 "0.1.0"
     glob "^7.2.3"
