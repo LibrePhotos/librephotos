@@ -1,20 +1,17 @@
 import io
 import os
+import secrets
 import subprocess
+import time
 import uuid
 import zipfile
 from urllib.parse import quote
-import secrets
 
-from django.db.models import  Sum
-from api.batch_jobs import create_batch_job
 import jsonschema
-from api.models.long_running_job import LongRunningJob
-from django_q.tasks import Task
 import magic
 from constance import config as site_config
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
 from django.utils.decorators import method_decorator
 from django.utils.encoding import iri_to_uri
@@ -27,8 +24,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView, exception_handler
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
-from api.all_tasks import create_download_job, zip_photos_task
 
+from api.all_tasks import create_download_job
 from api.api_util import get_search_term_examples
 from api.autoalbum import delete_missing_photos
 from api.directory_watcher import scan_photos
@@ -375,11 +372,13 @@ class MediaAccessFullsizeOriginalView(APIView):
                     path, fname + ".mp4"
                 )
             return response
+
         if "faces" in path:
             response = HttpResponse()
             response["Content-Type"] = "image/jpg"
             response["X-Accel-Redirect"] = self._get_protected_media_url(path, fname)
             return response
+
         if photo.video:
             # This is probably very slow -> Save the mime type when scanning
             mime = magic.Magic(mime=True)
@@ -432,6 +431,25 @@ class MediaAccessFullsizeOriginalView(APIView):
         ],
     )
     def get(self, request, path, fname, format=None):
+        if path.lower() == "zip":
+            jwt = request.COOKIES.get("jwt")
+            if jwt is not None:
+                try:
+                    token = AccessToken(jwt)
+                except TokenError:
+                    return HttpResponseForbidden()
+            else:
+                return HttpResponseForbidden()
+            try:
+                response = HttpResponse()
+                response["Content-Type"] = "application/x-zip-compressed"
+                response["X-Accel-Redirect"] = self._get_protected_media_url(
+                    path, fname
+                )
+                return response
+            except Exception:
+                return HttpResponse(status=404)
+
         if path.lower() == "avatars":
             jwt = request.COOKIES.get("jwt")
             if jwt is not None:
@@ -585,7 +603,6 @@ class ZipListPhotosView(APIView):
                 return
             mf = io.BytesIO()
             photos_name = {}
-            count=0
             for photo in photos.values():
                 photo_name = os.path.basename(photo.main_file.path)
                 if photo_name in photos_name:
@@ -602,51 +619,50 @@ class ZipListPhotosView(APIView):
             )
         except BaseException as e:
             logger.error(str(e))
-        
+            return HttpResponse(status=404)
+
+
 class ZipListPhotosView_V2(APIView):
-    
     def post(self, request):
         import shutil
 
         free_storage = shutil.disk_usage("/").free
         data = dict(request.data)
-        if "image_hashes" not in data:      
+        if "image_hashes" not in data:
             return
-        photo_query=Photo.objects.filter(owner=self.request.user)
-        photos = photo_query.in_bulk(
-                data["image_hashes"]
-        )
-        if len(photos) == 0 :
-            return 
-        total_file_size = (
-            photo_query.aggregate(Sum("size"))["size__sum"]
-            or None
-        )
+        photo_query = Photo.objects.filter(owner=self.request.user)
+        photos = photo_query.in_bulk(data["image_hashes"])
+        if len(photos) == 0:
+            return
+        total_file_size = photo_query.aggregate(Sum("size"))["size__sum"] or None
         if free_storage < total_file_size:
-            return Response(data={'status': ""},status=507)
-        
-        filename=str(secrets.token_hex(nbytes=16)+'.zip')
-        user=self.request.user
-        job_id=create_download_job(LongRunningJob.JOB_DOWNLOAD_PHOTOS,user=user,photos=photos,filename=filename)
-        response={"job_id": job_id,'url':filename}
+            return Response(data={"status": "Insufficient Storage"}, status=507)
 
-        return Response(data=response,status=200)
-        
-   
-    def get(self,request):
+        filename = str(secrets.token_hex(nbytes=16) + ".zip")
+        user = self.request.user
+        job_id = create_download_job(
+            LongRunningJob.JOB_DOWNLOAD_PHOTOS,
+            user=user,
+            photos=photos,
+            filename=filename,
+        )
+        response = {"job_id": job_id, "url": filename}
+
+        return Response(data=response, status=200)
+
+    def get(self, request):
         try:
-            job=LongRunningJob.objects.get(job_id=request.data["job_id"])
+            job = LongRunningJob.objects.get(job_id=request.data["job_id"])
             if job.finished:
-                zip_file_path =  os.path.join("/protected_media/all_zip_folder/", request.data["url"])
-                print(zip_file_path)
-                with open(zip_file_path, 'rb') as zip_file:
-                    response = HttpResponse(zip_file.read(), content_type='application/x-zip-compressed')
-                    response['Content-Disposition'] = f'attachment; filename="{os.path.basename(zip_file_path)}"'
-                    return response
+                return Response(data={"status": "SUCCESS"}, status=200)
             elif job.failed:
-                return Response(data={'status': 'FAILURE', 'result': job.result},status=500)
+                return Response(
+                    data={"status": "FAILURE", "result": job.result}, status=500
+                )
             else:
-                return Response(data={'status': 'PENDING', 'progress': job.result},status=202)
+                return Response(
+                    data={"status": "PENDING", "progress": job.result}, status=202
+                )
         except BaseException as e:
             logger.error(str(e))
             return Response(status=404)
