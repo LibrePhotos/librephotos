@@ -218,7 +218,7 @@ DATABASES = {
         "USER": os.environ.get("DB_USER", "docker"),
         "PASSWORD": os.environ.get("DB_PASS", "AaAa1234"),
         "HOST": os.environ.get("DB_HOST", "db"),
-        "PORT": "5432",
+        "PORT": os.environ.get("DB_PORT", "5432"),
     },
 }
 
