@@ -65,7 +65,7 @@
     "@babel/core": "^7.21.0",
     "@babel/runtime": "^7.21.0",
     "@react-native-community/eslint-config": "^3.2.0",
-    "@tsconfig/react-native": "^2.0.3",
+    "@tsconfig/react-native": "^3.0.0",
     "@types/crypto-js": "^4.1.1",
     "@types/jest": "^29.4.0",
     "@types/node": "^18.14.1",
