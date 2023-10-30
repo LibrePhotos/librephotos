@@ -72,7 +72,7 @@ jobs:
         SIGNED_FILE: ${{ steps.sign_apk.outputs.signedReleaseFile }}
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: Signed Apk Bundle
         path: librephotos-latest-signed.apk
