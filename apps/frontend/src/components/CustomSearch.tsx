@@ -8,12 +8,11 @@ import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
 import { Album, Map, Search, Tag, X } from "tabler-icons-react";
 
-import { searchPhotos } from "../actions/searchActions";
 import { useFetchPeopleAlbumsQuery } from "../api_client/albums/people";
 import { useFetchPlacesAlbumsQuery } from "../api_client/albums/places";
 import { useFetchThingsAlbumsQuery } from "../api_client/albums/things";
 import { useFetchUserAlbumsQuery } from "../api_client/albums/user";
-import { useFetchSearchExamplesQuery } from "../api_client/search";
+import { useSearchExamplesQuery } from "../api_client/search";
 import { useAppDispatch } from "../store/store";
 import { fuzzyMatch } from "../util/util";
 
@@ -87,7 +86,7 @@ export function CustomSearch() {
   const [searchSuggestions, setSearchSuggestions] = useState<Array<AutocompleteItem>>([]);
   const [searchPlaceholder, setSearchPlaceholder] = useState("");
   const searchBarWidth = width - width / 2.2;
-  const { data: searchExamples } = useFetchSearchExamplesQuery();
+  const { data: searchExamples } = useSearchExamplesQuery();
   const { data: placeAlbums } = useFetchPlacesAlbumsQuery();
   const { data: thingAlbums } = useFetchThingsAlbumsQuery();
   const { data: userAlbums } = useFetchUserAlbumsQuery();
@@ -137,8 +136,7 @@ export function CustomSearch() {
     switch (item.type) {
       case undefined:
       case SuggestionType.EXAMPLE:
-        dispatch(searchPhotos(item.value));
-        dispatch(push("/search"));
+        dispatch(push(`/search/${item.value}`));
         break;
       case SuggestionType.USER_ALBUM:
         dispatch(push(`/useralbum/${item.id}`));

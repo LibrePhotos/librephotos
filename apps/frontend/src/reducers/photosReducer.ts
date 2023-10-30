@@ -1,21 +1,7 @@
 import type { AnyAction } from "redux";
 
-import { FETCH_USER_ALBUM_FULFILLED, FETCH_USER_ALBUM_REJECTED } from "../actions/albumsActions";
 import type { UserPhotosGroup } from "../actions/photosActions";
-import {
-  FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED,
-  FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED,
-  FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED,
-  FETCH_PHOTOSET,
-  FETCH_PHOTOSET_FULFILLED,
-  FETCH_PHOTOSET_REJECTED,
-  FETCH_RECENTLY_ADDED_PHOTOS,
-  FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED,
-  FETCH_RECENTLY_ADDED_PHOTOS_REJECTED,
-  SET_PHOTOS_FAVORITE_FULFILLED,
-} from "../actions/photosActions";
 import type { IncompleteDatePhotosGroup, Photo, PigPhoto } from "../actions/photosActions.types";
-import { SEARCH_PHOTOS_FULFILLED, SEARCH_PHOTOS_REJECTED } from "../actions/searchActions";
 import { addTempElementsToFlatList, getPhotosFlatFromGroupedByDate } from "../util/util";
 
 export enum PhotosetType {
@@ -33,7 +19,7 @@ export enum PhotosetType {
   PUBLIC = "public",
   SHARED_TO_ME = "sharedToMe",
   SHARED_BY_ME = "sharedByMe",
-  VIDEOS= "videos",
+  VIDEOS = "videos",
 }
 
 export interface PhotosState {
@@ -56,7 +42,7 @@ export interface PhotosState {
   generatedCaptionIm2txt: boolean;
 }
 
-const initialPhotosState: PhotosState = {
+export const initialPhotosState: PhotosState = {
   error: null,
   fetchedPhotos: false,
   fetchedPhotosetType: PhotosetType.NONE,
@@ -82,8 +68,10 @@ function resetPhotos(state: PhotosState, error: string) {
   };
 }
 
-export default function photosReducer(state = initialPhotosState, action: AnyAction): PhotosState {
-  let updatedPhotoDetails;
+const DEFAULT_ACTION = { type: "DEFAULT_ACTION" };
+
+export function photos(state = initialPhotosState, action: AnyAction = DEFAULT_ACTION): PhotosState {
+  let updatedPhotoDetails: Photo[];
   let newPhotosFlat: PigPhoto[];
   let newPhotosGroupedByDate: IncompleteDatePhotosGroup[];
   let indexToReplace: number;
@@ -109,10 +97,10 @@ export default function photosReducer(state = initialPhotosState, action: AnyAct
       };
     }
 
-    case FETCH_RECENTLY_ADDED_PHOTOS: {
+    case "FETCH_RECENTLY_ADDED_PHOTOS": {
       return { ...state, fetchedPhotosetType: PhotosetType.NONE };
     }
-    case FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED: {
+    case "FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED": {
       return {
         ...state,
         photosFlat: action.payload.photosFlat,
@@ -120,7 +108,7 @@ export default function photosReducer(state = initialPhotosState, action: AnyAct
         recentlyAddedPhotosDate: action.payload.date,
       };
     }
-    case FETCH_RECENTLY_ADDED_PHOTOS_REJECTED: {
+    case "FETCH_RECENTLY_ADDED_PHOTOS_REJECTED": {
       return resetPhotos(state, action.payload);
     }
 
@@ -156,11 +144,10 @@ export default function photosReducer(state = initialPhotosState, action: AnyAct
       }
       const { items } = groupToChange;
       const loadedItems = action.payload.datePhotosGroup.items;
-      const updatedItems = items
+      groupToChange.items = items
         .slice(0, (page - 1) * 100)
         .concat(loadedItems)
         .concat(items.slice(page * 100));
-      groupToChange.items = updatedItems;
       newPhotosGroupedByDate[indexToReplace] = groupToChange;
       return {
         ...state,
@@ -182,46 +169,45 @@ export default function photosReducer(state = initialPhotosState, action: AnyAct
         photosGroupedByDate: action.payload.photosGroupedByDate,
       };
     }
-    case FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED: {
+    case "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED": {
       return { ...state };
     }
-    case FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED: {
-      const fetched_page = action.payload.fetchedPage;
-      const photos_count = action.payload.photosCount;
-      let current_photos = [...state.photosFlat];
-      if (fetched_page == 1) {
-        current_photos = addTempElementsToFlatList(photos_count);
+    case "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED": {
+      const { fetchedPage, photosCount } = action.payload;
+      let currentPhotos = [...state.photosFlat];
+      if (fetchedPage === 1) {
+        currentPhotos = addTempElementsToFlatList(photosCount);
       }
-      newPhotosFlat = current_photos
-        .slice(0, (fetched_page - 1) * 100)
+      newPhotosFlat = currentPhotos
+        .slice(0, (fetchedPage - 1) * 100)
         .concat(action.payload.photosFlat)
-        .concat(current_photos.slice(fetched_page * 100));
+        .concat(currentPhotos.slice(fetchedPage * 100));
       return {
         ...state,
         photosFlat: newPhotosFlat,
         fetchedPhotosetType: PhotosetType.NO_TIMESTAMP,
-        numberOfPhotos: photos_count,
+        numberOfPhotos: photosCount,
       };
     }
-    case FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED: {
+    case "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED": {
       return resetPhotos(state, action.payload);
     }
-    case FETCH_PHOTOSET: {
+    case "FETCH_PHOTOSET": {
       return { ...state, fetchedPhotosetType: PhotosetType.NONE };
     }
-    case FETCH_PHOTOSET_FULFILLED: {
+    case "FETCH_PHOTOSET_FULFILLED": {
       return {
         ...state,
         photosFlat: action.payload.photosFlat,
         fetchedPhotosetType: action.payload.photosetType,
-        photosGroupedByDate: action.payload.photosGroupedByDate ? action.payload.photosGroupedByDate : [],
-        photosGroupedByUser: action.payload.photosGroupedByUser ? action.payload.photosGroupedByUser : [],
+        photosGroupedByDate: action.payload.photosGroupedByDate ?? [],
+        photosGroupedByUser: action.payload.photosGroupedByUser ?? [],
       };
     }
-    case FETCH_PHOTOSET_REJECTED: {
+    case "FETCH_PHOTOSET_REJECTED": {
       return resetPhotos(state, action.payload);
     }
-    case SET_PHOTOS_FAVORITE_FULFILLED: {
+    case "SET_PHOTOS_FAVORITE_FULFILLED": {
       updatedPhotoDetails = action.payload.updatedPhotos as Photo[];
       newPhotosGroupedByDate = [...state.photosGroupedByDate];
       newPhotosFlat = [...state.photosFlat];
@@ -249,9 +235,10 @@ export default function photosReducer(state = initialPhotosState, action: AnyAct
 
         if (state.fetchedPhotosetType === PhotosetType.FAVORITES && !action.payload.favorite) {
           // Remove the photo from the photo set. (Ok to mutate, since we've already created a new group.)
-          newPhotosGroupedByDate.forEach(
-            group => (group.items = group.items.filter(item => item.id !== photoDetails.image_hash))
-          );
+          newPhotosGroupedByDate = newPhotosGroupedByDate.map(group => ({
+            ...group,
+            items: group.items.filter(item => item.id !== photoDetails.image_hash),
+          }));
           newPhotosFlat = newPhotosFlat.filter(item => item.id !== photoDetails.image_hash);
         }
       });
@@ -266,20 +253,7 @@ export default function photosReducer(state = initialPhotosState, action: AnyAct
       };
     }
 
-    case SEARCH_PHOTOS_FULFILLED: {
-      return {
-        ...state,
-        photosFlat: action.payload.photosFlat,
-        fetchedPhotosetType: PhotosetType.SEARCH,
-        photosGroupedByDate: action.payload.photosGroupedByDate,
-      };
-    }
-
-    case SEARCH_PHOTOS_REJECTED: {
-      return resetPhotos(state, action.payload);
-    }
-
-    case FETCH_USER_ALBUM_FULFILLED: {
+    case "FETCH_USER_ALBUM_FULFILLED": {
       return {
         ...state,
         photosFlat: action.payload.photosFlat,
@@ -287,7 +261,7 @@ export default function photosReducer(state = initialPhotosState, action: AnyAct
         photosGroupedByDate: action.payload.photosGroupedByDate,
       };
     }
-    case FETCH_USER_ALBUM_REJECTED: {
+    case "FETCH_USER_ALBUM_REJECTED": {
       return resetPhotos(state, action.payload);
     }
 

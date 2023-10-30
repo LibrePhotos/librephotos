@@ -11,9 +11,9 @@ import { FLUSH, PAUSE, PERSIST, PURGE, REGISTER, REHYDRATE, persistStore } from 
 import { api } from "../api_client/api";
 import albums from "../reducers/albumsReducer";
 import people from "../reducers/peopleReducer";
-import photos from "../reducers/photosReducer";
+import { photos } from "../reducers/photosReducer";
 import pub from "../reducers/publicReducer";
-import search from "../reducers/searchReducer";
+import { search } from "../reducers/searchReducer";
 import ui from "../reducers/uiReducer";
 import util from "../reducers/utilReducer";
 import { authReducer as auth } from "./auth/authSlice";
