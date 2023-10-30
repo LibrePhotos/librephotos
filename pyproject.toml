@@ -13,3 +13,12 @@ max-line-length = 88
 
 [tool.isort]
 profile = "black"
+
+[tool.ruff]
+select = [
+    # isort
+    "I001"
+]
+line-length = 88
+
+
