@@ -41,9 +41,10 @@ def batch_calculate_clip_embedding(job_id, user):
     lrj.result = {"progress": {"current": 0, "target": count}}
     lrj.save()
 
-    num_threads = max(1, site_config.HEAVYWEIGHT_PROCESS)
-    torch.set_num_threads(num_threads)
-    os.environ["OMP_NUM_THREADS"] = str(num_threads)
+    if not torch.cuda.is_available():
+        num_threads = max(1, site_config.HEAVYWEIGHT_PROCESS)
+        torch.set_num_threads(num_threads)
+        os.environ["OMP_NUM_THREADS"] = str(num_threads)        
 
     BATCH_SIZE = 64
     util.logger.info("Using threads: {}".format(torch.get_num_threads()))
