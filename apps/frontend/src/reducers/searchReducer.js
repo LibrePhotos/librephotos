@@ -1,5 +1,3 @@
-import { SEARCH_EMPTY_QUERY_ERROR, SEARCH_PHOTOS, SEARCH_PHOTOS_REJECTED } from "../actions/searchActions";
-
 const initialState = {
   searchPeopleRes: [],
   searchPlaceAlbumsRes: [],
@@ -16,20 +14,8 @@ const initialState = {
   query: "",
 };
 
-export default function reducer(state = initialState, action) {
+export function search(state = initialState, action = { type: "", payload: undefined }) {
   switch (action.type) {
-    case SEARCH_EMPTY_QUERY_ERROR: {
-      return { ...state, error: "Search query cannot be empty!" };
-    }
-
-    case SEARCH_PHOTOS: {
-      return { ...state, query: action.payload };
-    }
-
-    case SEARCH_PHOTOS_REJECTED: {
-      return { ...state, error: action.payload, query: "" };
-    }
-
     case "SEARCH_PEOPLE": {
       return { ...state, searchPeopleRes: [], searchingPeople: true };
     }

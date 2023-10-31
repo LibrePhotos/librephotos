@@ -33,10 +33,10 @@ import { Statistics } from "./layouts/dataviz/Statistics";
 import { SignupPage } from "./layouts/login/SignUpPage";
 import { DeletedPhotos } from "./layouts/photos/DeletedPhotos";
 import { FavoritePhotos } from "./layouts/photos/FavoritePhotos";
-import { OnlyPhotos } from "./layouts/photos/OnlyPhotos";
-import { OnlyVideos } from "./layouts/photos/OnlyVideos";
 import { HiddenPhotos } from "./layouts/photos/HiddenPhotos";
 import { NoTimestampPhotosView } from "./layouts/photos/NoTimestampPhotosView";
+import { OnlyPhotos } from "./layouts/photos/OnlyPhotos";
+import { OnlyVideos } from "./layouts/photos/OnlyVideos";
 import { RecentlyAddedPhotos } from "./layouts/photos/RecentlyAddedPhotos";
 import { TimestampPhotos } from "./layouts/photos/TimestampPhotos";
 import { PublicUserList } from "./layouts/public/PublicUserList";
@@ -117,8 +117,8 @@ export function App() {
                   <Route path="things" element={<AlbumThing />} />
                   <Route path="recent" element={<RecentlyAddedPhotos />} />
                   <Route path="favorites" element={<FavoritePhotos />} />
-                  <Route path="photos" element={<OnlyPhotos/>} /> 
-                  <Route path="videos" element={<OnlyVideos/>} /> 
+                  <Route path="photos" element={<OnlyPhotos />} />
+                  <Route path="videos" element={<OnlyVideos />} />
                   <Route path="deleted" element={<DeletedPhotos />} />
                   <Route path="hidden" element={<HiddenPhotos />} />
                   <Route path="notimestamp" element={<NoTimestampPhotosView />} />
@@ -131,7 +131,7 @@ export function App() {
                   <Route path="profile" element={<Profile />} />
                   <Route path="library" element={<Library />} />
                   <Route path="faces" element={<FaceDashboard />} />
-                  <Route path="search" element={<SearchView />} />
+                  <Route path="search/:query" element={<SearchView />} />
                   <Route path="person/:albumID" element={<AlbumPersonGallery />} />
                   <Route path="place/:albumID" element={<AlbumPlaceGallery />} />
                   <Route path="thing/:albumID" element={<AlbumThingGallery />} />

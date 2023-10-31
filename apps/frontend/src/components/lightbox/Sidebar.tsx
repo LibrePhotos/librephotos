@@ -10,7 +10,6 @@ import { Edit, Map2, Note, Photo, Tags, UserOff, Users, X } from "tabler-icons-r
 
 import { generatePhotoIm2txtCaption, savePhotoCaption } from "../../actions/photosActions";
 import type { Photo as PhotoType } from "../../actions/photosActions.types";
-import { searchPhotos } from "../../actions/searchActions";
 import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { photoDetailsApi } from "../../api_client/photos/photoDetail";
@@ -137,14 +136,11 @@ export function Sidebar(props: Props) {
                 <Title order={4}>{t("lightbox.sidebar.people")}</Title>
               </Group>
               {photoDetail.people.map(nc => (
-                <Group position="center" spacing="xs">
+                <Group position="center" spacing="xs" key={`${nc.name}`}>
                   <Button
                     variant="subtle"
                     leftIcon={<Avatar radius="xl" src={serverAddress + nc.face_url} />}
-                    onClick={() => {
-                      dispatch(searchPhotos(nc.name));
-                      dispatch(push("/search"));
-                    }}
+                    onClick={() => dispatch(push(`/search/${nc.name}`))}
                   >
                     <Text align="center" size="sm">
                       {nc.name}
@@ -223,8 +219,7 @@ export function Sidebar(props: Props) {
                     key={`lightbox_attribute_label_${photoDetail.image_hash}_${nc}`}
                     color="blue"
                     onClick={() => {
-                      dispatch(searchPhotos(nc));
-                      dispatch(push("/search"));
+                      dispatch(push(`/search/${nc}`));
                     }}
                   >
                     {nc}
@@ -239,8 +234,7 @@ export function Sidebar(props: Props) {
                     key={`lightbox_category_label_${photoDetail.image_hash}_${nc}`}
                     color="teal"
                     onClick={() => {
-                      dispatch(searchPhotos(nc));
-                      dispatch(push("/search"));
+                      dispatch(push(`/search/${nc}`));
                     }}
                   >
                     {nc}

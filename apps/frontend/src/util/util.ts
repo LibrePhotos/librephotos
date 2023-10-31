@@ -26,7 +26,7 @@ export const copyToClipboard = (str: string) => {
 export function formatDateForPhotoGroups(photoGroups: DatePhotosGroup[]): DatePhotosGroup[] {
   return photoGroups.map(photoGroup => {
     if (photoGroup.date === null) {
-      return { ...photoGroup, date: i18n.t<string>("sidemenu.withouttimestamp") };
+      return { ...photoGroup, date: i18n.t("sidemenu.withouttimestamp") };
     }
     const date = DateTime.fromISO(photoGroup.date);
     if (date.isValid) {
