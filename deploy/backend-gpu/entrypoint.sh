@@ -8,15 +8,14 @@ if [[ "$(uname -m)" == "aarch64"* ]]; then
 fi
 export OPENBLAS_NUM_THREADS=1 
 export OPENBLAS_MAIN_FREE=1
-
 mkdir -p /logs
-
 python manage.py showmigrations | tee /logs/show_migrate.log
 python manage.py migrate | tee /logs/command_migrate.log
 python manage.py showmigrations | tee /logs/show_migrate.log
 python manage.py collectstatic --no-input
-python image_similarity/main.py 2>&1 | tee /logs/gunicorn_image_similarity.log &
-python service/thumbnail/main.py 2>&1 | tee /logs/gunicorn_thumbnail.log &
+python image_similarity/main.py 2>&1 | tee /logs/image_similarity.log &
+python service/thumbnail/main.py 2>&1 | tee /logs/thumbnail.log &
+python service/face_recognition/main.py 2>&1 | tee /logs/face_recognition.log &
 python manage.py clear_cache 
 python manage.py build_similarity_index 2>&1 | tee /logs/command_build_similarity_index.log
 
@@ -32,8 +31,8 @@ python manage.py qcluster 2>&1 | tee /logs/qcluster.log &
 if [ "$DEBUG" = 1 ]
 then
     echo "development backend starting"
-    gunicorn --worker-class=gevent --reload --bind 0.0.0.0:8001 --log-level=info librephotos.wsgi 2>&1 | tee /logs/gunicorn_django.log
+    gunicorn --worker-class=gevent --max-requests 50 --reload --bind 0.0.0.0:8001 --log-level=info librephotos.wsgi 2>&1 | tee /logs/gunicorn_django.log
 else
     echo "production backend starting"
-    gunicorn --worker-class=gevent --bind 0.0.0.0:8001 --log-level=info librephotos.wsgi 2>&1 | tee /logs/gunicorn_django.log
+    gunicorn --worker-class=gevent --max-requests 50 --bind 0.0.0.0:8001 --log-level=info librephotos.wsgi 2>&1 | tee /logs/gunicorn_django.log
 fi

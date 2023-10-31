@@ -15,8 +15,9 @@ python manage.py showmigrations | tee /logs/show_migrate.log
 python manage.py migrate | tee /logs/command_migrate.log
 python manage.py showmigrations | tee /logs/show_migrate.log
 python manage.py collectstatic --no-input
-python image_similarity/main.py 2>&1 | tee /logs/gunicorn_image_similarity.log &
-python service/thumbnail/main.py 2>&1 | tee /logs/gunicorn_thumbnail.log &
+python image_similarity/main.py 2>&1 | tee /logs/image_similarity.log &
+python service/thumbnail/main.py 2>&1 | tee /logs/thumbnail.log &
+python service/face_recognition/main.py 2>&1 | tee /logs/face_recognition.log &
 python manage.py clear_cache 
 python manage.py build_similarity_index 2>&1 | tee /logs/command_build_similarity_index.log
 
