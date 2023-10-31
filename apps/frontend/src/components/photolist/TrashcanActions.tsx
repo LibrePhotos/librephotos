@@ -11,7 +11,7 @@ type Props = {
   updateSelectionState: (input: any) => void;
 };
 
-export const TrashcanActions = (props: Props) => {
+export function TrashcanActions(props: Readonly<Props>) {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const dispatch = useAppDispatch();
   const { selectedItems, updateSelectionState } = props;
@@ -83,4 +83,4 @@ export const TrashcanActions = (props: Props) => {
       </Modal>
     </Group>
   );
-};
+}

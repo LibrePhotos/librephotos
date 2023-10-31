@@ -41,7 +41,7 @@ type Props = {
   albumID: any;
 };
 
-export const SelectionActions = (props: Props) => {
+export function SelectionActions(props: Readonly<Props>) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const route = useAppSelector(store => store.router);
@@ -62,7 +62,7 @@ export const SelectionActions = (props: Props) => {
       <Menu width={200}>
         <Menu.Target>
           <ActionIcon disabled={selectedItems.length === 0}>
-            <Plus></Plus>
+            <Plus />
           </ActionIcon>
         </Menu.Target>
 
@@ -82,7 +82,7 @@ export const SelectionActions = (props: Props) => {
       <Menu width={200}>
         <Menu.Target>
           <ActionIcon>
-            <DotsVertical></DotsVertical>
+            <DotsVertical />
           </ActionIcon>
         </Menu.Target>
 
@@ -94,7 +94,7 @@ export const SelectionActions = (props: Props) => {
           <Menu.Divider />
 
           <Menu.Item
-            icon={<Star></Star>}
+            icon={<Star />}
             disabled={selectedItems.length === 0}
             onClick={() => {
               dispatch(
@@ -113,7 +113,7 @@ export const SelectionActions = (props: Props) => {
           </Menu.Item>
 
           <Menu.Item
-            icon={<StarOff></StarOff>}
+            icon={<StarOff />}
             disabled={selectedItems.length === 0}
             onClick={() => {
               dispatch(
@@ -339,4 +339,4 @@ export const SelectionActions = (props: Props) => {
       </Menu>
     </Group>
   );
-};
+}

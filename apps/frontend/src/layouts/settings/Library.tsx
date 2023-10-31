@@ -149,7 +149,7 @@ export function Library() {
     }
   }
 
-  const BadgeIcon = () => {
+  function BadgeIcon() {
     if (isNextcloudSuccess && userSelfDetails.nextcloud_server_address) {
       return <Check />;
     }
@@ -160,7 +160,7 @@ export function Library() {
       return <RefreshDot />;
     }
     return <QuestionMark />;
-  };
+  }
 
   return (
     <Container>
@@ -187,7 +187,7 @@ export function Library() {
                   </HoverCard.Target>
                   <HoverCard.Dropdown>
                     <Text size="sm">
-                      <Trans i18nKey="settings.missingphotosdescription"></Trans>
+                      <Trans i18nKey="settings.missingphotosdescription" />
                     </Text>
                   </HoverCard.Dropdown>
                 </HoverCard>
@@ -310,7 +310,7 @@ export function Library() {
               label={t("settings.eventsalbums")}
               mt={20}
               mb={10}
-            ></Divider>
+            />
             <Grid>
               <Grid.Col span={10}>
                 <Stack spacing={0}>
@@ -511,7 +511,7 @@ export function Library() {
                 {t("modalnextcloud.browse")}
               </Button>
             </Grid.Col>
-            <Grid.Col span={10}></Grid.Col>
+            <Grid.Col span={10} />
             <Grid.Col span={2}>
               <Button
                 onClick={() => {
@@ -526,7 +526,7 @@ export function Library() {
             </Grid.Col>
           </Grid>
 
-          <Group mt={20}></Group>
+          <Group mt={20} />
           <Space h="xl" />
           <ModalNextcloudScanDirectoryEdit
             path={userSelfDetails.nextcloud_scan_directory}

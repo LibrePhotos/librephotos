@@ -24,7 +24,14 @@ type Props = {
   selectedFaces: any;
 };
 
-export function HeaderComponent({ cell, width, style, entrySquareSize, setSelectedFaces, selectedFaces }: Props) {
+export function HeaderComponent({
+  cell,
+  width,
+  style,
+  entrySquareSize,
+  setSelectedFaces,
+  selectedFaces,
+}: Readonly<Props>) {
   const { activeTab } = useAppSelector(store => store.face);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();

@@ -23,7 +23,7 @@ export function SignupPage(): JSX.Element {
   const navigate = useNavigate();
 
   const validateUsername = username => {
-    var error = null;
+    let error = null;
     if (!username) {
       error = t("modaluseredit.errorusernamecannotbeblank");
     }

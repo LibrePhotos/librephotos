@@ -14,15 +14,15 @@ import sortByDate from "./utils/sortByDate";
 
 export function addTempElementsToGroups(photosGroupedByDate) {
   photosGroupedByDate.forEach(group => {
-    for (var i = 0; i < group.numberOfItems; i++) {
+    for (let i = 0; i < group.numberOfItems; i++) {
       group.items.push({ id: i, aspectRatio: 1, isTemp: true });
     }
   });
 }
 
 export function addTempElementsToFlatList(photosCount) {
-  var tempPhotos = [];
-  for (var i = 0; i < photosCount; i++) {
+  const tempPhotos = [];
+  for (let i = 0; i < photosCount; i++) {
     tempPhotos.push({ id: i, aspectRatio: 1, isTemp: true });
   }
   return tempPhotos;
@@ -103,7 +103,7 @@ export default class Pig extends Component {
 
   setRenderedItems(imageData) {
     // Set the container height, only need to do this once.
-    if (!this.container.style.height) this.container.style.height = this.totalHeight + "px";
+    if (!this.container.style.height) this.container.style.height = `${this.totalHeight}px`;
 
     const renderedItems = calcRenderableItems({
       containerOffsetTop: this.containerOffsetTop,
@@ -142,7 +142,7 @@ export default class Pig extends Component {
   onResize = () => {
     this.imageData = this.getUpdatedImageLayout();
     this.setRenderedItems(this.imageData);
-    this.container.style.height = this.totalHeight + "px"; // set the container height again based on new layout
+    this.container.style.height = `${this.totalHeight}px`; // set the container height again based on new layout
     this.containerWidth = this.container.offsetWidth;
     this.containerOffsetTop = this.container.offsetTop;
     this.windowHeight = window.innerHeight;
@@ -150,7 +150,7 @@ export default class Pig extends Component {
 
   defaultHandleSelection = item => {
     console.log(item);
-    var newSelectedItems = this.state.selectedItems;
+    let newSelectedItems = this.state.selectedItems;
     if (newSelectedItems.includes(item)) {
       newSelectedItems = newSelectedItems.filter(value => value !== item);
     } else {
@@ -186,26 +186,25 @@ export default class Pig extends Component {
 
       this.totalHeight = newTotalHeight;
       return imageData;
-    } else {
-      const { imageData, newTotalHeight } = computeLayout({
-        wrapperWidth,
-        minAspectRatio: this.minAspectRatio,
-        imageData: this.imageData,
-        settings: this.settings,
-        scaleOfImages: this.scaleOfImages,
-        numberOfItems: this.numberOfItems,
-      });
-
-      this.totalHeight = newTotalHeight;
-      return imageData;
     }
+    const { imageData, newTotalHeight } = computeLayout({
+      wrapperWidth,
+      minAspectRatio: this.minAspectRatio,
+      imageData: this.imageData,
+      settings: this.settings,
+      scaleOfImages: this.scaleOfImages,
+      numberOfItems: this.numberOfItems,
+    });
+
+    this.totalHeight = newTotalHeight;
+    return imageData;
   }
 
   componentDidUpdate(prevProps) {
     if (this.props != prevProps) {
       this.imageData = this.props.imageData;
       this.imageData = this.getUpdatedImageLayout();
-      this.container.style.height = this.totalHeight + "px"; // set the container height again based on new layout
+      this.container.style.height = `${this.totalHeight}px`; // set the container height again based on new layout
       this.containerWidth = this.container.offsetWidth;
       this.containerOffsetTop = this.container.offsetTop;
       this.windowHeight = window.innerHeight;
@@ -273,9 +272,8 @@ export default class Pig extends Component {
         {this.state.renderedItems.map(item => {
           if (this.settings.groupByDate) {
             return this.renderGroup(item);
-          } else {
-            return this.renderFlat(item);
           }
+          return this.renderFlat(item);
         })}
       </div>
     );

@@ -25,8 +25,8 @@ export function PasswordEntry(props: Props): JSX.Element {
   const validateAndUpdatePassword = (password, passwordConfirm, closing = false) => {
     setConfirmPasswordError("");
     setNewPasswordError("");
-    var validPassword = "";
-    var isValid = false;
+    let validPassword = "";
+    let isValid = false;
 
     if (password || passwordConfirm) {
       if (password == passwordConfirm) {
@@ -52,7 +52,7 @@ export function PasswordEntry(props: Props): JSX.Element {
         {createNew ? (
           <Text>{t("settings.password.titlesetpassword")}</Text>
         ) : (
-          <Text style={{ display: "flex", alignItems: "center", justifyContent: 'space-between' }}>
+          <Text style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             {t("settings.password.titlechangepassword")}
             <ActionIcon
               title={t("settings.password.tooltipeditbutton")}

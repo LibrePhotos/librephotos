@@ -54,7 +54,7 @@ export function UserPublicPage() {
 
   return (
     <PhotoListView
-      //To-Do: Translate this
+      // To-Do: Translate this
       title={
         auth.access && auth.access.name === params.username
           ? "Your public photos"

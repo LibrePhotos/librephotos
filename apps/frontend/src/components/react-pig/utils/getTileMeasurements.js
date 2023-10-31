@@ -16,10 +16,9 @@ export default ({ item, windowHeight, settings, containerWidth, containerOffsetT
     }
     if (!isImgPortrait && containerWidth / item.aspectRatio >= windowHeight) {
       return widthDerivedFromMaxWindowHeight;
-    } else {
-      // 4. If it's landscape and when expanded fits within the container, return containerWidth
-      return containerWidth;
     }
+    // 4. If it's landscape and when expanded fits within the container, return containerWidth
+    return containerWidth;
   })();
 
   // Once all of that is out of the way, calculating the height is straightforward;

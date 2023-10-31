@@ -33,7 +33,7 @@ const Tile = React.memo(
       (item.url.includes(".mp4") ||
         item.url.includes(".mov") ||
         (item.type !== undefined && item.type.includes("video")));
-    const [isFullSizeLoaded, setFullSizeLoaded] = useState(isVideo ? true : false);
+    const [isFullSizeLoaded, setFullSizeLoaded] = useState(!!isVideo);
     const TopRightOverlay = toprightoverlay;
     const BottomLeftOverlay = bottomleftoverlay;
 
@@ -54,15 +54,15 @@ const Tile = React.memo(
       transform: isExpanded ? screenCenter : gridPosition,
       zIndex: isExpanded ? 10 : 0, // 10 so that it takes a little longer before settling at 0
       width: isExpanded
-        ? Math.ceil(calcWidth) + "px"
+        ? `${Math.ceil(calcWidth)}px`
         : isSelected
-        ? item.style.width - item.style.width * 0.1 + "px"
-        : item.style.width + "px",
+        ? `${item.style.width - item.style.width * 0.1}px`
+        : `${item.style.width}px`,
       height: isExpanded
-        ? Math.ceil(calcHeight) + "px"
+        ? `${Math.ceil(calcHeight)}px`
         : isSelected
-        ? item.style.height - item.style.height * 0.1 + "px"
-        : item.style.height + "px",
+        ? `${item.style.height - item.style.height * 0.1}px`
+        : `${item.style.height}px`,
       marginLeft: isSelected && !isExpanded ? item.style.width * 0.05 : 0,
       marginRight: isSelected && !isExpanded ? item.style.width * 0.05 : 0,
       marginTop: isSelected && !isExpanded ? item.style.height * 0.05 : 0,
@@ -159,7 +159,7 @@ const Tile = React.memo(
                   event.stopPropagation();
                   handleSelection(item);
                 }}
-              ></input>
+              />
             )}
           </div>
           <div className={styles.overlaysTopRight}>
