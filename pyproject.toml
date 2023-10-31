@@ -1,24 +1,9 @@
-[tool.black]
-line-length = 88
-target-version = ['py311']
-include = '\.pyi?$' # all files that end with .py or .pyi
-
-[tool.pylint.master]
-load-plugins = 'pylint_django'
-django-settings-module = 'ownphotos.settings'
-disable = 'E029,C0111,C0301'
-
-[tool.pylint.format]
-max-line-length = 88
-
-[tool.isort]
-profile = "black"
-
 [tool.ruff]
 select = [
-    # isort
-    "I001"
+    "I001",
+    "YTT",
 ]
+exclude = ["migrations"]
 line-length = 88
 
 
