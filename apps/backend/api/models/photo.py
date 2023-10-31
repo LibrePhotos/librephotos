@@ -12,6 +12,7 @@ from django.db import models
 from django.db.models import Q
 from django.db.utils import IntegrityError
 from api.im2txt.sample import Im2txt
+from api.face_recognition import get_face_encodings, get_face_locations
 
 import api.date_time_extractor as date_time_extractor
 import api.models
@@ -702,12 +703,10 @@ class Photo(models.Model):
                     ).count()
                     image_path = self.image_hash + "_" + str(idx_face) + ".jpg"
 
-                    import face_recognition
-
-                    face_encodings = face_recognition.face_encodings(
-                        image, known_face_locations=[(top, right, bottom, left)]
-                    )
-
+                    face_encoding = get_face_encodings(
+                        self.thumbnail_big.path,
+                        known_face_locations=[(top, right, bottom, left)],
+                    )[0]
                     face = api.models.face.Face(
                         image_path=image_path,
                         photo=self,
@@ -715,7 +714,7 @@ class Photo(models.Model):
                         location_right=right,
                         location_bottom=bottom,
                         location_left=left,
-                        encoding=face_encodings[0].tobytes().hex(),
+                        encoding=face_encoding.tobytes().hex(),
                         person=person,
                         cluster=unknown_cluster,
                     )
@@ -729,16 +728,14 @@ class Photo(models.Model):
                     logger.debug(f"Created face {face} from {self.main_file.path}")
             return
 
-        import face_recognition
-
         try:
             image = np.array(PIL.Image.open(self.thumbnail_big.path))
 
             face_locations = []
             # Create
             try:
-                face_locations = face_recognition.face_locations(
-                    image, model=self.owner.face_recognition_model.lower()
+                face_locations = get_face_locations(
+                    self.thumbnail_big.path, model=self.owner.face_recognition_model.lower()
                 )
             except Exception as e:
                 logger.info(
@@ -747,8 +744,8 @@ class Photo(models.Model):
                 logger.info(e)
 
             if len(face_locations) > 0:
-                face_encodings = face_recognition.face_encodings(
-                    image, known_face_locations=face_locations
+                face_encodings = get_face_encodings(
+                    self.thumbnail_big.path, known_face_locations=face_locations
                 )
                 for idx_face, face in enumerate(zip(face_encodings, face_locations)):
                     face_encoding = face[0]
