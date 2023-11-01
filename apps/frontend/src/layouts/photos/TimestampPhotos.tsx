@@ -7,17 +7,13 @@ import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { PhotosState } from "../../reducers/photosReducer";
 import { PhotosetType } from "../../reducers/photosReducer";
 import { useAppDispatch, useAppSelector } from "../../store/store";
-
-interface IFetchedGroup {
-  id: string;
-  page: number;
-}
+import type { PhotoGroup } from "./common";
 
 export function TimestampPhotos() {
   const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(state => state.photos as PhotosState);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  const [group, setGroup] = useState({} as IFetchedGroup);
+  const [group, setGroup] = useState({} as PhotoGroup);
   useEffect(() => {
     if (group.id && group.page) {
       fetchAlbumDate(dispatch, {
@@ -37,9 +33,9 @@ export function TimestampPhotos() {
   const getAlbums = (visibleGroups: any) => {
     visibleGroups.reverse().forEach((group: any) => {
       const visibleImages = group.items;
-      if (visibleImages.filter((i: any) => i.isTemp && i.isTemp != undefined).length > 0) {
+      if (visibleImages.filter((i: any) => i.isTemp).length > 0) {
         const firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
-        const page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
+        const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
         setGroup({ id: group.id, page: page });
       }
     });

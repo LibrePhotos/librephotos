@@ -20,7 +20,7 @@ export function NoTimestampPhotosView() {
   }, [dispatch]); // Only run on first render
 
   const getImages = (visibleItems: any) => {
-    if (visibleItems.filter((i: any) => i.isTemp && i.isTemp != undefined).length > 0) {
+    if (visibleItems.filter((i: any) => i.isTemp).length > 0) {
       const firstTempObject = visibleItems.filter((i: any) => i.isTemp)[0];
       const page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
       if (page > 1) {

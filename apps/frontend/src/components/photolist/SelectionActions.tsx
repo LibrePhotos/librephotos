@@ -1,4 +1,4 @@
-import { ActionIcon, Divider, Group, Menu } from "@mantine/core";
+import { ActionIcon, Group, Menu } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -279,19 +279,14 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             disabled={
-              // @ts-ignore
-              (!route.location.pathname.startsWith("/person/") &&
-                // @ts-ignore
-                !route.location.pathname.startsWith("/useralbum/")) ||
+              (!route.location.pathname.startsWith("/person/") && !route.location.pathname.startsWith("/useralbum/")) ||
               selectedItems.length !== 1
             }
             icon={<Photo />}
             onClick={() => {
-              // @ts-ignore
               if (route.location.pathname.startsWith("/person/")) {
                 setAlbumCover("person");
               }
-              // @ts-ignore
               if (route.location.pathname.startsWith("/useralbum/")) {
                 setAlbumCover("useralbum");
               }
@@ -306,7 +301,6 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             icon={<Share />}
-            // @ts-ignore
             disabled={!route.location.pathname.startsWith("/useralbum/")}
             onClick={onShareAlbum}
           >
@@ -315,13 +309,11 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             icon={<FileMinus />}
-            // @ts-ignore
-            disabled={!route.location.pathname.startsWith("/useralbum/" || selectedItems.length == 0)}
+            disabled={!route.location.pathname.startsWith("/useralbum/") || selectedItems.length === 0}
             onClick={() => {
-              const id = albumID;
               dispatch(
                 removeFromUserAlbum(
-                  id,
+                  albumID,
                   title,
                   selectedItems.map(i => i.id)
                 )

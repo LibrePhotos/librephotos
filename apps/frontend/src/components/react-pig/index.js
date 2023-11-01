@@ -201,7 +201,7 @@ export default class Pig extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (this.props != prevProps) {
+    if (this.props !== prevProps) {
       this.imageData = this.props.imageData;
       this.imageData = this.getUpdatedImageLayout();
       this.container.style.height = `${this.totalHeight}px`; // set the container height again based on new layout

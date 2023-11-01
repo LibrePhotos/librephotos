@@ -24,7 +24,7 @@ const Tile = React.memo(
     toprightoverlay,
     bottomleftoverlay,
   }) => {
-    const isTemp = item.isTemp == true && item.isTemp != undefined;
+    const isTemp = !!item.isTemp;
     const isSelectable = selectable;
     const isSelected = selected;
     const isExpanded = activeTileUrl === item.url;
@@ -162,12 +162,8 @@ const Tile = React.memo(
               />
             )}
           </div>
-          <div className={styles.overlaysTopRight}>
-            {undefined != TopRightOverlay && <TopRightOverlay item={item} />}
-          </div>
-          <div className={styles.overlaysBottomLeft}>
-            {undefined != BottomLeftOverlay && <BottomLeftOverlay item={item} />}
-          </div>
+          <div className={styles.overlaysTopRight}>{TopRightOverlay && <TopRightOverlay item={item} />}</div>
+          <div className={styles.overlaysBottomLeft}>{BottomLeftOverlay && <BottomLeftOverlay item={item} />}</div>
         </div>
       </animated.button>
     );

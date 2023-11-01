@@ -10,6 +10,7 @@ import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { PhotosState } from "../../reducers/photosReducer";
 import { PhotosetType } from "../../reducers/photosReducer";
 import { useAppDispatch, useAppSelector } from "../../store/store";
+import { updatePhotoGroups } from "../photos/common";
 
 type IFetchedGroup = {
   id: string;
@@ -23,7 +24,7 @@ export function AlbumPersonGallery(): JSX.Element {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const [group, setGroup] = useState({} as IFetchedGroup);
-  const person = people.filter((i: any) => i.key == albumID)[0];
+  const person = people.filter((i: any) => i.key === albumID)[0];
   const personname = person ? person.value : undefined;
 
   useEffect(() => {
@@ -47,19 +48,8 @@ export function AlbumPersonGallery(): JSX.Element {
     });
   }, [dispatch]); // Only run on first render
 
-  const getAlbums = (visibleGroups: any) => {
-    visibleGroups.forEach((group: any) => {
-      const visibleImages = group.items;
-      if (visibleImages.filter((i: any) => i.isTemp && i.isTemp != undefined).length > 0) {
-        const firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
-        const page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
-        setGroup({ id: group.id, page: page });
-      }
-    });
-  };
-
   const throttledGetAlbums = useCallback(
-    _.throttle(visibleItems => getAlbums(visibleItems), 500),
+    _.throttle(visibleItems => updatePhotoGroups(setGroup)(visibleItems), 500),
     []
   );
 

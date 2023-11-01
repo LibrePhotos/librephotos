@@ -10,7 +10,6 @@ module.exports = {
     "object-shorthand": "off",
     "block-scoped-var": "warn",
     "vars-on-top": "warn",
-    eqeqeq: "warn",
     radix: "warn",
     "arrow-body-style": "warn",
     "no-await-in-loop": "warn",

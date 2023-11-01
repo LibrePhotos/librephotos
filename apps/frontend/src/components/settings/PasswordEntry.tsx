@@ -29,7 +29,7 @@ export function PasswordEntry(props: Props): JSX.Element {
     let isValid = false;
 
     if (password || passwordConfirm) {
-      if (password == passwordConfirm) {
+      if (password === passwordConfirm) {
         validPassword = password;
         isValid = true;
       } else if (passwordConfirm !== "") {

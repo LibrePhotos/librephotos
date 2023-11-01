@@ -44,7 +44,7 @@ export function EventCountMonthGraph() {
     <Stack ref={observe}>
       <Title order={3}>Monthly Photo Counts</Title>
       {!fetchedPhotoMonthCounts && <Loader />}
-      {fetchedPhotoMonthCounts && width != 0 && (
+      {fetchedPhotoMonthCounts && width > 0 && (
         <div>
           <Chart width={width} height={300} series={[data[0]]}>
             <Layer width="85%" height="85%" position="middle center">

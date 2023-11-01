@@ -4,7 +4,7 @@ import type { ReactElement } from "react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
-import { Calendar, ChevronDown, Clock, EyeOff, Globe, Star ,Photo,Video} from "tabler-icons-react";
+import { Calendar, ChevronDown, Clock, EyeOff, Globe, Photo, Star, Video } from "tabler-icons-react";
 
 import { useFetchUserListQuery } from "../../api_client/api";
 import { i18nResolvedLanguage } from "../../i18n";
@@ -47,7 +47,6 @@ export function DefaultHeader(props: Props) {
       path.startsWith("/user/") ||
       path.startsWith("/photos") ||
       path.startsWith("/videos")
-
     );
   };
 
@@ -166,7 +165,7 @@ export function DefaultHeader(props: Props) {
             </Title>
           )}
           <Text align="left" color="dimmed">
-            {numPhotosetItems != numPhotos ? `${numPhotosetItems} ${t("defaultheader.days")}, ` : ""}
+            {numPhotosetItems !== numPhotos ? `${numPhotosetItems} ${t("defaultheader.days")}, ` : ""}
             {numPhotos} {t("defaultheader.photos")}
             {additionalSubHeader}
           </Text>
