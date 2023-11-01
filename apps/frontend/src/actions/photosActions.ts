@@ -38,7 +38,7 @@ export function downloadPhotos(image_hashes: string[]) {
     Server.post(
       `photos/download`,
       {
-        image_hashes: image_hashes,
+        image_hashes,
       },
       {
         responseType: "blob",
@@ -59,24 +59,24 @@ export function setPhotosShared(image_hashes: string[], val_shared: boolean, tar
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "SET_PHOTOS_SHARED" });
     Server.post(`photosedit/share/`, {
-      image_hashes: image_hashes,
+      image_hashes,
       shared: val_shared,
       target_user_id: target_user.id,
     })
       .then(() => {
-        let notificationMessage = i18n.t<string>("toasts.unsharephoto", {
+        let notificationMessage = i18n.t("toasts.unsharephoto", {
           username: target_user.username,
           numberOfPhotos: image_hashes.length,
         });
         if (val_shared) {
-          notificationMessage = i18n.t<string>("toasts.sharephoto", {
+          notificationMessage = i18n.t("toasts.sharephoto", {
             username: target_user.username,
             numberOfPhotos: image_hashes.length,
           });
         }
         showNotification({
           message: notificationMessage,
-          title: i18n.t<string>("toasts.sharephototitle"),
+          title: i18n.t("toasts.sharephototitle"),
           color: "teal",
         });
 
@@ -98,6 +98,7 @@ const RecentlyAddedResponseDataSchema = z.object({
 export const FETCH_RECENTLY_ADDED_PHOTOS = "FETCH_RECENTLY_ADDED_PHOTOS";
 export const FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED = "FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED";
 export const FETCH_RECENTLY_ADDED_PHOTOS_REJECTED = "FETCH_RECENTLY_ADDED_PHOTOS_REJECTED";
+
 export function fetchRecentlyAddedPhotos(dispatch: AppDispatch) {
   dispatch({ type: FETCH_RECENTLY_ADDED_PHOTOS });
   Server.get("photos/recentlyadded/")
@@ -107,7 +108,7 @@ export function fetchRecentlyAddedPhotos(dispatch: AppDispatch) {
       dispatch({
         type: FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED,
         payload: {
-          photosFlat: photosFlat,
+          photosFlat,
           date: response.data.date,
         },
       });
@@ -192,32 +193,25 @@ export const SET_PHOTOS_PUBLIC_FULFILLED = "SET_PHOTOS_PUBLIC_FULFILLED";
 export function setPhotosPublic(image_hashes: string[], val_public: boolean) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "SET_PHOTOS_PUBLIC" });
-    Server.post(`photosedit/makepublic/`, {
-      image_hashes: image_hashes,
-      val_public: val_public,
-    })
+    Server.post(`photosedit/makepublic/`, { image_hashes, val_public })
       .then(response => {
         const data = PhotosUpdatedResponseSchema.parse(response.data);
         const updatedPhotos: Photo[] = data.updated;
         dispatch({
           type: SET_PHOTOS_PUBLIC_FULFILLED,
-          payload: {
-            image_hashes: image_hashes,
-            val_public: val_public,
-            updatedPhotos: updatedPhotos,
-          },
+          payload: { image_hashes, val_public, updatedPhotos },
         });
-        let notificationMessage = i18n.t<string>("toasts.removepublicphoto", {
+        let notificationMessage = i18n.t("toasts.removepublicphoto", {
           numberOfPhotos: image_hashes.length,
         });
         if (val_public) {
-          notificationMessage = i18n.t<string>("toasts.addpublicphoto", {
+          notificationMessage = i18n.t("toasts.addpublicphoto", {
             numberOfPhotos: image_hashes.length,
           });
         }
         showNotification({
           message: notificationMessage,
-          title: i18n.t<string>("toasts.setpublicphotostitle"),
+          title: i18n.t("toasts.setpublicphotostitle"),
           color: "teal",
         });
 
@@ -239,26 +233,19 @@ export const SET_PHOTOS_FAVORITE_REJECTED = "SET_PHOTOS_FAVORITE_REJECTED";
 export function setPhotosFavorite(image_hashes: string[], favorite: boolean) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: SET_PHOTOS_FAVORITE });
-    Server.post(`photosedit/favorite/`, {
-      image_hashes: image_hashes,
-      favorite: favorite,
-    })
+    Server.post(`photosedit/favorite/`, { image_hashes, favorite })
       .then(response => {
         const data = PhotosUpdatedResponseSchema.parse(response.data);
         const updatedPhotos: Photo[] = data.updated;
         dispatch({
           type: SET_PHOTOS_FAVORITE_FULFILLED,
-          payload: {
-            image_hashes: image_hashes,
-            favorite: favorite,
-            updatedPhotos: updatedPhotos,
-          },
+          payload: { image_hashes, favorite, updatedPhotos },
         });
-        let notificationMessage = i18n.t<string>("toasts.unfavoritephoto", {
+        let notificationMessage = i18n.t("toasts.unfavoritephoto", {
           numberOfPhotos: image_hashes.length,
         });
         if (favorite) {
-          notificationMessage = i18n.t<string>("toasts.favoritephoto", {
+          notificationMessage = i18n.t("toasts.favoritephoto", {
             numberOfPhotos: image_hashes.length,
           });
         }
@@ -267,7 +254,7 @@ export function setPhotosFavorite(image_hashes: string[], favorite: boolean) {
         dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hashes[0])).refetch();
         showNotification({
           message: notificationMessage,
-          title: i18n.t<string>("toasts.setfavoritestitle"),
+          title: i18n.t("toasts.setfavoritestitle"),
           color: "teal",
         });
       })
@@ -285,26 +272,21 @@ export function finalPhotosDeleted(image_hashes: string[]) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: PHOTOS_FINAL_DELETED });
     Server.delete(`photosedit/delete`, {
-      data: {
-        image_hashes: image_hashes,
-      },
+      data: { image_hashes },
     })
       .then(response => {
         const data = PhotosUpdatedResponseSchema.parse(response.data);
         const updatedPhotos: Photo[] = data.updated;
         dispatch({
           type: PHOTOS_FINAL_DELETED_FULFILLED,
-          payload: {
-            image_hashes: image_hashes,
-            updatedPhotos: updatedPhotos,
-          },
+          payload: { image_hashes, updatedPhotos },
         });
-        const notificationMessage = i18n.t<string>("toasts.finaldeletephoto", {
+        const notificationMessage = i18n.t("toasts.finaldeletephoto", {
           numberOfPhotos: image_hashes.length,
         });
         showNotification({
           message: notificationMessage,
-          title: i18n.t<string>("toasts.finaldeletephototitle"),
+          title: i18n.t("toasts.finaldeletephototitle"),
           color: "teal",
         });
       })
@@ -318,20 +300,17 @@ export function deleteDuplicateImage(image_hash: string, path: string) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: PHOTOS_FINAL_DELETED });
     Server.delete(`/photosedit/duplicate/delete`, {
-      data: {
-        image_hash: image_hash,
-        path: path,
-      },
+      data: { image_hash, path },
     })
       .then(() => {
         // To-Do: Change locale for this
-        const notificationMessage = i18n.t<string>("toasts.finaldeletephoto", {
+        const notificationMessage = i18n.t("toasts.finaldeletephoto", {
           numberOfPhotos: 1,
         });
         // To-Do: Change locale for this
         showNotification({
           message: notificationMessage,
-          title: i18n.t<string>("toasts.finaldeletephototitle"),
+          title: i18n.t("toasts.finaldeletephototitle"),
           color: "teal",
         });
       })
@@ -348,32 +327,25 @@ export const SET_PHOTOS_DELETED_REJECTED = "SET_PHOTOS_DELETED_REJECTED";
 export function setPhotosDeleted(image_hashes: string[], deleted: boolean) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: SET_PHOTOS_DELETED });
-    Server.post(`photosedit/setdeleted/`, {
-      image_hashes: image_hashes,
-      deleted: deleted,
-    })
+    Server.post(`photosedit/setdeleted/`, { image_hashes, deleted })
       .then(response => {
         const data = PhotosUpdatedResponseSchema.parse(response.data);
         const updatedPhotos: Photo[] = data.updated;
         dispatch({
           type: SET_PHOTOS_DELETED_FULFILLED,
-          payload: {
-            image_hashes: image_hashes,
-            deleted: deleted,
-            updatedPhotos: updatedPhotos,
-          },
+          payload: { image_hashes, deleted, updatedPhotos },
         });
-        let notificationMessage = i18n.t<string>("toasts.recoverphoto", {
+        let notificationMessage = i18n.t("toasts.recoverphoto", {
           numberOfPhotos: image_hashes.length,
         });
         if (deleted) {
-          notificationMessage = i18n.t<string>("toasts.deletephoto", {
+          notificationMessage = i18n.t("toasts.deletephoto", {
             numberOfPhotos: image_hashes.length,
           });
         }
         showNotification({
           message: notificationMessage,
-          title: i18n.t<string>("toasts.setdeletetitle"),
+          title: i18n.t("toasts.setdeletetitle"),
           color: "teal",
         });
       })
@@ -388,32 +360,25 @@ export const SET_PHOTOS_HIDDEN_FULFILLED = "SET_PHOTOS_HIDDEN_FULFILLED";
 export function setPhotosHidden(image_hashes: string[], hidden: boolean) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "SET_PHOTOS_HIDDEN" });
-    Server.post(`photosedit/hide/`, {
-      image_hashes: image_hashes,
-      hidden: hidden,
-    })
+    Server.post(`photosedit/hide/`, { image_hashes, hidden })
       .then(response => {
         const data = PhotosUpdatedResponseSchema.parse(response.data);
         const updatedPhotos: Photo[] = data.updated;
         dispatch({
           type: SET_PHOTOS_HIDDEN_FULFILLED,
-          payload: {
-            image_hashes: image_hashes,
-            hidden: hidden,
-            updatedPhotos: updatedPhotos,
-          },
+          payload: { image_hashes, hidden, updatedPhotos },
         });
-        let notificationMessage = i18n.t<string>("toasts.unhidephoto", {
+        let notificationMessage = i18n.t("toasts.unhidephoto", {
           numberOfPhotos: image_hashes.length,
         });
         if (hidden) {
-          notificationMessage = i18n.t<string>("toasts.hidephoto", {
+          notificationMessage = i18n.t("toasts.hidephoto", {
             numberOfPhotos: image_hashes.length,
           });
         }
         showNotification({
           message: notificationMessage,
-          title: i18n.t<string>("toasts.sethidetitle"),
+          title: i18n.t("toasts.sethidetitle"),
           color: "teal",
         });
         if (image_hashes.length === 1) {
@@ -436,8 +401,8 @@ export function scanPhotos() {
       .then(response => {
         const jobResponse = JobResponseSchema.parse(response.data);
         showNotification({
-          message: i18n.t<string>("toasts.scanphotos"),
-          title: i18n.t<string>("toasts.scanphotostitle"),
+          message: i18n.t("toasts.scanphotos"),
+          title: i18n.t("toasts.scanphotostitle"),
           color: "teal",
         });
         dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
@@ -457,8 +422,8 @@ export function scanUploadedPhotos() {
       .then(response => {
         const jobResponse = JobResponseSchema.parse(response.data);
         showNotification({
-          message: i18n.t<string>("toasts.scanuploadedphotos"),
-          title: i18n.t<string>("toasts.scanuploadedphotostitle"),
+          message: i18n.t("toasts.scanuploadedphotos"),
+          title: i18n.t("toasts.scanuploadedphotostitle"),
           color: "teal",
         });
         dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
@@ -478,8 +443,8 @@ export function scanAllPhotos() {
       .then(response => {
         const jobResponse = JobResponseSchema.parse(response.data);
         showNotification({
-          message: i18n.t<string>("toasts.fullscanphotos"),
-          title: i18n.t<string>("toasts.fullscanphotostitle"),
+          message: i18n.t("toasts.fullscanphotos"),
+          title: i18n.t("toasts.fullscanphotostitle"),
           color: "teal",
         });
         dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
@@ -499,8 +464,8 @@ export function scanNextcloudPhotos() {
       .then(response => {
         const jobResponse = JobResponseSchema.parse(response.data);
         showNotification({
-          message: i18n.t<string>("toasts.scannextcloudphotos"),
-          title: i18n.t<string>("toasts.scannextcloudphotostitle"),
+          message: i18n.t("toasts.scannextcloudphotos"),
+          title: i18n.t("toasts.scannextcloudphotostitle"),
           color: "teal",
         });
         dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
@@ -524,7 +489,7 @@ export function fetchHiddenPhotos(dispatch: AppDispatch) {
       dispatch({
         type: FETCH_PHOTOSET_FULFILLED,
         payload: {
-          photosGroupedByDate: photosGroupedByDate,
+          photosGroupedByDate,
           photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
           photosetType: PhotosetType.HIDDEN,
         },
@@ -554,11 +519,7 @@ export function fetchNoTimestampPhotoPaginated(dispatch: AppDispatch, page: numb
       const photosCount = data.count;
       dispatch({
         type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED,
-        payload: {
-          photosFlat: photosFlat,
-          fetchedPage: page,
-          photosCount: photosCount,
-        },
+        payload: { photosFlat, fetchedPage: page, photosCount },
       });
     })
     .catch(err => {
@@ -573,7 +534,7 @@ export function fetchNoTimestampPhotoPaginated(dispatch: AppDispatch, page: numb
 export function generatePhotoIm2txtCaption(image_hash: string) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "GENERATE_PHOTO_CAPTION" });
-    Server.post("photosedit/generateim2txt", { image_hash: image_hash })
+    Server.post("photosedit/generateim2txt", { image_hash })
       .then(() => {
         dispatch({ type: "GENERATE_PHOTO_CAPTION_FULFILLED" });
         // @ts-ignore
@@ -588,14 +549,14 @@ export function generatePhotoIm2txtCaption(image_hash: string) {
 
 export function savePhotoCaption(image_hash: string, caption?: string | undefined) {
   return function (dispatch: Dispatch<any>) {
-    Server.post("photosedit/savecaption", { image_hash: image_hash, caption: caption })
+    Server.post("photosedit/savecaption", { image_hash, caption })
       .then(() => {
         dispatch({ type: "SAVE_PHOTO_CAPTION_FULFILLED" });
         // @ts-ignore
         dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hash)).refetch();
         showNotification({
-          message: i18n.t<string>("toasts.savecaptions"),
-          title: i18n.t<string>("toasts.captionupdate"),
+          message: i18n.t("toasts.savecaptions"),
+          title: i18n.t("toasts.captionupdate"),
           color: "teal",
         });
       })
@@ -613,8 +574,8 @@ export function editPhoto(image_hash: string, photo_details: any) {
       .then(() => {
         dispatch({ type: "EDIT_PHOTO_FULFILLED" });
         showNotification({
-          message: i18n.t<string>("toasts.editphoto"),
-          title: i18n.t<string>("toasts.editphototitle"),
+          message: i18n.t("toasts.editphoto"),
+          title: i18n.t("toasts.editphototitle"),
           color: "teal",
         });
         // @ts-ignore

@@ -8,7 +8,7 @@ const initialState: PlayerState = {
 
 const playerSlice = createSlice({
   name: "player",
-  initialState: initialState,
+  initialState,
   reducers: {
     play: state => ({
       ...state,

@@ -91,7 +91,7 @@ export function ChunkedUploadButton() {
     return dispatch(
       api.endpoints.upload.initiate({
         form_data: formData,
-        offset: offset,
+        offset,
         chunk_size: chunk.size,
       })
     );

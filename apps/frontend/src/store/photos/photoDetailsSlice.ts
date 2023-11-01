@@ -10,7 +10,7 @@ const initialState: PhotoSliceState = {
 
 const photoDetailsSlice = createSlice({
   name: "photoDetails",
-  initialState: initialState,
+  initialState,
   reducers: {},
   extraReducers: builder => {
     builder

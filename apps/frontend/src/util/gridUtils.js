@@ -90,7 +90,7 @@ export const calculateGridCells = (groupedByDateList, itemsPerRow) => {
       }
     });
   });
-  return { cellContents: gridContents, hash2row: hash2row };
+  return { cellContents: gridContents, hash2row };
 };
 
 export const calculateGridCellSize = gridWidth => {
@@ -142,10 +142,7 @@ export const calculateGridCellSize = gridWidth => {
 
   const entrySquareSize = gridWidth / numEntrySquaresPerRow;
 
-  return {
-    entrySquareSize: entrySquareSize,
-    numEntrySquaresPerRow: numEntrySquaresPerRow,
-  };
+  return { entrySquareSize, numEntrySquaresPerRow };
 };
 
 export const calculateFaceGridCells = (groupedByPersonList, itemsPerRow) => {
@@ -173,7 +170,7 @@ export const calculateFaceGridCells = (groupedByPersonList, itemsPerRow) => {
       }
     });
   });
-  return { cellContents: gridContents, hash2row: hash2row };
+  return { cellContents: gridContents, hash2row };
 };
 
 export const calculateFaceGridCellSize = gridWidth => {
@@ -192,8 +189,5 @@ export const calculateFaceGridCellSize = gridWidth => {
 
   const entrySquareSize = gridWidth / numEntrySquaresPerRow;
 
-  return {
-    entrySquareSize: entrySquareSize,
-    numEntrySquaresPerRow: numEntrySquaresPerRow,
-  };
+  return { entrySquareSize, numEntrySquaresPerRow };
 };

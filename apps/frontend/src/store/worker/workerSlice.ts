@@ -12,7 +12,7 @@ const initialState: IWorkerAvailabilityResponse = {
 
 const workerSlice = createSlice({
   name: "worker",
-  initialState: initialState,
+  initialState,
   reducers: {},
   extraReducers: builder => {
     builder.addMatcher(api.endpoints.worker.matchFulfilled, (state, { payload }) => {

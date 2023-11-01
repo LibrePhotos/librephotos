@@ -59,7 +59,7 @@ export function FaceComponent({
         backgroundColor: isSelected ? "rgba(174, 214, 241, 0.7)" : "transparent",
         alignContent: "center",
         borderRadius: theme.radius.md,
-        padding: padding,
+        padding,
         marginRight: 10,
         cursor: "pointer",
         "&:hover": {

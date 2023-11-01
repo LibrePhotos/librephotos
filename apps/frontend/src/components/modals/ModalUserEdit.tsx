@@ -192,7 +192,7 @@ export function ModalUserEdit(props: Props) {
         signup({
           username: username.toLowerCase(),
           password: userPassword,
-          email: email,
+          email,
           first_name: firstName,
           last_name: lastName,
         });

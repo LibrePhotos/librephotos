@@ -12,7 +12,7 @@ const initialState: IUserState = {
 
 const userSlice = createSlice({
   name: "user",
-  initialState: initialState,
+  initialState,
   reducers: {
     setRules: (state, action: PayloadAction<string>) => ({
       ...state,

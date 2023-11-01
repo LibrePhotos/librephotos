@@ -21,8 +21,8 @@ export const errorMiddleware: Middleware =
           if (error.field === "code") {
             if (error.message === "token_not_valid") {
               showNotification({
-                message: i18n.t<string>("login.error.token_not_valid"),
-                title: i18n.t<string>("login.error.token"),
+                message: i18n.t("login.error.token_not_valid"),
+                title: i18n.t("login.error.token"),
                 color: "red",
               });
               dispatch(logout());
@@ -37,11 +37,11 @@ export const errorMiddleware: Middleware =
 
           const message =
             action.meta.arg.endpointName === Endpoints.login && i18n.exists(`login.error${error.field}`)
-              ? i18n.t<string>(`login.error${error.field}`)
+              ? i18n.t(`login.error${error.field}`)
               : error.message;
 
           showNotification({
-            message: message,
+            message,
             title: toUpperCase(error.field),
             color: "red",
             // To-Do: Add Cross Icon

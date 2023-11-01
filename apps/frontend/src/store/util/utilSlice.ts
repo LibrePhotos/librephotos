@@ -11,7 +11,7 @@ const initialState = {
 
 const utilSlice = createSlice({
   name: "util",
-  initialState: initialState,
+  initialState,
   reducers: {},
   extraReducers: builder => {
     builder

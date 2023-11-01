@@ -43,7 +43,6 @@ export enum Endpoints {
   fetchUserList = "fetchUserList",
   fetchUserSelfDetails = "fetchUserSelfDetails",
   fetchPredefinedRules = "fetchPredefinedRules",
-  refreshAccessToken = "refreshAccessToken",
   uploadExists = "uploadExists",
   uploadFinished = "uploadFinished",
   upload = "upload",
@@ -58,7 +57,6 @@ export enum Endpoints {
   rescanFaces = "rescanFaces",
   trainFaces = "trainFaces",
   deleteFaces = "deleteFaces",
-  notThisPerson = "notThisPerson",
   setFacesPersonLabel = "setFacesPersonLabel",
   fetchServerStats = "fetchServerStats",
   fetchStorageStats = "fetchStorageStats",
@@ -110,12 +108,12 @@ export const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, Fetch
 export const api = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["UserList", "FirstTimeSetup", "Faces"],
+  tagTypes: ["UserList", "FirstTimeSetup", "Faces", "PeopleAlbums"],
   endpoints: builder => ({
     [Endpoints.signUp]: builder.mutation<UserSignupResponse, UserSignupRequest>({
       query: body => ({
         method: "POST",
-        body: body,
+        body,
         url: "/user/",
       }),
       transformResponse: response => UserSignupResponseSchema.parse(response),
@@ -124,7 +122,7 @@ export const api = createApi({
     [Endpoints.manageUpdateUser]: builder.mutation<IManageUser, IManageUser>({
       query: body => ({
         method: "PATCH",
-        body: body,
+        body,
         url: `/manage/user/${body.id}/`,
       }),
       transformResponse: response => ManageUser.parse(response),
@@ -133,7 +131,7 @@ export const api = createApi({
     [Endpoints.deleteUser]: builder.mutation<any, IApiDeleteUserPost>({
       query: body => ({
         method: "DELETE",
-        body: body,
+        body,
         url: `/delete/user/${body.id}/`,
       }),
       invalidatesTags: ["UserList"],
@@ -142,7 +140,7 @@ export const api = createApi({
       query: body => ({
         url: "/auth/token/obtain/",
         method: "POST",
-        body: body,
+        body,
       }),
       transformResponse: (result: BaseQueryResult<any>) => {
         Server.defaults.headers.common.Authorization = `Bearer ${result.access}`;
@@ -257,22 +255,12 @@ export const api = createApi({
 });
 
 export const {
-  useLazyFetchUserListQuery,
-  useLazyFetchPredefinedRulesQuery,
-  useLazyFetchUserSelfDetailsQuery,
   useFetchUserListQuery,
   useFetchPredefinedRulesQuery,
-  useFetchUserSelfDetailsQuery,
   useFetchIncompleteFacesQuery,
-  useFetchFacesQuery,
-  useSetFacesPersonLabelMutation,
-  useDeleteFacesMutation,
-  useRescanFacesQuery,
-  useClusterFacesQuery,
   useLoginMutation,
   useSignUpMutation,
   useWorkerQuery,
-  useLazyWorkerQuery,
   useDeleteUserMutation,
   useManageUpdateUserMutation,
   useIsFirstTimeSetupQuery,

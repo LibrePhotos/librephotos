@@ -31,18 +31,13 @@ export function fetchPeople(dispatch) {
 export function renamePerson(personId, personName, newPersonName) {
   return function (dispatch) {
     dispatch({ type: "RENAME_PERSON" });
-    Server.patch(`persons/${personId}/`, {
-      newPersonName: newPersonName,
-    })
+    Server.patch(`persons/${personId}/`, { newPersonName })
       .then(response => {
         // To-Do: I should do something with the response
         dispatch({ type: "RENAME_PERSON_FULFILLED", payload: personId });
         fetchPeople(dispatch);
         showNotification({
-          message: i18n.t("toasts.renameperson", {
-            personName: personName,
-            newPersonName: newPersonName,
-          }),
+          message: i18n.t("toasts.renameperson", { personName, newPersonName }),
           title: i18n.t("toasts.renamepersontitle"),
           color: "teal",
         });

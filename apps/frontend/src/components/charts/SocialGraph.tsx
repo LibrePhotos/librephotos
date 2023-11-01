@@ -49,7 +49,7 @@ export function SocialGraph(props: Props) {
       color: "#12939A",
     },
     height: props.height,
-    width: width,
+    width,
   };
   let graph;
   if (fetchedSocialGraph && socialGraph.nodes.length > 0) {

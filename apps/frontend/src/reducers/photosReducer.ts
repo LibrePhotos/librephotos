@@ -64,7 +64,7 @@ function resetPhotos(state: PhotosState, error: string) {
     fetchedPhotosetType: PhotosetType.NONE,
     photosGroupedByDate: [],
     photosGroupedByUser: [],
-    error: error,
+    error,
   };
 }
 

@@ -17,7 +17,7 @@ export default function reducer(state = initialState, action) {
       return {
         ...state,
         showSidebar: !state.showSidebar,
-        contentWidth: contentWidth,
+        contentWidth,
       };
     }
 

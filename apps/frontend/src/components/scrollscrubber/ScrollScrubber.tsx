@@ -107,7 +107,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
         // Only display letter if there is enough space with preivous letter
         if (alphabet.length < 1 || item.scrollerY - alphabet.slice(-1)[0].scrollerY > 15) {
           alphabet.push({
-            label: label,
+            label,
             targetY: item.targetY,
             scrollerY: item.scrollerY,
             scrollerYPercent: item.scrollerYPercent,
@@ -448,7 +448,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
         className="scrollscrubber"
         style={{
           opacity: scrollerIsVisible ? 1 : 0,
-          cursor: cursor,
+          cursor,
           top: `${offsetTop}px`,
           bottom: matches ? "0" : "50px",
         }}

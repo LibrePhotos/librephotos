@@ -47,7 +47,7 @@ const searchApi = api
           const photosGroupedByDate = SearchPhotosSchema.parse(response).results;
           return {
             photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
-            photosGroupedByDate: photosGroupedByDate,
+            photosGroupedByDate,
           };
         },
       }),

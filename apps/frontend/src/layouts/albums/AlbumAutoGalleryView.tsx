@@ -76,7 +76,7 @@ export function AlbumAutoGalleryView() {
     );
   }
 
-  const photos = _.sortBy(album.photos, "exif_timestamp").map((el, idx) => ({ ...el, idx: idx }));
+  const photos = _.sortBy(album.photos, "exif_timestamp").map((el, idx) => ({ ...el, idx }));
   const byDate = _.groupBy(_.sortBy(photos, "exif_timestamp"), photo => photo.exif_timestamp.split("T")[0]);
   const timestampFrom = formatTimestamp(album.photos[0].exif_timestamp);
   const timestampTo = formatTimestamp(album.photos[album.photos.length - 1].exif_timestamp);

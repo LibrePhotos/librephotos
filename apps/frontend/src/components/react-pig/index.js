@@ -110,7 +110,7 @@ export default class Pig extends Component {
       scrollDirection: this.scrollDirection,
       settings: this.settings,
       latestYOffset: this.latestYOffset,
-      imageData: imageData,
+      imageData,
       windowHeight: this.windowHeight,
       updateGroups: this.updateGroups,
       updateItems: this.updateItems,

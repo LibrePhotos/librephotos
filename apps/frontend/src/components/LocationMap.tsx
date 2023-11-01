@@ -44,8 +44,8 @@ export function LocationMap(props: Props) {
   if (photosWithGPS.length > 0) {
     const zoom = 16;
     return (
-      <Box style={{ zIndex: 2, height: height, padding: 0 }}>
-        <Map ref={mapRef} style={{ height: height }} center={[avg_lat, avg_lon]} zoom={zoom}>
+      <Box style={{ zIndex: 2, height, padding: 0 }}>
+        <Map ref={mapRef} style={{ height }} center={[avg_lat, avg_lon]} zoom={zoom}>
           <TileLayer
             attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.osm.org/{z}/{x}/{y}.png"
@@ -56,7 +56,7 @@ export function LocationMap(props: Props) {
     );
   }
   return (
-    <Box style={{ height: height }}>
+    <Box style={{ height }}>
       <Loader>Map loading...</Loader>
     </Box>
   );

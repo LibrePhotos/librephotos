@@ -88,7 +88,7 @@ const clearPersonFacesIfNeeded = (person: ICompletePersonFace) => {
 
 const faceSlice = createSlice({
   name: "face",
-  initialState: initialState,
+  initialState,
   reducers: {
     changeTab: (state, action: PayloadAction<IFacesTab>) => ({ ...state, activeTab: action.payload }),
     saveCurrentGridPosition: (state, action: PayloadAction<{ tab: IFacesTab; position: number }>) => {

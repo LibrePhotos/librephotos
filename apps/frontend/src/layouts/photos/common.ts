@@ -15,7 +15,7 @@ export const updatePhotoGroups = (callback: Dispatch<SetStateAction<PhotoGroup>>
     if (photos.length > 0) {
       const firstTempObject = photos[0];
       const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
-      callback({ id: group.id, page: page });
+      callback({ id: group.id, page });
     }
   });
 };

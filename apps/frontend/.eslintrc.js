@@ -7,7 +7,6 @@ module.exports = {
   extends: ["airbnb", "airbnb-typescript", "airbnb/hooks", "prettier"],
   plugins: ["prettier"],
   rules: {
-    "object-shorthand": "off",
     "block-scoped-var": "warn",
     "vars-on-top": "warn",
     radix: "warn",

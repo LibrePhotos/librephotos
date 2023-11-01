@@ -103,7 +103,7 @@ export function FaceDashboard() {
               person: element.person,
               page: element.page,
               inferred: activeTab === FacesTab.enum.inferred,
-              orderBy: orderBy,
+              orderBy,
             },
             { forceRefetch: force }
           )
@@ -185,7 +185,7 @@ export function FaceDashboard() {
       .filter((i: any) => i.isTemp)
       .map((i: any) => {
         const page = Math.ceil((parseInt(i.id, 10) + 1) / 100);
-        return { page: page, person: i.person };
+        return { page, person: i.person };
       });
     const uniqueGroups = _.uniqBy(relevantInfos, (e: any) => `${e.page} ${e.person}`);
     if (uniqueGroups.length > 0) {
@@ -258,10 +258,10 @@ export function FaceDashboard() {
       const ids = selectedFaces.map(face => face.face_id);
       dispatch(api.endpoints.deleteFaces.initiate({ faceIds: ids }));
       showNotification({
-        message: i18n.t<string>("toasts.deletefaces", {
+        message: i18n.t("toasts.deletefaces", {
           numberOfFaces: ids.length,
         }),
-        title: i18n.t<string>("toasts.deletefacestitle"),
+        title: i18n.t("toasts.deletefacestitle"),
         color: "teal",
       });
       setSelectedFaces([]);
@@ -279,10 +279,10 @@ export function FaceDashboard() {
       const ids = selectedFaces.map(face => face.face_id);
       dispatch(api.endpoints.setFacesPersonLabel.initiate({ faceIds: ids, personName: "Unknown - Other" }));
       showNotification({
-        message: i18n.t<string>("toasts.removefacestoperson", {
+        message: i18n.t("toasts.removefacestoperson", {
           numberOfFaces: ids.length,
         }),
-        title: i18n.t<string>("toasts.removefacestopersontitle"),
+        title: i18n.t("toasts.removefacestopersontitle"),
         color: "teal",
       });
       setSelectedFaces([]);

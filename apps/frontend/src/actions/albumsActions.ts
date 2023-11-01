@@ -92,6 +92,7 @@ export function fetchUserAlbumsList() {
 export const FETCH_USER_ALBUM = "FETCH_USER_ALBUM";
 export const FETCH_USER_ALBUM_FULFILLED = "FETCH_USER_ALBUM_FULFILLED";
 export const FETCH_USER_ALBUM_REJECTED = "FETCH_USER_ALBUM_REJECTED";
+
 export function fetchUserAlbum(album_id: number) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: FETCH_USER_ALBUM });
@@ -103,9 +104,9 @@ export function fetchUserAlbum(album_id: number) {
         dispatch({
           type: FETCH_USER_ALBUM_FULFILLED,
           payload: {
-            photosGroupedByDate: photosGroupedByDate,
+            photosGroupedByDate,
             photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
-            albumDetails: albumDetails,
+            albumDetails,
           },
         });
       })
@@ -118,7 +119,7 @@ export function fetchUserAlbum(album_id: number) {
 export function createNewUserAlbum(title: string, image_hashes: string[]) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "CREATE_USER_ALBUMS_LIST" });
-    Server.post("albums/user/edit/", { title: title, photos: image_hashes })
+    Server.post("albums/user/edit/", { title, photos: image_hashes })
       .then(response => {
         const data = _UserAlbumEditResponseSchema.parse(response.data);
         dispatch({
@@ -127,11 +128,11 @@ export function createNewUserAlbum(title: string, image_hashes: string[]) {
         });
         dispatch(fetchUserAlbumsList());
         showNotification({
-          message: i18n.t<string>("toasts.createnewalbum", {
+          message: i18n.t("toasts.createnewalbum", {
             numberOfPhotos: image_hashes.length,
-            title: title,
+            title,
           }),
-          title: i18n.t<string>("toasts.createalbumtitle"),
+          title: i18n.t("toasts.createalbumtitle"),
           color: "teal",
           // status: "success",
         });
@@ -152,11 +153,8 @@ export function renameUserAlbum(albumID: string, albumTitle: string, newAlbumTit
         dispatch({ type: "RENAME_USER_ALBUM_FULFILLED", payload: albumID });
         dispatch(fetchUserAlbumsList());
         showNotification({
-          message: i18n.t<string>("toasts.renamealbum", {
-            albumTitle: albumTitle,
-            newAlbumTitle: newAlbumTitle,
-          }),
-          title: i18n.t<string>("toasts.renamealbumtitle"),
+          message: i18n.t("toasts.renamealbum", { albumTitle, newAlbumTitle }),
+          title: i18n.t("toasts.renamealbumtitle"),
           color: "teal",
           // To-Do: Add Icon
         });
@@ -175,10 +173,8 @@ export function deleteUserAlbum(albumID: string, albumTitle: string) {
         dispatch({ type: "DELETE_USER_ALBUM_FULFILLED", payload: albumID });
         dispatch(fetchUserAlbumsList());
         showNotification({
-          message: i18n.t<string>("toasts.deletealbum", {
-            albumTitle: albumTitle,
-          }),
-          title: i18n.t<string>("toasts.deletealbumtitle"),
+          message: i18n.t("toasts.deletealbum", { albumTitle }),
+          title: i18n.t("toasts.deletealbumtitle"),
           color: "teal",
         });
       })
@@ -201,11 +197,11 @@ export function removeFromUserAlbum(album_id: number, title: string, image_hashe
           payload: data,
         });
         showNotification({
-          message: i18n.t<string>("toasts.removefromalbum", {
+          message: i18n.t("toasts.removefromalbum", {
             numberOfPhotos: image_hashes.length,
-            title: title,
+            title,
           }),
-          title: i18n.t<string>("toasts.removefromalbumtitle"),
+          title: i18n.t("toasts.removefromalbumtitle"),
           color: "teal",
         });
 
@@ -228,8 +224,8 @@ export function setAlbumCoverForUserAlbum(album_id, photo_hash) {
         // To-Do: I should do something with the response
         dispatch({ type: "SET_ALBUM_COVER_FOR_USER_ALBUM_FULFILLED" });
         showNotification({
-          message: i18n.t<string>("toasts.setcoverphoto"),
-          title: i18n.t<string>("toasts.setcoverphototitle"),
+          message: i18n.t("toasts.setcoverphoto"),
+          title: i18n.t("toasts.setcoverphototitle"),
           color: "teal",
         });
         dispatch(fetchUserAlbumsList());
@@ -245,7 +241,7 @@ export function addToUserAlbum(album_id: number, title: string, image_hashes: st
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "EDIT_USER_ALBUMS_LIST" });
     Server.patch(`albums/user/edit/${album_id}/`, {
-      title: title,
+      title,
       photos: image_hashes,
     })
       .then(response => {
@@ -255,11 +251,11 @@ export function addToUserAlbum(album_id: number, title: string, image_hashes: st
           payload: data,
         });
         showNotification({
-          message: i18n.t<string>("toasts.addtoalbum", {
+          message: i18n.t("toasts.addtoalbum", {
             numberOfPhotos: image_hashes.length,
-            title: title,
+            title,
           }),
-          title: i18n.t<string>("toasts.addtoalbumtitle"),
+          title: i18n.t("toasts.addtoalbumtitle"),
           color: "teal",
         });
 
@@ -295,6 +291,7 @@ export function fetchPlaceAlbumsList() {
 }
 
 const PlaceAlbumResponseSchema = z.object({ results: PlaceAlbumSchema });
+
 export function fetchPlaceAlbum(album_id: string) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "FETCH_PLACE_ALBUMS" });
@@ -344,11 +341,11 @@ export function fetchAlbumDateList(dispatch: AppDispatch, options: AlbumDateList
   const favorites = options.photosetType === PhotosetType.FAVORITES ? "?favorite=true" : "";
   const publicParam = options.photosetType === PhotosetType.PUBLIC ? "?public=true" : "";
   const hiddenParam = options.photosetType === PhotosetType.HIDDEN ? "?hidden=true" : "";
-  const photos= options.photosetType === PhotosetType.PHOTOS? "?photo=true" : "";
+  const photos = options.photosetType === PhotosetType.PHOTOS ? "?photo=true" : "";
   const deletedParam = options.photosetType === PhotosetType.DELETED ? "?deleted=true" : "";
   const usernameParam = options.username ? `&username=${options.username.toLowerCase()}` : "";
   const personidParam = options.person_id ? `?person=${options.person_id}` : "";
-  const videos= options.photosetType === PhotosetType.VIDEOS ? "?video=true" : "";
+  const videos = options.photosetType === PhotosetType.VIDEOS ? "?video=true" : "";
   Server.get(
     `albums/date/list/${favorites}${publicParam}${hiddenParam}${deletedParam}${usernameParam}${personidParam}${photos}${videos}`,
     {
@@ -362,7 +359,7 @@ export function fetchAlbumDateList(dispatch: AppDispatch, options: AlbumDateList
       dispatch({
         type: "FETCH_DATE_ALBUMS_LIST_FULFILLED",
         payload: {
-          photosGroupedByDate: photosGroupedByDate,
+          photosGroupedByDate,
           photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
           photosetType: options.photosetType,
         },
@@ -390,8 +387,8 @@ export function fetchAlbumDate(dispatch: AppDispatch, options: AlbumDateOption) 
     },
   });
   const favorites = options.photosetType === PhotosetType.FAVORITES ? "&favorite=true" : "";
-  const photos= options.photosetType === PhotosetType.PHOTOS? "&photo=true" : "";
-  const videos= options.photosetType === PhotosetType.VIDEOS ? "&video=true" : "";
+  const photos = options.photosetType === PhotosetType.PHOTOS ? "&photo=true" : "";
+  const videos = options.photosetType === PhotosetType.VIDEOS ? "&video=true" : "";
   const publicParam = options.photosetType === PhotosetType.PUBLIC ? "&public=true" : "";
   const usernameParam = options.username ? `&username=${options.username.toLowerCase()}` : "";
   const personidParam = options.person_id ? `&person=${options.person_id}` : "";
@@ -405,7 +402,7 @@ export function fetchAlbumDate(dispatch: AppDispatch, options: AlbumDateOption) 
       dispatch({
         type: "FETCH_DATE_ALBUMS_RETRIEVE_FULFILLED",
         payload: {
-          datePhotosGroup: datePhotosGroup,
+          datePhotosGroup,
           page: options.page,
         },
       });
@@ -441,10 +438,8 @@ export function deleteAutoAlbum(albumID: string, albumTitle: string) {
         dispatch({ type: "DELETE_AUTO_ALBUM_FULFILLED", payload: albumID });
         dispatch(fetchAutoAlbumsList());
         showNotification({
-          message: i18n.t<string>("toasts.deletealbum", {
-            albumTitle: albumTitle,
-          }),
-          title: i18n.t<string>("toasts.deletealbumtitle"),
+          message: i18n.t("toasts.deletealbum", { albumTitle }),
+          title: i18n.t("toasts.deletealbumtitle"),
           color: "teal",
         });
       })
@@ -462,8 +457,8 @@ export function deleteAllAutoAlbum() {
         dispatch({ type: "DELETE_ALL_AUTO_ALBUM_FULFILLED" });
         dispatch(fetchAutoAlbumsList());
         showNotification({
-          message: i18n.t<string>("toasts.deleteallautoalbums"),
-          title: i18n.t<string>("toasts.deleteallautoalbumstitle"),
+          message: i18n.t("toasts.deleteallautoalbums"),
+          title: i18n.t("toasts.deleteallautoalbumstitle"),
           color: "teal",
         });
       })
@@ -477,11 +472,7 @@ export function deleteAllAutoAlbum() {
 export function setUserAlbumShared(album_id: number, target_user_id: string, val_shared: boolean) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "SET_ALBUM_USER_SHARED" });
-    Server.post("useralbum/share/", {
-      shared: val_shared,
-      album_id: album_id,
-      target_user_id: target_user_id,
-    })
+    Server.post("useralbum/share/", { shared: val_shared, album_id, target_user_id })
       .then(response => {
         const userAlbumInfo: UserAlbumInfo = UserAlbumInfoSchema.parse(response.data);
         dispatch({
@@ -492,14 +483,14 @@ export function setUserAlbumShared(album_id: number, target_user_id: string, val
 
         if (val_shared) {
           showNotification({
-            message: i18n.t<string>("toasts.sharingalbum"),
-            title: i18n.t<string>("toasts.sharingalbumtitle"),
+            message: i18n.t("toasts.sharingalbum"),
+            title: i18n.t("toasts.sharingalbumtitle"),
             color: "teal",
           });
         } else {
           showNotification({
-            message: i18n.t<string>("toasts.unsharingalbum"),
-            title: i18n.t<string>("toasts.unsharingalbumtitle"),
+            message: i18n.t("toasts.unsharingalbum"),
+            title: i18n.t("toasts.unsharingalbumtitle"),
             color: "teal",
           });
         }

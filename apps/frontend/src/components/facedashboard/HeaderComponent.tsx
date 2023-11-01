@@ -74,13 +74,13 @@ export function HeaderComponent({
   const confirmFacesAssociation = () => {
     const facesToAddIDs = cell.faces.map(i => i.id);
     const personName = cell.name;
-    dispatch(api.endpoints.setFacesPersonLabel.initiate({ faceIds: facesToAddIDs, personName: personName }));
+    dispatch(api.endpoints.setFacesPersonLabel.initiate({ faceIds: facesToAddIDs, personName }));
     showNotification({
-      message: i18n.t<string>("toasts.addfacestoperson", {
+      message: i18n.t("toasts.addfacestoperson", {
         numberOfFaces: facesToAddIDs.length,
-        personName: personName,
+        personName,
       }),
-      title: i18n.t<string>("toasts.addfacestopersontitle"),
+      title: i18n.t("toasts.addfacestopersontitle"),
       color: "teal",
     });
   };
@@ -98,7 +98,7 @@ export function HeaderComponent({
       spacing="xs"
       style={{
         ...style,
-        width: width,
+        width,
         paddingTop: entrySquareSize / 2.0 - 35,
         height: entrySquareSize,
       }}

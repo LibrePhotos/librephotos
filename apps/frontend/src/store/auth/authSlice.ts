@@ -18,7 +18,7 @@ const initialState: IAuthState = {
 
 const authSlice = createSlice({
   name: "auth",
-  initialState: initialState,
+  initialState,
   reducers: {
     tokenReceived: (state, { payload }) => ({
       ...state,

@@ -80,7 +80,7 @@ export default function ({ imageData, settings, totalHeight, wrapperWidth, scale
 
     tempGroupData.push({
       ...g,
-      groupTranslateY: groupTranslateY,
+      groupTranslateY,
       items: tempImgData,
       height: groupHeight + groupTitleHeight,
     });
