@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils import timezone

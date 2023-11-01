@@ -1,8 +1,6 @@
 import io
 import os
-import secrets
 import subprocess
-import time
 import uuid
 import zipfile
 from urllib.parse import quote
@@ -25,7 +23,7 @@ from rest_framework.views import APIView, exception_handler
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
-from api.all_tasks import create_download_job
+from api.all_tasks import create_download_job, delete_zip_file
 from api.api_util import get_search_term_examples
 from api.autoalbum import delete_missing_photos
 from api.directory_watcher import scan_photos
@@ -264,6 +262,7 @@ class MediaAccessView(APIView):
     permission_classes = (AllowAny,)
 
     def _get_protected_media_url(self, path, fname):
+        print(fname)
         return "protected_media/{}/{}".format(path, fname)
 
     # @silk_profile(name='media')
@@ -441,14 +440,16 @@ class MediaAccessFullsizeOriginalView(APIView):
             else:
                 return HttpResponseForbidden()
             try:
+                filename = fname + str(request.user.id) + ".zip"
+                print(filename)
                 response = HttpResponse()
                 response["Content-Type"] = "application/x-zip-compressed"
                 response["X-Accel-Redirect"] = self._get_protected_media_url(
-                    path, fname
+                    path, filename
                 )
                 return response
             except Exception:
-                return HttpResponse(status=404)
+                return HttpResponseForbidden()
 
         if path.lower() == "avatars":
             jwt = request.COOKIES.get("jwt")
@@ -637,16 +638,17 @@ class ZipListPhotosView_V2(APIView):
         total_file_size = photo_query.aggregate(Sum("size"))["size__sum"] or None
         if free_storage < total_file_size:
             return Response(data={"status": "Insufficient Storage"}, status=507)
-
-        filename = str(secrets.token_hex(nbytes=16) + ".zip")
+        file_uuid = uuid.uuid4()
+        filename = str(str(file_uuid) + str(self.request.user.id) + ".zip")
         user = self.request.user
+        print(user.id)
         job_id = create_download_job(
             LongRunningJob.JOB_DOWNLOAD_PHOTOS,
             user=user,
             photos=photos,
             filename=filename,
         )
-        response = {"job_id": job_id, "url": filename}
+        response = {"job_id": job_id, "url": file_uuid}
 
         return Response(data=response, status=200)
 
@@ -663,6 +665,25 @@ class ZipListPhotosView_V2(APIView):
                 return Response(
                     data={"status": "PENDING", "progress": job.result}, status=202
                 )
+        except BaseException as e:
+            logger.error(str(e))
+            return Response(status=404)
+
+
+class DeleteZipView(APIView):
+    def delete(self, request, fname):
+        jwt = request.COOKIES.get("jwt")
+        if jwt is not None:
+            try:
+                AccessToken(jwt)
+            except TokenError:
+                return HttpResponseForbidden()
+        else:
+            return HttpResponseForbidden()
+        filename = fname + str(request.user.id) + ".zip"
+        try:
+            delete_zip_file(filename)
+            return Response(status=200)
         except BaseException as e:
             logger.error(str(e))
             return Response(status=404)

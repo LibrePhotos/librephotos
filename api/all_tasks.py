@@ -74,7 +74,6 @@ def zip_photos_task(job_id, user, photos, filename):
 
 def delete_zip_file(filename):
     file_path = os.path.join(settings.MEDIA_ROOT, "zip", filename)
-    print(file_path)
     try:
         if not os.path.exists(file_path):
             util.logger.error(
@@ -84,6 +83,8 @@ def delete_zip_file(filename):
         else:
             os.remove(file_path)
             util.logger.info("file deleted sucessfully at path : {}".format(file_path))
+            return
 
     except Exception as e:
         util.logger.error("Error while deleting file: {}".format(e))
+        return e
