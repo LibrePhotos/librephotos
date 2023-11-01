@@ -253,7 +253,8 @@
         "youshared": "Ви поділилися",
         "sharedwithyou": "Поділилися з вами",
         "facecluster": "Скупчення облич",
-        "socialgraph": "Соціальний граф"
+        "socialgraph": "Соціальний граф",
+        "videos": "Відео"
     },
     "selectionbar": {
         "select": "Вибрати всі",
@@ -549,7 +550,8 @@
         "photos": "Світлини",
         "hidden": "Сховані світлини",
         "favorite": "Обрані світлини",
-        "deleted": "Смітник"
+        "deleted": "Смітник",
+        "videos": "Відео"
     },
     "sitesettings": {
         "headerupload": "Дозволити вивантаження",
