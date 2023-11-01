@@ -3,7 +3,15 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 
 import { api } from "../../api_client/api";
 import { FacesOrderOption, FacesTab } from "./facesActions.types";
-import type { ICompletePersonFace, ICompletePersonFaceList, IFacesOrderOption, IFacesState, IFacesTab, ITabSettingsArray, IPersonFace } from "./facesActions.types";
+import type {
+  ICompletePersonFace,
+  ICompletePersonFaceList,
+  IFacesOrderOption,
+  IFacesState,
+  IFacesTab,
+  IPersonFace,
+  ITabSettingsArray,
+} from "./facesActions.types";
 
 const initialState: IFacesState = {
   labeledFacesList: [] as ICompletePersonFaceList,
@@ -17,44 +25,34 @@ const initialState: IFacesState = {
   error: null,
   activeTab: FacesTab.enum.labeled,
   tabs: {
-    "labeled": {scrollPosition: 0},
-    "inferred": {scrollPosition: 0}
+    labeled: { scrollPosition: 0 },
+    inferred: { scrollPosition: 0 },
   } as ITabSettingsArray,
 };
 
 const compareFacesConfidence = (a: IPersonFace, b: IPersonFace) => {
-  if (a.person_label_probability > b.person_label_probability)
-    return -1;
-  if (a.person_label_probability < b.person_label_probability)
-    return 1;
-  if (a.id < b.id)
-    return -1;
-  if (a.id > b.id)
-    return 1;
+  if (a.person_label_probability > b.person_label_probability) return -1;
+  if (a.person_label_probability < b.person_label_probability) return 1;
+  if (a.id < b.id) return -1;
+  if (a.id > b.id) return 1;
   return 0;
 };
 
 const compareFacesDate = (a: IPersonFace, b: IPersonFace) => {
-  const dateA = new Date(a.timestamp || '');
-  const dateB = new Date(b.timestamp || '');
-  if (dateA.toString() === "Invalid Date" && dateB.toString() === "Invalid Date")
-    return compareFacesConfidence(a, b);             
-  if (dateA.toString() === "Invalid Date")
-    return 1;
-  if (dateB.toString() === "Invalid Date")
-    return -1;
-  if (dateA < dateB)
-    return -1;
-  if (dateA > dateB)
-    return 1;
+  const dateA = new Date(a.timestamp || "");
+  const dateB = new Date(b.timestamp || "");
+  if (dateA.toString() === "Invalid Date" && dateB.toString() === "Invalid Date") return compareFacesConfidence(a, b);
+  if (dateA.toString() === "Invalid Date") return 1;
+  if (dateB.toString() === "Invalid Date") return -1;
+  if (dateA < dateB) return -1;
+  if (dateA > dateB) return 1;
   return compareFacesConfidence(a, b);
 };
 
 const sortFaces = (faces, order: IFacesOrderOption) => {
   if (order === FacesOrderOption.enum.confidence)
     faces.sort((a: IPersonFace, b: IPersonFace) => compareFacesConfidence(a, b));
-  else if (order === FacesOrderOption.enum.date)
-    faces.sort((a: IPersonFace, b: IPersonFace) => compareFacesDate(a, b));
+  else if (order === FacesOrderOption.enum.date) faces.sort((a: IPersonFace, b: IPersonFace) => compareFacesDate(a, b));
 };
 
 const clearPersonFacesIfNeeded = (person: ICompletePersonFace) => {
@@ -92,13 +90,9 @@ const faceSlice = createSlice({
   name: "face",
   initialState: initialState,
   reducers: {
-    changeTab: (state, action: PayloadAction<IFacesTab>) => (
-      {...state,
-        activeTab: action.payload,
-      }
-    ),
-    saveCurrentGridPosition: (state, action: PayloadAction<{tab: IFacesTab, position: number}>) => {
-      const {tab, position} = action.payload;
+    changeTab: (state, action: PayloadAction<IFacesTab>) => ({ ...state, activeTab: action.payload }),
+    saveCurrentGridPosition: (state, action: PayloadAction<{ tab: IFacesTab; position: number }>) => {
+      const { tab, position } = action.payload;
       if (tab in state.tabs) {
         // @ts-ignore
         state.tabs[tab].scrollPosition = position;
@@ -111,8 +105,12 @@ const faceSlice = createSlice({
       state.labeledFacesList.forEach(element => clearPersonFacesIfNeeded(element));
       state.inferredFacesList.forEach(element => clearPersonFacesIfNeeded(element));
       // Sort both lists according to new criteria
-      state.labeledFacesList.forEach(element => {sortFaces(element.faces, state.orderBy)});
-      state.inferredFacesList.forEach(element => {sortFaces(element.faces, state.orderBy)});
+      state.labeledFacesList.forEach(element => {
+        sortFaces(element.faces, state.orderBy);
+      });
+      state.inferredFacesList.forEach(element => {
+        sortFaces(element.faces, state.orderBy);
+      });
     },
   },
   extraReducers: builder => {
@@ -160,23 +158,19 @@ const faceSlice = createSlice({
           personListToChange[indexToReplace] = personToChange;
         }
       })
-      //@ts-ignore
-      .addMatcher(api.endpoints.clusterFaces.matchFulfilled, (state, { payload }) => {
-        return {
-          ...state,
-          facesVis: payload,
-          clustered: true,
-        };
-      })
-      //@ts-ignore
-      .addMatcher(api.endpoints.trainFaces.matchFulfilled, (state, { payload }) => {
-        return {
-          ...state,
-          training: false,
-          trained: true,
-          facesVis: payload,
-        };
-      })
+      // @ts-ignore
+      .addMatcher(api.endpoints.clusterFaces.matchFulfilled, (state, { payload }) => ({
+        ...state,
+        facesVis: payload,
+        clustered: true,
+      }))
+      // @ts-ignore
+      .addMatcher(api.endpoints.trainFaces.matchFulfilled, (state, { payload }) => ({
+        ...state,
+        training: false,
+        trained: true,
+        facesVis: payload,
+      }))
       .addMatcher(api.endpoints.deleteFaces.matchFulfilled, (state, { meta, payload }) => {
         const facesToRemove = payload.results;
         const newLabeledFacesList = state.labeledFacesList;
@@ -279,7 +273,7 @@ const faceSlice = createSlice({
                 },
               ],
               kind: "USER",
-              face_count: 1
+              face_count: 1,
             };
             newLabeledFacesList.push(newPerson);
           }

@@ -6,7 +6,7 @@ import { Calendar, FaceId, Photo, QuestionMark, SettingsAutomation, Tag, Users }
 import { fetchCountStats } from "../actions/utilActions";
 import { useAppDispatch, useAppSelector } from "../store/store";
 
-export const CountStats = () => {
+export function CountStats() {
   const util = useAppSelector(state => state.util);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
@@ -116,4 +116,4 @@ export const CountStats = () => {
       </Card>
     </Group>
   );
-};
+}

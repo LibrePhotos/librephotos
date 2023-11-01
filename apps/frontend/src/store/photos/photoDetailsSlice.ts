@@ -15,7 +15,7 @@ const photoDetailsSlice = createSlice({
   extraReducers: builder => {
     builder
       .addMatcher(photoDetailsApi.endpoints.fetchPhotoDetails.matchFulfilled, (state, { payload }) => {
-        var newPhotoDetails = { ...state.photoDetails };
+        const newPhotoDetails = { ...state.photoDetails };
         const photoDetails: Photo = payload;
         newPhotoDetails[photoDetails.image_hash] = photoDetails;
         return {

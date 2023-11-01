@@ -10,7 +10,7 @@ import { Tile } from "../../components/Tile";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { HeaderComponent } from "./HeaderComponent";
 
-export const AlbumViewer = () => {
+export function AlbumViewer() {
   const auth = useAppSelector(state => state.auth);
   const { albumsAutoList, fetchingAlbumsAutoList, albumsUserList, fetchingAlbumsUserList } = useAppSelector(
     store => store.albums
@@ -40,19 +40,17 @@ export const AlbumViewer = () => {
         </Button>
       </Group>
       <Group>
-        {albumsUserList.slice(0, 19).map(autoAlbum => {
-          return (
-            <Tile
-              onClick={() => {
-                dispatch(push(`/album/${autoAlbum.id}`));
-              }}
-              video={autoAlbum.cover_photos[0].video === true}
-              height={entrySquareSize - 10}
-              width={entrySquareSize - 10}
-              image_hash={autoAlbum.cover_photos[0].image_hash}
-            />
-          );
-        })}
+        {albumsUserList.slice(0, 19).map(autoAlbum => (
+          <Tile
+            onClick={() => {
+              dispatch(push(`/album/${autoAlbum.id}`));
+            }}
+            video={autoAlbum.cover_photos[0].video === true}
+            height={entrySquareSize - 10}
+            width={entrySquareSize - 10}
+            image_hash={autoAlbum.cover_photos[0].image_hash}
+          />
+        ))}
       </Group>
 
       <Group position="apart">
@@ -62,20 +60,18 @@ export const AlbumViewer = () => {
         </Button>
       </Group>
       <Group>
-        {albumsAutoList.slice(0, 19).map(autoAlbum => {
-          return (
-            <Tile
-              onClick={() => {
-                dispatch(push(`/album/${autoAlbum.id}`));
-              }}
-              video={autoAlbum.photos.video === true}
-              height={entrySquareSize - 10}
-              width={entrySquareSize - 10}
-              image_hash={autoAlbum.photos.image_hash}
-            />
-          );
-        })}
+        {albumsAutoList.slice(0, 19).map(autoAlbum => (
+          <Tile
+            onClick={() => {
+              dispatch(push(`/album/${autoAlbum.id}`));
+            }}
+            video={autoAlbum.photos.video === true}
+            height={entrySquareSize - 10}
+            width={entrySquareSize - 10}
+            image_hash={autoAlbum.photos.image_hash}
+          />
+        ))}
       </Group>
     </Stack>
   );
-};
+}

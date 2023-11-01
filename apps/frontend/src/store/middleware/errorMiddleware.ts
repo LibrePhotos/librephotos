@@ -44,7 +44,7 @@ export const errorMiddleware: Middleware =
             message: message,
             title: toUpperCase(error.field),
             color: "red",
-            //To-Do: Add Cross Icon
+            // To-Do: Add Cross Icon
           });
         });
       }

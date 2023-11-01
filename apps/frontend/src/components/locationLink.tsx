@@ -112,120 +112,119 @@ export function LocationLink(props: Props) {
           size={[sizeWidth, sizeHeight]}
           separation={(a, b) => (a.parent === b.parent ? 1 : 0.5) / a.depth}
         >
-          {tree => {
-            return (
-              <Group top={origin.y} left={origin.x}>
-                {tree.links().map((link, i) => {
-                  let LinkComponent;
+          {tree => (
+            <Group top={origin.y} left={origin.x}>
+              {tree.links().map((link, i) => {
+                let LinkComponent;
 
-                  if (layout === "polar") {
-                    if (linkType === "step") {
-                      LinkComponent = LinkRadialStep;
-                    } else if (linkType === "curve") {
-                      LinkComponent = LinkRadialCurve;
-                    } else if (linkType === "line") {
-                      LinkComponent = LinkRadialLine;
-                    } else {
-                      LinkComponent = LinkRadial;
-                    }
-                  } else if (orientation === "vertical") {
-                    if (linkType === "step") {
-                      LinkComponent = LinkVerticalStep;
-                    } else if (linkType === "curve") {
-                      LinkComponent = LinkVerticalCurve;
-                    } else if (linkType === "line") {
-                      LinkComponent = LinkVerticalLine;
-                    } else {
-                      LinkComponent = LinkVertical;
-                    }
-                  } else if (linkType === "step") {
-                    LinkComponent = LinkHorizontalStep;
+                if (layout === "polar") {
+                  if (linkType === "step") {
+                    LinkComponent = LinkRadialStep;
                   } else if (linkType === "curve") {
-                    LinkComponent = LinkHorizontalCurve;
+                    LinkComponent = LinkRadialCurve;
                   } else if (linkType === "line") {
-                    LinkComponent = LinkHorizontalLine;
+                    LinkComponent = LinkRadialLine;
                   } else {
-                    LinkComponent = LinkHorizontal;
+                    LinkComponent = LinkRadial;
                   }
-
-                  return (
-                    <LinkComponent
-                      data={link}
-                      percent={stepPercent}
-                      stroke="grey"
-                      strokeWidth="2"
-                      fill="none"
-                      key={i}
-                    />
-                  );
-                })}
-
-                {tree.descendants().map((node, key) => {
-                  const width = 120;
-                  const height = 30;
-
-                  let top;
-                  let left;
-                  if (layout === "polar") {
-                    const [radialX, radialY] = pointRadial(node.x, node.y);
-                    top = radialY;
-                    left = radialX;
-                  } else if (orientation === "vertical") {
-                    top = node.y;
-                    left = node.x;
+                } else if (orientation === "vertical") {
+                  if (linkType === "step") {
+                    LinkComponent = LinkVerticalStep;
+                  } else if (linkType === "curve") {
+                    LinkComponent = LinkVerticalCurve;
+                  } else if (linkType === "line") {
+                    LinkComponent = LinkVerticalLine;
                   } else {
-                    top = node.x;
-                    left = node.y;
+                    LinkComponent = LinkVertical;
                   }
+                } else if (linkType === "step") {
+                  LinkComponent = LinkHorizontalStep;
+                } else if (linkType === "curve") {
+                  LinkComponent = LinkHorizontalCurve;
+                } else if (linkType === "line") {
+                  LinkComponent = LinkHorizontalLine;
+                } else {
+                  LinkComponent = LinkHorizontal;
+                }
 
-                  return (
-                    <Group top={top} left={left} key={key}>
-                      {node.depth === 0 && (
-                        <rect
-                          height={height}
-                          width={width}
-                          y={- (height / 2)}
-                          x={0}
-                          fill="#1b5a94"
-                          rx={5}
-                          stroke="#dddddd"
-                          onClick={() => {
-                            node.data.isExpanded = !node.data.isExpanded;
-                          }}
-                        />
-                      )}
-                      {node.depth !== 0 && (
-                        <rect
-                          height={height}
-                          width={width}
-                          y={- (height / 2)}
-                          x={0}
-                          fill={node.data.children ? "#1b6c94" : "#1b8594"}
-                          stroke={node.data.children ? "#dddddd" : "#dddddd"}
-                          strokeWidth={2}
-                          strokeDasharray={!node.data.children ? "0" : "0"}
-                          strokeOpacity={!node.data.children ? 1 : 1}
-                          rx={!node.data.children ? 5 : 5}
-                          onClick={() => {
-                            node.data.isExpanded = !node.data.isExpanded;
-                          }}
-                        ></rect>
-                      )}
-                      <text
-                        y={ 5}
-                        x={ 10}
-                        fontSize={11}
-                        style={{ pointerEvents: "none" }}
-                        fill={node.depth === 0 ? "white" : node.children ? "white" : "white"}
-                      >
-                        {node.data.name}
-                      </text>
-                    </Group>
-                  );
-                })}
-              </Group>
-            );
-          }}
+                const key = `${layout}-${linkType}-${i}`;
+                return (
+                  <LinkComponent
+                    data={link}
+                    percent={stepPercent}
+                    stroke="grey"
+                    strokeWidth="2"
+                    fill="none"
+                    key={key}
+                  />
+                );
+              })}
+
+              {tree.descendants().map((node, key) => {
+                const width = 120;
+                const height = 30;
+
+                let top;
+                let left;
+                if (layout === "polar") {
+                  const [radialX, radialY] = pointRadial(node.x, node.y);
+                  top = radialY;
+                  left = radialX;
+                } else if (orientation === "vertical") {
+                  top = node.y;
+                  left = node.x;
+                } else {
+                  top = node.x;
+                  left = node.y;
+                }
+
+                return (
+                  <Group top={top} left={left} key={key}>
+                    {node.depth === 0 && (
+                      <rect
+                        height={height}
+                        width={width}
+                        y={-(height / 2)}
+                        x={0}
+                        fill="#1b5a94"
+                        rx={5}
+                        stroke="#dddddd"
+                        onClick={() => {
+                          node.data.isExpanded = !node.data.isExpanded;
+                        }}
+                      />
+                    )}
+                    {node.depth !== 0 && (
+                      <rect
+                        height={height}
+                        width={width}
+                        y={-(height / 2)}
+                        x={0}
+                        fill={node.data.children ? "#1b6c94" : "#1b8594"}
+                        stroke={node.data.children ? "#dddddd" : "#dddddd"}
+                        strokeWidth={2}
+                        strokeDasharray={!node.data.children ? "0" : "0"}
+                        strokeOpacity={!node.data.children ? 1 : 1}
+                        rx={!node.data.children ? 5 : 5}
+                        onClick={() => {
+                          node.data.isExpanded = !node.data.isExpanded;
+                        }}
+                      />
+                    )}
+                    <text
+                      y={5}
+                      x={10}
+                      fontSize={11}
+                      style={{ pointerEvents: "none" }}
+                      fill={node.depth === 0 ? "white" : node.children ? "white" : "white"}
+                    >
+                      {node.data.name}
+                    </text>
+                  </Group>
+                );
+              })}
+            </Group>
+          )}
         </Tree>
       </svg>
     </div>

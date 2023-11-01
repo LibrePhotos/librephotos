@@ -11,7 +11,7 @@ interface MainLinkProps {
   to?: string;
 }
 
-export const MainLink = ({ icon, color, label = "", to = "" }: MainLinkProps) => {
+export function MainLink({ icon, color, label = "", to = "" }: Readonly<MainLinkProps>) {
   const dispatch = useAppDispatch();
   return (
     <Box
@@ -57,4 +57,4 @@ export const MainLink = ({ icon, color, label = "", to = "" }: MainLinkProps) =>
       </UnstyledButton>
     </Box>
   );
-};
+}

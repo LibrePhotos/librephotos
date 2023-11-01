@@ -11,23 +11,23 @@ import { LocationLink } from "../../components/locationLink";
 import { useAppDispatch } from "../../store/store";
 import { AlbumPlace } from "../albums/AlbumPlace";
 
-export const LocationTree = () => {
+export function LocationTree() {
   return (
     <div>
       <LocationLink width={window.innerWidth - 120} height={window.innerHeight - 50} />
     </div>
   );
-};
+}
 
-export const PhotoMap = () => {
+export function PhotoMap() {
   return (
     <div style={{ marginLeft: -5 }}>
       <AlbumPlace height={window.innerHeight - 55} />
     </div>
   );
-};
+}
 
-export const WordClouds = () => {
+export function WordClouds() {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -45,9 +45,9 @@ export const WordClouds = () => {
       </div>
     </div>
   );
-};
+}
 
-export const Timeline = () => {
+export function Timeline() {
   return (
     <div style={{ padding: 10 }}>
       <div>
@@ -57,20 +57,20 @@ export const Timeline = () => {
       </div>
     </div>
   );
-};
+}
 
-export const Graph = () => {
+export function Graph() {
   return (
     <div style={{ marginLeft: -5 }}>
       <SocialGraph height={window.innerHeight - 60} />
     </div>
   );
-};
+}
 
-export const FaceScatter = () => {
+export function FaceScatter() {
   return (
     <div>
       <FaceClusterScatter height={window.innerHeight - 55} />
     </div>
   );
-};
+}

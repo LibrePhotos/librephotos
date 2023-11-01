@@ -8,7 +8,7 @@ type Props = {
   subtitle: string;
 };
 
-export const HeaderComponent = (props: Props) => {
+export function HeaderComponent(props: Readonly<Props>) {
   const { icon, title, fetching, subtitle } = props;
   return (
     <Group position="left">
@@ -23,4 +23,4 @@ export const HeaderComponent = (props: Props) => {
       </div>
     </Group>
   );
-};
+}

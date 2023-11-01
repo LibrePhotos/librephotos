@@ -1,4 +1,9 @@
 module.exports = {
+  env: {
+    browser: true,
+    node: true,
+    jest: true,
+  },
   extends: ["airbnb", "airbnb-typescript", "airbnb/hooks", "prettier"],
   plugins: ["prettier"],
   rules: {

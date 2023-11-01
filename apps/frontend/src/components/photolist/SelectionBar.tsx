@@ -10,7 +10,7 @@ type Props = {
   idx2hash: any[];
 };
 
-export const SelectionBar = (props: Props) => {
+export function SelectionBar(props: Readonly<Props>) {
   const { t } = useTranslation();
   const { selectMode, updateSelectionState, selectedItems, idx2hash } = props;
   const [openedAll, setOpenedAll] = useState(false);
@@ -79,4 +79,4 @@ export const SelectionBar = (props: Props) => {
       </div>
     </Group>
   );
-};
+}

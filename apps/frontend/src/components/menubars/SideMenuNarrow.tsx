@@ -118,7 +118,7 @@ export function SideMenuNarrow(): JSX.Element {
           </div>
           {isLoading && (
             <Center>
-              <Loader size="xs"></Loader>
+              <Loader size="xs" />
             </Center>
           )}
           {!isLoading && (

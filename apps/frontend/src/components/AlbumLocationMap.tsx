@@ -6,7 +6,7 @@ type Props = {
   photos: any[];
 };
 
-export const AlbumLocationMap = (props: Props) => {
+export function AlbumLocationMap(props: Readonly<Props>) {
   const photosWithGPS = props.photos.filter(photo => {
     if (photo.exif_gps_lon !== null && photo.exif_gps_lon) {
       return true;
@@ -40,4 +40,4 @@ export const AlbumLocationMap = (props: Props) => {
     );
   }
   return <div />;
-};
+}
