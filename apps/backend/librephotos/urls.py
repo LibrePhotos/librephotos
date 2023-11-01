@@ -212,6 +212,11 @@ urlpatterns = [
         views.MediaAccessFullsizeOriginalView.as_view(),
         name="media",
     ),
+    re_path(
+        r"^api/delete/zip/(?P<fname>.*)",
+        views.DeleteZipView.as_view(),
+        name="delete-zip",
+    ),
     re_path(r"^api/rqavailable/$", jobs.QueueAvailabilityView.as_view()),
     re_path(r"^api/nextcloud/listdir", nextcloud_views.ListDir.as_view()),
     re_path(r"^api/nextcloud/scanphotos", nextcloud_views.ScanPhotosView.as_view()),
