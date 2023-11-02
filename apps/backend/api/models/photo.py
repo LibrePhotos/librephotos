@@ -164,7 +164,15 @@ class Photo(models.Model):
         captions = self.captions_json
         search_captions = self.search_captions
         try:
-            caption = Im2txt().generate_caption(image_path)
+            from constance import config as site_config
+
+            if site_config == "None":
+                util.logger.info("Generating captions is disabled")
+                return False
+            onnx = False
+            if site_config == "im2txt_onnx":
+                onnx = True
+            caption = Im2txt().generate_caption(image_path, onnx)
             caption = (
                 caption.replace("<start>", "").replace("<end>", "").strip().lower()
             )
@@ -735,7 +743,8 @@ class Photo(models.Model):
             # Create
             try:
                 face_locations = get_face_locations(
-                    self.thumbnail_big.path, model=self.owner.face_recognition_model.lower()
+                    self.thumbnail_big.path,
+                    model=self.owner.face_recognition_model.lower(),
                 )
             except Exception as e:
                 logger.info(

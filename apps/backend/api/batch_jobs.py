@@ -13,6 +13,8 @@ from api.models.long_running_job import LongRunningJob
 from api.models.photo import Photo
 from api.semantic_search.semantic_search import semantic_search_instance
 
+from api.ml_models import download_models
+
 
 def create_batch_job(job_type, user):
     job_id = uuid.uuid4()
@@ -25,6 +27,8 @@ def create_batch_job(job_type, user):
 
     if job_type == LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS:
         AsyncTask(batch_calculate_clip_embedding, job_id, user).run()
+    if job_type == LongRunningJob.JOB_DOWNLOAD_MODELS:
+        AsyncTask(download_models, job_id).run()
 
     lrj.save()
 
@@ -40,11 +44,12 @@ def batch_calculate_clip_embedding(job_id, user):
     ).count()
     lrj.result = {"progress": {"current": 0, "target": count}}
     lrj.save()
-
     if not torch.cuda.is_available():
         num_threads = max(1, site_config.HEAVYWEIGHT_PROCESS)
         torch.set_num_threads(num_threads)
-        os.environ["OMP_NUM_THREADS"] = str(num_threads)        
+        os.environ["OMP_NUM_THREADS"] = str(num_threads)
+    else:
+        torch.multiprocessing.set_start_method("spawn", force=True)
 
     BATCH_SIZE = 64
     util.logger.info("Using threads: {}".format(torch.get_num_threads()))
