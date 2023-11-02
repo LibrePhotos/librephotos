@@ -89,7 +89,7 @@ export function SignupPage(): JSX.Element {
                   }
                   const { email, first_name, last_name, password } = values;
                   const username = values.username.toLowerCase();
-                  void signup({ email, first_name, last_name, username, password });
+                  signup({ email, first_name, last_name, username, password });
                 })}
               >
                 <Stack>

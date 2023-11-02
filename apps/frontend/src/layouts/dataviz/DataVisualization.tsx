@@ -1,11 +1,11 @@
 import { Divider } from "@mantine/core";
-import React, { Component, useEffect } from "react";
+import React, { useEffect } from "react";
 
 import { fetchWordCloud } from "../../actions/utilActions";
 import { EventCountMonthGraph } from "../../components/charts/EventCountMonthGraph";
 import FaceClusterScatter from "../../components/charts/FaceClusterGraph";
 import { LocationDurationStackedBar } from "../../components/charts/LocationDurationStackedBar";
-import SocialGraph from "../../components/charts/SocialGraph";
+import { SocialGraph } from "../../components/charts/SocialGraph";
 import { WordCloud } from "../../components/charts/WordCloud";
 import { LocationLink } from "../../components/locationLink";
 import { useAppDispatch } from "../../store/store";

@@ -52,9 +52,9 @@ export default function ({
     updateGroups(arrOfGroupsWithOnlyVisibleItems);
     return arrOfGroupsWithOnlyVisibleItems;
   }
-  const visibleItems = imageData.filter(img => {
-    return !(img.style.translateY + img.style.height < minTranslateYPlusHeight || img.style.translateY > maxTranslateY);
-  });
+  const visibleItems = imageData.filter(
+    img => !(img.style.translateY + img.style.height < minTranslateYPlusHeight || img.style.translateY > maxTranslateY)
+  );
   // function to update visible items
   updateItems(visibleItems);
   return visibleItems;

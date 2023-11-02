@@ -69,7 +69,7 @@ export function FirstTimeSetupPage(): JSX.Element {
     if (!result.hasErrors) {
       const { email, firstName, lastName, password } = form.values;
       const username = form.values.username.toLowerCase();
-      void signup({ email, first_name: firstName, last_name: lastName, username, password });
+      signup({ email, first_name: firstName, last_name: lastName, username, password });
     }
   }
 

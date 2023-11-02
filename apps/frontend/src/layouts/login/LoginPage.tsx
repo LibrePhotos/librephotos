@@ -49,7 +49,7 @@ export function LoginPage(): JSX.Element {
 
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    void login({ username: form.values.username.toLowerCase(), password: form.values.password });
+    login({ username: form.values.username.toLowerCase(), password: form.values.password });
   }
 
   if (isAuth) {

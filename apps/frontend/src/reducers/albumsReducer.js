@@ -290,7 +290,7 @@ export default function reducer(state = initialState, action) {
 
       let index = -1;
 
-      for (let i = 0; i < new_album_list.length; i++) {
+      for (let i = 0; i < new_album_list.length; i += 1) {
         if (new_album_list[i].id === action.payload.id) {
           index = i;
         }

@@ -100,7 +100,7 @@ export function ChunkedUploadButton() {
   const calculateChunks = (file: File, chunkSize: number) => {
     const chunks = Math.ceil(file.size / chunkSize);
     const chunk = [] as Blob[];
-    for (let i = 0; i < chunks; i++) {
+    for (let i = 0; i < chunks; i += 1) {
       const chunkEnd = Math.min((i + 1) * chunkSize, file.size);
       chunk.push(file.slice(i * chunkSize, chunkEnd));
     }
@@ -131,7 +131,7 @@ export function ChunkedUploadButton() {
         if (!isAlreadyUploaded) {
           const chunks = calculateChunks(file, chunkSize);
           // To-Do: Handle Resume and Pause
-          for (let i = 0; i < chunks.length; i++) {
+          for (let i = 0; i < chunks.length; i += 1) {
             const response = await uploadChunk(chunks[offset / chunkSize], uploadId, offset);
             if ("data" in response) {
               offset = response.data.offset;

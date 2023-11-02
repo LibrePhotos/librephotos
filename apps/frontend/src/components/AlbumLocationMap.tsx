@@ -16,7 +16,7 @@ export function AlbumLocationMap(props: Readonly<Props>) {
 
   let sum_lat = 0;
   let sum_lon = 0;
-  for (let i = 0; i < photosWithGPS.length; i++) {
+  for (let i = 0; i < photosWithGPS.length; i += 1) {
     sum_lat += parseFloat(photosWithGPS[i].exif_gps_lat);
     sum_lon += parseFloat(photosWithGPS[i].exif_gps_lon);
   }

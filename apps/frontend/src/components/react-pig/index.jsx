@@ -14,7 +14,7 @@ import sortByDate from "./utils/sortByDate";
 
 export function addTempElementsToGroups(photosGroupedByDate) {
   photosGroupedByDate.forEach(group => {
-    for (let i = 0; i < group.numberOfItems; i++) {
+    for (let i = 0; i < group.numberOfItems; i += 1) {
       group.items.push({ id: i, aspectRatio: 1, isTemp: true });
     }
   });
@@ -22,7 +22,7 @@ export function addTempElementsToGroups(photosGroupedByDate) {
 
 export function addTempElementsToFlatList(photosCount) {
   const tempPhotos = [];
-  for (let i = 0; i < photosCount; i++) {
+  for (let i = 0; i < photosCount; i += 1) {
     tempPhotos.push({ id: i, aspectRatio: 1, isTemp: true });
   }
   return tempPhotos;

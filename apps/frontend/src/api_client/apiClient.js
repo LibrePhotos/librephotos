@@ -3,11 +3,11 @@ import axios from "axios";
 import { isRefreshTokenExpired } from "../store/auth/authSelectors";
 import { store } from "../store/store";
 
-export var serverAddress = "";
+export const serverAddress = "";
 // This is a dirty hack. Grabs current host for when sharing. URL handling needs cleaned up. DW 12-13-20
-export var shareAddress = window.location.host;
+export const shareAddress = window.location.host;
 
-export var Server = axios.create({
+export const Server = axios.create({
   baseURL: "/api/",
   headers: {
     "Content-Type": "application/json",
