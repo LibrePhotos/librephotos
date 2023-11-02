@@ -183,6 +183,7 @@ api/places365/*.tar.gz
 *.db
 media*
 protected_media
+report_dynamo_export.sarif
 
 # Vim
 *.swp
