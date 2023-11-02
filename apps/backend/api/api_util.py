@@ -286,8 +286,6 @@ def median_value(queryset, term):
     if count == 0:
         return
     values = queryset.values_list(term, flat=True).order_by(term)
-    logger.info(values)
-    logger.info(count)
     if count % 2 == 1:
         return values[int(round(count / 2))]
     else:
