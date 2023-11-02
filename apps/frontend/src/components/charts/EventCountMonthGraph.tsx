@@ -11,13 +11,13 @@ export function EventCountMonthGraph() {
   const { colorScheme } = useMantineColorScheme();
 
   const { observe, width } = useDimensions({
-    onResize: ({ observe, unobserve, width, height, entry }) => {
+    onResize: ({ observe, unobserve }) => {
       observe();
       unobserve(); // To stop observing the current target element
     },
   });
   const dispatch = useAppDispatch();
-  const { photoMonthCounts, fetchingPhotoMonthCounts, fetchedPhotoMonthCounts } = useAppSelector(state => state.util);
+  const { photoMonthCounts, fetchedPhotoMonthCounts } = useAppSelector(state => state.util);
 
   useEffect(() => {
     if (!fetchedPhotoMonthCounts) {
@@ -25,10 +25,12 @@ export function EventCountMonthGraph() {
     }
   }, [dispatch]); // Only run on first render
 
+  let series = [];
+  let xticks = [];
   if (fetchedPhotoMonthCounts) {
     const countDict = photoMonthCounts;
-    var series = countDict.map((el: any) => ({ y: el.count, month: el.month }));
-    var xticks = countDict.map((el: any) => el.month);
+    series = countDict.map((el: any) => ({ y: el.count, month: el.month }));
+    xticks = countDict.map((el: any) => el.month);
   }
 
   const data = [
