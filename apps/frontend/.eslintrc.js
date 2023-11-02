@@ -9,7 +9,6 @@ module.exports = {
   rules: {
     "block-scoped-var": "warn",
     "vars-on-top": "warn",
-    radix: "warn",
     "arrow-body-style": "warn",
     "no-await-in-loop": "warn",
     "no-restricted-syntax": "warn",

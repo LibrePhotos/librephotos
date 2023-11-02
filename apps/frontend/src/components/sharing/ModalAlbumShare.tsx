@@ -27,7 +27,7 @@ export function ModalAlbumShare(props: Props) {
   useEffect(() => {
     if (isOpen) {
       dispatch(fetchPublicUserList());
-      dispatch(fetchUserAlbum(Number.parseInt(albumID)));
+      dispatch(fetchUserAlbum(parseInt(albumID, 10)));
     }
   }, [isOpen, dispatch]);
 

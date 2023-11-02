@@ -225,7 +225,7 @@ export default function reducer(state = initialState, action) {
     }
     case "FETCH_PLACE_ALBUMS_FULFILLED": {
       new_album = { ...state.albumsPlace };
-      new_album[parseInt(action.payload.results.id)] = action.payload.results;
+      new_album[parseInt(action.payload.results.id, 10)] = action.payload.results;
       return {
         ...state,
         fetchingAlbumsPlace: false,
@@ -242,7 +242,7 @@ export default function reducer(state = initialState, action) {
     }
     case "FETCH_THING_ALBUMS_FULFILLED": {
       new_album = { ...state.albumsThing };
-      new_album[parseInt(action.payload.id)] = action.payload;
+      new_album[parseInt(action.payload.id, 10)] = action.payload;
       return {
         ...state,
         fetchingAlbumsThing: false,

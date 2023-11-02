@@ -392,87 +392,46 @@ export function setPhotosHidden(image_hashes: string[], hidden: boolean) {
   };
 }
 
+function triggerScan(dispatch: Dispatch<any>, url: string, i18nPrefix: string): void {
+  dispatch({ type: "SCAN_PHOTOS" });
+  dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
+
+  Server.get(url)
+    .then(response => {
+      const payload = JobResponseSchema.parse(response.data);
+      showNotification({
+        message: i18n.t(`toasts.${i18nPrefix}`),
+        title: i18n.t(`toasts.${i18nPrefix}title`),
+        color: "teal",
+      });
+      dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload });
+    })
+    .catch(payload => {
+      dispatch({ type: "SCAN_PHOTOS_REJECTED", payload });
+    });
+}
+
 export function scanPhotos() {
   return function (dispatch: Dispatch<any>) {
-    dispatch({ type: "SCAN_PHOTOS" });
-    dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
-
-    Server.get(`scanphotos/`)
-      .then(response => {
-        const jobResponse = JobResponseSchema.parse(response.data);
-        showNotification({
-          message: i18n.t("toasts.scanphotos"),
-          title: i18n.t("toasts.scanphotostitle"),
-          color: "teal",
-        });
-        dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
-      })
-      .catch(err => {
-        dispatch({ type: "SCAN_PHOTOS_REJECTED", payload: err });
-      });
+    triggerScan(dispatch, "scanphotos/", "scanphotos");
   };
 }
 
 export function scanUploadedPhotos() {
   return function (dispatch: Dispatch<any>) {
-    dispatch({ type: "SCAN_PHOTOS" });
-    dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
-
-    Server.get(`scanuploadedphotos/`)
-      .then(response => {
-        const jobResponse = JobResponseSchema.parse(response.data);
-        showNotification({
-          message: i18n.t("toasts.scanuploadedphotos"),
-          title: i18n.t("toasts.scanuploadedphotostitle"),
-          color: "teal",
-        });
-        dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
-      })
-      .catch(err => {
-        dispatch({ type: "SCAN_PHOTOS_REJECTED", payload: err });
-      });
+    triggerScan(dispatch, "scanuploadedphotos/", "scanuploadedphotos");
   };
 }
 
 export function scanAllPhotos() {
   return function (dispatch: Dispatch<any>) {
-    dispatch({ type: "SCAN_PHOTOS" });
-    dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
-
-    Server.get(`fullscanphotos/`)
-      .then(response => {
-        const jobResponse = JobResponseSchema.parse(response.data);
-        showNotification({
-          message: i18n.t("toasts.fullscanphotos"),
-          title: i18n.t("toasts.fullscanphotostitle"),
-          color: "teal",
-        });
-        dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
-      })
-      .catch(err => {
-        dispatch({ type: "SCAN_PHOTOS_REJECTED", payload: err });
-      });
+    triggerScan(dispatch, "fullscanphotos/", "fullscanphotos");
   };
 }
 
 export function scanNextcloudPhotos() {
   return function (dispatch: Dispatch<any>) {
-    dispatch({ type: "SCAN_PHOTOS" });
-    dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
-
-    Server.get(`nextcloud/scanphotos/`)
-      .then(response => {
-        const jobResponse = JobResponseSchema.parse(response.data);
-        showNotification({
-          message: i18n.t("toasts.scannextcloudphotos"),
-          title: i18n.t("toasts.scannextcloudphotostitle"),
-          color: "teal",
-        });
-        dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
-      })
-      .catch(err => {
-        dispatch({ type: "SCAN_PHOTOS_REJECTED", payload: err });
-      });
+    triggerScan(dispatch, "nextcloud/scanphotos/", "scannextcloudphotos");
   };
 }
 

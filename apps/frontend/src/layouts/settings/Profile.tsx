@@ -218,7 +218,7 @@ export function Profile() {
             label={t("settings.public_sharing")}
             value={userSelfDetails.public_sharing ? "1" : "0"}
             onChange={value => {
-              setUserSelfDetails({ ...userSelfDetails, public_sharing: !!parseInt(value) });
+              setUserSelfDetails({ ...userSelfDetails, public_sharing: !!parseInt(value, 10) });
             }}
             mb={10}
           >

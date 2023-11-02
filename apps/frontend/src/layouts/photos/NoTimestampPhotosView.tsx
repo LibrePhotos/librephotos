@@ -22,7 +22,7 @@ export function NoTimestampPhotosView() {
   const getImages = (visibleItems: any) => {
     if (visibleItems.filter((i: any) => i.isTemp).length > 0) {
       const firstTempObject = visibleItems.filter((i: any) => i.isTemp)[0];
-      const page = Math.ceil((parseInt(firstTempObject.id) + 1) / 100);
+      const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
       if (page > 1) {
         fetchNoTimestampPhotoPaginated(dispatch, page);
       }
