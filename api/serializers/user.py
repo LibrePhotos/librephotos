@@ -9,6 +9,7 @@ from api.batch_jobs import create_batch_job
 from api.models import LongRunningJob, Photo, User
 from api.serializers.simple import PhotoSuperSimpleSerializer
 from api.util import logger
+from api.ml_models import do_all_models_exist
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -149,6 +150,11 @@ class UserSerializer(serializers.ModelSerializer):
             new_semantic_search_topk = validated_data.pop("semantic_search_topk")
 
             if instance.semantic_search_topk == 0 and new_semantic_search_topk > 0:
+                if not do_all_models_exist():
+                    create_batch_job(
+                        LongRunningJob.JOB_DOWNLOAD_MODELS,
+                        User.objects.get(id=instance.id),
+                    )
                 create_batch_job(
                     LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS,
                     User.objects.get(id=instance.id),

@@ -10,9 +10,10 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DATA, "protected_media")
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 DATA_ROOT = PHOTOS
-IM2TXT_ROOT = os.path.join(BASE_DATA, "data_models", "im2txt")
-PLACES365_ROOT = os.path.join(BASE_DATA, "data_models", "places365", "model")
-CLIP_ROOT = os.path.join(BASE_DATA, "data_models", "clip-embeddings")
+IM2TXT_ROOT = os.path.join(MEDIA_ROOT, "data_models", "im2txt")
+IM2TXT_ONNX_ROOT = os.path.join(MEDIA_ROOT, "data_models", "im2txt_onnx")
+PLACES365_ROOT = os.path.join(MEDIA_ROOT, "data_models", "places365", "model")
+CLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "clip-embeddings")
 LOGS_ROOT = BASE_LOGS
 
 WSGI_APPLICATION = "librephotos.wsgi.application"
@@ -100,6 +101,17 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             ),
         },
     ],
+    "captioning_model": [
+        "django.forms.fields.ChoiceField",
+        {
+            "widget": "django.forms.Select",
+            "choices": (
+                ("none", "None"),
+                ("im2txt", "im2txt PyTorch Model"),
+                ("im2txt_onnx", "im2txt ONNX Model"),
+            ),
+        },
+    ],
 }
 CONSTANCE_CONFIG = {
     "ALLOW_REGISTRATION": (False, "Publicly allow user registration", bool),
@@ -128,6 +140,7 @@ CONSTANCE_CONFIG = {
     ),
     "MAP_API_KEY": (os.environ.get("MAPBOX_API_KEY", ""), "Map Box API Key", str),
     "IMAGE_DIRS": ("/data", "Image dirs list (serialized json)", str),
+    "CAPTIONING_MODEL": ("im2txt", "Captioning model", "captioning_model"),
 }
 
 INTERNAL_IPS = ("127.0.0.1", "localhost")

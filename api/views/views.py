@@ -5,6 +5,7 @@ import uuid
 import zipfile
 from urllib.parse import quote
 
+from api.batch_jobs import create_batch_job
 import jsonschema
 import magic
 from constance import config as site_config
@@ -26,11 +27,12 @@ from rest_framework_simplejwt.tokens import AccessToken
 from api.api_util import get_search_term_examples
 from api.autoalbum import delete_missing_photos
 from api.directory_watcher import scan_photos
-from api.models import AlbumUser, Photo, User
+from api.models import AlbumUser, Photo, User, LongRunningJob
 from api.schemas.site_settings import site_settings_schema
 from api.serializers.album_user import AlbumUserEditSerializer, AlbumUserListSerializer
 from api.util import logger
 from api.views.pagination import StandardResultsSetPagination
+from api.ml_models import do_all_models_exist
 
 
 def custom_exception_handler(exc, context):
@@ -86,6 +88,7 @@ class SiteSettingsView(APIView):
         out["heavyweight_process"] = site_config.HEAVYWEIGHT_PROCESS
         out["map_api_provider"] = site_config.MAP_API_PROVIDER
         out["map_api_key"] = site_config.MAP_API_KEY
+        out["captioning_model"] = site_config.CAPTIONING_MODEL
         return Response(out)
 
     def post(self, request, format=None):
@@ -102,6 +105,8 @@ class SiteSettingsView(APIView):
             site_config.MAP_API_PROVIDER = request.data["map_api_provider"]
         if "map_api_key" in request.data.keys():
             site_config.MAP_API_KEY = request.data["map_api_key"]
+        if "captioning_model" in request.data.keys():
+            site_config.CAPTIONING_MODEL = request.data["captioning_model"]
         return self.get(request, format=format)
 
 
@@ -193,6 +198,8 @@ class SearchTermExamples(APIView):
 # long running jobs
 class ScanPhotosView(APIView):
     def get(self, request, format=None):
+        if not do_all_models_exist():
+            create_batch_job(LongRunningJob.JOB_DOWNLOAD_MODELS, request.user)
         try:
             job_id = uuid.uuid4()
             AsyncTask(
@@ -207,6 +214,8 @@ class ScanPhotosView(APIView):
 # To-Do: Allow for custom paths
 class SelectiveScanPhotosView(APIView):
     def get(self, request, format=None):
+        if not do_all_models_exist():
+            create_batch_job(LongRunningJob.JOB_DOWNLOAD_MODELS, request.user)
         # To-Do: Sanatize the scan_directory
         try:
             job_id = uuid.uuid4()
@@ -225,6 +234,8 @@ class SelectiveScanPhotosView(APIView):
 
 class FullScanPhotosView(APIView):
     def get(self, request, format=None):
+        if not do_all_models_exist():
+            create_batch_job(LongRunningJob.JOB_DOWNLOAD_MODELS, request.user)
         try:
             job_id = uuid.uuid4()
             AsyncTask(
