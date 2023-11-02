@@ -415,7 +415,9 @@
         "headerupload": "Permitir subir fotos",
         "headerskippatterns": "Omitir patrones",
         "headerheavyweight": "Procesos intensivos",
-        "heavyweight": "Incrementar el número de trabajadores por encima de 1, pero se usarán 800 MB de RAM por cada uno que se agregue."
+        "heavyweight": "Incrementar el número de trabajadores por encima de 1, pero se usarán 800 MB de RAM por cada uno que se agregue.",
+        "captioning_model_header": "Modelo de los subtítulos",
+        "captioning_model_description": "Modelo a utilizar para generar títulos de las imágenes."
     },
     "countstats": {
         "photos": "Fotos"
