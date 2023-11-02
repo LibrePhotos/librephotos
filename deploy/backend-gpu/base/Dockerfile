@@ -68,7 +68,6 @@ RUN curl -SL https://exiftool.org/Image-ExifTool-12.64.tar.gz | tar -xz && \
 # Current Version: pytorch 2.1 with cuda 12.1 support
 RUN pip3 install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
-# Install latest cmake version
 RUN pip3 install --no-cache-dir cmake
 
 #Build and install libraw, supports more RAW image types
@@ -102,12 +101,4 @@ RUN git clone --depth 1 --branch 'master' https://github.com/davisking/dlib.git 
 	cd /tmp/builds/dlib && \
 	python3 setup.py install --no USE_AVX_INSTRUCTIONS --no USE_SSE4_INSTRUCTIONS && \
 	rm -rf /tmp/builds/* 
-
-# Download pretrained models
-WORKDIR /data_models
-RUN mkdir -p /root/.cache/torch/hub/checkpoints/ && \
-	curl -SL https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/places365.tar.gz | tar -zxC /data_models/ && \
-	curl -SL https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/im2txt.tar.gz | tar -zxC /data_models/ && \
-	curl -SL https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/clip-embeddings.tar.gz | tar -zxC /data_models/ && \
-	curl -SL https://download.pytorch.org/models/resnet152-b121ed2d.pth -o /root/.cache/torch/hub/checkpoints/resnet152-b121ed2d.pth
 
