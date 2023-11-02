@@ -1,3 +1,5 @@
+import { DEFAULT_ACTION } from "./common";
+
 const initialState = {
   publicUserList: [],
   fetchingPublicUserList: false,
@@ -6,10 +8,7 @@ const initialState = {
   error: null,
 };
 
-export default function reducer(
-  state = initialState,
-  action
-) {
+export default function reducer(state = initialState, action = DEFAULT_ACTION) {
   switch (action.type) {
     case "FETCH_PUBLIC_USER_LIST": {
       return {

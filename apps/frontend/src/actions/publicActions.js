@@ -6,14 +6,13 @@ export function fetchPublicUserList() {
     dispatch({ type: "FETCH_PUBLIC_USER_LIST" });
     Server.get("user/")
       .then(response => {
-        const data = UserSchema.array().parse(response.data.results);
+        const payload = UserSchema.array().parse(response.data.results);
         dispatch({
           type: "FETCH_PUBLIC_USER_LIST_FULFILLED",
-          payload: response.data.results,
+          payload,
         });
       })
-      .catch(err => {
-        console.error(err);
+      .catch(() => {
         dispatch({
           type: "FETCH_PUBLIC_USER_LIST_REJECTED",
         });

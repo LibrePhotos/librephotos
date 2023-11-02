@@ -49,14 +49,14 @@ export function TimestampItem({ photoDetail }: Props) {
     setTimestamp(date);
   };
 
-  const onSaveDateTime = (e: any) => {
+  const onSaveDateTime = () => {
     // To-Do: Use the user defined timezone
     const differentJson = { exif_timestamp: timestamp === null ? null : timestamp.toISOString() };
     dispatch(editPhoto(photoDetail.image_hash, differentJson));
     setEditMode(false);
   };
 
-  const onCancelDateTime = (e: any) => {
+  const onCancelDateTime = () => {
     setTimestamp(savedTimestamp);
     setSavedTimestamp(previousSavedTimestamp);
     setEditMode(false);

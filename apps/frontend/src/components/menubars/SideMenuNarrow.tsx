@@ -1,9 +1,8 @@
-import { ActionIcon, Center, Loader, Menu, Navbar, Progress, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Center, Loader, Menu, Navbar, Progress, Tooltip } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
-import storage from "redux-persist/lib/storage";
 import { Book, ChevronRight, Cloud, Heart } from "tabler-icons-react";
 
 import { useFetchStorageStatsQuery } from "../../api_client/api";

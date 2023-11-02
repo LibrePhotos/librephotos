@@ -1,3 +1,5 @@
+import { DEFAULT_ACTION } from "./common";
+
 const initialState = {
   people: [],
   socialGraph: {},
@@ -10,7 +12,7 @@ const initialState = {
   fetchedSocialGraph: false,
 };
 
-export default function reducer(state = initialState, action) {
+export default function reducer(state = initialState, action = DEFAULT_ACTION) {
   switch (action.type) {
     case "FETCH_PEOPLE": {
       return { ...state, fetching: true };
@@ -21,10 +23,14 @@ export default function reducer(state = initialState, action) {
     case "FETCH_PEOPLE_FULFILLED": {
       // sort alphabetically
       action.payload.sort((a, b) => {
-          if (a.value < b.value) { return -1; }
-          if (a.value > b.value) { return 1; }
-          return 0;
-        });
+        if (a.value < b.value) {
+          return -1;
+        }
+        if (a.value > b.value) {
+          return 1;
+        }
+        return 0;
+      });
 
       return {
         ...state,

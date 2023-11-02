@@ -1,13 +1,12 @@
-import { Avatar, Divider, Group, Modal, ScrollArea, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
-import { DateTime } from "luxon";
+import { Divider, Modal, ScrollArea, Stack, TextInput, Title } from "@mantine/core";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { fetchUserAlbum, setUserAlbumShared } from "../../actions/albumsActions";
+import { fetchUserAlbum } from "../../actions/albumsActions";
 import { fetchPublicUserList } from "../../actions/publicActions";
-import { i18nResolvedLanguage } from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { fuzzyMatch } from "../../util/util";
+import { UserEntry } from "./UserEntry";
 
 type Props = {
   isOpen: boolean;
@@ -61,64 +60,11 @@ export function ModalAlbumShare(props: Props) {
         <Divider />
         <ScrollArea>
           <Stack>
-            {filteredUserList.length > 0 && filteredUserList.map(item => <UserEntry item={item} albumID={albumID} />)}
+            {filteredUserList.length > 0 &&
+              filteredUserList.map(item => <UserEntry key={item.id} item={item} albumID={albumID} />)}
           </Stack>
         </ScrollArea>
       </Stack>
     </Modal>
-  );
-}
-
-type UserEntryProps = {
-  item: any;
-  albumID: string;
-};
-
-export function UserEntry(props: UserEntryProps) {
-  const { item, albumID } = props;
-  const { albumDetails } = useAppSelector(store => store.albums);
-
-  const [isShared, setIsShared] = useState(
-    albumDetails.shared_to && albumDetails.shared_to.map(e => e.id).includes(item.id)
-  );
-  const dispatch = useAppDispatch();
-  const { t } = useTranslation();
-
-  useEffect(() => {
-    setIsShared(albumDetails.shared_to && albumDetails.shared_to.map(e => e.id).includes(item.id));
-  }, [albumDetails]);
-
-  const displayName =
-    item.first_name.length > 0 && item.last_name.length > 0 ? `${item.first_name} ${item.last_name}` : item.username;
-  const avatar = item.avatar ? item.avatar_url : "/unknown_user.jpg";
-
-  return (
-    <Group position="apart" key={item.id}>
-      <Group>
-        <Avatar radius="xl" size={50} src={avatar} />
-        <div>
-          <Title order={4}>{displayName}</Title>
-          <Text size="sm" color="dimmed">
-            {t("modalphotosshare.joined")}{" "}
-            {DateTime.fromISO(item.date_joined).setLocale(i18nResolvedLanguage).toRelative()}
-          </Text>
-        </div>
-      </Group>
-      <Group>
-        <Switch
-          checked={isShared}
-          onChange={() => {
-            dispatch(
-              setUserAlbumShared(
-                parseInt(albumID, 10),
-                item.id,
-                !albumDetails.shared_to.map(e => e.id).includes(item.id)
-              )
-            );
-            setIsShared(!isShared);
-          }}
-        />
-      </Group>
-    </Group>
   );
 }

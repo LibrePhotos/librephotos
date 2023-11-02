@@ -8,8 +8,8 @@ export function fetchPeople(dispatch) {
   dispatch({ type: "FETCH_PEOPLE" });
   Server.get("persons/?page_size=1000")
     .then(response => {
-      const data = PersonList.parse(response.data.results);
-      const mappedPeopleDropdownOptions = response.data.results.map(person => ({
+      const results = PersonList.parse(response.data.results);
+      const mappedPeopleDropdownOptions = results.map(person => ({
         key: person.id,
         value: person.name,
         text: person.name,
@@ -22,9 +22,8 @@ export function fetchPeople(dispatch) {
         payload: mappedPeopleDropdownOptions,
       });
     })
-    .catch(err => {
-      console.error(err);
-      dispatch({ type: "FETCH_PEOPLE_REJECTED", payload: err });
+    .catch(payload => {
+      dispatch({ type: "FETCH_PEOPLE_REJECTED", payload });
     });
 }
 
@@ -32,7 +31,7 @@ export function renamePerson(personId, personName, newPersonName) {
   return function (dispatch) {
     dispatch({ type: "RENAME_PERSON" });
     Server.patch(`persons/${personId}/`, { newPersonName })
-      .then(response => {
+      .then(() => {
         // To-Do: I should do something with the response
         dispatch({ type: "RENAME_PERSON_FULFILLED", payload: personId });
         fetchPeople(dispatch);
@@ -42,9 +41,8 @@ export function renamePerson(personId, personName, newPersonName) {
           color: "teal",
         });
       })
-      .catch(err => {
-        console.error(err);
-        dispatch({ type: "RENAME_PERSON_REJECTED", payload: err });
+      .catch(payload => {
+        dispatch({ type: "RENAME_PERSON_REJECTED", payload });
       });
   };
 }
@@ -53,7 +51,7 @@ export function deletePerson(person_id) {
   return function (dispatch) {
     dispatch({ type: "DELETE_PERSON" });
     Server.delete(`persons/${person_id}/`)
-      .then(response => {
+      .then(() => {
         // To-Do: I should do something with the response
         fetchPeople(dispatch);
         showNotification({
@@ -64,9 +62,8 @@ export function deletePerson(person_id) {
 
         dispatch({ type: "DELETE_PERSON_FULFILLED" });
       })
-      .catch(err => {
-        console.error(err);
-        dispatch({ type: "DELETE_PERSON_REJECTED", payload: err });
+      .catch(payload => {
+        dispatch({ type: "DELETE_PERSON_REJECTED", payload });
       });
   };
 }
@@ -77,7 +74,7 @@ export function setAlbumCoverForPerson(person_id, photo_hash) {
     Server.patch(`persons/${person_id}/`, {
       cover_photo: photo_hash,
     })
-      .then(response => {
+      .then(() => {
         // To-Do: I should do something with the response
         dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON_FULFILLED" });
         showNotification({
@@ -88,9 +85,8 @@ export function setAlbumCoverForPerson(person_id, photo_hash) {
 
         fetchPeople(dispatch);
       })
-      .catch(err => {
-        console.error(err);
-        dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON_REJECTED", payload: err });
+      .catch(payload => {
+        dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON_REJECTED", payload });
       });
   };
 }
@@ -99,14 +95,13 @@ export function fetchSocialGraph(dispatch) {
   dispatch({ type: "FETCH_SOCIAL_GRAPH" });
   Server.get("socialgraph")
     .then(response => {
-      const data = PersonDataPointList.parse(response.data);
+      const payload = PersonDataPointList.parse(response.data);
       dispatch({
         type: "FETCH_SOCIAL_GRAPH_FULFILLED",
-        payload: response.data,
+        payload,
       });
     })
-    .catch(err => {
-      console.error(err);
-      dispatch({ type: "FETCH_SOCIAL_GRAPH_REJECTED", payload: err });
+    .catch(payload => {
+      dispatch({ type: "FETCH_SOCIAL_GRAPH_REJECTED", payload });
     });
 }

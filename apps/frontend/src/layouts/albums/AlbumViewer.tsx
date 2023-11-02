@@ -11,10 +11,7 @@ import { useAppDispatch, useAppSelector } from "../../store/store";
 import { HeaderComponent } from "./HeaderComponent";
 
 export function AlbumViewer() {
-  const auth = useAppSelector(state => state.auth);
-  const { albumsAutoList, fetchingAlbumsAutoList, albumsUserList, fetchingAlbumsUserList } = useAppSelector(
-    store => store.albums
-  );
+  const { albumsAutoList, fetchingAlbumsAutoList, albumsUserList } = useAppSelector(store => store.albums);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const entrySquareSize = 200;

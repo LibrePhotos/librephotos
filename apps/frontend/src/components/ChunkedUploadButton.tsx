@@ -22,10 +22,15 @@ export function ChunkedUploadButton() {
   const calculateMD5 = async (file: File) => {
     const temporaryFileReader = new FileReader();
     const fileSize = file.size;
-    const chunkSize = 25 * 1024 * 1024; // 25MB
+    const blockSize = 25 * 1024 * 1024; // 25MB
     let offset = 0;
     const md5 = CryptoJS.algo.MD5.create();
     return new Promise<string>((resolve, reject) => {
+      function readNext() {
+        const fileSlice = file.slice(offset, offset + blockSize);
+        temporaryFileReader.readAsBinaryString(fileSlice);
+      }
+
       temporaryFileReader.onerror = () => {
         temporaryFileReader.abort();
         reject(new DOMException("Problem parsing input file."));
@@ -46,10 +51,7 @@ export function ChunkedUploadButton() {
           readNext();
         }
       };
-      function readNext() {
-        const fileSlice = file.slice(offset, offset + chunkSize);
-        temporaryFileReader.readAsBinaryString(fileSlice);
-      }
+
       readNext();
     });
   };
@@ -97,12 +99,12 @@ export function ChunkedUploadButton() {
     );
   };
 
-  const calculateChunks = (file: File, chunkSize: number) => {
-    const chunks = Math.ceil(file.size / chunkSize);
+  const calculateChunks = (file: File, blockSize: number) => {
+    const chunks = Math.ceil(file.size / blockSize);
     const chunk = [] as Blob[];
     for (let i = 0; i < chunks; i += 1) {
-      const chunkEnd = Math.min((i + 1) * chunkSize, file.size);
-      chunk.push(file.slice(i * chunkSize, chunkEnd));
+      const chunkEnd = Math.min((i + 1) * blockSize, file.size);
+      chunk.push(file.slice(i * blockSize, chunkEnd));
     }
     return chunk;
   };
@@ -115,12 +117,12 @@ export function ChunkedUploadButton() {
     noClick: true,
     noKeyboard: true,
     onDrop: async acceptedFiles => {
-      let totalSize = 0;
+      let total = 0;
       acceptedFiles.forEach(file => {
         const fileSize = file.size;
-        totalSize += fileSize;
+        total += fileSize;
       });
-      setTotalSize(totalSize);
+      setTotalSize(total);
       for (const file of acceptedFiles) {
         const currentUploadedFileSizeStartValue = currentUploadedFileSize;
         // Check if the upload already exists via the hash of the file

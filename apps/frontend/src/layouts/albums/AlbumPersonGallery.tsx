@@ -18,7 +18,7 @@ type IFetchedGroup = {
 };
 
 export function AlbumPersonGallery(): JSX.Element {
-  const { albumID, ...params } = useParams();
+  const { albumID } = useParams();
   const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(state => state.photos as PhotosState);
   const { people } = useAppSelector(state => state.people);
   const dispatch = useAppDispatch();

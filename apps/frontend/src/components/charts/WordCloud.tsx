@@ -2,10 +2,9 @@ import { Title } from "@mantine/core";
 import React from "react";
 import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
+import { Chart, Cloud, Transform } from "rumble-charts";
 
 import { useAppSelector } from "../../store/store";
-
-const { Chart, Transform, Cloud } = require("rumble-charts");
 
 type Props = {
   type: string;
@@ -13,8 +12,8 @@ type Props = {
 };
 
 export function WordCloud(props: Props) {
-  const { observe, unobserve, width } = useDimensions({
-    onResize: ({ observe, unobserve, width, height, entry }) => {
+  const { observe: observeChange, width } = useDimensions({
+    onResize: ({ observe }) => {
       observe();
     },
     useBorderBoxSize: true, // Tell the hook to measure based on the border-box size, default is false
@@ -25,14 +24,14 @@ export function WordCloud(props: Props) {
   const { t } = useTranslation();
 
   const title = () => {
-    let title = t("people");
+    let result = t("people");
     if (props.type === "captions") {
-      title = t("things");
+      result = t("things");
     }
     if (props.type === "location") {
-      title = t("places");
+      result = t("places");
     }
-    return title;
+    return result;
   };
 
   const series = () => {
@@ -50,7 +49,7 @@ export function WordCloud(props: Props) {
     return [];
   };
   return (
-    <div ref={observe}>
+    <div ref={observeChange}>
       <Title order={3}>{title()}</Title>
       <Chart width={width - 50} height={height - 70} series={series()}>
         <Transform method={["transpose"]}>

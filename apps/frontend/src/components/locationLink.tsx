@@ -33,9 +33,9 @@ export function LocationLink(props: Props) {
   const [layout, setLayout] = useState("cartesian");
   const [orientation, setOrientation] = useState("horizontal");
   const [linkType, setLinkType] = useState("diagonal");
-  const [stepPercent, setStepPercent] = useState(0.5);
+  const [stepPercent] = useState(0.5);
 
-  const { locationSunburst, fetchedLocationSunburst } = useAppSelector(store => store.util);
+  const { locationSunburst } = useAppSelector(store => store.util);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -161,8 +161,8 @@ export function LocationLink(props: Props) {
               })}
 
               {tree.descendants().map((node, key) => {
-                const width = 120;
-                const height = 30;
+                const rectWidth = 120;
+                const rectHeight = 30;
 
                 let top;
                 let left;
@@ -182,9 +182,9 @@ export function LocationLink(props: Props) {
                   <Group top={top} left={left} key={key}>
                     {node.depth === 0 && (
                       <rect
-                        height={height}
-                        width={width}
-                        y={-(height / 2)}
+                        height={rectHeight}
+                        width={rectWidth}
+                        y={-(rectHeight / 2)}
                         x={0}
                         fill="#1b5a94"
                         rx={5}
@@ -196,9 +196,9 @@ export function LocationLink(props: Props) {
                     )}
                     {node.depth !== 0 && (
                       <rect
-                        height={height}
-                        width={width}
-                        y={-(height / 2)}
+                        height={rectHeight}
+                        width={rectWidth}
+                        y={-(rectHeight / 2)}
                         x={0}
                         fill={node.data.children ? "#1b6c94" : "#1b8594"}
                         stroke={node.data.children ? "#dddddd" : "#dddddd"}

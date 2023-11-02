@@ -2,8 +2,6 @@ import _ from "lodash";
 
 import { store } from "../store/store";
 
-store.subscribe(listener);
-
 function select(state) {
   return state.ui;
 }
@@ -14,6 +12,8 @@ function listener() {
   const ui = select(store.getState());
   gridType = ui.gridType;
 }
+
+store.subscribe(listener);
 
 export const calculateSharedPhotoGridCells = (groupedBySharerList, itemsPerRow) => {
   const gridContents = [];

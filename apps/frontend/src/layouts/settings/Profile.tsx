@@ -241,7 +241,7 @@ export function Profile() {
             <Radio.Group
               label={t("settings.colorscheme.title")}
               value={dark ? "1" : "0"}
-              onChange={value => {
+              onChange={() => {
                 toggleColorScheme();
               }}
             >

@@ -19,17 +19,17 @@ import type {
 } from "./albumActions.types";
 import {
   AutoAlbumSchema,
+  FetchAutoAlbumsListResponseSchema,
+  FetchDateAlbumsListResponseSchema,
+  FetchPlaceAlbumsListResponseSchema,
+  FetchThingAlbumResponseSchema,
+  FetchThingAlbumsListResponseSchema,
+  FetchUserAlbumsListResponseSchema,
+  FetchUserAlbumsSharedResponseSchema,
   PlaceAlbumSchema,
+  UserAlbumEditResponseSchema,
   UserAlbumInfoSchema,
   UserAlbumSchema,
-  _FetchAutoAlbumsListResponseSchema,
-  _FetchDateAlbumsListResponseSchema,
-  _FetchPlaceAlbumsListResponseSchema,
-  _FetchThingAlbumResponseSchema,
-  _FetchThingAlbumsListResponseSchema,
-  _FetchUserAlbumsListResponseSchema,
-  _FetchUserAlbumsSharedResponseSchema,
-  _UserAlbumEditResponseSchema,
 } from "./albumActions.types";
 import type { DatePhotosGroup, IncompleteDatePhotosGroup } from "./photosActions.types";
 import { IncompleteDatePhotosGroupSchema } from "./photosActions.types";
@@ -39,7 +39,7 @@ export function fetchThingAlbumsList() {
     dispatch({ type: "FETCH_THING_ALBUMS_LIST" });
     Server.get("albums/thing/list/")
       .then(response => {
-        const data = _FetchThingAlbumsListResponseSchema.parse(response.data);
+        const data = FetchThingAlbumsListResponseSchema.parse(response.data);
         const albumInfoList: AlbumInfo[] = data.results;
         dispatch({
           type: "FETCH_THING_ALBUMS_LIST_FULFILLED",
@@ -57,7 +57,7 @@ export function fetchThingAlbum(album_id: string) {
     dispatch({ type: "FETCH_THING_ALBUMS" });
     Server.get(`albums/thing/${album_id}/`)
       .then(response => {
-        const data = _FetchThingAlbumResponseSchema.parse(response.data);
+        const data = FetchThingAlbumResponseSchema.parse(response.data);
         const thingAlbum: ThingAlbum = data.results;
         dispatch({
           type: "FETCH_THING_ALBUMS_FULFILLED",
@@ -75,7 +75,7 @@ export function fetchUserAlbumsList() {
     dispatch({ type: "FETCH_USER_ALBUMS_LIST" });
     Server.get("albums/user/list/")
       .then(response => {
-        const data = _FetchUserAlbumsListResponseSchema.parse(response.data);
+        const data = FetchUserAlbumsListResponseSchema.parse(response.data);
         const userAlbumInfoList: UserAlbumInfo[] = data.results;
         dispatch({
           type: "FETCH_USER_ALBUMS_LIST_FULFILLED",
@@ -121,7 +121,7 @@ export function createNewUserAlbum(title: string, image_hashes: string[]) {
     dispatch({ type: "CREATE_USER_ALBUMS_LIST" });
     Server.post("albums/user/edit/", { title, photos: image_hashes })
       .then(response => {
-        const data = _UserAlbumEditResponseSchema.parse(response.data);
+        const data = UserAlbumEditResponseSchema.parse(response.data);
         dispatch({
           type: "CREATE_USER_ALBUMS_LIST_FULFILLED",
           payload: data,
@@ -149,7 +149,7 @@ export function renameUserAlbum(albumID: string, albumTitle: string, newAlbumTit
     Server.patch(`/albums/user/edit/${albumID}/`, {
       title: newAlbumTitle,
     })
-      .then(response => {
+      .then(() => {
         dispatch({ type: "RENAME_USER_ALBUM_FULFILLED", payload: albumID });
         dispatch(fetchUserAlbumsList());
         showNotification({
@@ -169,7 +169,7 @@ export function deleteUserAlbum(albumID: string, albumTitle: string) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "DELETE_USER_ALBUM" });
     Server.delete(`/albums/user/${albumID}`)
-      .then(response => {
+      .then(() => {
         dispatch({ type: "DELETE_USER_ALBUM_FULFILLED", payload: albumID });
         dispatch(fetchUserAlbumsList());
         showNotification({
@@ -191,7 +191,7 @@ export function removeFromUserAlbum(album_id: number, title: string, image_hashe
       removedPhotos: image_hashes,
     })
       .then(response => {
-        const data = _UserAlbumEditResponseSchema.parse(response.data);
+        const data = UserAlbumEditResponseSchema.parse(response.data);
         dispatch({
           type: "REMOVE_USER_ALBUMS_LIST_FULFILLED",
           payload: data,
@@ -220,7 +220,7 @@ export function setAlbumCoverForUserAlbum(album_id, photo_hash) {
     Server.patch(`albums/user/edit/${album_id}/`, {
       cover_photo: photo_hash,
     })
-      .then(response => {
+      .then(() => {
         // To-Do: I should do something with the response
         dispatch({ type: "SET_ALBUM_COVER_FOR_USER_ALBUM_FULFILLED" });
         showNotification({
@@ -245,7 +245,7 @@ export function addToUserAlbum(album_id: number, title: string, image_hashes: st
       photos: image_hashes,
     })
       .then(response => {
-        const data = _UserAlbumEditResponseSchema.parse(response.data);
+        const data = UserAlbumEditResponseSchema.parse(response.data);
         dispatch({
           type: "EDIT_USER_ALBUMS_LIST_FULFILLED",
           payload: data,
@@ -272,7 +272,7 @@ export function fetchPlaceAlbumsList() {
     dispatch({ type: "FETCH_PLACE_ALBUMS_LIST" });
     Server.get("albums/place/list/")
       .then(response => {
-        const data = _FetchPlaceAlbumsListResponseSchema.parse(response.data);
+        const data = FetchPlaceAlbumsListResponseSchema.parse(response.data);
         const placeAlbumInfoList: PlaceAlbumInfo[] = data.results;
         const byGeolocationLevel = _.groupBy(placeAlbumInfoList, el => el.geolocation_level);
         dispatch({
@@ -314,7 +314,7 @@ export function fetchAutoAlbumsList() {
     dispatch({ type: "FETCH_AUTO_ALBUMS_LIST" });
     Server.get("albums/auto/list/")
       .then(response => {
-        const data = _FetchAutoAlbumsListResponseSchema.parse(response.data);
+        const data = FetchAutoAlbumsListResponseSchema.parse(response.data);
         const autoAlbumsList: AutoAlbumInfo[] = data.results;
         dispatch({
           type: "FETCH_AUTO_ALBUMS_LIST_FULFILLED",
@@ -353,7 +353,7 @@ export function fetchAlbumDateList(dispatch: AppDispatch, options: AlbumDateList
     }
   )
     .then(response => {
-      const data = _FetchDateAlbumsListResponseSchema.parse(response.data);
+      const data = FetchDateAlbumsListResponseSchema.parse(response.data);
       const photosGroupedByDate: IncompleteDatePhotosGroup[] = data.results;
       addTempElementsToGroups(photosGroupedByDate);
       dispatch({
@@ -434,7 +434,7 @@ export function deleteAutoAlbum(albumID: string, albumTitle: string) {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "DELETE_AUTO_ALBUM" });
     Server.delete(`/albums/auto/${albumID}`)
-      .then(response => {
+      .then(() => {
         dispatch({ type: "DELETE_AUTO_ALBUM_FULFILLED", payload: albumID });
         dispatch(fetchAutoAlbumsList());
         showNotification({
@@ -453,7 +453,7 @@ export function deleteAllAutoAlbum() {
   return function (dispatch: Dispatch<any>) {
     dispatch({ type: "DELETE_All_AUTO_ALBUM" });
     Server.post(`/albums/auto/delete_all/`)
-      .then(response => {
+      .then(() => {
         dispatch({ type: "DELETE_ALL_AUTO_ALBUM_FULFILLED" });
         dispatch(fetchAutoAlbumsList());
         showNotification({
@@ -506,7 +506,7 @@ export function fetchUserAlbumsSharedToMe() {
     dispatch({ type: "FETCH_ALBUMS_SHARED_TO_ME" });
     Server.get("/albums/user/shared/tome/")
       .then(response => {
-        const data = _FetchUserAlbumsSharedResponseSchema.parse(response.data);
+        const data = FetchUserAlbumsSharedResponseSchema.parse(response.data);
         const userAlbumInfoList: UserAlbumInfo[] = data.results;
         const sharedAlbumsGroupedByOwner = _.toPairs(_.groupBy(userAlbumInfoList, "owner.id")).map(el => ({
           user_id: parseInt(el[0], 10),
@@ -528,7 +528,7 @@ export function fetchUserAlbumsSharedFromMe() {
     dispatch({ type: "FETCH_ALBUMS_SHARED_FROM_ME" });
     Server.get("/albums/user/shared/fromme/")
       .then(response => {
-        const data = _FetchUserAlbumsSharedResponseSchema.parse(response.data);
+        const data = FetchUserAlbumsSharedResponseSchema.parse(response.data);
         const userAlbumInfoList: UserAlbumInfo[] = data.results;
         dispatch({
           type: "FETCH_ALBUMS_SHARED_FROM_ME_FULFILLED",

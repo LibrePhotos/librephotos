@@ -156,8 +156,8 @@ export function SiteSettings() {
               data={CAPTIONING_MODELS}
               dropdownPosition="bottom"
               value={captioningModel}
-              onChange={captioningModel => {
-                const value = captioningModel || "";
+              onChange={model => {
+                const value = model ?? "";
                 setCaptioningModel(value);
                 saveSettings({ captioning_model: value });
               }}

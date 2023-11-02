@@ -25,11 +25,6 @@ module.exports = {
     "react/no-array-index-key": "warn",
     "react/require-default-props": "warn",
     "react/no-unstable-nested-components": "warn",
-    "@typescript-eslint/no-use-before-define": "warn",
-    "@typescript-eslint/default-param-last": "warn",
-    "@typescript-eslint/naming-convention": "warn",
-    "@typescript-eslint/no-unused-vars": "warn",
-    "@typescript-eslint/no-shadow": "warn",
   },
   parserOptions: {
     project: "./tsconfig.eslint.json",

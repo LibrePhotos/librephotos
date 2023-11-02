@@ -9,8 +9,7 @@ const { Chart, Bars, Ticks, Layer } = require("rumble-charts");
 
 export function EventCountMonthGraph() {
   const { colorScheme } = useMantineColorScheme();
-
-  const { observe, width } = useDimensions({
+  const { observe: observeChange, width } = useDimensions({
     onResize: ({ observe, unobserve }) => {
       observe();
       unobserve(); // To stop observing the current target element
@@ -43,7 +42,7 @@ export function EventCountMonthGraph() {
   ];
 
   return (
-    <Stack ref={observe}>
+    <Stack ref={observeChange}>
       <Title order={3}>Monthly Photo Counts</Title>
       {!fetchedPhotoMonthCounts && <Loader />}
       {fetchedPhotoMonthCounts && width > 0 && (

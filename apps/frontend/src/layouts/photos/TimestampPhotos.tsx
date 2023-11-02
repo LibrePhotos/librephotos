@@ -31,12 +31,12 @@ export function TimestampPhotos() {
   }, [dispatch]);
 
   const getAlbums = (visibleGroups: any) => {
-    visibleGroups.reverse().forEach((group: any) => {
-      const visibleImages = group.items;
+    visibleGroups.reverse().forEach((photoGroup: any) => {
+      const visibleImages = photoGroup.items;
       if (visibleImages.filter((i: any) => i.isTemp).length > 0) {
         const firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
         const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
-        setGroup({ id: group.id, page });
+        setGroup({ id: photoGroup.id, page });
       }
     });
   };

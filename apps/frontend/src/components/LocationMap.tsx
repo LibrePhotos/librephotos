@@ -22,14 +22,14 @@ export function LocationMap(props: Props) {
     return false;
   });
 
-  let sum_lat = 0;
-  let sum_lon = 0;
-  for (let i = 0; i < photosWithGPS.length; i += 1) {
-    sum_lat += parseFloat(photosWithGPS[i].exif_gps_lat);
-    sum_lon += parseFloat(photosWithGPS[i].exif_gps_lon);
+  let sumLat = 0;
+  let sumLon = 0;
+  for (const element of photosWithGPS) {
+    sumLat += parseFloat(element.exif_gps_lat);
+    sumLon += parseFloat(element.exif_gps_lon);
   }
-  const avg_lat = sum_lat / photosWithGPS.length;
-  const avg_lon = sum_lon / photosWithGPS.length;
+  const avgLat = sumLat / photosWithGPS.length;
+  const avgLon = sumLon / photosWithGPS.length;
 
   const markers = photosWithGPS.map(photo => (
     <Marker key={photo.image_hash} position={[photo.exif_gps_lat, photo.exif_gps_lon]}>
@@ -45,7 +45,7 @@ export function LocationMap(props: Props) {
     const zoom = 16;
     return (
       <Box style={{ zIndex: 2, height, padding: 0 }}>
-        <Map ref={mapRef} style={{ height }} center={[avg_lat, avg_lon]} zoom={zoom}>
+        <Map ref={mapRef} style={{ height }} center={[avgLat, avgLon]} zoom={zoom}>
           <TileLayer
             attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.osm.org/{z}/{x}/{y}.png"

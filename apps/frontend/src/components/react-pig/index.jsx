@@ -45,8 +45,8 @@ export default class Pig extends Component {
     this.imageData = props.imageData;
     this.numberOfItems = props.numberOfItems || this.imageData.length;
     this.scaleOfImages = props.scaleOfImages || 1;
-    this.updateGroups = props.updateGroups || function (visibleGroups) {};
-    this.updateItems = props.updateItems || function (visibleItems) {};
+    this.updateGroups = props.updateGroups || function () {};
+    this.updateItems = props.updateItems || function () {};
     // if sortFunc has been provided as a prop, use it
     if (props.sortFunc) this.imageData.sort(props.sortFunc);
     else if (props.sortByDate) this.imageData = sortByDate(this.imageData);
@@ -129,8 +129,8 @@ export default class Pig extends Component {
       this.setRenderedItems(this.imageData);
 
       // measure users scrolling speed and set it to state, used for conditional tile rendering
-      const scrollSpeed = getScrollSpeed(this.latestYOffset, this.scrollThrottleMs, scrollSpeed => {
-        this.setState({ scrollSpeed }); // scroll idle callback
+      const scrollSpeed = getScrollSpeed(this.latestYOffset, this.scrollThrottleMs, speed => {
+        this.setState({ scrollSpeed: speed }); // scroll idle callback
       });
       this.setState({ scrollSpeed });
 

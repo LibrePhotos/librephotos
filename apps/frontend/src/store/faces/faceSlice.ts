@@ -171,7 +171,7 @@ const faceSlice = createSlice({
         trained: true,
         facesVis: payload,
       }))
-      .addMatcher(api.endpoints.deleteFaces.matchFulfilled, (state, { meta, payload }) => {
+      .addMatcher(api.endpoints.deleteFaces.matchFulfilled, (state, { payload }) => {
         const facesToRemove = payload.results;
         const newLabeledFacesList = state.labeledFacesList;
         const newInferredFacesList = state.inferredFacesList;
@@ -210,7 +210,7 @@ const faceSlice = createSlice({
           }
         });
       })
-      .addMatcher(api.endpoints.setFacesPersonLabel.matchFulfilled, (state, { meta, payload }) => {
+      .addMatcher(api.endpoints.setFacesPersonLabel.matchFulfilled, (state, { payload }) => {
         const facesToRemove = payload.results;
         const facesToAdd = payload.results;
         const newLabeledFacesList = state.labeledFacesList;

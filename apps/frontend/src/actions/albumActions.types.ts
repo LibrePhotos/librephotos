@@ -60,19 +60,19 @@ export const UserAlbumSchema = UserAlbumDetailsSchema.extend({
   grouped_photos: DatePhotosGroupSchema.array(),
 });
 
-export const _FetchThingAlbumsListResponseSchema = z.object({
+export const FetchThingAlbumsListResponseSchema = z.object({
   results: AlbumInfoSchema.array(),
 });
 
-export const _FetchThingAlbumResponseSchema = z.object({
+export const FetchThingAlbumResponseSchema = z.object({
   results: ThingAlbumSchema,
 });
 
-export const _FetchUserAlbumsListResponseSchema = z.object({
+export const FetchUserAlbumsListResponseSchema = z.object({
   results: UserAlbumInfoSchema.array(),
 });
 
-export const _UserAlbumEditResponseSchema = z.object({
+export const UserAlbumEditResponseSchema = z.object({
   id: z.number(),
   title: z.string().nullable(),
   photos: z.string().array(),
@@ -85,7 +85,7 @@ export const PlaceAlbumInfoSchema = AlbumInfoSchema.extend({
   geolocation_level: z.number(),
 });
 export type PlaceAlbumInfo = z.infer<typeof PlaceAlbumInfoSchema>;
-export const _FetchPlaceAlbumsListResponseSchema = z.object({
+export const FetchPlaceAlbumsListResponseSchema = z.object({
   results: PlaceAlbumInfoSchema.array(),
 });
 
@@ -132,14 +132,14 @@ export type AutoAlbumInfo = z.infer<typeof AutoAlbumInfoSchema>;
 
 // actions using new list view in backend
 
-export const _FetchAutoAlbumsListResponseSchema = z.object({
+export const FetchAutoAlbumsListResponseSchema = z.object({
   results: AutoAlbumInfoSchema.array(),
 });
 
-export const _FetchDateAlbumsListResponseSchema = z.object({
+export const FetchDateAlbumsListResponseSchema = z.object({
   results: IncompleteDatePhotosGroupSchema.array(),
 });
 
-export const _FetchUserAlbumsSharedResponseSchema = z.object({
+export const FetchUserAlbumsSharedResponseSchema = z.object({
   results: UserAlbumInfoSchema.array(),
 });

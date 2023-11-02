@@ -1,3 +1,5 @@
+import { DEFAULT_ACTION } from "./common";
+
 const initialState = {
   searchPeopleRes: [],
   searchPlaceAlbumsRes: [],
@@ -14,7 +16,7 @@ const initialState = {
   query: "",
 };
 
-export function search(state = initialState, action = { type: "", payload: undefined }) {
+export function search(state = initialState, action = DEFAULT_ACTION) {
   switch (action.type) {
     case "SEARCH_PEOPLE": {
       return { ...state, searchPeopleRes: [], searchingPeople: true };

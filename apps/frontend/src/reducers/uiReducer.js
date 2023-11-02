@@ -1,4 +1,5 @@
 import { LEFT_MENU_WIDTH } from "../ui-constants";
+import { DEFAULT_ACTION } from "./common";
 
 const initialState = {
   showSidebar: true,
@@ -8,7 +9,7 @@ const initialState = {
   error: null,
 };
 
-export default function reducer(state = initialState, action) {
+export default function reducer(state = initialState, action = DEFAULT_ACTION) {
   switch (action.type) {
     case "TOGGLE_SIDEBAR": {
       const showSidebar = !state.showSidebar;

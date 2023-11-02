@@ -3,6 +3,7 @@ import type { AnyAction } from "redux";
 import type { UserPhotosGroup } from "../actions/photosActions";
 import type { IncompleteDatePhotosGroup, Photo, PigPhoto } from "../actions/photosActions.types";
 import { addTempElementsToFlatList, getPhotosFlatFromGroupedByDate } from "../util/util";
+import { DEFAULT_ACTION } from "./common";
 
 export enum PhotosetType {
   NONE = "none",
@@ -67,8 +68,6 @@ function resetPhotos(state: PhotosState, error: string) {
     error,
   };
 }
-
-const DEFAULT_ACTION = { type: "DEFAULT_ACTION" };
 
 export function photos(state = initialPhotosState, action: AnyAction = DEFAULT_ACTION): PhotosState {
   let updatedPhotoDetails: Photo[];

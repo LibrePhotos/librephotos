@@ -1,4 +1,5 @@
 import { FETCH_USER_ALBUM_FULFILLED, FETCH_USER_ALBUM_REJECTED } from "../actions/albumsActions";
+import { DEFAULT_ACTION } from "./common";
 
 const initialState = {
   albumsUserList: [],
@@ -60,8 +61,8 @@ const initialState = {
 
   error: null,
 };
-export default function reducer(state = initialState, action) {
-  let new_album;
+export default function reducer(state = initialState, action = DEFAULT_ACTION) {
+  let newAlbum;
   switch (action.type) {
     case "FETCH_ALBUMS_SHARED_TO_ME": {
       return { ...state, fetchingAlbumsSharedToMe: true };
@@ -155,13 +156,13 @@ export default function reducer(state = initialState, action) {
       };
     }
     case "FETCH_AUTO_ALBUMS_RETRIEVE_FULFILLED": {
-      new_album = { ...state.albumsAutoGalleries };
-      new_album[action.payload.id] = action.payload;
+      newAlbum = { ...state.albumsAutoGalleries };
+      newAlbum[action.payload.id] = action.payload;
       return {
         ...state,
         fetchingAlbumsAutoGalleries: false,
         fetchedAlbumsAutoGalleries: true,
-        albumsAutoGalleries: new_album,
+        albumsAutoGalleries: newAlbum,
       };
     }
 
@@ -224,13 +225,13 @@ export default function reducer(state = initialState, action) {
       return { ...state, fetchingAlbumsPlace: false, error: action.payload };
     }
     case "FETCH_PLACE_ALBUMS_FULFILLED": {
-      new_album = { ...state.albumsPlace };
-      new_album[parseInt(action.payload.results.id, 10)] = action.payload.results;
+      newAlbum = { ...state.albumsPlace };
+      newAlbum[parseInt(action.payload.results.id, 10)] = action.payload.results;
       return {
         ...state,
         fetchingAlbumsPlace: false,
         fetchedAlbumsPlace: true,
-        albumsPlace: new_album,
+        albumsPlace: newAlbum,
       };
     }
 
@@ -241,13 +242,13 @@ export default function reducer(state = initialState, action) {
       return { ...state, fetchingAlbumsThing: false, error: action.payload };
     }
     case "FETCH_THING_ALBUMS_FULFILLED": {
-      new_album = { ...state.albumsThing };
-      new_album[parseInt(action.payload.id, 10)] = action.payload;
+      newAlbum = { ...state.albumsThing };
+      newAlbum[parseInt(action.payload.id, 10)] = action.payload;
       return {
         ...state,
         fetchingAlbumsThing: false,
         fetchedAlbumsThing: true,
-        albumsThing: new_album,
+        albumsThing: newAlbum,
       };
     }
 
@@ -283,29 +284,29 @@ export default function reducer(state = initialState, action) {
       return { ...state };
     }
     case "TOGGLE_ALBUM_AUTO_FAVORITE_FULFILLED": {
-      new_album = { ...state.albumsAutoGalleries };
-      new_album[action.payload.id] = action.payload;
+      newAlbum = { ...state.albumsAutoGalleries };
+      newAlbum[action.payload.id] = action.payload;
 
-      const new_album_list = [...state.albumsAutoList];
+      const newAlbumList = [...state.albumsAutoList];
 
       let index = -1;
 
-      for (let i = 0; i < new_album_list.length; i += 1) {
-        if (new_album_list[i].id === action.payload.id) {
+      for (let i = 0; i < newAlbumList.length; i += 1) {
+        if (newAlbumList[i].id === action.payload.id) {
           index = i;
         }
       }
 
       if (index !== -1) {
-        new_album_list[index] = action.payload;
+        newAlbumList[index] = action.payload;
       }
 
       return {
         ...state,
         fetchingAlbumsAutoGalleries: false,
         fetchedAlbumsAutoGalleries: true,
-        albumsAutoGalleries: new_album,
-        albumsAutoList: new_album_list,
+        albumsAutoGalleries: newAlbum,
+        albumsAutoList: newAlbumList,
       };
     }
 

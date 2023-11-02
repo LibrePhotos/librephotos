@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { Globe } from "tabler-icons-react";
 
@@ -16,8 +15,7 @@ export function UserPublicPage() {
 
   const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(state => state.photos as PhotosState);
   const dispatch = useAppDispatch();
-  const { t } = useTranslation();
-  const { auth, ui } = useAppSelector(state => state);
+  const { auth } = useAppSelector(state => state);
   const [group, setGroup] = useState({} as PhotoGroup);
 
   useEffect(() => {

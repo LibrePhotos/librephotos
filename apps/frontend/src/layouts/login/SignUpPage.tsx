@@ -22,12 +22,12 @@ export function SignupPage(): JSX.Element {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const validateUsername = username => {
-    let error = null;
+  const validateUsername = (username: string) => {
+    let error = "";
     if (!username) {
       error = t("modaluseredit.errorusernamecannotbeblank");
     }
-    return error;
+    return error || null;
   };
   const form = useForm({
     initialValues: {
@@ -45,7 +45,7 @@ export function SignupPage(): JSX.Element {
       username: value => validateUsername(value),
     },
   });
-  const [signup, { isSuccess, isLoading }] = useSignUpMutation();
+  const [signup, { isSuccess }] = useSignUpMutation();
 
   const { colorScheme } = useMantineColorScheme();
   const dark = colorScheme === "dark";
@@ -87,9 +87,9 @@ export function SignupPage(): JSX.Element {
                   if (result.hasErrors) {
                     return;
                   }
-                  const { email, first_name, last_name, password } = values;
+                  const { email, first_name: firstName, last_name: lastName, password } = values;
                   const username = values.username.toLowerCase();
-                  signup({ email, first_name, last_name, username, password });
+                  signup({ email, first_name: firstName, last_name: lastName, username, password });
                 })}
               >
                 <Stack>

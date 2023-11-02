@@ -20,7 +20,7 @@ export const Server = axios.create({
 
 Server.interceptors.request.use(
   request => request,
-  error => {}
+  () => {}
 );
 
 Server.interceptors.response.use(

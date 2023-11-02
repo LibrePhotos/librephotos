@@ -16,8 +16,8 @@ type Props = {
 export function FaceClusterGraph(props: Props) {
   const [hintValue, setHintValue] = useState<any>({} as any);
   const { t } = useTranslation();
-  const { observe, width } = useDimensions({
-    onResize: ({ observe, unobserve, width, height, entry }) => {
+  const { observe: observeChange, width } = useDimensions({
+    onResize: ({ observe }) => {
       observe();
     },
   });
@@ -28,9 +28,9 @@ export function FaceClusterGraph(props: Props) {
     dispatch(api.endpoints.clusterFaces.initiate());
   }, [dispatch]); // Only run on first render
 
-  const person_names = [...new Set(facesVis.map((el: any) => el.person_name))];
+  const personNames = [...new Set(facesVis.map((el: any) => el.person_name))];
 
-  const mappedScatter = person_names.map((person_name, idx) => {
+  const mappedScatter = personNames.map((person_name, idx) => {
     const thisPersonVis = facesVis.filter((el: any) => person_name === el.person_name);
     const thisPersonData = thisPersonVis.map((el: any) => ({
       x: el.value.x,
@@ -46,7 +46,7 @@ export function FaceClusterGraph(props: Props) {
         colorType="literal"
         key={`cluster-marker-${idx}`}
         animation
-        onValueClick={(d: any, info: any) => {
+        onValueClick={d => {
           setHintValue(d);
         }}
         data={thisPersonData}
@@ -56,7 +56,7 @@ export function FaceClusterGraph(props: Props) {
   }, this);
   if (clustered) {
     return (
-      <Stack ref={observe}>
+      <Stack ref={observeChange}>
         <div>
           <Title order={3}> {t("facecluster")} </Title>
           <Text color="dimmed">{t("faceclusterexplanation")}</Text>

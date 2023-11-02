@@ -1,3 +1,5 @@
+import { DEFAULT_ACTION } from "./common";
+
 const initialState = {
   siteSettings: {
     allow_registration: false,
@@ -69,7 +71,7 @@ const initialState = {
   timezoneList: [],
 };
 
-export default function reducer(state = initialState, action) {
+export default function reducer(state = initialState, action = DEFAULT_ACTION) {
   switch (action.type) {
     case "FETCH_JOB_LIST": {
       return {
