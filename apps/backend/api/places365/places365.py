@@ -11,7 +11,7 @@ from torch.autograd import Variable as V
 from torch.nn import functional as F
 from torchvision import transforms as trn
 
-import wideresnet
+import api.places365.wideresnet as wideresnet
 from api.util import logger
 
 # import warnings
