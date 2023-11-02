@@ -22,13 +22,20 @@ const MAP_API_PROVIDERS = [
   { value: "tomtom", label: "TomTom", data: { use_api_key: true, url: "https://www.tomtom.com/" } },
 ];
 
+const CAPTIONING_MODELS = [
+  { value: "im2txt", label: "im2txt PyTorch" },
+  { value: "im2txt_onnx", label: "im2txt ONNX" },
+  { value: "none", label: "None" },
+];
+
 export function SiteSettings() {
   const [skipPatterns, setSkipPatterns] = useState("");
   const [mapApiKey, setMapApiKey] = useState("");
-  const [mapApiProvider, setMapApiProvider] = useState<string>("mapbox");
+  const [mapApiProvider, setMapApiProvider] = useState<string>("proton");
   const [heavyweightProcess, setHeavyweightProcess] = useState(1);
   const [allowRegistration, setAllowRegistration] = useState(false);
   const [allowUpload, setAllowUpload] = useState(false);
+  const [captioningModel, setCaptioningModel] = useState("im2txt");
   const { t } = useTranslation();
   const { data: settings, isLoading } = useGetSettingsQuery();
   const [saveSettings] = useUpdateSettingsMutation();
@@ -41,6 +48,7 @@ export function SiteSettings() {
       setHeavyweightProcess(settings.heavyweight_process);
       setAllowRegistration(settings.allow_registration);
       setAllowUpload(settings.allow_upload);
+      setCaptioningModel(settings.captioning_model);
     }
   }, [settings, isLoading]);
 
@@ -133,6 +141,28 @@ export function SiteSettings() {
               </Grid.Col>
             </>
           )}
+          <Grid.Col span={8}>
+            <Stack spacing={0}>
+              <Text>{t("sitesettings.captioning_model_header")}</Text>
+              <Text fz="sm" color="dimmed">
+                {t("sitesettings.captioning_model_description")}
+              </Text>
+            </Stack>
+          </Grid.Col>
+          <Grid.Col span={4}>
+            <Select
+              searchable
+              withinPortal
+              data={CAPTIONING_MODELS}
+              dropdownPosition="bottom"
+              value={captioningModel}
+              onChange={captioningModel => {
+                const value = captioningModel || "";
+                setCaptioningModel(value);
+                saveSettings({ captioning_model: value });
+              }}
+            />
+          </Grid.Col>
           <Grid.Col span={8}>
             <Stack spacing={0}>
               <Text>{t("sitesettings.headerheavyweight")}</Text>

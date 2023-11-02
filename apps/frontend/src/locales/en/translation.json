@@ -253,7 +253,7 @@
     "favorites": "Favorites",
     "mypublicphotos": "My Public Photos",
     "photos": "Photos",
-    "videos":"Videos",
+    "videos": "Videos",
     "albums": "Albums",
     "people": "People",
     "places": "Places",
@@ -351,7 +351,7 @@
     "notimestamp": "Photos without Timestamps",
     "hidden": "Hidden Photos",
     "favorite": "Favorite Photos",
-    "videos" :"Videos",
+    "videos": "Videos",
     "deleted": "Trash"
   },
   "login": {
@@ -446,6 +446,8 @@
     "skippatterns": " Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for Synology devices)",
     "map_api_provider_header": "Map Provider",
     "map_api_provider_description": "For getting location names from image GPS metadata.",
+    "captioning_model_header": "Captioning Model",
+    "captioning_model_description": "Model to use for generating image captions.",
     "map_api_key_header": "API key for Map Provider",
     "map_api_key_description": "Get your API key at {{url}}",
     "headerheavyweight": "Heavyweight Processes",
