@@ -1,9 +1,11 @@
 import React from "react";
 import { Star } from "tabler-icons-react";
 
+import { PigPhoto } from "../../actions/photosActions.types";
 import { useAppSelector } from "../../store/store";
 
-export function FavoritedOverlay(item: any) {
-  const { favorite_min_rating: rating } = useAppSelector(store => store.user.userSelfDetails);
-  return item.item.rating >= rating && <Star strokeWidth={3} style={{ marginRight: 4 }} color="#FFD700" />;
+export function FavoritedOverlay({ item }: { item: PigPhoto }) {
+  const { favorite_min_rating: favoriteMinRating } = useAppSelector(store => store.user.userSelfDetails);
+  const { rating } = item;
+  return rating >= favoriteMinRating && <Star strokeWidth={3} style={{ marginRight: 4 }} color="#FFD700" />;
 }

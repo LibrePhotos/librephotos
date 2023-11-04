@@ -24,25 +24,27 @@ export function WordCloud(props: Props) {
   const { t } = useTranslation();
 
   const title = () => {
+    const { type } = props;
     let result = t("people");
-    if (props.type === "captions") {
+    if (type === "captions") {
       result = t("things");
     }
-    if (props.type === "location") {
+    if (type === "location") {
       result = t("places");
     }
     return result;
   };
 
   const series = () => {
+    const { type } = props;
     if (fetchedWordCloud) {
-      if (props.type === "people") {
+      if (type === "people") {
         return [{ data: wordCloud.people }];
       }
-      if (props.type === "captions") {
+      if (type === "captions") {
         return [{ data: wordCloud.captions }];
       }
-      if (props.type === "location") {
+      if (type === "location") {
         return [{ data: wordCloud.locations }];
       }
     }

@@ -160,7 +160,7 @@ export function LocationLink(props: Props) {
                 );
               })}
 
-              {tree.descendants().map((node, key) => {
+              {tree.descendants().map(node => {
                 const rectWidth = 120;
                 const rectHeight = 30;
 
@@ -179,7 +179,7 @@ export function LocationLink(props: Props) {
                 }
 
                 return (
-                  <Group top={top} left={left} key={key}>
+                  <Group top={top} left={left} key={`${node.x}${node.y}`}>
                     {node.depth === 0 && (
                       <rect
                         height={rectHeight}

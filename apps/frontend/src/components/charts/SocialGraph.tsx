@@ -12,7 +12,7 @@ type Props = {
   height: number;
 };
 
-export function SocialGraph(props: Props) {
+export function SocialGraph({ height }: Props) {
   const { colorScheme } = useMantineColorScheme();
   const { observe: observeChange, width } = useDimensions({
     onResize: ({ observe }) => {
@@ -49,7 +49,7 @@ export function SocialGraph(props: Props) {
       highlightColor: "orange",
       color: "#12939A",
     },
-    height: props.height,
+    height,
     width,
   };
   let graph;

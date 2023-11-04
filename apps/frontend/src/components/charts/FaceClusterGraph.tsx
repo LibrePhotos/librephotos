@@ -13,7 +13,7 @@ type Props = {
   height: number;
 };
 
-export function FaceClusterGraph(props: Props) {
+export function FaceClusterGraph({ height }: Props) {
   const [hintValue, setHintValue] = useState<any>({} as any);
   const { t } = useTranslation();
   const { observe: observeChange, width } = useDimensions({
@@ -30,8 +30,8 @@ export function FaceClusterGraph(props: Props) {
 
   const personNames = [...new Set(facesVis.map((el: any) => el.person_name))];
 
-  const mappedScatter = personNames.map((person_name, idx) => {
-    const thisPersonVis = facesVis.filter((el: any) => person_name === el.person_name);
+  const mappedScatter = personNames.map(name => {
+    const thisPersonVis = facesVis.filter((el: any) => name === el.person_name);
     const thisPersonData = thisPersonVis.map((el: any) => ({
       x: el.value.x,
       y: el.value.y,
@@ -44,7 +44,7 @@ export function FaceClusterGraph(props: Props) {
     return (
       <MarkSeries
         colorType="literal"
-        key={`cluster-marker-${idx}`}
+        key={`cluster-marker-${name}`}
         animation
         onValueClick={d => {
           setHintValue(d);
@@ -61,7 +61,7 @@ export function FaceClusterGraph(props: Props) {
           <Title order={3}> {t("facecluster")} </Title>
           <Text color="dimmed">{t("faceclusterexplanation")}</Text>
         </div>
-        <XYPlot width={width - 30} height={props.height}>
+        <XYPlot width={width - 30} height={height}>
           <HorizontalGridLines />
           <VerticalGridLines />
           {mappedScatter}

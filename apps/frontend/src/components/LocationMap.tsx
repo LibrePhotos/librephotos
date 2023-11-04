@@ -6,16 +6,16 @@ type Props = {
   photos: any[];
 };
 
-export function LocationMap(props: Props) {
+export function LocationMap({ photos }: Props) {
   const mapRef = useRef<Map>(null);
 
   const height = "200px";
 
   useEffect(() => {
     mapRef.current?.leafletElement.invalidateSize();
-  }, [height, props]);
+  }, [height, photos]);
 
-  const photosWithGPS = props.photos.filter(photo => {
+  const photosWithGPS = photos.filter(photo => {
     if (photo.exif_gps_lon !== null && photo.exif_gps_lon) {
       return true;
     }

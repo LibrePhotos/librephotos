@@ -5,14 +5,8 @@ type Props = {
   photos: any[];
 };
 
-export function AlbumLocationMap(props: Readonly<Props>) {
-  const photosWithGPS = props.photos.filter(photo => {
-    if (photo.exif_gps_lon !== null && photo.exif_gps_lon) {
-      return true;
-    }
-    return false;
-  });
-
+export function AlbumLocationMap({ photos }: Readonly<Props>) {
+  const photosWithGPS = photos.filter(photo => photo.exif_gps_lon !== null && photo.exif_gps_lon);
   let sumLat = 0;
   let sumLon = 0;
   for (const element of photosWithGPS) {
@@ -22,8 +16,8 @@ export function AlbumLocationMap(props: Readonly<Props>) {
   const avgLat = sumLat / photosWithGPS.length;
   const avgLon = sumLon / photosWithGPS.length;
 
-  const markers = photosWithGPS.map((photo, idx) => (
-    <Marker key={`marker-${photo.id}-${idx}`} position={[photo.exif_gps_lat, photo.exif_gps_lon]} />
+  const markers = photosWithGPS.map(photo => (
+    <Marker key={`marker-${photo.id}`} position={[photo.exif_gps_lat, photo.exif_gps_lon]} />
   ));
   if (photosWithGPS.length > 0) {
     return (

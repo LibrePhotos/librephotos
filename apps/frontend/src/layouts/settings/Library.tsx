@@ -54,6 +54,7 @@ import { ModalNextcloudScanDirectoryEdit } from "../../components/modals/ModalNe
 import { CountStats } from "../../components/statistics";
 import i18n from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
+import { IUser } from "../../store/user/user.zod";
 
 const useStyles = createStyles(theme => ({
   button: {
@@ -68,6 +69,20 @@ const useStyles = createStyles(theme => ({
     borderLeft: `1px solid ${theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.white}`,
   },
 }));
+
+function BadgeIcon(details: IUser, isSuccess: boolean, isError: boolean, isFetching: boolean) {
+  const { nextcloud_server_address: server } = details;
+  if (isSuccess && server) {
+    return <Check />;
+  }
+  if (isError) {
+    return <X />;
+  }
+  if (isFetching) {
+    return <RefreshDot />;
+  }
+  return <QuestionMark />;
+}
 
 export function Library() {
   const [isOpen, { open, close }] = useDisclosure(false);
@@ -147,19 +162,6 @@ export function Library() {
     if (userSelfDetails.avatar_url) {
       setAvatarImgSrc(serverAddress + userSelfDetails.avatar_url);
     }
-  }
-
-  function BadgeIcon() {
-    if (isNextcloudSuccess && userSelfDetails.nextcloud_server_address) {
-      return <Check />;
-    }
-    if (isNextcloudError) {
-      return <X />;
-    }
-    if (isNextcloudFetching) {
-      return <RefreshDot />;
-    }
-    return <QuestionMark />;
   }
 
   return (
@@ -377,8 +379,8 @@ export function Library() {
                 onClick={() => {
                   dispatch(api.endpoints.trainFaces.initiate());
                   showNotification({
-                    message: i18n.t<string>("toasts.trainingstarted"),
-                    title: i18n.t<string>("toasts.trainingstartedtitle"),
+                    message: i18n.t("toasts.trainingstarted"),
+                    title: i18n.t("toasts.trainingstartedtitle"),
                     color: "teal",
                   });
                 }}
@@ -404,8 +406,8 @@ export function Library() {
                 onClick={() => {
                   dispatch(api.endpoints.rescanFaces.initiate());
                   showNotification({
-                    message: i18n.t<string>("toasts.rescanfaces"),
-                    title: i18n.t<string>("toasts.rescanfacestitle"),
+                    message: i18n.t("toasts.rescanfaces"),
+                    title: i18n.t("toasts.rescanfacestitle"),
                     color: "teal",
                   });
                 }}
@@ -428,7 +430,7 @@ export function Library() {
                 size="xs"
                 p={10}
                 style={{ marginLeft: -20 }}
-                leftSection={BadgeIcon()}
+                leftSection={BadgeIcon(userSelfDetails, isNextcloudSuccess, isNextcloudError, isNextcloudFetching)}
                 variant="outline"
                 color={nextcloudStatusColor}
               >

@@ -348,7 +348,7 @@ function PhotoListViewComponent(props: Props) {
               getUrl={getUrl}
               toprightoverlay={FavoritedOverlay}
               bottomleftoverlay={VideoOverlay}
-              numberOfItems={numberOfItems || idx2hashRef.current.length}
+              numberOfItems={numberOfItems ?? idx2hashRef.current.length}
               updateItems={updateItems ? throttledUpdateItems : () => {}}
               updateGroups={updateGroups ? throttledUpdateGroups : () => {}}
               bgColor="inherit"

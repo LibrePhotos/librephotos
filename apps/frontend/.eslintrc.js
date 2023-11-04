@@ -16,15 +16,9 @@ module.exports = {
     "import/prefer-default-export": "off",
     "import/no-cycle": "warn",
     "react/prop-types": "warn",
-    "react/destructuring-assignment": "warn",
-    "react/sort-comp": "warn",
-    "react/no-access-state-in-setstate": "warn",
-    "react/jsx-props-no-spreading": "warn",
-    "react-hooks/exhaustive-deps": "warn",
-    "react/no-unused-class-component-methods": "warn",
-    "react/no-array-index-key": "warn",
+    "react/jsx-props-no-spreading": "off", // some Mantine components need to use spread operator
+    "react-hooks/exhaustive-deps": "off", // at this stage it is too risky to enable this
     "react/require-default-props": "warn",
-    "react/no-unstable-nested-components": "warn",
   },
   parserOptions: {
     project: "./tsconfig.eslint.json",
