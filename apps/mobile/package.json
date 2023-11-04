@@ -88,7 +88,7 @@
     "react-test-renderer": "18.2.0",
     "reactotron-react-native": "5.0.3",
     "typedoc": "^0.25.0",
-    "typescript": "^4.9.5"
+    "typescript": "^5.0.0"
   },
   "jest": {
     "preset": "react-native",
