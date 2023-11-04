@@ -113,7 +113,6 @@ class SiteSettingsView(APIView):
 class SetUserAlbumShared(APIView):
     def post(self, request, format=None):
         data = dict(request.data)
-        # print(data)
         shared = data["shared"]  # bool
         target_user_id = data["target_user_id"]  # user pk, int
         user_album_id = data["album_id"]
@@ -262,7 +261,6 @@ class MediaAccessView(APIView):
     permission_classes = (AllowAny,)
 
     def _get_protected_media_url(self, path, fname):
-        print(fname)
         return "protected_media/{}/{}".format(path, fname)
 
     # @silk_profile(name='media')
@@ -430,6 +428,7 @@ class MediaAccessFullsizeOriginalView(APIView):
         ],
     )
     def get(self, request, path, fname, format=None):
+        
         if path.lower() == "zip":
             jwt = request.COOKIES.get("jwt")
             if jwt is not None:
@@ -440,8 +439,7 @@ class MediaAccessFullsizeOriginalView(APIView):
             else:
                 return HttpResponseForbidden()
             try:
-                filename = fname + str(request.user.id) + ".zip"
-                print(filename)
+                filename = fname + str(token["user_id"]) + ".zip"
                 response = HttpResponse()
                 response["Content-Type"] = "application/x-zip-compressed"
                 response["X-Accel-Redirect"] = self._get_protected_media_url(
@@ -591,37 +589,6 @@ class MediaAccessFullsizeOriginalView(APIView):
             return HttpResponse(status=404)
 
 
-class ZipListPhotosView(APIView):
-    def post(self, request, format=None):
-        try:
-            data = dict(request.data)
-            if "image_hashes" not in data:
-                return
-            photos = Photo.objects.filter(owner=self.request.user).in_bulk(
-                data["image_hashes"]
-            )
-            if len(photos) == 0:
-                return
-            mf = io.BytesIO()
-            photos_name = {}
-            for photo in photos.values():
-                photo_name = os.path.basename(photo.main_file.path)
-                if photo_name in photos_name:
-                    photos_name[photo_name] = photos_name[photo_name] + 1
-                    photo_name = str(photos_name[photo_name]) + "-" + photo_name
-                else:
-                    photos_name[photo_name] = 1
-                with zipfile.ZipFile(
-                    mf, mode="a", compression=zipfile.ZIP_DEFLATED
-                ) as zf:
-                    zf.write(photo.main_file.path, arcname=photo_name)
-            return HttpResponse(
-                mf.getvalue(), content_type="application/x-zip-compressed"
-            )
-        except BaseException as e:
-            logger.error(str(e))
-            return HttpResponse(status=404)
-
 
 class ZipListPhotosView_V2(APIView):
     def post(self, request):
@@ -653,8 +620,12 @@ class ZipListPhotosView_V2(APIView):
         return Response(data=response, status=200)
 
     def get(self, request):
+        job_id=request.GET['job_id']
+        print(job_id)
+        if job_id==None:
+            return Response(status=404)
         try:
-            job = LongRunningJob.objects.get(job_id=request.data["job_id"])
+            job = LongRunningJob.objects.get(job_id=job_id)
             if job.finished:
                 return Response(data={"status": "SUCCESS"}, status=200)
             elif job.failed:
@@ -672,16 +643,18 @@ class ZipListPhotosView_V2(APIView):
 
 class DeleteZipView(APIView):
     def delete(self, request, fname):
+        print("hello")
         jwt = request.COOKIES.get("jwt")
         if jwt is not None:
             try:
-                AccessToken(jwt)
+                token=AccessToken(jwt)
             except TokenError:
                 return HttpResponseForbidden()
         else:
             return HttpResponseForbidden()
-        filename = fname + str(request.user.id) + ".zip"
+        filename = fname + str(token["user_id"]) + ".zip"
         try:
+            
             delete_zip_file(filename)
             return Response(status=200)
         except BaseException as e:
