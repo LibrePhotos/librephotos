@@ -9,7 +9,6 @@ module.exports = {
   rules: {
     "no-await-in-loop": "warn",
     "no-param-reassign": "warn",
-    "no-underscore-dangle": "warn",
     "import/prefer-default-export": "off",
     "import/no-cycle": "warn",
     "react/prop-types": "warn",

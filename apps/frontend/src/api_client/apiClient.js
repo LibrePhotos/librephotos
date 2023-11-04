@@ -27,8 +27,8 @@ Server.interceptors.response.use(
   response => response,
   error => {
     const originalRequest = error.config;
-    if (error.response.status === 401 && !originalRequest._retry && !isRefreshTokenExpired(store.getState())) {
-      originalRequest._retry = true;
+    if (error.response.status === 401 && !originalRequest.internalRetry && !isRefreshTokenExpired(store.getState())) {
+      originalRequest.internalRetry = true;
 
       const { auth } = store.getState();
       const refreshToken = auth.refresh.token;
