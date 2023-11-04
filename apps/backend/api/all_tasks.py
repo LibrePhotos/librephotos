@@ -44,7 +44,7 @@ def zip_photos_task(job_id, user, photos, filename):
             os.mkdir(output_directory)
         mf = io.BytesIO()
         photos_name = {}
-
+        
         for photo in photos.values():
             done_count = done_count + 1
             photo_name = os.path.basename(photo.main_file.path)
