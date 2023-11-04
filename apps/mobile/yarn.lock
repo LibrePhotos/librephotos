@@ -2930,17 +2930,10 @@
   resolved "https://registry.yarnpkg.com/@types/json5/-/json5-0.0.29.tgz#ee28707ae94e11d2b827bcbe5270bcea7f3e71ee"
   integrity sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==
 
-"@types/node@*":
+"@types/node@*", "@types/node@^20.0.0":
   version "20.8.10"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-20.8.10.tgz#a5448b895c753ae929c26ce85cab557c6d4a365e"
   integrity sha512-TlgT8JntpcbmKUFzjhsyhGfP2fsiz1Mv56im6enJ905xG1DAYesxJaeSbGqQmAw8OWPdhyJGhGSQGKRNJ45u9w==
-  dependencies:
-    undici-types "~5.26.4"
-
-"@types/node@^18.14.1":
-  version "18.18.8"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.18.8.tgz#2b285361f2357c8c8578ec86b5d097c7f464cfd6"
-  integrity sha512-OLGBaaK5V3VRBS1bAkMVP2/W9B+H8meUfl866OrMNQqt7wDgdpWPp5o6gmIc9pB+lIQHSq4ZL8ypeH1vPxcPaQ==
   dependencies:
     undici-types "~5.26.4"
 
