@@ -220,7 +220,7 @@ urlpatterns = [
     re_path(r"^api/rqavailable/$", jobs.QueueAvailabilityView.as_view()),
     re_path(r"^api/nextcloud/listdir", nextcloud_views.ListDir.as_view()),
     re_path(r"^api/nextcloud/scanphotos", nextcloud_views.ScanPhotosView.as_view()),
-    re_path(r"^api/photos/download", views.ZipListPhotosView_V2.as_view()),
+    re_path(r"^api/photos/download$", views.ZipListPhotosView_V2.as_view()),
     re_path(r"^api/timezones", timezone.TimeZoneView.as_view()),
     re_path(r"api/upload/complete/", upload.UploadPhotosChunkedComplete.as_view()),
     re_path(r"api/upload/", upload.UploadPhotosChunked.as_view()),
