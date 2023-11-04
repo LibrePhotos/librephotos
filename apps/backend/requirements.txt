@@ -39,7 +39,7 @@ timezonefinder==6.2.0
 tqdm==4.65.2
 gevent==23.9.1
 python-magic==0.4.27
-Wand==0.6.11
+Wand==0.6.13
 django-q2==1.6.1
 safetensors==0.4.0
 py-cpuinfo==9.0.0
