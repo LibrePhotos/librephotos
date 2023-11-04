@@ -49,19 +49,31 @@ const Tile = React.memo(
     // screenCenter is positioning logic for when the item is active and expanded
     const screenCenter = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
 
+    function getWidth(exp, sel) {
+      if (exp) {
+        return `${Math.ceil(calcWidth)}px`;
+      }
+      if (sel) {
+        return `${item.style.width - item.style.width * 0.1}px`;
+      }
+      return `${item.style.width}px`;
+    }
+
+    function getHeight(exp, sel) {
+      if (exp) {
+        return `${Math.ceil(calcHeight)}px`;
+      }
+      if (sel) {
+        return `${item.style.height - item.style.height * 0.1}px`;
+      }
+      return `${item.style.height}px`;
+    }
+
     const { width, height, transform, zIndex, marginLeft, marginRight, marginTop, marginBottom } = useSpring({
       transform: isExpanded ? screenCenter : gridPosition,
       zIndex: isExpanded ? 10 : 0, // 10 so that it takes a little longer before settling at 0
-      width: isExpanded
-        ? `${Math.ceil(calcWidth)}px`
-        : isSelected
-        ? `${item.style.width - item.style.width * 0.1}px`
-        : `${item.style.width}px`,
-      height: isExpanded
-        ? `${Math.ceil(calcHeight)}px`
-        : isSelected
-        ? `${item.style.height - item.style.height * 0.1}px`
-        : `${item.style.height}px`,
+      width: getWidth(isExpanded, isSelected),
+      height: getHeight(isExpanded, isSelected),
       marginLeft: isSelected && !isExpanded ? item.style.width * 0.05 : 0,
       marginRight: isSelected && !isExpanded ? item.style.width * 0.05 : 0,
       marginTop: isSelected && !isExpanded ? item.style.height * 0.05 : 0,

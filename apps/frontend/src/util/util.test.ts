@@ -1,7 +1,7 @@
 import type { DatePhotosGroup } from "../actions/photosActions.types";
 import type { DirTree } from "../api_client/dir-tree";
 import i18n from "../i18n";
-import { EMAIL_REGEX, formatDateForPhotoGroups, fuzzyMatch, mergeDirTree } from "./util";
+import { EMAIL_REGEX, formatDateForPhotoGroups, fuzzyMatch, getAveragedCoordinates, mergeDirTree } from "./util";
 
 describe("email regex test", () => {
   test("good samples should match", () => {
@@ -228,6 +228,18 @@ describe("adjust date for photo list group", () => {
       },
     ];
     const actual = formatDateForPhotoGroups(photoGroups);
-    expect(actual[0].date).toEqual(i18n.t<string>("sidemenu.withouttimestamp"));
+    expect(actual[0].date).toEqual(i18n.t("sidemenu.withouttimestamp"));
+  });
+});
+
+describe("getAveragedCoordinates", () => {
+  test("should return average coordinates", () => {
+    const actual = getAveragedCoordinates([
+      { id: "1", exif_gps_lat: 1, exif_gps_lon: 2 },
+      { id: "2", exif_gps_lat: 3, exif_gps_lon: 4 },
+      { id: "3", exif_gps_lat: -3, exif_gps_lon: 6 },
+      { id: "4", exif_gps_lat: 2, exif_gps_lon: 1 },
+    ]);
+    expect(actual).toEqual({ avgLat: 0.75, avgLon: 3.25 });
   });
 });

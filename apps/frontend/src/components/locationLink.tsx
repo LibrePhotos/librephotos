@@ -211,13 +211,7 @@ export function LocationLink(props: Props) {
                         }}
                       />
                     )}
-                    <text
-                      y={5}
-                      x={10}
-                      fontSize={11}
-                      style={{ pointerEvents: "none" }}
-                      fill={node.depth === 0 ? "white" : node.children ? "white" : "white"}
-                    >
+                    <text y={5} x={10} fontSize={11} style={{ pointerEvents: "none" }} fill="white">
                       {node.data.name}
                     </text>
                   </Group>

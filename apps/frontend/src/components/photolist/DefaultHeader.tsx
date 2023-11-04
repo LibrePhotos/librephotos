@@ -50,57 +50,65 @@ export function DefaultHeader(props: Props) {
     );
   };
 
-  const isScanView = () => {
-    // @ts-ignore
-    const path = route.location.pathname;
-    return path === "/";
-  };
+  const isScanView = () => route.location.pathname === "/";
 
   const { loading, numPhotosetItems, icon, numPhotos, title, additionalSubHeader, date, dayHeaderPrefix } = props;
 
+  function getHeaderContents() {
+    if (
+      !loading &&
+      auth.access &&
+      isScanView() &&
+      auth.access.is_admin &&
+      !user.scan_directory &&
+      numPhotosetItems < 1
+    ) {
+      return (
+        <div>
+          <p>{t("defaultheader.setup")}</p>
+          <Button
+            color="green"
+            onClick={() => {
+              setUserToEdit({ ...user });
+              setModalOpen(true);
+            }}
+          >
+            {t("defaultheader.gettingstarted")}
+          </Button>
+          <ModalUserEdit
+            onRequestClose={() => {
+              setModalOpen(false);
+            }}
+            userToEdit={userToEdit}
+            isOpen={modalOpen}
+            updateAndScan
+            userList={userList}
+            createNew={false}
+            firstTimeSetup
+          />
+        </div>
+      );
+    }
+
+    if (loading) {
+      return t("defaultheader.loading");
+    }
+
+    if (numPhotosetItems < 1) {
+      return t("defaultheader.noimages");
+    }
+
+    return null;
+  }
+
   if (loading || numPhotosetItems < 1) {
     return (
-      <div>
-        <Title order={4}>
-          <Group>
-            {!loading &&
-            auth.access &&
-            isScanView() &&
-            auth.access.is_admin &&
-            !user.scan_directory &&
-            numPhotosetItems < 1 ? (
-              <div>
-                <p>{t("defaultheader.setup")}</p>
-                <Button
-                  color="green"
-                  onClick={() => {
-                    setUserToEdit({ ...user });
-                    setModalOpen(true);
-                  }}
-                >
-                  {t("defaultheader.gettingstarted")}
-                </Button>
-              </div>
-            ) : loading ? (
-              t("defaultheader.loading")
-            ) : (
-              t("defaultheader.noimages")
-            )}
-            {loading ? <Loader size={25} /> : null}
-          </Group>
-        </Title>
-        <ModalUserEdit
-          onRequestClose={() => {
-            setModalOpen(false);
-          }}
-          userToEdit={userToEdit}
-          isOpen={modalOpen}
-          updateAndScan
-          userList={userList}
-          createNew={false}
-          firstTimeSetup
-        />
-      </div>
+      <Title order={4}>
+        <Group>
+          {getHeaderContents()}
+          {loading ? <Loader size={25} /> : null}
+        </Group>
+      </Title>
     );
   }
 

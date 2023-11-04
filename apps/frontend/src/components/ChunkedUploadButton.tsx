@@ -73,8 +73,7 @@ export function ChunkedUploadButton() {
     reader.onload = () => {
       const buffer = reader.result;
       // @ts-ignore
-      const md5 = MD5(buffer).toString();
-      return md5;
+      return MD5(buffer).toString();
     };
     return "";
   };
@@ -123,7 +122,7 @@ export function ChunkedUploadButton() {
         total += fileSize;
       });
       setTotalSize(total);
-      for (const file of acceptedFiles) {
+      acceptedFiles.forEach(async file => {
         const currentUploadedFileSizeStartValue = currentUploadedFileSize;
         // Check if the upload already exists via the hash of the file
         const hash = (await calculateMD5(file)) + userSelfDetails.id;
@@ -152,7 +151,7 @@ export function ChunkedUploadButton() {
           currentUploadedFileSize += file.size;
           setCurrentSize(currentUploadedFileSize);
         }
-      }
+      });
     },
   });
 

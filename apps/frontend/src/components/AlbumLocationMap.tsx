@@ -1,20 +1,15 @@
 import React from "react";
 import { Map, Marker, TileLayer } from "react-leaflet";
 
+import { PartialPhotoWithLocation, getAveragedCoordinates } from "../util/util";
+
 type Props = {
-  photos: any[];
+  photos: PartialPhotoWithLocation[];
 };
 
 export function AlbumLocationMap({ photos }: Readonly<Props>) {
-  const photosWithGPS = photos.filter(photo => photo.exif_gps_lon !== null && photo.exif_gps_lon);
-  let sumLat = 0;
-  let sumLon = 0;
-  for (const element of photosWithGPS) {
-    sumLat += parseFloat(element.exif_gps_lat);
-    sumLon += parseFloat(element.exif_gps_lon);
-  }
-  const avgLat = sumLat / photosWithGPS.length;
-  const avgLon = sumLon / photosWithGPS.length;
+  const photosWithGPS = photos.filter(photo => photo.exif_gps_lon !== null && photo.exif_gps_lat !== null);
+  const { avgLat, avgLon } = getAveragedCoordinates(photosWithGPS);
 
   const markers = photosWithGPS.map(photo => (
     <Marker key={`marker-${photo.id}`} position={[photo.exif_gps_lat, photo.exif_gps_lon]} />

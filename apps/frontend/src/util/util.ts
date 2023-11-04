@@ -102,3 +102,22 @@ export function mergeDirTree(tree: DirTree[], branch: DirTree): DirTree[] {
     return folder;
   });
 }
+
+export type PartialPhotoWithLocation = {
+  id: string;
+  exif_gps_lat: number;
+  exif_gps_lon: number;
+  [key: string]: any;
+};
+
+export function getAveragedCoordinates(photos: PartialPhotoWithLocation[]) {
+  const { lat, lon } = photos.reduce(
+    (acc, photo) => {
+      acc.lat += parseFloat(`${photo.exif_gps_lat}`);
+      acc.lon += parseFloat(`${photo.exif_gps_lon}`);
+      return acc;
+    },
+    { lat: 0, lon: 0 }
+  );
+  return { avgLat: lat / photos.length, avgLon: lon / photos.length };
+}
