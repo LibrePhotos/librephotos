@@ -68,7 +68,7 @@
     "@tsconfig/react-native": "^3.0.0",
     "@types/crypto-js": "^4.1.1",
     "@types/jest": "^29.4.0",
-    "@types/node": "^18.14.1",
+    "@types/node": "^20.0.0",
     "@types/react": "^18.0.28",
     "@types/react-native-vector-icons": "^6.4.13",
     "@types/react-redux": "^7.1.25",
