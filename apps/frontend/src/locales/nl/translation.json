@@ -385,13 +385,15 @@
         "skippatterns": " Een kommagescheiden lijst met patronen die dienen te worden genegeerd (bijv. ‘@eaDir,#recycle’)",
         "headerskippatterns": "Negeerpatronen",
         "map_api_provider_header": "Kaartaanbieder",
-        "map_api_provider_description": "Voor het verkrijgen van locatienamen uit de GPS-metadata van afbeeldingen.",
-        "map_api_key_header": "API-sleutel voor Kaartaanbieder",
-        "map_api_key_description": "Haal je API-sleutel op via {{url}}",
+        "map_api_provider_description": "Voor het verkrijgen van locatienamen uit de gpn-metagegevens van afbeeldingen.",
+        "map_api_key_header": "Api-sleutel van kaartaanbieder",
+        "map_api_key_description": "Verkrijg je api-sleutel op {{url}}",
         "allow": "Toestaan",
         "header": "Gebruikersregistratie",
         "headerheavyweight": "Zware processen",
-        "heavyweight": "Het aantal processen tijdens het scannen van afbeeldingen. Let op: deze instelling kan het geheugenverbruik flink verhogen. Elk proces vereist 800MB ram-geheugen; pas dit naar eigen inzicht aan. Standaard: 1."
+        "heavyweight": "Het aantal processen tijdens het scannen van afbeeldingen. Let op: deze instelling kan het geheugenverbruik flink verhogen. Elk proces vereist 800MB ram-geheugen; pas dit naar eigen inzicht aan. Standaard: 1.",
+        "captioning_model_header": "Bijschriftmodel",
+        "captioning_model_description": "Het model voor het opstellen van bijschriften."
     },
     "modalnextcloud": {
         "choosedirectory": "Kies een map uit onderstaande lijst",
