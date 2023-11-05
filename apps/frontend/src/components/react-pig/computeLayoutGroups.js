@@ -1,7 +1,7 @@
 // like computeLayout but specific for groups. Could combine them but it might get messy
 import getMinAspectRatio from "./utils/getMinAspectRatio";
 
-export default function computeLayoutGroups({ imageData, settings, totalHeight, wrapperWidth, scaleOfImages }) {
+export default function computeLayoutGroups({ imageData, settings, wrapperWidth, scaleOfImages }) {
   // Compute the minimum aspect ratio that should be applied to the rows.
   const minAspectRatio = getMinAspectRatio(wrapperWidth, scaleOfImages);
   const groupTitleHeight = 50; // wrapperWidth < settings.breakpoint ? 50 : 50
@@ -87,7 +87,7 @@ export default function computeLayoutGroups({ imageData, settings, totalHeight, 
   });
 
   // No space below the last image
-  totalHeight = translateY - settings.gridGap;
+  const totalHeight = translateY - settings.gridGap;
 
   return {
     imageData: tempGroupData,

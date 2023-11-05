@@ -95,6 +95,7 @@ const faceSlice = createSlice({
       const { tab, position } = action.payload;
       if (tab in state.tabs) {
         // @ts-ignore
+        // eslint-disable-next-line no-param-reassign
         state.tabs[tab].scrollPosition = position;
       }
     },

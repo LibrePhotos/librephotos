@@ -7,7 +7,6 @@ module.exports = {
   extends: ["airbnb", "airbnb-typescript", "airbnb/hooks", "prettier"],
   plugins: ["prettier"],
   rules: {
-    "no-param-reassign": "off",
     "import/prefer-default-export": "off",
     "import/no-cycle": "off",
     "react/jsx-props-no-spreading": "off", // some Mantine components need to use spread operator

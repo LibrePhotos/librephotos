@@ -17,7 +17,7 @@
  */
 import getMinAspectRatio from "./utils/getMinAspectRatio";
 
-export default function computeLayout({ imageData, settings, totalHeight, wrapperWidth, scaleOfImages }) {
+export default function computeLayout({ imageData, settings, wrapperWidth, scaleOfImages }) {
   // Compute the minimum aspect ratio that should be applied to the rows.
   const minAspectRatio = getMinAspectRatio(wrapperWidth, scaleOfImages);
 
@@ -82,7 +82,7 @@ export default function computeLayout({ imageData, settings, totalHeight, wrappe
     }
   });
   // No space below the last image
-  totalHeight = translateY - settings.gridGap;
+  const totalHeight = translateY - settings.gridGap;
 
   return {
     imageData: tempImgData,

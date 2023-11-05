@@ -195,6 +195,7 @@ export function LocationLink(props: Props) {
                         rx={5}
                         stroke="#dddddd"
                         onClick={() => {
+                          // eslint-disable-next-line no-param-reassign
                           node.data.isExpanded = !node.data.isExpanded;
                         }}
                       />
@@ -212,6 +213,7 @@ export function LocationLink(props: Props) {
                         strokeOpacity={!node.data.children ? 1 : 1}
                         rx={!node.data.children ? 5 : 5}
                         onClick={() => {
+                          // eslint-disable-next-line no-param-reassign
                           node.data.isExpanded = !node.data.isExpanded;
                         }}
                       />
