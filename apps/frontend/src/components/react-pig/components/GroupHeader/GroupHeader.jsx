@@ -1,8 +1,9 @@
+import PropTypes from "prop-types";
 import React from "react";
 
 import styles from "./styles.module.css";
 
-export default function ({ settings, group, activeTileUrl }) {
+function GroupHeader({ settings, group, activeTileUrl }) {
   return (
     <header
       className={styles.headerPositioner}
@@ -24,3 +25,21 @@ export default function ({ settings, group, activeTileUrl }) {
     </header>
   );
 }
+
+GroupHeader.propTypes = {
+  settings: PropTypes.shape({
+    gridGap: PropTypes.number,
+    bgColor: PropTypes.string,
+    thumbnailSize: PropTypes.number,
+    expandedSize: PropTypes.number,
+  }).isRequired,
+  group: PropTypes.shape({
+    groupTranslateY: PropTypes.number,
+    height: PropTypes.number,
+    location: PropTypes.string,
+    date: PropTypes.string,
+  }).isRequired,
+  activeTileUrl: PropTypes.string.isRequired,
+};
+
+export default GroupHeader;

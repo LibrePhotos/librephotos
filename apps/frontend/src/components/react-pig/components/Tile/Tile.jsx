@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import React, { useState } from "react";
 import { animated, useSpring } from "react-spring";
 
@@ -180,5 +181,44 @@ const Tile = React.memo(
     );
   }
 );
+
+const ItemType = PropTypes.shape({
+  id: PropTypes.string,
+  dominantColor: PropTypes.string,
+  isTemp: PropTypes.bool,
+  url: PropTypes.string,
+  type: PropTypes.string,
+  style: PropTypes.shape({
+    height: PropTypes.number,
+    width: PropTypes.number,
+    translateX: PropTypes.number,
+    translateY: PropTypes.number,
+  }),
+});
+
+const SettingsType = PropTypes.shape({
+  gridGap: PropTypes.number,
+  bgColor: PropTypes.string,
+  thumbnailSize: PropTypes.number,
+  expandedSize: PropTypes.number,
+});
+
+Tile.propTypes = {
+  item: ItemType.isRequired,
+  useLqip: PropTypes.bool.isRequired,
+  containerWidth: PropTypes.number.isRequired,
+  containerOffsetTop: PropTypes.number.isRequired,
+  getUrl: PropTypes.func.isRequired,
+  activeTileUrl: PropTypes.string.isRequired,
+  handleClick: PropTypes.func.isRequired,
+  handleSelection: PropTypes.func.isRequired,
+  selected: PropTypes.bool.isRequired,
+  selectable: PropTypes.bool.isRequired,
+  windowHeight: PropTypes.number.isRequired,
+  scrollSpeed: PropTypes.string.isRequired,
+  settings: SettingsType.isRequired,
+  toprightoverlay: PropTypes.func,
+  bottomleftoverlay: PropTypes.func,
+};
 
 export default Tile;
