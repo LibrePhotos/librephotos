@@ -1,7 +1,7 @@
 import { ActionIcon, Progress } from "@mantine/core";
 import CryptoJS from "crypto-js";
 import MD5 from "crypto-js/md5";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload } from "tabler-icons-react";
 
@@ -56,7 +56,8 @@ export function ChunkedUploadButton() {
     });
   };
 
-  const uploadExists = async (hash: string) => dispatch(api.endpoints.uploadExists.initiate(hash));
+  const checkIfAlreadyUploaded = async (hash: string) =>
+    dispatch(api.endpoints.uploadExists.initiate(hash + userSelfDetails.id)).then(r => r.data);
 
   const uploadFinished = async (file: File, uploadId: string) => {
     const formData = new FormData();
@@ -108,6 +109,46 @@ export function ChunkedUploadButton() {
     return chunk;
   };
 
+  async function uploadFile(file: File) {
+    const currentUploadedFileSizeStartValue = currentUploadedFileSize;
+    let offset = 0;
+    let uploadId = "";
+    const chunks = calculateChunks(file, chunkSize);
+    // To-Do: Handle Resume and Pause
+    // eslint-disable-next-line no-restricted-syntax
+    for (const chunk of chunks) {
+      // eslint-disable-next-line no-await-in-loop
+      const response = await uploadChunk(chunk, uploadId, offset);
+      if ("data" in response) {
+        offset = response.data.offset;
+        uploadId = response.data.upload_id;
+      }
+      // To-Do: Handle Error
+      if (chunk.size) {
+        currentUploadedFileSize += chunk.size;
+      } else {
+        currentUploadedFileSize += file.size - (currentUploadedFileSize - currentUploadedFileSizeStartValue);
+      }
+      setCurrentSize(currentUploadedFileSize);
+    }
+    await uploadFinished(file, uploadId);
+  }
+
+  function onDrop(acceptedFiles: File[]) {
+    setTotalSize(acceptedFiles.reduce((acc, file) => acc + file.size, 0));
+    acceptedFiles.forEach(file => {
+      calculateMD5(file)
+        .then(checkIfAlreadyUploaded)
+        .then(async foundOnServer => {
+          if (!foundOnServer) {
+            await uploadFile(file);
+          } else {
+            setCurrentSize(currentUploadedFileSize + file.size);
+          }
+        });
+    });
+  }
+
   const { getRootProps, getInputProps, open } = useDropzone({
     accept: {
       "image/*": [],
@@ -115,49 +156,8 @@ export function ChunkedUploadButton() {
     },
     noClick: true,
     noKeyboard: true,
-    onDrop: async acceptedFiles => {
-      let total = 0;
-      acceptedFiles.forEach(file => {
-        const fileSize = file.size;
-        total += fileSize;
-      });
-      setTotalSize(total);
-      acceptedFiles.forEach(async file => {
-        const currentUploadedFileSizeStartValue = currentUploadedFileSize;
-        // Check if the upload already exists via the hash of the file
-        const hash = (await calculateMD5(file)) + userSelfDetails.id;
-        const isAlreadyUploaded = (await uploadExists(hash)).data;
-        let offset = 0;
-        let uploadId = "";
-        if (!isAlreadyUploaded) {
-          const chunks = calculateChunks(file, chunkSize);
-          // To-Do: Handle Resume and Pause
-          for (let i = 0; i < chunks.length; i += 1) {
-            const response = await uploadChunk(chunks[offset / chunkSize], uploadId, offset);
-            if ("data" in response) {
-              offset = response.data.offset;
-              uploadId = response.data.upload_id;
-            }
-            // To-Do: Handle Error
-            if (chunks[offset / chunkSize]) {
-              currentUploadedFileSize += chunks[offset / chunkSize].size;
-            } else {
-              currentUploadedFileSize += file.size - (currentUploadedFileSize - currentUploadedFileSizeStartValue);
-            }
-            setCurrentSize(currentUploadedFileSize);
-          }
-          uploadFinished(file, uploadId);
-        } else {
-          currentUploadedFileSize += file.size;
-          setCurrentSize(currentUploadedFileSize);
-        }
-      });
-    },
+    onDrop,
   });
-
-  useEffect(() => {}, [totalSize]);
-
-  useEffect(() => {}, [currentSize]);
 
   if (settings?.allow_upload) {
     return (
