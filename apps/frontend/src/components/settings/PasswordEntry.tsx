@@ -100,3 +100,8 @@ export function PasswordEntry(props: Props): JSX.Element {
     </Stack>
   );
 }
+
+PasswordEntry.defaultProps = {
+  createNew: false,
+  closing: false,
+};

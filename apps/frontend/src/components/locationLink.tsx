@@ -26,7 +26,12 @@ import { useAppDispatch, useAppSelector } from "../store/store";
 type Props = {
   width: number;
   height: number;
-  margin?: { top: number; left: number; right: number; bottom: number };
+  margin?: {
+    top: number;
+    left: number;
+    right: number;
+    bottom: number;
+  };
 };
 
 export function LocationLink(props: Props) {
@@ -224,3 +229,12 @@ export function LocationLink(props: Props) {
     </div>
   );
 }
+
+LocationLink.defaultProps = {
+  margin: {
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+};

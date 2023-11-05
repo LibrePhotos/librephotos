@@ -182,6 +182,11 @@ const Tile = React.memo(
   }
 );
 
+Tile.defaultProps = {
+  toprightoverlay: null,
+  bottomleftoverlay: null,
+};
+
 const ItemType = PropTypes.shape({
   id: PropTypes.string,
   dominantColor: PropTypes.string,

@@ -21,3 +21,7 @@ export function FileInfoComponent(props: { description?: string; info: string | 
     </Group>
   );
 }
+
+FileInfoComponent.defaultProps = {
+  description: "",
+};

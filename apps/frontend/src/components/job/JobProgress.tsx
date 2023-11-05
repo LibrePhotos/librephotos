@@ -32,3 +32,8 @@ export function JobProgress({ target, current, finished, error }: IJobProgress) 
   }
   return null;
 }
+
+JobProgress.defaultProps = {
+  target: 0,
+  current: 0,
+};

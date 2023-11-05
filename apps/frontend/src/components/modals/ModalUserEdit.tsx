@@ -347,3 +347,9 @@ export function ModalUserEdit(props: Props) {
     </Modal>
   );
 }
+
+ModalUserEdit.defaultProps = {
+  updateAndScan: false,
+  selectedNodeId: "",
+  firstTimeSetup: false,
+};
