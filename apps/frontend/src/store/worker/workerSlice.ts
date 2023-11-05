@@ -20,6 +20,7 @@ const workerSlice = createSlice({
         const parsed = WorkerAvailabilityResponse.parse(payload);
         return { ...state, ...parsed };
       } catch (e) {
+        // eslint-disable-next-line no-console
         console.error(e);
         return state;
       }

@@ -1,5 +1,5 @@
 export function toggleSidebar() {
-  return function (dispatch) {
+  return function cb(dispatch) {
     dispatch({ type: "TOGGLE_SIDEBAR" });
   };
 }

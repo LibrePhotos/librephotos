@@ -34,7 +34,7 @@ const fetchPhotosetRejected = (err: string) => ({
 });
 
 export function downloadPhotos(image_hashes: string[]) {
-  return function () {
+  return function cb() {
     Server.post(
       `photos/download`,
       {
@@ -56,7 +56,7 @@ export function downloadPhotos(image_hashes: string[]) {
 }
 
 export function setPhotosShared(image_hashes: string[], val_shared: boolean, target_user: SimpleUser) {
-  return function (dispatch: Dispatch<any>) {
+  return function cb(dispatch: Dispatch<any>) {
     dispatch({ type: "SET_PHOTOS_SHARED" });
     Server.post(`photosedit/share/`, {
       image_hashes,
@@ -126,7 +126,7 @@ const PigPhotoListResponseSchema = z.object({
 });
 
 export function fetchPhotosSharedToMe() {
-  return function (dispatch: Dispatch<any>) {
+  return function cb(dispatch: Dispatch<any>) {
     dispatch({ type: FETCH_PHOTOSET });
     Server.get("photos/shared/tome/")
       .then(response => {
@@ -155,7 +155,7 @@ const PhotosSharedFromMeResponseSchema = z.object({
 });
 
 export function fetchPhotosSharedFromMe() {
-  return function (dispatch: Dispatch<any>) {
+  return function cb(dispatch: Dispatch<any>) {
     dispatch({ type: FETCH_PHOTOSET });
     Server.get("photos/shared/fromme/")
       .then(response => {
@@ -191,7 +191,7 @@ const PhotosUpdatedResponseSchema = z.object({
 export const SET_PHOTOS_PUBLIC_FULFILLED = "SET_PHOTOS_PUBLIC_FULFILLED";
 
 export function setPhotosPublic(image_hashes: string[], val_public: boolean) {
-  return function (dispatch: Dispatch<any>) {
+  return function cb(dispatch: Dispatch<any>) {
     dispatch({ type: "SET_PHOTOS_PUBLIC" });
     Server.post(`photosedit/makepublic/`, { image_hashes, val_public })
       .then(response => {
@@ -231,7 +231,7 @@ export const SET_PHOTOS_FAVORITE_FULFILLED = "SET_PHOTOS_FAVORITE_FULFILLED";
 export const SET_PHOTOS_FAVORITE_REJECTED = "SET_PHOTOS_FAVORITE_REJECTED";
 
 export function setPhotosFavorite(image_hashes: string[], favorite: boolean) {
-  return function (dispatch: Dispatch<any>) {
+  return function cb(dispatch: Dispatch<any>) {
     dispatch({ type: SET_PHOTOS_FAVORITE });
     Server.post(`photosedit/favorite/`, { image_hashes, favorite })
       .then(response => {
@@ -269,7 +269,7 @@ export const PHOTOS_FINAL_DELETED_FULFILLED = "PHOTOS_FINAL_DELETED_FULFILLED";
 export const PHOTOS_FINAL_DELETED_REJECTED = "PHOTOS_FINAL_DELETED_REJECTED";
 
 export function finalPhotosDeleted(image_hashes: string[]) {
-  return function (dispatch: Dispatch<any>) {
+  return function cb(dispatch: Dispatch<any>) {
     dispatch({ type: PHOTOS_FINAL_DELETED });
     Server.delete(`photosedit/delete`, {
       data: { image_hashes },
@@ -297,7 +297,7 @@ export function finalPhotosDeleted(image_hashes: string[]) {
 }
 
 export function deleteDuplicateImage(image_hash: string, path: string) {
-  return function (dispatch: Dispatch<any>) {
+  return function cb(dispatch: Dispatch<any>) {
     dispatch({ type: PHOTOS_FINAL_DELETED });
     Server.delete(`/photosedit/duplicate/delete`, {
       data: { image_hash, path },
@@ -325,7 +325,7 @@ export const SET_PHOTOS_DELETED_FULFILLED = "SET_PHOTOS_DELETED_FULFILLED";
 export const SET_PHOTOS_DELETED_REJECTED = "SET_PHOTOS_DELETED_REJECTED";
 
 export function setPhotosDeleted(image_hashes: string[], deleted: boolean) {
-  return function (dispatch: Dispatch<any>) {
+  return function cb(dispatch: Dispatch<any>) {
     dispatch({ type: SET_PHOTOS_DELETED });
     Server.post(`photosedit/setdeleted/`, { image_hashes, deleted })
       .then(response => {
@@ -358,7 +358,7 @@ export function setPhotosDeleted(image_hashes: string[], deleted: boolean) {
 export const SET_PHOTOS_HIDDEN_FULFILLED = "SET_PHOTOS_HIDDEN_FULFILLED";
 
 export function setPhotosHidden(image_hashes: string[], hidden: boolean) {
-  return function (dispatch: Dispatch<any>) {
+  return function cb(dispatch: Dispatch<any>) {
     dispatch({ type: "SET_PHOTOS_HIDDEN" });
     Server.post(`photosedit/hide/`, { image_hashes, hidden })
       .then(response => {
@@ -412,25 +412,25 @@ function triggerScan(dispatch: Dispatch<any>, url: string, i18nPrefix: string): 
 }
 
 export function scanPhotos() {
-  return function (dispatch: Dispatch<any>) {
+  return function cb(dispatch: Dispatch<any>) {
     triggerScan(dispatch, "scanphotos/", "scanphotos");
   };
 }
 
 export function scanUploadedPhotos() {
-  return function (dispatch: Dispatch<any>) {
+  return function cb(dispatch: Dispatch<any>) {
     triggerScan(dispatch, "scanuploadedphotos/", "scanuploadedphotos");
   };
 }
 
 export function scanAllPhotos() {
-  return function (dispatch: Dispatch<any>) {
+  return function cb(dispatch: Dispatch<any>) {
     triggerScan(dispatch, "fullscanphotos/", "fullscanphotos");
   };
 }
 
 export function scanNextcloudPhotos() {
-  return function (dispatch: Dispatch<any>) {
+  return function cb(dispatch: Dispatch<any>) {
     triggerScan(dispatch, "nextcloud/scanphotos/", "scannextcloudphotos");
   };
 }
@@ -482,7 +482,6 @@ export function fetchNoTimestampPhotoPaginated(dispatch: AppDispatch, page: numb
       });
     })
     .catch(err => {
-      console.error(err);
       dispatch({
         type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED,
         payload: err,
@@ -491,7 +490,7 @@ export function fetchNoTimestampPhotoPaginated(dispatch: AppDispatch, page: numb
 }
 
 export function generatePhotoIm2txtCaption(image_hash: string) {
-  return function (dispatch: Dispatch<any>) {
+  return function cb(dispatch: Dispatch<any>) {
     dispatch({ type: "GENERATE_PHOTO_CAPTION" });
     Server.post("photosedit/generateim2txt", { image_hash })
       .then(() => {
@@ -500,14 +499,13 @@ export function generatePhotoIm2txtCaption(image_hash: string) {
         dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hash)).refetch();
       })
       .catch(error => {
-        dispatch({ type: "GENERATE_PHOTO_CAPTION_REJECTED" });
-        console.error(error);
+        dispatch({ type: "GENERATE_PHOTO_CAPTION_REJECTED", payload: error });
       });
   };
 }
 
 export function savePhotoCaption(image_hash: string, caption?: string | undefined) {
-  return function (dispatch: Dispatch<any>) {
+  return function cb(dispatch: Dispatch<any>) {
     Server.post("photosedit/savecaption", { image_hash, caption })
       .then(() => {
         dispatch({ type: "SAVE_PHOTO_CAPTION_FULFILLED" });
@@ -520,14 +518,13 @@ export function savePhotoCaption(image_hash: string, caption?: string | undefine
         });
       })
       .catch(error => {
-        dispatch({ type: "SAVE_PHOTO_CAPTION_REJECTED" });
-        console.error(error);
+        dispatch({ type: "SAVE_PHOTO_CAPTION_REJECTED", payload: error });
       });
   };
 }
 
 export function editPhoto(image_hash: string, photo_details: any) {
-  return function (dispatch: Dispatch<any>) {
+  return function cb(dispatch: Dispatch<any>) {
     dispatch({ type: "EDIT_PHOTO" });
     Server.patch(`photos/edit/${image_hash}/`, photo_details)
       .then(() => {
@@ -541,8 +538,7 @@ export function editPhoto(image_hash: string, photo_details: any) {
         dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hash)).refetch();
       })
       .catch(error => {
-        dispatch({ type: "EDIT_PHOTO_REJECTED" });
-        console.error(error);
+        dispatch({ type: "EDIT_PHOTO_REJECTED", payload: error });
       });
   };
 }

@@ -45,17 +45,19 @@ export default class Pig extends Component {
     this.imageData = props.imageData;
     this.numberOfItems = props.numberOfItems || this.imageData.length;
     this.scaleOfImages = props.scaleOfImages || 1;
-    this.updateGroups = props.updateGroups || function () {};
-    this.updateItems = props.updateItems || function () {};
+    this.updateGroups = props.updateGroups || function onUpdateGroups() {};
+    this.updateItems = props.updateItems || function onUpdateItems() {};
     // if sortFunc has been provided as a prop, use it
     if (props.sortFunc) this.imageData.sort(props.sortFunc);
     else if (props.sortByDate) this.imageData = sortByDate(this.imageData);
 
     // check grouping ability
     if (props.groupByDate && !this.imageData[0].items) {
+      // eslint-disable-next-line no-console
       console.error(`Data provided is not grouped yet. Please check the docs, you'll need to use groupify.js`);
     }
     if (!props.groupByDate && this.imageData[0].items) {
+      // eslint-disable-next-line no-console
       console.error(`Data provided is grouped, please include the groupByDate prop`);
     }
 
@@ -208,7 +210,6 @@ export default class Pig extends Component {
   }
 
   defaultHandleSelection = item => {
-    console.log(item);
     let { newSelectedItems } = this.state;
     if (newSelectedItems.includes(item)) {
       newSelectedItems = newSelectedItems.filter(value => value !== item);

@@ -187,7 +187,6 @@ export function ModalUserEdit(props: Props) {
     }
 
     if (createNew) {
-      console.log("createNew", username, userPassword, email, firstName, lastName);
       if (userPassword && username) {
         signup({
           username: username.toLowerCase(),

@@ -28,7 +28,7 @@ export function fetchPeople(dispatch) {
 }
 
 export function renamePerson(personId, personName, newPersonName) {
-  return function (dispatch) {
+  return function cb(dispatch) {
     dispatch({ type: "RENAME_PERSON" });
     Server.patch(`persons/${personId}/`, { newPersonName })
       .then(() => {
@@ -48,7 +48,7 @@ export function renamePerson(personId, personName, newPersonName) {
 }
 
 export function deletePerson(person_id) {
-  return function (dispatch) {
+  return function cb(dispatch) {
     dispatch({ type: "DELETE_PERSON" });
     Server.delete(`persons/${person_id}/`)
       .then(() => {
@@ -69,7 +69,7 @@ export function deletePerson(person_id) {
 }
 
 export function setAlbumCoverForPerson(person_id, photo_hash) {
-  return function (dispatch) {
+  return function cb(dispatch) {
     dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON" });
     Server.patch(`persons/${person_id}/`, {
       cover_photo: photo_hash,

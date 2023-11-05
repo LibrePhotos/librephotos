@@ -17,7 +17,7 @@
  */
 import getMinAspectRatio from "./utils/getMinAspectRatio";
 
-export default function ({ imageData, settings, totalHeight, wrapperWidth, scaleOfImages }) {
+export default function computeLayout({ imageData, settings, totalHeight, wrapperWidth, scaleOfImages }) {
   // Compute the minimum aspect ratio that should be applied to the rows.
   const minAspectRatio = getMinAspectRatio(wrapperWidth, scaleOfImages);
 

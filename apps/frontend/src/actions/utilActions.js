@@ -19,7 +19,7 @@ import {
 } from "./utilActions.types";
 
 export function updateAvatar(user, form_data) {
-  return function (dispatch) {
+  return function cb(dispatch) {
     Server.patch(`user/${user.id}/`, form_data)
       .then(response => {
         const data = UserSchema.parse(response.data);
@@ -34,7 +34,6 @@ export function updateAvatar(user, form_data) {
         });
       })
       .catch(error => {
-        console.error(error);
         dispatch({ type: "UPDATE_USER_REJECTED", payload: error });
       });
   };
@@ -55,13 +54,12 @@ export function updateUser(user, dispatch) {
       });
     })
     .catch(error => {
-      console.error(error);
       dispatch({ type: "UPDATE_USER_REJECTED", payload: error });
     });
 }
 
 export function updateUserAndScan(user) {
-  return function (dispatch) {
+  return function cb(dispatch) {
     Server.patch(`manage/user/${user.id}/`, user)
       .then(response => {
         ManageUser.parse(response.data);
@@ -79,14 +77,13 @@ export function updateUserAndScan(user) {
         }
       })
       .catch(error => {
-        console.error(error);
         dispatch({ type: "UPDATE_USER_REJECTED", payload: error });
       });
   };
 }
 
 export function deleteMissingPhotos() {
-  return function (dispatch) {
+  return function cb(dispatch) {
     dispatch({ type: "DELETE_MISSING_PHOTOS" });
     dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
     dispatch({
@@ -108,14 +105,13 @@ export function deleteMissingPhotos() {
         });
       })
       .catch(err => {
-        console.error(err);
         dispatch({ type: "DELETE_MISSING_PHOTOS_REJECTED", payload: err });
       });
   };
 }
 
 export function generateEventAlbums() {
-  return function (dispatch) {
+  return function cb(dispatch) {
     dispatch({ type: "GENERATE_EVENT_ALBUMS" });
     dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
     dispatch({
@@ -137,14 +133,13 @@ export function generateEventAlbums() {
         });
       })
       .catch(err => {
-        console.error(err);
         dispatch({ type: "GENERATE_EVENT_ALBUMS_REJECTED", payload: err });
       });
   };
 }
 
 export function generateEventAlbumTitles() {
-  return function (dispatch) {
+  return function cb(dispatch) {
     dispatch({ type: "GENERATE_EVENT_ALBUMS_TITLES" });
     dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
     dispatch({
@@ -167,7 +162,6 @@ export function generateEventAlbumTitles() {
         });
       })
       .catch(err => {
-        console.error(err);
         dispatch({
           type: "GENERATE_EVENT_ALBUMS_TITLES_REJECTED",
           payload: err,
@@ -177,7 +171,7 @@ export function generateEventAlbumTitles() {
 }
 
 export function fetchExampleSearchTerms() {
-  return function (dispatch) {
+  return function cb(dispatch) {
     dispatch({ type: "FETCH_EXAMPLE_SEARCH_TERMS" });
     Server.get(`searchtermexamples/`)
       .then(response => {
@@ -188,14 +182,13 @@ export function fetchExampleSearchTerms() {
         });
       })
       .catch(err => {
-        console.error(err);
         dispatch({ type: "FETCH_EXAMPLE_SEARCH_TERMS_REJECTED", payload: err });
       });
   };
 }
 
 export function fetchLocationSunburst() {
-  return function (dispatch) {
+  return function cb(dispatch) {
     dispatch({ type: "FETCH_LOCATION_SUNBURST" });
     Server.get(`locationsunburst/`)
       .then(response => {
@@ -206,7 +199,6 @@ export function fetchLocationSunburst() {
         });
       })
       .catch(err => {
-        console.error(err);
         dispatch({ type: "FETCH_LOCATION_SUNBURST_REJECTED", payload: err });
       });
   };
@@ -223,7 +215,6 @@ export function fetchLocationTimeline(dispatch) {
       });
     })
     .catch(err => {
-      console.error(err);
       dispatch({ type: "FETCH_LOCATION_TIMELINE_REJECTED", payload: err });
     });
 }
@@ -238,13 +229,12 @@ export function fetchTimezoneList(dispatch) {
       });
     })
     .catch(err => {
-      console.error(err);
       dispatch({ type: "FETCH_TIMEZONE_LIST_REJECTED", payload: err });
     });
 }
 
 export function fetchCountStats() {
-  return function (dispatch) {
+  return function cb(dispatch) {
     dispatch({ type: "FETCH_COUNT_STATS" });
     Server.get(`stats/`)
       .then(response => {
@@ -255,14 +245,13 @@ export function fetchCountStats() {
         });
       })
       .catch(err => {
-        console.error(err);
         dispatch({ type: "FETCH_COUNT_STATS_REJECTED", payload: err });
       });
   };
 }
 
 export function fetchLocationClusters() {
-  return function (dispatch) {
+  return function cb(dispatch) {
     dispatch({ type: "FETCH_LOCATION_CLUSTERS" });
     Server.get(`locclust/`)
       .then(response => {
@@ -290,7 +279,6 @@ export function fetchPhotoMonthCounts(dispatch) {
       });
     })
     .catch(err => {
-      console.error(err);
       dispatch({ type: "FETCH_PHOTO_MONTH_COUNTS_REJECTED", payload: err });
     });
 }
@@ -303,7 +291,6 @@ export function fetchWordCloud(dispatch) {
       dispatch({ type: "FETCH_WORDCLOUD_FULFILLED", payload: data });
     })
     .catch(err => {
-      console.error(err);
       dispatch({ type: "FETCH_WORDCLOUD_REJECTED", payload: err });
     });
 }

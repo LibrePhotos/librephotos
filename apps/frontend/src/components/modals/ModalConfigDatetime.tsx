@@ -15,7 +15,7 @@ type Props = {
 };
 
 function searchRules(query: string) {
-  return function (rule: DateTimeRule) {
+  return function cb(rule: DateTimeRule) {
     return fuzzyMatch(query, rule.name) || fuzzyMatch(query, rule.rule_type);
   };
 }
