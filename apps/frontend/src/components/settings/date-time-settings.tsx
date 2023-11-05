@@ -1,4 +1,5 @@
 import { createStyles } from "@mantine/core";
+import type { TFunction } from "i18next";
 import React from "react";
 
 import type { DateTimeRule } from "./date-time.zod";
@@ -35,7 +36,7 @@ export const useDateTimeSettingsStyles = createStyles(theme => ({
   },
 }));
 
-export function getRuleExtraInfo(rule: DateTimeRule, t: (s: string, o: Object) => string) {
+export function getRuleExtraInfo(rule: DateTimeRule, t: TFunction<"translation", undefined>) {
   const ignoredProps = ["name", "id", "rule_type", "transform_tz", "is_default"];
   return (
     <>

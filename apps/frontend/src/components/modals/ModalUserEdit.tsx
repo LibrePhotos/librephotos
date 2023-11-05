@@ -12,6 +12,7 @@ import { useManageUpdateUserMutation, useSignUpMutation } from "../../api_client
 import type { DirTree } from "../../api_client/dir-tree";
 import { useLazyFetchDirsQuery } from "../../api_client/dir-tree";
 import { useAppDispatch, useAppSelector } from "../../store/store";
+import { IUser } from "../../store/user/user.zod";
 import { EMAIL_REGEX, mergeDirTree } from "../../util/util";
 import { PasswordEntry } from "../settings/PasswordEntry";
 
@@ -66,12 +67,12 @@ export function ModalUserEdit(props: Props) {
   const [updateUser] = useManageUpdateUserMutation();
   const [fetchDirectoryTree, { data: directoryTree }] = useLazyFetchDirsQuery();
 
-  const validateUsername = username => {
-    let error = null;
+  const validateUsername = (username: string) => {
+    let error = "";
     if (!username) {
       error = t("modaluseredit.errorusernamecannotbeblank");
-    } else if (userList && userList.results) {
-      userList.results.every(user => {
+    } else if (userList?.results) {
+      userList.results.every((user: IUser) => {
         if (user.username.toLowerCase() === username.toLowerCase() && user.id !== userToEdit.id) {
           error = t("modaluseredit.errorusernameexists");
           return false;
@@ -79,17 +80,17 @@ export function ModalUserEdit(props: Props) {
         return true;
       });
     }
-    return error;
+    return error || null;
   };
 
-  const validateEmail = email => {
+  const validateEmail = (email: string) => {
     if (email && !EMAIL_REGEX.test(email)) {
       return t("modaluseredit.errorinvalidemail");
     }
     return null;
   };
 
-  const validatePath = path => {
+  const validatePath = (path: string) => {
     if (firstTimeSetup && !path) {
       return t("modalscandirectoryedit.mustspecifypath");
     }
@@ -118,7 +119,7 @@ export function ModalUserEdit(props: Props) {
   });
 
   useEffect(() => {
-    if (auth.access && auth.access.is_admin) {
+    if (auth?.access?.is_admin) {
       fetchDirectoryTree("");
     }
   }, [auth.access, dispatch]);
@@ -161,7 +162,7 @@ export function ModalUserEdit(props: Props) {
     }
   }, [form.values.scan_directory]);
 
-  const nodeClicked = (event, rowInfo) => {
+  const nodeClicked = (event: Event, rowInfo: any) => {
     if (inputRef.current) {
       const path = rowInfo.node.absolute_path;
       inputRef.current.value = path;
@@ -318,19 +319,13 @@ export function ModalUserEdit(props: Props) {
                 canDrag={() => false}
                 canDrop={() => false}
                 treeData={treeData}
-                onChange={changedTreeData => setTreeData(changedTreeData)}
+                onChange={setTreeData}
                 theme={FileExplorerTheme}
                 isVirtualized={false}
-                generateNodeProps={rowInfo => {
-                  const nodeProps = {
-                    onClick: event => nodeClicked(event, rowInfo),
-                  };
-                  if (selectedNodeId === rowInfo.node.id) {
-                    // @ts-ignore
-                    nodeProps.className = "selected-node";
-                  }
-                  return nodeProps;
-                }}
+                generateNodeProps={(rowInfo: any) => ({
+                  onClick: (event: Event) => nodeClicked(event, rowInfo),
+                  className: selectedNodeId === rowInfo.node.id ? "selected-node" : undefined,
+                })}
               />
             </div>
           </>
