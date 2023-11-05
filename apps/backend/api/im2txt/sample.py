@@ -6,7 +6,6 @@ from django.conf import settings
 from PIL import Image
 from torchvision import transforms
 
-from torch.onnx import export, dynamo_export
 from api.im2txt.model import DecoderRNN, EncoderCNN
 import onnxruntime as ort
 
@@ -163,6 +162,8 @@ class Im2txt(object):
         return sentence
 
     def export_onnx(self, encoder_output_path, decoder_output_path):
+        from torch.onnx import export, dynamo_export
+
         self.load_models()
 
         # Define a sample input image tensor (adjust input size as needed)
