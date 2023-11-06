@@ -1,6 +1,6 @@
 import { Group, Stack, Tabs, Text, Title } from "@mantine/core";
 import React, { useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { fetchUserAlbumsSharedFromMe } from "../../actions/albumsActions";
 import { fetchPhotosSharedFromMe } from "../../actions/photosActions";
@@ -12,6 +12,7 @@ import { PhotosShared } from "./PhotosShared";
 
 export function SharedFromMe() {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { albums } = useAppSelector(store => store);
   const { photosFlat, photosGroupedByUser, fetchedPhotosetType } = useAppSelector(store => store.photos);
   const { which } = useParams();
@@ -45,7 +46,7 @@ export function SharedFromMe() {
           </Text>
         </div>
       </Group>
-      <Tabs defaultValue="photos">
+      <Tabs defaultValue={which} onTabChange={value => navigate(`/shared/fromme/${value}/`)}>
         <Tabs.List>
           <Tabs.Tab value="photos">Photos</Tabs.Tab>
           <Tabs.Tab value="albums">Albums</Tabs.Tab>
