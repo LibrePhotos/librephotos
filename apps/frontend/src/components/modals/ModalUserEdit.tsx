@@ -68,19 +68,17 @@ export function ModalUserEdit(props: Props) {
   const [fetchDirectoryTree, { data: directoryTree }] = useLazyFetchDirsQuery();
 
   const validateUsername = (username: string) => {
-    let error = "";
     if (!username) {
-      error = t("modaluseredit.errorusernamecannotbeblank");
-    } else if (userList?.results) {
-      userList.results.every((user: IUser) => {
-        if (user.username.toLowerCase() === username.toLowerCase() && user.id !== userToEdit.id) {
-          error = t("modaluseredit.errorusernameexists");
-          return false;
-        }
-        return true;
-      });
+      return t("modaluseredit.errorusernamecannotbeblank");
     }
-    return error || null;
+    const exist = userList.results.reduce(
+      (acc: boolean, user: IUser) => acc || user.username.toLowerCase() === username.toLowerCase(),
+      false
+    );
+    if (exist) {
+      return t("modaluseredit.errorusernametaken");
+    }
+    return null;
   };
 
   const validateEmail = (email: string) => {
