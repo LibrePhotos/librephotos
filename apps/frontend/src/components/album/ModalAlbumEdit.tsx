@@ -4,9 +4,12 @@ import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { addToUserAlbum, createNewUserAlbum, fetchUserAlbumsList } from "../../actions/albumsActions";
+import {
+  useAddPhotoToUserAlbumMutation,
+  useCreateUserAlbumMutation,
+  useFetchUserAlbumsQuery,
+} from "../../api_client/albums/user";
 import { i18nResolvedLanguage } from "../../i18n";
-import { useAppDispatch, useAppSelector } from "../../store/store";
 import { fuzzyMatch } from "../../util/util";
 import { Tile } from "../Tile";
 
@@ -19,23 +22,17 @@ type Props = {
 export function ModalAlbumEdit(props: Props) {
   const [newAlbumTitle, setNewAlbumTitle] = useState("");
   const matches = useMediaQuery("(min-width: 700px)");
-  const { albumsUserList } = useAppSelector(store => store.albums);
-  const dispatch = useAppDispatch();
   const { isOpen, onRequestClose, selectedImages } = props;
   const { t } = useTranslation();
+  const { data: albumsUserList = [] } = useFetchUserAlbumsQuery();
+  const [createUserAlbum] = useCreateUserAlbumMutation();
+  const [addPhotoToUserAlbum] = useAddPhotoToUserAlbumMutation();
+  const [filteredUserAlbumList, setFilteredUserAlbumList] = useState(albumsUserList);
 
   useEffect(() => {
-    if (isOpen) {
-      dispatch(fetchUserAlbumsList());
-    }
-  }, [dispatch, isOpen]);
+    setFilteredUserAlbumList(albumsUserList.filter(el => fuzzyMatch(newAlbumTitle, el.title)));
+  }, [newAlbumTitle, albumsUserList]);
 
-  let filteredUserAlbumList;
-  if (newAlbumTitle.length > 0) {
-    filteredUserAlbumList = albumsUserList.filter(el => fuzzyMatch(el.title, newAlbumTitle));
-  } else {
-    filteredUserAlbumList = albumsUserList;
-  }
   return (
     <Modal
       zIndex={1500}
@@ -51,6 +48,7 @@ export function ModalAlbumEdit(props: Props) {
         <Group>
           {selectedImages.map(image => (
             <Tile
+              key={`si-${image.id}`}
               style={{ objectFit: "cover" }}
               height={40}
               width={40}
@@ -75,12 +73,10 @@ export function ModalAlbumEdit(props: Props) {
           />
           <Button
             onClick={() => {
-              dispatch(
-                createNewUserAlbum(
-                  newAlbumTitle,
-                  selectedImages.map(i => i.id)
-                )
-              );
+              createUserAlbum({
+                title: newAlbumTitle,
+                photos: selectedImages.map(i => i.id),
+              });
               onRequestClose();
               setNewAlbumTitle("");
             }}
@@ -99,13 +95,11 @@ export function ModalAlbumEdit(props: Props) {
               <UnstyledButton
                 key={`ub-${item.id}`}
                 onClick={() => {
-                  dispatch(
-                    addToUserAlbum(
-                      item.id,
-                      item.title,
-                      selectedImages.map(i => i.id)
-                    )
-                  );
+                  addPhotoToUserAlbum({
+                    id: `${item.id}`,
+                    title: item.title,
+                    photos: selectedImages.map(i => i.id),
+                  });
                   onRequestClose();
                 }}
               >

@@ -29,7 +29,7 @@ class GroupHeader extends Component {
             <Text size="md" weight="bold">
               {displayName}
             </Text>
-            <Text size="xs" color="gray" style={{ display: "flex", alignItems: "center" }}>
+            <Text size="xs" color="dimmed" style={{ display: "flex", alignItems: "center" }}>
               <Polaroid size={16} style={{ marginRight: 5 }} />
               {this.props.isSharedToMe
                 ? `shared ${this.props.group.photos.length} photos with you`
@@ -62,6 +62,7 @@ export class PhotosShared extends Component {
         ) : (
           this.props.photosGroupedByUser.map(group => (
             <PhotoListView
+              key={group.key}
               title="Photos"
               loading={this.props.fetchedPhotosetType !== photosetType}
               icon={<Photo size={50} />}

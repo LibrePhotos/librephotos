@@ -8,67 +8,18 @@ import i18n from "../i18n";
 import { PhotosetType } from "../reducers/photosReducer";
 import type { AppDispatch } from "../store/store";
 import { addTempElementsToGroups, getPhotosFlatFromGroupedByDate } from "../util/util";
-import type {
-  AlbumInfo,
-  AutoAlbum,
-  AutoAlbumInfo,
-  PlaceAlbumInfo,
-  ThingAlbum,
-  UserAlbumDetails,
-  UserAlbumInfo,
-} from "./albumActions.types";
+import type { AutoAlbumInfo, UserAlbumDetails, UserAlbumInfo } from "./albumActions.types";
 import {
-  AutoAlbumSchema,
   FetchAutoAlbumsListResponseSchema,
   FetchDateAlbumsListResponseSchema,
-  FetchPlaceAlbumsListResponseSchema,
-  FetchThingAlbumResponseSchema,
-  FetchThingAlbumsListResponseSchema,
   FetchUserAlbumsListResponseSchema,
   FetchUserAlbumsSharedResponseSchema,
   PlaceAlbumSchema,
-  UserAlbumEditResponseSchema,
   UserAlbumInfoSchema,
   UserAlbumSchema,
 } from "./albumActions.types";
 import type { DatePhotosGroup, IncompleteDatePhotosGroup } from "./photosActions.types";
 import { IncompleteDatePhotosGroupSchema } from "./photosActions.types";
-
-export function fetchThingAlbumsList() {
-  return function cb(dispatch: Dispatch<any>) {
-    dispatch({ type: "FETCH_THING_ALBUMS_LIST" });
-    Server.get("albums/thing/list/")
-      .then(response => {
-        const data = FetchThingAlbumsListResponseSchema.parse(response.data);
-        const albumInfoList: AlbumInfo[] = data.results;
-        dispatch({
-          type: "FETCH_THING_ALBUMS_LIST_FULFILLED",
-          payload: albumInfoList,
-        });
-      })
-      .catch(err => {
-        dispatch({ type: "FETCH_THING_ALBUMS_LIST_REJECTED", payload: err });
-      });
-  };
-}
-
-export function fetchThingAlbum(album_id: string) {
-  return function cb(dispatch: Dispatch<any>) {
-    dispatch({ type: "FETCH_THING_ALBUMS" });
-    Server.get(`albums/thing/${album_id}/`)
-      .then(response => {
-        const data = FetchThingAlbumResponseSchema.parse(response.data);
-        const thingAlbum: ThingAlbum = data.results;
-        dispatch({
-          type: "FETCH_THING_ALBUMS_FULFILLED",
-          payload: thingAlbum,
-        });
-      })
-      .catch(err => {
-        dispatch({ type: "FETCH_THING_ALBUMS_REJECTED", payload: err });
-      });
-  };
-}
 
 export function fetchUserAlbumsList() {
   return function cb(dispatch: Dispatch<any>) {
@@ -111,179 +62,6 @@ export function fetchUserAlbum(album_id: number) {
       })
       .catch(err => {
         dispatch({ type: FETCH_USER_ALBUM_REJECTED, payload: err });
-      });
-  };
-}
-
-export function createNewUserAlbum(title: string, image_hashes: string[]) {
-  return function cb(dispatch: Dispatch<any>) {
-    dispatch({ type: "CREATE_USER_ALBUMS_LIST" });
-    Server.post("albums/user/edit/", { title, photos: image_hashes })
-      .then(response => {
-        const data = UserAlbumEditResponseSchema.parse(response.data);
-        dispatch({
-          type: "CREATE_USER_ALBUMS_LIST_FULFILLED",
-          payload: data,
-        });
-        dispatch(fetchUserAlbumsList());
-        showNotification({
-          message: i18n.t("toasts.createnewalbum", {
-            numberOfPhotos: image_hashes.length,
-            title,
-          }),
-          title: i18n.t("toasts.createalbumtitle"),
-          color: "teal",
-          // status: "success",
-        });
-      })
-      .catch(err => {
-        dispatch({ type: "CREATE_USER_ALBUMS_LIST_REJECTED", payload: err });
-      });
-  };
-}
-
-export function renameUserAlbum(albumID: string, albumTitle: string, newAlbumTitle: string) {
-  return function cb(dispatch: Dispatch<any>) {
-    dispatch({ type: "RENAME_USER_ALBUM" });
-    Server.patch(`/albums/user/edit/${albumID}/`, {
-      title: newAlbumTitle,
-    })
-      .then(() => {
-        dispatch({ type: "RENAME_USER_ALBUM_FULFILLED", payload: albumID });
-        dispatch(fetchUserAlbumsList());
-        showNotification({
-          message: i18n.t("toasts.renamealbum", { albumTitle, newAlbumTitle }),
-          title: i18n.t("toasts.renamealbumtitle"),
-          color: "teal",
-          // To-Do: Add Icon
-        });
-      })
-      .catch(err => {
-        dispatch({ type: "RENAME_USER_ALBUM_REJECTED", payload: err });
-      });
-  };
-}
-
-export function deleteUserAlbum(albumID: string, albumTitle: string) {
-  return function cb(dispatch: Dispatch<any>) {
-    dispatch({ type: "DELETE_USER_ALBUM" });
-    Server.delete(`/albums/user/${albumID}`)
-      .then(() => {
-        dispatch({ type: "DELETE_USER_ALBUM_FULFILLED", payload: albumID });
-        dispatch(fetchUserAlbumsList());
-        showNotification({
-          message: i18n.t("toasts.deletealbum", { albumTitle }),
-          title: i18n.t("toasts.deletealbumtitle"),
-          color: "teal",
-        });
-      })
-      .catch(err => {
-        dispatch({ type: "DELETE_USER_ALBUM_REJECTED", payload: err });
-      });
-  };
-}
-
-export function removeFromUserAlbum(album_id: number, title: string, image_hashes: string[]) {
-  return function cb(dispatch: Dispatch<any>) {
-    dispatch({ type: "REMOVE_USER_ALBUMS_LIST" });
-    Server.patch(`albums/user/edit/${album_id}/`, {
-      removedPhotos: image_hashes,
-    })
-      .then(response => {
-        const data = UserAlbumEditResponseSchema.parse(response.data);
-        dispatch({
-          type: "REMOVE_USER_ALBUMS_LIST_FULFILLED",
-          payload: data,
-        });
-        showNotification({
-          message: i18n.t("toasts.removefromalbum", {
-            numberOfPhotos: image_hashes.length,
-            title,
-          }),
-          title: i18n.t("toasts.removefromalbumtitle"),
-          color: "teal",
-        });
-
-        dispatch(fetchUserAlbumsList());
-        dispatch(fetchUserAlbum(album_id));
-      })
-      .catch(err => {
-        dispatch({ type: "REMOVE_USER_ALBUMS_LIST_REJECTED", payload: err });
-      });
-  };
-}
-
-export function setAlbumCoverForUserAlbum(album_id, photo_hash) {
-  return function cb(dispatch) {
-    dispatch({ type: "SET_ALBUM_COVER_FOR_USER_ALBUM" });
-    Server.patch(`albums/user/edit/${album_id}/`, {
-      cover_photo: photo_hash,
-    })
-      .then(() => {
-        // To-Do: I should do something with the response
-        dispatch({ type: "SET_ALBUM_COVER_FOR_USER_ALBUM_FULFILLED" });
-        showNotification({
-          message: i18n.t("toasts.setcoverphoto"),
-          title: i18n.t("toasts.setcoverphototitle"),
-          color: "teal",
-        });
-        dispatch(fetchUserAlbumsList());
-      })
-      .catch(err => {
-        dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON_REJECTED", payload: err });
-      });
-  };
-}
-
-export function addToUserAlbum(album_id: number, title: string, image_hashes: string[]) {
-  return function cb(dispatch: Dispatch<any>) {
-    dispatch({ type: "EDIT_USER_ALBUMS_LIST" });
-    Server.patch(`albums/user/edit/${album_id}/`, {
-      title,
-      photos: image_hashes,
-    })
-      .then(response => {
-        const data = UserAlbumEditResponseSchema.parse(response.data);
-        dispatch({
-          type: "EDIT_USER_ALBUMS_LIST_FULFILLED",
-          payload: data,
-        });
-        showNotification({
-          message: i18n.t("toasts.addtoalbum", {
-            numberOfPhotos: image_hashes.length,
-            title,
-          }),
-          title: i18n.t("toasts.addtoalbumtitle"),
-          color: "teal",
-        });
-
-        dispatch(fetchUserAlbumsList());
-      })
-      .catch(err => {
-        dispatch({ type: "EDIT_USER_ALBUMS_LIST_REJECTED", payload: err });
-      });
-  };
-}
-
-export function fetchPlaceAlbumsList() {
-  return function cb(dispatch: Dispatch<any>) {
-    dispatch({ type: "FETCH_PLACE_ALBUMS_LIST" });
-    Server.get("albums/place/list/")
-      .then(response => {
-        const data = FetchPlaceAlbumsListResponseSchema.parse(response.data);
-        const placeAlbumInfoList: PlaceAlbumInfo[] = data.results;
-        const byGeolocationLevel = _.groupBy(placeAlbumInfoList, el => el.geolocation_level);
-        dispatch({
-          type: "GROUP_PLACE_ALBUMS_BY_GEOLOCATION_LEVEL",
-          payload: byGeolocationLevel,
-        });
-        dispatch({
-          type: "FETCH_PLACE_ALBUMS_LIST_FULFILLED",
-          payload: placeAlbumInfoList,
-        });
-      })
-      .catch(err => {
-        dispatch({ type: "FETCH_PLACE_ALBUMS_LIST_REJECTED", payload: err });
       });
   };
 }
@@ -407,41 +185,6 @@ export function fetchAlbumDate(dispatch: AppDispatch, options: AlbumDateOption) 
     .catch(err => {
       dispatch({ type: "FETCH_DATE_ALBUMS_RETRIEVE_REJECTED", payload: err });
     });
-}
-
-// actions using new retrieve view in backend
-export function fetchAlbumsAutoGalleries(dispatch: AppDispatch, album_id: string) {
-  dispatch({ type: "FETCH_AUTO_ALBUMS_RETRIEVE" });
-  Server.get(`albums/auto/${album_id}/`)
-    .then(response => {
-      const autoAlbum: AutoAlbum = AutoAlbumSchema.parse(response.data);
-      dispatch({
-        type: "FETCH_AUTO_ALBUMS_RETRIEVE_FULFILLED",
-        payload: autoAlbum,
-      });
-    })
-    .catch(err => {
-      dispatch({ type: "FETCH_AUTO_ALBUMS_RETRIEVE_REJECTED", payload: err });
-    });
-}
-
-export function deleteAutoAlbum(albumID: string, albumTitle: string) {
-  return function cb(dispatch: Dispatch<any>) {
-    dispatch({ type: "DELETE_AUTO_ALBUM" });
-    Server.delete(`/albums/auto/${albumID}`)
-      .then(() => {
-        dispatch({ type: "DELETE_AUTO_ALBUM_FULFILLED", payload: albumID });
-        dispatch(fetchAutoAlbumsList());
-        showNotification({
-          message: i18n.t("toasts.deletealbum", { albumTitle }),
-          title: i18n.t("toasts.deletealbumtitle"),
-          color: "teal",
-        });
-      })
-      .catch(err => {
-        dispatch({ type: "DELETE_USER_ALBUM_REJECTED", payload: err });
-      });
-  };
 }
 
 export function deleteAllAutoAlbum() {

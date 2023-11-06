@@ -4,8 +4,8 @@ import _ from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { setAlbumCoverForUserAlbum } from "../../actions/albumsActions";
 import { setAlbumCoverForPerson } from "../../actions/peopleActions";
+import { useSetUserAlbumCoverMutation } from "../../api_client/albums/user";
 import { serverAddress } from "../../api_client/apiClient";
 import { photoDetailsApi } from "../../api_client/photos/photoDetail";
 import { useAppDispatch, useAppSelector } from "../../store/store";
@@ -64,6 +64,7 @@ function PhotoListViewComponent(props: Props) {
   const [dataForScrollIndicator, setDataForScrollIndicator] = useState<IScrollerData[]>([]);
   const gridHeight = useRef(200);
   const setScrollLocked = useScrollLock(false)[1];
+  const [setUserAlbumCover] = useSetUserAlbumCoverMutation();
 
   const route = useAppSelector(store => store.router);
   const userSelfDetails = useAppSelector(store => store.user.userSelfDetails);
@@ -304,7 +305,10 @@ function PhotoListViewComponent(props: Props) {
                           dispatch(setAlbumCoverForPerson(params.albumID, selectionState.selectedItems[0].id));
                         }
                         if (actionType === "useralbum") {
-                          dispatch(setAlbumCoverForUserAlbum(params.albumID, selectionState.selectedItems[0].id));
+                          setUserAlbumCover({
+                            id: `${params.albumID}`,
+                            photo: selectionState.selectedItems[0].id,
+                          });
                         }
                       }}
                       onSharePhotos={() => setModalSharePhotosOpen(true)}
@@ -402,6 +406,7 @@ function PhotoListViewComponent(props: Props) {
           isOpen={modalAddToAlbumOpen}
           onRequestClose={() => {
             setModalAddToAlbumOpen(false);
+            updateSelectionState({ selectedItems: [], selectMode: false });
           }}
           selectedImages={selectionState.selectedItems}
         />
@@ -421,7 +426,7 @@ function PhotoListViewComponent(props: Props) {
           onRequestClose={() => {
             setModalAlbumShareOpen(false);
           }}
-          albumID={params && params.albumID ? params.albumID : ""}
+          albumID={params?.albumID ?? ""}
         />
       )}
     </div>

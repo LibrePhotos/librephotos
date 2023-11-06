@@ -94,6 +94,8 @@ describe("fuzzyMatch", () => {
       { value: "Dinosaur", query: "abr", result: false },
       { value: "Dinosaur", query: "sauron", result: false },
       { value: "what?", query: "what's up?", result: false },
+      { value: "asdf", query: "asf", result: true },
+      { value: "asdf", query: "asff", result: false },
     ];
 
     matches.forEach(item => {

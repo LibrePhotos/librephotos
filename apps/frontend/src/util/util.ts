@@ -84,7 +84,8 @@ export function fuzzyMatch(query: string, value: string): boolean {
       .replace(/\s/g, "")
       .split("")
       .map(a => _.escapeRegExp(a))
-      .reduce((a, b) => `${a}.*${b}`);
+      .reduce((a, b) => `${a}.*${b}`)
+      .concat(".*");
     return new RegExp(expression).test(value.toLowerCase());
   }
   return true;

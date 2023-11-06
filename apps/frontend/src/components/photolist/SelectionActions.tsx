@@ -18,7 +18,6 @@ import {
   Trash,
 } from "tabler-icons-react";
 
-import { removeFromUserAlbum } from "../../actions/albumsActions";
 import {
   downloadPhotos,
   setPhotosDeleted,
@@ -26,25 +25,27 @@ import {
   setPhotosHidden,
   setPhotosPublic,
 } from "../../actions/photosActions";
+import { UserAlbum, useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/user";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { copyToClipboard } from "../../util/util";
 
 type Props = {
-  selectedItems: any[];
+  selectedItems: UserAlbum[];
   updateSelectionState: (any) => void;
   onSharePhotos: () => void;
   setAlbumCover: (actionType: string) => void;
   onShareAlbum: () => void;
   onAddToAlbum: () => void;
   title: string;
-  albumID: any;
+  albumID: number;
 };
 
 export function SelectionActions(props: Readonly<Props>) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const route = useAppSelector(store => store.router);
+  const [removePhotosFromAlbum] = useRemovePhotoFromUserAlbumMutation();
 
   const {
     selectedItems,
@@ -311,14 +312,11 @@ export function SelectionActions(props: Readonly<Props>) {
             icon={<FileMinus />}
             disabled={!route.location.pathname.startsWith("/useralbum/") || selectedItems.length === 0}
             onClick={() => {
-              dispatch(
-                removeFromUserAlbum(
-                  albumID,
-                  title,
-                  selectedItems.map(i => i.id)
-                )
-              );
-
+              removePhotosFromAlbum({
+                id: albumID,
+                title,
+                photos: selectedItems.map(i => i.id),
+              });
               updateSelectionState({
                 selectMode: false,
                 selectedItems: [],

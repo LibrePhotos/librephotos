@@ -1,31 +1,28 @@
 import { Button, Group, Stack, Title } from "@mantine/core";
-import React, { useEffect } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { push } from "redux-first-history";
 import { Album } from "tabler-icons-react";
 
-import { fetchAutoAlbumsList, fetchUserAlbumsList } from "../../actions/albumsActions";
+import { useFetchAutoAlbumsQuery } from "../../api_client/albums/auto";
+import { useFetchUserAlbumsQuery } from "../../api_client/albums/user";
 import { Tile } from "../../components/Tile";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { useAppDispatch } from "../../store/store";
 import { HeaderComponent } from "./HeaderComponent";
 
 export function AlbumViewer() {
-  const { albumsAutoList, fetchingAlbumsAutoList, albumsUserList } = useAppSelector(store => store.albums);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const entrySquareSize = 200;
-
-  useEffect(() => {
-    dispatch(fetchAutoAlbumsList());
-    dispatch(fetchUserAlbumsList());
-  }, []);
+  const { data: autoAlbums, isFetching: isFetchingAutoAlbums } = useFetchAutoAlbumsQuery();
+  const { data: userAlbums, isFetching: isFetchingUserAlbums } = useFetchUserAlbumsQuery();
 
   return (
     <Stack>
       <HeaderComponent
         icon={<Album size={50} />}
-        fetching={fetchingAlbumsAutoList || fetchingAlbumsAutoList}
+        fetching={isFetchingAutoAlbums || isFetchingUserAlbums}
         title="Albums"
         subtitle="Explore your photos."
       />
@@ -37,15 +34,16 @@ export function AlbumViewer() {
         </Button>
       </Group>
       <Group>
-        {albumsUserList.slice(0, 19).map(autoAlbum => (
+        {userAlbums?.slice(0, 19).map(album => (
           <Tile
+            key={album.id}
             onClick={() => {
-              dispatch(push(`/album/${autoAlbum.id}`));
+              dispatch(push(`/album/${album.id}`));
             }}
-            video={autoAlbum.cover_photos[0].video === true}
+            video={album.cover_photo.video === true}
             height={entrySquareSize - 10}
             width={entrySquareSize - 10}
-            image_hash={autoAlbum.cover_photos[0].image_hash}
+            image_hash={album.cover_photo.image_hash}
           />
         ))}
       </Group>
@@ -57,15 +55,16 @@ export function AlbumViewer() {
         </Button>
       </Group>
       <Group>
-        {albumsAutoList.slice(0, 19).map(autoAlbum => (
+        {autoAlbums?.slice(0, 19).map(album => (
           <Tile
+            key={album.id}
             onClick={() => {
-              dispatch(push(`/album/${autoAlbum.id}`));
+              dispatch(push(`/album/${album.id}`));
             }}
-            video={autoAlbum.photos.video === true}
+            video={album.photos.video === true}
             height={entrySquareSize - 10}
             width={entrySquareSize - 10}
-            image_hash={autoAlbum.photos.image_hash}
+            image_hash={album.photos.image_hash}
           />
         ))}
       </Group>
