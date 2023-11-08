@@ -76,7 +76,7 @@ export function ModalUserEdit(props: Props) {
       false
     );
     if (exist) {
-      return t("modaluseredit.errorusernametaken");
+      return t("modaluseredit.errorusernameexists");
     }
     return null;
   };
