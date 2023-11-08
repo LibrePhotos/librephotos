@@ -101,6 +101,7 @@ class PersonViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = ["name"]
+    ordering_fields = ["name"]
 
     def get_queryset(self):
         if self.request.user.is_anonymous:
@@ -487,7 +488,7 @@ class AlbumDateListViewSet(ListViewSet):
 
         if self.request.query_params.get("video"):
             filter.append(Q(photos__video=True))
-        
+
         if self.request.query_params.get("photo"):
             filter.append(Q(photos__video=False))
 
