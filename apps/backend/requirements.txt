@@ -44,4 +44,4 @@ django-q2==1.6.1
 safetensors==0.4.0
 py-cpuinfo==9.0.0
 psutil==5.9.6
-onnxruntime==1.16.1
+onnxruntime==1.16.2
