@@ -72,7 +72,8 @@ export function ModalUserEdit(props: Props) {
       return t("modaluseredit.errorusernamecannotbeblank");
     }
     const exist = userList.results.reduce(
-      (acc: boolean, user: IUser) => acc || user.username.toLowerCase() === username.toLowerCase(),
+      (acc: boolean, user: IUser) =>
+        acc || (user.id !== userToEdit.id && user.username.toLowerCase() === username.toLowerCase()),
       false
     );
     if (exist) {
