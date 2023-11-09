@@ -2,6 +2,7 @@
 import os
 import sys
 from coverage import Coverage
+from django.core.management import execute_from_command_line
 
 def setup_environment():
     """
@@ -30,7 +31,6 @@ def run_tests_with_coverage():
     cov.start()
     
     # Run tests
-    from django.core.management import execute_from_command_line
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", f"librephotos.settings.test")
     execute_from_command_line(sys.argv)
     
@@ -38,7 +38,7 @@ def run_tests_with_coverage():
     cov.stop()
     cov.save()
     cov.html_report()
-    covered = cov.report()
+    cov.report()
 
 if __name__ == "__main__":
     environment, command, do_not_collect_coverage, running_tests = setup_environment()
@@ -48,7 +48,6 @@ if __name__ == "__main__":
             run_tests_with_coverage()
         else:
             # Run the command
-            from django.core.management import execute_from_command_line
             os.environ.setdefault("DJANGO_SETTINGS_MODULE", f"librephotos.settings.{environment}")
             execute_from_command_line(sys.argv)
     except Exception as e:
