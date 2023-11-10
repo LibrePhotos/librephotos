@@ -98,7 +98,7 @@ export function Profile() {
             User
           </Title>
           <Title order={5}>{t("settings.avatar")}</Title>
-          <Group position="center" align="self-start" grow mb={20}>
+          <Group position="center" align="self-start" grow mb="lg">
             <div>
               <Dropzone
                 noClick
@@ -208,7 +208,7 @@ export function Profile() {
             }}
             mb={10}
           >
-            <Group>
+            <Group mt="xs">
               <Radio value="2" label={t("settings.small")} />
               <Radio value="1" label={t("settings.big")} />
             </Group>
@@ -222,7 +222,7 @@ export function Profile() {
             }}
             mb={10}
           >
-            <Group>
+            <Group mt="xs">
               <Radio value="1" label={t("enabled")} />
               <Radio value="0" label={t("disabled")} />
             </Group>
@@ -245,7 +245,7 @@ export function Profile() {
                 toggleColorScheme();
               }}
             >
-              <Group>
+              <Group mt="xs">
                 <Radio value="1" label={t("settings.colorscheme.dark")} />
                 <Radio value="0" label={t("settings.colorscheme.light")} />
               </Group>

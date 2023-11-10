@@ -120,7 +120,7 @@ export function SideMenuNarrow(): JSX.Element {
               <Loader size="xs" />
             </Center>
           )}
-          {!isLoading && (
+          {!isLoading && storageStats && (
             <Tooltip
               label={t("storagetooltip", {
                 usedstorage: formatBytes(storageStats.used_storage),

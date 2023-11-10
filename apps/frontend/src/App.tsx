@@ -1,6 +1,6 @@
 import type { ColorScheme } from "@mantine/core";
 import { AppShell, ColorSchemeProvider, MantineProvider } from "@mantine/core";
-import { NotificationsProvider } from "@mantine/notifications";
+import { Notifications } from "@mantine/notifications";
 import React, { useCallback, useMemo, useState } from "react";
 import { Cookies, CookiesProvider } from "react-cookie";
 import { Route, Routes, useLocation } from "react-router-dom";
@@ -93,66 +93,65 @@ export function App() {
     <CookiesProvider>
       <ColorSchemeProvider colorScheme={colorScheme} toggleColorScheme={toggleColorScheme}>
         <MantineProvider theme={{ colorScheme }} withGlobalStyles withNormalizeCSS>
-          <NotificationsProvider autoClose={3000} zIndex={1001}>
-            <AppShell
-              fixed
-              padding={0}
-              navbar={getNavBar(showMenubar, showSidebar, isAuth)}
-              header={getHeader(showMenubar)}
-              footer={getFooter(isAuth)}
-              styles={theme => ({
-                main: {
-                  backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0],
-                },
-              })}
-            >
-              <Routes>
-                <Route path="login" element={<Login />} />
-                <Route path="signup" element={<SignupPage />} />
-                <Route path="public/:username" element={<UserPublicPage />} />
-                <Route path="users" element={<PublicUserList />} />
-                <Route path="user/:username" element={<UserPublicPage />} />
-                <Route element={<ProtectedRoutes />}>
-                  <Route index element={<TimestampPhotos />} />
-                  <Route path="things" element={<AlbumThing />} />
-                  <Route path="recent" element={<RecentlyAddedPhotos />} />
-                  <Route path="favorites" element={<FavoritePhotos />} />
-                  <Route path="photos" element={<OnlyPhotos />} />
-                  <Route path="videos" element={<OnlyVideos />} />
-                  <Route path="deleted" element={<DeletedPhotos />} />
-                  <Route path="hidden" element={<HiddenPhotos />} />
-                  <Route path="notimestamp" element={<NoTimestampPhotosView />} />
-                  <Route path="useralbums" element={<AlbumUser />} />
-                  <Route path="places" element={<AlbumPlace />} />
-                  <Route path="people" element={<AlbumPeople />} />
-                  <Route path="events" element={<AlbumAuto />} />
-                  <Route path="statistics" element={<Statistics />} />
-                  <Route path="settings" element={<Settings />} />
-                  <Route path="profile" element={<Profile />} />
-                  <Route path="library" element={<Library />} />
-                  <Route path="faces" element={<FaceDashboard />} />
-                  <Route path="search/:query" element={<SearchView />} />
-                  <Route path="person/:albumID" element={<AlbumPersonGallery />} />
-                  <Route path="place/:albumID" element={<AlbumPlaceGallery />} />
-                  <Route path="thing/:albumID" element={<AlbumThingGallery />} />
-                  <Route path="event/:albumID" element={<AlbumAutoGalleryView />} />
-                  <Route path="explorer" element={<Explorer />} />
-                  <Route path="albumviewer" element={<AlbumViewer />} />
-                  <Route path="useralbum/:albumID" element={<AlbumUserGallery />} />
-                  <Route path="shared/tome/:which" element={<SharedToMe />} />
-                  <Route path="shared/fromme/:which" element={<SharedFromMe />} />
-                  <Route path="admin" element={<AdminPage />} />
-                  <Route path="map" element={<PhotoMap />} />
-                  <Route path="placetree" element={<LocationTree />} />
-                  <Route path="wordclouds" element={<WordClouds />} />
-                  <Route path="timeline" element={<Timeline />} />
-                  <Route path="socialgraph" element={<Graph />} />
-                  <Route path="facescatter" element={<FaceScatter />} />
-                  <Route path="countstats" element={<CountStats />} />
-                </Route>
-              </Routes>
-            </AppShell>
-          </NotificationsProvider>
+          <Notifications autoClose={3000} zIndex={1001} />
+          <AppShell
+            fixed
+            padding={0}
+            navbar={getNavBar(showMenubar, showSidebar, isAuth)}
+            header={getHeader(showMenubar)}
+            footer={getFooter(isAuth)}
+            styles={theme => ({
+              main: {
+                backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0],
+              },
+            })}
+          >
+            <Routes>
+              <Route path="login" element={<Login />} />
+              <Route path="signup" element={<SignupPage />} />
+              <Route path="public/:username" element={<UserPublicPage />} />
+              <Route path="users" element={<PublicUserList />} />
+              <Route path="user/:username" element={<UserPublicPage />} />
+              <Route element={<ProtectedRoutes />}>
+                <Route index element={<TimestampPhotos />} />
+                <Route path="things" element={<AlbumThing />} />
+                <Route path="recent" element={<RecentlyAddedPhotos />} />
+                <Route path="favorites" element={<FavoritePhotos />} />
+                <Route path="photos" element={<OnlyPhotos />} />
+                <Route path="videos" element={<OnlyVideos />} />
+                <Route path="deleted" element={<DeletedPhotos />} />
+                <Route path="hidden" element={<HiddenPhotos />} />
+                <Route path="notimestamp" element={<NoTimestampPhotosView />} />
+                <Route path="useralbums" element={<AlbumUser />} />
+                <Route path="places" element={<AlbumPlace />} />
+                <Route path="people" element={<AlbumPeople />} />
+                <Route path="events" element={<AlbumAuto />} />
+                <Route path="statistics" element={<Statistics />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="library" element={<Library />} />
+                <Route path="faces" element={<FaceDashboard />} />
+                <Route path="search/:query" element={<SearchView />} />
+                <Route path="person/:albumID" element={<AlbumPersonGallery />} />
+                <Route path="place/:albumID" element={<AlbumPlaceGallery />} />
+                <Route path="thing/:albumID" element={<AlbumThingGallery />} />
+                <Route path="event/:albumID" element={<AlbumAutoGalleryView />} />
+                <Route path="explorer" element={<Explorer />} />
+                <Route path="albumviewer" element={<AlbumViewer />} />
+                <Route path="useralbum/:albumID" element={<AlbumUserGallery />} />
+                <Route path="shared/tome/:which" element={<SharedToMe />} />
+                <Route path="shared/fromme/:which" element={<SharedFromMe />} />
+                <Route path="admin" element={<AdminPage />} />
+                <Route path="map" element={<PhotoMap />} />
+                <Route path="placetree" element={<LocationTree />} />
+                <Route path="wordclouds" element={<WordClouds />} />
+                <Route path="timeline" element={<Timeline />} />
+                <Route path="socialgraph" element={<Graph />} />
+                <Route path="facescatter" element={<FaceScatter />} />
+                <Route path="countstats" element={<CountStats />} />
+              </Route>
+            </Routes>
+          </AppShell>
         </MantineProvider>
       </ColorSchemeProvider>
     </CookiesProvider>

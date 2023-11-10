@@ -67,7 +67,7 @@ export function Settings() {
           <Title order={4} sx={{ marginBottom: 16 }}>
             <Trans i18nKey="settings.scanoptions">Scan Options</Trans>
           </Title>
-          <Flex align="left" direction="column" gap={16}>
+          <Flex align="flex-start" direction="column" gap="md">
             <Radio.Group
               description={t("settings.confidencelevel")}
               label={t("settings.sceneconfidence")}
@@ -76,10 +76,12 @@ export function Settings() {
                 setUserSelfDetails({ ...userSelfDetails, confidence: value || "0" });
               }}
             >
-              <Radio value="0.5" label={t("settings.confidence.high")} />
-              <Radio value="0.1" label={t("settings.confidence.standard")} />
-              <Radio value="0.05" label={t("settings.confidence.low")} />
-              <Radio value="0" label={t("settings.confidence.none")} />
+              <Group mt="xs">
+                <Radio value="0.5" label={t("settings.confidence.high")} />
+                <Radio value="0.1" label={t("settings.confidence.standard")} />
+                <Radio value="0.05" label={t("settings.confidence.low")} />
+                <Radio value="0" label={t("settings.confidence.none")} />
+              </Group>
             </Radio.Group>
             <Radio.Group
               label={t("settings.semanticsearchheader")}
@@ -89,10 +91,12 @@ export function Settings() {
                 setUserSelfDetails({ ...userSelfDetails, semantic_search_topk: value || "0" });
               }}
             >
-              <Radio value="100" label={t("settings.semanticsearch.top100")} />
-              <Radio value="50" label={t("settings.semanticsearch.top50")} />
-              <Radio value="10" label={t("settings.semanticsearch.top10")} />
-              <Radio value="0" label={t("settings.semanticsearch.top0")} />
+              <Group mt="xs">
+                <Radio value="100" label={t("settings.semanticsearch.top100")} />
+                <Radio value="50" label={t("settings.semanticsearch.top50")} />
+                <Radio value="10" label={t("settings.semanticsearch.top10")} />
+                <Radio value="0" label={t("settings.semanticsearch.top0")} />
+              </Group>
             </Radio.Group>
           </Flex>
         </Card>
@@ -100,7 +104,7 @@ export function Settings() {
           <Title order={4} sx={{ marginBottom: 16 }}>
             <Trans i18nKey="settings.metadata">Metadata</Trans>
           </Title>
-          <Flex align="left" direction="column" gap={16}>
+          <Flex align="flex-start" direction="column" gap="md">
             <Radio.Group
               label={t("settings.sync")}
               value={userSelfDetails.save_metadata_to_disk}
@@ -108,9 +112,11 @@ export function Settings() {
                 setUserSelfDetails({ ...userSelfDetails, save_metadata_to_disk: value || "OFF" });
               }}
             >
-              <Radio value="OFF" label={t("settings.favoritesyncoptions.off")} />
-              <Radio value="SIDECAR_FILE" label={t("settings.favoritesyncoptions.sidecar")} />
-              <Radio value="MEDIA_FILE" label={t("settings.favoritesyncoptions.mediafile")} />
+              <Group mt="xs">
+                <Radio value="OFF" label={t("settings.favoritesyncoptions.off")} />
+                <Radio value="SIDECAR_FILE" label={t("settings.favoritesyncoptions.sidecar")} />
+                <Radio value="MEDIA_FILE" label={t("settings.favoritesyncoptions.mediafile")} />
+              </Group>
             </Radio.Group>
             <Radio.Group
               label={t("settings.favoriteminimum")}
@@ -119,11 +125,13 @@ export function Settings() {
                 setUserSelfDetails({ ...userSelfDetails, favorite_min_rating: value || "3" });
               }}
             >
-              <Radio value="1" label="1" />
-              <Radio value="2" label="2" />
-              <Radio value="3" label="3" />
-              <Radio value="4" label="4" />
-              <Radio value="5" label="5" />
+              <Group mt="xs">
+                <Radio value="1" label="1" />
+                <Radio value="2" label="2" />
+                <Radio value="3" label="3" />
+                <Radio value="4" label="4" />
+                <Radio value="5" label="5" />
+              </Group>
             </Radio.Group>
             <Select
               label={t("defaulttimezone")}
@@ -168,8 +176,10 @@ export function Settings() {
               setUserSelfDetails({ ...userSelfDetails, face_recognition_model: value || "HOG" });
             }}
           >
-            <Radio value="HOG" label={t("settings.models.hog")} />
-            <Radio value="CNN" label={t("settings.models.cnn")} />
+            <Group mt="xs">
+              <Radio value="HOG" label={t("settings.models.hog")} />
+              <Radio value="CNN" label={t("settings.models.cnn")} />
+            </Group>
           </Radio.Group>
           <Radio.Group
             label={t("settings.min_cluster_size")}
@@ -179,11 +189,13 @@ export function Settings() {
               setUserSelfDetails({ ...userSelfDetails, min_cluster_size: value || 0 });
             }}
           >
-            <Radio value="0" label={t("settings.size.auto")} />
-            <Radio value="2" label={2} />
-            <Radio value="4" label={4} />
-            <Radio value="8" label={8} />
-            <Radio value="16" label={16} />
+            <Group mt="xs">
+              <Radio value="0" label={t("settings.size.auto")} />
+              <Radio value="2" label={2} />
+              <Radio value="4" label={4} />
+              <Radio value="8" label={8} />
+              <Radio value="16" label={16} />
+            </Group>
           </Radio.Group>
           <Radio.Group
             label={t("settings.min_samples")}
@@ -193,11 +205,13 @@ export function Settings() {
               setUserSelfDetails({ ...userSelfDetails, min_samples: value || 0 });
             }}
           >
-            <Radio value="1" label={1} />
-            <Radio value="2" label={2} />
-            <Radio value="4" label={4} />
-            <Radio value="8" label={8} />
-            <Radio value="16" label={16} />
+            <Group mt="xs">
+              <Radio value="1" label={1} />
+              <Radio value="2" label={2} />
+              <Radio value="4" label={4} />
+              <Radio value="8" label={8} />
+              <Radio value="16" label={16} />
+            </Group>
           </Radio.Group>
           <Radio.Group
             label={t("settings.cluster_selection_epsilon")}
@@ -209,13 +223,14 @@ export function Settings() {
               setUserSelfDetails({ ...userSelfDetails, cluster_selection_epsilon: value || 0 });
             }}
           >
-            <Radio value="0" label={t("settings.size.off")} />
-            <Radio value="0.025" label={t("settings.size.small")} />
-            <Radio value="0.05" label={t("settings.size.normal")} />
-            <Radio value="0.1" label={t("settings.size.high")} />
-            <Radio value="0.2" label={t("settings.size.veryhigh")} />
+            <Group mt="xs">
+              <Radio value="0" label={t("settings.size.off")} />
+              <Radio value="0.025" label={t("settings.size.small")} />
+              <Radio value="0.05" label={t("settings.size.normal")} />
+              <Radio value="0.1" label={t("settings.size.high")} />
+              <Radio value="0.2" label={t("settings.size.veryhigh")} />
+            </Group>
           </Radio.Group>
-
           <NumberInput
             label={t("settings.unknown_faces_confidence")}
             description={t("settings.unknown_faces_confidence_help")}
