@@ -425,7 +425,9 @@
         "map_api_key_description": "Obtenha sua chave API em {{url}}",
         "headerheavyweight": "Processos pesados",
         "heavyweight": "Aumente o número de trabalhadores de análise de fotos mas esteja preparado para usar 800MB de memória por cada trabalhador adicional.",
-        "headerupload": "Permitir carregamentos"
+        "headerupload": "Permitir carregamentos",
+        "captioning_model_header": "Modelo de legendagem",
+        "captioning_model_description": "Modelo para usar na criação de legendas das fotos."
     },
     "countstats": {
         "photos": "Fotos"
