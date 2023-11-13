@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
 import { Album, DotsVertical, Edit, Share, Trash, User, Users } from "tabler-icons-react";
 
+import { UserAlbumInfo } from "../../actions/albumActions.types";
 import {
   useDeleteUserAlbumMutation,
   useFetchUserAlbumsQuery,
@@ -16,7 +17,7 @@ import { ModalAlbumShare } from "../../components/sharing/ModalAlbumShare";
 import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";
 import { HeaderComponent } from "./HeaderComponent";
 
-export function SharedWith({ album }: any) {
+function SharedWith({ album }: { album: UserAlbumInfo }) {
   const [opened, { toggle, close }] = useDisclosure(false);
   // To-Do: Figure out, why album is an array / json <- is it still the case?
   return (
@@ -27,7 +28,7 @@ export function SharedWith({ album }: any) {
       <Popover.Dropdown>
         <Stack>
           <Title order={5}>Shared with:</Title>
-          {album.shared_to.map((el: { username: string }) => (
+          {album.shared_to.map(el => (
             <Group key={el.username}>
               <User />
               <b>{el.username}</b>
@@ -48,7 +49,7 @@ export function AlbumUser() {
   const [isShareDialogOpen, { open: showShareDialog, close: hideShareDialog }] = useDisclosure(false);
   const { t } = useTranslation();
   const { data: albums, isFetching } = useFetchUserAlbumsQuery();
-  const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums || []);
+  const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums ?? []);
   const [deleteUserAlbum] = useDeleteUserAlbumMutation();
   const [renameUserAlbum] = useRenameUserAlbumMutation();
 
@@ -69,6 +70,10 @@ export function AlbumUser() {
     setAlbumID(id);
     setAlbumTitle(title);
   };
+
+  function isShared(album: UserAlbumInfo) {
+    return album.shared_to.length > 0;
+  }
 
   function renderCell({ columnIndex, key, rowIndex, style }) {
     if (!albums || albums.length === 0) {
@@ -115,7 +120,7 @@ export function AlbumUser() {
         </div>
         <div className="personCardName" style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
           <Group>
-            {album.shared_to.length > 0 && <SharedWith album={album} />}
+            {isShared(album) && <SharedWith album={album} />}
             <Text weight="bold" lineClamp={1}>
               {album.title}
             </Text>
@@ -135,7 +140,7 @@ export function AlbumUser() {
         title={t("myalbums")}
         fetching={isFetching}
         subtitle={t("useralbum.numberof", {
-          number: (albums && albums.length) || 0,
+          number: albums?.length ?? 0,
         })}
       />
       <Modal size="mini" onClose={hideRenameDialog} opened={isRenameDialogOpen}>
@@ -145,8 +150,7 @@ export function AlbumUser() {
           <Group>
             <TextInput
               error={
-                albums &&
-                albums.map(el => el.title.toLowerCase().trim()).includes(newAlbumTitle.toLowerCase().trim()) ? (
+                albums?.map(el => el.title.toLowerCase().trim()).includes(newAlbumTitle.toLowerCase().trim()) ? (
                   <>
                     {t("useralbum.albumalreadyexists")}, {{ name: newAlbumTitle.trim() }}
                   </>
@@ -166,9 +170,7 @@ export function AlbumUser() {
                 renameUserAlbum({ id: albumID, title: albumTitle, newTitle: newAlbumTitle });
                 hideRenameDialog();
               }}
-              disabled={
-                albums && albums.map(el => el.title.toLowerCase().trim()).includes(newAlbumTitle.toLowerCase().trim())
-              }
+              disabled={albums?.map(el => el.title.toLowerCase().trim()).includes(newAlbumTitle.toLowerCase().trim())}
               type="submit"
             >
               {t("rename")}

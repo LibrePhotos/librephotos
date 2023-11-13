@@ -1,22 +1,16 @@
 import { ActionIcon, Avatar, Divider, Group, Modal, ScrollArea, Stack, Text, TextInput, Title } from "@mantine/core";
 import { DateTime } from "luxon";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Share, ShareOff } from "tabler-icons-react";
 
 import { setPhotosShared } from "../../actions/photosActions";
-import { fetchPublicUserList } from "../../actions/publicActions";
+import { useFetchUserListQuery } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { i18nResolvedLanguage } from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
-
-function fuzzyMatch(str: string, pattern: string) {
-  if (pattern.split("").length > 0) {
-    const expr = pattern.split("").reduce((a, b) => `${a}.*${b}`);
-    return new RegExp(expr).test(str);
-  }
-  return false;
-}
+import classes from "./ModalAlbumShare.module.css";
+import filterUsers from "./utils";
 
 type Props = {
   selectedImageHashes: any;
@@ -27,37 +21,19 @@ type Props = {
 export function ModalPhotosShare(props: Props) {
   const { t } = useTranslation();
   const [userNameFilter, setUserNameFilter] = useState("");
-
-  const { auth, pub } = useAppSelector(store => store);
+  const { data: users = [], isFetching: isUsersLoading, isSuccess: isUsersLoaded } = useFetchUserListQuery();
+  const { auth } = useAppSelector(store => store);
   const dispatch = useAppDispatch();
-
   const { selectedImageHashes, isOpen, onRequestClose } = props;
-  let filteredUserList: any[];
-  if (userNameFilter.length > 0) {
-    filteredUserList = pub.publicUserList.filter(
-      (el: any) =>
-        fuzzyMatch(el.username.toLowerCase(), userNameFilter.toLowerCase()) ||
-        fuzzyMatch(`${el.first_name.toLowerCase()} ${el.last_name.toLowerCase()}`, userNameFilter.toLowerCase())
-    );
-  } else {
-    filteredUserList = pub.publicUserList;
-  }
-  filteredUserList = filteredUserList.filter((el: any) => el.id !== auth.access?.user_id);
 
   const selectedImageSrcs = selectedImageHashes.map(
     (image_hash: string) => `${serverAddress}/media/square_thumbnails/${image_hash}`
   );
 
-  useEffect(() => {
-    if (isOpen) {
-      dispatch(fetchPublicUserList());
-    }
-  }, [isOpen, dispatch]);
-
   return (
     <Modal
       opened={isOpen}
-      title={<Title>{t("modalphotosshare.title")}</Title>}
+      title={<span className={classes.title}>{t("modalphotosshare.title")}</span>}
       onClose={() => {
         onRequestClose();
         setUserNameFilter("");
@@ -81,10 +57,11 @@ export function ModalPhotosShare(props: Props) {
         />
         <Divider />
 
-        <ScrollArea>
-          <Stack>
-            {filteredUserList.length > 0 &&
-              filteredUserList.map(item => {
+        {isUsersLoading && <div>{t("modalphotosshare.loading")}</div>}
+        {isUsersLoaded && (
+          <ScrollArea>
+            <Stack>
+              {filterUsers(userNameFilter, auth.access?.user_id, users).map(item => {
                 let displayName = item.username;
                 if (item.first_name.length > 0 && item.last_name.length > 0) {
                   displayName = `${item.first_name} ${item.last_name}`;
@@ -123,8 +100,9 @@ export function ModalPhotosShare(props: Props) {
                   </Group>
                 );
               })}
-          </Stack>
-        </ScrollArea>
+            </Stack>
+          </ScrollArea>
+        )}
       </Stack>
     </Modal>
   );

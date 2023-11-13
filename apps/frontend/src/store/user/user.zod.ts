@@ -81,7 +81,8 @@ export const ApiUserListResponseSchema = z.object({
   results: z.array(UserSchema),
 });
 
-export type IApiUserListResponse = z.infer<typeof ApiUserListResponseSchema>;
+export const UserListSchema = z.array(UserSchema);
+export type UserList = z.infer<typeof UserListSchema>;
 
 export type IUserState = {
   userSelfDetails: IUser;

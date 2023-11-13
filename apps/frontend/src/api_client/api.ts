@@ -30,8 +30,8 @@ import type {
 import type { RootState } from "../store/store";
 import type { IUploadOptions, IUploadResponse } from "../store/upload/upload.zod";
 import { UploadExistResponse, UploadResponse } from "../store/upload/upload.zod";
-import type { IApiUserListResponse, IManageUser, IUser } from "../store/user/user.zod";
-import { ManageUser, UserSchema } from "../store/user/user.zod";
+import type { IManageUser, IUser, UserList } from "../store/user/user.zod";
+import { ApiUserListResponseSchema, ManageUser, UserSchema } from "../store/user/user.zod";
 import type { ServerStatsResponseType, StorageStatsResponseType } from "../store/util/util.zod";
 import type { IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
 // eslint-disable-next-line import/no-cycle
@@ -163,11 +163,12 @@ export const api = createApi({
       query: userId => `/user/${userId}/`,
       transformResponse: (response: string) => UserSchema.parse(response),
     }),
-    [Endpoints.fetchUserList]: builder.query<IApiUserListResponse, void>({
+    [Endpoints.fetchUserList]: builder.query<UserList, void>({
       query: () => ({
         url: "/user/",
         method: "GET",
       }),
+      transformResponse: (response: string) => ApiUserListResponseSchema.parse(response).results,
       providesTags: ["UserList"],
     }),
     [Endpoints.uploadExists]: builder.query<boolean, string>({

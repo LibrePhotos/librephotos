@@ -6,18 +6,18 @@ import { DatePhotosGroupSchema, SimpleUserSchema } from "../../actions/photosAct
 import i18n from "../../i18n";
 import { api } from "../api";
 
-const UserAlbumListSchema = z
-  .object({
-    id: z.number(),
-    title: z.string(),
-    cover_photo: PhotoSuperSimpleSchema,
-    photo_count: z.number(),
-    owner: SimpleUserSchema,
-    shared_to: SimpleUserSchema.array(),
-    created_on: z.string(),
-    favorited: z.boolean(),
-  })
-  .array();
+const UserAlbumResponseSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  cover_photo: PhotoSuperSimpleSchema,
+  photo_count: z.number(),
+  owner: SimpleUserSchema,
+  shared_to: SimpleUserSchema.array(),
+  created_on: z.string(),
+  favorited: z.boolean(),
+});
+
+const UserAlbumListSchema = UserAlbumResponseSchema.array();
 
 const UserAlbumListResponseSchema = z.object({
   results: UserAlbumListSchema,
@@ -80,6 +80,12 @@ type AddPhotoFromUserAlbumParams = {
 type SetUserAlbumCoverParams = {
   id: string;
   photo: string;
+};
+
+type ShareUserAlbumParams = {
+  albumId: string;
+  userId: string;
+  share: boolean;
 };
 
 export const userAlbumsApi = api
@@ -189,6 +195,28 @@ export const userAlbumsApi = api
           });
         },
       }),
+      [Endpoints.shareUserAlbum]: builder.mutation<void, ShareUserAlbumParams>({
+        query: ({ albumId, userId, share }) => ({
+          url: `useralbum/share/`,
+          method: "POST",
+          body: { shared: share, album_id: albumId, target_user_id: userId },
+        }),
+        transformResponse: (response, meta, query) => {
+          if (query.share) {
+            showNotification({
+              message: i18n.t("toasts.sharingalbum"),
+              title: i18n.t("toasts.sharingalbumtitle"),
+              color: "teal",
+            });
+          } else {
+            showNotification({
+              message: i18n.t("toasts.unsharingalbum"),
+              title: i18n.t("toasts.unsharingalbumtitle"),
+              color: "teal",
+            });
+          }
+        },
+      }),
     }),
   })
   .enhanceEndpoints<"UserAlbums" | "UserAlbum">({
@@ -218,11 +246,16 @@ export const userAlbumsApi = api
       [Endpoints.addPhotoToUserAlbum]: {
         invalidatesTags: ["UserAlbums", "UserAlbum"],
       },
+      [Endpoints.shareUserAlbum]: {
+        // TODO(sickelap): invalidate only the album that was shared
+        invalidatesTags: ["UserAlbums", "UserAlbum"],
+      },
     },
   });
 
 export const {
   useFetchUserAlbumsQuery,
+  useFetchUserAlbumQuery,
   useLazyFetchUserAlbumQuery,
   useDeleteUserAlbumMutation,
   useRenameUserAlbumMutation,
@@ -230,4 +263,5 @@ export const {
   useRemovePhotoFromUserAlbumMutation,
   useSetUserAlbumCoverMutation,
   useAddPhotoToUserAlbumMutation,
+  useShareUserAlbumMutation,
 } = userAlbumsApi;

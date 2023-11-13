@@ -1,12 +1,12 @@
 import { Divider, Modal, ScrollArea, Stack, TextInput, Title } from "@mantine/core";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { fetchUserAlbum } from "../../actions/albumsActions";
-import { fetchPublicUserList } from "../../actions/publicActions";
-import { useAppDispatch, useAppSelector } from "../../store/store";
-import { fuzzyMatch } from "../../util/util";
+import { useFetchUserListQuery } from "../../api_client/api";
+import { useAppSelector } from "../../store/store";
+import classes from "./ModalAlbumShare.module.css";
 import { UserEntry } from "./UserEntry";
+import filterUsers from "./utils";
 
 type Props = {
   isOpen: boolean;
@@ -16,34 +16,15 @@ type Props = {
 
 export function ModalAlbumShare(props: Props) {
   const [userNameFilter, setUserNameFilter] = useState("");
-
-  const { pub, auth } = useAppSelector(store => store);
-
-  const dispatch = useAppDispatch();
+  const { auth } = useAppSelector(store => store);
   const { t } = useTranslation();
   const { isOpen, onRequestClose, albumID } = props;
-
-  useEffect(() => {
-    if (isOpen) {
-      dispatch(fetchPublicUserList());
-      dispatch(fetchUserAlbum(parseInt(albumID, 10)));
-    }
-  }, [isOpen, dispatch]);
-
-  let filteredUserList;
-  if (userNameFilter.length > 0) {
-    filteredUserList = pub.publicUserList.filter(
-      el => fuzzyMatch(userNameFilter, el.username) || fuzzyMatch(userNameFilter, `${el.first_name} ${el.last_name}`)
-    );
-  } else {
-    filteredUserList = pub.publicUserList;
-  }
-  filteredUserList = filteredUserList.filter(el => el.id !== auth.access.user_id);
+  const { data: users, isFetching: isUsersFetching, isSuccess: isUsersLoaded } = useFetchUserListQuery();
 
   return (
     <Modal
       opened={isOpen}
-      title={<Title>{t("modalphotosshare.title")}</Title>}
+      title={<span className={classes.title}>{t("modalphotosshare.title")}</span>}
       onClose={() => {
         onRequestClose();
         setUserNameFilter("");
@@ -58,12 +39,16 @@ export function ModalAlbumShare(props: Props) {
           placeholder={t("modalphotosshare.name")}
         />
         <Divider />
-        <ScrollArea>
-          <Stack>
-            {filteredUserList.length > 0 &&
-              filteredUserList.map(item => <UserEntry key={item.id} item={item} albumID={albumID} />)}
-          </Stack>
-        </ScrollArea>
+        {isUsersFetching && <div>{t("modalphotosshare.loading")}</div>}
+        {isUsersLoaded && (
+          <ScrollArea>
+            <Stack>
+              {filterUsers(userNameFilter, auth.access?.user_id, users).map(item => (
+                <UserEntry key={item.id} item={item} albumID={albumID} />
+              ))}
+            </Stack>
+          </ScrollArea>
+        )}
       </Stack>
     </Modal>
   );
