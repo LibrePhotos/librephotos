@@ -385,6 +385,10 @@ export function FaceDashboard() {
           setModalPersonEditOpen(false);
           setSelectedFaces([]);
         }}
+        resetGroups={() => {
+          // Reset groups to force refetch of faces when adding faces to a person
+          setGroups([]);
+        }}
         selectedFaces={selectedFaces}
       />
       {lightboxShow && (

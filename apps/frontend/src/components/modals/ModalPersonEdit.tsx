@@ -14,6 +14,7 @@ import { fuzzyMatch } from "../../util/util";
 type Props = {
   isOpen: boolean;
   onRequestClose: () => void;
+  resetGroups: () => void;
   selectedFaces: any[];
 };
 
@@ -25,7 +26,7 @@ export function ModalPersonEdit(props: Props) {
 
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  const { isOpen, onRequestClose, selectedFaces } = props;
+  const { isOpen, onRequestClose, selectedFaces, resetGroups } = props;
   let filteredPeopleList = people;
 
   if (newPersonName.length > 0) {
@@ -94,6 +95,7 @@ export function ModalPersonEdit(props: Props) {
                 title: i18n.t<string>("toasts.addfacestopersontitle"),
                 color: "teal",
               });
+              resetGroups();
               onRequestClose();
               setNewPersonName("");
             }}
