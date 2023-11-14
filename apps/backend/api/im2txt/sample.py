@@ -6,7 +6,6 @@ import torch
 from django.conf import settings
 from numpy import asarray
 from PIL import Image
-from torch.onnx import dynamo_export, export
 from torchvision import transforms
 
 from api.im2txt.model import DecoderRNN, EncoderCNN
@@ -162,7 +161,7 @@ class Im2txt(object):
         return sentence
 
     def export_onnx(self, encoder_output_path, decoder_output_path):
-        from torch.onnx import export, dynamo_export
+        from torch.onnx import dynamo_export, export
 
         self.load_models()
 
