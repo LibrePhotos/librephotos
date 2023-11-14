@@ -5,34 +5,30 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Adjustments, Edit, Plus, Trash } from "tabler-icons-react";
 
-import { deleteAllAutoAlbum } from "../../actions/albumsActions";
+import { useDeleteAllAutoAlbumsMutation } from "../../api_client/albums/auto";
 import { useFetchServerStatsQuery, useFetchUserListQuery } from "../../api_client/api";
 import { JobList } from "../../components/job/JobList";
 import { ModalUserDelete } from "../../components/modals/ModalUserDelete";
 import { ModalUserEdit } from "../../components/modals/ModalUserEdit";
 import { i18nResolvedLanguage } from "../../i18n";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { useAppSelector } from "../../store/store";
 import { SiteSettings } from "./SiteSettings";
 
 function UserTable() {
+  const { t } = useTranslation();
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState({});
   const [userToDelete, setUserToDelete] = useState({});
   const [createNewUser, setCreateNewUser] = useState(false);
-
-  const { data: userList } = useFetchUserListQuery();
-
-  const fetchingUserList = useAppSelector(state => state.util.fetchingUserList);
-
+  const { data: userList, isFetching } = useFetchUserListQuery();
   const matches = useMediaQuery("(min-width: 700px)");
-  const { t } = useTranslation();
 
   return (
     <Card shadow="md">
       <Title order={4} mb={16}>
         {t("adminarea.users")}
-        {fetchingUserList ? <Loader size="xs" /> : null}
+        {isFetching ? <Loader size="xs" /> : null}
       </Title>
       <Table striped highlightOnHover>
         <thead>
@@ -50,49 +46,45 @@ function UserTable() {
           </tr>
         </thead>
         <tbody>
-          {userList && userList.results
-            ? userList.results.map(user => (
-                <tr key={user.username}>
-                  <td>
-                    <span style={{ display: "flex" }}>
-                      <ActionIcon
-                        variant="transparent"
-                        color="blue"
-                        title={t("modify")}
-                        onClick={() => {
-                          setUserToEdit(user);
-                          setCreateNewUser(false);
-                          setUserModalOpen(true);
-                        }}
-                      >
-                        <Edit />
-                      </ActionIcon>
+          {userList?.map(user => (
+            <tr key={user.username}>
+              <td>
+                <span style={{ display: "flex" }}>
+                  <ActionIcon
+                    variant="transparent"
+                    color="blue"
+                    title={t("modify")}
+                    onClick={() => {
+                      setUserToEdit(user);
+                      setCreateNewUser(false);
+                      setUserModalOpen(true);
+                    }}
+                  >
+                    <Edit />
+                  </ActionIcon>
 
-                      <ActionIcon
-                        style={{ marginLeft: "5px" }}
-                        variant="transparent"
-                        color="red"
-                        disabled={user.is_superuser}
-                        title={user.is_superuser ? t("adminarea.cannotdeleteadmin") : t("delete")}
-                        onClick={() => {
-                          setUserToDelete(user);
-                          setDeleteModalOpen(true);
-                        }}
-                      >
-                        <Trash />
-                      </ActionIcon>
-                    </span>
-                  </td>
-                  <td>{user.username}</td>
-                  <td>{user.scan_directory ? user.scan_directory : t("adminarea.notset")}</td>
-                  {matches && <td>{user.confidence ? user.confidence : t("adminarea.notset")}</td>}
-                  {matches && <td>{user.photo_count}</td>}
-                  {matches && (
-                    <td>{DateTime.fromISO(user.date_joined).setLocale(i18nResolvedLanguage).toRelative()}</td>
-                  )}
-                </tr>
-              ))
-            : null}
+                  <ActionIcon
+                    style={{ marginLeft: "5px" }}
+                    variant="transparent"
+                    color="red"
+                    disabled={user.is_superuser}
+                    title={user.is_superuser ? t("adminarea.cannotdeleteadmin") : t("delete")}
+                    onClick={() => {
+                      setUserToDelete(user);
+                      setDeleteModalOpen(true);
+                    }}
+                  >
+                    <Trash />
+                  </ActionIcon>
+                </span>
+              </td>
+              <td>{user.username}</td>
+              <td>{user.scan_directory ? user.scan_directory : t("adminarea.notset")}</td>
+              {matches && <td>{user.confidence ? user.confidence : t("adminarea.notset")}</td>}
+              {matches && <td>{user.photo_count}</td>}
+              {matches && <td>{DateTime.fromISO(user.date_joined).setLocale(i18nResolvedLanguage).toRelative()}</td>}
+            </tr>
+          ))}
         </tbody>
       </Table>
       <Flex justify="flex-end" mt={10}>
@@ -131,10 +123,10 @@ function UserTable() {
   );
 }
 
-export function AdminPage() {
-  const dispatch = useAppDispatch();
-  const auth = useAppSelector(state => state.auth);
+function AdminTools() {
+  const { t } = useTranslation();
   const { data: serverStats, isLoading } = useFetchServerStatsQuery();
+  const [deleteAllAutoAlbums] = useDeleteAllAutoAlbumsMutation();
 
   const downloadFile = () => {
     // create file in browser
@@ -154,6 +146,32 @@ export function AdminPage() {
     document.body.removeChild(link);
     URL.revokeObjectURL(href);
   };
+
+  return (
+    <Card shadow="md">
+      <Stack>
+        <Title order={4} mb={16}>
+          {t("adminarea.admintools")}
+        </Title>
+        <Flex justify="space-between">
+          <>{t("adminarea.deleteallautoalbums")}</>
+          <Button onClick={() => deleteAllAutoAlbums()} variant="outline">
+            {t("adminarea.delete")}
+          </Button>
+        </Flex>
+        <Flex justify="space-between">
+          <div>{t("adminarea.downloadserverstats")}</div>
+          <Button loading={isLoading} onClick={() => downloadFile()}>
+            {t("adminarea.download")}
+          </Button>
+        </Flex>
+      </Stack>
+    </Card>
+  );
+}
+
+export function AdminPage() {
+  const auth = useAppSelector(state => state.auth);
   const { t } = useTranslation();
 
   if (!auth.access.is_admin) {
@@ -172,25 +190,7 @@ export function AdminPage() {
 
         <SiteSettings />
 
-        <Card shadow="md">
-          <Stack>
-            <Title order={4} mb={16}>
-              {t("adminarea.admintools")}
-            </Title>
-            <Flex justify="space-between">
-              <>{t("adminarea.deleteallautoalbums")}</>
-              <Button onClick={() => dispatch(deleteAllAutoAlbum())} variant="outline">
-                {t("adminarea.delete")}
-              </Button>
-            </Flex>
-            <Flex justify="space-between">
-              <div>{t("adminarea.downloadserverstats")}</div>
-              <Button loading={isLoading} onClick={() => downloadFile()}>
-                {t("adminarea.download")}
-              </Button>
-            </Flex>
-          </Stack>
-        </Card>
+        <AdminTools />
 
         <UserTable />
 

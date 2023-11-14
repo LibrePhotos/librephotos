@@ -29,6 +29,7 @@ enum Endpoints {
   fetchAutoAlbum = "fetchAutoAlbum",
   deleteAutoAlbum = "deleteAutoAlbum",
   deleteAllAutoAlbums = "deleteAllAutoAlbums",
+  generateAutoAlbums = "generateAutoAlbums",
 }
 
 export const autoAlbumsApi = api
@@ -50,8 +51,36 @@ export const autoAlbumsApi = api
         }),
         transformResponse: (response, meta, query) => {
           showNotification({
-            message: i18n.t<string>("toasts.deletealbum", query),
-            title: i18n.t<string>("toasts.deletealbumtitle"),
+            message: i18n.t("toasts.deletealbum", query),
+            title: i18n.t("toasts.deletealbumtitle"),
+            color: "teal",
+          });
+        },
+      }),
+      [Endpoints.deleteAllAutoAlbums]: builder.mutation<void, void>({
+        query: () => ({
+          url: `albums/auto/delete_all/`,
+          method: "POST",
+          body: {},
+        }),
+        transformResponse: () => {
+          showNotification({
+            message: i18n.t("toasts.deleteallautoalbums"),
+            title: i18n.t("toasts.deleteallautoalbumstitle"),
+            color: "teal",
+          });
+        },
+      }),
+      [Endpoints.generateAutoAlbums]: builder.mutation<void, void>({
+        query: () => ({
+          url: `autoalbumgen/`,
+          method: "POST",
+          body: {},
+        }),
+        transformResponse: () => {
+          showNotification({
+            message: i18n.t("toasts.generateeventalbums"),
+            title: i18n.t("toasts.generateeventalbumstitle"),
             color: "teal",
           });
         },
@@ -70,7 +99,19 @@ export const autoAlbumsApi = api
       [Endpoints.deleteAutoAlbum]: {
         invalidatesTags: ["AutoAlbums", "AutoAlbum"],
       },
+      [Endpoints.deleteAllAutoAlbums]: {
+        invalidatesTags: ["AutoAlbums", "AutoAlbum"],
+      },
+      [Endpoints.generateAutoAlbums]: {
+        invalidatesTags: ["AutoAlbums", "AutoAlbum"],
+      },
     },
   });
 
-export const { useFetchAutoAlbumsQuery, useLazyFetchAutoAlbumQuery, useDeleteAutoAlbumMutation } = autoAlbumsApi;
+export const {
+  useFetchAutoAlbumsQuery,
+  useLazyFetchAutoAlbumQuery,
+  useDeleteAutoAlbumMutation,
+  useDeleteAllAutoAlbumsMutation,
+  useGenerateAutoAlbumsMutation,
+} = autoAlbumsApi;

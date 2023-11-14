@@ -47,6 +47,8 @@ enum Endpoints {
   addPhotoToUserAlbum = "addPhotoToUserAlbum",
   setUserAlbumCover = "setUserAlbumCover",
   shareUserAlbum = "shareUserAlbum",
+  fetchAlbumsSharedByMe = "fetchAlbumsSharedByMe",
+  fetchAlbumsSharedWithMe = "fetchAlbumsSharedWithMe",
 }
 
 type DeleteUserAlbumParams = {
@@ -217,10 +219,18 @@ export const userAlbumsApi = api
           }
         },
       }),
+      [Endpoints.fetchAlbumsSharedByMe]: builder.query<UserAlbumList, void>({
+        query: () => "albums/user/shared/fromme/",
+        transformResponse: response => UserAlbumListResponseSchema.parse(response).results,
+      }),
+      [Endpoints.fetchAlbumsSharedWithMe]: builder.query<UserAlbumList, void>({
+        query: () => "albums/user/shared/tome/",
+        transformResponse: response => UserAlbumListResponseSchema.parse(response).results,
+      }),
     }),
   })
-  .enhanceEndpoints<"UserAlbums" | "UserAlbum">({
-    addTagTypes: ["UserAlbums", "UserAlbum"],
+  .enhanceEndpoints<"UserAlbums" | "UserAlbum" | "UserAlbumsSharedByMe" | "UserAlbumsSharedWithMe">({
+    addTagTypes: ["UserAlbums", "UserAlbum", "UserAlbumsSharedWithMe", "UserAlbumsSharedByMe"],
     endpoints: {
       [Endpoints.fetchUserAlbums]: {
         providesTags: ["UserAlbums"],
@@ -248,7 +258,13 @@ export const userAlbumsApi = api
       },
       [Endpoints.shareUserAlbum]: {
         // TODO(sickelap): invalidate only the album that was shared
-        invalidatesTags: ["UserAlbums", "UserAlbum"],
+        invalidatesTags: ["UserAlbums", "UserAlbum", "UserAlbumsSharedByMe"],
+      },
+      [Endpoints.fetchAlbumsSharedByMe]: {
+        providesTags: ["UserAlbumsSharedByMe"],
+      },
+      [Endpoints.fetchAlbumsSharedWithMe]: {
+        providesTags: ["UserAlbumsSharedWithMe"],
       },
     },
   });

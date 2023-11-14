@@ -40,13 +40,8 @@ import {
 } from "tabler-icons-react";
 
 import { scanAllPhotos, scanNextcloudPhotos, scanPhotos } from "../../actions/photosActions";
-import {
-  deleteMissingPhotos,
-  fetchCountStats,
-  generateEventAlbumTitles,
-  generateEventAlbums,
-  updateUser,
-} from "../../actions/utilActions";
+import { deleteMissingPhotos, fetchCountStats, generateEventAlbumTitles, updateUser } from "../../actions/utilActions";
+import { useGenerateAutoAlbumsMutation } from "../../api_client/albums/auto";
 import { api, useWorkerQuery } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { useLazyFetchNextcloudDirsQuery } from "../../api_client/nextcloud";
@@ -105,6 +100,7 @@ export function Library() {
   ] = useLazyFetchNextcloudDirsQuery();
   const [nextcloudStatusColor, setNextcloudStatusColor] = useState("gray");
   const { classes } = useStyles();
+  const [generateAutoAlbums] = useGenerateAutoAlbumsMutation();
 
   const onPhotoScanButtonClick = () => {
     dispatch(scanPhotos());
@@ -115,7 +111,12 @@ export function Library() {
   };
 
   const onGenerateEventAlbumsButtonClick = () => {
-    dispatch(generateEventAlbums());
+    dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
+    dispatch({
+      type: "SET_WORKER_RUNNING_JOB",
+      payload: { job_type_str: "Generate Event Albums" },
+    });
+    generateAutoAlbums();
   };
 
   const onDeleteMissingPhotosButtonClick = () => {
@@ -234,7 +235,7 @@ export function Library() {
                       ? `${t("settings.statusscanphotostrue")}(${statusPhotoScan.added}/${statusPhotoScan.to_add})`
                       : t("settings.statusscanphotosfalse")}
                   </Button>
-                  <Menu transition="pop" position="bottom-end" withinPortal>
+                  <Menu transitionProps={{ transition: "pop" }} position="bottom-end" withinPortal>
                     <Menu.Target>
                       <ActionIcon variant="filled" color="blue" size={36} className={classes.menuControl}>
                         <ChevronDown size="1rem" />

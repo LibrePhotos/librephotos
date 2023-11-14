@@ -65,9 +65,9 @@ export function AlbumPlace({ height }: Props) {
     if (!locationClusters) {
       return <div />;
     }
-    return locationClusters.map(loc => {
-      const key = `${loc[0]}-${loc[1]}`;
-      return loc[0] !== 0 ? <Marker key={key} position={[+loc[0], +loc[1]]} /> : <div />;
+    return locationClusters.map((loc, idx) => {
+      const key = `${loc[0]}-${loc[1]}-${idx}`;
+      return loc[0] !== 0 ? <Marker key={key} position={[+loc[1], +loc[0]]} /> : <div />;
     });
   }
 

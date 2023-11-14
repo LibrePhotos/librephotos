@@ -105,9 +105,8 @@ export function mergeDirTree(tree: DirTree[], branch: DirTree): DirTree[] {
 }
 
 export type PartialPhotoWithLocation = {
-  id: string;
-  exif_gps_lat: number;
-  exif_gps_lon: number;
+  exif_gps_lat: number | null;
+  exif_gps_lon: number | null;
   [key: string]: any;
 };
 

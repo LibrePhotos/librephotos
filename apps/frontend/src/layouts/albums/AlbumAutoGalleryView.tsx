@@ -45,7 +45,7 @@ export function AlbumAutoGalleryView() {
     setEntrySquareSize((width - SIDEBAR_WIDTH - 20) / numEntrySquaresPerRow);
   }, [width]);
 
-  function getPhotoDetails(image_hash) {
+  function getPhotoDetails(image_hash: string) {
     dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hash));
   }
 
@@ -119,6 +119,7 @@ export function AlbumAutoGalleryView() {
             <Avatar.Group>
               {album.people.slice(0, 5).map(person => (
                 <Avatar
+                  key={person.id}
                   radius="xl"
                   component="a"
                   href={`/person/${person.id}`}
@@ -140,9 +141,9 @@ export function AlbumAutoGalleryView() {
                 }
                 return "";
               });
-            const uniqueLocations = _.uniq(locations).map(location => <Text>{location}</Text>);
+            const uniqueLocations = _.uniq(locations).map(location => <Text key={location}>{location}</Text>);
             return (
-              <div>
+              <div key={v[0]}>
                 <Divider hidden />
                 <Group>
                   <Calendar />
@@ -173,6 +174,7 @@ export function AlbumAutoGalleryView() {
 
                 {v[1].map(photo => (
                   <Box
+                    key={photo.image_hash}
                     onClick={() => {
                       if (albumID) {
                         const indexOf = album.photos.map(p => p.image_hash).indexOf(photo.image_hash);
