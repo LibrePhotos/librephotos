@@ -14,7 +14,12 @@
             "item3": "Resmin özgün kimliğini oluştur (MD5)",
             "item4": "Eğer ki bu ortam (medya) zaten veritabanındaysa, ortam dosyasının yolunu veritabanına ekleyeceğiz.",
             "item1": "Altdizinlerde ki her dosya için bir liste yap:",
-            "item2": "Eğer ki dosya yolu halihazırda varsa değişime uğramış mı diye kontrol et. Eğer değişime uğramışsa resmi yeniden tara, ama uğramamışsa bunu atlıyoruz."
+            "item2": "Eğer ki dosya yolu halihazırda varsa değişime uğramış mı diye kontrol et. Eğer değişime uğramışsa resmi yeniden tara, ama uğramamışsa bunu atlıyoruz.",
+            "item5": "Küçük resimleri oluştur",
+            "item8": "Ham GPS kordinatlarını lokasyon bilgisine dönüştür",
+            "item9": "Yüzleri veritabanından ortaya çıkar.",
+            "item6": "Fotoğrafların açıklamalarını oluştur",
+            "item7": "Exif bilgisini ortaya çıkar"
         },
         "language": "Select a language (Dili ayarlayın)",
         "norwegianbokmal": "Norwegian Bokmål",
