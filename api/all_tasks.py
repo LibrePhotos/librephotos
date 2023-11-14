@@ -19,7 +19,7 @@ def create_download_job(job_type, user, photos, filename):
         started_by=user,
         job_id=job_id,
         queued_at=datetime.now().replace(tzinfo=pytz.utc),
-        job_type=job_type,
+        job_type=job_type, 
     )
     if job_type == LongRunningJob.JOB_DOWNLOAD_PHOTOS:
         AsyncTask(
@@ -28,6 +28,7 @@ def create_download_job(job_type, user, photos, filename):
 
     lrj.save()
     return job_id
+
 
 
 def zip_photos_task(job_id, user, photos, filename):
