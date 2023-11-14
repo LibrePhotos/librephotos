@@ -162,6 +162,8 @@ class Im2txt(object):
         return sentence
 
     def export_onnx(self, encoder_output_path, decoder_output_path):
+        from torch.onnx import export, dynamo_export
+
         self.load_models()
 
         # Define a sample input image tensor (adjust input size as needed)
