@@ -3,7 +3,6 @@ import torch.nn as nn
 import torchvision.models as models
 
 
-
 class EncoderCNN(nn.Module):
     def __init__(self, embed_size):
         """Load the pretrained ResNet-152 and replace top fc layer."""
