@@ -1,13 +1,14 @@
-import pytz
+import tarfile
 from datetime import datetime
+from pathlib import Path
+
+import pytz
+import requests
+from constance import config as site_config
 from django.conf import settings
 
-from api.models.long_running_job import LongRunningJob
 import api.util as util
-import requests
-import tarfile
-from pathlib import Path
-from constance import config as site_config
+from api.models.long_running_job import LongRunningJob
 
 
 class MlTypes:

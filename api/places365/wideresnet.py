@@ -1,7 +1,7 @@
 import math
 import os
-import torch.nn as nn
 
+import torch.nn as nn
 from django.conf import settings
 
 model_path = os.path.join(settings.MEDIA_ROOT, "data_models", "resnet18-5c106cde.pth")
