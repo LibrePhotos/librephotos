@@ -32,8 +32,8 @@ class Vocabulary(object):
 
 
 def build_vocab(json, threshold):
-    from pycocotools.coco import COCO
     import nltk
+    from pycocotools.coco import COCO
 
     """Build a simple vocabulary wrapper."""
     coco = COCO(json)

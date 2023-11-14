@@ -1,8 +1,6 @@
-import io
 import os
 import subprocess
 import uuid
-import zipfile
 from urllib.parse import quote
 
 import jsonschema
@@ -26,13 +24,14 @@ from rest_framework_simplejwt.tokens import AccessToken
 from api.all_tasks import create_download_job, delete_zip_file
 from api.api_util import get_search_term_examples
 from api.autoalbum import delete_missing_photos
+from api.batch_jobs import create_batch_job
 from api.directory_watcher import scan_photos
-from api.models import AlbumUser, Photo, User, LongRunningJob
+from api.ml_models import do_all_models_exist
+from api.models import AlbumUser, LongRunningJob, Photo, User
 from api.schemas.site_settings import site_settings_schema
 from api.serializers.album_user import AlbumUserEditSerializer, AlbumUserListSerializer
 from api.util import logger
 from api.views.pagination import StandardResultsSetPagination
-from api.ml_models import do_all_models_exist
 
 
 def custom_exception_handler(exc, context):
@@ -428,7 +427,6 @@ class MediaAccessFullsizeOriginalView(APIView):
         ],
     )
     def get(self, request, path, fname, format=None):
-        
         if path.lower() == "zip":
             jwt = request.COOKIES.get("jwt")
             if jwt is not None:
@@ -589,7 +587,6 @@ class MediaAccessFullsizeOriginalView(APIView):
             return HttpResponse(status=404)
 
 
-
 class ZipListPhotosView_V2(APIView):
     def post(self, request):
         import shutil
@@ -620,9 +617,9 @@ class ZipListPhotosView_V2(APIView):
         return Response(data=response, status=200)
 
     def get(self, request):
-        job_id=request.GET['job_id']
+        job_id = request.GET["job_id"]
         print(job_id)
-        if job_id==None:
+        if job_id is None:
             return Response(status=404)
         try:
             job = LongRunningJob.objects.get(job_id=job_id)
@@ -647,14 +644,13 @@ class DeleteZipView(APIView):
         jwt = request.COOKIES.get("jwt")
         if jwt is not None:
             try:
-                token=AccessToken(jwt)
+                token = AccessToken(jwt)
             except TokenError:
                 return HttpResponseForbidden()
         else:
             return HttpResponseForbidden()
         filename = fname + str(token["user_id"]) + ".zip"
         try:
-            
             delete_zip_file(filename)
             return Response(status=200)
         except BaseException as e:

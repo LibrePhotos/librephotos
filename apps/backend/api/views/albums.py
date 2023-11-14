@@ -487,7 +487,7 @@ class AlbumDateListViewSet(ListViewSet):
 
         if self.request.query_params.get("video"):
             filter.append(Q(photos__video=True))
-        
+
         if self.request.query_params.get("photo"):
             filter.append(Q(photos__video=False))
 

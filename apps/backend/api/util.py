@@ -3,8 +3,6 @@ import os
 import os.path
 
 import exiftool
-import requests
-from constance import config as site_config
 from django.conf import settings
 
 logger = logging.getLogger("ownphotos")

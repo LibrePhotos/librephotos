@@ -1,16 +1,15 @@
 import os
 import pickle
 
+import onnxruntime as ort
 import torch
 from django.conf import settings
+from numpy import asarray
 from PIL import Image
+from torch.onnx import dynamo_export, export
 from torchvision import transforms
 
-from torch.onnx import export, dynamo_export
 from api.im2txt.model import DecoderRNN, EncoderCNN
-import onnxruntime as ort
-
-from numpy import asarray
 
 embed_size = 256
 hidden_size = 512
@@ -215,10 +214,7 @@ class Im2txt(object):
             ".onnx", "_quantizedyn.onnx"
         )
 
-        from onnxruntime.quantization import (
-            quantize_dynamic,
-        )
-
+        from onnxruntime.quantization import quantize_dynamic
         from onnxruntime.quantization.shape_inference import quant_pre_process
 
         quant_pre_process_encoder_output_path = encoder_output_path.replace(

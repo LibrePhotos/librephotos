@@ -1,9 +1,9 @@
-import gevent
-from flask import Flask, request
-from gevent.pywsgi import WSGIServer
 import face_recognition
+import gevent
 import numpy as np
 import PIL
+from flask import Flask, request
+from gevent.pywsgi import WSGIServer
 
 app = Flask(__name__)
 

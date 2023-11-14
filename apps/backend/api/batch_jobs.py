@@ -9,11 +9,10 @@ from django_q.tasks import AsyncTask
 
 import api.util as util
 from api.image_similarity import build_image_similarity_index
+from api.ml_models import download_models
 from api.models.long_running_job import LongRunningJob
 from api.models.photo import Photo
 from api.semantic_search.semantic_search import semantic_search_instance
-
-from api.ml_models import download_models
 
 
 def create_batch_job(job_type, user):
