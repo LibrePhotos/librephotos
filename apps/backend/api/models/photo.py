@@ -11,15 +11,15 @@ from django.core.files.base import ContentFile
 from django.db import models
 from django.db.models import Q
 from django.db.utils import IntegrityError
-from api.im2txt.sample import Im2txt
-from api.face_recognition import get_face_encodings, get_face_locations
 
 import api.date_time_extractor as date_time_extractor
 import api.models
 import api.util as util
 from api.exif_tags import Tags
+from api.face_recognition import get_face_encodings, get_face_locations
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
+from api.im2txt.sample import Im2txt
 from api.models.file import File
 from api.models.user import User, get_deleted_user
 from api.places365.places365 import place365_instance

@@ -1,8 +1,8 @@
 import os
-from PIL import Image
 
 import torch
 import torch.utils.data as data
+from PIL import Image
 
 
 class CocoDataset(data.Dataset):

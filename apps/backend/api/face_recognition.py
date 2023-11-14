@@ -1,5 +1,5 @@
-import requests
 import numpy as np
+import requests
 
 
 def get_face_encodings(image_path, known_face_locations):

@@ -6,10 +6,10 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from api.batch_jobs import create_batch_job
+from api.ml_models import do_all_models_exist
 from api.models import LongRunningJob, Photo, User
 from api.serializers.simple import PhotoSuperSimpleSerializer
 from api.util import logger
-from api.ml_models import do_all_models_exist
 
 
 class UserSerializer(serializers.ModelSerializer):

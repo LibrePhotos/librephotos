@@ -1,16 +1,13 @@
-import io
 import os
 import subprocess
 import uuid
-import zipfile
 from urllib.parse import quote
 
-from api.batch_jobs import create_batch_job
 import jsonschema
 import magic
 from constance import config as site_config
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
 from django.utils.decorators import method_decorator
 from django.utils.encoding import iri_to_uri
@@ -24,15 +21,17 @@ from rest_framework.views import APIView, exception_handler
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
+from api.all_tasks import create_download_job, delete_zip_file
 from api.api_util import get_search_term_examples
 from api.autoalbum import delete_missing_photos
+from api.batch_jobs import create_batch_job
 from api.directory_watcher import scan_photos
-from api.models import AlbumUser, Photo, User, LongRunningJob
+from api.ml_models import do_all_models_exist
+from api.models import AlbumUser, LongRunningJob, Photo, User
 from api.schemas.site_settings import site_settings_schema
 from api.serializers.album_user import AlbumUserEditSerializer, AlbumUserListSerializer
 from api.util import logger
 from api.views.pagination import StandardResultsSetPagination
-from api.ml_models import do_all_models_exist
 
 
 def custom_exception_handler(exc, context):
@@ -113,7 +112,6 @@ class SiteSettingsView(APIView):
 class SetUserAlbumShared(APIView):
     def post(self, request, format=None):
         data = dict(request.data)
-        # print(data)
         shared = data["shared"]  # bool
         target_user_id = data["target_user_id"]  # user pk, int
         user_album_id = data["album_id"]
@@ -370,11 +368,13 @@ class MediaAccessFullsizeOriginalView(APIView):
                     path, fname + ".mp4"
                 )
             return response
+
         if "faces" in path:
             response = HttpResponse()
             response["Content-Type"] = "image/jpg"
             response["X-Accel-Redirect"] = self._get_protected_media_url(path, fname)
             return response
+
         if photo.video:
             # This is probably very slow -> Save the mime type when scanning
             mime = magic.Magic(mime=True)
@@ -427,6 +427,26 @@ class MediaAccessFullsizeOriginalView(APIView):
         ],
     )
     def get(self, request, path, fname, format=None):
+        if path.lower() == "zip":
+            jwt = request.COOKIES.get("jwt")
+            if jwt is not None:
+                try:
+                    token = AccessToken(jwt)
+                except TokenError:
+                    return HttpResponseForbidden()
+            else:
+                return HttpResponseForbidden()
+            try:
+                filename = fname + str(token["user_id"]) + ".zip"
+                response = HttpResponse()
+                response["Content-Type"] = "application/x-zip-compressed"
+                response["X-Accel-Redirect"] = self._get_protected_media_url(
+                    path, filename
+                )
+                return response
+            except Exception:
+                return HttpResponseForbidden()
+
         if path.lower() == "avatars":
             jwt = request.COOKIES.get("jwt")
             if jwt is not None:
@@ -567,33 +587,72 @@ class MediaAccessFullsizeOriginalView(APIView):
             return HttpResponse(status=404)
 
 
-class ZipListPhotosView(APIView):
-    def post(self, request, format=None):
+class ZipListPhotosView_V2(APIView):
+    def post(self, request):
+        import shutil
+
+        free_storage = shutil.disk_usage("/").free
+        data = dict(request.data)
+        if "image_hashes" not in data:
+            return
+        photo_query = Photo.objects.filter(owner=self.request.user)
+        photos = photo_query.in_bulk(data["image_hashes"])
+        if len(photos) == 0:
+            return
+        total_file_size = photo_query.aggregate(Sum("size"))["size__sum"] or None
+        if free_storage < total_file_size:
+            return Response(data={"status": "Insufficient Storage"}, status=507)
+        file_uuid = uuid.uuid4()
+        filename = str(str(file_uuid) + str(self.request.user.id) + ".zip")
+        user = self.request.user
+        print(user.id)
+        job_id = create_download_job(
+            LongRunningJob.JOB_DOWNLOAD_PHOTOS,
+            user=user,
+            photos=photos,
+            filename=filename,
+        )
+        response = {"job_id": job_id, "url": file_uuid}
+
+        return Response(data=response, status=200)
+
+    def get(self, request):
+        job_id = request.GET["job_id"]
+        print(job_id)
+        if job_id is None:
+            return Response(status=404)
         try:
-            data = dict(request.data)
-            if "image_hashes" not in data:
-                return
-            photos = Photo.objects.filter(owner=self.request.user).in_bulk(
-                data["image_hashes"]
-            )
-            if len(photos) == 0:
-                return
-            mf = io.BytesIO()
-            photos_name = {}
-            for photo in photos.values():
-                photo_name = os.path.basename(photo.main_file.path)
-                if photo_name in photos_name:
-                    photos_name[photo_name] = photos_name[photo_name] + 1
-                    photo_name = str(photos_name[photo_name]) + "-" + photo_name
-                else:
-                    photos_name[photo_name] = 1
-                with zipfile.ZipFile(
-                    mf, mode="a", compression=zipfile.ZIP_DEFLATED
-                ) as zf:
-                    zf.write(photo.main_file.path, arcname=photo_name)
-            return HttpResponse(
-                mf.getvalue(), content_type="application/x-zip-compressed"
-            )
+            job = LongRunningJob.objects.get(job_id=job_id)
+            if job.finished:
+                return Response(data={"status": "SUCCESS"}, status=200)
+            elif job.failed:
+                return Response(
+                    data={"status": "FAILURE", "result": job.result}, status=500
+                )
+            else:
+                return Response(
+                    data={"status": "PENDING", "progress": job.result}, status=202
+                )
         except BaseException as e:
             logger.error(str(e))
-            return HttpResponse(status=404)
+            return Response(status=404)
+
+
+class DeleteZipView(APIView):
+    def delete(self, request, fname):
+        print("hello")
+        jwt = request.COOKIES.get("jwt")
+        if jwt is not None:
+            try:
+                token = AccessToken(jwt)
+            except TokenError:
+                return HttpResponseForbidden()
+        else:
+            return HttpResponseForbidden()
+        filename = fname + str(token["user_id"]) + ".zip"
+        try:
+            delete_zip_file(filename)
+            return Response(status=200)
+        except BaseException as e:
+            logger.error(str(e))
+            return Response(status=404)
