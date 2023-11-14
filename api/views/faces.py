@@ -7,8 +7,10 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.batch_jobs import create_batch_job
 from api.directory_watcher import scan_faces
 from api.face_classify import cluster_all_faces
+from api.ml_models import do_all_models_exist
 from api.models import Face, LongRunningJob
 from api.models.person import Person, get_or_create_person
 from api.serializers.face import (
@@ -19,8 +21,6 @@ from api.serializers.face import (
 from api.util import logger
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import RegularResultsSetPagination
-from api.ml_models import do_all_models_exist
-from api.batch_jobs import create_batch_job
 
 
 class ScanFacesView(APIView):
