@@ -1,10 +1,11 @@
 import { showNotification } from "@mantine/notifications";
+import axios from "axios";
 import _ from "lodash";
 import type { Dispatch } from "redux";
 import { z } from "zod";
 
 // eslint-disable-next-line import/no-cycle
-import { Server } from "../api_client/apiClient";
+import { Server, serverAddress } from "../api_client/apiClient";
 import { photoDetailsApi } from "../api_client/photos/photoDetail";
 import i18n from "../i18n";
 // eslint-disable-next-line import/no-cycle
@@ -34,24 +35,88 @@ const fetchPhotosetRejected = (err: string) => ({
 });
 
 export function downloadPhotos(image_hashes: string[]) {
-  return function cb() {
-    Server.post(
-      `photos/download`,
-      {
-        image_hashes,
-      },
-      {
-        responseType: "blob",
-      }
-    ).then(response => {
-      const downloadUrl = window.URL.createObjectURL(new Blob([response.data], { type: "application/zip" }));
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.setAttribute("download", "file.zip");
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+  let fileUrl;
+
+  const startDownloadProcess = () => {
+    showNotification({
+      message: "Download Starting ...",
+      title: i18n.t("toasts.downloadstart"),
+      color: "teal",
     });
+    return Server.post("photos/download", {
+      image_hashes,
+    });
+  };
+  const checkDownloadStatus = job_id =>
+    Server.get(`photos/download?job_id=${job_id}`)
+      .then(response => response.data.status)
+      .catch(error => console.error("Error checking download status:", error));
+
+  const getDownloadFile = () => axios.get<Blob>(`${serverAddress}/media/zip/${fileUrl}`, { responseType: "blob" });
+
+  const deleteDownloadFile = () =>
+    Server.delete(`delete/zip/${fileUrl}`)
+      .then(response => response.data.status)
+      .catch(error => {
+        console.error("Error Deleting the file :", error);
+      });
+
+  return function () {
+    startDownloadProcess()
+      .then(response => {
+        fileUrl = response.data.url;
+        let checkStatusInterval;
+
+        const checkStatus = () => {
+          checkDownloadStatus(response.data.job_id)
+            .then(status => {
+              if (status === "SUCCESS") {
+                clearInterval(checkStatusInterval); // Stop checking once successful
+
+                getDownloadFile()
+                  .then(downlaod_response => {
+                    const downloadUrl = window.URL.createObjectURL(
+                      new Blob([downlaod_response.data], { type: "application/zip" })
+                    );
+
+                    const link = document.createElement("a");
+                    link.href = downloadUrl;
+                    link.setAttribute("download", "file.zip");
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    showNotification({
+                      message: "Download Completed",
+                      title: i18n.t("toasts.downloadcomplete"),
+                      color: "teal",
+                    });
+                    deleteDownloadFile();
+                  })
+                  .catch(error => {
+                    console.error("Error downloading:", error);
+                  });
+              } else if (status === "FAILURE") {
+                showNotification({
+                  message: "Download failed",
+                  title: i18n.t("toasts.downloaderror"),
+                  color: "red",
+                });
+
+                clearInterval(checkStatusInterval); // Stop checking on failure as well
+                throw new Error("Download failed.");
+              }
+            })
+            .catch(error => {
+              console.error("Error checking download status:", error);
+            });
+        };
+        // Set up an interval to periodically check the download status
+        checkStatusInterval = setInterval(checkStatus, 3000);
+      })
+
+      .catch(error => {
+        console.error("Error:", error);
+      });
   };
 }
 
@@ -60,7 +125,7 @@ export function setPhotosShared(image_hashes: string[], val_shared: boolean, tar
     dispatch({ type: "SET_PHOTOS_SHARED" });
     Server.post(`photosedit/share/`, {
       image_hashes,
-      shared: val_shared,
+      val_shared,
       target_user_id: target_user.id,
     })
       .then(() => {
@@ -98,7 +163,6 @@ const RecentlyAddedResponseDataSchema = z.object({
 export const FETCH_RECENTLY_ADDED_PHOTOS = "FETCH_RECENTLY_ADDED_PHOTOS";
 export const FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED = "FETCH_RECENTLY_ADDED_PHOTOS_FULFILLED";
 export const FETCH_RECENTLY_ADDED_PHOTOS_REJECTED = "FETCH_RECENTLY_ADDED_PHOTOS_REJECTED";
-
 export function fetchRecentlyAddedPhotos(dispatch: AppDispatch) {
   dispatch({ type: FETCH_RECENTLY_ADDED_PHOTOS });
   Server.get("photos/recentlyadded/")
@@ -193,13 +257,20 @@ export const SET_PHOTOS_PUBLIC_FULFILLED = "SET_PHOTOS_PUBLIC_FULFILLED";
 export function setPhotosPublic(image_hashes: string[], val_public: boolean) {
   return function cb(dispatch: Dispatch<any>) {
     dispatch({ type: "SET_PHOTOS_PUBLIC" });
-    Server.post(`photosedit/makepublic/`, { image_hashes, val_public })
+    Server.post(`photosedit/makepublic/`, {
+      image_hashes,
+      val_public,
+    })
       .then(response => {
         const data = PhotosUpdatedResponseSchema.parse(response.data);
         const updatedPhotos: Photo[] = data.updated;
         dispatch({
           type: SET_PHOTOS_PUBLIC_FULFILLED,
-          payload: { image_hashes, val_public, updatedPhotos },
+          payload: {
+            image_hashes,
+            val_public,
+            updatedPhotos,
+          },
         });
         let notificationMessage = i18n.t("toasts.removepublicphoto", {
           numberOfPhotos: image_hashes.length,
@@ -231,15 +302,22 @@ export const SET_PHOTOS_FAVORITE_FULFILLED = "SET_PHOTOS_FAVORITE_FULFILLED";
 export const SET_PHOTOS_FAVORITE_REJECTED = "SET_PHOTOS_FAVORITE_REJECTED";
 
 export function setPhotosFavorite(image_hashes: string[], favorite: boolean) {
-  return function cb(dispatch: Dispatch<any>) {
+  return function (dispatch: Dispatch<any>) {
     dispatch({ type: SET_PHOTOS_FAVORITE });
-    Server.post(`photosedit/favorite/`, { image_hashes, favorite })
+    Server.post(`photosedit/favorite/`, {
+      image_hashes,
+      favorite,
+    })
       .then(response => {
         const data = PhotosUpdatedResponseSchema.parse(response.data);
         const updatedPhotos: Photo[] = data.updated;
         dispatch({
           type: SET_PHOTOS_FAVORITE_FULFILLED,
-          payload: { image_hashes, favorite, updatedPhotos },
+          payload: {
+            image_hashes,
+            favorite,
+            updatedPhotos,
+          },
         });
         let notificationMessage = i18n.t("toasts.unfavoritephoto", {
           numberOfPhotos: image_hashes.length,
@@ -272,14 +350,19 @@ export function finalPhotosDeleted(image_hashes: string[]) {
   return function cb(dispatch: Dispatch<any>) {
     dispatch({ type: PHOTOS_FINAL_DELETED });
     Server.delete(`photosedit/delete`, {
-      data: { image_hashes },
+      data: {
+        image_hashes,
+      },
     })
       .then(response => {
         const data = PhotosUpdatedResponseSchema.parse(response.data);
         const updatedPhotos: Photo[] = data.updated;
         dispatch({
           type: PHOTOS_FINAL_DELETED_FULFILLED,
-          payload: { image_hashes, updatedPhotos },
+          payload: {
+            image_hashes,
+            updatedPhotos,
+          },
         });
         const notificationMessage = i18n.t("toasts.finaldeletephoto", {
           numberOfPhotos: image_hashes.length,
@@ -300,7 +383,10 @@ export function deleteDuplicateImage(image_hash: string, path: string) {
   return function cb(dispatch: Dispatch<any>) {
     dispatch({ type: PHOTOS_FINAL_DELETED });
     Server.delete(`/photosedit/duplicate/delete`, {
-      data: { image_hash, path },
+      data: {
+        image_hash,
+        path,
+      },
     })
       .then(() => {
         // To-Do: Change locale for this
@@ -327,13 +413,20 @@ export const SET_PHOTOS_DELETED_REJECTED = "SET_PHOTOS_DELETED_REJECTED";
 export function setPhotosDeleted(image_hashes: string[], deleted: boolean) {
   return function cb(dispatch: Dispatch<any>) {
     dispatch({ type: SET_PHOTOS_DELETED });
-    Server.post(`photosedit/setdeleted/`, { image_hashes, deleted })
+    Server.post(`photosedit/setdeleted/`, {
+      image_hashes,
+      deleted,
+    })
       .then(response => {
         const data = PhotosUpdatedResponseSchema.parse(response.data);
         const updatedPhotos: Photo[] = data.updated;
         dispatch({
           type: SET_PHOTOS_DELETED_FULFILLED,
-          payload: { image_hashes, deleted, updatedPhotos },
+          payload: {
+            image_hashes,
+            deleted,
+            updatedPhotos,
+          },
         });
         let notificationMessage = i18n.t("toasts.recoverphoto", {
           numberOfPhotos: image_hashes.length,
@@ -360,13 +453,20 @@ export const SET_PHOTOS_HIDDEN_FULFILLED = "SET_PHOTOS_HIDDEN_FULFILLED";
 export function setPhotosHidden(image_hashes: string[], hidden: boolean) {
   return function cb(dispatch: Dispatch<any>) {
     dispatch({ type: "SET_PHOTOS_HIDDEN" });
-    Server.post(`photosedit/hide/`, { image_hashes, hidden })
+    Server.post(`photosedit/hide/`, {
+      image_hashes,
+      hidden,
+    })
       .then(response => {
         const data = PhotosUpdatedResponseSchema.parse(response.data);
         const updatedPhotos: Photo[] = data.updated;
         dispatch({
           type: SET_PHOTOS_HIDDEN_FULFILLED,
-          payload: { image_hashes, hidden, updatedPhotos },
+          payload: {
+            image_hashes,
+            hidden,
+            updatedPhotos,
+          },
         });
         let notificationMessage = i18n.t("toasts.unhidephoto", {
           numberOfPhotos: image_hashes.length,
@@ -392,46 +492,87 @@ export function setPhotosHidden(image_hashes: string[], hidden: boolean) {
   };
 }
 
-function triggerScan(dispatch: Dispatch<any>, url: string, i18nPrefix: string): void {
-  dispatch({ type: "SCAN_PHOTOS" });
-  dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
-
-  Server.get(url)
-    .then(response => {
-      const payload = JobResponseSchema.parse(response.data);
-      showNotification({
-        message: i18n.t(`toasts.${i18nPrefix}`),
-        title: i18n.t(`toasts.${i18nPrefix}title`),
-        color: "teal",
-      });
-      dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload });
-    })
-    .catch(payload => {
-      dispatch({ type: "SCAN_PHOTOS_REJECTED", payload });
-    });
-}
-
 export function scanPhotos() {
-  return function cb(dispatch: Dispatch<any>) {
-    triggerScan(dispatch, "scanphotos/", "scanphotos");
+  return function (dispatch: Dispatch<any>) {
+    dispatch({ type: "SCAN_PHOTOS" });
+    dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
+
+    Server.get(`scanphotos/`)
+      .then(response => {
+        const jobResponse = JobResponseSchema.parse(response.data);
+        showNotification({
+          message: i18n.t("toasts.scanphotos"),
+          title: i18n.t("toasts.scanphotostitle"),
+          color: "teal",
+        });
+        dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
+      })
+      .catch(err => {
+        dispatch({ type: "SCAN_PHOTOS_REJECTED", payload: err });
+      });
   };
 }
 
 export function scanUploadedPhotos() {
-  return function cb(dispatch: Dispatch<any>) {
-    triggerScan(dispatch, "scanuploadedphotos/", "scanuploadedphotos");
+  return function (dispatch: Dispatch<any>) {
+    dispatch({ type: "SCAN_PHOTOS" });
+    dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
+
+    Server.get(`scanuploadedphotos/`)
+      .then(response => {
+        const jobResponse = JobResponseSchema.parse(response.data);
+        showNotification({
+          message: i18n.t("toasts.scanuploadedphotos"),
+          title: i18n.t("toasts.scanuploadedphotostitle"),
+          color: "teal",
+        });
+        dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
+      })
+      .catch(err => {
+        dispatch({ type: "SCAN_PHOTOS_REJECTED", payload: err });
+      });
   };
 }
 
 export function scanAllPhotos() {
-  return function cb(dispatch: Dispatch<any>) {
-    triggerScan(dispatch, "fullscanphotos/", "fullscanphotos");
+  return function (dispatch: Dispatch<any>) {
+    dispatch({ type: "SCAN_PHOTOS" });
+    dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
+
+    Server.get(`fullscanphotos/`)
+      .then(response => {
+        const jobResponse = JobResponseSchema.parse(response.data);
+        showNotification({
+          message: i18n.t("toasts.fullscanphotos"),
+          title: i18n.t("toasts.fullscanphotostitle"),
+          color: "teal",
+        });
+        dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
+      })
+      .catch(err => {
+        dispatch({ type: "SCAN_PHOTOS_REJECTED", payload: err });
+      });
   };
 }
 
 export function scanNextcloudPhotos() {
-  return function cb(dispatch: Dispatch<any>) {
-    triggerScan(dispatch, "nextcloud/scanphotos/", "scannextcloudphotos");
+  return function (dispatch: Dispatch<any>) {
+    dispatch({ type: "SCAN_PHOTOS" });
+    dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
+
+    Server.get(`nextcloud/scanphotos/`)
+      .then(response => {
+        const jobResponse = JobResponseSchema.parse(response.data);
+        showNotification({
+          message: i18n.t("toasts.scannextcloudphotos"),
+          title: i18n.t("toasts.scannextcloudphotostitle"),
+          color: "teal",
+        });
+        dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
+      })
+      .catch(err => {
+        dispatch({ type: "SCAN_PHOTOS_REJECTED", payload: err });
+      });
   };
 }
 
@@ -478,10 +619,15 @@ export function fetchNoTimestampPhotoPaginated(dispatch: AppDispatch, page: numb
       const photosCount = data.count;
       dispatch({
         type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED,
-        payload: { photosFlat, fetchedPage: page, photosCount },
+        payload: {
+          photosFlat,
+          page,
+          photosCount,
+        },
       });
     })
     .catch(err => {
+      console.error(err);
       dispatch({
         type: FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED,
         payload: err,
@@ -518,7 +664,8 @@ export function savePhotoCaption(image_hash: string, caption?: string | undefine
         });
       })
       .catch(error => {
-        dispatch({ type: "SAVE_PHOTO_CAPTION_REJECTED", payload: error });
+        dispatch({ type: "SAVE_PHOTO_CAPTION_REJECTED" });
+        console.error(error);
       });
   };
 }
