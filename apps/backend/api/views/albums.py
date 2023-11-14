@@ -101,6 +101,7 @@ class PersonViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = ["name"]
+    ordering_fields = ["name"]
 
     def get_queryset(self):
         if self.request.user.is_anonymous:

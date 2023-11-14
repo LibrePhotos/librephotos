@@ -1,4 +1,4 @@
-Django==4.2.6
+Django==4.2.7
 django-constance==3.1.0
 django-cors-headers==4.3.0
 git+https://github.com/derneuere/django-chunked-upload@master#egg=django-chunked-upload
@@ -20,7 +20,7 @@ Flask-RESTful==0.3.10
 geopy==2.4.0
 gunicorn==21.2.0
 hdbscan==0.8.33
-matplotlib==3.8.0
+matplotlib==3.8.1
 networkx==3.2.1
 nltk==3.8.1
 markupsafe==2.1.3
@@ -39,9 +39,9 @@ timezonefinder==6.2.0
 tqdm==4.65.2
 gevent==23.9.1
 python-magic==0.4.27
-Wand==0.6.11
+Wand==0.6.13
 django-q2==1.6.1
 safetensors==0.4.0
 py-cpuinfo==9.0.0
 psutil==5.9.6
-onnxruntime-gpu==1.16.1
+onnxruntime==1.16.1
