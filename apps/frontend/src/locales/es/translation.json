@@ -579,7 +579,10 @@
         "deleteallautoalbumstitle": "Eliminar todos los álbumes creados automáticamente",
         "deleteuser": "{{username}} eliminado",
         "savecaptions": "Leyenda de la imagen actualizada",
-        "captionupdate": "Actualizar el título"
+        "captionupdate": "Actualizar el título",
+        "downloadcomplete": "Archivos descargados con éxito",
+        "downloaderror": "Error al descargar",
+        "downloadstart": "Descarga iniciada"
     },
     "rules": {
         "report_tz": "Transformar a{{rule}}",
