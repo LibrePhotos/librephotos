@@ -2,6 +2,7 @@ import uuid
 
 from django.db.models import Count, OuterRef, Prefetch, Q, Subquery
 from django_q.tasks import AsyncTask
+from drf_spectacular.utils import extend_schema
 from rest_framework import filters, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -107,7 +108,17 @@ class AlbumAutoListViewSet(ListViewSet):
 
 
 class RegenerateAutoAlbumTitles(APIView):
+    @extend_schema(
+        deprecated=True,
+        description="Use POST method to re-generate auto album titles.",
+    )
     def get(self, request, format=None):
+        return self._schedule_auto_album_title_regeneration(request)
+
+    def post(self, request, format=None):
+        return self._schedule_auto_album_title_regeneration(request)
+
+    def _schedule_auto_album_title_regeneration(self, request, format=None):
         try:
             job_id = uuid.uuid4()
             AsyncTask(regenerate_event_titles, request.user, job_id).run()
@@ -118,7 +129,17 @@ class RegenerateAutoAlbumTitles(APIView):
 
 
 class AutoAlbumGenerateView(APIView):
+    @extend_schema(
+        deprecated=True,
+        description="Use POST method to re-generate auto albums.",
+    )
     def get(self, request, format=None):
+        return self._schedule_auto_album_regeneration(request)
+
+    def post(self, request, format=None):
+        return self._schedule_auto_album_regeneration(request)
+
+    def _schedule_auto_album_regeneration(self, request):
         try:
             job_id = uuid.uuid4()
             AsyncTask(generate_event_albums, request.user, job_id).run()
