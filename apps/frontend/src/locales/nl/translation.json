@@ -573,7 +573,10 @@
         "deleteusertitle": "Gebruiker verwijderen",
         "removefacestopersontitle": "Gezichten van persoon verwijderen",
         "savecaptions": "Het bijschrijft is bijgewerkt",
-        "captionupdate": "Bijschrift bijwerken"
+        "captionupdate": "Bijschrift bijwerken",
+        "downloadcomplete": "De bestanden zijn gedownload",
+        "downloaderror": "Het downloaden is mislukt",
+        "downloadstart": "Het downloaden is gestart"
     },
     "rename": "Naam wijzigen",
     "events": "Gebeurtenissen",
