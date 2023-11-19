@@ -1,4 +1,4 @@
-import { Box, Button, Grid, Modal, SimpleGrid, Space, Text, TextInput, Title } from "@mantine/core";
+import { Box, Button, Grid, Modal, ScrollArea, SimpleGrid, Space, Text, TextInput, Title } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import type { FormEvent } from "react";
 import React, { useEffect, useRef, useState } from "react";
@@ -71,7 +71,7 @@ export function ModalUserEdit(props: Props) {
     if (!username) {
       return t("modaluseredit.errorusernamecannotbeblank");
     }
-    const exist = userList.results.reduce(
+    const exist = userList.reduce(
       (acc: boolean, user: IUser) =>
         acc || (user.id !== userToEdit.id && user.username.toLowerCase() === username.toLowerCase()),
       false
@@ -239,7 +239,7 @@ export function ModalUserEdit(props: Props) {
     <Modal
       opened={isOpen}
       centered
-      overflow="outside"
+      scrollAreaComponent={ScrollArea.Autosize}
       size="xl"
       onClose={() => {
         closeModal();
