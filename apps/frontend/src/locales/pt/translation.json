@@ -582,7 +582,10 @@
         "removefacestoperson": "{{numberOfFaces}} cara(s) movida(s) para 'Desconhecido - Outro'",
         "removefacestopersontitle": "Remover caras da pessoa",
         "savecaptions": "Legenda da imagem atualizada",
-        "captionupdate": "Atualizar legenda"
+        "captionupdate": "Atualizar legenda",
+        "downloadcomplete": "Ficheiros transferidos com sucesso",
+        "downloaderror": "Erro de transferência",
+        "downloadstart": "Transferência iniciou"
     },
     "deletefaceexplanation": "Esta ação vai permanentemente eliminar as caras e todos os seus dados associados. Esta ação não pode ser desfeita.",
     "rules": {
