@@ -119,6 +119,7 @@ i18n
     interpolation: {
       format: (value, format, lng) => {
         if (value instanceof Date) {
+          // @ts-ignore
           return DateTime.fromJSDate(value).setLocale(lng).toLocaleString(DateTime[format]);
         }
         return value;

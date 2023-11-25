@@ -1,17 +1,25 @@
 export class ScrollSpeed {
+  lastPosition: number = -1;
+
+  delta: number = 0;
+
+  timeout: number = -1;
+
   clear = () => {
-    this.lastPosition = null;
+    this.lastPosition = -1;
     this.delta = 0;
-    this.timeout = null;
+    this.timeout = -1;
   };
 
-  getScrollSpeed(scrollOffset) {
+  getScrollSpeed(scrollOffset: number) {
     if (this.lastPosition != null) {
       this.delta = scrollOffset - this.lastPosition;
     }
     this.lastPosition = scrollOffset;
 
-    window.clearTimeout(this.timeout);
+    if (this.timeout !== -1) {
+      this.clearTimeout();
+    }
     this.timeout = window.setTimeout(this.clear, 50);
 
     return this.delta;
@@ -22,5 +30,4 @@ export class ScrollSpeed {
   }
 }
 
-export const SPEED_THRESHOLD = 500; // Tweak this to whatever feels right for your app
 export const SCROLL_DEBOUNCE_DURATION = 250; // In milliseconds

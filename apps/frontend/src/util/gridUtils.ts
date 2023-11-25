@@ -2,22 +2,18 @@ import _ from "lodash";
 
 import { store } from "../store/store";
 
-function select(state) {
-  return state.ui;
-}
-
 let gridType = "dense";
 
 function listener() {
-  const ui = select(store.getState());
+  const { ui } = store.getState();
   gridType = ui.gridType;
 }
 
 store.subscribe(listener);
 
 export const calculateSharedPhotoGridCells = (groupedBySharerList, itemsPerRow) => {
-  const gridContents = [];
-  let rowCursor = [];
+  const gridContents: any[] = [];
+  let rowCursor: any[] = [];
 
   groupedBySharerList.forEach(group => {
     gridContents.push([group]);
@@ -41,8 +37,8 @@ export const calculateSharedPhotoGridCells = (groupedBySharerList, itemsPerRow) 
 };
 
 export const calculateSharedAlbumGridCells = (groupedBySharerList, itemsPerRow) => {
-  const gridContents = [];
-  let rowCursor = [];
+  const gridContents: any[] = [];
+  let rowCursor: any[] = [];
 
   groupedBySharerList.forEach(group => {
     gridContents.push([group]);
@@ -65,36 +61,8 @@ export const calculateSharedAlbumGridCells = (groupedBySharerList, itemsPerRow) 
   return { cellContents: gridContents };
 };
 
-export const calculateGridCells = (groupedByDateList, itemsPerRow) => {
-  const gridContents = [];
-  let rowCursor = [];
-  const hash2row = {};
-
-  groupedByDateList.forEach(day => {
-    gridContents.push([day]);
-    const currRowIdx = gridContents.length;
-    day.photos.forEach((photo, idx) => {
-      if (idx === 0) {
-        rowCursor = [];
-      }
-      if (idx > 0 && idx % itemsPerRow === 0) {
-        gridContents.push(rowCursor);
-      }
-      if (idx % itemsPerRow === 0) {
-        rowCursor = [];
-      }
-      rowCursor.push(photo);
-      hash2row[[photo.image_hash]] = currRowIdx;
-      if (idx === day.photos.length - 1) {
-        gridContents.push(rowCursor);
-      }
-    });
-  });
-  return { cellContents: gridContents, hash2row };
-};
-
-export const calculateGridCellSize = gridWidth => {
-  let numEntrySquaresPerRow;
+export const calculateGridCellSize = (gridWidth: number) => {
+  let numEntrySquaresPerRow: number;
 
   if (gridType === "dense") {
     if (gridWidth < 600) {
@@ -146,8 +114,8 @@ export const calculateGridCellSize = gridWidth => {
 };
 
 export const calculateFaceGridCells = (groupedByPersonList, itemsPerRow) => {
-  const gridContents = [];
-  let rowCursor = [];
+  const gridContents: any[] = [];
+  let rowCursor: any[] = [];
   const hash2row = {};
 
   groupedByPersonList.forEach(person => {
@@ -164,6 +132,7 @@ export const calculateFaceGridCells = (groupedByPersonList, itemsPerRow) => {
         rowCursor = [];
       }
       rowCursor.push(face);
+      // @ts-ignore
       hash2row[[face.image_hash]] = currRowIdx;
       if (idx === person.faces.length - 1) {
         gridContents.push(rowCursor);
