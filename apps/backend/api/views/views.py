@@ -597,7 +597,7 @@ class ZipListPhotosView_V2(APIView):
             return
         photo_query = Photo.objects.filter(owner=self.request.user)
         # Filter photos based on image hashes
-        photos = photo_query.filter(image_hash__in=image_hashes)
+        photos = photo_query.filter(image_hash__in=data["image_hashes"])
         if not photos.exists():
             return
 
