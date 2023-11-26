@@ -596,20 +596,22 @@ class ZipListPhotosView_V2(APIView):
         if "image_hashes" not in data:
             return
         photo_query = Photo.objects.filter(owner=self.request.user)
-        photos = photo_query.in_bulk(data["image_hashes"])
-        if len(photos) == 0:
+        # Filter photos based on image hashes
+        photos = photo_query.filter(image_hash__in=image_hashes)
+        if not photos.exists():
             return
-        total_file_size = photo_query.aggregate(Sum("size"))["size__sum"] or None
+
+        # Calculate the total file size using aggregate
+        total_file_size = photos.aggregate(Sum("size"))["size__sum"] or 0
         if free_storage < total_file_size:
             return Response(data={"status": "Insufficient Storage"}, status=507)
         file_uuid = uuid.uuid4()
         filename = str(str(file_uuid) + str(self.request.user.id) + ".zip")
-        user = self.request.user
-        print(user.id)
+
         job_id = create_download_job(
             LongRunningJob.JOB_DOWNLOAD_PHOTOS,
-            user=user,
-            photos=photos,
+            user=self.request.user,
+            photos=list(photos),
             filename=filename,
         )
         response = {"job_id": job_id, "url": file_uuid}
