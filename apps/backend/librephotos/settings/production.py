@@ -12,6 +12,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, "static")
 DATA_ROOT = PHOTOS
 IM2TXT_ROOT = os.path.join(MEDIA_ROOT, "data_models", "im2txt")
 IM2TXT_ONNX_ROOT = os.path.join(MEDIA_ROOT, "data_models", "im2txt_onnx")
+BLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "blip")
 PLACES365_ROOT = os.path.join(MEDIA_ROOT, "data_models", "places365", "model")
 CLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "clip-embeddings")
 LOGS_ROOT = BASE_LOGS
@@ -109,6 +110,7 @@ CONSTANCE_ADDITIONAL_FIELDS = {
                 ("none", "None"),
                 ("im2txt", "im2txt PyTorch Model"),
                 ("im2txt_onnx", "im2txt ONNX Model"),
+                ("blip_base_capfilt_large", "BLIP Model"),
             ),
         },
     ],
