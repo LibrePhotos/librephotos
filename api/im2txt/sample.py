@@ -9,12 +9,21 @@ from PIL import Image
 from torchvision import transforms
 
 from api.im2txt.model import DecoderRNN, EncoderCNN
+import onnxruntime as ort
+
+from torchvision.transforms.functional import InterpolationMode
+from numpy import asarray
+
+from api.im2txt.blip.blip import blip_decoder
+
+blip_image_size = 384
 
 embed_size = 256
 hidden_size = 512
 num_layers = 1
 im2txt_models_path = settings.IM2TXT_ROOT
 im2txt_onnx_models_path = settings.IM2TXT_ONNX_ROOT
+blip_models_path = settings.BLIP_ROOT
 
 encoder_path = os.path.join(im2txt_models_path, "models", "encoder-10-1000.ckpt")
 decoder_path = os.path.join(im2txt_models_path, "models", "decoder-10-1000.ckpt")
@@ -24,16 +33,23 @@ encoder_onnx_path = os.path.join(im2txt_onnx_models_path, "encoder.onnx")
 decoder_onnx_path = os.path.join(im2txt_onnx_models_path, "decoder.onnx")
 vocab_onnx_path = os.path.join(im2txt_onnx_models_path, "vocab.pkl")
 
+blip_model_url = os.path.join(blip_models_path, "model_base_capfilt_large.pth")
+blip_config_url = os.path.join(blip_models_path, "med_config.json")
+
 
 class Im2txt(object):
     def __init__(
-        self, device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self,
+        device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+        blip=False,
     ):
         self._instance = self
         self.encoder = None
         self.decoder = None
         self.vocab = None
         self.device = device
+        self.blip = blip
+        self.model = None
 
     def load_image(self, image_path, transform=None):
         image = Image.open(image_path)
@@ -41,7 +57,6 @@ class Im2txt(object):
         if image.mode != "RGB":
             # Handle grayscale or other modes here (e.g., convert to RGB)
             image = image.convert("RGB")
-        image = image.resize([224, 224], Image.LANCZOS)
 
         if transform is not None:
             image = transform(image).unsqueeze(0)
@@ -49,7 +64,18 @@ class Im2txt(object):
         return image
 
     def load_models(self, onnx=False):
-        if self.encoder is not None:
+        if self.encoder is not None or self.model is not None:
+            return
+
+        if self.blip:
+            self.model = blip_decoder(
+                pretrained=blip_model_url,
+                image_size=blip_image_size,
+                vit="base",
+                med_config=blip_config_url,
+            )
+            self.model.eval()
+            self.model.to(self.device)
             return
 
         if onnx:
@@ -105,19 +131,42 @@ class Im2txt(object):
         image_path,
         onnx=False,
     ):
+        self.load_models(onnx=onnx)
+
         # Image preprocessing
         transform = transforms.Compose(
             [
+                transforms.Resize((224, 224), interpolation=InterpolationMode.BICUBIC),
                 transforms.ToTensor(),
                 transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
             ]
         )
 
-        self.load_models(onnx=onnx)
+        blip_transform = transforms.Compose(
+            [
+                transforms.Resize(
+                    (blip_image_size, blip_image_size),
+                    interpolation=InterpolationMode.BICUBIC,
+                ),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    (0.48145466, 0.4578275, 0.40821073),
+                    (0.26862954, 0.26130258, 0.27577711),
+                ),
+            ]
+        )
+
+        if self.blip:
+            image = self.load_image(image_path, blip_transform).to(self.device)
+            with torch.no_grad():
+                # beam search
+                caption_blip = self.model.generate(
+                    image, sample=False, num_beams=3, max_length=50, min_length=10
+                )
+                return caption_blip[0]
 
         # Prepare an image
         image = self.load_image(image_path, transform)
-
         if onnx:
             # image to numpy
 
