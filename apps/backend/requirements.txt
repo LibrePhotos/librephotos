@@ -45,3 +45,6 @@ safetensors==0.4.0
 py-cpuinfo==9.0.0
 psutil==5.9.6
 onnxruntime==1.16.1
+# Dependencies for blip
+timm==0.4.12
+transformers==4.16.0
