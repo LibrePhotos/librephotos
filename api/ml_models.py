@@ -1,11 +1,13 @@
 import tarfile
 from datetime import datetime
 from pathlib import Path
+import os
 
 import pytz
 import requests
 from constance import config as site_config
 from django.conf import settings
+import math
 
 import api.util as util
 from api.models.long_running_job import LongRunningJob
@@ -59,15 +61,17 @@ ML_MODELS = [
         "unpack-command": "tar -zxC",
         "target-dir": "im2txt_onnx",
     },
+    {
+        "id": 6,
+        "name": "blip_base_capfilt_large",
+        "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/blip_large.tar.gz?download=true",
+        "type": MlTypes.CAPTIONING,
+        "unpack-command": "tar -zxC",
+        "target-dir": "blip",
+    },
 ]
 
 
-# To-Dos:
-# 1. Add the face recognition model
-# 2. Waiting long running jobs looks weird
-# 3. The whole dashboard isnt localized yet...
-# 4. Create tests for checking if the models are downloaded correctly and downloading them if not
-# 5. Upload models to huggingface
 # Check if the model is already downloaded and if not download it
 def download_model(model):
     model = model.copy()
@@ -85,16 +89,33 @@ def download_model(model):
 
     if target_dir.exists():
         util.logger.info(f"Model {model['name']} already downloaded")
-    else:
-        response = requests.get(model["url"], stream=True)
-        if model["unpack-command"] == "tar -zxC":
-            with tarfile.open(fileobj=response.raw, mode="r:gz") as tar:
-                tar.extractall(path=model_folder)
-        else:
-            with open(target_dir, "wb") as target_file:
-                for chunk in response.iter_content(chunk_size=1024):
-                    if chunk:
-                        target_file.write(chunk)
+        return
+
+    if model["unpack-command"] == "tar -zxC":
+        target_dir = model_folder / (model["target-dir"] + ".tar.gz")
+
+    response = requests.get(model["url"], stream=True)
+    total_size = int(response.headers.get("content-length", 0))
+    block_size = 1024
+    current_progress = 0
+    previous_percentage = -1  # Initialize to a value that won't match any
+    with open(target_dir, "wb") as target_file:
+        for chunk in response.iter_content(chunk_size=block_size):
+            if chunk:
+                target_file.write(chunk)
+                current_progress += len(chunk)
+                percentage = math.floor((current_progress / total_size) * 100)
+
+                if percentage != previous_percentage:
+                    util.logger.info(
+                        f"Downloading {model['name']}: {current_progress}/{total_size} ({percentage}%)"
+                    )
+                    previous_percentage = percentage
+
+    if model["unpack-command"] == "tar -zxC":
+        with tarfile.open(target_dir, mode="r:gz") as tar:
+            tar.extractall(path=model_folder)
+        os.remove(target_dir)
 
 
 def download_models(job_id):
