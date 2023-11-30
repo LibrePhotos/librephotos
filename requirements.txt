@@ -47,4 +47,4 @@ psutil==5.9.6
 onnxruntime==1.16.1
 # Dependencies for blip
 timm==0.4.12
-transformers==4.16.0
+transformers==4.30.0
