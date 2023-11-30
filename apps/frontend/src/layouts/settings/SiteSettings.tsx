@@ -25,6 +25,7 @@ const MAP_API_PROVIDERS = [
 const CAPTIONING_MODELS = [
   { value: "im2txt", label: "im2txt PyTorch" },
   { value: "im2txt_onnx", label: "im2txt ONNX" },
+  { value: "blip_base_capfilt_large", label: "BLIP Base Capfilt Large" },
   { value: "none", label: "None" },
 ];
 
