@@ -62,6 +62,7 @@ coverage.xml
 .pytest_cache/
 cover/
 coco/
+survey/
 
 # Translations
 *.mo
