@@ -166,13 +166,17 @@ class Photo(models.Model):
         try:
             from constance import config as site_config
 
-            if site_config == "None":
+            if site_config.CAPTIONING_MODEL == "None":
                 util.logger.info("Generating captions is disabled")
                 return False
             onnx = False
-            if site_config == "im2txt_onnx":
+            if site_config.CAPTIONING_MODEL == "im2txt_onnx":
                 onnx = True
-            caption = Im2txt().generate_caption(image_path, onnx)
+            blip = False
+            if site_config.CAPTIONING_MODEL == "blip_base_capfilt_large":
+                blip = True
+
+            caption = Im2txt(blip=blip).generate_caption(image_path, onnx)
             caption = (
                 caption.replace("<start>", "").replace("<end>", "").strip().lower()
             )
@@ -183,8 +187,8 @@ class Photo(models.Model):
             if commit:
                 self.save()
             util.logger.info(
-                "generated im2txt captions for image %s. caption: %s"
-                % (image_path, caption)
+                "generated im2txt captions for image %s with SiteConfig %s with Blip: %s and Onnx: %s caption: %s"
+                % (image_path, site_config.CAPTIONING_MODEL, blip, onnx, caption)
             )
             return True
         except Exception:
