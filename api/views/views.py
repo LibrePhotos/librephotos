@@ -106,6 +106,9 @@ class SiteSettingsView(APIView):
             site_config.MAP_API_KEY = request.data["map_api_key"]
         if "captioning_model" in request.data.keys():
             site_config.CAPTIONING_MODEL = request.data["captioning_model"]
+        if not do_all_models_exist():
+            create_batch_job(LongRunningJob.JOB_DOWNLOAD_MODELS, request.user)
+
         return self.get(request, format=format)
 
 
