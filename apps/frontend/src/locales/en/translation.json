@@ -449,7 +449,9 @@
     "map_api_key_header": "API key for Map Provider",
     "map_api_key_description": "Get your API key at {{url}}",
     "headerheavyweight": "Heavyweight Processes",
-    "heavyweight": "Increase the number of picture-scanning workers beyond 1, but be prepared to use 800 MB memory for each additional one."
+    "heavyweight": "Increase the number of picture-scanning workers beyond 1, but be prepared to use 800 MB memory for each additional one.",
+    "captioning_model_header": "Captioning Model",
+    "captioning_model_description": "Select a model for generating image captions."
   },
   "countstats": {
     "photos": "Photos"
