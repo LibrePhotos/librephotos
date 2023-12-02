@@ -7,14 +7,10 @@ from django.conf import settings
 from numpy import asarray
 from PIL import Image
 from torchvision import transforms
-
-from api.im2txt.model import DecoderRNN, EncoderCNN
-import onnxruntime as ort
-
 from torchvision.transforms.functional import InterpolationMode
-from numpy import asarray
 
 from api.im2txt.blip.blip import blip_decoder
+from api.im2txt.model import DecoderRNN, EncoderCNN
 
 blip_image_size = 384
 
@@ -133,7 +129,6 @@ class Im2txt(object):
     ):
         self.load_models(onnx=onnx)
 
-        # Image preprocessing
         transform = transforms.Compose(
             [
                 transforms.Resize((224, 224), interpolation=InterpolationMode.BICUBIC),

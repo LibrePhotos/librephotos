@@ -1,13 +1,13 @@
+import math
+import os
 import tarfile
 from datetime import datetime
 from pathlib import Path
-import os
 
 import pytz
 import requests
 from constance import config as site_config
 from django.conf import settings
-import math
 
 import api.util as util
 from api.models.long_running_job import LongRunningJob
@@ -72,7 +72,6 @@ ML_MODELS = [
 ]
 
 
-# Check if the model is already downloaded and if not download it
 def download_model(model):
     model = model.copy()
     if model["type"] == MlTypes.CAPTIONING:
