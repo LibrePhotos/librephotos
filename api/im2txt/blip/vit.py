@@ -8,15 +8,13 @@
  * https://github.com/rwightman/pytorch-image-models/tree/master/timm
 """
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from functools import partial
 
-from timm.models.vision_transformer import _cfg, PatchEmbed
-from timm.models.registry import register_model
-from timm.models.layers import trunc_normal_, DropPath
-from timm.models.helpers import named_apply, adapt_input_conv
+import torch
+import torch.nn as nn
+from timm.models.helpers import adapt_input_conv
+from timm.models.layers import DropPath, trunc_normal_
+from timm.models.vision_transformer import PatchEmbed, resize_pos_embed
 
 
 class Mlp(nn.Module):
@@ -346,12 +344,6 @@ def _load_weights(model: VisionTransformer, checkpoint_path: str, prefix: str = 
     model.pos_embed.copy_(pos_embed_w)
     model.norm.weight.copy_(_n2p(w[f"{prefix}Transformer/encoder_norm/scale"]))
     model.norm.bias.copy_(_n2p(w[f"{prefix}Transformer/encoder_norm/bias"]))
-    #     if isinstance(model.head, nn.Linear) and model.head.bias.shape[0] == w[f'{prefix}head/bias'].shape[-1]:
-    #         model.head.weight.copy_(_n2p(w[f'{prefix}head/kernel']))
-    #         model.head.bias.copy_(_n2p(w[f'{prefix}head/bias']))
-    #     if isinstance(getattr(model.pre_logits, 'fc', None), nn.Linear) and f'{prefix}pre_logits/bias' in w:
-    #         model.pre_logits.fc.weight.copy_(_n2p(w[f'{prefix}pre_logits/kernel']))
-    #         model.pre_logits.fc.bias.copy_(_n2p(w[f'{prefix}pre_logits/bias']))
     for i, block in enumerate(model.blocks.children()):
         block_prefix = f"{prefix}Transformer/encoderblock_{i}/"
         mha_prefix = block_prefix + "MultiHeadDotProductAttention_1/"

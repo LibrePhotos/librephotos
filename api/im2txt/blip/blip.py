@@ -5,20 +5,15 @@
  * For full license text, see LICENSE.txt file in the repo root or https://opensource.org/licenses/BSD-3-Clause
  * By Junnan Li
 """
-import warnings
-
-warnings.filterwarnings("ignore")
-
-from api.im2txt.blip.vit import VisionTransformer, interpolate_pos_embed
-from api.im2txt.blip.med import BertConfig, BertModel, BertLMHeadModel
-from transformers import BertTokenizer
+import os
+from urllib.parse import urlparse
 
 import torch
 from torch import nn
-import torch.nn.functional as F
+from transformers import BertTokenizer
 
-import os
-from urllib.parse import urlparse
+from api.im2txt.blip.med import BertConfig, BertLMHeadModel, BertModel
+from api.im2txt.blip.vit import VisionTransformer, interpolate_pos_embed
 
 
 class BLIP_Base(nn.Module):
