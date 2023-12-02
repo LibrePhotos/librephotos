@@ -1,5 +1,5 @@
 ---
-title: "ℹ Exif Data"
+title: "📇 Exif Data"
 excerpt: "What exif data can we read, write and filter for"
 sidebar_position: 2
 ---

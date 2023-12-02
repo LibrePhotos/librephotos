@@ -1,5 +1,5 @@
 ---
-title: "Trash"
+title: "🗑️ Trash"
 excerpt: "A overview on how Trash works"
 sidebar_position: 5
 ---
