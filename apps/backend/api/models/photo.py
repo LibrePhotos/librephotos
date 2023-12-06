@@ -23,7 +23,6 @@ from api.im2txt.sample import Im2txt
 from api.models.file import File
 from api.models.user import User, get_deleted_user
 from api.places365.places365 import place365_instance
-from api.semantic_search.semantic_search import semantic_search_instance
 from api.thumbnails import (
     createAnimatedThumbnail,
     createThumbnail,
@@ -218,25 +217,6 @@ class Photo(models.Model):
         except Exception:
             util.logger.warning("could not save captions for image %s" % image_path)
             return False
-
-    def _generate_clip_embeddings(self, commit=True):
-        image_path = self.thumbnail_big.path
-        if not self.clip_embeddings and image_path:
-            try:
-                img_emb, magnitude = semantic_search_instance.calculate_clip_embeddings(
-                    image_path
-                )
-                self.clip_embeddings = img_emb
-                self.clip_embeddings_magnitude = magnitude
-                if commit:
-                    self.save()
-                util.logger.info(
-                    "generated clip embeddings for image %s." % (image_path)
-                )
-            except Exception:
-                util.logger.exception(
-                    "could not generate clip embeddings for image %s" % image_path
-                )
 
     def _generate_captions(self, commit):
         try:

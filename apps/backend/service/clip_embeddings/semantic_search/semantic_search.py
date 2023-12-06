@@ -2,19 +2,14 @@ import gc
 
 import numpy as np
 import PIL
-from django.conf import settings
 from sentence_transformers import SentenceTransformer
-
-from api.util import logger
-
-dir_clip_ViT_B_32_model = settings.CLIP_ROOT
 
 
 class SemanticSearch:
     model_is_loaded = False
 
-    def load(self):
-        self.load_model()
+    def load(self, model):
+        self.load_model(model)
         self.model_is_loaded = True
         pass
 
@@ -24,14 +19,14 @@ class SemanticSearch:
         self.model_is_loaded = False
         pass
 
-    def load_model(self):
-        self.model = SentenceTransformer(dir_clip_ViT_B_32_model)
+    def load_model(self, model):
+        self.model = SentenceTransformer(model)
 
-    def calculate_clip_embeddings(self, img_paths):
+    def calculate_clip_embeddings(self, img_paths, model):
         import torch
 
         if not self.model_is_loaded:
-            self.load()
+            self.load(model)
         imgs = []
         if type(img_paths) is list:
             for path in img_paths:
@@ -39,13 +34,13 @@ class SemanticSearch:
                     img = PIL.Image.open(path)
                     imgs.append(img)
                 except PIL.UnidentifiedImageError:
-                    logger.info("Error loading image: {}".format(path))
+                    print("Error loading image: {}".format(path))
         else:
             try:
                 img = PIL.Image.open(img_paths)
                 imgs.append(img)
             except PIL.UnidentifiedImageError:
-                logger.info("Error loading image: {}".format(img_paths))
+                print("Error loading image: {}".format(img_paths))
 
         try:
             imgs_emb = self.model.encode(imgs, batch_size=32, convert_to_tensor=True)
@@ -71,12 +66,12 @@ class SemanticSearch:
 
                 return img_emb, magnitude
         except Exception as e:
-            logger.error("Error in calculating clip embeddings: {}".format(e))
+            print("Error in calculating clip embeddings: {}".format(e))
             raise e
 
-    def calculate_query_embeddings(self, query):
+    def calculate_query_embeddings(self, query, model):
         if not self.model_is_loaded:
-            self.load()
+            self.load(model)
 
         query_emb = self.model.encode([query], convert_to_tensor=True)[0].tolist()
         magnitude = np.linalg.norm(query_emb)

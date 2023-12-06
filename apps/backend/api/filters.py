@@ -8,7 +8,7 @@ from rest_framework.compat import distinct
 
 import api.util as util
 from api.image_similarity import search_similar_embedding
-from api.semantic_search.semantic_search import semantic_search_instance
+from api.semantic_search import calculate_query_embeddings
 
 
 class SemanticSearchFilter(filters.SearchFilter):
@@ -26,7 +26,7 @@ class SemanticSearchFilter(filters.SearchFilter):
         if request.user.semantic_search_topk > 0:
             query = request.query_params.get("search")
             start = datetime.datetime.now()
-            emb, magnitude = semantic_search_instance.calculate_query_embeddings(query)
+            emb, magnitude = calculate_query_embeddings(query)
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
                 "finished calculating query embedding - took %.2f seconds" % (elapsed)
