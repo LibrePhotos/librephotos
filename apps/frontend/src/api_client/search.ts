@@ -44,11 +44,18 @@ const searchApi = api
       [Endpoints.searchPhotos]: builder.query<SearchPhotosResult, string>({
         query: query => `photos/searchlist/?search=${query}`,
         transformResponse: response => {
-          const photosGroupedByDate = SearchPhotosSchema.parse(response).results;
-          return {
-            photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
-            photosGroupedByDate,
-          };
+          try {
+            const photosGroupedByDate = SearchPhotosSchema.parse(response).results;
+            return {
+              photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
+              photosGroupedByDate,
+            };
+          } catch (e) {
+            return {
+              photosFlat: response.results,
+              photosGroupedByDate: [],
+            };
+          }
         },
       }),
     }),

@@ -22,8 +22,8 @@ export function SearchView() {
       title={`Searching "${searchQuery}"...`}
       loading={isFetching}
       icon={<Search size={50} />}
-      photoset={photosGroupedByDate}
-      idx2hash={user.semantic_search_topk ? photosGroupedByDate : photosFlat}
+      photoset={user.semantic_search_topk ? photosFlat : photosGroupedByDate}
+      idx2hash={photosFlat}
       selectable
     />
   );
