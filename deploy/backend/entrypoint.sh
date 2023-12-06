@@ -18,6 +18,7 @@ python manage.py collectstatic --no-input
 python image_similarity/main.py 2>&1 | tee /logs/image_similarity.log &
 python service/thumbnail/main.py 2>&1 | tee /logs/thumbnail.log &
 python service/face_recognition/main.py 2>&1 | tee /logs/face_recognition.log &
+python service/clip_embeddings/main.py 2>&1 | tee /logs/clip_embeddings.log &
 python manage.py clear_cache 
 python manage.py build_similarity_index 2>&1 | tee /logs/command_build_similarity_index.log
 
