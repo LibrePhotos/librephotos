@@ -12,7 +12,7 @@ from api.image_similarity import build_image_similarity_index
 from api.ml_models import download_models
 from api.models.long_running_job import LongRunningJob
 from api.models.photo import Photo
-from api.semantic_search.semantic_search import semantic_search_instance
+from api.semantic_search import create_clip_embeddings
 
 
 def create_batch_job(job_type, user):
@@ -74,9 +74,7 @@ def batch_calculate_clip_embedding(job_id, user):
             if len(valid_objs) == 0:
                 continue
 
-            imgs_emb, magnitudes = semantic_search_instance.calculate_clip_embeddings(
-                imgs
-            )
+            imgs_emb, magnitudes = create_clip_embeddings(imgs)
 
             for obj, img_emb, magnitude in zip(valid_objs, imgs_emb, magnitudes):
                 obj.clip_embeddings = img_emb.tolist()
@@ -87,7 +85,6 @@ def batch_calculate_clip_embedding(job_id, user):
         lrj.result = {"progress": {"current": done_count, "target": count}}
         lrj.save()
 
-    semantic_search_instance.unload()
     build_image_similarity_index(user)
     lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
     lrj.finished = True
