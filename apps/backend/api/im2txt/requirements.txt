@@ -1,4 +1,0 @@
-matplotlib
-nltk
-numpy
-Pillow
