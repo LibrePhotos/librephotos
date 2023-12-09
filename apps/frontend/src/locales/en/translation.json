@@ -451,7 +451,9 @@
     "headerheavyweight": "Heavyweight Processes",
     "heavyweight": "Increase the number of picture-scanning workers beyond 1, but be prepared to use 800 MB memory for each additional one.",
     "captioning_model_header": "Captioning Model",
-    "captioning_model_description": "Select a model for generating image captions."
+    "captioning_model_description": "Select a model for generating image captions.",
+    "ram_warning_header": "Large RAM Size possible",
+    "heavyweight_process_warning": "Setting the number of heavyweight processes to more than 3 will likely require more than 16GB of RAM. Please consider this before proceeding."
   },
   "countstats": {
     "photos": "Photos"

@@ -1,10 +1,24 @@
-import { Card, Grid, NativeSelect, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
+import {
+  Button,
+  Card,
+  Grid,
+  Group,
+  Modal,
+  NativeSelect,
+  Select,
+  Stack,
+  Switch,
+  Text,
+  TextInput,
+  Title,
+} from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useGetSettingsQuery, useUpdateSettingsMutation } from "../../api_client/site-settings";
 
-const MAX_HEAVYWEIGHT_PROCESSES = 3;
+const MAX_HEAVYWEIGHT_PROCESSES = 10;
 const heavyweightProcessOptions = Array(MAX_HEAVYWEIGHT_PROCESSES)
   .fill("")
   .map((_, i) => (i + 1).toString());
@@ -40,6 +54,16 @@ export function SiteSettings() {
   const { t } = useTranslation();
   const { data: settings, isLoading } = useGetSettingsQuery();
   const [saveSettings] = useUpdateSettingsMutation();
+  const [opened, { open, close }] = useDisclosure(false);
+
+  const saveSettingsWithValidation = (input: any) => {
+    console.log(input);
+    if (input.heavyweight_process > 3) {
+      open();
+      return;
+    }
+    saveSettings(input);
+  };
 
   useEffect(() => {
     if (!isLoading && settings) {
@@ -54,143 +78,177 @@ export function SiteSettings() {
   }, [settings, isLoading]);
 
   return (
-    <Card shadow="md" mb={10}>
-      <Stack>
-        <Title order={4} sx={{ marginBottom: 16 }}>
-          {t("adminarea.sitesettings")}
-        </Title>
+    <div>
+      <Modal
+        opened={opened}
+        onClose={() => {
+          saveSettings({ heavyweight_process: 3 });
+          close();
+        }}
+        title={<Title order={4}>{t("sitesettings.ram_warning_header")}</Title>}
+      >
+        <Stack>
+          <Text>{t("sitesettings.heavyweight_process_warning")}</Text>
+          <Group>
+            <Button
+              onClick={() => {
+                saveSettings({ heavyweight_process: 3 });
+                close();
+              }}
+            >
+              {t("cancel")}
+            </Button>
+            <Button
+              onClick={() => {
+                saveSettings({ heavyweight_process: heavyweightProcess });
+                close();
+              }}
+              color="red"
+            >
+              {t("save")}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
-        <Switch
-          label={t("sitesettings.header")}
-          onChange={() => saveSettings({ allow_registration: !allowRegistration })}
-          checked={allowRegistration}
-        />
-        <Switch
-          label={t("sitesettings.headerupload")}
-          onChange={() => saveSettings({ allow_upload: !allowUpload })}
-          checked={allowUpload}
-        />
+      <Card shadow="md" mb={10}>
+        <Stack>
+          <Title order={4} sx={{ marginBottom: 16 }}>
+            {t("adminarea.sitesettings")}
+          </Title>
 
-        <Grid align="flex-end">
-          <Grid.Col span={8}>
-            <Stack spacing={0}>
-              <Text>{t("sitesettings.headerskippatterns")}</Text>
-              <Text fz="sm" color="dimmed">
-                {t("sitesettings.skippatterns")}
-              </Text>
-            </Stack>
-          </Grid.Col>
-          <Grid.Col span={4}>
-            <TextInput
-              value={skipPatterns}
-              onKeyDown={e => {
-                if (e.key === "Enter") {
-                  saveSettings({ skip_patterns: skipPatterns });
-                }
-              }}
-              onBlur={() => saveSettings({ skip_patterns: skipPatterns })}
-              onChange={event => setSkipPatterns(event.currentTarget.value)}
-            />
-          </Grid.Col>
-          <Grid.Col span={8}>
-            <Stack spacing={0}>
-              <Text>{t("sitesettings.map_api_provider_header")}</Text>
-              <Text fz="sm" color="dimmed">
-                {t("sitesettings.map_api_provider_description", {
-                  url: MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.url,
-                })}
-              </Text>
-            </Stack>
-          </Grid.Col>
-          <Grid.Col span={4}>
-            <Select
-              searchable
-              withinPortal
-              data={MAP_API_PROVIDERS}
-              dropdownPosition="bottom"
-              value={mapApiProvider}
-              onChange={provider => {
-                const value = provider || "";
-                setMapApiProvider(value);
-                saveSettings({ map_api_provider: value });
-              }}
-            />
-          </Grid.Col>
-          {MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.use_api_key && (
-            <>
-              <Grid.Col span={8}>
-                <Stack spacing={0}>
-                  <Text>{t("sitesettings.map_api_key_header")}</Text>
-                  <Text fz="sm" color="dimmed">
-                    {t("sitesettings.map_api_key_description", {
-                      url: MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.url,
-                    })}
-                  </Text>
-                </Stack>
-              </Grid.Col>
-              <Grid.Col span={4}>
-                <TextInput
-                  value={mapApiKey}
-                  onKeyDown={e => {
-                    if (e.key === "Enter") {
-                      saveSettings({ map_api_key: mapApiKey });
-                    }
-                  }}
-                  onBlur={() => saveSettings({ map_api_key: mapApiKey })}
-                  onChange={e => setMapApiKey(e.target.value)}
-                />
-              </Grid.Col>
-            </>
-          )}
-          <Grid.Col span={8}>
-            <Stack spacing={0}>
-              <Text>{t("sitesettings.captioning_model_header")}</Text>
-              <Text fz="sm" color="dimmed">
-                {t("sitesettings.captioning_model_description")}
-              </Text>
-            </Stack>
-          </Grid.Col>
-          <Grid.Col span={4}>
-            <Select
-              searchable
-              withinPortal
-              data={CAPTIONING_MODELS}
-              dropdownPosition="bottom"
-              value={captioningModel}
-              onChange={model => {
-                const value = model ?? "";
-                setCaptioningModel(value);
-                saveSettings({ captioning_model: value });
-              }}
-            />
-          </Grid.Col>
-          <Grid.Col span={8}>
-            <Stack spacing={0}>
-              <Text>{t("sitesettings.headerheavyweight")}</Text>
-              <Text fz="sm" color="dimmed">
-                {t("sitesettings.heavyweight")}
-              </Text>
-            </Stack>
-          </Grid.Col>
-          <Grid.Col span={4}>
-            <NativeSelect
-              data={heavyweightProcessOptions}
-              value={heavyweightProcess}
-              onKeyDown={e => {
-                if (e.key === "Enter") {
-                  saveSettings({ heavyweight_process: +e.currentTarget.value });
-                }
-              }}
-              onBlur={() => saveSettings({ heavyweight_process: heavyweightProcess })}
-              onChange={e => {
-                if (/^([0-9\b]+)?$/.test(e.target.value)) {
-                  setHeavyweightProcess(+e.currentTarget.value);
-                }
-              }}
-            />
-          </Grid.Col>
-        </Grid>
-      </Stack>
-    </Card>
+          <Switch
+            label={t("sitesettings.header")}
+            onChange={() => saveSettings({ allow_registration: !allowRegistration })}
+            checked={allowRegistration}
+          />
+          <Switch
+            label={t("sitesettings.headerupload")}
+            onChange={() => saveSettings({ allow_upload: !allowUpload })}
+            checked={allowUpload}
+          />
+
+          <Grid align="flex-end">
+            <Grid.Col span={8}>
+              <Stack spacing={0}>
+                <Text>{t("sitesettings.headerskippatterns")}</Text>
+                <Text fz="sm" color="dimmed">
+                  {t("sitesettings.skippatterns")}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={4}>
+              <TextInput
+                value={skipPatterns}
+                onKeyDown={e => {
+                  if (e.key === "Enter") {
+                    saveSettings({ skip_patterns: skipPatterns });
+                  }
+                }}
+                onBlur={() => saveSettings({ skip_patterns: skipPatterns })}
+                onChange={event => setSkipPatterns(event.currentTarget.value)}
+              />
+            </Grid.Col>
+            <Grid.Col span={8}>
+              <Stack spacing={0}>
+                <Text>{t("sitesettings.map_api_provider_header")}</Text>
+                <Text fz="sm" color="dimmed">
+                  {t("sitesettings.map_api_provider_description", {
+                    url: MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.url,
+                  })}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={4}>
+              <Select
+                searchable
+                withinPortal
+                data={MAP_API_PROVIDERS}
+                dropdownPosition="bottom"
+                value={mapApiProvider}
+                onChange={provider => {
+                  const value = provider || "";
+                  setMapApiProvider(value);
+                  saveSettings({ map_api_provider: value });
+                }}
+              />
+            </Grid.Col>
+            {MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.use_api_key && (
+              <>
+                <Grid.Col span={8}>
+                  <Stack spacing={0}>
+                    <Text>{t("sitesettings.map_api_key_header")}</Text>
+                    <Text fz="sm" color="dimmed">
+                      {t("sitesettings.map_api_key_description", {
+                        url: MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.url,
+                      })}
+                    </Text>
+                  </Stack>
+                </Grid.Col>
+                <Grid.Col span={4}>
+                  <TextInput
+                    value={mapApiKey}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        saveSettings({ map_api_key: mapApiKey });
+                      }
+                    }}
+                    onBlur={() => saveSettings({ map_api_key: mapApiKey })}
+                    onChange={e => setMapApiKey(e.target.value)}
+                  />
+                </Grid.Col>
+              </>
+            )}
+            <Grid.Col span={8}>
+              <Stack spacing={0}>
+                <Text>{t("sitesettings.captioning_model_header")}</Text>
+                <Text fz="sm" color="dimmed">
+                  {t("sitesettings.captioning_model_description")}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={4}>
+              <Select
+                searchable
+                withinPortal
+                data={CAPTIONING_MODELS}
+                dropdownPosition="bottom"
+                value={captioningModel}
+                onChange={model => {
+                  const value = model ?? "";
+                  setCaptioningModel(value);
+                  saveSettings({ captioning_model: value });
+                }}
+              />
+            </Grid.Col>
+            <Grid.Col span={8}>
+              <Stack spacing={0}>
+                <Text>{t("sitesettings.headerheavyweight")}</Text>
+                <Text fz="sm" color="dimmed">
+                  {t("sitesettings.heavyweight")}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={4}>
+              <NativeSelect
+                data={heavyweightProcessOptions}
+                value={heavyweightProcess}
+                onKeyDown={e => {
+                  if (e.key === "Enter") {
+                    saveSettingsWithValidation({ heavyweight_process: +e.currentTarget.value });
+                  }
+                }}
+                onChange={e => {
+                  if (/^([0-9\b]+)?$/.test(e.target.value)) {
+                    setHeavyweightProcess(+e.currentTarget.value);
+                    saveSettingsWithValidation({ heavyweight_process: e.target.value });
+                  }
+                }}
+              />
+            </Grid.Col>
+          </Grid>
+        </Stack>
+      </Card>
+    </div>
   );
 }
