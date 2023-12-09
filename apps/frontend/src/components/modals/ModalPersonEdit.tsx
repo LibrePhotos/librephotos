@@ -1,4 +1,16 @@
-import { Avatar, Button, Divider, Group, Modal, ScrollArea, Stack, Text, TextInput, Title } from "@mantine/core";
+import {
+  Avatar,
+  Button,
+  Divider,
+  Group,
+  Modal,
+  ScrollArea,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+  UnstyledButton,
+} from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 import React, { useEffect, useState } from "react";
@@ -114,36 +126,51 @@ export function ModalPersonEdit(props: Props) {
         >
           {filteredPeopleList.length > 0 &&
             filteredPeopleList.map(item => (
-              <Group key={item.key}>
-                <Avatar radius="xl" size={60} src={serverAddress + item.face_url} />
-                <div>
-                  <Title
-                    style={{ width: "250px", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }}
-                    order={4}
-                    onClick={() => {
-                      dispatch(
-                        api.endpoints.setFacesPersonLabel.initiate({ faceIds: selectedFaceIDs, personName: item.text })
-                      );
-                      showNotification({
-                        message: i18n.t<string>("toasts.addfacestoperson", {
-                          numberOfFaces: selectedFaceIDs.length,
-                          personName: item.text,
-                        }),
-                        title: i18n.t<string>("toasts.addfacestopersontitle"),
-                        color: "teal",
-                      });
-                      onRequestClose();
-                    }}
-                  >
-                    {item.text}
-                  </Title>
-                  <Text size="sm" color="dimmed">
-                    {t("numberofphotos", {
-                      number: item.face_count,
-                    })}
-                  </Text>
-                </div>
-              </Group>
+              <UnstyledButton
+                sx={theme => ({
+                  display: "block",
+                  borderRadius: theme.radius.xl,
+                  color: theme.colorScheme === "dark" ? theme.colors.dark[0] : theme.black,
+
+                  "&:hover": {
+                    backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+                  },
+                })}
+                onClick={() => {
+                  dispatch(
+                    api.endpoints.setFacesPersonLabel.initiate({
+                      faceIds: selectedFaceIDs,
+                      personName: item.text,
+                    })
+                  );
+                  showNotification({
+                    message: i18n.t<string>("toasts.addfacestoperson", {
+                      numberOfFaces: selectedFaceIDs.length,
+                      personName: item.text,
+                    }),
+                    title: i18n.t<string>("toasts.addfacestopersontitle"),
+                    color: "teal",
+                  });
+                  onRequestClose();
+                }}
+              >
+                <Group key={item.key}>
+                  <Avatar radius="xl" size={60} src={serverAddress + item.face_url} />
+                  <div>
+                    <Title
+                      style={{ width: "250px", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }}
+                      order={4}
+                    >
+                      {item.text}
+                    </Title>
+                    <Text size="sm" color="dimmed">
+                      {t("numberofphotos", {
+                        number: item.face_count,
+                      })}
+                    </Text>
+                  </div>
+                </Group>
+              </UnstyledButton>
             ))}
         </Stack>
       </Stack>
