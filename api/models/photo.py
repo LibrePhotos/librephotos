@@ -19,7 +19,7 @@ from api.exif_tags import Tags
 from api.face_recognition import get_face_encodings, get_face_locations
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
-from api.im2txt.sample import Im2txt
+from api.image_captioning import generate_caption
 from api.models.file import File
 from api.models.user import User, get_deleted_user
 from api.places365.places365 import place365_instance
@@ -175,7 +175,7 @@ class Photo(models.Model):
             if site_config.CAPTIONING_MODEL == "blip_base_capfilt_large":
                 blip = True
 
-            caption = Im2txt(blip=blip).generate_caption(image_path, onnx)
+            caption = generate_caption(image_path=image_path, blip=blip, onnx=onnx)
             caption = (
                 caption.replace("<start>", "").replace("<end>", "").strip().lower()
             )

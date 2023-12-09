@@ -3,7 +3,6 @@ import pickle
 
 import onnxruntime as ort
 import torch
-from django.conf import settings
 from numpy import asarray
 from PIL import Image
 from torchvision import transforms
@@ -17,9 +16,10 @@ blip_image_size = 384
 embed_size = 256
 hidden_size = 512
 num_layers = 1
-im2txt_models_path = settings.IM2TXT_ROOT
-im2txt_onnx_models_path = settings.IM2TXT_ONNX_ROOT
-blip_models_path = settings.BLIP_ROOT
+
+im2txt_models_path = "/protected_media/data_models/im2txt"
+im2txt_onnx_models_path = "/protected_media/data_models/im2txt_onnx"
+blip_models_path = "/protected_media/data_models/blip"
 
 encoder_path = os.path.join(im2txt_models_path, "models", "encoder-10-1000.ckpt")
 decoder_path = os.path.join(im2txt_models_path, "models", "decoder-10-1000.ckpt")
@@ -117,10 +117,12 @@ class Im2txt(object):
             # self.decoder = torch.compile(self.decoder)
 
     def unload_models(self):
-        self.encoder.__del__()
-        self.decoder.__del__()
+        del self.encoder
+        del self.decoder
+        del self.model
         self.encoder = None
         self.decoder = None
+        self.model = None
 
     def generate_caption(
         self,
