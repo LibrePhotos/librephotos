@@ -427,7 +427,9 @@
         "heavyweight": "Aumente o número de trabalhadores de análise de fotos mas esteja preparado para usar 800MB de memória por cada trabalhador adicional.",
         "headerupload": "Permitir carregamentos",
         "captioning_model_header": "Modelo de legendagem",
-        "captioning_model_description": "Modelo para usar na criação de legendas das fotos."
+        "captioning_model_description": "Modelo para usar na criação de legendas das fotos.",
+        "heavyweight_process_warning": "Definir o número de processos pesados para mais que 3 requer mais que 16GB de RAM, tenha isto em consideração antes de proceder.",
+        "ram_warning_header": "Tamanho grande de RAM possível"
     },
     "countstats": {
         "photos": "Fotos"
