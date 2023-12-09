@@ -417,7 +417,9 @@
         "headerheavyweight": "Procesos intensivos",
         "heavyweight": "Incrementar el número de trabajadores por encima de 1, pero se usarán 800 MB de RAM por cada uno que se agregue.",
         "captioning_model_header": "Modelo de los subtítulos",
-        "captioning_model_description": "Modelo a utilizar para generar títulos de las imágenes."
+        "captioning_model_description": "Modelo a utilizar para generar títulos de las imágenes.",
+        "heavyweight_process_warning": "Establecer el número de procesos pesados a más de 3 probablemente requerirá más de 16GB de RAM. Tenlo en cuenta antes de continuar.",
+        "ram_warning_header": "Es posible un gran tamaño de RAM"
     },
     "countstats": {
         "photos": "Fotos"
