@@ -51,6 +51,7 @@ export function SiteSettings() {
   const [allowRegistration, setAllowRegistration] = useState(false);
   const [allowUpload, setAllowUpload] = useState(false);
   const [captioningModel, setCaptioningModel] = useState("im2txt");
+  const [warning, setWarning] = useState("none");
   const { t } = useTranslation();
   const { data: settings, isLoading } = useGetSettingsQuery();
   const [saveSettings] = useUpdateSettingsMutation();
@@ -58,7 +59,13 @@ export function SiteSettings() {
 
   const saveSettingsWithValidation = (input: any) => {
     console.log(input);
-    if (input.heavyweight_process > 3) {
+    if (input.heavyweight_process && input.heavyweight_process > 3) {
+      setWarning("heavyweight");
+      open();
+      return;
+    }
+    if (input.captioning_model === "blip_base_capfilt_large") {
+      setWarning("blip");
       open();
       return;
     }
@@ -82,17 +89,33 @@ export function SiteSettings() {
       <Modal
         opened={opened}
         onClose={() => {
-          saveSettings({ heavyweight_process: 3 });
+          if (warning === "blip") {
+            setCaptioningModel("im2txt");
+            saveSettings({ captioning_model: "im2txt" });
+          }
+          if (warning === "heavyweight") {
+            setHeavyweightProcess(3);
+            saveSettings({ heavyweight_process: 3 });
+          }
           close();
         }}
         title={<Title order={4}>{t("sitesettings.ram_warning_header")}</Title>}
       >
         <Stack>
-          <Text>{t("sitesettings.heavyweight_process_warning")}</Text>
+          <Text>
+            {warning === "blip" ? t("sitesettings.blip_warning") : t("sitesettings.heavyweight_process_warning")}
+          </Text>
           <Group>
             <Button
               onClick={() => {
-                saveSettings({ heavyweight_process: 3 });
+                if (warning === "blip") {
+                  setCaptioningModel("im2txt");
+                  saveSettings({ captioning_model: "im2txt" });
+                }
+                if (warning === "heavyweight") {
+                  setHeavyweightProcess(3);
+                  saveSettings({ heavyweight_process: 3 });
+                }
                 close();
               }}
             >
@@ -100,7 +123,12 @@ export function SiteSettings() {
             </Button>
             <Button
               onClick={() => {
-                saveSettings({ heavyweight_process: heavyweightProcess });
+                if (warning === "blip") {
+                  saveSettings({ captioning_model: captioningModel });
+                }
+                if (warning === "heavyweight") {
+                  saveSettings({ heavyweight_process: heavyweightProcess });
+                }
                 close();
               }}
               color="red"
@@ -216,8 +244,8 @@ export function SiteSettings() {
                 value={captioningModel}
                 onChange={model => {
                   const value = model ?? "";
+                  saveSettingsWithValidation({ captioning_model: value });
                   setCaptioningModel(value);
-                  saveSettings({ captioning_model: value });
                 }}
               />
             </Grid.Col>
