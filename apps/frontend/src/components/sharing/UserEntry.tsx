@@ -40,7 +40,7 @@ export function UserEntry(props: UserEntryProps) {
           <Title order={4}>{getDisplayName(user)}</Title>
           <Text size="sm" color="dimmed">
             {t("modalphotosshare.joined")}{" "}
-            {DateTime.fromISO(user.date_joined).setLocale(i18nResolvedLanguage).toRelative()}
+            {DateTime.fromISO(user.date_joined).setLocale(i18nResolvedLanguage()).toRelative()}
           </Text>
         </div>
       </Group>

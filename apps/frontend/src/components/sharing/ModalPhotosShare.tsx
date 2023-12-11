@@ -75,7 +75,7 @@ export function ModalPhotosShare(props: Props) {
                         <Title order={4}>{displayName}</Title>
                         <Text size="sm" color="dimmed">
                           {t("modalphotosshare.joined")}{" "}
-                          {DateTime.fromISO(item.date_joined).setLocale(i18nResolvedLanguage).toRelative()}
+                          {DateTime.fromISO(item.date_joined).setLocale(i18nResolvedLanguage()).toRelative()}
                         </Text>
                       </div>
                     </Group>

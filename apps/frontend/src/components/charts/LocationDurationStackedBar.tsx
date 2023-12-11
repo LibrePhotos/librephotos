@@ -35,10 +35,10 @@ export function LocationDurationStackedBar() {
       return t("locationstimeline.fromto", {
         location: loc,
         start: DateTime.fromSeconds(start)
-          .setLocale(i18nResolvedLanguage)
+          .setLocale(i18nResolvedLanguage())
           .toLocaleString({ year: "numeric", month: "short" }),
         end: DateTime.fromSeconds(end)
-          .setLocale(i18nResolvedLanguage)
+          .setLocale(i18nResolvedLanguage())
           .toLocaleString({ year: "numeric", month: "short" }),
       });
     }
@@ -56,7 +56,7 @@ export function LocationDurationStackedBar() {
             <XAxis
               tickFormat={(v: any) =>
                 DateTime.fromSeconds(parseFloat(locationTimeline[0].start + v))
-                  .setLocale(i18nResolvedLanguage)
+                  .setLocale(i18nResolvedLanguage())
                   .toLocaleString({ year: "numeric", month: "2-digit" })
               }
             />

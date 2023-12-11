@@ -34,7 +34,7 @@ export function formatDateForPhotoGroups(photoGroups: DatePhotosGroup[]): DatePh
         ...photoGroup,
         year: date.year,
         month: date.month,
-        date: date.setLocale(i18nResolvedLanguage).toLocaleString(DateTime.DATE_HUGE),
+        date: date.setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATE_HUGE),
       };
     }
     return photoGroup;

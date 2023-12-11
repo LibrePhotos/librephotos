@@ -184,7 +184,7 @@ export function DefaultHeader(props: Props) {
           <b>
             {dayHeaderPrefix}
             {DateTime.fromISO(date).isValid
-              ? DateTime.fromISO(date).setLocale(i18nResolvedLanguage).toLocaleString(DateTime.DATE_HUGE)
+              ? DateTime.fromISO(date).setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATE_HUGE)
               : date}
           </b>
         </Text>

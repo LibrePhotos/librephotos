@@ -178,7 +178,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
           pos.year = item.year;
           if (item.year && item.month) {
             pos.month = DateTime.fromISO(`${item.year}-${item.month.toString().padStart(2, "0")}-01`)
-              .setLocale(i18nResolvedLanguage)
+              .setLocale(i18nResolvedLanguage())
               .toLocaleString({ year: "numeric", month: "short" });
           }
         }

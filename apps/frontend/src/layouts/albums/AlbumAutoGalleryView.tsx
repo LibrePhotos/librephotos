@@ -62,7 +62,7 @@ export function AlbumAutoGalleryView() {
   useEffect(() => {}, [album]);
 
   function formatTimestamp(timestamp: string): string {
-    return DateTime.fromISO(timestamp).setLocale(i18nResolvedLanguage).toLocaleString(DateTime.DATE_MED);
+    return DateTime.fromISO(timestamp).setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATE_MED);
   }
 
   if (isFetching || !album) {
@@ -150,7 +150,7 @@ export function AlbumAutoGalleryView() {
                   <div>
                     <Title order={5}>
                       {t("autoalbumgallery.day", { day: i + 1 })} -{" "}
-                      {DateTime.fromISO(v[0]).setLocale(i18nResolvedLanguage).toLocaleString(DateTime.DATE_HUGE)}
+                      {DateTime.fromISO(v[0]).setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATE_HUGE)}
                     </Title>
                     <Text color="dimmed">
                       <Breadcrumbs separator="/">{uniqueLocations}</Breadcrumbs>

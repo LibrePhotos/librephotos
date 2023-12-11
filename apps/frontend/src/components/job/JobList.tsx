@@ -62,7 +62,7 @@ export function JobList() {
               <td>
                 <JobIndicator job={Object.create(job)} />
               </td>
-              <td>{job.job_type_str}</td>
+              <td>{t(job.job_type_str)}</td>
               <td>
                 <JobProgress
                   target={job.result.progress.target}
@@ -73,10 +73,10 @@ export function JobList() {
               </td>
               {matches && (
                 <>
-                  <td>{DateTime.fromISO(job.queued_at).setLocale(i18nResolvedLanguage).toRelative()}</td>
+                  <td>{DateTime.fromISO(job.queued_at).setLocale(i18nResolvedLanguage()).toRelative()}</td>
                   <td>
                     {job.started_at
-                      ? DateTime.fromISO(job.started_at!).setLocale(i18nResolvedLanguage).toRelative()
+                      ? DateTime.fromISO(job.started_at!).setLocale(i18nResolvedLanguage()).toRelative()
                       : ""}
                   </td>
                 </>

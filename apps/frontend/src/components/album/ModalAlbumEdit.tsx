@@ -117,7 +117,7 @@ export function ModalAlbumEdit(props: Props) {
                       {t("modalalbum.items", { count: item.photo_count })}
                       <br />
                       {t("modalalbum.updated", {
-                        duration: DateTime.fromISO(item.created_on).setLocale(i18nResolvedLanguage).toRelative(),
+                        duration: DateTime.fromISO(item.created_on).setLocale(i18nResolvedLanguage()).toRelative(),
                       })}
                       {}
                     </Text>

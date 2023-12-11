@@ -26,7 +26,7 @@ export function TimestampItem({ photoDetail }: Props) {
   const [editMode, setEditMode] = useState(false);
 
   const { t } = useTranslation();
-  const lang = i18nResolvedLanguage;
+  const lang = i18nResolvedLanguage();
   import(`dayjs/locale/${lang}.js`);
 
   const dispatch = useAppDispatch();

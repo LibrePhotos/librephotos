@@ -38,7 +38,7 @@ export function AlbumAuto() {
     }
     const album = albums[index];
     const dateTimeLabel = DateTime.fromISO(album.timestamp).isValid
-      ? DateTime.fromISO(album.timestamp).setLocale(i18nResolvedLanguage).toLocaleString(DateTime.DATE_MED)
+      ? DateTime.fromISO(album.timestamp).setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATE_MED)
       : null;
 
     return (

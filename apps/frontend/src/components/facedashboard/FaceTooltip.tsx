@@ -21,7 +21,7 @@ export function FaceTooltip({ tooltipOpened, cell, children }: Props) {
       : null;
 
   const dateTimeLabel = DateTime.fromISO(cell.timestamp).isValid
-    ? DateTime.fromISO(cell.timestamp).setLocale(i18nResolvedLanguage).toLocaleString(DateTime.DATETIME_MED)
+    ? DateTime.fromISO(cell.timestamp).setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATETIME_MED)
     : null;
 
   const tooltipIsEmpty = confidencePercentageLabel === null && dateTimeLabel === null;

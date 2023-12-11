@@ -446,6 +446,7 @@
     "albumalreadyexists": "Album {{name}} exisitiert bereits.",
     "albumplaceholder": "Titel des Albums"
   },
+  "Download Models": "Modelle herunterladen",
   "faces": "Gesichter",
   "events": "Ereignisse",
   "days": "Tage",

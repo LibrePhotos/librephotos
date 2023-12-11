@@ -82,7 +82,7 @@ function UserTable() {
               <td>{user.scan_directory ? user.scan_directory : t("adminarea.notset")}</td>
               {matches && <td>{user.confidence ? user.confidence : t("adminarea.notset")}</td>}
               {matches && <td>{user.photo_count}</td>}
-              {matches && <td>{DateTime.fromISO(user.date_joined).setLocale(i18nResolvedLanguage).toRelative()}</td>}
+              {matches && <td>{DateTime.fromISO(user.date_joined).setLocale(i18nResolvedLanguage()).toRelative()}</td>}
             </tr>
           ))}
         </tbody>
