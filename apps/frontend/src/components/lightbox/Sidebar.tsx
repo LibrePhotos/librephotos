@@ -1,4 +1,17 @@
-import { ActionIcon, Avatar, Badge, Box, Button, Group, Stack, Text, Textarea, Title, Tooltip } from "@mantine/core";
+import {
+  ActionIcon,
+  Avatar,
+  Badge,
+  Box,
+  Button,
+  Group,
+  Stack,
+  Text,
+  Textarea,
+  Title,
+  Tooltip,
+  UnstyledButton,
+} from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 import React, { useEffect, useState } from "react";
@@ -6,7 +19,7 @@ import { useTranslation } from "react-i18next";
 import "react-virtualized/styles.css";
 import { push } from "redux-first-history";
 // only needs to be imported once
-import { Edit, Map2, Note, Photo, Tags, UserOff, Users, X } from "tabler-icons-react";
+import { Edit, Map2, Note, Photo, Tags, UserOff, Users, Wand, X } from "tabler-icons-react";
 
 import { generatePhotoIm2txtCaption, savePhotoCaption } from "../../actions/photosActions";
 import type { Photo as PhotoType } from "../../actions/photosActions.types";
@@ -54,11 +67,7 @@ export function Sidebar(props: Props) {
 
   useEffect(() => {
     if (photoDetail) {
-      const currentCaption =
-        photoDetail.captions_json.user_caption && photoDetail.captions_json.user_caption.length > 0
-          ? photoDetail.captions_json.user_caption
-          : photoDetail.captions_json.im2txt;
-
+      const currentCaption = photoDetail.captions_json.user_caption;
       setImageCaption(currentCaption);
     } else {
       setImageCaption("");
@@ -169,13 +178,66 @@ export function Sidebar(props: Props) {
           {/* Start Item Caption */}
 
           <Stack>
-            <Group>
-              <Note />
-              <Title order={4}>{t("lightbox.sidebar.caption")}</Title>
-            </Group>
             {false && photoDetail.captions_json.im2txt}
             <Stack>
-              <Textarea value={imageCaption} disabled={isPublic} onChange={e => setImageCaption(e.target.value)} />
+              <Textarea
+                label={
+                  <Stack>
+                    <Group>
+                      <Note />
+                      <Title order={4}>{t("lightbox.sidebar.caption")}</Title>
+                    </Group>
+                    {photoDetail.captions_json.im2txt && !imageCaption?.includes(photoDetail.captions_json.im2txt) && (
+                      <div>
+                        <Group spacing="sm" style={{ paddingBottom: 12 }}>
+                          <Wand color="grey" size={20} />
+                          <Text size="sm" color="dimmed">
+                            Suggestion
+                          </Text>
+                        </Group>
+                        <UnstyledButton
+                          sx={theme => ({
+                            display: "block",
+                            padding: theme.spacing.xs,
+                            borderRadius: theme.radius.xl,
+                            textDecoration: "none",
+                            fontSize: theme.fontSizes.sm,
+                            color: theme.colorScheme === "dark" ? theme.colors.dark[1] : theme.colors.gray[7],
+                            backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[4] : theme.colors.gray[1],
+                            "&:hover": {
+                              backgroundColor:
+                                theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[3],
+                            },
+                          })}
+                          onClick={() => {
+                            setImageCaption(photoDetail.captions_json.im2txt);
+                          }}
+                        >
+                          {photoDetail.captions_json.im2txt}
+                        </UnstyledButton>
+                        <div style={{ height: 5 }} />
+                      </div>
+                    )}
+                  </Stack>
+                }
+                value={imageCaption}
+                rightSection={
+                  <ActionIcon
+                    style={{ position: "absolute", right: 0, top: 0, margin: "5px" }}
+                    loading={generatingCaptionIm2txt}
+                    variant="subtle"
+                    onClick={() => {
+                      dispatch(generatePhotoIm2txtCaption(photoDetail.image_hash));
+                    }}
+                    disabled={isPublic || (generatingCaptionIm2txt != null && generatingCaptionIm2txt)}
+                  >
+                    <Wand />
+                  </ActionIcon>
+                }
+                autosize
+                disabled={isPublic}
+                onChange={e => setImageCaption(e.target.value)}
+              />
               <Group>
                 <Button
                   onClick={() => {
@@ -186,17 +248,6 @@ export function Sidebar(props: Props) {
                   color="green"
                 >
                   {t("lightbox.sidebar.submit")}
-                </Button>
-                <Button
-                  loading={generatingCaptionIm2txt}
-                  onClick={() => {
-                    dispatch(generatePhotoIm2txtCaption(photoDetail.image_hash));
-                  }}
-                  disabled={isPublic || (generatingCaptionIm2txt != null && generatingCaptionIm2txt)}
-                  size="sm"
-                  color="blue"
-                >
-                  {t("lightbox.sidebar.generate")}
                 </Button>
               </Group>
             </Stack>
