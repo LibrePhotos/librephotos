@@ -429,7 +429,8 @@
         "captioning_model_header": "Modelo de legendagem",
         "captioning_model_description": "Modelo para usar na criação de legendas das fotos.",
         "heavyweight_process_warning": "Definir o número de processos pesados para mais que 3 requer mais que 16GB de RAM, tenha isto em consideração antes de proceder.",
-        "ram_warning_header": "Tamanho grande de RAM possível"
+        "ram_warning_header": "Tamanho grande de RAM possível",
+        "blip_warning": "Esta função necessita de 3GB de RAM adicionais para funcionar corretamente, tenha isto em conta antes de proceder."
     },
     "countstats": {
         "photos": "Fotos"
@@ -666,5 +667,16 @@
     "docs": "Documentação",
     "storage": "Armazenamento",
     "storagetooltip": "{{usedstorage}} de {{totalstorage}} usado(s)",
-    "deletealbumexplanation": "Esta ação irá eliminar o álbum de forma permanentemente. Esta ação não poderá ser desfeita."
+    "deletealbumexplanation": "Esta ação irá eliminar o álbum de forma permanentemente. Esta ação não poderá ser desfeita.",
+    "Delete Missing Photos": "Eliminar fotos em falta",
+    "Download Models": "Descarregar modelos",
+    "Regenerate Event Titles": "Regenerar títulos de eventos",
+    "Find Similar Faces": "Procurar caras semelhantes",
+    "Scan Photos": "Analisar Fotos",
+    "version": "Versão: {{version}}",
+    "Scan Faces": "Analisar caras",
+    "Calculate Clip Embeddings": "Calcular Clip Embeddings",
+    "Generate Event Albums": "Gerar álbuns de eventos",
+    "Train Faces": "Treinar Caras",
+    "Download Selected Photos": "Descarregar fotos selecionadas"
 }
