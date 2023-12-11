@@ -190,6 +190,11 @@ class StorageStatsView(APIView):
         )
 
 
+class ImageTagView(APIView):
+    def get(self, request, format=None):
+        return Response({"image_tag": os.environ.get("IMAGE_TAG", "")})
+
+
 class SearchTermExamples(APIView):
     def get(self, request, format=None):
         search_term_examples = get_search_term_examples(request.user)

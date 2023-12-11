@@ -201,6 +201,7 @@ urlpatterns = [
     re_path(r"^api/predefinedrules", user.PredefinedRulesView.as_view()),
     re_path(r"^api/stats", dataviz.StatsView.as_view()),
     re_path(r"^api/storagestats", views.StorageStatsView.as_view()),
+    re_path(r"^api/imagetag", views.ImageTagView.as_view()),
     re_path(r"^api/serverstats", dataviz.ServerStatsView.as_view()),
     re_path(r"^api/locclust", dataviz.LocationClustersView.as_view()),
     re_path(r"^api/photomonthcounts", dataviz.PhotoMonthCountsView.as_view()),
