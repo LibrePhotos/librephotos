@@ -419,7 +419,8 @@
         "captioning_model_header": "Modelo de los subtítulos",
         "captioning_model_description": "Modelo a utilizar para generar títulos de las imágenes.",
         "heavyweight_process_warning": "Establecer el número de procesos pesados a más de 3 probablemente requerirá más de 16GB de RAM. Tenlo en cuenta antes de continuar.",
-        "ram_warning_header": "Es posible un gran tamaño de RAM"
+        "ram_warning_header": "Es posible un gran tamaño de RAM",
+        "blip_warning": "Esta función necesita 3 GB adicionales de RAM para funcionar correctamente. Tenlo en cuenta antes de continuar."
     },
     "countstats": {
         "photos": "Fotos"
@@ -666,5 +667,16 @@
     "docs": "Documentación",
     "deletealbumexplanation": "Esta acción borrará permanentemente el álbum. Esta acción no se puede deshacer.",
     "storage": "Almacenamiento",
-    "storagetooltip": "{{usedstorage}} de {{totalstorage}} usado"
+    "storagetooltip": "{{usedstorage}} de {{totalstorage}} usado",
+    "Delete Missing Photos": "Eliminar las fotos que faltan",
+    "Download Models": "Descargar los modelos",
+    "Regenerate Event Titles": "Regenerar títulos de eventos",
+    "Find Similar Faces": "Encontrar caras similares",
+    "Scan Photos": "Escanear fotos",
+    "version": "Versión: {{version}}",
+    "Scan Faces": "Escanear caras",
+    "Calculate Clip Embeddings": "Calcular las incrustaciones de clips",
+    "Generate Event Albums": "Generar álbumes de eventos",
+    "Train Faces": "Gesticular",
+    "Download Selected Photos": "Descargar las fotos seleccionadas"
 }
