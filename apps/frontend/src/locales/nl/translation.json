@@ -393,7 +393,10 @@
         "headerheavyweight": "Zware processen",
         "heavyweight": "Het aantal processen tijdens het scannen van afbeeldingen. Let op: deze instelling kan het geheugenverbruik flink verhogen. Elk proces vereist 800MB ram-geheugen; pas dit naar eigen inzicht aan. Standaard: 1.",
         "captioning_model_header": "Bijschriftmodel",
-        "captioning_model_description": "Het model voor het opstellen van bijschriften."
+        "captioning_model_description": "Het model voor het opstellen van bijschriften.",
+        "heavyweight_process_warning": "Let op: als je het aantal zware processen op meer dan 3 instelt, dan heb je mogelijk meer dan 16 GB ramgeheugen nodig. Wees je hiervan bewust.",
+        "blip_warning": "Deze functie vereist 3 GB extra ramgeheugen. Wees je hiervan bewust.",
+        "ram_warning_header": "Mogelijk verhoogd geheugengebruik"
     },
     "modalnextcloud": {
         "choosedirectory": "Kies een map uit onderstaande lijst",
