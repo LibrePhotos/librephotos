@@ -553,6 +553,7 @@
   "supportus": "Support us",
   "storage": "Storage",
   "storagetooltip": "{{usedstorage}} of {{totalstorage}} used",
+  "version": "Version: {{version}}",
   "docs": "Documentation",
   "deletefaceexplanation": "This action will permanently delete the faces and all its associated data. This action cannot be undone.",
   "deletealbumexplanation": "This action will permanently delete the album. This action cannot be undone.",

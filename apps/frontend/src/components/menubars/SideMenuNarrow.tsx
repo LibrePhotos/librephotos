@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
 import { Book, ChevronRight, Cloud, Heart } from "tabler-icons-react";
 
-import { useFetchStorageStatsQuery } from "../../api_client/api";
+import { useFetchImageTagQuery, useFetchStorageStatsQuery } from "../../api_client/api";
 import { selectAuthAccess, selectIsAuthenticated } from "../../store/auth/authSelectors";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { DOCUMENTATION_LINK, LEFT_MENU_WIDTH, SUPPORT_LINK } from "../../ui-constants";
@@ -31,6 +31,7 @@ export function SideMenuNarrow(): JSX.Element {
   const [active, setActive] = useState("/");
 
   const { data: storageStats, isLoading } = useFetchStorageStatsQuery();
+  const { data: imageTag } = useFetchImageTagQuery();
 
   const { t } = useTranslation();
   const matches = useMediaQuery("(min-width: 700px)");
@@ -133,6 +134,15 @@ export function SideMenuNarrow(): JSX.Element {
               />
             </Tooltip>
           )}
+          <div className={classes.text} style={{ paddingTop: 0, paddingBottom: 0 }}>
+            <span style={{ flexGrow: 2 }}>
+              {imageTag?.image_tag
+                ? t("version", {
+                    version: imageTag?.image_tag,
+                  })
+                : ""}
+            </span>
+          </div>
         </div>
         <a href={DOCUMENTATION_LINK} target="_blank" rel="noreferrer" className={classes.link}>
           <ActionIcon className={classes.linkIcon} variant="light">

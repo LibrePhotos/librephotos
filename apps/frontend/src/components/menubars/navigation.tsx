@@ -118,7 +118,7 @@ export const navigationStyles = createStyles(theme => ({
     textDecoration: "none",
     fontSize: theme.fontSizes.sm,
     color: theme.colorScheme === "dark" ? theme.colors.dark[1] : theme.colors.gray[7],
-    padding: `${theme.spacing.xs}px ${theme.spacing.sm}px`,
+    padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
     borderRadius: theme.radius.sm,
     fontWeight: 500,
   },

@@ -32,7 +32,7 @@ import type { IUploadOptions, IUploadResponse } from "../store/upload/upload.zod
 import { UploadExistResponse, UploadResponse } from "../store/upload/upload.zod";
 import type { IManageUser, IUser, UserList } from "../store/user/user.zod";
 import { ApiUserListResponseSchema, ManageUser, UserSchema } from "../store/user/user.zod";
-import type { ServerStatsResponseType, StorageStatsResponseType } from "../store/util/util.zod";
+import type { ImageTagResponseType, ServerStatsResponseType, StorageStatsResponseType } from "../store/util/util.zod";
 import type { IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
 // eslint-disable-next-line import/no-cycle
 import { Server } from "./apiClient";
@@ -60,6 +60,7 @@ export enum Endpoints {
   setFacesPersonLabel = "setFacesPersonLabel",
   fetchServerStats = "fetchServerStats",
   fetchStorageStats = "fetchStorageStats",
+  fetchImageTag = "fetchImageTag",
 }
 
 const baseQuery = fetchBaseQuery({
@@ -252,6 +253,11 @@ export const api = createApi({
         url: `storagestats`,
       }),
     }),
+    [Endpoints.fetchImageTag]: builder.query<ImageTagResponseType, void>({
+      query: () => ({
+        url: `imagetag`,
+      }),
+    }),
   }),
 });
 
@@ -267,4 +273,5 @@ export const {
   useIsFirstTimeSetupQuery,
   useFetchServerStatsQuery,
   useFetchStorageStatsQuery,
+  useFetchImageTagQuery,
 } = api;

@@ -12,3 +12,9 @@ export const StorageStatsResponse = z.object({
   total_storage: z.number(),
   free_storage: z.number(),
 });
+
+export type ImageTagResponseType = z.infer<typeof ImageTagResponse>;
+
+export const ImageTagResponse = z.object({
+  image_tag: z.string(),
+});
