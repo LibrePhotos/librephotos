@@ -198,20 +198,19 @@ class Photo(models.Model):
 
     def _save_captions(self, commit=True, caption=None):
         image_path = self.thumbnail_big.path
-        captions = self.captions_json
         search_captions = self.search_captions
         try:
             caption = (
                 caption.replace("<start>", "").replace("<end>", "").strip().lower()
             )
-            captions["user_caption"] = caption
-            self.captions_json = captions
-            # todo: handle duplicate captions
-            self.search_captions = search_captions + caption
+            self.captions_json["user_caption"] = caption
+            self.search_captions = caption
             if commit:
-                self.save()
+                self.save(update_fields=["captions_json", "search_captions"])
+
             util.logger.info(
-                "saved captions for image %s. caption: %s" % (image_path, caption)
+                "saved captions for image %s. caption: %s. search_captions: %s. captions_json: %s."
+                % (image_path, caption, search_captions, self.captions_json)
             )
             return True
         except Exception:
