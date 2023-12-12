@@ -1,11 +1,11 @@
 import { Box, Button, Grid, Modal, ScrollArea, SimpleGrid, Space, Text, TextInput, Title } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { IconMail as Mail, IconUser as User } from "@tabler/icons-react";
 import type { FormEvent } from "react";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SortableTree from "react-sortable-tree";
 import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
-import { Mail, User } from "tabler-icons-react";
 
 import { scanPhotos } from "../../actions/photosActions";
 import { useManageUpdateUserMutation, useSignUpMutation } from "../../api_client/api";

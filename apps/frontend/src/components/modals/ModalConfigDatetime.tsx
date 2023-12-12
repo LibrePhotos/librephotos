@@ -1,7 +1,7 @@
 import { ActionIcon, Modal, ScrollArea, Table, Text, TextInput, Title } from "@mantine/core";
+import { IconCirclePlus as CirclePlus, IconSearch as Search } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CirclePlus, Search } from "tabler-icons-react";
 
 import { fuzzyMatch } from "../../util/util";
 import { getRuleExtraInfo, useDateTimeSettingsStyles } from "../settings/date-time-settings";

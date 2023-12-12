@@ -43,8 +43,14 @@
     "@mantine/form": "6.0.21",
     "@mantine/hooks": "6.0.21",
     "@mantine/notifications": "6.0.21",
+    "@mantine/tiptap": "6.0.21",
     "@popperjs/core": "2.11.8",
     "@reduxjs/toolkit": "1.9.7",
+    "@tabler/icons-react": "^2.44.0",
+    "@tiptap/extension-link": "^2.1.13",
+    "@tiptap/pm": "^2.1.13",
+    "@tiptap/react": "^2.1.13",
+    "@tiptap/starter-kit": "^2.1.13",
     "@visx/gradient": "3.3.0",
     "@visx/group": "3.3.0",
     "@visx/hierarchy": "3.3.0",
@@ -111,7 +117,6 @@
     "redux-thunk": "2.4.2",
     "rumble-charts": "5.0.0",
     "source-map-explorer": "2.5.3",
-    "tabler-icons-react": "1.56.0",
     "zod": "3.22.4"
   },
   "devDependencies": {

@@ -1,9 +1,9 @@
 import { Button, CloseButton, Group, ScrollArea, Table, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { IconArrowBackUp as ArrowBackUp, IconCodePlus as CodePlus } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { useTranslation } from "react-i18next";
-import { ArrowBackUp, CodePlus } from "tabler-icons-react";
 
 import { useFetchPredefinedRulesQuery } from "../../api_client/api";
 import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
@@ -99,7 +99,9 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
 
   return (
     <>
-      <Title order={4} sx={{'marginBottom': 16}}>{t("settings.configdatetime")}</Title>
+      <Title order={4} sx={{ marginBottom: 16 }}>
+        {t("settings.configdatetime")}
+      </Title>
 
       <Group>
         <Button color="green" leftIcon={<CodePlus />} onClick={open} style={{ marginBottom: 10 }}>

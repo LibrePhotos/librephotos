@@ -1,9 +1,9 @@
 import { Anchor, Loader, Stack, Text } from "@mantine/core";
 import { useResizeObserver } from "@mantine/hooks";
+import { IconPolaroid as Polaroid, IconUser as User } from "@tabler/icons-react";
 import debounce from "lodash/debounce";
 import React, { useCallback, useEffect } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
-import { Polaroid, User } from "tabler-icons-react";
 
 import { Tile } from "../../components/Tile";
 import { useAppSelector } from "../../store/store";

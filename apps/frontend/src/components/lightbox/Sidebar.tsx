@@ -14,12 +14,22 @@ import {
 } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
+// only needs to be imported once
+import {
+  IconEdit as Edit,
+  IconMap2 as Map2,
+  IconNote as Note,
+  IconPhoto as Photo,
+  IconTags as Tags,
+  IconUserOff as UserOff,
+  IconUsers as Users,
+  IconWand as Wand,
+  IconX as X,
+} from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-virtualized/styles.css";
 import { push } from "redux-first-history";
-// only needs to be imported once
-import { Edit, Map2, Note, Photo, Tags, UserOff, Users, Wand, X } from "tabler-icons-react";
 
 import { generatePhotoIm2txtCaption, savePhotoCaption } from "../../actions/photosActions";
 import type { Photo as PhotoType } from "../../actions/photosActions.types";
@@ -234,6 +244,7 @@ export function Sidebar(props: Props) {
                     <Wand />
                   </ActionIcon>
                 }
+                inputMode="text"
                 autosize
                 disabled={isPublic}
                 onChange={e => setImageCaption(e.target.value)}

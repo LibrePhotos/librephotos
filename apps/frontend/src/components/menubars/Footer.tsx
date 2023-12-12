@@ -1,10 +1,10 @@
 import { ActionIcon, Divider, Footer, Group, Menu } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
+import { IconHeart as Heart } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { push } from "redux-first-history";
-import { Heart } from "tabler-icons-react";
 
 import { selectAuthAccess, selectIsAuthenticated } from "../../store/auth/authSelectors";
 import { useAppDispatch, useAppSelector } from "../../store/store";

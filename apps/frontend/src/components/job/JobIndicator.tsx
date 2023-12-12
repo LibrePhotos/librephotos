@@ -1,5 +1,5 @@
+import { IconBan as Ban, IconCheck as Check, IconClock as Clock, IconRefresh as Refresh } from "@tabler/icons-react";
 import React from "react";
-import { Ban, Check, Clock, Refresh } from "tabler-icons-react";
 
 import type { IJobDetailSchema } from "../../store/worker/worker.zod";
 

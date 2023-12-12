@@ -1,7 +1,7 @@
+import { IconBookmark as Bookmark } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
-import { Bookmark } from "tabler-icons-react";
 
 import type { DatePhotosGroup, PigPhoto } from "../../actions/photosActions.types";
 import { useLazyFetchUserAlbumQuery } from "../../api_client/albums/user";

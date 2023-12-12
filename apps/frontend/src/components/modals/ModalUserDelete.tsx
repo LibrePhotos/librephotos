@@ -1,7 +1,7 @@
 import { Button, Modal, Space, Text, Title } from "@mantine/core";
+import { IconTrash as Trash } from "@tabler/icons-react";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { Trash } from "tabler-icons-react";
 
 import { useDeleteUserMutation } from "../../api_client/api";
 

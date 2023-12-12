@@ -1,8 +1,8 @@
+import { IconUser as User } from "@tabler/icons-react";
 import _ from "lodash";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
-import { User } from "tabler-icons-react";
 
 import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
 import { fetchPeople } from "../../actions/peopleActions";

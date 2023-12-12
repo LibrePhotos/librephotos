@@ -1,9 +1,14 @@
 import { ActionIcon, Center, Loader, Menu, Navbar, Progress, Tooltip } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
+import {
+  IconBook as Book,
+  IconChevronRight as ChevronRight,
+  IconCloud as Cloud,
+  IconHeart as Heart,
+} from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
-import { Book, ChevronRight, Cloud, Heart } from "tabler-icons-react";
 
 import { useFetchImageTagQuery, useFetchStorageStatsQuery } from "../../api_client/api";
 import { selectAuthAccess, selectIsAuthenticated } from "../../store/auth/authSelectors";

@@ -1,8 +1,8 @@
 import { Box, Button, Group, Stack, Title } from "@mantine/core";
+import { IconBalloon as Ballon } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
-import { Ballon } from "tabler-icons-react";
 
 import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/people";
 import { useFetchPlacesAlbumsQuery } from "../../api_client/albums/places";

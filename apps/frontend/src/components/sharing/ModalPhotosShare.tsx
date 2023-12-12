@@ -1,8 +1,8 @@
 import { ActionIcon, Avatar, Divider, Group, Modal, ScrollArea, Stack, Text, TextInput, Title } from "@mantine/core";
+import { IconShare as Share, IconShareOff as ShareOff } from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Share, ShareOff } from "tabler-icons-react";
 
 import { setPhotosShared } from "../../actions/photosActions";
 import { useFetchUserListQuery } from "../../api_client/api";

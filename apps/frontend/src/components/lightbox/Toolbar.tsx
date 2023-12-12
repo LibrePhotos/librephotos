@@ -1,6 +1,14 @@
 import { ActionIcon, Group, Loader } from "@mantine/core";
+import {
+  IconEye as Eye,
+  IconEyeOff as EyeOff,
+  IconGlobe as Globe,
+  IconInfoCircle as InfoCircle,
+  IconPlayerPause as PlayerPause,
+  IconPlayerPlay as PlayerPlay,
+  IconStar as Star,
+} from "@tabler/icons-react";
 import React from "react";
-import { Eye, EyeOff, Globe, InfoCircle, PlayerPause, PlayerPlay, Star } from "tabler-icons-react";
 
 import { setPhotosFavorite, setPhotosHidden, setPhotosPublic } from "../../actions/photosActions";
 import { shareAddress } from "../../api_client/apiClient";

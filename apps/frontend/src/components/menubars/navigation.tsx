@@ -1,25 +1,25 @@
 import { createStyles } from "@mantine/core";
-import type { Icon } from "tabler-icons-react";
+import type { Icon } from "@tabler/icons-react";
 import {
-  Album,
-  Bookmark,
-  ChartBar,
-  ChartLine,
-  Cloud,
-  Download,
-  FaceId,
-  Map,
-  MoodSmile,
-  Photo,
-  Share,
-  Tags,
-  Trash,
-  Upload,
-  Users,
-  VectorTriangle,
-  Wand,
-  World,
-} from "tabler-icons-react";
+  IconAlbum as Album,
+  IconBookmark as Bookmark,
+  IconChartBar as ChartBar,
+  IconChartLine as ChartLine,
+  IconCloud as Cloud,
+  IconDownload as Download,
+  IconFaceId as FaceId,
+  IconMap as Map,
+  IconMoodSmile as MoodSmile,
+  IconPhoto as Photo,
+  IconShare as Share,
+  IconTags as Tags,
+  IconTrash as Trash,
+  IconUpload as Upload,
+  IconUsers as Users,
+  IconVectorTriangle as VectorTriangle,
+  IconWand as Wand,
+  IconWorld as World,
+} from "@tabler/icons-react";
 
 type SubmenuItem = {
   label: string;

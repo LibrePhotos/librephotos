@@ -10,10 +10,10 @@ import {
   useMantineColorScheme,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { IconLock as Lock, IconMail as Mail, IconUser as User } from "@tabler/icons-react";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { Lock, Mail, User } from "tabler-icons-react";
 
 import { useSignUpMutation } from "../../api_client/api";
 import { EMAIL_REGEX } from "../../util/util";

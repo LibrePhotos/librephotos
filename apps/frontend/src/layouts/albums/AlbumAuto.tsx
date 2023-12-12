@@ -1,11 +1,15 @@
 import { ActionIcon, Button, Group, Menu, Modal, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import {
+  IconDotsVertical as DotsVertical,
+  IconSettingsAutomation as SettingsAutomation,
+  IconTrash as Trash,
+} from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
-import { DotsVertical, SettingsAutomation, Trash } from "tabler-icons-react";
 
 import { useDeleteAutoAlbumMutation, useFetchAutoAlbumsQuery } from "../../api_client/albums/auto";
 import { Tile } from "../../components/Tile";

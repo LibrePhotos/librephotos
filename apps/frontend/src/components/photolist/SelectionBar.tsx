@@ -1,7 +1,7 @@
 import { ActionIcon, Button, Group, Popover, Text } from "@mantine/core";
+import { IconCheck as Check, IconChecks as Checks } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, Checks } from "tabler-icons-react";
 
 type Props = {
   selectMode: boolean;

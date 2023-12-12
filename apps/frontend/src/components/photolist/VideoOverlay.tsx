@@ -1,7 +1,7 @@
 import { createStyles } from "@mantine/core";
+import { IconPlayerPlay as PlayerPlay, IconRun as Run } from "@tabler/icons-react";
 import { Duration } from "luxon";
 import React from "react";
-import { PlayerPlay, Run } from "tabler-icons-react";
 
 import { MediaType } from "../../actions/photosActions.types";
 

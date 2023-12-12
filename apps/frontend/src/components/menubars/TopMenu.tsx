@@ -1,9 +1,15 @@
 import { Avatar, Grid, Group, Header, Menu } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
+import {
+  IconAdjustments as Adjustments,
+  IconBook as Book,
+  IconLogout as Logout,
+  IconSettings as Settings,
+  IconUser as User,
+} from "@tabler/icons-react";
 import React, { useEffect } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
-import { Adjustments, Book, Logout, Settings, User } from "tabler-icons-react";
 
 import { toggleSidebar } from "../../actions/uiActions";
 import { api } from "../../api_client/api";

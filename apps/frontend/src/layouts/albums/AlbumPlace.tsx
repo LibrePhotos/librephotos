@@ -1,12 +1,12 @@
 import { Anchor, Image, Loader } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
+import { IconMap2 as Map2 } from "@tabler/icons-react";
 import _ from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Map, Marker, TileLayer } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-markercluster";
 import { AutoSizer, Grid } from "react-virtualized";
-import { Map2 } from "tabler-icons-react";
 
 import type { PlaceAlbumList } from "../../api_client/albums/places";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../api_client/albums/places";

@@ -1,22 +1,22 @@
 import { ActionIcon, Group, Menu } from "@mantine/core";
+import {
+  IconAlbum as Album,
+  IconDotsVertical as DotsVertical,
+  IconDownload as Download,
+  IconEye as Eye,
+  IconEyeOff as EyeOff,
+  IconFileMinus as FileMinus,
+  IconGlobe as Globe,
+  IconKey as Key,
+  IconPhoto as Photo,
+  IconPlus as Plus,
+  IconShare as Share,
+  IconStar as Star,
+  IconStarOff as StarOff,
+  IconTrash as Trash,
+} from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Album,
-  DotsVertical,
-  Download,
-  Eye,
-  EyeOff,
-  FileMinus,
-  Globe,
-  Key,
-  Photo,
-  Plus,
-  Share,
-  Star,
-  StarOff,
-  Trash,
-} from "tabler-icons-react";
 
 import {
   downloadPhotos,

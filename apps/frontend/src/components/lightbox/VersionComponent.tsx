@@ -1,7 +1,7 @@
 import { Anchor, Button, Divider, Group, Modal, Stack, Text } from "@mantine/core";
+import { IconCamera as Camera, IconPhoto as Photo } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Camera, Photo } from "tabler-icons-react";
 
 import { deleteDuplicateImage } from "../../actions/photosActions";
 import type { Photo as PhotoType } from "../../actions/photosActions.types";

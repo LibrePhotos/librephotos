@@ -1,10 +1,18 @@
 import { ActionIcon, Button, Group, Menu, Modal, Popover, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import {
+  IconAlbum as Album,
+  IconDotsVertical as DotsVertical,
+  IconEdit as Edit,
+  IconShare as Share,
+  IconTrash as Trash,
+  IconUser as User,
+  IconUsers as Users,
+} from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
-import { Album, DotsVertical, Edit, Share, Trash, User, Users } from "tabler-icons-react";
 
 import { UserAlbumInfo } from "../../actions/albumActions.types";
 import {

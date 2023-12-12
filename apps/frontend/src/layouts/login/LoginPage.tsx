@@ -11,11 +11,11 @@ import {
   useMantineColorScheme,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { IconLock as Lock, IconUser as User } from "@tabler/icons-react";
 import type { FormEvent } from "react";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Lock, User } from "tabler-icons-react";
 
 import { useLoginMutation } from "../../api_client/api";
 import { useGetSettingsQuery } from "../../api_client/site-settings";

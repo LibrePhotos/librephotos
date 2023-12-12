@@ -1,12 +1,18 @@
 import { Autocomplete, Avatar, Group, Text, createStyles } from "@mantine/core";
 import type { AutocompleteItem } from "@mantine/core";
 import { useInterval, useViewportSize } from "@mantine/hooks";
+import {
+  IconAlbum as Album,
+  IconMap as Map,
+  IconSearch as Search,
+  IconTag as Tag,
+  IconX as X,
+} from "@tabler/icons-react";
 import { random } from "lodash";
 import React, { cloneElement, forwardRef, useCallback, useEffect, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
-import { Album, Map, Search, Tag, X } from "tabler-icons-react";
 
 import { useFetchPeopleAlbumsQuery } from "../api_client/albums/people";
 import { useFetchPlacesAlbumsQuery } from "../api_client/albums/places";

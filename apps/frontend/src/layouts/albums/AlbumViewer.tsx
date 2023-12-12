@@ -1,9 +1,9 @@
 import { Button, Group, Stack, Title } from "@mantine/core";
+import { IconAlbum as Album } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { push } from "redux-first-history";
-import { Album } from "tabler-icons-react";
 
 import { useFetchAutoAlbumsQuery } from "../../api_client/albums/auto";
 import { useFetchUserAlbumsQuery } from "../../api_client/albums/user";

@@ -24,20 +24,20 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
+import {
+  IconBook as Book,
+  IconBrandNextcloud as BrandNextcloud,
+  IconCheck as Check,
+  IconChevronDown as ChevronDown,
+  IconFaceId as FaceId,
+  IconFolder as Folder,
+  IconQuestionMark as QuestionMark,
+  IconRefresh as Refresh,
+  IconRefreshDot as RefreshDot,
+  IconX as X,
+} from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import {
-  Book,
-  BrandNextcloud,
-  Check,
-  ChevronDown,
-  FaceId,
-  Folder,
-  QuestionMark,
-  Refresh,
-  RefreshDot,
-  X,
-} from "tabler-icons-react";
 
 import { scanAllPhotos, scanNextcloudPhotos, scanPhotos } from "../../actions/photosActions";
 import { deleteMissingPhotos, fetchCountStats, generateEventAlbumTitles, updateUser } from "../../actions/utilActions";

@@ -13,13 +13,13 @@ import {
   Title,
   useMantineColorScheme,
 } from "@mantine/core";
+import { IconPhoto as Photo, IconUpload as Upload, IconUser as User } from "@tabler/icons-react";
 import _ from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import AvatarEditor from "react-avatar-editor";
 import type { DropzoneRef } from "react-dropzone";
 import Dropzone from "react-dropzone";
 import { Trans, useTranslation } from "react-i18next";
-import { Photo, Upload, User } from "tabler-icons-react";
 
 import { updateAvatar, updateUser } from "../../actions/utilActions";
 import { api } from "../../api_client/api";

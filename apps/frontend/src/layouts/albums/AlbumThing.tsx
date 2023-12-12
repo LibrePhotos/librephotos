@@ -1,8 +1,8 @@
+import { IconTags as Tags } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
-import { Tags } from "tabler-icons-react";
 
 import { useFetchThingsAlbumsQuery } from "../../api_client/albums/things";
 import { Tile } from "../../components/Tile";

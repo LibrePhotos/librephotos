@@ -1,11 +1,17 @@
 import { ActionIcon, Button, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { DatePicker, TimeInput } from "@mantine/dates";
+// only needs to be imported once
+import {
+  IconArrowBackUp as ArrowBackUp,
+  IconCalendar as Calendar,
+  IconCheck as Check,
+  IconEdit as Edit,
+  IconX as X,
+} from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-virtualized/styles.css";
-// only needs to be imported once
-import { ArrowBackUp, Calendar, Check, Edit, X } from "tabler-icons-react";
 
 import { editPhoto } from "../../actions/photosActions";
 import { i18nResolvedLanguage } from "../../i18n";

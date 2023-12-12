@@ -1,7 +1,7 @@
 import { ActionIcon, Avatar, Box, Center, Indicator } from "@mantine/core";
+import { IconPhoto as Photo } from "@tabler/icons-react";
 import _ from "lodash";
 import React, { useState } from "react";
-import { Photo } from "tabler-icons-react";
 
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppSelector } from "../../store/store";

@@ -1,9 +1,9 @@
 import { ActionIcon, Progress } from "@mantine/core";
+import { IconUpload as Upload } from "@tabler/icons-react";
 import CryptoJS from "crypto-js";
 import MD5 from "crypto-js/md5";
 import React, { useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload } from "tabler-icons-react";
 
 import { api } from "../api_client/api";
 import { useGetSettingsQuery } from "../api_client/site-settings";

@@ -1,10 +1,19 @@
 import { Button, Group, Loader, Menu, Text, Title } from "@mantine/core";
+import {
+  IconCalendar as Calendar,
+  IconChevronDown as ChevronDown,
+  IconClock as Clock,
+  IconEyeOff as EyeOff,
+  IconGlobe as Globe,
+  IconPhoto as Photo,
+  IconStar as Star,
+  IconVideo as Video,
+} from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import type { ReactElement } from "react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
-import { Calendar, ChevronDown, Clock, EyeOff, Globe, Photo, Star, Video } from "tabler-icons-react";
 
 import { useFetchUserListQuery } from "../../api_client/api";
 import { i18nResolvedLanguage } from "../../i18n";

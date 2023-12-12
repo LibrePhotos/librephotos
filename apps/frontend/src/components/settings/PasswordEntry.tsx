@@ -1,7 +1,7 @@
 import { ActionIcon, PasswordInput, Stack, Text, Title } from "@mantine/core";
+import { IconLock as Lock, IconLockOpen as LockOpen } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Lock, LockOpen } from "tabler-icons-react";
 
 type Props = {
   createNew?: boolean;

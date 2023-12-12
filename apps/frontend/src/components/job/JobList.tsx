@@ -1,9 +1,9 @@
 import { Alert, Card, Flex, Loader, Pagination, Table, Title } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
+import { IconAlertCircle as AlertCircle } from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AlertCircle } from "tabler-icons-react";
 
 import { JobsResponseSchema, useJobsQuery } from "../../api_client/admin-jobs";
 import { i18nResolvedLanguage } from "../../i18n";

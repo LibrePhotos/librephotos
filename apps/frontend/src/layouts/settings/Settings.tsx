@@ -14,9 +14,9 @@ import {
   Text,
   Title,
 } from "@mantine/core";
+import { IconSettings as SettingIcon } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { Settings as SettingIcon } from "tabler-icons-react";
 
 import { fetchCountStats, fetchTimezoneList, updateUser } from "../../actions/utilActions";
 import { api } from "../../api_client/api";

@@ -1,7 +1,15 @@
 import { Card, Flex, Grid, Group, HoverCard, Stack, Text, Title } from "@mantine/core";
+import {
+  IconCalendar as Calendar,
+  IconFaceId as FaceId,
+  IconPhoto as Photo,
+  IconQuestionMark as QuestionMark,
+  IconSettingsAutomation as SettingsAutomation,
+  IconTag as Tag,
+  IconUsers as Users,
+} from "@tabler/icons-react";
 import React, { useEffect } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { Calendar, FaceId, Photo, QuestionMark, SettingsAutomation, Tag, Users } from "tabler-icons-react";
 
 import { fetchCountStats } from "../actions/utilActions";
 import { useAppDispatch, useAppSelector } from "../store/store";

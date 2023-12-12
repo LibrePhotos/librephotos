@@ -1,7 +1,7 @@
 import { ActionIcon, Button, Group, Modal } from "@mantine/core";
+import { IconArrowBackUp as ArrowBackUp, IconTrash as Trash } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowBackUp, Trash } from "tabler-icons-react";
 
 import { finalPhotosDeleted, setPhotosDeleted } from "../../actions/photosActions";
 import { useAppDispatch, useAppSelector } from "../../store/store";

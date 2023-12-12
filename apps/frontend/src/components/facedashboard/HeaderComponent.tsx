@@ -1,10 +1,15 @@
 import { ActionIcon, Button, Chip, Divider, Group, Menu, Modal, Stack, Text, TextInput, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
+import {
+  IconDotsVertical as DotsVertical,
+  IconEdit as Edit,
+  IconTrash as Trash,
+  IconUserCheck as UserCheck,
+} from "@tabler/icons-react";
 import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { DotsVertical, Edit, Trash, UserCheck } from "tabler-icons-react";
 
 import {
   useDeletePersonAlbumMutation,

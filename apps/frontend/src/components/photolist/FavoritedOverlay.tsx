@@ -1,5 +1,5 @@
+import { IconStar as Star } from "@tabler/icons-react";
 import React from "react";
-import { Star } from "tabler-icons-react";
 
 import { PigPhoto } from "../../actions/photosActions.types";
 import { useAppSelector } from "../../store/store";

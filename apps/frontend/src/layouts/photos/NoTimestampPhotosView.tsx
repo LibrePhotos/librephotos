@@ -1,6 +1,6 @@
+import { IconPhoto as Photo } from "@tabler/icons-react";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Photo } from "tabler-icons-react";
 
 import { fetchNoTimestampPhotoPaginated } from "../../actions/photosActions";
 import { PhotoListView } from "../../components/photolist/PhotoListView";

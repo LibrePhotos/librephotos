@@ -1,7 +1,13 @@
 import { Tabs } from "@mantine/core";
+import {
+  IconChartArea as ChartArea,
+  IconCloud as Cloud,
+  IconShare as Share,
+  IconSitemap as Sitemap,
+  IconUser as User,
+} from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { ChartArea, Cloud, Share, Sitemap, User } from "tabler-icons-react";
 
 import { EventCountMonthGraph } from "../../components/charts/EventCountMonthGraph";
 import FaceClusterScatter from "../../components/charts/FaceClusterGraph";

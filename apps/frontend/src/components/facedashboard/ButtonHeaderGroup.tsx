@@ -11,9 +11,14 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { showNotification } from "@mantine/notifications";
+import {
+  IconBarbell as Barbell,
+  IconPlus as Plus,
+  IconTrash as Trash,
+  IconUserOff as UserOff,
+} from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Barbell, Plus, Trash, UserOff } from "tabler-icons-react";
 
 import { api, useWorkerQuery } from "../../api_client/api";
 import i18n from "../../i18n";

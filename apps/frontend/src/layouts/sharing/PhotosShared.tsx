@@ -1,6 +1,6 @@
 import { Loader, Stack, Text } from "@mantine/core";
+import { IconPhoto as Photo, IconPolaroid as Polaroid, IconUser as User } from "@tabler/icons-react";
 import React from "react";
-import { Photo, Polaroid, User } from "tabler-icons-react";
 
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType } from "../../reducers/photosReducer";

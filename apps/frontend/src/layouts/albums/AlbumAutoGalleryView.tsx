@@ -1,11 +1,16 @@
 import { Avatar, Box, Breadcrumbs, Button, Divider, Group, Loader, Text, Title } from "@mantine/core";
 import { useDisclosure, useViewportSize } from "@mantine/hooks";
+import {
+  IconCalendar as Calendar,
+  IconMap2 as Map2,
+  IconSettingsAutomation as SettingsAutomation,
+  IconUsers as Users,
+} from "@tabler/icons-react";
 import _ from "lodash";
 import { DateTime } from "luxon";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
-import { Calendar, Map2, SettingsAutomation, Users } from "tabler-icons-react";
 
 import { useLazyFetchAutoAlbumQuery } from "../../api_client/albums/auto";
 import { serverAddress } from "../../api_client/apiClient";

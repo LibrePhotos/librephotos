@@ -1,9 +1,14 @@
 import { ActionIcon, Button, Card, Container, Flex, Group, Loader, Space, Stack, Table, Title } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
+import {
+  IconAdjustments as Adjustments,
+  IconEdit as Edit,
+  IconPlus as Plus,
+  IconTrash as Trash,
+} from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Adjustments, Edit, Plus, Trash } from "tabler-icons-react";
 
 import { useDeleteAllAutoAlbumsMutation } from "../../api_client/albums/auto";
 import { useFetchServerStatsQuery, useFetchUserListQuery } from "../../api_client/api";

@@ -1,9 +1,9 @@
 import { Button, Grid, Group, Header, Image } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
+import { IconMenu2 as Menu2 } from "@tabler/icons-react";
 import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { push } from "redux-first-history";
-import { Menu2 } from "tabler-icons-react";
 
 import { toggleSidebar } from "../../actions/uiActions";
 import { api } from "../../api_client/api";
