@@ -130,8 +130,8 @@ export function ButtonHeaderGroup({
               onClick={() => {
                 dispatch(api.endpoints.trainFaces.initiate());
                 showNotification({
-                  message: i18n.t<string>("toasts.trainingstarted"),
-                  title: i18n.t<string>("toasts.trainingstartedtitle"),
+                  message: i18n.t("toasts.trainingstarted"),
+                  title: i18n.t("toasts.trainingstartedtitle"),
                   color: "teal",
                 });
               }}

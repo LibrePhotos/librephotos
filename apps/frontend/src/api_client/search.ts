@@ -52,6 +52,7 @@ const searchApi = api
             };
           } catch (e) {
             return {
+              // @ts-ignore
               photosFlat: response.results,
               photosGroupedByDate: [],
             };

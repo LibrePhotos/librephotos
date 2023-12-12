@@ -313,7 +313,7 @@ export function SelectionActions(props: Readonly<Props>) {
             disabled={!route.location.pathname.startsWith("/useralbum/") || selectedItems.length === 0}
             onClick={() => {
               removePhotosFromAlbum({
-                id: albumID,
+                id: albumID.toString(),
                 title,
                 photos: selectedItems.map(i => i.id),
               });

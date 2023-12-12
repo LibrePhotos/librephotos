@@ -12,6 +12,7 @@ export function AlbumLocationMap({ photos }: Readonly<Props>) {
   const { avgLat, avgLon } = getAveragedCoordinates(photosWithGPS);
 
   const markers = photosWithGPS.map(photo => (
+    // @ts-ignore
     <Marker key={`marker-${photo.id}`} position={[photo.exif_gps_lat, photo.exif_gps_lon]} />
   ));
   if (photosWithGPS.length > 0) {

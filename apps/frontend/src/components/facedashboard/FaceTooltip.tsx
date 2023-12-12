@@ -17,7 +17,7 @@ export function FaceTooltip({ tooltipOpened, cell, children }: Props) {
 
   const confidencePercentageLabel =
     activeTab === "inferred"
-      ? t<string>("settings.confidencepercentage", { percentage: (cell.person_label_probability * 100).toFixed(1) })
+      ? t("settings.confidencepercentage", { percentage: (cell.person_label_probability * 100).toFixed(1) })
       : null;
 
   const dateTimeLabel = DateTime.fromISO(cell.timestamp).isValid

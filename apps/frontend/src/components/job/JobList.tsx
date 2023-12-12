@@ -98,7 +98,6 @@ export function JobList() {
       </Table>
       <Flex justify="center" mt={20}>
         <Pagination
-          page={activePage}
           total={Math.ceil(+jobCount.toFixed(1) / pageSize)}
           onChange={newPage => setActivePage(newPage)}
           withEdges

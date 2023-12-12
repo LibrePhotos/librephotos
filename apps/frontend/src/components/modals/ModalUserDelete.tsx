@@ -30,7 +30,6 @@ export function ModalUserDelete(props: Props) {
     <Modal
       opened={isOpen}
       centered
-      overflow="outside"
       size="md"
       onClose={() => {
         clearStateAndClose();

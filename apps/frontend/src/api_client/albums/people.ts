@@ -69,8 +69,8 @@ export const peopleAlbumsApi = api
         }),
         transformResponse(response, meta, query) {
           showNotification({
-            message: i18n.t<string>("toasts.renameperson", query),
-            title: i18n.t<string>("toasts.renamepersontitle"),
+            message: i18n.t("toasts.renameperson", query),
+            title: i18n.t("toasts.renamepersontitle"),
             color: "teal",
           });
         },
@@ -82,8 +82,8 @@ export const peopleAlbumsApi = api
         }),
         transformResponse() {
           showNotification({
-            message: i18n.t<string>("toasts.deleteperson"),
-            title: i18n.t<string>("toasts.deletepersontitle"),
+            message: i18n.t("toasts.deleteperson"),
+            title: i18n.t("toasts.deletepersontitle"),
             color: "teal",
           });
         },

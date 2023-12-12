@@ -26,7 +26,7 @@ import { fuzzyMatch } from "../../util/util";
 type Props = {
   isOpen: boolean;
   onRequestClose: () => void;
-  resetGroups: () => void;
+  resetGroups?: () => void;
   selectedFaces: any[];
 };
 
@@ -100,14 +100,16 @@ export function ModalPersonEdit(props: Props) {
                 api.endpoints.setFacesPersonLabel.initiate({ faceIds: selectedFaceIDs, personName: newPersonName })
               );
               showNotification({
-                message: i18n.t<string>("toasts.addfacestoperson", {
+                message: i18n.t("toasts.addfacestoperson", {
                   numberOfFaces: selectedFaceIDs.length,
                   personName: newPersonName,
                 }),
-                title: i18n.t<string>("toasts.addfacestopersontitle"),
+                title: i18n.t("toasts.addfacestopersontitle"),
                 color: "teal",
               });
-              resetGroups();
+              if (resetGroups) {
+                resetGroups();
+              }
               onRequestClose();
               setNewPersonName("");
             }}
@@ -144,11 +146,11 @@ export function ModalPersonEdit(props: Props) {
                     })
                   );
                   showNotification({
-                    message: i18n.t<string>("toasts.addfacestoperson", {
+                    message: i18n.t("toasts.addfacestoperson", {
                       numberOfFaces: selectedFaceIDs.length,
                       personName: item.text,
                     }),
-                    title: i18n.t<string>("toasts.addfacestopersontitle"),
+                    title: i18n.t("toasts.addfacestopersontitle"),
                     color: "teal",
                   });
                   onRequestClose();
@@ -177,3 +179,7 @@ export function ModalPersonEdit(props: Props) {
     </Modal>
   );
 }
+
+ModalPersonEdit.defaultProps = {
+  resetGroups: () => {},
+};

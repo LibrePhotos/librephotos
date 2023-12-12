@@ -159,17 +159,17 @@ const faceSlice = createSlice({
           personListToChange[indexToReplace] = personToChange;
         }
       })
-      // @ts-ignore
       .addMatcher(api.endpoints.clusterFaces.matchFulfilled, (state, { payload }) => ({
         ...state,
+        // @ts-ignore
         facesVis: payload,
         clustered: true,
       }))
-      // @ts-ignore
       .addMatcher(api.endpoints.trainFaces.matchFulfilled, (state, { payload }) => ({
         ...state,
         training: false,
         trained: true,
+        // @ts-ignore
         facesVis: payload,
       }))
       .addMatcher(api.endpoints.deleteFaces.matchFulfilled, (state, { payload }) => {

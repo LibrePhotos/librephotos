@@ -293,31 +293,29 @@ function PhotoListViewComponent(props: Props) {
                 updateSelectionState={updateSelectionState}
               />
               <Group position="right">
-                {
-                  // @ts-ignore
-                  !route.location.pathname.startsWith("/deleted") && (
-                    <SelectionActions
-                      selectedItems={selectionState.selectedItems}
-                      albumID={params ? params.albumID : undefined}
-                      title={title}
-                      setAlbumCover={actionType => {
-                        if (actionType === "person") {
-                          dispatch(setAlbumCoverForPerson(params.albumID, selectionState.selectedItems[0].id));
-                        }
-                        if (actionType === "useralbum") {
-                          setUserAlbumCover({
-                            id: `${params.albumID}`,
-                            photo: selectionState.selectedItems[0].id,
-                          });
-                        }
-                      }}
-                      onSharePhotos={() => setModalSharePhotosOpen(true)}
-                      onShareAlbum={() => setModalAlbumShareOpen(true)}
-                      onAddToAlbum={() => setModalAddToAlbumOpen(true)}
-                      updateSelectionState={updateSelectionState}
-                    />
-                  )
-                }
+                {!route.location.pathname.startsWith("/deleted") && (
+                  <SelectionActions
+                    selectedItems={selectionState.selectedItems}
+                    // @ts-ignore
+                    albumID={params ? params.albumID : undefined}
+                    title={title}
+                    setAlbumCover={actionType => {
+                      if (actionType === "person") {
+                        dispatch(setAlbumCoverForPerson(params.albumID, selectionState.selectedItems[0].id));
+                      }
+                      if (actionType === "useralbum") {
+                        setUserAlbumCover({
+                          id: `${params.albumID}`,
+                          photo: selectionState.selectedItems[0].id,
+                        });
+                      }
+                    }}
+                    onSharePhotos={() => setModalSharePhotosOpen(true)}
+                    onShareAlbum={() => setModalAlbumShareOpen(true)}
+                    onAddToAlbum={() => setModalAddToAlbumOpen(true)}
+                    updateSelectionState={updateSelectionState}
+                  />
+                )}
                 <TrashcanActions
                   selectedItems={selectionState.selectedItems}
                   updateSelectionState={updateSelectionState}

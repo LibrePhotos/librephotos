@@ -111,7 +111,12 @@ export function TimestampItem({ photoDetail }: Props) {
           </Group>
           <Stack>
             <DatePicker locale={lang} value={timestamp} onChange={onChangeDate} />
-            <TimeInput withSeconds value={timestamp} onChange={onChangeTime} />
+
+            <TimeInput
+              withSeconds
+              value={timestamp?.toString()}
+              onChange={event => onChangeTime(new Date(event.target.value))}
+            />
             <Group position="center">
               <Tooltip label={t("lightbox.sidebar.cancel")}>
                 <ActionIcon variant="light" onClick={onCancelDateTime} color="red">
