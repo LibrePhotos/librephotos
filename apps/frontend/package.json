@@ -120,7 +120,7 @@
     "zod": "3.22.4"
   },
   "devDependencies": {
-    "@babel/eslint-parser": "7.22.15",
+    "@babel/eslint-parser": "7.23.3",
     "@cucumber/messages": "^22.0.0",
     "@cypress/browserify-preprocessor": "^3.0.2",
     "@trivago/prettier-plugin-sort-imports": "4.2.1",
