@@ -134,7 +134,7 @@
     "@types/react-dom": "18.2.14",
     "@types/react-leaflet": "^2.0.0",
     "@types/react-modal": "3.16.3",
-    "@types/react-redux": "7.1.28",
+    "@types/react-redux": "7.1.33",
     "@types/react-virtualized": "^9.21.28",
     "@typescript-eslint/eslint-plugin": "6.7.3",
     "@typescript-eslint/parser": "6.7.3",
