@@ -1,6 +1,7 @@
 FROM node:18-slim as builder
 
 RUN apt-get update && apt-get install -y git
+RUN npm config set fetch-retry-maxtimeout 60000
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
