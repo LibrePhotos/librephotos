@@ -30,7 +30,12 @@ export function JobProgress({ target, current, finished, error }: IJobProgress) 
       </div>
     );
   }
-  return null;
+  return (
+    <div>
+      <Progress size={10} color="blue" value={0} />
+      <Center>{t("joblist.waiting")}</Center>
+    </div>
+  );
 }
 
 JobProgress.defaultProps = {

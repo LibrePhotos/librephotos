@@ -31,5 +31,5 @@ export function JobDuration({ matches, finished, finishedAt, startedAt }: IJobDu
     }
   }
 
-  return null;
+  return <td>{t("joblist.waiting")}</td>;
 }
