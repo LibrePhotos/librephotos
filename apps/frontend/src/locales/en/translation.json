@@ -417,6 +417,7 @@
     "delete": "Delete",
     "itemsadded": "Asset(s) added",
     "running": "running",
+    "waiting": "waiting",
     "removeexplanation": "Removing an entry does not actually stop the job - it's only removed from the DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc."
   },
   "modaluseredit": {

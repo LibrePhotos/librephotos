@@ -47,6 +47,7 @@ export function FaceDashboard() {
     {
       page: number;
       person: any;
+      inferred: boolean;
     }[]
   >([]);
 
@@ -91,9 +92,9 @@ export function FaceDashboard() {
 
   useEffect(() => {
     if (groups) {
-      const currentList = activeTab === FacesTab.enum.labeled ? labeledFacesList : inferredFacesList;
       groups.forEach(element => {
         let force = false;
+        const currentList = element.inferred ? labeledFacesList : inferredFacesList;
         const personIndex = currentList.findIndex(person => person.id === element.person);
         // Force refetch for persons that have more than 100 faces as we can't be sure all faces were loaded when changing orderBy
         if (personIndex !== -1 && currentList[personIndex].face_count > 100) force = true;
@@ -102,7 +103,7 @@ export function FaceDashboard() {
             {
               person: element.person,
               page: element.page,
-              inferred: activeTab === FacesTab.enum.inferred,
+              inferred: element.inferred,
               orderBy,
             },
             { forceRefetch: force }
@@ -185,7 +186,7 @@ export function FaceDashboard() {
       .filter((i: any) => i.isTemp)
       .map((i: any) => {
         const page = Math.ceil((parseInt(i.id, 10) + 1) / 100);
-        return { page, person: i.person };
+        return { page, person: i.person, inferred: !(activeTab === FacesTab.enum.labeled) };
       });
     const uniqueGroups = _.uniqBy(relevantInfos, (e: any) => `${e.page} ${e.person}`);
     if (uniqueGroups.length > 0) {
