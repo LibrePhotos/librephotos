@@ -1,45 +1,29 @@
-import {
-  ActionIcon,
-  Avatar,
-  Badge,
-  Box,
-  Button,
-  Group,
-  Stack,
-  Text,
-  Textarea,
-  Title,
-  Tooltip,
-  UnstyledButton,
-} from "@mantine/core";
+import { ActionIcon, Avatar, Box, Button, Group, Stack, Text, Title, Tooltip } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 // only needs to be imported once
 import {
   IconEdit as Edit,
   IconMap2 as Map2,
-  IconNote as Note,
   IconPhoto as Photo,
-  IconTags as Tags,
   IconUserOff as UserOff,
   IconUsers as Users,
-  IconWand as Wand,
   IconX as X,
 } from "@tabler/icons-react";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-virtualized/styles.css";
 import { push } from "redux-first-history";
 
-import { generatePhotoIm2txtCaption, savePhotoCaption } from "../../actions/photosActions";
 import type { Photo as PhotoType } from "../../actions/photosActions.types";
 import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { photoDetailsApi } from "../../api_client/photos/photoDetail";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { useAppDispatch } from "../../store/store";
 import { LocationMap } from "../LocationMap";
 import { Tile } from "../Tile";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
+import { Description } from "./Description";
 import { TimestampItem } from "./TimestampItem";
 import { VersionComponent } from "./VersionComponent";
 
@@ -48,17 +32,14 @@ type Props = {
   photoDetail: PhotoType;
   closeSidepanel: () => void;
 };
-
 export function Sidebar(props: Props) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const [personEditOpen, setPersonEditOpen] = useState(false);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
-  const { generatingCaptionIm2txt } = useAppSelector(store => store.photos);
   const { photoDetail, isPublic, closeSidepanel } = props;
-
-  const [imageCaption, setImageCaption] = useState("");
   const { width } = useViewportSize();
+
   const SCROLLBAR_WIDTH = 15;
   let LIGHTBOX_SIDEBAR_WIDTH = 320;
 
@@ -74,15 +55,6 @@ export function Sidebar(props: Props) {
     });
     dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(photoDetail.image_hash)).refetch();
   };
-
-  useEffect(() => {
-    if (photoDetail) {
-      const currentCaption = photoDetail.captions_json.user_caption;
-      setImageCaption(currentCaption);
-    } else {
-      setImageCaption("");
-    }
-  }, [photoDetail]);
 
   if (width < 600) {
     LIGHTBOX_SIDEBAR_WIDTH = width - SCROLLBAR_WIDTH;
@@ -186,126 +158,8 @@ export function Sidebar(props: Props) {
 
           {/* End Item People */}
           {/* Start Item Caption */}
+          <Description photoDetail={photoDetail} isPublic={isPublic} />
 
-          <Stack>
-            {false && photoDetail.captions_json.im2txt}
-            <Stack>
-              <Textarea
-                label={
-                  <Stack>
-                    <Group>
-                      <Note />
-                      <Title order={4}>{t("lightbox.sidebar.caption")}</Title>
-                    </Group>
-                    {photoDetail.captions_json.im2txt && !imageCaption?.includes(photoDetail.captions_json.im2txt) && (
-                      <div>
-                        <Group spacing="sm" style={{ paddingBottom: 12 }}>
-                          <Wand color="grey" size={20} />
-                          <Text size="sm" color="dimmed">
-                            Suggestion
-                          </Text>
-                        </Group>
-                        <UnstyledButton
-                          sx={theme => ({
-                            display: "block",
-                            padding: theme.spacing.xs,
-                            borderRadius: theme.radius.xl,
-                            textDecoration: "none",
-                            fontSize: theme.fontSizes.sm,
-                            color: theme.colorScheme === "dark" ? theme.colors.dark[1] : theme.colors.gray[7],
-                            backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[4] : theme.colors.gray[1],
-                            "&:hover": {
-                              backgroundColor:
-                                theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[3],
-                            },
-                          })}
-                          onClick={() => {
-                            setImageCaption(photoDetail.captions_json.im2txt);
-                          }}
-                        >
-                          {photoDetail.captions_json.im2txt}
-                        </UnstyledButton>
-                        <div style={{ height: 5 }} />
-                      </div>
-                    )}
-                  </Stack>
-                }
-                value={imageCaption}
-                rightSection={
-                  <ActionIcon
-                    style={{ position: "absolute", right: 0, top: 0, margin: "5px" }}
-                    loading={generatingCaptionIm2txt}
-                    variant="subtle"
-                    onClick={() => {
-                      dispatch(generatePhotoIm2txtCaption(photoDetail.image_hash));
-                    }}
-                    disabled={isPublic || (generatingCaptionIm2txt != null && generatingCaptionIm2txt)}
-                  >
-                    <Wand />
-                  </ActionIcon>
-                }
-                inputMode="text"
-                autosize
-                disabled={isPublic}
-                onChange={e => setImageCaption(e.target.value)}
-              />
-              <Group>
-                <Button
-                  onClick={() => {
-                    dispatch(savePhotoCaption(photoDetail.image_hash, imageCaption));
-                  }}
-                  disabled={isPublic}
-                  size="sm"
-                  color="green"
-                >
-                  {t("lightbox.sidebar.submit")}
-                </Button>
-              </Group>
-            </Stack>
-          </Stack>
-
-          {/* End Item Caption */}
-          {/* Exif Data */}
-
-          {/* Start Item Scene */}
-          {photoDetail.captions_json.places365 && (
-            <Stack>
-              <Group>
-                <Tags />
-                <Title order={4}>{t("lightbox.sidebar.scene")}</Title>
-              </Group>
-              <Text weight={700}>{t("lightbox.sidebar.attributes")}</Text>
-              <Group>
-                {photoDetail.captions_json.places365.attributes.map(nc => (
-                  <Badge
-                    key={`lightbox_attribute_label_${photoDetail.image_hash}_${nc}`}
-                    color="blue"
-                    onClick={() => {
-                      dispatch(push(`/search/${nc}`));
-                    }}
-                  >
-                    {nc}
-                  </Badge>
-                ))}
-              </Group>
-
-              <Text weight={700}>{t("lightbox.sidebar.categories")}</Text>
-              <Group>
-                {photoDetail.captions_json.places365.categories.map(nc => (
-                  <Badge
-                    key={`lightbox_category_label_${photoDetail.image_hash}_${nc}`}
-                    color="teal"
-                    onClick={() => {
-                      dispatch(push(`/search/${nc}`));
-                    }}
-                  >
-                    {nc}
-                  </Badge>
-                ))}
-              </Group>
-            </Stack>
-          )}
-          {/* End Item Scene */}
           {/* Start Item Similar Photos */}
           {photoDetail.similar_photos.length > 0 && (
             <div>
