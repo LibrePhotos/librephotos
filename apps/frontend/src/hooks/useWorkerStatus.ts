@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { fetchAlbumDateList } from "../actions/albumsActions";
-import { fetchPeople } from "../actions/peopleActions";
+import { peopleAlbumsApi } from "../api_client/albums/people";
 import { api, useWorkerQuery } from "../api_client/api";
 import { PhotosetType } from "../reducers/photosReducer";
 import { useAppDispatch, useAppSelector } from "../store/store";
@@ -22,6 +22,7 @@ export function useWorkerStatus(): {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const workerRunningJob = useAppSelector(state => state.worker.job_detail);
+
   const [hadPreviousJob, setHadPreviousJob] = useState(false);
 
   const user = useAppSelector(selectUserSelfDetails);
@@ -49,7 +50,7 @@ export function useWorkerStatus(): {
       if (workerRunningJob?.job_type_str.toLowerCase() === "train faces") {
         dispatch(api.endpoints.fetchIncompleteFaces.initiate({ inferred: false }));
         dispatch(api.endpoints.fetchIncompleteFaces.initiate({ inferred: true }));
-        fetchPeople(dispatch);
+        dispatch(peopleAlbumsApi.endpoints.fetchPeopleAlbums.initiate());
       }
       if (workerRunningJob?.job_type_str.toLowerCase() === "scan photos") {
         fetchAlbumDateList(dispatch, {

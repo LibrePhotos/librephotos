@@ -13,14 +13,14 @@ import {
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { fetchPeople } from "../../actions/peopleActions";
+import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/people";
 import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import i18n from "../../i18n";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { useAppDispatch } from "../../store/store";
 import { fuzzyMatch } from "../../util/util";
 
 type Props = {
@@ -34,7 +34,8 @@ export function ModalPersonEdit(props: Props) {
   const [newPersonName, setNewPersonName] = useState("");
 
   const matches = useMediaQuery("(min-width: 700px)");
-  const { people } = useAppSelector(store => store.people);
+
+  const { data: people } = useFetchPeopleAlbumsQuery();
 
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
@@ -42,20 +43,14 @@ export function ModalPersonEdit(props: Props) {
   let filteredPeopleList = people;
 
   if (newPersonName.length > 0) {
-    filteredPeopleList = people.filter(el => fuzzyMatch(newPersonName, el.text));
+    filteredPeopleList = people?.filter(el => fuzzyMatch(newPersonName, el.text));
   }
 
   const selectedImageIDs = selectedFaces.map(face => face.face_url);
   const selectedFaceIDs = selectedFaces.map(face => face.face_id);
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchPeople(dispatch);
-    }
-  }, [isOpen, dispatch]);
-
   function personExist(name: string) {
-    return people.map(person => person.text.toLowerCase().trim()).includes(name.toLowerCase().trim());
+    return people?.map(person => person.text.toLowerCase().trim()).includes(name.toLowerCase().trim());
   }
 
   return (
@@ -97,7 +92,10 @@ export function ModalPersonEdit(props: Props) {
           <Button
             onClick={() => {
               dispatch(
-                api.endpoints.setFacesPersonLabel.initiate({ faceIds: selectedFaceIDs, personName: newPersonName })
+                api.endpoints.setFacesPersonLabel.initiate({
+                  faceIds: selectedFaceIDs,
+                  personName: newPersonName,
+                })
               );
               showNotification({
                 message: i18n.t("toasts.addfacestoperson", {
@@ -126,8 +124,9 @@ export function ModalPersonEdit(props: Props) {
             overflowY: "scroll",
           }}
         >
-          {filteredPeopleList.length > 0 &&
-            filteredPeopleList.map(item => (
+          {filteredPeopleList &&
+            filteredPeopleList.length > 0 &&
+            filteredPeopleList?.map(item => (
               <UnstyledButton
                 sx={theme => ({
                   display: "block",

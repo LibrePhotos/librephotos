@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
 import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
-import { fetchPeople } from "../../actions/peopleActions";
+import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/people";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { PhotosState } from "../../reducers/photosReducer";
 import { PhotosetType } from "../../reducers/photosReducer";
@@ -20,11 +20,11 @@ type IFetchedGroup = {
 export function AlbumPersonGallery(): JSX.Element {
   const { albumID } = useParams();
   const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(state => state.photos as PhotosState);
-  const { people } = useAppSelector(state => state.people);
+  const { data: people } = useFetchPeopleAlbumsQuery();
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const [group, setGroup] = useState({} as IFetchedGroup);
-  const person = people.filter((i: any) => i.key === albumID)[0];
+  const person = people?.filter((i: any) => i.key === albumID)[0];
   const personname = person ? person.value : undefined;
 
   useEffect(() => {
@@ -39,9 +39,6 @@ export function AlbumPersonGallery(): JSX.Element {
   }, [group.id, group.page]);
 
   useEffect(() => {
-    if (people.length === 0) {
-      fetchPeople(dispatch);
-    }
     fetchAlbumDateList(dispatch, {
       photosetType: PhotosetType.PERSON,
       person_id: albumID ? +albumID : undefined,
