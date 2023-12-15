@@ -400,7 +400,8 @@
         "startedby": "Iniciado por",
         "started": "Iniciou",
         "removeexplanation": "Eliminar uma entrada não para o trabalho, simplesmente remove este registo da base de dados. Usar apenas quando é sabido que um trabalho falhou inesperadamente, depois de ter analisado os registos, etc.",
-        "itemsadded": "Ativo(s) adicionado(s)"
+        "itemsadded": "Ativo(s) adicionado(s)",
+        "waiting": "a aguardar"
     },
     "modalscandirectoryedit": {
         "currentdirectory": "Diretoria atual do utilizador",
