@@ -390,7 +390,8 @@
         "itemsprocessed": "Artículo(s) procesados",
         "running": "Ejecutándose",
         "removeexplanation": "Eliminar una entrada no detiene realmente el trabajo, sólo lo elimina de la base de datos. Utilícelo sólo en los casos en los que sepa que un trabajo ha fallado sin gracia, inspeccionando los registros, etc.",
-        "itemsadded": "Elemento(s) agregado(s)"
+        "itemsadded": "Elemento(s) agregado(s)",
+        "waiting": "a la espera"
     },
     "modalscandirectoryedit": {
         "header": "Establecer el directorio de detección para el usuario",
