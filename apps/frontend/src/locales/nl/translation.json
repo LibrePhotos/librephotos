@@ -366,7 +366,8 @@
         "running": "in uitvoer",
         "status": "Status",
         "removeexplanation": "Door het verwijderen van een taak wordt deze niet daadwerkelijk afgebroken; alleen het DB-item wordt verwijderd. Let op: gebruik dit alleen als een taak niet netjes is afgebroken en op basis van informatie uit het logboek.",
-        "itemsadded": "Item(s) toegevoegd"
+        "itemsadded": "Item(s) toegevoegd",
+        "waiting": "aan het wachten"
     },
     "modalscandirectoryedit": {
         "explanation2": "op de knop ‘Foto's scannen’ klikt, dan worden hier opgegeven foto's geïmporteerd naar het gebruikersaccount",
@@ -667,5 +668,16 @@
     "docs": "Documentatie",
     "deletealbumexplanation": "Door deze actie wordt het album permanent verwĳderd. Dit is onomkeerbaar.",
     "storage": "Opslagruimte",
-    "storagetooltip": "{{usedstorage}} van {{totalstorage}} in gebruik"
+    "storagetooltip": "{{usedstorage}} van {{totalstorage}} in gebruik",
+    "Delete Missing Photos": "Ontbrekende foto's verwijderen",
+    "Download Models": "Modellen downloaden",
+    "Regenerate Event Titles": "Gebeurtenistitels opnieuw genereren",
+    "Find Similar Faces": "Zoeken naar vergelijkbare gezichten",
+    "Scan Photos": "Foto's scannen",
+    "version": "Versie: {{version}}",
+    "Scan Faces": "Gezichtsherkenning trainen",
+    "Calculate Clip Embeddings": "Clipinsluitingen berekenen",
+    "Generate Event Albums": "Gebeurtenisalbums samenstellen",
+    "Train Faces": "Gezichtsherkenning trainen",
+    "Download Selected Photos": "Selectie downloaden"
 }
