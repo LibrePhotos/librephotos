@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install python
 RUN apt-get update \
-	&& apt-get install -y python3-pip python3-dev \
+	&& apt-get install -y python3-pip python3-dev software-properties-common \
 	&& cd /usr/local/bin \
 	&& ln -s /usr/bin/python3 python \
 	&& pip3 install --upgrade pip \
@@ -12,7 +12,7 @@ RUN apt-get update \
 	&& rm -rf /var/lib/apt/lists/*
 
 # System packages installation
-RUN apt-get update && \
+RUN add-apt-repository multiverse && apt-get update && \
 	apt-get install -y --no-install-recommends \
 	build-essential \
 	bzip2 \
