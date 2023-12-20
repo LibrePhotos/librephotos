@@ -2,7 +2,6 @@ FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-add-repository multiverse
 # Install python
 RUN apt-get update \
 	&& apt-get install -y python3-pip python3-dev \
