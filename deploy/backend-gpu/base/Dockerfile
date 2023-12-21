@@ -12,7 +12,7 @@ RUN apt-get update \
 	&& rm -rf /var/lib/apt/lists/*
 
 # System packages installation
-RUN add-apt-repository multiverse && apt-get update && \
+RUN apt-get update && \
 	apt-get install -y --no-install-recommends \
 	build-essential \
 	bzip2 \
@@ -54,7 +54,6 @@ RUN add-apt-repository multiverse && apt-get update && \
 	libtinfo5 \
 	libvips-dev \
 	swig && \
- 	nvidia-modprobe && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
