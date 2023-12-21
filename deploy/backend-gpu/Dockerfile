@@ -6,6 +6,8 @@ ARG MLVALIDATION
 ARG IMAGE_TAG
 ENV IMAGE_TAG ${IMAGE_TAG}
 
+RUN apt-get update && apt-get install nvidia-modprobe -y; \
+
 WORKDIR /code
 RUN git clone --depth 1 https://github.com/LibrePhotos/librephotos .
 RUN pip install --no-cache-dir -r requirements.txt
