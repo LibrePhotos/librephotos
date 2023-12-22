@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install nvidia-modprobe -y
 
 WORKDIR /code
 RUN git clone --depth 1 https://github.com/LibrePhotos/librephotos .
+run pip install --ignore-installed blinker==1.7.0
 RUN pip install --no-cache-dir -r requirements.txt
 RUN if [ "$DEBUG" = 1 ] ; then \
   pip install -r requirements.dev.txt; \
