@@ -86,7 +86,7 @@ class UserViewSet(viewsets.ModelViewSet):
             )
             .order_by("id")
         )
-        if not self.request.user.is_authenticated or not self.request.user.is_superuser:
+        if not self.request.user.is_authenticated:
             return queryset.exclude(public_sharing=False)
         return queryset
 
