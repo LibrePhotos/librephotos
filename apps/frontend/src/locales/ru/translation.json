@@ -91,7 +91,7 @@
         "nextcloudloggedin": "Подключено",
         "confidencelevel": "Уровень точности",
         "helptranslating": "Помочь с переводом",
-        "confidencepercentage": "Уверенность: {{percentage}}%",
+        "confidencepercentage": "Достоверность: {{percentage}}%",
         "confidence": {
             "standard": "Стандартный",
             "high": "Высокий",
