@@ -89,7 +89,7 @@
         "nextcloudupdate": "Обновить учетные данные Nextcloud",
         "nextcloudscandirectory": "Сканируемый каталог для Nextcloud",
         "nextcloudloggedin": "Подключено",
-        "confidencelevel": "Уровень уверенности",
+        "confidencelevel": "Уровень точности",
         "helptranslating": "Помочь с переводом",
         "confidencepercentage": "Уверенность: {{percentage}}%",
         "confidence": {
